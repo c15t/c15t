@@ -24,6 +24,7 @@ import {
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 
 import { resolveGvl } from './gvl';
 import type { GvlOptions } from './gvl';
@@ -54,7 +55,7 @@ export const readInitSignals = function readInitSignals(
 		// Global Privacy Control is a signal, not a preference: the spec
 		// defines '1' as the only affirmative value, so anything else is
 		// absence rather than a false.
-		gpc: headers.get('sec-gpc') === '1',
+		gpc: (headers.get('x-c15t-gpc') ?? headers.get('sec-gpc')) === '1',
 
 		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
 		// primary subtag happens downstream in the resolver, not here.
@@ -78,12 +79,16 @@ export const buildInitResponse = async function buildInitResponse(
 	const signals = readInitSignals(headers);
 	const manifest = await buildConsentManifestFromConfig(config);
 
-	const resolved = resolveInitFromManifest(manifest, {
-		country: signals.country,
-		gpc: signals.gpc,
-		language: signals.language,
-		region: signals.region,
-	});
+	const resolved = resolveInitFromManifest(
+		manifest,
+		{
+			country: signals.country,
+			gpc: signals.gpc,
+			language: signals.language,
+			region: signals.region,
+		},
+		{ baseTranslations }
+	);
 
 	// Signed evidence of the decision just made, so the consent submitted
 	// against it can be checked to be the one this server actually issued.

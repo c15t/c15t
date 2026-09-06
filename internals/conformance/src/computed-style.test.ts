@@ -186,7 +186,7 @@ test('canonicalizeStyleValue normalizes 6-digit hex to rgb', () => {
 
 test('canonicalizeStyleValue normalizes 8-digit hex to rgba', () => {
 	expect(canonicalizeStyleValue('color', '#ff000080')).toBe(
-		'rgba(255, 0, 0, 0.5019607843137255)'
+		'rgba(255, 0, 0, 0.5)'
 	);
 });
 
@@ -227,6 +227,42 @@ test('canonicalizeStyleValue canonicalizes custom-property colors', () => {
 		'hsl(228.07, 69.8%, 48.04%)'
 	);
 	expect(fromHex).toBe(fromHsl);
+});
+
+test('canonicalizeStyleValue canonicalizes colors inside shadow values', () => {
+	const fromHex = canonicalizeStyleValue(
+		'--accordion-focus-shadow',
+		'0 0 0 2px #476cff'
+	);
+	const fromHsl = canonicalizeStyleValue(
+		'--accordion-focus-shadow',
+		'0 0 0 2px hsl(227.93, 100%, 63.92%)'
+	);
+	expect(fromHex).toBe(fromHsl);
+});
+
+test('canonicalizeStyleValue treats equivalent 8-bit alpha as equal', () => {
+	const fromHex = canonicalizeStyleValue(
+		'--card-shadow',
+		'0 1px 2px 0 #0000000d'
+	);
+	const fromRgb = canonicalizeStyleValue(
+		'--card-shadow',
+		'0 1px 2px 0 rgb(0 0 0 / .05)'
+	);
+	expect(fromHex).toBe(fromRgb);
+});
+
+test('canonicalizeStyleValue normalizes color function whitespace', () => {
+	const spaced = canonicalizeStyleValue(
+		'--button-hover-tint',
+		'color-mix( in srgb, hsl(0, 0%, 10%) 10%, transparent )'
+	);
+	const compact = canonicalizeStyleValue(
+		'--button-hover-tint',
+		'color-mix(in srgb, hsl(0, 0%, 10%) 10%, transparent)'
+	);
+	expect(spaced).toBe(compact);
 });
 
 test('canonicalizeStyleValue replaces animation-name with placeholder', () => {

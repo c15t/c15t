@@ -1,6 +1,5 @@
-import { defaultTranslationConfig } from '@c15t/core';
-
-import { useTranslations } from '~/hooks/use-translations';
+import { useTranslations } from '~/component-hooks/use-translations';
+import { defaultTranslationConfig } from '~/utils/default-translation-config';
 
 /**
  * IAB translations interface.
@@ -69,6 +68,8 @@ interface IABTranslations {
 			privacyPolicy: string;
 			storageDisclosure: string;
 			requiredNotice: string;
+			partnerSingular: string;
+			partnerPlural: string;
 		};
 		footer: {
 			consentStorage: string;

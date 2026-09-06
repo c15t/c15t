@@ -1,4 +1,5 @@
-import type { AllConsentNames, ConsentState } from '../types';
+import type { ConsentState } from '../consent/compliance';
+import type { AllConsentNames } from '../consent/consent-types';
 import { applyPolicyScopeForRuntimeGating } from './policy';
 
 /**

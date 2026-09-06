@@ -1,0 +1,163 @@
+name: Next.js Compatibility
+
+# Builds and smoke-tests @c15t/nextjs inside real Next.js apps, one job per
+# framework cell (version × router × caching mode). See
+# internals/next-compat/README.md for what each cell asserts.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/core/**'
+      - 'packages/react/**'
+      - 'packages/nextjs/**'
+      - 'packages/ui/**'
+      - 'packages/translations/**'
+      - 'packages/schema/**'
+      - 'packages/shared/**'
+      - 'internals/next-compat/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'turbo.json'
+      - '.github/workflows/next-compat.yml'
+  push:
+    branches: ['canary', 'main']
+    paths:
+      - 'packages/core/**'
+      - 'packages/react/**'
+      - 'packages/nextjs/**'
+      - 'packages/ui/**'
+      - 'packages/translations/**'
+      - 'packages/schema/**'
+      - 'packages/shared/**'
+      - 'internals/next-compat/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'turbo.json'
+      - '.github/workflows/next-compat.yml'
+  schedule:
+    # Nightly, so a new Next.js release breaks this workflow before it breaks
+    # a user. The canary job below only runs on this trigger and on dispatch.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+env:
+  # leadtype package-docs generation exceeds the default Node heap on
+  # cache-miss builds of larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  cell:
+    name: next-${{ matrix.cell }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        cell:
+          - 15-app
+          - 15-pages
+          - 16-app
+          - 16-pages
+          - 16-cache-components
+          - 16-static-export
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+        with:
+          bun-version: 1.3.11
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Read-only: ci.yml's test job is the single writer of this cache.
+      - name: ♻️ Restore Turborepo cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: 🎭 Resolve Playwright version
+        id: playwright
+        run: |
+          echo "version=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")" >> "$GITHUB_OUTPUT"
+
+      - name: 🎭 Restore Playwright browsers
+        id: playwright-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: 🎭 Install Playwright browsers
+        run: bunx "playwright@${{ steps.playwright.outputs.version }}" install --with-deps chromium chromium-headless-shell
+
+      - name: 🎭 Save Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: 🧪 Build the app and run the compatibility suite
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+        run: bun turbo run test:compat --filter="@c15t/next-compat-${{ matrix.cell }}"
+
+  canary:
+    name: next@canary (next-${{ matrix.cell }})
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Advisory: a Next.js canary regression should not block anything, it
+    # should get looked at.
+    continue-on-error: true
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        cell:
+          - 16-app
+          - 16-pages
+          - 16-cache-components
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+        with:
+          bun-version: 1.3.11
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🎭 Install Playwright browsers
+        run: |
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")
+          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
+
+      # bunfig.toml delays new npm versions by three days; a canary is by
+      # definition newer than that, so the gate is lifted for this one add.
+      - name: ⏭️ Switch the cell to next@canary
+        run: |
+          cd "internals/next-compat/next-${{ matrix.cell }}"
+          bun add "next@canary" --minimum-release-age=0
+          bun -e "console.log('next', require('next/package.json').version)"
+
+      - name: 🧪 Build the app and run the compatibility suite
+        run: bun turbo run test:compat --filter="@c15t/next-compat-${{ matrix.cell }}"

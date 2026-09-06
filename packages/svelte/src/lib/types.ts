@@ -1,89 +1,96 @@
 import type {
-	AllConsentNames,
-	Callbacks,
-	I18nConfig,
 	IABConfig,
 	LegalLinks,
-	NetworkBlockerConfig,
-	OfflinePolicyConfig,
-	PolicyConfig,
-	StorageConfig,
-	User,
+	ProviderTransportFactory,
 } from '@c15t/core';
 import type {
-	KernelConfig,
-	KernelOverrides,
-	KernelTransport,
-	KernelUser,
-} from '@c15t/core/v3';
-import type { IframeBlockerOptions } from '@c15t/core/v3/modules/iframe-blocker';
-import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
-import type { PersistenceOptions } from '@c15t/core/v3/modules/persistence';
-import type {
-	Script,
-	ScriptLoaderDebugEvent,
-} from '@c15t/core/v3/modules/script-loader';
-import type { CreateIABOptions } from '@c15t/iab/v3';
+	ConsentRuntimeOptions,
+	RuntimeNetworkBlockerOptions,
+	RuntimePersistenceOptions,
+	RuntimeScriptLoaderOptions,
+} from '@c15t/core/runtime';
+import type { CreateIABOptions } from '@c15t/iab';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 
-export type ProviderMode = 'hosted' | 'offline' | 'c15t';
-
+/** IAB options a provider accepts, or `false` to leave IAB unmounted. */
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &
 			Partial<Pick<IABConfig, 'enabled' | 'cmpId' | 'cmpVersion' | 'vendors'>> &
 			Partial<Pick<CreateIABOptions, 'gvl'>>)
 	| false;
 
-export interface UseScriptLoaderOptions {
-	onDebug?: (event: ScriptLoaderDebugEvent) => void;
-}
+/**
+ * Options for the script-loader module.
+ *
+ * The runtime's own contract, re-exported under this package's `use*`
+ * naming so the Svelte hooks and the runtime cannot drift apart.
+ *
+ * @see {@link https://c15t.com/docs/frameworks/svelte}
+ */
+export type UseScriptLoaderOptions = RuntimeScriptLoaderOptions;
 
-export interface UseNetworkBlockerOptions {
-	rules: NetworkBlockerRule[];
-	enabled?: boolean;
-	logBlockedRequests?: boolean;
-	onRequestBlocked?: NetworkBlockerConfig['onRequestBlocked'];
-}
+/**
+ * Options for the network-blocker module.
+ *
+ * The runtime's own contract, re-exported under this package's `use*`
+ * naming so the Svelte hooks and the runtime cannot drift apart.
+ */
+export type UseNetworkBlockerOptions = RuntimeNetworkBlockerOptions;
 
-export type UsePersistenceOptions = Omit<PersistenceOptions, 'kernel'>;
+/**
+ * Options for the persistence module.
+ *
+ * The runtime's own contract, re-exported under this package's `use*`
+ * naming so the Svelte hooks and the runtime cannot drift apart.
+ */
+export type UsePersistenceOptions = RuntimePersistenceOptions;
 
-export interface ConsentManagerOptions extends Pick<
-	UIOptions,
-	'colorScheme' | 'disableAnimation' | 'noStyle' | 'scrollLock' | 'trapFocus'
-> {
-	enabled?: boolean;
-	mode?: ProviderMode;
-	backendURL?: string;
-	domain?: string;
-	headers?: Record<string, string>;
-	customFetch?: typeof fetch;
-	transport?: KernelTransport;
-	storageConfig?: StorageConfig;
-	user?: User | KernelUser;
-	overrides?: KernelOverrides;
-	prefetch?: KernelConfig;
-	callbacks?: Callbacks;
-	reloadOnConsentRevoked?: boolean;
-	scripts?: Script[];
-	scriptLoader?: UseScriptLoaderOptions;
-	networkBlocker?: UseNetworkBlockerOptions | false;
-	iframeBlocker?: Omit<IframeBlockerOptions, 'kernel'> | false;
-	iab?: ProviderIABOptions;
-	persistence?: boolean | UsePersistenceOptions;
-	policies?: PolicyConfig[];
+/**
+ * Options accepted by `<ConsentManagerProvider>`.
+ *
+ * Everything except the fields below is the framework-agnostic
+ * {@link ConsentRuntimeOptions} contract, forwarded untouched to
+ * `createConsentRuntime()` from `@c15t/core/runtime`. `createIAB` is
+ * supplied by this package, and `pkg` is fixed to `'@c15t/svelte'`.
+ */
+export interface ConsentManagerOptions
+	extends
+		Omit<ConsentRuntimeOptions, 'createIAB' | 'iab' | 'mode' | 'pkg'>,
+		Pick<
+			UIOptions,
+			| 'colorScheme'
+			| 'disableAnimation'
+			| 'noStyle'
+			| 'scrollLock'
+			| 'trapFocus'
+		> {
 	/**
-	 * Offline policy preview configuration.
+	 * Transport factory the provider builds its kernel with. Required.
 	 *
-	 * @remarks
-	 * Mirrors the React provider's `offlinePolicy` option: in `mode: 'offline'`
-	 * it lets you inject a synthetic resolved policy (`policy`,
-	 * `policyDecision`, `policySnapshotToken`) or backend-compatible
-	 * `policyPacks` without a live `/init` endpoint.
+	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * policies locally with no network, or `custom()` to supply your own
+	 * kernel transport or v2 endpoint handlers. This is an initial-only
+	 * option: remount the provider to change it.
+	 *
+	 * @example
+	 * ```svelte
+	 * <script lang="ts">
+	 *   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+	 *
+	 *   let { children } = $props();
+	 * </script>
+	 *
+	 * <ConsentManagerProvider mode={hosted({ url: '/api/c15t' })}>
+	 *   {@render children()}
+	 * </ConsentManagerProvider>
+	 * ```
 	 */
-	offlinePolicy?: OfflinePolicyConfig;
-	i18n?: Partial<I18nConfig>;
-	consentCategories?: AllConsentNames[];
+	mode: ProviderTransportFactory;
+	/** IAB TCF configuration. Pass `false` to disable the TCF addon. */
+	iab?: ProviderIABOptions;
+	/** Links rendered in the banner and preference-center footers. */
 	legalLinks?: LegalLinks;
+	/** Design-token overrides applied as a `<style id="c15t-theme">` block. */
 	theme?: Theme;
 }
 

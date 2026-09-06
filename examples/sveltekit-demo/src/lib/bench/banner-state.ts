@@ -1,7 +1,4 @@
-export type BannerVisibilityVersion = 'v2' | 'v3';
-
 export interface BannerVisibilityBenchState {
-	version: BannerVisibilityVersion;
 	activeUI: string;
 	renderCount: number;
 	mountMs?: number;
@@ -17,28 +14,18 @@ declare global {
 	}
 }
 
-export const normalizeBannerVersion = function normalizeBannerVersion(
-	value: string | null | undefined
-): BannerVisibilityVersion {
-	return value === 'v3' ? 'v3' : 'v2';
-};
-
-export const getBenchState = function getBenchState(
-	version: BannerVisibilityVersion
-): BannerVisibilityBenchState | undefined {
+export const getBenchState = function getBenchState():
+	| BannerVisibilityBenchState
+	| undefined {
 	if (typeof window === 'undefined') {
 		return undefined;
 	}
-	if (
-		!window.__c15tBannerVisibilityBench ||
-		window.__c15tBannerVisibilityBench.version !== version
-	) {
+	if (!window.__c15tBannerVisibilityBench) {
 		window.__c15tBannerVisibilityBench = {
 			activeUI: 'unknown',
 			errorCount: 0,
 			errors: [],
 			renderCount: 0,
-			version,
 		};
 	}
 	return window.__c15tBannerVisibilityBench;
@@ -76,10 +63,9 @@ const hasRunningAnimations = function hasRunningAnimations(
 };
 
 export const observeBannerVisibility = function observeBannerVisibility(
-	version: BannerVisibilityVersion,
 	activeUI: string
 ): () => void {
-	const state = getBenchState(version);
+	const state = getBenchState();
 	if (!state) {
 		return () => {
 			/* empty */
@@ -94,7 +80,7 @@ export const observeBannerVisibility = function observeBannerVisibility(
 
 	let frameId = 0;
 	const check = () => {
-		const latest = getBenchState(version);
+		const latest = getBenchState();
 		if (!latest || latest.bannerVisibleMs !== undefined) {
 			return;
 		}

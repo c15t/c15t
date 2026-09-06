@@ -1,11 +1,9 @@
 {
-	"extends": "@c15t/typescript-config/react-library.json",
+	"extends": "@c15t/typescript-config/base.json",
 	"compilerOptions": {
 		"rootDir": "src",
 		"lib": ["dom", "esnext"],
 		"paths": {
-			"@c15t/ui/theme": ["../ui/dist-types/theme/index.d.ts"],
-			"@c15t/ui/utils": ["../ui/dist-types/utils/index.d.ts"],
 			"@c15t/core": ["../core/dist-types/index.d.ts"],
 			"@c15t/core/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]

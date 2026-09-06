@@ -4,16 +4,13 @@
  * Tests for the vendors tab in IAB Consent Dialog.
  */
 
-import { iab } from '@c15t/iab';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
 
@@ -39,7 +36,7 @@ const localStorageMock = (() => {
 			Reflect.deleteProperty(store, key);
 		},
 		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+			store[key] = value;
 		},
 	};
 })();
@@ -162,13 +159,13 @@ globalThis.fetch = vi.fn(() =>
 	)
 ) as typeof fetch;
 
-const defaultIABOptions: ConsentManagerOptions = {
-	iab: iab({
+const defaultIABOptions: ConsentProviderOptions = {
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	}),
-	mode: 'offline',
+	},
+	mode: offline(),
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},
@@ -178,15 +175,14 @@ describe('Vendors Tab - Display', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('should display vendor list when vendors tab is selected', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for component to load
@@ -215,9 +211,9 @@ describe('Vendors Tab - Display', () => {
 
 	test('should display all GVL vendors', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -245,9 +241,9 @@ describe('Vendors Tab - Display', () => {
 
 	test('should show vendor count in tab', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -267,15 +263,14 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('should display consent toggle for vendors', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -303,9 +298,9 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 
 	test('should keep vendor details collapsed until expanded and allow consent toggle separately', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		const vendorsTab = await vi.waitFor(
@@ -374,15 +369,14 @@ describe('Vendors Tab - Per-Vendor Legitimate Interest', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('vendors with LI purposes should have LI toggle option', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -413,15 +407,14 @@ describe('Vendors Tab - Vendor Details', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('vendor details should be expandable', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(

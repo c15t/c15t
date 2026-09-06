@@ -179,10 +179,13 @@ export const iabPurposesToC15tConsents = function iabPurposesToC15tConsents(
 		functionality: false,
 		marketing: false,
 		measurement: false,
-		necessary: false,
+		necessary: true,
 	};
 
 	for (const [category, purposes] of Object.entries(C15T_TO_IAB_PURPOSE_MAP)) {
+		if (category === 'necessary') {
+			continue;
+		}
 		// Category is consented if ALL its purposes are consented
 		const allConsented = purposes.every(
 			(purposeId) => purposeConsents[purposeId] === true

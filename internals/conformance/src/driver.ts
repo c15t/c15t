@@ -9,9 +9,28 @@
  * and expose a uniform surface for the suites to interact with.
  */
 
+/**
+ * Astro is deliberately absent.
+ *
+ * A driver's `mount()` has to server-render *and* boot the result in one
+ * environment, and Astro cannot: `astro/container` pulls in esbuild, which
+ * refuses to start unless `new TextEncoder().encode('') instanceof
+ * Uint8Array` — false under jsdom, because jsdom's realm has its own
+ * `Uint8Array` and `TextEncoder` returns Node's. Swapping in Node's
+ * `TextEncoder` does not fix it; the mismatch is the realm, not the class.
+ * So the container render only works in the `node` project and the client
+ * boot only in the `jsdom` one, which is why `packages/astro` splits its
+ * suites into `*.test.ts` and `*.dom.test.ts` in the first place.
+ *
+ * The Astro surfaces are covered instead by `packages/astro`'s own two
+ * suites, by the cross-framework parity gate — which runs a real browser
+ * against the built Astro Storybook — and by that Storybook's interaction
+ * tests, one per dialog adapter.
+ */
 export type SupportedFramework =
 	| 'react'
 	| 'nextjs'
+	| 'tanstack-start'
 	| 'svelte'
 	| 'vue'
 	| 'solid';
@@ -76,9 +95,10 @@ export interface MountOptions {
 	/** Policy fixture shaping. See {@link MountPolicyOptions}. */
 	policy?: MountPolicyOptions;
 	/**
-	 * Options passed to the framework provider. The shape mirrors
-	 * `ConsentManagerOptions` from `@c15t/core` — we reference it loosely
-	 * (`unknown`) so this package stays zero-import on runtime framework code.
+	 * Options passed to the framework provider. The shape mirrors each
+	 * framework's provider options (built on `KernelConfig` from
+	 * `@c15t/core`) — we reference it loosely (`unknown`) so this package
+	 * stays zero-import on runtime framework code.
 	 */
 	providerOptions?: unknown;
 	/** Optional initial store state for test isolation. */
@@ -100,9 +120,10 @@ export interface MountResult {
 }
 
 /**
- * Minimal store surface the suites rely on. Drivers proxy this to the
- * underlying Zustand store; we intentionally don't expose `setState` so
- * suites mutate only through user-facing actions.
+ * Minimal store surface the suites rely on. Drivers project the kernel
+ * snapshot (`kernel.getSnapshot()`) into this shape and forward
+ * `kernel.subscribe`; nothing mutable is exposed so suites mutate only
+ * through user-facing actions.
  */
 export interface DriverStore {
 	getState: () => Record<string, unknown>;

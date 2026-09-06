@@ -3,21 +3,13 @@
  *
  * Codifies the framework-observable GPC contract implemented by core:
  *
- * - v2: `computeAutoGrantInfo` in
- *   `packages/core/src/libs/init-consent-manager/store-updater.ts` — under
- *   an opt-out model with no prior consent, an active GPC signal flips the
- *   tracking categories (`marketing`, `measurement`) to denied while the
- *   remaining optional categories stay auto-granted. The signal is only
- *   honored when the active policy sets `consent.gpc: true` (or no policy
- *   is configured at all).
- * - v3: `applyModelDefaultsForNoConsent` in
- *   `packages/core/src/v3/policy.ts` — identical semantics driven by
- *   `overrides.gpc` + `policy.consent.gpc` + `policy.model === 'opt-out'`.
+ * `applyModelDefaultsForNoConsent` in `packages/core/src/policy.ts` denies the
+ * tracking categories (`marketing`, `measurement`) under an opt-out model when
+ * `overrides.gpc`, `policy.consent.gpc`, and `policy.model === 'opt-out'` all
+ * apply. The remaining optional categories stay auto-granted.
  *
  * Derived from core's unit tests (do not invent behavior here):
- * - `packages/core/src/libs/init-consent-manager/__tests__/store-updater.test.ts`
- *   ("updateStore - GPC override")
- * - `packages/core/src/v3/kernel/__tests__/snapshot.test.ts`
+ * - `packages/core/src/kernel/__tests__/snapshot.test.ts`
  *   ("fresh opt-out policy grants optional consents except GPC tracking
  *   categories")
  *

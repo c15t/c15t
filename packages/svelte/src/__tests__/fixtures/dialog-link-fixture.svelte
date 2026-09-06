@@ -4,10 +4,13 @@
 	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 
-	let { options }: { options: ConsentManagerOptions } = $props();
+	let {
+		options,
+		styled = false,
+	}: { options: ConsentManagerOptions; styled?: boolean } = $props();
 </script>
 
 <ConsentManagerProvider {options}>
-	<ConsentDialogLink>Manage Preferences</ConsentDialogLink>
+	<ConsentDialogLink noStyle={!styled}>Manage Preferences</ConsentDialogLink>
 	<ConsentDialog />
 </ConsentManagerProvider>

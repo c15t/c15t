@@ -13,34 +13,27 @@ const generateOfflineConfig = function generateOfflineConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import { getOrCreateConsentRuntime } from 'c15t';
+	return `import { createConsentKernel, createOfflineTransport } from 'c15t';
 ${devToolsImport}
-const runtime = getOrCreateConsentRuntime(
-	{
-		mode: 'offline',
-		consentCategories: ['necessary', 'measurement', 'marketing'],
-	},
-);
+export const kernel = createConsentKernel({
+	transport: createOfflineTransport(),
+});
 
-export const store = runtime.consentStore;
-${devToolsCall}
+void kernel.commands.init();
+${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
 /**
  * Usage Examples
  **/
 
 // View all consents
-// store.getState().consents;
+// kernel.getSnapshot().consents;
 
-// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
-// store.getState().setSelectedConsent('measurement', true);
+// Update consent locally before saving
+// kernel.set.consent({ measurement: true });
 
-// Update a single consent type and automically saves it
-// store.getState().setConsent('marketing', true);
-
-// When a user rejects all consents:
-// store.getState().saveConsents("necessary")
+// Save the current choices
+// await kernel.commands.save('custom');
 `;
 };
 
@@ -58,35 +51,27 @@ const generateHostedConfig = function generateHostedConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import { getOrCreateConsentRuntime } from 'c15t';
+	return `import { createConsentKernel, createHostedTransport } from 'c15t';
 ${devToolsImport}
-const runtime = getOrCreateConsentRuntime(
-	{
-		mode: 'hosted',
-		backendURL: ${url},
-		consentCategories: ['necessary', 'measurement', 'marketing'],
-	},
-);
+export const kernel = createConsentKernel({
+	transport: createHostedTransport({ backendURL: ${url} }),
+});
 
-export const store = runtime.consentStore;
-${devToolsCall}
+void kernel.commands.init();
+${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
 /**
  * Usage Examples
  **/
 
 // View all consents
-// store.getState().consents;
+// kernel.getSnapshot().consents;
 
-// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
-// store.getState().setSelectedConsent('measurement', true);
+// Update consent locally before saving
+// kernel.set.consent({ measurement: true });
 
-// Update a single consent type and automically saves it
-// store.getState().setConsent('marketing', true);
-
-// When a user rejects all consents:
-// store.getState().saveConsents("necessary")
+// Save the current choices
+// await kernel.commands.save('custom');
 `;
 };
 
@@ -104,52 +89,40 @@ const generateCustomConfig = function generateCustomConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import { getOrCreateConsentRuntime, type EndpointHandlers } from 'c15t';
+	return `import { createConsentKernel, type KernelTransport } from 'c15t';
 ${devToolsImport}
-function createCustomHandlers(): EndpointHandlers {
-	return {
-		async getConsent() {
+const transport: KernelTransport = {
+	async init() {
 			const response = await fetch(${url});
 			return response.json();
-		},
-		async setConsent(consent) {
+	},
+	async save(payload) {
 			const response = await fetch(${url}, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(consent),
+				body: JSON.stringify(payload),
 			});
 			return response.json();
-		},
-	};
-}
-
-const runtime = getOrCreateConsentRuntime(
-	{
-		mode: 'custom',
-		endpointHandlers: createCustomHandlers(),
-		consentCategories: ['necessary', 'measurement', 'marketing'],
 	},
-);
+};
 
-export const store = runtime.consentStore;
-${devToolsCall}
+export const kernel = createConsentKernel({ transport });
+
+void kernel.commands.init();
+${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
 /**
  * Usage Examples
  **/
 
 // View all consents
-// store.getState().consents;
+// kernel.getSnapshot().consents;
 
-// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
-// store.getState().setSelectedConsent('measurement', true);
+// Update consent locally before saving
+// kernel.set.consent({ measurement: true });
 
-// Update a single consent type and automically saves it
-// store.getState().setConsent('marketing', true);
-
-// When a user rejects all consents:
-// store.getState().saveConsents("necessary")
+// Save the current choices
+// await kernel.commands.save('custom');
 `;
 };
 
@@ -167,35 +140,27 @@ const generateSelfHostedConfig = function generateSelfHostedConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import { getOrCreateConsentRuntime } from 'c15t';
+	return `import { createConsentKernel, createHostedTransport } from 'c15t';
 ${devToolsImport}
-const runtime = getOrCreateConsentRuntime(
-	{
-		mode: 'hosted',
-		backendURL: ${url},
-		consentCategories: ['necessary', 'measurement', 'marketing'],
-	},
-);
+export const kernel = createConsentKernel({
+	transport: createHostedTransport({ backendURL: ${url} }),
+});
 
-export const store = runtime.consentStore;
-${devToolsCall}
+void kernel.commands.init();
+${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
 /**
  * Usage Examples
  **/
 
 // View all consents
-// store.getState().consents;
+// kernel.getSnapshot().consents;
 
-// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
-// store.getState().setSelectedConsent('measurement', true);
+// Update consent locally before saving
+// kernel.set.consent({ measurement: true });
 
-// Update a single consent type and automically saves it
-// store.getState().setConsent('marketing', true);
-
-// When a user rejects all consents:
-// store.getState().saveConsents("necessary")
+// Save the current choices
+// await kernel.commands.save('custom');
 `;
 };
 

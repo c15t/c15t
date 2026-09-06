@@ -1,16 +1,17 @@
 'use client';
 
 import type { PolicyConfig } from '@c15t/schema/types';
+import { policyPackPresets } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
+	ConsentProvider,
 	ConsentWidget,
-	policyPackPresets,
-	useConsentManager,
-	useHeadlessConsentUI,
-	useTranslations,
+	offline,
+	useSetConsent,
+	useSnapshot,
 } from 'c15t/react';
+import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
@@ -278,20 +279,21 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 
 const PolicyActionsDemoContent = () => {
 	const [variant, setVariant] = React.useState<DemoVariant>('default');
-	const { activeUI, lastBannerFetchData, resetConsents } = useConsentManager();
+	const snapshot = useSnapshot();
+	const setConsent = useSetConsent();
 	const { banner, dialog, openBanner, openDialog } = useHeadlessConsentUI();
 	const lastAutoOpenedKey = React.useRef<string | null>(null);
 
 	React.useEffect(() => {
-		if (!lastBannerFetchData) {
+		if (!snapshot.policy) {
 			return;
 		}
 
 		const resolvedKey = [
-			lastBannerFetchData.policy?.id ?? 'none',
-			lastBannerFetchData.location.countryCode ?? 'none',
-			lastBannerFetchData.location.regionCode ?? 'none',
-			lastBannerFetchData.translations.language ?? 'none',
+			snapshot.policy.id,
+			snapshot.location?.countryCode ?? 'none',
+			snapshot.location?.regionCode ?? 'none',
+			snapshot.translations?.language ?? 'none',
 		].join(':');
 
 		if (lastAutoOpenedKey.current === resolvedKey) {
@@ -299,8 +301,17 @@ const PolicyActionsDemoContent = () => {
 		}
 
 		lastAutoOpenedKey.current = resolvedKey;
-		openBanner({ force: true });
-	}, [lastBannerFetchData, openBanner]);
+		openBanner();
+	}, [snapshot.location, snapshot.policy, snapshot.translations, openBanner]);
+
+	const resetConsents = () => {
+		setConsent({
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+		});
+	};
 
 	const bannerSnapshot = React.useMemo(
 		() =>
@@ -359,14 +370,14 @@ const PolicyActionsDemoContent = () => {
 							variant="outline"
 							onClick={() => {
 								resetConsents();
-								openBanner({ force: true });
+								openBanner();
 							}}
 						>
 							Reset + show banner
 						</Button>
 						<Button
 							variant="outline"
-							onClick={() => openBanner({ force: true })}
+							onClick={() => openBanner()}
 						>
 							Force banner
 						</Button>
@@ -411,7 +422,7 @@ const PolicyActionsDemoContent = () => {
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-wrap gap-2">
-							<Badge variant="secondary">activeUI: {activeUI}</Badge>
+							<Badge variant="secondary">activeUI: {snapshot.activeUI}</Badge>
 							<Badge variant="secondary">
 								banner: {banner.isVisible ? 'visible' : 'hidden'}
 							</Badge>
@@ -582,7 +593,7 @@ export const PolicyActionsDemo = () => {
 	const providerKey = `${country}:${region ?? 'none'}`;
 
 	return (
-		<ConsentManagerProvider
+		<ConsentProvider
 			key={providerKey}
 			options={{
 				legalLinks: {
@@ -593,10 +604,7 @@ export const PolicyActionsDemo = () => {
 						href: '/legal/terms-of-service',
 					},
 				},
-				mode: 'offline',
-				offlinePolicy: {
-					policyPacks: offlinePolicies,
-				},
+				mode: offline({ policyPacks: offlinePolicies }),
 				overrides: {
 					country,
 					region,
@@ -604,6 +612,6 @@ export const PolicyActionsDemo = () => {
 			}}
 		>
 			<PolicyActionsDemoContent />
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 };

@@ -1,5 +1,5 @@
-import type { SSRInitRequestContext } from '../store/type';
-import type { Overrides } from '../types';
+import type { Overrides } from '../options/overrides';
+import type { SSRInitRequestContext } from '../options/ssr';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 
 const ABSOLUTE_URL_REGEX = /^https?:\/\//u;
@@ -18,9 +18,15 @@ const normalizeAbsoluteURL = function normalizeAbsoluteURL(url: URL): string {
 };
 
 export const buildRequestContextHeaders = function buildRequestContextHeaders(
-	overrides?: Pick<Overrides, 'country' | 'region' | 'language'>
+	overrides?: Pick<Overrides, 'country' | 'region' | 'language' | 'gpc'>
 ): Record<string, string> {
 	const headers: Record<string, string> = {};
+
+	if (overrides?.gpc !== undefined) {
+		// `Sec-*` request headers are forbidden to scripts, so the override
+		// travels on the adapter header the shared extractor reads first.
+		headers['x-c15t-gpc'] = overrides.gpc ? '1' : '0';
+	}
 
 	if (overrides?.country) {
 		headers['x-c15t-country'] = overrides.country;

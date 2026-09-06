@@ -1,18 +1,18 @@
-import type { ConsentStoreState } from '@c15t/core';
 import { defaultTranslationConfig } from '@c15t/core';
+import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import {
-	StableConsentStateProvider,
-	StableGlobalThemeProvider,
-} from '~/__tests__/stable-context-providers';
+import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentWidget } from '~/components/consent-widget';
-import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
+
+type ConsentManagerState = ReturnType<typeof useConsentManager>;
 
 const createMockState = function createMockState(
-	overrides: Partial<ConsentStoreState> = {}
-): ConsentStoreState {
+	overrides: Partial<ConsentManagerState> = {}
+): ConsentManagerState {
 	return {
 		activeUI: 'dialog',
 		consentCategories: [
@@ -58,99 +58,103 @@ const createMockState = function createMockState(
 		setSelectedConsent: vi.fn(),
 		translationConfig: defaultTranslationConfig,
 		...overrides,
-	} as unknown as ConsentStoreState;
+	} as unknown as ConsentManagerState;
 };
 
+const PolicyTestProvider = ({
+	children,
+	state,
+	providerOverrides,
+}: {
+	children: ReactNode;
+	state: ConsentManagerState;
+	providerOverrides?: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	>;
+}) => (
+	<ConsentProvider
+		options={{
+			components: providerOverrides?.components,
+			mode: offline(),
+			persistence: false,
+			prefetch: {
+				initialConsents: state.consents,
+				initialPolicy: {
+					consent: {
+						categories: state.consentCategories,
+						scopeMode: 'permissive',
+					},
+					id: 'widget-policy-actions-test',
+					model: state.model ?? 'opt-in',
+					ui: {
+						banner: state.policyBanner,
+						dialog: state.policyDialog,
+						mode: 'dialog',
+					},
+				},
+				initialTranslations: {
+					language: 'en',
+					translations: defaultTranslationConfig.translations.en as never,
+				},
+			},
+			theme: providerOverrides?.theme,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
 const renderPolicyActions = async function renderPolicyActions(
-	stateOverrides: Partial<ConsentStoreState> = {}
+	stateOverrides: Partial<ConsentManagerState> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<StableGlobalThemeProvider value={{ noStyle: false }}>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentWidget.PolicyActions
-					renderAction={(action, props) => (
-						<button
-							key={props.key}
-							data-testid={`widget-action-${action}`}
-							data-consent-action={props.consentAction}
-							data-primary={String(props.isPrimary)}
-							data-style={props.style ? 'styled' : 'plain'}
-							type="button"
-						>
-							{action}
-						</button>
-					)}
-				/>
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+		<PolicyTestProvider state={state}>
+			<ConsentWidget.PolicyActions
+				renderAction={(action, props) => (
+					<button
+						key={props.key}
+						data-testid={`widget-action-${action}`}
+						data-consent-action={props.consentAction}
+						data-primary={String(props.isPrimary)}
+						data-style={props.style ? 'styled' : 'plain'}
+						type="button"
+					>
+						{action}
+					</button>
+				)}
+			/>
+		</PolicyTestProvider>
 	);
 };
 
 const renderDefaultPolicyActions = async function renderDefaultPolicyActions(
-	stateOverrides: Partial<ConsentStoreState> = {}
+	stateOverrides: Partial<ConsentManagerState> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<StableGlobalThemeProvider value={{ noStyle: false }}>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentWidget.PolicyActions />
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+		<PolicyTestProvider state={state}>
+			<ConsentWidget.PolicyActions />
+		</PolicyTestProvider>
 	);
 };
 
 const renderWidget = async function renderWidget(
-	stateOverrides: Partial<ConsentStoreState> = {},
-	themeSlots: Record<string, string> = {}
+	stateOverrides: Partial<ConsentManagerState> = {},
+	providerOverrides: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<StableGlobalThemeProvider
-			value={{
-				noStyle: false,
-				theme: {
-					slots: themeSlots,
-				},
-			}}
+		<PolicyTestProvider
+			state={state}
+			providerOverrides={providerOverrides}
 		>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentWidget hideBranding={false} />
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+			<ConsentWidget hideBranding={false} />
+		</PolicyTestProvider>
 	);
 };
 
@@ -274,34 +278,20 @@ describe('ConsentWidget.PolicyActions', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('applies the consentWidgetTag theme slot to the stock widget tag', async () => {
-		await renderWidget({}, { consentWidgetTag: 'consent-widget-tag-marker' });
+	test('applies the manager tag component slot to the stock widget tag', async () => {
+		await renderWidget(
+			{},
+			{
+				components: {
+					tag: {
+						manager: { className: 'consent-widget-tag-marker' },
+					},
+				},
+			}
+		);
 
 		expect(
 			document.querySelector('[data-testid="consent-widget-branding"]')
 		)?.toHaveClass('consent-widget-tag-marker');
-	});
-
-	test('keeps footer slot classes off footer subgroups', async () => {
-		await renderWidget(
-			{},
-			{
-				consentWidgetFooter: 'footer-border-marker border-t pt-6',
-				consentWidgetFooterSubGroup: 'footer-subgroup-marker gap-3',
-			}
-		);
-
-		const footer = document.querySelector(
-			'[data-testid="consent-widget-footer"]'
-		);
-		const subgroup = document.querySelector(
-			'[data-testid="consent-widget-footer-sub-group"]'
-		);
-
-		expect(footer).toHaveClass('footer-border-marker');
-		expect(footer).toHaveClass('border-t');
-		expect(subgroup).not.toHaveClass('footer-border-marker');
-		expect(subgroup).not.toHaveClass('border-t');
-		expect(subgroup).toHaveClass('footer-subgroup-marker');
 	});
 });

@@ -70,6 +70,7 @@ interface LayoutUpdateResult {
  * @returns Object containing layout update status and path
  */
 const handleReactLayout = async function handleReactLayout(options: {
+	developmentEnvironment?: CliContext['framework']['developmentEnvironment'];
 	projectRoot: string;
 	mode: GenerateMode;
 	backendURL?: string;
@@ -102,6 +103,7 @@ const handleReactLayout = async function handleReactLayout(options: {
 	spinner.start('Updating layout file...');
 	const layoutResult = await updateReactLayout({
 		backendURL,
+		developmentEnvironment: options.developmentEnvironment,
 		enableDevTools,
 		enableSSR,
 		expandedTheme,
@@ -338,6 +340,7 @@ export const generateFiles = async function generateFiles({
 		const layoutResult = await handleReactLayout({
 			backendURL,
 			cwd: context.cwd,
+			developmentEnvironment: context.framework.developmentEnvironment,
 			enableDevTools,
 			enableSSR,
 			expandedTheme,

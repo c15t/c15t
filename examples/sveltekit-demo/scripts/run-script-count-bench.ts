@@ -57,10 +57,8 @@ const counts = (process.env.SCRIPT_COUNTS ?? '5,10,25,50')
 	.map((value) => Number(value.trim()))
 	.filter((value) => Number.isFinite(value) && value > 0);
 
-type Version = 'v2' | 'v3';
-
 interface BenchState {
-	version: Version;
+	version: 'current';
 	count: number;
 	actionStartedAtMs: number | null;
 	completedAtMs: number | null;
@@ -156,41 +154,30 @@ const readState = async function readState(page: Page): Promise<BenchState> {
 	return state as BenchState;
 };
 
-const assertState = function assertState(
-	state: BenchState,
-	version: Version,
-	count: number
-) {
-	if (state.version !== version) {
-		throw new Error(`Expected ${version} state, saw ${state.version}`);
-	}
+const assertState = function assertState(state: BenchState, count: number) {
 	if (state.count !== count) {
 		throw new Error(`Expected ${count} scripts, saw ${state.count}`);
 	}
 	if (state.errors.length > 0) {
-		throw new Error(`${version}/${count}: ${state.errors.join('; ')}`);
+		throw new Error(`${count}: ${state.errors.join('; ')}`);
 	}
 	if (!state.complete) {
-		throw new Error(`${version}/${count}: completion marker missing`);
+		throw new Error(`${count}: completion marker missing`);
 	}
 	if (state.executedIds.length !== count) {
 		throw new Error(
-			`${version}/${count}: expected ${count} executed scripts, saw ${state.executedIds.length}`
+			`${count}: expected ${count} executed scripts, saw ${state.executedIds.length}`
 		);
 	}
 	if (state.loadedIds.length !== count) {
 		throw new Error(
-			`${version}/${count}: expected ${count} loaded IDs, saw ${state.loadedIds.length}`
+			`${count}: expected ${count} loaded IDs, saw ${state.loadedIds.length}`
 		);
 	}
 };
 
-const collectSample = async function collectSample(
-	page: Page,
-	version: Version,
-	count: number
-) {
-	await page.goto(`/bench/script-count?version=${version}&count=${count}`);
+const collectSample = async function collectSample(page: Page, count: number) {
+	await page.goto(`/bench/script-count?count=${count}`);
 	await page.waitForFunction(
 		() => window.__c15tScriptCountBench?.initialReady === true,
 		undefined,
@@ -209,7 +196,7 @@ const collectSample = async function collectSample(
 
 	const playwrightDurationMs = performance.now() - startedAt;
 	const state = await readState(page);
-	assertState(state, version, count);
+	assertState(state, count);
 
 	const inPageDurationMs =
 		state.actionStartedAtMs !== null && state.completedAtMs !== null
@@ -247,55 +234,47 @@ const run = async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 		const results: {
-			version: Version;
 			count: number;
 			inPageDurationMs: Stats;
 			playwrightDurationMs: Stats;
 		}[] = [];
 
-		const combinations = counts.flatMap((count) =>
-			(['v2', 'v3'] as const).map((version) => ({ count, version }))
-		);
-		await combinations.reduce<Promise<void>>(
-			async (previousCombination, { count, version }) => {
-				await previousCombination;
-				const inPageSamples: number[] = [];
-				const playwrightSamples: number[] = [];
+		await counts.reduce<Promise<void>>(async (previousCombination, count) => {
+			await previousCombination;
+			const inPageSamples: number[] = [];
+			const playwrightSamples: number[] = [];
 
-				const iterationIndexes = Array.from(
-					{ length: warmupIterations + iterations },
-					(_, index) => index
-				);
-				await iterationIndexes.reduce<Promise<void>>(
-					async (previousIteration, index) => {
-						await previousIteration;
-						const context = await browser.newContext({ baseURL: BASE_URL });
-						const page = await context.newPage();
-						const sample = await collectSample(page, version, count);
-						if (index >= warmupIterations) {
-							inPageSamples.push(sample.inPageDurationMs);
-							playwrightSamples.push(sample.playwrightDurationMs);
-						}
-						await context.close();
-					},
-					Promise.resolve()
-				);
+			const iterationIndexes = Array.from(
+				{ length: warmupIterations + iterations },
+				(_, index) => index
+			);
+			await iterationIndexes.reduce<Promise<void>>(
+				async (previousIteration, index) => {
+					await previousIteration;
+					const context = await browser.newContext({ baseURL: BASE_URL });
+					const page = await context.newPage();
+					const sample = await collectSample(page, count);
+					if (index >= warmupIterations) {
+						inPageSamples.push(sample.inPageDurationMs);
+						playwrightSamples.push(sample.playwrightDurationMs);
+					}
+					await context.close();
+				},
+				Promise.resolve()
+			);
 
-				results.push({
-					count,
-					inPageDurationMs: summarize(inPageSamples),
-					playwrightDurationMs: summarize(playwrightSamples),
-					version,
-				});
-			},
-			Promise.resolve()
-		);
+			results.push({
+				count,
+				inPageDurationMs: summarize(inPageSamples),
+				playwrightDurationMs: summarize(playwrightSamples),
+			});
+		}, Promise.resolve());
 
 		await browser.close();
 
 		mkdirSync(outputDir, { recursive: true });
 		writeFileSync(
-			join(outputDir, 'svelte-v2-v3-script-count.json'),
+			join(outputDir, 'svelte-script-count.json'),
 			`${JSON.stringify(
 				{
 					counts,
@@ -312,30 +291,15 @@ const run = async function run() {
 
 		console.log('# Svelte script loading count benchmark\n');
 		console.log(`Iterations per metric: ${iterations}\n`);
-		console.log(
-			'| Scripts | v2 median ms | v3 median ms | Δ | v2 p95 ms | v3 p95 ms | Δ |'
-		);
-		console.log('|---:|---:|---:|---:|---:|---:|---:|');
+		console.log('| Scripts | Median ms | p95 ms |');
+		console.log('|---:|---:|---:|');
 		for (const count of counts) {
-			const v2 = results.find(
-				(result) => result.count === count && result.version === 'v2'
-			);
-			const v3 = results.find(
-				(result) => result.count === count && result.version === 'v3'
-			);
-			if (!v2 || !v3) {
+			const result = results.find((item) => item.count === count);
+			if (!result) {
 				continue;
 			}
-			const medianDelta =
-				((v3.inPageDurationMs.median - v2.inPageDurationMs.median) /
-					v2.inPageDurationMs.median) *
-				100;
-			const p95Delta =
-				((v3.inPageDurationMs.p95 - v2.inPageDurationMs.p95) /
-					v2.inPageDurationMs.p95) *
-				100;
 			console.log(
-				`| ${count} | ${v2.inPageDurationMs.median.toFixed(2)} | ${v3.inPageDurationMs.median.toFixed(2)} | ${medianDelta >= 0 ? '+' : ''}${medianDelta.toFixed(1)}% | ${v2.inPageDurationMs.p95.toFixed(2)} | ${v3.inPageDurationMs.p95.toFixed(2)} | ${p95Delta >= 0 ? '+' : ''}${p95Delta.toFixed(1)}% |`
+				`| ${count} | ${result.inPageDurationMs.median.toFixed(2)} | ${result.inPageDurationMs.p95.toFixed(2)} |`
 			);
 		}
 	} finally {

@@ -4,13 +4,16 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
+import { IAB_FIXTURE_CMP_ID, MINIMAL_GVL } from '@c15t/conformance';
+import type { ConsentKernel } from '@c15t/core';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import { custom, hosted } from '../../lib/index';
+import { offline } from '../../lib/transports/offline';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -39,6 +42,7 @@ const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
 type WindowWithC15t = Window & {
+	__tcfapi?: unknown;
 	c15t?: {
 		version: string;
 		pkg: string;
@@ -49,8 +53,8 @@ type WindowWithC15t = Window & {
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		delete (window as WindowWithC15t).c15t;
+		delete (window as WindowWithC15t).__tcfapi;
 		vi.resetAllMocks();
-		clearConsentRuntimeCache();
 
 		mockFetch.mockResolvedValue(
 			new Response(
@@ -69,12 +73,13 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	afterEach(() => {
 		vi.clearAllMocks();
 		delete (window as WindowWithC15t).c15t;
+		delete (window as WindowWithC15t).__tcfapi;
 	});
 
 	test('should install window.c15t with Svelte offline identity', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -90,10 +95,30 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect((window as WindowWithC15t).c15t).toBeUndefined();
 	});
 
-	test('should report hosted mode on window.c15t when backendURL is set', async () => {
+	test('disposes the kernel when the provider unmounts', () => {
+		let mountedKernel: ConsentKernel | null = null;
+		const result = render(ProviderOnlyFixture, {
+			onKernel: (kernel: ConsentKernel) => {
+				mountedKernel = kernel;
+			},
+			options: {
+				mode: offline(),
+			},
+		});
+
+		if (!mountedKernel) {
+			throw new Error('Expected the provider to expose its kernel');
+		}
+		const dispose = vi.spyOn(mountedKernel, 'dispose');
+
+		result.unmount();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+
+	test('hosted() reports hosted mode and calls the init URL', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				backendURL: '/api/c15t',
+				mode: hosted({ url: '/api/c15t' }),
 			},
 		});
 
@@ -103,8 +128,71 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 				pkg: '@c15t/svelte',
 			});
 		});
+		await vi.waitFor(() => {
+			expect(mockFetch).toHaveBeenCalledWith(
+				'/api/c15t/init',
+				expect.objectContaining({ method: 'GET' })
+			);
+		});
 
 		result.unmount();
+	});
+
+	test('mounts hosted IAB after init supplies the CMP ID', async () => {
+		let mountedKernel: ConsentKernel | null = null;
+		mockFetch.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					branding: 'c15t',
+					cmpId: IAB_FIXTURE_CMP_ID,
+					customVendors: [],
+					gvl: MINIMAL_GVL,
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					policy: {
+						id: 'hosted-iab',
+						model: 'iab',
+						ui: { mode: 'banner' },
+					},
+					translations: { language: 'en', translations: {} },
+				}),
+				{ status: 200 }
+			)
+		);
+
+		const result = render(ProviderOnlyFixture, {
+			onKernel: (kernel: ConsentKernel) => {
+				mountedKernel = kernel;
+			},
+			options: {
+				iab: { enabled: true, vendors: [755] },
+				mode: hosted({ url: '/api/c15t' }),
+			},
+		});
+
+		// `@c15t/iab` is loaded on demand, so this waits on a dynamic import
+		// rather than a synchronous mount.
+		await vi.waitFor(
+			() => {
+				expect((window as WindowWithC15t).__tcfapi).toBeTypeOf('function');
+				expect(
+					(mountedKernel as ConsentKernel | null)?.getSnapshot().iab?.cmpId
+				).toBe(IAB_FIXTURE_CMP_ID);
+			},
+			{ timeout: 10_000 }
+		);
+
+		result.unmount();
+		expect((window as WindowWithC15t).__tcfapi).toBeUndefined();
+	});
+
+	test('throws when mode is missing', () => {
+		expect(() =>
+			render(ConsentManagerProvider, {
+				// @ts-expect-error Verify the runtime guard for untyped callers.
+				options: {},
+			})
+		).toThrow('Use hosted(), offline(), or custom().');
 	});
 
 	test('should not make fetch calls in offline mode', async () => {
@@ -112,7 +200,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -125,10 +213,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		render(ConsentManagerProvider, {
-			mode: 'offline',
+			mode: offline(),
 			options: {
-				backendURL: 'https://example.invalid',
-				mode: 'hosted',
+				mode: hosted({ url: 'https://example.invalid' }),
 			},
 		});
 
@@ -142,7 +229,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 				theme: { slots: { bannerCard: 'light' } },
 			},
 		});
@@ -156,7 +243,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('should resolve policies in offline mode', async () => {
 		const { getByTestId } = render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 				overrides: {
 					country: 'US',
 					region: 'CA',
@@ -180,16 +267,19 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	});
 
 	test('should call transport init once on initial mount', async () => {
-		const init = vi.fn(() => ({}));
+		const init = vi.fn(() => Promise.resolve({}));
 
 		render(ProviderOnlyFixture, {
 			options: {
-				transport: {
+				mode: custom({
 					init,
 					save(payload) {
-						return { ok: true, subjectId: payload.subjectId };
+						return Promise.resolve({
+							ok: true,
+							subjectId: payload.subjectId,
+						});
 					},
-				},
+				}),
 			},
 		});
 

@@ -1,34 +1,23 @@
 <script lang="ts">
-	import BenchmarkProbe from '$lib/benchmark-probe.svelte';
+	import BenchShell from '$lib/bench-shell.svelte';
+	import { benchConsentCategories } from '$lib/fixture';
 
 	import '@c15t/svelte/styles.css';
-	import {
-		ConsentBanner,
-		ConsentDialog,
-		ConsentManagerProvider,
-	} from '@c15t/svelte';
+	import { ConsentManagerProvider, hosted } from '@c15t/svelte';
 
 	let { children, data } = $props();
 </script>
 
 <ConsentManagerProvider
 	options={{
-		mode: 'c15t',
-		backendURL: '/api/c15t',
-		consentCategories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		],
+		mode: hosted({ url: '/api/c15t' }),
+		consentCategories: [...benchConsentCategories],
 		prefetch: data.consentPrefetch,
 		disableAnimation: true,
 		trapFocus: false,
 	}}
 >
-	<BenchmarkProbe scenario="ssr-manifest" />
-	<ConsentBanner />
-	<ConsentDialog />
-	{@render children()}
+	<BenchShell scenario="ssr-manifest">
+		{@render children()}
+	</BenchShell>
 </ConsentManagerProvider>

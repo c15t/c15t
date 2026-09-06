@@ -2,7 +2,7 @@
 	"title": "@c15t/nextjs: Next.js Integration",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, and headless consent flows.",
 	"features": [
-		"Works with Next.js 16, 15, 14, and 13",
+		"Works with Next.js 16 and 15",
 		"Full 'use client' support for React Server Components",
 		"Server-side rendering support for both app and pages routers",
 		"Prebuilt and customizable cookie banner, consent dialog, and preference center UI",
@@ -14,7 +14,7 @@
 		"Seamless consent storage and tracking"
 	],
 	"prerequisites": [
-		"Next.js 13.5.4 or later",
+		"Next.js 15.0.0 or later",
 		"React 18 or later",
 		"Node.js 20.19 or later",
 		"A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage"

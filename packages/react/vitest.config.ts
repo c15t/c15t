@@ -5,11 +5,27 @@ import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
+/** `vitest run` is run mode; a bare `vitest` or `--watch` is watch mode. */
+const isVitestWatchMode = function isVitestWatchMode(): boolean {
+	const args = process.argv.slice(2);
+	if (args.includes('--watch')) {
+		return true;
+	}
+	return !(args.includes('run') || args.includes('--run'));
+};
+
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
 		optimizeDeps: {
+			// Build tooling reached through rslib.config.ts / shared rslib-utils
+			// is not a browser dependency. Left to discovery, Vite pre-bundles
+			// it on first sight mid-run and reloads the page ("optimized
+			// dependencies changed"), which vitest-browser-react does not
+			// survive; a cold CI cache hits this on every run.
 			exclude: [
+				'@rsbuild/plugin-react',
+				'@rslib/core',
 				'@rsdoctor/rspack-plugin',
 				'@rsdoctor/core',
 				'@rspack/resolver',
@@ -24,26 +40,29 @@ export default mergeConfig(
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.
 				[
-					'@c15t/core/v3/modules/script-loader',
-					resolve(__dirname, '../core/src/v3/modules/script-loader/index.ts'),
+					'@c15t/core/modules/script-loader',
+					resolve(__dirname, '../core/src/modules/script-loader/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/network-blocker',
-					resolve(__dirname, '../core/src/v3/modules/network-blocker/index.ts'),
+					'@c15t/core/modules/network-blocker',
+					resolve(__dirname, '../core/src/modules/network-blocker/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/iframe-blocker',
-					resolve(__dirname, '../core/src/v3/modules/iframe-blocker/index.ts'),
+					'@c15t/core/modules/iframe-blocker',
+					resolve(__dirname, '../core/src/modules/iframe-blocker/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/persistence',
-					resolve(__dirname, '../core/src/v3/modules/persistence/index.ts'),
+					'@c15t/core/modules/persistence',
+					resolve(__dirname, '../core/src/modules/persistence/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/window-debug',
-					resolve(__dirname, '../core/src/v3/modules/window-debug/index.ts'),
+					'@c15t/core/modules/window-debug',
+					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
 				],
-				['@c15t/core/v3', resolve(__dirname, '../core/src/v3/index.ts')],
+				[
+					'@c15t/core/runtime',
+					resolve(__dirname, '../core/src/runtime/index.ts'),
+				],
 				['@c15t/core', resolve(__dirname, '../core/src/index.ts')],
 				['@c15t/schema/types', resolve(__dirname, '../schema/src/types.ts')],
 				[
@@ -93,15 +112,20 @@ export default mergeConfig(
 					'@iabtechlabtcf/core',
 					resolve(__dirname, '../iab/node_modules/@iabtechlabtcf/core'),
 				],
-				[
-					'@c15t/iab/v3/headless',
-					resolve(__dirname, '../iab/src/v3/headless.ts'),
-				],
-				['@c15t/iab/v3', resolve(__dirname, '../iab/src/v3/index.ts')],
+				['@c15t/iab/headless', resolve(__dirname, '../iab/src/headless.ts')],
 				['@c15t/iab', resolve(__dirname, '../iab/src/index.ts')],
 				['react', resolve(__dirname, './node_modules/react')],
 				['react-dom', resolve(__dirname, './node_modules/react-dom')],
 			]),
+		},
+		server: {
+			// Sibling packages regenerate `src/version.ts` in their own prebuild
+			// while these browser tests run against core source through the
+			// aliases above. With a file watcher active that rewrite reloads a
+			// test mid-run, which vitest-browser-react does not survive, so the
+			// watcher is off for `vitest run` and left on for watch mode (the
+			// `test:watch` scripts, or an explicit `--watch`).
+			watch: isVitestWatchMode() ? undefined : null,
 		},
 		test: {
 			browser: {
@@ -112,7 +136,7 @@ export default mergeConfig(
 			coverage: {
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
-				exclude: ['src/providers/__tests__/test-helpers.tsx'],
+				exclude: ['src/utils/test-helpers.tsx'],
 				thresholds: {
 					branches: 50,
 					functions: 60,
@@ -128,10 +152,7 @@ export default mergeConfig(
 				'src/**/*.e2e.test.tsx',
 			],
 			retry: 2,
-			setupFiles: [
-				'./src/test-setup.browser.ts',
-				'./src/v3/test-setup.browser.ts',
-			],
+			setupFiles: ['./src/test-setup.browser.ts'],
 		},
 	})
 );

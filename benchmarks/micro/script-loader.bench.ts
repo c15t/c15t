@@ -1,5 +1,6 @@
-import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import { createConsentKernel, has } from '@c15t/core';
 import type { Script } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
@@ -218,84 +219,92 @@ const manyScripts: Script[] = [
 	},
 ];
 
-const manager = configureConsentManager({ mode: 'offline' });
+const conditionKernel = createConsentKernel();
+const benchmarkConsents = { ...conditionKernel.getSnapshot().consents };
 
-// Store creation with scripts
-bench('createStore - no scripts', () => {
-	createConsentManagerStore(manager);
+const runWithLoader = function runWithLoader(
+	scripts: Script[],
+	update?: Script[]
+): void {
+	const kernel = createConsentKernel();
+	const loader = createScriptLoader({
+		emitToV2DebugListeners: false,
+		kernel,
+		scripts,
+	});
+	if (update) {
+		loader.updateScripts(update);
+	}
+	loader.dispose();
+	kernel.dispose();
+};
+
+// Loader creation with scripts
+bench('createScriptLoader - no scripts', () => {
+	runWithLoader([]);
 });
 
-bench('createStore - 3 simple scripts', () => {
-	createConsentManagerStore(manager, { scripts: simpleScripts });
+bench('createScriptLoader - 3 simple scripts', () => {
+	runWithLoader(simpleScripts);
 });
 
-bench('createStore - 5 scripts (mixed)', () => {
-	createConsentManagerStore(manager, { scripts: mediumScripts });
+bench('createScriptLoader - 5 scripts (mixed)', () => {
+	runWithLoader(mediumScripts);
 });
 
-bench('createStore - 7 scripts (complex conditions)', () => {
-	createConsentManagerStore(manager, { scripts: complexScripts });
+bench('createScriptLoader - 7 scripts (complex conditions)', () => {
+	runWithLoader(complexScripts);
 });
 
-bench('createStore - 15 scripts (many)', () => {
-	createConsentManagerStore(manager, { scripts: manyScripts });
+bench('createScriptLoader - 15 scripts (many)', () => {
+	runWithLoader(manyScripts);
 });
 
 // Script update operations
 bench('updateScripts - 3 simple scripts', () => {
-	const store = createConsentManagerStore(manager, { scripts: simpleScripts });
-	store.getState().updateScripts();
+	runWithLoader(mediumScripts, simpleScripts);
 });
 
 bench('updateScripts - 7 scripts (complex conditions)', () => {
-	const store = createConsentManagerStore(manager, { scripts: complexScripts });
-	store.getState().updateScripts();
+	runWithLoader(mediumScripts, complexScripts);
 });
 
 bench('updateScripts - 15 scripts (many)', () => {
-	const store = createConsentManagerStore(manager, { scripts: manyScripts });
-	store.getState().updateScripts();
+	runWithLoader(mediumScripts, manyScripts);
 });
 
 // Dynamic script addition
 bench('setScripts - add 3 scripts', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState().setScripts(simpleScripts);
+	runWithLoader([], simpleScripts);
 });
 
 bench('setScripts - add 7 scripts (complex)', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState().setScripts(complexScripts);
+	runWithLoader([], complexScripts);
 });
 
 bench('setScripts - add 15 scripts', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState().setScripts(manyScripts);
+	runWithLoader([], manyScripts);
 });
 
 // Per-script category evaluation
 bench('has() for each script - 3 simple', () => {
-	const store = createConsentManagerStore(manager);
-	const state = store.getState();
 	for (const script of simpleScripts) {
-		state.has(script.category);
+		has(script.category, benchmarkConsents);
 	}
 });
 
 bench('has() for each script - 7 complex', () => {
-	const store = createConsentManagerStore(manager);
-	const state = store.getState();
 	for (const script of complexScripts) {
-		state.has(script.category);
+		has(script.category, benchmarkConsents);
 	}
 });
 
 bench('has() for each script - 15 mixed', () => {
-	const store = createConsentManagerStore(manager);
-	const state = store.getState();
 	for (const script of manyScripts) {
-		state.has(script.category);
+		has(script.category, benchmarkConsents);
 	}
 });
 
 await runMicroBenchmarkSuite('script-loader');
+
+conditionKernel.dispose();

@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`JavaScript client config > matches the hosted kernel config snapshot 1`] = `
+"import { createConsentKernel, createHostedTransport } from 'c15t';
+
+export const kernel = createConsentKernel({
+	transport: createHostedTransport({ backendURL: 'https://consent.example.com' }),
+});
+
+void kernel.commands.init();
+
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// kernel.getSnapshot().consents;
+
+// Update consent locally before saving
+// kernel.set.consent({ measurement: true });
+
+// Save the current choices
+// await kernel.commands.save('custom');
+"
+`;

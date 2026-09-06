@@ -1,11 +1,11 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import type { ReactNode } from 'react';
 
-import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
-import type { HeadlessConsentBannerAction } from '~/hooks/use-headless-consent-ui';
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
+import type { HeadlessConsentBannerAction } from '~/component-hooks/use-headless-consent-ui';
 
+import { warmDialogChunk } from '../../chunk-warming';
 import { PolicyActionsRenderer } from '../shared/policy-actions';
 import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
@@ -57,6 +57,8 @@ const renderDefaultAction = function renderDefaultAction(
 					key={key}
 					consentAction={consentAction}
 					data-testid="consent-banner-customize-button"
+					onPointerEnter={warmDialogChunk}
+					onFocus={warmDialogChunk}
 					{...buttonProps}
 				/>
 			);
@@ -77,12 +79,7 @@ export const ConsentBannerPolicyActions = ({
 			state={banner}
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
-			classNames={{
-				footerColumn: styles.footerColumn,
-				footerFill: styles.footerFill,
-				footerSubGroupColumn: styles.footerSubGroupColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
-			}}
+			classNames={{}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}
 		/>

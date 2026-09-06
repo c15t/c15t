@@ -1,11 +1,12 @@
 import { deepMergeTranslations, selectLanguage } from '@c15t/translations';
 import type { CompleteTranslations, Translations } from '@c15t/translations';
-import { baseTranslations } from '@c15t/translations/all';
+import type { BaseTranslations } from '@c15t/translations/all';
+import { translations as enTranslations } from '@c15t/translations/en';
 
 import { validatePolicyI18nConfig } from './policy-i18n-validation';
 import type { PolicyConfig } from './policy-runtime';
 
-type SupportedBaseLanguage = Extract<keyof typeof baseTranslations, string>;
+type SupportedBaseLanguage = Extract<keyof BaseTranslations, string>;
 
 export interface I18nMessageProfile {
 	/**
@@ -34,6 +35,7 @@ export interface LoggerLike {
 }
 
 interface TranslationResolutionOptions {
+	baseTranslations?: BaseTranslations;
 	i18n?: I18nOptions;
 	policyI18n?: PolicyConfig['i18n'];
 	logger?: LoggerLike;
@@ -48,9 +50,10 @@ const DEFAULT_PROFILE = 'default';
 const warnedKeys = new Set<string>();
 
 const isSupportedBaseLanguage = function isSupportedBaseLanguage(
-	lang: string
+	lang: string,
+	translations: Partial<BaseTranslations>
 ): lang is SupportedBaseLanguage {
-	return lang in baseTranslations;
+	return lang in translations;
 };
 
 const warnOnce = function warnOnce(
@@ -233,6 +236,8 @@ export const getTranslationsData = function getTranslationsData(
 	customTranslations?: Record<string, Partial<Translations>>,
 	options?: TranslationResolutionOptions
 ) {
+	const availableBaseTranslations: Partial<BaseTranslations> =
+		options?.baseTranslations ?? { en: enTranslations };
 	const profiles = normalizeProfiles({
 		customTranslations,
 		i18n: options?.i18n,
@@ -252,13 +257,27 @@ export const getTranslationsData = function getTranslationsData(
 					profile,
 					profiles,
 				})
-			: Object.keys(baseTranslations);
+			: Object.keys(availableBaseTranslations);
 	const fallbackLanguage =
 		Object.keys(profiles).length > 0
 			? resolveFallbackLanguage({ profile: profiles[profile] })
 			: 'en';
 
 	const policyLanguage = normalizeLanguage(options?.policyI18n?.language);
+	const requestedBaseLanguage =
+		policyLanguage ?? normalizeLanguage(acceptLanguage);
+	if (
+		!options?.baseTranslations &&
+		requestedBaseLanguage &&
+		requestedBaseLanguage !== 'en'
+	) {
+		warnOnce(
+			options?.logger,
+			`i18n.base-translations.missing:${requestedBaseLanguage}`,
+			`Base translations were not provided for '${requestedBaseLanguage}'. Falling back to English translations.`,
+			{ requestedLanguage: requestedBaseLanguage }
+		);
+	}
 	const requestedLanguage =
 		policyLanguage ??
 		selectLanguage(configuredLanguages, {
@@ -290,7 +309,10 @@ export const getTranslationsData = function getTranslationsData(
 	}
 
 	let language = selectedCandidate?.language ?? requestedLanguage;
-	if (!selectedCandidate && !isSupportedBaseLanguage(language)) {
+	if (
+		!selectedCandidate &&
+		!isSupportedBaseLanguage(language, availableBaseTranslations)
+	) {
 		warnOnce(
 			options?.logger,
 			`i18n.base-fallback:${language}`,
@@ -299,9 +321,9 @@ export const getTranslationsData = function getTranslationsData(
 		language = 'en';
 	}
 
-	const base = isSupportedBaseLanguage(language)
-		? baseTranslations[language]
-		: baseTranslations.en;
+	const base = isSupportedBaseLanguage(language, availableBaseTranslations)
+		? (availableBaseTranslations[language] ?? enTranslations)
+		: enTranslations;
 	const custom = selectedCandidate
 		? profiles[profile]?.translations[selectedCandidate.language]
 		: undefined;
@@ -316,6 +338,7 @@ export const getTranslationsData = function getTranslationsData(
 export const getTranslations = function getTranslations(
 	acceptLanguage: string,
 	options: {
+		baseTranslations?: BaseTranslations;
 		customTranslations?: Record<string, Partial<Translations>>;
 		i18n?: I18nOptions;
 		policyI18n?: PolicyConfig['i18n'];
@@ -323,6 +346,7 @@ export const getTranslations = function getTranslations(
 	}
 ) {
 	return getTranslationsData(acceptLanguage, options.customTranslations, {
+		baseTranslations: options.baseTranslations,
 		i18n: options.i18n,
 		logger: options.logger,
 		policyI18n: options.policyI18n,

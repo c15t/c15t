@@ -14,11 +14,9 @@ import { userEvent } from 'vitest/browser';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(
 	value: Value,
@@ -51,8 +49,34 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+const defaultOptions: ConsentProviderOptions = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	mode: offline(),
+	offlinePolicy: {
+		policy: {
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				scopeMode: 'permissive',
+			},
+			id: 'ui-source-tracking-test',
+			model: 'opt-in',
+			ui: {
+				mode: 'banner',
+			},
+		},
+	},
 };
 
 describe('UI Source Tracking E2E Tests', () => {
@@ -66,15 +90,14 @@ describe('UI Source Tracking E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('Banner uiSource', () => {
 		test('should render banner and save consent via accept button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -106,9 +129,9 @@ describe('UI Source Tracking E2E Tests', () => {
 
 		test('should render banner with custom uiSource prop', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner uiSource="custom_banner" />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -126,9 +149,9 @@ describe('UI Source Tracking E2E Tests', () => {
 	describe('Dialog uiSource', () => {
 		test('should render dialog and save consent via accept button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -160,12 +183,12 @@ describe('UI Source Tracking E2E Tests', () => {
 
 		test('should render dialog with custom uiSource prop', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialog
 						open={true}
 						uiSource="custom_dialog"
 					/>
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -183,9 +206,9 @@ describe('UI Source Tracking E2E Tests', () => {
 	describe('Widget uiSource', () => {
 		test('should render widget with default uiSource', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentWidget />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -203,10 +226,10 @@ describe('UI Source Tracking E2E Tests', () => {
 	describe('Banner to Dialog flow preserves correct uiSource', () => {
 		test('should transition from banner to dialog and save from dialog', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
 					<ConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Wait for banner

@@ -4,11 +4,11 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-errors.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
@@ -16,7 +16,6 @@ window.fetch = mockFetch;
 describe('ConsentManagerProvider Error Handling', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
-		clearConsentRuntimeCache();
 
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify({ error: 'API error' }), {
@@ -33,7 +32,7 @@ describe('ConsentManagerProvider Error Handling', () => {
 	test('should render children even when API errors occur', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 

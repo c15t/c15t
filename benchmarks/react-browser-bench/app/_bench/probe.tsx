@@ -1,6 +1,6 @@
 'use client';
 
-import { useConsentManager } from '@c15t/react';
+import { useActiveUI } from '@c15t/react';
 import { useEffect, useRef } from 'react';
 
 import {
@@ -44,7 +44,7 @@ export const ReactBenchmarkProbe = ({
 }: {
 	scenario: ReactBenchScenario;
 }) => {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 	const renderRef = useRef(0);
 
 	useEffect(() => {
@@ -57,10 +57,9 @@ export const ReactBenchmarkProbe = ({
 
 	useEffect(() => {
 		const current = getBenchState(scenario);
-		if (!current) {
-			return;
+		if (current) {
+			current.mountCount += 1;
 		}
-		current.mountCount += 1;
 	}, [scenario]);
 
 	useEffect(() => {
@@ -68,7 +67,6 @@ export const ReactBenchmarkProbe = ({
 		if (!current) {
 			return;
 		}
-
 		if (current.cls === undefined) {
 			current.cls = 0;
 		}
@@ -100,8 +98,7 @@ export const ReactBenchmarkProbe = ({
 		if (!current) {
 			return;
 		}
-
-		current.activeUI = activeUI;
+		current.activeUI = activeUI ?? 'none';
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}
@@ -112,7 +109,6 @@ export const ReactBenchmarkProbe = ({
 			if (!latest || latest.bannerVisibleMs !== undefined) {
 				return;
 			}
-
 			const bannerRoot = document.querySelector(
 				'[data-testid="consent-banner-root"]'
 			);
@@ -122,7 +118,6 @@ export const ReactBenchmarkProbe = ({
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-
 			const ready =
 				!!bannerRoot &&
 				!!acceptButton &&
@@ -132,18 +127,15 @@ export const ReactBenchmarkProbe = ({
 			if (ready && latest.bannerReadyMs === undefined) {
 				latest.bannerReadyMs = nowMs();
 			}
-
-			const visible =
+			if (
 				ready &&
 				!hasRunningAnimations(bannerRoot) &&
-				!hasRunningAnimations(acceptButton);
-
-			if (visible) {
+				!hasRunningAnimations(acceptButton)
+			) {
 				latest.bannerVisibleMs = nowMs();
 				latest.bannerPaintMs = readBannerPaintMs();
 				return;
 			}
-
 			frameId = window.requestAnimationFrame(check);
 		};
 

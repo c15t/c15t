@@ -64,7 +64,7 @@ export interface LiveVendorProbeConfig {
 	 */
 	allowUrlSubstrings?: string[];
 	/**
-	 * Runs in the page synchronously after `loadScripts`, before the remote
+	 * Runs in the page synchronously after the script loader mounts, before the remote
 	 * loader executes. Assert queue stubs and globals seeded by bootstrap steps.
 	 */
 	bootstrapCheck?: () => LiveProbeCheckResult;
@@ -127,14 +127,14 @@ export interface LiveStorageSnapshot {
 }
 
 /**
- * Outcome returned by the in-page harness for one `loadScripts` invocation.
+ * Outcome returned by the in-page harness for one script-loader mount.
  */
 export interface LiveProbeLoadOutcome {
 	/** Whether the script loader actually injected/executed the script. */
 	requested: boolean;
 	/** Whether the script declares `alwaysLoad` (manages consent internally). */
 	alwaysLoad: boolean;
-	/** Bootstrap assertion captured immediately after `loadScripts`. */
+	/** Bootstrap assertion captured immediately after the script loader mounts. */
 	bootstrap: LiveProbeCheckResult;
 	/** Serialized error when the harness itself failed. */
 	error?: string;

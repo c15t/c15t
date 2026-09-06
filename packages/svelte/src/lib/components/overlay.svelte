@@ -1,6 +1,8 @@
 <script lang="ts">
-	import bannerStyles from '@c15t/ui/styles/components/consent-banner.module.js';
-	import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
+	import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+	import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+	import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+	import iabDialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
 	import { getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
@@ -9,23 +11,45 @@
 		variant = 'banner',
 		visible = true,
 	}: {
-		variant?: 'banner' | 'dialog';
+		variant?: 'banner' | 'dialog' | 'iab-banner' | 'iab-dialog';
 		visible?: boolean;
 	} = $props();
 
 	const theme = getThemeContext();
 
-	const styles = $derived(variant === 'dialog' ? dialogStyles : bannerStyles);
+	const styles = $derived.by(() => {
+		if (variant === 'dialog') {
+			return dialogStyles;
+		}
+		if (variant === 'iab-dialog') {
+			return iabDialogStyles;
+		}
+		return variant === 'iab-banner' ? iabBannerStyles : bannerStyles;
+	});
 
-	const themeKey = $derived(
-		variant === 'dialog'
-			? ('consentDialogOverlay' as const)
-			: ('consentBannerOverlay' as const)
-	);
+	const themeKey = $derived.by(() => {
+		if (variant === 'dialog') {
+			return 'consentDialogOverlay' as const;
+		}
+		if (variant === 'iab-dialog') {
+			return 'iabConsentDialogOverlay' as const;
+		}
+		return variant === 'iab-banner'
+			? ('iabConsentBannerOverlay' as const)
+			: ('consentBannerOverlay' as const);
+	});
 
-	const testId = $derived(
-		variant === 'dialog' ? 'consent-dialog-overlay' : 'consent-banner-overlay'
-	);
+	const testId = $derived.by(() => {
+		if (variant === 'dialog') {
+			return 'consent-dialog-overlay';
+		}
+		if (variant === 'iab-dialog') {
+			return 'iab-consent-dialog-overlay';
+		}
+		return variant === 'iab-banner'
+			? 'iab-consent-banner-overlay'
+			: 'consent-banner-overlay';
+	});
 
 	const themeStyle = $derived(
 		resolveComponentStyles(

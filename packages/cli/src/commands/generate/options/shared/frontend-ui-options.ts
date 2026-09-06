@@ -31,7 +31,7 @@ interface FrontendUIOptionsResult {
  * Composes all frontend UI-related prompts based on detected framework:
  *
  * c15t/next (with backend):
- *   - SSR option (fetchInitialData)
+ *   - SSR request-config option
  *   - UI style (prebuilt vs expanded)
  *   - Expanded theme (if expanded selected)
  *
@@ -44,8 +44,7 @@ interface FrontendUIOptionsResult {
  *   - Expanded theme (if expanded selected)
  *   - DevTools option
  *
- * c15t (core):
- *   - DevTools option
+ * c15t (core): no UI prompts
  */
 export const getFrontendUIOptions = async function getFrontendUIOptions({
 	context,
@@ -82,8 +81,7 @@ export const getFrontendUIOptions = async function getFrontendUIOptions({
 		}
 	}
 
-	// Core c15t: no UI prompts
-	if (pkg === 'c15t' || pkg === 'c15t/react' || pkg === 'c15t/next') {
+	if (pkg === 'c15t/react' || pkg === 'c15t/next') {
 		enableDevTools = await getDevToolsOption({
 			context,
 			handleCancel,

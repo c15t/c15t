@@ -1,7 +1,6 @@
 {
 	"name": "@c15t/svelte",
 	"version": "2.0.0-rc.4",
-	"private": true,
 	"description": "Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"ccpa",
@@ -45,8 +44,17 @@
 	"types": "./dist/index.d.ts",
 	"typesVersions": {
 		">4.0": {
+			"devtools": [
+				"./dist/devtools.d.ts"
+			],
 			"headless": [
 				"./dist/headless.d.ts"
+			],
+			"kit": [
+				"./dist/kit/index.d.ts"
+			],
+			"kit/locals": [
+				"./dist/kit/app.d.ts"
 			],
 			"server": [
 				"./dist/server/index.d.ts"
@@ -61,6 +69,19 @@
 			"types": "./dist/headless.d.ts",
 			"svelte": "./dist/headless.js",
 			"default": "./dist/headless.js"
+		},
+		"./devtools": {
+			"types": "./dist/devtools.d.ts",
+			"svelte": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
+		},
+		"./kit": {
+			"types": "./dist/kit/index.d.ts",
+			"import": "./dist/kit/index.js",
+			"default": "./dist/kit/index.js"
+		},
+		"./kit/locals": {
+			"types": "./dist/kit/app.d.ts"
 		},
 		"./server": {
 			"types": "./dist/server/index.d.ts",
@@ -91,8 +112,10 @@
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"clsx": "2.1.1"
 	},
@@ -100,6 +123,7 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"@sveltejs/kit": "^2.16.0",
 		"@sveltejs/package": "^2.3.7",
 		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"@testing-library/jest-dom": "^6.0.0",
@@ -108,12 +132,17 @@
 		"jsdom": "^25.0.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.1.5",
-		"typescript": "6.0.3"
+		"typescript": "6.0.3",
+		"vite": "^6.0.0"
 	},
 	"peerDependencies": {
+		"@sveltejs/kit": "^2.0.0",
 		"svelte": "^5.0.0"
 	},
 	"peerDependenciesMeta": {
+		"@sveltejs/kit": {
+			"optional": true
+		},
 		"svelte": {
 			"optional": true
 		}

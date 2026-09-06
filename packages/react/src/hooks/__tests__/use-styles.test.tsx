@@ -1,128 +1,62 @@
 import { describe, expect, test } from 'vitest';
-import { renderHook } from 'vitest-browser-react';
 
-import { StableGlobalThemeProvider } from '~/__tests__/stable-context-providers';
-import type { ThemeContextValue } from '~/context/theme-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
-import { useStyles } from '../use-styles';
-
-describe('useStyles', () => {
-	const mockTheme = {
-		noStyle: false,
-		theme: {
-			slots: {
-				dialogCard: {
-					className: 'theme-class',
-					style: { color: 'blue' },
-				},
-			},
-		},
-	} satisfies ThemeContextValue;
-
-	test('returns component styles when no theme is provided', async () => {
-		const componentStyle = {
+describe('mergeSlotProps', () => {
+	test('returns component props when no slot is provided', () => {
+		const result = mergeSlotProps(undefined, {
 			className: 'component-class',
 			style: { backgroundColor: 'red' },
-		};
+		});
 
-		const { result } = await renderHook(
-			() => useStyles('dialogCard', componentStyle),
-			{
-				wrapper: ({ children }) => (
-					<StableGlobalThemeProvider
-						value={{ noStyle: false, theme: { slots: {} } }}
-					>
-						{children}
-					</StableGlobalThemeProvider>
-				),
-			}
-		);
-
-		expect(result.current.className).toContain('component-class');
-		expect(result.current.style).toEqual({ backgroundColor: 'red' });
+		expect(result.className).toContain('component-class');
+		expect(result.style).toEqual({ backgroundColor: 'red' });
 	});
 
-	test('merges theme and component styles correctly', async () => {
-		const componentStyle = {
-			className: 'component-class',
-			style: { backgroundColor: 'red' },
-		};
-
-		const { result } = await renderHook(
-			() => useStyles('dialogCard', componentStyle),
+	test('merges slot and component props with component precedence', () => {
+		const result = mergeSlotProps(
 			{
-				wrapper: ({ children }) => (
-					<StableGlobalThemeProvider value={mockTheme}>
-						{children}
-					</StableGlobalThemeProvider>
-				),
+				className: 'slot-class',
+				'data-slot-value': 'slot',
+				style: { color: 'blue' },
+			},
+			{
+				className: 'component-class',
+				'data-slot-value': 'component',
+				style: { backgroundColor: 'red' },
 			}
 		);
 
-		expect(result.current.className).toContain('theme-class');
-		expect(result.current.className).toContain('component-class');
-		expect(result.current.style).toEqual({
+		expect(result.className).toContain('slot-class');
+		expect(result.className).toContain('component-class');
+		expect(result.style).toEqual({
 			backgroundColor: 'red',
 			color: 'blue',
 		});
+		expect(result['data-slot-value']).toBe('component');
 	});
 
-	test('handles string className correctly', async () => {
-		const componentStyle = 'component-class';
-
-		const { result } = await renderHook(
-			() => useStyles('dialogCard', componentStyle),
+	test('drops base classes but keeps slot and component classes when noStyle is true', () => {
+		const result = mergeSlotProps(
 			{
-				wrapper: ({ children }) => (
-					<StableGlobalThemeProvider value={mockTheme}>
-						{children}
-					</StableGlobalThemeProvider>
-				),
-			}
-		);
-
-		expect(result.current.className).toContain('theme-class');
-		expect(result.current.className).toContain('component-class');
-	});
-
-	test('should remove base/default styles but keep component classNames when noStyle: true', async () => {
-		const mockNoStyleTheme = {
-			theme: {
-				slots: {
-					dialogCard: {
-						className: 'theme-class',
-						noStyle: true,
-						style: { color: 'blue' },
-					},
-				},
+				className: 'slot-class',
+				style: { color: 'blue' },
 			},
-		} satisfies ThemeContextValue;
-
-		// When noStyle is true, base/default styles are removed but
-		// explicitly-set classNames are preserved
-		const componentStyle = {
-			baseClassName: 'base-class-to-remove',
-			className: 'component-class',
-			noStyle: true,
-			style: { backgroundColor: 'red' },
-		};
-
-		const { result } = await renderHook(
-			() => useStyles('dialogCard', componentStyle),
 			{
-				wrapper: ({ children }) => (
-					<StableGlobalThemeProvider value={mockNoStyleTheme}>
-						{children}
-					</StableGlobalThemeProvider>
-				),
+				baseClassName: 'base-class-to-remove',
+				className: 'component-class',
+				noStyle: true,
+				style: { backgroundColor: 'red' },
 			}
 		);
 
-		// Component classes should be kept
-		expect(result.current.className).toContain('component-class');
-		// noStyle flag should be set
-		expect(result.current.noStyle).toBe(true);
-		// Component style is used when noStyle is active
-		expect(result.current.style).toEqual({ backgroundColor: 'red' });
+		expect(result.className).not.toContain('base-class-to-remove');
+		expect(result.className).toContain('slot-class');
+		expect(result.className).toContain('component-class');
+		expect(result).not.toHaveProperty('noStyle');
+		expect(result.style).toEqual({
+			backgroundColor: 'red',
+			color: 'blue',
+		});
 	});
 });

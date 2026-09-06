@@ -1,20 +1,21 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef, useEffect, useState } from 'react';
-import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
+import type { HTMLAttributes, ReactNode, RefObject } from 'react';
 
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useActiveUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { useIABTranslations } from '../use-iab-translations';
 
-interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
+interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
+	'data-testid'?: string;
 }
 
 /**
@@ -26,11 +27,12 @@ interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogEleme
  * @public
  */
 const IABConsentDialogCard = createForwardRef<
-	HTMLDialogElement,
+	HTMLDivElement,
 	IABConsentDialogCardProps
->(({ children, className, ...props }, ref) => {
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { trapFocus } = useTheme();
-	const { activeUI } = useConsentManager();
+	const { components } = useUIConfig();
+	const activeUI = useActiveUI();
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
 	const showDialog = activeUI === 'dialog';
@@ -48,28 +50,30 @@ const IABConsentDialogCard = createForwardRef<
 		return () => clearTimeout(timer);
 	}, [showDialog]);
 
-	const themedStyle = useStyles('iabConsentDialogCard', {
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.card, {
 		baseClassName: cn(
 			styles.card,
 			isVisible ? styles.contentVisible : styles.contentHidden
 		),
 		className,
+		'data-testid': dataTestId ?? 'iab-consent-dialog-card',
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
-		<dialog
+		// A `div`, not a `dialog`: the user agent's dialog padding is 1em,
+		// which the card sets for itself.
+		<div
 			ref={ref}
-			{...domStyleProps}
-			open
-			aria-modal={trapFocus ? 'true' : undefined}
+			{...themedStyle}
 			aria-label={iabTranslations.preferenceCenter.title}
+			aria-modal={trapFocus ? 'true' : undefined}
+			// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` brings the user agent's 1em padding, which the card sets for itself.
+			role="dialog"
 			tabIndex={-1}
-			data-testid="iab-consent-dialog-card"
-			{...props}
 		>
 			{children}
-		</dialog>
+		</div>
 	);
 });
 

@@ -1,38 +1,35 @@
 #!/usr/bin/env bun
+/**
+ * Consent kernel benchmark runner.
+ *
+ * Outputs one result per fixture and checks the kernel-specific budgets.
+ */
 import { join } from 'node:path';
 
-import { coreRuntimeBudgets } from '@c15t/benchmarking/budgets';
-import { coreFixtures } from '@c15t/benchmarking/fixtures';
-import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
+	BENCHMARK_SCHEMA_VERSION,
+	coreFixtures,
+	coreRuntimeV3Budgets,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking/utils';
-import {
-	configureConsentManager,
-	createConsentManagerStore,
-	deleteConsentFromStorage,
-	getConsentFromStorage,
-	saveConsentToStorage,
-} from '@c15t/core';
-import type { ConsentState } from '@c15t/core';
+} from '@c15t/benchmarking';
+import type { BenchmarkResult } from '@c15t/benchmarking';
+import { createConsentKernel } from '@c15t/core';
 
-import { ensureBenchmarkDom } from './runtime-setup';
-
-ensureBenchmarkDom();
-
-const createStateFromCategories = function createStateFromCategories(
-	categories: string[]
-): ConsentState {
-	const entries = categories.map((category) => [
-		category,
-		category === 'necessary',
-	]);
-	return Object.fromEntries(entries) as ConsentState;
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
+	const samples: number[] = [];
+	for (let index = 0; index < iterations; index += 1) {
+		const start = performance.now();
+		fn();
+		samples.push((performance.now() - start) * 1000);
+	}
+	return samples;
 };
 
 const measureAsync = async function measureAsync(
@@ -59,123 +56,87 @@ const measureAsync = async function measureAsync(
 	return samples;
 };
 
-const measureSync = function measureSync(
-	iterations: number,
-	fn: () => void
-): number[] {
-	const samples: number[] = [];
-	for (let index = 0; index < iterations; index += 1) {
-		const start = performance.now();
-		fn();
-		samples.push((performance.now() - start) * 1000);
-	}
-	return samples;
-};
-
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '25');
-const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/core-runtime';
+const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/core-v3-runtime';
 
 await Array.from(Object.values(coreFixtures)).reduce(
 	async (previousIteration, fixture) => {
 		await previousIteration;
-		const manager = configureConsentManager({
-			mode: 'offline',
-			translations: fixture.translations,
-		});
-
-		const cookiePayload = {
-			consentInfo: {
-				subjectId: `subject-${fixture.name}`,
-				time: Date.now(),
-			},
-			consents: createStateFromCategories(fixture.consentCategories),
-		};
-
-		const configureSamples = measureSync(ITERATIONS, () => {
-			configureConsentManager({
-				mode: 'offline',
-				translations: fixture.translations,
+		// Kernel construction — must be pure, allocation only.
+		const createKernelSamples = measureSync(ITERATIONS, () => {
+			createConsentKernel({
+				initialOverrides: { country: 'US', language: 'en' },
 			});
 		});
 
-		const createStoreSamples = measureSync(ITERATIONS, () => {
-			createConsentManagerStore(manager, {
-				initialConsentCategories: fixture.consentCategories as never,
-				scripts: fixture.scripts,
-			});
+		// Snapshot read — reference return, cheap.
+		const getSnapshotSamples = measureSync(ITERATIONS, () => {
+			const kernel = createConsentKernel();
+			kernel.getSnapshot();
 		});
 
-		const getStateSamples = measureSync(ITERATIONS, () => {
-			const store = createConsentManagerStore(manager, {
-				initialConsentCategories: fixture.consentCategories as never,
-				scripts: fixture.scripts,
+		// Subscribe + unsubscribe — listener bookkeeping cost.
+		const subscribeSamples = measureSync(ITERATIONS, () => {
+			const kernel = createConsentKernel();
+			const unsubscribe = kernel.subscribe(() => {
+				/* empty */
 			});
-			store.getState().getDisplayedConsents();
+			unsubscribe();
 		});
 
-		const hasSamples = measureSync(ITERATIONS, () => {
-			const store = createConsentManagerStore(manager, {
-				initialConsentCategories: fixture.consentCategories as never,
-				scripts: fixture.scripts,
-			});
-			for (const category of fixture.consentCategories) {
-				store.getState().has(category as never);
-			}
+		// Sync mutation — produce new frozen snapshot + notify.
+		const setConsentSamples = measureSync(ITERATIONS, () => {
+			const kernel = createConsentKernel();
+			kernel.set.consent({ marketing: true });
 		});
 
-		const initSamples = await measureAsync(ITERATIONS, async () => {
-			const store = createConsentManagerStore(manager, {
-				initialConsentCategories: fixture.consentCategories as never,
-				scripts: fixture.scripts,
-				translations: fixture.translations,
-			});
-			await store.getState().initConsentManager();
+		// Save all — full commit + listener notify + event emit.
+		const saveAllSamples = await measureAsync(ITERATIONS, async () => {
+			const kernel = createConsentKernel();
+			await kernel.commands.save('all');
 		});
 
+		// Repeat visitor equivalent — save then init.
 		const repeatVisitorSamples = await measureAsync(ITERATIONS, async () => {
-			const store = createConsentManagerStore(manager, {
-				initialConsentCategories: fixture.consentCategories as never,
-				scripts: fixture.scripts,
-			});
-			await store.getState().saveConsents('all');
-			await store.getState().initConsentManager();
+			const kernel = createConsentKernel();
+			await kernel.commands.save('all');
+			await kernel.commands.init();
 		});
 
-		const cookieRoundTripSamples = measureSync(ITERATIONS, () => {
-			saveConsentToStorage(cookiePayload);
-			getConsentFromStorage();
-			deleteConsentFromStorage();
+		// Init command — currently returns immediately with ok; baseline for
+		// when boot modules wire in SSR hydration and banner fetch.
+		const initSamples = await measureAsync(ITERATIONS, async () => {
+			const kernel = createConsentKernel();
+			await kernel.commands.init();
 		});
 
-		const scriptUpdateSamples = measureSync(ITERATIONS, () => {
-			const store = createConsentManagerStore(manager, {
-				initialConsentCategories: fixture.consentCategories as never,
-				scripts: fixture.scripts,
-			});
-			store.getState().updateScripts();
+		// Identify — user mutation path.
+		const identifySamples = await measureAsync(ITERATIONS, async () => {
+			const kernel = createConsentKernel();
+			await kernel.commands.identify({ externalId: 'bench-user' });
 		});
 
 		const result: BenchmarkResult = {
 			baseSha: safeBaseSha(),
-			budgetDefinitions: coreRuntimeBudgets,
+			budgetDefinitions: coreRuntimeV3Budgets,
 			budgets: [],
 			commitSha: safeCommitSha(),
 			environment: getEnvironment(),
 			fixture,
 			framework: 'core',
 			metrics: [
-				summarizeMetric('configureConsentManager', 'us', configureSamples),
-				summarizeMetric('createConsentManagerStore', 'us', createStoreSamples),
-				summarizeMetric('store.getDisplayedConsents', 'us', getStateSamples),
-				summarizeMetric('has()', 'us', hasSamples),
-				summarizeMetric('initConsentManager', 'us', initSamples),
+				summarizeMetric('createConsentKernel', 'us', createKernelSamples),
+				summarizeMetric('getSnapshot', 'us', getSnapshotSamples),
+				summarizeMetric('subscribe', 'us', subscribeSamples),
+				summarizeMetric('setConsent', 'us', setConsentSamples),
+				summarizeMetric('saveAll', 'us', saveAllSamples),
 				summarizeMetric('repeatVisitorInit', 'us', repeatVisitorSamples),
-				summarizeMetric('cookieRoundTrip', 'us', cookieRoundTripSamples),
-				summarizeMetric('updateScripts', 'us', scriptUpdateSamples),
+				summarizeMetric('initConsentManager', 'us', initSamples),
+				summarizeMetric('identify', 'us', identifySamples),
 			],
 			notes: [
-				'Core runtime benchmarks use deterministic offline fixtures.',
-				'All samples are emitted in microseconds for stable base-vs-head comparisons.',
+				'Kernel construction is pure and has no side effects.',
+				'Boot modules are not measured here because adapters run them after mount.',
 			],
 			package: '@c15t/core-benchmarks',
 			runtime: 'bun',

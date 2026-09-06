@@ -4,36 +4,34 @@ import type { ElementType, JSX, Ref, SVGProps } from 'react';
 const Icon = (
 	props: SVGProps<SVGSVGElement>,
 	ref: Ref<SVGSVGElement>,
-	title: string | undefined,
+	title: string,
 	iconPath: JSX.Element
 ) => (
 	<svg
+		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
 		strokeLinecap="round"
 		strokeLinejoin="round"
 		strokeWidth={2}
-		aria-hidden={title ? undefined : true}
 		ref={ref}
 		{...props}
 	>
-		{title ? <title>{title}</title> : null}
+		<title>{title}</title>
 		{iconPath}
 	</svg>
 );
 
 type LucideIconProps = SVGProps<SVGSVGElement> & {
-	title?: string;
+	title: string;
 	iconPath: JSX.Element;
 };
 
-export const createLucideIcon = ({ title, iconPath }: LucideIconProps) => {
+export const LucideIcon = ({ title, iconPath }: LucideIconProps) => {
 	const IconComponent = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
 		(svgProps, ref) => Icon(svgProps, ref, title, iconPath)
 	);
 	IconComponent.displayName = `${title}Icon`;
 	return IconComponent as ElementType;
 };
-
-export const LucideIcon = createLucideIcon;

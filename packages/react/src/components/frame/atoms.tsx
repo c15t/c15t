@@ -1,23 +1,21 @@
-import { TEST_IDS } from '@c15t/conformance/contract/test-ids';
 import type { AllConsentNames } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/frame.module.js';
+import styles from '@c15t/ui/styles/components/frame';
 import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
-import { useTranslations } from '~/hooks/use-translations';
+import { useTranslations } from '~/component-hooks/use-translations';
 
 import { Box } from '../shared/primitives/box';
 import type { BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 
-const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
+const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
 	({ children, ...props }, ref) => (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.placeholder}
-			data-testid={TEST_IDS.frame.placeholder}
-			themeKey="frame"
+			data-testid="frame-placeholder"
 			{...props}
 		>
 			{children}
@@ -27,7 +25,7 @@ const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 
 const FrameTitle = createForwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'> & { category?: AllConsentNames }
+	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
 	const { frame, consentTypes } = useTranslations();
 
@@ -44,7 +42,6 @@ const FrameTitle = createForwardRef<
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
-			themeKey="frame"
 			{...props}
 		>
 			{children ?? defaultTitle}
@@ -54,24 +51,24 @@ const FrameTitle = createForwardRef<
 
 const FrameButton = createForwardRef<
 	HTMLButtonElement,
-	Omit<ConsentButtonProps, 'themeKey'> & { category: AllConsentNames }
+	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { consentTypes, frame } = useTranslations();
+	const { frame, consentTypes } = useTranslations();
+
 	const categoryTitle =
 		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;
-
 	const defaultText = frame?.actionButton?.replace('{category}', categoryTitle);
 
 	return (
 		<ConsentButton
-			{...props}
-			ref={ref}
-			action="set-consent"
-			category={category}
-			variant="primary"
 			mode="stroke"
 			size="small"
-			data-testid={TEST_IDS.frame.openDialog}
+			variant="primary"
+			{...props}
+			ref={ref}
+			action="open-consent-dialog"
+			category={category}
+			data-testid="frame-open-dialog"
 		>
 			{children ?? defaultText}
 		</ConsentButton>

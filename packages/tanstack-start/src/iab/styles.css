@@ -1,0 +1,12 @@
+/**
+ * @c15t/tanstack-start — IAB TCF component styles.
+ *
+ * Add this stylesheet to the same global CSS entrypoint as your base c15t styles
+ * when using IAB consent components in TanStack Start. Do not import either stylesheet
+ * from JS/TSX.
+ *
+ * Usage (src/styles.css):
+ *   @import "@c15t/tanstack-start/styles.css";
+ *   @import "@c15t/tanstack-start/iab/styles.css";
+ */
+@import '@c15t/react/iab/styles.css';

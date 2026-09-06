@@ -1,14 +1,43 @@
 import type { LegalLinks as LegalLinksType } from '@c15t/core';
-import { defaultTranslationConfig } from '@c15t/core';
-import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
+import styles from '@c15t/ui/styles/components/legal-links';
 import { resolveTranslations } from '@c15t/ui/utils';
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useSyncExternalStore } from 'react';
 
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { useStyles } from '~/hooks/use-styles';
-import type { AllThemeKeys } from '~/types/theme/style-keys';
-import { KernelContext } from '~/v3/context';
-import { V3UIConfigContext } from '~/v3/ui-config-context';
+import { KernelContext } from '~/context';
+import { useUIConfig, V3UIConfigContext } from '~/ui-config-context';
+import { defaultTranslationConfig } from '~/utils/default-translation-config';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
+
+const noopSubscribe = () => () => undefined;
+
+const useLegalLinksConfig = function useLegalLinksConfig():
+	| LegalLinksType
+	| undefined {
+	const v3Config = useContext(V3UIConfigContext);
+	return v3Config.legalLinks;
+};
+
+const useLegalLinkTranslations = function useLegalLinkTranslations():
+	| Record<string, string>
+	| undefined {
+	const kernel = useContext(KernelContext);
+	const kernelTranslations = useSyncExternalStore(
+		kernel ? (listener) => kernel.subscribe(listener) : noopSubscribe,
+		() => kernel?.getSnapshot().translations ?? null,
+		() => kernel?.getServerSnapshot().translations ?? null
+	);
+
+	return useMemo(() => {
+		if (kernelTranslations?.translations) {
+			const translations = kernelTranslations.translations as Partial<
+				NonNullable<typeof defaultTranslationConfig.translations.en>
+			>;
+			return translations.legalLinks;
+		}
+
+		return resolveTranslations({}, defaultTranslationConfig).legalLinks;
+	}, [kernelTranslations]);
+};
 
 /**
  * Hook to filter legal links based on the provided links prop.
@@ -19,9 +48,7 @@ import { V3UIConfigContext } from '~/v3/ui-config-context';
 export const useFilteredLegalLinks = function useFilteredLegalLinks(
 	links?: (keyof LegalLinksType)[] | null
 ): LegalLinksType | null {
-	const consentState = useContext(ConsentStateContext);
-	const v3UiConfig = useContext(V3UIConfigContext);
-	const legalLinks = consentState?.state.legalLinks ?? v3UiConfig.legalLinks;
+	const legalLinks = useLegalLinksConfig();
 
 	// Show no links by default or if explicitly null
 	if (links === undefined || links === null) {
@@ -49,10 +76,7 @@ export interface InlineLegalLinksProps {
 	 */
 	links?: (keyof LegalLinksType)[] | null;
 
-	/**
-	 * Theme key for styling the links. Must be one of the valid legal-links parent keys.
-	 */
-	themeKey: LegalLinksThemeKey;
+	context: LegalLinksContext;
 
 	/**
 	 * Optional test ID prefix for the links.
@@ -69,38 +93,21 @@ export interface InlineLegalLinksProps {
  * ```tsx
  * <InlineLegalLinks
  *   links={['privacyPolicy', 'cookiePolicy']}
- *   themeKey="dialog.legal-links"
+ *   context="dialog"
  *   testIdPrefix="consent-manager-dialog-legal-link"
  * />
  * ```
  */
 export const InlineLegalLinks = ({
 	links,
-	themeKey,
+	context,
 	testIdPrefix,
 }: InlineLegalLinksProps) => {
 	const filteredLinks = useFilteredLegalLinks(links);
-	const consentState = useContext(ConsentStateContext);
-	const kernel = useContext(KernelContext);
-	const translatedLabels = useMemo(() => {
-		if (consentState) {
-			return resolveTranslations(
-				consentState.state.translationConfig,
-				defaultTranslationConfig
-			).legalLinks;
-		}
-
-		return (
-			(kernel?.getSnapshot().translations?.translations.legalLinks as
-				| Record<string, string>
-				| undefined) ??
-			(defaultTranslationConfig.translations.en?.legalLinks as Record<
-				string,
-				string
-			>)
-		);
-	}, [consentState, kernel]);
-	const linkStyles = useStyles(themeKey, {
+	const t = useLegalLinkTranslations();
+	const { components } = useUIConfig();
+	const rootStyles = mergeSlotProps(components?.['legal-links']?.root, {});
+	const linkStyles = mergeSlotProps(components?.link?.[context], {
 		baseClassName: styles.legalLink,
 	});
 
@@ -109,7 +116,7 @@ export const InlineLegalLinks = ({
 	}
 
 	return (
-		<span>
+		<span {...rootStyles}>
 			{' '}
 			{(
 				Object.entries(filteredLinks) as [
@@ -130,12 +137,9 @@ export const InlineLegalLinks = ({
 								(link.target === '_blank' ? 'noopener noreferrer' : undefined)
 							}
 							{...linkStyles}
-							data-testid={
-								testIdPrefix ? `${testIdPrefix}-${String(type)}` : undefined
-							}
+							data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
 						>
-							{link.label ??
-								(translatedLabels as Record<string, string>)?.[type as string]}
+							{link.label ?? (t as Record<string, string>)?.[type as string]}
 							{index < array.length - 1 && ','}
 						</a>
 						{index < array.length - 1 && ' '}
@@ -147,6 +151,6 @@ export const InlineLegalLinks = ({
 };
 
 /**
- * Valid theme key prefixes for the LegalLinks component.
+ * Valid link slot contexts for inline legal links.
  */
-type LegalLinksThemeKey = AllThemeKeys;
+type LegalLinksContext = 'banner' | 'dialog' | 'manager';

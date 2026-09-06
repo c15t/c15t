@@ -3,15 +3,11 @@
 export type NextjsBenchScenario =
 	| 'baseline'
 	| 'client'
-	| 'nextjs-v3-client'
-	| 'nextjs-v3-manifest-client'
-	| 'nextjs-v3-manifest-ssr'
-	| 'nextjs-v3-repeat'
-	| 'nextjs-v3-rsc-ssr'
-	| 'nextjs-v3-ssr'
-	| 'ssr'
-	| 'prefetch'
-	| 'repeat-visitor';
+	| 'manifest-client'
+	| 'manifest-ssr'
+	| 'repeat-visitor'
+	| 'rsc-ssr'
+	| 'ssr';
 
 export interface NextjsBenchState {
 	scenario: NextjsBenchScenario;

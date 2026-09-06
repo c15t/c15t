@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 /**
  * Inline consent-management widget for settings and privacy pages.
  *
@@ -13,9 +13,11 @@ import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
  * runner sees identical DOM.
  */
 import type { PolicyUiAction } from '@c15t/schema/types';
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
+import buttonStyles from '@c15t/ui/styles/components/button';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import managerStyles from '@c15t/ui/styles/components/consent-manager';
 import {
-	buttonVariants,
 	preferenceItemVariants,
 	switchVariants,
 } from '@c15t/ui/styles/primitives';
@@ -175,43 +177,29 @@ const ACTION_TEST_IDS: Record<PolicyUiAction, string> = {
 	reject: 'consent-widget-reject-button',
 };
 
-const actionClass = function actionClass(
-	action: PolicyUiAction
-): string | undefined {
+const actionClass = function actionClass(): string | undefined {
 	if (props.noStyle) {
 		return undefined;
 	}
-	return buttonVariants({
-		mode: 'stroke',
-		size: 'small',
-		variant: primaryActions.value.includes(action) ? 'primary' : 'neutral',
-	}).root();
+	return buttonStyles.button;
 };
 
-const isColumn = computed(() => direction.value === 'column');
+const actionVariant = function actionVariant(
+	action: PolicyUiAction
+): 'primary' | 'neutral' {
+	return primaryActions.value.includes(action) ? 'primary' : 'neutral';
+};
+
+const isSplitLayout = computed(() => actionGroups.value.length > 1);
 
 const footerClass = computed(() =>
 	props.noStyle
 		? undefined
-		: [
-				styles.footer,
-				shouldFillActions.value ? styles.footerFill : '',
-				isColumn.value ? styles.footerColumn : '',
-			]
-				.filter(Boolean)
-				.join(' ')
+		: `${managerStyles.footer} ${actionStyles.actionRoot}`
 );
 
 const footerSubGroupClass = computed(() =>
-	props.noStyle
-		? undefined
-		: [
-				styles.footerSubGroup,
-				shouldFillActions.value ? styles.footerSubGroupFill : '',
-				isColumn.value ? styles.footerSubGroupColumn : '',
-			]
-				.filter(Boolean)
-				.join(' ')
+	props.noStyle ? undefined : actionStyles.actionGroup
 );
 
 const onAction = function onAction(action: PolicyUiAction) {
@@ -233,41 +221,40 @@ const onAction = function onAction(action: PolicyUiAction) {
 
 <template>
 	<div
-		:class="noStyle ? undefined : styles.widget"
+		:class="noStyle ? undefined : managerStyles.manager"
 		:dir="textDirection"
 		data-testid="consent-widget-root"
 	>
 		<div
-			:class="noStyle ? undefined : styles.accordionList"
+			:class="noStyle ? undefined : accordionStyles.list"
 			data-testid="consent-widget-accordion"
 		>
 			<div
 				v-for="(category, index) in categories"
 				:key="category"
-				:class="noStyle ? undefined : styles.accordionItem"
+				:class="noStyle ? undefined : accordionStyles.item"
 				data-slot="preference-item-root"
 				:data-state="isOpen(category) ? 'open' : 'closed'"
 				:data-testid="`consent-widget-accordion-item-${category}`"
 			>
-				<div :class="noStyle ? undefined : styles.accordionTrigger">
+				<div :class="noStyle ? undefined : accordionStyles.triggerRow">
 					<button
 						:id="triggerId(index)"
 						type="button"
 						:aria-controls="contentId(index)"
 						:aria-expanded="isOpen(category) ? 'true' : 'false'"
-						:class="noStyle ? undefined : styles.accordionTriggerInner"
+						:class="noStyle ? undefined : accordionStyles.trigger"
 						data-slot="preference-item-trigger"
 						:data-state="isOpen(category) ? 'open' : 'closed'"
 						:data-testid="`consent-widget-accordion-trigger-${category}`"
 						@click="toggleOpenItem(category)"
 					>
 						<div
-							:class="noStyle ? undefined : styles.accordionArrow"
+							:class="noStyle ? undefined : accordionStyles.arrow"
 							data-slot="preference-item-leading"
 							:data-testid="`consent-widget-accordion-arrow-${category}`"
 						>
 							<svg
-								aria-hidden="true"
 								fill="none"
 								height="16"
 								width="16"
@@ -277,12 +264,13 @@ const onAction = function onAction(action: PolicyUiAction) {
 								stroke-width="2"
 								viewBox="0 0 24 24"
 							>
+								<title>{{ isOpen(category) ? 'Close' : 'Open' }}</title>
 								<path :d="isOpen(category) ? 'M5 12h14' : 'M5 12h14M12 5v14'" />
 							</svg>
 						</div>
 						<div data-slot="preference-item-header">
 							<h3
-								:class="noStyle ? undefined : styles.accordionTitle"
+								:class="noStyle ? undefined : accordionStyles.title"
 								data-slot="preference-item-title"
 							>
 								{{ consentTitle(category) }}
@@ -290,7 +278,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 						</div>
 					</button>
 					<div
-						:class="noStyle ? undefined : styles.switch"
+						:class="noStyle ? undefined : accordionStyles.control"
 						data-slot="preference-item-control"
 					>
 						<button
@@ -331,7 +319,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
 					:class="
-						pi.content({ class: noStyle ? undefined : styles.accordionContent })
+						pi.content({ class: noStyle ? undefined : accordionStyles.content })
 					"
 					data-slot="preference-item-content"
 					:data-state="isOpen(category) ? 'open' : 'closed'"
@@ -355,20 +343,28 @@ const onAction = function onAction(action: PolicyUiAction) {
 		<div
 			:class="footerClass"
 			data-testid="consent-widget-footer"
+			:data-direction="direction"
+			:data-fill="shouldFillActions ? true : undefined"
+			:data-split="isSplitLayout && !shouldFillActions ? true : undefined"
 		>
 			<div
 				v-for="(group, groupIndex) in actionGroups"
 				:key="`group-${group.join('-') || groupIndex}`"
 				:class="footerSubGroupClass"
 				data-testid="consent-widget-footer-sub-group"
+				:data-direction="direction"
+				:data-fill="shouldFillActions ? true : undefined"
 			>
 				<button
 					v-for="action in group"
 					:key="action"
 					type="button"
-					:class="actionClass(action)"
-					:style="shouldFillActions ? { width: '100%', flex: 1 } : undefined"
+					:class="actionClass()"
+					:data-action="action"
+					:data-mode="noStyle ? undefined : 'stroke'"
+					:data-size="noStyle ? undefined : 'small'"
 					:data-testid="ACTION_TEST_IDS[action]"
+					:data-variant="noStyle ? undefined : actionVariant(action)"
 					@click="onAction(action)"
 				>
 					{{ labels[action] }}

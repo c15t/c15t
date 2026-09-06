@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import type { PolicyUiAction } from '@c15t/schema/types';
-import accordionStyles from '@c15t/ui/styles/v3/accordion';
-import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
-import managerStyles from '@c15t/ui/styles/v3/consent-manager';
-import { computed, nextTick, ref, watch } from 'vue';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+import managerStyles from '@c15t/ui/styles/components/consent-manager';
+import { DEFAULT_POLICY_ACTION_LAYOUT, getTextDirection } from '@c15t/ui/utils';
+import { computed, mergeProps, nextTick, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 
 import {
@@ -38,7 +39,10 @@ const granted = useHasConsent();
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
-const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
+/** The shared default layout, flattened into the groups it describes. */
+const DEFAULT_ACTIONS: PolicyUiAction[][] = DEFAULT_POLICY_ACTION_LAYOUT.map(
+	(group) => (Array.isArray(group) ? group : [group])
+);
 const surface = computed(() => init.value?.policy?.ui?.dialog);
 const { actionGroups, direction, primaryActions, shouldFillActions } =
 	useConsentPolicyActions(surface);
@@ -71,7 +75,7 @@ const refreshOverlayFallback = async function refreshOverlayFallback() {
 		backgroundColor: 'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
 		inset: '0',
 		position: 'fixed',
-		zIndex: '999999998',
+		zIndex: '999998',
 	};
 };
 
@@ -144,6 +148,19 @@ const actionTestIds = {
 	reject: 'consent-widget-reject-button',
 } as const;
 
+// The footer and the action root are one element, so both slots merge
+// onto it.
+const textDirection = computed(() =>
+	getTextDirection(init.value?.translations?.language)
+);
+
+const footerAttrs = computed(() =>
+	mergeProps(
+		(config.value.components?.manager?.footer ?? {}) as Record<string, unknown>,
+		(config.value.components?.manager?.actions ?? {}) as Record<string, unknown>
+	)
+);
+
 const savePreferences = function savePreferences() {
 	const selected = Object.entries(draft.value)
 		.filter(([, enabled]) => enabled)
@@ -188,39 +205,46 @@ const onAction = function onAction(action: PolicyUiAction) {
 				]"
 				:data-disable-animation="disableAnimation ? true : undefined"
 			/>
-			<DialogContent
+			<!-- The outer element only positions the panel over the
+			     viewport. `DialogContent` is the panel itself: it carries the
+			     dialog semantics, the focus trap and the
+			     `consent-dialog-root` testid, so those name the same element
+			     they do in React and Svelte. -->
+			<div
 				v-bind="config.components?.dialog?.root"
-				data-testid="consent-dialog-root"
 				data-mode="dialog"
 				:class="dialogStyles.root"
 				:data-disable-animation="disableAnimation ? true : undefined"
-				aria-labelledby="consent-dialog-title"
 			>
-				<div
+				<DialogContent
 					v-bind="config.components?.dialog?.container"
-					:class="dialogStyles.container"
+					data-testid="consent-dialog-root"
+					:dir="textDirection"
+					:class="[dialogStyles.container, dialogStyles.contentVisible]"
+					aria-labelledby="consent-dialog-title"
+					aria-describedby="consent-dialog-description"
 				>
 					<div
 						v-bind="config.components?.dialog?.card"
 						data-testid="consent-dialog-card"
 						:class="dialogStyles.card"
+						tabindex="-1"
 					>
 						<div
 							v-bind="config.components?.dialog?.header"
+							data-testid="consent-dialog-header"
 							:class="dialogStyles.header"
 						>
-							<div
+							<h2
 								v-bind="config.components?.dialog?.title"
 								data-testid="consent-dialog-title"
 								id="consent-dialog-title"
 								:class="dialogStyles.title"
-								role="heading"
-								aria-level="2"
 							>
 								{{
 									init?.translations?.translations?.consentManagerDialog?.title
 								}}
-							</div>
+							</h2>
 							<ConsentDescription context="dialog" />
 						</div>
 						<div
@@ -231,6 +255,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 							<div
 								v-bind="config.components?.manager?.root"
 								data-testid="consent-widget-root"
+								:dir="textDirection"
 								:class="managerStyles.manager"
 								:data-disable-animation="
 									config?.disableAnimation ? true : undefined
@@ -270,16 +295,17 @@ const onAction = function onAction(action: PolicyUiAction) {
 													"
 													:data-testid="`consent-widget-accordion-trigger-${category}`"
 												>
-													<div :class="accordionStyles.trigger">
+													<button
+														type="button"
+														:class="accordionStyles.trigger"
+													>
 														<span
 															v-bind="config.components?.accordion?.arrow"
 															:class="accordionStyles.arrow"
 															:data-testid="`consent-widget-accordion-arrow-${category}`"
-															aria-hidden="true"
 														>
 															<svg
 																xmlns="http://www.w3.org/2000/svg"
-																aria-hidden="true"
 																viewBox="0 0 24 24"
 																fill="none"
 																stroke="currentColor"
@@ -287,6 +313,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 																stroke-linejoin="round"
 																stroke-width="2"
 															>
+																<title>Open</title>
 																<path d="M5 12h14M12 5v14" />
 															</svg>
 														</span>
@@ -301,7 +328,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 																{{ consentTitle(category) }}
 															</h3>
 														</span>
-													</div>
+													</button>
 												</AccordionTrigger>
 												<div
 													v-bind="config.components?.accordion?.control"
@@ -344,31 +371,29 @@ const onAction = function onAction(action: PolicyUiAction) {
 										</AccordionContent>
 									</AccordionItem>
 								</AccordionRoot>
-								<div
-									v-bind="config.components?.manager?.footer"
-									data-testid="consent-widget-footer"
-									:class="managerStyles.footer"
-								>
-									<ConsentActions
-										:action-groups="
-											actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
-										"
-										:direction="direction"
-										:ui-profile="surface?.uiProfile"
-										:primary-actions="primaryActions"
-										:fill="shouldFillActions"
-										:labels="labels"
-										:test-ids="actionTestIds"
-										:root-attrs="
-											config.components?.manager?.actions as object | undefined
-										"
-										:group-attrs="
-											config.components?.manager?.actionGroup as
-												object | undefined
-										"
-										@action="onAction"
-									/>
-								</div>
+								<!-- The footer is the action root, as it is in
+								     React: one element carrying both class sets
+								     rather than an extra wrapper. -->
+								<ConsentActions
+									:action-groups="
+										actionGroups.length ? actionGroups : DEFAULT_ACTIONS
+									"
+									:direction="direction"
+									:ui-profile="surface?.uiProfile"
+									:primary-actions="primaryActions"
+									:fill="shouldFillActions"
+									:labels="labels"
+									:test-ids="actionTestIds"
+									root-test-id="consent-widget-footer"
+									group-test-id="consent-widget-footer-sub-group"
+									:root-class="managerStyles.footer"
+									:root-attrs="footerAttrs"
+									:group-attrs="
+										config.components?.manager?.actionGroup as
+											object | undefined
+									"
+									@action="onAction"
+								/>
 							</div>
 						</div>
 						<ConsentTag
@@ -376,8 +401,8 @@ const onAction = function onAction(action: PolicyUiAction) {
 							context="dialog"
 						/>
 					</div>
-				</div>
-			</DialogContent>
+				</DialogContent>
+			</div>
 		</DialogPortal>
 	</DialogRoot>
 </template>

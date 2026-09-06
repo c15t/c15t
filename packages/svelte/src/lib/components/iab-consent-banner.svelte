@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Model } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+	import buttonStyles from '@c15t/ui/styles/components/button';
+	import actionStyles from '@c15t/ui/styles/components/consent-actions';
+	import styles from '@c15t/ui/styles/components/iab-consent-banner';
 	import { getTextDirection } from '@c15t/ui/utils';
 
 	import { focusTrap } from '../actions/focus-trap';
@@ -42,8 +44,10 @@
 		localDisableAnimation ?? theme.disableAnimation ?? false
 	);
 	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
+	// The IAB banner is modal — `aria-modal` on the card, focus trapped —
+	// so it locks the page and paints a backdrop unless a host opts out.
 	const shouldScrollLock = $derived(
-		localScrollLock ?? theme.scrollLock ?? false
+		localScrollLock ?? theme.scrollLock ?? true
 	);
 
 	// IAB state
@@ -115,16 +119,29 @@
 		return button === primaryButton;
 	};
 
+	/**
+	 * The shared button stylesheet keys its variants off `data-*`, the way
+	 * every other consent button in the repo does. Emitting the same
+	 * attributes keeps the IAB banner's controls identical to React's.
+	 */
+	const actionButtonAttrs = function actionButtonAttrs(
+		button: 'reject' | 'accept' | 'customize'
+	) {
+		const primary = isPrimary(button);
+		return {
+			'data-mode': primary && button !== 'reject' ? 'filled' : 'stroke',
+			'data-size': 'small',
+			'data-variant': primary ? 'primary' : 'neutral',
+		} as const;
+	};
+
 	// Styling
 	const rootStyle = $derived(
 		resolveComponentStyles(
 			'iabConsentBanner',
 			theme.theme,
 			{
-				baseClassName: [
-					styles.root,
-					textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-				],
+				baseClassName: styles.root,
 				className,
 				noStyle,
 			},
@@ -154,12 +171,16 @@
 {#if visibility.isMounted && visibility.shouldRender && displayItems.isReady}
 	<div use:portal>
 		{#if shouldScrollLock}
-			<Overlay visible={visibility.isVisible} />
+			<Overlay
+				variant="iab-banner"
+				visible={visibility.isVisible}
+			/>
 		{/if}
 		<div
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
 			dir={textDirection}
+			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="iab-consent-banner-root"
 			use:focusTrap={shouldTrapFocus}
 			use:scrollLock={shouldScrollLock}
@@ -190,6 +211,7 @@
 							<button
 								type="button"
 								class={noStyle ? '' : styles.partnersLink}
+								data-testid="iab-consent-banner-partners-link"
 								onclick={handleViewVendors}
 							>
 								{partnersLinkText}
@@ -216,42 +238,51 @@
 
 					<!-- Footer with buttons -->
 					<div
-						class={noStyle ? '' : styles.footer}
+						class={noStyle ? '' : `${styles.footer} ${actionStyles.actionRoot}`}
 						data-testid="iab-consent-banner-footer"
+						data-direction="row"
+						data-split="true"
 					>
-						<div class={noStyle ? '' : styles.footerButtonGroup}>
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
+						>
 							<button
 								type="button"
-								class={noStyle
-									? ''
-									: `${styles.rejectButton || ''} ${isPrimary('reject') ? styles.primaryButton || '' : ''}`}
+								class={noStyle ? '' : buttonStyles.button}
+								{...actionButtonAttrs('reject')}
 								onclick={handleRejectAll}
+								data-action="reject"
 								data-testid="iab-consent-banner-reject-button"
 							>
 								{iabT.common.rejectAll}
 							</button>
 							<button
 								type="button"
-								class={noStyle
-									? ''
-									: `${styles.acceptButton || ''} ${isPrimary('accept') ? styles.primaryButton || '' : ''}`}
+								class={noStyle ? '' : buttonStyles.button}
+								{...actionButtonAttrs('accept')}
 								onclick={handleAcceptAll}
+								data-action="accept"
 								data-testid="iab-consent-banner-accept-button"
 							>
 								{iabT.common.acceptAll}
 							</button>
 						</div>
-						<div class={noStyle ? '' : styles.footerSpacer}></div>
-						<button
-							type="button"
-							class={noStyle
-								? ''
-								: `${styles.customizeButton || ''} ${isPrimary('customize') ? styles.primaryButton || '' : ''}`}
-							onclick={handleCustomize}
-							data-testid="iab-consent-banner-customize-button"
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
 						>
-							{iabT.common.customize}
-						</button>
+							<button
+								type="button"
+								class={noStyle ? '' : buttonStyles.button}
+								{...actionButtonAttrs('customize')}
+								onclick={handleCustomize}
+								data-action="customize"
+								data-testid="iab-consent-banner-customize-button"
+							>
+								{iabT.common.customize}
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>

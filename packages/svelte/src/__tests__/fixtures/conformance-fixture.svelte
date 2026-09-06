@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ConsentKernel } from '@c15t/core/v3';
+	import type { ConsentKernel } from '@c15t/core';
 
 	import ConsentBanner from '../../lib/components/consent-banner.svelte';
 	import ConsentDialog from '../../lib/components/consent-dialog.svelte';
@@ -7,6 +7,7 @@
 	import ConsentWidget from '../../lib/components/consent-widget.svelte';
 	import IabConsentBanner from '../../lib/components/iab-consent-banner.svelte';
 	import IabConsentDialog from '../../lib/components/iab-consent-dialog.svelte';
+	import type { ConsentCompatState } from '../../lib/context.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 	import ConformanceKernelCapture from './conformance-kernel-capture.svelte';
 
@@ -21,15 +22,20 @@
 		component,
 		options,
 		onKernel,
+		onManager,
 	}: {
 		component: MountableComponent;
 		options: ConsentManagerOptions;
 		onKernel?: (kernel: ConsentKernel) => void;
+		onManager?: (manager: ConsentCompatState) => void;
 	} = $props();
 </script>
 
 <ConsentManagerProvider {options}>
-	<ConformanceKernelCapture {onKernel} />
+	<ConformanceKernelCapture
+		{onKernel}
+		{onManager}
+	/>
 	{#if component === 'consent-banner'}
 		<ConsentBanner />
 		<ConsentDialog />

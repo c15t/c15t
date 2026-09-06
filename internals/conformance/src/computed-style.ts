@@ -280,10 +280,11 @@ const canonicalizeColor = function canonicalizeColor(value: string): string {
 	const ri = Math.round(r);
 	const gi = Math.round(g);
 	const bi = Math.round(b);
-	if (a === 1) {
+	const alpha = Math.round(a * 100) / 100;
+	if (alpha === 1) {
 		return `rgb(${ri}, ${gi}, ${bi})`;
 	}
-	return `rgba(${ri}, ${gi}, ${bi}, ${a})`;
+	return `rgba(${ri}, ${gi}, ${bi}, ${alpha})`;
 };
 
 /**
@@ -329,7 +330,16 @@ const isColorPropertyName = function isColorPropertyName(
 
 const looksLikeColor = function looksLikeColor(value: string): boolean {
 	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-	return /^(#[0-9a-f]+|rgba?\s*\(|hsla?\s*\()/iu.test(value.trim());
+	return /#[0-9a-f]+|rgba?\s*\([^)]*\)|hsla?\s*\([^)]*\)/iu.test(value.trim());
+};
+
+const canonicalizeColors = function canonicalizeColors(value: string): string {
+	return value
+		.replace(/#[0-9a-f]+|rgba?\s*\([^)]*\)|hsla?\s*\([^)]*\)/giu, (color) =>
+			canonicalizeColor(color)
+		)
+		.replace(/\(\s+/gu, '(')
+		.replace(/\s+\)/gu, ')');
 };
 
 const isAnimationPropertyName = function isAnimationPropertyName(
@@ -353,7 +363,7 @@ export const canonicalizeStyleValue = function canonicalizeStyleValue(
 		return canonicalizeAnimation(value);
 	}
 	if (isColorPropertyName(name) && looksLikeColor(value)) {
-		return canonicalizeColor(value);
+		return canonicalizeColors(value);
 	}
 	return value;
 };

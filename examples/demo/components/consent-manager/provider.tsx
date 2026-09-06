@@ -1,11 +1,11 @@
 'use client';
 
-import { iab } from '@c15t/iab';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogTrigger,
-	ConsentManagerProvider,
+	ConsentProvider,
+	hosted,
 } from 'c15t/react';
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname } from 'next/navigation';
@@ -17,7 +17,6 @@ import { useThemePreset } from './theme-switcher';
 
 const SEARCH_CHANGE_EVENT = 'c15t:search-change';
 const DEFAULT_BACKEND_URL = 'https://test-consent-io.inth.app/';
-const TERMS_BACKEND_URL = '/api/self-host';
 
 const internalAnalyticsVendor = Object.fromEntries([
 	['id', 'internal-analytics'],
@@ -77,8 +76,8 @@ const resolveGeoOverrides = function resolveGeoOverrides(
  * @remarks
  * This split architecture is necessary because certain options like callbacks
  * and scripts cannot be serialized during server-side rendering. For
- * client-only implementations, use `<ConsentManagerProvider />` from
- * `@c15t/nextjs/client`.
+ * client-only implementations, use `<ConsentProvider />` from
+ * `@c15t/nextjs` with an explicit transport mode.
  *
  * @example
  * ```tsx
@@ -193,23 +192,14 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 
 	const isPolicyDemo = pathname === '/' || pathname === '/policy';
 	const isPolicyActionsDemo = pathname === '/policy-actions';
-	const isTermsDemo = pathname.startsWith('/terms');
-	let backendURL: string;
-
-	if (isTermsDemo) {
-		backendURL = TERMS_BACKEND_URL;
-	} else {
-		backendURL = DEFAULT_BACKEND_URL;
-	}
 
 	if (isPolicyDemo || isPolicyActionsDemo) {
 		return children;
 	}
 
 	return (
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
-				backendURL,
 				consentCategories: [
 					'necessary',
 					'functionality',
@@ -217,9 +207,9 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 					'marketing',
 					'measurement',
 				],
-				iab: iab({
+				iab: {
 					customVendors: [internalAnalyticsVendor],
-				}),
+				},
 				legalLinks: {
 					privacyPolicy: {
 						href: '/legal/privacy-policy',
@@ -228,7 +218,7 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 						href: '/legal/terms-of-service',
 					},
 				},
-				mode: 'c15t',
+				mode: hosted({ url: DEFAULT_BACKEND_URL }),
 				overrides: geoOverrides,
 				scripts: createDemoScripts('internal-analytics'),
 				storageConfig: {
@@ -251,6 +241,6 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 				</>
 			) : null}
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 };

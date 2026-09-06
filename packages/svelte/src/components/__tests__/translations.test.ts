@@ -5,22 +5,21 @@
  */
 
 import type { Translations } from '@c15t/core';
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 
 describe('Translations', () => {
 	beforeEach(() => {
-		clearConsentRuntimeCache();
 		window.localStorage.clear();
 	});
 
 	test('returns English translations by default', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -84,7 +83,7 @@ describe('Translations', () => {
 						},
 					},
 				},
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -130,7 +129,7 @@ describe('Translations', () => {
 						} as Partial<Translations>,
 					},
 				},
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -171,7 +170,7 @@ describe('Translations', () => {
 					locale: 'fr',
 					messages: {},
 				},
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -218,7 +217,7 @@ describe('Translations', () => {
 						},
 					},
 				},
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -267,7 +266,7 @@ describe('Translations', () => {
 						},
 					},
 				},
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 

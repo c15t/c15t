@@ -1,0 +1,80 @@
+---
+/**
+ * Zero-consent baseline layout: the same Astro shell with no c15t component,
+ * no boot script and no middleware (the `baseline` build omits the
+ * integration entirely). This is the floor `consentTax` subtracts.
+ */
+interface Props {
+	scenario: string;
+}
+
+const { scenario } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			content="width=device-width, initial-scale=1"
+			name="viewport"
+		/>
+		<title>Astro Benchmark: {scenario}</title>
+	</head>
+	<body>
+		<main style="padding: 2rem; font-family: system-ui, sans-serif">
+			<h1>Zero-consent baseline</h1>
+			<p>Identical app shell, no consent library. Measures the page floor.</p>
+			<button
+				id="baseline-noop"
+				type="button"
+			>
+				No-op interaction target
+			</button>
+		</main>
+
+		<span
+			data-c15t-bench-probe
+			data-scenario={scenario}
+			hidden
+		></span>
+
+		<script>
+			// Self-contained on purpose: the floor must not import anything
+			// from `@c15t/*`, or it would include the library it exists to
+			// subtract. Mirrors the real probe's settle semantics (double-rAF
+			// after the module runs); here `bannerReadyMs` / `bannerVisibleMs`
+			// mean "app shell parsed and painted".
+			const benchWindow = window as typeof window & {
+				__c15tAstroBench?: Record<string, unknown>;
+			};
+			benchWindow.__c15tAstroBench ??= {
+				activeUI: 'none',
+				hasConsented: false,
+				location: null,
+				mountCount: 1,
+				onBannerFetchedCount: 0,
+				onConsentSetCount: 0,
+				onErrorCount: 0,
+				overrides: {},
+				renderCount: 1,
+				scenario:
+					document
+						.querySelector('[data-c15t-bench-probe]')
+						?.getAttribute('data-scenario') ?? 'baseline',
+				startedAtMs: performance.now(),
+			};
+
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					const state = benchWindow.__c15tAstroBench;
+					if (state && state.bannerReadyMs === undefined) {
+						const now = performance.now();
+						state.bannerReadyMs = now;
+						state.bannerVisibleMs = now;
+						state.bannerPaintMs = null;
+					}
+				});
+			});
+		</script>
+	</body>
+</html>

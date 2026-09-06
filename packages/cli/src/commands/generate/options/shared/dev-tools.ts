@@ -1,6 +1,16 @@
+/* oxlint-disable func-style -- This prompt remains an async declaration to match the option helpers around it. */
 import * as p from '@clack/prompts';
 
 import type { CliContext } from '~/context/types';
+
+export const getDevToolsDocsPath = (
+	pkg: CliContext['framework']['pkg']
+): string => {
+	if (pkg === 'c15t') {
+		return 'frameworks/javascript/dev-tools';
+	}
+	return `frameworks/${pkg === 'c15t/next' ? 'next' : 'react'}/components/dev-tools`;
+};
 
 interface GetDevToolsOptionOptions {
 	context: CliContext;
@@ -8,7 +18,7 @@ interface GetDevToolsOptionOptions {
 	onCancel?: () => void;
 }
 
-export const getDevToolsOption = async function getDevToolsOption({
+export async function getDevToolsOption({
 	context,
 	handleCancel,
 	onCancel,
@@ -18,25 +28,25 @@ export const getDevToolsOption = async function getDevToolsOption({
 		context.framework.pkg === 'c15t/next';
 
 	context.logger.info(
-		'c15t DevTools helps you inspect consent state, scripts, and location overrides during development.'
+		'c15t DevTools helps you inspect consent state, policy, location, and kernel events during development.'
 	);
-	context.logger.info('Learn more: https://c15t.com/docs/dev-tools/overview');
+	context.logger.info(
+		`Learn more: https://c15t.com/docs/${getDevToolsDocsPath(context.framework.pkg)}`
+	);
 
 	const enableDevTools = await p.select({
 		initialValue: true,
-		message: 'Install and enable c15t DevTools?',
+		message: 'Enable c15t DevTools?',
 		options: [
 			{
 				hint: isReactProject
 					? 'Adds <DevTools /> to generated consent components'
-					: 'Adds createDevTools() setup to c15t.config.ts',
-
+					: 'Adds createDevTools({ kernel }) to the client configuration',
 				label: 'Yes (Recommended)',
 				value: true,
 			},
 			{
-				hint: 'Skip DevTools installation and setup',
-
+				hint: 'Skip DevTools setup',
 				label: 'No',
 				value: false,
 			},
@@ -58,4 +68,4 @@ export const getDevToolsOption = async function getDevToolsOption({
 	}
 
 	return enableDevTools as boolean;
-};
+}

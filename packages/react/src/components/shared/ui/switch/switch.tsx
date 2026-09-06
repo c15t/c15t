@@ -1,18 +1,27 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
-import { switchVariants } from '@c15t/ui/styles/primitives/switch';
-import type {
-	SwitchSize,
-	SwitchVariantsProps,
-} from '@c15t/ui/styles/primitives/switch';
+import styles from '@c15t/ui/styles/components/switch';
 import { forwardRef as createForwardRef } from 'react';
 import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
-import type { AllThemeKeys, ThemeValue } from '~/types/theme';
+import { useTheme } from '~/hooks/use-theme';
+import type { ThemeValue } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
-export type { SwitchSize, SwitchVariantsProps };
-export { switchVariants };
+export type SwitchSize = 'medium' | 'small';
+export interface SwitchVariantsProps {
+	size?: SwitchSize;
+}
+export const switchVariants = () => ({
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	thumb: (options?: { class?: string }) =>
+		[styles.thumb, options?.class].filter(Boolean).join(' '),
+	track: (options?: { class?: string }) =>
+		[styles.track, options?.class].filter(Boolean).join(' '),
+});
 
 export interface SwitchStylesKeys {
 	'switch.root': ThemeValue;
@@ -29,7 +38,6 @@ export interface SwitchProps
 	noStyle?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	size?: SwitchSize;
-	themeKey?: AllThemeKeys;
 }
 
 const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
@@ -44,22 +52,35 @@ const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
 			onClick,
 			onKeyDown,
 			size = 'medium',
+			type: _type = 'button',
 			...rest
 		},
 		forwardedRef
 	) => {
-		const variants = switchVariants({ size });
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = switchVariants();
 		const [isChecked, setIsChecked] = useControllableState({
 			defaultValue: defaultChecked,
 			onChange: onCheckedChange,
 			value: checked,
 		});
+		const finalNoStyle = noStyle ?? contextNoStyle;
 
-		const rootClassName = noStyle
-			? className
-			: variants.root({ class: className, disabled });
-		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
-		const trackClassName = noStyle ? undefined : variants.track({ disabled });
+		const rootProps = mergeSlotProps(components?.switch?.root, {
+			baseClassName: variants.root(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
+		const trackProps = mergeSlotProps(components?.switch?.track, {
+			baseClassName: variants.track(),
+			noStyle: finalNoStyle,
+		});
+		const thumbProps = mergeSlotProps(components?.switch?.thumb, {
+			baseClassName: variants.thumb(),
+			noStyle: finalNoStyle,
+		});
 		const dataState = getSwitchState(isChecked);
 		const dataDisabled = getDataDisabled(disabled);
 
@@ -87,10 +108,11 @@ const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
 
 		return (
 			<button
+				{...rootProps}
 				ref={forwardedRef}
 				aria-checked={isChecked}
-				className={rootClassName}
 				data-disabled={dataDisabled}
+				data-size={finalNoStyle ? undefined : size}
 				data-slot="switch"
 				data-state={dataState}
 				disabled={disabled}
@@ -98,14 +120,13 @@ const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
 				onKeyDown={handleKeyDown}
 				role="switch"
 				type="button"
-				{...rest}
 			>
 				<span
-					className={trackClassName}
+					{...trackProps}
 					data-slot="switch-track"
 				>
 					<span
-						className={thumbClassName}
+						{...thumbProps}
 						data-slot="switch-thumb"
 					/>
 				</span>

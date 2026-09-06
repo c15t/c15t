@@ -4,18 +4,5 @@
 		"sidebar": "section",
 		"label": "Comparisons"
 	},
-	"pages": [
-		"index",
-		"cookieconsent-v3",
-		"klaro",
-		"tarteaucitron",
-		"silktide-consent-manager",
-		"osano",
-		"iubenda",
-		"onetrust",
-		"cookiebot",
-		"didomi",
-		"usercentrics",
-		"react-cookie-consent"
-	]
+	"pages": ["index"]
 }

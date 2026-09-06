@@ -59,15 +59,22 @@ versioned by config revision. Per-tenant, never per-user. Staleness window
 
 ## 3. Transport selection — explicit, non-breaking
 
-- Default: direct backend `GET /init` (today's behavior, unchanged — the
-  non-breaking guarantee; also the fallback for static/no-server hosts).
+- Without manifest mode, the default remains direct backend `GET /init`.
 - Installing the Next/Nuxt server piece configures the client to a same-origin
-  endpoint. **No runtime probing** (a 404 probe costs the RTT we save).
-- Tiers: SSR (headers at server) → edge (headers at edge fn) → static
-  (build-time manifest inline + client geo microfetch) → offline (no geo).
-  While geo is unresolved, render the **strictest applicable policy**;
-  degrading toward stricter compliance is safe, the reverse is not.
-- Unknown-surface rule: a policy resolving to a surface this library version
+  endpoint. This is the default manifest tier. **No runtime probing** (a 404
+  probe costs the RTT we save).
+
+| Tier | Resolution location | Selection |
+| --- | --- | --- |
+| SSR | Host server | Default when the framework can resolve during SSR |
+| Edge | Same-origin edge function | Default when the framework installs an init route |
+| Static | Browser, using a build-time manifest and geo microfetch | Explicit client-mode opt-in; the resolver loads lazily |
+| Offline | Browser, without geo | Explicit offline-mode opt-in |
+
+While geo is unresolved in the static tier, render the **strictest applicable
+policy**; degrading toward stricter compliance is safe, the reverse is not.
+
+A policy resolving to a surface this library version
   doesn't know falls back `requested → configured default → strictest known` —
   never render nothing.
 
@@ -118,5 +125,7 @@ every change to resolver, manifest route, or `/init`.
 
 Additive only: new `/manifest` route; `/init` internally refactored onto the
 shared resolver with behavior frozen (existing backend tests + shadow-compare
-old-vs-new resolver over the fixture matrix before switchover); kernel gains
-`createManifestTransport`; Next/Nuxt server pieces are opt-in installs.
+old-vs-new resolver over the fixture matrix before switchover). The
+server-oriented `createManifestTransport` lives at
+`@c15t/core/v3/transports/manifest`. Next/Nuxt server pieces use it behind a
+same-origin init route, while static hosts opt into a lazy client import.

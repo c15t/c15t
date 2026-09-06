@@ -1,9 +1,10 @@
 /**
  * Store conformance suite.
  *
- * Verifies that consent actions mutate the store in the expected way,
- * regardless of framework. Mirrors the public contract of
- * `createConsentManagerStore` from `@c15t/core`.
+ * Verifies that consent actions mutate the kernel-backed state in the
+ * expected way, regardless of framework. Reads the snapshot projection
+ * every driver exposes through `getStore()` (`consents`,
+ * `selectedConsents`, `activeUI`).
  */
 
 import type { TestDriver } from '../driver';

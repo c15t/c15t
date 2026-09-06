@@ -7,12 +7,42 @@
  * @packageDocumentation
  */
 
-// Placeholder — will be populated when extracting from useHeadlessIABConsentUI
-export { resolveIABBannerSummary } from './headless/banner-summary';
-export { processGVLForDialog } from './headless/dialog-data';
+export {
+	IAB_BANNER_MAX_DISPLAY_ITEMS,
+	resolveIABBannerSummary,
+} from './headless/banner-summary';
+export type { ResolveIABBannerSummaryOptions } from './headless/banner-summary';
+export {
+	type HeadlessIABDialogDisplayModel,
+	type HeadlessIABDisplayConsentRow,
+	type HeadlessIABDisplayRow,
+	type HeadlessIABDisplayRowKind,
+	type HeadlessIABDisplayStackRow,
+	type HeadlessIABDisplayToggle,
+	iabDisplayTestId,
+	resolveIABDialogDisplayModel,
+} from './headless/display-model';
+export {
+	type ProcessedFeature,
+	type ProcessedGVLData,
+	type ProcessedPurpose,
+	type ProcessedSpecialFeature,
+	type ProcessedStack,
+	type ProcessedVendor,
+	processGVLForDialog,
+} from './headless/dialog-data';
 export type {
 	HeadlessIABBannerAction,
 	HeadlessIABBannerState,
 	HeadlessIABDialogAction,
+	HeadlessIABDialogData,
 	HeadlessIABDialogState,
+	HeadlessIABPreferenceTab,
+	HeadlessIABProcessedFeature,
+	HeadlessIABProcessedPurpose,
+	HeadlessIABProcessedSpecialFeature,
+	HeadlessIABProcessedStack,
+	HeadlessIABProcessedVendor,
+	HeadlessIABStateInput,
+	HeadlessIABVendorId,
 } from './headless/types';

@@ -3,9 +3,9 @@
 import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useConsentManager } from '~/component-hooks/use-consent-manager';
+import { useTranslations } from '~/component-hooks/use-translations';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
-import { useTranslations } from '~/hooks/use-translations';
 
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
@@ -57,7 +57,7 @@ const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 		const hasPolicyScope =
 			Array.isArray(policyCategories) &&
 			policyCategories.length > 0 &&
-			!policyCategories.includes('*');
+			!(policyCategories as readonly string[]).includes('*');
 		const isOutOfPolicyCategory =
 			hasPolicyScope && !policyCategories.includes(category);
 		const isStrictPolicyBlocked =

@@ -3,15 +3,16 @@ import { createElement } from 'react';
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
+	ConsentProvider,
+	offline,
 } from '../../../packages/react/src/index';
 import { benchmarkConsentOptions } from './fixtures';
 
 export const CurrentConsentSurfaces = () => (
-	<ConsentManagerProvider options={benchmarkConsentOptions}>
+	<ConsentProvider options={{ ...benchmarkConsentOptions, mode: offline() }}>
 		<ConsentBanner />
 		<ConsentDialog />
-	</ConsentManagerProvider>
+	</ConsentProvider>
 );
 
 export default createElement(CurrentConsentSurfaces);

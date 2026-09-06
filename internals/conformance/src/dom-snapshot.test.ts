@@ -32,6 +32,13 @@ test('strips s-hash scoped classes', () => {
 	expect(domSnapshot(el)).toBe('<div class="btn primary"></div>');
 });
 
+test('normalizes CSS module classes across framework bundlers', () => {
+	const react = makeEl('<button class="_button_1du3d_94"></button>');
+	const svelte = makeEl('<button class="c15t-ui-button-IiSDl"></button>');
+	expect(domSnapshot(react)).toBe(domSnapshot(svelte));
+	expect(domSnapshot(react)).toBe('<button class="button"></button>');
+});
+
 test('removes empty class attribute after stripping', () => {
 	const el = makeEl('<div class="svelte-xyz123"></div>');
 	expect(domSnapshot(el)).toBe('<div></div>');

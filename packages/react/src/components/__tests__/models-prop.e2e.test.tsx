@@ -16,13 +16,11 @@ import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 } from '~/components/iab/__tests__/e2e-setup';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -68,8 +66,34 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const optInOptions: ConsentManagerOptions = {
-	mode: 'offline',
+const optInOptions: ConsentProviderOptions = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	mode: offline(),
+	offlinePolicy: {
+		policy: {
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				scopeMode: 'permissive',
+			},
+			id: 'models-prop-opt-in-test',
+			model: 'opt-in',
+			ui: {
+				mode: 'banner',
+			},
+		},
+	},
 };
 
 describe('models Prop E2E Tests', () => {
@@ -83,16 +107,15 @@ describe('models Prop E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		clearConsentState();
 	});
 
 	describe('Opt-in mode (default)', () => {
 		test('ConsentBanner renders in opt-in mode (default models includes opt-in)', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -108,9 +131,9 @@ describe('models Prop E2E Tests', () => {
 
 		test('IABConsentBanner does NOT render in opt-in mode (default models is iab)', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<IABConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Wait long enough to confirm it doesn't appear
@@ -124,9 +147,9 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentDialog renders in opt-in mode when open', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -142,9 +165,9 @@ describe('models Prop E2E Tests', () => {
 
 		test('IABConsentDialog does NOT render in opt-in mode', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<IABConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
@@ -159,10 +182,10 @@ describe('models Prop E2E Tests', () => {
 	describe('IAB mode', () => {
 		test('IABConsentBanner renders when model is iab', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -178,9 +201,9 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentBanner does NOT render when model is iab', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
@@ -195,9 +218,9 @@ describe('models Prop E2E Tests', () => {
 	describe('Custom models prop', () => {
 		test('ConsentBanner with models=[opt-in] renders in opt-in mode', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner models={['opt-in']} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -213,9 +236,9 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentBanner with models=[iab] does NOT render in opt-in mode', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner models={['iab']} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
@@ -228,10 +251,10 @@ describe('models Prop E2E Tests', () => {
 
 		test('only matching component renders when both are present', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner />
 					<IABConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Standard banner should render

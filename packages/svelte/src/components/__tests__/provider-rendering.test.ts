@@ -4,23 +4,21 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-hydration.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 
 describe('ConsentManagerProvider Rendering Behavior', () => {
-	beforeEach(() => {
-		clearConsentRuntimeCache();
-	});
+	beforeEach(() => {});
 
 	test('should render children immediately without blocking', () => {
 		render(ProviderOnlyFixture, {
 			options: {
 				consentCategories: ['necessary', 'marketing'],
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -32,7 +30,7 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 		render(ProviderOnlyFixture, {
 			label: 'custom-content',
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -46,7 +44,7 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 		render(ProviderOnlyFixture, {
 			options: {
 				consentCategories: ['necessary'],
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -56,7 +54,7 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 	test('should not render the banner overlay by default', async () => {
 		render(BannerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -72,7 +70,7 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 	test('should render the banner overlay when scroll lock is enabled', async () => {
 		render(BannerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 				scrollLock: true,
 			},
 		});

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { clearConsentRuntimeCache } from '@c15t/core';
 	import { ConsentManagerProvider } from '@c15t/svelte';
 	import { untrack } from 'svelte';
 	import type { Snippet } from 'svelte';
@@ -30,7 +29,7 @@
 	};
 
 	if (typeof window !== 'undefined') {
-		resetStorybookConsentState(clearConsentRuntimeCache);
+		resetStorybookConsentState();
 		if (initialStoredConsent) {
 			seedStoredConsent(initialStoredConsent);
 		}

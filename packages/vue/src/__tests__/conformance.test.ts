@@ -19,14 +19,14 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import { createConsentKernel } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	KernelConfig,
 	KernelTransport,
-} from '@c15t/core/v3';
-import { createPersistence } from '@c15t/core/v3/modules/persistence';
+} from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import type {
 	GlobalVendorList,
 	InitOutput,
@@ -617,9 +617,14 @@ const createControlledContext = function createControlledContext(
 		}),
 		dispose() {
 			unsubscribe();
+			// This context owns the kernel, so it owns tearing it down —
+			// commands run under a controlled mount can leave retry timers
+			// and failed-save cleanup behind.
+			kernel.dispose();
 		},
 		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
 		kernel,
+		ownsKernel: true,
 		snapshot,
 		storedConsent: computed({
 			get: () => snapshotToStoredConsentForTest(snapshot.value),

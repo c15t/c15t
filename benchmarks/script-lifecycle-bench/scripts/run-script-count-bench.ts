@@ -56,7 +56,7 @@ const counts = (process.env.SCRIPT_COUNTS ?? '5,10,25,50')
 	.map((value) => Number(value.trim()))
 	.filter((value) => Number.isFinite(value) && value > 0);
 
-type Version = 'v2' | 'v3';
+type Version = 'v3';
 
 interface BenchState {
 	version: Version;
@@ -255,8 +255,8 @@ const run = async function run() {
 			playwrightDurationMs: Stats;
 		}[] = [];
 
-		const combinations = counts.flatMap((count) =>
-			(['v2', 'v3'] as const).map((version) => ({ count, version }))
+		const combinations: { count: number; version: Version }[] = counts.map(
+			(count) => ({ count, version: 'v3' })
 		);
 		await combinations.reduce<Promise<void>>(
 			async (previousCombination, { count, version }) => {
@@ -297,7 +297,7 @@ const run = async function run() {
 
 		mkdirSync(outputDir, { recursive: true });
 		writeFileSync(
-			join(outputDir, 'react-v2-v3-script-count.json'),
+			join(outputDir, 'react-script-count.json'),
 			`${JSON.stringify(
 				{
 					counts,
@@ -314,30 +314,17 @@ const run = async function run() {
 
 		console.log('# React script loading count benchmark\n');
 		console.log(`Iterations per metric: ${iterations}\n`);
-		console.log(
-			'| Scripts | v2 median ms | v3 median ms | Δ | v2 p95 ms | v3 p95 ms | Δ |'
-		);
-		console.log('|---:|---:|---:|---:|---:|---:|---:|');
+		console.log('| Scripts | median ms | p95 ms |');
+		console.log('|---:|---:|---:|');
 		for (const count of counts) {
-			const v2 = results.find(
-				(result) => result.count === count && result.version === 'v2'
+			const countResult = results.find(
+				(candidate) => candidate.count === count && candidate.version === 'v3'
 			);
-			const v3 = results.find(
-				(result) => result.count === count && result.version === 'v3'
-			);
-			if (!v2 || !v3) {
+			if (!countResult) {
 				continue;
 			}
-			const medianDelta =
-				((v3.inPageDurationMs.median - v2.inPageDurationMs.median) /
-					v2.inPageDurationMs.median) *
-				100;
-			const p95Delta =
-				((v3.inPageDurationMs.p95 - v2.inPageDurationMs.p95) /
-					v2.inPageDurationMs.p95) *
-				100;
 			console.log(
-				`| ${count} | ${v2.inPageDurationMs.median.toFixed(2)} | ${v3.inPageDurationMs.median.toFixed(2)} | ${medianDelta >= 0 ? '+' : ''}${medianDelta.toFixed(1)}% | ${v2.inPageDurationMs.p95.toFixed(2)} | ${v3.inPageDurationMs.p95.toFixed(2)} | ${p95Delta >= 0 ? '+' : ''}${p95Delta.toFixed(1)}% |`
+				`| ${count} | ${countResult.inPageDurationMs.median.toFixed(2)} | ${countResult.inPageDurationMs.p95.toFixed(2)} |`
 			);
 		}
 	} finally {

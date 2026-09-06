@@ -156,10 +156,13 @@ export interface DatabuddyConsentOptions {
  *
  * @example
  * ```ts
- * import { configureConsentManager } from 'c15t';
+ * import { createConsentKernel } from 'c15t';
+ * import { createScriptLoader } from 'c15t/modules/script-loader';
  * import { databuddy } from '@c15t/scripts/databuddy';
  *
- * configureConsentManager({
+ * const kernel = createConsentKernel();
+ * const loader = createScriptLoader({
+ *   kernel,
  *   scripts: [
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',

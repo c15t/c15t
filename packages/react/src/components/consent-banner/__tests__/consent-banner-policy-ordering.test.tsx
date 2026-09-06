@@ -1,19 +1,18 @@
-import type { ConsentStoreState } from '@c15t/core';
 import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import {
-	StableConsentStateProvider,
-	StableGlobalThemeProvider,
-} from '~/__tests__/stable-context-providers';
+import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
+
+type ConsentManagerState = ReturnType<typeof useConsentManager>;
 
 const createMockState = function createMockState(
-	overrides: Partial<ConsentStoreState> = {}
-): ConsentStoreState {
+	overrides: Partial<ConsentManagerState> = {}
+): ConsentManagerState {
 	return {
 		activeUI: 'banner',
 		consentCategories: [
@@ -58,42 +57,54 @@ const createMockState = function createMockState(
 		setSelectedConsent: vi.fn(),
 		translationConfig: defaultTranslationConfig,
 		...overrides,
-	} as unknown as ConsentStoreState;
+	} as unknown as ConsentManagerState;
 };
 
 const renderBanner = function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
-	stateOverrides: Partial<ConsentStoreState> = {},
-	themeSlotOverrides: Record<string, string> = {}
+	stateOverrides: Partial<ConsentManagerState> = {},
+	componentOverrides: ComponentProps<
+		typeof ConsentProvider
+	>['options']['components'] = {}
 ) {
 	const state = createMockState(stateOverrides);
 
-	render(
-		<StableGlobalThemeProvider
-			value={{
-				theme: {
-					slots: {
-						buttonPrimary: 'button-primary-marker',
-						buttonSecondary: 'button-secondary-marker',
-						...themeSlotOverrides,
+	return render(
+		<ConsentProvider
+			options={{
+				components: {
+					button: {
+						primary: { className: 'button-primary-marker' },
+						secondary: { className: 'button-secondary-marker' },
+					},
+					...componentOverrides,
+				},
+				mode: offline(),
+				persistence: false,
+				prefetch: {
+					initialConsents: state.consents,
+					initialPolicy: {
+						consent: {
+							categories: state.consentCategories,
+							scopeMode: 'permissive',
+						},
+						id: 'banner-policy-ordering-test',
+						model: state.model ?? 'opt-in',
+						ui: {
+							banner: state.policyBanner,
+							dialog: state.policyDialog,
+							mode: 'banner',
+						},
+					},
+					initialTranslations: {
+						language: 'en',
+						translations: defaultTranslationConfig.translations.en as never,
 					},
 				},
 			}}
 		>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentBanner {...props} />
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+			<ConsentBanner {...props} />
+		</ConsentProvider>
 	);
 };
 
@@ -110,7 +121,7 @@ const waitForBanner = async function waitForBanner() {
 
 describe('ConsentBanner policy ordering', () => {
 	test('prefers local layout over policy layout', async () => {
-		renderBanner({
+		await renderBanner({
 			layout: ['customize', ['reject', 'accept']],
 		});
 
@@ -130,7 +141,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('uses policy primary actions before the primaryButton prop', async () => {
-		renderBanner({
+		await renderBanner({
 			primaryButton: 'reject',
 		});
 
@@ -147,8 +158,8 @@ describe('ConsentBanner policy ordering', () => {
 		expect(rejectButton?.className).toContain('button-secondary-marker');
 	});
 
-	test('filters out actions disallowed by policy even when local layout includes them', async () => {
-		renderBanner(
+	test('drops policy-disallowed actions from a local layout', async () => {
+		await renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
 			},
@@ -175,8 +186,8 @@ describe('ConsentBanner policy ordering', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('keeps the default layout when policy has hints but no policy layout', async () => {
-		renderBanner(
+	test('groups the default layout when policy has hints but no policy layout', async () => {
+		await renderBanner(
 			{},
 			{
 				policyBanner: {
@@ -200,16 +211,52 @@ describe('ConsentBanner policy ordering', () => {
 			)
 		);
 
+		// Two sub-groups, not one plus a loose button: the shared default
+		// layout is what Svelte, Vue and Astro render, and `space-between`
+		// only works when both sides are groups.
 		expect(footerGroups).toEqual([
 			['consent-banner-reject-button', 'consent-banner-accept-button'],
+			['consent-banner-customize-button'],
 		]);
-		expect(
-			document.querySelector('[data-testid="consent-banner-customize-button"]')
-		).toBeInTheDocument();
+	});
+
+	test('keeps the subgroup shape of a scalar policy layout', async () => {
+		// `banner.actionGroups` normalizes a scalar entry into a
+		// single-element array; the banner's own filter does the same, so
+		// the rendered subgroups have to match the policy's shape either
+		// way, with `customize` on its own rather than folded in.
+		await renderBanner(
+			{},
+			{
+				policyBanner: {
+					allowedActions: ['reject', 'accept', 'customize'],
+					direction: 'row',
+					layout: ['customize', ['reject', 'accept']],
+					primaryActions: ['accept'],
+				},
+			}
+		);
+
+		await waitForBanner();
+
+		const footerGroups = Array.from(
+			document.querySelectorAll(
+				'[data-testid="consent-banner-footer-sub-group"]'
+			)
+		).map((group) =>
+			Array.from(group.querySelectorAll<HTMLButtonElement>('button')).map(
+				(button) => button.dataset.testid
+			)
+		);
+
+		expect(footerGroups).toEqual([
+			['consent-banner-customize-button'],
+			['consent-banner-reject-button', 'consent-banner-accept-button'],
+		]);
 	});
 
 	test('shows branding by default and hides it when hideBranding is true', async () => {
-		renderBanner({});
+		const view = await renderBanner({});
 
 		await waitForBanner();
 
@@ -217,9 +264,9 @@ describe('ConsentBanner policy ordering', () => {
 			document.querySelector('[data-testid="consent-banner-branding"]')
 		).toBeInTheDocument();
 
-		document.body.innerHTML = '';
+		await view.unmount();
 
-		renderBanner({ hideBranding: true });
+		await renderBanner({ hideBranding: true });
 
 		await waitForBanner();
 
@@ -228,8 +275,12 @@ describe('ConsentBanner policy ordering', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('applies the consentBannerTag theme slot to the stock banner tag', async () => {
-		renderBanner({}, {}, { consentBannerTag: 'consent-banner-tag-marker' });
+	test('applies the banner tag component slot to the stock banner tag', async () => {
+		await renderBanner(
+			{},
+			{},
+			{ tag: { banner: { className: 'consent-banner-tag-marker' } } }
+		);
 
 		await waitForBanner();
 

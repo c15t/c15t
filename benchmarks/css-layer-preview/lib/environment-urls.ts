@@ -1,10 +1,4 @@
-import type {
-	CssLayerEnvironment,
-	CssLayerFixtureKind,
-	CssLayerSurface,
-} from '@c15t/benchmarking';
-
-const host = process.env.CSS_LAYER_HOST ?? 'localhost';
+import type { CssLayerEnvironment } from '@c15t/benchmarking';
 
 export const cssLayerEnvironments: CssLayerEnvironment[] = [
 	{
@@ -29,11 +23,3 @@ export const cssLayerEnvironments: CssLayerEnvironment[] = [
 		port: 3123,
 	},
 ];
-
-export const getEnvironmentUrl = function getEnvironmentUrl(
-	port: number,
-	surface: CssLayerSurface,
-	fixtureKind: CssLayerFixtureKind
-) {
-	return `http://${host}:${port}/matrix/${surface}/${fixtureKind}`;
-};

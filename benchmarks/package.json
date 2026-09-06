@@ -3,14 +3,14 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"bench": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/*.bench.ts",
-		"bench:ci": "BENCH_OUTPUT_DIR=../.benchmarks/head/micro bun run micro/*.bench.ts",
-		"bench:cookie": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/cookie.bench.ts",
-		"bench:has": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/has-condition.bench.ts",
-		"bench:nightly": "BENCH_OUTPUT_DIR=../.benchmarks/nightly/micro bun run micro/*.bench.ts",
-		"bench:script-loader": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/script-loader.bench.ts",
-		"bench:store": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/store.bench.ts",
-		"bench:translations": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/translations.bench.ts"
+		"bench": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro node --import tsx micro/*.bench.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../.benchmarks/head/micro node --import tsx micro/*.bench.ts",
+		"bench:cookie": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro node --import tsx micro/cookie.bench.ts",
+		"bench:has": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro node --import tsx micro/has-condition.bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../.benchmarks/nightly/micro node --import tsx micro/*.bench.ts",
+		"bench:script-loader": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro node --import tsx micro/script-loader.bench.ts",
+		"bench:store": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro node --import tsx micro/store.bench.ts",
+		"bench:translations": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro node --import tsx micro/translations.bench.ts"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",

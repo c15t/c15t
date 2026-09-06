@@ -14,15 +14,10 @@ import { userEvent } from 'vitest/browser';
 import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
-import {
-	ConsentDialogTrigger,
-	ConsentDialogTriggerToolbar,
-} from '~/components/consent-dialog-trigger';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(
 	value: Value,
@@ -55,19 +50,50 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+const defaultOptions: ConsentProviderOptions = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	mode: offline(),
+	offlinePolicy: {
+		policy: {
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				scopeMode: 'permissive',
+			},
+			id: 'active-ui-transitions-test',
+			model: 'opt-in',
+			ui: {
+				mode: 'banner',
+			},
+		},
+	},
 };
 
-const queryRequiredElement = function queryRequiredElement(
-	selector: string
-): HTMLElement {
-	const element = document.querySelector<HTMLElement>(selector);
-	if (!element) {
-		throw new Error(`Expected element matching ${selector}`);
-	}
-	return element;
-};
+const storedAcceptAllConsent = () => ({
+	consentInfo: {
+		subjectId: 'sub_123456789ABC',
+		time: Date.now(),
+		type: 'accept-all',
+	},
+	consents: {
+		experience: true,
+		functionality: true,
+		marketing: true,
+		measurement: true,
+		necessary: true,
+	},
+});
 
 describe('activeUI Transitions E2E Tests', () => {
 	beforeEach(() => {
@@ -80,14 +106,13 @@ describe('activeUI Transitions E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('banner shows on first visit (activeUI becomes banner)', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -103,10 +128,10 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('customize transitions banner → dialog', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for banner
@@ -146,10 +171,10 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('save from dialog hides all UI', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for banner, then click customize
@@ -202,25 +227,15 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('banner hidden for returning visitor', async () => {
 		// Pre-set localStorage consent
-		const consentData = {
-			consentInfo: {
-				time: Date.now(),
-				type: 'accept-all',
-			},
-			consents: {
-				experience: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				necessary: true,
-			},
-		};
-		window.localStorage.setItem('c15t', JSON.stringify(consentData));
+		window.localStorage.setItem(
+			'c15t',
+			JSON.stringify(storedAcceptAllConsent())
+		);
 
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait long enough to confirm banner doesn't appear
@@ -234,11 +249,11 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('trigger appears after consent, opens dialog on click', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
 				<ConsentDialogTrigger showWhen="always" />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for banner
@@ -276,11 +291,6 @@ describe('activeUI Transitions E2E Tests', () => {
 					'button[aria-label="Open privacy settings"]'
 				);
 				expect(trigger).toBeInTheDocument();
-				expect(
-					document.querySelector(
-						'[role="toolbar"][aria-label="Privacy controls"]'
-					)
-				).not.toBeInTheDocument();
 			},
 			{ timeout: 3000 }
 		);
@@ -302,120 +312,13 @@ describe('activeUI Transitions E2E Tests', () => {
 		);
 	});
 
-	test.each([
-		['horizontal', 'bottom-right', '{ArrowRight}', -1],
-		['horizontal', 'top-left', '{ArrowRight}', 0],
-		['vertical', 'bottom-right', '{ArrowDown}', -1],
-		['vertical', 'top-left', '{ArrowDown}', 0],
-	] as const)(
-		'trigger %s toolbar at %s runs custom actions and opens preferences',
-		async (orientation, defaultPosition, navigationKey, preferencesIndex) => {
-			const openSupport = vi.fn();
-
-			render(
-				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentBanner />
-					<ConsentDialog />
-					<ConsentDialogTriggerToolbar
-						showWhen="always"
-						ariaLabel="Site controls"
-						defaultPosition={defaultPosition}
-						orientation={orientation}
-						actions={[
-							{
-								icon: <span data-testid="theme-icon" />,
-								id: 'theme',
-								label: 'Toggle color scheme',
-								onSelect: vi.fn(),
-							},
-							{
-								icon: <span />,
-								id: 'support',
-								label: 'Open support chat',
-								onSelect: openSupport,
-							},
-						]}
-					/>
-				</ConsentManagerProvider>
-			);
-
-			await vi.waitFor(
-				() => {
-					expect(
-						document.querySelector(
-							'[data-testid="consent-banner-accept-button"]'
-						)
-					).toBeInTheDocument();
-				},
-				{ timeout: 3000 }
-			);
-
-			await userEvent.click(
-				queryRequiredElement('[data-testid="consent-banner-accept-button"]')
-			);
-
-			await vi.waitFor(
-				() => {
-					expect(
-						document.querySelector(
-							`[role="toolbar"][aria-label="Site controls"][aria-orientation="${orientation}"]`
-						)
-					).toBeInTheDocument();
-				},
-				{ timeout: 3000 }
-			);
-
-			const toolbarButtons = Array.from(
-				queryRequiredElement(
-					'[role="toolbar"][aria-label="Site controls"]'
-				).querySelectorAll('button')
-			);
-			expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
-				'aria-label',
-				'Open privacy settings'
-			);
-
-			expect(
-				document.querySelector('[data-testid="theme-icon"]')
-			).toBeInTheDocument();
-			const privacyButton = queryRequiredElement(
-				'button[aria-label="Open privacy settings"]'
-			);
-			const themeButton = queryRequiredElement(
-				'button[aria-label="Toggle color scheme"]'
-			);
-			privacyButton.focus();
-			await userEvent.keyboard(navigationKey);
-			expect(themeButton).toHaveFocus();
-
-			await userEvent.click(
-				queryRequiredElement('button[aria-label="Open support chat"]')
-			);
-			expect(openSupport).toHaveBeenCalledOnce();
-			expect(
-				document.querySelector('[data-testid="consent-dialog-root"]')
-			).not.toBeInTheDocument();
-
-			await userEvent.click(privacyButton);
-
-			await vi.waitFor(
-				() => {
-					expect(
-						document.querySelector('[data-testid="consent-dialog-root"]')
-					).toBeInTheDocument();
-				},
-				{ timeout: 3000 }
-			);
-		}
-	);
-
 	test('full lifecycle: banner → customize → dialog → save → trigger → dialog', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
 				<ConsentDialogTrigger showWhen="always" />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Step 1: Banner appears

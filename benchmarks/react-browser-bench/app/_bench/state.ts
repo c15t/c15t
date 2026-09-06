@@ -1,17 +1,12 @@
 'use client';
 
 export type ReactBenchScenario =
+	| 'banner-css'
 	| 'baseline'
-	| 'css-v2-banner-monolith'
-	| 'css-v3-banner-modules'
+	| 'css-banner-modules'
 	| 'full-ui'
 	| 'headless'
-	| 'react-v3-banner-css'
-	| 'react-v3-full'
-	| 'react-v3-headless'
-	| 'react-v3-repeat'
-	| 'repeat-visitor'
-	| 'vanilla-core';
+	| 'repeat-visitor';
 
 export interface BenchInteractionMetrics {
 	acceptAllMs?: number;

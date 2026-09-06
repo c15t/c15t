@@ -18,6 +18,7 @@ import type {
 	PingData,
 	TCData,
 	TCFApiCallback,
+	TCFConsentData,
 } from './iab-tcf-types';
 import { clearStubQueue, getStubQueue } from './stub';
 import { decodeTCString } from './tc-string';
@@ -98,6 +99,7 @@ export const createCMPApi = function createCMPApi(
 
 	// Decoded TC data cache
 	let cachedTCData: TCData | null = null;
+	let currentConsentData: TCFConsentData | null = null;
 	/**
 	 * Builds TC Data from current state.
 	 */
@@ -110,14 +112,25 @@ export const createCMPApi = function createCMPApi(
 			return cachedTCData;
 		}
 
-		let purposeConsents: Record<number, boolean> = {};
-		let purposeLegitInterests: Record<number, boolean> = {};
-		let vendorConsents: Record<number, boolean> = {};
-		let vendorLegitInterests: Record<number, boolean> = {};
-		let specialFeatureOptins: Record<number, boolean> = {};
+		let purposeConsents: Record<number, boolean> =
+			currentConsentData?.purposeConsents ?? {};
+		let purposeLegitInterests: Record<number, boolean> =
+			currentConsentData?.purposeLegitimateInterests ?? {};
+		let vendorConsents: Record<number, boolean> = Object.fromEntries(
+			Object.entries(currentConsentData?.vendorConsents ?? {}).map(
+				([id, value]) => [Number(id), value]
+			)
+		);
+		let vendorLegitInterests: Record<number, boolean> = Object.fromEntries(
+			Object.entries(currentConsentData?.vendorLegitimateInterests ?? {}).map(
+				([id, value]) => [Number(id), value]
+			)
+		);
+		let specialFeatureOptins: Record<number, boolean> =
+			currentConsentData?.specialFeatureOptIns ?? {};
 
 		// Decode TC string if present
-		if (tcString) {
+		if (tcString && !currentConsentData) {
 			try {
 				const decoded = await decodeTCString(tcString);
 				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
@@ -396,8 +409,9 @@ export const createCMPApi = function createCMPApi(
 			}
 		},
 
-		updateConsent: (newTcString: string) => {
+		updateConsent: (newTcString: string, consentData?: TCFConsentData) => {
 			tcString = newTcString;
+			currentConsentData = consentData ?? currentConsentData;
 			// Invalidate cache
 			cachedTCData = null;
 			cmpStatus = 'loaded';

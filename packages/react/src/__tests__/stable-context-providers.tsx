@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import type { ConsentStateContextValue } from '~/context/consent-manager-context';
+import { TriggerContext } from '~/components/consent-dialog-trigger/atoms/root';
+import type { TriggerContextValue } from '~/components/consent-dialog-trigger/atoms/root';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
+import { V3UIConfigContext } from '~/ui-config-context';
+import type { V3UIConfigValue } from '~/ui-config-context';
 
 export const StableGlobalThemeProvider = ({
 	children,
@@ -38,18 +40,34 @@ export const StableLocalThemeProvider = ({
 	);
 };
 
-export const StableConsentStateProvider = ({
+export const StableTriggerProvider = ({
 	children,
 	value,
 }: {
 	children: ReactNode;
-	value: ConsentStateContextValue;
+	value: TriggerContextValue;
 }) => {
 	const contextValue = useMemo(() => value, [value]);
 
 	return (
-		<ConsentStateContext.Provider value={contextValue}>
+		<TriggerContext.Provider value={contextValue}>
 			{children}
-		</ConsentStateContext.Provider>
+		</TriggerContext.Provider>
+	);
+};
+
+export const StableV3UIConfigProvider = ({
+	children,
+	value,
+}: {
+	children: ReactNode;
+	value: V3UIConfigValue;
+}) => {
+	const contextValue = useMemo(() => value, [value]);
+
+	return (
+		<V3UIConfigContext.Provider value={contextValue}>
+			{children}
+		</V3UIConfigContext.Provider>
 	);
 };

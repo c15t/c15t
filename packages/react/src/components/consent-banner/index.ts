@@ -57,7 +57,7 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
  * @remarks
  * This component serves as the main entry point for rendering a consent banner.
  * Start with the pre-built component and its existing configuration surface.
- * For most customization, use `ConsentManagerProvider` options, theme tokens,
+ * For most customization, use `ConsentProvider` options, theme tokens,
  * slots, and `theme.consentActions` before reaching for compound composition.
  *
  * Key features:
@@ -75,10 +75,11 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
  * ```
  *
  * @example
- * Preferred customization via provider `i18n`, theme tokens, and slots:
+ * Preferred customization via provider `i18n`, theme tokens, and components:
  * ```tsx
- * <ConsentManagerProvider
+ * <ConsentProvider
  *   options={{
+ *     mode: hosted({ url: '/api/c15t' }),
  *     i18n: {
  *       locale: 'en',
  *       messages: {
@@ -92,15 +93,17 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
  *         surface: '#fffdf8',
  *         surfaceHover: '#f6f3ee',
  *       },
- *       slots: {
- *         consentBannerCard: 'rounded-3xl',
- *         consentBannerFooter: 'border-t border-black/10',
+ *     },
+ *     components: {
+ *       banner: {
+ *         card: { className: 'rounded-3xl' },
+ *         footer: { className: 'border-t border-black/10' },
  *       },
  *     },
  *   }}
  * >
  *   <ConsentBanner primaryButton="accept" />
- * </ConsentManagerProvider>
+ * </ConsentProvider>
  * ```
  *
  * @example

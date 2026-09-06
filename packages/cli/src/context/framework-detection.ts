@@ -10,10 +10,45 @@ import type { CliLogger } from '~/utils/logger';
  */
 export type AvailablePackages = 'c15t/next' | 'c15t/react' | 'c15t';
 
+export type DevelopmentEnvironment = 'vite' | 'node' | 'manual';
+
+const detectDevelopmentEnvironment = (
+	deps: Record<string, unknown>,
+	scripts: Record<string, unknown> = {}
+): DevelopmentEnvironment => {
+	if ('next' in deps || 'gatsby' in deps || 'react-scripts' in deps) {
+		return 'node';
+	}
+	// An app's build command takes precedence over tooling-only dependencies.
+	for (const script of [scripts.build, scripts.dev, scripts.start]) {
+		if (typeof script !== 'string') {
+			continue;
+		}
+		if (/(?:^|[\s;&|])webpack(?:\s|$)/u.test(script)) {
+			return 'node';
+		}
+		if (/(?:^|[\s;&|])vite(?:\s|$)/u.test(script)) {
+			return 'vite';
+		}
+		if (/(?:^|[\s;&|])(?:rollup|esbuild)(?:\s|$)/u.test(script)) {
+			return 'manual';
+		}
+	}
+	if ('webpack' in deps) {
+		return 'node';
+	}
+	return 'vite' in deps ||
+		'@vitejs/plugin-react' in deps ||
+		'@vitejs/plugin-react-swc' in deps
+		? 'vite'
+		: 'manual';
+};
+
 /**
  * Framework detection result
  */
 export interface FrameworkDetectionResult {
+	developmentEnvironment?: DevelopmentEnvironment;
 	framework: string | null;
 	frameworkVersion: string | null;
 	pkg: AvailablePackages;
@@ -85,6 +120,10 @@ export const detectFramework = async function detectFramework(
 				`package: ${pkg}`
 		);
 		return {
+			developmentEnvironment: detectDevelopmentEnvironment(
+				deps,
+				packageJson.scripts ?? {}
+			),
 			framework,
 			frameworkVersion,
 			hasReact,

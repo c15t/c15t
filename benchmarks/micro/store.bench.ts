@@ -1,53 +1,55 @@
-import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
 
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
-// Pre-create a manager for benchmarks that need it
-const manager = configureConsentManager({ mode: 'offline' });
-
-bench('configureConsentManager', () => {
-	configureConsentManager({ mode: 'offline' });
+bench('createConsentKernel', () => {
+	createConsentKernel();
 });
 
-bench('createConsentManagerStore', () => {
-	createConsentManagerStore(manager);
+bench('kernel.getSnapshot()', () => {
+	const kernel = createConsentKernel();
+	kernel.getSnapshot();
+	kernel.dispose();
 });
 
-bench('store.getState()', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState();
+bench('kernel.subscribe()', () => {
+	const kernel = createConsentKernel();
+	const unsubscribe = kernel.subscribe(() => undefined);
+	unsubscribe();
+	kernel.dispose();
 });
 
-bench('saveConsents("all")', async () => {
-	const store = createConsentManagerStore(manager);
-	await store.getState().saveConsents('all');
+bench('kernel.commands.save("all")', async () => {
+	const kernel = createConsentKernel();
+	await kernel.commands.save('all');
+	kernel.dispose();
 });
 
-bench('saveConsents("necessary")', async () => {
-	const store = createConsentManagerStore(manager);
-	await store.getState().saveConsents('necessary');
+bench('kernel.commands.save("none")', async () => {
+	const kernel = createConsentKernel({
+		initialConsents: { marketing: true, measurement: true },
+	});
+	await kernel.commands.save('none');
+	kernel.dispose();
 });
 
-bench('saveConsents("custom")', async () => {
-	const store = createConsentManagerStore(manager);
-	await store.getState().saveConsents('custom');
+bench('kernel.commands.save(custom)', async () => {
+	const kernel = createConsentKernel();
+	await kernel.commands.save({ marketing: true, measurement: true });
+	kernel.dispose();
 });
 
-bench('resetConsents', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState().resetConsents();
+bench('kernel.set.consent()', () => {
+	const kernel = createConsentKernel();
+	kernel.set.consent({ marketing: true });
+	kernel.dispose();
 });
 
-bench('setShowPopup', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState().setShowPopup(true);
-	store.getState().setShowPopup(false);
-});
-
-bench('setIsPrivacyDialogOpen', () => {
-	const store = createConsentManagerStore(manager);
-	store.getState().setIsPrivacyDialogOpen(true);
-	store.getState().setIsPrivacyDialogOpen(false);
+bench('kernel.set.activeUI()', () => {
+	const kernel = createConsentKernel();
+	kernel.set.activeUI('dialog');
+	kernel.set.activeUI('none');
+	kernel.dispose();
 });
 
 await runMicroBenchmarkSuite('store');

@@ -6,10 +6,11 @@
  * Implements context provider pattern with theme support and state management.
  */
 
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+import styles from '@c15t/ui/styles/components/consent-manager';
 import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
 
+import { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { Box } from '~/components/shared/primitives/box';
 import {
 	ConsentTrackingContext,
@@ -17,7 +18,6 @@ import {
 } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
-import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTextDirection } from '~/hooks/use-text-direction';
 
 /**
@@ -114,7 +114,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	 * Combine consent manager state with styling configuration
 	 * to create the context value for child components
 	 */
-	const contextValue = useMemo(
+	const contextValue = useMemo<ThemeContextValue>(
 		() => ({
 			disableAnimation,
 			noStyle,
@@ -126,16 +126,16 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	// Otherwise, inherit from a parent context (e.g. dialog wrapping this widget).
 	// Only fall back to 'widget' when used standalone with no parent context.
 	const resolvedUiSource = uiSource ?? parentTracking.uiSource ?? 'widget';
-	const trackingValue = useMemo(
+	const trackingContextValue = useMemo(
 		() => ({ uiSource: resolvedUiSource }),
 		[resolvedUiSource]
 	);
 
 	const content = (
 		<Box
-			baseClassName={styles.widget}
+			baseClassName={styles.manager}
 			data-testid="consent-widget-root"
-			themeKey="consentWidget"
+			slotKey="manager.root"
 			dir={textDirection}
 		>
 			{children}
@@ -144,7 +144,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 
 	if (useProvider) {
 		return (
-			<ConsentTrackingContext.Provider value={trackingValue}>
+			<ConsentTrackingContext.Provider value={trackingContextValue}>
 				<LocalThemeContext.Provider value={contextValue}>
 					{content}
 				</LocalThemeContext.Provider>
@@ -153,7 +153,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	}
 
 	return (
-		<ConsentTrackingContext.Provider value={trackingValue}>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			{content}
 		</ConsentTrackingContext.Provider>
 	);

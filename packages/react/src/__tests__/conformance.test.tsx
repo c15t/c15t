@@ -1,21 +1,14 @@
 /**
  * React conformance entry point.
  *
- * Drives the shared `runConformanceSuite` against real React renders:
- * - `mount` boots a `ConsentManagerProvider` in offline mode around the
- *   requested component via `createRoot`.
- * - `getStore` pulls the cached store from `getOrCreateConsentRuntime` —
- *   same cacheKey as the provider, so the store suite observes the same
- *   state the UI is rendering.
- * - `serverRender` calls `renderToString` on the same tree.
- *
- * IAB variants still throw `DriverNotImplementedError`: they require a
- * CMP ID and GVL setup that are out of scope for this parity pass. The
- * suites flip them to `[todo]` automatically.
+ * This driver targets the kernel adapter: `ConsentProvider` plus the
+ * useSyncExternalStore-backed selector hooks.
  */
 
 import {
-	DriverNotImplementedError,
+	IAB_FIXTURE_CMP_ID,
+	IAB_FIXTURE_CMP_VERSION,
+	MINIMAL_GVL,
 	runConformanceSuite,
 } from '@c15t/conformance';
 import type {
@@ -25,22 +18,28 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import {
-	clearConsentRuntimeCache,
-	getOrCreateConsentRuntime,
+import type {
+	AllConsentNames,
+	ConsentKernel,
+	KernelActiveUI,
+	KernelConfig,
+	ResolvedPolicy,
+	TranslationsResponse,
 } from '@c15t/core';
-import type { ConsentManagerOptions } from '@c15t/core';
+import type { GlobalVendorList } from '@c15t/schema/types';
+import { useContext, useEffect } from 'react';
 import type { ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
-import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
-import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
-import { version } from '~/version';
+import { KernelContext } from '~/context';
+import { IABConsentBanner, IABConsentDialog } from '~/iab';
+import { ConsentBanner, ConsentProvider, custom, offline } from '~/index';
+import type { ConsentProviderOptions } from '~/index';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -65,231 +64,537 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 	return deferred.promise;
 };
 
-const renderFor = function renderFor(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
+
+type ProviderOptions = ConsentProviderOptions & {
+	i18n?: {
+		locale?: string;
+		messages?: Record<string, Partial<TranslationsResponse>>;
+	};
+	initialTranslationConfig?: {
+		defaultLanguage?: string;
+		translations?: Record<string, Partial<TranslationsResponse>> | null;
+	};
+};
+
+type StoreState = Record<string, unknown> & {
+	consents: Record<string, boolean>;
+	selectedConsents: Record<string, boolean>;
+	activeUI: 'none' | 'banner' | 'dialog';
+	consentCategories: string[];
+};
+
+const DEFAULT_CONSENT_CATEGORIES = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] as const satisfies readonly AllConsentNames[];
+
+const DEFAULT_TRANSLATIONS: TranslationsResponse = {
+	common: {
+		acceptAll: 'Accept all',
+		customize: 'Customize',
+		rejectAll: 'Reject all',
+		save: 'Save',
+	},
+	consentManagerDialog: {
+		description: 'Manage your choices.',
+		title: 'Privacy preferences',
+	},
+	consentTypes: {
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
+		},
+		functionality: {
+			description: 'Feature cookies.',
+			title: 'Functionality',
+		},
+		marketing: {
+			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
+		},
+	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
+	frame: {
+		actionButton: 'Manage',
+		title: 'Privacy',
+	},
+	legalLinks: {
+		cookiePolicy: 'Cookie policy',
+		privacyPolicy: 'Privacy policy',
+		termsOfService: 'Terms of service',
+	},
+};
+
+const mergeTranslations = function mergeTranslations(
+	base: TranslationsResponse,
+	override: Partial<TranslationsResponse> | undefined
+): TranslationsResponse {
+	if (!override || typeof override !== 'object') {
+		return base;
+	}
+	return {
+		...base,
+		...override,
+		common: { ...base.common, ...override.common },
+		consentManagerDialog: {
+			...base.consentManagerDialog,
+			...override.consentManagerDialog,
+		},
+		consentTypes: {
+			...base.consentTypes,
+			...override.consentTypes,
+		},
+		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
+		frame: { ...base.frame, ...override.frame },
+		legalLinks: { ...base.legalLinks, ...override.legalLinks },
+	};
+};
+
+const resolveTranslations = function resolveTranslations(
+	options: ProviderOptions,
+	locale?: string
+) {
+	const language =
+		locale ??
+		options.i18n?.locale ??
+		options.initialTranslationConfig?.defaultLanguage ??
+		'en';
+	const messages = options.i18n?.messages;
+	const legacyMessages = options.initialTranslationConfig?.translations;
+	const override =
+		messages?.[language] ??
+		messages?.en ??
+		(legacyMessages && typeof legacyMessages === 'object'
+			? (legacyMessages[language] ?? legacyMessages.en)
+			: undefined);
+
+	return {
+		language,
+		translations: mergeTranslations(DEFAULT_TRANSLATIONS, override),
+	};
+};
+
+const consentCategoriesFor = function consentCategoriesFor(
+	options: ProviderOptions
+): AllConsentNames[] {
+	return options.consentCategories?.length === 0
+		? [...DEFAULT_CONSENT_CATEGORIES]
+		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
+};
+
+const isIabComponent = function isIabComponent(
 	component: MountableComponent
-): ReactElement {
+): boolean {
+	return (
+		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
+	);
+};
+
+const activeUIForComponent = function activeUIForComponent(
+	component: MountableComponent
+): KernelActiveUI {
 	switch (component) {
-		case 'consent-banner':
-			return (
-				<>
-					<ConsentBanner />
-					<ConsentDialog />
-				</>
-			);
 		case 'consent-dialog':
-			return <ConsentDialog />;
 		case 'consent-widget':
-			return <ConsentWidget />;
-		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('react', `mount(${component})`);
+			return 'dialog';
+		case 'consent-banner':
+		case 'iab-consent-banner':
+			return 'banner';
 		default:
 			throw new Error(`Unsupported component: ${component}`);
 	}
 };
 
-/**
- * Offline policy fixture used when a mount shapes the policy (GPC suite)
- * or exercises persistence. `ui.mode: 'banner'` makes the surface follow
- * the real lifecycle instead of the driver's forced `setActiveUI`.
- */
-const buildOfflinePolicy = function buildOfflinePolicy(opts: MountOptions) {
-	const offlinePolicy = {
-		policy: {
-			consent: {
-				categories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'measurement',
-					'marketing',
-				],
-				scopeMode: 'permissive',
-			},
-			id: 'react_v2_conformance_policy',
-			model: opts.policy?.model ?? 'opt-in',
-			ui: {
-				mode: 'banner',
-			},
-		},
-	} as NonNullable<ConsentManagerOptions['offlinePolicy']>;
+const buildPolicy = function buildPolicy(
+	opts: MountOptions,
+	options: ProviderOptions
+): ResolvedPolicy {
+	const state = opts.initialState as
+		| { activeUI?: 'none' | 'banner' | 'dialog' }
+		| undefined;
+	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
+	const consent: ResolvedPolicy['consent'] = {
+		categories: consentCategoriesFor(options),
+		scopeMode: 'permissive',
+	};
 	if (opts.policy?.respectGpc !== undefined) {
-		offlinePolicy.policy.consent.gpc = opts.policy.respectGpc;
+		consent.gpc = opts.policy.respectGpc;
 	}
 
-	return offlinePolicy;
+	return {
+		consent,
+		id: 'react_v3_conformance_policy',
+		model: opts.policy?.model ?? 'opt-in',
+		ui: {
+			banner: {
+				allowedActions: ['reject', 'accept', 'customize'],
+				scrollLock: false,
+			},
+			dialog: {
+				allowedActions: ['reject', 'accept', 'customize'],
+				scrollLock: false,
+			},
+			mode,
+		},
+	};
 };
 
-const usesPolicyLifecycle = function usesPolicyLifecycle(
+/**
+ * IAB mounts mirror the production wiring (and the v3 IAB unit tests):
+ * offline mode with an `iab` model `offlinePolicy` plus the provider's
+ * `iab` option, which routes through `createIAB` and seeds the kernel's
+ * IAB slice with the shared minimal GVL fixture.
+ */
+const buildIabProviderOptions = function buildIabProviderOptions(
 	opts: MountOptions
-): boolean {
-	return Boolean(opts.policy || opts.persistence || opts.gpc !== undefined);
+): ConsentProviderOptions {
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	return {
+		...provided,
+		disableAnimation: true,
+		iab: {
+			cmpId: IAB_FIXTURE_CMP_ID,
+			cmpVersion: IAB_FIXTURE_CMP_VERSION,
+			enabled: true,
+			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+		},
+		mode: offline(),
+		offlinePolicy: {
+			policy: {
+				id: 'react_v3_conformance_iab_policy',
+				model: 'iab',
+				ui: {
+					mode: activeUIForComponent(opts.component),
+				},
+			},
+		},
+		persistence: opts.persistence ?? false,
+		trapFocus: false,
+	};
 };
 
 const buildProviderOptions = function buildProviderOptions(
 	opts: MountOptions
-): ConsentManagerOptions {
-	if (opts.initMode) {
-		throw new DriverNotImplementedError(
-			'react',
-			`request lifecycle initMode (${opts.initMode}) is implemented by the v3 conformance driver only`
-		);
+): ConsentProviderOptions {
+	if (isIabComponent(opts.component)) {
+		return buildIabProviderOptions(opts);
 	}
-	const provided = (opts.providerOptions ??
-		{}) as Partial<ConsentManagerOptions>;
-	const options = {
-		mode: 'offline',
-	} as ConsentManagerOptions;
-	if (usesPolicyLifecycle(opts)) {
-		options.offlinePolicy = buildOfflinePolicy(opts);
-		// v2 defaults `consentCategories` to `['necessary']`; real apps
-		// configure the categories they use, and `saveConsents('all')`
-		// only grants configured categories.
-		options.consentCategories = [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		] as ConsentManagerOptions['consentCategories'];
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	const state = opts.initialState as
+		| {
+				consents?: Record<string, boolean>;
+				hasConsented?: boolean;
+		  }
+		| undefined;
+	const initMode = opts.initMode ?? 'authoritative';
+	const basePrefetch: KernelConfig = {
+		...(provided.prefetch ?? {}),
+		initialConsents: {
+			...(provided.prefetch?.initialConsents ?? {}),
+			...(state?.consents ?? {}),
+		},
+		initialHasConsented:
+			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
+		initialTranslations: resolveTranslations(provided, opts.locale),
+	};
+	if (initMode !== 'authoritative') {
+		basePrefetch.initialPolicy = buildPolicy(opts, provided);
+		basePrefetch.initialPolicyProvisional = true;
 	}
-	Object.assign(options, provided);
+	const prefetch: KernelConfig =
+		initMode === 'authoritative'
+			? {
+					...basePrefetch,
+					initialBranding: 'c15t',
+					initialLocation: {
+						countryCode: 'DE',
+						regionCode: null,
+					},
+					initialPolicy: buildPolicy(opts, provided),
+					initialPolicyDecision: {
+						country: 'DE',
+						fingerprint: 'react_v3_conformance_fingerprint',
+						jurisdiction: 'GDPR',
+						matchedBy: 'default',
+						policyId: 'react_v3_conformance_policy',
+						region: null,
+					},
+					initialPolicySnapshotToken: 'react_v3_conformance_token',
+				}
+			: basePrefetch;
+
+	const options: ProviderOptions = {
+		...provided,
+		consentCategories: consentCategoriesFor(provided),
+		disableAnimation: true,
+		mode: offline(),
+		persistence: opts.persistence ?? false,
+		prefetch,
+		trapFocus: false,
+	};
+	// GPC uses the provider's public `overrides` input — the same channel
+	// a real app (or the nextjs server plumbing) delivers the signal on.
+	if (opts.gpc !== undefined) {
+		options.overrides = { gpc: opts.gpc };
+	}
 
 	return options;
 };
 
-/**
- * Stub `navigator.globalPrivacyControl` — the v2 runtime reads the browser
- * signal directly via `hasGlobalPrivacyControlSignal()`. Returns a restore
- * function.
- */
-const stubGpcSignal = function stubGpcSignal(value: boolean): () => void {
-	const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
-	const hadOwn = Object.hasOwn(nav, 'globalPrivacyControl');
-	const previous = nav.globalPrivacyControl;
-	Object.defineProperty(nav, 'globalPrivacyControl', {
-		configurable: true,
-		value,
+const createPendingInit = function createPendingInit() {
+	let resolve!: () => void;
+	const promise = createDeferredPromise<Record<string, never>>((settle) => {
+		resolve = () => settle({});
 	});
-	return () => {
-		if (hadOwn) {
-			Object.defineProperty(nav, 'globalPrivacyControl', {
-				configurable: true,
-				value: previous,
-			});
-		} else {
-			delete nav.globalPrivacyControl;
-		}
-	};
+	return { promise, resolve };
 };
 
-/**
- * Seed the v2 storage payload for `initialState` mounts. This is the same
- * `c15t` localStorage entry the runtime writes via `saveConsentToStorage`,
- * so the store hydrates it through its real read path.
- */
-const seedStoredConsent = function seedStoredConsent(
+const lifecycleTransportFor = function lifecycleTransportFor(
 	opts: MountOptions
-): () => void {
-	const state = opts.initialState as
-		| { consents?: Record<string, boolean>; hasConsented?: boolean }
-		| undefined;
-	if (!state?.hasConsented || !state.consents) {
-		return () => {};
+) {
+	if ((opts.initMode ?? 'authoritative') === 'pending') {
+		const deferred = createPendingInit();
+		return {
+			resolve: deferred.resolve,
+			transport: {
+				init: () => deferred.promise,
+			},
+		};
 	}
-	localStorage.setItem(
-		'c15t',
-		JSON.stringify({
-			consentInfo: { time: Date.now(), type: 'all' },
-			consents: state.consents,
-		})
+	if (opts.initMode === 'failing') {
+		return {
+			resolve: undefined,
+			transport: {
+				init: () => Promise.reject(new Error('conformance: init failed')),
+			},
+		};
+	}
+	return { resolve: undefined, transport: undefined };
+};
+
+const flushScheduler = async function flushScheduler() {
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
+
+const KernelCapture = ({
+	onKernel,
+}: {
+	onKernel: (kernel: ConsentKernel) => void;
+}) => {
+	const kernel = useContext(KernelContext);
+	if (!kernel) {
+		throw new Error('React v3 driver: missing kernel context');
+	}
+	onKernel(kernel);
+	return null;
+};
+
+const componentFor = function componentFor(opts: MountOptions): ReactElement {
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	const trapFocus = provided.trapFocus ?? false;
+
+	switch (opts.component) {
+		case 'consent-banner':
+			return (
+				<>
+					<ConsentBanner
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+					<ConsentDialog
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+				</>
+			);
+		case 'consent-dialog':
+			return (
+				<ConsentDialog
+					disableAnimation
+					trapFocus={trapFocus}
+					hideBranding
+				/>
+			);
+		case 'consent-widget':
+			return <ConsentWidget hideBranding />;
+		case 'iab-consent-banner':
+			return <IABConsentBanner />;
+		case 'iab-consent-dialog':
+			return <IABConsentDialog />;
+		default:
+			throw new Error(`Unsupported component: ${opts.component}`);
+	}
+};
+
+const Harness = ({
+	opts,
+	onKernel,
+}: {
+	opts: MountOptions;
+	onKernel: (kernel: ConsentKernel) => void;
+}) => (
+	<div
+		data-testid="react-v3-conformance-root"
+		dir={opts.locale === 'ar' ? 'rtl' : undefined}
+	>
+		<KernelCapture onKernel={onKernel} />
+		{componentFor(opts)}
+	</div>
+);
+
+const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
+	useEffect(() => {
+		onSettled();
+	}, [onSettled]);
+	return null;
+};
+
+const renderTree = function renderTree(
+	opts: MountOptions,
+	options: ConsentProviderOptions,
+	onKernel: (kernel: ConsentKernel) => void,
+	onSettled?: () => void
+) {
+	return (
+		<ConsentProvider options={options}>
+			{onSettled ? <ClientSettled onSettled={onSettled} /> : null}
+			<Harness
+				opts={opts}
+				onKernel={onKernel}
+			/>
+		</ConsentProvider>
 	);
-	return () => {
-		localStorage.removeItem('c15t');
+};
+
+const activeUIForStore = function activeUIForStore(
+	activeUI: KernelActiveUI
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
+	return 'none';
+};
+
+const projectStoreState = function projectStoreState(
+	kernel: ConsentKernel
+): StoreState {
+	const snapshot = kernel.getSnapshot();
+	const consents = { ...snapshot.consents } as Record<string, boolean>;
+	return {
+		...(snapshot as unknown as Record<string, unknown>),
+		activeUI: activeUIForStore(snapshot.activeUI),
+		consentCategories: [...snapshot.policyCategories],
+		consents,
+		selectedConsents: { ...consents },
 	};
 };
 
-let lastOptions: ConsentManagerOptions | null = null;
+let lastKernel: ConsentKernel | null = null;
 
 const driver: TestDriver = {
 	framework: 'react',
 	getStore() {
-		if (!lastOptions) {
-			throw new Error('React driver: getStore called before mount');
+		if (!lastKernel) {
+			throw new Error('React v3 driver: getStore called before mount');
 		}
-		const { consentStore } = getOrCreateConsentRuntime(lastOptions, {
-			pkg: '@c15t/react',
-			version,
-		});
 		return {
-			getState: () =>
-				consentStore.getState() as unknown as Record<string, unknown>,
-			subscribe: (listener) => consentStore.subscribe(listener),
+			getState: () => projectStoreState(lastKernel as ConsentKernel),
+			subscribe: (listener) =>
+				(lastKernel as ConsentKernel).subscribe(() => {
+					listener();
+				}),
 		};
 	},
 	async mount(opts: MountOptions): Promise<MountResult> {
-		clearConsentRuntimeCache();
-		const restoreGpc = opts.gpc === undefined ? null : stubGpcSignal(opts.gpc);
-		const removeSeededConsent = seedStoredConsent(opts);
+		const lifecycle = lifecycleTransportFor(opts);
 		const options = buildProviderOptions(opts);
-		lastOptions = options;
+		if (lifecycle.transport) {
+			options.mode = custom(lifecycle.transport);
+		}
+		let mountedKernel: ConsentKernel | null = null;
+		let resolveSettled: () => void = () => {};
+		const settled = createVoidDeferredPromise((resolve) => {
+			resolveSettled = resolve;
+		});
 
 		const container = document.createElement('div');
 		document.body.appendChild(container);
 
 		const root: Root = createRoot(container);
 		root.render(
-			<ConsentManagerProvider options={options}>
-				{renderFor(opts.component)}
-			</ConsentManagerProvider>
+			renderTree(
+				opts,
+				options,
+				(kernel) => {
+					mountedKernel = kernel;
+					lastKernel = kernel;
+				},
+				resolveSettled
+			)
 		);
-		// Flush scheduled effects (subscription, hydration transition).
-		await createDeferredPromise((r) => setTimeout(r, 0));
+		await settled;
+		await flushScheduler();
 
-		// Force the surface visible so the banner/dialog actually mounts in
-		// offline mode (default activeUI is 'none'). Widgets render regardless.
-		// Policy-lifecycle mounts (gpc / persistence / shaped policy) skip the
-		// force: their offline policy drives activeUI through the real flow.
-		const { consentStore } = getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version,
-		});
-		if (!usesPolicyLifecycle(opts)) {
-			if (opts.component === 'consent-banner') {
-				consentStore.getState().setActiveUI('banner', { force: true });
-			} else if (opts.component === 'consent-dialog') {
-				consentStore.getState().setActiveUI('dialog');
-			}
+		if (!mountedKernel) {
+			throw new Error('React v3 driver: mount completed without kernel');
 		}
-		await createDeferredPromise((r) => setTimeout(r, 0));
 
 		return {
+			resolveInit: lifecycle.resolve
+				? async () => {
+						lifecycle.resolve?.();
+						await flushScheduler();
+					}
+				: undefined,
 			root: container,
 			unmount: async () => {
 				root.unmount();
-				await createDeferredPromise((r) => setTimeout(r, 0));
+				await flushScheduler();
+				container.replaceChildren();
 				container.remove();
-				removeSeededConsent();
-				restoreGpc?.();
-				lastOptions = null;
+				if (lastKernel === mountedKernel) {
+					lastKernel = null;
+				}
 			},
 		};
 	},
 	serverRender(opts: MountOptions): Promise<string> {
-		if (opts.initMode) {
-			return Promise.reject(
-				new DriverNotImplementedError(
-					'react',
-					`request lifecycle initMode (${opts.initMode}) is implemented by the v3 conformance driver only`
-				)
-			);
-		}
 		const options = buildProviderOptions(opts);
 		return Promise.resolve(
 			renderToString(
-				<ConsentManagerProvider options={options}>
-					{renderFor(opts.component)}
-				</ConsentManagerProvider>
+				renderTree(opts, options, () => {
+					// Server render does not expose a live store to the conformance suite.
+				})
 			)
 		);
 	},

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
+	import styles from '@c15t/ui/styles/components/consent-dialog';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
@@ -190,17 +190,16 @@
 						class={noStyle ? '' : headerStyle.className || ''}
 						data-testid="consent-dialog-header"
 					>
-						<div
+						<h2
 							class={noStyle ? '' : titleStyle.className || ''}
 							data-testid="consent-dialog-title"
 							id="consent-dialog-title"
-							role="heading"
-							aria-level="2"
 						>
 							{translations.consentManagerDialog.title}
-						</div>
+						</h2>
 						<div
 							class={noStyle ? '' : descriptionStyle.className || ''}
+							data-context="dialog"
 							data-testid="consent-dialog-description"
 							id="consent-dialog-description"
 						>

@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import type { readBenchNavigationTiming } from '@c15t/benchmarking/browser';
+import type {
+	BenchScriptResourceMetrics,
+	readBenchNavigationTiming,
+} from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
+	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
@@ -118,19 +123,13 @@ const coldManifestMode =
 const allScenarios = [
 	{ name: 'baseline', path: '/baseline' },
 	{ name: 'client', path: '/client' },
+	{ name: 'manifest-client', path: '/manifest-client' },
 	{ name: 'ssr', path: '/ssr' },
-	{ name: 'prefetch', path: '/prefetch' },
+	{ name: 'manifest-ssr', path: '/manifest-ssr' },
+	{ name: 'rsc-ssr', path: '/rsc-ssr' },
 ] as const;
 
-const v3Scenarios = [
-	{ name: 'nextjs-v3-client', path: '/v3-client' },
-	{ name: 'nextjs-v3-manifest-client', path: '/v3-manifest-client' },
-	{ name: 'nextjs-v3-ssr', path: '/v3-ssr' },
-	{ name: 'nextjs-v3-manifest-ssr', path: '/v3-manifest-ssr' },
-	{ name: 'nextjs-v3-rsc-ssr', path: '/v3-rsc-ssr' },
-] as const;
-
-const allBenchmarkScenarios = [...allScenarios, ...v3Scenarios] as const;
+const allBenchmarkScenarios = allScenarios;
 
 const scenarios = scenarioFilter
 	? allBenchmarkScenarios.filter((scenario) => scenario.name === scenarioFilter)
@@ -146,10 +145,7 @@ if (scenarioFilter && scenarios.length === 0) {
 
 const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
-	scenario:
-		| (typeof allBenchmarkScenarios)[number]['name']
-		| 'repeat-visitor'
-		| 'nextjs-v3-repeat'
+	scenario: (typeof allBenchmarkScenarios)[number]['name'] | 'repeat-visitor'
 ) {
 	if (scenario === 'baseline') {
 		const startedAt = performance.now();
@@ -160,20 +156,6 @@ const measureInteractionLatency = async function measureInteractionLatency(
 	if (scenario === 'repeat-visitor') {
 		const startedAt = performance.now();
 		await page.click('#open-preferences');
-		await page.waitForFunction(
-			() => {
-				const state = window.__c15tNextBench;
-				return !!state && state.activeUI === 'dialog';
-			},
-			undefined,
-			{ timeout: 30_000 }
-		);
-		return performance.now() - startedAt;
-	}
-
-	if (scenario === 'nextjs-v3-repeat') {
-		const startedAt = performance.now();
-		await page.click('#v3-open-preferences');
 		await page.waitForFunction(
 			() => {
 				const state = window.__c15tNextBench;
@@ -203,6 +185,21 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		{ timeout: 30_000 }
 	);
 	return performance.now() - startedAt;
+};
+
+const waitForExit = async function waitForExit(
+	child: ReturnType<typeof spawn>,
+	timeoutMs: number
+): Promise<boolean> {
+	if (child.exitCode !== null || child.signalCode !== null) {
+		return true;
+	}
+	try {
+		await once(child, 'exit', { signal: AbortSignal.timeout(timeoutMs) });
+		return true;
+	} catch {
+		return false;
+	}
 };
 
 const waitForServer = async function waitForServer() {
@@ -337,28 +334,9 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		if (entries.length === 0) {
-			return null;
-		}
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			appScriptCount: ordered.length,
-			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-			jsBytes: ordered.reduce(
-				(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
-				0
-			),
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scriptEntry = (await page.evaluate(
+		benchScriptResourceExpression
+	)) as BenchScriptResourceMetrics | null;
 	const performanceObserverInfo = await page.evaluate(() => {
 		const metrics = (
 			window as typeof window & {
@@ -415,9 +393,8 @@ const budgetsForScenario = function budgetsForScenario(
 
 	if (
 		baseScenario === 'ssr' ||
-		baseScenario === 'nextjs-v3-ssr' ||
-		baseScenario === 'nextjs-v3-manifest-ssr' ||
-		baseScenario === 'nextjs-v3-rsc-ssr'
+		baseScenario === 'manifest-ssr' ||
+		baseScenario === 'rsc-ssr'
 	) {
 		return [
 			...shared,
@@ -431,14 +408,11 @@ const budgetsForScenario = function budgetsForScenario(
 		];
 	}
 
-	if (
-		baseScenario === 'repeat-visitor' ||
-		baseScenario === 'nextjs-v3-repeat'
-	) {
+	if (baseScenario === 'repeat-visitor') {
 		return shared;
 	}
 
-	if (baseScenario === 'nextjs-v3-manifest-client') {
+	if (baseScenario === 'manifest-client') {
 		return [
 			...shared,
 			{
@@ -455,8 +429,7 @@ const budgetsForScenario = function budgetsForScenario(
 		...shared,
 		{
 			comparator: 'count-eq',
-			description:
-				'Client and prefetch flows should make exactly one init request on cold load.',
+			description: 'Client flow should make one init request on cold load.',
 			metric: 'initRequestsAfterLoad',
 			threshold: 1,
 		},
@@ -569,8 +542,7 @@ const run = async function run() {
 						}
 
 						if (
-							(scenario.name === 'client' ||
-								scenario.name === 'nextjs-v3-client') &&
+							scenario.name === 'client' &&
 							index >= effectiveWarmupIterations
 						) {
 							const repeatContext = await browser.newContext({
@@ -584,19 +556,11 @@ const run = async function run() {
 								scenario.path
 							);
 							const repeatInteractionLatencyMs =
-								await measureInteractionLatency(
-									repeatPage,
-									scenario.name === 'nextjs-v3-client'
-										? 'nextjs-v3-repeat'
-										: 'repeat-visitor'
-								);
+								await measureInteractionLatency(repeatPage, 'repeat-visitor');
 							samples.push({
 								...repeatMetrics,
 								interactionLatencyMs: repeatInteractionLatencyMs,
-								scenario:
-									scenario.name === 'nextjs-v3-client'
-										? 'nextjs-v3-repeat'
-										: 'repeat-visitor',
+								scenario: 'repeat-visitor',
 							});
 							await repeatContext.close();
 						}
@@ -766,7 +730,7 @@ const run = async function run() {
 							),
 						],
 						notes: [
-							'Next.js browser bench covers client, SSR, prefetch, and repeat-visitor paths.',
+							'Next.js browser bench covers client, manifest, SSR, RSC, and repeat-visitor paths.',
 						],
 						package: '@c15t/nextjs-browser-bench',
 						runtime: 'playwright',
@@ -785,9 +749,11 @@ const run = async function run() {
 		await browser.close();
 	} finally {
 		server.kill('SIGTERM');
-		await sleep(500);
-		if (!server.killed) {
+		// `killed` only confirms signal delivery; wait for the process to
+		// actually exit before judging its status, escalating if it lingers.
+		if (!(await waitForExit(server, 500))) {
 			server.kill('SIGKILL');
+			await waitForExit(server, 2000);
 		}
 		if (
 			server.exitCode !== null &&
@@ -798,12 +764,14 @@ const run = async function run() {
 				`${logs || 'Next.js browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
 			);
 		} else if (
-			server.exitCode === null ||
-			(server.exitCode === undefined &&
-				server.signalCode !== null &&
-				server.signalCode !== undefined &&
-				!expectedServerShutdownSignals.has(server.signalCode))
+			(server.exitCode === null || server.exitCode === undefined) &&
+			!(
+				server.signalCode &&
+				expectedServerShutdownSignals.has(server.signalCode)
+			)
 		) {
+			// Killed by a signal we did not send, or still running after the
+			// bounded wait (both status fields unset).
 			serverFailure = new Error(
 				`${logs || 'Next.js browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`
 			);

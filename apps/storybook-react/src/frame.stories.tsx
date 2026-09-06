@@ -17,7 +17,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Placeholder: Story = {
 	render: () => (
-		<StorybookConsentProvider>
+		<StorybookConsentProvider
+			storedConsent={{
+				marketing: false,
+				necessary: true,
+			}}
+		>
 			<div style={{ width: '32rem' }}>
 				<Frame category="marketing">
 					<div>Marketing content</div>

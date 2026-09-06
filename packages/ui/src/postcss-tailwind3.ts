@@ -1,5 +1,5 @@
 const C15T_UI_DIST_STYLES_PATH =
-	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/]styles[\\/](?:v3[\\/])?[^\\/]+\.css$/u;
+	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/]styles[\\/](?:components[\\/])?[^\\/]+\.css$/u;
 
 interface PostcssAtRule {
 	nodes?: unknown[];
@@ -33,7 +33,7 @@ export const isC15tUiStylesheetPath = function isC15tUiStylesheetPath(
 };
 
 /**
- * Tailwind 3 compatibility plugin for c15t v3 styles.
+ * Tailwind 3 compatibility plugin for c15t component styles.
  *
  * Tailwind 3's PostCSS plugin hijacks `@layer components`: it errors when a
  * standalone stylesheet contains `@layer components` without a matching

@@ -13,6 +13,13 @@ export default mergeConfig(
 					replacement: resolve(__dirname, '../translations/src/all.ts'),
 				},
 				{
+					find: '@c15t/translations/en',
+					replacement: resolve(
+						__dirname,
+						'../translations/src/translations/en.ts'
+					),
+				},
+				{
 					find: '@c15t/translations',
 					replacement: resolve(__dirname, '../translations/src/index.ts'),
 				},

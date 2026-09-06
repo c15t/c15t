@@ -1,4 +1,4 @@
-import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
+import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
 import { computed } from 'vue';

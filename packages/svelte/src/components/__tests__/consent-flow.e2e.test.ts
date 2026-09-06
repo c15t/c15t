@@ -6,7 +6,6 @@
  * Mirrors: packages/react/src/components/__tests__/consent-flow.e2e.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -15,6 +14,7 @@ import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -28,7 +28,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+	mode: offline(),
 };
 
 describe('Consent Flow E2E Tests', () => {
@@ -42,7 +42,6 @@ describe('Consent Flow E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('First Visit Flow', () => {

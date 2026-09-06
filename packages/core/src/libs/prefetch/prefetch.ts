@@ -1,7 +1,7 @@
 import type { InitOutput } from '@c15t/schema/types';
 
-import { C15T_VERSION_HEADERS } from '../../client/headers';
-import type { SSRInitialData } from '../../store/type';
+import type { SSRInitialData } from '../../options/ssr';
+import { c15tVersionHeaders } from '../../transports/version-header';
 import {
 	buildRequestContextHeaders,
 	createBrowserRequestContext,
@@ -51,7 +51,10 @@ const buildPrefetchCacheKey = function buildPrefetchCacheKey(options: {
 const buildPrefetchConfig = function buildPrefetchConfig(
 	options: PrefetchOptions
 ): PrefetchConfig {
-	const requestContext = createBrowserRequestContext(options);
+	const requestContext = createBrowserRequestContext({
+		...options,
+		gpc: options.overrides?.gpc,
+	});
 	if (!requestContext) {
 		throw new Error(`Invalid backend URL: ${options.backendURL}`);
 	}
@@ -59,7 +62,7 @@ const buildPrefetchConfig = function buildPrefetchConfig(
 	const url = buildInitURL(requestContext.backendURL);
 	const credentials = requestContext.credentials ?? 'include';
 	const headers = {
-		...C15T_VERSION_HEADERS,
+		...c15tVersionHeaders,
 		...buildRequestContextHeaders(options.overrides),
 	};
 
@@ -197,8 +200,11 @@ export const buildPrefetchScript = function buildPrefetchScript(
 	const payload = {
 		backendURL: options.backendURL,
 		credentials: options.credentials ?? 'include',
+		// An explicit override wins over the browser signal, and travels on
+		// `x-c15t-gpc` inside `headers`; `null` means detect at runtime.
+		gpc: options.overrides?.gpc ?? null,
 		headers: {
-			...C15T_VERSION_HEADERS,
+			...c15tVersionHeaders,
 			...buildRequestContextHeaders(options.overrides),
 		},
 		requestContext: {
@@ -257,7 +263,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
   if (!backendURL) {
     return;
   }
-  const gpc = detectGpc();
+  const gpc = payload.gpc === null ? detectGpc() : payload.gpc;
   const requestContext = {
     backendURL,
     country: payload.requestContext.country,

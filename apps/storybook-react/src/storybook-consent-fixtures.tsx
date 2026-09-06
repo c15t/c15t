@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
-import { ConsentManagerProvider } from '../../../packages/react/src/index';
-import type { ConsentManagerOptions } from '../../../packages/react/src/index';
-import { clearConsentRuntimeCache } from '../../../packages/react/src/providers/consent-manager-provider';
-import { enTranslations } from '../../../packages/translations/src';
+import { ConsentProvider, offline } from '../../../packages/react/src/index';
+import type { ConsentProviderOptions } from '../../../packages/react/src/index';
 
 type ConsentRecord = Record<string, boolean>;
 
 interface StorybookProviderProps {
 	children: ReactNode;
-	options?: Partial<ConsentManagerOptions>;
+	options?: Partial<ConsentProviderOptions>;
 	storedConsent?: ConsentRecord;
 	tcString?: string | null;
 }
@@ -32,7 +29,6 @@ export const resetStorybookConsentState =
 			return;
 		}
 
-		clearConsentRuntimeCache();
 		window.localStorage.clear();
 		clearCookies();
 	};
@@ -61,15 +57,35 @@ export const seedTCString = function seedTCString(tcString: string | null) {
 	window.localStorage.setItem('euconsent-v2', tcString);
 };
 
-export const defaultConsentOptions: ConsentManagerOptions = {
-	mode: 'offline',
-	translations: {
-		language: 'en',
-		translations: enTranslations,
+export const defaultConsentOptions: ConsentProviderOptions = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'measurement',
+		'experience',
+		'marketing',
+	],
+	mode: offline(),
+	offlinePolicy: {
+		policy: {
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				scopeMode: 'permissive',
+			},
+			id: 'storybook',
+			model: 'opt-in',
+			ui: { mode: 'banner' },
+		},
 	},
 };
 
-export const editableConsentOptions: Partial<ConsentManagerOptions> = {
+export const editableConsentOptions: Partial<ConsentProviderOptions> = {
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -87,13 +103,13 @@ export const editableStoredConsent: ConsentRecord = {
 	necessary: true,
 };
 
-export const defaultIABOptions: ConsentManagerOptions = {
+export const defaultIABOptions: ConsentProviderOptions = {
 	...defaultConsentOptions,
-	iab: iab({
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	}),
+	},
 	offlinePolicy: {
 		policy: { id: 'storybook_iab', model: 'iab' },
 	},
@@ -119,14 +135,14 @@ export const StorybookConsentProvider = ({
 	void setInitialized;
 
 	return (
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
 				...defaultConsentOptions,
 				...options,
 			}}
 		>
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 };
 
@@ -150,13 +166,13 @@ export const StorybookIABProvider = ({
 	void setInitialized;
 
 	return (
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
 				...defaultIABOptions,
 				...options,
 			}}
 		>
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 };

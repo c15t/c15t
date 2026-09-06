@@ -617,6 +617,8 @@ export const backendOptionsActor = fromPromise<
 export interface FrontendOptionsInput {
 	cliContext: CliContext;
 	hasBackend: boolean;
+	/** Optional prompt boundary for non-interactive callers. */
+	selectDevTools?: typeof getDevToolsOption;
 }
 
 export interface FrontendOptionsOutput {
@@ -630,7 +632,7 @@ export const frontendOptionsActor = fromPromise<
 	FrontendOptionsOutput,
 	FrontendOptionsInput
 >(async ({ input }) => {
-	const { cliContext, hasBackend } = input;
+	const { cliContext, hasBackend, selectDevTools = getDevToolsOption } = input;
 	const { pkg } = cliContext.framework;
 
 	let enableSSR: boolean | undefined;
@@ -667,7 +669,7 @@ export const frontendOptionsActor = fromPromise<
 			'Choose how you want your consent UI components generated.'
 		);
 		cliContext.logger.info(
-			'Learn more: https://c15t.com/docs/frameworks/nextjs/customization'
+			'Learn more: https://c15t.com/docs/frameworks/next/styling/overview'
 		);
 
 		const styleResult = await p.select({
@@ -793,7 +795,7 @@ export const frontendOptionsActor = fromPromise<
 	}
 
 	if (pkg === 'c15t' || pkg === 'c15t/react' || pkg === 'c15t/next') {
-		enableDevTools = await getDevToolsOption({
+		enableDevTools = await selectDevTools({
 			context: cliContext,
 			onCancel: () => {
 				throw new PromptCancelledError('dev_tools_option');

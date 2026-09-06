@@ -5,11 +5,11 @@
  * with action="open-consent-dialog" and noStyle=true by default.
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import DialogLinkFixture from '../../__tests__/fixtures/dialog-link-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -23,14 +23,13 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+	mode: offline(),
 };
 
 describe('ConsentDialogLink', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('renders with default data-testid', async () => {
@@ -56,6 +55,19 @@ describe('ConsentDialogLink', () => {
 		});
 	});
 
+	test('emits the shared styled-button data contract', async () => {
+		render(DialogLinkFixture, { options: defaultOptions, styled: true });
+
+		await waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="consent-dialog-link"]'
+			);
+			expect(link).toHaveAttribute('data-variant', 'neutral');
+			expect(link).toHaveAttribute('data-mode', 'stroke');
+			expect(link).toHaveAttribute('data-size', 'small');
+		});
+	});
+
 	test('opens dialog on click', async () => {
 		render(DialogLinkFixture, { options: defaultOptions });
 
@@ -69,6 +81,8 @@ describe('ConsentDialogLink', () => {
 		const link = getDefined(
 			document.querySelector('[data-testid="consent-dialog-link"]')
 		);
+		await Promise.resolve();
+		await Promise.resolve();
 		await fireEvent.click(link);
 
 		await waitFor(() => {

@@ -3,26 +3,32 @@
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
+	ConsentProvider,
+	hosted,
 } from '@c15t/react';
-import type { ConsentManagerProviderProps } from '@c15t/react';
+import type { ConsentProviderOptions } from '@c15t/react';
 import type { ReactNode } from 'react';
 
 import { ReactBenchmarkProbe } from './probe';
 import { getBenchState } from './state';
 import type { ReactBenchScenario } from './state';
 
-export const BenchmarkProvider = ({
+const consentCategories = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
+
+export const ReactBenchmarkProvider = ({
 	children,
 	scenario,
-	headless = false,
 }: {
 	children: ReactNode;
 	scenario: ReactBenchScenario;
-	headless?: boolean;
 }) => {
-	const options: ConsentManagerProviderProps['options'] = {
-		backendURL: '/api/bench-consent',
+	const options: ConsentProviderOptions = {
 		callbacks: {
 			onBannerFetched() {
 				const state = getBenchState(scenario);
@@ -36,20 +42,19 @@ export const BenchmarkProvider = ({
 			},
 			onConsentSet() {
 				const state = getBenchState(scenario);
-				if (!state) {
-					return;
+				if (state) {
+					state.onConsentSetCount += 1;
 				}
-				state.onConsentSetCount += 1;
 			},
 			onError() {
 				const state = getBenchState(scenario);
-				if (!state) {
-					return;
+				if (state) {
+					state.onErrorCount += 1;
 				}
-				state.onErrorCount += 1;
 			},
 		},
-		mode: 'c15t',
+		consentCategories,
+		mode: hosted({ url: '/api/bench-consent' }),
 		theme: {
 			motion: {
 				duration: {
@@ -62,15 +67,11 @@ export const BenchmarkProvider = ({
 	};
 
 	return (
-		<ConsentManagerProvider options={options}>
+		<ConsentProvider options={options}>
 			<ReactBenchmarkProbe scenario={scenario} />
-			{headless ? null : (
-				<>
-					<ConsentBanner disableAnimation />
-					<ConsentDialog disableAnimation />
-				</>
-			)}
+			<ConsentBanner disableAnimation />
+			<ConsentDialog disableAnimation />
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 };

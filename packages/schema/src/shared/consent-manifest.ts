@@ -1,4 +1,5 @@
 import type { Translations } from '@c15t/translations';
+import type { BaseTranslations } from '@c15t/translations/all';
 
 import type { InitOutput, PolicyDecision, ResolvedPolicy } from '../api/init';
 import type { brandingValues } from './constants';
@@ -71,6 +72,10 @@ export interface ResolveInitFromManifestInputs {
 }
 
 export interface ResolveInitFromManifestOptions {
+	/** Base translations available to the manifest resolver. */
+	baseTranslations?: BaseTranslations;
+
+	/** Logger used for one-time translation fallback warnings. */
 	logger?: LoggerLike;
 }
 
@@ -353,6 +358,7 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 		inputs.language ?? 'en',
 		manifest.translations?.customTranslations,
 		{
+			baseTranslations: options?.baseTranslations,
 			i18n: manifest.translations?.i18n,
 			logger: options?.logger,
 			policyI18n: resolvedPolicy?.i18n,

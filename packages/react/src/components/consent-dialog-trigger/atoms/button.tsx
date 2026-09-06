@@ -6,9 +6,13 @@
  * @packageDocumentation
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
+import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { forwardRef as createForwardRef } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
@@ -60,6 +64,8 @@ export interface TriggerButtonProps {
 	 * @default false
 	 */
 	noStyle?: boolean;
+
+	'data-testid'?: string;
 }
 
 /**
@@ -83,10 +89,13 @@ export const TriggerButton = createForwardRef<
 			size = 'md',
 			ariaLabel = 'Open privacy settings',
 			className,
-			noStyle = false,
+			'data-testid': dataTestId = 'consent-dialog-trigger',
+			noStyle,
 		},
 		ref
 	) => {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
 		const {
 			corner,
 			isDragging,
@@ -97,38 +106,46 @@ export const TriggerButton = createForwardRef<
 			openDialog,
 		} = useTriggerContext();
 
-		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+		const handleClick = () => {
 			// Don't open dialog if this was a drag interaction
-			if (event.detail !== 0 && wasDragged()) {
+			if (wasDragged()) {
 				return;
 			}
 			openDialog();
 		};
 
-		const buttonClasses = noStyle
-			? className
-			: [
-					styles.trigger,
-					cornerClassMap[corner],
-					sizeClassMap[size],
-					isDragging && styles.dragging,
-					isSnapping && styles.snapping,
-					className,
-				]
-					.filter(Boolean)
-					.join(' ');
+		const handleKeyDown = (e: React.KeyboardEvent) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				handleClick();
+			}
+		};
+
+		const finalNoStyle = noStyle ?? contextNoStyle;
+		const buttonStyle = mergeSlotProps(components?.trigger?.root, {
+			baseClassName: [
+				styles.trigger,
+				cornerClassMap[corner],
+				sizeClassMap[size],
+				isDragging && styles.dragging,
+				isSnapping && styles.snapping,
+			],
+			className,
+			'data-testid': dataTestId,
+			noStyle: finalNoStyle,
+			style: dragStyle,
+			...handlers,
+		});
 
 		return (
 			<button
+				{...buttonStyle}
 				ref={ref}
 				type="button"
-				className={buttonClasses}
 				data-c15t-trigger="true"
-				data-testid="consent-dialog-trigger"
 				aria-label={ariaLabel}
 				onClick={handleClick}
-				style={dragStyle}
-				{...handlers}
+				onKeyDown={handleKeyDown}
 			>
 				{children}
 			</button>

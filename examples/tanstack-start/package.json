@@ -1,0 +1,33 @@
+{
+	"name": "@c15t/example-tanstack-start",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"check-types": "tsc --noEmit",
+		"db:migrate": "bunx @c15t/cli self-host migrate",
+		"dev": "vite dev --port 3010",
+		"start": "node scripts/serve.mjs"
+	},
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@effect/sql-pglite": "4.0.0-beta.102",
+		"@electric-sql/pglite": "0.4.2",
+		"@tanstack/react-router": "1.170.32",
+		"@tanstack/react-start": "1.168.49",
+		"c15t": "workspace:*",
+		"pg": "^8.20.0",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@types/node": "22.19.11",
+		"@types/pg": "^8.20.0",
+		"@types/react": "19.2.17",
+		"@types/react-dom": "19.2.3",
+		"@vitejs/plugin-react": "6.0.3",
+		"srvx": "0.12.4",
+		"typescript": "7.0.2",
+		"vite": "8.1.3"
+	}
+}

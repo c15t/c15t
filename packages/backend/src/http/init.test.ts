@@ -14,6 +14,7 @@ import {
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type { ConsentManifestConfig } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
 
@@ -45,6 +46,19 @@ describe('init signals', () => {
 		}
 	});
 
+	it('lets x-c15t-gpc override the browser sec-gpc signal', () => {
+		// Scripts cannot set Sec-* request headers, so a client that asserts a
+		// GPC value on its own init request sends the adapter header instead.
+		assert.strictEqual(
+			readInitSignals(new Headers({ 'sec-gpc': '1', 'x-c15t-gpc': '0' })).gpc,
+			false
+		);
+		assert.strictEqual(
+			readInitSignals(new Headers({ 'x-c15t-gpc': '1' })).gpc,
+			true
+		);
+	});
+
 	it('defaults language to en when the header is absent', () => {
 		assert.strictEqual(readInitSignals(new Headers()).language, 'en');
 	});
@@ -68,12 +82,16 @@ describe('init and manifest parity', () => {
 		// What a host would do: fetch /manifest once, then resolve locally for
 		// each visitor without touching the backend again.
 		const manifest = await buildConsentManifestFromConfig(config);
-		const fromHost = resolveInitFromManifest(manifest, {
-			country: null,
-			gpc: true,
-			language: 'de-DE',
-			region: null,
-		});
+		const fromHost = resolveInitFromManifest(
+			manifest,
+			{
+				country: null,
+				gpc: true,
+				language: 'de-DE',
+				region: null,
+			},
+			{ baseTranslations }
+		);
 
 		assert.deepStrictEqual(fromBackend.body, fromHost);
 	});

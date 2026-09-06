@@ -15,11 +15,7 @@ interface PackageDocsConfig {
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
-		include: [
-			'frameworks/javascript/**/*.mdx',
-			'shared/**/*.mdx',
-			'integrations/**/*.mdx',
-		],
+		include: ['frameworks/javascript/**/*.mdx', 'integrations/**/*.mdx'],
 		name: '@c15t/core',
 		outDir: 'packages/core',
 		summary:
@@ -28,8 +24,8 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'frameworks/react/**/*.mdx',
-			'shared/**/*.mdx',
 			'integrations/**/*.mdx',
+			'shared/react/components/dev-tools.mdx',
 		],
 		name: '@c15t/react',
 		outDir: 'packages/react',
@@ -39,8 +35,8 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'frameworks/next/**/*.mdx',
-			'shared/**/*.mdx',
 			'integrations/**/*.mdx',
+			'shared/react/components/dev-tools.mdx',
 		],
 		name: '@c15t/nextjs',
 		outDir: 'packages/nextjs',
@@ -59,7 +55,6 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'frameworks/javascript/script-loader.mdx',
 			'frameworks/react/script-loader.mdx',
 			'frameworks/next/script-loader.mdx',
-			'shared/react/guides/script-loader.mdx',
 			'integrations/**/*.mdx',
 		],
 		name: '@c15t/scripts',

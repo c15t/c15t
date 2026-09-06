@@ -101,16 +101,6 @@ const config: StorybookConfig = {
 						replacement: ui('styles', 'primitives', 'index.ts'),
 					},
 					{
-						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-						find: /^@c15t\/ui\/styles\/v3\/(.+)\.module\.css$/u,
-						replacement: ui('styles', 'v3', '$1.module.css'),
-					},
-					{
-						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-						find: /^@c15t\/ui\/styles\/v3\/(.+)$/u,
-						replacement: ui('styles', 'v3', '$1.module.css'),
-					},
-					{
 						find: /^@c15t\/ui\/theme$/u,
 						replacement: ui('theme', 'index.ts'),
 					},

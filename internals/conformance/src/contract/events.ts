@@ -6,7 +6,7 @@
  * `runEventContractConformance(driver)` suite asserts against this contract.
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentState } from '@c15t/core';
 
 /** All public event names. Keep in sync with provider prop types across frameworks. */
 export const EVENT_NAMES = [
@@ -28,11 +28,11 @@ export type EventName = (typeof EVENT_NAMES)[number];
  */
 export interface EventPayloads {
 	onConsentChanged: {
-		consent: ConsentStoreState['consents'];
+		consent: ConsentState;
 		categories: readonly string[];
 	};
 	onConsentSet: {
-		consent: ConsentStoreState['consents'];
+		consent: ConsentState;
 	};
 	onBannerFetched: {
 		source: 'network' | 'cache' | 'ssr';

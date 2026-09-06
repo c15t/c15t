@@ -5,12 +5,12 @@
  * and aria attributes.
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -24,7 +24,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+	mode: offline(),
 };
 
 describe('ConsentDialogTrigger', () => {
@@ -38,7 +38,6 @@ describe('ConsentDialogTrigger', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('showWhen="never" does not render trigger', async () => {

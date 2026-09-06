@@ -1,13 +1,17 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useState } from 'react';
 import type { FC } from 'react';
 
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
+import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import type { ProcessedStack, VendorId } from '../types';
+import { useIABTranslations } from '../use-iab-translations';
 import { PurposeItem } from './purpose-item';
 
 const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
@@ -48,6 +52,9 @@ export const StackItem: FC<StackItemProps> = ({
 	purposeLegitimateInterests = EMPTY_PURPOSE_INTERESTS,
 	onPurposeLegitimateInterestToggle,
 }) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
+	const iab = useIABTranslations();
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const allEnabled = stack.purposes.every((p) => consents[p.id] ?? false);
@@ -67,6 +74,10 @@ export const StackItem: FC<StackItemProps> = ({
 			}
 		}
 	};
+	const headerProps = mergeSlotProps(components?.['iab-stack-item']?.header, {
+		baseClassName: styles.stackHeader,
+		noStyle,
+	});
 
 	const totalVendors = new Set(
 		stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))
@@ -74,16 +85,18 @@ export const StackItem: FC<StackItemProps> = ({
 
 	return (
 		<PreferenceItem.Root
-			className={styles.stackItem}
+			className={noStyle ? undefined : styles.stackItem}
 			data-testid={`stack-item-${stack.id}`}
 			noStyle
 			onOpenChange={setIsExpanded}
 			open={isExpanded}
+			slotKey="iab-stack-item.root"
 		>
-			<div className={styles.stackHeader}>
+			<div {...headerProps}>
 				<PreferenceItem.Trigger
-					className={styles.stackTrigger}
+					className={noStyle ? undefined : styles.stackTrigger}
 					noStyle
+					slotKey="iab-stack-item.trigger"
 				>
 					<PreferenceItem.Leading noStyle>
 						<svg
@@ -114,7 +127,10 @@ export const StackItem: FC<StackItemProps> = ({
 							className={styles.stackMeta}
 							noStyle
 						>
-							{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
+							{totalVendors}{' '}
+							{totalVendors === 1
+								? iab.preferenceCenter.vendorList.partnerSingular
+								: iab.preferenceCenter.vendorList.partnerPlural}
 						</PreferenceItem.Meta>
 					</PreferenceItem.Header>
 				</PreferenceItem.Trigger>
@@ -123,10 +139,10 @@ export const StackItem: FC<StackItemProps> = ({
 					noStyle
 				>
 					{someEnabled && (
-						<div
-							className={styles.partialIndicator}
-							title="Partially enabled"
-						/>
+						<>
+							<span className={styles.srOnly}>Partially enabled</span>
+							<div className={styles.partialIndicator} />
+						</>
 					)}
 					<Switch.Root
 						aria-label={stack.name}
@@ -135,11 +151,16 @@ export const StackItem: FC<StackItemProps> = ({
 					/>
 				</PreferenceItem.Control>
 			</div>
-			<PreferenceItem.Content noStyle>
+			<PreferenceItem.Content noStyle={noStyle}>
 				<div className={styles.stackDescription}>
 					<p>{stack.description}</p>
 				</div>
-				<div className={styles.stackContent}>
+				<div
+					{...mergeSlotProps(components?.['iab-stack-item']?.content, {
+						baseClassName: styles.stackContent,
+						noStyle,
+					})}
+				>
 					{stack.purposes.map((purpose) => (
 						<PurposeItem
 							key={purpose.id}

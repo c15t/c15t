@@ -1,4 +1,4 @@
-import type { Overrides } from '../../types';
+import type { Overrides } from '../../options/overrides';
 
 export interface PrefetchOptions {
 	/**
@@ -10,7 +10,7 @@ export interface PrefetchOptions {
 	/**
 	 * Optional request-level overrides for prefetching init data.
 	 */
-	overrides?: Pick<Overrides, 'country' | 'region' | 'language'>;
+	overrides?: Pick<Overrides, 'country' | 'region' | 'language' | 'gpc'>;
 
 	/**
 	 * Fetch credentials mode.

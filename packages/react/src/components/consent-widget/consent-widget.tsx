@@ -50,7 +50,7 @@ export const ConsentWidget = ({
 			<BrandingLink
 				hideBranding={hideBranding ?? true}
 				variant="dialog-tag"
-				themeKey="consentWidgetTag"
+				slotContext="manager"
 				data-testid="consent-widget-branding"
 			/>
 		</ConsentWidgetRoot>

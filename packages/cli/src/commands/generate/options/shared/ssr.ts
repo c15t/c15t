@@ -12,7 +12,8 @@ interface GetSSROptionOptions {
  * Prompts the user to enable SSR data fetching for Next.js App Router.
  *
  * @remarks
- * SSR data fetching uses `fetchInitialData()` which requires Next.js `headers()` API.
+ * SSR request config uses `readInitialConsentConfig()`, which requires the
+ * Next.js `headers()` API.
  * This is a dynamic API that:
  * - Works in dynamic routes and server components
  * - Forces the route to be dynamically rendered
@@ -35,7 +36,7 @@ export const getSSROption = async function getSSROption({
 		'On slow backends or cross-region setups, SSR can increase TTFB. Measure both TTFB and banner visibility.'
 	);
 	context.logger.info(
-		'Learn more: https://c15t.com/docs/frameworks/nextjs/ssr'
+		'Learn more: https://c15t.com/docs/frameworks/next/server-side'
 	);
 
 	const enableSSR = await p.select({

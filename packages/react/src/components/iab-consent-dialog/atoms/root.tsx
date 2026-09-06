@@ -2,20 +2,21 @@
 
 import type * as C15tCoreTypes from '@c15t/core';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useMemo, useState } from 'react';
 import type { FC, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useSetActiveUI } from '~/hooks';
+import { useIABConsentManager } from '~/hooks/use-iab-consent-manager';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { IABConsentDialogOverlay } from './overlay';
 
@@ -67,8 +68,9 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		iab: iabState,
 		policyDialog,
 		model,
-		setActiveUI,
-	} = useConsentManager();
+	} = useIABConsentManager();
+	const setActiveUI = useSetActiveUI();
+	const { components } = useUIConfig();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	const isMounted = useIsHydrated();
@@ -123,7 +125,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		return () => clearTimeout(timer);
 	}, [isOpen, disableAnimation]);
 
-	const themedStyle = useStyles('iabConsentDialog', {
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.root, {
 		baseClassName: cn(
 			styles.root,
 			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
@@ -134,7 +136,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 					: styles.dialogHidden
 		),
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 	const trackingContextValue = useMemo(
 		() => ({ uiSource: uiSource ?? 'iab_dialog' }),
 		[uiSource]
@@ -154,7 +155,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 			<LocalThemeContext.Provider value={contextValue}>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
-					{...domStyleProps}
+					{...themedStyle}
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>

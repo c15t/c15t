@@ -14,6 +14,10 @@ const HomePage = () => (
 				<Link href="/react-full">/react-full</Link> - Full React import
 			</li>
 			<li>
+				<Link href="/react-full-split">/react-full-split</Link> - Split React
+				imports
+			</li>
+			<li>
 				<Link href="/react-headless">/react-headless</Link> - Headless React
 				import
 			</li>
@@ -22,14 +26,21 @@ const HomePage = () => (
 				only
 			</li>
 			<li>
-				<Link href="/core-only">/core-only</Link> - Vanilla JS core only
-			</li>
-			<li>
 				<Link href="/nextjs-basic">/nextjs-basic</Link> - Next.js provider and
 				banner
 			</li>
 			<li>
 				<Link href="/nextjs-ssr">/nextjs-ssr</Link> - Next.js SSR data path
+			</li>
+			<li>
+				<Link href="/react-manifest-client">/react-manifest-client</Link> -
+				Manifest transport
+			</li>
+			<li>
+				<Link href="/react-standard-script-loader">
+					/react-standard-script-loader
+				</Link>{' '}
+				- Script loader
 			</li>
 		</ul>
 	</main>

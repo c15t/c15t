@@ -1,0 +1,98 @@
+import type { ConsentKernel, KernelActiveUI } from '@c15t/core';
+import { useContext } from 'react';
+import { describe, expect, test, vi } from 'vitest';
+import { renderHook } from 'vitest-browser-react';
+
+import { KernelContext } from '~/context';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
+
+import { useConsentDialogTrigger } from '../use-consent-dialog-trigger';
+
+interface WrapperOptions {
+	activeUI: Exclude<KernelActiveUI, null | undefined>;
+	hasConsented: boolean;
+}
+
+const createWrapper = function createWrapper({
+	activeUI,
+	hasConsented,
+}: WrapperOptions) {
+	return function Wrapper({ children }: { children: React.ReactNode }) {
+		return (
+			<ConsentProvider
+				options={{
+					mode: offline(),
+					persistence: false,
+					prefetch: {
+						initialHasConsented: hasConsented,
+						initialPolicy: {
+							id: 'trigger-test',
+							model: 'opt-in',
+							ui: { mode: activeUI },
+						},
+					},
+				}}
+			>
+				{children}
+			</ConsentProvider>
+		);
+	};
+};
+
+const useTriggerWithKernel = function useTriggerWithKernel(
+	options: Parameters<typeof useConsentDialogTrigger>[0]
+) {
+	const kernel = useContext(KernelContext) as ConsentKernel;
+	const trigger = useConsentDialogTrigger(options);
+	return { kernel, trigger };
+};
+
+describe('useConsentDialogTrigger', () => {
+	test('hides trigger when showWhen is after-consent and no consent exists', async () => {
+		const { result } = await renderHook(
+			() => useConsentDialogTrigger({ showWhen: 'after-consent' }),
+			{ wrapper: createWrapper({ activeUI: 'none', hasConsented: false }) }
+		);
+
+		expect(result.current.isVisible).toBe(false);
+	});
+
+	test('shows trigger after consent when active UI is none', async () => {
+		const { result } = await renderHook(
+			() => useConsentDialogTrigger({ showWhen: 'after-consent' }),
+			{ wrapper: createWrapper({ activeUI: 'none', hasConsented: true }) }
+		);
+
+		await vi.waitFor(() => {
+			expect(result.current.isVisible).toBe(true);
+		});
+	});
+
+	test('hides trigger while another consent UI is open', async () => {
+		const { result } = await renderHook(
+			() => useConsentDialogTrigger({ showWhen: 'always' }),
+			{ wrapper: createWrapper({ activeUI: 'dialog', hasConsented: false }) }
+		);
+
+		await vi.waitFor(() => {
+			expect(result.current.isVisible).toBe(false);
+		});
+	});
+
+	test('opens dialog and invokes callback when openDialog is called', async () => {
+		const onClick = vi.fn();
+
+		const { result } = await renderHook(
+			() => useTriggerWithKernel({ onClick, showWhen: 'always' }),
+			{ wrapper: createWrapper({ activeUI: 'none', hasConsented: true }) }
+		);
+
+		result.current.trigger.openDialog();
+
+		expect(onClick).toHaveBeenCalledOnce();
+		await vi.waitFor(() => {
+			expect(result.current.kernel.getSnapshot().activeUI).toBe('dialog');
+		});
+	});
+});

@@ -42,6 +42,12 @@
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"@c15t/tanstack-start#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**", "dist-types/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
 		"@c15t/backend#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -53,6 +59,12 @@
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
 			"env": ["VERCEL", "NITRO_PRESET", "NUXT_PUBLIC_C15T_BACKEND_URL"]
+		},
+		"@c15t/example-tanstack-start#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"],
+			"env": ["VERCEL", "VITE_C15T_BACKEND_URL"]
 		},
 		"@c15t/benchmarking#build": {
 			"dependsOn": ["^build"],
@@ -121,6 +133,38 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"@c15t/example-tanstack-start#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/backend#dev",
+				"@c15t/logger#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/tanstack-start#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"astro-demo#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/astro#dev",
+				"@c15t/core#dev",
+				"@c15t/iab#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
 		"sveltekit-demo#dev": {
 			"cache": false,
 			"persistent": true,
@@ -151,6 +195,42 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"@c15t/tanstack-start-browser-bench#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/logger#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/tanstack-start#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/astro-browser-bench#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				"C15T_BENCH_ASTRO_MODE",
+				"C15T_BENCH_ORIGIN",
+				"C15T_BENCH_OUT_DIR"
+			],
+			"outputs": [".astro/**", "dist/**", "dist-baseline/**", "dist-hosted/**"]
+		},
+		"@c15t/astro-browser-bench#dev": {
+			"cache": false,
+			"interruptible": true,
+			"persistent": true,
+			"with": [
+				"@c15t/astro#dev",
+				"@c15t/core#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev"
+			]
+		},
 		"@c15t/nuxt-browser-bench#dev": {
 			"cache": false,
 			"persistent": true,
@@ -161,6 +241,22 @@
 				"@c15t/schema#dev",
 				"@c15t/translations#dev",
 				"@c15t/vue#dev"
+			]
+		},
+		"@c15t/sveltekit-browser-bench#build": {
+			"dependsOn": ["^build"],
+			"outputs": [".svelte-kit/**", "build/**"]
+		},
+		"@c15t/sveltekit-browser-bench#dev": {
+			"cache": false,
+			"interruptible": true,
+			"persistent": true,
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev"
 			]
 		},
 		"@c15t/css-layer-preview#dev": {
@@ -235,6 +331,44 @@
 				"coverage/html/**"
 			],
 			"env": ["C15T_TEST_PG_URL", "C15T_TEST_MYSQL_URL"]
+		},
+		"@c15t/next-compat-15-app#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-15-pages#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-app#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-cache-components#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-pages#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-static-export#check-types": {
+			"dependsOn": []
+		},
+		"test:compat": {
+			"cache": false,
+			"dependsOn": ["build", "^build"],
+			"env": [
+				"COMPAT_FORCE_BUILD",
+				"COMPAT_SKIP_BUILD",
+				"COMPAT_PRINT_SERVER_LOGS"
+			],
+			"outputs": []
+		},
+		"@c15t/next-compat-16-static-export#test:compat": {
+			"cache": false,
+			"dependsOn": ["^build"],
+			"env": [
+				"COMPAT_FORCE_BUILD",
+				"COMPAT_SKIP_BUILD",
+				"COMPAT_PRINT_SERVER_LOGS"
+			],
+			"outputs": []
 		},
 		"test-storybook": {
 			"dependsOn": ["build", "^build"],

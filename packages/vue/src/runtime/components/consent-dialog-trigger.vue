@@ -3,7 +3,7 @@ import type {
 	ConsentDialogTriggerPosition,
 	ConsentDialogTriggerSize,
 } from '@c15t/schema/config';
-import triggerStyles from '@c15t/ui/styles/v3/consent-dialog-trigger';
+import triggerStyles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { computed, ref, watch } from 'vue';
 
 import {

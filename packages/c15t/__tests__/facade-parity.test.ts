@@ -68,44 +68,7 @@ const rows = JSON.parse(
 	)
 ) as ParityRow[];
 
-/**
- * The `@c15t/react`/`@c15t/nextjs` v3 component dists import raw `.css`
- * files (pre-existing; bundler-only entries), so plain Node rejects them on
- * both sides with `ERR_UNKNOWN_FILE_EXTENSION`.
- */
-const V3_CSS_IMPORTERS = [
-	'./react/v3',
-	'./react/v3/consent-banner',
-	'./react/v3/consent-dialog',
-	'./react/v3/consent-widget',
-	'./react/v3/consent-dialog-link',
-	'./react/v3/consent-dialog-trigger',
-	'./react/v3/frame',
-	'./react/v3/iab',
-	'./react/v3/primitives',
-	'./react/v3/primitives/accordion',
-	'./react/v3/primitives/button',
-	'./react/v3/primitives/collapsible',
-	'./react/v3/primitives/preference-item',
-	'./react/v3/primitives/switch',
-	'./react/v3/primitives/tabs',
-	'./react/v3/components/consent-banner',
-	'./react/v3/components/consent-dialog',
-	'./react/v3/components/consent-dialog-trigger',
-	'./react/v3/components/consent-dialog-link',
-	'./react/v3/components/consent-widget',
-	'./react/v3/components/frame',
-	'./next/v3',
-	'./next/v3/components/consent-dialog-link',
-	'./next/v3/rsc',
-];
-
 const EXPECTED_ESM_FAILURES = new Set<string>([
-	...V3_CSS_IMPORTERS,
-	// The @c15t/nextjs ESM dist resolves `next/*` subpaths that only exist
-	// inside a bundler.
-	'./next',
-	'./next/v3/middleware',
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
 	'./vue/vue-plugin',
@@ -241,6 +204,7 @@ const rowsScopedSpecifier = function rowsScopedSpecifier(
 	const prefixes: [string, string][] = [
 		['react', '@c15t/react'],
 		['next', '@c15t/nextjs'],
+		['tanstack-start', '@c15t/tanstack-start'],
 		['vue', '@c15t/vue'],
 	];
 	for (const [prefix, packageName] of prefixes) {

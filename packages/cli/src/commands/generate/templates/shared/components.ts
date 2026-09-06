@@ -3,6 +3,9 @@
  * Produces the Provider+Banner+Dialog component used by React, Next.js Pages, and App Dir client
  */
 
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
+import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import {
 	generateScriptsCommentPlaceholder,
 	generateScriptsConfig,
@@ -10,8 +13,11 @@ import {
 } from './scripts';
 
 interface GenerateConsentComponentOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	/** Entry point to import from: 'c15t/react' or 'c15t/next' */
 	importSource: string;
+	/** Framework adapter entry point. Defaults to the provider's devtools subpath. */
+	devToolsImportSource?: string;
 	/** Pre-computed inner options text (mode, backendURL, etc.) */
 	optionsText: string;
 	/** Selected scripts to include */
@@ -28,7 +34,7 @@ interface GenerateConsentComponentOptions {
 	includeOverrides?: boolean;
 	/** Whether to add c15t DevTools component */
 	enableDevTools?: boolean;
-	/** When set, use ConsentManagerProps from this entry point for props typing (e.g. 'c15t/next') */
+	/** Entry point used for server-prefetch config typing. */
 	useFrameworkProps?: string;
 	/** When true, add theme import from './theme' and include in options */
 	includeTheme?: boolean;
@@ -108,6 +114,8 @@ const buildDocComment = function buildDocComment({
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const generateConsentComponent = function generateConsentComponent({
 	importSource,
+	developmentEnvironment,
+	devToolsImportSource = `${importSource}/devtools`,
 	optionsText,
 	selectedScripts = [],
 	initialDataProp = false,
@@ -116,7 +124,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	ssrDataOption = false,
 	includeOverrides: _includeOverrides = false,
 	enableDevTools = false,
-	useFrameworkProps,
+	useFrameworkProps: _useFrameworkProps,
 	includeTheme = false,
 	docsSlug,
 }: GenerateConsentComponentOptions): string {
@@ -127,8 +135,8 @@ export const generateConsentComponent = function generateConsentComponent({
 		: generateScriptsCommentPlaceholder();
 
 	// Build the full options object
-	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tssrData,' : '';
-	const themeLine = includeTheme ? '\n\t\t\t\ttheme,' : '';
+	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tprefetch: config,' : '';
+	const themeLine = includeTheme ? '\n\t\t\t\ttheme,\n\t\t\t\tcomponents,' : '';
 	const overridesLine = '';
 
 	const fullOptionsText = `{
@@ -136,38 +144,26 @@ export const generateConsentComponent = function generateConsentComponent({
 			${scriptsConfig}${overridesLine}
 		}`;
 
-	// When useFrameworkProps is set with ssrDataOption, use ConsentManagerProps from that source
-	const useConsentManagerProps = useFrameworkProps && ssrDataOption;
-
-	// Whether we need InitialDataPromise type (only when NOT using ConsentManagerProps)
-	const needsDataType =
-		(initialDataProp || ssrDataOption) && !useConsentManagerProps;
-
-	const namedImports = needsDataType
-		? `ConsentDialog,
-	ConsentManagerProvider,
-	ConsentBanner,
-	type InitialDataPromise`
-		: `ConsentDialog,
-	ConsentManagerProvider,
-	ConsentBanner,`;
+	const needsDataType = initialDataProp || ssrDataOption;
+	const modeImports = ['custom', 'hosted', 'offline'].filter((name) =>
+		optionsText.includes(`${name}(`)
+	);
+	const namedImports = `ConsentDialog,
+	ConsentProvider,
+	ConsentBanner,${modeImports.map((name) => `\n\t${name},`).join('')}${needsDataType ? '\n\ttype KernelConfig,' : ''}`;
 
 	// Build framework props type import
-	const frameworkPropsImport = useConsentManagerProps
-		? `import type { ConsentManagerProps } from '${useFrameworkProps}';\n`
-		: '';
+	const frameworkPropsImport = '';
 
 	// Build component props
 	let propsDestructure: string;
-	if (useConsentManagerProps) {
-		propsDestructure = '{ children, ssrData }: ConsentManagerProps';
-	} else if (ssrDataOption) {
+	if (ssrDataOption) {
 		propsDestructure = `{
 	children,
-	ssrData,
+	config,
 }: {
 	children: ReactNode;
-	ssrData?: InitialDataPromise;
+	config: KernelConfig;
 }`;
 	} else if (initialDataProp) {
 		propsDestructure = `{
@@ -175,7 +171,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	initialData,
 }: {
 	children: ReactNode;
-	initialData?: InitialDataPromise;
+	initialData?: KernelConfig;
 }`;
 	} else {
 		propsDestructure = '{ children }: { children: ReactNode }';
@@ -183,15 +179,17 @@ export const generateConsentComponent = function generateConsentComponent({
 
 	// Build provider props
 	const providerProps = initialDataProp
-		? `\n\t\t\tinitialData={initialData}\n\t\t\toptions={${fullOptionsText}}`
+		? ` options={{\n\t\t\t...${fullOptionsText},\n\t\t\tprefetch: initialData,\n\t\t}}`
 		: ` options={${fullOptionsText}}`;
 
 	// Build directive
 	const directive = useClientDirective ? "'use client';\n\n" : '';
 	const devToolsImport = enableDevTools
-		? "import { DevTools } from '@c15t/dev-tools/react';\n"
+		? generateDevToolsImport(devToolsImportSource, developmentEnvironment)
 		: '';
-	const themeImport = includeTheme ? "import { theme } from './theme';\n" : '';
+	const themeImport = includeTheme
+		? "import { components, theme } from './theme';\n"
+		: '';
 
 	// Build export
 	const componentName = defaultExport
@@ -212,7 +210,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	// Build pre-doc extras (e.g. client-only comment for Pages)
 	const preDocComment = initialDataProp
 		? `// For client-only apps (non-SSR), you can use:
-// import { ConsentManagerProvider } from 'c15t/next';
+// import { ConsentProvider } from 'c15t/next';
 
 `
 		: '';
@@ -224,12 +222,12 @@ import {
 ${frameworkPropsImport}${devToolsImport}${themeImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
 ${exportPrefix} ${componentName}(${propsDestructure}) {
 	return (
-		<ConsentManagerProvider${providerProps}>
+		<ConsentProvider${providerProps}>
 			<ConsentBanner />
 			<ConsentDialog />
-			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
+			${enableDevTools ? DEVTOOLS_COMPONENT : ''}
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 }
 `;

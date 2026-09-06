@@ -623,7 +623,7 @@ export const generateMachine = setup({
 							if (event.output.addScripts) {
 								deps.push('@c15t/scripts');
 							}
-							if (context.enableDevTools) {
+							if (context.enableDevTools && context.framework?.pkg === 'c15t') {
 								deps.push('@c15t/dev-tools');
 							}
 							return deps;

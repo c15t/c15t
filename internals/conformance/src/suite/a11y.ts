@@ -117,7 +117,9 @@ const waitForElement = async function waitForElement(
 	testId: string
 ): Promise<HTMLElement> {
 	const started = Date.now();
-	while (Date.now() - started < 1000) {
+	// A loaded CI runner can take well over a second to mount the dialog's
+	// lazy chunk on first use; the budget only bounds a genuine failure.
+	while (Date.now() - started < 5000) {
 		const element = byTestId(root, testId);
 		if (element) {
 			return element;

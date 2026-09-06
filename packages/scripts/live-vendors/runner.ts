@@ -5,7 +5,7 @@
  * real Chromium (Playwright) probes against every configured vendor:
  *
  * 1. `consent`   — the script must not load while consent is denied.
- * 2. `bootstrap` — queue stubs must exist after `loadScripts`, before the
+ * 2. `bootstrap` — queue stubs must exist after the loader mounts, before the
  *                  remote loader executes.
  * 3. `load`      — the real vendor loader URL must respond.
  * 4. `runtime`   — the vendor runtime must initialize (full tier only).
