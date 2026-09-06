@@ -2,6 +2,7 @@ import type { InitOutput } from '@c15t/schema/types';
 import type { App } from 'vue';
 import { onUnmounted, provide } from 'vue';
 
+import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
 import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,
@@ -20,6 +21,8 @@ import {
 	symbolSnapshot,
 } from '../../../packages/vue/src/runtime/utils/symbols';
 import {
+	storybookIABPolicy,
+	storybookIABPresentation,
 	storybookPolicy,
 	storybookPresentation,
 } from '../../storybook-consent-policy';
@@ -45,6 +48,27 @@ export const storybookInit: InitOutput = {
 		translations: enTranslations,
 	},
 };
+
+/**
+ * The IAB variant of {@link storybookInit}.
+ *
+ * Same policy shape with `model: 'iab'` and the vendor list the React and
+ * Svelte IAB stories mount, so the three surfaces have identical data to
+ * render and the parity gate compares content, not fixtures.
+ */
+export const storybookIABInit: InitOutput = {
+	...storybookInit,
+	cmpId: 160,
+	gvl: mockGVL,
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: 'DE',
+			iabEnabled: true,
+			regionCode: null,
+			rules: [storybookIABPolicy],
+		})
+	),
+} as InitOutput;
 
 const storybookFetch = function storybookFetch(): typeof fetch {
 	return ((input: RequestInfo | URL, request?: RequestInit) => {
@@ -135,6 +159,32 @@ export const useStorybookConsent = function useStorybookConsent(
 		config,
 		prefetch: storybookInit,
 		producerContract: 1,
+	});
+	context.activeUI.value = activeUI;
+	provideStorybookConsentContext(null, context, config);
+	onUnmounted(() => context.dispose());
+	return context;
+};
+
+/**
+ * Provide an IAB kernel context to a story.
+ *
+ * @param activeUI - Which surface to open: `'banner'` or `'manager'`.
+ * @param configOverrides - Config fields to override for this story.
+ * @returns The kernel context, disposed when the story unmounts.
+ */
+export const useStorybookIABConsent = function useStorybookIABConsent(
+	activeUI: StoryActiveUI,
+	configOverrides?: Partial<ConsentConfig>
+) {
+	const config: ConsentConfig = {
+		...storybookConsentConfig,
+		presentation: storybookIABPresentation,
+		...configOverrides,
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: storybookIABInit,
 	});
 	context.activeUI.value = activeUI;
 	provideStorybookConsentContext(null, context, config);

@@ -7,6 +7,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 
+import ConsentActions from '../runtime/components/consent-actions.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentSave } from '../runtime/composables/consent';
 import { symbolInit, symbolKernel } from '../runtime/utils/symbols';
@@ -78,6 +79,27 @@ describe('displayed consent actions', () => {
 			] as const) {
 				expect(categories?.[hidden]).toEqual(before?.categories[hidden]);
 			}
+			wrapper.unmount();
+		}
+	);
+});
+
+describe('consent action button sizing', () => {
+	test.each([
+		{ expected: 'small', props: {} },
+		{ expected: 'medium', props: { size: 'medium' } },
+		{ expected: 'small', props: { buttonSize: 'small', size: 'medium' } },
+	] as const)(
+		'preserves the requested button size $expected',
+		async ({ props, expected }) => {
+			const wrapper = mount(ConsentActions, {
+				global: { provide: { [consentConfigKey]: {} } },
+				props: { actions: ['accept'], ...props },
+			});
+			const button = wrapper.get('button');
+			expect(button.attributes('data-size')).toBe(expected);
+			await button.trigger('click');
+			expect(wrapper.emitted('action')).toEqual([['accept']]);
 			wrapper.unmount();
 		}
 	);

@@ -26,6 +26,9 @@
 		background: none;
 		border: 0;
 		padding: 0;
+		/* A button does not inherit type styles, so without this the
+		   category titles render in the user agent's button font. */
+		font: inherit;
 		text-align: left;
 		color: var(--c15t-text);
 		cursor: pointer;

@@ -25,6 +25,7 @@ export const offline = function offline(
 					policyResolution: writePolicyResolutionWire(
 						resolvePolicyRules({
 							countryCode: overrides.country ?? null,
+							iabEnabled: context.iabEnabled,
 							regionCode: overrides.region ?? null,
 							rules: options.policyRules,
 						})

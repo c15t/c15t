@@ -86,7 +86,7 @@ const resolution = resolvePolicyRules({
 		{
 			categories: ['measurement', 'marketing'],
 			id: 'next-compat',
-			match: { fallback: true },
+			match: { fallback: true, isDefault: true },
 			model: 'opt-in',
 			prompt: 'choice',
 		},
@@ -132,7 +132,9 @@ export const buildManifestResponse =
 	function buildManifestResponse(): CompatManifest {
 		return {
 			branding: 'c15t',
-			policyPacks: [{ fingerprints, match: { fallback: true }, rule }],
+			policyPacks: [
+				{ fingerprints, match: { fallback: true, isDefault: true }, rule },
+			],
 			revision: 'next-compat-manifest',
 			schemaVersion: 2,
 			translations: {

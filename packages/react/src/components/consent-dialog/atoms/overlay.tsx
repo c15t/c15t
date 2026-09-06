@@ -36,10 +36,6 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
  * `<ConsentDialog.Root>`.
  */
 export type OverlayProps = PropsWithChildren<{
-	/** Resolved controlled or kernel dialog visibility.
-	 * @internal
-	 */
-	open?: boolean;
 	/**
 	 * Custom styles to override default overlay styling.
 	 *
@@ -59,6 +55,15 @@ export type OverlayProps = PropsWithChildren<{
 	 * - Maintains functionality without visual opinions
 	 */
 	noStyle?: boolean;
+
+	/**
+	 * Whether the dialog the overlay backs is open.
+	 *
+	 * `ConsentDialog.Root` passes its own open state, so a dialog opened
+	 * through the `open` prop rather than the consent manager still fades
+	 * its backdrop in. Falls back to the manager's active surface.
+	 */
+	open?: boolean;
 }>;
 
 const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style, open }) => {

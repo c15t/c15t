@@ -1,26 +1,12 @@
-import { prefetchInitialConsent } from '@c15t/svelte/server';
+import { loadConsent } from '@c15t/svelte/kit';
 
 import type { LayoutServerLoad } from './$types';
 
 /**
- * Server-side consent prefetch — @c15t/svelte's SSR entry point.
- *
- * Reads the consent cookie + geo/language/GPC headers, then resolves the
- * policy through `/api/c15t/init` (which itself resolves from the static
- * manifest fixture). The resulting KernelConfig is serialized to the
- * client and passed to <ConsentManagerProvider> as `prefetch`.
+ * Manifest SSR: `loadConsent` resolves through the same-origin init route
+ * installed with `createSvelteKitConsentRouteHandlers`, which resolves the
+ * cached manifest in-process. The backend never sits on the request path.
  */
-export const load: LayoutServerLoad = async ({ request, fetch }) => {
-	const consentPrefetch = await prefetchInitialConsent({
-		backendURL: '/api/c15t',
-		fetch,
-		forwardHeaders: [
-			'accept-language',
-			'sec-gpc',
-			'x-c15t-country',
-			'x-c15t-region',
-		],
-		headers: request.headers,
-	});
-	return { consentPrefetch };
-};
+export const load: LayoutServerLoad = async (event) => ({
+	consentPrefetch: await loadConsent(event, { initRoute: '/api/c15t/init' }),
+});

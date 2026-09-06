@@ -131,6 +131,9 @@ export type {
 	ConsentProviderCallbacks,
 	ConsentProviderPrefetch,
 	ConsentProviderProps,
+	ExternalRuntimeProviderOptions,
+	ExternalRuntimeProviderProps,
+	OwnedRuntimeProviderProps,
 } from './provider';
 export { ConsentProvider } from './provider';
 export type { ReactUIOptions } from './types/consent-manager';

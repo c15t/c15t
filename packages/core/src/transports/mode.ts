@@ -16,6 +16,8 @@ export interface ProviderTransportContext {
 	consentCategories?: AllConsentNames[];
 	/** v3 policy rules configured on the provider. */
 	policyRules?: PolicyRule[];
+	/** Whether the provider configured IAB TCF. */
+	iabEnabled?: boolean;
 	/** Server-prefetched kernel configuration. */
 	prefetch: KernelConfig;
 	/** Translations resolved from the provider's i18n configuration. */

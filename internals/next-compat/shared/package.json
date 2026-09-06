@@ -13,8 +13,8 @@
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src"
+		"fmt": "bun oxfmt --write .",
+		"lint": "bun oxlint ."
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",

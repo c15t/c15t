@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T extends string">
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import type { ButtonSize } from '@c15t/ui/styles/primitives';
 import { computed } from 'vue';
 
 import ConsentButton from './consent-button.vue';
@@ -20,6 +21,19 @@ const props = withDefaults(
 		testIds?: Partial<Record<T, string>>;
 		rootAttrs?: object;
 		groupAttrs?: object;
+		/**
+		 * Test id for the action root. A surface whose footer *is* the
+		 * action root — every c15t consent surface — names it after the
+		 * footer, so the slot means the same element it does in React.
+		 * `null` renders none, which is what the IAB dialog footer needs:
+		 * React's and Svelte's carry no test id.
+		 */
+		rootTestId?: string | null;
+		/** Test id for each action group. */
+		groupTestId?: string;
+		/** Extra classes for the action root, e.g. the surface's footer. */
+		rootClass?: string;
+		size?: ButtonSize;
 		disabled?: boolean;
 		primaryMode?: 'stroke' | 'filled';
 		secondaryMode?: 'stroke' | 'filled';
@@ -29,7 +43,9 @@ const props = withDefaults(
 	{
 		direction: 'row',
 		primaryMode: 'stroke',
+		rootTestId: 'consent-actions',
 		secondaryMode: 'stroke',
+		size: 'small',
 		uiProfile: 'compact',
 	}
 );
@@ -98,7 +114,13 @@ const actionLabel = function actionLabel(action: T) {
 };
 
 const actionTestId = function actionTestId(action: T) {
-	return props.testIds?.[action] ?? `consent-actions-${action}-button`;
+	// A surface that names its test-ids gets exactly those: an action it
+	// leaves out emits none, which is how the IAB footers match React's
+	// unlabelled buttons. Only a surface that names none at all falls back.
+	if (props.testIds) {
+		return props.testIds[action];
+	}
+	return `consent-actions-${action}-button`;
 };
 
 const buttonMode = function buttonMode(action: T) {
@@ -112,8 +134,8 @@ const buttonMode = function buttonMode(action: T) {
 <template>
 	<div
 		v-bind="rootAttrs"
-		data-testid="consent-actions"
-		:class="actionStyles.actionRoot"
+		:data-testid="rootTestId ?? undefined"
+		:class="[actionStyles.actionRoot, rootClass]"
 		:data-direction="resolvedDirection"
 		:data-fill="shouldFill ? true : undefined"
 		:data-split="isSplitLayout && !shouldFill ? true : undefined"
@@ -122,6 +144,7 @@ const buttonMode = function buttonMode(action: T) {
 			v-for="(group, groupIndex) in actionGroups"
 			:key="`group-${group.join('-') || groupIndex}`"
 			v-bind="groupAttrs"
+			:data-testid="groupTestId"
 			:class="actionStyles.actionGroup"
 			:data-direction="resolvedDirection"
 			:data-fill="shouldFill ? true : undefined"
@@ -131,7 +154,7 @@ const buttonMode = function buttonMode(action: T) {
 				:key="action"
 				:variant="isPrimary(action) ? 'primary' : 'neutral'"
 				:mode="buttonMode(action)"
-				:data-size="buttonSize"
+				:size="buttonSize ?? size"
 				:disabled="disabled"
 				:data-action="action"
 				:data-testid="actionTestId(action)"

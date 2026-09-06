@@ -43,7 +43,11 @@ const apps = [
 	{
 		buildOutput: 'benchmarks/sveltekit-browser-bench/build/index.js',
 		dir: 'benchmarks/sveltekit-browser-bench',
-		env: { PORT: '4314' },
+		// `adapter-node` reads its public origin from ORIGIN and otherwise
+		// assumes `https`, which would send the bench's same-origin manifest
+		// fetch at a TLS handshake this plain-HTTP server cannot answer.
+		// `scripts/run-bench.ts` sets it for the same reason.
+		env: { ORIGIN: 'http://127.0.0.1:4314', PORT: '4314' },
 		label: 'SvelteKit manifest SSR',
 		path: '/ssr-manifest',
 		port: 4314,
@@ -52,15 +56,6 @@ const apps = [
 			{ args: ['run', 'build'], command: 'bun', cwd: 'packages/svelte' },
 		],
 		probeName: '__c15tSvelteBench',
-		skips: {
-			// Do not fake a pass: @c15t/svelte's ConsentBanner mounts
-			// client-side only (useBannerVisibility gates rendering on
-			// onMount, and the portal action needs `document`). The server
-			// prefetch prevents banner flash and zombie banners, but the
-			// banner markup itself is not in the first HTML yet.
-			ssrBannerHtml:
-				'@c15t/svelte does not render banner markup during SSR yet (ConsentBanner gates on onMount); prefetch only seeds the kernel',
-		},
 		startCommand: ['node', ['build/index.js']],
 	},
 ];
@@ -209,26 +204,16 @@ const readProbe = async function readProbe(page, app) {
 const verifyFreshVisit = async function verifyFreshVisit(browser, app) {
 	const { context, page, url } = await newPage(browser, app);
 	try {
-		if (app.skips?.ssrBannerHtml) {
-			console.log(
-				`⊘ ${app.label}: SKIPPED banner-in-first-HTML check — ${app.skips.ssrBannerHtml}`
-			);
-		} else {
-			const html = await fetchHtml(context, url);
-			assert(
-				countBannerRoots(html) > 0,
-				`${app.label}: response HTML did not contain ${bannerSelector}`
-			);
-		}
+		const html = await fetchHtml(context, url);
+		assert(
+			countBannerRoots(html) > 0,
+			`${app.label}: response HTML did not contain ${bannerSelector}`
+		);
 		await gotoSettled(page, url);
 		await page.locator(bannerSelector).first().waitFor({ state: 'visible' });
 		const cls = await page.evaluate(() => window.__c15tLayoutShiftScore ?? 0);
 		assertEqual(cls, 0, `${app.label}: layout shift score`);
-		console.log(
-			app.skips?.ssrBannerHtml
-				? `✓ ${app.label}: fresh visit shows the banner after hydration (zero layout shift)`
-				: `✓ ${app.label}: fresh visit renders the banner server-side`
-		);
+		console.log(`✓ ${app.label}: fresh visit renders the banner server-side`);
 	} finally {
 		await context.close();
 	}

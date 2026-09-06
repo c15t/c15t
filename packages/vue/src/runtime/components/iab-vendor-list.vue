@@ -3,7 +3,11 @@ import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { computed, ref, toValue, watch } from 'vue';
 
-import { useConsentConfig, useConsentInit } from '#c15t/composables';
+import {
+	useConsentConfig,
+	useConsentInit,
+	useIabTranslations,
+} from '#c15t/composables';
 
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
@@ -26,27 +30,7 @@ const init = useConsentInit();
 const config = useConsentConfig();
 const searchTerm = ref('');
 
-const iabT = computed(
-	() =>
-		(
-			toValue(init)?.translations?.translations as {
-				iab?: Record<string, unknown>;
-			}
-		)?.iab as
-			| {
-					preferenceCenter?: {
-						vendorList?: {
-							search?: string;
-							showingCount?: string;
-							iabVendorsHeading?: string;
-							customVendorsHeading?: string;
-							privacyPolicy?: string;
-						};
-					};
-					common?: { showingSelectedVendor?: string };
-			  }
-			| undefined
-);
+const iabT = useIabTranslations();
 
 const iabVendors = computed(() => {
 	if (!props.vendorData) {
@@ -162,7 +146,10 @@ watch(
 					/>
 				</svg>
 				<input
-					v-model="searchTerm"
+					:value="searchTerm"
+					@input="
+						(event) => (searchTerm = (event.target as HTMLInputElement).value)
+					"
 					type="search"
 					:class="dialogStyles.searchInput"
 					:placeholder="iabT?.preferenceCenter?.vendorList?.search"
@@ -236,6 +223,7 @@ watch(
 						</div>
 						<div :class="dialogStyles.vendorConsentControl">
 							<ConsentSwitch
+								:test-id="null"
 								:model-value="getVendorConsent(vendor.id)"
 								:class="dialogStyles.vendorConsentSwitch"
 								@update:model-value="
@@ -283,6 +271,7 @@ watch(
 						</div>
 						<div :class="dialogStyles.vendorConsentControl">
 							<ConsentSwitch
+								:test-id="null"
 								:model-value="getVendorConsent(vendor.id)"
 								:class="dialogStyles.vendorConsentSwitch"
 								@update:model-value="

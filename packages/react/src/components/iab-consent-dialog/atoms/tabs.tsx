@@ -1,12 +1,12 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
-import { forwardRef as createForwardRef, useMemo } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import * as Tabs from '~/components/shared/ui/tabs';
 
-import { useGVLData } from '../hooks/use-gvl-data';
+import { useIABDisplayModel } from '../hooks/use-display-model';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogTabsProps extends Omit<
@@ -23,26 +23,10 @@ const IABConsentDialogTabs = createForwardRef<
 >(({ children, defaultTab = 'purposes', className, ...props }, ref) => {
 	const iabTranslations = useIABTranslations();
 	const {
-		purposes,
-		specialPurposes,
-		specialFeatures,
-		features,
-		totalVendors,
+		purposeTabCount: purposeCount,
+		vendorTabCount: totalVendors,
 		isLoading,
-	} = useGVLData();
-	const purposeCount = useMemo(
-		() =>
-			purposes.length +
-			specialPurposes.length +
-			specialFeatures.length +
-			features.length,
-		[
-			features.length,
-			purposes.length,
-			specialFeatures.length,
-			specialPurposes.length,
-		]
-	);
+	} = useIABDisplayModel();
 
 	return (
 		<Tabs.Root

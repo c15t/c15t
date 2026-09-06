@@ -1,13 +1,7 @@
-<script setup lang="ts">
-import { inject, ref } from 'vue';
-
-import { switchCheckedKey } from './keys';
-
-const checked = inject(switchCheckedKey, ref(false));
-</script>
+<script setup lang="ts"></script>
 
 <template>
-	<span :data-state="checked ? 'checked' : 'unchecked'">
+	<span data-slot="switch-thumb">
 		<slot />
 	</span>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+import { getTextDirection } from '@c15t/ui/utils';
 import { computed, nextTick, onUnmounted, provide, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 
@@ -26,6 +27,9 @@ import { consentWidgetManagerKey } from './consent-widget-manager-context';
 import ConsentWidget from './consent-widget.vue';
 
 const init = useConsentInit();
+const textDirection = computed(() =>
+	getTextDirection(init.value?.translations?.language)
+);
 
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
@@ -170,41 +174,49 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 				]"
 				:data-disable-animation="disableAnimation ? true : undefined"
 			/>
-			<DialogContent
+			<!-- The outer element only positions the panel over the
+			     viewport. `DialogContent` is the panel itself: it carries the
+			     dialog semantics, the focus trap and the
+			     `consent-dialog-root` testid, so those name the same element
+			     they do in React and Svelte. -->
+			<div
 				v-bind="config.components?.dialog?.root"
-				data-testid="consent-dialog-root"
 				data-mode="dialog"
+				data-slot="dialog-positioner"
 				:class="dialogStyles.root"
 				:data-disable-animation="disableAnimation ? true : undefined"
 				aria-labelledby="consent-dialog-title"
 				aria-describedby="consent-dialog-description"
 			>
-				<div
+				<DialogContent
 					v-bind="config.components?.dialog?.container"
-					:class="dialogStyles.container"
+					data-testid="consent-dialog-root"
+					:dir="textDirection"
+					:class="[dialogStyles.container, dialogStyles.contentVisible]"
+					aria-labelledby="consent-dialog-title"
+					aria-describedby="consent-dialog-description"
 				>
 					<div
 						v-bind="config.components?.dialog?.card"
 						data-testid="consent-dialog-card"
 						:class="dialogStyles.card"
+						tabindex="-1"
 					>
 						<div
 							v-bind="config.components?.dialog?.header"
 							data-testid="consent-dialog-header"
 							:class="dialogStyles.header"
 						>
-							<div
+							<h2
 								v-bind="config.components?.dialog?.title"
 								data-testid="consent-dialog-title"
 								id="consent-dialog-title"
 								:class="dialogStyles.title"
-								role="heading"
-								aria-level="2"
 							>
 								{{
 									init?.translations?.translations?.consentManagerDialog?.title
 								}}
-							</div>
+							</h2>
 							<ConsentDescription context="dialog" />
 						</div>
 						<div
@@ -219,8 +231,8 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 							context="dialog"
 						/>
 					</div>
-				</div>
-			</DialogContent>
+				</DialogContent>
+			</div>
 		</DialogPortal>
 	</DialogRoot>
 </template>

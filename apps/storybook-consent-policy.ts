@@ -8,7 +8,7 @@ import type { PolicyRule } from '../packages/schema/src/types';
 export const storybookPolicy: PolicyRule = {
 	categories: ['functionality', 'measurement', 'experience', 'marketing'],
 	id: 'storybook',
-	match: { fallback: true },
+	match: { fallback: true, isDefault: true },
 	model: 'opt-in',
 	prompt: 'choice',
 	scopeMode: 'permissive',
@@ -57,4 +57,11 @@ export const seedStorybookChoice = (
 		'c15t',
 		JSON.stringify({ categories, version: 3 })
 	);
+};
+
+/** IAB comparison stories use the default modal presentation in every adapter. */
+export const storybookIABPresentation: ConsentPresentation = {
+	...storybookPresentation,
+	preferences: { ...storybookPresentation.preferences, scrollLock: true },
+	prompt: { ...storybookPresentation.prompt, scrollLock: true },
 };

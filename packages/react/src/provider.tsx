@@ -28,11 +28,20 @@ import {
 	resolveWindowDebugMode,
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	lazy,
+	Suspense,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
 import { useColorScheme } from './hooks/use-color-scheme';
@@ -147,10 +156,39 @@ export interface ConsentProviderOptions extends Pick<
 	__debugPkg?: string;
 }
 
-export interface ConsentProviderProps {
+/**
+ * Options accepted when an external runtime supplies the kernel.
+ *
+ * `mode` belongs to whoever created the runtime, so it is optional here.
+ * Everything the component tree still owns — theme, slots, legal links —
+ * is unchanged.
+ */
+export type ExternalRuntimeProviderOptions = Omit<
+	ConsentProviderOptions,
+	'mode'
+> & {
+	mode?: ConsentProviderOptions['mode'];
+};
+
+/** The provider builds and owns its own kernel. */
+export interface OwnedRuntimeProviderProps {
 	options: ConsentProviderOptions;
 	children: ReactNode;
+	runtime?: undefined;
 }
+
+export interface ExternalRuntimeProviderProps {
+	options?: ExternalRuntimeProviderOptions;
+	children: ReactNode;
+	runtime: ConsentRuntime;
+}
+export type ConsentProviderProps =
+	| OwnedRuntimeProviderProps
+	| ExternalRuntimeProviderProps;
+const LazyExternalIABProvider = lazy(async () => {
+	const module = await import('./external-iab-context');
+	return { default: module.ExternalIABProvider };
+});
 
 const DISABLED_RESOLUTION = resolvePolicyRules({
 	countryCode: null,
@@ -545,7 +583,8 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 const useProviderOptionSync = function useProviderOptionSync(
 	kernel: ConsentKernel,
 	options: ConsentProviderOptions,
-	enabled: boolean
+	enabled: boolean,
+	owns: boolean
 ) {
 	const previousEnabledRef = useRef(enabled);
 	const previousUserRef = useRef<string | null>(null);
@@ -553,6 +592,9 @@ const useProviderOptionSync = function useProviderOptionSync(
 	const initialOnlyRef = useRef<string | null>(null);
 
 	useEffect(() => {
+		if (!owns) {
+			return;
+		}
 		const nextUser = normalizeUser(options.user);
 		const serialized = JSON.stringify(nextUser ?? null);
 		if (previousUserRef.current === null) {
@@ -571,9 +613,12 @@ const useProviderOptionSync = function useProviderOptionSync(
 				})();
 			}
 		}
-	}, [kernel, options.user]);
+	}, [kernel, options.user, owns]);
 
 	useEffect(() => {
+		if (!owns) {
+			return;
+		}
 		const serialized = JSON.stringify(options.overrides ?? {});
 		if (previousOverridesRef.current === null) {
 			previousOverridesRef.current = serialized;
@@ -586,10 +631,10 @@ const useProviderOptionSync = function useProviderOptionSync(
 				void kernel.commands.init();
 			}
 		}
-	}, [enabled, kernel, options.overrides]);
+	}, [enabled, kernel, options.overrides, owns]);
 
 	useEffect(() => {
-		if (previousEnabledRef.current === enabled) {
+		if (!owns || previousEnabledRef.current === enabled) {
 			return;
 		}
 		previousEnabledRef.current = enabled;
@@ -597,7 +642,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 			return;
 		}
 		kernel.set.activeUI('none');
-	}, [enabled, kernel]);
+	}, [enabled, kernel, owns]);
 
 	useEffect(() => {
 		const nodeEnv = (
@@ -896,17 +941,42 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
  * curated v2-like options surface to v3 modules. It does not mirror the
  * snapshot into React state; selector hooks still subscribe directly to
  * the kernel through `useSyncExternalStore`.
+ *
+ * Pass `runtime` to render a runtime someone else created. The provider
+ * then borrows its kernel and mounts none of the side-effecting modules —
+ * no second `init()`, no second persistence handle, no second `window.c15t`
+ * — and does not dispose it on unmount.
+ *
+ * @example
+ * ```tsx
+ * import { createConsentRuntime } from '@c15t/core/runtime';
+ *
+ * const runtime = createConsentRuntime({ mode: hosted({ url: '/api/c15t' }) });
+ * runtime.start();
+ *
+ * <ConsentProvider runtime={runtime} options={{ theme }}>
+ *   <ConsentDialog />
+ * </ConsentProvider>
+ * ```
  */
-export const ConsentProvider = ({
-	options,
-	children,
-}: ConsentProviderProps) => {
-	const [kernel, setKernel] = useState(() => createProviderKernel(options));
-	void setKernel;
+export const ConsentProvider = (props: ConsentProviderProps) => {
+	const { children } = props;
+	const options = (props.options ?? {}) as ConsentProviderOptions;
+	const [owned, setOwned] = useState(() => ({
+		external: props.runtime,
+		kernel: props.runtime?.kernel ?? createProviderKernel(options),
+	}));
+	void setOwned;
+	const { kernel, external: externalRuntime } = owned;
+	const ownsRuntime = externalRuntime === undefined;
 	const clearRef = useRef<(() => void) | null>(null);
 	const services = useMemo(
 		() => ({
 			clearRecords: () => {
+				if (externalRuntime) {
+					externalRuntime.clearRecords();
+					return;
+				}
 				if (clearRef.current) {
 					clearRef.current();
 				} else {
@@ -931,17 +1001,24 @@ export const ConsentProvider = ({
 			},
 			getPresentation: () => options.presentation,
 		}),
-		[kernel, options.consentCategories, options.presentation]
+		[kernel, options.consentCategories, options.presentation, externalRuntime]
 	);
 	const enabled = getEnabled(options);
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
-	const windowDebugMode = resolveWindowDebugMode(options.mode);
+	// `mode` is optional when a runtime is handed in — its owner picked the
+	// transport, and this provider mounts no `window.c15t` either way.
+	const windowDebugMode = ownsRuntime
+		? resolveWindowDebugMode(options.mode)
+		: 'hosted';
 
-	useProviderOptionSync(kernel, options, enabled);
+	useProviderOptionSync(kernel, options, enabled, ownsRuntime);
 	const lifecycle = useRef(0);
 	useEffect(() => {
+		if (!ownsRuntime) {
+			return;
+		}
 		lifecycle.current += 1;
 		const generation = lifecycle.current;
 		return () => {
@@ -951,7 +1028,7 @@ export const ConsentProvider = ({
 				}
 			});
 		};
-	}, [kernel]);
+	}, [kernel, ownsRuntime]);
 
 	const userTheme = options.theme;
 
@@ -985,38 +1062,52 @@ export const ConsentProvider = ({
 
 	useColorScheme(options.colorScheme);
 
+	// Everything below `WindowKernelMount` is a side-effecting module the
+	// runtime already mounts. A borrowed runtime renders none of it.
 	const providerChildren = (
 		<>
-			<ProviderCallbacksMount
-				kernel={kernel}
-				callbacks={options.callbacks}
-			/>
-			<WindowDebugMount
-				pkg={windowDebugPkg}
-				mode={windowDebugMode}
-			/>
-			<WindowKernelMount kernel={kernel} />
-			{enabled && persistenceOptions ? (
-				<PersistenceMount
-					options={persistenceOptions}
-					clearRef={clearRef}
-				/>
+			{ownsRuntime ? (
+				<>
+					<ProviderCallbacksMount
+						kernel={kernel}
+						callbacks={options.callbacks}
+					/>
+					<WindowDebugMount
+						pkg={windowDebugPkg}
+						mode={windowDebugMode}
+					/>
+					<WindowKernelMount kernel={kernel} />
+					{enabled && persistenceOptions ? (
+						<PersistenceMount
+							options={persistenceOptions}
+							clearRef={clearRef}
+						/>
+					) : null}
+					<InitMount
+						enabled={enabled}
+						prepared={!!resolveSyncPrefetch(options).initialPolicyResolution}
+						kernel={kernel}
+					/>
+					{enabled && scripts && scripts.length > 0 ? (
+						<ScriptsMount
+							options={options.scriptLoader}
+							scripts={scripts}
+						/>
+					) : null}
+					{enabled && networkBlocker ? (
+						<NetworkBlockerMount options={networkBlocker} />
+					) : null}
+				</>
 			) : null}
-			<InitMount
-				enabled={enabled}
-				prepared={!!resolveSyncPrefetch(options).initialPolicyResolution}
-				kernel={kernel}
-			/>
-			{enabled && scripts && scripts.length > 0 ? (
-				<ScriptsMount
-					options={options.scriptLoader}
-					scripts={scripts}
-				/>
-			) : null}
-			{enabled && networkBlocker ? (
-				<NetworkBlockerMount options={networkBlocker} />
-			) : null}
-			{children}
+			{externalRuntime ? (
+				<Suspense fallback={children}>
+					<LazyExternalIABProvider runtime={externalRuntime}>
+						{children}
+					</LazyExternalIABProvider>
+				</Suspense>
+			) : (
+				children
+			)}
 		</>
 	);
 

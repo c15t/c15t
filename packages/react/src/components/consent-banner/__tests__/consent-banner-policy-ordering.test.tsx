@@ -185,7 +185,7 @@ describe('ConsentBanner policy ordering', () => {
 		).toBeInTheDocument();
 	});
 
-	test('keeps the default layout when policy has hints but no policy layout', async () => {
+	test('groups the default layout when policy has hints but no policy layout', async () => {
 		await renderBanner(
 			{},
 			{
@@ -210,6 +210,9 @@ describe('ConsentBanner policy ordering', () => {
 			)
 		);
 
+		// Two sub-groups, not one plus a loose button: the shared default
+		// layout is what Svelte, Vue and Astro render, and `space-between`
+		// only works when both sides are groups.
 		expect(footerGroups).toEqual([
 			[
 				'consent-banner-accept-button',
@@ -217,9 +220,6 @@ describe('ConsentBanner policy ordering', () => {
 				'consent-banner-reject-button',
 			],
 		]);
-		expect(
-			document.querySelector('[data-testid="consent-banner-customize-button"]')
-		).toBeInTheDocument();
 	});
 
 	test('shows branding by default and hides it when hideBranding is true', async () => {

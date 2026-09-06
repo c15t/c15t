@@ -5,6 +5,7 @@ import { enTranslations } from '../../../packages/translations/src/index';
 import {
 	storybookPolicy,
 	storybookIABPolicy,
+	storybookIABPresentation,
 	storybookPresentation,
 	seedStorybookChoice,
 } from '../../storybook-consent-policy';
@@ -69,6 +70,7 @@ export const defaultIABOptions: ConsentManagerOptions = {
 	...defaultConsentOptions,
 	iab: { cmpId: 160, cmpVersion: 1, gvl: mockGVL },
 	mode: offline({ policyRules: [storybookIABPolicy] }),
+	presentation: storybookIABPresentation,
 };
 
 export type { ConsentRecord };

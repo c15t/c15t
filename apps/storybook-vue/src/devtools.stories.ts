@@ -65,6 +65,7 @@ export const Default: Story = {
 				prefetch: init,
 				producerContract: 1,
 			});
+			context.kernel.hydrate({ now: devToolsPrefetch.now });
 			provideStorybookConsentContext(null, context, config);
 			const loader = createScriptLoader({
 				kernel: context.kernel,

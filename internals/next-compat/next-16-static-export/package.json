@@ -7,8 +7,8 @@
 	"scripts": {
 		"build": "bun ../shared/scripts/pack.ts && bun scripts/generate-manifest.ts && next build",
 		"dev": "next dev",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint .",
+		"fmt": "bun oxfmt --write .",
+		"lint": "bun oxlint .",
 		"test:compat": "vitest run"
 	},
 	"dependencies": {

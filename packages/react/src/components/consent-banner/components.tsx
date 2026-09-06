@@ -102,6 +102,7 @@ const ConsentBannerDescription = createForwardRef<
 			{
 				baseClassName: styles.description,
 				className,
+				'data-context': context,
 				'data-testid': 'consent-banner-description',
 				noStyle: noStyle ?? contextNoStyle,
 				style,

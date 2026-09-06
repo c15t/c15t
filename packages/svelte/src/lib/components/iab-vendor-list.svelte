@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GlobalVendorList } from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
+	import switchStyles from '@c15t/ui/styles/components/switch';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
 	import { untrack } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
@@ -291,7 +292,11 @@
 				onclick={onClearSelection}
 				class={noStyle ? '' : styles.clearSelectionButton || ''}
 			>
-				<CloseIcon class={noStyle ? '' : styles.clearIcon || ''} />
+				<CloseIcon
+					class={noStyle ? '' : styles.clearIcon || ''}
+					width="16"
+					height="16"
+				/>
 				{iabT.common.clearSelection}
 			</button>
 		</div>
@@ -368,24 +373,21 @@
 										<span
 											class={noStyle ? '' : styles.vendorListMetaText || ''}
 										>
-											{vendorPurposes.length}
-											purpose{vendorPurposes.length !== 1 ? 's' : ''}
-											{#if vendorSpecialPurposes.length > 0}
-												, {vendorSpecialPurposes.length} special
-											{/if}
-											{#if vendorSpecialFeatures.length > 0}
-												,
-												{vendorSpecialFeatures.length}
-												feature{vendorSpecialFeatures.length !== 1 ? 's' : ''}
-											{/if}
+											{vendorPurposes.length} purpose{vendorPurposes.length ===
+											1
+												? ''
+												: 's'}{vendorSpecialPurposes.length > 0
+												? `, ${vendorSpecialPurposes.length} special`
+												: ''}{vendorSpecialFeatures.length > 0
+												? `, ${vendorSpecialFeatures.length} feature${vendorSpecialFeatures.length === 1 ? '' : 's'}`
+												: ''}
 										</span>
 										{#if legIntCount > 0}
 											<span
 												class={noStyle ? '' : styles.vendorListLiBadge || ''}
 											>
 												<LegitimateInterestIcon
-													width="10"
-													height="10"
+													style="height:0.625rem;width:0.625rem"
 												/>
 												{legIntCount}
 												{iabT.preferenceCenter.vendorList.legitimateInterest}
@@ -393,9 +395,10 @@
 										{/if}
 									</div>
 								</div>
-								<div class={noStyle ? '' : styles.purposeArrow || ''}>
-									<ChevronDownIcon />
-								</div>
+								<ChevronDownIcon
+									class={noStyle ? '' : styles.purposeArrow || ''}
+									expanded={expandedVendors.has(vendor.id)}
+								/>
 							</PreferenceItem.Trigger>
 							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
 								<Switch.Root
@@ -406,7 +409,10 @@
 											vendor.id,
 											!(vendorConsents[vendorKey] ?? false)
 										)}
-									class={noStyle ? '' : styles.vendorConsentSwitch || ''}
+									class={noStyle
+										? ''
+										: `${switchStyles.root} ${styles.vendorConsentSwitch || ''}`}
+									data-size="medium"
 								>
 									<Switch.Control class={noStyle ? '' : sw.track()}>
 										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
@@ -730,9 +736,10 @@
 										/>
 									</h3>
 								</div>
-								<div class={noStyle ? '' : styles.purposeArrow || ''}>
-									<ChevronDownIcon />
-								</div>
+								<ChevronDownIcon
+									class={noStyle ? '' : styles.purposeArrow || ''}
+									expanded={expandedVendors.has(vendor.id)}
+								/>
 							</PreferenceItem.Trigger>
 							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
 								<Switch.Root
@@ -743,7 +750,10 @@
 											vendor.id,
 											!(vendorConsents[vendorKey] ?? false)
 										)}
-									class={noStyle ? '' : styles.vendorConsentSwitch || ''}
+									class={noStyle
+										? ''
+										: `${switchStyles.root} ${styles.vendorConsentSwitch || ''}`}
+									data-size="medium"
 								>
 									<Switch.Control class={noStyle ? '' : sw.track()}>
 										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />

@@ -68,6 +68,8 @@ interface IABTranslations {
 			privacyPolicy: string;
 			storageDisclosure: string;
 			requiredNotice: string;
+			partnerSingular: string;
+			partnerPlural: string;
 		};
 		footer: {
 			consentStorage: string;

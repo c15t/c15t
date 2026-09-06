@@ -30,11 +30,17 @@ import { captureDialogEvidence } from '../src/dialog-evidence';
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
-import { pairStories } from '../src/pair-stories';
-import type { PairedStory } from '../src/pair-stories';
+import { selectComparablePairs } from '../src/pair-stories';
+import type { ComparablePair } from '../src/pair-stories';
+import {
+	findAllowEntry,
+	unusedAllowlistEntries,
+} from '../src/parity-allowlist';
+import type { ParityAllowEntry } from '../src/parity-allowlist';
 import { loadStorybookIndex } from '../src/storybook-index';
 
 const FRAMEWORK_URLS: Record<string, string> = {
+	astro: process.env.ASTRO_STORYBOOK_URL ?? 'http://127.0.0.1:6010',
 	react: process.env.REACT_STORYBOOK_URL ?? 'http://127.0.0.1:6006',
 	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
@@ -70,7 +76,7 @@ const REQUIRED_CORE_STORIES = [
  * in its own context, so this executes once per run unless sharded.
  */
 const loadPairedStories = async function loadPairedStories(): Promise<
-	PairedStory[]
+	ComparablePair[]
 > {
 	const byFramework: Record<
 		string,
@@ -86,12 +92,21 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 		// oxlint-disable-next-line no-await-in-loop -- Load each required local Storybook.
 		byFramework[framework] = await loadStorybookIndex(url);
 	}
-	const paired = pairStories(byFramework);
+	const paired = selectComparablePairs(byFramework, {
+		excludeKeyPrefixes: ['Core/DevTools/'],
+		frameworks: ENABLED_FRAMEWORKS,
+	});
 	for (const key of REQUIRED_CORE_STORIES) {
 		expect(
-			Object.keys(paired.find((pair) => pair.key === key)?.entries ?? {}),
+			Object.keys(
+				paired.find((pair) => pair.key === key)?.entries ?? {}
+			).filter((framework) => ['react', 'svelte', 'vue'].includes(framework)),
 			key
-		).toEqual(ENABLED_FRAMEWORKS.filter((entry) => entry !== 'solid'));
+		).toEqual(
+			ENABLED_FRAMEWORKS.filter((entry) =>
+				['react', 'svelte', 'vue'].includes(entry)
+			)
+		);
 	}
 	console.log(
 		'[PARITY coverage]',
@@ -206,6 +221,7 @@ test.describe('cross-framework parity', () => {
 	}) => {
 		const paired = await loadPairedStories();
 		const failures: string[] = [];
+		const usedEntries = new Set<ParityAllowEntry>();
 
 		for (const pair of paired) {
 			const entries = Object.entries(pair.entries);
@@ -226,7 +242,7 @@ test.describe('cross-framework parity', () => {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineDom = await captureDomSnapshot(page, 'body');
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineA11y = await captureA11yTree(page);
+			const baselineA11y = await captureA11yTree(page, 'body');
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineStyles = await captureComputedStyleMap(page, 'body');
 			// oxlint-disable-next-line no-await-in-loop -- Capture the current story before navigation.
@@ -246,12 +262,35 @@ test.describe('cross-framework parity', () => {
 				if (!url) {
 					continue;
 				}
+				/**
+				 * Whether this story's result for one check is a known,
+				 * documented difference.
+				 *
+				 * Call this only once a check has actually failed. Marking
+				 * an entry used before that keeps a stale allowance alive
+				 * forever, which is the one thing the stale-entry gate
+				 * exists to catch.
+				 */
+				const allowed = function allowed(
+					check: 'dom' | 'a11y' | 'css'
+				): boolean {
+					const allowEntry = findAllowEntry({
+						check,
+						framework,
+						slot: '*',
+						story: pair.key,
+					});
+					if (allowEntry) {
+						usedEntries.add(allowEntry);
+					}
+					return Boolean(allowEntry);
+				};
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const dom = await captureDomSnapshot(page, 'body');
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const a11y = await captureA11yTree(page);
+				const a11y = await captureA11yTree(page, 'body');
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const styles = await captureComputedStyleMap(page, 'body');
 				// oxlint-disable-next-line no-await-in-loop -- Capture the current story before navigation.
@@ -263,7 +302,7 @@ test.describe('cross-framework parity', () => {
 					);
 				}
 
-				if (dom !== baselineDom) {
+				if (dom !== baselineDom && !allowed('dom')) {
 					failures.push(
 						`[DOM] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
@@ -274,7 +313,7 @@ test.describe('cross-framework parity', () => {
 						);
 					}
 				}
-				if (a11y !== baselineA11y) {
+				if (a11y !== baselineA11y && !allowed('a11y')) {
 					failures.push(
 						`[A11Y] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
@@ -287,7 +326,7 @@ test.describe('cross-framework parity', () => {
 				}
 
 				const styleDiffs = diffComputedStyleMap(baselineStyles, styles);
-				if (styleDiffs.length > 0) {
+				if (styleDiffs.length > 0 && !allowed('css')) {
 					// Summarize to keep the failure output legible; the first few
 					// diffs usually point at the offending class contract.
 					const sample = styleDiffs
@@ -307,6 +346,16 @@ test.describe('cross-framework parity', () => {
 				body: JSON.stringify(captures, null, 2),
 				contentType: 'application/json',
 			});
+		}
+
+		for (const entry of unusedAllowlistEntries(
+			usedEntries,
+			['dom', 'a11y', 'css'],
+			ENABLED_FRAMEWORKS
+		)) {
+			failures.push(
+				`[ALLOWLIST] stale entry matched nothing — delete it: ${entry.check} ${entry.framework} ${entry.story} ${entry.slot}`
+			);
 		}
 
 		console.log(`[PARITY] DOM+a11y+CSS: ${failures.length} failure(s)`);

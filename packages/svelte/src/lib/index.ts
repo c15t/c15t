@@ -38,6 +38,13 @@ export type {
 	SaveResult,
 	TranslationsResponse,
 } from '@c15t/core';
+export { createConsentRuntime } from '@c15t/core/runtime';
+export type {
+	ConsentRuntime,
+	ConsentRuntimeIABFactory,
+	ConsentRuntimeIABHandle,
+	ConsentRuntimeOptions,
+} from '@c15t/core/runtime';
 export * from '@c15t/ui/primitives';
 export * from '@c15t/ui/styles/primitives';
 export type {

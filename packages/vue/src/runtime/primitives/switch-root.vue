@@ -29,6 +29,7 @@ const toggle = function toggle() {
 		type="button"
 		role="switch"
 		:aria-checked="model"
+		data-slot="switch"
 		:data-state="model ? 'checked' : 'unchecked'"
 		:data-disabled="props.disabled ? '' : undefined"
 		:disabled="props.disabled"

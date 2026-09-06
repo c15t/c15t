@@ -104,6 +104,7 @@ export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
 	extractConsentRequestInputs,
+	headersToRecord,
 	getTranslations,
 	getTranslationsData,
 	listProfiles,

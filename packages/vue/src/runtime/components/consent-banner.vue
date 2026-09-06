@@ -2,6 +2,7 @@
 import type { PresentationAction } from '@c15t/core';
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+import { getTextDirection } from '@c15t/ui/utils';
 import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
 
 import {
@@ -24,6 +25,9 @@ const mounted = useMounted();
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
+const textDirection = computed(() =>
+	getTextDirection(init.value?.translations?.language)
+);
 const save = useConsentSave();
 const kernel = useConsentKernel();
 const snapshot = useConsentSnapshot();
@@ -145,7 +149,8 @@ const onAction = function onAction(action: PresentationAction) {
 				v-bind="config.components?.banner?.root"
 				data-testid="consent-banner-root"
 				:data-position="bannerPosition"
-				:class="bannerStyles.root"
+				:dir="textDirection"
+				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
 			>
 				<div
 					v-bind="config.components?.banner?.cardShell"
@@ -170,21 +175,20 @@ const onAction = function onAction(action: PresentationAction) {
 							data-testid="consent-banner-header"
 							:class="bannerStyles.header"
 						>
-							<div
+							<h2
 								v-bind="config.components?.banner?.title"
 								data-testid="consent-banner-title"
 								:class="bannerStyles.title"
-								role="heading"
-								aria-level="2"
 							>
 								{{ bannerTitle }}
-							</div>
+							</h2>
 							<ConsentDescription context="banner" />
 						</div>
 						<ConsentActions
 							data-testid="consent-banner-footer"
 							:class="bannerStyles.footer"
 							button-size="small"
+							group-test-id="consent-banner-footer-sub-group"
 							:action-groups="actionGroups"
 							:direction="direction"
 							:ui-profile="surface?.uiProfile"
@@ -200,7 +204,6 @@ const onAction = function onAction(action: PresentationAction) {
 							"
 							:group-attrs="{
 								...config.components?.banner?.actionGroup,
-								'data-testid': 'consent-banner-footer-sub-group',
 							}"
 							@action="onAction"
 						/>

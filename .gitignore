@@ -41,6 +41,7 @@ packages/backend/docs
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/
 .svelte-kit/
+examples/astro-demo/.astro/
 
 
 # Debug

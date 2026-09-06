@@ -132,3 +132,24 @@ saves and retries. They preserve the action's policy, location, language, and
 privacy signal inputs. A stale policy assertion is an error; it must not silently
 save under a different rule. See the
 [backend endpoint reference](/docs/self-host/api/endpoints) for wire fields.
+
+## Shared runtime ownership
+
+Astro and SvelteKit can create a runtime outside a component tree with
+`createConsentRuntime` from `@c15t/core/runtime`. Pass that runtime to a
+framework provider with its `runtime` prop. The owner calls `start()` after
+mount and `dispose()` when the page no longer needs it. Borrowing providers
+subscribe to the kernel and render UI without initializing or disposing it.
+
+Runtime construction preserves the prepared server snapshot. Storage reads,
+privacy-signal activation and script loading begin on `start()`. Pass server
+records through `prefetch.initialRecords` with their evaluation time to keep
+the first browser render consistent with the server. `runtime.clearRecords()`
+clears both persisted and in-memory records.
+
+Runtime callbacks use `onChoiceRecorded`, `onPermissionsChanged` and
+`onError`. Hydrating records does not report a new visitor choice.
+
+Astro's serializable offline descriptor accepts `policyRules`, just like the
+other adapters' offline factories. Configure a preset or explicit rules;
+omitting them keeps the conservative fallback.

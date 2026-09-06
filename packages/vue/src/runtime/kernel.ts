@@ -25,6 +25,7 @@ import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
@@ -60,6 +61,7 @@ export interface VueConsentKernelContext {
 	activeUI: Ref<ConsentActiveUI>;
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
+	ownsKernel: boolean;
 	dispose: () => void;
 }
 
@@ -438,21 +440,26 @@ export const createVueConsentKernelContext =
 		now?: number;
 		kernelConfig?: KernelConfig;
 		producerContract?: number | null;
+		runtime?: ConsentRuntime;
 	}): VueConsentKernelContext {
 		const headers = pickAllowedInitHeaders(options.headers ?? {});
-		const transport = isClientManifestModeEnabled(options.config)
-			? createVueManifestTransport(
-					options.config,
-					headers,
-					options.prefetch ?? options.config.prefetch
-				)
-			: createVueHostedTransport(
-					options.config,
-					headers,
-					isServerManifestModeEnabled(options.config)
-						? getNuxtInitFetchTarget(options.config)?.url
-						: undefined
-				);
+		const ownsKernel = options.runtime === undefined;
+		// oxlint-disable-next-line no-nested-ternary -- A borrowed runtime constructs neither transport.
+		const transport = options.runtime
+			? undefined
+			: isClientManifestModeEnabled(options.config)
+				? createVueManifestTransport(
+						options.config,
+						headers,
+						options.prefetch ?? options.config.prefetch
+					)
+				: createVueHostedTransport(
+						options.config,
+						headers,
+						isServerManifestModeEnabled(options.config)
+							? getNuxtInitFetchTarget(options.config)?.url
+							: undefined
+					);
 		const initialConfig = initOutputToKernelConfig(
 			options.prefetch ?? options.config.prefetch,
 			headers,
@@ -463,16 +470,18 @@ export const createVueConsentKernelContext =
 			options.initialRecords ?? options.config.initialRecords,
 			options.kernelConfig?.initialRecords
 		);
-		const kernel = createConsentKernel({
-			...initialConfig,
-			initialRecords: records.initialRecords,
-			now:
-				options.now ??
-				options.initialRecords?.now ??
-				options.config.initialRecords?.now,
-			transport,
-			...options.kernelConfig,
-		});
+		const kernel =
+			options.runtime?.kernel ??
+			createConsentKernel({
+				...initialConfig,
+				initialRecords: records.initialRecords,
+				now:
+					options.now ??
+					options.initialRecords?.now ??
+					options.config.initialRecords?.now,
+				transport,
+				...options.kernelConfig,
+			});
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -488,17 +497,22 @@ export const createVueConsentKernelContext =
 		const unsubscribeChoice = kernel.events.on(
 			'choice:recorded',
 			({ snapshot: eventSnapshot, confirmed, actionAt }) => {
-				options.config.callbacks?.onChoiceRecorded?.({
-					actionAt,
-					confirmed,
-					snapshot: eventSnapshot,
-				});
+				(ownsKernel ? options.config.callbacks : undefined)?.onChoiceRecorded?.(
+					{
+						actionAt,
+						confirmed,
+						snapshot: eventSnapshot,
+					}
+				);
 			}
 		);
 		const unsubscribePermissions = kernel.events.on(
 			'permissions:changed',
 			({ snapshot: eventSnapshot, previous }) => {
-				options.config.callbacks?.onPermissionsChanged?.({
+				(ownsKernel
+					? options.config.callbacks
+					: undefined
+				)?.onPermissionsChanged?.({
 					previous,
 					snapshot: eventSnapshot,
 				});
@@ -508,6 +522,10 @@ export const createVueConsentKernelContext =
 		return {
 			activeUI,
 			clearRecords: () => {
+				if (options.runtime) {
+					options.runtime.clearRecords();
+					return;
+				}
 				kernel.hydrate({
 					choice: null,
 					noticeDismissal: null,
@@ -520,11 +538,14 @@ export const createVueConsentKernelContext =
 				unsubscribe();
 				unsubscribeChoice();
 				unsubscribePermissions();
-				kernel.dispose();
+				if (ownsKernel) {
+					kernel.dispose();
+				}
 			},
 			init,
 			initialRecords: records.hydrationRecords,
 			kernel,
+			ownsKernel,
 			snapshot,
 			storedConsent,
 		};
@@ -591,12 +612,31 @@ const refreshClientGeo = async function refreshClientGeo(
 	}
 };
 
+/**
+ * Mount the browser-side modules a Vue consent app needs.
+ *
+ * A context built around an externally owned runtime mounts nothing: that
+ * runtime already installed persistence, the script loader, the blockers,
+ * `window.c15t` and the initial `init()`, and doing any of it twice would
+ * double-write storage and install a second debug global.
+ *
+ * @param context - The context from {@link createVueConsentKernelContext}.
+ * @param config - The runtime consent configuration.
+ * @param options - Set `runInit: false` to skip the initial `init()`.
+ * @returns A disposer that undoes everything this call mounted.
+ */
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
 	options: { runInit?: boolean } = {}
 ): () => void {
 	const disposers: (() => void)[] = [];
+
+	if (!context.ownsKernel) {
+		return () => {
+			context.dispose();
+		};
+	}
 
 	if (typeof document !== 'undefined') {
 		const windowDebug = createWindowDebug({

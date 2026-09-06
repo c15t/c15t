@@ -36,6 +36,7 @@ export const devToolsPrefetch = {
 			})
 		)
 	),
+	now: Date.UTC(2026, 0, 1, 12),
 } satisfies KernelConfig;
 
 const transport: KernelTransport = {
@@ -79,6 +80,5 @@ export const devToolsProviderOptions = {
 	persistence: false,
 	prefetch: devToolsPrefetch,
 	presentation: devToolsPresentation,
-	reloadOnConsentRevoked: false,
 	scripts: devToolsScripts,
 };

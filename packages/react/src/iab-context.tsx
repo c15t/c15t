@@ -8,7 +8,6 @@ import type {
 import { createIAB } from '@c15t/iab';
 import type { CreateIABOptions, IABHandle } from '@c15t/iab';
 import {
-	createContext,
 	useContext,
 	useEffect,
 	useMemo,
@@ -19,6 +18,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { KernelContext } from './context';
+import { IABContext } from './context/iab-context-value';
+import type { IABContextValue } from './context/iab-context-value';
 
 export interface ReactIABState extends KernelIABState {
 	config: {
@@ -41,14 +42,6 @@ export interface ReactIABState extends KernelIABState {
 	rejectAll: () => void;
 	save: () => Promise<void>;
 }
-
-interface IABContextValue {
-	handle: IABHandle | null;
-	tab: 'purposes' | 'vendors';
-	setTab: (tab: 'purposes' | 'vendors') => void;
-}
-
-const IABContext = createContext<IABContextValue | null>(null);
 
 export interface IABProviderProps extends Omit<
 	CreateIABOptions,

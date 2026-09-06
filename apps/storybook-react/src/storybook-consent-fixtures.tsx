@@ -8,6 +8,7 @@ import type { ConsentProviderOptions } from '../../../packages/react/src/index';
 import {
 	storybookPolicy,
 	storybookIABPolicy,
+	storybookIABPresentation,
 	storybookPresentation,
 	seedStorybookChoice,
 } from '../../storybook-consent-policy';
@@ -77,6 +78,7 @@ export const editableStoredConsent: ConsentRecord = {
 export const defaultIABOptions: ConsentProviderOptions = {
 	...defaultConsentOptions,
 	mode: offline({ policyRules: [storybookIABPolicy] }),
+	presentation: storybookIABPresentation,
 };
 
 export const StorybookConsentProvider = ({
