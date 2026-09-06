@@ -161,21 +161,6 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	},
 	{
 		check: 'css',
-		framework: 'vue',
-		reason: 'Svelte-to-Vue widget drift, pre-dating this gate. See v3.md.',
-		slot: '*',
-		story: 'Core/Consent Widget/Expanded Categories',
-	},
-	{
-		check: 'css',
-		framework: 'svelte',
-		reason:
-			'The React Storybook resolves some `@c15t/ui` primitives to source, so custom-property values serialise unminified. A build-configuration difference, not a component one.',
-		slot: '*',
-		story: 'Core/Consent Dialog Link/Default',
-	},
-	{
-		check: 'css',
 		framework: 'svelte',
 		reason:
 			'The React frame placeholder renders neither `frame-placeholder` nor `frame-open-dialog`. See the geometry entry.',
