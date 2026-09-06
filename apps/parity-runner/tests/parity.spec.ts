@@ -33,8 +33,8 @@ import type { Page } from '@playwright/test';
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
-import { pairStories } from '../src/pair-stories';
-import type { PairedStory } from '../src/pair-stories';
+import { selectComparablePairs } from '../src/pair-stories';
+import type { ComparablePair } from '../src/pair-stories';
 import {
 	findAllowEntry,
 	unusedAllowlistEntries,
@@ -60,7 +60,7 @@ const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
  * in its own context, so this executes once per run unless sharded.
  */
 const loadPairedStories = async function loadPairedStories(): Promise<
-	PairedStory[]
+	ComparablePair[]
 > {
 	const byFramework: Record<
 		string,
@@ -85,12 +85,33 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 			);
 		}
 	}
-	return pairStories(byFramework).filter(
+	return selectComparablePairs(byFramework, {
 		// DevTools owns a dedicated portal-aware comparison in devtools.spec.ts,
 		// including same-run pixel checks that also execute on Linux CI.
-		(pair) =>
-			Object.keys(pair.entries).length >= 2 &&
-			!pair.key.startsWith('Core/DevTools/')
+		excludeKeyPrefixes: ['Core/DevTools/'],
+		frameworks: ENABLED_FRAMEWORKS,
+	});
+};
+
+/**
+ * Logs which frameworks each pair is missing.
+ *
+ * The Storybook apps do not carry the same catalogue, so a partial pair is
+ * normal — but an unnoticed one is how drift escapes a comparison. Naming
+ * the gaps once per run puts them in the report instead.
+ */
+const reportPairCoverage = function reportPairCoverage(
+	label: string,
+	paired: readonly { key: string; missing: string[] }[]
+): void {
+	const gaps = paired.filter((pair) => pair.missing.length > 0);
+	if (gaps.length === 0) {
+		return;
+	}
+	console.log(
+		`[PARITY] ${label}: ${gaps.length} pair(s) not compared across every enabled framework — ${gaps
+			.map((pair) => `${pair.key} (missing ${pair.missing.join(', ')})`)
+			.join('; ')}`
 	);
 };
 
@@ -188,6 +209,11 @@ test.describe('cross-framework parity', () => {
 				/**
 				 * Whether this story's result for one check is a known,
 				 * documented difference.
+				 *
+				 * Call this only once a check has actually failed. Marking
+				 * an entry used before that keeps a stale allowance alive
+				 * forever, which is the one thing the stale-entry gate
+				 * exists to catch.
 				 */
 				const allowed = function allowed(
 					check: 'dom' | 'a11y' | 'css'
@@ -235,10 +261,8 @@ test.describe('cross-framework parity', () => {
 					}
 				}
 
-				const styleDiffs = allowed('css')
-					? []
-					: diffComputedStyleMap(baselineStyles, styles);
-				if (styleDiffs.length > 0) {
+				const styleDiffs = diffComputedStyleMap(baselineStyles, styles);
+				if (styleDiffs.length > 0 && !allowed('css')) {
 					// Summarize to keep the failure output legible; the first few
 					// diffs usually point at the offending class contract.
 					const sample = styleDiffs
@@ -265,6 +289,7 @@ test.describe('cross-framework parity', () => {
 			);
 		}
 
+		reportPairCoverage('DOM+a11y+CSS', paired);
 		console.log(`[PARITY] DOM+a11y+CSS: ${failures.length} failure(s)`);
 		expect(failures, failures.join('\n')).toHaveLength(0);
 	});

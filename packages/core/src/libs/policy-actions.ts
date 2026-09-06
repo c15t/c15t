@@ -45,7 +45,9 @@ const DEFAULT_POLICY_ACTIONS: PolicyUiAction[] = [
  * ```ts
  * const groups = resolvePolicyActionGroups({
  *   allowedActions,
- *   layout: policy.layout?.length ? policy.layout : DEFAULT_POLICY_ACTION_LAYOUT,
+ *   layout: policy.layout?.length
+ *     ? policy.layout
+ *     : DEFAULT_POLICY_ACTION_LAYOUT,
  * });
  * ```
  */

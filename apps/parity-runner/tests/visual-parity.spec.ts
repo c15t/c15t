@@ -31,8 +31,8 @@ import {
 	diffGeometry,
 	formatGeometryDiffs,
 } from '../src/geometry';
-import { pairStories } from '../src/pair-stories';
-import type { PairedStory } from '../src/pair-stories';
+import { selectComparablePairs } from '../src/pair-stories';
+import type { ComparablePair } from '../src/pair-stories';
 import {
 	findAllowEntry,
 	unusedAllowlistEntries,
@@ -66,7 +66,7 @@ const PIXEL_SLOTS = ['consent-banner-card', 'consent-dialog-card'];
 const PIXEL_BUDGET = { maxRatio: 0.005, threshold: 12 };
 
 const loadPairedStories = async function loadPairedStories(): Promise<
-	PairedStory[]
+	ComparablePair[]
 > {
 	const byFramework: Record<
 		string,
@@ -93,8 +93,31 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 	}
 	// Only stories React also has: React is the baseline, so a pair without
 	// it has nothing to be measured against.
-	return pairStories(byFramework).filter(
-		(pair) => pair.entries[BASELINE] && Object.keys(pair.entries).length >= 2
+	return selectComparablePairs(byFramework, {
+		baseline: BASELINE,
+		frameworks: ENABLED_FRAMEWORKS,
+	});
+};
+
+/**
+ * Logs which frameworks each pair is missing.
+ *
+ * The Storybook apps do not carry the same catalogue, so a partial pair is
+ * normal — but an unnoticed one is how drift escapes a comparison. Naming
+ * the gaps once per run puts them in the report instead.
+ */
+const reportPairCoverage = function reportPairCoverage(
+	label: string,
+	paired: readonly { key: string; missing: string[] }[]
+): void {
+	const gaps = paired.filter((pair) => pair.missing.length > 0);
+	if (gaps.length === 0) {
+		return;
+	}
+	console.log(
+		`[PARITY] ${label}: ${gaps.length} pair(s) not compared across every enabled framework — ${gaps
+			.map((pair) => `${pair.key} (missing ${pair.missing.join(', ')})`)
+			.join('; ')}`
 	);
 };
 
@@ -185,6 +208,7 @@ test.describe('cross-framework visual parity', () => {
 			);
 		}
 
+		reportPairCoverage('geometry', paired);
 		console.log(`[PARITY] geometry: ${failures.length} failure(s)`);
 		expect(failures, failures.join('\n')).toHaveLength(0);
 	});
@@ -236,28 +260,41 @@ test.describe('cross-framework visual parity', () => {
 				await openStory(page, url, entry.id);
 
 				for (const [slot, baselineShot] of baselineShots) {
-					const allowed = findAllowEntry({
-						check: 'pixel',
-						framework,
-						slot,
-						story: pair.key,
-					});
-					if (allowed) {
+					/**
+					 * The allowance for this slot, marked used.
+					 *
+					 * Only called once a comparison has actually failed:
+					 * marking an entry used before that keeps a stale
+					 * allowance alive forever, which is the one thing the
+					 * stale-entry gate exists to catch.
+					 */
+					const suppress = function suppress(): boolean {
+						const allowed = findAllowEntry({
+							check: 'pixel',
+							framework,
+							slot,
+							story: pair.key,
+						});
+						if (!allowed) {
+							return false;
+						}
 						usedEntries.add(allowed);
-						continue;
-					}
+						return true;
+					};
 					const locator = page.locator(`[data-testid="${slot}"]`).first();
 					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					if ((await locator.count()) === 0) {
-						failures.push(
-							`[PIXEL] ${pair.key} ${slot}: ${framework} does not render this slot`
-						);
+						if (!suppress()) {
+							failures.push(
+								`[PIXEL] ${pair.key} ${slot}: ${framework} does not render this slot`
+							);
+						}
 						continue;
 					}
 					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					const shot = await locator.screenshot({ animations: 'disabled' });
 					const result = comparePng(baselineShot, shot, PIXEL_BUDGET);
-					if (result.ok) {
+					if (result.ok || suppress()) {
 						continue;
 					}
 					failures.push(

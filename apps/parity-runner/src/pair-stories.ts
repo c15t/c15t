@@ -64,3 +64,65 @@ export const pairStories = function pairStories(
 		.map(([key, entries]) => ({ entries, key }))
 		.sort((a, b) => a.key.localeCompare(b.key));
 };
+
+/**
+ * Frameworks that were compared and that a pair is missing.
+ *
+ * A pair with fewer entries than the run enables is not automatically
+ * wrong: the Storybook apps do not carry the same catalogue (React ships
+ * 17 story files, Solid 5, Astro 4), so most pairs are legitimately
+ * partial. What matters is that the gap is visible in the report rather
+ * than silently absent, and that both comparisons compute it the same way.
+ */
+export const missingFrameworks = function missingFrameworks(
+	pair: PairedStory,
+	frameworks: readonly string[]
+): string[] {
+	return frameworks.filter((framework) => !pair.entries[framework]);
+};
+
+/** A pair the gate will compare, plus the frameworks it does not cover. */
+export interface ComparablePair extends PairedStory {
+	/** Enabled frameworks that ship no equivalent of this story. */
+	missing: string[];
+}
+
+/** How a caller narrows the paired set it will compare. */
+export interface ComparablePairOptions {
+	/** The frameworks this run was told to check. */
+	frameworks: readonly string[];
+	/**
+	 * A framework every pair must include, when the comparison measures
+	 * against one. The visual gate needs React; the descriptive checks
+	 * compare whatever pair they are given.
+	 */
+	baseline?: string;
+	/** Story-key prefixes this comparison owns elsewhere. */
+	excludeKeyPrefixes?: readonly string[];
+}
+
+/**
+ * The one place a paired story is judged comparable.
+ *
+ * Both gates used to filter their own way — one required two entries and
+ * dropped DevTools, the other required React — so a change to one silently
+ * changed what the other compared. They call this instead.
+ *
+ * @param entriesByFramework - Story entries per framework code.
+ * @param options - Enabled frameworks, optional baseline and exclusions.
+ * @returns Comparable pairs, each carrying the frameworks it is missing.
+ */
+export const selectComparablePairs = function selectComparablePairs(
+	entriesByFramework: Readonly<Record<string, readonly StoryEntry[]>>,
+	options: ComparablePairOptions
+): ComparablePair[] {
+	const excluded = options.excludeKeyPrefixes ?? [];
+	return pairStories(entriesByFramework)
+		.filter((pair) => Object.keys(pair.entries).length >= 2)
+		.filter((pair) => !options.baseline || pair.entries[options.baseline])
+		.filter((pair) => !excluded.some((prefix) => pair.key.startsWith(prefix)))
+		.map((pair) => ({
+			...pair,
+			missing: missingFrameworks(pair, options.frameworks),
+		}));
+};

@@ -158,7 +158,7 @@ describe('ConsentBanner policy ordering', () => {
 		expect(rejectButton?.className).toContain('button-secondary-marker');
 	});
 
-	test('filters out actions disallowed by policy even when local layout includes them', async () => {
+	test('drops policy-disallowed actions from a local layout', async () => {
 		await renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
@@ -217,6 +217,41 @@ describe('ConsentBanner policy ordering', () => {
 		expect(footerGroups).toEqual([
 			['consent-banner-reject-button', 'consent-banner-accept-button'],
 			['consent-banner-customize-button'],
+		]);
+	});
+
+	test('keeps the subgroup shape of a scalar policy layout', async () => {
+		// `banner.actionGroups` normalizes a scalar entry into a
+		// single-element array; the banner's own filter does the same, so
+		// the rendered subgroups have to match the policy's shape either
+		// way, with `customize` on its own rather than folded in.
+		await renderBanner(
+			{},
+			{
+				policyBanner: {
+					allowedActions: ['reject', 'accept', 'customize'],
+					direction: 'row',
+					layout: ['customize', ['reject', 'accept']],
+					primaryActions: ['accept'],
+				},
+			}
+		);
+
+		await waitForBanner();
+
+		const footerGroups = Array.from(
+			document.querySelectorAll(
+				'[data-testid="consent-banner-footer-sub-group"]'
+			)
+		).map((group) =>
+			Array.from(group.querySelectorAll<HTMLButtonElement>('button')).map(
+				(button) => button.dataset.testid
+			)
+		);
+
+		expect(footerGroups).toEqual([
+			['consent-banner-customize-button'],
+			['consent-banner-reject-button', 'consent-banner-accept-button'],
 		]);
 	});
 
