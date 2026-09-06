@@ -117,10 +117,20 @@
 			"import": "./shims/modules/persistence.js",
 			"default": "./shims/modules/persistence.js"
 		},
+		"./server": {
+			"types": "./shims/server.d.ts",
+			"import": "./shims/server.js",
+			"default": "./shims/server.js"
+		},
 		"./modules/window-debug": {
 			"types": "./shims/modules/window-debug.d.ts",
 			"import": "./shims/modules/window-debug.js",
 			"default": "./shims/modules/window-debug.js"
+		},
+		"./runtime": {
+			"types": "./shims/runtime.d.ts",
+			"import": "./shims/runtime.js",
+			"default": "./shims/runtime.js"
 		},
 		"./react": {
 			"types": "./shims/react.d.ts",
