@@ -37,12 +37,6 @@ packages/core/docs
 packages/react/docs
 packages/nextjs/docs
 packages/backend/docs
-packages/vue/docs
-packages/svelte/docs
-packages/vue/AGENTS.md
-packages/svelte/AGENTS.md
-packages/vue/SKILL.md
-packages/svelte/SKILL.md
 .merge_file_*
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/

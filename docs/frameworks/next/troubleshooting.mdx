@@ -1,22 +1,17 @@
 ---
 title: Troubleshooting
-description: Inspect policy, records and permissions when UI or processing differs from expectations.
+description: Common problems and fixes for c15t in Next.js.
+group: frameworks
 ---
 
-## Check prepared data
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-Use `options.prefetch` with canonical records and policy resolution. The old
-`ssrData` option and `useSSRStatus` hook are removed. See
-[server rendering](/docs/frameworks/next/server-side).
+## Banner does not appear
 
-## Check the prompt and gate independently
+TODO.
 
-Read `usePromptRequirement`, `usePolicyResolution`, `useEffectivePermissions` and
-`useRestrictions`. Pending and failed initialization keep the first layer hidden;
-that never grants permission. A partial save can leave a choice required and a
-preference save never dismisses a notice. GPC or a standing directive can mask a
-stored true value, including after repeated acceptance.
+## Scripts load without consent
 
-Render all hooks inside the provider. Keep a persistent preferences link outside
-the first layer. For scripts and frames, check the active policy scope and use
-the built-in gates. For styling, import the package stylesheet once.
+TODO.

@@ -127,23 +127,13 @@
 		},
 		"@c15t/svelte#build": {
 			"dependsOn": ["^build"],
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
-			],
-			"outputs": ["dist/**", "AGENTS.md", "docs/**", "src/lib/version.ts"]
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**", "src/lib/version.ts"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
-			],
-			"outputs": ["dist/**", "AGENTS.md", "docs/**"]
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"]
 		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/oxfmt.config.ts"],

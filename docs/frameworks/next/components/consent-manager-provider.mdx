@@ -1,122 +1,17 @@
 ---
-title: ConsentProvider
-description: The root provider component that initializes the consent system and makes consent state available to all child components.
+title: ConsentManagerProvider
+description: Root provider that initializes the consent manager for your Next.js app.
 group: frameworks
 ---
 
-<import src="../../../shared/react/components/consent-manager-provider.mdx#intro" />
-
-## Basic Usage
-
-```tsx
-import { hosted } from '@c15t/nextjs';
-import { type ReactNode } from 'react';
-import { ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
-
-export default function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider
-      options={{
-        mode: hosted({ url: '/api/c15t' }),
-        consentCategories: ['necessary', 'measurement', 'marketing'],
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentProvider>
-  );
-}
-```
-
-<import src="../../../shared/react/components/consent-manager-provider.mdx#options-reference" />
-
-## Mode: hosted vs offline
-
-```tsx
-import { hosted, offline } from '@c15t/react';
-// Hosted mode — persists to hosted backend
-<ConsentProvider
-  options={{
-    mode: hosted({ url: '/api/c15t' }),
-  }}
->
-
-// Offline mode — local cookie storage only
-<ConsentProvider
-  options={{
-    mode: offline(),
-  }}
->
-```
-
-See [Client Modes](/docs/frameworks/next/concepts/client-modes) for a detailed comparison.
-
-<import src="../../../shared/react/components/consent-manager-provider.mdx#csp-nonce" />
-
-### Reading the nonce in the App Router
-
-Next.js does not expose the request nonce to client components, so read it in a server component and pass it down. Generate the nonce in middleware, forward it on a request header, then hand it to the provider from your layout:
-
-```ts title="middleware.ts"
-import { NextResponse, type NextRequest } from 'next/server';
-
-export function middleware(request: NextRequest) {
-  const nonce = crypto.randomUUID();
-  const isDev = process.env.NODE_ENV === 'development';
-
-  const csp = [
-    `default-src 'self'`,
-    // Next.js dev tooling (React Refresh and HMR) requires 'unsafe-eval'.
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''}`,
-    `style-src 'self' 'nonce-${nonce}'`,
-    // Nonces cannot authorize inline style attributes — see above.
-    `style-src-attr 'unsafe-inline'`,
-  ].join('; ');
-
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set('Content-Security-Policy', csp);
-
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
-  response.headers.set('Content-Security-Policy', csp);
-
-  return response;
-}
-```
-
-<Callout type="warn">
-  Set the same policy on **both** the forwarded request headers and the response. Next.js reads the nonce for its own runtime and hydration scripts from the `Content-Security-Policy` request header during rendering. Setting it only on the response leaves those scripts without a nonce, and the enforced policy then blocks them, so the page never hydrates.
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
 </Callout>
 
-```tsx title="app/layout.tsx"
-import { offline } from '@c15t/nextjs';
-import { headers } from 'next/headers';
-import { ConsentProvider } from 'c15t/next';
+## Usage
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+TODO.
 
-  return (
-    <html lang="en">
-      <body>
-        <ConsentProvider options={{ mode: offline(), nonce }}>
-          {children}
-        </ConsentProvider>
-      </body>
-    </html>
-  );
-}
-```
+## Props
 
-<import src="../../../shared/react/components/consent-manager-provider.mdx#legal-links" />
-
-<import src="../../../shared/react/components/consent-manager-provider.mdx#overrides" />
-
-<import src="../../../shared/react/components/consent-manager-provider.mdx#policy-packs" />
-
-<import src="../../../shared/react/components/consent-manager-provider.mdx#props" />
+TODO.

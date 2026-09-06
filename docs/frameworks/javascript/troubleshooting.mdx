@@ -1,27 +1,17 @@
 ---
 title: Troubleshooting
-description: Inspect policy resolution and permissions when an integration stays blocked.
+description: Common problems and fixes for c15t in JavaScript.
+group: frameworks
 ---
 
-## Inspect current state
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-```ts
-console.log(kernel.getSnapshot().resolution);
-console.log(kernel.getSnapshot().promptRequirement);
-console.log(kernel.getSnapshot().effectivePermissions);
-console.log(kernel.getSnapshot().restrictions);
-```
+## Store does not initialize
 
-Create and initialize the kernel before attaching UI. A pending or failed hosted
-init keeps the first layer hidden. Check the network response for explicit
-versioned `policyResolution`; missing fields fail validation. Empty rules and
-no-match never imply permission.
+TODO.
 
-If a stored grant is blocked, check its validity, scope and privacy restrictions.
-GPC and standing opt-out directives override positive receipts. Accepting again
-does not remove a directive. For scripts, verify the configured category and any
-IAB requirements. For frames, start with `data-src` or use the framework Frame.
+## Scripts load without consent
 
-If a notice returns, inspect the local dismissal and its own validity. A choice
-save does not dismiss it. Clear local test records through the persistence
-handle rather than rewriting receipt timestamps.
+TODO.

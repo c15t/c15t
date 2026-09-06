@@ -70,29 +70,17 @@ const generateDocsConfig = () =>
 					},
 				],
 
-				pages: ['index', '/upgrade-v3'],
+				pages: ['index'],
 				templates: {
 					componentFramework: {
 						children: [
 							{
-								pages: [
-									'concepts/initialization-flow',
-									'concepts/client-modes',
-									'concepts/consent-categories',
-									'concepts/consent-models',
-									'concepts/cookie-management',
-									'concepts/policy-packs',
-								],
+								pages: ['concepts/consent-categories'],
 
 								title: 'Concepts',
 							},
 							{
-								pages: [
-									'script-loader',
-									'server-side',
-									'policy-packs',
-									'callbacks',
-								],
+								pages: ['script-loader', 'server-side'],
 
 								title: 'Guides',
 							},
@@ -100,7 +88,6 @@ const generateDocsConfig = () =>
 								pages: [
 									'components/consent-manager-provider',
 									'components/consent-banner',
-									'components/consent-dialog',
 									'components/dev-tools',
 								],
 
@@ -138,24 +125,12 @@ const generateDocsConfig = () =>
 					javascript: {
 						children: [
 							{
-								pages: [
-									'concepts/initialization-flow',
-									'concepts/client-modes',
-									'concepts/consent-categories',
-									'concepts/consent-models',
-									'concepts/cookie-management',
-									'concepts/policy-packs',
-								],
+								pages: ['concepts/consent-categories'],
 
 								title: 'Concepts',
 							},
 							{
-								pages: [
-									'script-loader',
-									'dev-tools',
-									'policy-packs',
-									'callbacks',
-								],
+								pages: ['script-loader', 'dev-tools'],
 
 								title: 'Guides',
 							},
@@ -186,16 +161,6 @@ const generateDocsConfig = () =>
 				},
 				title: 'Frameworks',
 			}),
-			{
-				base: 'frameworks/vue',
-				pages: ['policy-presentation'],
-				title: 'Vue policy presentation',
-			},
-			{
-				base: 'frameworks/svelte',
-				pages: ['quickstart', 'policy-records'],
-				title: 'Svelte policy records',
-			},
 			{
 				base: 'cli',
 				children: [
@@ -251,7 +216,7 @@ const generateDocsConfig = () =>
 				base: 'self-host',
 				children: [
 					{
-						pages: ['guides/database-setup', 'guides/policy-packs'],
+						pages: ['guides/database-setup'],
 
 						title: 'Guides',
 					},

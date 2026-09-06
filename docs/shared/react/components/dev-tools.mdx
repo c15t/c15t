@@ -7,7 +7,7 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `DevTools` is a floating panel for the c15t v3 kernel. Use it during development to inspect explicit choices, effective permissions, scripts, location, policy resolution, IAB state, events, and consent actions. The framework adapter reads the kernel from the nearest v3 provider. It never discovers a store through a window global.
+  `DevTools` is a floating panel for the c15t v3 kernel. Use it during development to inspect consent values, scripts, location, the resolved policy, IAB state, events, and consent actions. The framework adapter reads the kernel from the nearest v3 provider. It never discovers a store through a window global.
 
   <Callout type="warn">
     Load DevTools only in development. A conditional JSX expression stops it from mounting in production, but a static import can still add DevTools to the production bundle. Use a development-only dynamic import as shown below. The component renders nothing into the React tree and mounts its panel in `document.body`.
@@ -42,8 +42,9 @@ group: reference
   ## Panels
 
   Accept and reject apply only to categories displayed by the provider, leaving
-  hidden consent values unchanged. `necessary` always remains enabled. Framework adapters use their provider's displayed categories. Direct kernel
-  integrations use the current policy categories by default.
+  hidden consent values unchanged. `necessary` always remains enabled. Svelte
+  and Vue adapters use their provider's displayed categories; the kernel and
+  React adapter use the current policy categories by default.
 
   For an imperative integration with a narrower UI, pass
   `getConsentCategories: () => ['necessary', 'measurement']` to
@@ -52,34 +53,17 @@ group: reference
   `kernel.commands.save('none', { categories: displayed })`. These scoped bulk
   saves use a `custom` transport action when they cover only part of the policy.
   Actions covering the whole policy retain `all` or `necessary`. Without an
-  explicit scope, bulk saves confirm the current policy scope. They never
-  override GPC or standing privacy restrictions, and a category save does not
-  dismiss a required notice. Notice dismissal is a separate user action.
+  explicit scope or policy categories, bulk saves cover all known categories.
 
   | Panel | What it shows |
   |-------|---------------|
   | **Consents** | Inspect and save categories, accept all, or reject optional categories |
   | **Scripts** | Configured scripts, loading status, search, and external page resources |
   | **Location** | Detected jurisdiction, country, region, and consent model |
-  | **Policy** | Resolution outcome, active rule, prompt requirement and policy rights |
+  | **Policy** | Resolved policy and UI configuration |
   | **IAB** | Edit vendors, purposes, legitimate interests, and special features; save and copy TC strings |
   | **Events** | Timeline of consent changes, kernel events, and script lifecycle events |
   | **Actions** | Show the banner, open preferences, hide consent UI, or refresh consent data |
-
-  Category toggles stage a DevTools draft. They do not grant permissions until
-  Save confirms the selections. The Actions panel can dismiss the current local
-  notice through the public notice command without recording category consent.
-  Framework adapters bind record clearing to the provider's existing persistence
-  instance. With persistence disabled, clearing affects only in-memory records.
-  Direct kernel integrations supply their existing persistence handle's `clear`
-  callback.
-
-  The Policy panel labels presentation diagnostics as resolved defaults unless
-  host presentation options are available. Framework adapters read those options
-  from the provider; direct integrations supply `getPresentation`. It resolves the supplied
-  host configuration; it does not verify the controls rendered by the app. See
-  the [imperative API](/docs/frameworks/javascript/dev-tools) for draft,
-  presentation, and persistence callbacks.
 
   ### Script inspection
 
@@ -133,11 +117,10 @@ group: reference
   Search only filters the view; Accept all IAB and Reject all IAB apply to the
   configured choices, including custom vendors.
 
-  Toggles edit IAB values without establishing new confirmed processing
-  authority. Use Save IAB consent to generate a fresh TC string, record the
-  current authority and run the configured save transport. Processing gates
-  read confirmed TCF authority and current restrictions. The panel displays
-  the last generated string; unsaved edits are not represented in it. Copy TC string confirms success or reports clipboard failures. Raw IAB
+  Toggles update live IAB state and script gating immediately. Use Save IAB
+  consent to generate a fresh TC string and run the configured save transport.
+  The panel displays the last generated string; unsaved edits are not represented
+  in it. Copy TC string confirms success or reports clipboard failures. Raw IAB
   data remains available in an expandable section.
 
   IAB saves normally write the TC string to its standard cookie and localStorage.

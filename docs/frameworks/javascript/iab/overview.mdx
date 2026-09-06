@@ -1,63 +1,17 @@
 ---
-title: IAB TCF 2.3
-description: Use confirmed IAB TCF 2.3 authority for programmatic advertising gates.
+title: IAB TCF
+description: Enable IAB TCF 2.3 with the core store.
 group: frameworks
 ---
 
-<import src="../../../shared/react/iab/overview.mdx#intro" />
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-## Kernel confirmation and runtime gates
+## Setup
 
-For the kernel API, confirm IAB choices through the addon handle:
+TODO.
 
-```ts
-import { createIAB } from '@c15t/iab';
+## TC String
 
-const iabHandle = createIAB({ kernel, cmpId: 28, gvl });
-iabHandle.setVendorConsent(755, true);
-iabHandle.setPurposeConsent(1, true);
-await iabHandle.save();
-```
-
-Vendor and purpose setters, `acceptAll()` and `rejectAll()` edit a draft.
-They do not record category choices or authorize scripts. `generateTCString()`
-encodes the draft without confirming it. `save()` validates the encoded TC
-string, records the mapped category choices once, and installs confirmed IAB
-authority. Category-only saves never create vendor or purpose consent.
-
-Targets with IAB metadata require confirmed TC authority under the current IAB
-policy. A valid TC receipt can authorize a target without an ordinary category
-grant. Explicit category denials, strict policy scope, active GPC and standing
-opt-out directives still restrict it. For an IAB target whose category condition
-uses `or`, every referenced category must be free of those restrictions.
-
-The addon stores its receipt separately from draft maps. Hydration validates the
-TC string and its original confirmation time, expiry and policy fingerprint;
-it does not renew the receipt or create a category choice. A TC string without
-a corresponding valid addon receipt cannot establish runtime authority. The
-active policy lifetime applies, capped at the addon's existing 395-day storage
-retention. This cap is a product retention limit, not a TCF requirement.
-
-Gate reads deny expired authority even when browser timers are delayed. The
-addon expiry timer also removes authority so mounted scripts reconcile. Dispose
-the handle when its owner unmounts to cancel the timer and CMP subscription.
-
-`save()` confirms the IAB selection locally before waiting for the backend. The category receipts and
-validated TC authority share the original confirmation time. A failed request
-keeps that local confirmation and queues the same TC string and timestamp for
-replay. A subject ID assigned by the backend preserves the confirmation.
-
-Explicit persistence clearing removes the addon authority receipt and the
-`euconsent-v2` cookie and local storage record, even when the IAB addon is not
-mounted. It also cancels pending addon hydration and encoding. Reading stored
-records during ordinary hydration does not clear or rewrite them.
-
-## Read confirmed state
-
-```ts
-console.log(kernel.getSnapshot().iab?.authority);
-```
-
-Use the addon with an IAB policy and its configured Global Vendor List. Keep IAB
-imports explicit so ordinary consent integrations do not load the addon. See the
-[v3 upgrade guide](/docs/upgrade-v3) for record and policy migration.
+TODO.

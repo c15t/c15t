@@ -1,121 +1,17 @@
 ---
-title: Server-side consent
-description: Prepare a policy, consent records, and one request clock before rendering a Next.js consent boundary.
+title: Server-Side
+description: Read and set consent on the server in Next.js.
 group: frameworks
 ---
 
-```tsx title="app/layout.tsx"
-import type { ReactNode } from 'react';
-import {
-  ConsentBoundary,
-  ConsentDialog,
-  ConsentDialogTrigger,
-} from '@c15t/nextjs';
-import { RscConsentBanner } from '@c15t/nextjs/rsc';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const config = await prefetchInitialConsent({
-    backendURL: 'https://consent.example.com',
-  });
+## Reading consent
 
-  return (
-    <html lang="en">
-      <body>
-        <ConsentBoundary config={config} backendURL="/api/c15t">
-          <RscConsentBanner config={config} />
-          <ConsentDialog />
-          <ConsentDialogTrigger />
-          {children}
-        </ConsentBoundary>
-      </body>
-    </html>
-  );
-}
-```
+TODO.
 
-Await the helper before rendering the consent boundary. Reading `next/headers` makes this route dynamic. Each request gets its own plain configuration. The server and browser evaluate the same prepared policy and records at the same clock.
+## Server components
 
-## Prefetch a policy
-
-`prefetchInitialConsent` reads the request cookies, country, region, language, and `Sec-GPC`, then resolves the policy through the shared transport. Hosted mode makes one server `/init` request. A successfully prepared result makes zero browser `/init` requests during hydration, including repeat visits.
-
-Use `manifestURL` to resolve the policy from a cached manifest, or supply an inline `manifest` to avoid a manifest fetch. Both paths use the same policy wire reader as the client. A versioned failure, no match, or unconfigured outcome clears policy-derived tokens and IAB state. Backend boolean maps never become consent receipts.
-
-A network failure returns the request records without a prepared resolution. The client then attempts initialization. Optional categories remain denied while policy resolution is pending or failed.
-
-```ts
-const config = await prefetchInitialConsent({
-  backendURL: 'https://consent.example.com',
-  manifestURL: 'https://consent.example.com/manifest',
-  cookieName: 'site-consent',
-});
-```
-
-When you customize `cookieName`, set the same `storageConfig.storageKey` in the boundary's `options`.
-
-## Read records without fetching
-
-`readInitialConsentConfig()` reads cookies and request context without resolving a policy or making a network request. Pass its result to `ConsentBoundary` with a `backendURL` to initialize in the browser. To render a resolved prompt on the server, use `prefetchInitialConsent`.
-
-Both helpers return `InitialConsentConfig`. Its `initialRecords` contain the raw explicit choice, subject, notice dismissal, and standing privacy directives. Its `now` is one request clock, also carried in the records. Receipt timestamps, policy fingerprints, literal legacy subject identifiers, and stored cookie metadata are preserved. Hydration reads storage without renewing receipts or recreating missing storage copies.
-
-Do not seed `initialConsents` or `initialHasConsented`. Those booleans cannot establish when or under which policy a visitor made a choice. Valid legacy v2 cookies remain readable through the shared storage reader.
-
-## Prompts and persistent preferences
-
-The prompt requirement can be `choice`, `notice`, or `none`. Expired receipts and material policy changes can require a new choice. A notice exposes dismissal without recording category consent. Dismissal does not save preferences, lock page scrolling, or trap focus.
-
-`RscConsentBanner` renders its copy on the server and uses the shared React root and action renderer for visibility, accessibility, and policy-required controls. Its gate stays mounted so receipt expiry can reopen a prompt after hydration. Keep `ConsentDialogTrigger` or `ConsentDialogLink` outside the banner for persistent access to the policy's privacy rights.
-
-Notice dismissals and standing privacy directives have compact cookie projections that the server can read. An older dismissal stored only in localStorage may appear again in server HTML. The server cannot suppress a notice using data it did not receive.
-
-`Sec-GPC: 1` is a detected privacy signal. It is separate from a developer override and can establish a standing opt-out directive. Restrictions can deny tracking while preserving the visitor's original explicit receipt.
-
-## Pages Router and request adapters
-
-Provide standard headers and a cookie string from `getServerSideProps`. The request adapter accepts synchronous values or promises, so it also supports wrappers around different Next.js header APIs.
-
-```ts
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
-
-export async function getServerSideProps({ req }) {
-  const headers = new Headers();
-  for (const [name, value] of Object.entries(req.headers)) {
-    if (typeof value === 'string') headers.set(name, value);
-    else if (Array.isArray(value)) headers.set(name, value.join(', '));
-  }
-  const config = await prefetchInitialConsent({
-    backendURL: 'https://consent.example.com',
-    request: {
-      headers: () => headers,
-      cookies: () => ({ toString: () => req.headers.cookie ?? '' }),
-    },
-  });
-  return { props: { config: JSON.parse(JSON.stringify(config)) } };
-}
-```
-
-Render `ConsentBoundary` with that `config` in your page or `_app`. Use the React `ConsentBanner` re-export in Pages Router; `RscConsentBanner` is intended for App Router Server Components.
-
-## Early browser prefetch for static routes
-
-```tsx
-import { C15tPrefetch, ConsentBoundary, ConsentBanner } from '@c15t/nextjs';
-
-export default function Layout({ children }) {
-  return (
-    <>
-      <C15tPrefetch backendURL="/api/c15t" />
-      <ConsentBoundary config={{}} backendURL="/api/c15t">
-        <ConsentBanner />
-        {children}
-      </ConsentBoundary>
-    </>
-  );
-}
-```
-
-The early script and hosted initialization share one matching browser request. Initialization consumes it once; later explicit refreshes make a new request. A failed early request falls back to normal initialization. A different backend, request context, credentials mode, or custom init route cannot reuse incompatible data.
-
-For static manifest resolution, unknown geography uses the configured fallback or an explicit failed or no-match outcome. The resolver never changes a regional policy's matcher to make it a fallback. If a geo fetch fails, the initial outcome remains in place.
+TODO.

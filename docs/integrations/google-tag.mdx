@@ -1,137 +1,18 @@
 ---
-title: GA4 + Google Ads (gtag.js)
-description: Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
+title: Google Tag
+description: Load gtag.js for GA4 and Google Ads behind consent.
 icon: google-analytics
 group: integrations
 ---
 
-Google Tag (`gtag.js`) is Google's unified tracking script for sending data to Google Analytics 4 (GA4), Google Ads, and Floodlight. It measures user behavior, tracks conversions, and powers Google's advertising ecosystem.
-
-c15t initializes Google Tag with Consent Mode v2 defaults set to denied and automatically updates the consent state when users make choices. You don't need to configure Google Consent Mode yourself.
-
 <Callout type="info">
-  Use GTM if your team needs centralized tag management in the GTM UI. Use `gtag.js` if you only need GA4/Google Ads directly in code. Don't run both for the same destination unless intentional, or you may duplicate events.
+  This page is a placeholder for the v3 docs rewrite.
 </Callout>
 
-**Choosing the right category:**
+## Usage
 
-- Use `category: 'measurement'` for analytics-only tracking (GA4 events)
-- Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
+TODO.
 
-## Integrate with c15t
+## Consent Mode
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { hosted } from '@c15t/react';
-    import { type ReactNode } from 'react';
-    import { ConsentProvider } from 'c15t/react';
-    import { gtag } from '@c15t/scripts/google-tag';
-
-    const scripts = [
-      gtag({
-        id: 'G-XXXXXXXXXX',
-        category: 'measurement', // or 'marketing'
-      }),
-    ];
-
-    export function PrivacyProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentProvider
-          options={{
-            mode: hosted({ url: 'https://your-instance.c15t.dev' }),
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { hosted } from '@c15t/nextjs';
-
-    import { type ReactNode } from 'react';
-    import { ConsentProvider } from 'c15t/next';
-    import { gtag } from '@c15t/scripts/google-tag';
-
-    const scripts = [
-      gtag({
-        id: 'G-XXXXXXXXXX',
-        category: 'measurement', // or 'marketing'
-      }),
-    ];
-
-    export function PrivacyProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentProvider
-          options={{
-            mode: hosted({ url: '/api/c15t' }),
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { createConsentKernel, createHostedTransport } from '@c15t/core';
-    import { createPersistence } from '@c15t/core/modules/persistence';
-    import { createScriptLoader } from '@c15t/core/modules/script-loader';
-    import { gtag } from '@c15t/scripts/google-tag';
-
-    const kernel = createConsentKernel({
-      transport: createHostedTransport({
-        backendURL: 'https://consent.example.com',
-      }),
-    });
-    const persistence = createPersistence({ kernel });
-    const loader = createScriptLoader({
-      kernel,
-      scripts: [
-        gtag({
-          id: 'G-XXXXXXXXXX',
-          category: 'measurement', // or 'marketing'
-        }),
-      ],
-    });
-    await kernel.commands.init();
-    // On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** configurable — `measurement` (default, Analytics) or `marketing`
-- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state, with Consent Mode v2 defaults set to denied
-- **On consent change:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes a Consent Mode v2 `update` to gtag instead of removing the script
-
-## Tracking events in your app
-
-`gtag.js` is `alwaysLoad: true`, so `window.gtag` is present from page start regardless of consent. Calls like `gtag('event', 'sign_up')` are **safe at any time** — c15t sets Consent Mode v2 defaults to denied before the user makes a choice, and Google's SDK suppresses transmission of events while the relevant consent is denied. When consent later changes, c15t emits a Consent Mode v2 `update` so events fire correctly going forward.
-
-```ts
-window.gtag?.('event', 'sign_up', { method: 'email' });
-```
-
-You do not need to wrap `gtag(...)` calls in a `useConsentManager().has(...)` check — Consent Mode handles the suppression for you.
-
-## Types
-
-### GtagOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/google-tag.ts" name="GtagOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+TODO.

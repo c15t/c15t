@@ -28,7 +28,6 @@
 		"directory": "packages/svelte"
 	},
 	"files": [
-		"AGENTS.md",
 		"dist",
 		"styles.css",
 		"iab",
@@ -85,8 +84,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts && bun run build:docs",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/svelte",
+		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts",
 		"check-types": "bun prebuild && svelte-check --tsconfig ./tsconfig.json",
 		"clean:dist:test-artifacts": "bun --eval \"import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const walk = (dir) => { for (const entry of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, entry.name); if (entry.isDirectory()) { if (entry.name === '__tests__') { rmSync(full, { recursive: true, force: true }); continue; } walk(full); continue; } if (/\\.(test|spec)\\.[cm]?[jt]sx?$/.test(entry.name)) { rmSync(full, { force: true }); } } }; walk('dist');\"",
 		"copy:dist:css": "bun --eval \"import { copyFileSync, existsSync, mkdirSync } from 'node:fs'; import { dirname, join } from 'node:path'; const copy = (sourceRel, targetRel) => { const source = join(process.cwd(), sourceRel); const target = join(process.cwd(), targetRel); if (!existsSync(source)) throw new Error('Missing source CSS asset: ' + source); mkdirSync(dirname(target), { recursive: true }); copyFileSync(source, target); }; copy('src/styles.css', 'dist/styles.css'); copy('src/iab/styles.css', 'dist/iab/styles.css');\"",

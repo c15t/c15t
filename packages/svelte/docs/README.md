@@ -1,11 +1,14 @@
-# @c15t/svelte
+# c15t Svelte Docs
 
-> Svelte and SvelteKit consent setup, records, presentation and server rendering.
+Svelte-focused c15t docs for consent UI, provider setup, and headless integrations.
 
-These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
+If you are changing consent flows or wiring `@c15t/svelte` into a SvelteKit or Astro app, start here before editing code.
 
-## Other
+## Start Here
 
-- [Svelte policy records and server rendering](./frameworks/svelte/policy-records.md): Preserve receipt timestamps and policy decisions across SvelteKit server rendering and hydration.
-- [Svelte quickstart](./frameworks/svelte/quickstart.md): Add consent prompts and persistent privacy preferences to a Svelte 5 application.
-- [Upgrade to v3](./upgrade-v3.md): Migrate choices, processing gates, policy rules, presentation and transports to the v3 contract.
+- [Quickstart](./quickstart.md)
+
+## Notes
+
+- This is an intentionally small starter docs bundle for package consumers and AI agents.
+- We will expand these docs as the Svelte package API settles.

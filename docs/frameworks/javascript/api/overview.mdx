@@ -1,58 +1,21 @@
 ---
-title: Kernel API
-description: Read snapshots, subscribe to events and record explicit choices.
+title: Store API
+description: The consent store API for reading and setting consent.
+group: frameworks
 ---
 
-## Create the kernel
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-```ts
-import { createConsentKernel, createHostedTransport } from '@c15t/core';
+## Reading consent
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://consent.example.com',
-  }),
-});
-await kernel.commands.init();
-```
+TODO.
 
-The v3 kernel replaces the v2 runtime and Zustand store. `getSnapshot()` is the
-current immutable snapshot, `getServerSnapshot()` is the initial server snapshot,
-and `subscribe(listener)` returns a cleanup function. Dispose the kernel when its
-owner unmounts. Browser modules have their own cleanup handles.
+## Setting consent
 
-## Read state
+TODO.
 
-```ts
-const snapshot = kernel.getSnapshot();
-console.log(snapshot.explicitChoice);
-console.log(snapshot.effectivePermissions);
-console.log(snapshot.promptRequirement);
-console.log(snapshot.policyRule, snapshot.resolution);
-```
+## Subscribing to changes
 
-Receipts describe direct choices. Permissions describe current processing.
-Prompt requirements describe outstanding interaction. None substitutes for another.
-
-## Subscribe
-
-```ts
-const stop = kernel.events.on('permissions:changed', (event) => {
-  console.log(event.previous, event.snapshot.effectivePermissions);
-});
-const stopChoices = kernel.events.on('choice:recorded', (event) => {
-  console.log(event.confirmed, event.actionAt);
-});
-```
-
-`notice:dismissed` and `privacy:opt-out` have separate events. Hydration and retry
-replay never manufacture choice events. Reconfirming an unchanged category does
-record a new receipt. See the [upgrade guide](/docs/upgrade-v3).
-
-## Types
-
-<AutoTypeTable path="./packages/core/src/types.ts" name="KernelConfig" />
-
-<AutoTypeTable path="./packages/core/src/types.ts" name="ConsentSnapshot" />
-
-<AutoTypeTable path="./packages/core/src/types.ts" name="ConsentKernel" />
+TODO.

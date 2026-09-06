@@ -1,49 +1,17 @@
 ---
-title: Script loader
-description: Attach scripts to current effective permissions.
+title: Script Loader
+description: Load third-party scripts only after the required consent.
+group: frameworks
 ---
 
-## Create a loader
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-```ts
-import { createConsentKernel, createHostedTransport } from '@c15t/core';
-import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { createPersistence } from '@c15t/core/modules/persistence';
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+## Usage
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://consent.example.com',
-  }),
-});
-const persistence = createPersistence({ kernel });
-const loader = createScriptLoader({
-  kernel,
-  scripts: [metaPixel({ pixelId: '123456' })],
-});
-await kernel.commands.init();
-```
+TODO.
 
-Call this in the browser. Dispose `loader`, `persistence` and `kernel` during
-teardown. Update configurations with `loader.updateScripts(nextScripts)` and
-inspect loaded IDs with `loader.getLoadedScriptIds()`.
+## Options
 
-<import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
-
-## Permission updates
-
-The loader uses effective permissions and reconciles on expiry, policy changes,
-explicit choices and privacy restrictions. A stored grant can remain recorded
-while GPC denies processing. Removing the live signal does not erase a standing
-directive. Script callbacks receive effective category values, including changes
-that leave an overall OR condition allowed. Google Consent Mode updates from
-those permissions, not from receipt presence.
-
-IAB targets require confirmed TC authority and apply every referenced category
-restriction. Category-only OR conditions retain their usual behavior. Removing a
-script cannot undo requests already sent by it; configure cleanup callbacks for
-SDKs that retain state.
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
-
-<AutoTypeTable path="./packages/core/src/modules/script-loader/types.ts" name="ScriptLoaderHandle" />
+TODO.

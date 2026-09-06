@@ -1,39 +1,13 @@
 ---
-title: Backend configuration
-description: Configure the database, manifest and HTTP options on c15tInstance.
+title: Configuration
+description: Configuration options for the self-hosted backend.
+group: self-host
 ---
 
-## Create an instance
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-```ts
-import { c15tInstance } from '@c15t/backend';
+## Options
 
-const backend = c15tInstance({
-  database: { dialect: 'sqlite', filename: ':memory:' },
-  trustedOrigins: ['https://example.com'],
-  manifest: {
-    policyRules: [
-      {
-        id: 'default',
-        match: { isDefault: true },
-        model: 'opt-in',
-        prompt: 'choice',
-      },
-    ],
-  },
-});
-```
-
-Use a persistent database for deployment and run migrations before serving
-requests. v3 uses `database` instead of the old adapter option. The instance
-exposes `handler(request)` and `dispose()`. Dispose test and short-lived instances
-to release resources.
-
-<AutoTypeTable path="./packages/backend/src/instance.ts" name="C15TOptions" />
-
-<AutoTypeTable path="./packages/backend/src/http/context.ts" name="AppOptions" />
-
-<AutoTypeTable path="./packages/backend/src/instance.ts" name="C15TInstance" />
-
-See [policy rules](/docs/self-host/guides/policy-packs) for contract negotiation
-and [database setup](/docs/self-host/guides/database-setup) for storage.
+TODO.

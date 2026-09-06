@@ -1,37 +1,17 @@
 ---
-title: Building consent UI
-description: Render policy interactions while keeping processing gates independent.
+title: Building Framework Libraries
+description: Build a framework adapter on top of the core consent store.
+group: frameworks
 ---
 
-## Subscribe to the kernel
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-```ts
-const unsubscribe = kernel.subscribe((snapshot) => {
-  console.log(snapshot.promptRequirement, snapshot.effectivePermissions);
-});
-```
+## Store lifecycle
 
-Use a kernel initialized as shown in the [quickstart](/docs/frameworks/javascript/quickstart).
-Read `promptRequirement` for outstanding interaction and `resolution` for policy
-status. Pending and failed initialization keep the first layer hidden. Rendering
-or closing UI does not record a choice.
+TODO.
 
-Use `resolveConsentPresentation` from `@c15t/core` when deriving custom controls.
-It combines the active rule's actions and rights with host presentation. Required
-controls cannot be removed. Choice prompts offer accept and reject with equivalent
-prominence and interaction depth. Notice prompts offer dismiss without focus
-trapping or scroll locking.
+## Rendering consent state
 
-Wire direct accept and reject actions to `commands.save('all')` and
-`commands.save('none')`. Submit the displayed unmasked draft as an object for a
-custom save. Connect notice dismissal to `commands.dismissNotice()`. Never derive
-a draft from masked effective permissions. Require review after a material policy
-change before saving a dirty draft.
-
-Keep disclosure, preferences and opt-out access available while a notice is open
-and when the first layer is absent. A preference save never dismisses a notice.
-Headless hosts own their markup, keyboard handling and focus management.
-
-React, Next.js, Vue and Svelte provide adapters. Solid currently supplies
-primitives only. New wrappers should subscribe to the kernel rather than maintain
-a competing consent interpreter. See [v3 migration](/docs/upgrade-v3).
+TODO.

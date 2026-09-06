@@ -1,64 +1,35 @@
 ---
-title: JavaScript quickstart
-description: Create a consent kernel and attach browser persistence.
+title: Quickstart
+description: Add consent management to a vanilla JavaScript app.
+variants:
+  - value: "javascript"
+    href: "/docs/frameworks/javascript/quickstart"
+    label: "JavaScript"
+  - value: "react"
+    href: "/docs/frameworks/react/quickstart"
+    label: "React"
+  - value: "next"
+    href: "/docs/frameworks/next/quickstart"
+    label: "Next.js"
+group: frameworks
 ---
+
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
 ## Install
 
-<PackageCommandTabs mode="install" command="@c15t/core" />
+TODO.
 
-## Initialize in the browser
+## Configure
 
-```ts
-import { createConsentKernel, createHostedTransport } from '@c15t/core';
+TODO.
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://consent.example.com',
-  }),
-});
+## Build the UI
 
-import { createPersistence } from '@c15t/core/modules/persistence';
+TODO.
 
-const persistence = createPersistence({ kernel });
-const unsubscribe = kernel.subscribe((snapshot) => {
-  console.log(snapshot.effectivePermissions, snapshot.promptRequirement);
-});
-await kernel.commands.init();
+## Next steps
 
-// During application cleanup:
-unsubscribe();
-persistence.dispose();
-kernel.dispose();
-```
-
-Construction has no browser effects. Attach persistence in the browser before
-initialization. Hosted mode fetches the policy contract; offline mode uses a
-local `createOfflineTransport({ policyRules })` instead. Configure browser modules
-and UI separately. See the [kernel API](/docs/frameworks/javascript/api/overview).
-
-## Record a direct choice
-
-```ts
-await kernel.commands.save('all');
-await kernel.commands.save('none');
-await kernel.commands.save({ measurement: true });
-```
-
-Wire each command to the corresponding user action. Object saves confirm only
-the supplied categories. Use `commands.dismissNotice()` for a required notice;
-a category save never dismisses one.
-
-## Gate processing
-
-```ts
-import { evaluateConsent } from '@c15t/core';
-
-if (evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())) {
-  // Start processing assigned to measurement.
-}
-```
-
-Use the [script loader](/docs/frameworks/javascript/script-loader) for scripts
-that must react to permission changes. Keep disclosure, preferences and opt-out
-controls accessible even when `promptRequirement.kind` is `none`.
+TODO.
