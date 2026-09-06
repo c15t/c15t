@@ -96,12 +96,24 @@ export const createLazyIABFactory = function createLazyIABFactory(
 						inner = null;
 					};
 				}
+				// Readiness travels with the handle, not with the factory: a
+				// surface that borrowed this runtime from another package has
+				// no access to the loader that created it.
+				if (property === 'whenReady') {
+					return async () => {
+						await pending;
+					};
+				}
 				const source = inner as Record<string, unknown> | null;
 				const value = source?.[property as string];
 				return typeof value === 'function' ? value.bind(source) : value;
 			},
 			has(_target, property) {
-				return property === 'dispose' || property in (inner ?? {});
+				return (
+					property === 'dispose' ||
+					property === 'whenReady' ||
+					property in (inner ?? {})
+				);
 			},
 		});
 	};

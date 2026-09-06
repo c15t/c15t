@@ -10,7 +10,10 @@
 		createConsentRuntime,
 		normalizeKernelUser,
 	} from '@c15t/core/runtime';
-	import type { ConsentRuntime } from '@c15t/core/runtime';
+	import type {
+		ConsentRuntime,
+		ConsentRuntimeIABHandle,
+	} from '@c15t/core/runtime';
 	import type { IABHandle } from '@c15t/iab';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { setupColorScheme } from '@c15t/ui/utils';
@@ -209,6 +212,21 @@
 	// tracked with a counter rather than by comparing references.
 	let iabGeneration = 0;
 
+	// A borrowed runtime was built by another package, with its own lazy
+	// IAB factory. This package's `whenIABReady()` knows nothing about that
+	// load and resolves immediately, which would mark an empty proxy ready
+	// and hand the surfaces no-op consent methods. The handle carries its
+	// own readiness signal, so prefer it and keep the local loader only for
+	// a runtime this provider created.
+	const awaitIABReady = function awaitIABReady(
+		handle: ConsentRuntimeIABHandle
+	): Promise<void> {
+		const { whenReady } = handle;
+		return typeof whenReady === 'function'
+			? whenReady.call(handle)
+			: whenIABReady();
+	};
+
 	const unsubscribeIAB = runtime.onIABChange((next) => {
 		iabHandle = next as IABHandle | null;
 		iabHandleReady = false;
@@ -218,7 +236,7 @@
 		}
 		const generation = iabGeneration;
 		void (async () => {
-			await whenIABReady();
+			await awaitIABReady(next);
 			if (generation === iabGeneration) {
 				iabHandleReady = true;
 			}

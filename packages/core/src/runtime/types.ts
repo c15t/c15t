@@ -128,6 +128,16 @@ export interface ConsentRuntimeIABHandle {
 	generateTCString: () => Promise<string>;
 	/** Generate the TC string, commit it, and run the kernel save flow. */
 	save: () => Promise<void>;
+	/**
+	 * Resolves once this handle's methods are real.
+	 *
+	 * Present only on a lazily-loaded handle (see `createLazyIABFactory`),
+	 * where every other method is a no-op until the CMP module lands. A
+	 * surface rendering against a borrowed runtime must await this one
+	 * rather than its own package's loader: the two are separate factories,
+	 * and the local one resolves immediately when it never loaded anything.
+	 */
+	whenReady?: () => Promise<void>;
 }
 
 /**

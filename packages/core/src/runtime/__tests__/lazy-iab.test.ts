@@ -24,6 +24,14 @@ const createHandle = function createHandle(): ConsentRuntimeIABHandle {
 
 const options = { cmpId: 42, kernel: {} as never };
 
+type PromiseWithResolvers = PromiseConstructor & {
+	withResolvers: <Value>() => {
+		promise: Promise<Value>;
+		resolve: (value: Value | PromiseLike<Value>) => void;
+		reject: (reason?: unknown) => void;
+	};
+};
+
 describe('createLazyIABFactory', () => {
 	test('does not load the module until the factory is called', async () => {
 		const load = vi.fn();
@@ -42,6 +50,34 @@ describe('createLazyIABFactory', () => {
 		await factory.whenReady();
 
 		expect(createIAB).toHaveBeenCalledWith(options);
+		proxy.setPurposeConsent(1, true);
+		expect(handle.setPurposeConsent).toHaveBeenCalledWith(1, true);
+	});
+
+	test('the handle carries its own readiness signal', async () => {
+		// A surface rendering a borrowed runtime cannot reach this factory,
+		// so the proxy has to answer `whenReady()` itself.
+		const handle = createHandle();
+		const gate = (Promise as PromiseWithResolvers).withResolvers<undefined>();
+		const createIAB = vi.fn().mockReturnValue(handle);
+		const factory = createLazyIABFactory(async () => {
+			await gate.promise;
+			return { createIAB };
+		});
+
+		const proxy = factory.create(options);
+		expect('whenReady' in proxy).toBe(true);
+		let ready = false;
+		const waiting = proxy.whenReady?.().then(() => {
+			ready = true;
+		});
+
+		await Promise.resolve();
+		expect(ready).toBe(false);
+
+		gate.resolve(undefined);
+		await waiting;
+		expect(ready).toBe(true);
 		proxy.setPurposeConsent(1, true);
 		expect(handle.setPurposeConsent).toHaveBeenCalledWith(1, true);
 	});
