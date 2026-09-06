@@ -8,7 +8,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'COMPONENTS - REACT/Consent Dialog',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog',
 } satisfies Meta<typeof ConsentDialog>;
 
 export default meta;

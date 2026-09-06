@@ -1,6 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { frameworkOf, pairStories, storyKey } from './pair-stories';
+import {
+	frameworkOf,
+	pairStories,
+	selectComparablePairs,
+	storyKey,
+} from './pair-stories';
 import type { StoryEntry } from './pair-stories';
 
 test('frameworkOf extracts framework from title', () => {
@@ -79,4 +84,70 @@ test('pairStories returns stable, sorted output', () => {
 		'A-Comp/Default',
 		'Z-Comp/Default',
 	]);
+});
+
+const entryFor = function entryFor(
+	framework: string,
+	component: string,
+	name = 'Default'
+): StoryEntry {
+	return {
+		id: `components-${framework}-${component}--${name.toLowerCase()}`,
+		name,
+		title: `COMPONENTS - ${framework.toUpperCase()}/${component}`,
+	};
+};
+
+test('selectComparablePairs drops pairs only one framework ships', () => {
+	const pairs = selectComparablePairs(
+		{
+			react: [entryFor('react', 'Button'), entryFor('react', 'Frame')],
+			svelte: [entryFor('svelte', 'Button')],
+		},
+		{ frameworks: ['react', 'svelte'] }
+	);
+
+	expect(pairs.map((pair) => pair.key)).toEqual(['Button/Default']);
+});
+
+test('selectComparablePairs reports the frameworks a pair is missing', () => {
+	const [pair] = selectComparablePairs(
+		{
+			react: [entryFor('react', 'Button')],
+			svelte: [entryFor('svelte', 'Button')],
+		},
+		{ frameworks: ['react', 'svelte', 'vue', 'astro'] }
+	);
+
+	expect(pair?.missing).toEqual(['vue', 'astro']);
+});
+
+test('selectComparablePairs requires the baseline when one is named', () => {
+	const pairs = selectComparablePairs(
+		{
+			svelte: [entryFor('svelte', 'Button')],
+			vue: [entryFor('vue', 'Button')],
+		},
+		{ baseline: 'react', frameworks: ['react', 'svelte', 'vue'] }
+	);
+
+	expect(pairs).toEqual([]);
+});
+
+test('selectComparablePairs honours excluded key prefixes', () => {
+	const pairs = selectComparablePairs(
+		{
+			react: [
+				entryFor('react', 'Button'),
+				entryFor('react', 'Core/DevTools/Panel'),
+			],
+			svelte: [
+				entryFor('svelte', 'Button'),
+				entryFor('svelte', 'Core/DevTools/Panel'),
+			],
+		},
+		{ excludeKeyPrefixes: ['Core/DevTools/'], frameworks: ['react', 'svelte'] }
+	);
+
+	expect(pairs.map((pair) => pair.key)).toEqual(['Button/Default']);
 });
