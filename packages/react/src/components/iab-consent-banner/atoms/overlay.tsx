@@ -81,6 +81,7 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			<div
 				ref={ref}
 				{...theme}
+				aria-hidden="true"
 				className={finalClassName}
 				data-testid="iab-consent-banner-overlay"
 			/>

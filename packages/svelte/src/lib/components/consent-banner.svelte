@@ -289,16 +289,15 @@
 						class={noStyle ? '' : headerStyle.className || ''}
 						data-testid="consent-banner-header"
 					>
-						<div
+						<h2
 							class={noStyle ? '' : titleStyle.className || ''}
 							data-testid="consent-banner-title"
-							role="heading"
-							aria-level="2"
 						>
 							{resolvedTitle}
-						</div>
+						</h2>
 						<div
 							class={noStyle ? '' : descriptionStyle.className || ''}
+							data-context="banner"
 							data-testid="consent-banner-description"
 						>
 							{resolvedDescription}

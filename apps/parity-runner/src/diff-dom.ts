@@ -4,6 +4,11 @@
  * We run the normalizer inside the page so we don't need a Node-side DOM
  * (jsdom/happy-dom) just to parse captured HTML. The normalizer source
  * is passed directly to Playwright so it still runs in the browser context.
+ *
+ * `selector` may match more than one element — a story showing a dialog
+ * behind an overlay has two surfaces, and a story with a trigger and the
+ * dialog it opens has two more. Each match is canonicalized and the
+ * results are joined in document order.
  */
 
 import type { Page } from '@playwright/test';
@@ -12,7 +17,7 @@ export const captureDomSnapshot = function captureDomSnapshot(
 	page: Page,
 	selector: string
 ): Promise<string> {
-	return page.locator(selector).evaluate((target) => {
+	return page.evaluate((scope: string) => {
 		const SVELTE = /\bsvelte-[a-z0-9]+\b/gu;
 		const S_SCOPED = /\bs-[a-z0-9]{6,}\b/gu;
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
@@ -20,11 +25,15 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
 		const SVELTE_CSS_MODULE = /^c15t-ui-(.+)-[A-Za-z0-9]+$/u;
 		const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
+		// The branding link attributes the referral to the page's host,
+		// which is whatever port a Storybook happens to be served on.
+		const REFERRAL_HOST = /(?<prefix>[?&]ref=)[^&]*/u;
 		const AUTO_ID_SUFFIX =
 			/-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/u;
 		const STRIP = new Set([
 			'data-reactroot',
 			'data-reactid',
+			'data-parity-surface',
 			'data-svelte-h',
 			'data-v-app',
 		]);
@@ -89,6 +98,9 @@ export const captureDomSnapshot = function captureDomSnapshot(
 				}
 				return value.replace(AUTO_ID_SUFFIX, '-__AUTO__');
 			}
+			if (name === 'href') {
+				return value.replace(REFERRAL_HOST, '$<prefix>__HOST__');
+			}
 			if (name === 'class') {
 				return stripClasses(value);
 			}
@@ -134,6 +146,8 @@ export const captureDomSnapshot = function captureDomSnapshot(
 			return `${open}${children.join('')}</${tag}>`;
 		};
 
-		return canonicalize(target);
-	});
+		return Array.from(document.querySelectorAll(scope))
+			.map((target) => canonicalize(target))
+			.join('');
+	}, selector);
 };

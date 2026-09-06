@@ -7,14 +7,27 @@
  * equality on that representation — same roles, names, and structure produce
  * identical output.
  *
- * We snapshot `body` (not `#storybook-root`) because portal-based components
- * (banner, dialog) render into `document.body`, outside the Storybook root.
+ * Scoped the same way the DOM and computed-style captures are: one snapshot
+ * per surface on the page, joined in document order. Snapshotting `body`
+ * would drag in each Storybook's own chrome, and snapshotting
+ * `#storybook-root` would miss the surfaces that portal out of it.
  */
 
 import type { Page } from '@playwright/test';
 
-export const captureA11yTree = function captureA11yTree(
-	page: Page
+export const captureA11yTree = async function captureA11yTree(
+	page: Page,
+	selector: string
 ): Promise<string> {
-	return page.locator('body').ariaSnapshot();
+	const roots = await page.locator(selector).all();
+	const snapshots: string[] = [];
+	for (const root of roots) {
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+		snapshots.push(await root.ariaSnapshot());
+	}
+	// The branding link attributes the referral to the page's host, which
+	// is whatever port a Storybook happens to be served on.
+	return snapshots
+		.join('\n---\n')
+		.replace(/(?<prefix>[?&]ref=)[^&\s]*/gu, '$<prefix>__HOST__');
 };

@@ -2,18 +2,12 @@
 	import type { AllConsentNames } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/frame';
-	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { resolveTranslations } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
-
-	const btn = buttonVariants({
-		mode: 'stroke',
-		size: 'small',
-		variant: 'primary',
-	});
+	import ConsentButton from './consent-button.svelte';
 
 	let {
 		category,
@@ -66,10 +60,6 @@
 			isReady = true;
 		});
 	});
-
-	const openDialog = function openDialog() {
-		consent.state.setActiveUI('dialog');
-	};
 </script>
 
 <div class={className}>
@@ -88,14 +78,16 @@
 			data-testid="frame-placeholder"
 		>
 			<div class={noStyle ? '' : styles.title || ''}>{frameTitle}</div>
-			<button
-				type="button"
-				class={noStyle ? '' : btn.root()}
-				onclick={openDialog}
+			<ConsentButton
+				action="open-consent-dialog"
+				variant="primary"
+				mode="stroke"
+				size="small"
+				{noStyle}
 				data-testid="frame-open-dialog"
 			>
 				{frameActionButton}
-			</button>
+			</ConsentButton>
 		</div>
 	{/if}
 </div>

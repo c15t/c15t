@@ -186,25 +186,25 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal="false"
+					aria-modal="true"
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
 					role="dialog"
+					tabindex="-1"
 				>
 					<div
 						class={noStyle ? '' : styles.header}
 						data-testid="consent-banner-header"
 					>
-						<div
-							aria-level="2"
+						<h2
 							class={noStyle ? '' : styles.title}
 							data-testid="consent-banner-title"
-							role="heading"
 						>
 							{copy.title}
-						</div>
+						</h2>
 						<div
 							class={noStyle ? '' : styles.description}
+							data-context="banner"
 							data-testid="consent-banner-description"
 						>
 							{copy.description}

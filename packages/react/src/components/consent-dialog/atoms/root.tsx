@@ -78,7 +78,7 @@ const getRootClasses = (
  *
  * @public
  */
-export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement> {
+export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDivElement> {
 	/**
 	 * React children that will be rendered inside the dialog container.
 	 * Typically this includes `ConsentDialog.Card` and its sub-components.
@@ -187,7 +187,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const [isVisible, setIsVisible] = useState(false);
 
 	// Refs used for focus trapping
-	const dialogRef = useRef<HTMLDialogElement>(null);
+	const dialogRef = useRef<HTMLDivElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 
 	// Handle mounting (avoid SSR mismatch when using portal)
@@ -215,7 +215,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	}, [isOpen, disableAnimation, animationDuration]);
 
 	// Trap focus when dialog open
-	useFocusTrap(isOpen && trapFocus, dialogRef as RefObject<HTMLElement>);
+	useFocusTrap(isOpen && trapFocus, contentRef as RefObject<HTMLElement>);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -274,26 +274,33 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 				{isOpen && (
 					<>
 						{/* Backdrop (customisable) */}
-						{overlay === false ? null : (overlay ?? <Overlay />)}
+						{overlay === false ? null : (overlay ?? <Overlay open />)}
 
-						<dialog
+						{/* The outer element only positions the panel over
+						    the viewport. The panel wrapper below is the
+						    dialog: it carries the semantics, the focus trap
+						    and the `consent-dialog-root` testid, so those
+						    name the same element in every adapter. */}
+						<div
 							ref={dialogRef}
 							{...themedStyle}
 							className={themedStyle.className}
-							aria-labelledby="consent-dialog-title"
-							aria-modal={trapFocus ? 'true' : undefined}
-							tabIndex={-1}
-							dir={textDirection}
-							data-testid="consent-dialog-root"
-							open
 						>
 							<div
 								ref={contentRef}
 								{...containerStyle}
+								aria-describedby="consent-dialog-description"
+								aria-labelledby="consent-dialog-title"
+								aria-modal={trapFocus ? 'true' : undefined}
+								data-testid="consent-dialog-root"
+								dir={textDirection}
+								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` is the positioning shell here, not the panel; the panel is what carries the role.
+								role="dialog"
+								tabIndex={-1}
 							>
 								{children}
 							</div>
-						</dialog>
+						</div>
 					</>
 				)}
 			</LocalThemeContext.Provider>

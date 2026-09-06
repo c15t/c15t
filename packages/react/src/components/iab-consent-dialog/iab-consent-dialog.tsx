@@ -154,7 +154,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
-	const cardRef = useRef<HTMLDialogElement>(null);
+	const cardRef = useRef<HTMLDivElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 	const previousHeightRef = useRef<number | null>(null);
 
@@ -528,12 +528,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>
-					<dialog
+					{/* A `div`, not a `dialog`: the user agent's dialog padding
+					    is 1em, which the card sets for itself. */}
+					<div
 						{...cardProps}
 						ref={cardRef}
-						open
-						aria-modal={config.trapFocus ? 'true' : undefined}
 						aria-label={iabTranslations.preferenceCenter.title}
+						aria-modal={config.trapFocus ? 'true' : undefined}
+						// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` brings the user agent's 1em padding, which the card sets for itself.
+						role="dialog"
 						{...dialogFocusTargetProps}
 						data-testid="iab-consent-dialog-card"
 					>
@@ -941,7 +944,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							slotContext="iab-dialog"
 							data-testid="iab-consent-dialog-branding"
 						/>
-					</dialog>
+					</div>
 				</div>
 			</LocalThemeContext.Provider>
 		</ConsentTrackingContext.Provider>
