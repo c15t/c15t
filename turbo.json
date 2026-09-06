@@ -209,6 +209,28 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"@c15t/astro-browser-bench#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				"C15T_BENCH_ASTRO_MODE",
+				"C15T_BENCH_ORIGIN",
+				"C15T_BENCH_OUT_DIR"
+			],
+			"outputs": [".astro/**", "dist/**", "dist-baseline/**", "dist-hosted/**"]
+		},
+		"@c15t/astro-browser-bench#dev": {
+			"cache": false,
+			"interruptible": true,
+			"persistent": true,
+			"with": [
+				"@c15t/astro#dev",
+				"@c15t/core#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev"
+			]
+		},
 		"@c15t/nuxt-browser-bench#dev": {
 			"cache": false,
 			"persistent": true,
@@ -219,6 +241,22 @@
 				"@c15t/schema#dev",
 				"@c15t/translations#dev",
 				"@c15t/vue#dev"
+			]
+		},
+		"@c15t/sveltekit-browser-bench#build": {
+			"dependsOn": ["^build"],
+			"outputs": [".svelte-kit/**", "build/**"]
+		},
+		"@c15t/sveltekit-browser-bench#dev": {
+			"cache": false,
+			"interruptible": true,
+			"persistent": true,
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev"
 			]
 		},
 		"@c15t/css-layer-preview#dev": {

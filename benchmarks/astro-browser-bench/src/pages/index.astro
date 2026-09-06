@@ -1,0 +1,22 @@
+---
+export const prerender = false;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Astro Browser Bench</title>
+	</head>
+	<body>
+		<main style="padding: 2rem; font-family: system-ui, sans-serif">
+			<h1>Astro Browser Bench</h1>
+			<ul>
+				<li><a href="/baseline">baseline</a> (baseline build)</li>
+				<li><a href="/ssr">ssr</a> (hosted build)</li>
+				<li><a href="/ssr-manifest">ssr-manifest</a> (manifest build)</li>
+				<li><a href="/ssr-deferred">ssr-deferred</a> (manifest build)</li>
+				<li><a href="/repeat-visitor">repeat-visitor</a> (manifest build)</li>
+			</ul>
+		</main>
+	</body>
+</html>
