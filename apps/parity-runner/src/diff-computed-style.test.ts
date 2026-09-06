@@ -38,7 +38,10 @@ test('normalizeCssValue folds the two spellings onto one another', () => {
 		'enter 80ms cubic-bezier(.4, 0, .2, 1), fade .15s linear'
 	);
 	const authored = normalizeCssValue(
-		'_enter_t5rx4_1 80ms cubic-bezier(0.4, 0, 0.2, 1), _fade_t5rx4_2 150ms linear'
+		[
+			'_enter_t5rx4_1 80ms cubic-bezier(0.4, 0, 0.2, 1),',
+			'_fade_t5rx4_2 150ms linear',
+		].join(' ')
 	);
 	expect(minified).toBe(authored);
 });
@@ -74,4 +77,33 @@ test('normalizeComputedStyleMap normalizes values, not keys', () => {
 			properties: { 'border-radius': '0.5rem', display: 'flex' },
 		},
 	});
+});
+
+test('normalizeCssValue leaves url() payloads alone', () => {
+	// `2s.svg` is a file name, not a duration: folding it would make this
+	// compare equal to a genuinely different `url(/assets/2000ms.svg)`.
+	expect(normalizeCssValue('url(/assets/2s.svg)')).toBe('url(/assets/2s.svg)');
+	expect(normalizeCssValue('url("/assets/.5x_a1b2c3_1.png")')).toBe(
+		'url("/assets/.5x_a1b2c3_1.png")'
+	);
+	expect(normalizeCssValue("url('/a/1.50s.woff2')")).toBe(
+		"url('/a/1.50s.woff2')"
+	);
+});
+
+test('normalizeCssValue leaves quoted strings alone', () => {
+	expect(normalizeCssValue('"2s.svg"')).toBe('"2s.svg"');
+	expect(normalizeCssValue("content: '.5 _x_a1b2c3_1'")).toBe(
+		"content: '.5 _x_a1b2c3_1'"
+	);
+});
+
+test('normalizeCssValue still folds the text around an opaque segment', () => {
+	expect(normalizeCssValue('url(/a/2s.svg) .15s _enter_t5rx4_1')).toBe(
+		'url(/a/2s.svg) 150ms enter'
+	);
+});
+
+test('normalizeCssValue does not read a path segment as a duration', () => {
+	expect(normalizeCssValue('2s/cover')).toBe('2s/cover');
 });
