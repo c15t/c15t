@@ -103,6 +103,9 @@ export const c15tHandle = function c15tHandle(
 		});
 
 		const locals: C15tLocals = { config, inputs };
+		if (options.cookieName !== undefined) {
+			locals.cookieName = options.cookieName;
+		}
 		(event.locals as { c15t?: C15tLocals }).c15t = locals;
 
 		return resolve(event);

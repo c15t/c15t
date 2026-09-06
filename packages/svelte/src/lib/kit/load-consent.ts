@@ -64,15 +64,23 @@ const readLocals = function readLocals(
 const resolveBase = async function resolveBase(
 	event: RequestEvent,
 	options: LoadConsentOptions
-): Promise<{ config: KernelConfig; inputs: ConsentRequestHeaderInputs }> {
+): Promise<{
+	config: KernelConfig;
+	inputs: ConsentRequestHeaderInputs;
+	cookieName: string | undefined;
+}> {
 	const overridesPerCall =
 		options.cookieName !== undefined ||
 		options.country !== undefined ||
 		options.language !== undefined ||
 		options.region !== undefined;
 	const locals = readLocals(event);
+	// The handle's cookie name is part of the request context, not an
+	// override: a per-call `country` must not silently move the read back
+	// to the default `c15t` key and lose the persisted consent.
+	const cookieName = options.cookieName ?? locals?.cookieName;
 	if (locals && !overridesPerCall) {
-		return locals;
+		return { ...locals, cookieName };
 	}
 	const inputs = extractConsentRequestInputs(event.request.headers, {
 		country: options.country,
@@ -80,13 +88,13 @@ const resolveBase = async function resolveBase(
 		region: options.region,
 	});
 	const config = await readInitialConsentConfig({
-		cookieName: options.cookieName,
+		cookieName,
 		country: inputs.country,
 		headers: event.request.headers,
 		language: inputs.language,
 		region: inputs.region,
 	});
-	return { config, inputs };
+	return { config, cookieName, inputs };
 };
 
 /**
@@ -152,7 +160,7 @@ export const loadConsent = async function loadConsent(
 	event: RequestEvent,
 	options: LoadConsentOptions = {}
 ): Promise<KernelConfig> {
-	const { config, inputs } = await resolveBase(event, options);
+	const { config, inputs, cookieName } = await resolveBase(event, options);
 
 	if (options.initRoute) {
 		const forwarded = initRequestHeaders(inputs);
@@ -177,7 +185,7 @@ export const loadConsent = async function loadConsent(
 	if (options.backendURL) {
 		return prefetchInitialConsent({
 			backendURL: options.backendURL,
-			cookieName: options.cookieName,
+			cookieName,
 			country: inputs.country,
 			fetch: options.fetch ?? event.fetch,
 			forwardHeaders: options.forwardHeaders,

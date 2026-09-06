@@ -15,6 +15,12 @@ export interface C15tLocals {
 	config: KernelConfig;
 	/** Normalized country / region / language / GPC for this request. */
 	inputs: ConsentRequestInputs;
+	/**
+	 * The cookie name the handle actually read, when it was given one.
+	 * `loadConsent` falls back to it so a per-call geo override does not
+	 * silently re-read the default `c15t` key and lose persisted consent.
+	 */
+	cookieName?: string;
 }
 
 /** Normalized consent request context. Re-exported for `App.Locals` users. */

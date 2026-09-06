@@ -35,11 +35,18 @@ const jsonResponse = function jsonResponse(body: unknown, status = 200) {
 
 /** Runs `c15tHandle` so `event.locals.c15t` is populated, as in a real app. */
 const withHandle = async function withHandle(
-	event: ReturnType<typeof createEvent>
+	event: ReturnType<typeof createEvent>,
+	options: Parameters<typeof c15tHandle>[0] = {}
 ) {
-	await c15tHandle()({ event, resolve: () => Promise.resolve(new Response()) });
+	await c15tHandle(options)({
+		event,
+		resolve: () => Promise.resolve(new Response()),
+	});
 	return event;
 };
+
+/** The same stored consent, under a caller-chosen storage key. */
+const CUSTOM_COOKIE = CONSENTED_COOKIE.replace('c15t=', 'my-consent=');
 
 describe('loadConsent', () => {
 	beforeEach(() => {
@@ -81,6 +88,49 @@ describe('loadConsent', () => {
 
 		expect(config.initialHasConsented).toBe(true);
 		expect(config.initialOverrides?.country).toBe('FR');
+	});
+
+	test('keeps the handle cookie name when a per-call input overrides', async () => {
+		// A route naming its own country must not move the cookie read back
+		// to the default `c15t` key.
+		const event = await withHandle(
+			createEvent({
+				headers: { cookie: CUSTOM_COOKIE, 'x-c15t-country': 'CA' },
+			}),
+			{ cookieName: 'my-consent' }
+		);
+
+		const config = await loadConsent(event, { country: 'DE' });
+
+		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialOverrides?.country).toBe('DE');
+	});
+
+	test('hosted mode reuses the handle cookie name', async () => {
+		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
+		const event = await withHandle(
+			createEvent({ headers: { cookie: CUSTOM_COOKIE } }),
+			{ cookieName: 'my-consent' }
+		);
+
+		const config = await loadConsent(event, {
+			backendURL: 'https://api.example.com',
+			country: 'DE',
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+		});
+
+		expect(config.initialHasConsented).toBe(true);
+	});
+
+	test('a per-call cookie name still beats the handle one', async () => {
+		const event = await withHandle(
+			createEvent({ headers: { cookie: CONSENTED_COOKIE } }),
+			{ cookieName: 'my-consent' }
+		);
+
+		const config = await loadConsent(event, { cookieName: 'c15t' });
+
+		expect(config.initialHasConsented).toBe(true);
 	});
 
 	test('manifest mode folds the same-origin init route into the config', async () => {
