@@ -149,6 +149,7 @@ export const resetDialogRegistriesForTest =
 	function resetDialogRegistriesForTest(): void {
 		registry.clear();
 		surfaces.clear();
+		pending.clear();
 	};
 
 /**

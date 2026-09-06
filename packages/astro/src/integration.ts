@@ -70,6 +70,9 @@ const UI_ADAPTERS: Record<
 	},
 };
 
+/** Every supported `ui` value, for the error a bad one produces. */
+const UI_ADAPTER_NAMES = Object.keys(UI_ADAPTERS) as C15tUIAdapterName[];
+
 /**
  * Adapters worth suggesting when `ui` was left at the default.
  *
@@ -141,6 +144,14 @@ export const resolveOptions = function resolveOptions(
 	) {
 		throw new Error(
 			'@c15t/astro: manifest mode with a `manifestURL` also needs a `backendURL` (or C15T_BACKEND_URL) — that is where consent is saved, and the injected routes only serve init and manifest.'
+		);
+	}
+	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
+	// reaches `buildBootScript()` and throws a bare `TypeError` on an
+	// undefined adapter entry. Name the supported values instead.
+	if (options.ui !== undefined && !(options.ui in UI_ADAPTERS)) {
+		throw new Error(
+			`@c15t/astro: unknown \`ui\` ${JSON.stringify(options.ui)}. Supported adapters: ${UI_ADAPTER_NAMES.join(', ')}.`
 		);
 	}
 	const {

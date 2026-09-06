@@ -62,6 +62,15 @@ describe('resolveOptions', () => {
 		);
 	});
 
+	it('names the supported adapters for an unknown ui', () => {
+		// A JavaScript astro.config.mjs has no type checking, so this used to
+		// surface as a TypeError on an undefined adapter entry.
+		expect(() =>
+			resolveOptions({ mode: offlineMode(), ui: 'solid' as never })
+		).toThrowError(/unknown `ui` "solid". Supported adapters: /u);
+		expect(resolveOptions({ mode: offlineMode(), ui: 'vue' }).ui).toBe('vue');
+	});
+
 	it('rejects a manifestURL with nowhere to save consent', () => {
 		// The injected routes serve init and manifest; `POST /subjects` is
 		// the backend's, so a `manifestURL` without one would 404 on save.
