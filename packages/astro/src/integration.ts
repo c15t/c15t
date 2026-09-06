@@ -69,17 +69,19 @@ export const resolveOptions = function resolveOptions(
 		);
 	}
 	// The injected routes cover `init` and `manifest`; consent is saved with
-	// `POST /subjects` at the backend itself. A manifest mode that resolves
-	// init from a `manifestURL` or an inline manifest therefore still needs
-	// a `backendURL` — without one the browser would post consent at the
-	// init route's own prefix, where nothing answers.
+	// `POST /subjects` at the backend itself. A `manifestURL` says where the
+	// manifest lives but not where consent goes, so without a `backendURL`
+	// the browser would post it at the init route's own prefix, where
+	// nothing answers. An inline `manifest` is the deliberately network-free
+	// path and is left alone: an app on it supplies its own save route.
 	if (
 		options.mode.type === 'manifest' &&
+		options.mode.manifestURL &&
 		!options.mode.backendURL &&
 		!backendURLFromEnv()
 	) {
 		throw new Error(
-			'@c15t/astro: manifest mode needs `backendURL` (or C15T_BACKEND_URL) — it is where consent is saved, and the injected routes only serve init and manifest.'
+			'@c15t/astro: manifest mode with a `manifestURL` also needs a `backendURL` (or C15T_BACKEND_URL) — that is where consent is saved, and the injected routes only serve init and manifest.'
 		);
 	}
 	const {

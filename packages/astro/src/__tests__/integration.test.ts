@@ -56,17 +56,25 @@ describe('resolveOptions', () => {
 				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
 			}).endpoints.enabled
 		).toBe(true);
+		expect(resolveOptions({ mode: manifestMode() }).endpoints.enabled).toBe(
+			true
+		);
 	});
 
-	it('rejects a manifest mode with nowhere to save consent', () => {
+	it('rejects a manifestURL with nowhere to save consent', () => {
 		// The injected routes serve init and manifest; `POST /subjects` is
-		// the backend's, so a manifest mode without one would 404 on save.
-		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
-			/needs .backendURL./u
-		);
+		// the backend's, so a `manifestURL` without one would 404 on save.
 		expect(() =>
 			resolveOptions({ mode: manifestMode({ manifestURL: '/m.json' }) })
-		).toThrowError(/needs .backendURL./u);
+		).toThrowError(/also needs a .backendURL./u);
+		expect(
+			resolveOptions({
+				mode: manifestMode({
+					backendURL: 'https://consent.example.com',
+					manifestURL: '/m.json',
+				}),
+			}).mode
+		).toMatchObject({ backendURL: 'https://consent.example.com' });
 	});
 
 	it('keeps custom route paths', () => {
