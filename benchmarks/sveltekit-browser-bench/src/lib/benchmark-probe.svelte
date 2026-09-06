@@ -172,7 +172,14 @@
 
 		const check = () => {
 			const latest = getState();
-			if (latest.bannerVisibleMs !== undefined) {
+			// The banner can be dismissed while this callback is pending —
+			// the runner waits on `bannerReadyMs`, not `bannerVisibleMs`,
+			// before clicking accept. Without this the loop keeps scheduling
+			// a frame through the interaction and until the context closes.
+			if (
+				latest.bannerVisibleMs !== undefined ||
+				latest.activeUI !== 'banner'
+			) {
 				return;
 			}
 

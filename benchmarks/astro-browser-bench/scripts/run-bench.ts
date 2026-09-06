@@ -15,6 +15,8 @@
  * subtracts.
  */
 import { spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -43,6 +45,7 @@ import {
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
+import type { BenchConsentFixtureCounts } from '../src/lib/fixture';
 // Side-effect import: brings in the probe's `Window` augmentation so the
 // page-context callbacks below are typed against the same shape.
 import '../src/lib/bench-state';
@@ -465,12 +468,6 @@ const budgetsForScenario = function budgetsForScenario(
 	];
 };
 
-interface BenchConsentFixtureCounts {
-	init: number;
-	manifest: number;
-	subjects: number;
-}
-
 const resetFixtureCounts = async function resetFixtureCounts(): Promise<void> {
 	await fetch(`${BASE_URL}/api/bench-consent/stats`, {
 		cache: 'no-store',
@@ -517,28 +514,51 @@ const startServer = function startServer(build: AstroBenchBuild) {
 	return { readLogs: () => logs, server };
 };
 
+type ServerExit = [number | null, NodeJS.Signals | null];
+
+const SIGKILL_GRACE_MS = 500;
+
+/**
+ * Terminates the child and waits for it to actually exit.
+ *
+ * `killed` only says SIGTERM was delivered, and `exitCode` stays `null`
+ * until the process is gone — so reading either straight after the signal
+ * both skips the SIGKILL escalation and reports a still-running server as a
+ * failed one. This waits for the `exit` event instead, and classifies on
+ * `signalCode` when there is no exit code, which is what a signalled
+ * shutdown looks like.
+ */
+const awaitServerExit = async function awaitServerExit(
+	child: ChildProcess
+): Promise<ServerExit> {
+	if (child.exitCode !== null || child.signalCode !== null) {
+		return [child.exitCode, child.signalCode];
+	}
+	const exited = once(child, 'exit') as Promise<ServerExit>;
+	child.kill('SIGTERM');
+	const graceful = await Promise.race([
+		exited,
+		sleep(SIGKILL_GRACE_MS).then(() => null),
+	]);
+	if (graceful) {
+		return graceful;
+	}
+	child.kill('SIGKILL');
+	return await exited;
+};
+
 const stopServer = async function stopServer(
 	server: ReturnType<typeof startServer>
 ): Promise<Error | null> {
-	server.server.kill('SIGTERM');
-	await sleep(500);
-	if (!server.server.killed) {
-		server.server.kill('SIGKILL');
-	}
-	const { exitCode, signalCode } = server.server;
-	if (
-		exitCode !== null &&
-		exitCode !== undefined &&
-		!expectedServerShutdownCodes.has(exitCode)
-	) {
+	const [exitCode, signalCode] = await awaitServerExit(server.server);
+	if (exitCode !== null && !expectedServerShutdownCodes.has(exitCode)) {
 		return new Error(
 			`${server.readLogs() || 'Astro browser bench server failed'}\nUnexpected server exit code: ${exitCode}`
 		);
 	}
 	if (
-		exitCode === undefined &&
+		exitCode === null &&
 		signalCode !== null &&
-		signalCode !== undefined &&
 		!expectedServerShutdownSignals.has(signalCode)
 	) {
 		return new Error(
@@ -561,6 +581,12 @@ const measureScenario = async function measureScenario(
 	await iterationIndexes.reduce<Promise<void>>(
 		async (previousIteration, index) => {
 			await previousIteration;
+			// The counts ship as measured metadata, so they have to cover the
+			// measured iterations only — otherwise changing `--warmup` alone
+			// changes the reported request counts.
+			if (index === warmupIterations) {
+				await resetFixtureCounts();
+			}
 			const context = await browser.newContext({ baseURL: BASE_URL });
 			if (scenario.name === 'repeat-visitor') {
 				await seedRepeatVisitorCookie(context);
@@ -583,6 +609,11 @@ const measureScenario = async function measureScenario(
 		},
 		Promise.resolve()
 	);
+	if (iterations <= 0) {
+		// No measured iteration ran, so the boundary reset above never
+		// happened and the counts would be the warmup's.
+		await resetFixtureCounts();
+	}
 	const fixtureCounts = await readFixtureCounts();
 	const outputScenario = resultScenarioName(scenario.name);
 

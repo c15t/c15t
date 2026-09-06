@@ -14,6 +14,8 @@
  * subtracts.
  */
 import { spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -110,6 +112,39 @@ const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/sveltekit';
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
 const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
+
+type ServerExit = [number | null, NodeJS.Signals | null];
+
+const SIGKILL_GRACE_MS = 500;
+
+/**
+ * Terminates the child and waits for it to actually exit.
+ *
+ * `killed` only says SIGTERM was delivered, and `exitCode` stays `null`
+ * until the process is gone — so reading either straight after the signal
+ * both skips the SIGKILL escalation and reports a still-running server as a
+ * failed one, failing a run whose scenario results were all written. This
+ * waits for the `exit` event, and classifies on `signalCode` when there is
+ * no exit code, which is what a signalled shutdown looks like.
+ */
+const awaitServerExit = async function awaitServerExit(
+	child: ChildProcess
+): Promise<ServerExit> {
+	if (child.exitCode !== null || child.signalCode !== null) {
+		return [child.exitCode, child.signalCode];
+	}
+	const exited = once(child, 'exit') as Promise<ServerExit>;
+	child.kill('SIGTERM');
+	const graceful = await Promise.race([
+		exited,
+		sleep(SIGKILL_GRACE_MS).then(() => null),
+	]);
+	if (graceful) {
+		return graceful;
+	}
+	child.kill('SIGKILL');
+	return await exited;
+};
 const bannerRootTestId = 'consent-banner-root';
 const bannerAcceptButtonTestId = 'consent-banner-accept-button';
 const bannerElementTimingName = 'c15t-consent-banner';
@@ -760,28 +795,18 @@ const run = async function run() {
 
 		await browser.close();
 	} finally {
-		server.kill('SIGTERM');
-		await sleep(500);
-		if (!server.killed) {
-			server.kill('SIGKILL');
-		}
-		if (
-			server.exitCode !== null &&
-			server.exitCode !== undefined &&
-			!expectedServerShutdownCodes.has(server.exitCode)
-		) {
+		const [exitCode, signalCode] = await awaitServerExit(server);
+		if (exitCode !== null && !expectedServerShutdownCodes.has(exitCode)) {
 			serverFailure = new Error(
-				`${logs || 'SvelteKit browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
+				`${logs || 'SvelteKit browser bench server failed'}\nUnexpected server exit code: ${exitCode}`
 			);
 		} else if (
-			server.exitCode === null ||
-			(server.exitCode === undefined &&
-				server.signalCode !== null &&
-				server.signalCode !== undefined &&
-				!expectedServerShutdownSignals.has(server.signalCode))
+			exitCode === null &&
+			signalCode !== null &&
+			!expectedServerShutdownSignals.has(signalCode)
 		) {
 			serverFailure = new Error(
-				`${logs || 'SvelteKit browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`
+				`${logs || 'SvelteKit browser bench server failed'}\nUnexpected server signal: ${signalCode}`
 			);
 		}
 	}

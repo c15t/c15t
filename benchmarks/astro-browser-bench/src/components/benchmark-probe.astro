@@ -115,13 +115,20 @@ const { scenario } = Astro.props;
 
 	const watchBannerVisibility = () => {
 		const state = getState();
-		if (state.bannerVisibleMs !== undefined) {
+		if (state.bannerVisibleMs !== undefined || state.activeUI !== 'banner') {
 			return;
 		}
 
 		const check = () => {
 			const latest = getState();
-			if (latest.bannerVisibleMs !== undefined) {
+			// The banner can be dismissed while this callback is pending —
+			// the runner waits on `bannerReadyMs`, not `bannerVisibleMs`,
+			// before clicking accept. Without this the loop keeps scheduling
+			// a frame every frame for the rest of the page's life.
+			if (
+				latest.bannerVisibleMs !== undefined ||
+				latest.activeUI !== 'banner'
+			) {
 				return;
 			}
 
