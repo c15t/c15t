@@ -106,7 +106,10 @@ describe('resolveManifestSourceURL', () => {
 
 	it('says what is missing when nothing is configured', () => {
 		expect(() =>
-			resolveManifestSourceURL(makeRequest(), options({ mode: manifestMode() }))
+			resolveManifestSourceURL(makeRequest(), {
+				...options({ mode: hostedMode({ url: '/api/consent' }) }),
+				mode: { type: 'manifest' },
+			})
 		).toThrowError(/backendURL. or .manifestURL/u);
 	});
 });

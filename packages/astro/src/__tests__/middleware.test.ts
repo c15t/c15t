@@ -130,7 +130,36 @@ describe('consent middleware', () => {
 		expect(c15t.config.initialTranslations?.language).toBe('en');
 	});
 
-	it('forwards the request cookie to the backend', async () => {
+	it('forwards only the consent cookie to the backend', async () => {
+		const fetchImpl = vi.fn(() => Response.json({}));
+		await run({
+			fetch: fetchImpl as never,
+			headers: { cookie: 'session=abc; c15t=c.necessary:1' },
+			options: { mode: hostedMode({ url: 'https://consent.example.com' }) },
+		});
+		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+		expect((init.headers as Record<string, string>).cookie).toBe(
+			'c15t=c.necessary:1'
+		);
+	});
+
+	it('forwards the configured consent cookie name', async () => {
+		const fetchImpl = vi.fn(() => Response.json({}));
+		await run({
+			fetch: fetchImpl as never,
+			headers: { cookie: 'session=abc; my-consent=c.necessary:1' },
+			options: {
+				mode: hostedMode({ url: 'https://consent.example.com' }),
+				storageConfig: { storageKey: 'my-consent' },
+			},
+		});
+		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+		expect((init.headers as Record<string, string>).cookie).toBe(
+			'my-consent=c.necessary:1'
+		);
+	});
+
+	it('sends no cookie when nothing consent-related is present', async () => {
 		const fetchImpl = vi.fn(() => Response.json({}));
 		await run({
 			fetch: fetchImpl as never,
@@ -138,6 +167,43 @@ describe('consent middleware', () => {
 			options: { mode: hostedMode({ url: 'https://consent.example.com' }) },
 		});
 		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
-		expect((init.headers as Record<string, string>).cookie).toBe('session=abc');
+		expect((init.headers as Record<string, string>).cookie).toBeUndefined();
+	});
+
+	it('resolves a relative backend against the request, not the caller', async () => {
+		// A forged `x-forwarded-host` must not steer the server-side fetch.
+		const fetchImpl = vi.fn(() => Response.json({}));
+		await run({
+			fetch: fetchImpl as never,
+			headers: { 'x-forwarded-host': 'evil.example' },
+			options: { mode: hostedMode({ url: '/api/c15t' }) },
+		});
+		const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('https://example.com/api/c15t/init');
+	});
+
+	it('withholds the consent cookie from a cleartext backend', async () => {
+		const fetchImpl = vi.fn(() => Response.json({}));
+		await run({
+			fetch: fetchImpl as never,
+			headers: { cookie: 'c15t=c.necessary:1' },
+			options: { mode: hostedMode({ url: 'http://consent.example.com' }) },
+		});
+		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+		expect((init.headers as Record<string, string>).cookie).toBeUndefined();
+		expect(init.credentials).toBe('omit');
+	});
+
+	it('still sends the consent cookie to a loopback backend', async () => {
+		const fetchImpl = vi.fn(() => Response.json({}));
+		await run({
+			fetch: fetchImpl as never,
+			headers: { cookie: 'c15t=c.necessary:1' },
+			options: { mode: hostedMode({ url: 'http://localhost:8787' }) },
+		});
+		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+		expect((init.headers as Record<string, string>).cookie).toBe(
+			'c15t=c.necessary:1'
+		);
 	});
 });

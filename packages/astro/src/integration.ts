@@ -44,12 +44,21 @@ const resolveEndpoints = function resolveEndpoints(
 	};
 };
 
+const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
+	if (typeof process === 'undefined') {
+		return undefined;
+	}
+	const env = process.env as Record<string, string | undefined> | undefined;
+	return env?.C15T_BACKEND_URL ?? env?.PUBLIC_C15T_BACKEND_URL;
+};
+
 /**
  * Normalize user options into the serializable shape every consumer reads.
  *
  * @param options - The options passed to `c15t()`.
  * @returns Options with defaults applied.
- * @throws {Error} When `mode` is missing or is not a mode descriptor.
+ * @throws {Error} When `mode` is missing, is not a mode descriptor, or is a
+ * manifest mode with nowhere to save consent.
  */
 export const resolveOptions = function resolveOptions(
 	options: C15tAstroOptions
@@ -57,6 +66,20 @@ export const resolveOptions = function resolveOptions(
 	if (!options?.mode || typeof options.mode !== 'object') {
 		throw new Error(
 			'@c15t/astro: `mode` is required. Use hosted({ url }), offline() or manifest().'
+		);
+	}
+	// The injected routes cover `init` and `manifest`; consent is saved with
+	// `POST /subjects` at the backend itself. A manifest mode that resolves
+	// init from a `manifestURL` or an inline manifest therefore still needs
+	// a `backendURL` — without one the browser would post consent at the
+	// init route's own prefix, where nothing answers.
+	if (
+		options.mode.type === 'manifest' &&
+		!options.mode.backendURL &&
+		!backendURLFromEnv()
+	) {
+		throw new Error(
+			'@c15t/astro: manifest mode needs `backendURL` (or C15T_BACKEND_URL) — it is where consent is saved, and the injected routes only serve init and manifest.'
 		);
 	}
 	const {

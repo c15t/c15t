@@ -51,9 +51,22 @@ describe('resolveOptions', () => {
 		expect(resolveOptions({ mode: offlineMode() }).endpoints.enabled).toBe(
 			false
 		);
-		expect(resolveOptions({ mode: manifestMode() }).endpoints.enabled).toBe(
-			true
+		expect(
+			resolveOptions({
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			}).endpoints.enabled
+		).toBe(true);
+	});
+
+	it('rejects a manifest mode with nowhere to save consent', () => {
+		// The injected routes serve init and manifest; `POST /subjects` is
+		// the backend's, so a manifest mode without one would 404 on save.
+		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
+			/needs .backendURL./u
 		);
+		expect(() =>
+			resolveOptions({ mode: manifestMode({ manifestURL: '/m.json' }) })
+		).toThrowError(/needs .backendURL./u);
 	});
 
 	it('keeps custom route paths', () => {

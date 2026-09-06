@@ -21,7 +21,10 @@ import type {
 	KernelTranslations,
 	TranslationsResponse,
 } from '@c15t/core';
-import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
+import {
+	CONSENT_STORAGE_KEY,
+	readStoredConsentFromCookie,
+} from '@c15t/core/modules/persistence';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
 	consentInputsToOverrides,
@@ -34,12 +37,19 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import { filterCookieHeader } from './libs/cookies';
 import type { C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
 export interface ResolveConsentContextOptions {
 	/** The incoming request headers. */
 	headers: Headers;
+	/**
+	 * The absolute request URL. Used to resolve a relative `backendURL` or
+	 * `manifestURL` against this request's own origin and protocol; without
+	 * it the shared resolver assumes `https`.
+	 */
+	url?: string;
 	/** The integration options, already normalized. */
 	options: C15tResolvedOptions;
 	/** Override fetch, mainly for tests. */
@@ -125,14 +135,104 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 	return { config, inputs };
 };
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
+/** The cookie name the persistence module reads for this configuration. */
+const consentCookieName = function consentCookieName(
+	options: C15tResolvedOptions
+): string {
+	return options.storageConfig?.storageKey ?? CONSENT_STORAGE_KEY;
+};
+
+/**
+ * Resolves a possibly-relative configured URL against this request.
+ *
+ * Only the request's own URL or `Host` decides the origin — never an
+ * inbound `x-forwarded-host` / `x-forwarded-proto`. The adapter builds
+ * `Request.url` from whatever proxy configuration the deployment declared,
+ * so trusting a forwarded header on top of it would let a forged header
+ * steer this server-side fetch, cookies and all, at a host of the caller's
+ * choosing. Seeding the protocol from the request URL also keeps a relative
+ * URL resolving on a plain `http://localhost` dev server, where the shared
+ * resolver would otherwise assume `https`.
+ */
+const resolveAgainstRequest = function resolveAgainstRequest(
+	url: string,
+	headers: Headers,
+	requestURL?: string
+): string | null {
+	if (requestURL) {
+		try {
+			const parsed = new URL(requestURL);
+			return resolveBackendURL(url, {
+				host: parsed.host,
+				'x-forwarded-proto': parsed.protocol.replace(':', ''),
+			});
+		} catch {
+			return null;
+		}
+	}
+	const host = headers.get('host');
+	return host ? resolveBackendURL(url, { host }) : null;
+};
+
+/**
+ * Whether the consent cookie may travel to this backend.
+ *
+ * HTTPS always may. Plain HTTP only where the request never really leaves
+ * the machine — a loopback backend, or a dev server serving the page over
+ * the same plain-HTTP origin — so a downgraded or cross-origin `http://`
+ * backend never receives the visitor's cookies in the clear.
+ */
+const mayForwardCookie = function mayForwardCookie(
+	absolute: string,
+	requestURL?: string
+): boolean {
+	let target: URL;
+	try {
+		target = new URL(absolute);
+	} catch {
+		return false;
+	}
+	if (target.protocol === 'https:') {
+		return true;
+	}
+	if (LOOPBACK_HOSTS.has(target.hostname)) {
+		return true;
+	}
+	if (!requestURL) {
+		return false;
+	}
+	try {
+		const from = new URL(requestURL);
+		return from.protocol === 'http:' && from.host === target.host;
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * Builds the headers the server-side `/init` call carries.
+ *
+ * Only the consent cookie is replayed, never the visitor's whole jar: the
+ * backend needs the stored decision and nothing else, and a hosted backend
+ * is a different origin the site's session cookies have no business
+ * reaching. `allowCookie` drops even that one when the hop would be in the
+ * clear.
+ */
 const forwardHeaders = function forwardHeaders(
 	headers: Headers,
-	overrides: KernelOverrides
+	overrides: KernelOverrides,
+	options: { cookieName: string; allowCookie?: boolean }
 ): Record<string, string> {
 	const forward: Record<string, string> = { accept: 'application/json' };
 	const cookie = headers.get('cookie');
-	if (cookie) {
-		forward.cookie = cookie;
+	const scoped =
+		cookie && options.allowCookie !== false
+			? filterCookieHeader(cookie, [options.cookieName])
+			: undefined;
+	if (scoped) {
+		forward.cookie = scoped;
 	}
 	if (overrides.country) {
 		forward['x-c15t-country'] = overrides.country;
@@ -153,18 +253,32 @@ const prefetchHosted = async function prefetchHosted(input: {
 	base: KernelConfig;
 	backendURL: string;
 	headers: Headers;
+	options: C15tResolvedOptions;
+	url?: string;
 	fetch?: typeof globalThis.fetch;
 }): Promise<KernelConfig> {
-	const absolute = resolveBackendURL(input.backendURL, input.headers);
+	const absolute = resolveAgainstRequest(
+		input.backendURL,
+		input.headers,
+		input.url
+	);
 	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
 	if (!absolute || !fetchImpl) {
 		return input.base;
 	}
+	const allowCookie = mayForwardCookie(absolute, input.url);
 	try {
 		const response = await fetchImpl(`${absolute}/init`, {
 			cache: 'no-store',
-			credentials: 'include',
-			headers: forwardHeaders(input.headers, input.base.initialOverrides ?? {}),
+			credentials: allowCookie ? 'include' : 'omit',
+			headers: forwardHeaders(
+				input.headers,
+				input.base.initialOverrides ?? {},
+				{
+					allowCookie,
+					cookieName: consentCookieName(input.options),
+				}
+			),
 			method: 'GET',
 		});
 		if (!response.ok) {
@@ -178,45 +292,60 @@ const prefetchHosted = async function prefetchHosted(input: {
 	}
 };
 
-const prefetchLocal = async function prefetchLocal(input: {
+interface PrefetchLocalInput {
 	base: KernelConfig;
 	options: C15tResolvedOptions;
 	inputs: ConsentRequestHeaderInputs;
 	translations: KernelTranslations;
 	headers: Headers;
+	url?: string;
 	fetch?: typeof globalThis.fetch;
-}): Promise<KernelConfig> {
-	const { options } = input;
-	if (options.mode.type === 'manifest') {
-		const absoluteBackend = options.mode.backendURL
-			? (resolveBackendURL(options.mode.backendURL, input.headers) ?? undefined)
-			: undefined;
-		const absoluteManifest = options.mode.manifestURL
-			? (resolveBackendURL(options.mode.manifestURL, input.headers) ??
-				undefined)
-			: undefined;
-		const transport = createManifestTransport({
-			backendURL: absoluteBackend,
-			baseTranslations,
-			fetch: input.fetch,
-			headers: forwardHeaders(input.headers, input.base.initialOverrides ?? {}),
-			inputs: input.inputs,
-			manifest: options.mode.manifest,
-			manifestURL: absoluteManifest,
-		});
-		try {
-			const response = await transport.init?.({
-				overrides: input.base.initialOverrides ?? {},
-				user: input.base.initialUser ?? null,
-			});
-			return response
-				? mergeInitResponseIntoKernelConfig(input.base, response)
-				: input.base;
-		} catch {
-			return input.base;
-		}
-	}
+}
 
+const prefetchManifest = async function prefetchManifest(
+	input: PrefetchLocalInput,
+	mode: Extract<C15tResolvedOptions['mode'], { type: 'manifest' }>
+): Promise<KernelConfig> {
+	const absoluteBackend = mode.backendURL
+		? (resolveAgainstRequest(mode.backendURL, input.headers, input.url) ??
+			undefined)
+		: undefined;
+	const absoluteManifest = mode.manifestURL
+		? (resolveAgainstRequest(mode.manifestURL, input.headers, input.url) ??
+			undefined)
+		: undefined;
+	const cookieTarget = absoluteManifest ?? absoluteBackend;
+	const transport = createManifestTransport({
+		backendURL: absoluteBackend,
+		baseTranslations,
+		fetch: input.fetch,
+		headers: forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
+			allowCookie: cookieTarget
+				? mayForwardCookie(cookieTarget, input.url)
+				: false,
+			cookieName: consentCookieName(input.options),
+		}),
+		inputs: input.inputs,
+		manifest: mode.manifest,
+		manifestURL: absoluteManifest,
+	});
+	try {
+		const response = await transport.init?.({
+			overrides: input.base.initialOverrides ?? {},
+			user: input.base.initialUser ?? null,
+		});
+		return response
+			? mergeInitResponseIntoKernelConfig(input.base, response)
+			: input.base;
+	} catch {
+		return input.base;
+	}
+};
+
+const prefetchOffline = async function prefetchOffline(
+	input: PrefetchLocalInput
+): Promise<KernelConfig> {
+	const { options } = input;
 	// `createOfflineTransport` reads the length, not the presence: an empty
 	// array means "no pack applies", and passing it as configured would leave
 	// the wide opt-in policy in place while the transport narrows.
@@ -238,6 +367,15 @@ const prefetchLocal = async function prefetchLocal(input: {
 	} catch {
 		return input.base;
 	}
+};
+
+const prefetchLocal = function prefetchLocal(
+	input: PrefetchLocalInput
+): Promise<KernelConfig> {
+	const { mode } = input.options;
+	return mode.type === 'manifest'
+		? prefetchManifest(input, mode)
+		: prefetchOffline(input);
 };
 
 /**
@@ -288,6 +426,8 @@ export const resolveConsentContext = async function resolveConsentContext(
 						base: config,
 						fetch: input.fetch,
 						headers,
+						options,
+						url: input.url,
 					})
 				: await prefetchLocal({
 						base: config,
@@ -296,6 +436,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 						inputs,
 						options,
 						translations,
+						url: input.url,
 					});
 	}
 

@@ -43,6 +43,7 @@ export const createConsentMiddleware = function createConsentMiddleware(
 			headers: context.request.headers,
 			options,
 			skipPrefetch: context.isPrerendered === true,
+			url: context.request.url,
 		});
 		return await next();
 	};
