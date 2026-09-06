@@ -46,15 +46,31 @@ describe('resolveTransportFactory', () => {
 	});
 
 	it('points manifest mode at the injected init route', async () => {
-		const fetchImpl = vi.fn(() => Response.json({}));
-		const transport = resolveTransportFactory(manifestMode(), {
-			backendURL: 'https://consent.example.com',
-			initPath: '/api/c15t/init',
-		})(context);
-		await transport
-			.init?.({ overrides: {}, user: null })
-			.catch(() => undefined);
-		expect(fetchImpl).not.toHaveBeenCalled();
+		// `createHostedTransport` captures `globalThis.fetch` when it is
+		// built, so the stub has to be in place before the factory runs.
+		const fetchImpl = vi.fn(() =>
+			Promise.resolve(
+				Response.json({
+					location: { countryCode: 'DE', regionCode: null },
+					policy: { id: 'p', model: 'opt-in', ui: { mode: 'banner' } },
+					translations: { language: 'en', translations: {} },
+				})
+			)
+		);
+		const restore = globalThis.fetch;
+		globalThis.fetch = fetchImpl as unknown as typeof globalThis.fetch;
+		try {
+			const transport = resolveTransportFactory(manifestMode(), {
+				backendURL: 'https://consent.example.com',
+				initPath: '/api/c15t/init',
+			})(context);
+			await transport.init?.({ overrides: {}, user: null });
+		} finally {
+			globalThis.fetch = restore;
+		}
+		expect(fetchImpl).toHaveBeenCalledOnce();
+		const [url] = fetchImpl.mock.calls[0] as unknown as [string | URL];
+		expect(String(url)).toContain('/api/c15t/init');
 	});
 
 	it('names the fix for an unknown mode', () => {

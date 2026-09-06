@@ -10,8 +10,9 @@
  * `iab` is configured.
  */
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -25,10 +26,13 @@ interface WindowWithTCF extends Window {
 	__tcfapi?: unknown;
 }
 
-// jsdom gives `import.meta.url` a browser URL, so paths come off the
-// Vitest root — the package directory.
+// Resolved from this module, not `process.cwd()`: a root `vitest`
+// invocation runs every workspace project from the repository root, and
+// `<repo>/src/lib` does not exist.
+const LIB_DIR = join(dirname(fileURLToPath(import.meta.url)), '../lib');
+
 const source = function source(relativePath: string): string {
-	return readFileSync(join(process.cwd(), 'src/lib', relativePath), 'utf8');
+	return readFileSync(join(LIB_DIR, relativePath), 'utf8');
 };
 
 const mounted: ReturnType<typeof mount>[] = [];

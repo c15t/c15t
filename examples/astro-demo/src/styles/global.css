@@ -25,7 +25,7 @@ nav {
 }
 
 .panel {
-	border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+	border: 1px solid color-mix(in oklab, currentcolor 20%, transparent);
 	border-radius: 0.75rem;
 	margin: 1.5rem 0;
 	padding: 1rem 1.25rem;
