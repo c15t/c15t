@@ -17,7 +17,8 @@ const urls: Record<string, string> = {
 const frameworks = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
 	.split(',')
 	.map((value) => value.trim())
-	.filter((value) => value in urls)
+	// `in` would also accept `toString` and friends off the prototype.
+	.filter((value) => Object.hasOwn(urls, value))
 	.sort((left, right) => Number(right === 'react') - Number(left === 'react'));
 const tabs = [
 	'Consents',

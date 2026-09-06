@@ -54,6 +54,15 @@ const CATEGORIES = [
 	'marketing',
 ];
 
+/**
+ * Every Astro variant this Storybook can show.
+ *
+ * Read twice from opposite sides of the build: the `astro-prerender` Vite
+ * plugin walks it at build time to server-render each entry, and
+ * `render-astro-story.ts` looks entries up by `id` in the browser. One list
+ * is what keeps a story from being prerendered without a renderer, or
+ * rendered without markup.
+ */
 export const astroStoryVariants: readonly AstroStoryVariant[] = [
 	{
 		component: 'consent-banner',

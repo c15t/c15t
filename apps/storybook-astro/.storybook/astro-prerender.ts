@@ -138,7 +138,7 @@ const renderVariants = async function renderVariants(
 			if (!file) {
 				throw new Error(`Unknown Astro component: ${variant.component}`);
 			}
-			// oxlint-disable-next-line no-await-in-loop -- One shared container; renders must not interleave.
+			// oxlint-disable-next-line no-await-in-loop -- One shared container.
 			const component = await server.ssrLoadModule(path.join(astroSrc, file));
 			const astroOptions: Record<string, unknown> = {
 				colorScheme: variant.options?.colorScheme ?? 'light',

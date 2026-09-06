@@ -108,11 +108,11 @@ const reportPairCoverage = function reportPairCoverage(
 	if (gaps.length === 0) {
 		return;
 	}
-	console.log(
-		`[PARITY] ${label}: ${gaps.length} pair(s) not compared across every enabled framework — ${gaps
-			.map((pair) => `${pair.key} (missing ${pair.missing.join(', ')})`)
-			.join('; ')}`
-	);
+	const detail = gaps
+		.map((pair) => `${pair.key} (missing ${pair.missing.join(', ')})`)
+		.join('; ');
+	console.log(`[PARITY] ${label}: ${gaps.length} pair(s) missing a framework`);
+	console.log(`[PARITY] ${label}: ${detail}`);
 };
 
 const openStory = async function openStory(
