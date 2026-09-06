@@ -1,0 +1,51 @@
+---
+import ConsentState from '../components/consent-state.astro';
+import BaseLayout from '../layouts/base.astro';
+
+const { c15t } = Astro.locals;
+---
+
+<BaseLayout title="@c15t/astro">
+	<p>
+		The banner below is server-rendered: no framework JavaScript, the same
+		DOM and <code>data-testid</code>s as the Svelte and React banners, and it
+		is absent from the HTML entirely once you have consented. The preference
+		centre is a Svelte island that only downloads when you open it.
+	</p>
+
+	<section class="panel">
+		<h2>What the server decided</h2>
+		<pre>{JSON.stringify(
+			{
+				inputs: c15t.inputs,
+				model: c15t.snapshot.model,
+				policy: c15t.snapshot.policy?.id ?? null,
+				shouldShowBanner: c15t.shouldShowBanner,
+			},
+			null,
+			2
+		)}</pre>
+	</section>
+
+	<ConsentState />
+
+	<section class="panel">
+		<h2>Consent-gated inline script</h2>
+		<p>
+			This one is gated by its markup rather than by configuration — mark it
+			inert and label it, and it runs the moment measurement consent lands.
+			Gated scripts need <code>is:inline</code> so Astro ships the tag as
+			written instead of bundling and running it.
+		</p>
+		<script data-c15t-category="measurement" is:inline type="text/plain">
+			document
+				.querySelector('[data-testid="inline-script-status"]')
+				?.setAttribute('data-loaded', 'true');
+			document.querySelector('[data-testid="inline-script-status"]').textContent =
+				'inline script ran';
+		</script>
+		<p data-loaded="false" data-testid="inline-script-status">
+			inline script blocked
+		</p>
+	</section>
+</BaseLayout>

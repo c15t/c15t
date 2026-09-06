@@ -39,6 +39,7 @@ import type { GlobalVendorList } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
 
+import { whenIABReady } from '../lib/iab-loader';
 import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
@@ -281,6 +282,12 @@ const driver: TestDriver = {
 			target: container,
 		});
 
+		if (isIabComponent(opts.component)) {
+			// `@c15t/iab` is loaded on demand, so an IAB surface only has a
+			// live handle once that import has settled — the same wait an
+			// embedding app does before opening a TCF dialog.
+			await whenIABReady();
+		}
 		await createDeferredPromise((r) => setTimeout(r, 0));
 
 		if (!mountedKernel) {

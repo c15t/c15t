@@ -1,0 +1,54 @@
+---
+/**
+ * The banner as a server island.
+ *
+ * A statically cached page cannot carry a per-visitor consent decision: the
+ * first visitor's country would be baked into the HTML every later visitor
+ * receives. This variant renders the page from cache and defers only the
+ * banner to a per-request island, so geo, GPC and the stored consent cookie
+ * are all still honoured.
+ *
+ * ```astro
+ * ---
+ * import ConsentBannerDeferred from '@c15t/astro/components/consent-banner-deferred.astro';
+ * ---
+ * <ConsentBannerDeferred />
+ * ```
+ *
+ * Needs an adapter with on-demand rendering available (`output: 'server'`,
+ * or `output: 'static'` with the page's own `prerender` left on and the
+ * adapter configured). Without one, use `<ConsentBanner />` on an
+ * on-demand-rendered page instead.
+ */
+import type { LegalLinks } from '@c15t/core';
+import ConsentBanner from './consent-banner.astro';
+
+/** Every `<ConsentBanner />` prop, forwarded to the deferred island. */
+interface Props {
+	/** Override the banner heading. */
+	title?: string;
+	/** Override the banner body copy. */
+	description?: string;
+	/** Override the reject button label. */
+	rejectButtonText?: string;
+	/** Override the accept button label. */
+	acceptButtonText?: string;
+	/** Override the customize button label. */
+	customizeButtonText?: string;
+	/** Ship the DOM without the bundled stylesheet's class names. */
+	noStyle?: boolean;
+	/** Extra class on the banner root. */
+	class?: string;
+	/** Which legal links to render inline. `null` renders none. */
+	legalLinks?: (keyof LegalLinks)[] | null;
+	/**
+	 * Render even when the server decided the banner should stay hidden.
+	 * Useful for visual testing.
+	 */
+	force?: boolean;
+}
+---
+
+<ConsentBanner server:defer {...Astro.props}>
+	<slot name="fallback" slot="fallback" />
+</ConsentBanner>
