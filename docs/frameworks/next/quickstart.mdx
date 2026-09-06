@@ -14,22 +14,67 @@ variants:
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## Install
 
-TODO.
+```package-install
+@c15t/nextjs
+```
 
-## Configure the provider
+## Configure the App Router
 
-TODO.
+Resolve consent on the server and pass the same configuration to the client
+boundary. Set `C15T_BACKEND_URL` to your backend's absolute URL.
 
-## Add the consent UI
+```tsx
+// app/layout.tsx
+import type { ReactNode } from 'react';
+import {
+	ConsentBanner,
+	ConsentBoundary,
+	ConsentDialog,
+	ConsentDialogLink,
+} from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
 
-TODO.
+export default function Layout({ children }: { children: ReactNode }) {
+	const backendURL = process.env.C15T_BACKEND_URL;
+	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+	const config = prefetchInitialConsent({ backendURL });
 
-## Next steps
+	return (
+		<html lang="en">
+			<body>
+				<ConsentBoundary config={config} backendURL={backendURL}>
+					{children}
+					<ConsentBanner />
+					<ConsentDialog />
+					<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+				</ConsentBoundary>
+			</body>
+		</html>
+	);
+}
+```
 
-TODO.
+Passing the pending promise lets the page render while consent loads. The
+consent prompt stays hidden until resolution finishes. To include the resolved
+prompt in the server HTML, make the layout async and await
+`prefetchInitialConsent` before passing `config` to the boundary.
+
+The helper reads the request's cookies and geographic headers. Server-side init
+also forwards the client IP and user agent. Configure the backend's trusted
+origins for your app.
+
+For the Pages Router, use the request helpers from `@c15t/nextjs/pages` inside
+`getServerSideProps`, and pass their returned configuration to the same boundary.
+
+## Verify persistence and hydration
+
+Reject optional categories, reload, and check that they stay blocked. Open
+Privacy settings to change the choice. Returning visitors should keep their
+valid choices without a startup storage write or a new choice callback.
+
+Use `useConsent('marketing')` inside a Client Component to read effective
+permission. Use `useExplicitChoice` to inspect the recorded choice. See the
+[v3 migration guide](/docs/upgrade-v3) for that distinction and custom transport
+migration.

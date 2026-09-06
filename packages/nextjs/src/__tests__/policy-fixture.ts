@@ -3,13 +3,15 @@ import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
 } from '@c15t/schema/types';
-import type { PolicyRule } from '@c15t/schema/types';
+import type { PolicyRule, PolicyResolution } from '@c15t/schema/types';
 
 /** Prepared public policy and receipts for adapter tests. */
 export const policyFixture = (
 	values: Partial<ConsentState> = {},
 	rule: Partial<PolicyRule> = {}
-): KernelConfig => {
+): KernelConfig & {
+	initialPolicyResolution: Extract<PolicyResolution, { status: 'matched' }>;
+} => {
 	const policy = normalizePolicyRule({
 		id: 'react-test',
 		match: { fallback: true },

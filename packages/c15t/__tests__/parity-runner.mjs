@@ -20,6 +20,7 @@ const manifest = JSON.parse(
 const PREFIXES = [
 	{ packageName: '@c15t/react', prefix: 'react' },
 	{ packageName: '@c15t/nextjs', prefix: 'next' },
+	{ packageName: '@c15t/tanstack-start', prefix: 'tanstack-start' },
 	{ packageName: '@c15t/vue', prefix: 'vue' },
 ];
 

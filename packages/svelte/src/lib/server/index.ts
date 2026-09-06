@@ -108,6 +108,12 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 				new Headers(init?.headers).forEach((value, key) => {
 					headers.set(key, value);
 				});
+				// Keep the caller's full language preference list. The normalized
+				// kernel language is for policy resolution, not HTTP forwarding.
+				if (forward['accept-language']) {
+					headers.set('accept-language', forward['accept-language']);
+				}
+
 				return fetchImpl(input, { ...init, headers });
 			},
 		});

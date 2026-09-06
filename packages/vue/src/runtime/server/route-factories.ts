@@ -1,4 +1,8 @@
 import { c15tProtocolHeaders, mapInitOutputToInitResponse } from '@c15t/core';
+import {
+	getManifestAge,
+	MANIFEST_PASSTHROUGH_HEADERS,
+} from '@c15t/core/transports/manifest-cache';
 import type { InitOutput } from '@c15t/schema/types';
 import {
 	parsePolicyContractHeader,
@@ -51,17 +55,6 @@ interface InitRouteDependencies extends RouteDependencies {
 	defineCachedEventHandler: CachedEventHandler;
 }
 
-// `vary` is deliberately NOT forwarded. This route sends no request headers
-// upstream and returns no CORS headers downstream, so its body is a pure
-// function of the request URL. The backend's `Vary: Origin` would only
-// fragment the edge cache for no benefit.
-const PASSTHROUGH_HEADERS = [
-	'cache-control',
-	'etag',
-	'last-modified',
-	'content-language',
-] as const;
-
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
 ): ConsentConfig {
@@ -91,12 +84,14 @@ export const createManifestRoute = function createManifestRoute(
 		});
 
 		setResponseHeader(event, 'content-type', 'application/json');
-		for (const header of PASSTHROUGH_HEADERS) {
+		for (const header of MANIFEST_PASSTHROUGH_HEADERS) {
 			const value = manifest.headers[header];
 			if (value) {
 				setResponseHeader(event, header, value);
 			}
 		}
+		// Downstream caches count the remaining lifetime, not a fresh TTL.
+		setResponseHeader(event, 'age', getManifestAge(manifest));
 
 		const { etag } = manifest.headers;
 		if (etag && getRequestHeader(event, 'if-none-match') === etag) {
@@ -168,6 +163,7 @@ export const createInitRoute = function createInitRoute(
 				for (const key of [
 					'accept-language',
 					'sec-gpc',
+					'x-c15t-gpc',
 					'x-c15t-country',
 					'x-c15t-region',
 					'cf-ipcountry',
@@ -227,6 +223,7 @@ export const createInitRoute = function createInitRoute(
 			varies: [
 				'accept-language',
 				'sec-gpc',
+				'x-c15t-gpc',
 				'x-c15t-country',
 				'x-c15t-region',
 				'cf-ipcountry',

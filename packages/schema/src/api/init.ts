@@ -148,6 +148,10 @@ export const initOutputSchema = v.object({
 	 * Present when backend policy snapshots are configured.
 	 */
 	policySnapshotToken: v.optional(v.string()),
+	/** Privacy signal used to resolve this request; never a recorded choice. */
+	resolvedPrivacySignals: v.optional(
+		v.object({ gpc: v.optional(v.boolean()) })
+	),
 	translations: v.object({
 		language: v.string(),
 		translations: translationsSchema,

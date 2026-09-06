@@ -47,6 +47,7 @@ const generateDocsConfig = () =>
 			},
 		],
 		navigation: [
+			{ pages: ['upgrade-v3'], title: 'Migration' },
 			defineFrameworkNavigation({
 				base: 'frameworks',
 				frameworks: [

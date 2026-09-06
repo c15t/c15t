@@ -44,9 +44,17 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/modules/window-debug/index.ts'
 				),
+				'@c15t/core/libs/manifest-cache': resolve(
+					__dirname,
+					'../core/src/libs/manifest-cache.ts'
+				),
 				'@c15t/core/transports/manifest': resolve(
 					__dirname,
 					'../core/src/transports/manifest.ts'
+				),
+				'@c15t/core/transports': resolve(
+					__dirname,
+					'../core/src/transports/index.ts'
 				),
 				'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),

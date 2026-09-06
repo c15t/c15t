@@ -40,11 +40,19 @@ export const REGION_HEADERS = [
  * derivation. Framework adapters may append transport-specific extras
  * (e.g. `user-agent`, prefetch hints) but must include all of these.
  */
+/**
+ * GPC headers, highest priority first. `x-c15t-gpc` is the application
+ * override: browsers refuse to let scripts set `Sec-*` request headers, so a
+ * client that needs to assert a GPC value on its own init request sends it
+ * here, and the user agent's `Sec-GPC` remains the browser-provided signal.
+ */
+export const GPC_HEADERS = ['x-c15t-gpc', 'sec-gpc'] as const;
+
 export const CONSENT_REQUEST_HEADER_NAMES = [
 	...COUNTRY_HEADERS,
 	...REGION_HEADERS,
 	'accept-language',
-	'sec-gpc',
+	...GPC_HEADERS,
 ] as const;
 
 /** Consent-relevant context extracted from request headers. */
@@ -115,7 +123,8 @@ export const extractConsentRequestInputs = function extractConsentRequestInputs(
 	return {
 		country: overrides.country ?? pickHeader(headers, COUNTRY_HEADERS),
 		gpc:
-			overrides.gpc ?? parseGlobalPrivacyControl(getHeader(headers, 'sec-gpc')),
+			overrides.gpc ??
+			parseGlobalPrivacyControl(pickHeader(headers, GPC_HEADERS)),
 		language: overrides.language ?? parseAcceptLanguage(acceptLanguage)[0],
 		region: overrides.region ?? pickHeader(headers, REGION_HEADERS),
 	};

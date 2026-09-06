@@ -49,7 +49,10 @@ import type { InitOutput } from '@c15t/schema/types';
 
 import type { PrivacyOptOut } from '../consent-record/types';
 import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
+import { buildRequestContextHeaders } from '../libs/request-context';
+import type { SSRInitialData } from '../options/ssr';
 import type {
+	KernelOverrides,
 	InitContext,
 	KernelTransport,
 	KernelUser,
@@ -57,6 +60,7 @@ import type {
 } from '../types';
 import {
 	buildDecisionAssertion,
+	decisionInputsMatchOverrides,
 	gpcFromHeaders,
 	rememberDecisionInputs,
 } from './decision-inputs';
@@ -119,6 +123,23 @@ export interface HostedTransportOptions {
 	 * Other names are ignored so callers do not accidentally forward
 	 * arbitrary request header bags.
 	 */
+	/**
+	 * An init response that was already requested, for example by an inline
+	 * prefetch script that ran before hydration. The first `init()` consumes
+	 * it instead of calling `initURL`, and still records the decision inputs
+	 * when `assertDecisionInputs` is set, so the first save stays bound to
+	 * that decision. A rejected or empty promise falls back to the fetch.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
+
+	/**
+	 * Decision inputs a server-side prefetch already resolved. Seeds the
+	 * assertion `POST /subjects` carries when `assertDecisionInputs` is set,
+	 * so a save made before the first client `init()` resolves is still
+	 * bound to the policy the server rendered. `init()` replaces the seed.
+	 */
+	decisionInputs?: RememberedDecisionInputs;
+
 	headers?: Record<string, string>;
 
 	/**
@@ -257,7 +278,9 @@ export const createHostedTransport = function createHostedTransport(
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
 	const now = options.now ?? Date.now;
-	let lastDecisionInputs: RememberedDecisionInputs | undefined;
+	let lastDecisionInputs = options.assertDecisionInputs
+		? options.decisionInputs
+		: undefined;
 
 	const jsonHeaders = {
 		accept: 'application/json',
@@ -289,6 +312,116 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	};
 
+	// Overlapping inits: the kernel keeps only the latest response, so only
+	// the latest attempt may update the assertion state.
+	let initGeneration = 0;
+	/** Overrides the previous init ran with; `undefined` before the first. */
+	let lastInitOverrides: KernelOverrides | undefined;
+
+	const sameOverrides = function sameOverrides(
+		left: KernelOverrides,
+		right: KernelOverrides
+	): boolean {
+		return (
+			left.country === right.country &&
+			left.region === right.region &&
+			left.language === right.language &&
+			left.gpc === right.gpc
+		);
+	};
+
+	let pendingInit: Promise<TransportInitResponse> | undefined;
+	let { initialData } = options;
+
+	const prepareInit = (ctx: InitContext) => {
+		if (options.assertDecisionInputs && lastDecisionInputs) {
+			const stale = lastInitOverrides
+				? !sameOverrides(lastInitOverrides, ctx.overrides)
+				: !decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides);
+			if (stale) {
+				lastDecisionInputs = undefined;
+			}
+		}
+		lastInitOverrides = { ...ctx.overrides };
+	};
+
+	const runInit = async (ctx: InitContext): Promise<TransportInitResponse> => {
+		initGeneration += 1;
+		const generation = initGeneration;
+		prepareInit(ctx);
+		const requestHeaders = {
+			...initHeaders,
+			...buildRequestContextHeaders(ctx.overrides),
+		};
+		const supplied = initialData;
+		initialData = undefined;
+		let prefetched: SSRInitialData | undefined;
+		if (supplied) {
+			prefetched = await supplied.catch(() => undefined);
+		} else if (!options.initURL) {
+			prefetched = await consumePrefetchedInitialData({
+				backendURL: base,
+				credentials,
+				overrides: {
+					...extractConsentRequestInputs(new Headers(requestHeaders)),
+					...ctx.overrides,
+				},
+			});
+		}
+		if (prefetched?.init) {
+			const headers = { ...requestHeaders };
+			const gpc = prefetched.metadata?.requestContext?.gpc;
+			if (gpc !== undefined) {
+				headers['sec-gpc'] = gpc ? '1' : '0';
+			}
+			if (options.assertDecisionInputs && generation === initGeneration) {
+				lastDecisionInputs = rememberDecisionInputs(
+					prefetched.init,
+					gpcFromHeaders(headers)
+				);
+			}
+			const producerHeaders = new Headers();
+			if (typeof prefetched.producerPolicyContract === 'string') {
+				producerHeaders.set(
+					'x-c15t-policy-contract',
+					prefetched.producerPolicyContract
+				);
+			}
+			return mapInitOutputToInitResponse(prefetched.init, headers, {
+				producerContract: readProducerPolicyContract(producerHeaders),
+			});
+		}
+		const response = await fetchImpl(initURL, {
+			credentials,
+			headers: {
+				accept: 'application/json',
+				...c15tProtocolHeaders,
+				...requestHeaders,
+			},
+			method: 'GET',
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
+			);
+		}
+
+		const payload = (await response.json()) as InitOutput;
+		if (options.assertDecisionInputs && generation === initGeneration) {
+			lastDecisionInputs = rememberDecisionInputs(
+				payload,
+				gpcFromHeaders(requestHeaders) ??
+					payload.resolvedPrivacySignals?.gpc ??
+					(payload as InitOutput & { resolvedOverrides?: { gpc?: boolean } })
+						.resolvedOverrides?.gpc
+			);
+		}
+		return mapInitOutputToInitResponse(payload, requestHeaders, {
+			producerContract: readProducerPolicyContract(response.headers),
+		});
+	};
+
 	return {
 		async identify(user, subjectId): Promise<void> {
 			if (!subjectId) {
@@ -300,64 +433,15 @@ export const createHostedTransport = function createHostedTransport(
 		},
 
 		async init(ctx: InitContext): Promise<TransportInitResponse> {
-			const prefetched = options.initURL
-				? undefined
-				: await consumePrefetchedInitialData({
-						backendURL: base,
-						credentials,
-						overrides: {
-							...extractConsentRequestInputs(new Headers(initHeaders)),
-							...ctx.overrides,
-						},
-					});
-			if (prefetched?.init) {
-				const headers = {
-					...initHeaders,
-					'sec-gpc': prefetched.metadata?.requestContext?.gpc ? '1' : '0',
-				};
-				if (options.assertDecisionInputs) {
-					lastDecisionInputs = rememberDecisionInputs(
-						prefetched.init,
-						gpcFromHeaders(headers)
-					);
+			const run = runInit(ctx);
+			pendingInit = run;
+			try {
+				return await run;
+			} finally {
+				if (pendingInit === run) {
+					pendingInit = undefined;
 				}
-				const producerHeaders = new Headers();
-				if (typeof prefetched.producerPolicyContract === 'string') {
-					producerHeaders.set(
-						'x-c15t-policy-contract',
-						prefetched.producerPolicyContract
-					);
-				}
-				return mapInitOutputToInitResponse(prefetched.init, headers, {
-					producerContract: readProducerPolicyContract(producerHeaders),
-				});
 			}
-			const response = await fetchImpl(initURL, {
-				credentials,
-				headers: {
-					accept: 'application/json',
-					...c15tProtocolHeaders,
-					...initHeaders,
-				},
-				method: 'GET',
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
-				);
-			}
-
-			const payload = (await response.json()) as InitOutput;
-			if (options.assertDecisionInputs) {
-				lastDecisionInputs = rememberDecisionInputs(
-					payload,
-					gpcFromHeaders(initHeaders)
-				);
-			}
-			return mapInitOutputToInitResponse(payload, initHeaders, {
-				producerContract: readProducerPolicyContract(response.headers),
-			});
 		},
 
 		async loadSubjectRecord(
@@ -412,6 +496,29 @@ export const createHostedTransport = function createHostedTransport(
 		},
 
 		async save(payload): Promise<SaveResult> {
+			if (
+				options.assertDecisionInputs &&
+				!payload.policySnapshotToken &&
+				!payload.decisionInputs
+			) {
+				// A server-rendered banner is interactive before the client init
+				// resolves, and the provider re-initialises when its overrides
+				// change. Wait out every init in flight (a newer one may start
+				// while waiting) so the assertion reflects the latest decision;
+				// if none resolves, refuse rather than record an unbound consent.
+				let awaited = pendingInit;
+				while (awaited) {
+					// oxlint-disable-next-line no-await-in-loop -- Each iteration waits for the init that superseded the last.
+					await awaited.catch(() => undefined);
+					awaited = pendingInit;
+				}
+				if (!buildDecisionAssertion(payload, lastDecisionInputs)) {
+					throw new Error(
+						'c15t hosted transport: cannot save before init resolved a policy decision (assertDecisionInputs is set).'
+					);
+				}
+			}
+
 			const response = await fetchImpl(`${base}/subjects`, {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),

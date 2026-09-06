@@ -119,12 +119,14 @@
 		"./styles/components/*": {
 			"types": "./dist/styles/components/*.d.ts",
 			"style": "./dist/styles/components/*.css",
+			"node": "./dist/styles/components/*.node.js",
 			"import": "./dist/styles/components/*.js",
 			"default": "./dist/styles/components/*.js"
 		},
 		"./styles/components/*.module.css": {
 			"types": "./dist/styles/components/*.d.ts",
 			"style": "./dist/styles/components/*.css",
+			"node": "./dist/styles/components/*.node.js",
 			"import": "./dist/styles/components/*.js",
 			"default": "./dist/styles/components/*.js"
 		}

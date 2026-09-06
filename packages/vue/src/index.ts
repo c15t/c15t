@@ -1,3 +1,4 @@
+// oxlint-disable oxc/no-barrel-file -- Public framework entry point intentionally re-exports the supported API.
 import type { App, Plugin } from 'vue';
 
 import { consentConfigKey } from './runtime/composables/config';

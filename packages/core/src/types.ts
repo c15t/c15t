@@ -434,12 +434,13 @@ export interface SavePayload {
 	consentAction: 'all' | 'necessary' | 'custom';
 	policySnapshotToken: string | null;
 	/**
-	 * Successful no-match inputs captured with the action. The backend
-	 * recomputes them before accepting a fallback choice; retries keep the
+	 * Resolved policy inputs captured with the action. The backend
+	 * recomputes them before accepting a choice; retries keep the
 	 * original inputs even after a later initialization changes policy.
 	 */
 	decisionInputs?: {
-		policyId: null;
+		policyId: string | null;
+		fingerprint?: string;
 		country: string | null;
 		region: string | null;
 		language: string;

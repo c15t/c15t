@@ -17,6 +17,7 @@ import type {
 export type SupportedFramework =
 	| 'react'
 	| 'nextjs'
+	| 'tanstack-start'
 	| 'svelte'
 	| 'vue'
 	| 'solid';

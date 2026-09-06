@@ -382,3 +382,22 @@ test.each(['header', 'browser'] as const)(
 		}
 	}
 );
+
+test('an empty provider can prerender without reading the clock', async () => {
+	const { renderToString } = await import('react-dom/server');
+	const now = vi.spyOn(Date, 'now').mockImplementation(() => {
+		throw new Error('Clock read during prerender');
+	});
+	try {
+		expect(
+			renderToString(
+				<ConsentProvider options={{ mode: custom({}), persistence: false }}>
+					<span>Static shell</span>
+					<ConsentBanner />
+				</ConsentProvider>
+			)
+		).toContain('Static shell');
+	} finally {
+		now.mockRestore();
+	}
+});

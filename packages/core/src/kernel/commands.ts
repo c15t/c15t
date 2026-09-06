@@ -213,11 +213,14 @@ const saveSubject = function saveSubject(
 	return subject;
 };
 
-/** Capture no-match evidence before init or navigation can change its inputs. */
+/** Capture the action’s policy evidence before init or navigation changes it. */
 const saveDecisionInputs = (
 	snapshot: ConsentSnapshot
 ): Pick<SavePayload, 'decisionInputs'> => {
-	if (snapshot.resolution.status !== 'no-match') {
+	if (
+		snapshot.resolution.status !== 'no-match' &&
+		snapshot.resolution.status !== 'matched'
+	) {
 		return {};
 	}
 	return {
@@ -225,10 +228,17 @@ const saveDecisionInputs = (
 			country: snapshot.location
 				? snapshot.location.countryCode
 				: (snapshot.overrides.country ?? null),
+			fingerprint:
+				snapshot.resolution.status === 'matched'
+					? snapshot.resolution.fingerprints.policy
+					: undefined,
 			gpc: snapshot.privacySignals.gpc.active,
 			language:
 				snapshot.translations?.language ?? snapshot.overrides.language ?? 'en',
-			policyId: null,
+			policyId:
+				snapshot.resolution.status === 'matched'
+					? snapshot.resolution.policyId
+					: null,
 			region: snapshot.location
 				? snapshot.location.regionCode
 				: (snapshot.overrides.region ?? null),

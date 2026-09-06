@@ -88,8 +88,8 @@ export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 };
 
 /**
- * Has a specific category been granted? Primitive boolean; re-renders
- * only when that exact category flips.
+ * Effective permission for one category. This can be true under an opt-out
+ * policy without an explicit grant. Re-renders only when that permission changes.
  */
 export const useConsent = function useConsent(
 	category: AllConsentNames
@@ -98,7 +98,8 @@ export const useConsent = function useConsent(
 };
 
 /**
- * Full consent record. Re-renders on any category change.
+ * Effective permissions for all categories. Use `useExplicitChoice` for recorded
+ * choices. Re-renders when permissions change.
  */
 export const useConsents = function useConsents(): Readonly<ConsentState> {
 	return useKernelSelector((snap) => snap.effectivePermissions);

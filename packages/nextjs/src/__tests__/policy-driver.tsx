@@ -61,6 +61,23 @@ import { ConsentBoundary } from '../boundary';
 import { readInitialConsentConfig } from '../server';
 import type { InitialConsentConfig } from '../types';
 
+// Theme styles load after mount; compare the consent markup and track hydration warnings separately.
+const consentMarkup = (container: HTMLElement) => {
+	const copy = container.cloneNode(true) as HTMLElement;
+	copy.querySelectorAll('style#c15t-theme').forEach((style) => style.remove());
+	// Branding appends the browser hostname after mount, without affecting consent.
+	copy.querySelectorAll('a[data-branding]').forEach((link) => {
+		const href = link.getAttribute('href');
+		if (!href) {
+			return;
+		}
+		const url = new URL(href);
+		url.searchParams.delete('ref');
+		link.setAttribute('href', url.toString().replace(/\/$/u, ''));
+	});
+	return copy.innerHTML;
+};
+
 // oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 const settle = () =>
 	// oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
@@ -486,7 +503,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				PolicySsrEvidence['server'],
 				'now' | 'prompt'
 			>;
-			const serverDom = container.innerHTML;
+			const serverDom = consentMarkup(container);
 			const serverLayer = firstLayer(
 				isVisible(
 					container.querySelector('[data-testid="consent-banner-root"]')
@@ -521,7 +538,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			const dom = getDom(kernel);
 			ssr = {
 				client: {
-					dom: container.innerHTML,
+					dom: consentMarkup(container),
 					firstLayer: dom.firstLayer,
 					now: setup.clock.now(),
 					prompt: kernel.getSnapshot().promptRequirement,

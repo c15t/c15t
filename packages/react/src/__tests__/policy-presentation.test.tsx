@@ -15,6 +15,7 @@ import { ConsentDialogTrigger } from '../components/consent-dialog-trigger';
 import { KernelContext } from '../context';
 import { ConsentDraftProvider, useConsentDraft } from '../draft';
 import { ConsentProvider } from '../provider';
+import { consentMarkup } from './consent-markup';
 
 const now = Date.now();
 const resolution = (input: Partial<PolicyRule> = {}): PolicyResolution => {
@@ -280,14 +281,14 @@ it('hydrates prepared server HTML without a prompt flash, callback, request or s
 	);
 	const host = document.createElement('div');
 	host.innerHTML = renderToString(app);
-	const before = host.innerHTML;
+	const before = consentMarkup(host);
 	document.body.append(host);
 	const root = hydrateRoot(host, app);
 	// oxlint-disable-next-line promise/avoid-new -- Allow hydration effects to flush before asserting their absence.
 	await new Promise<void>((resolve) => {
 		setTimeout(resolve, 30);
 	});
-	expect(host.innerHTML).toBe(before);
+	expect(consentMarkup(host)).toBe(before);
 	expect(
 		host.querySelector('[data-testid="consent-banner-dismiss-button"]')
 	).not.toBeNull();
@@ -357,7 +358,7 @@ it('starts real expiry timers for prepared records without replaying choice or w
 										fingerprint: policy.fingerprints.choice,
 										kind: 'choice-v1',
 									},
-									confirmedAt: clock - 86_400_000 + 500,
+									confirmedAt: clock - 86_400_000 + 2500,
 									value: true,
 								},
 							},

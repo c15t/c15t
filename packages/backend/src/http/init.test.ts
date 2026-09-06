@@ -46,6 +46,19 @@ describe('init signals', () => {
 		}
 	});
 
+	it('lets x-c15t-gpc override the browser sec-gpc signal', () => {
+		// Scripts cannot set Sec-* request headers, so a client that asserts a
+		// GPC value on its own init request sends the adapter header instead.
+		assert.strictEqual(
+			readInitSignals(new Headers({ 'sec-gpc': '1', 'x-c15t-gpc': '0' })).gpc,
+			false
+		);
+		assert.strictEqual(
+			readInitSignals(new Headers({ 'x-c15t-gpc': '1' })).gpc,
+			true
+		);
+	});
+
 	it('defaults language to en when the header is absent', () => {
 		assert.strictEqual(readInitSignals(new Headers()).language, 'en');
 	});

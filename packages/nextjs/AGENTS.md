@@ -38,3 +38,4 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 Concepts, legal templates, open-source policies, and contributor documentation.
 
 - [Dev Tools](./docs/shared/react/components/dev-tools.md): Reference page for dev tools.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.

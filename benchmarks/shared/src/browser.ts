@@ -142,6 +142,51 @@ export const benchNavigationTimingExpression = `(() => {
 	};
 })()`;
 
+/**
+ * Self-contained page-context expression that sums the app's JavaScript
+ * resources. Counted by URL, not `initiatorType`: Next emits classic
+ * `<script async>` tags (initiator `script`), while Vite hosts such as
+ * TanStack Start ship `<link rel="modulepreload">` plus one module entry, and
+ * Chromium reports the preloaded modules as `other`. Filtering on `script`
+ * alone under-counts the module graph by an order of magnitude.
+ * String for the same reason as `benchNavigationTimingExpression`.
+ */
+export const benchScriptResourceExpression = `(() => {
+	const isScript = (entry) => {
+		if (entry.initiatorType === 'script') {
+			return true;
+		}
+		try {
+			return /\\.m?js$/u.test(new URL(entry.name).pathname);
+		} catch {
+			return false;
+		}
+	};
+	const entries = performance
+		.getEntriesByType('resource')
+		.filter((entry) => isScript(entry));
+	if (entries.length === 0) {
+		return null;
+	}
+	const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
+	return {
+		appScriptCount: ordered.length,
+		firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
+		jsBytes: ordered.reduce(
+			(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
+			0
+		),
+		lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
+	};
+})()`;
+
+export interface BenchScriptResourceMetrics {
+	appScriptCount: number;
+	firstAppScriptStartMs: number;
+	jsBytes: number;
+	lastAppScriptEndMs: number;
+}
+
 export const parseBenchThrottleProfile = function parseBenchThrottleProfile(
 	value: string | undefined
 ): BenchThrottleProfileName {

@@ -139,7 +139,16 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 		translations: payload.translations,
 	};
 
-	const privacySignals = mapPrivacySignals(headers);
+	const overrideGpc = headers['x-c15t-gpc'];
+	if (overrideGpc === '1' || overrideGpc === '0') {
+		mapped.resolvedOverrides = {
+			...mapped.resolvedOverrides,
+			gpc: overrideGpc === '1',
+		};
+	}
+
+	const privacySignals =
+		mapPrivacySignals(headers) ?? payload.resolvedPrivacySignals;
 	if (privacySignals) {
 		mapped.resolvedPrivacySignals = privacySignals;
 	}
@@ -275,6 +284,82 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
 	response: TransportInitResponse | undefined
 ): TransportKernelConfig {
 	return mergeInitResponseIntoKernelConfig({}, response);
+};
+
+/**
+ * Lift the init-derived fields of a `KernelConfig` back into an
+ * `InitResponse` — the inverse of {@link mergeInitResponseIntoKernelConfig}.
+ *
+ * Lets a server-prefetched config stand in for a transport's `init()`
+ * result: feeding the returned response through the kernel's init path
+ * applies the same policy, translations, location, branding, IAB metadata,
+ * overrides, and consent state the merge folded in, and clears a
+ * provisional placeholder policy the way a real init would.
+ *
+ * @param config - Kernel config, typically produced by a server helper such
+ * as `prefetchInitialConsent()`.
+ * @returns The equivalent init response, or `undefined` when the config
+ * carries no resolved policy. A policy-less config (persisted consents,
+ * geo, language) is a baseline rather than an init result, so callers
+ * should fall through to the real transport init for the policy.
+ * @example
+ * ```ts
+ * const response = kernelConfigToInitResponse(config);
+ * const transport = response
+ * 	? { init: async () => response }
+ * 	: createHostedTransport({ backendURL });
+ * ```
+ */
+export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
+	config: KernelConfig
+): TransportInitResponse | undefined {
+	if (config.initialPolicyResolution === undefined) {
+		return undefined;
+	}
+
+	const response: TransportInitResponse = {
+		policyResolution: writePolicyResolutionWire(config.initialPolicyResolution),
+	};
+
+	if (config.initialPolicySnapshotToken !== undefined) {
+		response.policySnapshotToken = config.initialPolicySnapshotToken;
+	}
+	if (config.initialTranslations !== undefined) {
+		response.translations = config.initialTranslations;
+	}
+	if (config.initialLocation !== undefined) {
+		response.location = config.initialLocation;
+	}
+	if (config.initialBranding !== undefined) {
+		response.branding = config.initialBranding;
+	}
+	if (
+		config.initialOverrides !== undefined &&
+		Object.keys(config.initialOverrides).length > 0
+	) {
+		response.resolvedOverrides = { ...config.initialOverrides };
+	}
+	if (config.initialRecords !== undefined) {
+		response.records = { ...config.initialRecords };
+	}
+	if (config.initialPrivacySignals !== undefined) {
+		response.resolvedPrivacySignals = { ...config.initialPrivacySignals };
+	}
+
+	const iab = config.initialIab;
+	if (iab !== undefined) {
+		if (iab.gvl !== undefined) {
+			response.gvl = iab.gvl;
+		}
+		if (iab.customVendors !== undefined) {
+			response.customVendors = iab.customVendors;
+		}
+		if (iab.cmpId !== undefined && iab.cmpId !== null) {
+			response.cmpId = iab.cmpId;
+		}
+	}
+
+	return response;
 };
 
 export const mergeInitOutputIntoKernelConfig =

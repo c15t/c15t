@@ -15,43 +15,47 @@ test('Svelte raw Sec-GPC stays separate from developer override', async () => {
 	expect(config.initialPrivacySignals).toEqual({ gpc: true });
 	expect(config.initialOverrides?.gpc).toBeUndefined();
 });
-test('Svelte server init forwards cookie, signal, geo, language and explicit custom headers', async () => {
-	const fetch = vi.fn().mockResolvedValue(
-		new Response(
-			JSON.stringify({
-				location: { countryCode: null, regionCode: null },
-				policyResolution: { policy: null, status: 'no-match', version: 1 },
-				translations: { language: 'en', translations: {} },
+test.each([undefined, 'fr-CA'])(
+	'Svelte server init forwards request headers with language override %s',
+	async (language) => {
+		const fetch = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					location: { countryCode: null, regionCode: null },
+					policyResolution: { policy: null, status: 'no-match', version: 1 },
+					translations: { language: 'en', translations: {} },
+				}),
+				{ headers: { 'x-c15t-policy-contract': '1' } }
+			)
+		);
+		await prefetchInitialConsent({
+			backendURL: 'https://backend.test',
+			fetch,
+			forwardHeaders: ['x-review'],
+			headers: new Headers({
+				'accept-language': 'de-DE',
+				cookie: 'session=literal',
+				'sec-gpc': '1',
+				'x-review': 'review',
+				'x-vercel-ip-country': 'DE',
+				'x-vercel-ip-country-region': 'BE',
 			}),
-			{ headers: { 'x-c15t-policy-contract': '1' } }
-		)
-	);
-	await prefetchInitialConsent({
-		backendURL: 'https://backend.test',
-		fetch,
-		forwardHeaders: ['x-review'],
-		headers: new Headers({
-			'accept-language': 'de-DE',
+			language,
+			now,
+		});
+		expect(fetch).toHaveBeenCalledTimes(1);
+		const headers = new Headers(fetch.mock.calls[0]?.[1].headers);
+		expect(Object.fromEntries(headers)).toMatchObject({
+			'accept-language': language ?? 'de-DE',
 			cookie: 'session=literal',
 			'sec-gpc': '1',
+			'x-c15t-country': 'DE',
+			'x-c15t-policy-contract': '1',
+			'x-c15t-region': 'BE',
 			'x-review': 'review',
-			'x-vercel-ip-country': 'DE',
-			'x-vercel-ip-country-region': 'BE',
-		}),
-		now,
-	});
-	expect(fetch).toHaveBeenCalledTimes(1);
-	const headers = new Headers(fetch.mock.calls[0]?.[1].headers);
-	expect(Object.fromEntries(headers)).toMatchObject({
-		'accept-language': 'de-DE',
-		cookie: 'session=literal',
-		'sec-gpc': '1',
-		'x-c15t-country': 'DE',
-		'x-c15t-policy-contract': '1',
-		'x-c15t-region': 'BE',
-		'x-review': 'review',
-	});
-});
+		});
+	}
+);
 test('Svelte prefetch preserves a backend literal subject without manufacturing consent', async () => {
 	const fetch = vi.fn().mockResolvedValue(
 		new Response(

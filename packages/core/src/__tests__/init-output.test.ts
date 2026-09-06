@@ -7,9 +7,11 @@ import { describe, expect, test } from 'vitest';
 
 import {
 	initOutputToKernelConfig,
+	kernelConfigToInitResponse,
 	mapInitOutputToInitResponse,
 	mergeInitResponseIntoKernelConfig,
 } from '../transports/init-output';
+import type { KernelConfig } from '../types';
 import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
 
 const POLICY = {
@@ -167,5 +169,64 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			policyId: 'p1',
 			status: 'matched',
 		});
+	});
+});
+
+describe('kernelConfigToInitResponse', () => {
+	test('round-trips policy outcomes, records, signals and metadata', () => {
+		const records = {
+			choice: null,
+			now: 1700000000000,
+			subject: { subjectId: 'sub_cookie' },
+		};
+		const resolutions = [
+			matchedResolution(optInRule({ id: 'p1' })),
+			{ policy: null, status: 'no-match' },
+			{ policy: null, status: 'unconfigured' },
+			{ policy: null, reason: 'transport', status: 'failed' },
+		] as const;
+		for (const initialPolicyResolution of resolutions) {
+			const base: KernelConfig = { initialRecords: records };
+			const config: KernelConfig = {
+				...base,
+				initialBranding: 'c15t',
+				initialLocation: { countryCode: 'DE', regionCode: null },
+				initialOverrides: { country: 'DE', gpc: false, language: 'de' },
+				initialPolicyResolution,
+				initialPrivacySignals: { gpc: true },
+				initialTranslations: { language: 'de', translations: {} },
+			};
+			if (initialPolicyResolution.status === 'matched') {
+				config.initialIab = {
+					cmpId: 28,
+					customVendors: [],
+					enabled: false,
+					gvl: null,
+				};
+				config.initialPolicySnapshotToken = 'token';
+			}
+
+			expect(
+				mergeInitResponseIntoKernelConfig(
+					base,
+					kernelConfigToInitResponse(config)
+				)
+			).toEqual(config);
+		}
+	});
+	test('leaves records-only configurations for the transport to resolve', () => {
+		expect(
+			kernelConfigToInitResponse({ initialRecords: { choice: null } })
+		).toBeUndefined();
+	});
+	test('does not serialize transport or empty overrides', () => {
+		const response = kernelConfigToInitResponse({
+			initialOverrides: {},
+			initialPolicyResolution: matchedResolution(optInRule()),
+			transport: { init: () => Promise.resolve({}) },
+		});
+		expect(response).not.toHaveProperty('transport');
+		expect(response).not.toHaveProperty('resolvedOverrides');
+		expect(response?.policyResolution?.status).toBe('matched');
 	});
 });

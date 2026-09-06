@@ -391,6 +391,11 @@ describe('explicit saves', () => {
 			categories: { marketing: true },
 		});
 
+		expect(first.decisionInputs).toMatchObject({
+			fingerprint: fixtureResolution().fingerprints.policy,
+			policyId: fixtureResolution().policyId,
+		});
+
 		vi.setSystemTime(POLICY_NOW + 5000);
 		await kernel.commands.init();
 		await vi.advanceTimersByTimeAsync(1);

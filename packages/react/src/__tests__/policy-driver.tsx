@@ -56,6 +56,7 @@ import { ConsentDialogTrigger } from '../components/consent-dialog-trigger';
 import { Frame } from '../components/frame';
 import { KernelContext } from '../context';
 import { ConsentProvider } from '../provider';
+import { consentMarkup } from './consent-markup';
 
 // oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 const settle = () =>
@@ -475,7 +476,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				PolicySsrEvidence['server'],
 				'now' | 'prompt'
 			>;
-			const serverDom = container.innerHTML;
+			const serverDom = consentMarkup(container);
 			const serverLayer = firstLayer(
 				isVisible(
 					container.querySelector('[data-testid="consent-banner-root"]')
@@ -504,7 +505,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			const dom = getDom(kernel);
 			ssr = {
 				client: {
-					dom: container.innerHTML,
+					dom: consentMarkup(container),
 					firstLayer: dom.firstLayer,
 					now: setup.clock.now(),
 					prompt: kernel.getSnapshot().promptRequirement,

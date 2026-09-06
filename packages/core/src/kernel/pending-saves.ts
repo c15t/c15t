@@ -107,7 +107,11 @@ const isConfirmedCoverage = function isConfirmedCoverage(
 const isDecisionInputs = (value: unknown): boolean =>
 	value === undefined ||
 	(isRecord(value) &&
-		value.policyId === null &&
+		(value.policyId === null ||
+			(typeof value.policyId === 'string' &&
+				value.policyId.length > 0 &&
+				typeof value.fingerprint === 'string' &&
+				value.fingerprint.length > 0)) &&
 		(value.country === null || typeof value.country === 'string') &&
 		(value.region === null || typeof value.region === 'string') &&
 		typeof value.language === 'string' &&
