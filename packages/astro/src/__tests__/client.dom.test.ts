@@ -11,6 +11,8 @@ import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
+import { registerDialogAdapter } from '../ui/adapter';
+import type { ConsentDialogHandle } from '../ui/adapter';
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement', 'marketing'],
@@ -28,6 +30,35 @@ const INLINE_CONFIG = {
 		ui: { mode: 'banner' },
 	},
 	initialTranslations: { language: 'en', translations: {} },
+};
+
+interface Deferred {
+	promise: Promise<void>;
+	resolve: () => void;
+}
+
+type PromiseWithResolvers = PromiseConstructor & {
+	withResolvers: <Value>() => {
+		promise: Promise<Value>;
+		resolve: (value: Value | PromiseLike<Value>) => void;
+		reject: (reason?: unknown) => void;
+	};
+};
+
+/** A promise a test can hold open, then release. */
+const gate = function gate(): Deferred {
+	const deferred = (Promise as PromiseWithResolvers).withResolvers<undefined>();
+	return {
+		promise: deferred.promise,
+		resolve: () => deferred.resolve(undefined),
+	};
+};
+
+/** Yields long enough for pending microtasks to settle. */
+const tick = function tick(): Promise<void> {
+	const deferred = (Promise as PromiseWithResolvers).withResolvers<undefined>();
+	setTimeout(() => deferred.resolve(undefined), 0);
+	return deferred.promise;
 };
 
 let client: AstroConsentClient | null = null;
@@ -179,12 +210,74 @@ describe('ClientRouter navigation', () => {
 
 		document.body.insertAdjacentHTML(
 			'beforeend',
-			'<script type="text/plain" data-c15t-category="measurement">globalThis.__navGated = true;</script>'
+			[
+				'<script type="text/plain" data-c15t-category="measurement">',
+				'globalThis.__navGated = true;',
+				'</script>',
+			].join('')
 		);
 		document.dispatchEvent(new Event('astro:page-load'));
 
 		expect(
 			document.querySelector('script[data-c15t-activated="true"]')
 		).not.toBeNull();
+	});
+});
+
+describe('dialog lifecycle', () => {
+	it('destroys a surface that mounted after dispose', async () => {
+		// `dispose()` only tears down the handle it can already see, so an
+		// open still waiting on its adapter would otherwise leave a surface
+		// bound to a disposed runtime.
+		const destroy = vi.fn();
+		const loading = gate();
+		registerDialogAdapter('svelte', async () => {
+			await loading.promise;
+			return {
+				mount: () =>
+					Promise.resolve({
+						close: vi.fn(),
+						destroy,
+					} as ConsentDialogHandle),
+				name: 'svelte',
+			};
+		});
+
+		renderBanner();
+		const booted = start();
+		const opening = booted.openDialog();
+		booted.dispose();
+		loading.resolve();
+		await opening;
+
+		expect(destroy).not.toHaveBeenCalled();
+		expect(booted.getConsent().activeUI).not.toBe('dialog');
+		client = null;
+	});
+
+	it('destroys a surface mounted during dispose', async () => {
+		const destroy = vi.fn();
+		const mounting = gate();
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({
+				async mount() {
+					await mounting.promise;
+					return { close: vi.fn(), destroy } as ConsentDialogHandle;
+				},
+				name: 'svelte',
+			})
+		);
+
+		renderBanner();
+		const booted = start();
+		const opening = booted.openDialog();
+		// Let the adapter load settle so the open is inside `mount()`.
+		await tick();
+		booted.dispose();
+		mounting.resolve();
+		await opening;
+
+		expect(destroy).toHaveBeenCalledOnce();
+		client = null;
 	});
 });

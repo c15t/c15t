@@ -114,6 +114,9 @@ const registry = new Map<
 	() => Promise<ConsentDialogAdapter>
 >([['svelte', async () => (await import('./svelte')).svelteDialogAdapter]]);
 
+/** First `load()` call per adapter, so a loader runs at most once. */
+const pending = new Map<C15tUIAdapterName, Promise<ConsentDialogAdapter>>();
+
 /**
  * Register a dialog surface implementation.
  *
@@ -125,6 +128,9 @@ export const registerDialogAdapter = function registerDialogAdapter(
 	load: () => Promise<ConsentDialogAdapter>
 ): void {
 	registry.set(name, load);
+	// A replacement loader has to be reachable: the memo below would
+	// otherwise keep handing out the adapter the old loader produced.
+	pending.delete(name);
 };
 
 /**
@@ -140,11 +146,27 @@ export const registerDialogAdapter = function registerDialogAdapter(
 export const loadDialogAdapter = async function loadDialogAdapter(
 	name: C15tUIAdapterName
 ): Promise<ConsentDialogAdapter> {
+	const memo = pending.get(name);
+	if (memo) {
+		return await memo;
+	}
 	const load = registry.get(name);
 	if (!load) {
 		throw new Error(
 			`@c15t/astro: no dialog adapter registered for ui: ${JSON.stringify(name)}.`
 		);
 	}
-	return await load();
+	// `registerDialogAdapter` promises the loader runs at most once, and
+	// `preloadDialog()` plus a later open would otherwise run it twice.
+	// A rejection is not cached: a failed load should be retryable.
+	const loading = (async () => {
+		try {
+			return await load();
+		} catch (error) {
+			pending.delete(name);
+			throw error;
+		}
+	})();
+	pending.set(name, loading);
+	return await loading;
 };

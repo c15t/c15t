@@ -216,6 +216,11 @@ const createClient = function createClient(
 	let dialog: ConsentDialogHandle | null = null;
 	let dialogKind: ConsentDialogKind | null = null;
 	let opening: Promise<void> | null = null;
+	// `openDialog()` awaits an adapter import, IAB readiness and the mount
+	// itself. `dispose()` can land in any of those gaps, and only destroys
+	// the handle it can already see — so the open path checks this after
+	// every await and cleans up anything it mounted too late.
+	let disposed = false;
 
 	const client: AstroConsentClient = {
 		async acceptAll() {
@@ -226,9 +231,11 @@ const createClient = function createClient(
 			dialog?.close();
 		},
 		dispose() {
+			disposed = true;
 			detachPageSwapListeners();
 			void dialog?.destroy();
 			dialog = null;
+			dialogKind = null;
 			runtime.dispose();
 			const browserWindow = getWindow();
 			if (browserWindow) {
@@ -242,8 +249,14 @@ const createClient = function createClient(
 			await runtime.identify(user);
 		},
 		async openDialog(kind: ConsentDialogKind = 'preferences') {
+			if (disposed) {
+				return;
+			}
 			if (opening) {
 				await opening;
+			}
+			if (disposed) {
+				return;
 			}
 			if (dialog && dialogKind !== kind) {
 				await dialog.destroy();
@@ -252,17 +265,30 @@ const createClient = function createClient(
 			if (!dialog) {
 				opening = (async () => {
 					const adapter = await loadDialogAdapter(options.ui);
+					if (disposed) {
+						return;
+					}
 					if (kind === 'iab') {
 						// The IAB surface renders against `runtime.iab`, which is
 						// a lazy proxy until `@c15t/iab` lands.
 						await whenIABReady();
+						if (disposed) {
+							return;
+						}
 					}
-					dialog = await adapter.mount({
+					const handle = await adapter.mount({
 						kind,
 						options,
 						runtime,
 						target: ensureDialogHost(),
 					});
+					if (disposed) {
+						// Disposal happened during the mount, so nothing will
+						// ever ask for this handle again — tear it down here.
+						await handle.destroy();
+						return;
+					}
+					dialog = handle;
 					dialogKind = kind;
 				})();
 				try {
@@ -270,6 +296,9 @@ const createClient = function createClient(
 				} finally {
 					opening = null;
 				}
+			}
+			if (disposed) {
+				return;
 			}
 			runtime.kernel.set.activeUI('dialog');
 		},
