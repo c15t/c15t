@@ -10,10 +10,13 @@
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-const SOURCE_ROOT = new URL('..', import.meta.url).pathname;
+// `URL.pathname` keeps percent-encoding and, on Windows, produces an
+// invalid `/C:/…` path; `fileURLToPath` is what the filesystem wants.
+const SOURCE_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 const FRAMEWORK_SPECIFIERS = [
 	'@c15t/react',

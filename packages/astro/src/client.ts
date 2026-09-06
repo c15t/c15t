@@ -277,6 +277,13 @@ const createClient = function createClient(
 			dialog?.close();
 		},
 		dispose() {
+			if (disposed) {
+				// A retained reference to a disposed client must not tear down
+				// the replacement that booted after it: the colour-scheme
+				// disposer and the page-swap listeners are window-owned, and
+				// the second call would be running the new client's.
+				return;
+			}
 			disposed = true;
 			detachPageSwapListeners();
 			void dialog?.destroy();
