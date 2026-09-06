@@ -194,6 +194,25 @@ describe('consent middleware', () => {
 		expect(init.credentials).toBe('omit');
 	});
 
+	it('applies the configured init headers to the server prefetch', async () => {
+		// Otherwise the server resolves one policy and the browser another.
+		const fetchImpl = vi.fn(() => Response.json({}));
+		await run({
+			fetch: fetchImpl as never,
+			headers: { 'cf-ipcountry': 'FR' },
+			options: {
+				mode: hostedMode({
+					headers: { 'x-c15t-country': 'DE', 'x-tenant': 'nope' },
+					url: 'https://consent.example.com',
+				}),
+			},
+		});
+		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+		const sent = init.headers as Record<string, string>;
+		expect(sent['x-c15t-country']).toBe('DE');
+		expect(sent['x-tenant']).toBeUndefined();
+	});
+
 	it('still sends the consent cookie to a loopback backend', async () => {
 		const fetchImpl = vi.fn(() => Response.json({}));
 		await run({

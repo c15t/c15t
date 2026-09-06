@@ -27,6 +27,7 @@ import {
 } from '@c15t/core/modules/persistence';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
+	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveBackendURL,
@@ -220,6 +221,29 @@ const mayForwardCookie = function mayForwardCookie(
  * reaching. `allowCookie` drops even that one when the hop would be in the
  * clear.
  */
+const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
+
+/**
+ * The descriptor's configured init headers, normalized and allowlisted.
+ *
+ * The core hosted transport applies these to the browser's own `/init`
+ * call. The server prefetch has to apply the same ones, or a configured
+ * `x-c15t-country` resolves one policy on the server and another in the
+ * browser, and hydration corrects a banner the server already painted.
+ */
+const configuredInitHeaders = function configuredInitHeaders(
+	headers: Record<string, string> | undefined
+): Record<string, string> {
+	const allowed: Record<string, string> = {};
+	for (const [name, value] of Object.entries(headers ?? {})) {
+		const normalized = name.toLowerCase();
+		if (INIT_HEADER_ALLOWLIST.has(normalized)) {
+			allowed[normalized] = value;
+		}
+	}
+	return allowed;
+};
+
 const forwardHeaders = function forwardHeaders(
 	headers: Headers,
 	overrides: KernelOverrides,
@@ -253,6 +277,7 @@ const prefetchHosted = async function prefetchHosted(input: {
 	base: KernelConfig;
 	backendURL: string;
 	headers: Headers;
+	configuredHeaders?: Record<string, string>;
 	options: C15tResolvedOptions;
 	url?: string;
 	fetch?: typeof globalThis.fetch;
@@ -271,14 +296,15 @@ const prefetchHosted = async function prefetchHosted(input: {
 		const response = await fetchImpl(`${absolute}/init`, {
 			cache: 'no-store',
 			credentials: allowCookie ? 'include' : 'omit',
-			headers: forwardHeaders(
-				input.headers,
-				input.base.initialOverrides ?? {},
-				{
+			headers: {
+				...forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
 					allowCookie,
 					cookieName: consentCookieName(input.options),
-				}
-			),
+				}),
+				// Configured headers win, matching the core transport's own
+				// precedence on the browser's `/init`.
+				...configuredInitHeaders(input.configuredHeaders),
+			},
 			method: 'GET',
 		});
 		if (!response.ok) {
@@ -424,6 +450,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 				? await prefetchHosted({
 						backendURL: options.mode.url,
 						base: config,
+						configuredHeaders: options.mode.headers,
 						fetch: input.fetch,
 						headers,
 						options,
