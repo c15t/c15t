@@ -130,6 +130,12 @@ export {
 	usePersistence,
 	useScriptLoader,
 } from './module-hooks';
-export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
+export type {
+	ConsentProviderOptions,
+	ConsentProviderProps,
+	ExternalRuntimeProviderOptions,
+	ExternalRuntimeProviderProps,
+	OwnedRuntimeProviderProps,
+} from './provider';
 export { ConsentProvider } from './provider';
 export type { ReactUIOptions } from './types/consent-manager';

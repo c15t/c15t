@@ -11,16 +11,24 @@ import type { ConsentRuntime } from '@c15t/core/runtime';
 
 import type { C15tResolvedOptions } from '../types';
 
+/**
+ * The slice of the integration options a dialog island renders with.
+ *
+ * Named so every framework surface can state the same shape instead of
+ * widening to `Record<string, unknown>` and casting it back.
+ */
+export interface DialogPresentationOptions {
+	consentCategories?: C15tResolvedOptions['consentCategories'];
+	legalLinks?: C15tResolvedOptions['legalLinks'];
+	theme?: C15tResolvedOptions['theme'];
+}
+
 /** Props handed to `ConsentManagerProvider` by the Svelte dialog surface. */
 export interface DialogProviderProps {
 	/** The page-level runtime. The provider borrows it, it does not own it. */
 	runtime: ConsentRuntime;
 	/** Presentation options forwarded to the provider. */
-	options: {
-		consentCategories?: C15tResolvedOptions['consentCategories'];
-		legalLinks?: C15tResolvedOptions['legalLinks'];
-		theme?: C15tResolvedOptions['theme'];
-	};
+	options: DialogPresentationOptions;
 }
 
 /**

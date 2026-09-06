@@ -4,16 +4,28 @@
  *
  * Put this in your layout's `<head>`. It hands the client boot script the
  * decision the server already made — consents, policy, translations — so
- * the page boots with no `/init` roundtrip and no banner flicker.
+ * the page boots with no `/init` roundtrip and no banner flicker, and it
+ * writes the colour-scheme class before the stylesheet paints, so a
+ * system-dark visitor does not get a light banner for a frame.
  *
- * `<ConsentBanner />` renders this itself if it has not been emitted yet,
- * so a site with a banner in every layout does not need it explicitly.
+ * `<ConsentBanner />` renders both itself if they have not been emitted
+ * yet, so a site with a banner in every layout does not need this
+ * explicitly — but `<head>` is where the colour-scheme script belongs.
  */
-import { buildConfigScript, markConfigEmitted } from '@c15t/astro/server';
+import {
+	buildColorSchemeScript,
+	buildConfigScript,
+	markConfigEmitted,
+} from '@c15t/astro/server';
 
 const { c15t } = Astro.locals;
 const shouldEmit = c15t !== undefined && markConfigEmitted(Astro.locals);
+const colorSchemeScript = shouldEmit
+	? buildColorSchemeScript(c15t.options.colorScheme)
+	: '';
 ---
+
+{colorSchemeScript && <script is:inline set:html={colorSchemeScript} />}
 
 {
 	shouldEmit && (

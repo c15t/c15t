@@ -19,7 +19,9 @@ import type { AstroIntegration } from 'astro';
 import type {
 	C15tAstroOptions,
 	C15tEndpointOptions,
+	C15tMiddlewareOptions,
 	C15tResolvedOptions,
+	C15tUIAdapterName,
 } from './types';
 
 const VIRTUAL_ID = 'virtual:c15t/options';
@@ -28,7 +30,67 @@ const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 const DEFAULT_INIT_PATH = '/api/c15t/init';
 const DEFAULT_MANIFEST_PATH = '/api/c15t/manifest';
 
-const SVELTE_INTEGRATION = '@astrojs/svelte';
+/**
+ * What each `ui` adapter needs from the app, keyed by adapter name.
+ *
+ * `astroIntegration` is checked at `astro:config:done`; `packages` is only
+ * ever printed, so the error names everything to install in one go rather
+ * than one failed build per missing package.
+ */
+const UI_ADAPTERS: Record<
+	C15tUIAdapterName,
+	{
+		astroIntegration: string;
+		packages: string[];
+		adapterModule: string;
+		adapterExport: string;
+		surfaceModule: string;
+	}
+> = {
+	react: {
+		adapterExport: 'reactDialogAdapter',
+		adapterModule: '@c15t/astro/ui/react',
+		astroIntegration: '@astrojs/react',
+		packages: ['@astrojs/react', '@c15t/react', 'react', 'react-dom'],
+		surfaceModule: '@c15t/astro/islands/consent-dialog-surface.tsx',
+	},
+	svelte: {
+		adapterExport: 'svelteDialogAdapter',
+		adapterModule: '@c15t/astro/ui/svelte',
+		astroIntegration: '@astrojs/svelte',
+		packages: ['@astrojs/svelte', 'svelte'],
+		surfaceModule: '@c15t/astro/islands/consent-dialog-surface.svelte',
+	},
+	vue: {
+		adapterExport: 'vueDialogAdapter',
+		adapterModule: '@c15t/astro/ui/vue',
+		astroIntegration: '@astrojs/vue',
+		packages: ['@astrojs/vue', '@c15t/vue', 'vue'],
+		surfaceModule: '@c15t/astro/islands/consent-dialog-surface.vue',
+	},
+};
+
+/** Every supported `ui` value, for the error a bad one produces. */
+const UI_ADAPTER_NAMES = Object.keys(UI_ADAPTERS) as C15tUIAdapterName[];
+
+/**
+ * Adapters worth suggesting when `ui` was left at the default.
+ *
+ * Never applied automatically. Switching a site's dialog framework changes
+ * what every visitor downloads, and doing that because a package happened
+ * to be installed would be a worse surprise than a one-line log.
+ */
+const SUGGESTIBLE_ADAPTERS: C15tUIAdapterName[] = ['react', 'vue'];
+
+const resolveMiddleware = function resolveMiddleware(
+	options: C15tAstroOptions
+): C15tResolvedOptions['middleware'] {
+	const raw: C15tMiddlewareOptions =
+		typeof options.middleware === 'boolean'
+			? { enabled: options.middleware }
+			: (options.middleware ?? {});
+	return { enabled: raw.enabled ?? true, skip: raw.skip ?? [] };
+};
 
 const resolveEndpoints = function resolveEndpoints(
 	options: C15tAstroOptions
@@ -84,15 +146,25 @@ export const resolveOptions = function resolveOptions(
 			'@c15t/astro: manifest mode with a `manifestURL` also needs a `backendURL` (or C15T_BACKEND_URL) — that is where consent is saved, and the injected routes only serve init and manifest.'
 		);
 	}
+	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
+	// reaches `buildBootScript()` and throws a bare `TypeError` on an
+	// undefined adapter entry. Name the supported values instead.
+	if (options.ui !== undefined && !(options.ui in UI_ADAPTERS)) {
+		throw new Error(
+			`@c15t/astro: unknown \`ui\` ${JSON.stringify(options.ui)}. Supported adapters: ${UI_ADAPTER_NAMES.join(', ')}.`
+		);
+	}
 	const {
 		endpoints: _endpoints,
 		middleware: _middleware,
-		requireSvelte: _requireSvelte,
+		requireUIIntegration: _requireUIIntegration,
 		...rest
 	} = options;
 	return {
 		...rest,
+		colorScheme: options.colorScheme ?? 'system',
 		endpoints: resolveEndpoints(options),
+		middleware: resolveMiddleware(options),
 		ui: options.ui ?? 'svelte',
 	};
 };
@@ -122,12 +194,30 @@ const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
 	};
 };
 
+/**
+ * Build the page script the integration injects.
+ *
+ * The adapter and island specifiers are written here, not in `adapter.ts`
+ * or the `.astro` components, because this is the one place that knows
+ * `ui` before the app's bundler runs. A static reference to all three
+ * would make a Svelte-only site's build resolve `@c15t/react` and `vue`.
+ * Both specifiers stay behind `import()`, so nothing loads until someone
+ * opens a dialog.
+ *
+ * @param options - The options passed to `c15t()`.
+ * @param ui - The resolved dialog adapter.
+ * @returns The module source to inject at the `page` stage.
+ */
 const buildBootScript = function buildBootScript(
-	options: C15tAstroOptions
+	options: C15tAstroOptions,
+	ui: C15tUIAdapterName
 ): string {
+	const adapter = UI_ADAPTERS[ui];
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
-		"import { boot } from '@c15t/astro/client';",
+		"import { boot, registerDialogAdapter, registerDialogSurface } from '@c15t/astro/client';",
+		`registerDialogAdapter('${ui}', async () => (await import('${adapter.adapterModule}')).${adapter.adapterExport});`,
+		`registerDialogSurface('${ui}', () => import('${adapter.surfaceModule}'));`,
 	];
 	if (options.clientEntrypoint) {
 		lines.push(
@@ -141,12 +231,84 @@ const buildBootScript = function buildBootScript(
 };
 
 /**
+ * The Vite plugins the app needs for the configured `ui`.
+ *
+ * `@c15t/vue`'s shared composables import `#imports`, which only Nuxt
+ * defines; the package ships a Vite plugin that shims it for plain Vue
+ * apps, and an Astro app is one. The import is dynamic so a site on any
+ * other adapter never has to have `@c15t/vue` installed.
+ *
+ * @param resolved - The resolved integration options.
+ * @returns Vite plugins to merge into the app config.
+ */
+const buildVitePlugins = async function buildVitePlugins(
+	resolved: C15tResolvedOptions
+): Promise<VirtualOptionsPlugin[]> {
+	const plugins: VirtualOptionsPlugin[] = [
+		createVirtualOptionsPlugin(resolved),
+	];
+	if (resolved.ui === 'vue') {
+		try {
+			const { default: shimVueImports } = await import('@c15t/vue/vite');
+			plugins.push(shimVueImports() as unknown as VirtualOptionsPlugin);
+		} catch (cause) {
+			// This runs at `astro:config:setup`, before `astro:config:done`
+			// where the peer check lives, so an unresolved import would
+			// otherwise surface as a module error naming a path the site
+			// owner never wrote.
+			throw new Error(
+				`@c15t/astro: \`ui: 'vue'\` needs ${UI_ADAPTERS.vue.packages.join(', ')} installed. Install them, or pick another \`ui\`.`,
+				{ cause }
+			);
+		}
+	}
+	return plugins;
+};
+
+/** The narrow slice of Astro's logger this integration uses. */
+interface IntegrationLogger {
+	warn: (message: string) => void;
+	error: (message: string) => void;
+}
+
+/**
+ * Point out a cheaper `ui` when the site already ships that framework.
+ *
+ * Only ever a log. Reading `ui` off whichever integration happens to be
+ * installed would change what every visitor downloads without anyone
+ * asking for it, and a site can install `@astrojs/react` for one unrelated
+ * widget while still wanting the smaller Svelte dialog.
+ *
+ * @param options - The options passed to `c15t()`.
+ * @param installed - Names of the integrations Astro resolved.
+ * @param logger - The integration logger.
+ */
+const suggestUIAdapter = function suggestUIAdapter(
+	options: C15tAstroOptions,
+	installed: Set<string>,
+	logger: IntegrationLogger
+): void {
+	if (options.ui !== undefined) {
+		return;
+	}
+	const match = SUGGESTIBLE_ADAPTERS.find((name) =>
+		installed.has(UI_ADAPTERS[name].astroIntegration)
+	);
+	if (!match) {
+		return;
+	}
+	logger.warn(
+		`this site already loads ${UI_ADAPTERS[match].astroIntegration}; \`ui: '${match}'\` would render the consent dialog with it instead of adding the Svelte runtime. Set \`ui: 'svelte'\` to silence this.`
+	);
+};
+
+/**
  * Create the c15t Astro integration.
  *
  * @param options - Consent configuration for the site.
  * @returns The Astro integration to list in `astro.config.mjs`.
- * @throws {Error} When `mode` is missing, or when a Svelte dialog surface
- * is configured without `@astrojs/svelte` installed.
+ * @throws {Error} When `mode` is missing, or when the Astro integration for
+ * the configured `ui` is not listed in `astro.config`.
  * @example
  * ```js
  * import { defineConfig } from 'astro/config';
@@ -171,34 +333,37 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 	return {
 		hooks: {
 			'astro:config:done'({ config, logger }) {
-				if (options.requireSvelte === false || resolved.ui !== 'svelte') {
+				const installed = new Set(
+					config.integrations.map((integration) => integration.name)
+				);
+				suggestUIAdapter(options, installed, logger);
+
+				if (options.requireUIIntegration === false) {
 					return;
 				}
-				const hasSvelte = config.integrations.some(
-					(integration) => integration.name === SVELTE_INTEGRATION
-				);
-				if (hasSvelte) {
+				const adapter = UI_ADAPTERS[resolved.ui];
+				if (installed.has(adapter.astroIntegration)) {
 					return;
 				}
 				logger.error(
-					`the preference-centre and IAB dialogs are Svelte islands, so ${SVELTE_INTEGRATION} must be installed and listed in astro.config before c15t(). Run \`npx astro add svelte\`, or pass \`requireSvelte: false\` if you only use the server-rendered banner.`
+					`the preference-centre and IAB dialogs render as ${resolved.ui} islands, so ${adapter.astroIntegration} must be installed and listed in astro.config before c15t(). Install ${adapter.packages.join(', ')} and run \`npx astro add ${resolved.ui}\`, or pass \`requireUIIntegration: false\` if you only use the server-rendered banner.`
 				);
 				throw new Error(
-					`@c15t/astro: missing ${SVELTE_INTEGRATION}. Install it, or set \`requireSvelte: false\` for a banner-only site.`
+					`@c15t/astro: ui: ${JSON.stringify(resolved.ui)} needs ${adapter.astroIntegration}. Install it, or set \`requireUIIntegration: false\` for a banner-only site.`
 				);
 			},
 
-			'astro:config:setup'({
+			async 'astro:config:setup'({
 				addMiddleware,
 				injectRoute,
 				injectScript,
 				updateConfig,
 			}) {
 				updateConfig({
-					vite: { plugins: [createVirtualOptionsPlugin(resolved)] },
+					vite: { plugins: await buildVitePlugins(resolved) },
 				});
 
-				if (options.middleware !== false) {
+				if (resolved.middleware.enabled) {
 					addMiddleware({
 						entrypoint: '@c15t/astro/middleware',
 						order: 'pre',
@@ -207,7 +372,7 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 
 				// `page` runs the boot on every page, before any island
 				// hydrates, so the runtime exists before anything asks for it.
-				injectScript('page', buildBootScript(options));
+				injectScript('page', buildBootScript(options, resolved.ui));
 
 				if (resolved.endpoints.enabled) {
 					injectRoute({

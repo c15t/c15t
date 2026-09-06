@@ -24,16 +24,30 @@ const stubPath = resolveRuntimeModule(
 	'./runtime/vue/stubs.js'
 );
 
+const composablesPath = resolveRuntimeModule(
+	'./runtime/composables/index.ts',
+	'./runtime/composables/index.js'
+);
+
+/**
+ * Resolve the Nuxt-shaped specifiers `@c15t/vue`'s shared runtime uses.
+ *
+ * `#imports` and `#c15t/composables` are Nuxt virtuals; a plain Vue or
+ * Astro app has neither. Both are answered from `resolveId` rather than
+ * `resolve.alias` alone: a host that sets its own aliases in array form
+ * (Astro does) replaces the object this plugin's `config()` contributes
+ * instead of merging with it, and the composables specifier then reaches
+ * Rollup unresolved. The alias stays for anything that reads it directly.
+ *
+ * @returns The Vite plugin to list in a non-Nuxt app's config.
+ */
 export const c15tVue = function c15tVue(): Plugin {
 	return {
 		config() {
 			return {
 				resolve: {
 					alias: {
-						'#c15t/composables': resolveRuntimeModule(
-							'./runtime/composables/index.ts',
-							'./runtime/composables/index.js'
-						),
+						'#c15t/composables': composablesPath,
 					},
 				},
 			};
@@ -43,6 +57,9 @@ export const c15tVue = function c15tVue(): Plugin {
 		resolveId(id) {
 			if (id === '#imports') {
 				return stubPath;
+			}
+			if (id === '#c15t/composables') {
+				return composablesPath;
 			}
 		},
 	};

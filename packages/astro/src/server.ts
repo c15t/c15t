@@ -25,7 +25,7 @@ import {
 	CONSENT_STORAGE_KEY,
 	readStoredConsentFromCookie,
 } from '@c15t/core/modules/persistence';
-import { createManifestTransport } from '@c15t/core/transports/manifest';
+import type { ManifestFetch } from '@c15t/core/server';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
@@ -38,8 +38,10 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import { loadConsentManifest, resolveManifestInit } from './api/manifest-init';
 import { filterCookieHeader } from './libs/cookies';
-import type { C15tLocals, C15tResolvedOptions } from './types';
+import { buildInlineOfflinePolicy } from './mode';
+import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
 export interface ResolveConsentContextOptions {
@@ -332,37 +334,37 @@ const prefetchManifest = async function prefetchManifest(
 	input: PrefetchLocalInput,
 	mode: Extract<C15tResolvedOptions['mode'], { type: 'manifest' }>
 ): Promise<KernelConfig> {
-	const absoluteBackend = mode.backendURL
-		? (resolveAgainstRequest(mode.backendURL, input.headers, input.url) ??
-			undefined)
-		: undefined;
-	const absoluteManifest = mode.manifestURL
-		? (resolveAgainstRequest(mode.manifestURL, input.headers, input.url) ??
-			undefined)
-		: undefined;
-	const cookieTarget = absoluteManifest ?? absoluteBackend;
-	const transport = createManifestTransport({
-		backendURL: absoluteBackend,
-		baseTranslations,
-		fetch: input.fetch,
-		headers: forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-			allowCookie: cookieTarget
-				? mayForwardCookie(cookieTarget, input.url)
-				: false,
-			cookieName: consentCookieName(input.options),
-		}),
-		inputs: input.inputs,
-		manifest: mode.manifest,
-		manifestURL: absoluteManifest,
-	});
+	// Deliberately not `createManifestTransport`: its manifest memo lives
+	// on the transport instance, and a render builds a fresh one, so every
+	// page view paid a manifest fetch. The route handlers already go
+	// through the process-wide cache in `@c15t/core/server`; so does this,
+	// which is what makes the second render cost nothing.
+	const source = { headers: input.headers, url: input.url };
+	const target = mode.manifestURL ?? mode.backendURL;
+	const absoluteTarget = target
+		? resolveAgainstRequest(target, input.headers, input.url)
+		: null;
 	try {
-		const response = await transport.init?.({
-			overrides: input.base.initialOverrides ?? {},
-			user: input.base.initialUser ?? null,
+		const manifest = await loadConsentManifest({
+			fetch: input.fetch as ManifestFetch | undefined,
+			options: input.options,
+			source,
 		});
-		return response
-			? mergeInitResponseIntoKernelConfig(input.base, response)
-			: input.base;
+		const payload = await resolveManifestInit({
+			fetch: input.fetch as ManifestFetch | undefined,
+			inputs: input.inputs,
+			manifest,
+		});
+		return mergeInitOutputIntoKernelConfig(
+			input.base,
+			payload,
+			forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
+				allowCookie: absoluteTarget
+					? mayForwardCookie(absoluteTarget, input.url)
+					: false,
+				cookieName: consentCookieName(input.options),
+			})
+		);
 	} catch {
 		return input.base;
 	}
@@ -387,9 +389,22 @@ const prefetchOffline = async function prefetchOffline(
 			overrides: input.base.initialOverrides ?? {},
 			user: input.base.initialUser ?? null,
 		});
-		return response
-			? mergeInitResponseIntoKernelConfig(input.base, response)
-			: input.base;
+		if (!response) {
+			return input.base;
+		}
+		// Without policy packs the offline transport resolves a policy that
+		// allows every category. Narrow it to what the site configured: the
+		// React dialog reads its toggle list off the policy, so leaving it
+		// wide showed categories the site never asked for while the Svelte
+		// and Vue surfaces — which filter by option — did not.
+		const policy = policyPacks
+			? response.policy
+			: (buildInlineOfflinePolicy(options.consentCategories) ??
+				response.policy);
+		return mergeInitResponseIntoKernelConfig(input.base, {
+			...response,
+			policy,
+		});
 	} catch {
 		return input.base;
 	}
@@ -494,6 +509,40 @@ export const buildConfigScript = function buildConfigScript(
 	// `<` is escaped so a translation string can never close the script tag.
 	const json = JSON.stringify(config ?? {}).replace(/</gu, '\\u003c');
 	return `window.__c15tAstroConfig=${json};`;
+};
+
+/**
+ * Build the first-paint colour-scheme script.
+ *
+ * Dark mode is the `c15t-dark` class on `<html>`, and the client boot sets
+ * it — but that runs after the stylesheet has already painted the
+ * server-rendered banner in the light palette. This runs in `<head>`,
+ * before the browser has anything to paint, so a system-dark visitor never
+ * sees the flash. It is deliberately framework-free and unbundled: a
+ * module script would be deferred and lose the race.
+ *
+ * `'light'` emits nothing. Light is the absence of the class, so there is
+ * nothing to do before paint.
+ *
+ * @param colorScheme - The resolved colour scheme.
+ * @returns Script source, or an empty string when none is needed.
+ * @example
+ * ```astro
+ * <script is:inline set:html={buildColorSchemeScript('system')} />
+ * ```
+ */
+export const buildColorSchemeScript = function buildColorSchemeScript(
+	colorScheme: C15tColorScheme
+): string {
+	if (colorScheme === 'light') {
+		return '';
+	}
+	if (colorScheme === 'dark') {
+		return "document.documentElement.classList.add('c15t-dark');";
+	}
+	// Wrapped because `matchMedia` is absent in some embedded webviews, and
+	// a throw here would abort the rest of the document's parsing.
+	return "try{document.documentElement.classList.toggle('c15t-dark',matchMedia('(prefers-color-scheme:dark)').matches)}catch(e){}";
 };
 
 export { buildPrefetchScript } from '@c15t/core';
