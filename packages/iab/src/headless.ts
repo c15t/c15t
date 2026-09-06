@@ -7,7 +7,21 @@
  * @packageDocumentation
  */
 
-export { resolveIABBannerSummary } from './headless/banner-summary';
+export {
+	IAB_BANNER_MAX_DISPLAY_ITEMS,
+	resolveIABBannerSummary,
+} from './headless/banner-summary';
+export type { ResolveIABBannerSummaryOptions } from './headless/banner-summary';
+export {
+	type HeadlessIABDialogDisplayModel,
+	type HeadlessIABDisplayConsentRow,
+	type HeadlessIABDisplayRow,
+	type HeadlessIABDisplayRowKind,
+	type HeadlessIABDisplayStackRow,
+	type HeadlessIABDisplayToggle,
+	iabDisplayTestId,
+	resolveIABDialogDisplayModel,
+} from './headless/display-model';
 export {
 	type ProcessedFeature,
 	type ProcessedGVLData,

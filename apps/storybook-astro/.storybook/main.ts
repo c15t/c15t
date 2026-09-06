@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 import type { StorybookConfig } from '@storybook/html-vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
 import { mergeConfig } from 'vite';
 
 import { astroStoryVariants } from '../src/story-variants.ts';
@@ -23,10 +25,13 @@ const config: StorybookConfig = {
 		mergeConfig(configLocal, {
 			plugins: [
 				astroPrerender(astroStoryVariants),
-				// The preference-centre island is a `.svelte` file the
+				// The dialog islands are `.svelte`, `.tsx` and `.vue` files the
 				// integration hands to the consuming app's build; here that
-				// build is Storybook's.
+				// build is Storybook's, and it compiles all three so one story
+				// per adapter can prove the adapter still mounts.
 				svelte(),
+				vue(),
+				react({ include: /\.(?:jsx|tsx)$/u }),
 			],
 			resolve: {
 				alias: [
@@ -40,6 +45,40 @@ const config: StorybookConfig = {
 					{
 						find: /^@c15t\/svelte$/u,
 						replacement: workspace('packages/svelte/src/lib/index.ts'),
+					},
+					// The Vue island reaches the Nuxt auto-import shims through
+					// the same stubs the Vue Storybook uses; nothing here runs
+					// under Nuxt.
+					{
+						find: /^#imports$/u,
+						replacement: workspace('packages/vue/src/runtime/vue/stubs.ts'),
+					},
+					{
+						find: /^#c15t\/composables$/u,
+						replacement: workspace(
+							'packages/vue/src/runtime/composables/index.ts'
+						),
+					},
+					{
+						find: /^@c15t\/vue\/vue-plugin$/u,
+						replacement: workspace('packages/vue/src/index.ts'),
+					},
+					{
+						find: /^@c15t\/vue\/runtime\/(?<capture2>.*)$/u,
+						replacement: workspace('packages/vue/src/runtime/$1'),
+					},
+					// `@c15t/react` imports its own sources through `~/`.
+					{
+						find: /^~\/(?<capture1>.*)$/u,
+						replacement: workspace('packages/react/src/$1'),
+					},
+					{
+						find: /^@c15t\/react$/u,
+						replacement: workspace('packages/react/src/index.ts'),
+					},
+					{
+						find: /^@c15t\/react\/iab$/u,
+						replacement: workspace('packages/react/src/iab.ts'),
 					},
 					{
 						find: /^c15t$/u,

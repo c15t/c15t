@@ -13,7 +13,11 @@ export type AstroComponentName =
 	| 'consent-banner'
 	| 'consent-dialog'
 	| 'consent-dialog-trigger'
+	| 'iab-consent-banner'
 	| 'iab-consent-dialog';
+
+/** Which framework renders the on-demand dialog island. */
+export type AstroUIAdapter = 'svelte' | 'react' | 'vue';
 
 /** A single prerendered variant. */
 export interface AstroStoryVariant {
@@ -34,8 +38,19 @@ export interface AstroStoryVariant {
 	options?: {
 		consentCategories?: string[];
 		colorScheme?: 'light' | 'dark' | 'system';
+		/**
+		 * Turn IAB on. The prerender resolves an IAB policy pack and hands
+		 * the integration the conformance vendor list, so the server render
+		 * has the GVL the banner needs and the island boots against a
+		 * runtime whose model is `iab`.
+		 */
 		iab?: boolean;
 	};
+	/**
+	 * Which dialog adapter the story boots. Defaults to `svelte`, the
+	 * integration's own default.
+	 */
+	ui?: AstroUIAdapter;
 	/** Put `c15t-dark` on `<html>` while the story is mounted. */
 	dark?: boolean;
 	/**
@@ -95,10 +110,30 @@ export const astroStoryVariants: readonly AstroStoryVariant[] = [
 		slots: { default: 'Cookie preferences' },
 	},
 	{
+		component: 'iab-consent-banner',
+		id: 'iab-consent-banner--default',
+		options: { colorScheme: 'light', iab: true },
+		props: { force: true },
+	},
+	{
 		component: 'iab-consent-dialog',
 		id: 'iab-consent-dialog--overview',
 		openDialog: 'iab',
 		options: { colorScheme: 'light', iab: true },
+	},
+	{
+		component: 'iab-consent-dialog',
+		id: 'iab-consent-dialog--overview-react',
+		openDialog: 'iab',
+		options: { colorScheme: 'light', iab: true },
+		ui: 'react',
+	},
+	{
+		component: 'iab-consent-dialog',
+		id: 'iab-consent-dialog--overview-vue',
+		openDialog: 'iab',
+		options: { colorScheme: 'light', iab: true },
+		ui: 'vue',
 	},
 ];
 

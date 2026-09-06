@@ -1,5 +1,6 @@
 'use client';
 
+import { iabDisplayTestId } from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useState } from 'react';
 import type { FC } from 'react';
@@ -18,6 +19,12 @@ const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface PurposeItemProps {
 	purpose: ProcessedPurpose;
+	/**
+	 * The row's `data-testid`. Comes from the shared display model, which
+	 * namespaces it by row kind — a purpose, a special purpose and a
+	 * special feature can all be numbered `1`.
+	 */
+	testId?: string;
 	isEnabled: boolean;
 	onToggle: (value: boolean) => void;
 	vendorConsents: Record<string, boolean>;
@@ -121,13 +128,15 @@ const VendorRow: FC<VendorRowProps> = ({
 						: iab.preferenceCenter.purposeItem.objected}
 				</button>
 			) : (
-				<div style={{ transform: 'scale(0.75)' }}>
-					<Switch.Root
-						aria-label={vendor.name}
-						checked={isConsented}
-						onCheckedChange={onToggle}
-					/>
-				</div>
+				// `size="small"` rather than a `scale(0.75)` wrapper: the shared
+				// switch sheet has the variant, and a transform left the control
+				// with a hit area three quarters the size it looks.
+				<Switch.Root
+					aria-label={vendor.name}
+					checked={isConsented}
+					onCheckedChange={onToggle}
+					size="small"
+				/>
 			)}
 		</div>
 	);
@@ -136,6 +145,7 @@ const VendorRow: FC<VendorRowProps> = ({
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const PurposeItem: FC<PurposeItemProps> = ({
 	purpose,
+	testId,
 	isEnabled,
 	onToggle,
 	vendorConsents,
@@ -221,7 +231,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	return (
 		<PreferenceItem.Root
 			className={noStyle ? undefined : styles.purposeItem}
-			data-testid={`purpose-item-${purpose.id}`}
+			data-testid={testId ?? iabDisplayTestId('purpose', purpose.id)}
 			noStyle
 			onOpenChange={setIsExpanded}
 			open={isExpanded}
@@ -475,7 +485,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLi}`}
 									>
 										<svg
-											style={{ height: '0.75rem', width: '0.75rem' }}
+											className={styles.legitimateInterestIcon}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
@@ -516,7 +526,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								<div className={styles.customVendorPurposeSection}>
 									<h5 className={styles.vendorSectionTitleCustom}>
 										<svg
-											style={{ height: '0.75rem', width: '0.75rem' }}
+											className={styles.legitimateInterestIcon}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"

@@ -27,6 +27,10 @@ import { fileURLToPath } from 'node:url';
 
 import type { Plugin, ViteDevServer } from 'vite';
 
+// The same vendor list the React, Svelte and Vue IAB stories mount. The
+// parity gate compares the rendered rows, so a different fixture would
+// compare different content and tell us nothing.
+import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state.ts';
 import type { AstroStoryVariant } from '../src/story-variants.ts';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
@@ -78,7 +82,24 @@ const COMPONENT_FILES: Record<string, string> = {
 	'consent-banner': 'components/consent-banner.astro',
 	'consent-dialog': 'components/consent-dialog.astro',
 	'consent-dialog-trigger': 'components/consent-dialog-trigger.astro',
+	'iab-consent-banner': 'components/iab-consent-banner.astro',
 	'iab-consent-dialog': 'components/iab-consent-dialog.astro',
+};
+
+/**
+ * The offline policy pack an IAB variant resolves against.
+ *
+ * TCF fixes the IAB banner and dialog controls, so the pack carries no
+ * `ui` overrides — `resolvePolicySync` rejects a pack that does.
+ */
+const IAB_POLICY = {
+	consent: {
+		categories: ['necessary', 'marketing'],
+		model: 'iab',
+		scopeMode: 'permissive',
+	},
+	id: 'storybook_astro_iab_policy',
+	match: { isDefault: true },
 };
 
 /**
@@ -144,10 +165,14 @@ const renderVariants = async function renderVariants(
 				colorScheme: variant.options?.colorScheme ?? 'light',
 				consentCategories: variant.options?.consentCategories,
 				mode: mode.offlineMode(),
-				ui: 'svelte',
+				ui: variant.ui ?? 'svelte',
 			};
 			if (variant.options?.iab) {
-				astroOptions.iab = {};
+				// The server needs the list to render the banner at all, and
+				// the policy pack is what makes the runtime's model `iab`.
+				astroOptions.iab = { cmpId: 160, gvl: mockGVL };
+				astroOptions.consentCategories = ['necessary', 'marketing'];
+				astroOptions.mode = mode.offlineMode({ policyPacks: [IAB_POLICY] });
 			}
 			const resolved = integration.resolveOptions(astroOptions);
 			// oxlint-disable-next-line no-await-in-loop -- See above.

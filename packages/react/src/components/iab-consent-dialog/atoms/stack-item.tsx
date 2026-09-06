@@ -11,6 +11,7 @@ import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import type { ProcessedStack, VendorId } from '../types';
+import { useIABTranslations } from '../use-iab-translations';
 import { PurposeItem } from './purpose-item';
 
 const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
@@ -53,6 +54,7 @@ export const StackItem: FC<StackItemProps> = ({
 }) => {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
+	const iab = useIABTranslations();
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const allEnabled = stack.purposes.every((p) => consents[p.id] ?? false);
@@ -125,7 +127,10 @@ export const StackItem: FC<StackItemProps> = ({
 							className={styles.stackMeta}
 							noStyle
 						>
-							{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
+							{totalVendors}{' '}
+							{totalVendors === 1
+								? iab.preferenceCenter.vendorList.partnerSingular
+								: iab.preferenceCenter.vendorList.partnerPlural}
 						</PreferenceItem.Meta>
 					</PreferenceItem.Header>
 				</PreferenceItem.Trigger>
@@ -134,10 +139,10 @@ export const StackItem: FC<StackItemProps> = ({
 					noStyle
 				>
 					{someEnabled && (
-						<div
-							className={styles.partialIndicator}
-							title="Partially enabled"
-						/>
+						<>
+							<span className={styles.srOnly}>Partially enabled</span>
+							<div className={styles.partialIndicator} />
+						</>
 					)}
 					<Switch.Root
 						aria-label={stack.name}

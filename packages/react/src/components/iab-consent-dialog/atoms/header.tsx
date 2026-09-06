@@ -85,6 +85,7 @@ const IABConsentDialogHeader = createForwardRef<
 								onClick={handleClose}
 								className={styles.closeButton}
 								aria-label={common.close}
+								data-testid="iab-consent-dialog-close"
 							>
 								<svg
 									style={{ height: '1rem', width: '1rem' }}

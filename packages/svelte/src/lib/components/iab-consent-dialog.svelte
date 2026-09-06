@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { defaultTranslationConfig } from '@c15t/core';
 	import type { Model } from '@c15t/core';
+	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
+	import { focusTrap } from '../actions/focus-trap';
+	import { portal } from '../actions/portal';
+	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
-	import { processGVLData } from '../iab-types';
+	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
-	import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
+	import { Tabs } from '../primitives';
 	import Branding from './branding.svelte';
 	import IABPurposeItem from './iab-purpose-item.svelte';
 	import IABStackItem from './iab-stack-item.svelte';
@@ -19,17 +23,24 @@
 	import CloseIcon from './icons/close-icon.svelte';
 	import InfoIcon from './icons/info-icon.svelte';
 	import LockIcon from './icons/lock-icon.svelte';
+	import Overlay from './overlay.svelte';
 
 	let {
 		open: openProp,
 		noStyle: localNoStyle,
 		hideBranding,
+		initialTab,
 		models = ['iab'] as Model[],
 		class: className,
 	}: {
 		open?: boolean;
 		noStyle?: boolean;
 		hideBranding?: boolean;
+		/**
+		 * Which tab the preference centre opens on. Lets a "N partners"
+		 * link land on the vendor list instead of purposes.
+		 */
+		initialTab?: 'purposes' | 'vendors';
 		models?: Model[];
 		class?: string;
 	} = $props();
@@ -60,34 +71,38 @@
 			(openProp ?? consent.state.activeUI === 'dialog') &&
 			iabState?.config.enabled === true
 	);
-	let dialogOpen = $state(false);
-	let lastResolvedOpen = $state(false);
 
 	// Tab state
 	let activeTab = $state<string | null>('purposes');
 	let selectedVendorId = $state<VendorId | null>(null);
 	let specialPurposesExpanded = $state(false);
 
-	// Sync tab from iabState when dialog opens
+	// One writer for the active tab. A caller-supplied `initialTab` outranks
+	// the provider's remembered one — that is what makes a "N partners"
+	// deep link land on the vendor list — and the effect below mirrors
+	// whatever wins back into the provider, so a reopened dialog remembers.
 	$effect(() => {
+		if (initialTab) {
+			activeTab = initialTab;
+			return;
+		}
 		if (isOpen && iabState?.preferenceCenterTab) {
 			activeTab = iabState.preferenceCenterTab;
 		}
 	});
 
-	$effect(() => {
-		if (isOpen !== lastResolvedOpen) {
-			dialogOpen = isOpen;
-			lastResolvedOpen = isOpen;
-		}
-	});
+	const handleClose = function handleClose() {
+		consent.state.setActiveUI('none');
+	};
 
-	$effect(() => {
-		if (lastResolvedOpen && !dialogOpen) {
-			consent.state.setActiveUI('none');
-			lastResolvedOpen = false;
+	const handleDialogKeydown = function handleDialogKeydown(
+		event: KeyboardEvent
+	) {
+		if (isDialogDismissKey(event.key)) {
+			event.preventDefault();
+			handleClose();
 		}
-	});
+	};
 
 	$effect(() => {
 		if (activeTab === 'purposes' || activeTab === 'vendors') {
@@ -95,36 +110,20 @@
 		}
 	});
 
-	// Process GVL data
-	const gvlData = $derived.by(() => {
-		if (!iabState?.gvl) {
-			return null;
-		}
-		return processGVLData(iabState.gvl, iabState.nonIABVendors || []);
-	});
-
-	// Total vendor count
-	const totalVendors = $derived.by(() => {
-		if (!iabState?.gvl) {
-			return 0;
-		}
-		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
-		return gvlVendorCount + customVendorCount;
-	});
+	// The rows this surface renders, from the shared display model.
+	const display = $derived(
+		resolveIABDialogDisplayModel(
+			iabState
+				? {
+						customVendors: iabState.nonIABVendors ?? [],
+						gvl: iabState.gvl,
+						isLoadingGVL: iabState.isLoadingGVL,
+					}
+				: null
+		)
+	);
 
 	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
-
-	// Partner count for special purposes + features section
-	const specialSectionPartnerCount = $derived.by(() => {
-		if (!gvlData) {
-			return 0;
-		}
-		return new Set([
-			...gvlData.specialPurposes.flatMap((sp) => sp.vendors.map((v) => v.id)),
-			...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
-		]).size;
-	});
 
 	const handlePurposeToggle = function handlePurposeToggle(
 		purposeId: number,
@@ -198,53 +197,64 @@
 	}).root();
 </script>
 
-<Dialog.Root
-	bind:open={dialogOpen}
-	closeOnInteractOutside={false}
-	closeOnEscape={true}
-	trapFocus={true}
-	preventScroll={true}
-	lazyMount
-	unmountOnExit
->
-	<Portal>
-		<Dialog.Backdrop
-			class={noStyle ? '' : styles.overlay || ''}
-			data-testid="iab-consent-dialog-overlay"
+<!--
+	Plain elements, not the Ark dialog: React's IAB preference centre is
+	hand-rolled, and a primitive library's `data-slot`/`data-state`
+	bookkeeping is exactly the kind of difference the cross-framework gate
+	is there to catch. The behaviour the primitive provided — portal, focus
+	trap, scroll lock, Escape to close — comes from the same actions the
+	IAB banner uses.
+-->
+{#if isOpen}
+	<div use:portal>
+		<Overlay
+			variant="iab-dialog"
+			visible={isOpen}
 		/>
-		<Dialog.Positioner
+		<div
 			class={noStyle
 				? ''
-				: `${styles.root || ''} ${isOpen ? styles.dialogVisible || '' : styles.dialogHidden || ''}`}
+				: `${styles.root || ''} ${styles.dialogVisible || ''}`}
 			data-testid="iab-consent-dialog-root"
+			dir={textDirection}
 		>
-			<Dialog.Content
+			<!-- A `div`, not a `dialog`: the user agent's dialog padding is
+			     1em, which the card sets for itself. -->
+			<div
 				class={noStyle
 					? className || ''
-					: `${styles.card || ''} ${className || ''} ${isOpen ? styles.contentVisible || '' : styles.contentHidden || ''}`}
-				dir={textDirection}
+					: `${styles.card || ''} ${className || ''} ${styles.contentVisible || ''}`}
 				data-testid="iab-consent-dialog-card"
+				role="dialog"
+				aria-modal="true"
+				aria-label={iabT.preferenceCenter.title}
+				tabindex="-1"
+				use:focusTrap={true}
+				use:scrollLock={true}
+				onkeydown={handleDialogKeydown}
 			>
 				<!-- Header -->
 				<div class={noStyle ? '' : styles.header || ''}>
 					<div class={noStyle ? '' : styles.headerContent || ''}>
-						<Dialog.Title class={noStyle ? '' : styles.title || ''}>
+						<h2 class={noStyle ? '' : styles.title || ''}>
 							{iabT.preferenceCenter.title}
-						</Dialog.Title>
-						<Dialog.Description class={noStyle ? '' : styles.description || ''}>
+						</h2>
+						<p class={noStyle ? '' : styles.description || ''}>
 							{iabT.preferenceCenter.description}
-						</Dialog.Description>
+						</p>
 					</div>
-					<Dialog.CloseTrigger
+					<button
+						type="button"
 						class={noStyle ? '' : styles.closeButton || ''}
 						aria-label={coreTranslations.common.close}
+						data-testid="iab-consent-dialog-close"
+						onclick={handleClose}
 					>
 						<CloseIcon
-							width="16"
-							height="16"
+							style="height:1rem;width:1rem"
 							aria-hidden={true}
 						/>
-					</Dialog.CloseTrigger>
+					</button>
 				</div>
 
 				<Tabs.Root
@@ -258,11 +268,8 @@
 								class={noStyle ? '' : styles.tabButton || ''}
 							>
 								{iabT.preferenceCenter.tabs.purposes}
-								{#if !isLoading && gvlData}
-									({gvlData.purposes.length +
-										gvlData.specialPurposes.length +
-										gvlData.specialFeatures.length +
-										gvlData.features.length})
+								{#if !isLoading}
+									({display.purposeTabCount})
 								{/if}
 							</Tabs.Trigger>
 							<Tabs.Trigger
@@ -271,7 +278,7 @@
 							>
 								{iabT.preferenceCenter.tabs.vendors}
 								{#if !isLoading}
-									({totalVendors})
+									({display.vendorTabCount})
 								{/if}
 							</Tabs.Trigger>
 							<div
@@ -295,84 +302,80 @@
 										{iabT.common.loading}
 									</p>
 								</div>
-							{:else if gvlData && iabState}
-								<!-- Standalone purposes -->
-								{#each gvlData.standalonePurposes as purpose (purpose.id)}
-									<IABPurposeItem
-										{purpose}
-										isEnabled={iabState.purposeConsents[purpose.id] ?? false}
-										onToggle={(value) => handlePurposeToggle(purpose.id, value)}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-										onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-										purposeLegitimateInterests={iabState.purposeLegitimateInterests}
-										onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
-										{noStyle}
-										{iabT}
-									/>
-								{/each}
-
-								<!-- Stacks -->
-								{#each gvlData.stacks as stack (stack.id)}
-									<IABStackItem
-										{stack}
-										consents={iabState.purposeConsents}
-										onToggle={handlePurposeToggle}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-										onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-										purposeLegitimateInterests={iabState.purposeLegitimateInterests}
-										onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
-										{noStyle}
-										{iabT}
-									/>
-								{/each}
-
-								<!-- Special Features -->
-								{#each gvlData.specialFeatures as feature (feature.id)}
-									<IABPurposeItem
-										purpose={{
-											id: feature.id,
-											name: feature.name,
-											description: feature.description,
-											illustrations: feature.illustrations,
-											vendors: feature.vendors,
-										}}
-										isEnabled={iabState.specialFeatureOptIns[feature.id] ??
-											false}
-										onToggle={(value) =>
-											handleSpecialFeatureToggle(feature.id, value)}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-										onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-										{noStyle}
-										{iabT}
-									/>
+							{:else if display.isReady && iabState}
+								<!-- Purposes, stacks and special features, from the
+								     shared display model so every adapter lists the
+								     same rows in the same order. -->
+								{#each display.consentRows as row (row.testId)}
+									{#if row.kind === 'stack'}
+										<IABStackItem
+											stack={row}
+											consents={iabState.purposeConsents}
+											onToggle={handlePurposeToggle}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											onVendorClick={handleVendorClick}
+											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+											purposeLegitimateInterests={iabState.purposeLegitimateInterests}
+											onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
+											{noStyle}
+											{iabT}
+										/>
+									{:else if row.toggle === 'special-feature'}
+										<IABPurposeItem
+											purpose={row}
+											testId={row.testId}
+											isEnabled={iabState.specialFeatureOptIns[row.id] ?? false}
+											onToggle={(value) =>
+												handleSpecialFeatureToggle(row.id, value)}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											onVendorClick={handleVendorClick}
+											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+											{noStyle}
+											{iabT}
+										/>
+									{:else}
+										<IABPurposeItem
+											purpose={row}
+											testId={row.testId}
+											isEnabled={iabState.purposeConsents[row.id] ?? false}
+											onToggle={(value) => handlePurposeToggle(row.id, value)}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											onVendorClick={handleVendorClick}
+											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+											purposeLegitimateInterests={iabState.purposeLegitimateInterests}
+											onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
+											{noStyle}
+											{iabT}
+										/>
+									{/if}
 								{/each}
 
 								<!-- Essential Functions: Special Purposes + Features (locked) -->
-								{#if gvlData.specialPurposes.length > 0 || gvlData.features.length > 0}
-									<Collapsible.Root
-										bind:open={specialPurposesExpanded}
+								{#if display.essentialRows.length > 0}
+									<div
 										class={noStyle ? '' : styles.specialPurposesSection || ''}
 									>
 										<div
 											class={noStyle ? '' : styles.specialPurposesHeader || ''}
 										>
-											<Collapsible.Trigger
+											<button
+												type="button"
+												aria-expanded={specialPurposesExpanded}
 												class={noStyle ? '' : styles.purposeTrigger || ''}
+												onclick={() =>
+													(specialPurposesExpanded = !specialPurposesExpanded)}
 											>
-												<Collapsible.Indicator
+												<ChevronRightIcon
 													class={noStyle ? '' : styles.purposeArrow || ''}
-												>
-													<ChevronRightIcon aria-hidden={true} />
-												</Collapsible.Indicator>
+													aria-hidden={true}
+													expanded={specialPurposesExpanded}
+												/>
 												<div class={noStyle ? '' : styles.purposeInfo || ''}>
 													<h3
 														class={noStyle
@@ -386,47 +389,28 @@
 														/>
 													</h3>
 													<p class={noStyle ? '' : styles.purposeMeta || ''}>
-														{specialSectionPartnerCount}
-														{specialSectionPartnerCount === 1
+														{display.essentialPartnerCount}
+														{display.essentialPartnerCount === 1
 															? iabT.preferenceCenter.vendorList.partnerSingular
 															: iabT.preferenceCenter.vendorList.partnerPlural}
 													</p>
 												</div>
-											</Collapsible.Trigger>
-											<InfoIcon
-												class={noStyle ? '' : styles.infoIcon || ''}
-												aria-label={iabT.preferenceCenter.specialPurposes
-													.tooltip}
-											/>
+											</button>
+											<div style="position:relative">
+												<InfoIcon
+													class={noStyle ? '' : styles.infoIcon || ''}
+													aria-label={iabT.preferenceCenter.specialPurposes
+														.tooltip}
+												/>
+											</div>
 										</div>
 
-										<Collapsible.Content>
-											<div>
-												<!-- Special Purposes -->
-												{#each gvlData.specialPurposes as purpose (purpose.id)}
+										{#if specialPurposesExpanded}
+											<div style="padding:0.75rem">
+												{#each display.essentialRows as row (row.testId)}
 													<IABPurposeItem
-														{purpose}
-														isEnabled={true}
-														onToggle={() => {}}
-														vendorConsents={iabState.vendorConsents}
-														onVendorToggle={handleVendorToggle}
-														onVendorClick={handleVendorClick}
-														isLocked={true}
-														{noStyle}
-														{iabT}
-													/>
-												{/each}
-
-												<!-- Features -->
-												{#each gvlData.features as feature (feature.id)}
-													<IABPurposeItem
-														purpose={{
-															id: feature.id,
-															name: feature.name,
-															description: feature.description,
-															illustrations: feature.illustrations,
-															vendors: feature.vendors,
-														}}
+														purpose={row}
+														testId={row.testId}
 														isEnabled={true}
 														onToggle={() => {}}
 														vendorConsents={iabState.vendorConsents}
@@ -438,8 +422,8 @@
 													/>
 												{/each}
 											</div>
-										</Collapsible.Content>
-									</Collapsible.Root>
+										{/if}
+									</div>
 								{/if}
 
 								<!-- Consent storage notice -->
@@ -459,7 +443,7 @@
 							{#if iabState}
 								<IABVendorList
 									vendorData={iabState.gvl}
-									purposes={gvlData?.purposes ?? []}
+									purposes={display.data.purposes}
 									vendorConsents={iabState.vendorConsents}
 									onVendorToggle={handleVendorToggle}
 									{selectedVendorId}
@@ -504,15 +488,20 @@
 							{iabT.common.acceptAll}
 						</button>
 					</div>
-					<button
-						type="button"
-						class={noStyle ? '' : primaryButtonClass}
-						onclick={handleSave}
-						disabled={isLoading}
-						data-action="customize"
+					<div
+						class={noStyle ? '' : actionStyles.actionGroup}
+						data-direction="row"
 					>
-						{iabT.common.saveSettings}
-					</button>
+						<button
+							type="button"
+							class={noStyle ? '' : primaryButtonClass}
+							onclick={handleSave}
+							disabled={isLoading}
+							data-action="customize"
+						>
+							{iabT.common.saveSettings}
+						</button>
+					</div>
 				</div>
 				<Branding
 					{hideBranding}
@@ -521,7 +510,7 @@
 					themeKey="iabConsentDialogTag"
 					data-testid="iab-consent-dialog-branding"
 				/>
-			</Dialog.Content>
-		</Dialog.Positioner>
-	</Portal>
-</Dialog.Root>
+			</div>
+		</div>
+	</div>
+{/if}

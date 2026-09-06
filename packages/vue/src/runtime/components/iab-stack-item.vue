@@ -1,12 +1,36 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
-import { computed, ref } from 'vue';
+/**
+ * A TCF stack: one toggle standing for the purposes it absorbed.
+ *
+ * Built on the same `PreferenceItem` primitive as the purpose rows, so the
+ * purposes it nests stay in the DOM while it is closed — which is what
+ * lets the four adapters be compared row for row.
+ */
+import switchStyles from '@c15t/ui/styles/components/switch';
+import { computed, ref, toValue } from 'vue';
 
-import { useConsentConfig } from '#c15t/composables';
+import {
+	useConsentConfig,
+	useConsentInit,
+	useIabTranslations,
+} from '#c15t/composables';
 
-import ConsentSwitch from './consent-switch.vue';
+import {
+	PreferenceItemContent,
+	PreferenceItemControl,
+	PreferenceItemHeader,
+	PreferenceItemLeading,
+	PreferenceItemMeta,
+	PreferenceItemRoot,
+	PreferenceItemTitle,
+	PreferenceItemTrigger,
+	SwitchRoot,
+	SwitchThumb,
+} from '../primitives';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
+import ChevronRightIcon from './icons/chevron-right-icon.vue';
 
 export interface IabProcessedStack {
 	id: number;
@@ -28,10 +52,14 @@ const emit = defineEmits<{
 	vendorToggle: [vendorId: IabVendorId, value: boolean];
 	vendorClick: [vendorId: IabVendorId];
 	purposeLegitimateInterestToggle: [purposeId: number, value: boolean];
+	vendorLegitimateInterestToggle: [vendorId: IabVendorId, value: boolean];
 }>();
 
 const isExpanded = ref(false);
 const config = useConsentConfig();
+const init = useConsentInit();
+
+const iabT = useIabTranslations();
 
 const allEnabled = computed(() =>
 	props.stack.purposes.every((purpose) => props.consents[purpose.id] ?? false)
@@ -53,6 +81,12 @@ const totalVendors = computed(
 		).size
 );
 
+const partnerLabel = computed(() =>
+	totalVendors.value === 1
+		? iabT.value?.preferenceCenter?.vendorList?.partnerSingular
+		: iabT.value?.preferenceCenter?.vendorList?.partnerPlural
+);
+
 const stackChecked = computed({
 	get: () => allEnabled.value,
 	set: (value: boolean) => {
@@ -69,77 +103,93 @@ const stackChecked = computed({
 </script>
 
 <template>
-	<div
+	<PreferenceItemRoot
+		v-model:open="isExpanded"
 		v-bind="config.components?.['iab-stack-item']?.root"
 		:class="dialogStyles.stackItem"
 		:data-testid="`stack-item-${stack.id}`"
+		no-style
 	>
 		<div
 			v-bind="config.components?.['iab-stack-item']?.header"
 			:class="dialogStyles.stackHeader"
 		>
-			<button
+			<PreferenceItemTrigger
 				v-bind="config.components?.['iab-stack-item']?.trigger"
-				type="button"
 				:class="dialogStyles.stackTrigger"
-				:aria-expanded="isExpanded"
-				@click="isExpanded = !isExpanded"
 			>
-				<svg
-					aria-hidden="true"
-					:class="dialogStyles.purposeArrow"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
+				<PreferenceItemLeading>
+					<ChevronRightIcon
+						:class="dialogStyles.purposeArrow"
+						:expanded="isExpanded"
+					/>
+				</PreferenceItemLeading>
+				<PreferenceItemHeader :class="dialogStyles.stackInfo">
+					<PreferenceItemTitle :class="dialogStyles.stackName">
+						{{ stack.name }}
+					</PreferenceItemTitle>
+					<PreferenceItemMeta :class="dialogStyles.stackMeta">
+						{{ totalVendors }} {{ partnerLabel }}
+					</PreferenceItemMeta>
+				</PreferenceItemHeader>
+			</PreferenceItemTrigger>
+			<PreferenceItemControl :class="dialogStyles.stackControls">
+				<template v-if="someEnabled">
+					<span :class="dialogStyles.srOnly">Partially enabled</span>
+					<div :class="dialogStyles.partialIndicator" />
+				</template>
+				<SwitchRoot
+					v-model="stackChecked"
+					v-bind="config.components?.switch?.root"
+					:aria-label="stack.name"
+					:class="switchStyles.root"
+					data-size="medium"
 				>
-					<path
-						v-if="isExpanded"
-						d="M19 9l-7 7-7-7"
-					/>
-					<path
-						v-else
-						d="M9 5l7 7-7 7"
-					/>
-				</svg>
-				<div :class="dialogStyles.stackInfo">
-					<h3 :class="dialogStyles.stackName">{{ stack.name }}</h3>
-					<p :class="dialogStyles.stackMeta">
-						{{ totalVendors }}
-						{{ totalVendors === 1 ? 'partner' : 'partners' }}
-					</p>
-				</div>
-			</button>
-			<ConsentSwitch
-				v-model="stackChecked"
-				:aria-label="stack.name"
-				:indeterminate="someEnabled"
-			/>
+					<span
+						v-bind="config.components?.switch?.track"
+						data-slot="switch-track"
+						:class="switchStyles.track"
+					>
+						<SwitchThumb
+							v-bind="config.components?.switch?.thumb"
+							:class="switchStyles.thumb"
+						/>
+					</span>
+				</SwitchRoot>
+			</PreferenceItemControl>
 		</div>
 
-		<div
-			v-if="isExpanded"
-			v-bind="config.components?.['iab-stack-item']?.content"
-			:class="dialogStyles.stackContent"
-		>
-			<p :class="dialogStyles.stackDescription">{{ stack.description }}</p>
-			<IabPurposeItem
-				v-for="purpose in stack.purposes"
-				:key="purpose.id"
-				:purpose="purpose"
-				:is-enabled="consents[purpose.id] ?? false"
-				:vendor-consents="vendorConsents"
-				:vendor-legitimate-interests="vendorLegitimateInterests"
-				:purpose-legitimate-interests="purposeLegitimateInterests"
-				@toggle="(value) => emit('toggle', purpose.id, value)"
-				@vendor-toggle="
-					(vendorId, value) => emit('vendorToggle', vendorId, value)
-				"
-				@vendor-click="(vendorId) => emit('vendorClick', vendorId)"
-				@purpose-legitimate-interest-toggle="
-					(value) => emit('purposeLegitimateInterestToggle', purpose.id, value)
-				"
-			/>
-		</div>
-	</div>
+		<PreferenceItemContent>
+			<div :class="dialogStyles.stackDescription">
+				<p>{{ stack.description }}</p>
+			</div>
+			<div
+				v-bind="config.components?.['iab-stack-item']?.content"
+				:class="dialogStyles.stackContent"
+			>
+				<IabPurposeItem
+					v-for="purpose in stack.purposes"
+					:key="purpose.id"
+					:purpose="purpose"
+					:is-enabled="consents[purpose.id] ?? false"
+					:vendor-consents="vendorConsents"
+					:vendor-legitimate-interests="vendorLegitimateInterests"
+					:purpose-legitimate-interests="purposeLegitimateInterests"
+					@toggle="(value) => emit('toggle', purpose.id, value)"
+					@vendor-toggle="
+						(vendorId, value) => emit('vendorToggle', vendorId, value)
+					"
+					@vendor-click="(vendorId) => emit('vendorClick', vendorId)"
+					@vendor-legitimate-interest-toggle="
+						(vendorId, value) =>
+							emit('vendorLegitimateInterestToggle', vendorId, value)
+					"
+					@purpose-legitimate-interest-toggle="
+						(value) =>
+							emit('purposeLegitimateInterestToggle', purpose.id, value)
+					"
+				/>
+			</div>
+		</PreferenceItemContent>
+	</PreferenceItemRoot>
 </template>

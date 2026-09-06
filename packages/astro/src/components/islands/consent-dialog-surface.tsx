@@ -38,12 +38,15 @@ export interface ConsentDialogSurfaceProps {
 	options: DialogPresentationOptions;
 	/** Which dialog to render. */
 	kind?: 'preferences' | 'iab';
+	/** Which IAB preference-centre tab to open on. */
+	tab?: 'purposes' | 'vendors';
 }
 
 const ConsentDialogSurface = ({
 	runtime,
 	options,
 	kind = 'preferences',
+	tab,
 }: ConsentDialogSurfaceProps) => (
 	<ConsentProvider
 		runtime={runtime}
@@ -51,7 +54,7 @@ const ConsentDialogSurface = ({
 	>
 		{kind === 'iab' ? (
 			<Suspense fallback={null}>
-				<IABDialogSurface />
+				<IABDialogSurface tab={tab} />
 			</Suspense>
 		) : (
 			<ConsentDraftProvider>

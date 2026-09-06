@@ -42,6 +42,12 @@ export interface ParityAllowEntry {
 	reason: string;
 }
 
+/**
+ * The one IAB allowance left, shared by every entry that carries it.
+ */
+const IAB_VENDOR_LIST_REASON =
+	"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.";
+
 export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	// ---------------------------------------------------------------------
 	// Dialog primitives. Every adapter now agrees on the boxes, the roles and
@@ -162,26 +168,48 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 		slot: '*',
 		story: 'Core/Consent Dialog/Default',
 	},
+	{
+		check: 'dom',
+		framework: 'astro',
+		reason:
+			"Astro's server-rendered IAB banner carries the attributes its client boot reads — `data-c15t-visible` on the root — and the `lang` the server resolved, the same way the core banner does. Nothing else renders them because nothing else needs them.",
+		slot: '*',
+		story: 'IAB/IAB Consent Banner/Default',
+	},
 
 	// ---------------------------------------------------------------------
-	// IAB. The banner is fully converged; the preference centre still differs
-	// in how many purposes it lists.
+	// IAB. The banner is converged on every check bar the one DOM entry
+	// above, for the boot attributes only Astro's server render carries. The
+	// preference centre is converged everywhere the eye can reach; what is
+	// left is the vendor list's collapsed internals.
 	// ---------------------------------------------------------------------
 	{
-		check: 'geometry',
+		check: 'dom',
 		framework: 'svelte',
-		reason:
-			"Svelte's IAB preference centre renders each purpose twice more than React's — the same `purpose-item-*` testid appears four times against React's two — which also shifts every row down 19px. A content difference in the preference centre, not a styling one; it needs the two adapters to agree on which purposes belong under a stack.",
+		reason: IAB_VENDOR_LIST_REASON,
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
 	},
 	{
 		check: 'dom',
-		framework: 'svelte',
-		reason:
-			"Follows the geometry entry: Svelte lists more purposes, and its Ark dialog and tabs carry `data-slot`/`data-state` bookkeeping React's hand-rolled equivalents do not.",
+		framework: 'astro',
+		reason: IAB_VENDOR_LIST_REASON,
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
+	},
+	{
+		check: 'dom',
+		framework: 'vue',
+		reason: IAB_VENDOR_LIST_REASON,
+		slot: '*',
+		story: 'IAB/IAB Consent Dialog/Overview',
+	},
+	{
+		check: 'dom',
+		framework: 'vue',
+		reason: IAB_VENDOR_LIST_REASON,
+		slot: '*',
+		story: 'IAB/IAB Consent Banner/Customize Flow',
 	},
 ];
 

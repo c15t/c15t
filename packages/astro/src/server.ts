@@ -25,6 +25,8 @@ import {
 	CONSENT_STORAGE_KEY,
 	readStoredConsentFromCookie,
 } from '@c15t/core/modules/persistence';
+import { isIABConfigured } from '@c15t/core/runtime';
+import { fetchCachedGvl } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
@@ -34,6 +36,7 @@ import {
 } from '@c15t/schema/types';
 import type {
 	ConsentRequestHeaderInputs,
+	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
@@ -352,6 +355,12 @@ const prefetchManifest = async function prefetchManifest(
 		});
 		const payload = await resolveManifestInit({
 			fetch: input.fetch as ManifestFetch | undefined,
+			fetchGvl: async ({ reference, language, fetch: fetchImpl }) =>
+				await fetchCachedGvl({
+					fetch: fetchImpl,
+					language,
+					url: reference.url,
+				}),
 			inputs: input.inputs,
 			manifest,
 		});
@@ -380,6 +389,9 @@ const prefetchOffline = async function prefetchOffline(
 	const policyPacks =
 		options.mode.type === 'offline' ? options.mode.policyPacks : undefined;
 	const transport = createOfflineTransport({
+		// Same reason as the client factory in `mode.ts`: a pack whose model
+		// is `iab` needs a configured CMP to be eligible.
+		iabEnabled: isIABConfigured(options.iab),
 		policyPacks:
 			policyPacks && policyPacks.length > 0 ? policyPacks : undefined,
 		translations: input.translations,
@@ -417,6 +429,61 @@ const prefetchLocal = function prefetchLocal(
 	return mode.type === 'manifest'
 		? prefetchManifest(input, mode)
 		: prefetchOffline(input);
+};
+
+/**
+ * Fold a vendor list into the config when the prefetch did not supply one.
+ *
+ * Hosted and manifest mode get theirs from `/init`. Offline mode has no
+ * backend to ask, so a site that wants a server-rendered IAB banner points
+ * `iab.gvl` at a list or `iab.gvlURL` at where one lives — the second goes
+ * through the shared in-process cache, so a page render is not a download.
+ *
+ * A failed fetch is not fatal: the page falls back to the non-IAB banner
+ * and the browser retries on boot.
+ *
+ * @param input - The prefetched config plus the integration options.
+ * @returns The config, with `initialIab` populated when a list resolved.
+ */
+const withResolvedGvl = async function withResolvedGvl(input: {
+	config: KernelConfig;
+	options: C15tResolvedOptions;
+	language: string;
+	fetch?: typeof globalThis.fetch;
+}): Promise<KernelConfig> {
+	const { iab } = input.options;
+	if (!(isIABConfigured(iab) && iab)) {
+		return input.config;
+	}
+	if (input.config.initialIab?.gvl) {
+		return input.config;
+	}
+
+	let gvl: GlobalVendorList | null = iab.gvl ?? null;
+	if (!gvl && iab.gvlURL) {
+		try {
+			gvl = await fetchCachedGvl({
+				fetch: input.fetch as ManifestFetch | undefined,
+				language: input.language,
+				url: iab.gvlURL,
+			});
+		} catch {
+			gvl = null;
+		}
+	}
+	if (!gvl) {
+		return input.config;
+	}
+
+	return {
+		...input.config,
+		initialIab: {
+			...(input.config.initialIab ?? {}),
+			cmpId: input.config.initialIab?.cmpId ?? iab.cmpId ?? null,
+			enabled: true,
+			gvl,
+		},
+	};
 };
 
 /**
@@ -481,6 +548,13 @@ export const resolveConsentContext = async function resolveConsentContext(
 						url: input.url,
 					});
 	}
+
+	config = await withResolvedGvl({
+		config,
+		fetch: input.fetch,
+		language: translations.language.split('-')[0] || 'en',
+		options,
+	});
 
 	const snapshot = snapshotFromConfig(config);
 	return {

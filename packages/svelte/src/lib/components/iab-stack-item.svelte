@@ -1,6 +1,6 @@
 <script lang="ts">
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
+	import switchStyles from '@c15t/ui/styles/components/switch';
 
 	import type { IABTranslations } from '../iab-translations';
 	import type { ProcessedStack, VendorId } from '../iab-types';
@@ -8,7 +8,7 @@
 	import IABPurposeItem from './iab-purpose-item.svelte';
 	import ChevronRightIcon from './icons/chevron-right-icon.svelte';
 
-	const sw = switchVariants();
+	const sw = switchStyles;
 
 	let {
 		stack,
@@ -82,36 +82,39 @@
 >
 	<div class={noStyle ? '' : styles.stackHeader || ''}>
 		<PreferenceItem.Trigger class={noStyle ? '' : styles.stackTrigger || ''}>
-			<PreferenceItem.Leading class={noStyle ? '' : styles.purposeArrow || ''}>
-				<ChevronRightIcon />
+			<PreferenceItem.Leading>
+				<ChevronRightIcon
+					class={noStyle ? '' : styles.purposeArrow || ''}
+					expanded={isExpanded}
+				/>
 			</PreferenceItem.Leading>
 			<PreferenceItem.Header class={noStyle ? '' : styles.stackInfo || ''}>
 				<PreferenceItem.Title class={noStyle ? '' : styles.stackName || ''}>
 					{stack.name}
 				</PreferenceItem.Title>
-				{#if !isExpanded}
-					<PreferenceItem.Meta class={noStyle ? '' : styles.stackMeta || ''}>
-						{totalVendors}
-						{totalVendors === 1
-							? iabT.preferenceCenter.vendorList.partnerSingular
-							: iabT.preferenceCenter.vendorList.partnerPlural}
-					</PreferenceItem.Meta>
-				{/if}
+				<PreferenceItem.Meta class={noStyle ? '' : styles.stackMeta || ''}>
+					{totalVendors}
+					{totalVendors === 1
+						? iabT.preferenceCenter.vendorList.partnerSingular
+						: iabT.preferenceCenter.vendorList.partnerPlural}
+				</PreferenceItem.Meta>
 			</PreferenceItem.Header>
 		</PreferenceItem.Trigger>
 		<PreferenceItem.Control class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
-				<span class="sr-only">Partially enabled</span>
+				<span class={noStyle ? '' : styles.srOnly || ''}>Partially enabled</span
+				>
 				<div class={noStyle ? '' : styles.partialIndicator || ''}></div>
 			{/if}
 			<Switch.Root
 				aria-label={stack.name}
 				bind:checked={stackChecked}
 				onclick={() => handleStackToggle(stackChecked)}
-				class={noStyle ? '' : sw.root()}
+				class={noStyle ? '' : sw.root}
+				data-size="medium"
 			>
-				<Switch.Control class={noStyle ? '' : sw.track()}>
-					<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
+				<Switch.Control class={noStyle ? '' : sw.track}>
+					<Switch.Thumb class={noStyle ? '' : sw.thumb} />
 				</Switch.Control>
 			</Switch.Root>
 		</PreferenceItem.Control>
@@ -120,12 +123,6 @@
 	<PreferenceItem.Content>
 		<div class={noStyle ? '' : styles.stackDescription || ''}>
 			<p>{stack.description}</p>
-			<p class={noStyle ? '' : styles.stackMeta || ''}>
-				{totalVendors}
-				{totalVendors === 1
-					? iabT.preferenceCenter.vendorList.partnerSingular
-					: iabT.preferenceCenter.vendorList.partnerPlural}
-			</p>
 		</div>
 		<div class={noStyle ? '' : styles.stackContent || ''}>
 			{#each stack.purposes as purpose (purpose.id)}

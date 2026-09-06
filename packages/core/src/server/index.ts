@@ -5,6 +5,8 @@
  * integration (Next.js, Nuxt, SvelteKit, TanStack Start) would otherwise
  * hand-roll identically behind its own `/manifest` route.
  */
+export type { FetchCachedGvlOptions } from './gvl-cache';
+export { clearGvlCache, fetchCachedGvl } from './gvl-cache';
 export type {
 	CachedManifestResponse,
 	FetchCachedManifestOptions,

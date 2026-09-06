@@ -61,7 +61,6 @@
 	data-slot="tabs-root"
 	data-orientation={orientation}
 	data-disabled={dataDisabled}
-	data-c15t-tabs-base={baseId}
 	{...restProps}
 >
 	{@render children?.()}

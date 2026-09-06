@@ -125,10 +125,9 @@
 		"@c15t/ui": "workspace:*"
 	},
 	"devDependencies": {
-		"@c15t/react": "workspace:*",
+		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@c15t/vue": "workspace:*",
 		"astro": "^5.16.0",
 		"jsdom": "^25.0.0",
 		"react": "^19.0.0",

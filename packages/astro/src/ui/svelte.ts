@@ -37,6 +37,7 @@ export const svelteDialogAdapter: ConsentDialogAdapter = {
 			props: {
 				...buildProviderProps(context.runtime, context.options),
 				kind: context.kind,
+				tab: context.tab,
 			},
 			target: context.target,
 		});

@@ -25,8 +25,10 @@ const props = withDefaults(
 		 * Test id for the action root. A surface whose footer *is* the
 		 * action root — every c15t consent surface — names it after the
 		 * footer, so the slot means the same element it does in React.
+		 * `null` renders none, which is what the IAB dialog footer needs:
+		 * React's and Svelte's carry no test id.
 		 */
-		rootTestId?: string;
+		rootTestId?: string | null;
 		/** Test id for each action group. */
 		groupTestId?: string;
 		/** Extra classes for the action root, e.g. the surface's footer. */
@@ -111,7 +113,13 @@ const actionLabel = function actionLabel(action: T) {
 };
 
 const actionTestId = function actionTestId(action: T) {
-	return props.testIds?.[action] ?? `consent-actions-${action}-button`;
+	// A surface that names its test-ids gets exactly those: an action it
+	// leaves out emits none, which is how the IAB footers match React's
+	// unlabelled buttons. Only a surface that names none at all falls back.
+	if (props.testIds) {
+		return props.testIds[action];
+	}
+	return `consent-actions-${action}-button`;
 };
 
 const buttonMode = function buttonMode(action: T) {
@@ -125,7 +133,7 @@ const buttonMode = function buttonMode(action: T) {
 <template>
 	<div
 		v-bind="rootAttrs"
-		:data-testid="rootTestId"
+		:data-testid="rootTestId ?? undefined"
 		:class="[actionStyles.actionRoot, rootClass]"
 		:data-direction="resolvedDirection"
 		:data-fill="shouldFill ? true : undefined"

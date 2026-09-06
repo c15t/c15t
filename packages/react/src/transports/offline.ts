@@ -94,6 +94,10 @@ export const offline = function offline(
 	const createTransport = (context: ProviderTransportContext) => {
 		const policyPacks = getProviderPolicies(options, context);
 		const baseTransport = createOfflineTransport({
+			// A pack whose model is `iab` only resolves when a CMP is
+			// configured; without this an offline IAB site fell through to
+			// the no-banner fallback.
+			iabEnabled: context.iabEnabled,
 			policyPacks,
 			translations: context.translations,
 		});

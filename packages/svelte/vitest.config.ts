@@ -55,6 +55,13 @@ const workspaceAliases = [
 		find: '@c15t/core/server',
 		replacement: resolve(__dirname, '../core/src/server/index.ts'),
 	},
+	// Before the bare specifier: Vite matches string aliases by prefix, so
+	// `@c15t/iab` alone would rewrite `@c15t/iab/headless` into a path that
+	// does not exist.
+	{
+		find: '@c15t/iab/headless',
+		replacement: resolve(__dirname, '../iab/src/headless.ts'),
+	},
 	{
 		find: '@c15t/iab',
 		replacement: resolve(__dirname, '../iab/src/index.ts'),

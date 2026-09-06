@@ -8,8 +8,13 @@
 -->
 <script setup lang="ts">
 import IABConsentDialog from '@c15t/vue/runtime/components/iab-consent-dialog.vue';
+
+const props = defineProps<{
+	/** Which preference-centre tab to open on. */
+	tab?: 'purposes' | 'vendors';
+}>();
 </script>
 
 <template>
-	<IABConsentDialog />
+	<IABConsentDialog :initial-tab="props.tab" />
 </template>

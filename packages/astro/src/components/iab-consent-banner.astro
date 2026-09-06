@@ -1,0 +1,308 @@
+---
+/**
+ * Server-rendered IAB TCF banner.
+ *
+ * The same deal as `<ConsentBanner />`: markup, copy and the purposes
+ * summary are produced on the server with no framework JavaScript, and the
+ * only client code is the delegated `data-c15t-action` handler every banner
+ * on the site already shares. `customize` opens the TCF preference centre
+ * through `<IABConsentDialog />`'s island, so the TCF surface downloads
+ * only when someone asks for it.
+ *
+ * The summary — which purposes, stacks and special features the banner
+ * names, how many it leaves out, how many vendors there are — comes from
+ * the shared model in `@c15t/iab/headless`, the same one the React, Svelte
+ * and Vue banners read. Same DOM shape and the same `data-testid`s, so the
+ * cross-framework parity gate compares like with like.
+ *
+ * It renders only when the server already has a vendor list. Hosted and
+ * manifest mode get one from `/init`; offline mode needs `iab.gvl` or
+ * `iab.gvlURL` on the integration options.
+ *
+ * ```astro
+ * ---
+ * import IABConsentBanner from '@c15t/astro/components/iab-consent-banner.astro';
+ * import IABConsentDialog from '@c15t/astro/components/iab-consent-dialog.astro';
+ * ---
+ * <IABConsentBanner />
+ * <IABConsentDialog />
+ * ```
+ */
+import { defaultTranslationConfig } from '@c15t/core';
+import type { TranslationsResponse } from '@c15t/core';
+import { resolveIABBannerSummary } from '@c15t/iab/headless';
+import {
+	buildColorSchemeScript,
+	buildConfigScript,
+	markConfigEmitted,
+} from '@c15t/astro/server';
+import Branding from './branding.astro';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import styles from '@c15t/ui/styles/components/iab-consent-banner';
+import buttonStyles from '@c15t/ui/styles/components/button';
+import { getTextDirection } from '@c15t/ui/utils';
+
+type IABAction = 'reject' | 'accept' | 'customize';
+
+interface Props {
+	/** Which action gets the filled treatment. */
+	primaryButton?: IABAction;
+	/**
+	 * Which consent models this banner responds to. Matches the `models`
+	 * prop on the React, Svelte and Vue IAB banners.
+	 */
+	models?: string[];
+	/** Ship the DOM without the bundled stylesheet's class names. */
+	noStyle?: boolean;
+	/** Extra class on the banner root. */
+	class?: string;
+	/** Drop the "Secured by c15t" tag. */
+	hideBranding?: boolean;
+	/** Paint the backdrop that goes with the banner's `aria-modal`. */
+	scrollLock?: boolean;
+	/**
+	 * Render even when the server decided the banner should stay hidden.
+	 * Useful for visual testing.
+	 */
+	force?: boolean;
+}
+
+const {
+	primaryButton = 'customize',
+	models = ['iab'],
+	noStyle = false,
+	class: className,
+	hideBranding = false,
+	scrollLock = true,
+	force = false,
+} = Astro.props;
+
+const { c15t } = Astro.locals;
+
+if (!c15t) {
+	throw new Error(
+		'@c15t/astro: `Astro.locals.c15t` is missing. The c15t() integration registers the middleware that populates it — check it is listed in astro.config, and that you have not set `middleware: false`.'
+	);
+}
+
+const { snapshot } = c15t;
+const emitConfig = markConfigEmitted(Astro.locals);
+const colorSchemeScript = emitConfig
+	? buildColorSchemeScript(c15t.options.colorScheme)
+	: '';
+
+const summary = resolveIABBannerSummary(
+	snapshot.iab?.enabled === false ? null : (snapshot.iab ?? null)
+);
+// No vendor list, no banner: every line of copy below interpolates a count
+// the summary derives from it. The browser boots, fetches one and mounts
+// the client banner instead.
+const shouldRender =
+	(force || c15t.shouldShowBanner) &&
+	summary.isReady &&
+	models.includes(snapshot.model);
+
+const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
+const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
+const iabFallback = fallback.iab as NonNullable<TranslationsResponse['iab']>;
+const iab = (bundle.iab ?? iabFallback) as NonNullable<TranslationsResponse['iab']>;
+const copy = {
+	accept: iab.common?.acceptAll ?? iabFallback.common.acceptAll,
+	andMore: iab.banner?.andMore ?? iabFallback.banner.andMore,
+	customize: iab.common?.customize ?? iabFallback.common.customize,
+	description: iab.banner?.description ?? iabFallback.banner.description,
+	legitimateInterestNotice:
+		iab.banner?.legitimateInterestNotice ??
+		iabFallback.banner.legitimateInterestNotice,
+	partnersLink: iab.banner?.partnersLink ?? iabFallback.banner.partnersLink,
+	reject: iab.common?.rejectAll ?? iabFallback.common.rejectAll,
+	scopeServiceSpecific:
+		iab.banner?.scopeServiceSpecific ?? iabFallback.banner.scopeServiceSpecific,
+	securedBy: bundle.common?.securedBy ?? fallback.common.securedBy,
+	title: iab.banner?.title ?? iabFallback.banner.title,
+};
+
+const textDirection = getTextDirection(snapshot.translations?.language);
+
+const descriptionText = copy.description.replace(
+	'{partnerCount}',
+	String(summary.vendorCount)
+);
+const partnersLinkText = copy.partnersLink.replace(
+	'{count}',
+	String(summary.vendorCount)
+);
+// The link sits inside the sentence, so the copy is split around it rather
+// than concatenated — a translation is free to put it anywhere.
+const [descriptionBefore = descriptionText, descriptionAfter = ''] =
+	descriptionText.split(partnersLinkText);
+
+const labels: Record<IABAction, string> = {
+	accept: copy.accept,
+	customize: copy.customize,
+	reject: copy.reject,
+};
+
+/**
+ * The shared button stylesheet keys its variants off `data-*`. `reject` is
+ * never filled even when it is the primary action, which is what the React
+ * and Svelte banners do too.
+ */
+const buttonAttrs = function buttonAttrs(action: IABAction) {
+	const primary = action === primaryButton;
+	return {
+		mode: primary && action !== 'reject' ? 'filled' : 'stroke',
+		variant: primary ? 'primary' : 'neutral',
+	};
+};
+
+const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisible, className]
+	.filter(Boolean)
+	.join(' ');
+---
+
+{
+	emitConfig && colorSchemeScript && (
+		<script is:inline set:html={colorSchemeScript} />
+	)
+}
+
+{emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
+
+{
+	shouldRender && scrollLock && (
+		<div
+			aria-hidden="true"
+			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
+			data-testid="iab-consent-banner-overlay"
+		/>
+	)
+}
+
+{
+	shouldRender && (
+		<div
+			class={rootClass}
+			data-c15t-visible="true"
+			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-testid="iab-consent-banner-root"
+			dir={textDirection}
+			lang={snapshot.translations?.language}
+			tabindex="-1"
+		>
+			<div class={noStyle ? '' : styles.cardShell}>
+				<Branding
+					branding={snapshot.branding}
+					data-testid="iab-consent-banner-branding"
+					hide={hideBranding}
+					hostname={Astro.url.hostname}
+					noStyle={noStyle}
+					securedBy={copy.securedBy}
+					variant="banner-tag"
+				/>
+				<div
+					aria-label={copy.title}
+					aria-modal="true"
+					class={noStyle ? '' : styles.card}
+					data-testid="iab-consent-banner-card"
+					role="dialog"
+				>
+					<div
+						class={noStyle ? '' : styles.header}
+						data-testid="iab-consent-banner-header"
+					>
+						<h2 class={noStyle ? '' : styles.title}>{copy.title}</h2>
+						<p class={noStyle ? '' : styles.description}>
+							{descriptionBefore}
+							<button
+								class={noStyle ? '' : styles.partnersLink}
+								data-c15t-action="customize"
+								data-c15t-dialog="iab"
+								data-c15t-tab="vendors"
+								data-testid="iab-consent-banner-partners-link"
+								type="button"
+							>
+								{partnersLinkText}
+							</button>
+							{descriptionAfter}
+						</p>
+						<ul class={noStyle ? '' : styles.purposeList}>
+							{summary.displayItems.map((name) => (
+								<li>{name}</li>
+							))}
+							{summary.remainingCount > 0 && (
+								<li class={noStyle ? '' : styles.purposeMore}>
+									{copy.andMore.replace(
+										'{count}',
+										String(summary.remainingCount)
+									)}
+								</li>
+							)}
+						</ul>
+						<p class={noStyle ? '' : styles.legitimateInterestNotice}>
+							{`${copy.legitimateInterestNotice} ${copy.scopeServiceSpecific}`}
+						</p>
+					</div>
+					<div
+						class={[noStyle ? '' : actionStyles.actionRoot, noStyle ? '' : styles.footer]
+							.filter(Boolean)
+							.join(' ')}
+						data-direction="row"
+						data-split="true"
+						data-testid="iab-consent-banner-footer"
+					>
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
+						>
+							{(['reject', 'accept'] as const).map((action) => (
+								<button
+									class={noStyle ? '' : buttonStyles.button}
+									data-action={action}
+									data-c15t-action={action}
+									data-mode={noStyle ? undefined : buttonAttrs(action).mode}
+									data-size={noStyle ? undefined : 'small'}
+									data-testid={`iab-consent-banner-${action}-button`}
+									data-variant={
+										noStyle ? undefined : buttonAttrs(action).variant
+									}
+									type="button"
+								>
+									{labels[action]}
+								</button>
+							))}
+						</div>
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
+						>
+							<button
+								class={noStyle ? '' : buttonStyles.button}
+								data-action="customize"
+								data-c15t-action="customize"
+								data-c15t-dialog="iab"
+								data-mode={noStyle ? undefined : buttonAttrs('customize').mode}
+								data-size={noStyle ? undefined : 'small'}
+								data-testid="iab-consent-banner-customize-button"
+								data-variant={
+									noStyle ? undefined : buttonAttrs('customize').variant
+								}
+								type="button"
+							>
+								{labels.customize}
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+<script>
+	// One delegated listener, shared with `<ConsentBanner />` and every
+	// dialog trigger on the site. Astro bundles and dedupes it across pages.
+	import { attachBannerActions } from '@c15t/astro/client';
+
+	attachBannerActions();
+</script>

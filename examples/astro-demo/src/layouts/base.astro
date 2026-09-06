@@ -11,6 +11,8 @@ import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
 import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
 import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
 import ConsentScript from '@c15t/astro/components/consent-script.astro';
+import IABConsentBanner from '@c15t/astro/components/iab-consent-banner.astro';
+import IABConsentDialog from '@c15t/astro/components/iab-consent-dialog.astro';
 
 import '../styles/global.css';
 
@@ -19,6 +21,12 @@ interface Props {
 }
 
 const { title } = Astro.props;
+
+// One request resolves one policy, so the surfaces follow the model the
+// server decided rather than the page. Both pairs render nothing when the
+// model is not theirs, so listing both is harmless — it is spelt out here
+// because a real site ships the one pair it needs.
+const isIAB = Astro.locals.c15t?.snapshot.model === 'iab';
 ---
 
 <html lang="en">
@@ -34,6 +42,7 @@ const { title } = Astro.props;
 			<a href="/">Home</a>
 			<a href="/second">Second page</a>
 			<a href="/geo">Geo overrides</a>
+			<a href="/iab">IAB TCF</a>
 		</nav>
 
 		<h1>{title}</h1>
@@ -43,7 +52,18 @@ const { title } = Astro.props;
 			<ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
 		</footer>
 
-		<ConsentBanner />
-		<ConsentDialog />
+		{
+			isIAB ? (
+				<>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</>
+			) : (
+				<>
+					<ConsentBanner />
+					<ConsentDialog />
+				</>
+			)
+		}
 	</body>
 </html>

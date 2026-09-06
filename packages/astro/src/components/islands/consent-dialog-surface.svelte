@@ -19,10 +19,13 @@
 		options,
 		runtime,
 		kind = 'preferences',
+		tab,
 	}: {
 		options: Record<string, unknown>;
 		runtime: ConsentRuntime;
 		kind?: 'preferences' | 'iab';
+		/** Which IAB preference-centre tab to open on. */
+		tab?: 'purposes' | 'vendors';
 	} = $props();
 
 	// The TCF surface is the larger half of this island and only an IAB site
@@ -46,7 +49,7 @@
 >
 	{#if kind === 'iab'}
 		{#if IABDialog}
-			<IABDialog />
+			<IABDialog {tab} />
 		{/if}
 	{:else}
 		<ConsentDialog />

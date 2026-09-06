@@ -9,6 +9,24 @@
  * and expose a uniform surface for the suites to interact with.
  */
 
+/**
+ * Astro is deliberately absent.
+ *
+ * A driver's `mount()` has to server-render *and* boot the result in one
+ * environment, and Astro cannot: `astro/container` pulls in esbuild, which
+ * refuses to start unless `new TextEncoder().encode('') instanceof
+ * Uint8Array` — false under jsdom, because jsdom's realm has its own
+ * `Uint8Array` and `TextEncoder` returns Node's. Swapping in Node's
+ * `TextEncoder` does not fix it; the mismatch is the realm, not the class.
+ * So the container render only works in the `node` project and the client
+ * boot only in the `jsdom` one, which is why `packages/astro` splits its
+ * suites into `*.test.ts` and `*.dom.test.ts` in the first place.
+ *
+ * The Astro surfaces are covered instead by `packages/astro`'s own two
+ * suites, by the cross-framework parity gate — which runs a real browser
+ * against the built Astro Storybook — and by that Storybook's interaction
+ * tests, one per dialog adapter.
+ */
 export type SupportedFramework =
 	| 'react'
 	| 'nextjs'

@@ -227,6 +227,18 @@
 			: whenIABReady();
 	};
 
+	const awaitIABHandle = function awaitIABHandle(
+		handle: ConsentRuntimeIABHandle,
+		generation: number
+	) {
+		void (async () => {
+			await awaitIABReady(handle);
+			if (generation === iabGeneration) {
+				iabHandleReady = true;
+			}
+		})();
+	};
+
 	const unsubscribeIAB = runtime.onIABChange((next) => {
 		iabHandle = next as IABHandle | null;
 		iabHandleReady = false;
@@ -234,14 +246,17 @@
 		if (!next) {
 			return;
 		}
-		const generation = iabGeneration;
-		void (async () => {
-			await awaitIABReady(next);
-			if (generation === iabGeneration) {
-				iabHandleReady = true;
-			}
-		})();
+		awaitIABHandle(next, iabGeneration);
 	});
+
+	// A provider that borrows a runtime — an Astro island, say — mounts
+	// after the CMP was created, so `onIABChange` has already fired and
+	// will not fire again. Without this the surfaces waited forever on a
+	// handle that had been ready since before the component existed.
+	const initialHandle = untrack(() => iabHandle);
+	if (initialHandle) {
+		awaitIABHandle(initialHandle, iabGeneration);
+	}
 
 	onMount(() => {
 		if (!ownsRuntime) {
