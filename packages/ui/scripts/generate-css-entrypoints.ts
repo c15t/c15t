@@ -262,9 +262,12 @@ const collectCssParts = function collectCssParts(
  * stylesheet into a cascade layer (`@import ... layer(c15t)`), since unlayered
  * declarations outrank every layer.
  */
-const DEFAULT_THEME_CSS = `/* default theme tokens (generated from defaultTheme) */\n${generateThemeCSS(
-	defaultTheme
-)}`;
+const DEFAULT_THEME_BANNER =
+	'/* default theme tokens (generated from defaultTheme) */';
+const DEFAULT_THEME_CSS = [
+	DEFAULT_THEME_BANNER,
+	generateThemeCSS(defaultTheme),
+].join('\n');
 
 /**
  * Generate layered CSS: component rules wrapped in @layer components.

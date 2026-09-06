@@ -72,8 +72,12 @@ const readBlock = function readBlock(
 };
 
 const LIGHT_SELECTOR = ':root, .c15t-theme-root';
-const DARK_SELECTOR =
-	':root.dark, .dark .c15t-theme-root, :root.c15t-dark, .c15t-dark .c15t-theme-root';
+const DARK_SELECTOR = [
+	':root.dark',
+	'.dark .c15t-theme-root',
+	':root.c15t-dark',
+	'.c15t-dark .c15t-theme-root',
+].join(', ');
 
 describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 	const css = readEntrypoint(entrypoint);
