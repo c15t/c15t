@@ -134,17 +134,10 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	// primitive; Svelte and Vue use their own. The boxes match.
 	// ---------------------------------------------------------------------
 	{
-		check: 'css',
-		framework: '*',
-		reason:
-			"React's widget renders the shared preference-item primitive and Svelte's renders its own, so the two disagree on which element declares the accordion's local custom properties. The boxes and the visible styles match.",
-		slot: '*',
-		story: 'Core/Consent Widget/Default',
-	},
-	{
 		check: 'dom',
 		framework: '*',
-		reason: 'Same primitive difference as the CSS entry above.',
+		reason:
+			"React's widget renders the shared preference-item primitive and Svelte's renders its own, so the trees differ on that wrapper. The boxes and the visible styles match.",
 		slot: '*',
 		story: 'Core/Consent Widget/Default',
 	},
