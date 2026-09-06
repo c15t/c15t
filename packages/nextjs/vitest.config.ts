@@ -34,6 +34,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/modules/window-debug/index.ts'
 				),
+				'@c15t/core/libs/manifest-cache': resolve(
+					__dirname,
+					'../core/src/libs/manifest-cache.ts'
+				),
 				'@c15t/core/transports/manifest': resolve(
 					__dirname,
 					'../core/src/transports/manifest.ts'

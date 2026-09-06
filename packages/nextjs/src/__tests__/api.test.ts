@@ -1,13 +1,19 @@
-import { describe, expect, test, vi } from 'vitest';
+import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	createManifestFetchInit,
 	createNextConsentRouteHandlers,
 	getSMaxAge,
 } from '../api';
+import { defineConsentConfig } from '../config';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 describe('@c15t/nextjs/api', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
 	test('GET extracts geo, language, and GPC headers for local init', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
@@ -122,5 +128,86 @@ describe('@c15t/nextjs/api', () => {
 		expect(
 			createManifestFetchInit({ manifestRevalidateSeconds: 15 }).next
 		).toEqual({ revalidate: 15 });
+	});
+
+	test('manifestGET serves repeat requests from the in-process cache', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: {
+					'cache-control': 'public, s-maxage=300',
+					etag: '"manifest-revision"',
+				},
+				status: 200,
+			})
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+		});
+		const request = new Request('https://app.example.com/api/c15t/manifest');
+
+		const first = await manifestGET(request);
+		const second = await manifestGET(request);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(await second.json()).toEqual(await first.json());
+		expect(second.headers.get('etag')).toBe('"manifest-revision"');
+	});
+
+	test('manifestGET does not cache a private backend response', async () => {
+		const fetchSpy = vi.fn().mockImplementation(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), {
+					headers: { 'cache-control': 'private, no-store' },
+					status: 200,
+				})
+			)
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+		});
+		const request = new Request('https://app.example.com/api/c15t/manifest');
+
+		await manifestGET(request);
+		await manifestGET(request);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
+	test('a defineConsentConfig result supplies backendURL and ignores its same-origin routes', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: { 'cache-control': 'public, s-maxage=120' },
+				status: 200,
+			})
+		);
+		const config = defineConsentConfig({
+			backendURL: 'https://consent.example.com/api/c15t',
+			initURL: '/api/consent/init',
+			manifestURL: '/api/consent/manifest',
+		});
+		const { GET, manifestGET } = createNextConsentRouteHandlers({
+			...config,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await manifestGET(
+			new Request('https://app.example.com/api/consent/manifest')
+		);
+		const response = await GET(
+			new Request('https://app.example.com/api/consent/init', {
+				headers: { 'x-vercel-ip-country': 'DE' },
+			})
+		);
+
+		// Both routes read the backend manifest, never the config's own
+		// same-origin `manifestURL`, which these handlers serve.
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		for (const [url] of fetchSpy.mock.calls) {
+			expect(url).toBe('https://consent.example.com/api/c15t/manifest');
+		}
+		const body = await response.json();
+		expect(body.policyDecision).toMatchObject({ policyId: 'eu-opt-in' });
 	});
 });

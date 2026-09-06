@@ -1,0 +1,30 @@
+{
+	"name": "@c15t/next-compat-15-pages",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Compatibility fixture: Next.js 15, Pages Router.",
+	"type": "module",
+	"scripts": {
+		"build": "bun ../shared/scripts/pack.ts && next build",
+		"dev": "next dev",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint .",
+		"start": "next start",
+		"test:compat": "vitest run"
+	},
+	"dependencies": {
+		"@c15t/next-compat-shared": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
+		"next": "15.5.25",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@types/node": "25.5.0",
+		"@types/react": "19.2.17",
+		"@types/react-dom": "19.2.3",
+		"playwright": "1.61.1",
+		"typescript": "6.0.3",
+		"vitest": "4.1.9"
+	}
+}

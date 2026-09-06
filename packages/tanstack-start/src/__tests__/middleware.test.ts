@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { consentRequestMiddleware } from '../middleware';
+import { readInitialConsentConfig } from '../server';
 
 type ServerHandler = (input: {
 	context: Record<string, never>;
@@ -108,7 +109,6 @@ describe('consentRequestMiddleware: language override', () => {
 
 describe('consentRequestMiddleware: immutable request headers', () => {
 	test('overrides still reach readInitialConsentConfig when headers cannot be written', async () => {
-		const { readInitialConsentConfig } = await import('../server');
 		const request = new Request('https://app.example.com/', {
 			headers: { 'accept-language': 'de', 'x-vercel-ip-country': 'DE' },
 		});

@@ -6,9 +6,11 @@ import { describe, expect, test } from 'vitest';
 
 import {
 	initOutputToKernelConfig,
+	kernelConfigToInitResponse,
 	mapInitOutputToInitResponse,
 	mergeInitResponseIntoKernelConfig,
 } from '../transports/init-output';
+import type { KernelConfig } from '../types';
 
 const BASE_PAYLOAD = {
 	location: { countryCode: 'DE', regionCode: null },
@@ -154,5 +156,138 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		});
 		expect(config.initialPolicy?.id).toBe('p1');
 		expect(config.initialBranding).toBe('c15t');
+	});
+});
+
+describe('kernelConfigToInitResponse', () => {
+	const BANNER_POLICY = {
+		id: 'gdpr',
+		model: 'opt-in',
+		ui: { mode: 'banner' },
+		// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
+	} as any;
+
+	// Init payloads a hosted `/init` or the manifest transport can produce,
+	// covering every field the merge folds into a KernelConfig.
+	const INIT_OUTPUTS = [
+		{ ...BASE_PAYLOAD, branding: 'c15t', policy: BANNER_POLICY },
+		{ ...BASE_PAYLOAD, branding: 'none', policy: BANNER_POLICY },
+		{
+			...BASE_PAYLOAD,
+			branding: 'c15t',
+			consents: { marketing: true, measurement: false },
+			policy: BANNER_POLICY,
+			subjectId: 'sub_9',
+		},
+		{
+			...BASE_PAYLOAD,
+			branding: 'c15t',
+			consents: { marketing: true },
+			hasConsented: false,
+			policy: BANNER_POLICY,
+		},
+		{
+			...BASE_PAYLOAD,
+			branding: 'c15t',
+			cmpId: 28,
+			customVendors: [{ id: 'v1', name: 'Vendor' }],
+			gvl: { vendors: {} },
+			policy: BANNER_POLICY,
+			policyDecision: { policyId: 'gdpr' },
+			policySnapshotToken: 'tok',
+		},
+		{
+			...BASE_PAYLOAD,
+			branding: 'c15t',
+			location: { countryCode: 'US', regionCode: 'CA' },
+			policy: BANNER_POLICY,
+			resolvedOverrides: { country: 'FR' },
+			translations: { language: 'fr', translations: {} },
+		},
+	];
+
+	const BASES: KernelConfig[] = [
+		{},
+		{ initialOverrides: { gpc: true, language: 'en' } },
+		{
+			initialConsents: { functionality: true },
+			initialHasConsented: true,
+			initialSubjectId: 'sub_cookie',
+		},
+		{ initialIab: { cmpId: 1, enabled: true } },
+	];
+
+	const HEADERS = [{}, { 'sec-gpc': '1' }, { 'sec-gpc': '0' }];
+
+	test('round-trips every merged config back through the merge', () => {
+		for (const base of BASES) {
+			for (const payload of INIT_OUTPUTS) {
+				for (const headers of HEADERS) {
+					const merged = mergeInitResponseIntoKernelConfig(
+						base,
+						mapInitOutputToInitResponse(payload, headers)
+					);
+					const roundTripped = mergeInitResponseIntoKernelConfig(
+						base,
+						kernelConfigToInitResponse(merged)
+					);
+					expect(roundTripped).toEqual(merged);
+				}
+			}
+		}
+	});
+
+	test('returns undefined when the config carries no policy', () => {
+		expect(kernelConfigToInitResponse({})).toBeUndefined();
+		expect(
+			kernelConfigToInitResponse({
+				initialConsents: { marketing: true },
+				initialHasConsented: true,
+				initialOverrides: { country: 'DE' },
+				initialSubjectId: 'sub_cookie',
+			})
+		).toBeUndefined();
+	});
+
+	test('maps every init-derived field to its response key', () => {
+		const response = kernelConfigToInitResponse({
+			initialBranding: 'c15t',
+			initialConsents: { marketing: true },
+			initialHasConsented: false,
+			initialIab: { cmpId: 28, customVendors: [], enabled: false, gvl: null },
+			initialLocation: { countryCode: 'DE', regionCode: null },
+			initialOverrides: { country: 'DE', language: 'de' },
+			initialPolicy: BANNER_POLICY,
+			// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
+			initialPolicyDecision: { policyId: 'gdpr' } as any,
+			initialPolicySnapshotToken: 'tok',
+			initialSubjectId: 'sub_9',
+			initialTranslations: { language: 'de', translations: {} },
+		});
+		expect(response).toEqual({
+			branding: 'c15t',
+			cmpId: 28,
+			consents: { marketing: true },
+			customVendors: [],
+			gvl: null,
+			hasConsented: false,
+			location: { countryCode: 'DE', regionCode: null },
+			policy: BANNER_POLICY,
+			policyDecision: { policyId: 'gdpr' },
+			policySnapshotToken: 'tok',
+			resolvedOverrides: { country: 'DE', language: 'de' },
+			subjectId: 'sub_9',
+			translations: { language: 'de', translations: {} },
+		});
+	});
+
+	test('leaves empty overrides and the transport out of the response', () => {
+		expect(
+			kernelConfigToInitResponse({
+				initialOverrides: {},
+				initialPolicy: BANNER_POLICY,
+				transport: { init: () => Promise.resolve({}) },
+			})
+		).toEqual({ policy: BANNER_POLICY });
 	});
 });

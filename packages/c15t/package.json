@@ -92,6 +92,11 @@
 			"import": "./shims/libs/generate-subject-id.js",
 			"default": "./shims/libs/generate-subject-id.js"
 		},
+		"./libs/manifest-cache": {
+			"types": "./shims/libs/manifest-cache.d.ts",
+			"import": "./shims/libs/manifest-cache.js",
+			"default": "./shims/libs/manifest-cache.js"
+		},
 		"./modules/script-loader": {
 			"types": "./shims/modules/script-loader.d.ts",
 			"import": "./shims/modules/script-loader.js",
@@ -304,6 +309,16 @@
 			"types": "./shims/next/middleware.d.ts",
 			"import": "./shims/next/middleware.js",
 			"default": "./shims/next/middleware.js"
+		},
+		"./next/proxy": {
+			"types": "./shims/next/proxy.d.ts",
+			"import": "./shims/next/proxy.js",
+			"default": "./shims/next/proxy.js"
+		},
+		"./next/pages": {
+			"types": "./shims/next/pages.d.ts",
+			"import": "./shims/next/pages.js",
+			"default": "./shims/next/pages.js"
 		},
 		"./next/static": {
 			"types": "./shims/next/static.d.ts",

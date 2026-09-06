@@ -83,6 +83,11 @@
 			"import": "./dist/generate-subject-id.js",
 			"default": "./dist/generate-subject-id.js"
 		},
+		"./libs/manifest-cache": {
+			"types": "./dist-types/libs/manifest-cache.d.ts",
+			"import": "./dist/manifest-cache.js",
+			"default": "./dist/manifest-cache.js"
+		},
 		"./modules/script-loader": {
 			"types": "./dist-types/modules/script-loader/index.d.ts",
 			"import": "./dist/script-loader.js",
