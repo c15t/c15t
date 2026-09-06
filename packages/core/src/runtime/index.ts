@@ -79,8 +79,11 @@ export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
 /**
  * Every consent category granted.
  *
- * Applied when the runtime is disabled (`enabled: false`) so gated
- * scripts and iframes behave as if the visitor had accepted everything.
+ * The snapshot a disabled runtime (`enabled: false`) reports, so anything
+ * reading consent sees an unrestricted visitor. It does not make the
+ * side-effecting modules run: `start()` mounts neither the script loader
+ * nor the network blocker when disabled, so scripts in `options.scripts`
+ * never execute and iframes are simply never blocked.
  */
 export const ALL_CONSENTS_GRANTED: ConsentState = {
 	experience: true,

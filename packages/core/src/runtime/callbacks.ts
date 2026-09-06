@@ -106,7 +106,11 @@ export const wireRuntimeCallbacks = function wireRuntimeCallbacks(
 ): Unsubscribe {
 	const { callbacks, fallbackTranslations, kernel } = options;
 	const reloadOnConsentRevoked = options.reloadOnConsentRevoked !== false;
-	let saveStartedSnapshot: ConsentSnapshot | null = null;
+	// One baseline per in-flight save, oldest first. A single field would
+	// let a second save overwrite the first's baseline before its
+	// completion reads it, reporting the wrong `previousPreferences` and,
+	// worse, the wrong answer to "was consent revoked?".
+	const saveBaselines: ConsentSnapshot[] = [];
 
 	const subscriptions = [
 		kernel.events.on('init:applied', ({ snapshot: next }) => {
@@ -126,13 +130,16 @@ export const wireRuntimeCallbacks = function wireRuntimeCallbacks(
 			});
 		}),
 		kernel.events.on('command:save:started', () => {
-			saveStartedSnapshot = kernel.getSnapshot();
+			saveBaselines.push(kernel.getSnapshot());
 		}),
 		kernel.events.on('command:save:completed', ({ result }) => {
+			// Shifted before the `ok` check: a failed save still consumed a
+			// baseline, and leaving it queued would shift the pairing for
+			// every save after it.
+			const previous = saveBaselines.shift() ?? null;
 			if (!result.ok) {
 				return;
 			}
-			const previous = saveStartedSnapshot;
 			const next = kernel.getSnapshot();
 			callbacks?.onConsentSet?.({
 				preferences: next.consents as never,

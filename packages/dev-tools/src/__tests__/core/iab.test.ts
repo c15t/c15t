@@ -13,6 +13,12 @@ import type { DevToolsInstance } from '../../index';
 /** Encoding and decoding a TC string outruns `waitFor`'s 1s default on CI. */
 const SAVE_TIMEOUT_MS = 5000;
 
+/**
+ * Room for both `waitFor` windows plus the work between them, so the test
+ * itself cannot time out while an assertion is still legitimately waiting.
+ */
+const SAVE_TEST_TIMEOUT_MS = SAVE_TIMEOUT_MS * 2 + 5000;
+
 const cleanups: (() => void)[] = [];
 const makeKernel = (): ConsentKernel =>
 	createConsentKernel({
@@ -236,46 +242,50 @@ describe('IAB DevTools', () => {
 		);
 	});
 
-	it('generates a fresh TC string before saving and reports transport failures', async () => {
-		const save = vi
-			.fn<(payload: SavePayload) => Promise<{ ok: boolean }>>()
-			.mockResolvedValueOnce({ ok: false })
-			.mockResolvedValue({ ok: true });
-		const kernel = createConsentKernel({
-			initialPolicy: { model: 'iab' },
-			transport: { save },
-		});
-		attachIAB(kernel, createMockGVL());
-		const tools = mount(kernel);
-		toggle(tools, 'iab:vendors:1:consent').click();
-		selectGroup(tools, 'purposes');
-		toggle(tools, 'iab:purposes:1:consent').click();
-		button(tools, 'Save IAB consent').click();
-		expect(button(tools, 'Save IAB consent').disabled).toBe(true);
-		// Encoding a TC string is real work, and a loaded CI runner takes
-		// longer over it than `waitFor`'s one-second default allows.
-		await vi.waitFor(
-			() =>
-				expect(
-					tools.element?.querySelector('[role="alert"]')?.textContent
-				).toContain('could not be saved'),
-			{ timeout: SAVE_TIMEOUT_MS }
-		);
-		expect(save).toHaveBeenCalledOnce();
-		const payload = save.mock.calls[0]?.[0];
-		expect(payload?.tcString).toBeTruthy();
-		const decoded = await decodeTCString(payload?.tcString ?? '');
-		expect(decoded.vendorConsents[1]).toBe(true);
-		expect(decoded.purposeConsents[1]).toBe(true);
-		button(tools, 'Save IAB consent').click();
-		await vi.waitFor(
-			() =>
-				expect(
-					tools.element?.querySelector('[role="status"]')?.textContent
-				).toBe('IAB consent saved.'),
-			{ timeout: SAVE_TIMEOUT_MS }
-		);
-	});
+	it(
+		'generates a fresh TC string before saving and reports transport failures',
+		{ timeout: SAVE_TEST_TIMEOUT_MS },
+		async () => {
+			const save = vi
+				.fn<(payload: SavePayload) => Promise<{ ok: boolean }>>()
+				.mockResolvedValueOnce({ ok: false })
+				.mockResolvedValue({ ok: true });
+			const kernel = createConsentKernel({
+				initialPolicy: { model: 'iab' },
+				transport: { save },
+			});
+			attachIAB(kernel, createMockGVL());
+			const tools = mount(kernel);
+			toggle(tools, 'iab:vendors:1:consent').click();
+			selectGroup(tools, 'purposes');
+			toggle(tools, 'iab:purposes:1:consent').click();
+			button(tools, 'Save IAB consent').click();
+			expect(button(tools, 'Save IAB consent').disabled).toBe(true);
+			// Encoding a TC string is real work, and a loaded CI runner takes
+			// longer over it than `waitFor`'s one-second default allows.
+			await vi.waitFor(
+				() =>
+					expect(
+						tools.element?.querySelector('[role="alert"]')?.textContent
+					).toContain('could not be saved'),
+				{ timeout: SAVE_TIMEOUT_MS }
+			);
+			expect(save).toHaveBeenCalledOnce();
+			const payload = save.mock.calls[0]?.[0];
+			expect(payload?.tcString).toBeTruthy();
+			const decoded = await decodeTCString(payload?.tcString ?? '');
+			expect(decoded.vendorConsents[1]).toBe(true);
+			expect(decoded.purposeConsents[1]).toBe(true);
+			button(tools, 'Save IAB consent').click();
+			await vi.waitFor(
+				() =>
+					expect(
+						tools.element?.querySelector('[role="status"]')?.textContent
+					).toBe('IAB consent saved.'),
+				{ timeout: SAVE_TIMEOUT_MS }
+			);
+		}
+	);
 
 	it('connects after lazy initialization and becomes read-only after module disposal', () => {
 		const kernel = makeKernel();

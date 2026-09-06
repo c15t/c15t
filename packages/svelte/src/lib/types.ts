@@ -12,16 +12,37 @@ import type {
 import type { CreateIABOptions } from '@c15t/iab';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 
+/** IAB options a provider accepts, or `false` to leave IAB unmounted. */
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &
 			Partial<Pick<IABConfig, 'enabled' | 'cmpId' | 'cmpVersion' | 'vendors'>> &
 			Partial<Pick<CreateIABOptions, 'gvl'>>)
 	| false;
 
+/**
+ * Options for the script-loader module.
+ *
+ * The runtime's own contract, re-exported under this package's `use*`
+ * naming so the Svelte hooks and the runtime cannot drift apart.
+ *
+ * @see {@link https://c15t.com/docs/frameworks/svelte}
+ */
 export type UseScriptLoaderOptions = RuntimeScriptLoaderOptions;
 
+/**
+ * Options for the network-blocker module.
+ *
+ * The runtime's own contract, re-exported under this package's `use*`
+ * naming so the Svelte hooks and the runtime cannot drift apart.
+ */
 export type UseNetworkBlockerOptions = RuntimeNetworkBlockerOptions;
 
+/**
+ * Options for the persistence module.
+ *
+ * The runtime's own contract, re-exported under this package's `use*`
+ * naming so the Svelte hooks and the runtime cannot drift apart.
+ */
 export type UsePersistenceOptions = RuntimePersistenceOptions;
 
 /**

@@ -226,11 +226,23 @@
 		]);
 	};
 
+	// What the runtime carried before this provider pushed anything, so
+	// removing the prop restores that rather than leaving the last pushed
+	// list in place. Only restored if this provider did the pushing: a
+	// borrowed runtime's categories belong to whoever owns it.
+	const initialCategories = untrack(() => runtime.consentCategories);
+	let pushedCategories = false;
+
 	$effect(() => {
-		configuredCategories =
-			consentCategoriesOption ?? untrack(() => runtime.consentCategories);
+		configuredCategories = consentCategoriesOption ?? initialCategories;
 		if (consentCategoriesOption) {
 			runtime.setConsentCategories(consentCategoriesOption);
+			pushedCategories = true;
+			return;
+		}
+		if (pushedCategories) {
+			runtime.setConsentCategories(initialCategories);
+			pushedCategories = false;
 		}
 	});
 
