@@ -734,6 +734,53 @@ for (const engine of ENGINES) {
 			assert.strictEqual((await post({ subjectId: 'sub_1' })).status, 400);
 		});
 
+		it('clamps a far-future givenAt to server time and keeps the claim', async () => {
+			await seed();
+			// Five minutes of skew is tolerated; an hour ahead is a broken clock
+			// and would otherwise distort the audit record.
+			const farFuture = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+			const before = Date.now();
+			const response = await post({ ...submission, givenAt: farFuture });
+			assert.strictEqual(response.status, 200);
+			const body = await response.json();
+
+			const recorded = new Date(body.givenAt).getTime();
+			assert.ok(recorded >= before && recorded <= Date.now() + 1_000);
+
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ metadata: unknown }>`
+						select ${sql('metadata')} from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			// SQLite hands the JSON column back as text; Postgres parses it.
+			const stored = rows[0]?.metadata;
+			const metadata =
+				typeof stored === 'string'
+					? (JSON.parse(stored) as { clientGivenAt?: string })
+					: (stored as { clientGivenAt?: string } | null);
+			assert.strictEqual(metadata?.clientGivenAt, farFuture);
+
+			// The id derives from the claim, so a retry of the same skewed
+			// submission is still a replay rather than a second consent.
+			const retry = await (
+				await post({ ...submission, givenAt: farFuture })
+			).json();
+			assert.strictEqual(retry.consentId, body.consentId);
+		});
+
+		it('preserves a slightly skewed or past givenAt', async () => {
+			await seed();
+			const skewed = new Date(Date.now() + 60 * 1000).toISOString();
+			const body = await (
+				await post({ ...submission, givenAt: skewed })
+			).json();
+			assert.strictEqual(new Date(body.givenAt).toISOString(), skewed);
+		});
+
 		it('rejects an unparseable givenAt rather than defaulting to now', async () => {
 			await seed();
 			// Defaulting would make a malformed retry a distinct consent, since

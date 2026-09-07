@@ -43,6 +43,8 @@ export interface ConsentSubmissionRequest {
 	readonly policyId?: string | null;
 	readonly purposeIds: readonly string[];
 	readonly givenAt: Date;
+	/** The client's claimed `givenAt` when `givenAt` was clamped. */
+	readonly identityGivenAt?: Date;
 	readonly metadata?: unknown;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
@@ -95,6 +97,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 	const submission: ConsentSubmission = {
 		domainId: request.domainId,
 		givenAt: request.givenAt,
+		identityGivenAt: request.identityGivenAt,
 		ipAddress: request.ipAddress,
 		metadata: request.metadata,
 		policyId: request.policyId,

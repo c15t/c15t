@@ -7,7 +7,11 @@
  * harder to read than it needs to be.
  */
 
-import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
+import {
+	clampConsentGivenAt,
+	getSubjectOutputSchema,
+	listSubjectsOutputSchema,
+} from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
@@ -219,12 +223,39 @@ export const register = function register({
 					// consent was *given*, not when it arrived. It is also part of
 					// the consent's deterministic id, so an absent one would make
 					// every retry a distinct consent.
-					const givenAt = body.givenAt ? new Date(body.givenAt) : new Date();
-					if (Number.isNaN(givenAt.getTime())) {
+					const requestedGivenAt = body.givenAt
+						? new Date(body.givenAt)
+						: new Date();
+					if (Number.isNaN(requestedGivenAt.getTime())) {
 						return yield* new BadRequestError({
 							code: 'INPUT_VALIDATION_FAILED',
 							message: 'givenAt must be a valid ISO-8601 string',
 						});
+					}
+
+					// `requestedGivenAt` is the client's claim and identifies the
+					// submission; `givenAt` is what gets recorded. They differ only
+					// when the client's clock runs far ahead. Deriving identity from
+					// the claim rather than the recorded value is what keeps retries
+					// of a skewed submission idempotent — the recorded value moves
+					// with server time, the claim does not.
+					const givenAt = clampConsentGivenAt(requestedGivenAt);
+					const wasGivenAtClamped =
+						givenAt.getTime() !== requestedGivenAt.getTime();
+
+					// Keep the client's original claim on the record itself:
+					// `givenAt` no longer holds it once clamped, and an audit trail
+					// should not depend on log retention to explain why.
+					let metadata: unknown = body.metadata;
+					if (wasGivenAtClamped) {
+						const supplied =
+							typeof body.metadata === 'object' && body.metadata !== null
+								? body.metadata
+								: {};
+						metadata = {
+							...supplied,
+							clientGivenAt: requestedGivenAt.toISOString(),
+						};
 					}
 
 					const submission = yield* submit({
@@ -232,9 +263,10 @@ export const register = function register({
 						domainId: body.domainId,
 						externalId: body.externalId ?? null,
 						givenAt,
+						identityGivenAt: wasGivenAtClamped ? requestedGivenAt : undefined,
 						identityProvider: body.identityProvider ?? null,
 						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
-						metadata: body.metadata,
+						metadata,
 						policyId: body.policyId ?? null,
 						purposeIds: body.purposeIds ?? [],
 						subjectId: body.subjectId,
@@ -248,6 +280,9 @@ export const register = function register({
 						consent: {
 							created: submission.created,
 							decisionId: submission.decisionId ?? null,
+							// A clamped claim is worth seeing in aggregate: many of them
+							// means a client shipping a broken clock, not a visitor.
+							givenAtClamped: wasGivenAtClamped,
 							id: submission.consentId,
 						},
 					});

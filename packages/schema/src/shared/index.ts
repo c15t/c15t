@@ -24,6 +24,10 @@ export {
 	jurisdictionCodes as jurisdictionCodesConst,
 } from './constants';
 export {
+	clampConsentGivenAt,
+	MAX_FUTURE_CONSENT_TIME_DRIFT_MS,
+} from './consent-time';
+export {
 	buildConsentId,
 	type ConsentSubmissionIdentity,
 	type EntityKind,
