@@ -502,7 +502,7 @@ describe('v3 ConsentProvider options API', () => {
 		await expect.element(getByTestId('marketing')).toHaveTextContent('false');
 	});
 
-	test('enabled=false skips init/modules and treats consents as allowed', async () => {
+	test('enabled=false skips init, treats consents as allowed and loads gated scripts', async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, 'fetch')
 			.mockResolvedValue(new Response('{}'));
@@ -538,11 +538,15 @@ describe('v3 ConsentProvider options API', () => {
 		await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
 		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(
-			document.head.querySelector(
-				'script[src="https://example.com/disabled.js"]'
-			)
-		).toBeNull();
+		// Every category is granted, so the marketing script is eligible and
+		// mounts exactly as it would after "accept all".
+		await vi.waitFor(() => {
+			expect(
+				document.head.querySelector(
+					'script[src="https://example.com/disabled.js"]'
+				)
+			).not.toBeNull();
+		});
 	});
 
 	test('provides theme and v3 UI config without changing kernel context', async () => {

@@ -265,6 +265,30 @@ describe('createConsentRuntime', () => {
 		runtime.dispose();
 	});
 
+	test('loads consent-gated scripts immediately when disabled', () => {
+		// `enabled: false` grants every category, so the documented behaviour
+		// is that gated scripts run as they would after "accept all" — not
+		// that they silently never load.
+		const onBeforeLoad = vi.fn();
+		const runtime = createConsentRuntime({
+			enabled: false,
+			mode: custom(createTransport()),
+			scripts: [
+				{
+					callbackOnly: true,
+					category: 'measurement',
+					id: 'measurement-callback',
+					onBeforeLoad,
+				},
+			],
+		});
+
+		runtime.start();
+		expect(runtime.kernel.getSnapshot().consents.measurement).toBe(true);
+		expect(onBeforeLoad).toHaveBeenCalledOnce();
+		runtime.dispose();
+	});
+
 	test('mounts IAB through the injected factory and exposes the handle', () => {
 		const handle = createIABHandle();
 		const createIAB = vi.fn().mockReturnValue(handle);

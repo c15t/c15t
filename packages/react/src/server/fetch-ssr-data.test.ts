@@ -99,6 +99,22 @@ describe('fetchSSRData', () => {
 		});
 	});
 
+	it('sends the client version header on the init request', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		await fetchSSRData({
+			backendURL: 'https://consent.example.com/api/c15t',
+			headers: createRequestHeaders(),
+		});
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		const headers = init.headers as Record<string, string>;
+		expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
+	});
+
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi
 			.fn()

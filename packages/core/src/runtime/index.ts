@@ -84,10 +84,11 @@ export { createLazyIABFactory } from './lazy-iab';
  * Every consent category granted.
  *
  * The snapshot a disabled runtime (`enabled: false`) reports, so anything
- * reading consent sees an unrestricted visitor. It does not make the
- * side-effecting modules run: `start()` mounts neither the script loader
- * nor the network blocker when disabled, so scripts in `options.scripts`
- * never execute and iframes are simply never blocked.
+ * reading consent sees an unrestricted visitor. Consent-gated scripts in
+ * `options.scripts` therefore load immediately, exactly as they would for a
+ * visitor who accepted everything. The blockers stay unmounted: with every
+ * category granted they would block nothing, so mounting them would only
+ * patch `fetch` and observe the DOM for no effect.
  */
 export const ALL_CONSENTS_GRANTED: ConsentState = {
 	experience: true,
@@ -531,9 +532,14 @@ export const createConsentRuntime = function createConsentRuntime(
 				});
 			}
 
-			if (enabled && options.scripts && options.scripts.length > 0) {
+			// Not gated on `enabled`: a disabled runtime grants every category, so
+			// the loader mounts the configured scripts straight away. Skipping it
+			// would silently drop every consent-gated integration on a site that
+			// turned consent management off.
+			if (options.scripts && options.scripts.length > 0) {
 				const loader = createScriptLoader({
 					kernel,
+					nonce: options.nonce,
 					onDebug: options.scriptLoader?.onDebug,
 					scripts: options.scripts,
 				});

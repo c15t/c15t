@@ -94,6 +94,16 @@ export interface ConsentProviderOptions extends Pick<
 > {
 	enabled?: boolean;
 	/**
+	 * Content Security Policy nonce applied to DOM nodes c15t injects.
+	 *
+	 * @remarks
+	 * Set this when your CSP uses a nonce-based policy instead of
+	 * `'unsafe-inline'`. The provider forwards it to the injected theme
+	 * `<style>` element and to every `<script>` element created by the
+	 * script loader. A per-script `nonce` still takes precedence.
+	 */
+	nonce?: string;
+	/**
 	 * Transport factory the provider builds its kernel with. Required.
 	 *
 	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
@@ -909,9 +919,11 @@ const InitMount = ({
 };
 
 const ScriptsMount = ({
+	nonce,
 	options,
 	scripts,
 }: {
+	nonce?: string;
 	options?: UseScriptLoaderOptions;
 	scripts: Script[];
 }) => {
@@ -922,11 +934,13 @@ const ScriptsMount = ({
 	} | null>(null);
 	const latestScriptsRef = useRef(scripts);
 	const latestOptionsRef = useRef(options);
+	const latestNonceRef = useRef(nonce);
 
 	useEffect(() => {
 		latestScriptsRef.current = scripts;
 		latestOptionsRef.current = options;
-	}, [options, scripts]);
+		latestNonceRef.current = nonce;
+	}, [nonce, options, scripts]);
 
 	useEffect(() => {
 		if (!kernel) {
@@ -940,6 +954,7 @@ const ScriptsMount = ({
 			}
 			const created = createScriptLoader({
 				kernel,
+				nonce: latestNonceRef.current,
 				onDebug: latestOptionsRef.current?.onDebug,
 				scripts: latestScriptsRef.current,
 			});
@@ -1066,7 +1081,13 @@ const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
  * user theme the UI package's default theme is used, so components are
  * never left without colours; a stylesheet can still override any token.
  */
-const ThemeStyleMount = ({ theme }: { theme?: Theme }) => {
+const ThemeStyleMount = ({
+	nonce,
+	theme,
+}: {
+	nonce?: string;
+	theme?: Theme;
+}) => {
 	const [themeCSS, setThemeCSS] = useState('');
 
 	useEffect(() => {
@@ -1090,6 +1111,7 @@ const ThemeStyleMount = ({ theme }: { theme?: Theme }) => {
 	return (
 		<style
 			id="c15t-theme"
+			nonce={nonce}
 			// oxlint-disable-next-line react/no-danger -- Generated CSS variables
 			dangerouslySetInnerHTML={{ __html: themeCSS }}
 		/>
@@ -1325,8 +1347,14 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					{enabled && persistenceOptions ? (
 						<PersistenceMount options={persistenceOptions} />
 					) : null}
-					{enabled && scripts && scripts.length > 0 ? (
+					{/*
+					 * Not gated on `enabled`: a disabled provider grants every
+					 * category, so consent-gated scripts load straight away rather
+					 * than silently never running.
+					 */}
+					{scripts && scripts.length > 0 ? (
 						<ScriptsMount
+							nonce={options.nonce}
 							options={options.scriptLoader}
 							scripts={scripts}
 						/>
@@ -1346,7 +1374,10 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 				themeConfig={themeContextValue}
 				uiConfig={uiConfigValue}
 			>
-				<ThemeStyleMount theme={userTheme} />
+				<ThemeStyleMount
+					nonce={options.nonce}
+					theme={userTheme}
+				/>
 				<IABGate
 					enabled={enabled}
 					initialModel={

@@ -1,5 +1,7 @@
+import { C15T_VERSION_HEADER } from '@c15t/core';
 import type { InitOutput, SSRInitialData } from '@c15t/core';
 
+import { version } from '../version';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
@@ -235,8 +237,10 @@ export const fetchSSRData = async function fetchSSRData(
 		console.log(`[c15t/server] Fetching from: ${normalizedURL}/init`);
 	}
 
-	// Apply overrides to headers
-	const initHeaders = { ...relevantHeaders };
+	// Apply overrides to headers. The version header lets the backend
+	// attribute this server-side `/init` to a client release, exactly as the
+	// browser transports do for their own requests.
+	const initHeaders = { ...relevantHeaders, [C15T_VERSION_HEADER]: version };
 	if (overrides?.country) {
 		initHeaders['x-c15t-country'] = overrides.country;
 		if (debug) {
