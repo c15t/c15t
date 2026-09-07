@@ -8,16 +8,22 @@ import type { PolicyRight } from '@c15t/schema/types';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
 import { forwardRef as createForwardRef, useRef } from 'react';
-import type { ReactNode, Ref, RefObject } from 'react';
+import type {
+	ButtonHTMLAttributes,
+	MouseEvent,
+	ReactNode,
+	Ref,
+	RefObject,
+} from 'react';
 
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { Slot } from '~/components/shared/libs/slot';
-import { usePolicyRule } from '~/hooks';
+import { usePolicyRule, useSetActiveUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
-import { mergeSlotProps } from '~/utils/merge-slot-props';
+import { getSlotProps, mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Box } from '../shared/primitives/box';
 import type { BoxProps } from '../shared/primitives/box';
@@ -441,26 +447,32 @@ ConsentBannerDismissButton.displayName = CONSENT_BANNER_DISMISS_BUTTON_NAME;
  * @public
  */
 export interface ConsentBannerRightLinkProps extends Omit<
-	ConsentButtonProps,
-	'children' | 'consentAction' | 'isPrimary'
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'children' | 'type'
 > {
 	/** Which persistent right the control keeps reachable. */
 	right: ConsentBannerRight;
 	/** Custom label. Defaults to the `rights` translation for `right`. */
 	children?: ReactNode;
+	/** Render the child element instead of a button, keeping the behavior. */
+	asChild?: boolean;
+	/** Skip the banner stylesheet for this control. */
+	noStyle?: boolean;
 }
 
 /**
- * Neutral button that keeps a persistent right reachable from the banner.
+ * Underlined text control that keeps a persistent right reachable from the
+ * banner.
  *
  * @remarks
  * Opens the preference center, where the subject can opt out or change
- * category preferences. Renders through the shared button primitive with the
- * `neutral` variant so it sits in the action row beside the primary. The
- * label comes from the `rights` translations and children override it.
- * Carries `data-action="right"`, `data-right`, and `data-c15t-rights` for
- * styling hooks; hosts composing their own link with `asChild` can add the
- * `rightLink` class from the banner stylesheet.
+ * category preferences. Renders as plain underlined text through the
+ * `rightLink` class and the `banner.rightLink` slot so the primary action
+ * beside it keeps the emphasis. The label comes from the `rights`
+ * translations and children override it. Carries `data-action="right"`,
+ * `data-right`, and `data-c15t-rights` for styling hooks. With `asChild`
+ * the child element, such as a link to a dedicated opt-out page, receives
+ * the same class, attributes, and click handling.
  *
  * @example
  * ```tsx
@@ -470,31 +482,52 @@ export interface ConsentBannerRightLinkProps extends Omit<
 const ConsentBannerRightLink = createForwardRef<
 	HTMLButtonElement,
 	ConsentBannerRightLinkProps
->(({ right, children, ...props }, ref) => {
-	const { rights } = useTranslations();
-	const policy = usePolicyRule();
-	const { noStyle } = useTheme();
-	const label =
-		(right === 'opt-out' ? rights?.optOut : rights?.preferences) ??
-		FALLBACK_RIGHT_LABELS[right];
-	return (
-		<ConsentButton
-			ref={ref as Ref<HTMLButtonElement>}
-			action="open-consent-dialog"
-			variant="neutral"
-			mode="stroke"
-			slotKey="banner.rightLink"
-			data-action="right"
-			data-right={right}
-			data-c15t-rights={policy.rights.join(' ')}
-			data-testid={`consent-banner-right-link-${right}`}
-			noStyle={noStyle}
-			{...props}
-		>
-			{children ?? label}
-		</ConsentButton>
-	);
-});
+>(
+	(
+		{ right, children, asChild, className, style, noStyle, onClick, ...props },
+		ref
+	) => {
+		const { rights } = useTranslations();
+		const policy = usePolicyRule();
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const setActiveUI = useSetActiveUI();
+		const label =
+			(right === 'opt-out' ? rights?.optOut : rights?.preferences) ??
+			FALLBACK_RIGHT_LABELS[right];
+		const mergedProps = mergeSlotProps(
+			getSlotProps(components, 'banner.rightLink'),
+			{
+				baseClassName: styles.rightLink,
+				className,
+				noStyle: noStyle ?? contextNoStyle,
+				style,
+			}
+		);
+		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+			onClick?.(event);
+			if (!event.defaultPrevented) {
+				setActiveUI('dialog');
+			}
+		};
+		const Comp = asChild ? Slot : 'button';
+		return (
+			<Comp
+				ref={ref as Ref<HTMLButtonElement>}
+				type={asChild ? undefined : 'button'}
+				{...mergedProps}
+				data-action="right"
+				data-right={right}
+				data-c15t-rights={policy.rights.join(' ')}
+				data-testid={`consent-banner-right-link-${right}`}
+				onClick={handleClick}
+				{...props}
+			>
+				{children ?? label}
+			</Comp>
+		);
+	}
+);
 
 ConsentBannerRightLink.displayName = CONSENT_BANNER_RIGHT_LINK_NAME;
 

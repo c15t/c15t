@@ -68,7 +68,7 @@ describe('demo policy scenarios', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		kernel.dispose();
 	});
-	it('renders the US notice as Accept All plus a single opt-out button', () => {
+	it('renders the US notice as Accept All plus a single opt-out link', () => {
 		const scenario = getScenarioById('custom-us-notice');
 		const resolution = resolvePolicyRules({
 			countryCode: scenario.country,
@@ -86,7 +86,7 @@ describe('demo policy scenarios', () => {
 		expect(prompt.orderedActions).toEqual(['dismiss']);
 		expect(prompt.uncoveredRights).toEqual(['opt-out']);
 	});
-	it('covers the California opt-out with reject and adds a preferences button', () => {
+	it('covers the California opt-out with reject and adds a preferences link', () => {
 		const scenario = getScenarioById('custom-ca-do-not-sell');
 		expect(scenario.policy.model).toBe('opt-out');
 		const resolution = resolvePolicyRules({

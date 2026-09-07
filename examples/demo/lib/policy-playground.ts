@@ -429,7 +429,7 @@ export const DEMO_PRESENTATION_BY_RULE: Record<
 
 /**
  * Shape for any notice prompt, including a preset edited to `notice` in the
- * playground. A small bottom-left card with the opt-out button and Accept
+ * playground. A small bottom-left card with the opt-out link and Accept
  * All; the trigger toolbar keeps the bottom-right corner, so the two never
  * overlap.
  */

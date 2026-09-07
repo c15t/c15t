@@ -1,3 +1,4 @@
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -201,11 +202,14 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 			html
 		)?.[0];
 		expect(optOutButton).toBeDefined();
-		// A neutral button in the action row, opening the preference center
-		// through the same delegated handler as customize.
+		// An underlined text control, so Accept All is the only button in the
+		// row. It opens the preference center through the same delegated
+		// handler as customize.
 		expect(optOutButton).toContain('data-action="right"');
 		expect(optOutButton).toContain('data-c15t-action="customize"');
-		expect(optOutButton).toContain('data-variant="neutral"');
+		expect(optOutButton).toContain(bannerStyles.rightLink);
+		expect(optOutButton).not.toContain('data-variant=');
+		expect(optOutButton).not.toContain('data-mode=');
 		expect(html).toContain('Do not sell or share my data');
 		expect(html).toContain('data-action="dismiss"');
 		expect(html).toContain('data-c15t-action="dismiss"');

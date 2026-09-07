@@ -105,7 +105,7 @@ const PROMPT_HINTS: Record<PolicyPrompt, string> = {
 	choice: 'First layer offers accept and reject (and optionally customize).',
 	none: 'No first layer. Preferences and disclosures stay reachable.',
 	notice:
-		'Non-blocking notice with one acknowledgement, shown as Accept All, plus an opt-out button. Acknowledging never creates a choice.',
+		'Non-blocking notice with one acknowledgement, shown as Accept All, plus an opt-out text link. Acknowledging never creates a choice.',
 };
 
 const EVENT_TYPES: KernelEvent['type'][] = [

@@ -242,12 +242,12 @@
 
 	.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
 		flex-direction: column;
-		align-items: stretch;
+		align-items: flex-start;
 	}
 
 	.root[data-variant='bar']:not(:global(.headless))
 		.footer
-		button[data-action] {
+		button[data-action]:not(.rightLink) {
 		width: 100%;
 		flex: 1 1 auto;
 		min-width: 0;
@@ -386,8 +386,13 @@
 
 	.root[data-variant='widget']:not(:global(.headless))
 		.footer
-		button[data-action] {
+		button[data-action]:not(.rightLink) {
 		padding: 0.5rem 0.75rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .footer .rightLink {
+		font-size: 0.8125rem;
+		line-height: 1.125rem;
 	}
 
 	/* wall: centred blocker. The adapter renders the overlay and locks
@@ -529,12 +534,16 @@
 	}
 
 	.rightLink:not(:global(.headless)) {
-		display: inline;
+		display: inline-block;
+		width: auto;
+		flex: none;
+		align-self: center;
 		margin: 0;
 		padding: 0;
 		border: 0;
 		background: none;
 		font: inherit;
+		font-family: var(--consent-banner-font-family);
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		letter-spacing: -0.006em;
@@ -554,7 +563,10 @@
 
 	.rightLink:not(:global(.headless)):focus-visible {
 		outline: none;
-		box-shadow: 0 0 0 2px var(--button-focus-ring, var(--c15t-primary));
+		box-shadow: var(
+			--button-shadow-primary-focus,
+			0 0 0 2px var(--c15t-primary)
+		);
 	}
 
 	:global(.c15t-dark) .rightLink:not(:global(.headless)) {
@@ -566,15 +578,18 @@
 	}
 
 	:global(.c15t-dark) .rightLink:not(:global(.headless)):focus-visible {
-		box-shadow: 0 0 0 2px var(--button-focus-ring-dark, var(--c15t-primary));
+		box-shadow: var(
+			--button-shadow-primary-focus-dark,
+			0 0 0 2px var(--c15t-primary)
+		);
 	}
 
 	/* Notice prompt: rights lead, the dismiss action trails. The root carries
 	   `data-prompt` and `data-model` so hosts can target either in CSS.
-	   Rights render through the button primitive (`data-action="right"`,
-	   neutral stroke) so they share the action row with the primary; below
-	   640px the footer stacks and every button fills the width, like a
-	   choice prompt. */
+	   Rights render as underlined text (`.rightLink`, `data-action="right"`)
+	   so the primary action is the only button and carries the emphasis.
+	   Below 640px the footer stacks: the link keeps its natural width at the
+	   start, and only real buttons fill the width, like a choice prompt. */
 	.root[data-prompt='notice']:not(:global(.headless)) .footer {
 		flex-direction: column;
 		align-items: stretch;
@@ -583,16 +598,22 @@
 
 	.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
 		flex-direction: column;
-		align-items: stretch;
-		gap: 0.75rem;
+		align-items: flex-start;
+		gap: 0.5rem;
 	}
 
 	.root[data-prompt='notice']:not(:global(.headless))
 		.footer
-		button[data-action] {
+		button[data-action]:not(.rightLink) {
 		width: 100%;
 		flex: 1 1 auto;
 		min-width: 0;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless)) .footer .rightLink {
+		width: auto;
+		flex: none;
+		align-self: flex-start;
 	}
 
 	@media (min-width: 640px) {
@@ -608,6 +629,7 @@
 			flex-direction: row;
 			flex-wrap: wrap;
 			align-items: center;
+			gap: 0.75rem;
 			min-width: 0;
 		}
 
@@ -620,6 +642,10 @@
 			button[data-action] {
 			width: auto;
 			flex: none;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer .rightLink {
+			align-self: center;
 		}
 	}
 

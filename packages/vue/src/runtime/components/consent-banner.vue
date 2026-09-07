@@ -23,7 +23,6 @@ import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
-import ConsentButton from './consent-button.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
 
@@ -185,8 +184,8 @@ const rightLabels = computed<Record<PolicyRight, string>>(() => {
 
 /**
  * Every uncovered right opens the preference center, like customize. It
- * renders as a neutral button in the action row so the primary action
- * keeps the visual lead.
+ * renders as underlined text next to the primary action so Accept All is
+ * the only button and keeps the visual lead.
  */
 const onRight = function onRight() {
 	activeUI.value = 'manager';
@@ -322,20 +321,19 @@ const onAction = function onAction(action: PresentationAction) {
 									data-testid="consent-banner-rights"
 									:class="bannerStyles.rights"
 								>
-									<ConsentButton
+									<button
 										v-for="right in uncoveredRights"
 										:key="right"
 										v-bind="config.components?.banner?.rightLink"
-										variant="neutral"
-										mode="stroke"
-										size="small"
+										type="button"
+										:class="bannerStyles.rightLink"
 										data-action="right"
 										:data-right="right"
 										:data-testid="`consent-banner-right-link-${right}`"
 										@click="onRight"
 									>
 										{{ rightLabels[right] }}
-									</ConsentButton>
+									</button>
 								</div>
 							</template>
 						</ConsentActions>

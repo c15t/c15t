@@ -35,16 +35,18 @@ resolves the rule before the first paint and the client reads the same rule, so 
 
 - A `choice` prompt shows the actions the rule allows: reject and accept at
   equal prominence, plus customize when the rule offers it.
-- A `notice` prompt shows an "Accept All" button and a neutral button for
-  each right no action covers. Under an opt-out rule that is one button, "Do
-  not sell or share my data". A notice never traps focus or locks scroll.
+- A `notice` prompt shows an "Accept All" button and an underlined text
+  link for each right no action covers. Under an opt-out rule that is one
+  link, "Do not sell or share my data". A notice never traps focus or locks
+  scroll.
 - A rule with `prompt: 'none'` renders nothing.
 
-Right buttons open the preference center. An opt-out button therefore keeps
+Right links open the preference center. An opt-out link therefore keeps
 preferences reachable too, so a notice never shows a separate "Manage
-preferences" button. Right buttons also appear on a choice prompt when nothing
+preferences" link. Right links also appear on a choice prompt when nothing
 else covers the right: a rule whose actions are only accept and reject renders
-a "Manage preferences" button, because customize is absent.
+a "Manage preferences" link, because customize is absent. The link is a text
+link so "Accept All" stays the only button and carries the emphasis.
 
 "Accept All" on a notice records a dismissal, not a choice. The label is
 truthful because a notice only exists under the opt-out model, where every
@@ -88,7 +90,7 @@ Set the variant on the banner, or on the provider under
 ```
 
 A floating card in a corner or centered on an edge. This is the default for
-every prompt. A notice keeps the same card, with its right button and "Accept
+every prompt. A notice keeps the same card, with its right link and "Accept
 All" in the footer.
 
 ```tsx
@@ -96,7 +98,7 @@ All" in the footer.
 ```
 
 A bar across the full width of the viewport. From 1024px wide the text, the
-right buttons, and the controls share one row. Opt in to it for regions that
+right links, and the controls share one row. Opt in to it for regions that
 expect a classic cookie bar.
 
 ```tsx
@@ -169,20 +171,20 @@ export function CompactBanner() {
 ```
 
 `ConsentBanner.PolicyActions` renders the resolved action groups and, before
-them, the right buttons. Use the individual parts when you need a different
+them, the right links. Use the individual parts when you need a different
 order or your own markup:
 
 - `ConsentBanner.AcceptButton`, `ConsentBanner.RejectButton`,
   `ConsentBanner.CustomizeButton`, and `ConsentBanner.DismissButton` render one
   action each. `DismissButton` defaults its label to `common.acceptAll`.
-- `ConsentBanner.Rights` renders one neutral button per uncovered right. It
+- `ConsentBanner.Rights` renders one text link per uncovered right. It
   renders nothing when every right is covered. Pass `rights` to override the
   list.
 - `ConsentBanner.RightLink` renders a single right. `right` is `'opt-out'`
-  or `'preferences'`. By default it is a neutral button carrying
-  `data-action="right"` and `data-right`; it opens the preference center on
-  click and accepts `asChild` to render your own element, such as a link to a
-  dedicated opt-out page.
+  or `'preferences'`. By default it is a button element styled as an
+  underlined text link, carrying `data-action="right"` and `data-right`; it
+  opens the preference center on click and accepts `asChild` to render your
+  own element, such as an anchor to a dedicated opt-out page.
 
 ```tsx
 <ConsentBanner.Rights>
@@ -209,8 +211,8 @@ animations.
 | `data-position` | The resolved position for the variant |
 | `data-blocking` | `true`, present only while blocking |
 
-Each action button carries `data-action`, and each right button carries
+Each action button carries `data-action`, and each right link carries
 `data-action="right"` plus `data-right`. The built-in stylesheet keys every
 variant's geometry on `data-variant` and `data-position`, and uses
 `data-prompt="notice"` to lay the footer out as one row with the right
-buttons leading and "Accept All" trailing.
+links leading and "Accept All" trailing.

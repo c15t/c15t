@@ -369,7 +369,7 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 	{
 		country: 'US',
 		description:
-			'Opt-out choice prompt with two equally prominent actions. Reject records the opt-out, and because nothing on the prompt covers the preferences right, the banner adds a neutral "Manage preferences" button on its own. The "caSales" message profile supplies California copy.',
+			'Opt-out choice prompt with two equally prominent actions. Reject records the opt-out, and because nothing on the prompt covers the preferences right, the banner adds a "Manage preferences" text link on its own. The "caSales" message profile supplies California copy.',
 		group: 'custom',
 		id: 'custom-ca-do-not-sell',
 		label: 'California CTA',
@@ -409,7 +409,7 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 	{
 		country: 'US',
 		description:
-			'Opt-out notice prompt. The banner renders an Accept All button plus a "Do not sell or share my data" button that opens the preference center, because a notice offers no choice actions and the opt-out right stays reachable.',
+			'Opt-out notice prompt. The banner renders an Accept All button plus a "Do not sell or share my data" text link that opens the preference center, because a notice offers no choice actions and the opt-out right stays reachable.',
 		group: 'custom',
 		id: 'custom-us-notice',
 		label: 'US notice',

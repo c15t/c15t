@@ -35,7 +35,7 @@ export const Default: Story = {
 	}),
 };
 
-/** Opt-out notice: a neutral opt-out button beside the primary Accept All. */
+/** Opt-out notice: an underlined opt-out link beside the primary Accept All. */
 export const Notice: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },

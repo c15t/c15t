@@ -1,4 +1,5 @@
 import type { PolicyRule } from '@c15t/schema/types';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -52,7 +53,7 @@ const query = function query<Element extends HTMLElement>(testId: string) {
 };
 
 describe('ConsentBanner notice prompt', () => {
-	test('renders a primary Accept All and one neutral opt-out control', async () => {
+	test('renders a primary Accept All and one underlined opt-out control', async () => {
 		await renderBanner({ model: 'opt-out', prompt: 'notice' });
 		await waitForBanner();
 
@@ -78,8 +79,10 @@ describe('ConsentBanner notice prompt', () => {
 		]);
 		expect(controls[0]).toHaveTextContent('Do not sell or share my data');
 		expect(controls[0]?.dataset.action).toBe('right');
-		expect(controls[0]?.dataset.variant).toBe('neutral');
+		expect(controls[0]?.dataset.variant).toBeUndefined();
+		expect(controls[0]?.dataset.mode).toBeUndefined();
 		expect(controls[0]?.tagName).toBe('BUTTON');
+		expect(controls[0]).toHaveClass(bannerStyles.rightLink);
 		expect(controls[0]?.dataset.c15tRights).toContain('opt-out');
 		expect(query('consent-banner-right-link-preferences')).toBeNull();
 
@@ -180,7 +183,8 @@ describe('ConsentBanner rights on choice prompts', () => {
 		);
 		expect(links.map((link) => link.dataset.right)).toEqual(['preferences']);
 		expect(links[0]).toHaveTextContent('Manage preferences');
-		expect(links[0]?.dataset.variant).toBe('neutral');
+		expect(links[0]?.dataset.variant).toBeUndefined();
+		expect(links[0]).toHaveClass(bannerStyles.rightLink);
 		expect(query('consent-banner-customize-button')).toBeNull();
 	});
 });

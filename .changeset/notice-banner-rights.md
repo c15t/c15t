@@ -11,9 +11,10 @@
 ---
 
 Notice banners now keep the rights a policy guarantees reachable. Under an
-opt-out rule with `prompt: 'notice'`, the banner renders a neutral "Do not
-sell or share my data" button that opens the preference center, and a primary
-"Accept All" button, in one action row. Before, a notice showed a bare,
+opt-out rule with `prompt: 'notice'`, the banner renders an underlined "Do
+not sell or share my data" text link that opens the preference center, and a
+primary "Accept All" button, in one action row. The link keeps the emphasis on
+the button. Before, a notice showed a bare,
 untranslated "Dismiss" button and nothing else.
 
 "Accept All" on a notice records a dismissal, not a choice. The label is
@@ -26,9 +27,9 @@ rights no action on the surface covers. `disclosure` never appears because
 inline legal links carry it, `preferences` is covered by customize or save,
 and `opt-out` is covered by reject. An uncovered opt-out control opens the
 preference center, so it also satisfies the preferences right and a notice
-shows a single button. Right buttons also appear on a choice prompt when
-nothing covers them, so a rule with only accept and reject renders a "Manage
-preferences" button.
+shows a single link. Right links also appear on a choice prompt when nothing
+covers them, so a rule with only accept and reject renders a "Manage
+preferences" link.
 
 Translations gain `common.dismiss`, `rights.optOut`, `rights.preferences`,
 `cookieBanner.noticeTitle`, and `cookieBanner.noticeDescription` in every
@@ -38,8 +39,8 @@ round-trip. A notice reads the notice title and description by default.
 React adds `ConsentBanner.DismissButton`, `ConsentBanner.Rights`,
 `ConsentBanner.RightLink`, a `dismissButtonText` prop, `useBannerCopy()`, and
 `banner.uncoveredRights` on `useHeadlessConsentUI`. `PolicyActions` renders
-the rights automatically. Right buttons carry `data-action="right"` and
-`data-right`; `RightLink` accepts `asChild` for hosts that want a link to a
+the rights automatically. Right links carry `data-action="right"` and
+`data-right`; `RightLink` accepts `asChild` for hosts that want an anchor to a
 dedicated opt-out page. Themes may set `consentActions.dismiss`, and the
 `primary` and `customize` keys are honored. The banner root emits `data-prompt`
 and `data-model`, and the Next.js server shell renders the same markup with

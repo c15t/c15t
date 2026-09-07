@@ -1,4 +1,5 @@
 import { custom } from '@c15t/core';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { describe, expect, test } from 'vitest';
 
@@ -64,7 +65,7 @@ describe('notice banner', () => {
 		view.unmount();
 	});
 
-	test('renders a single neutral opt-out button before the primary', () => {
+	test('renders a single underlined opt-out link before the primary', () => {
 		const { view } = renderFixture(notice());
 		const root = required(query('[data-testid="consent-banner-root"]'));
 		expect(root.dataset.prompt).toBe('notice');
@@ -79,7 +80,9 @@ describe('notice banner', () => {
 		const optOut = required(buttons[0]);
 		expect(optOut.textContent?.trim()).toBe('Do not sell or share my data');
 		expect(optOut.dataset.action).toBe('right');
-		expect(optOut.dataset.variant).toBe('neutral');
+		expect(optOut.classList.contains(bannerStyles.rightLink)).toBe(true);
+		expect(optOut.dataset.variant).toBeUndefined();
+		expect(optOut.dataset.mode).toBeUndefined();
 		const footer = required(query('[data-testid="consent-banner-footer"]'));
 		const dismiss = required(query('[data-action="dismiss"]'));
 		expect(footer.contains(rights)).toBe(true);
@@ -90,7 +93,7 @@ describe('notice banner', () => {
 		view.unmount();
 	});
 
-	test('the opt-out button opens the preference center without a choice', async () => {
+	test('the opt-out link opens the preference center without a choice', async () => {
 		const { context, view } = renderFixture(notice());
 		await fireEvent.click(
 			required(query('[data-testid="consent-banner-right-link-opt-out"]'))

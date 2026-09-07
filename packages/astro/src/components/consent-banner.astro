@@ -264,14 +264,11 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 							>
 								{uncoveredRights.map((right) => (
 									<button
-										class={noStyle ? '' : buttonStyles.button}
+										class={noStyle ? '' : styles.rightLink}
 										data-action="right"
 										data-c15t-action="customize"
-										data-mode={noStyle ? undefined : 'stroke'}
 										data-right={right}
-										data-size={noStyle ? undefined : 'small'}
 										data-testid={`consent-banner-right-link-${right}`}
-										data-variant={noStyle ? undefined : 'neutral'}
 										type="button"
 									>
 										{rightLabels[right] ?? right}

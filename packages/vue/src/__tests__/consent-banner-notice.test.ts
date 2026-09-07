@@ -4,6 +4,7 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import { translations as enTranslations } from '@c15t/translations/en';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { flushPromises, mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -149,7 +150,7 @@ describe('ConsentBanner under a notice prompt', () => {
 		expect(query('consent-banner-reject-button')).toBeNull();
 	});
 
-	test('renders one neutral opt-out button before the actions', async () => {
+	test('renders one underlined opt-out link before the actions', async () => {
 		await renderBanner(buildInit(noticeRule));
 		const rights = query('consent-banner-rights');
 		expect(rights).toBeInstanceOf(HTMLElement);
@@ -165,8 +166,10 @@ describe('ConsentBanner under a notice prompt', () => {
 		const [optOut] = links;
 		expect(query('consent-banner-right-link-opt-out')).toBe(optOut);
 		expect(optOut?.getAttribute('data-action')).toBe('right');
-		expect(optOut?.getAttribute('data-variant')).toBe('neutral');
-		expect(optOut?.getAttribute('data-mode')).toBe('stroke');
+		expect(optOut?.tagName).toBe('BUTTON');
+		expect(optOut?.classList.contains(bannerStyles.rightLink)).toBe(true);
+		expect(optOut?.hasAttribute('data-variant')).toBe(false);
+		expect(optOut?.hasAttribute('data-mode')).toBe(false);
 		expect(query('consent-banner-right-link-preferences')).toBeNull();
 		const group = query('consent-banner-footer-sub-group');
 		expect(group).toBeInstanceOf(HTMLElement);
@@ -183,7 +186,7 @@ describe('ConsentBanner under a notice prompt', () => {
 		expect(root?.getAttribute('data-model')).toBe('opt-out');
 	});
 
-	test('opens the preference center from the opt-out button', async () => {
+	test('opens the preference center from the opt-out link', async () => {
 		const context = await renderBanner(buildInit(noticeRule));
 		query('consent-banner-right-link-opt-out')?.click();
 		await flushPromises();

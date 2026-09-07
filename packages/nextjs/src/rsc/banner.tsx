@@ -142,8 +142,10 @@ export interface RscConsentBannerProps {
 		 */
 		rights?: string;
 		/**
-		 * One right button inside the rights group. Carries
-		 * `data-action="right"` and `data-variant="neutral"` for host CSS.
+		 * One right control inside the rights group. The styled adapters
+		 * render it as underlined text so the primary action stays the only
+		 * button; in this headless shell this class styles it. Carries
+		 * `data-action="right"` and `data-right` for host CSS.
 		 */
 		rightLink?: string;
 	};

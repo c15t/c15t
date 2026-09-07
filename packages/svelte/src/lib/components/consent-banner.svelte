@@ -208,6 +208,20 @@
 		)
 	);
 
+	const rightLinkStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerRightLink',
+			theme.theme,
+			{ baseClassName: styles.rightLink, noStyle },
+			noStyle
+		)
+	);
+
+	// A right control opens the preference center without recording a choice.
+	const openPreferences = function openPreferences() {
+		consent.state.setActiveUI('dialog');
+	};
+
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
@@ -247,7 +261,7 @@
 	);
 	const actionGroups = $derived(presentation.actionGroups);
 	const primaryActions = $derived(presentation.primaryActions);
-	// Persistent rights no prompt action covers; rendered as neutral buttons.
+	// Persistent rights no prompt action covers; rendered as underlined text links.
 	const uncoveredRights = $derived(presentation.uncoveredRights);
 	// A notice offers dismiss alone; with no primary resolved it takes the lead.
 	const dismissIsPrimary = $derived(
@@ -415,16 +429,21 @@
 									data-testid="consent-banner-rights"
 								>
 									{#each uncoveredRights as right (right)}
-										<ConsentButton
-											action="open-consent-dialog"
-											variant="neutral"
-											mode="stroke"
+										<button
+											type="button"
+											class={noStyle ? '' : rightLinkStyle.className || ''}
+											style={rightLinkStyle.style
+												? Object.entries(rightLinkStyle.style)
+														.map(([key, value]) => `${key}:${value}`)
+														.join(';')
+												: undefined}
 											data-action="right"
 											data-right={right}
 											data-testid={`consent-banner-right-link-${right}`}
+											onclick={openPreferences}
 										>
 											{rightLabels[right] ?? right}
-										</ConsentButton>
+										</button>
 									{/each}
 								</div>
 							{/if}

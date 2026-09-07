@@ -95,7 +95,9 @@ describe('RscConsentBanner server HTML', () => {
 			html
 		)?.[0];
 		expect(optOutButton).toContain('data-action="right"');
-		expect(optOutButton).toContain('data-variant="neutral"');
+		expect(optOutButton).toContain('class="link"');
+		// An underlined text control, not a neutral button.
+		expect(optOutButton).not.toContain('data-variant=');
 		expect(html).toContain('Do not sell my info');
 		expect(html).toContain('data-action="dismiss"');
 		// The notice acknowledgement reads as Accept All, not Dismiss.

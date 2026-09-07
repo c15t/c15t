@@ -9,6 +9,7 @@ import { createConsentKernel } from '@c15t/core';
  */
 import type { ConsentPresentation, KernelConfig } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { render } from 'svelte/server';
 import { describe, expect, test } from 'vitest';
 
@@ -166,6 +167,9 @@ describe('consent banner SSR', () => {
 		expect(html).not.toContain('data-right="preferences"');
 		expect(html).toContain('Do not sell or share my data');
 		expect(html).toContain('data-action="right"');
+		const rightTag = /<button[^>]*data-action="right"[^>]*>/u.exec(html);
+		expect(rightTag?.[0]).toContain(bannerStyles.rightLink);
+		expect(rightTag?.[0]).not.toMatch(/data-variant=/u);
 		expect(html).toContain('data-action="dismiss"');
 		expect(html).toContain('>Accept All<');
 		expect(html).not.toContain('>Dismiss<');

@@ -111,7 +111,6 @@ export const RscBannerActions = ({
 							className={classNames?.rightLink}
 							data-action="right"
 							data-right={right}
-							data-variant="neutral"
 							data-testid={`consent-banner-right-link-${right}`}
 							onClick={openDialog}
 						>
