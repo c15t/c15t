@@ -15,7 +15,8 @@
 				"dist-types/**",
 				"storybook-static/**",
 				"AGENTS.md",
-				"docs/**"
+				"docs/**",
+				"src/version.ts"
 			],
 			"env": ["WITH_RSDOCTOR"]
 		},
@@ -27,31 +28,55 @@
 		"@c15t/core#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/tanstack-start#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**"],
+			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/example-nuxt#build": {
@@ -78,7 +103,7 @@
 		"@c15t/svelte#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**"]
+			"outputs": ["dist/**", "src/lib/version.ts"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
