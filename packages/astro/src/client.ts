@@ -32,7 +32,11 @@ import type {
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
-import { setupColorScheme } from '@c15t/ui/utils/dom';
+import {
+	setupColorScheme,
+	setupFocusTrap,
+	setupScrollLock,
+} from '@c15t/ui/utils/dom';
 
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
@@ -199,11 +203,20 @@ const ensureDialogHost = function ensureDialogHost(): HTMLElement {
 };
 
 /**
+ * Undo the scroll lock and focus trap of a blocking banner, if one is
+ * active. Module-level because the banner element can be replaced by a
+ * ClientRouter swap while the lock is still held.
+ */
+let releaseBlocking: (() => void) | null = null;
+
+/**
  * Show or hide the server-rendered banner to match the kernel.
  *
  * The server already decided the initial state, so this only has to keep
  * the DOM honest afterwards — after a save, or after a ClientRouter
- * navigation replaced the markup.
+ * navigation replaced the markup. A banner the server resolved as blocking
+ * (`data-blocking="true"`) also locks scroll and traps focus in its card
+ * while it is shown.
  *
  * @param snapshot - The current kernel snapshot.
  */
@@ -214,11 +227,31 @@ export const syncBannerVisibility = function syncBannerVisibility(
 		'[data-testid="consent-banner-root"]'
 	);
 	if (!banner) {
+		releaseBlocking?.();
 		return;
 	}
 	const shouldShow = snapshot.activeUI === 'banner';
 	banner.hidden = !shouldShow;
 	banner.setAttribute('data-c15t-visible', shouldShow ? 'true' : 'false');
+
+	const blocking = shouldShow && banner.dataset.blocking === 'true';
+	if (!blocking) {
+		releaseBlocking?.();
+		return;
+	}
+	if (releaseBlocking) {
+		return;
+	}
+	const card =
+		banner.querySelector<HTMLElement>('[data-testid="consent-banner-card"]') ??
+		banner;
+	const unlockScroll = setupScrollLock();
+	const releaseFocus = setupFocusTrap(card);
+	releaseBlocking = () => {
+		releaseFocus();
+		unlockScroll();
+		releaseBlocking = null;
+	};
 };
 
 interface ResolvedAction {
@@ -313,6 +346,7 @@ const createClient = function createClient(
 			}
 			disposed = true;
 			detachPageSwapListeners();
+			releaseBlocking?.();
 			void dialog?.destroy();
 			dialog = null;
 			dialogKind = null;

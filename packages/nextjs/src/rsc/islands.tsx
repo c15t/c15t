@@ -1,18 +1,29 @@
 'use client';
 
-import type { PolicyRule } from '@c15t/core';
+import type { PolicyRule, PromptPosition, PromptVariant } from '@c15t/core';
 import { ConsentBanner } from '@c15t/react';
 import { useHeadlessConsentUI } from '@c15t/react/headless';
 import type { PolicyRight } from '@c15t/schema/types';
 import type { ReactNode } from 'react';
 
-/** Shared prompt visibility and accessibility, including notice and expiry. */
+/**
+ * Shared prompt visibility and accessibility, including notice and expiry.
+ *
+ * The root resolves the prompt shape itself from the provider presentation
+ * and emits `data-variant`, `data-position` and `data-blocking`. The server
+ * shell hands over what it resolved as props so both sides agree even when
+ * the boundary carries no presentation; a defaulted position is left to the
+ * root so it can mirror the corner for right-to-left text.
+ */
 export const RscBannerGate = ({
 	children,
 	title,
 	className,
 	prompt,
 	model,
+	variant,
+	position,
+	blocking,
 }: {
 	children: ReactNode;
 	title: string;
@@ -21,12 +32,21 @@ export const RscBannerGate = ({
 	prompt?: PolicyRule['prompt'];
 	/** Server-resolved model, mirrored as `data-model` on first paint. */
 	model?: PolicyRule['model'];
+	/** Server-resolved prompt variant. */
+	variant?: PromptVariant;
+	/** Host-chosen position only; defaulted positions stay with the root. */
+	position?: PromptPosition;
+	/** Server-resolved blocking state; the root adds overlay, lock and trap. */
+	blocking?: boolean;
 }) => (
 	<ConsentBanner.Root
 		aria-label={title}
 		className={className}
 		disableAnimation
 		trapFocus={false}
+		variant={variant}
+		position={position}
+		blocking={blocking}
 		data-prompt={prompt === 'none' ? undefined : prompt}
 		data-model={model}
 	>

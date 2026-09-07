@@ -122,11 +122,31 @@ const textDirection = getTextDirection(snapshot.translations?.language);
 const presentation = resolveConsentPresentation({policy: snapshot.policyRule, presentation: c15t.options.presentation, surface: 'prompt'});
 const {
 	actionGroups,
+	blocking,
 	direction,
 	primaryActions,
 	shouldFillActions: shouldFill,
 	uncoveredRights,
+	variant,
 } = presentation;
+
+// A corner the host did not choose follows the text direction, the same
+// mirroring the React and Svelte roots apply; a host corner is kept as is.
+const mirrorCorner = function mirrorCorner(position: string): string {
+	if (position.endsWith('-left')) {
+		return position.replace(/-left$/u, '-right');
+	}
+	if (position.endsWith('-right')) {
+		return position.replace(/-right$/u, '-left');
+	}
+	return position;
+};
+const position =
+	textDirection === 'rtl' &&
+	presentation.positionSource === 'default' &&
+	(variant === 'floating' || variant === 'widget')
+		? mirrorCorner(presentation.position)
+		: presentation.position;
 
 const labels: Record<string, string> = {
 	accept: copy.accept,
@@ -157,14 +177,26 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 
 {
+	shouldRender && blocking && (
+		<div
+			aria-hidden="true"
+			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
+			data-testid="consent-banner-overlay"
+		/>
+	)
+}
+
+{
 	shouldRender && (
 		<div
 			class={rootClass}
+			data-blocking={blocking ? 'true' : undefined}
 			data-c15t-visible="true"
 			data-model={snapshot.policyRule.model}
-			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-position={position}
 			data-prompt={snapshot.policyRule.prompt === 'none' ? undefined : snapshot.policyRule.prompt}
 			data-testid="consent-banner-root"
+			data-variant={variant}
 			dir={textDirection}
 			lang={snapshot.translations?.language}
 		>
@@ -180,7 +212,7 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal={presentation.trapFocus ? "true" : undefined}
+					aria-modal={blocking ? "true" : undefined}
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
 					role="dialog"

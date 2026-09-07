@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import type { PresentationAction } from '@c15t/core';
-import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
+import type {
+	PresentationAction,
+	PromptPosition,
+	PromptVariant,
+} from '@c15t/core';
 import type { PolicyRight } from '@c15t/schema/types';
 import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
@@ -23,6 +26,25 @@ import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
 
+/**
+ * Local overrides for the surface shape. Each one beats the host
+ * `presentation.prompt` value; leave them unset to follow the policy
+ * defaults (a notice renders as a bar, a choice as a floating card).
+ * `blocking` defaults to `undefined` on purpose: Vue would otherwise cast
+ * an absent boolean prop to `false` and override the host value.
+ */
+const props = withDefaults(
+	defineProps<{
+		/** Surface shape: `floating`, `bar`, `widget` or `wall`. */
+		variant?: PromptVariant;
+		/** Position, validated against the resolved variant. */
+		position?: PromptPosition;
+		/** Backdrop, scroll lock, focus trap and no outside dismissal. */
+		blocking?: boolean;
+	}>(),
+	{ blocking: undefined, position: undefined, variant: undefined }
+);
+
 const mounted = useMounted();
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
@@ -39,11 +61,19 @@ const transitionStyles = bannerStyles as Record<string, string>;
 const {
 	presentation: surface,
 	actionGroups,
+	blocking,
 	direction,
+	position,
+	positionSource,
 	primaryActions: resolvedPrimaryActions,
 	shouldFillActions,
 	uncoveredRights,
-} = useConsentPolicyActions('prompt');
+	variant,
+} = useConsentPolicyActions('prompt', () => ({
+	blocking: props.blocking,
+	position: props.position,
+	variant: props.variant,
+}));
 
 /**
  * The wire type lags the translations package, so the newer keys (notice
@@ -104,9 +134,27 @@ const bannerTitle = computed(() => {
 	return cookieBanner?.title ?? 'Cookie choices';
 });
 
-const bannerPosition = computed(
-	() => config.value.bannerPosition ?? DEFAULT_BANNER_POSITION
-);
+/**
+ * A defaulted corner mirrors for right-to-left text so the card sits at
+ * the reading start. A host-chosen position is kept as written.
+ */
+const resolvedPosition = computed(() => {
+	const { value } = position;
+	if (
+		positionSource.value === 'host' ||
+		textDirection.value !== 'rtl' ||
+		(variant.value !== 'floating' && variant.value !== 'widget')
+	) {
+		return value;
+	}
+	if (value.endsWith('-left')) {
+		return value.replace('-left', '-right') as PromptPosition;
+	}
+	if (value.endsWith('-right')) {
+		return value.replace('-right', '-left') as PromptPosition;
+	}
+	return value;
+});
 
 const labels = computed(() => {
 	const common = bundle.value?.common;
@@ -192,7 +240,9 @@ const onAction = function onAction(action: PresentationAction) {
 				v-if="isOpen"
 				v-bind="config.components?.banner?.root"
 				data-testid="consent-banner-root"
-				:data-position="bannerPosition"
+				:data-variant="variant"
+				:data-position="resolvedPosition"
+				:data-blocking="blocking ? 'true' : undefined"
 				:data-prompt="promptKind"
 				:data-model="snapshot.policyRule.model"
 				:dir="textDirection"
@@ -211,8 +261,8 @@ const onAction = function onAction(action: PresentationAction) {
 						v-bind="config.components?.banner?.card"
 						data-testid="consent-banner-card"
 						:class="bannerStyles.card"
-						:role="shouldTrapFocus ? 'dialog' : 'region'"
-						:aria-modal="shouldTrapFocus ? 'true' : undefined"
+						:role="blocking || shouldTrapFocus ? 'dialog' : 'region'"
+						:aria-modal="blocking || shouldTrapFocus ? 'true' : undefined"
 						:aria-label="bannerTitle"
 						tabindex="-1"
 					>

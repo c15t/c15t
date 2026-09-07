@@ -27,6 +27,19 @@ import {
 	policyRulePresets,
 	resolvePolicyRules,
 } from '@c15t/schema/types';
+import {
+	PROMPT_VARIANT_DEFAULT_POSITION,
+	PROMPT_VARIANT_POSITIONS,
+	resolveConsentPresentation,
+} from 'c15t';
+import type {
+	ConsentPresentation,
+	PresentationDiagnostic,
+	PromptPosition,
+	PromptPresentation,
+	PromptVariant,
+	ResolvedConsentPresentation,
+} from 'c15t';
 
 // ---------------------------------------------------------------------------
 // Presets
@@ -277,6 +290,112 @@ export const promptsForModel = function promptsForModel(
 };
 
 // ---------------------------------------------------------------------------
+// Presentation form
+// ---------------------------------------------------------------------------
+
+/**
+ * Host presentation the playground applies to the prompt. `auto` leaves a
+ * field to the resolver, which picks from the prompt kind: a notice
+ * becomes a bottom bar, a choice a floating bottom-left card.
+ */
+export interface PlaygroundPresentationForm {
+	variant: PromptVariant | 'auto';
+	position: PromptPosition | 'auto';
+	/** `false` leaves blocking to the variant; `wall` always blocks. */
+	blocking: boolean;
+}
+
+export const DEFAULT_PRESENTATION_FORM: PlaygroundPresentationForm = {
+	blocking: false,
+	position: 'auto',
+	variant: 'auto',
+};
+
+export const PROMPT_VARIANTS = [
+	'floating',
+	'bar',
+	'widget',
+	'wall',
+] as const satisfies readonly PromptVariant[];
+
+export const VARIANT_HINTS: Record<PromptVariant, string> = {
+	bar: 'Full-width edge bar. The default for a notice.',
+	floating: 'Card in a corner or edge center. The default for a choice prompt.',
+	wall: 'Centered blocker with a backdrop, scroll lock and focus trap.',
+	widget: 'Compact chip in a corner.',
+};
+
+/** Variant the resolver picks when the host sets none. */
+export const defaultVariantFor = function defaultVariantFor(
+	prompt: PolicyPrompt
+): PromptVariant {
+	return prompt === 'notice' ? 'bar' : 'floating';
+};
+
+/**
+ * Positions the position select may offer. With `auto` the list follows
+ * the variant the resolver would pick for the prompt.
+ */
+export const positionOptionsFor = function positionOptionsFor(
+	variant: PromptVariant | 'auto',
+	prompt: PolicyPrompt
+): readonly PromptPosition[] {
+	const resolved = variant === 'auto' ? defaultVariantFor(prompt) : variant;
+	return PROMPT_VARIANT_POSITIONS[resolved];
+};
+
+/** Position the resolver fills for a variant when the host sets none. */
+export const defaultPositionFor = function defaultPositionFor(
+	variant: PromptVariant | 'auto',
+	prompt: PolicyPrompt
+): PromptPosition {
+	const resolved = variant === 'auto' ? defaultVariantFor(prompt) : variant;
+	return PROMPT_VARIANT_DEFAULT_POSITION[resolved];
+};
+
+/**
+ * Change the variant and drop a position the new variant does not accept,
+ * so the form never asks the resolver for an invalid pair.
+ */
+export const setPresentationVariant = function setPresentationVariant(
+	form: PlaygroundPresentationForm,
+	variant: PromptVariant | 'auto',
+	prompt: PolicyPrompt
+): PlaygroundPresentationForm {
+	const allowed = positionOptionsFor(variant, prompt);
+	const position =
+		form.position !== 'auto' && allowed.includes(form.position)
+			? form.position
+			: 'auto';
+	return { ...form, position, variant };
+};
+
+/** Host `presentation` for the provider, or `undefined` when every field is auto. */
+export const toPromptPresentation = function toPromptPresentation(
+	form: PlaygroundPresentationForm
+): PromptPresentation | undefined {
+	const prompt: PromptPresentation = {};
+	if (form.variant !== 'auto') {
+		prompt.variant = form.variant;
+	}
+	if (form.position !== 'auto') {
+		prompt.position = form.position;
+	}
+	if (form.blocking) {
+		prompt.blocking = true;
+	}
+	return Object.keys(prompt).length > 0 ? prompt : undefined;
+};
+
+/** Full `ConsentPresentation` for the provider, or `undefined` when empty. */
+export const toConsentPresentation = function toConsentPresentation(
+	form: PlaygroundPresentationForm
+): ConsentPresentation | undefined {
+	const prompt = toPromptPresentation(form);
+	return prompt ? { prompt } : undefined;
+};
+
+// ---------------------------------------------------------------------------
 // Inspection
 // ---------------------------------------------------------------------------
 
@@ -296,12 +415,23 @@ export interface PlaygroundInspection {
 	fingerprints: PolicyFingerprints | null;
 	/** What `offline({ policyRules: [rule] })` would resolve for the simulated location. */
 	resolution: PolicyResolution;
+	/**
+	 * Prompt surface the stock banner would render under the host
+	 * presentation. Null when the rule fails validation.
+	 */
+	presentation: ResolvedConsentPresentation | null;
+	/** Presentation findings: invalid positions, blocking a notice, and so on. */
+	presentationDiagnostics: PresentationDiagnostic[];
 }
 
-/** Run validation, normalization, fingerprinting and geo matching on one rule. */
+/**
+ * Run validation, normalization, fingerprinting and geo matching on one
+ * rule, and resolve the prompt surface under the host presentation.
+ */
 export const inspectPlaygroundRule = function inspectPlaygroundRule(
 	rule: PolicyRule,
-	simulation: PlaygroundSimulation
+	simulation: PlaygroundSimulation,
+	presentation?: ConsentPresentation
 ): PlaygroundInspection {
 	// Validate an IAB rule as if the IAB addon were mounted, so the preset
 	// shows its real shape. The playground runtime itself runs without it.
@@ -326,7 +456,22 @@ export const inspectPlaygroundRule = function inspectPlaygroundRule(
 		regionCode: simulation.region.trim().toUpperCase() || null,
 		rules: [rule],
 	});
-	return { errors, fingerprints, resolution, resolved, warnings };
+	const surface = resolved
+		? resolveConsentPresentation({
+				policy: resolved,
+				presentation,
+				surface: 'prompt',
+			})
+		: null;
+	return {
+		errors,
+		fingerprints,
+		presentation: surface,
+		presentationDiagnostics: surface?.diagnostics ?? [],
+		resolution,
+		resolved,
+		warnings,
+	};
 };
 
 /** Human-readable summary of a rule's `match` block. */
@@ -380,13 +525,19 @@ const indent = function indent(value: string, spaces: number): string {
  */
 export const buildProviderSnippet = function buildProviderSnippet(
 	rule: PolicyRule,
-	presetId: string | null
+	presetId: string | null,
+	presentation?: ConsentPresentation
 ): string {
 	const ruleSource = presetId
 		? `policyRulePresets.${presetId}()`
 		: indent(JSON.stringify(stripForSnippet(rule), null, 2), 2);
 	const presetImport = presetId
 		? "import { policyRulePresets } from 'c15t';\n"
+		: '';
+	// Presentation is host configuration: it never touches the rule or its
+	// fingerprints, so it sits on the provider, not in the policy pack.
+	const presentationOption = presentation
+		? `, presentation: ${JSON.stringify(presentation)}`
 		: '';
 	return `${presetImport}import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from 'c15t/react';
 
@@ -396,7 +547,7 @@ const policyRules = [
 ];
 
 export const Providers = ({ children }) => (
-  <ConsentProvider options={{ mode: offline({ policyRules }) }}>
+  <ConsentProvider options={{ mode: offline({ policyRules })${presentationOption} }}>
     {children}
     <ConsentBanner />
     <ConsentDialog />

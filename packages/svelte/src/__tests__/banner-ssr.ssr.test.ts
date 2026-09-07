@@ -7,7 +7,7 @@ import { createConsentKernel } from '@c15t/core';
  * server-compiled components. The client project resolves `browser` and
  * would hand it client-compiled output, which throws `effect_orphan`.
  */
-import type { KernelConfig } from '@c15t/core';
+import type { ConsentPresentation, KernelConfig } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { render } from 'svelte/server';
 import { describe, expect, test } from 'vitest';
@@ -42,19 +42,40 @@ const RETURNING_RECORDS = {
 savedKernel.dispose();
 
 const buildOptions = function buildOptions(
-	prefetch: KernelConfig
+	prefetch: KernelConfig,
+	presentation?: ConsentPresentation
 ): ConsentManagerOptions {
 	return {
 		mode: offline(),
 		persistence: false,
 		prefetch,
+		presentation,
 	} as ConsentManagerOptions;
 };
 
-const renderBanner = function renderBanner(prefetch: KernelConfig): string {
-	return render(BannerFixture, { props: { options: buildOptions(prefetch) } })
-		.body;
+const renderBanner = function renderBanner(
+	prefetch: KernelConfig,
+	presentation?: ConsentPresentation
+): string {
+	return render(BannerFixture, {
+		props: { options: buildOptions(prefetch, presentation) },
+	}).body;
 };
+const rootTag = function rootTag(html: string): string | undefined {
+	return /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html)?.[0];
+};
+const NOTICE_POLICY = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			id: 'notice',
+			match: { fallback: true },
+			model: 'opt-out',
+			prompt: 'notice',
+		},
+	],
+});
 
 describe('consent banner SSR', () => {
 	test('renders the banner shell when the prefetched policy says to show it', () => {
@@ -159,6 +180,36 @@ describe('consent banner SSR', () => {
 		expect(tag?.[0]).toMatch(/data-prompt="choice"/u);
 		expect(tag?.[0]).toMatch(/data-model="opt-in"/u);
 		expect(html).not.toContain('consent-banner-rights');
+	});
+
+	test('paints the resolved variant and position in the first HTML', () => {
+		const choiceTag = rootTag(
+			renderBanner({ initialPolicyResolution: BANNER_POLICY })
+		);
+		expect(choiceTag).toMatch(/data-variant="floating"/u);
+		expect(choiceTag).toMatch(/data-position="bottom-left"/u);
+		expect(choiceTag).not.toMatch(/data-blocking/u);
+
+		const noticeTag = rootTag(
+			renderBanner({ initialPolicyResolution: NOTICE_POLICY })
+		);
+		expect(noticeTag).toMatch(/data-variant="bar"/u);
+		expect(noticeTag).toMatch(/data-position="bottom"/u);
+		expect(noticeTag).not.toMatch(/data-blocking/u);
+	});
+
+	test('a blocking wall paints its backdrop and modal state on the server', () => {
+		const html = renderBanner(
+			{ initialPolicyResolution: BANNER_POLICY },
+			{ prompt: { variant: 'wall' } }
+		);
+		const tag = rootTag(html);
+
+		expect(tag).toMatch(/data-variant="wall"/u);
+		expect(tag).toMatch(/data-position="center"/u);
+		expect(tag).toMatch(/data-blocking="true"/u);
+		expect(html).toContain('data-testid="consent-banner-overlay"');
+		expect(html).toMatch(/consent-banner-card"[^>]*aria-modal="true"/u);
 	});
 
 	test('the provider alone renders no banner', () => {

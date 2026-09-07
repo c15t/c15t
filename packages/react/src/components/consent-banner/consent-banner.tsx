@@ -1,6 +1,7 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
+import type { PromptPosition, PromptVariant } from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the main consent banner component for privacy consent management.
@@ -201,6 +202,28 @@ export interface ConsentBannerProps {
 	 * @default 'banner'
 	 */
 	uiSource?: string;
+
+	/**
+	 * Shape of the prompt: `floating` card, full-width `bar`, compact
+	 * `widget`, or centered `wall`. Overrides `presentation.prompt.variant`.
+	 * @remarks A notice defaults to `bar`; a choice prompt defaults to `floating`.
+	 */
+	variant?: PromptVariant;
+
+	/**
+	 * Placement of the prompt. Overrides `presentation.prompt.position`.
+	 * @remarks Must be valid for the resolved variant; otherwise the variant
+	 * default is used and a development diagnostic is logged. Host-chosen
+	 * positions are never mirrored for right-to-left text.
+	 */
+	position?: PromptPosition;
+
+	/**
+	 * Backdrop, scroll lock, focus trap and no outside dismissal, as one
+	 * value. Overrides `presentation.prompt.blocking`.
+	 * @remarks `wall` is always blocking; a notice never is.
+	 */
+	blocking?: boolean;
 }
 
 export const ConsentBanner: FC<ConsentBannerProps> = ({
@@ -221,14 +244,20 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	primaryButton,
 	models,
 	uiSource,
+	variant,
+	position,
+	blocking,
 }) => {
 	const primaryActions =
 		typeof primaryButton === 'string' ? [primaryButton] : primaryButton;
 	const { banner } = useHeadlessConsentUI({
 		prompt: {
+			blocking,
 			direction,
 			layout,
+			position,
 			primaryActions,
+			variant,
 		},
 	});
 
@@ -327,6 +356,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				{...config}
 				models={models}
 				uiSource={uiSource}
+				variant={variant}
+				position={position}
+				blocking={blocking}
 			>
 				<Box
 					baseClassName={styles.cardShell}

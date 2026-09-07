@@ -46,6 +46,39 @@ export const Notice: Story = {
 	}),
 };
 
+/** Full-width edge bar, the default shape for a notice. */
+export const Bar: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner', undefined, storybookNoticeInit);
+		},
+		template: '<ConsentBanner variant="bar" /><ConsentManager />',
+	}),
+};
+
+/** Compact corner chip for a choice prompt. */
+export const Widget: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template: '<ConsentBanner variant="widget" /><ConsentManager />',
+	}),
+};
+
+/** Centered blocking prompt: backdrop, scroll lock and focus trap. */
+export const Wall: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template: '<ConsentBanner variant="wall" /><ConsentManager />',
+	}),
+};
+
 export const BannerContract: Story = {
 	play: bannerContract,
 	render: () => ({

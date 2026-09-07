@@ -1,3 +1,4 @@
+import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -6,6 +7,7 @@ import {
 	getConsent,
 	getConsentClient,
 	subscribe,
+	syncBannerVisibility,
 } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
@@ -172,6 +174,33 @@ describe('banner actions', () => {
 			expect(banner?.hidden).toBe(true);
 			expect(banner?.getAttribute('data-c15t-visible')).toBe('false');
 		});
+	});
+
+	it('locks scroll and traps focus while a blocking banner shows', () => {
+		document.body.innerHTML = `
+			<div data-testid="consent-banner-root" data-blocking="true">
+				<div data-testid="consent-banner-card" tabindex="-1">
+					<button data-c15t-action="accept" type="button">Accept</button>
+				</div>
+			</div>
+		`;
+		const shown = { activeUI: 'banner' } as ConsentSnapshot;
+		const hidden = { activeUI: 'none' } as ConsentSnapshot;
+
+		syncBannerVisibility(shown);
+		expect(document.body.style.overflow).toBe('hidden');
+		// A second sync while shown keeps the same lock.
+		syncBannerVisibility(shown);
+		expect(document.body.style.overflow).toBe('hidden');
+
+		syncBannerVisibility(hidden);
+		expect(document.body.style.overflow).toBe('');
+	});
+
+	it('leaves scroll alone for a non-blocking banner', () => {
+		renderBanner();
+		syncBannerVisibility({ activeUI: 'banner' } as ConsentSnapshot);
+		expect(document.body.style.overflow).toBe('');
 	});
 });
 

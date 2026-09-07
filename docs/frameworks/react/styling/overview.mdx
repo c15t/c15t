@@ -52,6 +52,15 @@ every button, `primary` to whichever actions the policy or your props mark
 primary, and `accept`, `reject`, `customize`, and `dismiss` to one role each.
 Per-action keys win over `primary`, which wins over `default`.
 
+Banner sizing has its own variables. Override them in CSS when a variant
+needs a different footprint:
+
+| Variable | Default | Applies to |
+| --- | --- | --- |
+| `--consent-banner-max-width` | `440px` | `floating` cards |
+| `--consent-banner-widget-max-width` | `20rem` | `widget` chips |
+| `--consent-banner-wall-max-width` | `30rem` | `wall` cards |
+
 ## Slots
 
 Each component part is a slot. A slot accepts any attributes the element
@@ -79,6 +88,32 @@ full-width bar:
 	}}
 />
 ```
+
+The root also carries `data-variant`, so you can restyle one shape without
+touching the others. Tailwind, giving a `bar` a brand-colored top edge and
+tighter text:
+
+```tsx
+<ConsentProvider
+	options={{
+		mode,
+		presentation: { prompt: { variant: 'bar' } },
+		components: {
+			banner: {
+				root: { className: 'group' },
+				card: {
+					className:
+						'group-data-[variant=bar]:border-t-4 group-data-[variant=bar]:border-t-emerald-600',
+				},
+				description: { className: 'group-data-[variant=bar]:text-xs' },
+			},
+		},
+	}}
+/>
+```
+
+`data-variant` sits on the root, so child slots use Tailwind's `group`
+prefix to read it.
 
 StyleX, spreading the result of `stylex.props()` into a slot:
 
@@ -111,7 +146,7 @@ Banner slot keys under `components.banner`:
 
 | Key | Element |
 | --- | --- |
-| `root` | Fixed-position wrapper carrying `data-prompt`, `data-model`, and `data-position` |
+| `root` | Fixed-position wrapper carrying `data-prompt`, `data-model`, `data-variant`, `data-position`, and `data-blocking` |
 | `cardShell` | Sizes the card and holds the branding tag |
 | `card` | The visible card, carrying `data-state` |
 | `header` | Title and description container |

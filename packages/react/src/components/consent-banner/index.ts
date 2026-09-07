@@ -192,6 +192,10 @@ export {
 	Rights,
 	Title,
 } from './components';
+export {
+	type ConsentBannerSurface,
+	useConsentBannerSurface,
+} from './surface-context';
 export { useBannerCopy } from './use-banner-copy';
 export {
 	type ConsentBannerPolicyActionRenderProps,

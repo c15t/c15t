@@ -1,5 +1,10 @@
 <script lang="ts">
-	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
+	import type {
+		LegalLinks as LegalLinksType,
+		Model,
+		PromptPosition,
+		PromptVariant,
+	} from '@c15t/core';
 	import {
 		defaultTranslationConfig,
 		resolveConsentPresentation,
@@ -47,6 +52,9 @@
 		legalLinks,
 		layout,
 		primaryButton,
+		variant,
+		position,
+		blocking,
 		models = ['opt-in', 'opt-out', 'iab'] as Model[],
 		class: className,
 	}: {
@@ -64,9 +72,33 @@
 		legalLinks?: (keyof LegalLinksType)[] | null;
 		layout?: ConsentBannerLayout;
 		primaryButton?: ConsentBannerButton | ConsentBannerButton[];
+		/**
+		 * Shape of the prompt. Overrides the host presentation.
+		 * A notice defaults to `bar`, a choice prompt to `floating`.
+		 */
+		variant?: PromptVariant;
+		/**
+		 * Where the prompt sits. Must be valid for the resolved variant;
+		 * an invalid value falls back to the variant default with a
+		 * development diagnostic.
+		 */
+		position?: PromptPosition;
+		/**
+		 * Backdrop, scroll lock, focus trap, and no dismissal from outside,
+		 * as one value. `wall` is always blocking; a notice never is.
+		 */
+		blocking?: boolean;
 		models?: Model[];
 		class?: string;
 	} = $props();
+
+	/** Corner mirror for right-to-left text when the host set no position. */
+	const MIRRORED_POSITIONS: Partial<Record<PromptPosition, PromptPosition>> = {
+		'bottom-left': 'bottom-right',
+		'bottom-right': 'bottom-left',
+		'top-left': 'top-right',
+		'top-right': 'top-left',
+	};
 
 	const consent = getConsentContext();
 	const theme = getThemeContext();
@@ -209,10 +241,13 @@
 		resolveConsentPresentation({
 			actionAppearance: themedActions,
 			override: {
+				blocking,
 				layout,
+				position,
 				primaryActions: localPrimaryActions,
 				scrollLock: localScrollLock ?? theme.scrollLock,
 				trapFocus: localTrapFocus ?? theme.trapFocus,
+				variant,
 			},
 			policy: consent.snapshot.policyRule,
 			presentation: consent.state.presentation,
@@ -235,6 +270,19 @@
 	const shouldFillActions = $derived(presentation.shouldFillActions);
 	const shouldTrapFocus = $derived(presentation.trapFocus);
 	const shouldScrollLock = $derived(presentation.scrollLock);
+	const resolvedVariant = $derived(presentation.variant);
+	const isBlocking = $derived(presentation.blocking);
+	// A defaulted corner follows the text direction; a host position is
+	// physical and stays put.
+	const resolvedPosition = $derived.by(() => {
+		const { position: resolved, positionSource } = presentation;
+		const corner =
+			resolvedVariant === 'floating' || resolvedVariant === 'widget';
+		if (textDirection === 'rtl' && positionSource === 'default' && corner) {
+			return MIRRORED_POSITIONS[resolved] ?? resolved;
+		}
+		return resolved;
+	});
 
 	$effect(() => {
 		if (
@@ -301,7 +349,9 @@
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
 			dir={textDirection}
-			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-variant={resolvedVariant}
+			data-position={resolvedPosition}
+			data-blocking={isBlocking ? 'true' : undefined}
 			data-prompt={promptKind}
 			data-model={consent.state.model}
 			data-testid="consent-banner-root"

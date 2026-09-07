@@ -261,10 +261,20 @@ export {
 	writePolicyResolutionWire,
 	safeFallbackPolicyRule,
 } from '@c15t/schema/types';
-export { resolveConsentPresentation } from './libs/policy-actions';
+export {
+	PROMPT_VARIANT_DEFAULT_POSITION,
+	PROMPT_VARIANT_POSITIONS,
+	resolveConsentPresentation,
+} from './libs/policy-actions';
 export type {
 	ConsentPresentation,
 	PromptPresentation,
+	PromptVariant,
+	PromptPosition,
+	FloatingPromptPosition,
+	BarPromptPosition,
+	WidgetPromptPosition,
+	WallPromptPosition,
 	PreferencesPresentation,
 	SurfacePresentation,
 	PresentationAction,

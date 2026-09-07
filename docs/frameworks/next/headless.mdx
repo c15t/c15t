@@ -76,3 +76,8 @@ current draft for `save`, records a dismissal for `dismiss`, and opens the
 preference center for `customize`. `banner.diagnostics` reports when a host
 layout drops a required action or gives equivalent actions different
 prominence. It is empty when you render from the resolved lists.
+
+`banner.variant`, `banner.position`, and `banner.blocking` carry the resolved
+shape from `presentation.prompt`, so a headless surface can follow the same
+bar, widget, or wall choice the pre-built banner would make, and can trap
+focus and lock scroll exactly when `blocking` is true.

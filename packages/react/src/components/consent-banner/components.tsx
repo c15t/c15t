@@ -26,6 +26,7 @@ import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 import type { InlineLegalLinksProps } from '../shared/primitives/legal-links';
 import { InlineLegalLinks } from '../shared/primitives/legal-links';
+import { useConsentBannerSurface } from './surface-context';
 import { useBannerCopy } from './use-banner-copy';
 
 const CONSENT_BANNER_TITLE_NAME = 'ConsentBannerTitle';
@@ -221,12 +222,13 @@ const ConsentBannerCard = createForwardRef<
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	const { trapFocus } = useTheme();
+	const { blocking } = useConsentBannerSurface();
 	const { title } = useBannerCopy();
 	const localRef = useRef<HTMLDivElement>(null);
 	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
-	// Call the useFocusTrap hook with the appropriate parameters
-	const shouldTrapFocus = Boolean(trapFocus);
+	// A blocking surface always traps focus and announces as a modal dialog.
+	const shouldTrapFocus = blocking || Boolean(trapFocus);
 	useFocusTrap(shouldTrapFocus, cardRef);
 
 	return (

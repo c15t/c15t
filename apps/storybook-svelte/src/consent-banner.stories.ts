@@ -28,6 +28,27 @@ export const Notice: Story = {
 	},
 };
 
+export const Bar: Story = {
+	args: {
+		position: 'bottom',
+		variant: 'bar',
+	},
+};
+
+export const Widget: Story = {
+	args: {
+		position: 'bottom-right',
+		variant: 'widget',
+	},
+};
+
+export const Wall: Story = {
+	args: {
+		includeDialog: true,
+		variant: 'wall',
+	},
+};
+
 export const BannerContract: Story = {
 	play: bannerContract,
 };

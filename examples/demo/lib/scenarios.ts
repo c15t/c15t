@@ -419,6 +419,37 @@ export const demoScenarios: DemoScenario[] = [
 			},
 			scopeMode: 'permissive',
 		},
+		// Explicit so the code example shows the shape; a notice defaults to
+		// a bottom bar anyway.
+		presentation: {
+			prompt: { position: 'bottom', variant: 'bar' },
+		},
+	},
+	{
+		country: 'FR',
+		description:
+			'Opt-in choice prompt rendered as a centered wall: a backdrop, scroll lock, and focus trap until the visitor answers. `wall` is always blocking.',
+		group: 'custom',
+		id: 'custom-eu-wall',
+		label: 'EU wall',
+		policy: {
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'eu' },
+			id: 'eu_wall',
+			match: { countries: ['FR'] },
+			model: 'opt-in',
+			prompt: 'choice',
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
+			},
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
+		},
+		presentation: {
+			prompt: { variant: 'wall' },
+		},
 	},
 ];
 

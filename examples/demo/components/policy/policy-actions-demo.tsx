@@ -36,9 +36,14 @@ interface Snapshot {
 	orderedActions: string[];
 	actionGroups: string[][];
 	primaryActions: string[];
+	uncoveredRights: string[];
 	direction: string;
 	uiProfile?: string;
 	shouldFillActions: boolean;
+	variant: string;
+	position: string;
+	positionSource: string;
+	blocking: boolean;
 }
 
 const locationPresets = [
@@ -81,12 +86,17 @@ const buildSurfaceSnapshot = function buildSurfaceSnapshot(
 	return {
 		actionGroups: surface.actionGroups,
 		allowedActions: surface.allowedActions,
+		blocking: surface.blocking,
 		direction: surface.direction,
 		isVisible: surface.isVisible,
 		orderedActions: surface.orderedActions,
+		position: surface.position,
+		positionSource: surface.positionSource,
 		primaryActions: surface.primaryActions,
 		shouldFillActions: surface.shouldFillActions,
 		uiProfile: surface.uiProfile,
+		uncoveredRights: surface.uncoveredRights,
+		variant: surface.variant,
 	};
 };
 
@@ -313,12 +323,17 @@ const PolicyActionsDemoContent = () => {
 			buildSurfaceSnapshot({
 				actionGroups: banner.actionGroups,
 				allowedActions: banner.allowedActions,
+				blocking: banner.blocking,
 				direction: banner.direction,
 				isVisible: banner.isVisible,
 				orderedActions: banner.orderedActions,
+				position: banner.position,
+				positionSource: banner.positionSource,
 				primaryActions: banner.primaryActions,
 				shouldFillActions: banner.shouldFillActions,
 				uiProfile: banner.uiProfile,
+				uncoveredRights: banner.uncoveredRights,
+				variant: banner.variant,
 			}),
 		[banner]
 	);
@@ -328,12 +343,17 @@ const PolicyActionsDemoContent = () => {
 			buildSurfaceSnapshot({
 				actionGroups: dialog.actionGroups,
 				allowedActions: dialog.allowedActions,
+				blocking: dialog.blocking,
 				direction: dialog.direction,
 				isVisible: dialog.isVisible,
 				orderedActions: dialog.orderedActions,
+				position: dialog.position,
+				positionSource: dialog.positionSource,
 				primaryActions: dialog.primaryActions,
 				shouldFillActions: dialog.shouldFillActions,
 				uiProfile: dialog.uiProfile,
+				uncoveredRights: dialog.uncoveredRights,
+				variant: dialog.variant,
 			}),
 		[dialog]
 	);

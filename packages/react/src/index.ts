@@ -66,11 +66,13 @@ export type {
 	ConsentBannerRight,
 	ConsentBannerRightLinkProps,
 	ConsentBannerRightsProps,
+	ConsentBannerSurface,
 } from './components/consent-banner';
 // -- UI components ----------------------------------------------------------
 export {
 	ConsentBanner,
 	type ConsentBannerCompoundComponent,
+	useConsentBannerSurface,
 } from './components/consent-banner';
 export type {
 	ConsentDialogCompoundComponent,
@@ -158,5 +160,7 @@ export type {
 	PromptPresentation,
 	PreferencesPresentation,
 	PresentationAction,
+	PromptPosition,
+	PromptVariant,
 	ResolvedConsentPresentation,
 } from '@c15t/core';

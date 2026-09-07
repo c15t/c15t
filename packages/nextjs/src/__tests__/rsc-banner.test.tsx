@@ -1,3 +1,4 @@
+import type { ConsentPresentation } from '@c15t/core';
 import { custom } from '@c15t/react';
 import type { PolicyRule } from '@c15t/schema/types';
 import { renderToString } from 'react-dom/server';
@@ -24,22 +25,43 @@ const noticeTranslations = {
 	},
 } as const;
 
-const renderShell = function renderShell(rule: Partial<PolicyRule>) {
+const renderShell = function renderShell(
+	rule: Partial<PolicyRule>,
+	presentation?: ConsentPresentation,
+	language = 'en'
+) {
 	const config = {
 		...policyFixture({}, rule),
-		initialTranslations: noticeTranslations,
+		initialTranslations: { ...noticeTranslations, language },
 	};
 	return renderToString(
 		<ConsentBoundary
 			config={JSON.parse(JSON.stringify(config))}
-			options={{ disableAnimation: true, mode: custom({ init: vi.fn() }) }}
+			options={{
+				disableAnimation: true,
+				mode: custom({ init: vi.fn() }),
+				presentation,
+			}}
 		>
 			<RscConsentBanner
 				config={config}
 				classNames={{ rightLink: 'link', rights: 'rights' }}
+				presentation={presentation}
 			/>
 		</ConsentBoundary>
 	);
+};
+
+const readRoot = function readRoot(html: string) {
+	const root = /<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html)?.[0];
+	expect(root).toBeDefined();
+	return root ?? '';
+};
+
+const readCard = function readCard(html: string) {
+	const card = /<[^>]*data-testid="consent-banner-card"[^>]*>/u.exec(html)?.[0];
+	expect(card).toBeDefined();
+	return card ?? '';
 };
 
 describe('RscConsentBanner server HTML', () => {
@@ -87,5 +109,78 @@ describe('RscConsentBanner server HTML', () => {
 		expect(html).not.toContain('data-testid="consent-banner-rights"');
 		expect(html).toContain('data-testid="consent-banner-customize-button"');
 		expect(html).toContain('data-action="accept"');
+	});
+});
+
+describe('RscConsentBanner surface shape', () => {
+	test('a notice resolves to a non-blocking bar', () => {
+		const html = renderShell({ model: 'opt-out', prompt: 'notice' });
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="bar"');
+		expect(root).not.toContain('data-blocking');
+		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+		expect(readCard(html)).not.toContain('aria-modal');
+	});
+
+	test('a choice resolves to a floating card by default', () => {
+		const html = renderShell({ model: 'opt-in', prompt: 'choice' });
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="floating"');
+		expect(root).not.toContain('data-blocking');
+		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+	});
+
+	test('a host wall variant blocks: overlay, modal card, blocking attribute', () => {
+		const html = renderShell(
+			{ model: 'opt-in', prompt: 'choice' },
+			{ prompt: { variant: 'wall' } }
+		);
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="wall"');
+		expect(root).toContain('data-blocking="true"');
+		expect(html).toContain('data-testid="consent-banner-overlay"');
+		const card = readCard(html);
+		expect(card).toContain('aria-modal="true"');
+		expect(card).toContain('role="dialog"');
+	});
+
+	test('a notice never blocks even when the host asks for it', () => {
+		const html = renderShell(
+			{ model: 'opt-out', prompt: 'notice' },
+			{ prompt: { blocking: true } }
+		);
+		expect(readRoot(html)).not.toContain('data-blocking');
+		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+	});
+
+	test('a notice sits at the bottom edge and a host corner is kept', () => {
+		expect(
+			readRoot(renderShell({ model: 'opt-out', prompt: 'notice' }))
+		).toContain('data-position="bottom"');
+		expect(
+			readRoot(
+				renderShell(
+					{ model: 'opt-in', prompt: 'choice' },
+					{ prompt: { position: 'top-right' } }
+				)
+			)
+		).toContain('data-position="top-right"');
+	});
+
+	test('a defaulted corner mirrors for right-to-left text, a host corner does not', () => {
+		const mirrored = readRoot(
+			renderShell({ model: 'opt-in', prompt: 'choice' }, undefined, 'he')
+		);
+		expect(mirrored).toContain('dir="rtl"');
+		expect(mirrored).toContain('data-position="bottom-right"');
+
+		const kept = readRoot(
+			renderShell(
+				{ model: 'opt-in', prompt: 'choice' },
+				{ prompt: { position: 'top-left' } },
+				'he'
+			)
+		);
+		expect(kept).toContain('data-position="top-left"');
 	});
 });

@@ -47,6 +47,9 @@ reject renders a "Manage preferences" link, because customize is absent.
 | `rejectButtonText` | `ReactNode` | `common.rejectAll` | Reject label. |
 | `customizeButtonText` | `ReactNode` | `common.customize` | Customize label. |
 | `dismissButtonText` | `ReactNode` | `common.dismiss` | Dismiss label on a notice. |
+| `variant` | `PromptVariant` | `bar` on a notice, `floating` otherwise | Shape of the prompt. See [Variants](#variants). |
+| `position` | `PromptPosition` | per variant | Where the prompt sits. Must be valid for the variant. |
+| `blocking` | `boolean` | `true` on `wall` | Backdrop, scroll lock, focus trap, and no outside dismissal, as one value. |
 | `layout` | `ConsentBannerLayout` | policy default | Orders and groups actions. Required actions the layout omits are restored. |
 | `primaryButton` | `ConsentBannerButton \| ConsentBannerButton[]` | `'customize'` | Which actions get the primary treatment. On a notice, dismiss is primary when it is the only action. |
 | `direction` | `'row' \| 'column'` | `'row'` | How action groups flow. |
@@ -56,6 +59,71 @@ reject renders a "Manage preferences" link, because customize is absent.
 | `trapFocus` | `boolean` | `true` | Traps focus inside the banner. Ignored on a notice. |
 | `disableAnimation` | `boolean` | `false` | Skips enter and exit animations. |
 | `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
+
+## Variants
+
+The policy decides which actions the banner offers. The variant decides the
+shape those actions take. Both come from the same component, so a bar for a
+notice region and a card for an opt-in region need no extra components.
+
+Set the variant on the banner, or on the provider under
+`presentation.prompt` when every banner should share it. The prop wins.
+
+```tsx
+<ConsentBanner variant="floating" position="bottom-center" />
+```
+
+A floating card in a corner or centered on an edge. This is the default for a
+choice prompt.
+
+```tsx
+<ConsentBanner variant="bar" position="top" />
+```
+
+A bar across the full width of the viewport. From 1024px wide the text and
+the controls share one row. This is the default for a notice.
+
+```tsx
+<ConsentBanner variant="widget" position="bottom-right" />
+```
+
+A compact chip with smaller type and a three-line description. Pair it with
+a short notice.
+
+```tsx
+<ConsentBanner variant="wall" />
+```
+
+A centered card over a backdrop that blocks the page until the visitor
+answers. A wall is always blocking.
+
+Each variant accepts its own positions:
+
+| Variant | Positions | Default |
+| --- | --- | --- |
+| `floating` | `bottom-left`, `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` | `bottom-left` |
+| `bar` | `top`, `bottom` | `bottom` |
+| `widget` | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-right` |
+| `wall` | `center` | `center` |
+
+A default corner mirrors left and right for right-to-left languages. A
+position you set is never mirrored. A position that is not valid for the
+variant falls back to the default and logs an `invalid-position` diagnostic
+in development.
+
+`blocking` bundles the backdrop, scroll lock, focus trap, and no dismissal
+from outside into one value. A `wall` is always blocking, and a notice never
+is. Asking for the opposite logs `blocking-required` or `blocking-forbidden`
+and keeps the safe value. The `scrollLock` and `trapFocus` props still work
+on a non-blocking banner.
+
+The card carries `role="dialog"` and `aria-modal="true"` whenever it traps
+focus, which every blocking banner does and a notice never does.
+
+`PromptVariant` and `PromptPosition` are exported from `@c15t/react`.
+Compound parts can read the resolved shape with `useConsentBannerSurface()`,
+which returns `variant`, `position`, `positionSource` (`host` or `default`),
+and `blocking`.
 
 ## Composition
 
@@ -118,8 +186,11 @@ animations.
 | --- | --- |
 | `data-prompt` | `choice`, `notice` |
 | `data-model` | `opt-in`, `opt-out`, `iab` |
-| `data-position` | `bottom-left`, `bottom-right` |
+| `data-variant` | `floating`, `bar`, `widget`, `wall` |
+| `data-position` | The resolved position for the variant |
+| `data-blocking` | `true`, present only while blocking |
 
 Each action button carries `data-action`, and each right link carries
-`data-right`. The built-in stylesheet uses `data-prompt="notice"` to lay the
-footer out as one row with the rights links leading and dismiss trailing.
+`data-right`. The built-in stylesheet keys every variant's geometry on
+`data-variant` and `data-position`, and uses `data-prompt="notice"` to lay
+the footer out as one row with the rights links leading and dismiss trailing.

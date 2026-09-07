@@ -104,6 +104,54 @@ describe('demo policy scenarios', () => {
 		expect(prompt.orderedActions).toEqual(['accept', 'reject']);
 		expect(prompt.uncoveredRights).toEqual(['preferences']);
 	});
+	it('renders the US notice as an explicit bottom bar', () => {
+		const scenario = getScenarioById('custom-us-notice');
+		expect(scenario.presentation?.prompt).toEqual({
+			position: 'bottom',
+			variant: 'bar',
+		});
+		const resolution = resolvePolicyRules({
+			countryCode: scenario.country,
+			regionCode: null,
+			rules: getScenarioPolicyRules(scenario.id),
+		});
+		if (resolution.status !== 'matched') {
+			throw new Error('Scenario did not match');
+		}
+		const prompt = resolveConsentPresentation({
+			policy: resolution.policy,
+			presentation: scenario.presentation,
+			surface: 'prompt',
+		});
+		expect(prompt.variant).toBe('bar');
+		expect(prompt.position).toBe('bottom');
+		expect(prompt.positionSource).toBe('host');
+		expect(prompt.blocking).toBe(false);
+		expect(prompt.diagnostics).toEqual([]);
+	});
+	it('renders the EU wall as a centered blocking prompt', () => {
+		const scenario = getScenarioById('custom-eu-wall');
+		expect(scenario.policy.model).toBe('opt-in');
+		const resolution = resolvePolicyRules({
+			countryCode: scenario.country,
+			regionCode: null,
+			rules: getScenarioPolicyRules(scenario.id),
+		});
+		if (resolution.status !== 'matched') {
+			throw new Error('Scenario did not match');
+		}
+		const prompt = resolveConsentPresentation({
+			policy: resolution.policy,
+			presentation: scenario.presentation,
+			surface: 'prompt',
+		});
+		expect(prompt.variant).toBe('wall');
+		expect(prompt.position).toBe('center');
+		expect(prompt.blocking).toBe(true);
+		expect(prompt.trapFocus).toBe(true);
+		expect(prompt.scrollLock).toBe(true);
+		expect(prompt.diagnostics).toEqual([]);
+	});
 	it('keeps unknown scenario links usable', () => {
 		expect(getScenarioById('unknown').id).toBe('preset-europe-opt-in');
 		expect(getScenarioPolicyRules('unknown')).toHaveLength(2);

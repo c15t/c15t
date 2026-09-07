@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 /**
  * RSC-first consent banner (`@c15t/nextjs/rsc`).
  *
@@ -21,6 +19,10 @@ import type { ReactNode } from 'react';
  * The shared React root evaluates visibility from the prepared policy and
  * records. Keeping the gate mounted lets expiry reopen the prompt later.
  */
+import { resolveConsentPresentation } from '@c15t/core';
+import type { ConsentPresentation } from '@c15t/core';
+import type { ReactNode } from 'react';
+
 import type { InitialConsentConfig } from '../types';
 import { RscBannerActions, RscBannerGate } from './islands';
 
@@ -140,17 +142,53 @@ export interface RscConsentBannerProps {
 		/** One right link inside the rights group. */
 		rightLink?: string;
 	};
+	/**
+	 * Host presentation for the prompt: variant, position, blocking, layout.
+	 * Pass the same object you give `ConsentBoundary` as
+	 * `options.presentation`, so the server resolves the identical shape the
+	 * client hydrates with. Omit it when the boundary has none.
+	 */
+	presentation?: ConsentPresentation;
 	/** Extra server-rendered content inside the card (links, branding). */
 	children?: ReactNode;
 }
 
+/**
+ * Variant, blocking state and any host-chosen position, from the same pure
+ * resolver the shared root runs. A defaulted position is not forwarded: the
+ * root derives it from the variant and mirrors it for right-to-left text.
+ */
+const readSurface = function readSurface(
+	policy: ReturnType<typeof readPolicy>,
+	presentation: ConsentPresentation | undefined
+) {
+	if (!policy) {
+		return { blocking: false, position: undefined, variant: undefined };
+	}
+	const { blocking, position, positionSource, variant } =
+		resolveConsentPresentation({ policy, presentation, surface: 'prompt' });
+	return {
+		blocking,
+		position: positionSource === 'host' ? position : undefined,
+		variant,
+	};
+};
+
+const modalProps = function modalProps(blocking: boolean) {
+	return blocking
+		? ({ 'aria-modal': 'true', role: 'dialog' } as const)
+		: undefined;
+};
+
 export const RscConsentBanner = ({
 	config,
 	classNames,
+	presentation,
 	children,
 }: RscConsentBannerProps) => {
 	const policy = readPolicy(config);
 	const copy = readCopy(config, policy?.prompt === 'notice');
+	const surface = readSurface(policy, presentation);
 
 	return (
 		<RscBannerGate
@@ -158,9 +196,13 @@ export const RscConsentBanner = ({
 			className={classNames?.root}
 			prompt={policy?.prompt}
 			model={policy?.model}
+			variant={surface.variant}
+			position={surface.position}
+			blocking={surface.blocking}
 		>
 			<div
 				className={classNames?.card}
+				{...modalProps(surface.blocking)}
 				data-testid="consent-banner-card"
 			>
 				<h2

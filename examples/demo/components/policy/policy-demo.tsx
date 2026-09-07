@@ -1,6 +1,13 @@
 'use client';
 
-import type { ConsentSnapshot, PromptPresentation } from 'c15t';
+import type {
+	ConsentPresentation,
+	ConsentSnapshot,
+	PromptPosition,
+	PromptPresentation,
+	PromptVariant,
+} from 'c15t';
+import { PROMPT_VARIANT_POSITIONS } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -15,6 +22,7 @@ import {
 	useSnapshot,
 	usePromptPresentation,
 } from 'c15t/react';
+import { useHeadlessConsentUI } from 'c15t/react/headless';
 import {
 	IABConsentBanner,
 	IABConsentDialog,
@@ -73,6 +81,50 @@ interface PolicyOverrides {
 	country?: string;
 	region?: string;
 }
+
+/** Prompt shape chosen in the URL. Empty strings mean "let the resolver pick". */
+interface SurfaceParams {
+	variant: PromptVariant | '';
+	position: PromptPosition | '';
+	blocking: boolean;
+}
+
+const PROMPT_VARIANTS = ['floating', 'bar', 'widget', 'wall'] as const;
+
+const isPromptVariant = function isPromptVariant(
+	value: string
+): value is PromptVariant {
+	return (PROMPT_VARIANTS as readonly string[]).includes(value);
+};
+
+const isPromptPosition = function isPromptPosition(
+	value: string
+): value is PromptPosition {
+	return Object.values(PROMPT_VARIANT_POSITIONS).some((positions) =>
+		(positions as readonly string[]).includes(value)
+	);
+};
+
+/** Layer the URL surface choice over a scenario's own presentation. */
+const withSurface = function withSurface(
+	presentation: ConsentPresentation | undefined,
+	surface: SurfaceParams
+): ConsentPresentation | undefined {
+	const prompt: PromptPresentation = { ...presentation?.prompt };
+	if (surface.variant) {
+		prompt.variant = surface.variant;
+	}
+	if (surface.position) {
+		prompt.position = surface.position;
+	}
+	if (surface.blocking) {
+		prompt.blocking = true;
+	}
+	if (Object.keys(prompt).length === 0) {
+		return presentation;
+	}
+	return { ...presentation, prompt };
+};
 
 const policyOverridesCache = new Map<string, PolicyOverrides>();
 
@@ -198,6 +250,13 @@ const locationPresetSections: LocationPresetSection[] = [
 				id: 'custom-us-notice',
 				label: 'US notice',
 			},
+			{
+				country: 'FR',
+				description:
+					'Opt-in choice rendered as a centered, blocking wall prompt',
+				id: 'custom-eu-wall',
+				label: 'EU wall',
+			},
 		],
 	},
 ];
@@ -239,19 +298,28 @@ const parseSearchParams = function parseSearchParams(
 	mode: DemoMode;
 	country: string;
 	region: string;
+	surface: SurfaceParams;
 } {
 	const example = searchParams.get('example') ?? DEFAULT_DEMO_POLICY_EXAMPLE;
 	const mode = searchParams.get('mode') === 'hosted' ? 'hosted' : 'offline';
 	const country = (searchParams.get('country') ?? 'GB').toUpperCase();
 	const region = (searchParams.get('region') ?? '').toUpperCase();
-	return { country, example, mode, region };
+	const variant = searchParams.get('variant') ?? '';
+	const position = searchParams.get('position') ?? '';
+	const surface: SurfaceParams = {
+		blocking: searchParams.get('blocking') === '1',
+		position: isPromptPosition(position) ? position : '',
+		variant: isPromptVariant(variant) ? variant : '',
+	};
+	return { country, example, mode, region, surface };
 };
 
 const buildSearchString = function buildSearchString(
 	example: string,
 	mode: DemoMode,
 	country: string,
-	region: string
+	region: string,
+	surface: SurfaceParams
 ): string {
 	const params = new URLSearchParams();
 	if (example && example !== DEFAULT_DEMO_POLICY_EXAMPLE) {
@@ -265,6 +333,15 @@ const buildSearchString = function buildSearchString(
 	}
 	if (region) {
 		params.set('region', region);
+	}
+	if (surface.variant) {
+		params.set('variant', surface.variant);
+	}
+	if (surface.position) {
+		params.set('position', surface.position);
+	}
+	if (surface.blocking) {
+		params.set('blocking', '1');
 	}
 	const str = params.toString();
 	return str ? `?${str}` : '';
@@ -284,10 +361,23 @@ const JsonBlock = ({ label, value }: { label: string; value: unknown }) => (
 // ---------------------------------------------------------------------------
 
 const policyActionLayout = (presentation: PromptPresentation) => ({
+	blocking: presentation.blocking ?? null,
 	direction: presentation.direction ?? null,
 	layout: presentation.layout ?? null,
+	position: presentation.position ?? null,
 	uiProfile: presentation.uiProfile ?? null,
+	variant: presentation.variant ?? null,
 });
+
+/** One-line summary of the resolved prompt surface for the runtime panel. */
+const describeSurface = function describeSurface(surface: {
+	variant: PromptVariant;
+	position: PromptPosition;
+	positionSource: 'host' | 'default';
+	blocking: boolean;
+}): string {
+	return `${surface.variant} · ${surface.position} (${surface.positionSource})${surface.blocking ? ' · blocking' : ''}`;
+};
 
 const policyLanguage = function policyLanguage(snapshot: ConsentSnapshot) {
 	const profile = snapshot.policyRule?.i18n?.messageProfile;
@@ -334,7 +424,8 @@ const buildPolicySummary = function buildPolicySummary(
 const buildMountedRuntimeDisplay = function buildMountedRuntimeDisplay(
 	snapshot: ConsentSnapshot,
 	demoMode: DemoMode,
-	presentation: PromptPresentation
+	presentation: PromptPresentation,
+	surface: Parameters<typeof describeSurface>[0]
 ) {
 	const { policyRule: policy, resolution } = snapshot;
 	const policySummary = buildPolicySummary(snapshot, demoMode, presentation);
@@ -362,6 +453,7 @@ const buildMountedRuntimeDisplay = function buildMountedRuntimeDisplay(
 			resolution,
 		},
 		displaySource: demoMode,
+		displaySurfaceText: describeSurface(surface),
 	};
 };
 
@@ -376,7 +468,14 @@ const buildPlaceholderRuntimeDisplay = function buildPlaceholderRuntimeDisplay(
 		displayModel: 'none',
 		displayPolicyId: 'no policy',
 		displayPolicySummary: {
-			actionLayout: { direction: null, layout: null, uiProfile: null },
+			actionLayout: {
+				blocking: null,
+				direction: null,
+				layout: null,
+				position: null,
+				uiProfile: null,
+				variant: null,
+			},
 			categories: [],
 			iabEnabled: false,
 			id: null,
@@ -400,6 +499,7 @@ const buildPlaceholderRuntimeDisplay = function buildPlaceholderRuntimeDisplay(
 			resolution: null,
 		},
 		displaySource: 'unknown',
+		displaySurfaceText: 'resolving…',
 	};
 };
 
@@ -407,6 +507,7 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	const [mounted, setMounted] = useState(false);
 	const snapshot = useSnapshot();
 	const presentation = usePromptPresentation();
+	const { banner } = useHeadlessConsentUI();
 	const init = useInit();
 	const setActiveUI = useSetActiveUI();
 	const draft = useConsentDraft();
@@ -430,8 +531,9 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 		displayResolvedLanguage,
 		displayRuntimeState,
 		displaySource,
+		displaySurfaceText,
 	} = mounted
-		? buildMountedRuntimeDisplay(snapshot, demoMode, presentation)
+		? buildMountedRuntimeDisplay(snapshot, demoMode, presentation, banner)
 		: buildPlaceholderRuntimeDisplay(demoMode);
 
 	return (
@@ -468,6 +570,15 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Layout</p>
 					<p className="mt-1 font-mono text-xs">{displayLayoutText}</p>
+				</div>
+				<div className="border-border/70 border-b pb-2 sm:col-span-2">
+					<p className="label-pixel text-muted-foreground">Surface</p>
+					<p
+						className="mt-1 font-mono text-xs"
+						data-testid="policy-demo-surface"
+					>
+						{displaySurfaceText}
+					</p>
 				</div>
 			</div>
 
@@ -572,29 +683,50 @@ export const PolicyDemo = () => {
 		mode: demoMode,
 		country,
 		region,
+		surface,
 	} = parseSearchParams(searchParams);
 
 	const normalizedCountry = country.trim().toUpperCase();
 	const normalizedRegion = region.trim().toUpperCase();
-	const providerKey = `${demoMode}-${normalizedCountry}-${normalizedRegion}`;
+	const providerKey = `${demoMode}-${normalizedCountry}-${normalizedRegion}-${surface.variant}-${surface.position}-${surface.blocking}`;
 
 	const navigate = useCallback(
 		(
 			nextExample: string,
 			nextMode: DemoMode,
 			nextCountry: string,
-			nextRegion: string
+			nextRegion: string,
+			nextSurface: SurfaceParams
 		) => {
 			const search = buildSearchString(
 				nextExample,
 				nextMode,
 				nextCountry.trim().toUpperCase(),
-				nextRegion.trim().toUpperCase()
+				nextRegion.trim().toUpperCase(),
+				nextSurface
 			);
 			router.replace(`${pathname}${search}`, { scroll: false });
 		},
 		[router, pathname]
 	);
+
+	const setSurface = (patch: Partial<SurfaceParams>) => {
+		const next: SurfaceParams = { ...surface, ...patch };
+		// A variant change drops a position it cannot accept.
+		if (
+			next.variant &&
+			next.position &&
+			!(PROMPT_VARIANT_POSITIONS[next.variant] as readonly string[]).includes(
+				next.position
+			)
+		) {
+			next.position = '';
+		}
+		navigate(example, demoMode, country, region, next);
+	};
+	const positionOptions = surface.variant
+		? PROMPT_VARIANT_POSITIONS[surface.variant]
+		: ([] as readonly PromptPosition[]);
 
 	const matchingPreset = locationPresets.find(
 		(p) =>
@@ -619,9 +751,13 @@ export const PolicyDemo = () => {
 	const activePreset =
 		locationPresets.find((preset) => preset.id === resolvedExample) ??
 		matchingPreset;
+	const activePresentation = withSurface(
+		getScenarioById(resolvedExample).presentation,
+		surface
+	);
 
 	const selectLocation = (preset: LocationPreset) => {
-		navigate(preset.id, demoMode, preset.country, preset.region ?? '');
+		navigate(preset.id, demoMode, preset.country, preset.region ?? '', surface);
 	};
 
 	const overrides = createPolicyOverrides(normalizedCountry, normalizedRegion);
@@ -706,7 +842,7 @@ export const PolicyDemo = () => {
 										url: '/api/self-host',
 									}),
 									overrides,
-									presentation: getScenarioById(resolvedExample).presentation,
+									presentation: activePresentation,
 									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,
 								}
@@ -723,7 +859,7 @@ export const PolicyDemo = () => {
 										policyRules: getScenarioPolicyRules(resolvedExample),
 									}),
 									overrides,
-									presentation: getScenarioById(resolvedExample).presentation,
+									presentation: activePresentation,
 									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,
 								}
@@ -737,7 +873,7 @@ export const PolicyDemo = () => {
 									<button
 										type="button"
 										onClick={() =>
-											navigate(example, 'offline', country, region)
+											navigate(example, 'offline', country, region, surface)
 										}
 										className={`rounded-full border px-4 py-2 text-sm transition ${
 											demoMode === 'offline'
@@ -749,7 +885,9 @@ export const PolicyDemo = () => {
 									</button>
 									<button
 										type="button"
-										onClick={() => navigate(example, 'hosted', country, region)}
+										onClick={() =>
+											navigate(example, 'hosted', country, region, surface)
+										}
 										className={`rounded-full border px-4 py-2 text-sm transition ${
 											demoMode === 'hosted'
 												? 'border-foreground bg-foreground text-background'
@@ -826,7 +964,13 @@ export const PolicyDemo = () => {
 											id="country"
 											value={country}
 											onChange={(e) =>
-												navigate(example, demoMode, e.target.value, region)
+												navigate(
+													example,
+													demoMode,
+													e.target.value,
+													region,
+													surface
+												)
 											}
 											placeholder="DE"
 											maxLength={2}
@@ -844,13 +988,103 @@ export const PolicyDemo = () => {
 											id="region"
 											value={region}
 											onChange={(e) =>
-												navigate(example, demoMode, country, e.target.value)
+												navigate(
+													example,
+													demoMode,
+													country,
+													e.target.value,
+													surface
+												)
 											}
 											placeholder=""
 											maxLength={3}
 											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
+								</div>
+							</div>
+
+							<div className="space-y-3">
+								<p className="label-pixel text-muted-foreground">
+									Prompt surface
+								</p>
+								<p className="text-muted-foreground text-sm">
+									Host presentation layered over the scenario. A notice defaults
+									to a bottom bar, a choice to a floating card; a wall always
+									blocks.
+								</p>
+								<div className="flex flex-wrap items-end gap-3">
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="surface-variant"
+											className="text-xs"
+										>
+											Variant
+										</Label>
+										<select
+											id="surface-variant"
+											data-testid="policy-demo-variant"
+											value={surface.variant}
+											onChange={(event) =>
+												setSurface({
+													variant: event.target.value as PromptVariant | '',
+												})
+											}
+											className="border-input bg-background h-9 rounded-full border px-3 font-mono text-xs"
+										>
+											<option value="">auto</option>
+											{PROMPT_VARIANTS.map((variant) => (
+												<option
+													key={variant}
+													value={variant}
+												>
+													{variant}
+												</option>
+											))}
+										</select>
+									</div>
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="surface-position"
+											className="text-xs"
+										>
+											Position
+										</Label>
+										<select
+											id="surface-position"
+											data-testid="policy-demo-position"
+											value={surface.position}
+											disabled={!surface.variant}
+											onChange={(event) =>
+												setSurface({
+													position: event.target.value as PromptPosition | '',
+												})
+											}
+											className="border-input bg-background h-9 rounded-full border px-3 font-mono text-xs disabled:opacity-50"
+										>
+											<option value="">auto</option>
+											{positionOptions.map((position) => (
+												<option
+													key={position}
+													value={position}
+												>
+													{position}
+												</option>
+											))}
+										</select>
+									</div>
+									<label className="flex h-9 items-center gap-2 text-sm">
+										<input
+											type="checkbox"
+											data-testid="policy-demo-blocking"
+											checked={surface.blocking}
+											onChange={(event) =>
+												setSurface({ blocking: event.target.checked })
+											}
+											className="size-4"
+										/>
+										Blocking
+									</label>
 								</div>
 							</div>
 

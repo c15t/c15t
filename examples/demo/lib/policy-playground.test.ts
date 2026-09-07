@@ -4,11 +4,16 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildBackendSnippet,
 	buildProviderSnippet,
+	DEFAULT_PRESENTATION_FORM,
+	defaultVariantFor,
 	describeMatch,
 	fromPolicyRule,
 	getPlaygroundPreset,
 	inspectPlaygroundRule,
 	playgroundPresets,
+	positionOptionsFor,
+	setPresentationVariant,
+	toConsentPresentation,
 	toPolicyRule,
 } from './policy-playground';
 
@@ -106,6 +111,69 @@ describe('policy playground helpers', () => {
 		expect(describeMatch({})).toBe('matches nothing');
 	});
 
+	it('narrows position options to the variant and drops invalid positions', () => {
+		expect(positionOptionsFor('auto', 'choice')).toEqual(
+			positionOptionsFor('floating', 'choice')
+		);
+		expect(defaultVariantFor('notice')).toBe('bar');
+		expect(positionOptionsFor('auto', 'notice')).toEqual(['top', 'bottom']);
+		expect(positionOptionsFor('wall', 'choice')).toEqual(['center']);
+		const floating = setPresentationVariant(
+			{ ...DEFAULT_PRESENTATION_FORM, position: 'bottom-right' },
+			'floating',
+			'choice'
+		);
+		expect(floating.position).toBe('bottom-right');
+		const bar = setPresentationVariant(floating, 'bar', 'choice');
+		expect(bar.variant).toBe('bar');
+		expect(bar.position).toBe('auto');
+		const widget = setPresentationVariant(floating, 'widget', 'choice');
+		expect(widget.position).toBe('bottom-right');
+	});
+
+	it('turns the presentation form into host presentation only when set', () => {
+		expect(toConsentPresentation(DEFAULT_PRESENTATION_FORM)).toBeUndefined();
+		expect(
+			toConsentPresentation({
+				blocking: true,
+				position: 'top',
+				variant: 'bar',
+			})
+		).toEqual({ prompt: { blocking: true, position: 'top', variant: 'bar' } });
+	});
+
+	it('resolves the prompt surface and reports presentation diagnostics', () => {
+		const rule = toPolicyRule(
+			fromPolicyRule(policyRulePresets.californiaOptOut())
+		);
+		const notice = toPolicyRule({ ...fromPolicyRule(rule), prompt: 'notice' });
+		const defaults = inspectPlaygroundRule(notice, {
+			country: 'US',
+			region: 'CA',
+		});
+		expect(defaults.presentation?.variant).toBe('bar');
+		expect(defaults.presentation?.position).toBe('bottom');
+		expect(defaults.presentation?.positionSource).toBe('default');
+		expect(defaults.presentationDiagnostics).toEqual([]);
+		const blocked = inspectPlaygroundRule(
+			notice,
+			{ country: 'US', region: 'CA' },
+			{ prompt: { blocking: true, position: 'center', variant: 'bar' } }
+		);
+		expect(blocked.presentation?.blocking).toBe(false);
+		expect(blocked.presentation?.position).toBe('bottom');
+		expect(
+			blocked.presentationDiagnostics.map((diagnostic) => diagnostic.code)
+		).toEqual(
+			expect.arrayContaining(['blocking-forbidden', 'invalid-position'])
+		);
+		const invalid = inspectPlaygroundRule(
+			toPolicyRule({ ...fromPolicyRule(rule), prompt: 'none' }),
+			{ country: 'US', region: 'CA' }
+		);
+		expect(invalid.presentation?.variant).toBe('floating');
+	});
+
 	it('emits the preset factory for untouched presets and JSON otherwise', () => {
 		const rule = policyRulePresets.quebecOptIn();
 		expect(buildProviderSnippet(rule, 'quebecOptIn')).toContain(
@@ -118,5 +186,13 @@ describe('policy playground helpers', () => {
 		expect(buildBackendSnippet(rule, 'quebecOptIn')).toContain(
 			"from '@c15t/backend'"
 		);
+		expect(buildProviderSnippet(rule, 'quebecOptIn')).not.toContain(
+			'presentation:'
+		);
+		expect(
+			buildProviderSnippet(rule, 'quebecOptIn', {
+				prompt: { variant: 'wall' },
+			})
+		).toContain('presentation: {"prompt":{"variant":"wall"}}');
 	});
 });

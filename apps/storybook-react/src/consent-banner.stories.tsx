@@ -88,3 +88,46 @@ export const Notice: Story = {
 		</StorybookConsentProvider>
 	),
 };
+
+/** Full-width edge bar pinned to the bottom of the viewport. */
+export const Bar: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner variant="bar" />
+			<ConsentDialog />
+		</StorybookConsentProvider>
+	),
+};
+
+/** Compact chip in the bottom-right corner. */
+export const Widget: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner variant="widget" />
+			<ConsentDialog />
+		</StorybookConsentProvider>
+	),
+};
+
+/** Centered blocking prompt: backdrop, scroll lock and focus trap. */
+export const Wall: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner variant="wall" />
+			<ConsentDialog />
+		</StorybookConsentProvider>
+	),
+};
+
+/** The default card moved to the bottom center. */
+export const FloatingBottomCenter: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner
+				variant="floating"
+				position="bottom-center"
+			/>
+			<ConsentDialog />
+		</StorybookConsentProvider>
+	),
+};

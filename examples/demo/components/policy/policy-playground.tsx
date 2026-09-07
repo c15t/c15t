@@ -6,7 +6,12 @@ import type {
 	PolicyRuleModel,
 } from '@c15t/schema/types';
 import { POLICY_OPTIONAL_CATEGORIES } from '@c15t/schema/types';
-import type { ConsentSnapshot, KernelEvent } from 'c15t';
+import type {
+	ConsentSnapshot,
+	KernelEvent,
+	PromptPosition,
+	PromptVariant,
+} from 'c15t';
 import { readStoredRecords } from 'c15t/modules/persistence';
 import type { StoredRecords } from 'c15t/modules/persistence';
 import {
@@ -17,6 +22,7 @@ import {
 	useSnapshot,
 } from 'c15t/react';
 import { KernelContext, ProviderServicesContext } from 'c15t/react/context';
+import { useHeadlessConsentUI } from 'c15t/react/headless';
 import {
 	IABConsentBanner,
 	IABConsentDialog,
@@ -29,15 +35,24 @@ import * as React from 'react';
 import {
 	buildBackendSnippet,
 	buildProviderSnippet,
+	DEFAULT_PRESENTATION_FORM,
+	defaultPositionFor,
+	defaultVariantFor,
 	describeMatch,
 	fromPolicyRule,
 	getPlaygroundPreset,
 	inspectPlaygroundRule,
 	playgroundPresets,
+	positionOptionsFor,
+	PROMPT_VARIANTS,
 	promptsForModel,
+	setPresentationVariant,
+	toConsentPresentation,
 	toPolicyRule,
+	VARIANT_HINTS,
 } from '../../lib/policy-playground';
 import type {
+	PlaygroundPresentationForm,
 	PlaygroundPreset,
 	PlaygroundRuleForm,
 } from '../../lib/policy-playground';
@@ -565,6 +580,84 @@ const RuleEditor = ({
 };
 
 // ---------------------------------------------------------------------------
+// Presentation editor
+// ---------------------------------------------------------------------------
+
+const PresentationEditor = ({
+	form,
+	prompt,
+	onChange,
+}: {
+	form: PlaygroundPresentationForm;
+	prompt: PolicyPrompt;
+	onChange: (next: PlaygroundPresentationForm) => void;
+}) => {
+	const positions = positionOptionsFor(form.variant, prompt);
+	const variantHint =
+		form.variant === 'auto'
+			? `Auto picks ${defaultVariantFor(prompt)} for a ${prompt} prompt.`
+			: VARIANT_HINTS[form.variant];
+	return (
+		<div className="grid gap-5 sm:grid-cols-3">
+			<Field
+				label="Variant"
+				hint={variantHint}
+			>
+				<Select
+					testId="playground-variant"
+					value={form.variant}
+					onChange={(value) =>
+						onChange(
+							setPresentationVariant(
+								form,
+								value as PromptVariant | 'auto',
+								prompt
+							)
+						)
+					}
+					options={[
+						{ label: 'auto', value: 'auto' },
+						...PROMPT_VARIANTS.map((variant) => ({
+							label: variant,
+							value: variant,
+						})),
+					]}
+				/>
+			</Field>
+			<Field
+				label="Position"
+				hint={`Auto is ${defaultPositionFor(form.variant, prompt)}. Only positions the variant accepts are listed.`}
+			>
+				<Select
+					testId="playground-position"
+					value={form.position}
+					onChange={(value) =>
+						onChange({ ...form, position: value as PromptPosition | 'auto' })
+					}
+					options={[
+						{ label: 'auto', value: 'auto' },
+						...positions.map((position) => ({
+							label: position,
+							value: position,
+						})),
+					]}
+				/>
+			</Field>
+			<Field
+				label="Blocking"
+				hint="Backdrop, scroll lock, focus trap and no outside dismissal. A wall always blocks; a notice never does."
+			>
+				<Checkbox
+					label="Block the page"
+					checked={form.blocking}
+					onChange={(blocking) => onChange({ ...form, blocking })}
+				/>
+			</Field>
+		</div>
+	);
+};
+
+// ---------------------------------------------------------------------------
 // Runtime inspector (lives inside the ConsentProvider)
 // ---------------------------------------------------------------------------
 
@@ -612,6 +705,7 @@ const RuntimeInspector = ({
 	const kernel = React.useContext(KernelContext);
 	const services = React.useContext(ProviderServicesContext);
 	const snapshot = useSnapshot();
+	const { banner } = useHeadlessConsentUI();
 	const [log, setLog] = React.useState<LogEntry[]>([]);
 
 	React.useEffect(() => {
@@ -781,6 +875,40 @@ const RuntimeInspector = ({
 						{snapshot.nextDeadline
 							? new Date(snapshot.nextDeadline).toISOString().slice(0, 10)
 							: 'none'}
+					</p>
+				</div>
+			</div>
+
+			<div className="grid gap-4 sm:grid-cols-2">
+				<div className="space-y-1">
+					<SectionLabel>Prompt surface</SectionLabel>
+					<p
+						className="font-mono text-xs"
+						data-testid="playground-surface"
+						data-variant={banner.variant}
+						data-position={banner.position}
+						data-position-source={banner.positionSource}
+						data-blocking={banner.blocking ? 'true' : 'false'}
+					>
+						{banner.variant} · {banner.position} ({banner.positionSource})
+						{banner.blocking ? ' · blocking' : ' · non-blocking'}
+					</p>
+					<p className="text-muted-foreground text-xs leading-5">
+						Shape and placement come from the host, never the rule. The resolver
+						fills what the host leaves out and rejects what the variant cannot
+						accept.
+					</p>
+				</div>
+				<div className="space-y-1">
+					<SectionLabel>Prompt controls</SectionLabel>
+					<p className="font-mono text-xs">
+						{banner.orderedActions.join(', ') || 'none'}
+						{banner.uncoveredRights.length > 0
+							? ` · rights ${banner.uncoveredRights.join(', ')}`
+							: ''}
+					</p>
+					<p className="text-muted-foreground text-xs leading-5">
+						Actions the policy allows, plus links for rights no action covers.
 					</p>
 				</div>
 			</div>
@@ -976,6 +1104,8 @@ export const PolicyPlayground = () => {
 	const [country, setCountry] = React.useState(initialPreset.country);
 	const [region, setRegion] = React.useState(initialPreset.region ?? '');
 	const [gpcOverride, setGpcOverride] = React.useState(false);
+	const [presentationForm, setPresentationForm] =
+		React.useState<PlaygroundPresentationForm>(DEFAULT_PRESENTATION_FORM);
 	const [mounted, setMounted] = React.useState(false);
 	const [loadedAt, setLoadedAt] = React.useState(0);
 	const [now, setNow] = React.useState(() => Date.now());
@@ -989,9 +1119,13 @@ export const PolicyPlayground = () => {
 		() => toPolicyRule(form, preset.rule),
 		[form, preset.rule]
 	);
+	const presentation = React.useMemo(
+		() => toConsentPresentation(presentationForm),
+		[presentationForm]
+	);
 	const inspection = React.useMemo(
-		() => inspectPlaygroundRule(rule, { country, region }),
-		[rule, country, region]
+		() => inspectPlaygroundRule(rule, { country, region }, presentation),
+		[rule, country, region, presentation]
 	);
 	const snippetPreset = isDirty ? null : preset.id;
 
@@ -1037,15 +1171,16 @@ export const PolicyPlayground = () => {
 	// Remount the provider whenever the rule or the simulated environment
 	// changes so the kernel re-initializes from scratch, exactly like a page
 	// load would. Stored records survive because they live in storage.
-	const providerKey = `${JSON.stringify(rule)}|${country}|${region}|${gpcOverride}`;
+	const providerKey = `${JSON.stringify(rule)}|${JSON.stringify(presentation ?? null)}|${country}|${region}|${gpcOverride}`;
 
 	const providerOptions = React.useMemo(
 		() => ({
 			mode: offline({ policyRules: [rule] }),
 			overrides,
+			presentation,
 			storageConfig: STORAGE_CONFIG,
 		}),
-		[rule, overrides]
+		[rule, overrides, presentation]
 	);
 
 	return (
@@ -1135,6 +1270,21 @@ export const PolicyPlayground = () => {
 							form={form}
 							onChange={setForm}
 						/>
+
+						<div className="space-y-3">
+							<div>
+								<SectionLabel>Presentation</SectionLabel>
+								<p className="text-muted-foreground text-xs leading-5">
+									Host configuration for the prompt surface. It changes how the
+									stock banner looks, never the rule or its fingerprints.
+								</p>
+							</div>
+							<PresentationEditor
+								form={presentationForm}
+								prompt={form.prompt}
+								onChange={setPresentationForm}
+							/>
+						</div>
 
 						<div className="space-y-3">
 							<SectionLabel>Simulated visitor</SectionLabel>
@@ -1231,6 +1381,16 @@ export const PolicyPlayground = () => {
 										className="text-muted-foreground text-sm"
 									>
 										Warning: {warning}
+									</p>
+								))}
+								{inspection.presentationDiagnostics.map((diagnostic) => (
+									<p
+										key={`${diagnostic.code}-${diagnostic.message}`}
+										className="text-muted-foreground text-sm"
+										data-testid="playground-presentation-diagnostic"
+										data-code={diagnostic.code}
+									>
+										Presentation ({diagnostic.code}): {diagnostic.message}
 									</p>
 								))}
 							</TabsContent>
@@ -1337,7 +1497,9 @@ export const PolicyPlayground = () => {
 							<TabsTrigger value="backend">Self-hosted backend</TabsTrigger>
 						</TabsList>
 						<TabsContent value="client">
-							<CodeBlock value={buildProviderSnippet(rule, snippetPreset)} />
+							<CodeBlock
+								value={buildProviderSnippet(rule, snippetPreset, presentation)}
+							/>
 						</TabsContent>
 						<TabsContent value="backend">
 							<CodeBlock value={buildBackendSnippet(rule, snippetPreset)} />

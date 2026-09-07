@@ -247,3 +247,84 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 		expect(html).toContain('data-testid="consent-banner-customize-button"');
 	});
 });
+
+describe('<ConsentBanner /> surface shape', () => {
+	const readRoot = (html: string) =>
+		/<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html)?.[0] ?? '';
+	const readCard = (html: string) =>
+		/<[^>]*data-testid="consent-banner-card"[^>]*>/u.exec(html)?.[0] ?? '';
+	const noticeRule = {
+		...testRule,
+		id: 'notice',
+		model: 'opt-out' as const,
+		prompt: 'notice' as const,
+	};
+
+	it('renders a notice as a non-blocking bottom bar', async () => {
+		const html = await render(
+			await buildLocals({ mode: offlineMode({ policyRules: [noticeRule] }) })
+		);
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="bar"');
+		expect(root).toContain('data-position="bottom"');
+		expect(root).not.toContain('data-blocking');
+		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+		expect(readCard(html)).not.toContain('aria-modal');
+	});
+
+	it('renders a choice as a floating card at the leading bottom corner', async () => {
+		const html = await render(await buildLocals());
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="floating"');
+		expect(root).toContain('data-position="bottom-left"');
+		expect(root).not.toContain('data-blocking');
+		expect(readCard(html)).not.toContain('aria-modal');
+	});
+
+	it('mirrors a defaulted corner for right-to-left text but keeps a host corner', async () => {
+		const mirrored = await render(
+			await buildLocals({ mode: offlineMode() }, { 'accept-language': 'he' })
+		);
+		expect(readRoot(mirrored)).toContain('data-position="bottom-right"');
+
+		const kept = await render(
+			await buildLocals(
+				{
+					mode: offlineMode(),
+					presentation: { prompt: { position: 'top-left' } },
+				},
+				{ 'accept-language': 'he' }
+			)
+		);
+		expect(readRoot(kept)).toContain('data-position="top-left"');
+	});
+
+	it('renders a wall as a blocking modal with an overlay', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode(),
+				presentation: { prompt: { variant: 'wall' } },
+			})
+		);
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="wall"');
+		expect(root).toContain('data-position="center"');
+		expect(root).toContain('data-blocking="true"');
+		expect(html).toContain('data-testid="consent-banner-overlay"');
+		expect(html.indexOf('consent-banner-overlay')).toBeLessThan(
+			html.indexOf('consent-banner-root')
+		);
+		expect(readCard(html)).toContain('aria-modal="true"');
+	});
+
+	it('never blocks a notice, even when the host asks', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [noticeRule] }),
+				presentation: { prompt: { blocking: true } },
+			})
+		);
+		expect(readRoot(html)).not.toContain('data-blocking');
+		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+	});
+});
