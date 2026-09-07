@@ -134,8 +134,18 @@ const ConsentWidgetAccordionItems = () => {
 		selectedConsents,
 		setSelectedConsent,
 		getDisplayedConsents,
-		effectivePermissions,
+		explicitChoice,
+		restrictions,
 	} = useConsentManager();
+	// Only a saved grant that the current policy or a privacy signal
+	// overrides is "restricted". An unsaved draft toggle is not.
+	const isRestricted = function isRestricted(name: AllConsentNames): boolean {
+		if (name === 'necessary') {
+			return false;
+		}
+		const decision = explicitChoice?.categories[name];
+		return decision?.value === true && (restrictions[name]?.length ?? 0) > 0;
+	};
 	const { noStyle, onToggleItem, openValues } =
 		useConsentWidgetAccordionContext();
 	const handleConsentChange = useCallback(
@@ -208,13 +218,6 @@ const ConsentWidgetAccordionItems = () => {
 					</PreferenceItem.Header>
 				</ConsentWidgetAccordionTriggerInner>
 
-				{consent.name !== 'necessary' &&
-				selectedConsents[consent.name] &&
-				!effectivePermissions[consent.name] ? (
-					<output id={`c15t-restriction-${consent.name}`}>
-						Your saved choice is restricted by the current privacy settings.
-					</output>
-				) : null}
 				<PreferenceItem.Control
 					className={noStyle ? undefined : accordionStyles.control}
 					noStyle
@@ -227,9 +230,7 @@ const ConsentWidgetAccordionItems = () => {
 						}
 						checked={selectedConsents[consent.name]}
 						aria-describedby={
-							consent.name !== 'necessary' &&
-							selectedConsents[consent.name] &&
-							!effectivePermissions[consent.name]
+							isRestricted(consent.name)
 								? `c15t-restriction-${consent.name}`
 								: undefined
 						}
@@ -242,6 +243,15 @@ const ConsentWidgetAccordionItems = () => {
 					/>
 				</PreferenceItem.Control>
 			</ConsentWidgetAccordionTrigger>
+			{isRestricted(consent.name) ? (
+				<output
+					className={noStyle ? undefined : accordionStyles.restriction}
+					data-testid={`consent-widget-restriction-${consent.name}`}
+					id={`c15t-restriction-${consent.name}`}
+				>
+					Your saved choice is restricted by the current privacy settings.
+				</output>
+			) : null}
 			<ConsentWidgetAccordionContent
 				className={noStyle ? undefined : accordionStyles.content}
 				data-testid={`consent-widget-accordion-content-${consent.name}`}

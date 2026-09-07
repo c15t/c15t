@@ -152,7 +152,13 @@
 			{@const isDisabled =
 				consentType.name === 'necessary' || (consentType.disabled ?? false)}
 			{@const restricted =
-				isChecked && !consent.snapshot.effectivePermissions[consentType.name]}
+				consentType.name !== 'necessary' &&
+				consent.snapshot.explicitChoice?.categories[
+					consentType.name as Exclude<AllConsentNames, 'necessary'>
+				]?.value === true &&
+				(consent.snapshot.restrictions[
+					consentType.name as Exclude<AllConsentNames, 'necessary'>
+				]?.length ?? 0) > 0}
 			<PreferenceItem.Root
 				class={noStyle ? '' : accordionStyles.item || ''}
 				open={isOpen}
@@ -225,6 +231,7 @@
 				{#if restricted}
 					<p
 						id={`${widgetId}-${consentType.name}-restriction`}
+						class={noStyle ? '' : accordionStyles.restriction || ''}
 						data-testid={`consent-widget-restriction-${consentType.name}`}
 					>
 						Your saved choice is restricted by the current privacy settings.

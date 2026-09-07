@@ -154,6 +154,18 @@
 		top: -1px;
 	}
 
+	/* Sits between the trigger row and the content. Explains why a saved
+	   grant is not in effect (GPC, strict scope, an opt-out directive). */
+	.restriction:not(:global(.headless)) {
+		display: block;
+		grid-column: 1 / -1;
+		margin: 0;
+		padding: 0 var(--accordion-row-padding-x, 1rem) 0.75rem;
+		color: var(--accordion-restriction-color, var(--c15t-text-muted));
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+	}
+
 	.content:not(:global(.headless)) {
 		display: grid;
 		grid-template-rows: 0fr;
