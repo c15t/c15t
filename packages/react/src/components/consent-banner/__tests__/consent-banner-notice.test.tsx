@@ -52,7 +52,7 @@ const query = function query<Element extends HTMLElement>(testId: string) {
 };
 
 describe('ConsentBanner notice prompt', () => {
-	test('renders a primary dismiss button and the uncovered rights', async () => {
+	test('renders a primary Accept All and one neutral opt-out control', async () => {
 		await renderBanner({ model: 'opt-out', prompt: 'notice' });
 		await waitForBanner();
 
@@ -61,26 +61,27 @@ describe('ConsentBanner notice prompt', () => {
 		expect(root?.dataset.model).toBe('opt-out');
 
 		const dismiss = query<HTMLButtonElement>('consent-banner-dismiss-button');
-		expect(dismiss).toHaveTextContent('Dismiss');
+		expect(dismiss).toHaveTextContent('Accept All');
 		expect(dismiss?.dataset.action).toBe('dismiss');
 		expect(dismiss?.dataset.variant).toBe('primary');
 		expect(query('consent-banner-accept-button')).toBeNull();
 		expect(query('consent-banner-reject-button')).toBeNull();
 		expect(query('consent-banner-customize-button')).toBeNull();
 
-		const links = Array.from(
+		const controls = Array.from(
 			document.querySelectorAll<HTMLButtonElement>(
 				'[data-testid="consent-banner-rights"] [data-right]'
 			)
 		);
-		expect(links.map((link) => link.dataset.right)).toEqual([
+		expect(controls.map((control) => control.dataset.right)).toEqual([
 			'opt-out',
-			'preferences',
 		]);
-		expect(links[0]).toHaveTextContent(
-			'Do not sell or share my personal information'
-		);
-		expect(links[1]).toHaveTextContent('Manage preferences');
+		expect(controls[0]).toHaveTextContent('Do not sell or share my data');
+		expect(controls[0]?.dataset.action).toBe('right');
+		expect(controls[0]?.dataset.variant).toBe('neutral');
+		expect(controls[0]?.tagName).toBe('BUTTON');
+		expect(controls[0]?.dataset.c15tRights).toContain('opt-out');
+		expect(query('consent-banner-right-link-preferences')).toBeNull();
 
 		const footer = query('consent-banner-footer');
 		const rights = query('consent-banner-rights');
@@ -124,7 +125,7 @@ describe('ConsentBanner notice prompt', () => {
 		expect(query('consent-banner-dismiss-button')).toHaveTextContent('Got it');
 	});
 
-	test('the opt-out link opens the preference center', async () => {
+	test('the opt-out control opens the preference center', async () => {
 		const screen = await renderBanner({ model: 'opt-out', prompt: 'notice' });
 		await waitForBanner();
 
@@ -164,7 +165,7 @@ describe('ConsentBanner rights on choice prompts', () => {
 		expect(query('consent-banner-dismiss-button')).toBeNull();
 	});
 
-	test('renders a preferences link when the prompt offers only accept and reject', async () => {
+	test('renders a preferences control when the prompt offers only accept and reject', async () => {
 		await renderBanner({
 			actions: ['accept', 'reject'],
 			model: 'opt-in',
@@ -178,6 +179,8 @@ describe('ConsentBanner rights on choice prompts', () => {
 			)
 		);
 		expect(links.map((link) => link.dataset.right)).toEqual(['preferences']);
+		expect(links[0]).toHaveTextContent('Manage preferences');
+		expect(links[0]?.dataset.variant).toBe('neutral');
 		expect(query('consent-banner-customize-button')).toBeNull();
 	});
 });

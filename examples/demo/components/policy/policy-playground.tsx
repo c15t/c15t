@@ -3,6 +3,7 @@
 import type {
 	PolicyOptionalCategory,
 	PolicyPrompt,
+	PolicyRule,
 	PolicyRuleModel,
 } from '@c15t/schema/types';
 import { POLICY_OPTIONAL_CATEGORIES } from '@c15t/schema/types';
@@ -34,21 +35,23 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 import {
+	autoVariantFor,
 	buildBackendSnippet,
 	buildProviderSnippet,
 	DEFAULT_PRESENTATION_FORM,
+	DEMO_NOTICE_PRESENTATION,
 	defaultPositionFor,
-	defaultVariantFor,
 	describeMatch,
 	fromPolicyRule,
 	getPlaygroundPreset,
 	inspectPlaygroundRule,
 	playgroundPresets,
 	positionOptionsFor,
+	presentationForRule,
 	PROMPT_VARIANTS,
 	promptsForModel,
+	resolvePlaygroundPresentation,
 	setPresentationVariant,
-	toConsentPresentation,
 	toPolicyRule,
 	VARIANT_HINTS,
 } from '../../lib/policy-playground';
@@ -102,7 +105,7 @@ const PROMPT_HINTS: Record<PolicyPrompt, string> = {
 	choice: 'First layer offers accept and reject (and optionally customize).',
 	none: 'No first layer. Preferences and disclosures stay reachable.',
 	notice:
-		'Non-blocking notice with one dismiss action. Dismissal never creates a choice.',
+		'Non-blocking notice with one acknowledgement, shown as Accept All, plus an opt-out button. Acknowledging never creates a choice.',
 };
 
 const EVENT_TYPES: KernelEvent['type'][] = [
@@ -584,20 +587,38 @@ const RuleEditor = ({
 // Presentation editor
 // ---------------------------------------------------------------------------
 
+const describeAutoVariant = function describeAutoVariant(
+	form: PlaygroundPresentationForm,
+	rule: Pick<PolicyRule, 'id' | 'prompt'>,
+	autoVariant: PromptVariant
+): string {
+	if (form.variant !== 'auto') {
+		return VARIANT_HINTS[form.variant];
+	}
+	if (presentationForRule(rule)?.variant) {
+		return `Per policy (demo) picks ${autoVariant} for ${rule.id}.`;
+	}
+	return `Auto leaves it to the resolver: ${autoVariant} for a ${rule.prompt} prompt.`;
+};
+
 const PresentationEditor = ({
 	form,
-	prompt,
+	rule,
 	onChange,
 }: {
 	form: PlaygroundPresentationForm;
-	prompt: PolicyPrompt;
+	rule: Pick<PolicyRule, 'id' | 'prompt'>;
 	onChange: (next: PlaygroundPresentationForm) => void;
 }) => {
-	const positions = positionOptionsFor(form.variant, prompt);
-	const variantHint =
-		form.variant === 'auto'
-			? `Auto picks ${defaultVariantFor(prompt)} for a ${prompt} prompt.`
-			: VARIANT_HINTS[form.variant];
+	const { prompt } = rule;
+	const autoVariant = autoVariantFor(rule);
+	const demoPresentation = presentationForRule(rule);
+	const positions = positionOptionsFor(form.variant, prompt, autoVariant);
+	const autoPosition =
+		form.variant === 'auto' && demoPresentation?.position
+			? demoPresentation.position
+			: defaultPositionFor(form.variant, prompt, autoVariant);
+	const variantHint = describeAutoVariant(form, rule, autoVariant);
 	return (
 		<div className="grid gap-5 sm:grid-cols-3">
 			<Field
@@ -612,12 +633,13 @@ const PresentationEditor = ({
 							setPresentationVariant(
 								form,
 								value as PromptVariant | 'auto',
-								prompt
+								prompt,
+								autoVariant
 							)
 						)
 					}
 					options={[
-						{ label: 'auto', value: 'auto' },
+						{ label: 'per policy (demo)', value: 'auto' },
 						...PROMPT_VARIANTS.map((variant) => ({
 							label: variant,
 							value: variant,
@@ -627,7 +649,7 @@ const PresentationEditor = ({
 			</Field>
 			<Field
 				label="Position"
-				hint={`Auto is ${defaultPositionFor(form.variant, prompt)}. Only positions the variant accepts are listed.`}
+				hint={`Auto is ${autoPosition}. Only positions the variant accepts are listed.`}
 			>
 				<Select
 					testId="playground-position"
@@ -636,7 +658,7 @@ const PresentationEditor = ({
 						onChange({ ...form, position: value as PromptPosition | 'auto' })
 					}
 					options={[
-						{ label: 'auto', value: 'auto' },
+						{ label: 'per policy (demo)', value: 'auto' },
 						...positions.map((position) => ({
 							label: position,
 							value: position,
@@ -654,6 +676,87 @@ const PresentationEditor = ({
 					onChange={(blocking) => onChange({ ...form, blocking })}
 				/>
 			</Field>
+		</div>
+	);
+};
+
+const describePromptPresentation = function describePromptPresentation(
+	rule: Pick<PolicyRule, 'id' | 'prompt' | 'model'>
+): string {
+	if (rule.model === 'iab') {
+		return 'IAB surfaces';
+	}
+	if (rule.prompt === 'none') {
+		return 'no prompt, toolbar only';
+	}
+	const demoPresentation = presentationForRule(rule);
+	if (!demoPresentation) {
+		return 'resolver default';
+	}
+	const parts = [demoPresentation.variant ?? 'auto'];
+	if (demoPresentation.position) {
+		parts.push(demoPresentation.position);
+	}
+	if (demoPresentation.variant === 'wall' || demoPresentation.blocking) {
+		parts.push('blocking');
+	}
+	return parts.join(' · ');
+};
+
+/**
+ * Read-only view of the shapes this demo gives each preset, so the variant
+ * system is visible side by side without editing anything.
+ */
+const PresentationMap = ({
+	activePresetId,
+	prompt,
+}: {
+	activePresetId: string;
+	prompt: PolicyPrompt;
+}) => {
+	const noticeActive = prompt === 'notice';
+	const rowClass = function rowClass(active: boolean) {
+		return active ? 'bg-primary/10 text-foreground' : 'text-muted-foreground';
+	};
+	return (
+		<div
+			className="space-y-2"
+			data-testid="playground-presentation-map"
+		>
+			<p className="text-foreground text-xs font-medium">
+				Per-policy presentation used by this demo
+			</p>
+			<ul className="divide-border divide-y rounded-md border text-xs">
+				{playgroundPresets.map((item) => {
+					const active = item.id === activePresetId && !noticeActive;
+					return (
+						<li
+							key={item.id}
+							className={`flex items-center justify-between gap-3 px-3 py-1.5 ${rowClass(active)}`}
+							data-active={active ? 'true' : undefined}
+						>
+							<span>{item.label}</span>
+							<code className="font-mono">
+								{describePromptPresentation(item.rule)}
+							</code>
+						</li>
+					);
+				})}
+				<li
+					className={`flex items-center justify-between gap-3 px-3 py-1.5 ${rowClass(noticeActive)}`}
+					data-active={noticeActive ? 'true' : undefined}
+				>
+					<span>Any notice prompt</span>
+					<code className="font-mono">
+						{DEMO_NOTICE_PRESENTATION.variant} ·{' '}
+						{DEMO_NOTICE_PRESENTATION.position}
+					</code>
+				</li>
+			</ul>
+			<p className="text-muted-foreground text-xs leading-5">
+				Presentation is host-owned and never part of the policy fingerprint, so
+				changing a shape re-prompts nobody.
+			</p>
 		</div>
 	);
 };
@@ -1123,8 +1226,8 @@ export const PolicyPlayground = () => {
 		[form, preset.rule]
 	);
 	const presentation = React.useMemo(
-		() => toConsentPresentation(presentationForm),
-		[presentationForm]
+		() => resolvePlaygroundPresentation(presentationForm, rule),
+		[presentationForm, rule]
 	);
 	const inspection = React.useMemo(
 		() => inspectPlaygroundRule(rule, { country, region }, presentation),
@@ -1279,19 +1382,29 @@ export const PolicyPlayground = () => {
 								<SectionLabel>Presentation</SectionLabel>
 								<p className="text-muted-foreground text-xs leading-5">
 									Host configuration for the prompt surface. It changes how the
-									stock banner looks, never the rule or its fingerprints.
+									stock banner looks, never the rule or its fingerprints. This
+									demo gives each policy its own shape; pick a variant or
+									position to override it.
 								</p>
 							</div>
 							<PresentationEditor
 								form={presentationForm}
-								prompt={form.prompt}
+								rule={rule}
 								onChange={setPresentationForm}
+							/>
+							<PresentationMap
+								activePresetId={presetId}
+								prompt={form.prompt}
 							/>
 							<Checkbox
 								label="Show trigger toolbar"
 								checked={showToolbar}
 								onChange={setShowToolbar}
 							/>
+							<p className="text-muted-foreground text-xs leading-5">
+								The toolbar shows once the prompt is answered, so it never sits
+								under the banner.
+							</p>
 						</div>
 
 						<div className="space-y-3">
@@ -1469,6 +1582,7 @@ export const PolicyPlayground = () => {
 												ariaLabel="Playground privacy controls"
 												defaultPosition="bottom-right"
 												persistPosition={false}
+												showWhen="after-prompt"
 												actions={[
 													{
 														icon: 'settings',

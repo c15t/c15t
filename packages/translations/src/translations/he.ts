@@ -137,7 +137,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'תנאי שירות',
 	},
 	rights: {
-		optOut: 'אין למכור או לשתף את המידע האישי שלי',
+		optOut: 'אין למכור או לשתף את הנתונים שלי',
 		preferences: 'ניהול העדפות',
 	},
 };

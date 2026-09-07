@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Termini tas-Servizz',
 	},
 	rights: {
-		optOut: 'Tbigħx u taqsamx l-informazzjoni personali tiegħi',
+		optOut: 'Tbigħx u taqsamx id-data tiegħi',
 		preferences: 'Immaniġġja l-preferenzi',
 	},
 };

@@ -208,15 +208,6 @@
 		)
 	);
 
-	const rightLinkStyle = $derived(
-		resolveComponentStyles(
-			'consentBannerRightLink',
-			theme.theme,
-			{ baseClassName: styles.rightLink, noStyle },
-			noStyle
-		)
-	);
-
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
@@ -256,7 +247,7 @@
 	);
 	const actionGroups = $derived(presentation.actionGroups);
 	const primaryActions = $derived(presentation.primaryActions);
-	// Persistent rights no prompt action covers; a notice renders them as links.
+	// Persistent rights no prompt action covers; rendered as neutral buttons.
 	const uncoveredRights = $derived(presentation.uncoveredRights);
 	// A notice offers dismiss alone; with no primary resolved it takes the lead.
 	const dismissIsPrimary = $derived(
@@ -312,10 +303,14 @@
 					englishTranslations?.cookieBanner?.noticeDescription)
 				: translations.cookieBanner.description)
 	);
+	// A notice only exists under opt-out, where everything is already
+	// permitted, so the acknowledgement reads as "Accept All". The action is
+	// still a dismissal and records no choice; `common.dismiss` stays
+	// available through `dismissButtonText`.
 	const resolvedDismissText = $derived(
 		dismissButtonText ??
-			translations.common.dismiss ??
-			englishTranslations?.common?.dismiss
+			translations.common.acceptAll ??
+			englishTranslations?.common?.acceptAll
 	);
 	const rightLabels = $derived<
 		Partial<Record<PolicyRight, string | undefined>>
@@ -326,9 +321,6 @@
 			translations.rights?.preferences ??
 			englishTranslations?.rights?.preferences,
 	});
-	const openPreferences = function openPreferences() {
-		consent.state.setActiveUI('dialog');
-	};
 	const resolvedRejectText = $derived(
 		rejectButtonText ?? translations.common.rejectAll
 	);
@@ -423,20 +415,16 @@
 									data-testid="consent-banner-rights"
 								>
 									{#each uncoveredRights as right (right)}
-										<button
-											type="button"
-											class={noStyle ? '' : rightLinkStyle.className || ''}
-											style={rightLinkStyle.style
-												? Object.entries(rightLinkStyle.style)
-														.map(([key, value]) => `${key}:${value}`)
-														.join(';')
-												: undefined}
+										<ConsentButton
+											action="open-consent-dialog"
+											variant="neutral"
+											mode="stroke"
+											data-action="right"
 											data-right={right}
 											data-testid={`consent-banner-right-link-${right}`}
-											onclick={openPreferences}
 										>
 											{rightLabels[right] ?? right}
-										</button>
+										</ConsentButton>
 									{/each}
 								</div>
 							{/if}

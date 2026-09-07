@@ -143,7 +143,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Servicevoorwaarden',
 	},
 	rights: {
-		optOut: 'Mijn persoonsgegevens niet verkopen of delen',
+		optOut: 'Mijn gegevens niet verkopen of delen',
 		preferences: 'Voorkeuren beheren',
 	},
 };

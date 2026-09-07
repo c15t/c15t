@@ -143,7 +143,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Þjónustuskilmálar',
 	},
 	rights: {
-		optOut: 'Ekki selja eða deila persónuupplýsingum mínum',
+		optOut: 'Ekki selja eða deila gögnunum mínum',
 		preferences: 'Stjórna stillingum',
 	},
 };

@@ -145,7 +145,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Naudojimosi sąlygos',
 	},
 	rights: {
-		optOut: 'Neparduoti ir nesidalyti mano asmenine informacija',
+		optOut: 'Neparduoti ir nesidalyti mano duomenimis',
 		preferences: 'Tvarkyti nuostatas',
 	},
 };

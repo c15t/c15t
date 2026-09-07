@@ -69,7 +69,7 @@ describe('ConsentDialogTriggerToolbar rights-aware action', () => {
 		const action = await waitForPreferencesAction();
 		expect(action).toHaveAttribute(
 			'aria-label',
-			'Do not sell or share my personal information'
+			'Do not sell or share my data'
 		);
 		expect(action.dataset.right).toBe('opt-out');
 		expect(action.dataset.c15tRights?.split(' ')).toContain('opt-out');
@@ -116,8 +116,66 @@ describe('ConsentDialogTriggerToolbar rights-aware action', () => {
 	});
 });
 
+const THEME_ACTION = {
+	icon: 'settings',
+	id: 'theme',
+	label: 'Toggle color scheme',
+	onSelect: () => undefined,
+} as const;
+
+const queryToolbar = function queryToolbar() {
+	return document.querySelector<HTMLElement>('[role="toolbar"]');
+};
+
+const dismissNotice = async function dismissNotice(): Promise<void> {
+	await vi.waitFor(() => {
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).toBeInTheDocument();
+	});
+	const dismiss = document.querySelector<HTMLButtonElement>(
+		'[data-testid="consent-banner-dismiss-button"]'
+	);
+	if (!dismiss) {
+		throw new Error('Expected the notice dismiss button to render');
+	}
+	await userEvent.click(dismiss);
+	await vi.waitFor(() => {
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).not.toBeInTheDocument();
+	});
+};
+
 describe('after-prompt visibility', () => {
-	test('hides the toolbar while a notice is owed and shows it after dismissal', async () => {
+	test('keeps app actions while a notice is owed and adds the preferences action after dismissal', async () => {
+		renderWithRule(
+			OPT_OUT_NOTICE,
+			<ConsentDialogTriggerToolbar
+				actions={[THEME_ACTION]}
+				showWhen="after-prompt"
+			/>
+		);
+
+		await vi.waitFor(() => {
+			expect(queryToolbar()).toBeInTheDocument();
+		});
+		expect(
+			queryToolbar()?.querySelector('[data-c15t-trigger-item="theme"]')
+		).toBeInTheDocument();
+		expect(queryPreferencesAction()).not.toBeInTheDocument();
+
+		await dismissNotice();
+
+		await vi.waitFor(() => {
+			expect(queryPreferencesAction()).toBeInTheDocument();
+		});
+		expect(
+			queryToolbar()?.querySelector('[data-c15t-trigger-item="theme"]')
+		).toBeInTheDocument();
+	});
+
+	test('renders nothing while a notice is owed when the toolbar has no app actions', async () => {
 		renderWithRule(
 			OPT_OUT_NOTICE,
 			<ConsentDialogTriggerToolbar showWhen="after-prompt" />
@@ -128,22 +186,33 @@ describe('after-prompt visibility', () => {
 				document.querySelector('[data-testid="consent-banner-root"]')
 			).toBeInTheDocument();
 		});
-		expect(document.querySelector('[role="toolbar"]')).not.toBeInTheDocument();
+		expect(queryToolbar()).not.toBeInTheDocument();
 
-		const dismiss = document.querySelector<HTMLButtonElement>(
-			'[data-testid="consent-banner-dismiss-button"]'
-		);
-		if (!dismiss) {
-			throw new Error('Expected the notice dismiss button to render');
-		}
-		await userEvent.click(dismiss);
+		await dismissNotice();
 
 		await vi.waitFor(() => {
-			expect(
-				document.querySelector('[data-testid="consent-banner-root"]')
-			).not.toBeInTheDocument();
-			expect(document.querySelector('[role="toolbar"]')).toBeInTheDocument();
+			expect(queryToolbar()).toBeInTheDocument();
+			expect(queryPreferencesAction()).toBeInTheDocument();
 		});
+	});
+
+	test('never omits the preferences action but keeps app actions', async () => {
+		renderWithRule(
+			OPT_IN_CHOICE,
+			<ConsentDialogTriggerToolbar
+				actions={[THEME_ACTION]}
+				showWhen="never"
+			/>
+		);
+
+		await vi.waitFor(() => {
+			expect(queryToolbar()).toBeInTheDocument();
+		});
+		expect(queryToolbar()?.querySelectorAll('button')).toHaveLength(1);
+		expect(
+			queryToolbar()?.querySelector('[data-c15t-trigger-item="theme"]')
+		).toBeInTheDocument();
+		expect(queryPreferencesAction()).not.toBeInTheDocument();
 	});
 
 	test('hides the single trigger while a choice is owed and shows it after a choice', async () => {

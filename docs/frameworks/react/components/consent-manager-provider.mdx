@@ -23,9 +23,9 @@ preference center look, and it never changes a policy fingerprint, so
 changing it never re-prompts a returning visitor.
 
 `presentation.prompt` takes `variant`, `position`, and `blocking` alongside
-`layout` and `primaryActions`. A `notice` defaults to a `bar` at the bottom, a
-`choice` prompt to a `floating` card at the bottom left, and a `wall` is
-always blocking. Props on `ConsentBanner` override these for one banner.
+`layout` and `primaryActions`. Every prompt defaults to a `floating` card at the
+bottom left, a notice included, and a `wall` is always blocking. `bar`,
+`widget`, and `wall` are host choices. Props on `ConsentBanner` override these for one banner.
 
 ```tsx
 import { ConsentProvider, offline } from '@c15t/react';

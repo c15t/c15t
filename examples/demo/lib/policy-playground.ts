@@ -294,9 +294,9 @@ export const promptsForModel = function promptsForModel(
 // ---------------------------------------------------------------------------
 
 /**
- * Host presentation the playground applies to the prompt. `auto` leaves a
- * field to the resolver, which picks from the prompt kind: a notice
- * becomes a bottom bar, a choice a floating bottom-left card.
+ * Host presentation the playground applies to the prompt. `auto` uses the
+ * demo's per-policy shape (`presentationForRule`) when the rule has one,
+ * and otherwise leaves the field to the resolver.
  */
 export interface PlaygroundPresentationForm {
 	variant: PromptVariant | 'auto';
@@ -319,17 +319,18 @@ export const PROMPT_VARIANTS = [
 ] as const satisfies readonly PromptVariant[];
 
 export const VARIANT_HINTS: Record<PromptVariant, string> = {
-	bar: 'Full-width edge bar. The default for a notice.',
-	floating: 'Card in a corner or edge center. The default for a choice prompt.',
+	bar: 'Full-width edge bar.',
+	floating:
+		'Card in a corner or edge center. The resolver default for every prompt.',
 	wall: 'Centered blocker with a backdrop, scroll lock and focus trap.',
 	widget: 'Compact chip in a corner.',
 };
 
-/** Variant the resolver picks when the host sets none. */
+/** Variant the resolver picks when the host sets none: a floating card for every prompt. */
 export const defaultVariantFor = function defaultVariantFor(
-	prompt: PolicyPrompt
+	_prompt: PolicyPrompt
 ): PromptVariant {
-	return prompt === 'notice' ? 'bar' : 'floating';
+	return 'floating';
 };
 
 /**
@@ -338,18 +339,20 @@ export const defaultVariantFor = function defaultVariantFor(
  */
 export const positionOptionsFor = function positionOptionsFor(
 	variant: PromptVariant | 'auto',
-	prompt: PolicyPrompt
+	prompt: PolicyPrompt,
+	autoVariant: PromptVariant = defaultVariantFor(prompt)
 ): readonly PromptPosition[] {
-	const resolved = variant === 'auto' ? defaultVariantFor(prompt) : variant;
+	const resolved = variant === 'auto' ? autoVariant : variant;
 	return PROMPT_VARIANT_POSITIONS[resolved];
 };
 
 /** Position the resolver fills for a variant when the host sets none. */
 export const defaultPositionFor = function defaultPositionFor(
 	variant: PromptVariant | 'auto',
-	prompt: PolicyPrompt
+	prompt: PolicyPrompt,
+	autoVariant: PromptVariant = defaultVariantFor(prompt)
 ): PromptPosition {
-	const resolved = variant === 'auto' ? defaultVariantFor(prompt) : variant;
+	const resolved = variant === 'auto' ? autoVariant : variant;
 	return PROMPT_VARIANT_DEFAULT_POSITION[resolved];
 };
 
@@ -360,9 +363,10 @@ export const defaultPositionFor = function defaultPositionFor(
 export const setPresentationVariant = function setPresentationVariant(
 	form: PlaygroundPresentationForm,
 	variant: PromptVariant | 'auto',
-	prompt: PolicyPrompt
+	prompt: PolicyPrompt,
+	autoVariant: PromptVariant = defaultVariantFor(prompt)
 ): PlaygroundPresentationForm {
-	const allowed = positionOptionsFor(variant, prompt);
+	const allowed = positionOptionsFor(variant, prompt, autoVariant);
 	const position =
 		form.position !== 'auto' && allowed.includes(form.position)
 			? form.position
@@ -394,6 +398,96 @@ export const toConsentPresentation = function toConsentPresentation(
 	const prompt = toPromptPresentation(form);
 	return prompt ? { prompt } : undefined;
 };
+
+// ---------------------------------------------------------------------------
+// Per-policy presentation (demo only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Prompt shape this demo uses for each shipped preset, keyed by resolved
+ * rule id. Presentation is host configuration: it never enters the policy
+ * or its fingerprints, so a host can give every regime its own shape
+ * without re-prompting anyone.
+ */
+export const DEMO_PRESENTATION_BY_RULE: Record<
+	string,
+	ConsentPresentation['prompt']
+> = {
+	// Opt-in as litigation defence reads best as a centered card.
+	california_opt_in: { position: 'bottom-center', variant: 'floating' },
+	// No prompt, so no banner: the trigger toolbar is the persistent route.
+	california_opt_out: undefined,
+	// A dismissible corner card is the common GDPR treatment.
+	europe_opt_in: { position: 'bottom-left', variant: 'floating' },
+	// Law 25 deployments often block until the visitor answers.
+	quebec_opt_in: { variant: 'wall' },
+	// No prompt here either.
+	world_opt_out_no_prompt: undefined,
+	// IAB has its own surfaces; variants do not apply.
+	// europe_iab: unmapped on purpose.
+};
+
+/**
+ * Shape for any notice prompt, including a preset edited to `notice` in the
+ * playground. A small bottom-left card with the opt-out button and Accept
+ * All; the trigger toolbar keeps the bottom-right corner, so the two never
+ * overlap.
+ */
+export const DEMO_NOTICE_PRESENTATION: PromptPresentation = {
+	position: 'bottom-left',
+	variant: 'floating',
+};
+
+/**
+ * Prompt presentation this demo applies to a rule, or `undefined` when the
+ * rule has no mapped shape. A notice prompt takes precedence over the id
+ * map so an edited preset keeps the notice treatment.
+ */
+export const presentationForRule = function presentationForRule(
+	rule: Pick<PolicyRule, 'id' | 'prompt'>
+): PromptPresentation | undefined {
+	if (rule.prompt === 'notice') {
+		return DEMO_NOTICE_PRESENTATION;
+	}
+	return DEMO_PRESENTATION_BY_RULE[rule.id];
+};
+
+/** Variant the playground's `auto` picks: the demo map, else the resolver. */
+export const autoVariantFor = function autoVariantFor(
+	rule: Pick<PolicyRule, 'id' | 'prompt'>
+): PromptVariant {
+	return presentationForRule(rule)?.variant ?? defaultVariantFor(rule.prompt);
+};
+
+/**
+ * Host presentation for the provider: the demo's per-policy shape with
+ * manual form fields layered on top. A manual variant discards the mapped
+ * position, which may not fit the new variant, so the resolver picks the
+ * variant's default instead.
+ */
+export const resolvePlaygroundPresentation =
+	function resolvePlaygroundPresentation(
+		form: PlaygroundPresentationForm,
+		rule: Pick<PolicyRule, 'id' | 'prompt'>
+	): ConsentPresentation | undefined {
+		const demo = presentationForRule(rule);
+		const manual = toPromptPresentation(form) ?? {};
+		const prompt: PromptPresentation = {};
+		const variant = manual.variant ?? demo?.variant;
+		if (variant) {
+			prompt.variant = variant;
+		}
+		const position =
+			manual.position ?? (manual.variant ? undefined : demo?.position);
+		if (position) {
+			prompt.position = position;
+		}
+		const blocking = manual.blocking ?? demo?.blocking;
+		if (blocking !== undefined) {
+			prompt.blocking = blocking;
+		}
+		return Object.keys(prompt).length > 0 ? { prompt } : undefined;
+	};
 
 // ---------------------------------------------------------------------------
 // Inspection
@@ -526,7 +620,8 @@ const indent = function indent(value: string, spaces: number): string {
 export interface ProviderSnippetOptions {
 	/**
 	 * Render the floating trigger toolbar, the persistent route back to
-	 * preferences once a prompt is dismissed.
+	 * preferences. It shows once the prompt is answered so it never sits
+	 * under the banner.
 	 */
 	toolbar?: boolean;
 }
@@ -552,7 +647,7 @@ export const buildProviderSnippet = function buildProviderSnippet(
 		? 'ConsentBanner, ConsentDialog, ConsentDialogTriggerToolbar, ConsentProvider, offline'
 		: 'ConsentBanner, ConsentDialog, ConsentProvider, offline';
 	const toolbarLine = options.toolbar
-		? '\n    <ConsentDialogTriggerToolbar />'
+		? '\n    <ConsentDialogTriggerToolbar showWhen="after-prompt" />'
 		: '';
 	return `${presetImport}import { ${componentImports} } from 'c15t/react';
 

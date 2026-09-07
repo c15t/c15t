@@ -240,6 +240,19 @@
 		gap: 0.75rem;
 	}
 
+	.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless))
+		.footer
+		button[data-action] {
+		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
 	@media (min-width: 640px) {
 		.root[data-variant='bar']:not(:global(.headless)) .footer {
 			flex-direction: row;
@@ -248,11 +261,21 @@
 		}
 
 		.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
 			margin-inline-end: auto;
 		}
 
 		.root[data-variant='bar']:not(:global(.headless)) .footer > * {
 			width: auto;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.footer
+			button[data-action] {
+			width: auto;
+			flex: none;
 		}
 	}
 
@@ -275,11 +298,8 @@
 		   `width: 100%`; in the row it must size to its controls. */
 		.root[data-variant='bar']:not(:global(.headless)) .footer {
 			width: auto;
-			flex: 0 1 auto;
 			min-width: 0;
 			background-color: transparent;
-			padding-inline-start: 0;
-			gap: 1rem;
 		}
 
 		.root[data-variant='bar']:not(:global(.headless))
@@ -504,7 +524,7 @@
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.75rem;
 		min-width: 0;
 	}
 
@@ -550,8 +570,18 @@
 	}
 
 	/* Notice prompt: rights lead, the dismiss action trails. The root carries
-	   `data-prompt` and `data-model` so hosts can target either in CSS. */
+	   `data-prompt` and `data-model` so hosts can target either in CSS.
+	   Rights render through the button primitive (`data-action="right"`,
+	   neutral stroke) so they share the action row with the primary; below
+	   640px the footer stacks and every button fills the width, like a
+	   choice prompt. */
 	.root[data-prompt='notice']:not(:global(.headless)) .footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
 		flex-direction: column;
 		align-items: stretch;
 		gap: 0.75rem;
@@ -559,9 +589,10 @@
 
 	.root[data-prompt='notice']:not(:global(.headless))
 		.footer
-		button[data-action='dismiss'] {
-		width: auto;
-		flex: none;
+		button[data-action] {
+		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
 	}
 
 	@media (min-width: 640px) {
@@ -569,14 +600,92 @@
 			flex-direction: row;
 			align-items: center;
 			justify-content: space-between;
+			gap: 0.75rem;
 		}
 
 		.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
-			margin-inline-end: auto;
+			flex: 1 1 auto;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			min-width: 0;
 		}
 
 		.root[data-prompt='notice']:not(:global(.headless)) .footer > * {
 			width: auto;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless))
+			.footer
+			button[data-action] {
+			width: auto;
+			flex: none;
+		}
+	}
+
+	/* Bar polish: tighter paddings at every width, and from 1024px the
+	   description clamps to two lines while the rights sit inline on one
+	   row between the text and the trailing action. Placed after the
+	   notice rules so a notice in a bar takes the inline layout. */
+	.root[data-variant='bar']:not(:global(.headless)) .header {
+		padding: 0.75rem 1rem;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .footer {
+		padding: 0.75rem 1rem;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			padding: 1rem 1.5rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			padding: 0.75rem 1.5rem;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			padding: 0.75rem 1.5rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.header
+			> :not([hidden])
+			~ :not([hidden]) {
+			margin-top: 0.25rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .title {
+			line-height: 1.25rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .description {
+			display: -webkit-box;
+			-webkit-box-orient: vertical;
+			-webkit-line-clamp: 2;
+			overflow: hidden;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			flex: 0 0 auto;
+			gap: 0.75rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+			flex: 0 0 auto;
+			flex-direction: row;
+			flex-wrap: nowrap;
+			align-items: center;
+			gap: 0.75rem;
+			margin-inline-end: 0;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rightLink {
+			font-size: 0.8125rem;
+			line-height: 1.125rem;
+			white-space: nowrap;
 		}
 	}
 

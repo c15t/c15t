@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Téarmaí Seirbhíse',
 	},
 	rights: {
-		optOut: 'Ná díol agus ná roinn mo chuid faisnéise pearsanta',
+		optOut: 'Ná díol agus ná roinn mo shonraí',
 		preferences: 'Bainistigh roghanna',
 	},
 };

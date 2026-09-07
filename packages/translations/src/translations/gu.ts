@@ -139,7 +139,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'સેવાની શરતો',
 	},
 	rights: {
-		optOut: 'મારી વ્યક્તિગત માહિતી વેચશો કે શેર કરશો નહીં',
+		optOut: 'મારો ડેટા વેચશો કે શેર કરશો નહીં',
 		preferences: 'પસંદગીઓ મેનેજ કરો',
 	},
 };

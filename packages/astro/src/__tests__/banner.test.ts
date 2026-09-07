@@ -176,7 +176,7 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 		expect(root).toContain('data-model="opt-out"');
 	});
 
-	it('renders the rights links before the dismiss action with notice copy', async () => {
+	it('renders the opt-out button before an Accept All dismiss with notice copy', async () => {
 		const html = await render(await noticeLocals());
 
 		// The inlined config carries the whole bundle, so read the element.
@@ -189,25 +189,29 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 		const optOut = html.indexOf(
 			'data-testid="consent-banner-right-link-opt-out"'
 		);
-		const preferences = html.indexOf(
-			'data-testid="consent-banner-right-link-preferences"'
-		);
 		const dismiss = html.indexOf('data-testid="consent-banner-dismiss-button"');
 		expect(optOut).toBeGreaterThan(-1);
-		expect(preferences).toBeGreaterThan(optOut);
-		expect(dismiss).toBeGreaterThan(preferences);
+		expect(dismiss).toBeGreaterThan(optOut);
+		// The opt-out control opens the preference center, so it also covers
+		// the preferences right and no second button renders.
+		expect(html).not.toContain('consent-banner-right-link-preferences');
 
 		expect(html).toContain('data-testid="consent-banner-rights"');
-		expect(html).toContain('data-right="opt-out"');
-		expect(html).toContain('Do not sell or share my personal information');
-		expect(html).toContain('Manage preferences');
-		// Rights open the preference center through the same delegated handler.
-		expect(html).toMatch(
-			/data-c15t-action="customize"[^>]*data-right="opt-out"/u
-		);
+		const optOutButton = /<button[^>]*data-right="opt-out"[^>]*>/u.exec(
+			html
+		)?.[0];
+		expect(optOutButton).toBeDefined();
+		// A neutral button in the action row, opening the preference center
+		// through the same delegated handler as customize.
+		expect(optOutButton).toContain('data-action="right"');
+		expect(optOutButton).toContain('data-c15t-action="customize"');
+		expect(optOutButton).toContain('data-variant="neutral"');
+		expect(html).toContain('Do not sell or share my data');
 		expect(html).toContain('data-action="dismiss"');
 		expect(html).toContain('data-c15t-action="dismiss"');
-		expect(html).toContain('>Dismiss<');
+		// The notice acknowledgement reads as Accept All, not Dismiss.
+		expect(html).toContain('>Accept All<');
+		expect(html).not.toContain('>Dismiss<');
 		expect(html).not.toContain('consent-banner-accept-button');
 	});
 
@@ -235,8 +239,12 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 			/<button[^>]*data-right="opt-out"[^>]*>(?<text>[^<]*)<\/button>/u.exec(
 				html
 			)?.groups?.text;
-		expect(optOut).toBeDefined();
-		expect(optOut).not.toBe('Do not sell or share my personal information');
+		expect(optOut).toBe('Meine Daten nicht verkaufen oder weitergeben');
+		const dismiss =
+			/<button[^>]*data-action="dismiss"[^>]*>(?<text>[^<]*)<\/button>/u.exec(
+				html
+			)?.groups?.text;
+		expect(dismiss).toBe('Alle akzeptieren');
 	});
 
 	it('renders no rights group when the prompt already covers them', async () => {
@@ -260,13 +268,13 @@ describe('<ConsentBanner /> surface shape', () => {
 		prompt: 'notice' as const,
 	};
 
-	it('renders a notice as a non-blocking bottom bar', async () => {
+	it('renders a notice as a non-blocking floating card', async () => {
 		const html = await render(
 			await buildLocals({ mode: offlineMode({ policyRules: [noticeRule] }) })
 		);
 		const root = readRoot(html);
-		expect(root).toContain('data-variant="bar"');
-		expect(root).toContain('data-position="bottom"');
+		expect(root).toContain('data-variant="floating"');
+		expect(root).toContain('data-position="bottom-left"');
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
 		expect(readCard(html)).not.toContain('aria-modal');
@@ -297,6 +305,19 @@ describe('<ConsentBanner /> surface shape', () => {
 			)
 		);
 		expect(readRoot(kept)).toContain('data-position="top-left"');
+	});
+
+	it('renders a notice as a bottom bar when the host asks for one', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [noticeRule] }),
+				presentation: { prompt: { variant: 'bar' } },
+			})
+		);
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="bar"');
+		expect(root).toContain('data-position="bottom"');
+		expect(root).not.toContain('data-blocking');
 	});
 
 	it('renders a wall as a blocking modal with an overlay', async () => {

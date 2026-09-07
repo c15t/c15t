@@ -15,9 +15,8 @@ banner, to `floating` (a corner card), `bar` (full-width edge bar), `widget`
 has its own `position` values, and `blocking` bundles the backdrop, scroll
 lock, focus trap, and no outside dismissal into one setting.
 
-Defaults follow the prompt: a notice renders as a bottom bar, a choice prompt
-as a floating card at the bottom left, and a wall is always blocking while a
-notice never is. A defaulted corner mirrors for right-to-left languages; a
+Every prompt defaults to a floating card at the bottom left, a notice
+included, and a wall is always blocking while a notice never is. A defaulted corner mirrors for right-to-left languages; a
 position you set stays put. Invalid combinations fall back to the variant
 default and log `invalid-position`, `blocking-forbidden`, or
 `blocking-required` in development.

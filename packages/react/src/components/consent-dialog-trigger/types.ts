@@ -147,7 +147,7 @@ export interface ConsentDialogTriggerToolbarPreferences {
 	 * Accessible name announced for the preferences button.
 	 *
 	 * Defaults to the active rule's rights: the translated opt-out label
-	 * ("Do not sell or share my personal information") when the rule
+	 * ("Do not sell or share my data") when the rule
 	 * carries the `opt-out` right, otherwise the translated preferences
 	 * label ("Manage preferences").
 	 */
@@ -185,8 +185,8 @@ export interface ConsentDialogTriggerToolbarProps extends Omit<
 	actions?: readonly ConsentDialogTriggerToolbarAction[];
 
 	/**
-	 * Customization for the built-in preferences action. The toolbar always
-	 * renders exactly one preferences action.
+	 * Customization for the built-in preferences action. The toolbar renders
+	 * at most one preferences action; `showWhen` decides whether it is shown.
 	 */
 	preferences?: ConsentDialogTriggerToolbarPreferences;
 
@@ -219,7 +219,11 @@ export interface ConsentDialogTriggerToolbarProps extends Omit<
 	ariaLabel?: string;
 
 	/**
-	 * Controls when the toolbar is visible.
+	 * Controls when the built-in preferences action is visible. App-owned
+	 * `actions` always render, so a theme toggle stays available while a
+	 * prompt is owed; `after-prompt` hides only the preferences action until
+	 * the visitor has answered, and `never` omits it. The toolbar renders
+	 * nothing only when it has no visible item.
 	 *
 	 * @default 'always'
 	 */

@@ -142,7 +142,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Pakalpojumu sniegšanas noteikumi',
 	},
 	rights: {
-		optOut: 'Nepārdot un nekopīgot manu personisko informāciju',
+		optOut: 'Nepārdot un nekopīgot manus datus',
 		preferences: 'Pārvaldīt preferences',
 	},
 };

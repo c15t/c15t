@@ -9,6 +9,8 @@
 
 import type { ReactNode } from 'react';
 
+import { usePromptRequirement } from '~/hooks';
+
 import { TriggerRoot } from './atoms/root';
 import { TriggerToolbar } from './atoms/toolbar';
 import type {
@@ -21,9 +23,14 @@ const EMPTY_ACTIONS: readonly ConsentDialogTriggerToolbarAction[] = [];
 const DEFAULT_PREFERENCES: ConsentDialogTriggerToolbarPreferences = {};
 
 /**
- * A draggable toolbar that always includes one action for opening consent
- * preferences and can include app-owned actions such as theme or support
- * controls.
+ * A draggable toolbar for app-owned controls such as a theme toggle or
+ * support chat, plus one built-in action for opening consent preferences.
+ *
+ * The toolbar itself does not depend on the consent policy: app-owned
+ * actions always render. `showWhen` governs only the built-in preferences
+ * action, so `after-prompt` hides that one item while a choice or notice is
+ * owed and the rest of the toolbar stays put. The toolbar renders nothing
+ * only when it has no visible item.
  *
  * @example
  * ```tsx
@@ -56,24 +63,33 @@ export const ConsentDialogTriggerToolbar = ({
 	style,
 	noStyle = false,
 	onPositionChange,
-}: ConsentDialogTriggerToolbarProps): ReactNode => (
-	<TriggerRoot
-		defaultPosition={defaultPosition}
-		onPositionChange={onPositionChange}
-		persistPosition={persistPosition}
-		showWhen={showWhen}
-	>
-		<TriggerToolbar
-			actions={actions}
-			ariaLabel={ariaLabel}
-			className={className}
-			noStyle={noStyle}
-			orientation={orientation}
-			preferences={preferences}
-			size={size}
-			style={style}
-		/>
-	</TriggerRoot>
-);
+}: ConsentDialogTriggerToolbarProps): ReactNode => {
+	const promptRequirement = usePromptRequirement();
+	const promptSettled =
+		showWhen !== 'after-prompt' || promptRequirement.kind === 'none';
+	const showPreferences = showWhen !== 'never' && promptSettled;
+	const visible = actions.length > 0 || showPreferences;
+
+	return (
+		<TriggerRoot
+			defaultPosition={defaultPosition}
+			onPositionChange={onPositionChange}
+			persistPosition={persistPosition}
+			visible={visible}
+		>
+			<TriggerToolbar
+				actions={actions}
+				ariaLabel={ariaLabel}
+				className={className}
+				noStyle={noStyle}
+				orientation={orientation}
+				preferences={preferences}
+				showPreferences={showPreferences}
+				size={size}
+				style={style}
+			/>
+		</TriggerRoot>
+	);
+};
 
 ConsentDialogTriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

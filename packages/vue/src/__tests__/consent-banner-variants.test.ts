@@ -161,15 +161,15 @@ describe('ConsentBanner surface variants', () => {
 		expect(query('consent-banner-card')?.getAttribute('aria-modal')).toBeNull();
 	});
 
-	test('a notice prompt defaults to a bottom bar and never blocks', async () => {
+	test('a notice prompt defaults to a floating card and never blocks', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		await renderBanner(buildInit(noticeRule), {
 			config: { presentation: { prompt: { blocking: true } } },
 		});
 		expect(rootAttributes()).toEqual({
 			blocking: null,
-			position: 'bottom',
-			variant: 'bar',
+			position: 'bottom-left',
+			variant: 'floating',
 		});
 		expect(query('consent-banner-overlay')).toBeNull();
 		expect(
@@ -207,8 +207,21 @@ describe('ConsentBanner surface variants', () => {
 		expect(rootAttributes().position).toBe('top-left');
 	});
 
+	test('renders a notice as a bottom bar when the host asks for one', async () => {
+		await renderBanner(buildInit(noticeRule), {
+			config: { presentation: { prompt: { variant: 'bar' } } },
+		});
+		expect(rootAttributes()).toEqual({
+			blocking: null,
+			position: 'bottom',
+			variant: 'bar',
+		});
+	});
+
 	test('does not mirror a bar edge', async () => {
-		await renderBanner(buildInit(noticeRule, 'he'));
+		await renderBanner(buildInit(noticeRule, 'he'), {
+			config: { presentation: { prompt: { variant: 'bar' } } },
+		});
 		expect(rootAttributes()).toMatchObject({
 			position: 'bottom',
 			variant: 'bar',

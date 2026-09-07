@@ -82,18 +82,30 @@ describe('ConsentBanner variants', () => {
 		expect(query('consent-banner-overlay')).toBeNull();
 	});
 
-	test('a notice defaults to a bottom bar and never blocks', async () => {
+	test('a notice defaults to a floating card and never blocks', async () => {
 		await renderBanner(
 			{ model: 'opt-out', prompt: 'notice' },
 			{ blocking: true }
 		);
 		const root = await waitForRoot();
 
-		expect(root.dataset.variant).toBe('bar');
-		expect(root.dataset.position).toBe('bottom');
+		expect(root.dataset.variant).toBe('floating');
+		expect(root.dataset.position).toBe('bottom-left');
 		expect(root.dataset.blocking).toBeUndefined();
 		expect(query('consent-banner-overlay')).toBeNull();
 		expect(query('consent-banner-card')?.getAttribute('aria-modal')).toBeNull();
+	});
+
+	test('a notice renders as a bottom bar when the host asks for one', async () => {
+		await renderBanner(
+			{ model: 'opt-out', prompt: 'notice' },
+			{ variant: 'bar' }
+		);
+		const root = await waitForRoot();
+
+		expect(root.dataset.variant).toBe('bar');
+		expect(root.dataset.position).toBe('bottom');
+		expect(root.dataset.blocking).toBeUndefined();
 	});
 
 	test('wall blocks: overlay, modal semantics, scroll lock and focus trap', async () => {

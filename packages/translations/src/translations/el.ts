@@ -146,7 +146,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Όροι χρήσης',
 	},
 	rights: {
-		optOut: 'Μην πουλάτε και μην κοινοποιείτε τα προσωπικά μου δεδομένα',
+		optOut: 'Μην πουλάτε και μην κοινοποιείτε τα δεδομένα μου',
 		preferences: 'Διαχείριση προτιμήσεων',
 	},
 };

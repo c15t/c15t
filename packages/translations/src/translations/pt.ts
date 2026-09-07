@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Termos de Serviço',
 	},
 	rights: {
-		optOut: 'Não vender nem partilhar as minhas informações pessoais',
+		optOut: 'Não vender nem partilhar os meus dados',
 		preferences: 'Gerir preferências',
 	},
 };

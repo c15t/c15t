@@ -142,7 +142,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Kasutustingimused',
 	},
 	rights: {
-		optOut: 'Ära müü ega jaga minu isikuandmeid',
+		optOut: 'Ära müü ega jaga minu andmeid',
 		preferences: 'Halda eelistusi',
 	},
 };

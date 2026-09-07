@@ -121,13 +121,14 @@ describe('host presentation', () => {
 		expect(result.rights).toContain('opt-out');
 	});
 	describe('uncovered rights', () => {
-		it('leaves every right uncovered on a notice except disclosure', () => {
+		it('lists only opt-out on a notice, since that control opens preferences', () => {
 			const result = resolveConsentPresentation({
 				policy: notice,
 				surface: 'prompt',
 			});
 			expect(result.rights).toContain('disclosure');
-			expect(result.uncoveredRights).toEqual(['opt-out', 'preferences']);
+			expect(result.rights).toContain('preferences');
+			expect(result.uncoveredRights).toEqual(['opt-out']);
 		});
 		it('covers preferences with customize on a choice prompt', () => {
 			const result = resolveConsentPresentation({
@@ -186,20 +187,33 @@ describe('surface shape', () => {
 		expect(result.trapFocus).toBe(true);
 		expect(result.scrollLock).toBe(false);
 	});
-	it('defaults a notice prompt to a bottom bar that is never blocking', () => {
+	it('defaults a notice prompt to a floating card that is never blocking', () => {
 		const result = resolveConsentPresentation({
 			policy: notice,
 			presentation: { prompt: { blocking: true } },
 			surface: 'prompt',
 		});
-		expect(result.variant).toBe('bar');
-		expect(result.position).toBe('bottom');
+		expect(result.variant).toBe('floating');
+		expect(result.position).toBe('bottom-left');
+		expect(result.positionSource).toBe('default');
 		expect(result.blocking).toBe(false);
 		expect(result.trapFocus).toBe(false);
 		expect(result.scrollLock).toBe(false);
 		expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
 			'blocking-forbidden',
 		]);
+	});
+	it('renders a notice as a bottom bar when the host asks for one', () => {
+		const result = resolveConsentPresentation({
+			policy: notice,
+			presentation: { prompt: { variant: 'bar' } },
+			surface: 'prompt',
+		});
+		expect(result.variant).toBe('bar');
+		expect(result.position).toBe('bottom');
+		expect(result.positionSource).toBe('default');
+		expect(result.blocking).toBe(false);
+		expect(result.diagnostics).toEqual([]);
 	});
 	it('forces a wall to block and to trap focus and lock scroll', () => {
 		const result = resolveConsentPresentation({

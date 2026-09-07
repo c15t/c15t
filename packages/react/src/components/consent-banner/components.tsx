@@ -7,16 +7,15 @@
 import type { PolicyRight } from '@c15t/schema/types';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
-import { forwardRef as createForwardRef, useCallback, useRef } from 'react';
-import type { ButtonHTMLAttributes, MouseEvent, Ref, RefObject } from 'react';
+import { forwardRef as createForwardRef, useRef } from 'react';
+import type { ReactNode, Ref, RefObject } from 'react';
 
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { Slot } from '~/components/shared/libs/slot';
-import { useSetActiveUI } from '~/hooks';
+import { usePolicyRule } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
-import type { ExtendThemeKeys } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
@@ -44,7 +43,7 @@ const CONSENT_BANNER_RIGHT_LINK_NAME = 'ConsentBannerRightLink';
 
 /** English labels used when a language bundle has no `rights` section. */
 const FALLBACK_RIGHT_LABELS: Record<ConsentBannerRight, string> = {
-	'opt-out': 'Do not sell or share my personal information',
+	'opt-out': 'Do not sell or share my data',
 	preferences: 'Manage preferences',
 };
 
@@ -401,7 +400,11 @@ ConsentBannerAcceptButton.displayName = CONSENT_BANNER_ACCEPT_BUTTON_NAME;
  * @remarks
  * Records a notice dismissal without recording a category choice, so no
  * choice callbacks fire. Only rendered when the active policy requires a
- * notice. Themed through `theme.consentActions.dismiss`.
+ * notice. The default label is `common.acceptAll`: a notice exists only
+ * under the opt-out model, where every category is already permitted, so
+ * "Accept All" describes what happens. Pass children (or the banner's
+ * `dismissButtonText`) for a neutral label such as `common.dismiss`.
+ * Themed through `theme.consentActions.dismiss`.
  *
  * @example
  * ```tsx
@@ -426,7 +429,7 @@ const ConsentBannerDismissButton = createForwardRef<
 			noStyle={noStyle}
 			{...props}
 		>
-			{children ?? common.dismiss ?? 'Dismiss'}
+			{children ?? common.acceptAll}
 		</ConsentButton>
 	);
 });
@@ -437,25 +440,27 @@ ConsentBannerDismissButton.displayName = CONSENT_BANNER_DISMISS_BUTTON_NAME;
  * Props for {@link ConsentBannerRightLink}.
  * @public
  */
-export interface ConsentBannerRightLinkProps
-	extends
-		Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'type'>,
-		ExtendThemeKeys {
-	/** Which persistent right the link keeps reachable. */
+export interface ConsentBannerRightLinkProps extends Omit<
+	ConsentButtonProps,
+	'children' | 'consentAction' | 'isPrimary'
+> {
+	/** Which persistent right the control keeps reachable. */
 	right: ConsentBannerRight;
-	/** Render the child element instead of a `<button>`. */
-	asChild?: boolean;
-	/** Skip the built-in link styling. */
-	noStyle?: boolean;
+	/** Custom label. Defaults to the `rights` translation for `right`. */
+	children?: ReactNode;
 }
 
 /**
- * Link that keeps a persistent right reachable from the banner.
+ * Neutral button that keeps a persistent right reachable from the banner.
  *
  * @remarks
  * Opens the preference center, where the subject can opt out or change
- * category preferences. The label comes from the `rights` translations and
- * children override it. Carries `data-right` for styling hooks.
+ * category preferences. Renders through the shared button primitive with the
+ * `neutral` variant so it sits in the action row beside the primary. The
+ * label comes from the `rights` translations and children override it.
+ * Carries `data-action="right"`, `data-right`, and `data-c15t-rights` for
+ * styling hooks; hosts composing their own link with `asChild` can add the
+ * `rightLink` class from the banner stylesheet.
  *
  * @example
  * ```tsx
@@ -465,35 +470,29 @@ export interface ConsentBannerRightLinkProps
 const ConsentBannerRightLink = createForwardRef<
 	HTMLButtonElement,
 	ConsentBannerRightLinkProps
->(({ right, children, asChild, baseClassName, onClick, ...props }, ref) => {
+>(({ right, children, ...props }, ref) => {
 	const { rights } = useTranslations();
-	const setActiveUI = useSetActiveUI();
+	const policy = usePolicyRule();
+	const { noStyle } = useTheme();
 	const label =
 		(right === 'opt-out' ? rights?.optOut : rights?.preferences) ??
 		FALLBACK_RIGHT_LABELS[right];
-	const handleClick = useCallback(
-		(event: MouseEvent<HTMLButtonElement>) => {
-			onClick?.(event);
-			if (event.defaultPrevented) {
-				return;
-			}
-			setActiveUI('dialog');
-		},
-		[onClick, setActiveUI]
-	);
 	return (
-		<Box
-			ref={ref as unknown as Ref<HTMLDivElement>}
-			baseClassName={[styles.rightLink, baseClassName]}
-			data-right={right}
-			data-testid={`consent-banner-right-link-${right}`}
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="open-consent-dialog"
+			variant="neutral"
+			mode="stroke"
 			slotKey="banner.rightLink"
-			{...(props as Omit<BoxProps, 'slotKey'>)}
-			onClick={handleClick as unknown as BoxProps['onClick']}
-			asChild
+			data-action="right"
+			data-right={right}
+			data-c15t-rights={policy.rights.join(' ')}
+			data-testid={`consent-banner-right-link-${right}`}
+			noStyle={noStyle}
+			{...props}
 		>
-			{asChild ? children : <button type="button">{children ?? label}</button>}
-		</Box>
+			{children ?? label}
+		</ConsentButton>
 	);
 });
 
@@ -505,19 +504,20 @@ ConsentBannerRightLink.displayName = CONSENT_BANNER_RIGHT_LINK_NAME;
  */
 export interface ConsentBannerRightsProps extends Omit<BoxProps, 'slotKey'> {
 	/**
-	 * Rights to render as links. Defaults to the rights the resolved
-	 * presentation leaves uncovered, so a notice shows opt-out and
-	 * preferences while a choice prompt with customize shows nothing.
+	 * Rights to render as controls. Defaults to the rights the resolved
+	 * presentation leaves uncovered: a notice under an opt-out rule shows the
+	 * opt-out control (which also keeps preferences reachable), and a choice
+	 * prompt with customize shows nothing.
 	 */
 	rights?: readonly PolicyRight[];
 }
 
 /**
- * Group of links for rights no banner action covers.
+ * Group of controls for rights no banner action covers.
  *
  * @remarks
  * Renders nothing when every right is covered. Children replace the default
- * links; use {@link ConsentBannerRightLink} to keep the behavior.
+ * controls; use {@link ConsentBannerRightLink} to keep the behavior.
  *
  * @example
  * ```tsx

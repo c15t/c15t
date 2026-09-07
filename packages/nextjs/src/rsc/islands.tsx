@@ -59,7 +59,7 @@ export interface RscBannerActionsProps {
 	rejectLabel: string;
 	customizeLabel: string;
 	dismissLabel?: string;
-	/** Labels for right links; unknown rights fall back to their key. */
+	/** Labels for right buttons; unknown rights fall back to their key. */
 	rightLabels?: Partial<Record<PolicyRight, string>>;
 	classNames?: {
 		footer?: string;
@@ -77,7 +77,7 @@ export const RscBannerActions = ({
 	acceptLabel,
 	rejectLabel,
 	customizeLabel,
-	dismissLabel = 'Dismiss',
+	dismissLabel = 'Accept All',
 	rightLabels,
 	classNames,
 }: RscBannerActionsProps) => {
@@ -109,7 +109,9 @@ export const RscBannerActions = ({
 							key={right}
 							type="button"
 							className={classNames?.rightLink}
+							data-action="right"
 							data-right={right}
+							data-variant="neutral"
 							data-testid={`consent-banner-right-link-${right}`}
 							onClick={openDialog}
 						>

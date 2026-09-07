@@ -82,7 +82,7 @@ full-width bar:
 						'data-[prompt=notice]:inset-x-0 data-[prompt=notice]:bottom-0 data-[prompt=notice]:p-0',
 				},
 				card: { className: 'data-[prompt=notice]:rounded-none' },
-				rightLink: { className: 'underline decoration-dotted' },
+				rightLink: { className: 'data-[right=opt-out]:font-medium' },
 			},
 		},
 	}}
@@ -122,7 +122,7 @@ import * as stylex from '@stylexjs/stylex';
 
 const styles = stylex.create({
 	card: { borderRadius: 0, boxShadow: 'none' },
-	rightLink: { textDecorationStyle: 'dotted' },
+	rightLink: { fontWeight: 500 },
 });
 
 <ConsentProvider
@@ -154,9 +154,11 @@ Banner slot keys under `components.banner`:
 | `footer` | Action area |
 | `actions` | Group of action groups |
 | `actionGroup` | One group of equally prominent actions |
-| `rights` | Group of right links, rendered before the actions |
-| `rightLink` | One right link, carrying `data-right` |
+| `rights` | Group of right buttons, rendered before the actions |
+| `rightLink` | One right button, carrying `data-action="right"` and `data-right` |
 | `overlay` | Backdrop shown when the banner blocks the page |
 
 Buttons carry `data-action` and `data-variant`, so a single rule such as
-`[data-action='dismiss']` styles one role across every surface.
+`[data-action='dismiss']` or `[data-action='right']` styles one role across
+every surface. Right buttons are neutral by default; the primary treatment
+stays on the action the policy marks primary.

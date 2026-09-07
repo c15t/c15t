@@ -132,7 +132,7 @@ const CustomDialogAction = ({
 			{actionLabel(action, {
 				accept: common.acceptAll,
 				customize: common.customize,
-				dismiss: 'Dismiss notice',
+				dismiss: common.acceptAll,
 				reject: common.rejectAll,
 				save: common.save,
 			})}
@@ -196,7 +196,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 												className={className}
 												onClick={() => performBannerAction('dismiss')}
 											>
-												Dismiss notice
+												{common.acceptAll}
 											</Button>
 										);
 									default:
@@ -226,7 +226,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 									{actionLabel(action, {
 										accept: common.acceptAll,
 										customize: common.customize,
-										dismiss: 'Dismiss notice',
+										dismiss: common.acceptAll,
 										reject: common.rejectAll,
 										save: common.save,
 									})}

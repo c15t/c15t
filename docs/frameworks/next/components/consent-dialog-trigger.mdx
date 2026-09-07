@@ -77,7 +77,9 @@ import { ConsentDialogTriggerToolbar } from '@c15t/nextjs';
 
 Each custom action needs a stable `id`, an accessible `label`, an `icon`, and an `onSelect` callback. Use `pressed` for toggle actions and `disabled` for unavailable ones. Your app owns the state behind each action. The preferences action moves to the edge nearest the toolbar's snapped corner while custom actions keep their configured order.
 
-The built-in action names the strongest right the active rule guarantees. Under a rule that carries the `opt-out` right, such as a US opt-out notice, its accessible name is the translated "Do not sell or share my personal information" and the button carries `data-right="opt-out"`. Under any other rule it reads "Manage preferences" with `data-right="preferences"`. Either way it opens the preference center, and a `preferences.label` you pass replaces the default. The button also carries `data-c15t-rights` with every right on the rule.
+The toolbar does not depend on the consent policy. Your actions always render, so a theme toggle stays available while a banner is up. On the toolbar, `showWhen` applies only to the built-in preferences action: `after-prompt` hides that one item while a choice or notice is owed and shows it once the visitor has answered, and `never` leaves it out. The toolbar renders nothing only when it has no visible item. On the single `ConsentDialogTrigger`, `showWhen` applies to the whole control.
+
+The built-in action names the strongest right the active rule guarantees. Under a rule that carries the `opt-out` right, such as a US opt-out notice, its accessible name is the translated "Do not sell or share my data" and the button carries `data-right="opt-out"`. Under any other rule it reads "Manage preferences" with `data-right="preferences"`. Either way it opens the preference center, and a `preferences.label` you pass replaces the default. The button also carries `data-c15t-rights` with every right on the rule.
 
 Toolbars are horizontal by default. Set `orientation="vertical"` to stack the actions and switch arrow-key navigation to up and down:
 
@@ -94,7 +96,7 @@ Toolbars are horizontal by default. Set `orientation="vertical"` to stack the ac
 | `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Layout direction. |
 | `defaultPosition` | `CornerPosition` | `'bottom-right'` | Corner the toolbar starts in. |
 | `persistPosition` | `boolean` | `true` | Remember the dragged corner. |
-| `showWhen` | `'always' \| 'after-prompt' \| 'never'` | `'always'` | When the toolbar is visible. `after-prompt` waits until no choice or notice is owed. |
+| `showWhen` | `'always' \| 'after-prompt' \| 'never'` | `'always'` | When the built-in preferences action is visible. App-owned actions always render. `after-prompt` waits until no choice or notice is owed. |
 | `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size of each action. |
 | `ariaLabel` | `string` | `'Privacy controls'` | Accessible name for the toolbar group. |
 | `noStyle` | `boolean` | `false` | Remove the default styling. |

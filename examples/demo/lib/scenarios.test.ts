@@ -2,6 +2,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
 import { createConsentKernel, resolveConsentPresentation } from 'c15t';
 import { describe, expect, it } from 'vitest';
 
+import { presentationForRule } from './policy-playground';
 import {
 	demoScenarios,
 	getScenarioById,
@@ -67,7 +68,7 @@ describe('demo policy scenarios', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		kernel.dispose();
 	});
-	it('renders the US notice as dismiss plus opt-out and preferences links', () => {
+	it('renders the US notice as Accept All plus a single opt-out button', () => {
 		const scenario = getScenarioById('custom-us-notice');
 		const resolution = resolvePolicyRules({
 			countryCode: scenario.country,
@@ -83,9 +84,9 @@ describe('demo policy scenarios', () => {
 			surface: 'prompt',
 		});
 		expect(prompt.orderedActions).toEqual(['dismiss']);
-		expect(prompt.uncoveredRights).toEqual(['opt-out', 'preferences']);
+		expect(prompt.uncoveredRights).toEqual(['opt-out']);
 	});
-	it('covers the California opt-out with reject and adds a preferences link', () => {
+	it('covers the California opt-out with reject and adds a preferences button', () => {
 		const scenario = getScenarioById('custom-ca-do-not-sell');
 		expect(scenario.policy.model).toBe('opt-out');
 		const resolution = resolvePolicyRules({
@@ -104,12 +105,18 @@ describe('demo policy scenarios', () => {
 		expect(prompt.orderedActions).toEqual(['accept', 'reject']);
 		expect(prompt.uncoveredRights).toEqual(['preferences']);
 	});
-	it('renders the US notice as an explicit bottom bar', () => {
+	it('renders the US notice as a floating bottom-left card through the demo map', () => {
 		const scenario = getScenarioById('custom-us-notice');
-		expect(scenario.presentation?.prompt).toEqual({
-			position: 'bottom',
-			variant: 'bar',
+		expect(scenario.presentation).toBeUndefined();
+		const demoPresentation = presentationForRule(scenario.policy);
+		expect(demoPresentation).toEqual({
+			position: 'bottom-left',
+			variant: 'floating',
 		});
+		expect(scenario.runtimePresentation).toEqual({ prompt: demoPresentation });
+		// Explicit presentation wins over the map.
+		const wall = getScenarioById('custom-eu-wall');
+		expect(wall.runtimePresentation).toBe(wall.presentation);
 		const resolution = resolvePolicyRules({
 			countryCode: scenario.country,
 			regionCode: null,
@@ -120,11 +127,11 @@ describe('demo policy scenarios', () => {
 		}
 		const prompt = resolveConsentPresentation({
 			policy: resolution.policy,
-			presentation: scenario.presentation,
+			presentation: { prompt: demoPresentation },
 			surface: 'prompt',
 		});
-		expect(prompt.variant).toBe('bar');
-		expect(prompt.position).toBe('bottom');
+		expect(prompt.variant).toBe('floating');
+		expect(prompt.position).toBe('bottom-left');
 		expect(prompt.positionSource).toBe('host');
 		expect(prompt.blocking).toBe(false);
 		expect(prompt.diagnostics).toEqual([]);

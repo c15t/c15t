@@ -26,7 +26,7 @@ const ACTION_LABELS = {
 	accept: 'acceptAll',
 	reject: 'rejectAll',
 	customize: 'customize',
-	dismiss: 'dismiss',
+	dismiss: 'acceptAll',
 	save: 'save',
 } as const;
 
@@ -68,8 +68,12 @@ export function Banner() {
 at equal prominence, and the rest follow. `banner.orderedActions` is the same
 list flattened. Under a notice the only action is `dismiss`, and
 `banner.uncoveredRights` lists the rights no action covers, so the example
-above renders a dismiss button plus opt-out and preferences links without a
-notice-specific branch.
+above renders an "Accept All" button plus one opt-out button without a
+notice-specific branch. An opt-out control opens the preference center, so
+the resolver does not list `preferences` next to it. The pre-built banner
+labels the dismiss action "Accept All" because a notice only exists under the
+opt-out model, where every category is already permitted; use
+`common.dismiss` if you prefer "Dismiss".
 
 `performAction` saves all categories for `accept`, none for `reject`, the
 current draft for `save`, records a dismissal for `dismiss`, and opens the

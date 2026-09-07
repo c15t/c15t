@@ -134,7 +134,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: '服务条款',
 	},
 	rights: {
-		optOut: '请勿出售或共享我的个人信息',
+		optOut: '请勿出售或共享我的数据',
 		preferences: '管理偏好设置',
 	},
 };

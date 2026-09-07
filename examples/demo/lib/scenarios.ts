@@ -14,6 +14,8 @@ import { baseTranslations } from '@c15t/translations/all';
 import { policyRulePresets } from 'c15t';
 import type { ConsentPresentation, PolicyRule } from 'c15t';
 
+import { presentationForRule } from './policy-playground';
+
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';
 
@@ -164,12 +166,19 @@ export interface DemoScenario {
 	region?: string;
 	description: string;
 	policy: PolicyRule;
+	/** Host presentation the scenario sets explicitly, if any. */
 	presentation?: ConsentPresentation;
+	/**
+	 * Presentation the runtime applies: `presentation` when set, otherwise
+	 * the demo's per-policy shape from `presentationForRule`. Filled in once
+	 * at module load so render only reads a property.
+	 */
+	runtimePresentation?: ConsentPresentation;
 }
 
 const worldFallbackPolicy = policyRulePresets.worldOptOutNoPrompt();
 
-export const demoScenarios: DemoScenario[] = [
+const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 	// ── Built-in presets ──────────────────────────────────────────────────
 	{
 		country: 'GB',
@@ -360,7 +369,7 @@ export const demoScenarios: DemoScenario[] = [
 	{
 		country: 'US',
 		description:
-			'Opt-out choice prompt with two equally prominent actions. Reject records the opt-out, and because nothing on the prompt covers the preferences right, the banner adds a "Manage preferences" link on its own. The "caSales" message profile supplies California copy.',
+			'Opt-out choice prompt with two equally prominent actions. Reject records the opt-out, and because nothing on the prompt covers the preferences right, the banner adds a neutral "Manage preferences" button on its own. The "caSales" message profile supplies California copy.',
 		group: 'custom',
 		id: 'custom-ca-do-not-sell',
 		label: 'California CTA',
@@ -400,7 +409,7 @@ export const demoScenarios: DemoScenario[] = [
 	{
 		country: 'US',
 		description:
-			'Opt-out notice prompt. The banner renders a dismiss button plus opt-out and preferences links, because a notice offers no choice actions and those rights stay reachable.',
+			'Opt-out notice prompt. The banner renders an Accept All button plus a "Do not sell or share my data" button that opens the preference center, because a notice offers no choice actions and the opt-out right stays reachable.',
 		group: 'custom',
 		id: 'custom-us-notice',
 		label: 'US notice',
@@ -419,11 +428,8 @@ export const demoScenarios: DemoScenario[] = [
 			},
 			scopeMode: 'permissive',
 		},
-		// Explicit so the code example shows the shape; a notice defaults to
-		// a bottom bar anyway.
-		presentation: {
-			prompt: { position: 'bottom', variant: 'bar' },
-		},
+		// No explicit presentation: the demo's per-policy map renders a notice
+		// as a floating bottom-left card, clear of the bottom-right toolbar.
 	},
 	{
 		country: 'FR',
@@ -452,6 +458,23 @@ export const demoScenarios: DemoScenario[] = [
 		},
 	},
 ];
+
+const runtimePresentationFor = function runtimePresentationFor(
+	scenario: Omit<DemoScenario, 'runtimePresentation'>
+): ConsentPresentation | undefined {
+	if (scenario.presentation) {
+		return scenario.presentation;
+	}
+	const prompt = presentationForRule(scenario.policy);
+	return prompt ? { prompt } : undefined;
+};
+
+export const demoScenarios: DemoScenario[] = authoredScenarios.map(
+	(scenario) => ({
+		...scenario,
+		runtimePresentation: runtimePresentationFor(scenario),
+	})
+);
 
 export const getScenarioById = function getScenarioById(
 	id: string | null | undefined

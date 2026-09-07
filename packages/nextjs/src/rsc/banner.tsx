@@ -42,8 +42,8 @@ const FALLBACK_COPY: BannerCopy = {
 	customizeLabel: 'Customize',
 	description:
 		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
-	dismissLabel: 'Dismiss',
-	optOutLabel: 'Do not sell or share my personal information',
+	dismissLabel: 'Accept All',
+	optOutLabel: 'Do not sell or share my data',
 	preferencesLabel: 'Manage preferences',
 	rejectLabel: 'Reject All',
 	title: 'We value your privacy',
@@ -108,7 +108,9 @@ const readCopy = function readCopy(
 		acceptLabel: common.acceptAll ?? FALLBACK_COPY.acceptLabel,
 		customizeLabel: common.customize ?? FALLBACK_COPY.customizeLabel,
 		description,
-		dismissLabel: common.dismiss ?? FALLBACK_COPY.dismissLabel,
+		// A notice exists only under opt-out, where everything is already
+		// permitted, so the acknowledgement reads as "Accept All".
+		dismissLabel: common.acceptAll ?? FALLBACK_COPY.dismissLabel,
 		optOutLabel: rights.optOut ?? FALLBACK_COPY.optOutLabel,
 		preferencesLabel: rights.preferences ?? FALLBACK_COPY.preferencesLabel,
 		rejectLabel: common.rejectAll ?? FALLBACK_COPY.rejectLabel,
@@ -134,12 +136,15 @@ export interface RscConsentBannerProps {
 		customizeButton?: string;
 		dismissButton?: string;
 		/**
-		 * Group that holds links for rights no prompt action covers, such as
-		 * opt-out and preferences under a notice. Rendered before the action
-		 * row so the notice layout in `@c15t/ui` applies.
+		 * Group that holds buttons for rights no prompt action covers, such as
+		 * the opt-out under a notice. Rendered before the action row so the
+		 * notice layout in `@c15t/ui` applies.
 		 */
 		rights?: string;
-		/** One right link inside the rights group. */
+		/**
+		 * One right button inside the rights group. Carries
+		 * `data-action="right"` and `data-variant="neutral"` for host CSS.
+		 */
 		rightLink?: string;
 	};
 	/**

@@ -139,17 +139,17 @@ afterEach(async () => {
 });
 
 describe('ConsentBanner under a notice prompt', () => {
-	test('renders the translated dismiss action as the primary control', async () => {
+	test('renders the dismiss action as the primary Accept All control', async () => {
 		await renderBanner(buildInit(noticeRule));
 		const dismiss = query('consent-banner-dismiss-button');
-		expect(dismiss?.textContent?.trim()).toBe('Got it');
+		expect(dismiss?.textContent?.trim()).toBe('Accept All');
 		expect(dismiss?.getAttribute('data-action')).toBe('dismiss');
 		expect(dismiss?.getAttribute('data-variant')).toBe('primary');
 		expect(query('consent-banner-accept-button')).toBeNull();
 		expect(query('consent-banner-reject-button')).toBeNull();
 	});
 
-	test('renders opt-out and preferences links before the actions', async () => {
+	test('renders one neutral opt-out button before the actions', async () => {
 		await renderBanner(buildInit(noticeRule));
 		const rights = query('consent-banner-rights');
 		expect(rights).toBeInstanceOf(HTMLElement);
@@ -158,13 +158,16 @@ describe('ConsentBanner under a notice prompt', () => {
 		];
 		expect(links.map((link) => link.getAttribute('data-right'))).toEqual([
 			'opt-out',
-			'preferences',
 		]);
 		expect(links.map((link) => link.textContent?.trim())).toEqual([
 			'Do not sell my info',
-			'Manage my preferences',
 		]);
-		expect(query('consent-banner-right-link-opt-out')).toBe(links[0]);
+		const [optOut] = links;
+		expect(query('consent-banner-right-link-opt-out')).toBe(optOut);
+		expect(optOut?.getAttribute('data-action')).toBe('right');
+		expect(optOut?.getAttribute('data-variant')).toBe('neutral');
+		expect(optOut?.getAttribute('data-mode')).toBe('stroke');
+		expect(query('consent-banner-right-link-preferences')).toBeNull();
 		const group = query('consent-banner-footer-sub-group');
 		expect(group).toBeInstanceOf(HTMLElement);
 		const footerChildren = [...(rights?.parentElement?.children ?? [])];
@@ -180,7 +183,7 @@ describe('ConsentBanner under a notice prompt', () => {
 		expect(root?.getAttribute('data-model')).toBe('opt-out');
 	});
 
-	test('opens the preference center from the opt-out link', async () => {
+	test('opens the preference center from the opt-out button', async () => {
 		const context = await renderBanner(buildInit(noticeRule));
 		query('consent-banner-right-link-opt-out')?.click();
 		await flushPromises();
@@ -232,7 +235,7 @@ describe('ConsentBanner under a choice prompt', () => {
 		);
 	});
 
-	test('renders a preferences link when the prompt offers no customize', async () => {
+	test('renders a preferences button when the prompt offers no customize', async () => {
 		await renderBanner(
 			buildInit({ ...choiceRule, actions: ['accept', 'reject'] })
 		);

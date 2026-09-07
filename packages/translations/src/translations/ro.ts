@@ -145,7 +145,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Termeni și condiții',
 	},
 	rights: {
-		optOut: 'Nu vindeți și nu partajați informațiile mele personale',
+		optOut: 'Nu vindeți și nu partajați datele mele',
 		preferences: 'Gestionează preferințele',
 	},
 };

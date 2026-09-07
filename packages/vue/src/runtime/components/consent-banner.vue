@@ -23,13 +23,15 @@ import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
+import ConsentButton from './consent-button.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
 
 /**
  * Local overrides for the surface shape. Each one beats the host
  * `presentation.prompt` value; leave them unset to follow the policy
- * defaults (a notice renders as a bar, a choice as a floating card).
+ * defaults (every prompt renders as a floating card unless the host
+ * chooses otherwise).
  * `blocking` defaults to `undefined` on purpose: Vue would otherwise cast
  * an absent boolean prop to `false` and override the host value.
  */
@@ -156,12 +158,18 @@ const resolvedPosition = computed(() => {
 	return value;
 });
 
+/**
+ * A notice exists only under the opt-out model, where every category is
+ * already permitted, so its one action reads "Accept All". It still
+ * records a dismissal, never a choice. Hosts that prefer a neutral
+ * acknowledgement can label it with `common.dismiss` instead.
+ */
 const labels = computed(() => {
 	const common = bundle.value?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
 		customize: common?.customize ?? 'Customize',
-		dismiss: common?.dismiss ?? 'Dismiss',
+		dismiss: common?.acceptAll ?? 'Accept all',
 		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
@@ -170,12 +178,16 @@ const rightLabels = computed<Record<PolicyRight, string>>(() => {
 	const rights = bundle.value?.rights;
 	return {
 		disclosure: '',
-		'opt-out': rights?.optOut ?? 'Do not sell or share my personal information',
+		'opt-out': rights?.optOut ?? 'Do not sell or share my data',
 		preferences: rights?.preferences ?? 'Manage preferences',
 	};
 });
 
-/** Every uncovered right opens the preference center, like customize. */
+/**
+ * Every uncovered right opens the preference center, like customize. It
+ * renders as a neutral button in the action row so the primary action
+ * keeps the visual lead.
+ */
 const onRight = function onRight() {
 	activeUI.value = 'manager';
 };
@@ -310,18 +322,20 @@ const onAction = function onAction(action: PresentationAction) {
 									data-testid="consent-banner-rights"
 									:class="bannerStyles.rights"
 								>
-									<button
+									<ConsentButton
 										v-for="right in uncoveredRights"
 										:key="right"
 										v-bind="config.components?.banner?.rightLink"
-										type="button"
-										:class="bannerStyles.rightLink"
+										variant="neutral"
+										mode="stroke"
+										size="small"
+										data-action="right"
 										:data-right="right"
 										:data-testid="`consent-banner-right-link-${right}`"
 										@click="onRight"
 									>
 										{{ rightLabels[right] }}
-									</button>
+									</ConsentButton>
 								</div>
 							</template>
 						</ConsentActions>

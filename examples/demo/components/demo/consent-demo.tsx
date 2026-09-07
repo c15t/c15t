@@ -297,7 +297,9 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 					.translations,
 		},
 		overrides,
-		presentation: scenario.presentation,
+		// Scenarios without an explicit presentation take the demo's per-policy
+		// shape, so different regimes look different out of the box.
+		presentation: scenario.runtimePresentation,
 		scripts: createDemoScripts('demo-analytics'),
 		theme: demoTheme,
 	};
@@ -492,6 +494,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 							ariaLabel="Privacy controls"
 							defaultPosition="bottom-right"
 							persistPosition={false}
+							showWhen="after-prompt"
 						/>
 					)}
 					<IABProvider {...iabConfig}>

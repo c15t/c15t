@@ -100,8 +100,7 @@ const usePreferencesActionDefaults =
 			const right = resolvePreferencesRight(policy.rights);
 			const label =
 				right === 'opt-out'
-					? (rightsTranslations?.optOut ??
-						'Do not sell or share my personal information')
+					? (rightsTranslations?.optOut ?? 'Do not sell or share my data')
 					: (rightsTranslations?.preferences ?? 'Manage preferences');
 			return { label, right, rights: policy.rights.join(' ') };
 		}, [policy.rights, rightsTranslations]);
@@ -111,13 +110,18 @@ const createToolbarItems = function createToolbarItems(
 	actions: readonly ConsentDialogTriggerToolbarAction[],
 	preferences: ConsentDialogTriggerToolbarPreferences,
 	right: ToolbarPreferencesRight,
-	defaultLabel: string
+	defaultLabel: string,
+	showPreferences: boolean
 ): readonly ToolbarItem[] {
 	const customItems: ToolbarCustomItem[] = actions.map((action) => ({
 		...action,
 		focusId: `custom:${action.id}`,
 		kind: 'custom',
 	}));
+
+	if (!showPreferences) {
+		return customItems;
+	}
 
 	return [
 		...customItems,
@@ -174,6 +178,13 @@ export interface TriggerToolbarProps extends Omit<
 
 	/** Accessible name for the toolbar group. @default 'Privacy controls' */
 	ariaLabel?: string;
+
+	/**
+	 * Whether the built-in preferences action is rendered. App-owned
+	 * actions render regardless.
+	 * @default true
+	 */
+	showPreferences?: boolean;
 }
 
 /**
@@ -185,6 +196,7 @@ export const TriggerToolbar = ({
 	size = 'md',
 	orientation = 'horizontal',
 	ariaLabel = 'Privacy controls',
+	showPreferences = true,
 	className,
 	style,
 	noStyle = false,
@@ -212,7 +224,8 @@ export const TriggerToolbar = ({
 					actions,
 					preferences,
 					preferencesRight,
-					defaultPreferencesLabel
+					defaultPreferencesLabel,
+					showPreferences
 				),
 				orientation,
 				corner
@@ -224,6 +237,7 @@ export const TriggerToolbar = ({
 			orientation,
 			preferences,
 			preferencesRight,
+			showPreferences,
 		]
 	);
 	const firstEnabledId = orderedItems.find((item) => !item.disabled)?.focusId;

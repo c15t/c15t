@@ -194,7 +194,7 @@ const locationPresetSections: LocationPresetSection[] = [
 			{
 				country: 'US',
 				description:
-					'Opt-out notice with a dismiss button plus opt-out and preferences links',
+					'Opt-out notice with Accept All plus a single opt-out button',
 				id: 'custom-us-notice',
 				label: 'US notice',
 			},

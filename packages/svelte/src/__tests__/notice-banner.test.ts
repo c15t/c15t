@@ -50,33 +50,36 @@ const query = <Element extends HTMLElement>(selector: string) =>
 const notice = () => policyFixture({}, { model: 'opt-out', prompt: 'notice' });
 
 describe('notice banner', () => {
-	test('renders the translated dismiss as the primary and only action', () => {
+	test('renders the dismiss as a primary "Accept All" that records nothing', () => {
 		const { view } = renderFixture(notice());
 		const dismiss = required(
 			query<HTMLButtonElement>('[data-testid="consent-banner-dismiss-button"]')
 		);
 		expect(dismiss.dataset.action).toBe('dismiss');
-		expect(dismiss.textContent?.trim()).toBe('Dismiss');
+		expect(dismiss.textContent?.trim()).toBe('Accept All');
 		expect(dismiss.dataset.variant).toBe('primary');
-		expect(document.querySelectorAll('[data-action]')).toHaveLength(1);
+		expect(
+			document.querySelectorAll('[data-action]:not([data-action="right"])')
+		).toHaveLength(1);
 		view.unmount();
 	});
 
-	test('renders opt-out and preferences links before the actions', () => {
+	test('renders a single neutral opt-out button before the primary', () => {
 		const { view } = renderFixture(notice());
 		const root = required(query('[data-testid="consent-banner-root"]'));
 		expect(root.dataset.prompt).toBe('notice');
 		expect(root.dataset.model).toBe('opt-out');
 		const rights = required(query('[data-testid="consent-banner-rights"]'));
-		const links = [...rights.querySelectorAll('button[data-right]')];
-		expect(links.map((link) => link.getAttribute('data-right'))).toEqual([
-			'opt-out',
-			'preferences',
-		]);
-		expect(links[0]?.textContent?.trim()).toBe(
-			'Do not sell or share my personal information'
-		);
-		expect(links[1]?.textContent?.trim()).toBe('Manage preferences');
+		const buttons = [
+			...rights.querySelectorAll<HTMLButtonElement>('button[data-right]'),
+		];
+		// The opt-out control opens the preference center, so it covers the
+		// preferences right too and no second control appears.
+		expect(buttons.map((button) => button.dataset.right)).toEqual(['opt-out']);
+		const optOut = required(buttons[0]);
+		expect(optOut.textContent?.trim()).toBe('Do not sell or share my data');
+		expect(optOut.dataset.action).toBe('right');
+		expect(optOut.dataset.variant).toBe('neutral');
 		const footer = required(query('[data-testid="consent-banner-footer"]'));
 		const dismiss = required(query('[data-action="dismiss"]'));
 		expect(footer.contains(rights)).toBe(true);
@@ -87,7 +90,7 @@ describe('notice banner', () => {
 		view.unmount();
 	});
 
-	test('the opt-out link opens the preference center without a choice', async () => {
+	test('the opt-out button opens the preference center without a choice', async () => {
 		const { context, view } = renderFixture(notice());
 		await fireEvent.click(
 			required(query('[data-testid="consent-banner-right-link-opt-out"]'))

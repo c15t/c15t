@@ -140,7 +140,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'सेवा की शर्तें',
 	},
 	rights: {
-		optOut: 'मेरी व्यक्तिगत जानकारी न बेचें और न साझा करें',
+		optOut: 'मेरा डेटा न बेचें और न साझा करें',
 		preferences: 'प्राथमिकताएँ प्रबंधित करें',
 	},
 };

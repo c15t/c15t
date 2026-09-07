@@ -156,7 +156,7 @@ describe('ConsentDialogTriggerToolbar', () => {
 		window.localStorage.clear();
 	});
 
-	test('always renders exactly one preferences action', async () => {
+	test('renders exactly one preferences action beside app actions', async () => {
 		const onCustomSelect = vi.fn();
 		const onPreferencesSelect = vi.fn();
 		renderWithConsent(

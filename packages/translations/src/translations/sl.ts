@@ -143,7 +143,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Pogoji uporabe',
 	},
 	rights: {
-		optOut: 'Ne prodajajte in ne delite mojih osebnih podatkov',
+		optOut: 'Ne prodajajte in ne delite mojih podatkov',
 		preferences: 'Upravljanje nastavitev',
 	},
 };

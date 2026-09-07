@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: "Cundiziuns d'utilisaziun",
 	},
 	rights: {
-		optOut: 'Betg vender ni parter mias infurmaziuns persunalas',
+		optOut: 'Betg vender ni parter mias datas',
 		preferences: 'Administrar preferenzas',
 	},
 };

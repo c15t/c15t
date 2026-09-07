@@ -82,8 +82,9 @@ export interface SurfacePresentation {
 	uiProfile?: 'balanced' | 'compact' | 'strict';
 	scrollLock?: boolean;
 	/**
-	 * Shape of the surface. A choice prompt defaults to `floating`, a notice
-	 * to `bar`, and the preferences surface to `wall`.
+	 * Shape of the surface. Every prompt defaults to `floating`; the
+	 * preferences surface defaults to `wall`. `bar`, `widget`, and `wall`
+	 * are host choices.
 	 */
 	variant?: PromptVariant;
 	/**
@@ -145,8 +146,10 @@ export interface ResolvedConsentPresentation {
 	 * Rights no action on this surface satisfies, in canonical order. Hosts
 	 * keep these reachable with their own controls, such as a link to the
 	 * preference center. `disclosure` never appears because inline legal
-	 * links carry it; `preferences` is covered by customize, save, or the
-	 * preferences surface itself; `opt-out` is covered by reject.
+	 * links carry it; `opt-out` is covered by reject; `preferences` is
+	 * covered by customize, save, or the preferences surface itself. An
+	 * uncovered opt-out control opens the preference center, so it also
+	 * satisfies the preferences right and only `opt-out` is listed.
 	 */
 	uncoveredRights: PolicyRight[];
 	direction: 'row' | 'column';
@@ -239,6 +242,10 @@ const resolveUncoveredRights = function resolveUncoveredRights(
 	orderedActions: readonly PresentationAction[],
 	preferences: boolean
 ): PolicyRight[] {
+	// Resolve opt-out first: the host control for an uncovered opt-out
+	// opens the preference center, so it keeps preferences reachable too.
+	const optOutUncovered =
+		rights.includes('opt-out') && !orderedActions.includes('reject');
 	return rights.filter((right) => {
 		switch (right) {
 			case 'disclosure':
@@ -246,11 +253,12 @@ const resolveUncoveredRights = function resolveUncoveredRights(
 			case 'preferences':
 				return !(
 					preferences ||
+					optOutUncovered ||
 					orderedActions.includes('customize') ||
 					orderedActions.includes('save')
 				);
 			case 'opt-out':
-				return !orderedActions.includes('reject');
+				return optOutUncovered;
 			default:
 				return true;
 		}
@@ -281,12 +289,7 @@ const resolveSurfaceGeometry = function resolveSurfaceGeometry(
 	ResolvedConsentPresentation,
 	'variant' | 'position' | 'positionSource' | 'blocking'
 > {
-	let defaultVariant: PromptVariant = 'floating';
-	if (preferences) {
-		defaultVariant = 'wall';
-	} else if (notice) {
-		defaultVariant = 'bar';
-	}
+	const defaultVariant: PromptVariant = preferences ? 'wall' : 'floating';
 	const variant = options.variant ?? defaultVariant;
 	const defaultPosition = PROMPT_VARIANT_DEFAULT_POSITION[variant];
 	let position: PromptPosition = defaultPosition;

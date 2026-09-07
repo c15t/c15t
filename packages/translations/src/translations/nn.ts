@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Brukarvilkår',
 	},
 	rights: {
-		optOut: 'Ikkje sel eller del personopplysningane mine',
+		optOut: 'Ikkje sel eller del dataa mine',
 		preferences: 'Administrer innstillingar',
 	},
 };

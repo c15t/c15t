@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Regulamin',
 	},
 	rights: {
-		optOut: 'Nie sprzedawaj ani nie udostępniaj moich danych osobowych',
+		optOut: 'Nie sprzedawaj ani nie udostępniaj moich danych',
 		preferences: 'Zarządzaj preferencjami',
 	},
 };

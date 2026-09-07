@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Telerau gwasanaeth',
 	},
 	rights: {
-		optOut: 'Peidiwch â gwerthu na rhannu fy ngwybodaeth bersonol',
+		optOut: 'Peidiwch â gwerthu na rhannu fy nata',
 		preferences: 'Rheoli dewisiadau',
 	},
 };

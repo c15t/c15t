@@ -143,7 +143,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Notzungsbedingungen',
 	},
 	rights: {
-		optOut: 'Meng perséinlech Donnéeën net verkafen oder deelen',
+		optOut: 'Meng Donnéeën net verkafen oder deelen',
 		preferences: 'Astellungen verwalten',
 	},
 };

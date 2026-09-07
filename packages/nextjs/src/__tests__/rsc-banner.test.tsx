@@ -65,7 +65,7 @@ const readCard = function readCard(html: string) {
 };
 
 describe('RscConsentBanner server HTML', () => {
-	test('a notice renders the uncovered rights before dismiss with notice copy', () => {
+	test('a notice renders the opt-out button before an Accept All dismiss', () => {
 		const html = renderShell({ model: 'opt-out', prompt: 'notice' });
 
 		const root = /<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(
@@ -82,21 +82,25 @@ describe('RscConsentBanner server HTML', () => {
 		const optOut = html.indexOf(
 			'data-testid="consent-banner-right-link-opt-out"'
 		);
-		const preferences = html.indexOf(
-			'data-testid="consent-banner-right-link-preferences"'
-		);
 		const dismiss = html.indexOf('data-testid="consent-banner-dismiss-button"');
 		expect(optOut).toBeGreaterThan(-1);
-		expect(preferences).toBeGreaterThan(optOut);
-		expect(dismiss).toBeGreaterThan(preferences);
+		expect(dismiss).toBeGreaterThan(optOut);
+		// The opt-out control opens the preference center, so it also covers
+		// the preferences right and no second button renders.
+		expect(html).not.toContain('consent-banner-right-link-preferences');
 
 		expect(html).toContain('data-testid="consent-banner-rights"');
 		expect(html).toContain('class="rights"');
-		expect(html).toContain('data-right="opt-out"');
+		const optOutButton = /<button[^>]*data-right="opt-out"[^>]*>/u.exec(
+			html
+		)?.[0];
+		expect(optOutButton).toContain('data-action="right"');
+		expect(optOutButton).toContain('data-variant="neutral"');
 		expect(html).toContain('Do not sell my info');
-		expect(html).toContain('Manage my preferences');
 		expect(html).toContain('data-action="dismiss"');
-		expect(html).toContain('>Got it<');
+		// The notice acknowledgement reads as Accept All, not Dismiss.
+		expect(html).toContain('>Accept All<');
+		expect(html).not.toContain('>Got it<');
 		expect(html).not.toContain('consent-banner-accept-button');
 	});
 
@@ -113,10 +117,11 @@ describe('RscConsentBanner server HTML', () => {
 });
 
 describe('RscConsentBanner surface shape', () => {
-	test('a notice resolves to a non-blocking bar', () => {
+	test('a notice resolves to a non-blocking floating card', () => {
 		const html = renderShell({ model: 'opt-out', prompt: 'notice' });
 		const root = readRoot(html);
-		expect(root).toContain('data-variant="bar"');
+		expect(root).toContain('data-variant="floating"');
+		expect(root).toContain('data-position="bottom-left"');
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
 		expect(readCard(html)).not.toContain('aria-modal');
@@ -128,6 +133,17 @@ describe('RscConsentBanner surface shape', () => {
 		expect(root).toContain('data-variant="floating"');
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+	});
+
+	test('a notice resolves to a bottom bar when the host asks for one', () => {
+		const html = renderShell(
+			{ model: 'opt-out', prompt: 'notice' },
+			{ prompt: { variant: 'bar' } }
+		);
+		const root = readRoot(html);
+		expect(root).toContain('data-variant="bar"');
+		expect(root).toContain('data-position="bottom"');
+		expect(root).not.toContain('data-blocking');
 	});
 
 	test('a host wall variant blocks: overlay, modal card, blocking attribute', () => {
@@ -153,9 +169,14 @@ describe('RscConsentBanner surface shape', () => {
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
 	});
 
-	test('a notice sits at the bottom edge and a host corner is kept', () => {
+	test('a notice bar sits at the bottom edge and a host corner is kept', () => {
 		expect(
-			readRoot(renderShell({ model: 'opt-out', prompt: 'notice' }))
+			readRoot(
+				renderShell(
+					{ model: 'opt-out', prompt: 'notice' },
+					{ prompt: { variant: 'bar' } }
+				)
+			)
 		).toContain('data-position="bottom"');
 		expect(
 			readRoot(

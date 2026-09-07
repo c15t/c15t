@@ -35,7 +35,7 @@ export const Default: Story = {
 	}),
 };
 
-/** Opt-out notice: dismiss plus the opt-out and preferences links. */
+/** Opt-out notice: a neutral opt-out button beside the primary Accept All. */
 export const Notice: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },
@@ -46,7 +46,7 @@ export const Notice: Story = {
 	}),
 };
 
-/** Full-width edge bar, the default shape for a notice. */
+/** Full-width edge bar, an opt-in shape that suits a short notice. */
 export const Bar: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },

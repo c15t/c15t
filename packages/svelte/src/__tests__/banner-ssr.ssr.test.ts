@@ -163,10 +163,12 @@ describe('consent banner SSR', () => {
 		expect(tag?.[0]).toMatch(/data-model="opt-out"/u);
 		expect(html).toContain('Privacy notice');
 		expect(html).toContain('data-right="opt-out"');
-		expect(html).toContain('data-right="preferences"');
-		expect(html).toContain('Do not sell or share my personal information');
+		expect(html).not.toContain('data-right="preferences"');
+		expect(html).toContain('Do not sell or share my data');
+		expect(html).toContain('data-action="right"');
 		expect(html).toContain('data-action="dismiss"');
-		expect(html).toContain('>Dismiss<');
+		expect(html).toContain('>Accept All<');
+		expect(html).not.toContain('>Dismiss<');
 		expect(html.indexOf('data-right="opt-out"')).toBeLessThan(
 			html.indexOf('data-action="dismiss"')
 		);
@@ -193,9 +195,18 @@ describe('consent banner SSR', () => {
 		const noticeTag = rootTag(
 			renderBanner({ initialPolicyResolution: NOTICE_POLICY })
 		);
-		expect(noticeTag).toMatch(/data-variant="bar"/u);
-		expect(noticeTag).toMatch(/data-position="bottom"/u);
+		expect(noticeTag).toMatch(/data-variant="floating"/u);
+		expect(noticeTag).toMatch(/data-position="bottom-left"/u);
 		expect(noticeTag).not.toMatch(/data-blocking/u);
+
+		const barTag = rootTag(
+			renderBanner(
+				{ initialPolicyResolution: NOTICE_POLICY },
+				{ prompt: { variant: 'bar' } }
+			)
+		);
+		expect(barTag).toMatch(/data-variant="bar"/u);
+		expect(barTag).toMatch(/data-position="bottom"/u);
 	});
 
 	test('a blocking wall paints its backdrop and modal state on the server', () => {

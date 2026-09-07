@@ -23,9 +23,9 @@ the preference center look, and it never changes a policy fingerprint, so
 changing it never re-prompts a returning visitor.
 
 `presentation.prompt` takes `variant`, `position`, and `blocking` alongside
-`layout` and `primaryActions`. A `notice` defaults to a `bar` at the bottom, a
-`choice` prompt to a `floating` card at the bottom left, and a `wall` is
-always blocking. The server shell resolves the same values before the first
+`layout` and `primaryActions`. Every prompt defaults to a `floating` card at the
+bottom left, a notice included, and a `wall` is always blocking. `bar`,
+`widget`, and `wall` are host choices. The server shell resolves the same values before the first
 paint, so the first HTML already carries the variant. Props on
 `ConsentBanner` override these for one banner.
 

@@ -144,7 +144,7 @@ export const translations: CompleteTranslations = {
 		termsOfService: 'Felhasználási feltételek',
 	},
 	rights: {
-		optOut: 'Ne adják el és ne osszák meg a személyes adataimat',
+		optOut: 'Ne adják el és ne osszák meg az adataimat',
 		preferences: 'Beállítások kezelése',
 	},
 };

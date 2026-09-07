@@ -65,10 +65,10 @@ describe('banner variants', () => {
 		view.unmount();
 	});
 
-	test('a notice defaults to a bottom bar and is never blocking', () => {
+	test('a notice defaults to a floating card and is never blocking', () => {
 		const view = renderFixture(notice(), { blocking: true });
-		expect(root().dataset.variant).toBe('bar');
-		expect(root().dataset.position).toBe('bottom');
+		expect(root().dataset.variant).toBe('floating');
+		expect(root().dataset.position).toBe('bottom-left');
 		expect(root().dataset.blocking).toBeUndefined();
 		expect(overlay()).toBeNull();
 		expect(card().getAttribute('aria-modal')).toBeNull();
@@ -107,8 +107,16 @@ describe('banner variants', () => {
 		view.unmount();
 	});
 
+	test('a notice renders as a bottom bar when the host asks for one', () => {
+		const view = renderFixture(notice(), { variant: 'bar' });
+		expect(root().dataset.variant).toBe('bar');
+		expect(root().dataset.position).toBe('bottom');
+		expect(root().dataset.blocking).toBeUndefined();
+		view.unmount();
+	});
+
 	test('a bar edge is not mirrored for right-to-left text', () => {
-		const view = renderFixture(rtl(notice()));
+		const view = renderFixture(rtl(notice()), { variant: 'bar' });
 		expect(root().dataset.variant).toBe('bar');
 		expect(root().dataset.position).toBe('bottom');
 		view.unmount();
