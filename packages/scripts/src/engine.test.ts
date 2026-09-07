@@ -826,6 +826,73 @@ describe('scripts engine', () => {
 		]);
 	});
 
+	it('limits snippet-only properties and methods to queue globals', () => {
+		const globalRef = globalThis as TestGlobal;
+		const manifest = createManifest({
+			bootstrap: [
+				{
+					ifUndefined: true,
+					name: 'guardedQueue',
+					type: 'setGlobal',
+					value: [],
+				},
+				{
+					ifGlobalIsQueue: true,
+					path: ['guardedQueue', 'pending'],
+					type: 'setGlobalPath',
+					value: [['init']],
+				},
+				{
+					ifGlobalIsQueue: true,
+					methods: [
+						{
+							behavior: 'return',
+							name: 'status',
+							value: 'pending',
+						},
+					],
+					target: 'guardedQueue',
+					type: 'defineGlobalMethods',
+				},
+			],
+			category: 'measurement',
+			install: [],
+			vendor: 'guarded-queue-bootstrap',
+		});
+		const script = resolvedManifestToScript(compileManifest(manifest));
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				id: script.id,
+			})
+		);
+
+		const queue = globalRef.guardedQueue as unknown[] & {
+			pending: unknown[][];
+			status: () => string;
+		};
+		expect(queue.pending).toEqual([['init']]);
+		expect(queue.status()).toBe('pending');
+
+		const liveStatus = vi.fn(() => 'granted');
+		const installed = { status: liveStatus };
+		globalRef.guardedQueue = installed;
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				id: script.id,
+			})
+		);
+
+		expect(globalRef.guardedQueue).toBe(installed);
+		expect(installed.status()).toBe('granted');
+		expect(installed).not.toHaveProperty('pending');
+
+		delete globalRef.guardedQueue;
+	});
+
 	it('does not overwrite an initialized SDK object with queue stubs', () => {
 		const globalRef = globalThis as TestGlobal;
 		const liveTrack = vi.fn();

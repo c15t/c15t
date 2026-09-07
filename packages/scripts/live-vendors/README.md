@@ -1,7 +1,8 @@
 # Live vendor monitor
 
-Live browser probes for every built-in `@c15t/scripts` integration, run daily
-by `.github/workflows/script-vendor-monitor.yml` (issue
+Live browser probes for every built-in `@c15t/scripts` integration, run every
+six hours and on pushes to the publishing branches by
+`.github/workflows/script-vendor-monitor.yml` (issue
 [#899](https://github.com/c15t/c15t/issues/899)). Unlike the jsdom contract
 tests in `src/`, these probes load the **real** vendor loader scripts in real
 Chromium, so they catch remote loader changes that static tests cannot — like
@@ -50,8 +51,9 @@ retry before a failure is reported:
    2xx JavaScript response; `loader-only` accepts any HTTP answer, including
    Chromium ORB-filtered error pages, because placeholder ids are rejected by
    some vendors (GTM 404s, Clarity answers 204).
-4. **runtime** — (`full` tier only) the real vendor runtime must initialize,
-   polled for up to 10s.
+4. **runtime** — the real vendor runtime must initialize, polled for up to
+   10s. Always asserted at `full` tier, and also for any `loader-only` vendor
+   that declares `runtimeCheck` or `runtimeReplacedGlobals`.
 5. **network** — every third-party request outside the loader allowlist is
    answered with an empty 204, so probes never send real analytics data. The
    count is reported.
@@ -89,3 +91,10 @@ logic is pure and unit-tested in `report.test.ts`.
 - The runner needs `--tsconfig-override live-vendors/tsconfig.json` (already
   baked into the package scripts) because Bun otherwise applies the package
   tsconfig's `c15t → dist-types` path mapping at runtime.
+- That tsconfig maps `~/*` to `../../core/src/*`. `stub-contract.test.ts`
+  reaches `src/e2e-test-utils.ts`, which imports the core script loader by
+  relative path, so core's own `~/*` sources join this project's type program.
+  The package tsconfig sidesteps this by excluding `e2e-test-utils.ts`
+  outright; excluding it here would leave the meta-test untyped instead. Keep
+  the mapping narrow — Bun reads these paths at runtime too, so adding a
+  `c15t` entry here would point the runner at `.d.ts` files.

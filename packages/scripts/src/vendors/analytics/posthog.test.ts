@@ -9,28 +9,37 @@ import {
 } from '../../__tests__/helpers';
 import { posthog } from './posthog';
 
+type PosthogStub = Window['posthog'] & { _i?: unknown[][] };
+
+const bootstrapPosthog = function bootstrapPosthog(
+	script: ReturnType<typeof posthog>
+): PosthogStub {
+	script.onBeforeLoad?.(
+		createCallbackInfo({ consents: deniedConsentState, id: script.id })
+	);
+
+	return getTestGlobal().posthog as PosthogStub;
+};
+
+const installSdkSpies = function installSdkSpies() {
+	const globalRef = getTestGlobal();
+	const optIn = vi.fn();
+	const optOut = vi.fn();
+	globalRef.posthog = {
+		capture: vi.fn(),
+		get_explicit_consent_status: vi.fn(() => 'pending'),
+		init: vi.fn(),
+		opt_in_capturing: optIn,
+		opt_out_capturing: optOut,
+	};
+
+	return { optIn, optOut };
+};
+
 describe('posthog', () => {
 	setupScriptHelperTest();
 
-	it('keeps init options as an object and syncs consent state', () => {
-		const globalRef = getTestGlobal();
-		const init = vi.fn();
-		const optIn = vi.fn();
-		const optOut = vi.fn();
-		globalRef.posthog = {
-			capture: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			// oxlint-disable-next-line func-name-matching -- Preserve declaration order, interface shape, and public compatibility.
-			init: function initWithReceiver(
-				token: string,
-				options: Record<string, unknown>
-			) {
-				init(this, token, options);
-			},
-			opt_in_capturing: optIn,
-			opt_out_capturing: optOut,
-		};
-
+	it('queues init options as an object and syncs consent state', () => {
 		const script = posthog({
 			apiHost: 'https://eu.i.posthog.com',
 			id: 'phc_123',
@@ -51,6 +60,22 @@ describe('posthog', () => {
 			'data-ui-host': 'https://eu.posthog.com',
 		});
 
+		expect(bootstrapPosthog(script)._i).toEqual([
+			[
+				'phc_123',
+				{
+					api_host: 'https://eu.i.posthog.com',
+					autocapture: false,
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					person_profiles: 'identified_only',
+					ui_host: 'https://eu.posthog.com',
+				},
+				'posthog',
+			],
+		]);
+
+		const { optIn, optOut } = installSdkSpies();
 		script.onLoad?.(
 			createCallbackInfo({
 				consents: deniedConsentState,
@@ -58,14 +83,6 @@ describe('posthog', () => {
 			})
 		);
 
-		expect(init).toHaveBeenCalledWith(globalRef.posthog, 'phc_123', {
-			api_host: 'https://eu.i.posthog.com',
-			autocapture: false,
-			cookieless_mode: 'on_reject',
-			defaults: '2026-01-30',
-			person_profiles: 'identified_only',
-			ui_host: 'https://eu.posthog.com',
-		});
 		expect(optOut).toHaveBeenCalledTimes(1);
 
 		script.onConsentChange?.(
@@ -80,16 +97,6 @@ describe('posthog', () => {
 	});
 
 	it('uses consent-aware defaults when optional options are omitted', () => {
-		const globalRef = getTestGlobal();
-		const init = vi.fn();
-		globalRef.posthog = {
-			capture: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			init,
-			opt_in_capturing: vi.fn(),
-			opt_out_capturing: vi.fn(),
-		};
-
 		const script = posthog({
 			id: 'phc_defaults',
 		});
@@ -101,32 +108,21 @@ describe('posthog', () => {
 			'data-ui-host': 'https://eu.posthog.com',
 		});
 
-		script.onLoad?.(
-			createCallbackInfo({
-				consents: grantedMeasurementConsentState,
-				id: script.id,
-			})
-		);
-
-		expect(init).toHaveBeenCalledWith('phc_defaults', {
-			api_host: 'https://eu.i.posthog.com',
-			cookieless_mode: 'on_reject',
-			defaults: '2026-01-30',
-			ui_host: 'https://eu.posthog.com',
-		});
+		expect(bootstrapPosthog(script)._i).toEqual([
+			[
+				'phc_defaults',
+				{
+					api_host: 'https://eu.i.posthog.com',
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					ui_host: 'https://eu.posthog.com',
+				},
+				'posthog',
+			],
+		]);
 	});
 
 	it('derives US hosts from the region option', () => {
-		const globalRef = getTestGlobal();
-		const init = vi.fn();
-		globalRef.posthog = {
-			capture: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			init,
-			opt_in_capturing: vi.fn(),
-			opt_out_capturing: vi.fn(),
-		};
-
 		const script = posthog({
 			id: 'phc_us',
 			region: 'us',
@@ -139,19 +135,18 @@ describe('posthog', () => {
 			'data-ui-host': 'https://us.posthog.com',
 		});
 
-		script.onLoad?.(
-			createCallbackInfo({
-				consents: grantedMeasurementConsentState,
-				id: script.id,
-			})
-		);
-
-		expect(init).toHaveBeenCalledWith('phc_us', {
-			api_host: 'https://us.i.posthog.com',
-			cookieless_mode: 'on_reject',
-			defaults: '2026-01-30',
-			ui_host: 'https://us.posthog.com',
-		});
+		expect(bootstrapPosthog(script)._i).toEqual([
+			[
+				'phc_us',
+				{
+					api_host: 'https://us.i.posthog.com',
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					ui_host: 'https://us.posthog.com',
+				},
+				'posthog',
+			],
+		]);
 	});
 
 	it('derives the bootstrap script URL from an explicit API host', () => {
@@ -169,16 +164,6 @@ describe('posthog', () => {
 	});
 
 	it('allows explicit host and script URL overrides', () => {
-		const globalRef = getTestGlobal();
-		const init = vi.fn();
-		globalRef.posthog = {
-			capture: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			init,
-			opt_in_capturing: vi.fn(),
-			opt_out_capturing: vi.fn(),
-		};
-
 		const script = posthog({
 			apiHost: 'https://events.example.com/posthog',
 			id: 'phc_custom',
@@ -194,19 +179,18 @@ describe('posthog', () => {
 			'data-ui-host': 'https://app.example.com/posthog',
 		});
 
-		script.onLoad?.(
-			createCallbackInfo({
-				consents: grantedMeasurementConsentState,
-				id: script.id,
-			})
-		);
-
-		expect(init).toHaveBeenCalledWith('phc_custom', {
-			api_host: 'https://events.example.com/posthog',
-			cookieless_mode: 'on_reject',
-			defaults: '2026-01-30',
-			ui_host: 'https://app.example.com/posthog',
-		});
+		expect(bootstrapPosthog(script)._i).toEqual([
+			[
+				'phc_custom',
+				{
+					api_host: 'https://events.example.com/posthog',
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					ui_host: 'https://app.example.com/posthog',
+				},
+				'posthog',
+			],
+		]);
 	});
 
 	it('uses explicit region UI host for custom API hosts', () => {
@@ -251,16 +235,6 @@ describe('posthog', () => {
 	});
 
 	it('allows init options to override non-host helper defaults', () => {
-		const globalRef = getTestGlobal();
-		const init = vi.fn();
-		globalRef.posthog = {
-			capture: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			init,
-			opt_in_capturing: vi.fn(),
-			opt_out_capturing: vi.fn(),
-		};
-
 		const script = posthog({
 			apiHost: 'https://eu.i.posthog.com',
 			id: 'phc_overrides',
@@ -272,18 +246,17 @@ describe('posthog', () => {
 			},
 		});
 
-		script.onLoad?.(
-			createCallbackInfo({
-				consents: deniedConsentState,
-				id: script.id,
-			})
-		);
-
-		expect(init).toHaveBeenCalledWith('phc_overrides', {
-			api_host: 'https://eu.i.posthog.com',
-			cookieless_mode: 'always',
-			defaults: '2025-05-24',
-			ui_host: 'https://eu.posthog.com',
-		});
+		expect(bootstrapPosthog(script)._i).toEqual([
+			[
+				'phc_overrides',
+				{
+					api_host: 'https://eu.i.posthog.com',
+					cookieless_mode: 'always',
+					defaults: '2025-05-24',
+					ui_host: 'https://eu.posthog.com',
+				},
+				'posthog',
+			],
+		]);
 	});
 });
