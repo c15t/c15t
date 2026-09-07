@@ -13,7 +13,8 @@ const policy = normalizePolicyRule({
 describe('resolveConsentPresentation', () => {
 	test('supplies required controls with no host layout', () => {
 		const result = resolveConsentPresentation({ policy, surface: 'prompt' });
-		expect(result.orderedActions).toEqual(['accept', 'customize', 'reject']);
+		expect(result.actionGroups).toEqual([['reject', 'accept'], ['customize']]);
+		expect(result.orderedActions).toEqual(['reject', 'accept', 'customize']);
 		expect(result.requiredActions).toEqual(['accept', 'reject']);
 	});
 	test('deduplicates host groups and retains their order', () => {

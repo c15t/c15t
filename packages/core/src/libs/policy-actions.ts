@@ -17,7 +17,13 @@ export type PresentationAction =
 export interface SurfacePresentation {
 	layout?: readonly (PresentationAction | readonly PresentationAction[])[];
 	primaryActions?: readonly PresentationAction[];
+	/** @default 'row' */
 	direction?: 'row' | 'column';
+	/**
+	 * `compact` sizes buttons to their labels. `balanced` and `strict`
+	 * stretch every button to the full width and stack the groups.
+	 * @default 'compact'
+	 */
 	uiProfile?: 'balanced' | 'compact' | 'strict';
 	scrollLock?: boolean;
 }
@@ -66,6 +72,24 @@ export interface ResolvedConsentPresentation {
 	shouldFillActions: boolean;
 }
 
+/**
+ * Layout used when the host supplies none: reject and accept share one
+ * group at equal prominence, and every other allowed action (customize on
+ * the prompt, save in preferences, dismiss on a notice) follows on its
+ * own. With the default `compact` profile and customize as the default
+ * primary, that renders as `[reject] [accept] ---- [customize]` on one row.
+ */
+const defaultLayout = function defaultLayout(
+	allowedActions: PresentationAction[]
+): NonNullable<SurfacePresentation['layout']> {
+	const choicePair: PresentationAction[] = ['reject', 'accept'].filter(
+		(action): action is PresentationAction =>
+			allowedActions.includes(action as PresentationAction)
+	);
+	const rest = allowedActions.filter((action) => !choicePair.includes(action));
+	return choicePair.length > 0 ? [choicePair, ...rest] : rest;
+};
+
 const resolveRequiredGroups = function resolveRequiredGroups(
 	allowedActions: PresentationAction[],
 	requiredActions: PresentationAction[],
@@ -74,7 +98,7 @@ const resolveRequiredGroups = function resolveRequiredGroups(
 ): PresentationAction[][] {
 	const seen = new Set<PresentationAction>();
 	const actionGroups: PresentationAction[][] = [];
-	const layout = suppliedLayout ?? [allowedActions];
+	const layout = suppliedLayout ?? defaultLayout(allowedActions);
 	for (const entry of layout) {
 		const group: PresentationAction[] = [];
 		for (const action of typeof entry === 'string' ? [entry] : entry) {
@@ -159,9 +183,11 @@ export const resolveConsentPresentation =
 			diagnostics
 		);
 		const orderedActions = actionGroups.flat();
+		// Customize is the default primary on the prompt so reject and accept
+		// stay neutral together; preferences lead with save.
 		const defaultPrimary: PresentationAction[] = preferences
 			? ['save']
-			: ['accept', 'reject'];
+			: ['customize'];
 		const primaryActions = (options.primaryActions ?? defaultPrimary).filter(
 			(action) => orderedActions.includes(action)
 		);
@@ -189,7 +215,9 @@ export const resolveConsentPresentation =
 		}
 		const notice = !preferences && input.policy.prompt === 'notice';
 		const direction = options.direction ?? 'row';
-		const uiProfile = options.uiProfile ?? 'balanced';
+		// `compact` sizes buttons to their labels so the default split layout
+		// reads as one row; `balanced` and `strict` fill and stack instead.
+		const uiProfile = options.uiProfile ?? 'compact';
 		return {
 			actionGroups,
 			allowedActions,

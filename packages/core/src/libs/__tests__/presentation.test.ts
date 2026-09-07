@@ -22,9 +22,58 @@ describe('host presentation', () => {
 			policy: choice,
 			surface: 'prompt',
 		});
-		expect(result.primaryActions).toEqual(['accept', 'reject']);
+		expect(result.primaryActions).toEqual(['customize']);
 		expect(result.equivalentActions).toEqual([['accept', 'reject']]);
 		expect(result.diagnostics).toEqual([]);
+	});
+	it('defaults to reject and accept together, then customize, on one compact row', () => {
+		const result = resolveConsentPresentation({
+			policy: choice,
+			surface: 'prompt',
+		});
+		expect(result.actionGroups).toEqual([['reject', 'accept'], ['customize']]);
+		expect(result.primaryActions).toEqual(['customize']);
+		expect(result.direction).toBe('row');
+		expect(result.uiProfile).toBe('compact');
+		expect(result.shouldFillActions).toBe(false);
+	});
+	it('defaults preferences to reject and accept together, then save', () => {
+		const result = resolveConsentPresentation({
+			policy: choice,
+			surface: 'preferences',
+		});
+		expect(result.actionGroups).toEqual([['reject', 'accept'], ['save']]);
+		expect(result.primaryActions).toEqual(['save']);
+	});
+	it('leaves no default primary when the rule omits customize', () => {
+		const result = resolveConsentPresentation({
+			policy: normalizePolicyRule({
+				actions: ['accept', 'reject'],
+				id: 'two-actions',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			}),
+			surface: 'prompt',
+		});
+		expect(result.actionGroups).toEqual([['reject', 'accept']]);
+		expect(result.primaryActions).toEqual([]);
+		expect(result.diagnostics).toEqual([]);
+	});
+	it('defaults a notice prompt to its single dismiss action', () => {
+		const result = resolveConsentPresentation({
+			policy: notice,
+			surface: 'prompt',
+		});
+		expect(result.actionGroups).toEqual([['dismiss']]);
+	});
+	it('keeps an explicit balanced profile filling and stacking', () => {
+		const result = resolveConsentPresentation({
+			policy: choice,
+			presentation: { prompt: { uiProfile: 'balanced' } },
+			surface: 'prompt',
+		});
+		expect(result.shouldFillActions).toBe(true);
 	});
 	it('restores required actions and removes forbidden actions', () => {
 		const result = resolveConsentPresentation({
