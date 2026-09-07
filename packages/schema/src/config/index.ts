@@ -65,6 +65,8 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		footer?: T;
 		actions?: T;
 		actionGroup?: T;
+		rights?: T;
+		rightLink?: T;
 		overlay?: T;
 	};
 	dialog?: {
@@ -233,6 +235,8 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		footer: true,
 		header: true,
 		overlay: true,
+		rightLink: true,
+		rights: true,
 		root: true,
 		title: true,
 	},

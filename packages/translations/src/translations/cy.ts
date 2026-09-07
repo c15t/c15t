@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Derbyn pob un',
 		close: 'Cau',
 		customize: 'Addasu',
+		dismiss: 'Diystyru',
 		rejectAll: 'Gwrthod pob un',
 		save: 'Cadw gosodiadau',
 		securedBy: "Wedi'i ddiogelu gan",
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			"Mae'r wefan hon yn defnyddio cwcis i wella eich profiad pori, dadansoddi traffig y wefan, a dangos cynnwys wedi'i bersonoli.",
+		noticeDescription:
+			'Rydym yn defnyddio cwcis a thechnolegau tebyg i redeg y wefan hon, mesur traffig, a phersonoli cynnwys a hysbysebion. Gallwch optio allan neu reoli eich dewisiadau ar unrhyw adeg.',
+		noticeTitle: 'Hysbysiad preifatrwydd',
 		title: 'Rydym yn gwerthfawrogi eich preifatrwydd',
 	},
 	frame: {
@@ -138,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Polisi cwcis',
 		privacyPolicy: 'Polisi preifatrwydd',
 		termsOfService: 'Telerau gwasanaeth',
+	},
+	rights: {
+		optOut: 'Peidiwch â gwerthu na rhannu fy ngwybodaeth bersonol',
+		preferences: 'Rheoli dewisiadau',
 	},
 };
 export default translations;

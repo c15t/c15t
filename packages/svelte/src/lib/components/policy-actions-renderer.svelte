@@ -19,6 +19,7 @@
 		footerSubGroupClassName,
 		footerTestId,
 		footerSubGroupTestId,
+		leading,
 		renderAction,
 	}: {
 		actionGroups?: string[][];
@@ -30,6 +31,8 @@
 		footerSubGroupClassName?: string;
 		footerTestId?: string;
 		footerSubGroupTestId?: string;
+		/** Rendered inside the footer before the action groups, e.g. rights links. */
+		leading?: Snippet;
 		renderAction?: Snippet<[string, boolean]>;
 	} = $props();
 
@@ -60,6 +63,7 @@
 	data-fill={shouldFillActions ? true : undefined}
 	data-split={isSplit && !shouldFillActions ? true : undefined}
 >
+	{@render leading?.()}
 	{#each keyedActionGroups as actionGroup (actionGroup.key)}
 		<div
 			class={resolvedFooterSubGroupClassName}

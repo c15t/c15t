@@ -121,6 +121,46 @@ describe('consent banner SSR', () => {
 		expect(html).toContain('data-action="customize"');
 	});
 
+	test('paints the notice rights and dismiss in the first HTML', () => {
+		const html = renderBanner({
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: null,
+				regionCode: null,
+				rules: [
+					{
+						id: 'notice',
+						match: { fallback: true },
+						model: 'opt-out',
+						prompt: 'notice',
+					},
+				],
+			}),
+		});
+		const tag = /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html);
+
+		expect(tag?.[0]).toMatch(/data-prompt="notice"/u);
+		expect(tag?.[0]).toMatch(/data-model="opt-out"/u);
+		expect(html).toContain('Privacy notice');
+		expect(html).toContain('data-right="opt-out"');
+		expect(html).toContain('data-right="preferences"');
+		expect(html).toContain('Do not sell or share my personal information');
+		expect(html).toContain('data-action="dismiss"');
+		expect(html).toContain('>Dismiss<');
+		expect(html.indexOf('data-right="opt-out"')).toBeLessThan(
+			html.indexOf('data-action="dismiss"')
+		);
+		expect(html).not.toContain('data-action="accept"');
+	});
+
+	test('marks a choice prompt on the root', () => {
+		const html = renderBanner({ initialPolicyResolution: BANNER_POLICY });
+		const tag = /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html);
+
+		expect(tag?.[0]).toMatch(/data-prompt="choice"/u);
+		expect(tag?.[0]).toMatch(/data-model="opt-in"/u);
+		expect(html).not.toContain('consent-banner-rights');
+	});
+
 	test('the provider alone renders no banner', () => {
 		const html = render(ConsentManagerProvider, {
 			props: {

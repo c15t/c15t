@@ -167,4 +167,75 @@ describe('initOutputSchema', () => {
 		expect(output.policyResolution?.status).toBe('matched');
 		expect(output.policy).toBeUndefined();
 	});
+
+	test('keeps dismiss, notice copy and rights labels on the wire', () => {
+		const translations = {
+			common: {
+				acceptAll: 'Accept All',
+				customize: 'Customize',
+				dismiss: 'Dismiss',
+				rejectAll: 'Reject All',
+				save: 'Save Settings',
+			},
+			consentManagerDialog: { description: 'd', title: 't' },
+			consentTypes: {
+				experience: { description: 'd', title: 't' },
+				functionality: { description: 'd', title: 't' },
+				marketing: { description: 'd', title: 't' },
+				measurement: { description: 'd', title: 't' },
+				necessary: { description: 'd', title: 't' },
+			},
+			cookieBanner: {
+				description: 'd',
+				noticeDescription: 'notice d',
+				noticeTitle: 'Privacy notice',
+				title: 't',
+			},
+			frame: { actionButton: 'a', title: 't' },
+			legalLinks: {
+				cookiePolicy: 'c',
+				privacyPolicy: 'p',
+				termsOfService: 's',
+			},
+			rights: {
+				optOut: 'Do not sell or share my personal information',
+				preferences: 'Manage preferences',
+			},
+		};
+		const output = v.parse(initOutputSchema, {
+			branding: 'c15t',
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: null },
+			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
+			translations: { language: 'en', translations },
+		});
+		const parsed = output.translations.translations;
+		expect(parsed.common.dismiss).toBe('Dismiss');
+		expect(parsed.cookieBanner.noticeTitle).toBe('Privacy notice');
+		expect(parsed.cookieBanner.noticeDescription).toBe('notice d');
+		expect(parsed.rights).toEqual(translations.rights);
+	});
+
+	test('accepts partial translations that omit the new keys', () => {
+		const output = v.parse(initOutputSchema, {
+			branding: 'c15t',
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: null },
+			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
+			translations: {
+				language: 'en',
+				translations: {
+					common: { dismiss: 'Dismiss' },
+					consentManagerDialog: {},
+					consentTypes: {},
+					cookieBanner: { noticeTitle: 'Privacy notice' },
+					rights: { optOut: 'Opt out' },
+				},
+			},
+		});
+		const parsed = output.translations.translations;
+		expect(parsed.common.dismiss).toBe('Dismiss');
+		expect(parsed.cookieBanner.noticeTitle).toBe('Privacy notice');
+		expect(parsed.rights?.optOut).toBe('Opt out');
+	});
 });

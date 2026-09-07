@@ -22,6 +22,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const Notice: Story = {
+	args: {
+		notice: true,
+	},
+};
+
 export const BannerContract: Story = {
 	play: bannerContract,
 };

@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Összes elfogadása',
 		close: 'Bezárás',
 		customize: 'Testreszabás',
+		dismiss: 'Bezárás',
 		rejectAll: 'Összes elutasítása',
 		save: 'Beállítások mentése',
 		securedBy: 'Védelmét biztosítja',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Ez a webhely sütiket használ a böngészési élmény javítására, a forgalom elemzésére és személyre szabott tartalom megjelenítésére.',
+		noticeDescription:
+			'Sütiket és hasonló technológiákat használunk a webhely működtetéséhez, a forgalom méréséhez, valamint a tartalom és a hirdetések személyre szabásához. Bármikor leiratkozhat, vagy kezelheti a beállításait.',
+		noticeTitle: 'Adatvédelmi tájékoztató',
 		title: 'Értékeljük az adatvédelmet',
 	},
 	frame: {
@@ -138,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Süti szabályzat',
 		privacyPolicy: 'Adatvédelmi szabályzat',
 		termsOfService: 'Felhasználási feltételek',
+	},
+	rights: {
+		optOut: 'Ne adják el és ne osszák meg a személyes adataimat',
+		preferences: 'Beállítások kezelése',
 	},
 };
 export default translations;

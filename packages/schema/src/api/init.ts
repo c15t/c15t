@@ -23,6 +23,37 @@ export const partialTitleDescriptionSchema = v.object({
 });
 
 /**
+ * Cookie banner copy. The notice pair is used when the resolved policy
+ * requires a `notice` prompt; older backends omit it.
+ */
+export const cookieBannerTranslationsSchema = v.object({
+	...titleDescriptionSchema.entries,
+	noticeDescription: v.optional(v.string()),
+	noticeTitle: v.optional(v.string()),
+});
+
+/**
+ * Partial cookie banner copy for older backend versions
+ */
+export const partialCookieBannerTranslationsSchema = v.object({
+	...partialTitleDescriptionSchema.entries,
+	noticeDescription: v.optional(v.string()),
+	noticeTitle: v.optional(v.string()),
+});
+
+/**
+ * Labels for persistent rights a surface exposes when no prompt action
+ * covers them, such as the opt-out and preferences links on a notice.
+ * Optional so older backends still validate.
+ */
+export const rightsTranslationsSchema = v.optional(
+	v.object({
+		optOut: v.optional(v.string()),
+		preferences: v.optional(v.string()),
+	})
+);
+
+/**
  * Complete translations schema for newer backend versions
  * All fields are required for full functionality
  */
@@ -30,6 +61,7 @@ export const completeTranslationsSchema = v.object({
 	common: v.object({
 		acceptAll: v.string(),
 		customize: v.string(),
+		dismiss: v.optional(v.string()),
 		rejectAll: v.string(),
 		save: v.string(),
 	}),
@@ -41,7 +73,7 @@ export const completeTranslationsSchema = v.object({
 		measurement: titleDescriptionSchema,
 		necessary: titleDescriptionSchema,
 	}),
-	cookieBanner: titleDescriptionSchema,
+	cookieBanner: cookieBannerTranslationsSchema,
 	frame: v.object({
 		actionButton: v.string(),
 
@@ -53,6 +85,7 @@ export const completeTranslationsSchema = v.object({
 		privacyPolicy: v.string(),
 		termsOfService: v.string(),
 	}),
+	rights: rightsTranslationsSchema,
 });
 
 /**
@@ -64,6 +97,7 @@ export const partialTranslationsSchema = v.object({
 		v.object({
 			acceptAll: v.optional(v.string()),
 			customize: v.optional(v.string()),
+			dismiss: v.optional(v.string()),
 			rejectAll: v.optional(v.string()),
 			save: v.optional(v.string()),
 		})
@@ -78,7 +112,7 @@ export const partialTranslationsSchema = v.object({
 			necessary: partialTitleDescriptionSchema,
 		})
 	),
-	cookieBanner: partialTitleDescriptionSchema,
+	cookieBanner: partialCookieBannerTranslationsSchema,
 	frame: v.optional(
 		v.partial(
 			v.object({
@@ -98,6 +132,7 @@ export const partialTranslationsSchema = v.object({
 			})
 		)
 	),
+	rights: rightsTranslationsSchema,
 });
 
 /**

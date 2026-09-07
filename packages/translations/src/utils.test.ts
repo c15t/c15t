@@ -25,6 +25,39 @@ describe('bundled frame translations', () => {
 	);
 });
 
+describe('bundled notice and rights translations', () => {
+	const nonEmpty = (value: string) => {
+		expect(value).toEqual(expect.any(String));
+		expect(value.trim()).not.toBe('');
+	};
+
+	it.each(Object.entries(bundledTranslations))(
+		'%s defines dismiss, notice copy, and rights labels',
+		(_language, translations) => {
+			nonEmpty(translations.common.dismiss);
+			nonEmpty(translations.cookieBanner.noticeTitle);
+			nonEmpty(translations.cookieBanner.noticeDescription);
+			nonEmpty(translations.rights.optOut);
+			nonEmpty(translations.rights.preferences);
+		}
+	);
+
+	it.each(
+		Object.entries(bundledTranslations).filter(
+			([language]) => language !== 'en'
+		)
+	)(
+		'%s does not reuse the English notice or rights copy',
+		(_language, translations) => {
+			const english = bundledTranslations.en;
+			expect(translations.cookieBanner.noticeDescription).not.toBe(
+				english.cookieBanner.noticeDescription
+			);
+			expect(translations.rights.optOut).not.toBe(english.rights.optOut);
+		}
+	);
+});
+
 describe('deepMergeTranslations', () => {
 	const baseTranslations: Translations = {
 		common: {
@@ -99,6 +132,17 @@ describe('deepMergeTranslations', () => {
 	it('should handle empty override object', () => {
 		const result = deepMergeTranslations(baseTranslations, {});
 		expect(result).toEqual(baseTranslations);
+	});
+
+	it('should merge the rights section', () => {
+		const result = deepMergeTranslations(
+			{ ...baseTranslations, rights: { optOut: 'Base Opt Out' } },
+			{ rights: { preferences: 'Custom Preferences' } }
+		);
+		expect(result.rights).toEqual({
+			optOut: 'Base Opt Out',
+			preferences: 'Custom Preferences',
+		});
 	});
 });
 

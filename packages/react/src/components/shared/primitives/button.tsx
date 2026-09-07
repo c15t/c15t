@@ -48,8 +48,9 @@ type ConsentActionThemeKey =
  * Resolution order:
  * 1. Explicit `variant` / `mode` props
  * 2. `theme.consentActions[consentAction]`
- * 3. `theme.consentActions.default`
- * 4. Hardcoded fallback based on `isPrimary`
+ * 3. `theme.consentActions.primary` when the action is primary
+ * 4. `theme.consentActions.default`
+ * 5. Hardcoded fallback based on `isPrimary`
  */
 const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
 	consentAction?: ConsentActionThemeKey;
@@ -65,21 +66,26 @@ const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
 		};
 	}
 
-	const defaultStyle = params.isPrimary
-		? { mode: 'stroke' as const, variant: 'primary' as const }
-		: { mode: 'stroke' as const, variant: 'neutral' as const };
-	const themedDefault = params.theme?.consentActions?.default ?? {};
+	const consentActions = params.theme?.consentActions;
+	// `save` has no theme key; every other action can be themed individually.
 	const themedAction =
-		params.consentAction &&
-		params.consentAction !== 'dismiss' &&
-		params.consentAction !== 'save'
-			? params.theme?.consentActions?.[params.consentAction]
+		params.consentAction && params.consentAction !== 'save'
+			? consentActions?.[params.consentAction]
 			: undefined;
+	// Most specific first; the last entry is the hardcoded fallback.
+	const layers = [
+		themedAction,
+		params.isPrimary ? consentActions?.primary : undefined,
+		consentActions?.default,
+		{
+			mode: 'stroke' as const,
+			variant: params.isPrimary ? ('primary' as const) : ('neutral' as const),
+		},
+	];
 
 	return {
-		mode: themedAction?.mode ?? themedDefault.mode ?? defaultStyle.mode,
-		variant:
-			themedAction?.variant ?? themedDefault.variant ?? defaultStyle.variant,
+		mode: layers.find((layer) => layer?.mode)?.mode ?? 'stroke',
+		variant: layers.find((layer) => layer?.variant)?.variant ?? 'neutral',
 	};
 };
 

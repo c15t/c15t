@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Acceptar tut',
 		close: 'Serrar',
 		customize: 'Persunalisar',
+		dismiss: 'Serrar',
 		rejectAll: 'Refusar tut',
 		save: 'Memorisar las configuraziuns',
 		securedBy: 'Protegiu da',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			"Questa pagina d'internet dovra cookies per meglierar vossa experientscha da navigaziun, analisar il traffic da la pagina e mussar cuntegns persunalisads.",
+		noticeDescription:
+			'Nus duvrain cookies e tecnologias sumegliantas per manar questa pagina, per mesirar il traffic e per persunalisar cuntegns e reclamas. Vus pudais refusar u administrar vossas preferenzas da tut temp.',
+		noticeTitle: 'Infurmaziun davart la protecziun da datas',
 		title: 'Nus stimain vossa sfera privata',
 	},
 	frame: {
@@ -138,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Directivas da cookies',
 		privacyPolicy: 'Directivas da protecziun da datas',
 		termsOfService: "Cundiziuns d'utilisaziun",
+	},
+	rights: {
+		optOut: 'Betg vender ni parter mias infurmaziuns persunalas',
+		preferences: 'Administrar preferenzas',
 	},
 };
 export default translations;

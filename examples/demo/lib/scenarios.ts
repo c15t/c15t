@@ -141,12 +141,6 @@ export const demoI18nMessages: I18nMessageProfiles = {
 	}),
 	caSales: profile({
 		en: {
-			common: {
-				...baseTranslations.en.common,
-				acceptAll: 'Accept All',
-				customize: 'Customize',
-				rejectAll: 'Do not sell/share my personal information',
-			},
 			cookieBanner: {
 				description:
 					'You can allow all optional uses, or opt out of the sale and sharing of your personal information.',
@@ -366,7 +360,7 @@ export const demoScenarios: DemoScenario[] = [
 	{
 		country: 'US',
 		description:
-			'Two equally prominent actions: Accept All plus a custom "Do not sell/share" opt-out label (the "caSales" message profile).',
+			'Opt-out choice prompt with two equally prominent actions. Reject records the opt-out, and because nothing on the prompt covers the preferences right, the banner adds a "Manage preferences" link on its own. The "caSales" message profile supplies California copy.',
 		group: 'custom',
 		id: 'custom-ca-do-not-sell',
 		label: 'California CTA',
@@ -376,7 +370,7 @@ export const demoScenarios: DemoScenario[] = [
 			i18n: { messageProfile: 'caSales' },
 			id: 'ca_do_not_sell',
 			match: { regions: [{ country: 'US', region: 'CA' }] },
-			model: 'opt-in',
+			model: 'opt-out',
 			privacySignals: { gpc: { denyCategories: ['marketing'] } },
 			prompt: 'choice',
 			proof: {
@@ -402,6 +396,29 @@ export const demoScenarios: DemoScenario[] = [
 			},
 		},
 		region: 'CA',
+	},
+	{
+		country: 'US',
+		description:
+			'Opt-out notice prompt. The banner renders a dismiss button plus opt-out and preferences links, because a notice offers no choice actions and those rights stay reachable.',
+		group: 'custom',
+		id: 'custom-us-notice',
+		label: 'US notice',
+		policy: {
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'default' },
+			id: 'us_notice',
+			match: { countries: ['US'] },
+			model: 'opt-out',
+			privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
+			prompt: 'notice',
+			proof: {
+				storeIp: false,
+				storeLanguage: true,
+				storeUserAgent: false,
+			},
+			scopeMode: 'permissive',
+		},
 	},
 ];
 

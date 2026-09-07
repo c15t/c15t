@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Pieņemt visu',
 		close: 'Aizvērt',
 		customize: 'Pielāgot',
+		dismiss: 'Aizvērt',
 		rejectAll: 'Noraidīt visu',
 		save: 'Saglabāt iestatījumus',
 		securedBy: 'Aizsardzību nodrošina',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Šī vietne izmanto sīkdatnes, lai uzlabotu jūsu pārlūkošanas pieredzi, analizētu vietnes datplūsmu un rādītu personalizētu saturu.',
+		noticeDescription:
+			'Mēs izmantojam sīkdatnes un līdzīgas tehnoloģijas, lai nodrošinātu šīs vietnes darbību, mērītu datplūsmu un personalizētu saturu un reklāmas. Jūs jebkurā laikā varat atteikties vai pārvaldīt savas preferences.',
+		noticeTitle: 'Privātuma paziņojums',
 		title: 'Mēs novērtējam jūsu privātumu',
 	},
 	frame: {
@@ -136,6 +140,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Sīkdatņu politika',
 		privacyPolicy: 'Privātuma politika',
 		termsOfService: 'Pakalpojumu sniegšanas noteikumi',
+	},
+	rights: {
+		optOut: 'Nepārdot un nekopīgot manu personisko informāciju',
+		preferences: 'Pārvaldīt preferences',
 	},
 };
 export default translations;

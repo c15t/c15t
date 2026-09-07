@@ -4,18 +4,129 @@ description: Pre-built consent banner shown when consent is required.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## Usage
 
-TODO.
+```tsx
+// app/layout.tsx
+import { ConsentBanner, ConsentBoundary, ConsentDialog } from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+	const backendURL = process.env.C15T_BACKEND_URL;
+	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+	const config = prefetchInitialConsent({ backendURL });
+
+	return (
+		<html lang="en">
+			<body>
+				<ConsentBoundary config={config} backendURL={backendURL}>
+					{children}
+					<ConsentBanner />
+					<ConsentDialog />
+				</ConsentBoundary>
+			</body>
+		</html>
+	);
+}
+```
+
+The banner renders whatever the active policy rule requires. The server shell
+resolves the rule before the first paint and the client reads the same rule, so the same component serves every region:
+
+- A `choice` prompt shows the actions the rule allows: reject and accept at
+  equal prominence, plus customize when the rule offers it.
+- A `notice` prompt shows one dismiss button and links for the rights no
+  action covers, usually "Do not sell or share my personal information" and
+  "Manage preferences". A notice never traps focus or locks scroll.
+- A rule with `prompt: 'none'` renders nothing.
+
+Rights links open the preference center. They also appear on a choice prompt
+when nothing else covers the right: a rule whose actions are only accept and
+reject renders a "Manage preferences" link, because customize is absent.
 
 ## Props
 
-TODO.
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | `ReactNode` | translation | Overrides the title. Under a notice the default is `cookieBanner.noticeTitle`. |
+| `description` | `ReactNode` | translation | Overrides the description. Under a notice the default is `cookieBanner.noticeDescription`. |
+| `acceptButtonText` | `ReactNode` | `common.acceptAll` | Accept label. |
+| `rejectButtonText` | `ReactNode` | `common.rejectAll` | Reject label. |
+| `customizeButtonText` | `ReactNode` | `common.customize` | Customize label. |
+| `dismissButtonText` | `ReactNode` | `common.dismiss` | Dismiss label on a notice. |
+| `layout` | `ConsentBannerLayout` | policy default | Orders and groups actions. Required actions the layout omits are restored. |
+| `primaryButton` | `ConsentBannerButton \| ConsentBannerButton[]` | `'customize'` | Which actions get the primary treatment. On a notice, dismiss is primary when it is the only action. |
+| `direction` | `'row' \| 'column'` | `'row'` | How action groups flow. |
+| `legalLinks` | `(keyof LegalLinks)[] \| null` | all | Which legal links render inline. `null` hides them. |
+| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `scrollLock` | `boolean` | `false` | Locks page scroll while open. Ignored on a notice. |
+| `trapFocus` | `boolean` | `true` | Traps focus inside the banner. Ignored on a notice. |
+| `disableAnimation` | `boolean` | `false` | Skips enter and exit animations. |
+| `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
 
 ## Composition
 
-TODO.
+Every part is available as `ConsentBanner.<Part>` for custom layouts. The
+parts read the same policy state the pre-built banner does, so a custom layout
+still gets the right actions for the active rule.
+
+```tsx
+import { ConsentBanner } from '@c15t/nextjs';
+
+export function CompactBanner() {
+	return (
+		<ConsentBanner.Root>
+			<ConsentBanner.Card>
+				<ConsentBanner.Header>
+					<ConsentBanner.Title />
+					<ConsentBanner.Description />
+				</ConsentBanner.Header>
+				<ConsentBanner.Footer>
+					<ConsentBanner.Rights />
+					<ConsentBanner.PolicyActions />
+				</ConsentBanner.Footer>
+			</ConsentBanner.Card>
+		</ConsentBanner.Root>
+	);
+}
+```
+
+`ConsentBanner.PolicyActions` renders the resolved action groups and, before
+them, the rights links. Use the individual parts when you need a different
+order or your own markup:
+
+- `ConsentBanner.AcceptButton`, `ConsentBanner.RejectButton`,
+  `ConsentBanner.CustomizeButton`, and `ConsentBanner.DismissButton` render one
+  action each. `DismissButton` defaults its label to `common.dismiss`.
+- `ConsentBanner.Rights` renders one link per uncovered right. It renders
+  nothing when every right is covered. Pass `rights` to override the list.
+- `ConsentBanner.RightLink` renders a single link. `right` is `'opt-out'` or
+  `'preferences'`. It opens the preference center on click and accepts
+  `asChild` to render your own element.
+
+```tsx
+<ConsentBanner.Rights>
+	<ConsentBanner.RightLink right="opt-out" asChild>
+		<a href="/privacy/do-not-sell">Do not sell my information</a>
+	</ConsentBanner.RightLink>
+</ConsentBanner.Rights>
+```
+
+`useBannerCopy()` returns the title, description, and prompt kind the banner
+would use, for custom headers that still follow the notice copy.
+
+## Data attributes
+
+The root element carries attributes you can target from CSS or Tailwind. The
+card carries `data-state` (`open` or `closed`) for the enter and exit
+animations.
+
+| Attribute | Values |
+| --- | --- |
+| `data-prompt` | `choice`, `notice` |
+| `data-model` | `opt-in`, `opt-out`, `iab` |
+| `data-position` | `bottom-left`, `bottom-right` |
+
+Each action button carries `data-action`, and each right link carries
+`data-right`. The built-in stylesheet uses `data-prompt="notice"` to lay the
+footer out as one row with the rights links leading and dismiss trailing.

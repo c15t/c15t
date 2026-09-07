@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Glac le Gach Rud',
 		close: 'Dún',
 		customize: 'Saincheap',
+		dismiss: 'Dún',
 		rejectAll: 'Diúltaigh do Gach Rud',
 		save: 'Sábháil Socruithe',
 		securedBy: 'Cosanta ag',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Úsáideann an suíomh seo fianáin chun do thaithí bhrabhsála a fheabhsú, trácht suímh a anailísiú, agus ábhar pearsantaithe a thaispeáint.',
+		noticeDescription:
+			'Úsáidimid fianáin agus teicneolaíochtaí comhchosúla chun an suíomh seo a rith, trácht a thomhas, agus ábhar agus fógraí a phearsantú. Is féidir leat rogha an diúltaithe a dhéanamh nó do roghanna a bhainistiú am ar bith.',
+		noticeTitle: 'Fógra príobháideachais',
 		title: 'Tugaimid luach do do phríobháideachas',
 	},
 	frame: {
@@ -138,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Beartas Fianán',
 		privacyPolicy: 'Beartas Príobháideachta',
 		termsOfService: 'Téarmaí Seirbhíse',
+	},
+	rights: {
+		optOut: 'Ná díol agus ná roinn mo chuid faisnéise pearsanta',
+		preferences: 'Bainistigh roghanna',
 	},
 };
 export default translations;

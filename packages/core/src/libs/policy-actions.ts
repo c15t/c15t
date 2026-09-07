@@ -65,6 +65,14 @@ export interface ResolvedConsentPresentation {
 	primaryActions: PresentationAction[];
 	diagnostics: PresentationDiagnostic[];
 	rights: readonly PolicyRight[];
+	/**
+	 * Rights no action on this surface satisfies, in canonical order. Hosts
+	 * keep these reachable with their own controls, such as a link to the
+	 * preference center. `disclosure` never appears because inline legal
+	 * links carry it; `preferences` is covered by customize, save, or the
+	 * preferences surface itself; `opt-out` is covered by reject.
+	 */
+	uncoveredRights: PolicyRight[];
 	direction: 'row' | 'column';
 	uiProfile: 'balanced' | 'compact' | 'strict';
 	scrollLock: boolean;
@@ -132,6 +140,33 @@ const resolveRequiredGroups = function resolveRequiredGroups(
 	}
 
 	return actionGroups;
+};
+
+/**
+ * Rights the resolved actions leave unsatisfied. `policy.rights` is already
+ * canonical, so filtering keeps the order stable for memoized hosts.
+ */
+const resolveUncoveredRights = function resolveUncoveredRights(
+	rights: readonly PolicyRight[],
+	orderedActions: readonly PresentationAction[],
+	preferences: boolean
+): PolicyRight[] {
+	return rights.filter((right) => {
+		switch (right) {
+			case 'disclosure':
+				return false;
+			case 'preferences':
+				return !(
+					preferences ||
+					orderedActions.includes('customize') ||
+					orderedActions.includes('save')
+				);
+			case 'opt-out':
+				return !orderedActions.includes('reject');
+			default:
+				return true;
+		}
+	});
 };
 
 /**
@@ -232,5 +267,10 @@ export const resolveConsentPresentation =
 			shouldFillActions: uiProfile === 'strict' || uiProfile === 'balanced',
 			trapFocus: notice ? false : (options.trapFocus ?? true),
 			uiProfile,
+			uncoveredRights: resolveUncoveredRights(
+				input.policy.rights,
+				orderedActions,
+				preferences
+			),
 		};
 	};

@@ -8,7 +8,10 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentBanner from '../../../packages/vue/src/runtime/components/consent-banner.vue';
 import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
-import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
+import {
+	storybookNoticeInit,
+	useStorybookConsent as setupStorybookConsent,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentBanner,
@@ -29,6 +32,17 @@ export const Default: Story = {
 			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner />',
+	}),
+};
+
+/** Opt-out notice: dismiss plus the opt-out and preferences links. */
+export const Notice: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner', undefined, storybookNoticeInit);
+		},
+		template: '<ConsentBanner /><ConsentManager />',
 	}),
 };
 

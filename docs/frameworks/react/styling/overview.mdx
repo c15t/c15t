@@ -4,18 +4,124 @@ description: Theme c15t components with tokens, slots, and class names.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## Stylesheet
 
-TODO.
+Import the stylesheet once, next to your global CSS:
+
+```tsx
+import '@c15t/react/styles.css';
+```
+
+Every rule lives in `@layer components`, so unlayered utilities from Tailwind
+v4 and atomic classes from StyleX override it without specificity tricks.
+Tailwind v3 treats `@layer components` as its own directive, so import the
+Tailwind 3 build from your Tailwind entry instead, between the `components`
+and `utilities` directives:
+
+```css
+@tailwind base;
+@tailwind components;
+@import '@c15t/react/styles.tw3.css';
+@tailwind utilities;
+```
 
 ## Tokens
 
-TODO.
+Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
+properties. Set them on the provider through `theme`, or override the
+variables directly in your CSS.
+
+```tsx
+import { ConsentProvider } from '@c15t/react';
+import { defineTheme } from '@c15t/ui/theme';
+
+const theme = defineTheme({
+	colors: { primary: '#2f6f4e' },
+	radius: { lg: '4px' },
+	consentActions: {
+		primary: { variant: 'primary', mode: 'filled' },
+		dismiss: { variant: 'neutral', mode: 'stroke' },
+	},
+});
+
+<ConsentProvider options={{ mode, theme }} />;
+```
+
+`consentActions` decides how each action role looks: `default` applies to
+every button, `primary` to whichever actions the policy or your props mark
+primary, and `accept`, `reject`, `customize`, and `dismiss` to one role each.
+Per-action keys win over `primary`, which wins over `default`.
 
 ## Slots
 
-TODO.
+Each component part is a slot. A slot accepts any attributes the element
+takes, so the contract is the same whether you write class strings or pass an
+object with `className` and `style`. Set slots on the provider under
+`components`, keyed by component and part.
+
+Tailwind, targeting the root's `data-prompt` attribute so a notice gets a
+full-width bar:
+
+```tsx
+<ConsentProvider
+	options={{
+		mode,
+		components: {
+			banner: {
+				root: {
+					className:
+						'data-[prompt=notice]:inset-x-0 data-[prompt=notice]:bottom-0 data-[prompt=notice]:p-0',
+				},
+				card: { className: 'data-[prompt=notice]:rounded-none' },
+				rightLink: { className: 'underline decoration-dotted' },
+			},
+		},
+	}}
+/>
+```
+
+StyleX, spreading the result of `stylex.props()` into a slot:
+
+```tsx
+import * as stylex from '@stylexjs/stylex';
+
+const styles = stylex.create({
+	card: { borderRadius: 0, boxShadow: 'none' },
+	rightLink: { textDecorationStyle: 'dotted' },
+});
+
+<ConsentProvider
+	options={{
+		mode,
+		components: {
+			banner: {
+				card: stylex.props(styles.card),
+				rightLink: stylex.props(styles.rightLink),
+			},
+		},
+	}}
+/>;
+```
+
+Set `noStyle` on a component to drop the built-in classes from every part and
+keep only what your slots pass. Set `noStyle` in the provider options to do it
+for every component.
+
+Banner slot keys under `components.banner`:
+
+| Key | Element |
+| --- | --- |
+| `root` | Fixed-position wrapper carrying `data-prompt`, `data-model`, and `data-position` |
+| `cardShell` | Sizes the card and holds the branding tag |
+| `card` | The visible card, carrying `data-state` |
+| `header` | Title and description container |
+| `title` | Heading |
+| `footer` | Action area |
+| `actions` | Group of action groups |
+| `actionGroup` | One group of equally prominent actions |
+| `rights` | Group of right links, rendered before the actions |
+| `rightLink` | One right link, carrying `data-right` |
+| `overlay` | Backdrop shown when the banner blocks the page |
+
+Buttons carry `data-action` and `data-variant`, so a single rule such as
+`[data-action='dismiss']` styles one role across every surface.

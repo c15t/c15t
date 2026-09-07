@@ -21,6 +21,8 @@ declare const styles: {
   readonly "overlayLeaveFrom": string;
   readonly "overlayLeaveTo": string;
   readonly "overlayVisible": string;
+  readonly "rightLink": string;
+  readonly "rights": string;
   readonly "root": string;
   readonly "title": string;
 };

@@ -46,6 +46,8 @@ interface PolicyActionsRendererProps<TAction extends string> {
 		action: TAction,
 		props: PolicyActionRenderProps<TAction>
 	) => ReactNode;
+	/** Rendered inside the footer before the action groups, such as right links. */
+	leading?: ReactNode;
 }
 
 export const PolicyActionsRenderer = <TAction extends string>({
@@ -55,6 +57,7 @@ export const PolicyActionsRenderer = <TAction extends string>({
 	classNames,
 	renderDefaultAction,
 	renderAction,
+	leading,
 }: PolicyActionsRendererProps<TAction>) => {
 	const { shouldFillActions } = state;
 	const isColumn = state.direction === 'column';
@@ -77,6 +80,7 @@ export const PolicyActionsRenderer = <TAction extends string>({
 			data-fill={shouldFillActions ? true : undefined}
 			data-split={isSplit && !shouldFillActions ? true : undefined}
 		>
+			{leading}
 			{state.actionGroups.map((group, groupIndex) => (
 				<FooterSubGroup
 					key={`group-${group.join('-') || groupIndex}`}

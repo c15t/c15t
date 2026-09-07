@@ -63,8 +63,6 @@ export const resolveConsentActionStyle = (
 	action: 'accept' | 'reject' | 'customize' | 'dismiss' | 'save'
 ) => {
 	const specific =
-		action === 'dismiss' || action === 'save'
-			? undefined
-			: theme?.consentActions?.[action];
+		action === 'save' ? undefined : theme?.consentActions?.[action];
 	return { ...theme?.consentActions?.default, ...specific };
 };

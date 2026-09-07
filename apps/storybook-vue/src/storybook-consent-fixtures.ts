@@ -1,4 +1,4 @@
-import type { InitOutput } from '@c15t/schema/types';
+import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import type { App } from 'vue';
 import { onUnmounted, provide } from 'vue';
 
@@ -148,16 +148,40 @@ export const provideStorybookConsentContext =
 		provide(symbolConsent, context.storedConsent);
 	};
 
+/**
+ * The notice variant of {@link storybookInit}: an opt-out rule whose first
+ * layer only informs, so the banner renders dismiss plus the rights links.
+ */
+const storybookNoticePolicy: PolicyRule = {
+	...storybookPolicy,
+	id: 'storybook-notice',
+	model: 'opt-out',
+	prompt: 'notice',
+};
+
+export const storybookNoticeInit: InitOutput = {
+	...storybookInit,
+	location: { countryCode: 'US', regionCode: 'CA' },
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: 'US',
+			regionCode: 'CA',
+			rules: [storybookNoticePolicy],
+		})
+	),
+};
+
 export const useStorybookConsent = function useStorybookConsent(
 	activeUI: StoryActiveUI,
-	configOverrides?: Partial<ConsentConfig>
+	configOverrides?: Partial<ConsentConfig>,
+	prefetch: InitOutput = storybookInit
 ) {
 	const config = configOverrides
 		? ({ ...storybookConsentConfig, ...configOverrides } as ConsentConfig)
 		: storybookConsentConfig;
 	const context = createVueConsentKernelContext({
 		config,
-		prefetch: storybookInit,
+		prefetch,
 		producerContract: 1,
 	});
 	context.activeUI.value = activeUI;

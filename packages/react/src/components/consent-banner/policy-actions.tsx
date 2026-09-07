@@ -8,14 +8,16 @@ import type { HeadlessConsentBannerAction } from '~/component-hooks/use-headless
 import { warmDialogChunk } from '../../chunk-warming';
 import { PolicyActionsRenderer } from '../shared/policy-actions';
 import type { PolicyActionRenderProps } from '../shared/policy-actions';
-import { ConsentButton } from '../shared/primitives/button';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,
+	ConsentBannerDismissButton,
 	ConsentBannerFooter,
 	ConsentBannerFooterSubGroup,
 	ConsentBannerRejectButton,
+	ConsentBannerRights,
 } from './components';
+import { resolveBannerPrimaryActions } from './resolve-banner-primary-actions';
 
 export type ConsentBannerPolicyActionRenderProps =
 	PolicyActionRenderProps<HeadlessConsentBannerAction>;
@@ -65,15 +67,12 @@ const renderDefaultAction = function renderDefaultAction(
 			);
 		case 'dismiss':
 			return (
-				<ConsentButton
+				<ConsentBannerDismissButton
 					key={key}
-					action="dismiss-notice"
-					consentAction="dismiss"
+					consentAction={consentAction}
 					data-testid="consent-banner-dismiss-button"
 					{...buttonProps}
-				>
-					Dismiss
-				</ConsentButton>
+				/>
 			);
 		case 'save':
 			return null;
@@ -88,10 +87,20 @@ export const ConsentBannerPolicyActions = ({
 	renderAction,
 }: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
+	const state = {
+		...banner,
+		primaryActions: [
+			...resolveBannerPrimaryActions(
+				banner.primaryActions,
+				banner.orderedActions
+			),
+		],
+	};
 
 	return (
 		<PolicyActionsRenderer
-			state={banner}
+			state={state}
+			leading={<ConsentBannerRights rights={banner.uncoveredRights} />}
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
 			classNames={{}}

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
  * Component**: zero hydration cost and zero client-bundle bytes for
  * everything static. Only two small islands ship to the browser:
  * `RscBannerGate` (kernel-driven visibility) and `RscBannerActions`
- * (the button row).
+ * (the rights links and the button row).
  *
  * Usage (App Router):
  * ```tsx
@@ -31,6 +31,8 @@ interface BannerCopy {
 	rejectLabel: string;
 	customizeLabel: string;
 	dismissLabel: string;
+	optOutLabel: string;
+	preferencesLabel: string;
 }
 
 const FALLBACK_COPY: BannerCopy = {
@@ -39,34 +41,76 @@ const FALLBACK_COPY: BannerCopy = {
 	description:
 		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
 	dismissLabel: 'Dismiss',
+	optOutLabel: 'Do not sell or share my personal information',
+	preferencesLabel: 'Manage preferences',
 	rejectLabel: 'Reject All',
 	title: 'We value your privacy',
 };
 
-const readCopy = function readCopy(config: InitialConsentConfig): BannerCopy {
-	const bundle = (
-		config.initialTranslations as
-			| {
-					translations?: {
-						cookieBanner?: { title?: string; description?: string };
-						common?: {
-							acceptAll?: string;
-							rejectAll?: string;
-							customize?: string;
-							dismiss?: string;
-						};
-					};
-			  }
-			| undefined
-	)?.translations;
+const FALLBACK_NOTICE_COPY = {
+	description:
+		'We use cookies and similar technologies to run this site, measure traffic, and personalize content and ads. You can opt out or manage your preferences at any time.',
+	title: 'Privacy notice',
+};
+
+/** Resolved rule on the prefetched config, when the server matched one. */
+const readPolicy = function readPolicy(config: InitialConsentConfig) {
+	const resolution = config.initialPolicyResolution;
+	return resolution?.status === 'matched' ? resolution.policy : undefined;
+};
+
+interface TranslationBundle {
+	cookieBanner?: {
+		title?: string;
+		description?: string;
+		noticeTitle?: string;
+		noticeDescription?: string;
+	};
+	common?: {
+		acceptAll?: string;
+		rejectAll?: string;
+		customize?: string;
+		dismiss?: string;
+	};
+	rights?: {
+		optOut?: string;
+		preferences?: string;
+	};
+}
+
+const readBundle = function readBundle(
+	config: InitialConsentConfig
+): TranslationBundle {
+	return (
+		(
+			config.initialTranslations as
+				| { translations?: TranslationBundle }
+				| undefined
+		)?.translations ?? {}
+	);
+};
+
+const readCopy = function readCopy(
+	config: InitialConsentConfig,
+	notice: boolean
+): BannerCopy {
+	const { cookieBanner = {}, common = {}, rights = {} } = readBundle(config);
+	const title = notice
+		? (cookieBanner.noticeTitle ?? FALLBACK_NOTICE_COPY.title)
+		: (cookieBanner.title ?? FALLBACK_COPY.title);
+	const description = notice
+		? (cookieBanner.noticeDescription ?? FALLBACK_NOTICE_COPY.description)
+		: (cookieBanner.description ?? FALLBACK_COPY.description);
 
 	return {
-		acceptLabel: bundle?.common?.acceptAll ?? FALLBACK_COPY.acceptLabel,
-		customizeLabel: bundle?.common?.customize ?? FALLBACK_COPY.customizeLabel,
-		description: bundle?.cookieBanner?.description ?? FALLBACK_COPY.description,
-		dismissLabel: bundle?.common?.dismiss ?? FALLBACK_COPY.dismissLabel,
-		rejectLabel: bundle?.common?.rejectAll ?? FALLBACK_COPY.rejectLabel,
-		title: bundle?.cookieBanner?.title ?? FALLBACK_COPY.title,
+		acceptLabel: common.acceptAll ?? FALLBACK_COPY.acceptLabel,
+		customizeLabel: common.customize ?? FALLBACK_COPY.customizeLabel,
+		description,
+		dismissLabel: common.dismiss ?? FALLBACK_COPY.dismissLabel,
+		optOutLabel: rights.optOut ?? FALLBACK_COPY.optOutLabel,
+		preferencesLabel: rights.preferences ?? FALLBACK_COPY.preferencesLabel,
+		rejectLabel: common.rejectAll ?? FALLBACK_COPY.rejectLabel,
+		title,
 	};
 };
 
@@ -87,6 +131,14 @@ export interface RscConsentBannerProps {
 		rejectButton?: string;
 		customizeButton?: string;
 		dismissButton?: string;
+		/**
+		 * Group that holds links for rights no prompt action covers, such as
+		 * opt-out and preferences under a notice. Rendered before the action
+		 * row so the notice layout in `@c15t/ui` applies.
+		 */
+		rights?: string;
+		/** One right link inside the rights group. */
+		rightLink?: string;
 	};
 	/** Extra server-rendered content inside the card (links, branding). */
 	children?: ReactNode;
@@ -97,12 +149,15 @@ export const RscConsentBanner = ({
 	classNames,
 	children,
 }: RscConsentBannerProps) => {
-	const copy = readCopy(config);
+	const policy = readPolicy(config);
+	const copy = readCopy(config, policy?.prompt === 'notice');
 
 	return (
 		<RscBannerGate
 			title={copy.title}
 			className={classNames?.root}
+			prompt={policy?.prompt}
+			model={policy?.model}
 		>
 			<div
 				className={classNames?.card}
@@ -129,10 +184,16 @@ export const RscConsentBanner = ({
 						dismissButton: classNames?.dismissButton,
 						footer: classNames?.footer,
 						rejectButton: classNames?.rejectButton,
+						rightLink: classNames?.rightLink,
+						rights: classNames?.rights,
 					}}
 					customizeLabel={copy.customizeLabel}
 					rejectLabel={copy.rejectLabel}
 					dismissLabel={copy.dismissLabel}
+					rightLabels={{
+						'opt-out': copy.optOutLabel,
+						preferences: copy.preferencesLabel,
+					}}
 				/>
 			</div>
 		</RscBannerGate>

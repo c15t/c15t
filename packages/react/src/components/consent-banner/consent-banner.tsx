@@ -13,26 +13,27 @@ import { Fragment } from 'react';
 import type { FC, ReactNode } from 'react';
 
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
-import { useTranslations } from '~/component-hooks/use-translations';
 import { Box } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
 
-import { ConsentButton } from '../shared/primitives/button';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCard,
 	ConsentBannerCustomizeButton,
 	ConsentBannerDescription,
+	ConsentBannerDismissButton,
 	ConsentBannerFooter,
 	ConsentBannerFooterSubGroup,
 	ConsentBannerHeader,
 	ConsentBannerRejectButton,
+	ConsentBannerRights,
 	ConsentBannerTitle,
 } from './components';
 import { ErrorBoundary } from './error-boundary';
+import { resolveBannerPrimaryActions } from './resolve-banner-primary-actions';
 
 /**
  * Identifiers for the available buttons in the consent banner.
@@ -106,6 +107,13 @@ export interface ConsentBannerProps {
 	 * @default undefined
 	 */
 	acceptButtonText?: ReactNode;
+
+	/**
+	 * Content to display on the dismiss button
+	 * @remarks Only rendered when the active policy requires a notice prompt
+	 * @default undefined
+	 */
+	dismissButtonText?: ReactNode;
 
 	/**
 	 * When true, the consent banner will lock the scroll of the page
@@ -205,6 +213,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
+	dismissButtonText,
 	legalLinks,
 	hideBranding = false,
 	layout,
@@ -213,7 +222,6 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	models,
 	uiSource,
 }) => {
-	const { cookieBanner: consentBanner } = useTranslations();
 	const primaryActions =
 		typeof primaryButton === 'string' ? [primaryButton] : primaryButton;
 	const { banner } = useHeadlessConsentUI({
@@ -238,7 +246,10 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 
 	const { orderedActions } = banner;
 	const allowedActions = new Set(orderedActions);
-	const effectivePrimaryButton = banner.primaryActions;
+	const effectivePrimaryButton = resolveBannerPrimaryActions(
+		banner.primaryActions,
+		orderedActions
+	);
 	const resolvedLayout = banner.actionGroups;
 	const resolvedDirection = banner.direction;
 	const { shouldFillActions } = banner;
@@ -248,9 +259,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			return null;
 		}
 
-		const isPrimary = Array.isArray(effectivePrimaryButton)
-			? effectivePrimaryButton.includes(type)
-			: type === effectivePrimaryButton;
+		const isPrimary = effectivePrimaryButton.includes(type);
 
 		switch (type) {
 			case 'reject':
@@ -291,13 +300,15 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				);
 			case 'dismiss':
 				return (
-					<ConsentButton
-						action="dismiss-notice"
+					<ConsentBannerDismissButton
 						consentAction="dismiss"
+						isPrimary={isPrimary}
+						className={className}
+						data-action="dismiss"
 						data-testid="consent-banner-dismiss-button"
 					>
-						Dismiss
-					</ConsentButton>
+						{dismissButtonText}
+					</ConsentBannerDismissButton>
 				);
 			case 'save':
 				return null;
@@ -327,7 +338,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						slotContext="banner"
 						data-testid="consent-banner-branding"
 					/>
-					<ConsentBannerCard aria-label={consentBanner.title}>
+					<ConsentBannerCard>
 						<ConsentBannerHeader>
 							<ConsentBannerTitle>{title}</ConsentBannerTitle>
 							<ConsentBannerDescription legalLinks={legalLinks}>
@@ -344,6 +355,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 									: undefined
 							}
 						>
+							<ConsentBannerRights rights={banner.uncoveredRights} />
 							{resolvedLayout.map((item, index) => {
 								if (Array.isArray(item)) {
 									const filteredItems = item.filter((subItem) =>

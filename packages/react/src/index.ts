@@ -63,6 +63,9 @@ export type {
 	ConsentBannerButton,
 	ConsentBannerLayout,
 	ConsentBannerProps,
+	ConsentBannerRight,
+	ConsentBannerRightLinkProps,
+	ConsentBannerRightsProps,
 } from './components/consent-banner';
 // -- UI components ----------------------------------------------------------
 export {

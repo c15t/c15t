@@ -4,6 +4,7 @@
 		defaultTranslationConfig,
 		resolveConsentPresentation,
 	} from '@c15t/core';
+	import type { PolicyRight } from '@c15t/schema/types';
 	import styles from '@c15t/ui/styles/components/consent-banner';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
@@ -41,6 +42,7 @@
 		rejectButtonText,
 		customizeButtonText,
 		acceptButtonText,
+		dismissButtonText,
 		hideBranding = false,
 		legalLinks,
 		layout,
@@ -57,6 +59,7 @@
 		rejectButtonText?: string;
 		customizeButtonText?: string;
 		acceptButtonText?: string;
+		dismissButtonText?: string;
 		hideBranding?: boolean;
 		legalLinks?: (keyof LegalLinksType)[] | null;
 		layout?: ConsentBannerLayout;
@@ -164,6 +167,24 @@
 		)
 	);
 
+	const rightsStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerRights',
+			theme.theme,
+			{ baseClassName: styles.rights, noStyle },
+			noStyle
+		)
+	);
+
+	const rightLinkStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerRightLink',
+			theme.theme,
+			{ baseClassName: styles.rightLink, noStyle },
+			noStyle
+		)
+	);
+
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
@@ -200,6 +221,16 @@
 	);
 	const actionGroups = $derived(presentation.actionGroups);
 	const primaryActions = $derived(presentation.primaryActions);
+	// Persistent rights no prompt action covers; a notice renders them as links.
+	const uncoveredRights = $derived(presentation.uncoveredRights);
+	// A notice offers dismiss alone; with no primary resolved it takes the lead.
+	const dismissIsPrimary = $derived(
+		primaryActions.length === 0 &&
+			presentation.orderedActions.length === 1 &&
+			presentation.orderedActions[0] === 'dismiss'
+	);
+	const promptKind = $derived(consent.snapshot.policyRule.prompt);
+	const isNotice = $derived(promptKind === 'notice');
 	const direction = $derived(presentation.direction);
 	const shouldFillActions = $derived(presentation.shouldFillActions);
 	const shouldTrapFocus = $derived(presentation.trapFocus);
@@ -216,11 +247,40 @@
 		}
 	});
 
-	// Resolved texts
-	const resolvedTitle = $derived(title ?? translations.cookieBanner.title);
-	const resolvedDescription = $derived(
-		description ?? translations.cookieBanner.description
+	// Resolved texts. A notice has its own copy: it informs and points at
+	// the opt-out instead of asking for permission.
+	const englishTranslations = defaultTranslationConfig.translations.en;
+	const resolvedTitle = $derived(
+		title ??
+			(isNotice
+				? (translations.cookieBanner.noticeTitle ??
+					englishTranslations?.cookieBanner?.noticeTitle)
+				: translations.cookieBanner.title)
 	);
+	const resolvedDescription = $derived(
+		description ??
+			(isNotice
+				? (translations.cookieBanner.noticeDescription ??
+					englishTranslations?.cookieBanner?.noticeDescription)
+				: translations.cookieBanner.description)
+	);
+	const resolvedDismissText = $derived(
+		dismissButtonText ??
+			translations.common.dismiss ??
+			englishTranslations?.common?.dismiss
+	);
+	const rightLabels = $derived<
+		Partial<Record<PolicyRight, string | undefined>>
+	>({
+		'opt-out':
+			translations.rights?.optOut ?? englishTranslations?.rights?.optOut,
+		preferences:
+			translations.rights?.preferences ??
+			englishTranslations?.rights?.preferences,
+	});
+	const openPreferences = function openPreferences() {
+		consent.state.setActiveUI('dialog');
+	};
 	const resolvedRejectText = $derived(
 		rejectButtonText ?? translations.common.rejectAll
 	);
@@ -242,6 +302,8 @@
 			class={finalClassName}
 			dir={textDirection}
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-prompt={promptKind}
+			data-model={consent.state.model}
 			data-testid="consent-banner-root"
 			use:scrollLock={shouldScrollLock}
 		>
@@ -299,6 +361,36 @@
 						footerTestId="consent-banner-footer"
 						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
+						{#snippet leading()}
+							{#if uncoveredRights.length > 0}
+								<div
+									class={noStyle ? '' : rightsStyle.className || ''}
+									style={rightsStyle.style
+										? Object.entries(rightsStyle.style)
+												.map(([key, value]) => `${key}:${value}`)
+												.join(';')
+										: undefined}
+									data-testid="consent-banner-rights"
+								>
+									{#each uncoveredRights as right (right)}
+										<button
+											type="button"
+											class={noStyle ? '' : rightLinkStyle.className || ''}
+											style={rightLinkStyle.style
+												? Object.entries(rightLinkStyle.style)
+														.map(([key, value]) => `${key}:${value}`)
+														.join(';')
+												: undefined}
+											data-right={right}
+											data-testid={`consent-banner-right-link-${right}`}
+											onclick={openPreferences}
+										>
+											{rightLabels[right] ?? right}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						{/snippet}
 						{#snippet renderAction(action: string, isPrimary: boolean)}
 							{#if action === 'reject'}
 								<ConsentButton
@@ -327,10 +419,14 @@
 							{:else if action === 'dismiss'}
 								<ConsentButton
 									action="dismiss-notice"
+									variant={themedActions.dismiss.variant ??
+										(isPrimary || dismissIsPrimary ? 'primary' : 'neutral')}
+									mode={themedActions.dismiss.mode ?? 'stroke'}
 									data-action="dismiss"
 									data-testid="consent-banner-dismiss-button"
-									>Dismiss</ConsentButton
 								>
+									{resolvedDismissText}
+								</ConsentButton>
 							{:else if action === 'customize'}
 								<ConsentButton
 									action="open-consent-dialog"

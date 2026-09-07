@@ -44,5 +44,7 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 		presentation,
 		primaryActions: computed(() => presentation.value.primaryActions),
 		shouldFillActions: computed(() => presentation.value.shouldFillActions),
+		/** Rights no action on this surface satisfies; hosts keep them reachable. */
+		uncoveredRights: computed(() => presentation.value.uncoveredRights),
 	};
 };

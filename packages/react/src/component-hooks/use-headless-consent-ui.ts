@@ -49,11 +49,18 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 	const { theme } = useTheme();
 	const appearance = useMemo(() => {
 		const styles = theme?.consentActions;
-		if (!styles?.accept && !styles?.reject) {
+		if (
+			!styles?.accept &&
+			!styles?.reject &&
+			!styles?.customize &&
+			!styles?.dismiss
+		) {
 			return undefined;
 		}
 		return {
 			accept: { ...styles.default, ...styles.accept },
+			customize: { ...styles.default, ...styles.customize },
+			dismiss: { ...styles.default, ...styles.dismiss },
 			reject: { ...styles.default, ...styles.reject },
 		};
 	}, [theme]);

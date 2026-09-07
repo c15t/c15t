@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
+import type { PolicyRight } from '@c15t/schema/types';
+import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
@@ -38,9 +40,37 @@ const {
 	presentation: surface,
 	actionGroups,
 	direction,
-	primaryActions,
+	primaryActions: resolvedPrimaryActions,
 	shouldFillActions,
+	uncoveredRights,
 } = useConsentPolicyActions('prompt');
+
+/**
+ * The wire type lags the translations package, so the newer keys (notice
+ * copy, dismiss, rights) are read through the package's own type.
+ */
+const bundle = computed(
+	() =>
+		init.value?.translations?.translations as
+			| Partial<CompleteTranslations>
+			| undefined
+);
+
+const promptKind = computed(() => snapshot.value.policyRule.prompt);
+const isNotice = computed(() => promptKind.value === 'notice');
+
+/**
+ * A notice offers dismiss alone. The resolver's default primary is
+ * customize, which a notice never has, so the one action takes the
+ * primary treatment instead of rendering every control as neutral.
+ */
+const primaryActions = computed(() => {
+	if (resolvedPrimaryActions.value.length > 0) {
+		return resolvedPrimaryActions.value;
+	}
+	const ordered = actionGroups.value.flat();
+	return ordered.length === 1 && ordered[0] === 'dismiss' ? ordered : [];
+});
 
 const isOpen = computed(() => {
 	const { model } = snapshot.value.policyRule;
@@ -66,27 +96,41 @@ const shouldTrapFocus = computed(() =>
 const card = ref<HTMLElement | null>(null);
 useFocusTrap(card, () => shouldTrapFocus.value);
 
-const bannerTitle = computed(
-	() =>
-		init.value?.translations?.translations?.cookieBanner?.title ??
-		(snapshot.value.promptRequirement.kind === 'notice'
-			? 'Privacy notice'
-			: 'Cookie choices')
-);
+const bannerTitle = computed(() => {
+	const cookieBanner = bundle.value?.cookieBanner;
+	if (isNotice.value) {
+		return cookieBanner?.noticeTitle ?? cookieBanner?.title ?? 'Privacy notice';
+	}
+	return cookieBanner?.title ?? 'Cookie choices';
+});
 
 const bannerPosition = computed(
 	() => config.value.bannerPosition ?? DEFAULT_BANNER_POSITION
 );
 
 const labels = computed(() => {
-	const common = init.value?.translations?.translations?.common;
+	const common = bundle.value?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
 		customize: common?.customize ?? 'Customize',
-		dismiss: 'Dismiss',
+		dismiss: common?.dismiss ?? 'Dismiss',
 		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
+
+const rightLabels = computed<Record<PolicyRight, string>>(() => {
+	const rights = bundle.value?.rights;
+	return {
+		disclosure: '',
+		'opt-out': rights?.optOut ?? 'Do not sell or share my personal information',
+		preferences: rights?.preferences ?? 'Manage preferences',
+	};
+});
+
+/** Every uncovered right opens the preference center, like customize. */
+const onRight = function onRight() {
+	activeUI.value = 'manager';
+};
 
 const actionTestIds = {
 	accept: 'consent-banner-accept-button',
@@ -149,6 +193,8 @@ const onAction = function onAction(action: PresentationAction) {
 				v-bind="config.components?.banner?.root"
 				data-testid="consent-banner-root"
 				:data-position="bannerPosition"
+				:data-prompt="promptKind"
+				:data-model="snapshot.policyRule.model"
 				:dir="textDirection"
 				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
 			>
@@ -206,7 +252,29 @@ const onAction = function onAction(action: PresentationAction) {
 								...config.components?.banner?.actionGroup,
 							}"
 							@action="onAction"
-						/>
+						>
+							<template #leading>
+								<div
+									v-if="uncoveredRights.length > 0"
+									v-bind="config.components?.banner?.rights"
+									data-testid="consent-banner-rights"
+									:class="bannerStyles.rights"
+								>
+									<button
+										v-for="right in uncoveredRights"
+										:key="right"
+										v-bind="config.components?.banner?.rightLink"
+										type="button"
+										:class="bannerStyles.rightLink"
+										:data-right="right"
+										:data-testid="`consent-banner-right-link-${right}`"
+										@click="onRight"
+									>
+										{{ rightLabels[right] }}
+									</button>
+								</div>
+							</template>
+						</ConsentActions>
 					</div>
 				</div>
 			</div>

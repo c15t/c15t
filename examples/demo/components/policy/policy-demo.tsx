@@ -186,10 +186,17 @@ const locationPresetSections: LocationPresetSection[] = [
 			{
 				country: 'US',
 				description:
-					'Equally prominent Accept All and Do not sell/share actions',
+					'Opt-out choice with equally prominent Accept and Reject; reject records the opt-out',
 				id: 'custom-ca-do-not-sell',
 				label: 'California CTA',
 				region: 'CA',
+			},
+			{
+				country: 'US',
+				description:
+					'Opt-out notice with a dismiss button plus opt-out and preferences links',
+				id: 'custom-us-notice',
+				label: 'US notice',
 			},
 		],
 	},

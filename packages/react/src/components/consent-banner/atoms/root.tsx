@@ -16,6 +16,7 @@ import {
 	useActiveUI,
 	useTranslations as useKernelTranslations,
 	useModel,
+	usePolicyRule,
 	usePromptPresentation,
 	usePromptRequirement,
 } from '~/hooks';
@@ -232,6 +233,7 @@ const ConsentBannerRootChildren = createForwardRef<
 		const activeUI = useActiveUI();
 		const { components } = useUIConfig();
 		const model = useModel() ?? 'opt-in';
+		const policy = usePolicyRule();
 		const translations = useKernelTranslations();
 		const textDirection = useTextDirection(
 			translations?.language ?? defaultTranslationConfig.defaultLanguage
@@ -349,6 +351,8 @@ const ConsentBannerRootChildren = createForwardRef<
 					data-position={
 						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
 					}
+					data-prompt={policy.prompt}
+					data-model={policy.model}
 					data-testid="consent-banner-root"
 					dir={textDirection}
 				>

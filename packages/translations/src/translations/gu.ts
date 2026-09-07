@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'બધું સ્વીકારો',
 		close: 'બંધ કરો',
 		customize: 'કસ્ટમાઇઝ કરો',
+		dismiss: 'બંધ કરો',
 		rejectAll: 'બધું નકારો',
 		save: 'સેટિંગ્સ સાચવો',
 		securedBy: 'સુરક્ષિત દ્વારા',
@@ -43,6 +44,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'આ સાઇટ તમારા બ્રાઉઝિંગ અનુભવને સુધારવા, સાઇટ ટ્રાફિકનું વિશ્લેષણ કરવા અને વ્યક્તિગત સામગ્રી બતાવવા માટે કૂકીઝનો ઉપયોગ કરે છે.',
+		noticeDescription:
+			'અમે આ સાઇટ ચલાવવા, ટ્રાફિક માપવા અને સામગ્રી તથા જાહેરાતોને વ્યક્તિગત બનાવવા માટે કૂકીઝ અને સમાન તકનીકોનો ઉપયોગ કરીએ છીએ. તમે કોઈપણ સમયે નાપસંદ કરી શકો છો અથવા તમારી પસંદગીઓ મેનેજ કરી શકો છો.',
+		noticeTitle: 'ગોપનીયતા સૂચના',
 		title: 'અમે તમારી ગોપનીયતાનું મૂલ્ય રાખીએ છીએ',
 	},
 	frame: {
@@ -133,6 +137,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'કૂકી નીતિ',
 		privacyPolicy: 'ગોપનીયતા નીતિ',
 		termsOfService: 'સેવાની શરતો',
+	},
+	rights: {
+		optOut: 'મારી વ્યક્તિગત માહિતી વેચશો કે શેર કરશો નહીં',
+		preferences: 'પસંદગીઓ મેનેજ કરો',
 	},
 };
 

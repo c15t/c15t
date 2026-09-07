@@ -120,4 +120,55 @@ describe('host presentation', () => {
 		expect(result.rights).toContain('preferences');
 		expect(result.rights).toContain('opt-out');
 	});
+	describe('uncovered rights', () => {
+		it('leaves every right uncovered on a notice except disclosure', () => {
+			const result = resolveConsentPresentation({
+				policy: notice,
+				surface: 'prompt',
+			});
+			expect(result.rights).toContain('disclosure');
+			expect(result.uncoveredRights).toEqual(['opt-out', 'preferences']);
+		});
+		it('covers preferences with customize on a choice prompt', () => {
+			const result = resolveConsentPresentation({
+				policy: choice,
+				surface: 'prompt',
+			});
+			expect(result.uncoveredRights).toEqual([]);
+		});
+		it('leaves preferences uncovered when the rule omits customize', () => {
+			const result = resolveConsentPresentation({
+				policy: normalizePolicyRule({
+					actions: ['accept', 'reject'],
+					id: 'two-actions',
+					match: { fallback: true },
+					model: 'opt-in',
+					prompt: 'choice',
+				}),
+				surface: 'prompt',
+			});
+			expect(result.uncoveredRights).toEqual(['preferences']);
+		});
+		it('covers opt-out with reject on an opt-out choice prompt', () => {
+			const result = resolveConsentPresentation({
+				policy: normalizePolicyRule({
+					actions: ['accept', 'reject'],
+					id: 'opt-out-choice',
+					match: { fallback: true },
+					model: 'opt-out',
+					prompt: 'choice',
+				}),
+				surface: 'prompt',
+			});
+			expect(result.rights).toContain('opt-out');
+			expect(result.uncoveredRights).toEqual(['preferences']);
+		});
+		it('covers every right on the preferences surface', () => {
+			const result = resolveConsentPresentation({
+				policy: notice,
+				surface: 'preferences',
+			});
+			expect(result.uncoveredRights).toEqual([]);
+		});
+	});
 });

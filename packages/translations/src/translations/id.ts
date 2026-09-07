@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Terima Semua',
 		close: 'Tutup',
 		customize: 'Sesuaikan',
+		dismiss: 'Tutup',
 		rejectAll: 'Tolak Semua',
 		save: 'Simpan Pengaturan',
 		securedBy: 'Diamankan oleh',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Situs ini menggunakan cookie untuk meningkatkan pengalaman penelusuran Anda, menganalisis lalu lintas situs, dan menampilkan konten yang dipersonalisasi.',
+		noticeDescription:
+			'Kami menggunakan cookie dan teknologi serupa untuk menjalankan situs ini, mengukur lalu lintas, serta mempersonalisasi konten dan iklan. Anda dapat memilih keluar atau mengelola preferensi Anda kapan saja.',
+		noticeTitle: 'Pemberitahuan privasi',
 		title: 'Kami menghargai privasi Anda',
 	},
 	frame: {
@@ -138,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Kebijakan Cookie',
 		privacyPolicy: 'Kebijakan Privasi',
 		termsOfService: 'Syarat Layanan',
+	},
+	rights: {
+		optOut: 'Jangan jual atau bagikan informasi pribadi saya',
+		preferences: 'Kelola preferensi',
 	},
 };
 export default translations;

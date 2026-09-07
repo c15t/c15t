@@ -67,6 +67,43 @@ describe('demo policy scenarios', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		kernel.dispose();
 	});
+	it('renders the US notice as dismiss plus opt-out and preferences links', () => {
+		const scenario = getScenarioById('custom-us-notice');
+		const resolution = resolvePolicyRules({
+			countryCode: scenario.country,
+			regionCode: null,
+			rules: getScenarioPolicyRules(scenario.id),
+		});
+		if (resolution.status !== 'matched') {
+			throw new Error('Scenario did not match');
+		}
+		expect(resolution.policy.prompt).toBe('notice');
+		const prompt = resolveConsentPresentation({
+			policy: resolution.policy,
+			surface: 'prompt',
+		});
+		expect(prompt.orderedActions).toEqual(['dismiss']);
+		expect(prompt.uncoveredRights).toEqual(['opt-out', 'preferences']);
+	});
+	it('covers the California opt-out with reject and adds a preferences link', () => {
+		const scenario = getScenarioById('custom-ca-do-not-sell');
+		expect(scenario.policy.model).toBe('opt-out');
+		const resolution = resolvePolicyRules({
+			countryCode: 'US',
+			regionCode: 'CA',
+			rules: getScenarioPolicyRules(scenario.id),
+		});
+		if (resolution.status !== 'matched') {
+			throw new Error('Scenario did not match');
+		}
+		const prompt = resolveConsentPresentation({
+			policy: resolution.policy,
+			presentation: scenario.presentation,
+			surface: 'prompt',
+		});
+		expect(prompt.orderedActions).toEqual(['accept', 'reject']);
+		expect(prompt.uncoveredRights).toEqual(['preferences']);
+	});
 	it('keeps unknown scenario links usable', () => {
 		expect(getScenarioById('unknown').id).toBe('preset-europe-opt-in');
 		expect(getScenarioPolicyRules('unknown')).toHaveLength(2);

@@ -6,6 +6,7 @@ import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
+import { testRule } from './policy-fixture';
 
 let container: AstroContainer;
 
@@ -147,5 +148,102 @@ describe('<ConsentBanner />', () => {
 		await expect(
 			container.renderToString(ConsentBanner, { locals: {}, props: {} })
 		).rejects.toThrowError(/Astro\.locals\.c15t/u);
+	});
+});
+
+describe('<ConsentBanner /> under a notice prompt', () => {
+	const noticeLocals = () =>
+		buildLocals({
+			mode: offlineMode({
+				policyRules: [
+					{
+						...testRule,
+						id: 'notice',
+						model: 'opt-out',
+						prompt: 'notice',
+					},
+				],
+			}),
+		});
+
+	it('marks the root with the prompt kind and model', async () => {
+		const html = await render(await noticeLocals());
+		const root = /<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(
+			html
+		)?.[0];
+		expect(root).toBeDefined();
+		expect(root).toContain('data-prompt="notice"');
+		expect(root).toContain('data-model="opt-out"');
+	});
+
+	it('renders the rights links before the dismiss action with notice copy', async () => {
+		const html = await render(await noticeLocals());
+
+		// The inlined config carries the whole bundle, so read the element.
+		const heading =
+			/<h2[^>]*data-testid="consent-banner-title"[^>]*>(?<text>[^<]*)<\/h2>/u.exec(
+				html
+			)?.groups?.text;
+		expect(heading).toBe('Privacy notice');
+
+		const optOut = html.indexOf(
+			'data-testid="consent-banner-right-link-opt-out"'
+		);
+		const preferences = html.indexOf(
+			'data-testid="consent-banner-right-link-preferences"'
+		);
+		const dismiss = html.indexOf('data-testid="consent-banner-dismiss-button"');
+		expect(optOut).toBeGreaterThan(-1);
+		expect(preferences).toBeGreaterThan(optOut);
+		expect(dismiss).toBeGreaterThan(preferences);
+
+		expect(html).toContain('data-testid="consent-banner-rights"');
+		expect(html).toContain('data-right="opt-out"');
+		expect(html).toContain('Do not sell or share my personal information');
+		expect(html).toContain('Manage preferences');
+		// Rights open the preference center through the same delegated handler.
+		expect(html).toMatch(
+			/data-c15t-action="customize"[^>]*data-right="opt-out"/u
+		);
+		expect(html).toContain('data-action="dismiss"');
+		expect(html).toContain('data-c15t-action="dismiss"');
+		expect(html).toContain('>Dismiss<');
+		expect(html).not.toContain('consent-banner-accept-button');
+	});
+
+	it('localizes the notice copy and rights from the negotiated language', async () => {
+		const html = await render(
+			await buildLocals(
+				{
+					mode: offlineMode({
+						policyRules: [
+							{ ...testRule, id: 'notice', model: 'opt-out', prompt: 'notice' },
+						],
+					}),
+				},
+				{ 'accept-language': 'de' }
+			)
+		);
+		expect(html).toContain('lang="de"');
+		const heading =
+			/<h2[^>]*data-testid="consent-banner-title"[^>]*>(?<text>[^<]*)<\/h2>/u.exec(
+				html
+			)?.groups?.text;
+		expect(heading).toBeDefined();
+		expect(heading).not.toBe('Privacy notice');
+		const optOut =
+			/<button[^>]*data-right="opt-out"[^>]*>(?<text>[^<]*)<\/button>/u.exec(
+				html
+			)?.groups?.text;
+		expect(optOut).toBeDefined();
+		expect(optOut).not.toBe('Do not sell or share my personal information');
+	});
+
+	it('renders no rights group when the prompt already covers them', async () => {
+		const html = await render(await buildLocals());
+		expect(html).toContain('data-prompt="choice"');
+		expect(html).toContain('data-model="opt-in"');
+		expect(html).not.toContain('data-testid="consent-banner-rights"');
+		expect(html).toContain('data-testid="consent-banner-customize-button"');
 	});
 });

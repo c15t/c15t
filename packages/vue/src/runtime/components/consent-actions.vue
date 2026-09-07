@@ -140,6 +140,8 @@ const buttonMode = function buttonMode(action: T) {
 		:data-fill="shouldFill ? true : undefined"
 		:data-split="isSplitLayout && !shouldFill ? true : undefined"
 	>
+		<!-- Controls that precede the action groups, such as a notice's rights. -->
+		<slot name="leading" />
 		<div
 			v-for="(group, groupIndex) in actionGroups"
 			:key="`group-${group.join('-') || groupIndex}`"
