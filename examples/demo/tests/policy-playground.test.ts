@@ -186,3 +186,27 @@ it('shows validation errors for a prompt the model does not allow', async () => 
 		await context.close();
 	}
 });
+
+it('keeps preferences reachable from the trigger toolbar after a notice is dismissed', async () => {
+	const { context, page, errors } = await openContext();
+	try {
+		await page.goto(`${origin}/policy?preset=californiaOptOut`);
+		await page.getByTestId('playground-prompt').waitFor();
+		await page.getByTestId('playground-prompt-select').selectOption('notice');
+
+		const dismiss = page.getByTestId('consent-banner-dismiss-button');
+		await dismiss.waitFor();
+		await dismiss.click();
+		await expect
+			.poll(() => page.getByTestId('consent-banner-root').count())
+			.toBe(0);
+
+		const toolbar = page.locator('[data-c15t-trigger-toolbar="true"]');
+		await toolbar.waitFor();
+		await toolbar.locator('[data-c15t-trigger-action="preferences"]').click();
+		await page.getByTestId('consent-dialog-root').waitFor();
+		expect(errors).toEqual([]);
+	} finally {
+		await context.close();
+	}
+});

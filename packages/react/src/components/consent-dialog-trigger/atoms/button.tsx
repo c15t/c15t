@@ -8,7 +8,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { forwardRef as createForwardRef } from 'react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { usePolicyRule } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
@@ -108,19 +108,12 @@ export const TriggerButton = createForwardRef<
 			openDialog,
 		} = useTriggerContext();
 
-		const handleClick = () => {
+		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
 			// Don't open dialog if this was a drag interaction
-			if (wasDragged()) {
+			if (event.detail !== 0 && wasDragged()) {
 				return;
 			}
 			openDialog();
-		};
-
-		const handleKeyDown = (e: React.KeyboardEvent) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				handleClick();
-			}
 		};
 
 		const finalNoStyle = noStyle ?? contextNoStyle;
@@ -148,7 +141,6 @@ export const TriggerButton = createForwardRef<
 				data-c15t-rights={policy.rights.join(' ')}
 				aria-label={ariaLabel}
 				onClick={handleClick}
-				onKeyDown={handleKeyDown}
 			>
 				{children}
 			</button>

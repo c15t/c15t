@@ -3,6 +3,7 @@
 import {
 	ConsentBanner,
 	ConsentDialog,
+	ConsentDialogTriggerToolbar,
 	ConsentProvider,
 	hosted,
 	offline,
@@ -484,6 +485,15 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 					<ConsentBanner />
 					<ConsentDialog />
+					{/* The IAB banner carries its own resurface control, so the
+					    toolbar only backs the standard prompts. */}
+					{scenario.policy.model === 'iab' ? null : (
+						<ConsentDialogTriggerToolbar
+							ariaLabel="Privacy controls"
+							defaultPosition="bottom-right"
+							persistPosition={false}
+						/>
+					)}
 					<IABProvider {...iabConfig}>
 						<IABConsentBanner
 							trapFocus={false}

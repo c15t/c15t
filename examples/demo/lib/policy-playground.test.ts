@@ -194,5 +194,15 @@ describe('policy playground helpers', () => {
 				prompt: { variant: 'wall' },
 			})
 		).toContain('presentation: {"prompt":{"variant":"wall"}}');
+		expect(buildProviderSnippet(rule, 'quebecOptIn')).not.toContain(
+			'ConsentDialogTriggerToolbar'
+		);
+		const withToolbar = buildProviderSnippet(rule, 'quebecOptIn', undefined, {
+			toolbar: true,
+		});
+		expect(withToolbar).toContain(
+			"import { ConsentBanner, ConsentDialog, ConsentDialogTriggerToolbar, ConsentProvider, offline } from 'c15t/react';"
+		);
+		expect(withToolbar).toContain('    <ConsentDialogTriggerToolbar />\n');
 	});
 });

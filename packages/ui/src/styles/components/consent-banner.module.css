@@ -290,6 +290,42 @@
 		}
 	}
 
+	/* Below 640px the root spans the viewport, so the shell must hug the
+	   corner named by `data-position`. Positions are physical, so these use
+	   physical auto margins rather than logical `align-items` keywords,
+	   which would flip under `dir="rtl"`. */
+	.root[data-variant='floating'][data-position$='-right']:not(
+			:global(.headless)
+		)
+		.cardShell,
+	.root[data-variant='widget'][data-position$='-right']:not(
+			:global(.headless)
+		)
+		.cardShell {
+		margin-left: auto;
+		margin-right: 0;
+	}
+
+	.root[data-variant='floating'][data-position$='-left']:not(
+			:global(.headless)
+		)
+		.cardShell,
+	.root[data-variant='widget'][data-position$='-left']:not(
+			:global(.headless)
+		)
+		.cardShell {
+		margin-left: 0;
+		margin-right: auto;
+	}
+
+	.root[data-variant='floating'][data-position$='-center']:not(
+			:global(.headless)
+		)
+		.cardShell {
+		margin-left: auto;
+		margin-right: auto;
+	}
+
 	/* widget: compact chip in a corner. */
 	.root[data-variant='widget']:not(:global(.headless)) {
 		padding: 0.75rem;

@@ -89,6 +89,7 @@ const generateDocsConfig = () =>
 								pages: [
 									'components/consent-manager-provider',
 									'components/consent-banner',
+									'components/consent-dialog-trigger',
 									'components/dev-tools',
 								],
 

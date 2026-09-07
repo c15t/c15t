@@ -16,6 +16,17 @@ const DYNAMIC_CONTEXT_SLOTS = {
 	tag: ['banner', 'dialog', 'manager', 'iab-banner', 'iab-dialog'],
 } as const;
 
+/**
+ * Slots the schema declares for surfaces Vue does not ship. The trigger
+ * toolbar is React-only today. Every entry must stay declared in the schema
+ * and must stay unreachable in Vue, so the list cannot go stale silently.
+ */
+const REACT_ONLY_SLOTS = [
+	'trigger.toolbar',
+	'trigger.toolbarItem',
+	'trigger.toolbarIcon',
+] as const;
+
 const MUST_BE_REACHABLE_SLOTS = [
 	'banner.cardShell',
 	'dialog.container',
@@ -111,10 +122,23 @@ const extractReachableSlotPaths = function extractReachableSlotPaths() {
 
 describe('Vue theme slot contract', () => {
 	test('every declared schema slot has an exact reachable Vue binding', () => {
-		const declared = [...CONSENT_COMPONENT_SLOT_KEYS].sort();
+		const reactOnly = new Set<string>(REACT_ONLY_SLOTS);
+		const declared = [...CONSENT_COMPONENT_SLOT_KEYS]
+			.filter((slot) => !reactOnly.has(slot))
+			.sort();
 		const reachable = extractReachableSlotPaths();
 
 		expect(reachable).toEqual(declared);
+	});
+
+	test('React-only slots stay declared in the schema and unbound in Vue', () => {
+		const declared = new Set<string>(CONSENT_COMPONENT_SLOT_KEYS);
+		const reachable = new Set(extractReachableSlotPaths());
+
+		for (const slot of REACT_ONLY_SLOTS) {
+			expect(declared.has(slot), `${slot} declared`).toBe(true);
+			expect(reachable.has(slot), `${slot} unbound`).toBe(false);
+		}
 	});
 
 	test('major rendered regions stay reachable by slot', () => {

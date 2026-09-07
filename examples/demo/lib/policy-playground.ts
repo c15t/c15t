@@ -523,10 +523,19 @@ const indent = function indent(value: string, spaces: number): string {
  * an untouched preset the snippet calls the preset factory instead of
  * inlining it.
  */
+export interface ProviderSnippetOptions {
+	/**
+	 * Render the floating trigger toolbar, the persistent route back to
+	 * preferences once a prompt is dismissed.
+	 */
+	toolbar?: boolean;
+}
+
 export const buildProviderSnippet = function buildProviderSnippet(
 	rule: PolicyRule,
 	presetId: string | null,
-	presentation?: ConsentPresentation
+	presentation?: ConsentPresentation,
+	options: ProviderSnippetOptions = {}
 ): string {
 	const ruleSource = presetId
 		? `policyRulePresets.${presetId}()`
@@ -539,7 +548,13 @@ export const buildProviderSnippet = function buildProviderSnippet(
 	const presentationOption = presentation
 		? `, presentation: ${JSON.stringify(presentation)}`
 		: '';
-	return `${presetImport}import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from 'c15t/react';
+	const componentImports = options.toolbar
+		? 'ConsentBanner, ConsentDialog, ConsentDialogTriggerToolbar, ConsentProvider, offline'
+		: 'ConsentBanner, ConsentDialog, ConsentProvider, offline';
+	const toolbarLine = options.toolbar
+		? '\n    <ConsentDialogTriggerToolbar />'
+		: '';
+	return `${presetImport}import { ${componentImports} } from 'c15t/react';
 
 // First match wins by array order, so put specific rules before broad ones.
 const policyRules = [
@@ -550,7 +565,7 @@ export const Providers = ({ children }) => (
   <ConsentProvider options={{ mode: offline({ policyRules })${presentationOption} }}>
     {children}
     <ConsentBanner />
-    <ConsentDialog />
+    <ConsentDialog />${toolbarLine}
   </ConsentProvider>
 );`;
 };

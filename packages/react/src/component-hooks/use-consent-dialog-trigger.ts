@@ -2,9 +2,21 @@
 
 import { useCallback } from 'react';
 
-import { useActiveUI, useSetActiveUI } from '../hooks';
+import { useActiveUI, usePromptRequirement, useSetActiveUI } from '../hooks';
 
-export type ConsentDialogTriggerVisibility = 'always' | 'never';
+/**
+ * When a trigger surface is visible.
+ *
+ * - `always` renders whenever the preference center is closed.
+ * - `after-prompt` renders only once no prompt is owed: after a choice is
+ *   saved or a notice is dismissed, and again when a policy change asks
+ *   for a new prompt is answered.
+ * - `never` hides the surface so the host can open the dialog itself.
+ */
+export type ConsentDialogTriggerVisibility =
+	| 'always'
+	| 'after-prompt'
+	| 'never';
 export interface UseConsentDialogTriggerOptions {
 	showWhen?: ConsentDialogTriggerVisibility;
 	onClick?: () => void;
@@ -21,12 +33,15 @@ export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	const { showWhen = 'always', onClick } = options;
 	const setActiveUI = useSetActiveUI();
 	const activeUI = useActiveUI();
+	const promptRequirement = usePromptRequirement();
 	const openDialog = useCallback(() => {
 		onClick?.();
 		setActiveUI('dialog');
 	}, [onClick, setActiveUI]);
+	const promptSettled =
+		showWhen !== 'after-prompt' || promptRequirement.kind === 'none';
 	return {
-		isVisible: showWhen !== 'never' && activeUI !== 'dialog',
+		isVisible: showWhen !== 'never' && activeUI !== 'dialog' && promptSettled,
 		openDialog,
 	};
 };

@@ -80,8 +80,17 @@ export type {
 } from './components/consent-dialog';
 export type { ConsentDialogLinkProps } from './components/consent-dialog-link';
 export { ConsentDialogLink } from './components/consent-dialog-link';
-export type { ConsentDialogTriggerProps } from './components/consent-dialog-trigger';
-export { ConsentDialogTrigger } from './components/consent-dialog-trigger';
+export type {
+	ConsentDialogTriggerProps,
+	ConsentDialogTriggerToolbarAction,
+	ConsentDialogTriggerToolbarPreferences,
+	ConsentDialogTriggerToolbarProps,
+	TriggerOrientation,
+} from './components/consent-dialog-trigger';
+export {
+	ConsentDialogTrigger,
+	ConsentDialogTriggerToolbar,
+} from './components/consent-dialog-trigger';
 export type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,

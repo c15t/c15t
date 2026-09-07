@@ -2,7 +2,7 @@
 
 import type { PolicyRule } from '@c15t/schema/types';
 import { policyRulePresets } from 'c15t';
-import type { PresentationAction } from 'c15t';
+import type { PresentationAction, PromptPosition, PromptVariant } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -13,9 +13,18 @@ import {
 	useSnapshot,
 } from 'c15t/react';
 import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
+import {
+	applySurfaceParams,
+	parseSurfaceParams,
+	PROMPT_VARIANTS,
+	setSurfaceVariant,
+	surfacePositionOptions,
+	withSurface,
+} from '../../lib/prompt-surface';
+import type { SurfaceParams } from '../../lib/prompt-surface';
 import { getScenarioById } from '../../lib/scenarios';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -308,7 +317,90 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 	);
 };
 
-const PolicyActionsDemoContent = () => {
+const SurfaceControls = ({
+	surface,
+	onChange,
+}: {
+	surface: SurfaceParams;
+	onChange: (next: SurfaceParams) => void;
+}) => {
+	const positions = surfacePositionOptions(surface.variant);
+	return (
+		<div className="flex flex-wrap items-end gap-3">
+			<label className="flex flex-col gap-1 text-xs">
+				Variant
+				<select
+					data-testid="policy-demo-variant"
+					value={surface.variant}
+					onChange={(event) =>
+						onChange(
+							setSurfaceVariant(
+								surface,
+								event.target.value as PromptVariant | ''
+							)
+						)
+					}
+					className="h-9 rounded-md border border-slate-300 bg-white px-3 font-mono text-xs dark:border-slate-700 dark:bg-slate-950"
+				>
+					<option value="">auto</option>
+					{PROMPT_VARIANTS.map((variant) => (
+						<option
+							key={variant}
+							value={variant}
+						>
+							{variant}
+						</option>
+					))}
+				</select>
+			</label>
+			<label className="flex flex-col gap-1 text-xs">
+				Position
+				<select
+					data-testid="policy-demo-position"
+					value={surface.position}
+					disabled={!surface.variant}
+					onChange={(event) =>
+						onChange({
+							...surface,
+							position: event.target.value as PromptPosition | '',
+						})
+					}
+					className="h-9 rounded-md border border-slate-300 bg-white px-3 font-mono text-xs disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950"
+				>
+					<option value="">auto</option>
+					{positions.map((position) => (
+						<option
+							key={position}
+							value={position}
+						>
+							{position}
+						</option>
+					))}
+				</select>
+			</label>
+			<label className="flex h-9 items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					data-testid="policy-demo-blocking"
+					checked={surface.blocking}
+					onChange={(event) =>
+						onChange({ ...surface, blocking: event.target.checked })
+					}
+					className="size-4"
+				/>
+				Blocking
+			</label>
+		</div>
+	);
+};
+
+const PolicyActionsDemoContent = ({
+	surface,
+	onSurfaceChange,
+}: {
+	surface: SurfaceParams;
+	onSurfaceChange: (next: SurfaceParams) => void;
+}) => {
 	const [variant, setVariant] = React.useState<DemoVariant>('default');
 	const draft = useConsentDraft();
 	const snapshot = useSnapshot();
@@ -426,6 +518,18 @@ const PolicyActionsDemoContent = () => {
 								</Button>
 							))}
 						</CardContent>
+						<CardContent className="space-y-2 border-t border-slate-200/70 pt-4 dark:border-slate-800">
+							<p className="text-sm font-medium">Prompt surface</p>
+							<p className="text-xs text-slate-600 dark:text-slate-300">
+								`variant`, `position` and `blocking=1` in the URL layer over the
+								scenario presentation. A notice defaults to a bottom bar, a
+								choice to a floating card; a wall always blocks.
+							</p>
+							<SurfaceControls
+								surface={surface}
+								onChange={onSurfaceChange}
+							/>
+						</CardContent>
 					</Card>
 
 					<Card className="border-slate-200/70 bg-white/80 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
@@ -436,15 +540,33 @@ const PolicyActionsDemoContent = () => {
 								available after accepting or rejecting.
 							</CardDescription>
 						</CardHeader>
-						<CardContent className="flex flex-wrap gap-2">
-							<Badge variant="secondary">activeUI: {snapshot.activeUI}</Badge>
-							<Badge variant="secondary">
-								banner: {banner.isVisible ? 'visible' : 'hidden'}
-							</Badge>
-							<Badge variant="secondary">
-								dialog: {dialog.isVisible ? 'visible' : 'hidden'}
-							</Badge>
-							<Badge variant="secondary">variant: {variant}</Badge>
+						<CardContent className="space-y-3">
+							<div className="flex flex-wrap gap-2">
+								<Badge variant="secondary">activeUI: {snapshot.activeUI}</Badge>
+								<Badge variant="secondary">
+									banner: {banner.isVisible ? 'visible' : 'hidden'}
+								</Badge>
+								<Badge variant="secondary">
+									dialog: {dialog.isVisible ? 'visible' : 'hidden'}
+								</Badge>
+								<Badge variant="secondary">variant: {variant}</Badge>
+							</div>
+							<div>
+								<p className="text-xs text-slate-500 dark:text-slate-400">
+									Surface
+								</p>
+								<p
+									className="font-mono text-xs"
+									data-testid="policy-demo-surface"
+									data-variant={banner.variant}
+									data-position={banner.position}
+									data-position-source={banner.positionSource}
+									data-blocking={banner.blocking ? 'true' : 'false'}
+								>
+									{banner.variant} · {banner.position} ({banner.positionSource})
+									{banner.blocking ? ' · blocking' : ' · non-blocking'}
+								</p>
+							</div>
 						</CardContent>
 					</Card>
 				</div>
@@ -577,10 +699,29 @@ const offlinePolicies = [
 ] satisfies PolicyRule[];
 
 export const PolicyActionsDemo = () => {
+	const router = useRouter();
+	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const country = searchParams.get('country')?.toUpperCase() ?? 'DE';
 	const region = searchParams.get('region')?.toUpperCase() ?? undefined;
-	const providerKey = `${country}:${region ?? 'none'}`;
+	const surface = parseSurfaceParams(searchParams);
+	const providerKey = `${country}:${region ?? 'none'}:${surface.variant}:${surface.position}:${surface.blocking}`;
+	const presentation = withSurface(
+		getScenarioById(
+			country === 'ES' ? 'custom-es-split-stack' : 'custom-de-strict'
+		).presentation,
+		surface
+	);
+	const setSurface = (next: SurfaceParams) => {
+		const params = applySurfaceParams(
+			new URLSearchParams(searchParams.toString()),
+			next
+		);
+		const search = params.toString();
+		router.replace(search ? `${pathname}?${search}` : pathname, {
+			scroll: false,
+		});
+	};
 
 	return (
 		<ConsentProvider
@@ -599,12 +740,13 @@ export const PolicyActionsDemo = () => {
 					country,
 					region,
 				},
-				presentation: getScenarioById(
-					country === 'ES' ? 'custom-es-split-stack' : 'custom-de-strict'
-				).presentation,
+				presentation,
 			}}
 		>
-			<PolicyActionsDemoContent />
+			<PolicyActionsDemoContent
+				surface={surface}
+				onSurfaceChange={setSurface}
+			/>
 		</ConsentProvider>
 	);
 };

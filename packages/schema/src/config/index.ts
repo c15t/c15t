@@ -97,6 +97,12 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		root?: T;
 		icon?: T;
 		text?: T;
+		/** Toolbar group rendered by `ConsentDialogTriggerToolbar`. */
+		toolbar?: T;
+		/** One action button inside the trigger toolbar. */
+		toolbarItem?: T;
+		/** Icon wrapper inside a trigger toolbar action. */
+		toolbarIcon?: T;
 	};
 	accordion?: {
 		root?: T;
@@ -352,6 +358,9 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		icon: true,
 		root: true,
 		text: true,
+		toolbar: true,
+		toolbarIcon: true,
+		toolbarItem: true,
 	},
 } as const satisfies ConsentComponentSlotKeyMap;
 

@@ -13,6 +13,7 @@ import {
 	StableV3UIConfigProvider,
 } from '~/__tests__/stable-context-providers';
 import { ConsentBannerTitle } from '~/components/consent-banner/components';
+import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
 import { TriggerButton } from '~/components/consent-dialog-trigger/atoms/button';
 import { ConsentDialogHeaderTitle } from '~/components/consent-dialog/atoms/card';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
@@ -22,6 +23,66 @@ import * as Switch from '~/components/shared/ui/switch';
 import { offline } from '~/transports/offline';
 
 describe('Theme regressions', () => {
+	test('styles trigger toolbar atoms through component slots and direct overrides', async () => {
+		await render(
+			<ConsentProvider
+				options={{
+					components: {
+						trigger: {
+							toolbar: {
+								className: 'themed-trigger',
+								style: { backgroundColor: 'rgb(1, 2, 3)' },
+							},
+							toolbarIcon: { className: 'themed-trigger-icon' },
+							toolbarItem: { className: 'themed-trigger-item' },
+						},
+					},
+					mode: offline(),
+				}}
+			>
+				<ConsentDialogTriggerToolbar
+					actions={[
+						{
+							icon: 'settings',
+							id: 'support',
+							label: 'Open support chat',
+							onSelect: vi.fn(),
+						},
+					]}
+					className="direct-trigger"
+					preferences={{
+						className: 'direct-trigger-item',
+						style: { color: 'rgb(4, 5, 6)' },
+					}}
+					showWhen="always"
+					style={{ borderRadius: '12px' }}
+				/>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			const toolbar = document.querySelector<HTMLElement>(
+				'[role="toolbar"][aria-label="Privacy controls"]'
+			);
+			const item = document.querySelector<HTMLElement>(
+				'[data-c15t-trigger-item="preferences"]'
+			);
+			const icon = item?.querySelector<HTMLElement>('[aria-hidden="true"]');
+
+			expect(toolbar).toBeInTheDocument();
+			expect(toolbar?.className).toContain('themed-trigger');
+			expect(toolbar?.className).toContain('direct-trigger');
+			expect(toolbar).toHaveStyle({
+				backgroundColor: 'rgb(1, 2, 3)',
+				borderRadius: '12px',
+			});
+			expect(item?.className).toContain('themed-trigger-item');
+			expect(item?.className).toContain('direct-trigger-item');
+			expect(item).toHaveStyle({ color: 'rgb(4, 5, 6)' });
+			expect(icon?.className).toContain('themed-trigger-icon');
+		});
+	});
+
 	test('does not forward slot noStyle to the DOM', async () => {
 		await render(
 			<StableV3UIConfigProvider

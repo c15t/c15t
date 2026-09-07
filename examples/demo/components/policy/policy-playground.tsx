@@ -17,6 +17,7 @@ import type { StoredRecords } from 'c15t/modules/persistence';
 import {
 	ConsentBanner,
 	ConsentDialog,
+	ConsentDialogTriggerToolbar,
 	ConsentProvider,
 	offline,
 	useSnapshot,
@@ -1106,6 +1107,8 @@ export const PolicyPlayground = () => {
 	const [gpcOverride, setGpcOverride] = React.useState(false);
 	const [presentationForm, setPresentationForm] =
 		React.useState<PlaygroundPresentationForm>(DEFAULT_PRESENTATION_FORM);
+	const [showToolbar, setShowToolbar] = React.useState(true);
+	const [showInspector, setShowInspector] = React.useState(true);
 	const [mounted, setMounted] = React.useState(false);
 	const [loadedAt, setLoadedAt] = React.useState(0);
 	const [now, setNow] = React.useState(() => Date.now());
@@ -1284,6 +1287,11 @@ export const PolicyPlayground = () => {
 								prompt={form.prompt}
 								onChange={setPresentationForm}
 							/>
+							<Checkbox
+								label="Show trigger toolbar"
+								checked={showToolbar}
+								onChange={setShowToolbar}
+							/>
 						</div>
 
 						<div className="space-y-3">
@@ -1449,11 +1457,29 @@ export const PolicyPlayground = () => {
 										key={providerKey}
 										options={providerOptions}
 									>
-										<RuntimeInspector
-											storedRecords={storedRecords}
-											loadedAt={loadedAt}
-											now={now}
-										/>
+										{showInspector ? (
+											<RuntimeInspector
+												storedRecords={storedRecords}
+												loadedAt={loadedAt}
+												now={now}
+											/>
+										) : null}
+										{showToolbar && form.model !== 'iab' ? (
+											<ConsentDialogTriggerToolbar
+												ariaLabel="Playground privacy controls"
+												defaultPosition="bottom-right"
+												persistPosition={false}
+												actions={[
+													{
+														icon: 'settings',
+														id: 'inspector',
+														label: 'Toggle runtime inspector',
+														onSelect: () => setShowInspector((value) => !value),
+														pressed: showInspector,
+													},
+												]}
+											/>
+										) : null}
 										{form.model === 'iab' ? (
 											<IABProvider
 												cmpId={DEMO_CMP_ID}
@@ -1498,7 +1524,9 @@ export const PolicyPlayground = () => {
 						</TabsList>
 						<TabsContent value="client">
 							<CodeBlock
-								value={buildProviderSnippet(rule, snippetPreset, presentation)}
+								value={buildProviderSnippet(rule, snippetPreset, presentation, {
+									toolbar: showToolbar && form.model !== 'iab',
+								})}
 							/>
 						</TabsContent>
 						<TabsContent value="backend">

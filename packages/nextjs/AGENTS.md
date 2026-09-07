@@ -9,6 +9,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
+- [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentManagerProvider](./docs/frameworks/next/components/consent-manager-provider.md): Root provider that initializes the consent manager for your Next.js app.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent Categories](./docs/frameworks/next/concepts/consent-categories.md): How c15t groups cookies and scripts into consent categories.

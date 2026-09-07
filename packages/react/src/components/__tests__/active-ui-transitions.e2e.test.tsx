@@ -17,7 +17,10 @@ import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
-import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import {
+	ConsentDialogTrigger,
+	ConsentDialogTriggerToolbar,
+} from '~/components/consent-dialog-trigger';
 import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(
@@ -89,6 +92,16 @@ const storedAcceptAllConsent = () => ({
 		necessary: true,
 	},
 });
+
+const queryRequiredElement = function queryRequiredElement(
+	selector: string
+): HTMLElement {
+	const element = document.querySelector<HTMLElement>(selector);
+	if (!element) {
+		throw new Error(`Expected element matching ${selector}`);
+	}
+	return element;
+};
 
 describe('activeUI Transitions E2E Tests', () => {
 	beforeEach(() => {
@@ -286,6 +299,11 @@ describe('activeUI Transitions E2E Tests', () => {
 					'button[aria-label="Open privacy settings"]'
 				);
 				expect(trigger).toBeInTheDocument();
+				expect(
+					document.querySelector(
+						'[role="toolbar"][aria-label="Privacy controls"]'
+					)
+				).not.toBeInTheDocument();
 			},
 			{ timeout: 3000 }
 		);
@@ -306,6 +324,119 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 	});
+
+	test.each([
+		['horizontal', 'bottom-right', '{ArrowRight}', -1],
+		['horizontal', 'top-left', '{ArrowRight}', 0],
+		['vertical', 'bottom-right', '{ArrowDown}', -1],
+		['vertical', 'top-left', '{ArrowDown}', 0],
+	] as const)(
+		'trigger %s toolbar at %s runs custom actions and opens preferences',
+		async (orientation, defaultPosition, navigationKey, preferencesIndex) => {
+			const openSupport = vi.fn();
+
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentBanner />
+					<ConsentDialog />
+					<ConsentDialogTriggerToolbar
+						showWhen="always"
+						ariaLabel="Site controls"
+						defaultPosition={defaultPosition}
+						orientation={orientation}
+						actions={[
+							{
+								icon: <span data-testid="theme-icon" />,
+								id: 'theme',
+								label: 'Toggle color scheme',
+								onSelect: vi.fn(),
+							},
+							{
+								icon: <span />,
+								id: 'support',
+								label: 'Open support chat',
+								onSelect: openSupport,
+							},
+						]}
+					/>
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector(
+							'[data-testid="consent-banner-accept-button"]'
+						)
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+
+			await userEvent.click(
+				queryRequiredElement('[data-testid="consent-banner-accept-button"]')
+			);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector(
+							`[role="toolbar"][aria-label="Site controls"][aria-orientation="${orientation}"]`
+						)
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+
+			const toolbarButtons = Array.from(
+				queryRequiredElement(
+					'[role="toolbar"][aria-label="Site controls"]'
+				).querySelectorAll('button')
+			);
+			// The fixture rule is opt-in, so the built-in action carries the
+			// preferences right and its translated label.
+			expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
+				'aria-label',
+				'Manage preferences'
+			);
+			expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
+				'data-right',
+				'preferences'
+			);
+
+			expect(
+				document.querySelector('[data-testid="theme-icon"]')
+			).toBeInTheDocument();
+			const privacyButton = queryRequiredElement(
+				'button[aria-label="Manage preferences"]'
+			);
+			const themeButton = queryRequiredElement(
+				'button[aria-label="Toggle color scheme"]'
+			);
+			privacyButton.focus();
+			await userEvent.keyboard(navigationKey);
+			expect(themeButton).toHaveFocus();
+
+			await userEvent.click(
+				queryRequiredElement('button[aria-label="Open support chat"]')
+			);
+			expect(openSupport).toHaveBeenCalledOnce();
+			expect(
+				document.querySelector('[data-testid="consent-dialog-root"]')
+			).not.toBeInTheDocument();
+
+			await userEvent.click(privacyButton);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector('[data-testid="consent-dialog-root"]')
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+		}
+	);
 
 	test('full lifecycle: banner → customize → dialog → save → trigger → dialog', async () => {
 		render(
