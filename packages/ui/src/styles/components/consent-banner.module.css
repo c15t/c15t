@@ -318,21 +318,15 @@
 			:global(.headless)
 		)
 		.cardShell,
-	.root[data-variant='widget'][data-position$='-right']:not(
-			:global(.headless)
-		)
+	.root[data-variant='widget'][data-position$='-right']:not(:global(.headless))
 		.cardShell {
 		margin-left: auto;
 		margin-right: 0;
 	}
 
-	.root[data-variant='floating'][data-position$='-left']:not(
-			:global(.headless)
-		)
+	.root[data-variant='floating'][data-position$='-left']:not(:global(.headless))
 		.cardShell,
-	.root[data-variant='widget'][data-position$='-left']:not(
-			:global(.headless)
-		)
+	.root[data-variant='widget'][data-position$='-left']:not(:global(.headless))
 		.cardShell {
 		margin-left: 0;
 		margin-right: auto;
