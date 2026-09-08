@@ -230,6 +230,21 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	let failTransport = false;
 	let presentation: ConsentPresentation | undefined;
 	let kernel: ConsentKernel;
+	/**
+	 * The provider publishes the kernel from an effect after render or
+	 * hydration; under load that effect can land after the first settle, so
+	 * every mount path waits for it before touching the kernel.
+	 */
+	const waitForKernel = () =>
+		vi.waitFor(
+			() => {
+				if (!kernel) {
+					throw new Error('Provider kernel is not ready after hydration');
+				}
+				return kernel;
+			},
+			{ interval: 50, timeout: 5000 }
+		);
 	let addon: IABHandle | undefined;
 	let iabTargetAllowed: boolean | undefined;
 	let persistence: PersistenceHandle;
@@ -535,17 +550,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				onRecoverableError: (error) => errors.push(String(error)),
 			});
 			await settle();
-			// Hydration schedules the provider effect that publishes the kernel;
-			// under load it can land after the first settle, so wait for it.
-			await vi.waitFor(
-				() => {
-					if (!kernel) {
-						throw new Error('Provider kernel is not ready after hydration');
-					}
-					return kernel;
-				},
-				{ interval: 50, timeout: 5000 }
-			);
+			await waitForKernel();
 			observer.disconnect();
 			consoleErrors.mockRestore();
 			const dom = getDom(kernel);
@@ -569,6 +574,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			root = createRoot(container);
 			root.render(tree());
 			await settle();
+			await waitForKernel();
 			await kernel.commands.init();
 			await settle();
 		}
