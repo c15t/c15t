@@ -1,5 +1,5 @@
 import type { PlayFunction } from 'storybook/internal/types';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 
 /**
  * The mounted panel root. The panel renders inside a shadow root on a
@@ -59,7 +59,11 @@ export const devToolsFlow: PlayFunction = async (context) => {
 	// Tab changes restore keyboard focus on the next frame. Let that finish
 	// before moving focus into the filter, as a user would between interactions.
 	await waitFor(() =>
-		expect(panel.getByRole('tab', { name: 'Scripts' })).toHaveFocus()
+		// `toHaveFocus` reads `document.activeElement`, which stops at the shadow
+		// host; the panel's own root node knows the focused element.
+		expect((root.getRootNode() as Document | ShadowRoot).activeElement).toBe(
+			panel.getByRole('tab', { name: 'Scripts' })
+		)
 	);
 	await userEvent.type(
 		panel.getByRole('textbox', { name: 'Filter scripts' }),
@@ -69,7 +73,12 @@ export const devToolsFlow: PlayFunction = async (context) => {
 		'analytics-fixture'
 	);
 	expect(panel.queryByText('retained-pixel')).toBeNull();
-	await userEvent.clear(panel.getByRole('textbox', { name: 'Filter scripts' }));
+	// `userEvent.clear` checks `document.activeElement`, which is the shadow
+	// host here; set the value through an input event instead.
+	await fireEvent.input(
+		panel.getByRole<HTMLInputElement>('textbox', { name: 'Filter scripts' }),
+		{ target: { value: '' } }
+	);
 	await userEvent.click(panel.getByRole('tab', { name: 'Consents' }));
 	await userEvent.click(panel.getByRole('button', { name: 'Reject optional' }));
 	await waitFor(() =>
