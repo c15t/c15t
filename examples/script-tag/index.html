@@ -113,50 +113,55 @@
 		</style>
 
 		<script>
-			// Config the page sets before the tag. Everything here is plain
-			// JSON except the script callbacks.
-			window.c15tConfig = {
-				consentCategories: ['functionality', 'measurement', 'marketing'],
-				legalLinks: {
-					privacyPolicy: { href: '/privacy' },
-					cookiePolicy: { href: '/cookies' },
-				},
-				scripts: [
-					{
-						id: 'example-analytics',
-						src: '/vendor/analytics.js',
-						category: 'measurement',
-						onLoad: () => window.exampleAnalytics.track('page_view'),
+			// One global. Before the tag loads, window.c15t is a queue of calls;
+			// the tag replays them in order. Everything here is plain JSON except
+			// the script callbacks.
+			window.c15t = window.c15t || [];
+			c15t.push([
+				'config',
+				{
+					consentCategories: ['functionality', 'measurement', 'marketing'],
+					legalLinks: {
+						privacyPolicy: { href: '/privacy' },
+						cookiePolicy: { href: '/cookies' },
 					},
-					{
-						id: 'example-chat',
-						src: '/vendor/chat-widget.js',
-						category: 'functionality',
-					},
-				],
-				networkBlocker: {
-					rules: [
+					scripts: [
 						{
-							id: 'track',
-							domain: location.hostname,
-							pathIncludes: '/api/track',
+							id: 'example-analytics',
+							src: '/vendor/analytics.js',
 							category: 'measurement',
+							onLoad: () => window.exampleAnalytics.track('page_view'),
+						},
+						{
+							id: 'example-chat',
+							src: '/vendor/chat-widget.js',
+							category: 'functionality',
 						},
 					],
-					onRequestBlocked: (info) =>
-						window.dispatchEvent(
-							new CustomEvent('example:log', {
-								detail: `network blocker stopped ${info.method} ${new URL(info.url).pathname}`,
-							})
-						),
+					networkBlocker: {
+						rules: [
+							{
+								id: 'track',
+								domain: location.hostname,
+								pathIncludes: '/api/track',
+								category: 'measurement',
+							},
+						],
+						onRequestBlocked: (info) =>
+							window.dispatchEvent(
+								new CustomEvent('example:log', {
+									detail: `network blocker stopped ${info.method} ${new URL(info.url).pathname}`,
+								})
+							),
+					},
+					ui: {
+						banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
+						trigger: true,
+					},
 				},
-				ui: {
-					banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
-					trigger: true,
-				},
-			};
-			// Calls queued before the tag loads run once the client exists.
-			window.c15t = [
+			]);
+			// Listeners queue the same way and attach once the client exists.
+			c15t.push(
 				[
 					'on',
 					'ready',
@@ -166,8 +171,8 @@
 						),
 				],
 				['on', 'consent', (s) => log(`consent: ${JSON.stringify(s.consents)}`)],
-				['on', 'ui', (surface) => log(`ui: ${surface}`)],
-			];
+				['on', 'ui', (surface) => log(`ui: ${surface}`)]
+			);
 			function log(line) {
 				const el = document.getElementById('log');
 				if (!el) return;

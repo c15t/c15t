@@ -76,12 +76,12 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		const body = await response.text();
 		const [prelude] = body.split('\n', 1);
 		expect(prelude).toMatch(
-			/^window\.c15tConfig=Object\.assign\(\{.*\},window\.c15tConfig\|\|\{\}\);$/u
+			/^\(function\(c\)\{window\.c15t=window\.c15t\|\|\[\];.*\}\)\(\{.*\}\);$/u
 		);
 		const config = JSON.parse(
 			(prelude as string).slice(
-				'window.c15tConfig=Object.assign('.length,
-				-',window.c15tConfig||{});'.length
+				(prelude as string).indexOf('})(') + '})('.length,
+				-');'.length
 			)
 		) as {
 			mode: string;
@@ -92,7 +92,7 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		expect(config.backendURL).toBe('http://x.c15t.dev');
 		expect(config.manifest.policyPacks).toHaveLength(1);
 		// The bundle follows and installs the global.
-		expect(body).toContain('c15tConfig');
+		expect(body).toContain('window.c15t');
 		expect(body.length).toBeGreaterThan(prelude?.length ?? 0 + 10_000);
 	});
 

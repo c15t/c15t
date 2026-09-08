@@ -2,7 +2,7 @@
 	"title": "@c15t/browser: Script-Tag Consent Banner",
 	"description": "Cookie banner, preference centre, and consent-gated script loading for sites without a build step: Framer, Webflow, WordPress, Squarespace, and plain HTML.",
 	"features": [
-		"One script tag from a CDN, configured with data attributes or window.c15tConfig",
+		"One script tag from a CDN, configured with data attributes or calls queued on window.c15t",
 		"Prebuilt banner and preference centre rendered in a shadow root, immune to theme CSS",
 		"Headless build with the same runtime and window.c15t API for custom banners",
 		"data-c15t-action buttons and #c15t-preferences links wired for you",

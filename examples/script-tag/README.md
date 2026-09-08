@@ -19,4 +19,4 @@ The page exercises everything a real site gates on consent, all served locally s
 
 A second page, http://localhost:4173/custom, loads `c15t.headless.js` instead and renders its own consent card with the site's HTML and CSS, the way zed.dev/docs ships its banner on c15t: `data-c15t-action` buttons for accept and reject, one `ui` listener to show, hide and switch the card into configure mode, and `c15t.save()` behind the Save button.
 
-`index.html` shows the three ways to configure the tag: `data-*` attributes, `window.c15tConfig`, and calls queued on `window.c15t` before the script loads.
+`index.html` shows the three ways to configure the tag: `data-*` attributes, and `config` and `on` calls queued on `window.c15t` before the script loads.

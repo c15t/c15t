@@ -31,8 +31,19 @@ export const GLOBAL_NAME = 'c15t';
 export type QueuedCall = [method: string, ...args: unknown[]];
 
 /**
- * `window.c15t` in the script-tag builds.
+ * `window.c15t`, the one global the script-tag builds use.
  *
+ * Before the tag loads it is a plain array of queued calls:
+ *
+ * ```html
+ * <script>
+ *   window.c15t = window.c15t || [];
+ *   c15t.push(['config', { consentCategories: ['measurement'] }]);
+ *   c15t.push(['on', 'consent', (snapshot) => console.log(snapshot)]);
+ * </script>
+ * ```
+ *
+ * The tag replaces it with this object and replays the queue in order.
  * Before `init()` the read methods throw and `on()`/`ready()` wait; after
  * it everything proxies to the page's client. `version`, `pkg` and `mode`
  * keep the shape `@c15t/core` installs for devtools.
@@ -47,11 +58,19 @@ export interface C15tGlobal {
 	/** The page's client, once initialised. */
 	readonly client: ConsentClient | null;
 	/**
+	 * Add options before `init()`. Later calls win over earlier ones, and
+	 * all of them win over the tag's `data-*` attributes. After `init()`
+	 * it warns and does nothing.
+	 *
+	 * @param options - Client options to layer on.
+	 */
+	config: (options: ConsentClientOptions) => void;
+	/**
 	 * Create and start the page's client. A second call returns the
 	 * existing one.
 	 *
-	 * @param options - Client options; defaults to what the script tag
-	 * and `window.c15tConfig` declare.
+	 * @param options - Client options layered over the tag's attributes and
+	 * every queued `config`.
 	 */
 	init: (options?: ConsentClientOptions) => ConsentClient;
 	/**
@@ -94,8 +113,8 @@ type GlobalWindow = Window & {
 };
 
 /**
- * Put the API on `window.c15t`, replaying any calls a page queued as
- * `window.c15t = [['on', 'consent', fn]]` before the script loaded.
+ * Put the API on `window.c15t`, replaying in order any calls a page queued
+ * on the array that was there before the script loaded.
  *
  * @param api - The API object.
  */
@@ -130,6 +149,7 @@ export const createGlobal = function createGlobal(
 ): C15tGlobal {
 	let client: ConsentClient | null = null;
 	const clientReady = createDeferred<ConsentClient>();
+	const queuedConfig: ConsentClientOptions[] = [];
 
 	const require = function require(): ConsentClient {
 		if (!client) {
@@ -148,6 +168,16 @@ export const createGlobal = function createGlobal(
 		closeDialog: () => {
 			require().closeDialog();
 		},
+		config(options) {
+			if (client) {
+				// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+				console.warn(
+					'@c15t/browser: c15t.config() after init() has no effect; queue it before the tag or pass it to init().'
+				);
+				return;
+			}
+			queuedConfig.push(options);
+		},
 		custom,
 		devtools: null,
 		dispose: () => {
@@ -165,11 +195,10 @@ export const createGlobal = function createGlobal(
 			if (client) {
 				return client;
 			}
-			const resolved =
-				options ??
-				readPageOptions(
-					typeof document === 'undefined' ? null : document.currentScript
-				).options;
+			const resolved = readPageOptions(
+				typeof document === 'undefined' ? null : document.currentScript,
+				options ? [...queuedConfig, options] : queuedConfig
+			).options;
 			const created = createConsentClient(resolved, context);
 			client = created;
 			created.start();

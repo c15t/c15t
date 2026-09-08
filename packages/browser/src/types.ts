@@ -133,7 +133,7 @@ export interface ConsentUIOptions {
 /**
  * Everything `init()` accepts. Every field is JSON-serialisable except
  * `mode` as a factory, `scripts` callbacks and `callbacks`, so the same
- * object works as `window.c15tConfig` on a no-code site.
+ * object works queued as `c15t.push(['config', {...}])` on a no-code site.
  */
 export interface ConsentClientOptions {
 	/**

@@ -61,7 +61,7 @@ Matched policies retain their existing token or decision-assertion validation. N
 
 ### GET /c15t.js
 
-The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a `window.c15tConfig` prelude that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI.
+The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI.
 
 | Query | What it does |
 | --- | --- |

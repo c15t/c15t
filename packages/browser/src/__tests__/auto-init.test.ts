@@ -6,7 +6,6 @@ import type { C15tGlobal } from '../global';
 
 type TestWindow = Window & {
 	c15t?: unknown;
-	c15tConfig?: unknown;
 };
 
 const testWindow = window as TestWindow;
@@ -33,7 +32,6 @@ const scriptWith = function scriptWith(
 afterEach(() => {
 	(testWindow.c15t as C15tGlobal | undefined)?.dispose?.();
 	testWindow.c15t = undefined;
-	testWindow.c15tConfig = undefined;
 	localStorage.clear();
 	clearCookies();
 	document.body.replaceChildren();
@@ -89,33 +87,31 @@ describe('readScriptOptions', () => {
 });
 
 describe('readPageOptions', () => {
-	it('layers window.c15tConfig over the script attributes', () => {
-		testWindow.c15tConfig = {
-			consentCategories: ['marketing'],
-			ui: { trigger: true },
-		};
-
+	it('layers queued config over the script attributes, in order', () => {
 		const { manual, options } = readPageOptions(
 			scriptWith({
 				'data-backend-url': 'https://x.c15t.dev',
 				'data-color-scheme': 'light',
-			})
+			}),
+			[
+				{ consentCategories: ['marketing'], ui: { trigger: true } },
+				{ consentCategories: ['measurement'] },
+			]
 		);
 
 		expect(manual).toBe(false);
 		expect(options).toEqual({
 			backendURL: 'https://x.c15t.dev',
-			consentCategories: ['marketing'],
+			consentCategories: ['measurement'],
 			ui: { colorScheme: 'light', trigger: true },
 		});
 	});
 
-	it('honours data-manual and config.manual', () => {
+	it('honours data-manual', () => {
 		expect(readPageOptions(scriptWith({ 'data-manual': '' })).manual).toBe(
 			true
 		);
-		testWindow.c15tConfig = { manual: true };
-		expect(readPageOptions(null).manual).toBe(true);
+		expect(readPageOptions(null).manual).toBe(false);
 	});
 });
 
@@ -139,17 +135,38 @@ describe('window.c15t', () => {
 		expect(api.version).toBeTypeOf('string');
 	});
 
-	it('replays calls queued before the script loaded', async () => {
+	it('replays calls queued before the script loaded, config included', async () => {
 		const onConsent = vi.fn();
-		testWindow.c15t = [['on', 'consent', onConsent]];
+		testWindow.c15t = [
+			['config', { consentCategories: ['measurement'], ui: false }],
+			['on', 'consent', onConsent],
+		];
 		const api = createGlobal({ pkg: '@c15t/browser/test' });
 
 		installGlobal(api);
-		api.init({ consentCategories: ['measurement'], ui: false });
+		const client = api.init();
 		await api.ready();
 		await api.acceptAll();
 
+		expect(client.options.consentCategories).toEqual(['measurement']);
 		expect(onConsent).toHaveBeenCalled();
+	});
+
+	it('lets init() options win over queued config, and warns after init', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* silenced */
+		});
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+		api.config({ consentCategories: ['marketing'], ui: false });
+
+		const client = api.init({ consentCategories: ['measurement'] });
+		api.config({ consentCategories: ['functionality'] });
+
+		expect(client.options.consentCategories).toEqual(['measurement']);
+		expect(client.options.ui).toBe(false);
+		expect(warn).toHaveBeenCalledOnce();
+		warn.mockRestore();
 	});
 
 	it('stays on window.c15t after the runtime starts', () => {

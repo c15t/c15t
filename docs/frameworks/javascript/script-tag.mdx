@@ -50,11 +50,12 @@ Every attribute is optional.
 | `data-no-ui` | Run the runtime with no banner. Same as loading `c15t.headless.js`. |
 | `data-manual` | Do not initialise. The page calls `c15t.init()` itself. |
 
-For anything the attributes cannot express, set `window.c15tConfig` before the tag. It accepts every option of [`init()`](#the-window-api) and wins over the attributes.
+For anything the attributes cannot express, queue a `config` call on `window.c15t` before the tag. There is only one global: before the script loads it is an array of calls, after it loads it is the API, and the queue is replayed in order. `config` accepts every option of [`init()`](#the-window-api) and wins over the attributes.
 
 ```html
 <script>
-  window.c15tConfig = {
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
     consentCategories: ['measurement', 'marketing'],
     legalLinks: { privacyPolicy: { href: '/privacy' } },
     scripts: [
@@ -65,7 +66,7 @@ For anything the attributes cannot express, set `window.c15tConfig` before the t
       },
     ],
     ui: { colorScheme: 'dark', trigger: true },
-  };
+  }]);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js" defer></script>
 ```
@@ -111,7 +112,7 @@ c15t.save({ measurement: true, marketing: false });
 c15t.identify({ id: 'user_123' });
 ```
 
-`ready()` and `on()` are safe to call before the tag has loaded if you queue them:
+Every method can be queued before the tag has loaded; `config` and `on` are the usual ones:
 
 ```html
 <script>
@@ -142,12 +143,13 @@ Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still re
 The banner renders inside a shadow root with its own copy of the stylesheet, so a theme's global `button {}` rule cannot reach it and the banner's rules cannot leak out. Customise it through the theme tokens rather than selectors:
 
 ```js
-window.c15tConfig = {
+window.c15t = window.c15t || [];
+c15t.push(['config', {
   ui: {
     theme: { colors: { primary: '#0a66ff' }, radius: 'lg' },
     css: '.c15t-theme-root { font-family: inherit; }',
   },
-};
+}]);
 ```
 
 `theme` takes the same object `@c15t/react` accepts. `css` is appended after the bundled stylesheet, still inside the shadow root. To take over completely, set `shadow: false` (or `data-shadow="false"`) and the DOM renders in the page with the stylesheet in `<head>`; `noStyle: true` then strips every class so you start from unstyled markup with the same `data-testid` attributes as the other c15t packages.
@@ -158,11 +160,12 @@ Hosted mode asks the backend for `/init` on every fresh visit before the banner 
 
 ```html
 <script>
-  window.c15tConfig = {
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
     mode: 'manifest',
     backendURL: 'https://your-instance.c15t.dev',
     manifest: {/* GET https://your-instance.c15t.dev/manifest */},
-  };
+  }]);
 </script>
 ```
 
@@ -172,7 +175,7 @@ Only English ships in the bundle; a manifest carries its own translations for th
 
 ### Serve it from your backend
 
-A [self-hosted backend](/docs/self-host/quickstart) does the inlining for you. It serves `GET /c15t.js` (and `/c15t.headless.js`): the same bundle behind a `window.c15tConfig` prelude that already carries the manifest, the backend origin, and any defaults you configure. One tag, one request, and the banner renders as soon as the script parses.
+A [self-hosted backend](/docs/self-host/quickstart) does the inlining for you. It serves `GET /c15t.js` (and `/c15t.headless.js`): the same bundle behind a queued `config` call that already carries the manifest, the backend origin, and any defaults you configure. One tag, one request, and the banner renders as soon as the script parses.
 
 ```html
 <script src="https://consent.example.com/c15t.js" defer></script>
@@ -191,7 +194,7 @@ createApp(runtime, {
 });
 ```
 
-The page's own `window.c15tConfig` still wins over the baked-in defaults. The response carries the same `Cache-Control` and `ETag` as `/manifest`, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
+Anything the page queues with `c15t.push(['config', ...])` before the tag still wins over the baked-in defaults. The response carries the same `Cache-Control` and `ETag` as `/manifest`, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
 
 ## Dev tools
 

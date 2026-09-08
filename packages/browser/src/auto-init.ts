@@ -6,15 +6,8 @@ import type {
 	ConsentUIOptions,
 } from './types';
 
-/** The global a page can set before the script loads. */
-export const CONFIG_GLOBAL = 'c15tConfig';
-
 /** Attribute that turns auto-init off so the page calls `c15t.init()`. */
 export const MANUAL_ATTRIBUTE = 'data-manual';
-
-type ConfigWindow = Window & {
-	c15tConfig?: ConsentClientOptions & { manual?: boolean };
-};
 
 const MODES: ReadonlySet<string> = new Set<ConsentModeName>([
 	'hosted',
@@ -169,31 +162,45 @@ const mergeUI = function mergeUI(
 };
 
 /**
- * Resolve the page's options: script attributes, then `window.c15tConfig`
- * on top.
+ * Layer one options object over another. `ui` merges rather than
+ * replaces, so `data-color-scheme` on the tag survives a queued
+ * `config` that only turns the trigger on.
+ *
+ * @param base - The options underneath.
+ * @param override - The options on top.
+ * @returns The merged options.
+ */
+export const mergeClientOptions = function mergeClientOptions(
+	base: ConsentClientOptions,
+	override: ConsentClientOptions
+): ConsentClientOptions {
+	const merged: ConsentClientOptions = {
+		...base,
+		...override,
+		ui: mergeUI(base.ui, override.ui),
+	};
+	if (merged.ui === undefined) {
+		delete merged.ui;
+	}
+	return merged;
+};
+
+/**
+ * Resolve the page's options: the script tag's attributes first, then each
+ * queued `config` call on top, in order.
  *
  * @param script - The current script element.
+ * @param configs - Options queued as `['config', options]` before load.
  * @returns Options and whether the page asked to init itself.
  */
 export const readPageOptions = function readPageOptions(
-	script: Element | null
+	script: Element | null,
+	configs: ConsentClientOptions[] = []
 ): { options: ConsentClientOptions; manual: boolean } {
-	const fromScript = readScriptOptions(script);
-	const config =
-		typeof window === 'undefined'
-			? undefined
-			: (window as ConfigWindow)[CONFIG_GLOBAL];
-	const { manual: configManual, ...fromConfig } = config ?? {};
-	const options: ConsentClientOptions = {
-		...fromScript,
-		...fromConfig,
-		ui: mergeUI(fromScript.ui, fromConfig.ui),
-	};
-	if (options.ui === undefined) {
-		delete options.ui;
-	}
-	const manual =
-		configManual === true ||
-		(script !== null && readFlag(script, MANUAL_ATTRIBUTE));
+	const options = configs.reduce(
+		(merged, config) => mergeClientOptions(merged, config),
+		readScriptOptions(script)
+	);
+	const manual = script !== null && readFlag(script, MANUAL_ATTRIBUTE);
 	return { manual, options };
 };

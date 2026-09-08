@@ -4,7 +4,7 @@
  * A page-builder site pastes one tag pointing here and gets the banner
  * with this instance's manifest already inlined, so a location-independent
  * policy renders without a second request. The bundle itself comes from
- * `@c15t/browser`; this module only prepends a `window.c15tConfig` prelude.
+ * `@c15t/browser`; this module only prepends a queued `config` call.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -43,9 +43,9 @@ export interface ScriptOptions {
 	 */
 	readonly backendURL?: string;
 	/**
-	 * Extra `window.c15tConfig` defaults baked into the script:
-	 * `consentCategories`, `legalLinks`, `ui`, and so on. Anything the page
-	 * sets on `window.c15tConfig` before the tag still wins.
+	 * Extra defaults baked into the script: `consentCategories`,
+	 * `legalLinks`, `ui`, and so on. Anything the page queues with
+	 * `c15t.push(['config', ...])` before the tag still wins.
 	 */
 	readonly config?: Readonly<Record<string, unknown>>;
 	/**
@@ -148,8 +148,8 @@ export interface ScriptResult {
 }
 
 /**
- * Build the script body: a `window.c15tConfig` prelude carrying this
- * backend's manifest, then the bundle.
+ * Build the script body: a queued `config` call carrying this backend's
+ * manifest, then the bundle.
  *
  * @param request - Variant, manifest config and caller context.
  * @returns The body with its cache headers.
@@ -170,9 +170,11 @@ export const buildScriptResponse = async function buildScriptResponse(
 			: manifest,
 		mode: 'manifest',
 	};
-	// `Object.assign` onto the defaults: what the page set before the tag
-	// loaded wins over what the backend baked in.
-	const prelude = `window.c15tConfig=Object.assign(${toInlineJson(defaults)},window.c15tConfig||{});\n`;
+	// Queued at the *front* of `window.c15t`, so anything the page pushed
+	// before the tag replays after it and wins over the baked-in defaults.
+	// A page that already holds the API (the tag loaded twice) gets a
+	// plain `config()` call instead.
+	const prelude = `(function(c){window.c15t=window.c15t||[];Array.isArray(window.c15t)?window.c15t.unshift(["config",c]):window.c15t.config(c)})(${toInlineJson(defaults)});\n`;
 	return {
 		body: `${prelude}${bundle}`,
 		cacheControl: createManifestCacheControl(request.cache),
