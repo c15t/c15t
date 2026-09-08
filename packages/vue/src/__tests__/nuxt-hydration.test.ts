@@ -89,6 +89,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		model: 'opt-out',
 		privacySignals: { gpc: { denyCategories: ['marketing'] } },
 		prompt: 'notice',
+		scopeMode: 'permissive',
 	};
 	const policy = normalizePolicyRule(rule);
 	nuxt.response = {

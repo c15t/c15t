@@ -416,6 +416,7 @@ test('versioned inline manifest prepares notice policy and GPC without an init f
 				model: 'opt-out',
 				privacySignals: { gpc: { denyCategories: ['marketing'] } },
 				prompt: 'notice',
+				scopeMode: 'permissive',
 			},
 		],
 	});

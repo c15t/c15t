@@ -65,7 +65,7 @@ const readCard = function readCard(html: string) {
 };
 
 describe('RscConsentBanner server HTML', () => {
-	test('a notice renders the opt-out button before an Accept All dismiss', () => {
+	test('a notice renders the opt-out button before an acknowledgement', () => {
 		const html = renderShell({ model: 'opt-out', prompt: 'notice' });
 
 		const root = /<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(
@@ -84,9 +84,11 @@ describe('RscConsentBanner server HTML', () => {
 		);
 		const dismiss = html.indexOf('data-testid="consent-banner-dismiss-button"');
 		expect(optOut).toBeGreaterThan(-1);
+		expect(
+			html.match(/data-testid="consent-banner-right-link-opt-out"/gu)
+		).toHaveLength(1);
 		expect(dismiss).toBeGreaterThan(optOut);
-		// The opt-out control opens the preference center, so it also covers
-		// the preferences right and no second button renders.
+		// One button opens preferences.
 		expect(html).not.toContain('consent-banner-right-link-preferences');
 
 		expect(html).toContain('data-testid="consent-banner-rights"');
@@ -100,9 +102,9 @@ describe('RscConsentBanner server HTML', () => {
 		expect(optOutButton).not.toContain('data-variant=');
 		expect(html).toContain('Do not sell my info');
 		expect(html).toContain('data-action="dismiss"');
-		// The notice acknowledgement reads as Accept All, not Dismiss.
-		expect(html).toContain('>Accept All<');
-		expect(html).not.toContain('>Got it<');
+		// Older translations can still supply the dismiss label.
+		expect(html).toContain('>Got it<');
+		expect(html).not.toContain('>Accept All<');
 		expect(html).not.toContain('consent-banner-accept-button');
 	});
 

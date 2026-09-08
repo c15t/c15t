@@ -411,25 +411,10 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	...props
 }) => {
 	const { banner } = useHeadlessConsentUI({
-		prompt: { blocking, position, variant },
+		prompt: { blocking, position, scrollLock, trapFocus, variant },
 	});
-	const notice = usePolicyRule().prompt === 'notice';
-
-	/**
-	 * Combine the resolved prompt geometry with local overrides to create the
-	 * context value for child components. A blocking surface always locks
-	 * scroll and traps focus; a notice never does. Otherwise local props win
-	 * over the resolver.
-	 */
-	let resolvedScrollLock: boolean | undefined = scrollLock ?? banner.scrollLock;
-	let resolvedTrapFocus = trapFocus ?? banner.trapFocus;
-	if (banner.blocking) {
-		resolvedScrollLock = true;
-		resolvedTrapFocus = true;
-	} else if (notice) {
-		resolvedScrollLock = false;
-		resolvedTrapFocus = false;
-	}
+	const resolvedScrollLock = banner.scrollLock;
+	const resolvedTrapFocus = banner.trapFocus;
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,

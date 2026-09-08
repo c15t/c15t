@@ -140,10 +140,10 @@ afterEach(async () => {
 });
 
 describe('ConsentBanner under a notice prompt', () => {
-	test('renders the dismiss action as the primary Accept All control', async () => {
+	test('renders the dismiss action as the primary OK control', async () => {
 		await renderBanner(buildInit(noticeRule));
 		const dismiss = query('consent-banner-dismiss-button');
-		expect(dismiss?.textContent?.trim()).toBe('Accept All');
+		expect(dismiss?.textContent?.trim()).toBe('OK');
 		expect(dismiss?.getAttribute('data-action')).toBe('dismiss');
 		expect(dismiss?.getAttribute('data-variant')).toBe('primary');
 		expect(query('consent-banner-accept-button')).toBeNull();

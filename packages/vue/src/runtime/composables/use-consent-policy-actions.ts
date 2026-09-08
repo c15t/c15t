@@ -34,6 +34,10 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 			policy: snapshot.value.policyRule,
 			presentation: {
 				...config.value.presentation,
+				preferences: {
+					trapFocus: config.value.trapFocus,
+					...config.value.presentation?.preferences,
+				},
 				prompt: {
 					position: legacyPosition.value,
 					trapFocus: config.value.trapFocus,
@@ -61,11 +65,11 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 		position: computed(() => presentation.value.position),
 		/** Whether the host chose the position or the variant default applied. */
 		positionSource: computed(() => presentation.value.positionSource),
+		/** Additional preferences buttons recommended for the stock UI. */
+		preferenceControls: computed(() => presentation.value.preferenceControls),
 		presentation,
 		primaryActions: computed(() => presentation.value.primaryActions),
 		shouldFillActions: computed(() => presentation.value.shouldFillActions),
-		/** Rights no action on this surface satisfies; hosts keep them reachable. */
-		uncoveredRights: computed(() => presentation.value.uncoveredRights),
 		/** Surface shape: floating card, edge bar, compact widget or centered wall. */
 		variant: computed(() => presentation.value.variant),
 	};

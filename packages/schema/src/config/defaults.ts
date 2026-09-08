@@ -63,7 +63,6 @@ export const defaultConsentConfig = {
 		'c15t-text-muted': 'hsl(0, 0%, 40%)',
 		'c15t-text-on-primary': 'hsl(0, 0%, 100%)',
 	},
-	trapFocus: true,
 	triggerAriaLabel: 'Open privacy settings',
 	triggerDefaultPosition: 'bottom-right',
 	triggerIcon: 'fingerprint',

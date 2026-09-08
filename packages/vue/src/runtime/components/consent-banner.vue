@@ -68,7 +68,7 @@ const {
 	positionSource,
 	primaryActions: resolvedPrimaryActions,
 	shouldFillActions,
-	uncoveredRights,
+	preferenceControls,
 	variant,
 } = useConsentPolicyActions('prompt', () => ({
 	blocking: props.blocking,
@@ -158,17 +158,14 @@ const resolvedPosition = computed(() => {
 });
 
 /**
- * A notice exists only under the opt-out model, where every category is
- * already permitted, so its one action reads "Accept All". It still
- * records a dismissal, never a choice. Hosts that prefer a neutral
- * acknowledgement can label it with `common.dismiss` instead.
+ * Notice acknowledgement leaves category choices and permissions unchanged.
  */
 const labels = computed(() => {
 	const common = bundle.value?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
 		customize: common?.customize ?? 'Customize',
-		dismiss: common?.acceptAll ?? 'Accept all',
+		dismiss: common?.acknowledge ?? common?.dismiss ?? 'OK',
 		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
@@ -182,11 +179,7 @@ const rightLabels = computed<Record<PolicyRight, string>>(() => {
 	};
 });
 
-/**
- * Every uncovered right opens the preference center, like customize. It
- * renders as underlined text next to the primary action so Accept All is
- * the only button and keeps the visual lead.
- */
+/** Additional buttons open preferences and use underlined text styling. */
 const onRight = function onRight() {
 	activeUI.value = 'manager';
 };
@@ -320,13 +313,13 @@ const onAction = function onAction(action: PresentationAction) {
 						>
 							<template #leading>
 								<div
-									v-if="uncoveredRights.length > 0"
+									v-if="preferenceControls.length > 0"
 									v-bind="config.components?.banner?.rights"
 									data-testid="consent-banner-rights"
 									:class="bannerStyles.rights"
 								>
 									<button
-										v-for="right in uncoveredRights"
+										v-for="right in preferenceControls"
 										:key="right"
 										v-bind="config.components?.banner?.rightLink"
 										type="button"

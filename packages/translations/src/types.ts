@@ -6,6 +6,8 @@ export type AllConsentNames =
 	| 'necessary';
 
 export interface CommonTranslations {
+	/** Acknowledges a notice without recording consent. */
+	acknowledge: string;
 	acceptAll: string;
 	rejectAll: string;
 	customize: string;
@@ -17,8 +19,8 @@ export interface CommonTranslations {
 }
 
 /**
- * Labels for persistent rights a surface exposes when no action covers them,
- * such as the opt-out and preferences links on a notice prompt.
+ * Labels for buttons that open preferences, including the opt-out button
+ * on a notice prompt.
  */
 export interface RightsTranslations {
 	/** Opt-out right. Keeps the statutory "do not sell or share" meaning. */

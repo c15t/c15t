@@ -187,15 +187,19 @@ const cleanup = async function cleanup(
 };
 
 describe('ConsentManager accordion accessibility', () => {
-	test('renders a dialog overlay even when focus trapping is disabled', async () => {
+	test('removes modal behavior when legacy focus trapping is disabled', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const overlay = document.querySelector(
 				'[data-testid="consent-dialog-overlay"]'
 			);
-			expect(overlay).toBeInstanceOf(HTMLElement);
-			expect(overlay?.getAttribute('aria-hidden')).toBe('true');
-			expect(overlay?.className).toContain('overlayVisible');
+			expect(overlay).toBeNull();
+			expect(
+				document
+					.querySelector('[data-testid="consent-dialog-root"]')
+					?.getAttribute('aria-modal')
+			).toBeNull();
+			expect(document.body.style.overflow).not.toBe('hidden');
 		} finally {
 			await cleanup(wrapper, context);
 		}

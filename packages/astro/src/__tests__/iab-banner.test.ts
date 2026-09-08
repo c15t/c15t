@@ -28,6 +28,7 @@ const IAB_POLICY = {
 	match: { fallback: true },
 	model: 'iab',
 	prompt: 'choice',
+	scopeMode: 'permissive',
 } as const;
 
 const iabOptions: C15tAstroOptions = {

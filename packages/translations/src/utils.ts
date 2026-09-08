@@ -113,6 +113,16 @@ export const deepMergeTranslations = function deepMergeTranslations(
 		}
 	}
 
+	// Older bundles used dismiss for notice acknowledgement. Keep their label
+	// when adding the new key from the base language.
+	if (
+		override.common?.acknowledge === undefined &&
+		override.common?.dismiss !== undefined &&
+		result.common
+	) {
+		result.common.acknowledge = override.common.dismiss;
+	}
+
 	// All required sections are present on the base translations object,
 	// so after merging we can safely treat the result as complete.
 	return result as Translations;

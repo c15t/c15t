@@ -42,7 +42,7 @@ const FALLBACK_COPY: BannerCopy = {
 	customizeLabel: 'Customize',
 	description:
 		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
-	dismissLabel: 'Accept All',
+	dismissLabel: 'OK',
 	optOutLabel: 'Do not sell or share my data',
 	preferencesLabel: 'Manage preferences',
 	rejectLabel: 'Reject All',
@@ -72,6 +72,7 @@ interface TranslationBundle {
 		acceptAll?: string;
 		rejectAll?: string;
 		customize?: string;
+		acknowledge?: string;
 		dismiss?: string;
 	};
 	rights?: {
@@ -108,9 +109,9 @@ const readCopy = function readCopy(
 		acceptLabel: common.acceptAll ?? FALLBACK_COPY.acceptLabel,
 		customizeLabel: common.customize ?? FALLBACK_COPY.customizeLabel,
 		description,
-		// A notice exists only under opt-out, where everything is already
-		// permitted, so the acknowledgement reads as "Accept All".
-		dismissLabel: common.acceptAll ?? FALLBACK_COPY.dismissLabel,
+		// Dismissal closes the notice without recording a consent choice.
+		dismissLabel:
+			common.acknowledge ?? common.dismiss ?? FALLBACK_COPY.dismissLabel,
 		optOutLabel: rights.optOut ?? FALLBACK_COPY.optOutLabel,
 		preferencesLabel: rights.preferences ?? FALLBACK_COPY.preferencesLabel,
 		rejectLabel: common.rejectAll ?? FALLBACK_COPY.rejectLabel,
@@ -136,15 +137,15 @@ export interface RscConsentBannerProps {
 		customizeButton?: string;
 		dismissButton?: string;
 		/**
-		 * Group that holds buttons for rights no prompt action covers, such as
+		 * Group of extra preferences buttons, such as
 		 * the opt-out under a notice. Rendered before the action row so the
 		 * notice layout in `@c15t/ui` applies.
 		 */
 		rights?: string;
 		/**
 		 * One right control inside the rights group. The styled adapters
-		 * render it as underlined text so the primary action stays the only
-		 * button; in this headless shell this class styles it. Carries
+		 * render it as a button styled like a link. This class styles the
+		 * button in the server shell. Carries
 		 * `data-action="right"` and `data-right` for host CSS.
 		 */
 		rightLink?: string;

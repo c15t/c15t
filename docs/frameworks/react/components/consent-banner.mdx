@@ -28,23 +28,24 @@ through the provider, so the same component serves every region:
 
 - A `choice` prompt shows the actions the rule allows: reject and accept at
   equal prominence, plus customize when the rule offers it.
-- A `notice` prompt shows an "Accept All" button and an underlined text
-  link for each right no action covers. Under an opt-out rule that is one
-  link, "Do not sell or share my data". A notice never traps focus or locks
-  scroll.
+- A `notice` prompt shows an "OK" button and a button styled as
+  underlined text, labeled "Do not sell or share my data". The latter opens
+  preferences. A notice never traps focus or locks scroll.
 - A rule with `prompt: 'none'` renders nothing.
 
-Right links open the preference center. An opt-out link therefore keeps
-preferences reachable too, so a notice never shows a separate "Manage
-preferences" link. Right links also appear on a choice prompt when nothing
-else covers the right: a rule whose actions are only accept and reject renders
-a "Manage preferences" link, because customize is absent. The link is a text
-link so "Accept All" stays the only button and carries the emphasis.
+Acknowledging a notice records its dismissal. It does not record consent or
+change category permissions, including existing denials and privacy-signal
+restrictions. Customize the label through `common.acknowledge` in your
+translations, or use `dismissButtonText` for one banner.
 
-"Accept All" on a notice records a dismissal, not a choice. The label is
-truthful because a notice only exists under the opt-out model, where every
-category is already permitted. Pass `dismissButtonText` with
-`common.dismiss` for a plain "Dismiss".
+The additional preferences button uses the opt-out label when appropriate.
+A choice prompt without Customize renders a "Manage preferences" button.
+Both are button elements that open the preference center; CSS gives them
+an underlined text appearance. They do not submit an opt-out by themselves.
+
+`preferenceControls` recommends these extra buttons for the stock UI.
+It does not verify disclosure or access to rights. Configure your legal links
+and keep preferences reachable after the banner closes.
 
 ## Props
 
@@ -55,19 +56,72 @@ category is already permitted. Pass `dismissButtonText` with
 | `acceptButtonText` | `ReactNode` | `common.acceptAll` | Accept label. |
 | `rejectButtonText` | `ReactNode` | `common.rejectAll` | Reject label. |
 | `customizeButtonText` | `ReactNode` | `common.customize` | Customize label. |
-| `dismissButtonText` | `ReactNode` | `common.acceptAll` | Label of the notice action. It records a dismissal whatever it says. |
+| `dismissButtonText` | `ReactNode` | `common.acknowledge` | Label of the notice acknowledgement. |
 | `variant` | `PromptVariant` | `floating` | Shape of the prompt. See [Variants](#variants). |
 | `position` | `PromptPosition` | per variant | Where the prompt sits. Must be valid for the variant. |
 | `blocking` | `boolean` | `true` on `wall` | Backdrop, scroll lock, focus trap, and no outside dismissal, as one value. |
 | `layout` | `ConsentBannerLayout` | policy default | Orders and groups actions. Required actions the layout omits are restored. |
 | `primaryButton` | `ConsentBannerButton \| ConsentBannerButton[]` | `'customize'` | Which actions get the primary treatment. On a notice, dismiss is primary when it is the only action. |
 | `direction` | `'row' \| 'column'` | `'row'` | How action groups flow. |
-| `legalLinks` | `(keyof LegalLinks)[] \| null` | all | Which legal links render inline. `null` hides them. |
+| `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which configured legal links render inline. |
 | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
-| `scrollLock` | `boolean` | `false` | Locks page scroll while open. Ignored on a notice. |
-| `trapFocus` | `boolean` | `true` | Traps focus inside the banner. Ignored on a notice. |
+| `scrollLock` | `boolean` | unset | Deprecated. Use `blocking` to control scrolling, focus and backdrop together. |
+| `trapFocus` | `boolean` | unset | Deprecated. Use `blocking`. |
 | `disableAnimation` | `boolean` | `false` | Skips enter and exit animations. |
 | `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
+
+## Per-policy buttons
+
+The default already makes Customize primary on a choice banner and OK
+primary on a notice. To set button order and treatment for specific rules,
+read the active policy inside the provider:
+
+```tsx
+import { ConsentBanner, usePolicyRule } from '@c15t/react';
+import type { ConsentBannerProps } from '@c15t/react';
+
+const banners: Record<
+	string,
+	Pick<ConsentBannerProps, 'layout' | 'primaryButton' | 'variant'>
+> = {
+	europe_opt_in: {
+		layout: [['reject', 'accept'], 'customize'],
+		primaryButton: 'customize',
+	},
+	us_privacy_states: {
+		layout: ['dismiss'],
+		primaryButton: 'dismiss',
+		variant: 'bar',
+	},
+};
+
+export function RegionalBanner() {
+	const policy = usePolicyRule();
+	return <ConsentBanner {...(policy ? banners[policy.id] : undefined)} />;
+}
+```
+
+Render `RegionalBanner` inside `ConsentProvider`. The layout controls the
+action groups; the opt-out preferences button still appears on a notice.
+Required actions omitted from a layout are restored. Accept and Reject
+keep equivalent default prominence.
+
+Choose one brand color and make whichever action is primary use a filled
+button through the provider's theme:
+
+```ts
+const theme = {
+	colors: { primary: '#2f6f4e', primaryHover: '#24563c' },
+	consentActions: {
+		primary: { variant: 'primary', mode: 'filled' },
+	},
+} as const;
+```
+
+Pass `theme` in `ConsentProvider` options. Per-action theme overrides such
+as `consentActions.dismiss` take precedence over this primary style.
+See [Styling](../styling/overview) for tokens and slots, and
+[Policy presets](../concepts/policy-presets) for the rule IDs and coverage.
 
 ## Variants
 
@@ -83,8 +137,7 @@ Set the variant on the banner, or on the provider under
 ```
 
 A floating card in a corner or centered on an edge. This is the default for
-every prompt. A notice keeps the same card, with its right link and "Accept
-All" in the footer.
+every prompt. A notice keeps the same card, with its right link and "OK" in the footer.
 
 ```tsx
 <ConsentBanner variant="bar" position="top" />
@@ -98,8 +151,8 @@ expect a classic cookie bar.
 <ConsentBanner variant="widget" position="bottom-right" />
 ```
 
-A compact chip with smaller type and a three-line description. Pair it with
-a short notice.
+A compact card with smaller type. The full description and its legal links
+remain visible. Pair it with a short notice.
 
 ```tsx
 <ConsentBanner variant="wall" />
@@ -122,14 +175,15 @@ position you set is never mirrored. A position that is not valid for the
 variant falls back to the default and logs an `invalid-position` diagnostic
 in development.
 
-`blocking` bundles the backdrop, scroll lock, focus trap, and no dismissal
-from outside into one value. A `wall` is always blocking, and a notice never
-is. Asking for the opposite logs `blocking-required` or `blocking-forbidden`
-and keeps the safe value. The `scrollLock` and `trapFocus` props still work
-on a non-blocking banner.
+`blocking` controls the backdrop, scroll lock, and focus trap together.
+An explicit value overrides the deprecated `scrollLock` and `trapFocus`
+options. Without `blocking`, either legacy option set to `false` selects
+non-blocking behavior; otherwise a legacy `true` selects blocking behavior.
 
-The card carries `role="dialog"` and `aria-modal="true"` whenever it traps
-focus, which every blocking banner does and a notice never does.
+A choice `wall` always blocks. Notices always stay non-blocking, and asking
+for a notice `wall` falls back to `floating` with an `invalid-variant`
+diagnostic. Blocking banners carry `role="dialog"` and `aria-modal="true"`.
+Non-blocking banners leave page controls usable by keyboard and pointer.
 
 `PromptVariant` and `PromptPosition` are exported from `@c15t/react`.
 Compound parts can read the resolved shape with `useConsentBannerSurface()`,
@@ -153,10 +207,7 @@ export function CompactBanner() {
 					<ConsentBanner.Title />
 					<ConsentBanner.Description />
 				</ConsentBanner.Header>
-				<ConsentBanner.Footer>
-					<ConsentBanner.Rights />
-					<ConsentBanner.PolicyActions />
-				</ConsentBanner.Footer>
+				<ConsentBanner.PolicyActions />
 			</ConsentBanner.Card>
 		</ConsentBanner.Root>
 	);
@@ -164,14 +215,17 @@ export function CompactBanner() {
 ```
 
 `ConsentBanner.PolicyActions` renders the resolved action groups and, before
-them, the right links. Use the individual parts when you need a different
-order or your own markup:
+them, the additional preferences buttons. Pass children to replace those
+buttons while retaining the policy action groups. This supports custom labels
+and button markup.
+
+Use the individual parts when you need a different order or your own markup:
 
 - `ConsentBanner.AcceptButton`, `ConsentBanner.RejectButton`,
   `ConsentBanner.CustomizeButton`, and `ConsentBanner.DismissButton` render one
-  action each. `DismissButton` defaults its label to `common.acceptAll`.
-- `ConsentBanner.Rights` renders one text link per uncovered right. It
-  renders nothing when every right is covered. Pass `rights` to override the
+  action each. `DismissButton` defaults its label to `common.acknowledge`.
+- `ConsentBanner.Rights` renders the additional preferences buttons. It
+  renders nothing when the list is empty. Pass `rights` to override the
   list.
 - `ConsentBanner.RightLink` renders a single right. `right` is `'opt-out'`
   or `'preferences'`. By default it is a button element styled as an
@@ -208,4 +262,4 @@ Each action button carries `data-action`, and each right link carries
 `data-action="right"` plus `data-right`. The built-in stylesheet keys every
 variant's geometry on `data-variant` and `data-position`, and uses
 `data-prompt="notice"` to lay the footer out as one row with the right
-links leading and "Accept All" trailing.
+links leading and "OK" trailing.

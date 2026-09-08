@@ -152,7 +152,7 @@ export interface PolicyRule {
 	 * rejected. Applies to every model, including `iab`.
 	 */
 	categories?: string[];
-	/** How categories outside `categories` behave. Defaults to `permissive`. */
+	/** How categories outside `categories` behave. Required for a partial scope. */
 	scopeMode?: PolicyScopeMode;
 	/** Categories a preference form pre-selects. Inside scope; never for `iab`. */
 	preselectedCategories?: string[];
@@ -183,6 +183,7 @@ export interface PolicyRule {
 	copyRevision?: string;
 	i18n?: {
 		language?: string;
+		/** `preferences` uses generic preference labels instead of US sale/sharing wording. */
 		messageProfile?: string;
 	};
 	proof?: {
@@ -236,6 +237,7 @@ export interface ResolvedPolicyRule {
 	copyRevision: string | null;
 	i18n?: {
 		language?: string;
+		/** `preferences` uses generic preference labels instead of US sale/sharing wording. */
 		messageProfile?: string;
 	};
 	proof: {
@@ -481,6 +483,15 @@ const collectScopeErrors = function collectScopeErrors(check: RuleCheck): void {
 	const { errors, label, rule } = check;
 	collectCategoryListErrors(check, 'categories', { allowWildcard: true });
 	const scopeMode = own(rule, 'scopeMode');
+	if (
+		scopeMode === undefined &&
+		resolveScope(own(rule, 'categories')).length <
+			POLICY_OPTIONAL_CATEGORIES.length
+	) {
+		errors.push(
+			`Policy ${label} must set scopeMode to "strict" or "permissive" when categories selects only part of the optional categories.`
+		);
+	}
 	if (
 		scopeMode !== undefined &&
 		scopeMode !== 'strict' &&

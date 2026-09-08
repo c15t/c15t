@@ -6,8 +6,9 @@ import type {
 	PresentationAction,
 	ResolvedConsentPresentation,
 } from '@c15t/core';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useContext, useEffect, useMemo } from 'react';
 
+import { GlobalThemeContext } from '../context/theme-context';
 import { useConsentSaveAction } from '../draft';
 import {
 	useActiveUI,
@@ -45,7 +46,23 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 ) {
 	const activeUI = useActiveUI();
 	const policy = usePolicyRule();
-	const { presentation } = useUIConfig();
+	const { presentation: configuredPresentation } = useUIConfig();
+	const globalTheme = useContext(GlobalThemeContext);
+	const presentation = useMemo(
+		() => ({
+			preferences: {
+				scrollLock: globalTheme.scrollLock,
+				trapFocus: globalTheme.trapFocus,
+				...configuredPresentation?.preferences,
+			},
+			prompt: {
+				scrollLock: globalTheme.scrollLock,
+				trapFocus: globalTheme.trapFocus,
+				...configuredPresentation?.prompt,
+			},
+		}),
+		[configuredPresentation, globalTheme.scrollLock, globalTheme.trapFocus]
+	);
 	const { theme } = useTheme();
 	const appearance = useMemo(() => {
 		const styles = theme?.consentActions;

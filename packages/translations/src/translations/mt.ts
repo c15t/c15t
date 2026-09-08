@@ -3,6 +3,7 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Aċċetta kollox',
+		acknowledge: 'OK',
 		close: 'Agħlaq',
 		customize: 'Personalizza',
 		dismiss: 'Agħlaq',

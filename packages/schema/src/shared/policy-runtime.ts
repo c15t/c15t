@@ -16,9 +16,17 @@ export interface PolicyValidationResult {
 
 // Manual matcher-data revision marker. Update this whenever the built-in
 // country or region matcher tables change.
-export const POLICY_MATCH_DATASET_VERSION = '2026-03-10';
+export const POLICY_MATCH_DATASET_VERSION = '2026-09-08';
 
 export const EU_COUNTRY_CODES = [
+	// EU territories that GeoIP providers can return separately from FI/FR.
+	'AX',
+	'GF',
+	'GP',
+	'MQ',
+	'MF',
+	'RE',
+	'YT',
 	'AT',
 	'BE',
 	'BG',

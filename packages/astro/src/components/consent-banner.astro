@@ -41,6 +41,8 @@ interface Props {
 	rejectButtonText?: string;
 	/** Override the accept button label. */
 	acceptButtonText?: string;
+	/** Override the notice acknowledgement label. */
+	dismissButtonText?: string;
 	/** Override the customize button label. */
 	customizeButtonText?: string;
 	/** Ship the DOM without the bundled stylesheet's class names. */
@@ -63,6 +65,7 @@ const {
 	description,
 	rejectButtonText,
 	acceptButtonText,
+	dismissButtonText,
 	customizeButtonText,
 	noStyle = false,
 	class: className,
@@ -101,9 +104,8 @@ const copy = {
 		(notice
 			? (bundle.cookieBanner?.noticeDescription ?? fallback.cookieBanner.noticeDescription)
 			: (bundle.cookieBanner?.description ?? fallback.cookieBanner.description)),
-	// A notice exists only under opt-out, where everything is already
-	// permitted, so the acknowledgement reads as "Accept All".
-	dismiss: acceptButtonText ?? bundle.common?.acceptAll ?? fallback.common.acceptAll,
+	// Acknowledgement leaves category choices and permissions unchanged.
+	dismiss: dismissButtonText ?? bundle.common?.acknowledge ?? bundle.common?.dismiss ?? fallback.common.acknowledge,
 	reject: rejectButtonText ?? bundle.common?.rejectAll ?? fallback.common.rejectAll,
 	securedBy: bundle.common?.securedBy ?? fallback.common.securedBy,
 	title:
@@ -128,14 +130,9 @@ const {
 	direction,
 	primaryActions,
 	shouldFillActions: shouldFill,
-	trapFocus,
-	uncoveredRights,
+	preferenceControls,
 	variant,
 } = presentation;
-// The same rule the React card uses: a trapping card is a modal dialog, a
-// non-trapping one a labelled region. The resolver already turns the trap off
-// for a notice and on for a blocking surface.
-const trapping = blocking || trapFocus;
 
 // A corner the host did not choose follows the text direction, the same
 // mirroring the React and Svelte roots apply; a host corner is kept as is.
@@ -219,10 +216,10 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal={trapping ? "true" : undefined}
+					aria-modal={blocking ? "true" : undefined}
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
-					role={trapping ? "dialog" : "region"}
+					role={blocking ? "dialog" : "region"}
 					tabindex="-1"
 				>
 					<div
@@ -262,12 +259,12 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 						data-split={actionGroups.length > 1 && !shouldFill ? 'true' : undefined}
 						data-testid="consent-banner-footer"
 					>
-						{uncoveredRights.length > 0 && (
+						{preferenceControls.length > 0 && (
 							<div
 								class={noStyle ? '' : styles.rights}
 								data-testid="consent-banner-rights"
 							>
-								{uncoveredRights.map((right) => (
+								{preferenceControls.map((right) => (
 									<button
 										class={noStyle ? '' : styles.rightLink}
 										data-action="right"

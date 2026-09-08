@@ -57,6 +57,174 @@ export interface PlaygroundPreset {
 /** Every preset that ships in `policyRulePresets`, with a matching location. */
 export const playgroundPresets: PlaygroundPreset[] = [
 	{
+		country: 'AU',
+		id: 'australiaOptOut',
+		label: 'Australia opt-out',
+		rule: policyRulePresets.australiaOptOut(),
+	},
+	{
+		country: 'JP',
+		id: 'japanOptOut',
+		label: 'Japan opt-out',
+		rule: policyRulePresets.japanOptOut(),
+	},
+	{
+		country: 'CA',
+		id: 'canadaOptIn',
+		label: 'Canada opt-in',
+		region: 'ON',
+		rule: policyRulePresets.canadaOptIn(),
+	},
+	{
+		country: 'CA',
+		id: 'canadaOptOut',
+		label: 'Canada opt-out',
+		region: 'ON',
+		rule: policyRulePresets.canadaOptOut(),
+	},
+	{
+		country: 'GB',
+		id: 'ukStatistics',
+		label: 'UK service statistics',
+		rule: policyRulePresets.ukStatistics(),
+	},
+	{
+		country: 'MY',
+		id: 'malaysiaStatistics',
+		label: 'Malaysia statistics only',
+		rule: policyRulePresets.malaysiaStatistics(),
+	},
+
+	{
+		country: 'CN',
+		id: 'chinaOptIn',
+		label: 'China opt-in',
+		rule: policyRulePresets.chinaOptIn(),
+	},
+	{
+		country: 'MY',
+		id: 'malaysiaOptIn',
+		label: 'Malaysia opt-in',
+		rule: policyRulePresets.malaysiaOptIn(),
+	},
+	{
+		country: 'TH',
+		id: 'thailandOptIn',
+		label: 'Thailand opt-in',
+		rule: policyRulePresets.thailandOptIn(),
+	},
+	{
+		country: 'ID',
+		id: 'indonesiaOptIn',
+		label: 'Indonesia opt-in',
+		rule: policyRulePresets.indonesiaOptIn(),
+	},
+	{
+		country: 'PH',
+		id: 'philippinesOptIn',
+		label: 'Philippines opt-in',
+		rule: policyRulePresets.philippinesOptIn(),
+	},
+	{
+		country: 'VN',
+		id: 'vietnamOptIn',
+		label: 'Vietnam opt-in',
+		rule: policyRulePresets.vietnamOptIn(),
+	},
+	{
+		country: 'BN',
+		id: 'bruneiOptIn',
+		label: 'Brunei opt-in',
+		rule: policyRulePresets.bruneiOptIn(),
+	},
+	{
+		country: 'LA',
+		id: 'laosOptIn',
+		label: 'Laos opt-in',
+		rule: policyRulePresets.laosOptIn(),
+	},
+	{
+		country: 'BR',
+		id: 'brazilOptIn',
+		label: 'Brazil opt-in',
+		rule: policyRulePresets.brazilOptIn(),
+	},
+	{
+		country: 'CH',
+		id: 'switzerlandOptIn',
+		label: 'Switzerland opt-in',
+		rule: policyRulePresets.switzerlandOptIn(),
+	},
+	{
+		country: 'TR',
+		id: 'turkeyOptIn',
+		label: 'Türkiye opt-in',
+		rule: policyRulePresets.turkeyOptIn(),
+	},
+	{
+		country: 'CH',
+		id: 'switzerlandOptOutNoPrompt',
+		label: 'Switzerland no prompt',
+		rule: policyRulePresets.switzerlandOptOutNoPrompt(),
+	},
+
+	{
+		country: 'US',
+		id: 'usPrivacyStatesOptIn',
+		label: 'US privacy states opt-in',
+		region: 'CO',
+		rule: policyRulePresets.usPrivacyStatesOptIn(),
+	},
+	{
+		country: 'US',
+		id: 'usPrivacyStatesOptOut',
+		label: 'US privacy states opt-out',
+		region: 'CO',
+		rule: policyRulePresets.usPrivacyStatesOptOut(),
+	},
+	{
+		country: 'AU',
+		id: 'australiaOptIn',
+		label: 'Australia opt-in',
+		rule: policyRulePresets.australiaOptIn(),
+	},
+	{
+		country: 'SG',
+		id: 'singaporeOptIn',
+		label: 'Singapore opt-in',
+		rule: policyRulePresets.singaporeOptIn(),
+	},
+	{
+		country: 'JP',
+		id: 'japanOptIn',
+		label: 'Japan opt-in',
+		rule: policyRulePresets.japanOptIn(),
+	},
+	{
+		country: 'KR',
+		id: 'southKoreaOptIn',
+		label: 'South Korea opt-in',
+		rule: policyRulePresets.southKoreaOptIn(),
+	},
+	{
+		country: 'IN',
+		id: 'indiaOptIn',
+		label: 'India opt-in',
+		rule: policyRulePresets.indiaOptIn(),
+	},
+	{
+		country: 'AE',
+		id: 'uaeOptIn',
+		label: 'UAE opt-in',
+		rule: policyRulePresets.uaeOptIn(),
+	},
+	{
+		country: 'SA',
+		id: 'saudiArabiaOptIn',
+		label: 'Saudi Arabia opt-in',
+		rule: policyRulePresets.saudiArabiaOptIn(),
+	},
+	{
 		country: 'GB',
 		id: 'europeOptIn',
 		label: 'Europe opt-in',
@@ -413,13 +581,13 @@ export const DEMO_PRESENTATION_BY_RULE: Record<
 	string,
 	ConsentPresentation['prompt']
 > = {
-	// Opt-in as litigation defence reads best as a centered card.
+	// This example places the California choice in a centered card.
 	california_opt_in: { position: 'bottom-center', variant: 'floating' },
 	// No prompt, so no banner: the trigger toolbar is the persistent route.
 	california_opt_out: undefined,
 	// A dismissible corner card is the common GDPR treatment.
 	europe_opt_in: { position: 'bottom-left', variant: 'floating' },
-	// Law 25 deployments often block until the visitor answers.
+	// This example uses a wall for Quebec.
 	quebec_opt_in: { variant: 'wall' },
 	// No prompt here either.
 	world_opt_out_no_prompt: undefined,
@@ -429,8 +597,7 @@ export const DEMO_PRESENTATION_BY_RULE: Record<
 
 /**
  * Shape for any notice prompt, including a preset edited to `notice` in the
- * playground. A small bottom-left card with the opt-out link and Accept
- * All; the trigger toolbar keeps the bottom-right corner, so the two never
+ * playground. A small bottom-left card with the opt-out button and OK; the trigger toolbar keeps the bottom-right corner, so the two never
  * overlap.
  */
 export const DEMO_NOTICE_PRESENTATION: PromptPresentation = {
@@ -651,7 +818,7 @@ export const buildProviderSnippet = function buildProviderSnippet(
 		: '';
 	return `${presetImport}import { ${componentImports} } from 'c15t/react';
 
-// First match wins by array order, so put specific rules before broad ones.
+// Region matches beat country matches. Array order breaks ties.
 const policyRules = [
   ${ruleSource},
 ];

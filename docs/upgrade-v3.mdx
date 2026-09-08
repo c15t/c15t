@@ -47,7 +47,8 @@ const policyRules = [
 make a choice, dismiss a notice, or see no prompt. Opt-in and IAB models require
 `prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`.
 
-A strict scope blocks categories outside the rule. A permissive scope allows
+When `categories` selects only some optional categories, you must set
+`scopeMode` explicitly. A strict scope blocks categories outside the rule. A permissive scope allows
 those categories unless another restriction applies. An omitted scope, `['*']`,
 or a list containing only `necessary` expands to the default optional categories.
 `necessary` is always permitted.
@@ -157,3 +158,17 @@ Runtime callbacks use `onChoiceRecorded`, `onPermissionsChanged` and
 Astro's serializable offline descriptor accepts `policyRules`, just like the
 other adapters' offline factories. Configure a preset or explicit rules;
 omitting them keeps the conservative fallback.
+
+## Presentation corrections
+
+Use `blocking` for backdrop, scroll locking and focus trapping together.
+Choice banners default to non-blocking, choice walls always block, and notices
+never block. A notice configured as a wall falls back to a floating card.
+Preferences remain centered; `variant` and `position` apply only to prompts.
+
+Replace reads of `uncoveredRights` with `preferenceControls`. The latter is a
+list of additional preferences buttons recommended for the stock UI. It does
+not verify disclosure or persistent access to policy rights.
+
+Notice acknowledgement uses `common.acknowledge`, falling back to
+`common.dismiss` for older translation bundles. It does not record a choice.

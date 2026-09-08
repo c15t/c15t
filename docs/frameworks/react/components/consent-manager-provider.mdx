@@ -68,6 +68,7 @@ export function RegionalBanner() {
 }
 ```
 
-`presentation.preferences` accepts the same fields for the preference center,
-which defaults to a blocking `wall`. Set `scrollLock: false` or
-`trapFocus: false` there to make it non-blocking.
+`presentation.preferences` accepts action layout, primary actions, defaults,
+and `blocking`. It renders a centered dialog; `variant` and `position` are
+prompt-only options. Preferences default to blocking. Set `blocking: false`
+to remove the backdrop, scroll lock and focus trap together.

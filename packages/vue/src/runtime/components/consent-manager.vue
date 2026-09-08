@@ -158,11 +158,12 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 	</div>
 	<DialogRoot
 		:open="activeUI === 'manager'"
-		:modal="config.trapFocus"
+		:modal="surface.blocking"
 		@update:open="(open) => (activeUI = open ? 'manager' : null)"
 	>
 		<DialogPortal>
 			<DialogOverlay
+				v-if="surface.blocking"
 				:style="overlayFallbackStyle"
 				v-bind="config.components?.dialog?.overlay"
 				data-testid="consent-dialog-overlay"
@@ -190,6 +191,7 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 			>
 				<DialogContent
 					v-bind="config.components?.dialog?.container"
+					:data-blocking="surface.blocking ? 'true' : undefined"
 					data-testid="consent-dialog-root"
 					:dir="textDirection"
 					:class="[dialogStyles.container, dialogStyles.contentVisible]"

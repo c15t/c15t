@@ -28,6 +28,7 @@ const BANNER_POLICY = resolvePolicyRules({
 			match: { fallback: true },
 			model: 'opt-in',
 			prompt: 'choice',
+			scopeMode: 'permissive',
 		},
 	],
 });
@@ -171,7 +172,7 @@ describe('consent banner SSR', () => {
 		expect(rightTag?.[0]).toContain(bannerStyles.rightLink);
 		expect(rightTag?.[0]).not.toMatch(/data-variant=/u);
 		expect(html).toContain('data-action="dismiss"');
-		expect(html).toContain('>Accept All<');
+		expect(html).toContain('>OK<');
 		expect(html).not.toContain('>Dismiss<');
 		expect(html.indexOf('data-right="opt-out"')).toBeLessThan(
 			html.indexOf('data-action="dismiss"')

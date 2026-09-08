@@ -459,7 +459,7 @@
 			return userTheme;
 		},
 		get trapFocus() {
-			return options.trapFocus ?? true;
+			return options.trapFocus;
 		},
 	});
 

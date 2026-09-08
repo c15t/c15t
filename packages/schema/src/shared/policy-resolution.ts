@@ -173,7 +173,9 @@ const findCountryMatch = function findCountryMatch(
 
 /**
  * Matches location inputs against ordered entries using the fixed precedence
- * region, country, fallback (unknown location only), default.
+ * region, country, fallback for unknown location, default. A missing region
+ * uses an explicit country rule when present; otherwise it is unknown when
+ * this country has configured region rules.
  *
  * @remarks
  * When the country is unknown and the pack has neither a fallback nor a
@@ -189,6 +191,27 @@ export const matchPolicyRules = function matchPolicyRules(params: {
 	const { entries } = params;
 	const countryCode = normalizeCountryCode(params.countryCode);
 	const regionCode = normalizeRegionCode(params.regionCode);
+
+	// An explicit country rule is the author's answer for missing subdivisions.
+	// Without one, do not silently select the global allow-by-default rule.
+	const missingRegion =
+		countryCode &&
+		!regionCode &&
+		entries.some((entry) =>
+			entry.match.regions?.some(
+				(region) => normalizeCountryCode(region.country) === countryCode
+			)
+		);
+	if (missingRegion) {
+		const countryIndex = findCountryMatch(entries, countryCode);
+		if (countryIndex !== -1) {
+			return { index: countryIndex, matchedBy: 'country', status: 'matched' };
+		}
+		const index = entries.findIndex((entry) => entry.match.fallback === true);
+		return index === -1
+			? { status: 'insufficient-inputs' }
+			: { index, matchedBy: 'fallback', status: 'matched' };
+	}
 
 	if (countryCode && regionCode) {
 		const index = findRegionMatch(entries, countryCode, regionCode);

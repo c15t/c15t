@@ -47,9 +47,15 @@
 	const theme = getThemeContext();
 	const preferences = $derived(
 		resolveConsentPresentation({
-			override: { scrollLock: theme.scrollLock },
 			policy: consent.snapshot.policyRule,
-			presentation: consent.state.presentation,
+			presentation: {
+				...consent.state.presentation,
+				preferences: {
+					scrollLock: theme.scrollLock,
+					trapFocus: theme.trapFocus,
+					...consent.state.presentation?.preferences,
+				},
+			},
 			surface: 'preferences',
 		})
 	);
@@ -165,16 +171,18 @@
 	bind:open={dialogOpen}
 	closeOnInteractOutside={false}
 	closeOnEscape={true}
-	trapFocus={preferences.trapFocus && (theme.trapFocus ?? true)}
+	trapFocus={preferences.blocking}
 	preventScroll={preferences.scrollLock}
 	lazyMount
 	unmountOnExit
 >
 	<Portal>
-		<Dialog.Backdrop
-			class={noStyle ? '' : styles.overlay || ''}
-			data-testid="consent-dialog-overlay"
-		/>
+		{#if preferences.blocking}
+			<Dialog.Backdrop
+				class={noStyle ? '' : styles.overlay || ''}
+				data-testid="consent-dialog-overlay"
+			/>
+		{/if}
 		<Dialog.Positioner
 			class={noStyle
 				? ''
@@ -187,6 +195,7 @@
 				dir={textDirection}
 				aria-labelledby="consent-dialog-title"
 				aria-describedby="consent-dialog-description"
+				data-blocking={preferences.blocking ? 'true' : undefined}
 				data-testid="consent-dialog-root"
 			>
 				<!-- Card -->

@@ -1007,12 +1007,12 @@ const RuntimeInspector = ({
 					<SectionLabel>Prompt controls</SectionLabel>
 					<p className="font-mono text-xs">
 						{banner.orderedActions.join(', ') || 'none'}
-						{banner.uncoveredRights.length > 0
-							? ` · rights ${banner.uncoveredRights.join(', ')}`
+						{banner.preferenceControls.length > 0
+							? ` · rights ${banner.preferenceControls.join(', ')}`
 							: ''}
 					</p>
 					<p className="text-muted-foreground text-xs leading-5">
-						Actions the policy allows, plus links for rights no action covers.
+						Policy actions and additional buttons that open preferences.
 					</p>
 				</div>
 			</div>

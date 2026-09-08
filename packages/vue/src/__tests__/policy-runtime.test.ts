@@ -24,6 +24,7 @@ const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
 		match: { fallback: true },
 		model: 'opt-in',
 		prompt: 'choice',
+		scopeMode: 'permissive',
 		...patch,
 	});
 	return {

@@ -541,8 +541,8 @@ export const getThemeContext = function getThemeContext(): ThemeContextValue {
 			colorScheme: 'system',
 			disableAnimation: false,
 			noStyle: false,
-			scrollLock: false,
-			trapFocus: true,
+			scrollLock: undefined,
+			trapFocus: undefined,
 		}
 	);
 };

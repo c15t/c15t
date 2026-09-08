@@ -2,7 +2,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
 import { createConsentKernel, resolveConsentPresentation } from 'c15t';
 import { describe, expect, it } from 'vitest';
 
-import { presentationForRule } from './policy-playground';
+import { playgroundPresets, presentationForRule } from './policy-playground';
 import {
 	demoScenarios,
 	getScenarioById,
@@ -10,6 +10,48 @@ import {
 } from './scenarios';
 
 describe('demo policy scenarios', () => {
+	it.each([
+		['US', 'NY', 'none', true],
+		['US', 'CO', 'none', true],
+		['CN', null, 'choice', false],
+		['MY', null, 'choice', false],
+		['BR', null, 'choice', false],
+		[null, null, 'choice', false],
+	] as const)(
+		'combined presets give %s/%s a %s prompt',
+		(countryCode, regionCode, prompt, marketing) => {
+			const rules = playgroundPresets
+				.filter(
+					({ id }) =>
+						![
+							'ukStatistics',
+							'malaysiaStatistics',
+							'australiaOptOut',
+							'japanOptOut',
+							'canadaOptIn',
+						].includes(id) &&
+						id !== 'europeIab' &&
+						id !== 'usPrivacyStatesOptIn' &&
+						id !== 'californiaOptIn' &&
+						id !== 'californiaOptOut' &&
+						id !== 'switzerlandOptOutNoPrompt'
+				)
+				.map(({ rule }) => rule);
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolvePolicyRules({
+					countryCode,
+					regionCode,
+					rules,
+				}),
+			});
+			expect(kernel.getSnapshot().promptRequirement.kind).toBe(prompt);
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(
+				marketing
+			);
+			expect(kernel.getSnapshot().explicitChoice).toBeNull();
+			kernel.dispose();
+		}
+	);
 	it.each(demoScenarios)(
 		'$id resolves its authored rule and preserves preference access',
 		(scenario) => {
@@ -68,7 +110,7 @@ describe('demo policy scenarios', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		kernel.dispose();
 	});
-	it('renders the US notice as Accept All plus a single opt-out link', () => {
+	it('offers notice dismissal and one button to open opt-out preferences', () => {
 		const scenario = getScenarioById('custom-us-notice');
 		const resolution = resolvePolicyRules({
 			countryCode: scenario.country,
@@ -84,7 +126,7 @@ describe('demo policy scenarios', () => {
 			surface: 'prompt',
 		});
 		expect(prompt.orderedActions).toEqual(['dismiss']);
-		expect(prompt.uncoveredRights).toEqual(['opt-out']);
+		expect(prompt.preferenceControls).toEqual(['opt-out']);
 	});
 	it('covers the California opt-out with reject and adds a preferences link', () => {
 		const scenario = getScenarioById('custom-ca-do-not-sell');
@@ -103,7 +145,7 @@ describe('demo policy scenarios', () => {
 			surface: 'prompt',
 		});
 		expect(prompt.orderedActions).toEqual(['accept', 'reject']);
-		expect(prompt.uncoveredRights).toEqual(['preferences']);
+		expect(prompt.preferenceControls).toEqual(['preferences']);
 	});
 	it('renders the US notice as a floating bottom-left card through the demo map', () => {
 		const scenario = getScenarioById('custom-us-notice');
@@ -176,6 +218,49 @@ describe('demo policy scenarios', () => {
 		kernel.set.privacySignals({ gpc: true });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().explicitChoice).toEqual(receipt);
+		kernel.dispose();
+	});
+	it('the US opt-in variant blocks tracking before choice and honors GPC after accept', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: 'CO',
+				rules: getScenarioPolicyRules('preset-us-privacy-states-opt-in'),
+			}),
+		});
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+		expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+			marketing: false,
+			measurement: false,
+		});
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		kernel.set.privacySignals({ gpc: true });
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+			marketing: false,
+			measurement: false,
+		});
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		kernel.dispose();
+	});
+	it('the US states preset preserves GPC restrictions when its notice is dismissed', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: 'CO',
+				rules: getScenarioPolicyRules('preset-us-privacy-states'),
+			}),
+		});
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		kernel.set.privacySignals({ gpc: true });
+		await kernel.commands.dismissNotice();
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+			marketing: false,
+			measurement: false,
+		});
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
 		kernel.dispose();
 	});
 });

@@ -11,6 +11,7 @@ export const MANIFEST_FIXTURE = {
 			match: { countries: ['DE'] },
 			model: 'opt-in',
 			prompt: 'choice',
+			scopeMode: 'permissive',
 		}),
 		createConsentManifestPolicyPack({
 			id: 'notice-default',

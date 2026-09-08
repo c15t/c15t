@@ -13,6 +13,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [ConsentManagerProvider](./docs/frameworks/react/components/consent-manager-provider.md): Root provider that initializes the consent manager for your React app.
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent Categories](./docs/frameworks/react/concepts/consent-categories.md): How c15t groups cookies and scripts into consent categories.
+- [Policy presets](./docs/frameworks/react/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [Headless](./docs/frameworks/react/headless.md): Build your own consent UI on top of the c15t hooks.
 - [useConsentManager](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Read and update consent state from any component.
 - [IAB TCF](./docs/frameworks/react/iab/overview.md): Enable IAB TCF 2.3 in your React app.

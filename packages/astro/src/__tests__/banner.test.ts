@@ -177,7 +177,7 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 		expect(root).toContain('data-model="opt-out"');
 	});
 
-	it('renders the opt-out button before an Accept All dismiss with notice copy', async () => {
+	it('renders the opt-out button before an acknowledgement with notice copy', async () => {
 		const html = await render(await noticeLocals());
 
 		// The inlined config carries the whole bundle, so read the element.
@@ -202,7 +202,7 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 			html
 		)?.[0];
 		expect(optOutButton).toBeDefined();
-		// An underlined text control, so Accept All is the only button in the
+		// An underlined button keeps acknowledgement as the primary action in the
 		// row. It opens the preference center through the same delegated
 		// handler as customize.
 		expect(optOutButton).toContain('data-action="right"');
@@ -213,8 +213,8 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 		expect(html).toContain('Do not sell or share my data');
 		expect(html).toContain('data-action="dismiss"');
 		expect(html).toContain('data-c15t-action="dismiss"');
-		// The notice acknowledgement reads as Accept All, not Dismiss.
-		expect(html).toContain('>Accept All<');
+		// Acknowledgement dismisses the notice without recording consent.
+		expect(html).toContain('>OK<');
 		expect(html).not.toContain('>Dismiss<');
 		expect(html).not.toContain('consent-banner-accept-button');
 	});
@@ -248,7 +248,7 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 			/<button[^>]*data-action="dismiss"[^>]*>(?<text>[^<]*)<\/button>/u.exec(
 				html
 			)?.groups?.text;
-		expect(dismiss).toBe('Alle akzeptieren');
+		expect(dismiss).toBe('OK');
 	});
 
 	it('renders no rights group when the prompt already covers them', async () => {

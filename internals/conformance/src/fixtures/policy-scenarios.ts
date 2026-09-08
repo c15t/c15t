@@ -95,6 +95,16 @@ const legacyHydration = (
 const expiry = (['opt-in', 'opt-out'] as const).flatMap((model) => [
 	hydrateScenario(
 		`${model}-expired-grant`,
+		'legacy-expired-grant',
+		{
+			permissions: model === 'opt-out' ? granted : denied,
+			prompt: { kind: 'choice', reason: 'expired' },
+		},
+		{ ...POLICY_CHOICE, model },
+		['F2']
+	),
+	hydrateScenario(
+		`${model}-expired-grant-with-refusal`,
 		'legacy-expired-mixed',
 		{
 			permissions: {
@@ -102,7 +112,7 @@ const expiry = (['opt-in', 'opt-out'] as const).flatMap((model) => [
 				measurement: false,
 				necessary: true,
 			},
-			prompt: { kind: 'choice', reason: 'expired' },
+			prompt: { kind: 'none' },
 		},
 		{ ...POLICY_CHOICE, model },
 		['F2']

@@ -35,6 +35,7 @@ describe('bundled notice and rights translations', () => {
 		'%s defines dismiss, notice copy, and rights labels',
 		(_language, translations) => {
 			nonEmpty(translations.common.dismiss);
+			nonEmpty(translations.common.acknowledge);
 			nonEmpty(translations.cookieBanner.noticeTitle);
 			nonEmpty(translations.cookieBanner.noticeDescription);
 			nonEmpty(translations.rights.optOut);
@@ -59,6 +60,19 @@ describe('bundled notice and rights translations', () => {
 });
 
 describe('deepMergeTranslations', () => {
+	it('preserves an older notice label and prefers an explicit acknowledgement', () => {
+		const base = bundledTranslations.en;
+		expect(
+			deepMergeTranslations(base, { common: { dismiss: 'Understood' } }).common
+				.acknowledge
+		).toBe('Understood');
+		expect(
+			deepMergeTranslations(base, {
+				common: { acknowledge: 'Acknowledged', dismiss: 'Close' },
+			}).common.acknowledge
+		).toBe('Acknowledged');
+	});
+
 	const baseTranslations: Translations = {
 		common: {
 			acceptAll: 'Default Accept All',

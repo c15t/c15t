@@ -34,7 +34,7 @@ export const matchedResolution = function matchedResolution(
 	rule: PolicyRule,
 	matchedBy: PolicyMatchedBy = 'default'
 ): Extract<PolicyResolution, { status: 'matched' }> {
-	const policy = normalizePolicyRule(rule);
+	const policy = normalizePolicyRule({ scopeMode: 'permissive', ...rule });
 	return {
 		fingerprints: createPolicyRuleFingerprints(policy),
 		matchedBy,

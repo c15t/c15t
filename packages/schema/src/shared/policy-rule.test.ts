@@ -33,6 +33,19 @@ const errorsFor = (rule: unknown, options?: { iabEnabled?: boolean }) =>
 	inspectPolicyRules([rule], options).errors;
 
 describe('normalizePolicyRule', () => {
+	test('requires an explicit decision about out-of-scope permissions', () => {
+		expect(() =>
+			normalizePolicyRule({ ...optInChoice, categories: ['measurement'] })
+		).toThrow(/must set scopeMode/u);
+		for (const scopeMode of ['strict', 'permissive'] as const) {
+			const rule = normalizePolicyRule({
+				...optInChoice,
+				categories: ['measurement'],
+				scopeMode,
+			});
+			expect(rule.scopeMode).toBe(scopeMode);
+		}
+	});
 	test('fills defaults and canonicalizes every set', () => {
 		const rule = normalizePolicyRule({
 			...optInChoice,
@@ -42,6 +55,7 @@ describe('normalizePolicyRule', () => {
 			preselectedCategories: ['measurement', 'measurement'],
 			privacySignals: { gpc: { denyCategories: ['measurement', 'marketing'] } },
 			rights: ['opt-out', 'disclosure'],
+			scopeMode: 'permissive',
 		});
 
 		expect(rule).toEqual({
@@ -246,6 +260,7 @@ describe('inspectPolicyRules field validation', () => {
 				...optInChoice,
 				categories: ['marketing'],
 				preselectedCategories: ['measurement'],
+				scopeMode: 'strict',
 			})
 		).toHaveLength(1);
 		expect(

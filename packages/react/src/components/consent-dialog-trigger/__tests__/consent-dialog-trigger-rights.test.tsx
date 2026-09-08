@@ -259,3 +259,29 @@ describe('after-prompt visibility', () => {
 		).toBeInTheDocument();
 	});
 });
+
+test('a no-prompt international profile keeps a generic working preference button', async () => {
+	renderWithRule(
+		{
+			i18n: { messageProfile: 'preferences' },
+			model: 'opt-out',
+			prompt: 'none',
+		},
+		<ConsentDialogTriggerToolbar
+			showWhen="after-prompt"
+			defaultPosition="top-right"
+			persistPosition={false}
+		/>
+	);
+	const action = await waitForPreferencesAction();
+	expect(action).toHaveAttribute('aria-label', 'Manage preferences');
+	expect(
+		document.querySelector('[data-testid="consent-banner-root"]')
+	).not.toBeInTheDocument();
+	await userEvent.click(action);
+	await vi.waitFor(() =>
+		expect(
+			document.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeInTheDocument()
+	);
+});

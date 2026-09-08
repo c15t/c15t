@@ -226,7 +226,6 @@ const ConsentBannerCard = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
-	const { trapFocus } = useTheme();
 	const { blocking } = useConsentBannerSurface();
 	const { title } = useBannerCopy();
 	const localRef = useRef<HTMLDivElement>(null);
@@ -234,7 +233,7 @@ const ConsentBannerCard = createForwardRef<
 
 	// A blocking surface always traps focus and announces as a modal dialog.
 	// A non-trapping card is a labelled region that never claims aria-modal.
-	const shouldTrapFocus = blocking || Boolean(trapFocus);
+	const shouldTrapFocus = blocking;
 	useFocusTrap(shouldTrapFocus, cardRef);
 
 	return (
@@ -407,10 +406,8 @@ ConsentBannerAcceptButton.displayName = CONSENT_BANNER_ACCEPT_BUTTON_NAME;
  * @remarks
  * Records a notice dismissal without recording a category choice, so no
  * choice callbacks fire. Only rendered when the active policy requires a
- * notice. The default label is `common.acceptAll`: a notice exists only
- * under the opt-out model, where every category is already permitted, so
- * "Accept All" describes what happens. Pass children (or the banner's
- * `dismissButtonText`) for a neutral label such as `common.dismiss`.
+ * notice. Uses `common.acknowledge`, with `common.dismiss` as a fallback.
+ * Children or `dismissButtonText` override the label.
  * Themed through `theme.consentActions.dismiss`.
  *
  * @example
@@ -436,7 +433,7 @@ const ConsentBannerDismissButton = createForwardRef<
 			noStyle={noStyle}
 			{...props}
 		>
-			{children ?? common.acceptAll}
+			{children ?? common.acknowledge ?? common.dismiss}
 		</ConsentButton>
 	);
 });
@@ -538,8 +535,8 @@ ConsentBannerRightLink.displayName = CONSENT_BANNER_RIGHT_LINK_NAME;
  */
 export interface ConsentBannerRightsProps extends Omit<BoxProps, 'slotKey'> {
 	/**
-	 * Rights to render as controls. Defaults to the rights the resolved
-	 * presentation leaves uncovered: a notice under an opt-out rule shows the
+	 * Additional preferences buttons to render. Defaults to the resolved
+	 * presentation recommendation: a notice under an opt-out rule shows the
 	 * opt-out control (which also keeps preferences reachable), and a choice
 	 * prompt with customize shows nothing.
 	 */
@@ -547,10 +544,10 @@ export interface ConsentBannerRightsProps extends Omit<BoxProps, 'slotKey'> {
 }
 
 /**
- * Group of controls for rights no banner action covers.
+ * Group of additional buttons that open preferences.
  *
  * @remarks
- * Renders nothing when every right is covered. Children replace the default
+ * Renders nothing when no additional preferences button is recommended. Children replace the default
  * controls; use {@link ConsentBannerRightLink} to keep the behavior.
  *
  * @example
@@ -563,7 +560,7 @@ const ConsentBannerRights = createForwardRef<
 	ConsentBannerRightsProps
 >(({ rights, children, ...props }, ref) => {
 	const { banner } = useHeadlessConsentUI();
-	const resolvedRights = (rights ?? banner.uncoveredRights).filter(
+	const resolvedRights = (rights ?? banner.preferenceControls).filter(
 		(right): right is ConsentBannerRight => right !== 'disclosure'
 	);
 	if (children === undefined && resolvedRights.length === 0) {

@@ -61,6 +61,33 @@ needs a different footprint:
 | `--consent-banner-widget-max-width` | `20rem` | `widget` chips |
 | `--consent-banner-wall-max-width` | `30rem` | `wall` cards |
 
+## Colors by consent model
+
+The primary action can change while the brand color stays the same. Set
+`consentActions.primary` once, then select `primaryButton` per policy as
+shown in [ConsentBanner](../components/consent-banner#per-policy-buttons).
+
+To give opt-in and opt-out banners different colors, scope the tokens to
+the root's attributes. Include hover and foreground colors when overriding
+CSS tokens directly:
+
+```css
+[data-prompt][data-model='opt-in'] {
+	--c15t-primary: #2f6f4e;
+	--c15t-primary-hover: #24563c;
+	--c15t-text-on-primary: #fff;
+}
+
+[data-prompt][data-model='opt-out'] {
+	--c15t-primary: #6b3fa0;
+	--c15t-primary-hover: #55327f;
+	--c15t-text-on-primary: #fff;
+}
+```
+
+These colors apply to the action marked primary. Button layout and color
+changes do not change the policy or expire a saved choice.
+
 ## Slots
 
 Each component part is a slot. A slot accepts any attributes the element

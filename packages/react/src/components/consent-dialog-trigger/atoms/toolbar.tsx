@@ -99,11 +99,11 @@ const usePreferencesActionDefaults =
 		return useMemo(() => {
 			const right = resolvePreferencesRight(policy.rights);
 			const label =
-				right === 'opt-out'
+				right === 'opt-out' && policy.i18n?.messageProfile !== 'preferences'
 					? (rightsTranslations?.optOut ?? 'Do not sell or share my data')
 					: (rightsTranslations?.preferences ?? 'Manage preferences');
 			return { label, right, rights: policy.rights.join(' ') };
-		}, [policy.rights, rightsTranslations]);
+		}, [policy.rights, policy.i18n?.messageProfile, rightsTranslations]);
 	};
 
 const createToolbarItems = function createToolbarItems(

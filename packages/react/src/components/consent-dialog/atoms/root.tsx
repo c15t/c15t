@@ -37,15 +37,12 @@ const resolveDialogOptions = (
 	globalDisableAnimation: boolean | undefined,
 	localNoStyle: boolean | undefined,
 	globalNoStyle: boolean | undefined,
-	localScrollLock: boolean | undefined,
-	policyScrollLock: boolean | undefined,
-	localTrapFocus: boolean | undefined,
-	globalTrapFocus: boolean | undefined
+	blocking: boolean
 ) => ({
 	disableAnimation: localDisableAnimation ?? globalDisableAnimation ?? false,
 	noStyle: localNoStyle ?? globalNoStyle ?? false,
-	scrollLock: localScrollLock ?? policyScrollLock ?? true,
-	trapFocus: localTrapFocus ?? globalTrapFocus ?? true,
+	scrollLock: blocking,
+	trapFocus: blocking,
 });
 
 const resolveDialogOpen = (
@@ -152,7 +149,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
+	trapFocus: localTrapFocus,
 	overlay,
 	uiSource,
 	className,
@@ -164,19 +161,17 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const { components } = useUIConfig();
 
 	// Consent manager state
-	const { activeUI, translationConfig, model, policyDialog } =
-		useConsentManager();
-	const { closeUI } = useHeadlessConsentUI();
+	const { activeUI, translationConfig, model } = useConsentManager();
+	const { closeUI, dialog } = useHeadlessConsentUI({
+		preferences: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
+	});
 	const { disableAnimation, noStyle, scrollLock, trapFocus } =
 		resolveDialogOptions(
 			localDisableAnimation,
 			globalTheme.disableAnimation,
 			localNoStyle,
 			globalTheme.noStyle,
-			localScrollLock,
-			policyDialog.scrollLock,
-			localTrapFocus,
-			globalTheme.trapFocus
+			dialog.blocking
 		);
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
@@ -274,7 +269,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 				{isOpen && (
 					<>
 						{/* Backdrop (customisable) */}
-						{overlay === false ? null : (overlay ?? <Overlay open={isOpen} />)}
+						{dialog.blocking && overlay !== false
+							? (overlay ?? <Overlay open={isOpen} />)
+							: null}
 
 						{/* The outer element only positions the panel over
 						    the viewport. The panel wrapper below is the
@@ -293,6 +290,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 								aria-describedby="consent-dialog-description"
 								aria-labelledby="consent-dialog-title"
 								aria-modal={trapFocus ? 'true' : undefined}
+								data-blocking={dialog.blocking ? 'true' : undefined}
 								data-testid="consent-dialog-root"
 								dir={textDirection}
 								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` is the positioning shell here, not the panel; the panel is what carries the role.

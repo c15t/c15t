@@ -1,0 +1,460 @@
+---
+title: Policy presets
+description: Choose consent behavior for your processing, with regional rules and no-banner options.
+group: frameworks
+---
+
+```ts
+import { policyRulePresets } from 'c15t';
+
+export const policyRules = [
+	policyRulePresets.europeOptIn(),
+	policyRulePresets.usPrivacyStatesOptOut(),
+	policyRulePresets.quebecOptIn(),
+	policyRulePresets.canadaOptOut(),
+	policyRulePresets.australiaOptOut(),
+	policyRulePresets.japanOptOut(),
+	policyRulePresets.singaporeOptIn(),
+	policyRulePresets.malaysiaOptIn(),
+	policyRulePresets.worldOptOutNoPrompt(),
+];
+```
+
+Presets return ordinary `PolicyRule` objects. This example assumes the
+Australian, Japanese and Canadian processing meets the opt-out conditions
+below, and the host provides required disclosures and persistent controls.
+Choose opt-in variants when those assumptions do not hold. Add other
+country rules from the catalog for the places you serve.
+
+A country matcher selects a configuration. It cannot determine a business's
+applicable law, establish consent or assess a vendor's data use. Choose the
+processing profile first, then its UI. A no-prompt rule still needs any
+required information and refusal mechanism.
+
+## Connect the rules
+
+Configure the array as `manifest.policyRules` on an existing backend:
+
+```ts
+import { defineConfig } from '@c15t/backend';
+import { policyRules } from './consent-policies';
+
+export default defineConfig({
+	database: { dialect: 'postgres', url: process.env.DATABASE_URL },
+	manifest: { policyRules },
+});
+```
+
+Save the first example in `consent-policies.ts`. For managed hosting, configure
+the rules with the hosted service. `hosted()` takes connection options;
+importing presets in the browser does not change the server's policies.
+Existing offline setups use `offline({ policyRules })` with country and
+region inputs. Offline mode does not look up the visitor's IP address.
+
+Keep one banner and one preference dialog mounted. They follow the active
+rule. Keep a preference trigger accessible even when no banner appears.
+
+## No banner and unknown locations
+
+`worldOptOutNoPrompt()` explicitly allows optional categories without an
+initial prompt when a known location matches no regional rule. It replaces
+the v2 `worldNoBanner` shortcut. In the example, US-NY gets that global default,
+while US-CO gets US opt-out rights and GPC handling, also without a banner.
+Neither result means the location has no privacy obligations.
+
+Europe supplies the fallback for an unknown country. When the state or
+province is missing, an explicit country rule wins. If none exists and the
+pack has subdivision rules for that country, c15t uses the fallback. Without
+one, resolution fails with `reason: 'insufficient-inputs'`: optional categories
+stay denied and a choice banner appears for a visitor without saved refusals.
+The global default does not silently replace a missing subdivision.
+
+To use US opt-out behavior when the state is unknown, add an explicit country
+rule alongside your state rules:
+
+```ts
+const usCountry = {
+	...policyRulePresets.usPrivacyStatesOptOut(),
+	id: 'us_country',
+	match: { countries: ['US'] },
+};
+```
+
+This also covers known US states without a more specific rule. It applies US
+opt-out controls and GPC without an automatic banner. Keep a Québec rule when
+using a Canada-wide override, and assess what your country rule should do for
+an unknown province.
+
+Europe includes separately geocoded EU territories `AX`, `GF`, `GP`, `MQ`,
+`MF`, `RE` and `YT`. It also covers `GI` under Gibraltar's own cookie-consent
+law; Gibraltar is not part of the EEA or UK. See [EU territorial coverage](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=LEGISSUM%3Aoutermost_regions)
+and [Gibraltar's cookie guidance](https://www.gra.gi/uploads/documents/data-protection/Documents/Guidance/GN28%20Cookies.pdf).
+The global default remains an explicit deployment choice. Review any location
+outside the catalog before allowing optional processing there.
+
+A known region match wins over a country match. Array order breaks ties at
+the same specificity. A default applies after those matches; an unknown
+country can use an explicit default if the pack has no fallback. Avoid an
+allow-by-default configuration without a fallback when location is uncertain.
+
+## Available presets
+
+Opt-in means optional categories wait for choice. Opt-out means included
+categories can run before choice, subject to the stated processing basis.
+The prompt controls whether c15t asks for a choice, displays a notice or
+shows no initial UI.
+
+| Preset | Location | Default prompt |
+| --- | --- | --- |
+| `europeOptIn()` / `europeIab()` | EEA + UK + Gibraltar, unknown-location fallback | Choice / IAB TCF 2.3 |
+| `usPrivacyStatesOptIn()` / `usPrivacyStatesOptOut()` | 20 US states | Choice / none |
+| `californiaOptIn()` / `californiaOptOut()` | US-CA | Choice / none |
+| `quebecOptIn()` | CA-QC | Choice |
+| `canadaOptIn()` / `canadaOptOut()` | Canadian provinces/territories except QC | Choice / notice |
+| `australiaOptIn()` / `australiaOptOut()` | AU | Choice / none |
+| `japanOptIn()` / `japanOptOut()` | JP | Choice / none |
+| `switzerlandOptIn()` / `switzerlandOptOutNoPrompt()` | CH | Choice / none |
+| `ukStatistics()` | GB, qualifying service statistics only | None |
+| `malaysiaStatistics()` | MY, qualifying statistics/research only | None |
+| `singaporeOptIn()` | SG | Choice |
+| `malaysiaOptIn()` | MY | Choice |
+| `thailandOptIn()` | TH | Choice |
+| `indonesiaOptIn()` | ID | Choice |
+| `philippinesOptIn()` | PH | Choice |
+| `vietnamOptIn()` | VN | Choice |
+| `bruneiOptIn()` | BN | Choice |
+| `laosOptIn()` | LA | Choice |
+| `chinaOptIn()` | CN mainland | Choice |
+| `southKoreaOptIn()` | KR | Choice |
+| `indiaOptIn()` | IN | Choice |
+| `brazilOptIn()` | BR | Choice |
+| `turkeyOptIn()` | TR | Choice |
+| `uaeOptIn()` | AE, federal-law starter | Choice |
+| `saudiArabiaOptIn()` | SA | Choice |
+| `worldOptOutNoPrompt()` | Explicit global default | None |
+
+Choose one variant for each overlapping location. Put a California override
+before the US group. Canadian opt-out excludes Québec, so it cannot shadow
+the Québec rule. Put `ukStatistics()` before Europe when deploying a
+qualifying statistics-only site; both match GB at country specificity.
+
+## US privacy states
+
+The group covers **CA, CO, CT, DE, FL, IA, IN, KY, MD, MN, MT, NE, NH, NJ,
+OR, RI, TN, TX, UT and VA**, reviewed 8 September 2026. It covers ordinary
+adult nonsensitive processing. Business thresholds and exemptions differ;
+[Florida's law](https://www.flsenate.gov/Laws/Statutes/2025/501.702) has a
+particularly narrow controller definition.
+
+```ts
+import type { PolicyRule } from 'c15t';
+
+// No automatic banner. The host supplies disclosure and opt-out access.
+const usOptOut = policyRulePresets.usPrivacyStatesOptOut();
+
+// Optional notice delivery. OK records dismissal, never consent.
+const usNotice: PolicyRule = { ...usOptOut, prompt: 'notice' };
+
+// Optional consent-first variant for the same states.
+const usOptIn = policyRulePresets.usPrivacyStatesOptIn();
+```
+
+The notice includes a button styled as underlined text that opens preferences.
+Keep effective refusal and disclosure accessible afterward. California
+prescribes website opt-out link requirements and labels; the banner's shortened
+label is not the prescribed statutory text. See [CalPrivacy's FAQ](https://cppa.ca.gov/faq).
+
+Both variants honor GPC by denying `marketing` and `measurement`. This is a
+product mapping. It does not mean every state mandates GPC, every analytics
+operation is a sale, or blocking those categories stops all sale/sharing.
+Classify server events and other data flows too. See [California](https://oag.ca.gov/privacy/ccpa)
+and [Colorado](https://coag.gov/resources/colorado-privacy-act/).
+
+[Maryland](https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl\&section=14-4707\&enactments=false)
+requires collection minimization and prohibits certain sensitive/minor uses.
+Consent cannot waive these limits. Keep unreviewed processing independently
+gated. [Connecticut](https://portal.ct.gov/ag/sections/privacy/the-connecticut-data-privacy-act)
+also prohibits sale and targeted advertising using minors' data under its
+expanded protections effective 1 July 2026.
+
+A saved refusal or honored privacy opt-out in the active scope suppresses
+c15t's automatic choice banner. Policy edits, new categories and expired
+grants cannot use Accept All to solicit reversal of that refusal. Existing
+denials remain effective; new or expired opt-in purposes stay blocked.
+Visitors can open preferences and make a new choice themselves. Keep the
+trigger available, and apply the same restriction to any host-authored prompts.
+Retain opt-outs across the storage and identity boundaries your service needs.
+California requires at least 12 months before asking a consumer to opt back
+into sale or sharing. c15t does not schedule such a request after 12 months.
+See the [California AG explanation](https://oag.ca.gov/privacy/ccpa).
+
+Review by 15 December 2026. [Louisiana](https://www.legis.la.gov/legis/BillInfo.aspx?b=SB386\&s=26RS\&sbi=y)
+and Oklahoma start 1 January 2027, Alabama 1 May 2027 and
+[Vermont](https://legislature.vermont.gov/Documents/2026/Docs/ACTS/ACT145/ACT145%20Act%20Summary.pdf)
+1 January 2028. These future laws are not enabled early. Nevada's sale opt-out
+and Washington's health-data law are examples of relevant duties outside this
+group. Review dates do not automatically update the matcher.
+
+## Other opt-out variants
+
+### Canada outside Québec
+
+`canadaOptOut()` covers AB, BC, MB, NB, NL, NS, NT, NU, ON, PE, SK and YT.
+The OPC permits opt-out consent for nonsensitive behavioral advertising when
+purposes and parties are prominent at or before collection, refusal is easy,
+immediate and persistent, and retention is minimized. A buried privacy policy
+is insufficient. Sensitive, unexpected or significantly risky uses need
+express-consent assessment. See the [OPC guidelines](https://www.priv.gc.ca/en/privacy-topics/technology/online-privacy-tracking-cookies/tracking-and-ads/gl_ba_1112/).
+
+It defaults to a notice. Set `prompt: 'none'` only when the host already
+provides equivalent prominent information and controls. `canadaOptIn()` offers
+express choice. Assess federal, Alberta and BC applicability separately.
+Québec's optional identification, location and profiling functions have their
+own [prior-information and activation requirements](https://www.legisquebec.gouv.qc.ca/fr/version/lc/p-39.1?code=se%3A8_1\&history=20251110\&langCont=en).
+
+### Australia and Japan
+
+`australiaOptOut()` supports notified, expected nonsensitive processing whose
+basis permits it without prior consent. APP necessity, purpose and disclosure
+limits still apply. Sensitive or unexpected third-party uses need separate
+review. See [OAIC pixel guidance](https://www.oaic.gov.au/privacy/privacy-guidance-for-organisations-and-government-agencies/organisations/tracking-pixels-and-privacy-obligations)
+and [APP 7](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-7-app-7-direct-marketing).
+
+`japanOptOut()` applies only where APPI consent triggers are absent. Covered
+telecommunications services must provide prior notice or readily accessible
+publication for covered external transmissions, unless an exemption applies.
+Ordinary corporate or own-retail sites are not automatically covered by that
+rule; APPI still applies. Disclose transmitted information, recipients and
+purposes where required. This does not
+implement APPI's registered third-party-provision opt-out procedure. See
+[APPI guidance](https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/) and
+[Telecommunications Business Act Article 27-12](https://laws.e-gov.go.jp/law/359AC0000000086).
+
+Both default to no prompt. Their opt-in variants remain available for
+consent-based processing.
+
+### Switzerland
+
+`switzerlandOptOutNoPrompt()` needs a reviewed justification, timely information
+and persistent refusal. Unexpected low-intrusion uses can sometimes use opt-out,
+but require notice prominent enough that first-time visitors cannot ignore it.
+A footer-only notice is insufficient there. This preset excludes third-party
+advertising networks, high-risk profiling and unexpected tracking on political,
+religious or trade-union sites. Assess those uses separately and use the
+consent variant for lawful consent-based processing. See the [FDPIC guide](https://www.edoeb.admin.ch/en/cookie-guidelines-updated-version).
+
+These international variants use `i18n.messageProfile: 'preferences'` so stock
+banner controls and the React toolbar use the translated `rights.preferences`
+label. Opt-out behavior remains intact. Use the same message profile on custom
+non-US opt-out rules; it avoids US sale/sharing wording without adding a new
+permission model.
+
+## Statistics-only sites
+
+```ts
+const statisticsRules = [
+	policyRulePresets.ukStatistics(),
+	policyRulePresets.malaysiaStatistics(),
+	policyRulePresets.europeOptIn(),
+];
+```
+
+Both statistics presets use `model: 'opt-out'`, `prompt: 'none'`,
+`categories: ['measurement']` and `scopeMode: 'strict'`. Measurement starts
+allowed. Visitors can disable and re-enable it. Other optional categories
+stay denied, including after Accept All.
+
+Every included script must meet the relevant conditions:
+
+- [UK PECR Schedule A1, paragraph 5](https://www.legislation.gov.uk/uksi/2003/2426/schedule/A1)
+  requires service-improvement statistics as the sole purpose, limits sharing
+  to assistance with those improvements, and requires clear information and a
+  simple free objection mechanism. Paragraph 5(2) excludes collecting or
+  monitoring automatically emitted device information, such as Wi-Fi probe
+  requests. The [ICO guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/)
+  limits this to aggregate statistics, without advertising, cross-site tracking,
+  retained individual histories or vendor reuse. A provider must act only as a
+  processor for this purpose. Personal-data processing still needs a UK GDPR
+  lawful basis.
+- [Malaysia PDPA, section 45(2)(c)](https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2024/07/UNDANG-UNDANG-MALAYSIA_AKTA_PERLINDUNGAN_DATA_PERIBADI_2010_709_MALAY_AND-ENG_V2022.pdf)
+  requires processing solely for statistics/research, no secondary uses and
+  nonidentifying published results. Advertising or vendor reuse does not
+  qualify. The Security, Retention and Data Integrity Principles remain
+  applicable. First establish whether the Act applies to your operations;
+  selecting a Malaysian visitor is not that assessment.
+
+A generic analytics SDK is not automatically exempt. These are analytics-only
+profiles. The current engine has one permission model per rule. It does not
+fully support exempt analytics plus consent-required advertising with reversible
+preferences for both. `scopeMode: 'permissive'` is not that feature: outside
+categories start allowed, but positive saves outside scope are rejected.
+
+### Other assessed analytics recipes
+
+For a qualifying deployment, author an ordinary scoped rule:
+
+```ts
+import type { PolicyRule } from 'c15t';
+
+const brazilAudience: PolicyRule = {
+	id: 'brazil_audience',
+	match: { countries: ['BR'] },
+	model: 'opt-out',
+	prompt: 'none',
+	categories: ['measurement'],
+	scopeMode: 'strict',
+	i18n: { messageProfile: 'preferences' },
+	review: {
+		status: 'pending',
+		assumptions: [
+			'Complete the legitimate-interest assessment before enabling this rule.',
+			'Limited audience measurement, no advertising, profiles or vendor reuse.',
+			'Supply information and objection controls.',
+		],
+	},
+};
+```
+
+`review.status` records your review; it does not block processing. Do not add
+this rule to a live pack until the assumptions hold. Use a separate assessment
+and sources for each jurisdiction, rather than copying another country's review.
+
+| Jurisdiction | Route to assess |
+| --- | --- |
+| France | [CNIL audience-measurement exemption](https://www.cnil.fr/fr/cookies-solutions-pour-les-outils-de-mesure-daudience) |
+| Netherlands | [No/minor privacy-impact analytics](https://www.autoriteitpersoonsgegevens.nl/uploads/2024-03/Normuitleg%20AP%20intrekken%20toestemming%20cookiebanners.pdf) |
+| Liechtenstein | [Narrow statistical visitor measurement](https://www.datenschutzstelle.li/datenschutz/themen-z/cookies) |
+| Türkiye | [First-party cookie statistics, guide sections 5.9 and 9](https://www.kvkk.gov.tr/Icerik/7353/Cerez-Uygulamalari-Hakkinda-Rehber) |
+| Brazil | [ANPD audience measurement and legitimate interest](https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-cookies-e-protecao-de-dados-pessoais.pdf/@@display-file/file) |
+| South Korea | [PIPA processing bases](https://elaw.klri.re.kr/eng_service/lawViewContent.do?hseq=71740) |
+| Saudi Arabia | [Implementing Regulation Article 16](https://sdaia.gov.sa/en/SDAIA/about/Documents/ImplementingRegulation.pdf) |
+
+These routes have different conditions. French audience measurement excludes
+cross-site identifiers, combination and nonanonymous third-party reuse.
+Türkiye requires visible information at entry even when consent is unnecessary;
+its cookie guide does not extend the example to pixels or fingerprinting.
+An EEA personal-data lawful basis does not override a separate device-access
+consent requirement.
+
+## Singapore and Malaysia
+
+Singapore does not require a consent popup for every cookie. PDPC requires
+consent for personal-data ad targeting; requested operations and applicable
+exceptions differ. Legitimate interests can authorize assessed processing.
+Business improvement generally concerns already-lawfully-collected data.
+Notification-based deemed consent requires assessment, notice and a reasonable
+refusal period before processing. An immediately enabled tracker plus OK does
+not implement that waiting period. See [PDPC cookie guidance](https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-\(revised-may-2024\).pdf)
+and [key concepts](https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-key-concepts/advisory-guidelines-on-key-concepts-in-the-pdpa-17-may-2022.pdf).
+
+Malaysia's PDPA applies to specified commercial processing. Sections 2 and
+3 require assessment of establishment, equipment used in Malaysia and the
+exclusion for overseas processing unless intended for further processing in
+Malaysia. A foreign server or a visitor country code alone does not settle
+applicability. Both Malaysia helpers are editable recipes; change their
+`match` to cover the operations governed by the Act. See the [PDPA scope](https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2024/07/UNDANG-UNDANG-MALAYSIA_AKTA_PERLINDUNGAN_DATA_PERIBADI_2010_709_MALAY_AND-ENG_V2022.pdf).
+
+Malaysia's applicable General Code recognizes implied consent, including
+non-objection, voluntary provision and continued service use, and certain
+notified opt-out marketing. Its scope, recorded evidence, purposes and recipient
+conditions matter; a notice is not blanket consent. See [General Code sections
+3.3.3, 4.2 and 10.6](https://www.pdp.gov.my/ppdpv1/en/akta/personal-data-protection-general-practice/).
+
+The [2026 Data Protection by Design guideline](https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2026/04/Data-Protection-By-Design-Guideline-DpbD.pdf)
+uses a cookie example with only strictly necessary cookies enabled by default,
+and recommends opt-in where consent is the basis. Do not treat the older Code
+as blanket permission to enable optional cookies on page load. Resolve the
+applicable guidance and processing facts before using a contextual exception.
+
+After establishing those conditions for a specific deployment:
+
+```ts
+const malaysiaContextual: PolicyRule = {
+	...policyRulePresets.malaysiaOptIn(),
+	id: 'malaysia_reviewed_opt_out',
+	model: 'opt-out',
+	prompt: 'notice',
+	categories: ['measurement'],
+	scopeMode: 'strict',
+	i18n: { messageProfile: 'preferences' },
+	review: {
+		status: 'pending',
+		assumptions: [
+			'Verify applicable code, contextual consent evidence, recipients and purposes before deployment.',
+		],
+	},
+};
+```
+
+The host must establish and retain the required evidence before relying on
+implied consent. This recipe supplies permission defaults and refusal UI; OK
+does not create consent. Supply Malaysia's written notice in Bahasa Malaysia
+and English. One automatically selected UI language does not meet that duty.
+For solely statistical processing, assess `malaysiaStatistics()` separately.
+
+## Other country starters and limits
+
+The opt-in starters provide a consent workflow for the disclosed purposes.
+They do not assert that every cookie requires consent.
+
+| Country | Regulation / source |
+| --- | --- |
+| China | [PIPL](https://en.npc.gov.cn.cdurl.cn/2021-12/29/c_694559.htm) |
+| Thailand | [PDPA sections 19, 24 and 26](https://www.etda.or.th/getattachment/e820df2c-848f-4e03-86cb-a9dad38cc713/ENG-Version.aspx) |
+| Indonesia | [Law 27/2022, Article 20](https://jdih.komdigi.go.id/produk_hukum/view/id/832/t/undangundang%2Bnomor%2B27%2Btahun%2B2022) |
+| Philippines | [Data Privacy Act](https://privacy.gov.ph/data-privacy-act/) and [legitimate-interest guidance](https://privacy.gov.ph/wp-content/uploads/2024/01/NPC-Circular-No.-2023-07_Guidelines-on-Legitimate-Interest_13-December-2023.pdf) |
+| Vietnam | [Law 91/2025, effective January 2026](https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/7/91qh.signed.pdf) |
+| Brunei | [PDPO](https://pdp.aiti.gov.bn/media/tndpduml/s-1_2025-e.pdf) |
+| Laos | [Electronic Data Protection Law 25/NA](https://lsp.moic.gov.la/?id=289\&r=site%2Fdisplaylegal) |
+| India | [Phased DPDP commencement](https://www.meity.gov.in/static/uploads/2025/11/c56ceae6c383460ca69577428d36828b.pdf) |
+
+Thailand, Indonesia and the Philippines permit alternative processing bases,
+including assessed legitimate interests. A scoped non-consent recipe can
+implement an established basis. None is established merely by the visitor's
+country. Brunei's notification-based deemed consent also needs time to object.
+Laos's available translation does not establish a general analytics exemption;
+obtain local interpretation before replacing its approval workflow.
+
+China requires independent permissions for specified recipient, sensitive-data
+and overseas-transfer processing. Keep those operations separately gated.
+Vietnam expressly requires prior consent for behavioral/personalized advertising.
+Child permissions, sensitive-data conditions and prohibitions need independent
+controls. Five category toggles cannot satisfy every purpose-specific duty.
+
+India's main DPDP obligations start 13 May 2027 under [G.S.R. 843(E)](https://www.meity.gov.in/static/uploads/2025/11/c56ceae6c383460ca69577428d36828b.pdf). The [final Rules, Rule 1](https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf)
+set phased commencement. `indiaOptIn()` provides a
+consent workflow now. Current nonsensitive deployments may use a dated custom
+configuration after reviewing current IT/SPDI and sector rules. Review dates
+in metadata do not schedule runtime changes. c15t is not automatically a
+registered statutory Consent Manager.
+
+### UAE federal, DIFC and ADGM
+
+`uaeOptIn()` is a federal-law starter. An AE visitor location cannot select
+which business regime applies. The [federal law](https://www.uaelegislation.gov.ae/en/legislations/1972/download)
+has consent and specified exceptions. Executive-regulation issuance and the
+resulting compliance transition remain unverified in this source review.
+
+For operations governed by DIFC, author an opt-in rule with a matcher covering
+the applicable processing. [DIFC Regulation 9](https://assets.difc.com/v1/media/edge/images/dubaiintern0078-difcexperie96c5-production-3253/media/project/difcexperiences/difc/difcwebsite/documents/laws--regulations/data-protection-regulation.pdf)
+requires minimum necessary defaults, first-collection refusal and neutral
+preference controls. ADGM separately permits assessed legitimate-interest
+processing with objection, including some direct marketing. See [ADGM guidance](https://www.adgm.com/documents/office-of-data-protection/guidance/adgm-dpr-2021-guidance-part-2.pdf).
+Choose these by business applicability, not an invented IP subdivision.
+
+## Customize behavior and styling
+
+Change an ordinary rule object, then update its review assumptions. Partial
+`categories` require explicit `scopeMode: 'strict'` or `'permissive'`.
+Strict denies outside categories; permissive allows them by default.
+Neither establishes the legal basis of included scripts.
+
+Button order, primary treatment, geometry and color belong to host presentation.
+Use per-policy presentation/theme overrides independently of the rule. The
+`preferences` message profile selects generic translated control labels; use
+provider `i18n` to customize their text. Appearance changes do not invalidate
+saved consent. A material legal-copy change needs a `copyRevision` update.
+
+The catalog covers named jurisdictions, not every privacy law worldwide.
+Review metadata records sources and assumptions, never deployment approval.
+Choice and notice validity are product defaults, not statutory deadlines.

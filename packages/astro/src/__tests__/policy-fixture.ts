@@ -10,6 +10,7 @@ export const testRule: PolicyRule = {
 	match: { fallback: true, isDefault: true },
 	model: 'opt-in',
 	prompt: 'choice',
+	scopeMode: 'permissive',
 };
 export const testResolution = (overrides: Partial<PolicyRule> = {}) =>
 	resolvePolicyRules({
