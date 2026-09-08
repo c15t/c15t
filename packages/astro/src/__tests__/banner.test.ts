@@ -291,10 +291,10 @@ describe('<ConsentBanner /> surface shape', () => {
 		expect(root).toContain('data-variant="floating"');
 		expect(root).toContain('data-position="bottom-left"');
 		expect(root).not.toContain('data-blocking');
-		// A choice prompt traps focus by default, so the card is a modal dialog
-		// even though it is not blocking.
-		expect(readCard(html)).toContain('aria-modal="true"');
-		expect(readCard(html)).toContain('role="dialog"');
+		// A choice prompt is non-blocking by default, so the card is a labelled
+		// region that never claims modal semantics.
+		expect(readCard(html)).not.toContain('aria-modal');
+		expect(readCard(html)).toContain('role="region"');
 	});
 
 	it('renders a choice as a region when the host turns the focus trap off', async () => {
@@ -306,6 +306,18 @@ describe('<ConsentBanner /> surface shape', () => {
 		);
 		expect(readCard(html)).not.toContain('aria-modal');
 		expect(readCard(html)).toContain('role="region"');
+	});
+
+	it('renders a blocking choice as a modal dialog', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode(),
+				presentation: { prompt: { blocking: true } },
+			})
+		);
+		expect(readRoot(html)).toContain('data-blocking="true"');
+		expect(readCard(html)).toContain('aria-modal="true"');
+		expect(readCard(html)).toContain('role="dialog"');
 	});
 
 	it('mirrors a defaulted corner for right-to-left text but keeps a host corner', async () => {
@@ -355,6 +367,7 @@ describe('<ConsentBanner /> surface shape', () => {
 			html.indexOf('consent-banner-root')
 		);
 		expect(readCard(html)).toContain('aria-modal="true"');
+		expect(readCard(html)).toContain('role="dialog"');
 	});
 
 	it('never blocks a notice, even when the host asks', async () => {

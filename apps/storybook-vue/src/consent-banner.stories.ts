@@ -131,6 +131,6 @@ export const BannerFocusManagement: Story = {
 		setup() {
 			setupStorybookConsent('banner');
 		},
-		template: '<ConsentBanner />',
+		template: '<ConsentBanner blocking />',
 	}),
 };

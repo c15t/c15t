@@ -138,8 +138,20 @@ describe('RscConsentBanner surface shape', () => {
 		expect(root).toContain('data-variant="floating"');
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
-		// A choice prompt traps focus by default, so the card is a modal dialog
-		// even though it is not blocking.
+		// A choice prompt is non-blocking by default, so the card is a labelled
+		// region that never claims modal semantics.
+		const card = readCard(html);
+		expect(card).not.toContain('aria-modal');
+		expect(card).toContain('role="region"');
+		expect(card).toContain('aria-label=');
+	});
+
+	test('a blocking choice is a modal dialog', () => {
+		const html = renderShell(
+			{ model: 'opt-in', prompt: 'choice' },
+			{ prompt: { blocking: true } }
+		);
+		expect(readRoot(html)).toContain('data-blocking="true"');
 		const card = readCard(html);
 		expect(card).toContain('aria-modal="true"');
 		expect(card).toContain('role="dialog"');
