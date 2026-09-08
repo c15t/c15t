@@ -184,10 +184,18 @@ test('watch emits aliases and preserves identity through edits and compiler reco
 
 	writeFileSync(source, 'export const broken = ;');
 	await expect.poll(() => outcomes.includes(true)).toBe(true);
+	const failedAt = outcomes.lastIndexOf(true);
 
 	writeFileSync(source, fixtureSource(3));
 	await expect.poll(() => readFixture(cwd)).toEqual({ value: 3 });
-	expect(outcomes.at(-1)).toBe(false);
+	// Assets land on disk before `onAfterBuild` records the outcome, so wait
+	// for a compilation after the failure to report success rather than
+	// reading the tail right after the file poll.
+	await expect
+		.poll(() => outcomes.slice(failedAt + 1).at(-1), {
+			message: 'the compilation after the syntax error should recover',
+		})
+		.toBe(false);
 }, 30_000);
 
 test('a missing alias target fails the production build', async () => {

@@ -47,7 +47,11 @@ if (process.argv[2]) {
 		const request = JSON.parse(line);
 		let reply;
 		try {
-			reply = { id: request.id, result: render(request) };
+			// A warm request only proves the server is up and the entry loaded.
+			reply = {
+				id: request.id,
+				result: request.warm ? { ready: true } : render(request),
+			};
 		} catch (error) {
 			reply = {
 				error: error instanceof Error ? error.message : String(error),

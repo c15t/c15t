@@ -42,14 +42,14 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
-import { describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import { whenIABReady } from '../lib/iab-loader';
 import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 import { createPolicySession, probePolicyContract } from './policy-driver';
-import { renderSsr } from './server-render';
+import { closeSsrWorker, renderSsr, warmSsrWorker } from './server-render';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -296,10 +296,28 @@ const driver: TestDriver = {
 	},
 };
 
+/**
+ * Scenarios that server-render (`ssr-*`) go through the shared Vite worker.
+ * The worker is warmed in `beforeAll`, but on a loaded CI runner a single
+ * render can still take seconds, so those cases get a larger budget than
+ * the default 5 s. Everything else keeps the default.
+ */
+const SSR_SCENARIO_TIMEOUT_MS = 20_000;
+
 const api: SuiteApi = {
 	describe,
 	expect: expect as unknown as SuiteApi['expect'],
-	test,
+	test: (name, body) => {
+		if (name.startsWith('ssr-')) {
+			test(name, body, SSR_SCENARIO_TIMEOUT_MS);
+		} else {
+			test(name, body);
+		}
+	},
 };
+
+// Boot Vite and load the fixtures once, outside any per-test budget.
+beforeAll(() => warmSsrWorker(), 60_000);
+afterAll(() => closeSsrWorker());
 
 runConformanceSuite(driver, api);
