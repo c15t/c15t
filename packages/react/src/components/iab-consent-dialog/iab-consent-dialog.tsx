@@ -176,7 +176,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
-	const isOpen = open ?? (activeUI === 'dialog' && models.includes(model));
+	const isOpen =
+		open ?? (model !== null && activeUI === 'dialog' && models.includes(model));
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({

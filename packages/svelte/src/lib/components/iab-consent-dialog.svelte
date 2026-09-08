@@ -67,7 +67,8 @@
 
 	// Open state
 	const isOpen = $derived(
-		models.includes(consent.state.model) &&
+		consent.state.hasPolicy &&
+			models.includes(consent.state.model) &&
 			(openProp ?? consent.state.activeUI === 'dialog') &&
 			iabState?.config.enabled === true
 	);

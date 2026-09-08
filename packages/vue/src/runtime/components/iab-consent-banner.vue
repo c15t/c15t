@@ -14,7 +14,7 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
-import { useConsentSnapshot } from '../composables/kernel';
+import { useConsentSnapshot, useHasConsentPolicy } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
@@ -57,7 +57,11 @@ const textDirection = computed(() =>
 const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 
+const hasPolicy = useHasConsentPolicy();
 const isOpen = computed(() => {
+	if (!hasPolicy.value) {
+		return false;
+	}
 	const models = config.value.iabBannerModels;
 	const { model } = snapshot.value.policyRule;
 	const matchesModel =

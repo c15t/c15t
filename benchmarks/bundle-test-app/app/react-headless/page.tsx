@@ -39,7 +39,20 @@ const TestComponent = () => {
 	);
 };
 const ReactHeadlessPage = () => (
-	<ConsentProvider options={{ mode: offline() }}>
+	<ConsentProvider
+		options={{
+			mode: offline({
+				policyRules: [
+					{
+						id: 'bench-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
+		}}
+	>
 		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>React Headless Benchmark</h1>
 			<p>This route measures the tree-shaken headless React runtime.</p>

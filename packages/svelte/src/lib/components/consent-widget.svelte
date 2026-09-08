@@ -124,6 +124,7 @@
 	const shouldFillActions = $derived(presentation.shouldFillActions);
 </script>
 
+{#if consent.state.hasPolicy}
 <div
 	class={noStyle ? className : widgetRootStyle.className || ''}
 	dir={textDirection}
@@ -316,3 +317,4 @@
 		data-testid="consent-widget-branding"
 	/>
 </div>
+{/if}

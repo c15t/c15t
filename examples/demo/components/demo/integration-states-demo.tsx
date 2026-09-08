@@ -88,7 +88,16 @@ export const IntegrationStatesDemo = () => (
 	<ConsentProvider
 		options={{
 			consentCategories: ['necessary', 'measurement', 'marketing'],
-			mode: offline(),
+			mode: offline({
+				policyRules: [
+					{
+						id: 'demo-integration-states',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 		}}
 	>
 		<Tabs

@@ -77,7 +77,8 @@ const IABConsentBannerRootChildren = createForwardRef<
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// IAB banner shows when activeUI is 'banner' and the current model matches
-		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+		const shouldShowBanner =
+			model !== null && activeUI === 'banner' && models.includes(model);
 
 		useEffect(() => {
 			const duration = Number.parseInt(

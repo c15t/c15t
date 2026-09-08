@@ -61,7 +61,16 @@ const TestComponent = () => {
 const ReactFullPage = () => (
 	<ConsentProvider
 		options={{
-			mode: offline(),
+			mode: offline({
+				policyRules: [
+					{
+						id: 'bench-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 		}}
 	>
 		<ConsentDraftProvider>

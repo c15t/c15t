@@ -211,3 +211,19 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 export const COMPONENT_KEYS = Object.keys(
 	DOM_CONTRACT
 ) as readonly (keyof typeof DOM_CONTRACT)[];
+
+/**
+ * Root test-ids that must be absent while the kernel has no resolved policy
+ * rule (resolution `unconfigured`, `no-match`, or `failed`, and a pending
+ * init that has not answered). Without a policy there is nothing to consent
+ * to, so no prebuilt consent surface renders: not the banner, the preference
+ * dialog or widget, nor the link or floating trigger that would open them.
+ * App-owned controls a host places beside them are unaffected.
+ */
+export const NO_POLICY_HIDDEN_ROOTS = [
+	TEST_IDS.consentBanner.root,
+	TEST_IDS.consentDialog.root,
+	TEST_IDS.consentDialog.link,
+	TEST_IDS.consentDialog.trigger,
+	TEST_IDS.consentWidget.root,
+] as const;

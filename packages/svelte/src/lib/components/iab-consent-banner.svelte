@@ -61,7 +61,8 @@
 
 	// Visibility logic
 	const shouldShowBanner = $derived(
-		consent.state.activeUI === 'banner' &&
+		consent.state.hasPolicy &&
+			consent.state.activeUI === 'banner' &&
 			models.includes(consent.state.model) &&
 			iabState?.config.enabled === true
 	);

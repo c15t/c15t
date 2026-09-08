@@ -121,7 +121,8 @@
 
 	// Visibility logic
 	const shouldShowBanner = $derived(
-		consent.state.activeUI === 'banner' &&
+		consent.state.hasPolicy &&
+			consent.state.activeUI === 'banner' &&
 			consent.snapshot.promptRequirement.kind !== 'none' &&
 			models.includes(consent.state.model)
 	);

@@ -13,7 +13,7 @@ import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
-import { offline } from '../../lib/transports/offline';
+import { testOffline } from '../../__tests__/test-offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -27,7 +27,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: offline(),
+	mode: testOffline(),
 };
 
 describe('UI Source Tracking E2E Tests', () => {

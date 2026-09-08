@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, test } from 'vitest';
 
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
 import { policyFixture } from '../../__tests__/policy-fixture';
-import { offline } from '../../lib/transports/offline';
+import { testOffline } from '../../__tests__/test-offline';
 
 const CATEGORIES = [
 	'necessary',
@@ -28,7 +28,7 @@ describe('consent widget restriction notice', () => {
 	test('does not appear when a draft toggle is switched on before saving', async () => {
 		render(WidgetFixture, {
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 				persistence: false,
 				prefetch: policyFixture(undefined, {
 					categories: [...CATEGORIES],
@@ -57,7 +57,7 @@ describe('consent widget restriction notice', () => {
 	test('appears for a saved grant that GPC overrides', async () => {
 		render(WidgetFixture, {
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 				persistence: false,
 				prefetch: {
 					...policyFixture(

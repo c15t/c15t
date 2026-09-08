@@ -94,6 +94,13 @@ export interface ConsentManagerState extends Pick<
 	iab: SvelteIABState | null;
 	manager: null;
 	model: Model;
+	/**
+	 * Whether a policy rule is resolved for this visitor. Every c15t consent
+	 * surface renders nothing until one is: an unconfigured, failed, or
+	 * unmatched resolution leaves nothing to consent to, and the surfaces
+	 * appear on their own once a later init supplies a rule.
+	 */
+	hasPolicy: boolean;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
@@ -242,6 +249,9 @@ const createConsentState = function createConsentState(
 			return getSnapshotLocal().iab?.enabled
 				? 'iab'
 				: getSnapshotLocal().policyRule.model;
+		},
+		get hasPolicy() {
+			return getSnapshotLocal().resolution.status === 'matched';
 		},
 
 		// -- Snapshot passthrough (was previously served by a Proxy) -------------

@@ -220,6 +220,36 @@ let releaseBlocking: (() => void) | null = null;
  *
  * @param snapshot - The current kernel snapshot.
  */
+/**
+ * Whether a policy rule is resolved. An unconfigured, failed, or unmatched
+ * resolution leaves nothing to consent to, so no consent surface renders.
+ */
+const hasConsentPolicy = function hasConsentPolicy(
+	snapshot: ConsentSnapshot
+): boolean {
+	return snapshot.resolution.status === 'matched';
+};
+
+/**
+ * Show or hide the persistent consent controls the page rendered on the
+ * server (`<ConsentDialogTrigger />`) as the policy resolution changes.
+ *
+ * With nothing to manage the controls stay hidden; they appear on their own
+ * once a later init supplies a rule.
+ *
+ * @param snapshot - The current kernel snapshot.
+ */
+export const syncSurfaceVisibility = function syncSurfaceVisibility(
+	snapshot: ConsentSnapshot
+): void {
+	const hasPolicy = hasConsentPolicy(snapshot);
+	for (const control of document.querySelectorAll<HTMLElement>(
+		'[data-c15t-surface="trigger"]'
+	)) {
+		control.hidden = !hasPolicy;
+	}
+};
+
 export const syncBannerVisibility = function syncBannerVisibility(
 	snapshot: ConsentSnapshot
 ): void {
@@ -371,6 +401,10 @@ const createClient = function createClient(
 			if (disposed) {
 				return;
 			}
+			// Nothing to consent to without a resolved policy rule.
+			if (!hasConsentPolicy(runtime.kernel.getSnapshot())) {
+				return;
+			}
 			if (opening) {
 				await opening;
 			}
@@ -450,6 +484,7 @@ const createClient = function createClient(
 const attach = function attach(client: AstroConsentClient): void {
 	const snapshot = client.getConsent();
 	syncBannerVisibility(snapshot);
+	syncSurfaceVisibility(snapshot);
 	activateGatedScripts(snapshot);
 };
 
@@ -540,6 +575,7 @@ export const boot = function boot(
 
 	client.subscribe((snapshot) => {
 		syncBannerVisibility(snapshot);
+		syncSurfaceVisibility(snapshot);
 		activateGatedScripts(snapshot);
 	});
 

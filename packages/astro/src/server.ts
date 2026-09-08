@@ -563,6 +563,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 	return {
 		config,
 		decision: snapshot.resolution,
+		hasPolicy: snapshot.resolution.status === 'matched',
 		inputs,
 		options,
 		shouldShowBanner: !snapshot.policyPending && snapshot.activeUI === 'banner',

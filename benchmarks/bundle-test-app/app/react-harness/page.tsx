@@ -81,7 +81,16 @@ const DEMO_SCRIPTS: Script[] = [
 const ReactHarnessPage = () => (
 	<ConsentProvider
 		options={{
-			mode: offline(),
+			mode: offline({
+				policyRules: [
+					{
+						id: 'bench-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 			networkBlocker: {
 				logBlockedRequests: false,
 				rules: [

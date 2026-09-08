@@ -53,6 +53,16 @@ export const useOptOutDirectives = () => useSnapshotField('optOutDirectives');
 export const usePolicyRule = () => useSnapshotField('policyRule');
 /** Read the authoritative policy resolution and its status. */
 export const usePolicyResolution = () => useSnapshotField('resolution');
+/**
+ * Whether a policy rule is resolved for this visitor. Every c15t consent
+ * surface renders nothing until one is: an unconfigured, failed, or
+ * unmatched resolution leaves nothing to consent to, and the surfaces
+ * appear on their own once a later init supplies a rule.
+ */
+export const useHasConsentPolicy = () => {
+	const resolution = usePolicyResolution();
+	return computed(() => resolution.value.status === 'matched');
+};
 /** Read the reasons that currently restrict permissions. */
 export const useConsentRestrictions = () => useSnapshotField('restrictions');
 /** Return the explicit notice dismissal command. */

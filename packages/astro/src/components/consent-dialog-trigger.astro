@@ -22,13 +22,18 @@ interface Props {
 
 const { kind = 'preferences', class: className, as = 'button' } = Astro.props;
 const Tag = as;
+// Hidden until a policy rule is resolved: there is nothing to manage before
+// that, and the browser client toggles `hidden` as the snapshot changes.
+const hasPolicy = Astro.locals.c15t?.hasPolicy ?? true;
 ---
 
 <Tag
 	class={className}
 	data-c15t-action="customize"
 	data-c15t-dialog={kind}
+	data-c15t-surface="trigger"
 	data-testid="consent-dialog-trigger"
+	hidden={hasPolicy ? undefined : true}
 	href={as === 'a' ? '#c15t-preferences' : undefined}
 	type={as === 'button' ? 'button' : undefined}
 >

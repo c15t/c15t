@@ -83,7 +83,8 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
-const shouldRender = force || c15t.shouldShowBanner;
+// No resolved policy means no consent surface, even when forced.
+const shouldRender = c15t.hasPolicy && (force || c15t.shouldShowBanner);
 const emitConfig = markConfigEmitted(Astro.locals);
 // A fallback for layouts with no <ConsentScript /> in <head>. It still runs
 // before the banner markup it precedes, so the first paint is right.

@@ -67,7 +67,8 @@ province is missing, an explicit country rule wins. If none exists and the
 pack has subdivision rules for that country, c15t uses the fallback. Without
 one, resolution fails with `reason: 'insufficient-inputs'`: optional categories
 stay denied and a choice banner appears for a visitor without saved refusals.
-The global default does not silently replace a missing subdivision.
+The global default does not silently replace a missing subdivision. While no rule
+has resolved, no consent surface renders, including the dialog trigger.
 
 To use US opt-out behavior when the state is unknown, add an explicit country
 rule alongside your state rules:

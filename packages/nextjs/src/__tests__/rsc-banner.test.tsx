@@ -1,6 +1,6 @@
 import type { ConsentPresentation } from '@c15t/core';
 import { custom } from '@c15t/react';
-import type { PolicyRule } from '@c15t/schema/types';
+import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -25,15 +25,12 @@ const noticeTranslations = {
 	},
 } as const;
 
-const renderShell = function renderShell(
-	rule: Partial<PolicyRule>,
-	presentation?: ConsentPresentation,
-	language = 'en'
+const renderConfig = function renderConfig(
+	config: ReturnType<typeof policyFixture> & {
+		initialPolicyResolution: PolicyResolution;
+	},
+	presentation?: ConsentPresentation
 ) {
-	const config = {
-		...policyFixture({}, rule),
-		initialTranslations: { ...noticeTranslations, language },
-	};
 	return renderToString(
 		<ConsentBoundary
 			config={JSON.parse(JSON.stringify(config))}
@@ -49,6 +46,20 @@ const renderShell = function renderShell(
 				presentation={presentation}
 			/>
 		</ConsentBoundary>
+	);
+};
+
+const renderShell = function renderShell(
+	rule: Partial<PolicyRule>,
+	presentation?: ConsentPresentation,
+	language = 'en'
+) {
+	return renderConfig(
+		{
+			...policyFixture({}, rule),
+			initialTranslations: { ...noticeTranslations, language },
+		},
+		presentation
 	);
 };
 
@@ -235,5 +246,32 @@ describe('RscConsentBanner surface shape', () => {
 			)
 		);
 		expect(kept).toContain('data-position="top-left"');
+	});
+});
+
+describe('RscConsentBanner without a resolved policy', () => {
+	test('emits no consent markup when the server resolved no rule', () => {
+		const html = renderConfig({
+			...policyFixture(),
+			initialPolicyResolution: { policy: null, status: 'unconfigured' },
+			initialTranslations: noticeTranslations,
+		});
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+		expect(html).not.toContain('data-testid="consent-banner-accept-button"');
+	});
+
+	test('emits no consent markup when the server resolution failed', () => {
+		const html = renderConfig({
+			...policyFixture(),
+			initialPolicyResolution: {
+				policy: null,
+				reason: 'transport',
+				status: 'failed',
+			},
+			initialTranslations: noticeTranslations,
+		});
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
 	});
 });

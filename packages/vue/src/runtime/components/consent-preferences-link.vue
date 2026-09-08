@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { useConsentActiveUI, usePolicyRule } from '../composables';
+import {
+	useConsentActiveUI,
+	useHasConsentPolicy,
+	usePolicyRule,
+} from '../composables';
 
 const policy = usePolicyRule();
 const activeUI = useConsentActiveUI();
+const hasPolicy = useHasConsentPolicy();
 </script>
 
 <template>
 	<button
+		v-if="hasPolicy"
 		type="button"
 		data-testid="consent-dialog-link"
 		:data-c15t-rights="policy.rights.join(' ')"

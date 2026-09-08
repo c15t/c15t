@@ -76,7 +76,16 @@ const ScriptCountProbe = ({ count }: { count: number }) => {
 export const ScriptCountBenchmark = ({ count }: { count: number }) => (
 	<ConsentProvider
 		options={{
-			mode: offline(),
+			mode: offline({
+				policyRules: [
+					{
+						id: 'bench-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 			persistence: false,
 		}}
 	>

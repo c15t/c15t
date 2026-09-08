@@ -17,6 +17,7 @@ import {
 	useConsentSave,
 	useConsentKernel,
 	useConsentSnapshot,
+	useHasConsentPolicy,
 } from '../composables';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
@@ -103,7 +104,11 @@ const primaryActions = computed(() => {
 	return ordered.length === 1 && ordered[0] === 'dismiss' ? ordered : [];
 });
 
+const hasPolicy = useHasConsentPolicy();
 const isOpen = computed(() => {
+	if (!hasPolicy.value) {
+		return false;
+	}
 	const { model } = snapshot.value.policyRule;
 	const models = config.value.bannerModels ?? config.value.models;
 	const matchesModel =

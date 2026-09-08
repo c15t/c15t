@@ -17,7 +17,20 @@ const CssIabLazyPage = () => {
 	const [open, setOpen] = useState(false);
 
 	return (
-		<ConsentProvider options={{ mode: offline() }}>
+		<ConsentProvider
+			options={{
+				mode: offline({
+					policyRules: [
+						{
+							id: 'bench-iab',
+							match: { fallback: true, isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				}),
+			}}
+		>
 			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 				<h1>React Lazy IAB CSS Modules Benchmark</h1>
 				<button

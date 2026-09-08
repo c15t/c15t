@@ -18,6 +18,7 @@
 	} = $props();
 </script>
 
+{#if consent.state.hasPolicy}
 <ConsentButton
 	action="open-consent-dialog"
 	{noStyle}
@@ -29,3 +30,4 @@
 		{@render children()}
 	{/if}
 </ConsentButton>
+{/if}

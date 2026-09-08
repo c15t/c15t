@@ -8,6 +8,7 @@ import {
 	getConsentClient,
 	subscribe,
 	syncBannerVisibility,
+	syncSurfaceVisibility,
 } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
@@ -174,6 +175,31 @@ describe('banner actions', () => {
 			expect(banner?.hidden).toBe(true);
 			expect(banner?.getAttribute('data-c15t-visible')).toBe('false');
 		});
+	});
+
+	it('hides persistent controls until a policy rule is resolved', () => {
+		document.body.innerHTML = `
+			<button data-c15t-surface="trigger" data-testid="consent-dialog-trigger" type="button" hidden>Privacy</button>
+		`;
+		const trigger = document.querySelector<HTMLElement>(
+			'[data-testid="consent-dialog-trigger"]'
+		);
+		const unresolved = {
+			resolution: { policy: null, reason: 'transport', status: 'failed' },
+		} as unknown as ConsentSnapshot;
+		const resolved = {
+			resolution: { status: 'matched' },
+		} as unknown as ConsentSnapshot;
+
+		syncSurfaceVisibility(unresolved);
+		expect(trigger?.hidden).toBe(true);
+
+		// A later init that supplies a rule reveals the control in place.
+		syncSurfaceVisibility(resolved);
+		expect(trigger?.hidden).toBe(false);
+
+		syncSurfaceVisibility(unresolved);
+		expect(trigger?.hidden).toBe(true);
 	});
 
 	it('locks scroll and traps focus while a blocking banner shows', () => {

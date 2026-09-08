@@ -59,8 +59,11 @@
 	});
 
 	const branding = $derived(consent.state.branding);
+	// Nothing to manage without a resolved policy.
 	const visible = $derived(
-		showWhen !== 'never' && consent.snapshot.activeUI !== 'dialog'
+		consent.state.hasPolicy &&
+			showWhen !== 'never' &&
+			consent.snapshot.activeUI !== 'dialog'
 	);
 
 	// Position class mapping

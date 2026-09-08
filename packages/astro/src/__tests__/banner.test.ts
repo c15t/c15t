@@ -1,13 +1,14 @@
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import ConsentBanner from '../components/consent-banner.astro';
+import ConsentDialogTrigger from '../components/consent-dialog-trigger.astro';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { hostedMode, offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
-import { testRule } from './policy-fixture';
+import { testRule, testWire } from './policy-fixture';
 
 let container: AstroContainer;
 
@@ -15,8 +16,12 @@ beforeAll(async () => {
 	container = await AstroContainer.create();
 });
 
+// Every c15t surface stays hidden without a matched rule, so the default
+// fixture configures one the way a deployment would.
 const buildLocals = async function buildLocals(
-	options: C15tAstroOptions = { mode: offlineMode() },
+	options: C15tAstroOptions = {
+		mode: offlineMode({ policyRules: [testRule] }),
+	},
 	headers: Record<string, string> = {}
 ): Promise<C15tLocals> {
 	return await resolveConsentContext({
@@ -109,7 +114,10 @@ describe('<ConsentBanner />', () => {
 	it('renders localized copy from the negotiated language', async () => {
 		const english = await render(await buildLocals());
 		const german = await render(
-			await buildLocals({ mode: offlineMode() }, { 'accept-language': 'de' })
+			await buildLocals(
+				{ mode: offlineMode({ policyRules: [testRule] }) },
+				{ 'accept-language': 'de' }
+			)
 		);
 		expect(german).toContain('lang="de"');
 		expect(german).not.toBe(english);
@@ -149,6 +157,71 @@ describe('<ConsentBanner />', () => {
 		await expect(
 			container.renderToString(ConsentBanner, { locals: {}, props: {} })
 		).rejects.toThrowError(/Astro\.locals\.c15t/u);
+	});
+});
+
+describe('<ConsentBanner /> without a resolved policy', () => {
+	// A hosted backend speaking an unsupported policy contract yields a failed
+	// resolution, the same way the middleware tests produce one.
+	const withoutPolicy = () =>
+		resolveConsentContext({
+			fetch: vi.fn(() =>
+				Response.json(
+					{
+						location: { countryCode: null, regionCode: null },
+						policyResolution: testWire(),
+						translations: { language: 'en', translations: {} },
+					},
+					{ headers: { 'x-c15t-policy-contract': '999' } }
+				)
+			) as never,
+			headers: new Headers(),
+			options: resolveOptions({
+				mode: hostedMode({ url: 'https://consent.example.com' }),
+			}),
+			url: 'https://example.com/',
+		});
+
+	it('reports that there is no policy to manage', async () => {
+		const locals = await withoutPolicy();
+		expect(locals.decision.status).toBe('failed');
+		expect(locals.hasPolicy).toBe(false);
+	});
+
+	it('treats an unconfigured deployment as having nothing to consent to', async () => {
+		const locals = await buildLocals({ mode: offlineMode() });
+		expect(locals.decision.status).toBe('unconfigured');
+		expect(locals.hasPolicy).toBe(false);
+		const html = await render(locals, { force: true });
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+	});
+
+	it('renders no banner, even when forced', async () => {
+		const locals = await withoutPolicy();
+		const html = await render(locals, { force: true });
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+	});
+
+	it('hides the dialog trigger until a policy is resolved', async () => {
+		const hidden = await container.renderToString(ConsentDialogTrigger, {
+			locals: { c15t: await withoutPolicy() },
+		});
+		const trigger = /<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(
+			hidden
+		)?.[0];
+		expect(trigger).toBeDefined();
+		expect(trigger).toContain('hidden');
+		expect(trigger).toContain('data-c15t-surface="trigger"');
+
+		const shown = await container.renderToString(ConsentDialogTrigger, {
+			locals: { c15t: await buildLocals() },
+		});
+		const visible = /<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(
+			shown
+		)?.[0];
+		expect(visible).toBeDefined();
+		expect(visible).not.toContain('hidden');
 	});
 });
 
@@ -300,7 +373,7 @@ describe('<ConsentBanner /> surface shape', () => {
 	it('renders a choice as a region when the host turns the focus trap off', async () => {
 		const html = await render(
 			await buildLocals({
-				mode: offlineMode(),
+				mode: offlineMode({ policyRules: [testRule] }),
 				presentation: { prompt: { trapFocus: false } },
 			})
 		);
@@ -311,7 +384,7 @@ describe('<ConsentBanner /> surface shape', () => {
 	it('renders a blocking choice as a modal dialog', async () => {
 		const html = await render(
 			await buildLocals({
-				mode: offlineMode(),
+				mode: offlineMode({ policyRules: [testRule] }),
 				presentation: { prompt: { blocking: true } },
 			})
 		);
@@ -322,14 +395,17 @@ describe('<ConsentBanner /> surface shape', () => {
 
 	it('mirrors a defaulted corner for right-to-left text but keeps a host corner', async () => {
 		const mirrored = await render(
-			await buildLocals({ mode: offlineMode() }, { 'accept-language': 'he' })
+			await buildLocals(
+				{ mode: offlineMode({ policyRules: [testRule] }) },
+				{ 'accept-language': 'he' }
+			)
 		);
 		expect(readRoot(mirrored)).toContain('data-position="bottom-right"');
 
 		const kept = await render(
 			await buildLocals(
 				{
-					mode: offlineMode(),
+					mode: offlineMode({ policyRules: [testRule] }),
 					presentation: { prompt: { position: 'top-left' } },
 				},
 				{ 'accept-language': 'he' }
@@ -354,7 +430,7 @@ describe('<ConsentBanner /> surface shape', () => {
 	it('renders a wall as a blocking modal with an overlay', async () => {
 		const html = await render(
 			await buildLocals({
-				mode: offlineMode(),
+				mode: offlineMode({ policyRules: [testRule] }),
 				presentation: { prompt: { variant: 'wall' } },
 			})
 		);

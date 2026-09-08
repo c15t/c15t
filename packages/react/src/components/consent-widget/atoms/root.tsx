@@ -18,6 +18,7 @@ import {
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
 import { ConsentDraftProvider } from '~/draft';
+import { useHasConsentPolicy } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 
 /**
@@ -130,6 +131,11 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		() => ({ uiSource: resolvedUiSource }),
 		[resolvedUiSource]
 	);
+	const hasPolicy = useHasConsentPolicy();
+	if (!hasPolicy) {
+		// No resolved policy: there are no categories to manage, so render nothing.
+		return null;
+	}
 
 	const content = (
 		<Box

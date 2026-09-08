@@ -16,6 +16,7 @@ import { c15t, resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { buildColorSchemeScript, resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
+import { testRule } from './policy-fixture';
 
 let container: AstroContainer;
 
@@ -24,7 +25,7 @@ beforeAll(async () => {
 });
 
 const buildLocals = async function buildLocals(
-	options: C15tAstroOptions = { mode: offlineMode() }
+	options: C15tAstroOptions = { mode: offlineMode({ policyRules: [testRule] }) }
 ): Promise<C15tLocals> {
 	return await resolveConsentContext({
 		headers: new Headers(),
@@ -64,23 +65,37 @@ const serializedOptions = async function serializedOptions(
 
 describe('the colorScheme option', () => {
 	it('defaults to system', () => {
-		expect(resolveOptions({ mode: offlineMode() }).colorScheme).toBe('system');
+		expect(
+			resolveOptions({ mode: offlineMode({ policyRules: [testRule] }) })
+				.colorScheme
+		).toBe('system');
 	});
 
 	it.each(['light', 'dark', 'system'] as const)('keeps %s', (colorScheme) => {
 		expect(
-			resolveOptions({ colorScheme, mode: offlineMode() }).colorScheme
+			resolveOptions({
+				colorScheme,
+				mode: offlineMode({ policyRules: [testRule] }),
+			}).colorScheme
 		).toBe(colorScheme);
 	});
 
 	it('reaches the browser through the virtual options module', async () => {
 		expect(
-			(await serializedOptions({ colorScheme: 'dark', mode: offlineMode() }))
-				.colorScheme
+			(
+				await serializedOptions({
+					colorScheme: 'dark',
+					mode: offlineMode({ policyRules: [testRule] }),
+				})
+			).colorScheme
 		).toBe('dark');
-		expect((await serializedOptions({ mode: offlineMode() })).colorScheme).toBe(
-			'system'
-		);
+		expect(
+			(
+				await serializedOptions({
+					mode: offlineMode({ policyRules: [testRule] }),
+				})
+			).colorScheme
+		).toBe('system');
 	});
 });
 
@@ -135,7 +150,10 @@ describe('<ConsentScript />', () => {
 
 	it('emits the dark variant when the site pinned dark', async () => {
 		const html = await render(
-			await buildLocals({ colorScheme: 'dark', mode: offlineMode() })
+			await buildLocals({
+				colorScheme: 'dark',
+				mode: offlineMode({ policyRules: [testRule] }),
+			})
 		);
 		expect(html).toContain("classList.add('c15t-dark')");
 		expect(html).not.toContain('prefers-color-scheme');
@@ -143,7 +161,10 @@ describe('<ConsentScript />', () => {
 
 	it('emits no colour-scheme script for light', async () => {
 		const html = await render(
-			await buildLocals({ colorScheme: 'light', mode: offlineMode() })
+			await buildLocals({
+				colorScheme: 'light',
+				mode: offlineMode({ policyRules: [testRule] }),
+			})
 		);
 		expect(html).not.toContain('c15t-dark');
 		expect(html).toContain('__c15tAstroConfig');

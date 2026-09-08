@@ -138,9 +138,27 @@ export const useBranding = function useBranding(): KernelBranding | null {
 	return useKernelSelector((snap) => snap.branding);
 };
 
-/** Derived consent model (opt-in / opt-out / iab / null). */
-export const useModel = function useModel(): KernelModel {
-	return useKernelSelector((snap) => snap.model);
+/**
+ * Whether the kernel holds a resolved policy rule.
+ *
+ * `false` while resolution is unconfigured, failed, or matched nothing, and
+ * while a pending init has not answered yet. Without a policy there is
+ * nothing to consent to, so every prebuilt consent surface renders nothing;
+ * headless hosts should do the same.
+ */
+export const useHasConsentPolicy = function useHasConsentPolicy(): boolean {
+	return useKernelSelector((snap) => snap.resolution.status === 'matched');
+};
+
+/**
+ * Derived consent model (opt-in / opt-out / iab), or `null` while no policy
+ * rule is resolved. The kernel keeps a safe fallback rule internally; this
+ * hook hides it so hosts can key "no consent UI" on `null`.
+ */
+export const useModel = function useModel(): KernelModel | null {
+	return useKernelSelector((snap) =>
+		snap.resolution.status === 'matched' ? snap.model : null
+	);
 };
 
 /** Which UI surface to render (none / banner / dialog). */

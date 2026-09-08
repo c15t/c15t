@@ -98,6 +98,7 @@ const summary = resolveIABBannerSummary(
 // the summary derives from it. The browser boots, fetches one and mounts
 // the client banner instead.
 const shouldRender =
+	c15t.hasPolicy &&
 	(force || c15t.shouldShowBanner) &&
 	summary.isReady &&
 	models.includes(snapshot.policyRule.model);

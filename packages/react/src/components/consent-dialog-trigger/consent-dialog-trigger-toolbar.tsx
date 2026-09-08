@@ -9,7 +9,7 @@
 
 import type { ReactNode } from 'react';
 
-import { usePromptRequirement } from '~/hooks';
+import { useHasConsentPolicy, usePromptRequirement } from '~/hooks';
 
 import { TriggerRoot } from './atoms/root';
 import { TriggerToolbar } from './atoms/toolbar';
@@ -65,9 +65,12 @@ export const ConsentDialogTriggerToolbar = ({
 	onPositionChange,
 }: ConsentDialogTriggerToolbarProps): ReactNode => {
 	const promptRequirement = usePromptRequirement();
+	const hasPolicy = useHasConsentPolicy();
 	const promptSettled =
 		showWhen !== 'after-prompt' || promptRequirement.kind === 'none';
-	const showPreferences = showWhen !== 'never' && promptSettled;
+	// Without a resolved policy there is nothing to manage, so the built-in
+	// item stays out regardless of `showWhen`; app-owned actions still render.
+	const showPreferences = hasPolicy && showWhen !== 'never' && promptSettled;
 	const visible = actions.length > 0 || showPreferences;
 
 	return (

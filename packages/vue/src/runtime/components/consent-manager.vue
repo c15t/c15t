@@ -11,6 +11,7 @@ import {
 	useConsentInit,
 	useConsentSave,
 	useConsentSnapshot,
+	useHasConsentPolicy,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
@@ -35,6 +36,8 @@ const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
 const snapshot = useConsentSnapshot();
+// No resolved policy means nothing to manage: render no surface at all.
+const hasPolicy = useHasConsentPolicy();
 
 const { presentation: surface } = useConsentPolicyActions('preferences');
 let pendingActions = 0;
@@ -145,7 +148,7 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 
 <template>
 	<div
-		v-if="isStale"
+		v-if="hasPolicy && isStale"
 		role="status"
 	>
 		Privacy choices have changed.
@@ -157,6 +160,7 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 		</button>
 	</div>
 	<DialogRoot
+		v-if="hasPolicy"
 		:open="activeUI === 'manager'"
 		:modal="surface.blocking"
 		@update:open="(open) => (activeUI = open ? 'manager' : null)"

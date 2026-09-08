@@ -77,7 +77,8 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const [isVisible, setIsVisible] = useState(false);
 
 	// IABConsentDialog only opens when the consent model matches
-	const isOpen = models.includes(model) && (open ?? activeUI === 'dialog');
+	const isOpen =
+		model !== null && models.includes(model) && (open ?? activeUI === 'dialog');
 	const resolvedScrollLock = scrollLock ?? policyDialog.scrollLock ?? true;
 
 	const contextValue = useMemo(
