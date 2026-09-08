@@ -114,6 +114,10 @@ export const readScriptOptions = function readScriptOptions(
 	if (manifestURL) {
 		options.manifestURL = manifestURL;
 	}
+	const policies = readList(element.getAttribute('data-policies'));
+	if (policies) {
+		options.policies = policies as ConsentClientOptions['policies'];
+	}
 	const categories = readList(element.getAttribute('data-categories'));
 	if (categories) {
 		options.consentCategories = categories as AllConsentNames[];

@@ -61,7 +61,18 @@
 		<script
 			src="/c15t.js"
 			data-mode="offline"
+			data-policies="europeOptIn,californiaOptOut,worldNoBanner"
+			data-country="DE"
 			data-color-scheme="system"
+			defer
+		></script>
+		<!-- Change the country on the Location tab and re-run init to see
+		     the policy switch: DE shows the opt-in banner, US-CA the opt-out
+		     flow, anywhere else no banner. -->
+		<script
+			src="/c15t.devtools.js"
+			data-open
+			data-tab="location"
 			defer
 		></script>
 	</head>

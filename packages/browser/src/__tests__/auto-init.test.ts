@@ -48,6 +48,7 @@ describe('readScriptOptions', () => {
 				'data-color-scheme': 'dark',
 				'data-country': 'DE',
 				'data-hide-branding': '',
+				'data-policies': 'europeOptIn,worldNoBanner',
 				'data-privacy-policy-url': '/privacy',
 				'data-trigger': 'true',
 			})
@@ -58,6 +59,7 @@ describe('readScriptOptions', () => {
 			consentCategories: ['measurement', 'marketing'],
 			legalLinks: { privacyPolicy: { href: '/privacy' } },
 			overrides: { country: 'DE' },
+			policies: ['europeOptIn', 'worldNoBanner'],
 			ui: {
 				banner: { hideBranding: true },
 				colorScheme: 'dark',

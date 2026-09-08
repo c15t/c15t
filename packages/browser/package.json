@@ -41,6 +41,7 @@
 	"sideEffects": [
 		"./dist/c15t.js",
 		"./dist/c15t.headless.js",
+		"./dist/c15t.devtools.js",
 		"**/*.css"
 	],
 	"main": "./dist/index.js",
@@ -58,9 +59,15 @@
 			"import": "./dist/headless.js",
 			"default": "./dist/headless.js"
 		},
+		"./devtools": {
+			"types": "./dist-types/devtools.d.ts",
+			"import": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
+		},
 		"./styles.css": "./dist/c15t.css",
 		"./c15t.js": "./dist/c15t.js",
-		"./c15t.headless.js": "./dist/c15t.headless.js"
+		"./c15t.headless.js": "./dist/c15t.headless.js",
+		"./c15t.devtools.js": "./dist/c15t.devtools.js"
 	},
 	"publishConfig": {
 		"access": "public"
@@ -79,6 +86,7 @@
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*"

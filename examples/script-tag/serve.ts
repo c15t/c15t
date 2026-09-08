@@ -1,7 +1,7 @@
 /**
  * Serves the script-tag example on http://localhost:4173.
  *
- * `/c15t.js` and `/c15t.headless.js` come straight from the built
+ * `/c15t.js`, `/c15t.headless.js` and `/c15t.devtools.js` come straight from the built
  * `@c15t/browser` package, the way a CDN would serve them. Cookies need an
  * http origin, so `file://` is not enough to try a full accept/reload cycle.
  *
@@ -15,6 +15,9 @@ const port = Number(process.env.PORT ?? 4173);
 const html = new URL('./index.html', import.meta.url);
 
 const bundles: Record<string, URL> = {
+	'/c15t.devtools.js': new URL(
+		import.meta.resolve('@c15t/browser/c15t.devtools.js')
+	),
 	'/c15t.headless.js': new URL(
 		import.meta.resolve('@c15t/browser/c15t.headless.js')
 	),

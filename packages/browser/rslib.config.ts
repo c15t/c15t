@@ -15,6 +15,7 @@ import {
  *   from the `<script>` tag's `data-*` attributes.
  * - `dist/c15t.headless.js` — the same without any UI or CSS, for sites
  *   that render their own banner against `window.c15t`.
+ * - `dist/c15t.devtools.js` — the DevTools panel as a second tag.
  */
 const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 	return {
@@ -46,6 +47,7 @@ export default defineConfig({
 			format: 'esm',
 			source: {
 				entry: {
+					devtools: './src/devtools.ts',
 					headless: './src/headless.ts',
 					index: './src/index.ts',
 				},
@@ -53,6 +55,7 @@ export default defineConfig({
 		},
 		scriptTagLib('c15t', './src/entries/cdn.ts'),
 		scriptTagLib('c15t.headless', './src/entries/cdn-headless.ts'),
+		scriptTagLib('c15t.devtools', './src/entries/cdn-devtools.ts'),
 	],
 	output: {
 		cleanDistPath: true,

@@ -3,8 +3,10 @@
 	"entry": [
 		"./src/index.ts",
 		"./src/headless.ts",
+		"./src/devtools.ts",
 		"./src/entries/cdn.ts",
 		"./src/entries/cdn-headless.ts",
+		"./src/entries/cdn-devtools.ts",
 		"./scripts/build-styles.ts",
 		"./scripts/copy-styles.ts"
 	],

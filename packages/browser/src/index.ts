@@ -49,6 +49,7 @@ export const init = function init(
 
 export { ACTION_ATTRIBUTE, custom, hosted, PREFERENCES_HASH } from './client';
 export type { PageAction } from './client';
+export { resolvePolicies } from './client';
 export {
 	ACTIVATED_ATTRIBUTE,
 	activateGatedScripts,
@@ -65,6 +66,7 @@ export type {
 	ConsentClientOptions,
 	ConsentDialogOptions,
 	ConsentModeName,
+	PolicyPresetName,
 	ConsentTriggerOptions,
 	ConsentUIHandle,
 	ConsentUIOptions,

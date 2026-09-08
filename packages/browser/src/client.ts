@@ -1,4 +1,10 @@
-import { allConsentNames, custom, has, hosted } from '@c15t/core';
+import {
+	allConsentNames,
+	custom,
+	has,
+	hosted,
+	policyPackPresets,
+} from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
@@ -7,6 +13,7 @@ import type {
 	KernelActiveUI,
 	KernelOverrides,
 	KernelUser,
+	PolicyConfig,
 	ProviderTransportFactory,
 	Unsubscribe,
 } from '@c15t/core';
@@ -58,6 +65,33 @@ interface ResolvedMode {
 	name: ConsentModeName | 'custom';
 }
 
+/**
+ * Turn preset names into policy packs.
+ *
+ * @param policies - Packs, preset names, or a mix.
+ * @returns Packs only, or `undefined` when none were given.
+ * @throws {Error} On a name `policyPackPresets` does not export.
+ */
+export const resolvePolicies = function resolvePolicies(
+	policies: ConsentClientOptions['policies']
+): PolicyConfig[] | undefined {
+	if (!policies) {
+		return undefined;
+	}
+	return policies.map((entry) => {
+		if (typeof entry !== 'string') {
+			return entry;
+		}
+		const preset = policyPackPresets[entry] as (() => PolicyConfig) | undefined;
+		if (typeof preset !== 'function') {
+			throw new Error(
+				`@c15t/browser: unknown policy preset "${entry}". Expected one of ${Object.keys(policyPackPresets).join(', ')}.`
+			);
+		}
+		return preset();
+	});
+};
+
 const defaultModeName = function defaultModeName(
 	options: ConsentClientOptions
 ): ConsentModeName {
@@ -97,7 +131,10 @@ const resolveMode = function resolveMode(
 			name,
 		};
 	}
-	return { factory: offline({ policyPacks: options.policies }), name };
+	return {
+		factory: offline({ policyPacks: resolvePolicies(options.policies) }),
+		name,
+	};
 };
 
 /**
@@ -181,7 +218,7 @@ export const createConsentClient = function createConsentClient(
 		networkBlocker: options.networkBlocker,
 		overrides: options.overrides,
 		pkg: options.pkg ?? context.pkg ?? '@c15t/browser',
-		policies: options.policies,
+		policies: resolvePolicies(options.policies),
 		prefetch: options.prefetch,
 		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
 		scripts: options.scripts,

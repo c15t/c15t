@@ -169,6 +169,39 @@ describe('createConsentClient', () => {
 		expect(client.mode).toBe('hosted');
 	});
 
+	it('resolves policy presets by name and picks one by country', async () => {
+		const german = start({
+			overrides: { country: 'DE' },
+			policies: ['europeOptIn', 'californiaOptOut', 'worldNoBanner'],
+		});
+		expect((await german.ready()).model).toBe('opt-in');
+		german.dispose();
+
+		const californian = start({
+			overrides: { country: 'US', region: 'CA' },
+			policies: ['europeOptIn', 'californiaOptOut', 'worldNoBanner'],
+		});
+		expect((await californian.ready()).model).toBe('opt-out');
+		californian.dispose();
+
+		const elsewhere = start({
+			overrides: { country: 'BR' },
+			policies: ['europeOptIn', 'californiaOptOut', 'worldNoBanner'],
+		});
+		const snapshot = await elsewhere.ready();
+		expect(snapshot.model).toBeNull();
+		expect(snapshot.activeUI).toBe('none');
+	});
+
+	it('rejects an unknown policy preset name', () => {
+		expect(() =>
+			createConsentClient(
+				{ policies: ['everywhereOptIn' as never] },
+				{ pkg: 'test' }
+			)
+		).toThrow(/unknown policy preset/u);
+	});
+
 	it('throws from mountUI in the headless build', () => {
 		const client = start({ ui: false });
 		expect(() => client.mountUI()).toThrow(/headless/u);

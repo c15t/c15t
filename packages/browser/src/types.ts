@@ -12,6 +12,7 @@ import type {
 	KernelUser,
 	LegalLinks,
 	PolicyConfig,
+	policyPackPresets,
 	ProviderTransportFactory,
 	Script,
 	StorageConfig,
@@ -35,6 +36,9 @@ import type { Theme } from '@c15t/ui/theme';
  *   resolved locally so the banner can render without waiting on `/init`.
  */
 export type ConsentModeName = 'hosted' | 'offline' | 'manifest';
+
+/** A built-in policy pack, by the name `policyPackPresets` exports it under. */
+export type PolicyPresetName = keyof typeof policyPackPresets;
 
 /** Corner the floating preferences button docks to. */
 export type TriggerPosition =
@@ -145,8 +149,12 @@ export interface ConsentClientOptions {
 	manifest?: ConsentManifest;
 	/** URL of the backend's `GET /manifest` for `manifest` mode. */
 	manifestURL?: string;
-	/** Policy packs for `offline` mode. */
-	policies?: PolicyConfig[];
+	/**
+	 * Policy packs for `offline` mode. A preset name such as
+	 * `'europeOptIn'` stands in for `policyPackPresets.europeOptIn()`, so a
+	 * JSON config or a `data-policies` attribute can name them.
+	 */
+	policies?: (PolicyConfig | PolicyPresetName)[];
 	/** Categories the UI offers. Defaults to every category the policy allows. */
 	consentCategories?: AllConsentNames[];
 	/** Third-party scripts to load once their category is granted. */

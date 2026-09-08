@@ -7,6 +7,7 @@ import type {
 	KernelUser,
 	Unsubscribe,
 } from '@c15t/core';
+import type { DevToolsInstance } from '@c15t/dev-tools';
 
 import { readPageOptions } from './auto-init';
 import { createConsentClient } from './client';
@@ -53,6 +54,13 @@ export interface C15tGlobal {
 	 * and `window.c15tConfig` declare.
 	 */
 	init: (options?: ConsentClientOptions) => ConsentClient;
+	/**
+	 * Run once the client exists, immediately if it already does. Safe to
+	 * call before `init()`; `c15t.devtools.js` mounts through this.
+	 */
+	onInit: (listener: (client: ConsentClient) => void) => Unsubscribe;
+	/** The DevTools panel, once `c15t.devtools.js` has mounted it. */
+	devtools: DevToolsInstance | null;
 	/** Resolves once the policy is resolved. Safe to call before `init()`. */
 	ready: () => Promise<ConsentSnapshot>;
 	/** Listen for a client event. Safe to call before `init()`. */
@@ -141,7 +149,10 @@ export const createGlobal = function createGlobal(
 			require().closeDialog();
 		},
 		custom,
+		devtools: null,
 		dispose: () => {
+			api.devtools?.destroy();
+			api.devtools = null;
 			client?.dispose();
 			client = null;
 		},
@@ -184,6 +195,19 @@ export const createGlobal = function createGlobal(
 			return function off() {
 				cancelled = true;
 				unsubscribe?.();
+			};
+		},
+		onInit(listener) {
+			let cancelled = false;
+			const attach = async function attach(): Promise<void> {
+				const resolvedClient = await clientReady.promise;
+				if (!cancelled) {
+					listener(resolvedClient);
+				}
+			};
+			void attach();
+			return function off() {
+				cancelled = true;
 			};
 		},
 		openDialog: () => {

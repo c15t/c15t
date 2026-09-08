@@ -39,6 +39,7 @@ Every attribute is optional.
 | `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
 | `data-manifest-url` | The backend's `/manifest` URL, for manifest mode. |
 | `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. `necessary` is always included. |
+| `data-policies` | Comma-separated policy presets for offline mode: `europeOptIn`, `europeIab`, `californiaOptIn`, `californiaOptOut`, `quebecOptIn`, `worldNoBanner`. Resolved by the visitor's country. |
 | `data-language` | Force a language instead of reading the browser's. |
 | `data-country`, `data-region` | Known location, when your host injects it. |
 | `data-color-scheme` | `light`, `dark`, or `system` (default). |
@@ -191,6 +192,16 @@ createApp(runtime, {
 ```
 
 The page's own `window.c15tConfig` still wins over the baked-in defaults. The response carries the same `Cache-Control` and `ETag` as `/manifest`, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
+
+## Dev tools
+
+Add a second tag and the c15t DevTools panel attaches to the page's client. It shows consents, gated scripts, the resolved policy and every kernel event, and its Location tab changes country, region, language and GPC and re-runs init, so you can watch a geo-keyed policy switch without spoofing headers or a VPN.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
+```
+
+Tag order does not matter; the panel waits for the client. It is also on `window.c15t.devtools`, so `c15t.devtools.actions.setOverrides({ country: 'US' })` followed by `c15t.devtools.actions.init()` does the same from the console. Leave the tag out of production pages; it is 13 KB gzipped and shows internals. Bundler users import `mountDevTools` from `@c15t/browser/devtools`.
 
 ## In a bundler
 
