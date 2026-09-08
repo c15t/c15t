@@ -272,6 +272,67 @@ describe('ClientRouter navigation', () => {
 	});
 });
 
+describe('opening without an inlined resolution', () => {
+	/** Boot with the init still in flight: no server-resolved policy inlined. */
+	const startPending = function startPending(
+		options: C15tAstroOptions = OPTIONS
+	): AstroConsentClient {
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig = {
+			initialTranslations: INLINE_CONFIG.initialTranslations,
+		};
+		client = boot(resolveOptions(options));
+		return client;
+	};
+
+	it('waits for the pending init and then mounts the dialog', async () => {
+		const mount = vi.fn(() =>
+			Promise.resolve({
+				close: vi.fn(),
+				destroy: vi.fn(),
+			} as ConsentDialogHandle)
+		);
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({ mount, name: 'svelte' })
+		);
+
+		renderBanner();
+		const booted = startPending();
+		// Asked before the offline init has answered; the policy arrives a
+		// moment later and the dialog must still open.
+		expect(booted.getConsent().policyPending).toBe(true);
+		await booted.openDialog();
+
+		expect(booted.getConsent().resolution.status).toBe('matched');
+		expect(mount).toHaveBeenCalledOnce();
+		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+
+	it('never mounts the dialog when the init settles without a policy', async () => {
+		const mount = vi.fn(() =>
+			Promise.resolve({
+				close: vi.fn(),
+				destroy: vi.fn(),
+			} as ConsentDialogHandle)
+		);
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({ mount, name: 'svelte' })
+		);
+
+		renderBanner();
+		// No policy rules: the offline transport resolves `unconfigured`.
+		const booted = startPending({
+			consentCategories: OPTIONS.consentCategories,
+			mode: offlineMode({}),
+		});
+		await booted.openDialog();
+
+		expect(booted.getConsent().policyPending).toBe(false);
+		expect(booted.getConsent().resolution.status).not.toBe('matched');
+		expect(mount).not.toHaveBeenCalled();
+		expect(booted.getConsent().activeUI).not.toBe('dialog');
+	});
+});
+
 describe('dialog lifecycle', () => {
 	it('destroys a surface that mounted after dispose', async () => {
 		// `dispose()` only tears down the handle it can already see, so an

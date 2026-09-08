@@ -20,6 +20,7 @@
  */
 
 import type {
+	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
 	KernelConfig,
@@ -231,6 +232,34 @@ const hasConsentPolicy = function hasConsentPolicy(
 };
 
 /**
+ * Resolve once the initial policy resolution has settled.
+ *
+ * A page whose server did not inline a resolution boots with the init still
+ * in flight, so a synchronous read of the snapshot would report "no policy"
+ * for a policy that arrives a moment later. Waiting here lets `openDialog()`
+ * calls made on page load (a `#c15t-preferences` link, a storybook, a host
+ * script) decide against the settled answer instead of the pending one.
+ *
+ * @param kernel - The runtime's kernel.
+ */
+const whenPolicySettled = function whenPolicySettled(
+	kernel: ConsentKernel
+): Promise<void> {
+	if (!kernel.getSnapshot().policyPending) {
+		return Promise.resolve();
+	}
+	// oxlint-disable-next-line promise/avoid-new -- Bridges the kernel's subscription into one awaitable.
+	return new Promise<void>((resolve) => {
+		const unsubscribe = kernel.subscribe((snapshot) => {
+			if (!snapshot.policyPending) {
+				unsubscribe();
+				resolve();
+			}
+		});
+	});
+};
+
+/**
  * Show or hide the persistent consent controls the page rendered on the
  * server (`<ConsentDialogTrigger />`) as the policy resolution changes.
  *
@@ -401,8 +430,10 @@ const createClient = function createClient(
 			if (disposed) {
 				return;
 			}
-			// Nothing to consent to without a resolved policy rule.
-			if (!hasConsentPolicy(runtime.kernel.getSnapshot())) {
+			// Decide against the settled resolution: an init still in flight is
+			// not "no policy". Nothing to consent to without a resolved rule.
+			await whenPolicySettled(runtime.kernel);
+			if (disposed || !hasConsentPolicy(runtime.kernel.getSnapshot())) {
 				return;
 			}
 			if (opening) {

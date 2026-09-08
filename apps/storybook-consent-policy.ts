@@ -2,8 +2,12 @@ import type { ConsentPresentation } from '../packages/core/src/libs/policy-actio
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
+	resolvePolicyRules,
 } from '../packages/schema/src/types';
-import type { PolicyRule } from '../packages/schema/src/types';
+import type {
+	PolicyRule,
+	PolicyResolution,
+} from '../packages/schema/src/types';
 
 export const storybookPolicy: PolicyRule = {
 	categories: ['functionality', 'measurement', 'experience', 'marketing'],
@@ -19,6 +23,19 @@ export const storybookIABPolicy: PolicyRule = {
 	id: 'storybook-iab',
 	model: 'iab',
 };
+
+/**
+ * The storybook policy already resolved, for adapters whose provider can
+ * take a prefetched resolution. Consent surfaces render only once a policy
+ * is resolved, so a story that waits on an async `offline()` init paints
+ * without its link, trigger, and widget for a tick; a prefetched resolution
+ * makes the first paint authoritative, as server rendering does in an app.
+ */
+export const storybookPolicyResolution: PolicyResolution = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [storybookPolicy],
+});
 
 /**
  * Shared story presentation. The prompt keeps the resolver's non-blocking
