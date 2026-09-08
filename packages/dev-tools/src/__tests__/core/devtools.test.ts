@@ -202,6 +202,18 @@ describe('createDevTools', () => {
 			});
 		}
 	);
+	it('renders into the page with its stylesheet when shadow is off', () => {
+		const kernel = createConsentKernel();
+		const tools = createDevTools({ kernel, shadow: false });
+		instances.push(tools);
+
+		expect(document.querySelector('[data-c15t-dev-tools-host]')).toBeNull();
+		expect(document.body.contains(tools.element)).toBe(true);
+		expect(
+			document.head.querySelector('#c15t-dev-tools-styles')?.textContent
+		).toContain('.c15t-dev-tools');
+	});
+
 	it('keeps the embedded panel open on Escape', () => {
 		const devTools = createInstance(undefined, document.body);
 		devTools.element?.classList.add('c15t-dev-tools--embedded');

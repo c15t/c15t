@@ -163,27 +163,44 @@ export const getFocusableElements = function getFocusableElements(
 	);
 };
 
+let scrollLockCount = 0;
+let scrollLockOriginal: { overflow: string; paddingRight: string } | null =
+	null;
+
 /**
  * Locks document scrolling.
  * @returns Cleanup function to restore scroll
  */
 export const setupScrollLock = function setupScrollLock() {
-	const originalStyles = {
-		overflow: document.body.style.overflow,
-		paddingRight: document.body.style.paddingRight,
-	};
-
-	const scrollbarWidth =
-		window.innerWidth - document.documentElement.clientWidth;
-
-	document.body.style.overflow = 'hidden';
-	if (scrollbarWidth > 0) {
-		document.body.style.paddingRight = `${scrollbarWidth}px`;
+	// Reference counted: a banner and a dialog can both hold the lock (the
+	// banner's exit animation overlaps the dialog opening), and the page
+	// must only get its original overflow back when the last one lets go.
+	if (scrollLockCount === 0) {
+		scrollLockOriginal = {
+			overflow: document.body.style.overflow,
+			paddingRight: document.body.style.paddingRight,
+		};
+		const scrollbarWidth =
+			window.innerWidth - document.documentElement.clientWidth;
+		document.body.style.overflow = 'hidden';
+		if (scrollbarWidth > 0) {
+			document.body.style.paddingRight = `${scrollbarWidth}px`;
+		}
 	}
+	scrollLockCount += 1;
 
+	let released = false;
 	return () => {
-		document.body.style.overflow = originalStyles.overflow;
-		document.body.style.paddingRight = originalStyles.paddingRight;
+		if (released) {
+			return;
+		}
+		released = true;
+		scrollLockCount -= 1;
+		if (scrollLockCount === 0 && scrollLockOriginal) {
+			document.body.style.overflow = scrollLockOriginal.overflow;
+			document.body.style.paddingRight = scrollLockOriginal.paddingRight;
+			scrollLockOriginal = null;
+		}
 	};
 };
 

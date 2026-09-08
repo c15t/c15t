@@ -68,10 +68,11 @@ export const ConsentAndScriptsFlow: Story = {
 		await userEvent.click(
 			within(document.body).getByRole('button', { name: 'Toggle host' })
 		);
-		await waitFor(() =>
+		await waitFor(() => {
 			expect(
 				document.querySelectorAll('[data-c15t-dev-tools-host]')
-			).toHaveLength(1)
-		);
+			).toHaveLength(1);
+			expect(panelRoot()).not.toBeNull();
+		});
 	},
 };

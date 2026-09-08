@@ -22,11 +22,11 @@ Cookie banner, preference centre, and consent-gated script loading for sites wit
 
 ## Key Features
 
-- One script tag from a CDN, configured with data attributes or window.c15tConfig
+- One script tag from a CDN, configured with data attributes or calls queued on window.c15t
 - Prebuilt banner and preference centre rendered in a shadow root, immune to theme CSS
 - Headless build with the same runtime and window.c15t API for custom banners
 - data-c15t-action buttons and #c15t-preferences links wired for you
-- Hosted, self-hosted, offline, and manifest modes; manifest mode renders a location-independent policy with no request
+- Hosted, self-hosted, offline, and manifest modes; an inlined manifest renders a location-independent policy with no request at all
 - DevTools panel as a second tag (c15t.devtools.js) with a Location tab for trying geo-keyed policies
 - Consent-gated script loading and Google Consent Mode through @c15t/scripts
 - ES module entry points for bundler projects without a framework

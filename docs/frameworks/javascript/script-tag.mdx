@@ -104,8 +104,10 @@ c15t.on('consent', (snapshot) => {
   }
 });
 
-await c15t.ready(); // the policy is resolved and the banner has rendered
-c15t.hasConsented(); // true once the visitor decided
+c15t.ready().then(() => {
+  // the policy is resolved and the banner has rendered
+  c15t.hasConsented(); // true once the visitor decided
+});
 c15t.openDialog();
 c15t.acceptAll();
 c15t.save({ measurement: true, marketing: false });

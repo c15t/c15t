@@ -82,7 +82,10 @@ export const resolvePolicies = function resolvePolicies(
 		if (typeof entry !== 'string') {
 			return entry;
 		}
-		const preset = policyPackPresets[entry] as (() => PolicyConfig) | undefined;
+		// Own keys only: `'constructor'` would otherwise resolve to Object.
+		const preset = Object.hasOwn(policyPackPresets, entry)
+			? (policyPackPresets[entry] as () => PolicyConfig)
+			: undefined;
 		if (typeof preset !== 'function') {
 			throw new Error(
 				`@c15t/browser: unknown policy preset "${entry}". Expected one of ${Object.keys(policyPackPresets).join(', ')}.`

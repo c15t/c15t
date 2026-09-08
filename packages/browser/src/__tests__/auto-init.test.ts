@@ -169,6 +169,26 @@ describe('window.c15t', () => {
 		warn.mockRestore();
 	});
 
+	it('answers ready() and on() from the new client after dispose and init', async () => {
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+		const first = api.init({ consentCategories: ['measurement'], ui: false });
+		await api.ready();
+		api.dispose();
+
+		const onReady = vi.fn();
+		api.on('ready', onReady);
+		const ready = api.ready();
+		const second = api.init({ consentCategories: ['marketing'], ui: false });
+
+		expect(second).not.toBe(first);
+		await expect(ready).resolves.toMatchObject({ activeUI: 'banner' });
+		await vi.waitFor(() => {
+			expect(onReady).toHaveBeenCalledOnce();
+		});
+		expect(api.client).toBe(second);
+	});
+
 	it('stays on window.c15t after the runtime starts', () => {
 		const api = createGlobal({ pkg: '@c15t/browser/test' });
 		installGlobal(api);

@@ -170,6 +170,52 @@ describe('manifest()', () => {
 		expect(snapshot.location?.countryCode).toBe('FR');
 	});
 
+	it('keeps a root-relative manifest URL on this origin for /init and saves', async () => {
+		const fetchSpy = vi.fn<typeof fetch>((input) =>
+			Promise.resolve(
+				String(input).includes('/init')
+					? initResponse()
+					: new Response(JSON.stringify(geoManifest), {
+							headers: { 'content-type': 'application/json' },
+							status: 200,
+						})
+			)
+		);
+		const client = createConsentClient(
+			{ mode: manifest({ fetch: fetchSpy, manifestURL: '/manifest' }) },
+			{ pkg: 'test' }
+		);
+		clients.push(client);
+		client.start();
+
+		const snapshot = await client.ready();
+
+		// No country and a country-keyed pack: the fallback must reach
+		// `/init` on this origin rather than resolve blind.
+		expect(fetchSpy.mock.calls.map((call) => String(call[0]))).toEqual([
+			'/manifest',
+			'/init',
+		]);
+		expect(snapshot.location?.countryCode).toBe('DE');
+	});
+
+	it('refuses to resolve a location-dependent manifest with no backend and no country', async () => {
+		const client = createConsentClient(
+			{ mode: manifest({ manifest: geoManifest }) },
+			{ pkg: 'test' }
+		);
+		clients.push(client);
+		const onError = vi.fn();
+		client.on('error', onError);
+		client.start();
+
+		await vi.waitFor(() => {
+			expect(onError).toHaveBeenCalled();
+		});
+		expect(String(onError.mock.calls[0]?.[0])).toMatch(/depends on location/u);
+		expect(client.getSnapshot().activeUI).toBe('none');
+	});
+
 	it('fetches a manifest URL once and derives the backend from it', async () => {
 		const fetchSpy = vi.fn<typeof fetch>(() =>
 			Promise.resolve(

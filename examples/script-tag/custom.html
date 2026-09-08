@@ -120,6 +120,13 @@
 			#consent button:hover {
 				background: color-mix(in oklab, var(--line) 60%, transparent);
 			}
+			/* `all: unset` drops the default focus ring; put one back. */
+			#consent button:focus-visible,
+			footer button:focus-visible,
+			.switch input:focus-visible + span {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
 			#consent button.primary {
 				color: var(--accent-ink);
 				background: var(--accent);
@@ -360,11 +367,13 @@
 					configure.classList.remove('icon');
 					configure.textContent = 'Save';
 					configure.title = '';
+					configure.setAttribute('aria-label', 'Save cookie preferences');
 					return;
 				}
 				configure.classList.remove('primary');
 				configure.classList.add('icon');
 				configure.title = 'Configure';
+				configure.setAttribute('aria-label', 'Configure cookie preferences');
 				configure.innerHTML = gear;
 			};
 

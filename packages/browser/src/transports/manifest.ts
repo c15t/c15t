@@ -155,9 +155,12 @@ export const manifest = function manifest(
 		);
 	}
 	const backendURL = deriveBackendURL(options);
-	const hosted = backendURL
-		? createHostedTransport({ backendURL, fetch: options.fetch })
-		: undefined;
+	// `''` is a real answer: a root-relative `manifestURL` such as
+	// `/manifest` means the backend is this origin.
+	const hosted =
+		backendURL === undefined
+			? undefined
+			: createHostedTransport({ backendURL, fetch: options.fetch });
 	let cached: Promise<ConsentManifest> | undefined;
 
 	const fetchManifest =
@@ -193,8 +196,15 @@ export const manifest = function manifest(
 		async init(ctx: InitContext): Promise<InitResponse> {
 			const resolved = await loadManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			if (!inputs.country && hosted?.init && manifestNeedsLocation(resolved)) {
-				return hosted.init(ctx);
+			if (!inputs.country && manifestNeedsLocation(resolved)) {
+				if (hosted?.init) {
+					return hosted.init(ctx);
+				}
+				// Resolving without a country would silently hand a visitor the
+				// wrong policy; the caller has to supply one or a backend.
+				throw new Error(
+					'@c15t/browser: this manifest depends on location. Pass `backendURL` so /init can resolve it, or `overrides.country`.'
+				);
 			}
 			const output = resolveInitFromManifest(resolved, inputs, {
 				baseTranslations: browserBaseTranslations,

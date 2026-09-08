@@ -108,6 +108,15 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		expect(second.status).toBe(304);
 	});
 
+	it('changes the ETag when the baked-in config changes', async () => {
+		const first = await makeApp().request('http://x.c15t.dev/c15t.js');
+		const second = await makeApp({
+			script: { config: { consentCategories: ['marketing'] } },
+		}).request('http://x.c15t.dev/c15t.js');
+
+		expect(first.headers.get('etag')).not.toBe(second.headers.get('etag'));
+	});
+
 	it('bakes in extra config and lets a fixed backendURL win', async () => {
 		const response = await makeApp({
 			script: {

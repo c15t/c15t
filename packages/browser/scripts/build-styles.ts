@@ -42,15 +42,18 @@ const readClassMap = async function readClassMap(
 		join(uiDist, 'styles', 'components', `${component}.node.js`),
 		'utf8'
 	);
-	const match = /export default(\{.*\});?\s*$/su.exec(source);
-	if (!match?.[1]) {
+	const match = /export default(?<map>\{.*\});?\s*$/su.exec(source);
+	if (!match?.groups?.map) {
 		throw new Error(
 			`@c15t/browser: could not parse class map for ${component}`
 		);
 	}
 	// The map is a plain object literal with unquoted keys; JSON needs quotes.
-	const json = match[1]
-		.replace(/([{,])\s*([A-Za-z0-9_$-]+)\s*:/gu, '$1"$2":')
+	const json = match.groups.map
+		.replace(
+			/(?<before>[{,])\s*(?<key>[A-Za-z0-9_$-]+)\s*:/gu,
+			'$<before>"$<key>":'
+		)
 		.replace(/'/gu, '"');
 	return JSON.parse(json) as Record<string, string>;
 };

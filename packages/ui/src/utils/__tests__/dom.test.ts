@@ -103,8 +103,11 @@ describe('setupScrollLock', () => {
 	});
 
 	test('sets overflow to hidden', () => {
-		setupScrollLock();
+		const cleanup = setupScrollLock();
 		expect(document.body.style.overflow).toBe('hidden');
+		// The lock is reference counted across the module; release it so the
+		// next test starts unlocked.
+		cleanup();
 	});
 
 	test('cleanup restores original overflow', () => {
@@ -112,6 +115,21 @@ describe('setupScrollLock', () => {
 		const cleanup = setupScrollLock();
 		expect(document.body.style.overflow).toBe('hidden');
 		cleanup();
+		expect(document.body.style.overflow).toBe('auto');
+	});
+
+	test('nested locks restore the page only when the last one releases', () => {
+		document.body.style.overflow = 'auto';
+		const first = setupScrollLock();
+		const second = setupScrollLock();
+		expect(document.body.style.overflow).toBe('hidden');
+
+		first();
+		expect(document.body.style.overflow).toBe('hidden');
+		first();
+		expect(document.body.style.overflow).toBe('hidden');
+
+		second();
 		expect(document.body.style.overflow).toBe('auto');
 	});
 

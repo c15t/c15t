@@ -8,7 +8,11 @@
 import { describeRoute } from 'hono-openapi';
 
 import type { RouteContext } from '../context';
-import { buildScriptResponse, deriveBackendURL } from '../script';
+import {
+	buildScriptResponse,
+	deriveBackendURL,
+	loadScriptBundle,
+} from '../script';
 import type { ScriptVariant } from '../script';
 
 export const register = function register({
@@ -33,16 +37,11 @@ export const register = function register({
 	];
 	for (const [path, variant, summary] of routes) {
 		app.get(path, describeRoute({ summary, tags: ['Script'] }), async (c) => {
-			let result: Awaited<ReturnType<typeof buildScriptResponse>>;
+			// Only a missing bundle gets the install hint; a bad manifest config
+			// is the operator's error and surfaces as one.
+			let bundle: string;
 			try {
-				result = await buildScriptResponse({
-					backendURL: script.backendURL ?? deriveBackendURL(c.req.url, path),
-					cache: options.manifestCache,
-					language: c.req.query('language') ?? null,
-					manifest: options.manifest ?? {},
-					options: script,
-					variant,
-				});
+				bundle = await loadScriptBundle(variant, script);
 			} catch (error) {
 				// The bundle ships in `@c15t/browser`; a runtime without a
 				// filesystem needs `script.bundles`. Say so rather than 500.
@@ -56,6 +55,15 @@ export const register = function register({
 					503
 				);
 			}
+			const result = await buildScriptResponse({
+				backendURL: script.backendURL ?? deriveBackendURL(c.req.url, path),
+				bundle,
+				cache: options.manifestCache,
+				language: c.req.query('language') ?? null,
+				manifest: options.manifest ?? {},
+				options: script,
+				variant,
+			});
 			// Same policy as /manifest: geo-independent, shared-cacheable, and
 			// the revision doubles as the validator.
 			c.header('Cache-Control', result.cacheControl);

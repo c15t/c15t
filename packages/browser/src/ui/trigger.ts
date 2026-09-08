@@ -54,6 +54,7 @@ export const createTrigger = function createTrigger(
 
 	let dragging = false;
 	let dragged = false;
+	let visible = false;
 	let startX = 0;
 	let startY = 0;
 	let startedAt = 0;
@@ -88,7 +89,8 @@ export const createTrigger = function createTrigger(
 				styles[size],
 				styles[POSITION_CLASS[corner]],
 				dragging && styles.dragging,
-				snapping && styles.snapping
+				snapping && styles.snapping,
+				!visible && styles.hidden
 			)
 		);
 	};
@@ -192,11 +194,9 @@ export const createTrigger = function createTrigger(
 		},
 		sync(snapshot: ConsentSnapshot) {
 			const allowed = showWhen === 'always' || snapshot.hasConsented;
-			const visible = allowed && snapshot.activeUI === 'none';
+			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
-			if (!noStyle) {
-				element.classList.toggle(styles.hidden, !visible);
-			}
+			applyClasses(snapTimer !== undefined);
 		},
 	};
 };

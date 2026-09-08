@@ -46,6 +46,7 @@ const TABS: readonly { id: DevToolsTab; label: string }[] = [
 ];
 
 let nextViewId = 0;
+const LIGHT_DOM_STYLE_ID = 'c15t-dev-tools-styles';
 
 /** DOM view owned by a DevTools instance. */
 export interface DevToolsView {
@@ -1062,6 +1063,13 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		shadowRoot.append(root);
 		parent.append(host);
 	} else {
+		// Light-DOM mount: the sheet goes in <head>, once, and stays for the
+		// life of the document like the old injected stylesheet did.
+		if (!document.getElementById(LIGHT_DOM_STYLE_ID)) {
+			const style = createElement(document, 'style', undefined, devToolsStyles);
+			style.id = LIGHT_DOM_STYLE_ID;
+			document.head.append(style);
+		}
 		parent.append(root);
 	}
 	render();

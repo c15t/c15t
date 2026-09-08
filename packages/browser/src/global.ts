@@ -71,11 +71,15 @@ export interface C15tGlobal {
 	 *
 	 * @param options - Client options layered over the tag's attributes and
 	 * every queued `config`.
+	 * @returns The page's client.
 	 */
 	init: (options?: ConsentClientOptions) => ConsentClient;
 	/**
 	 * Run once the client exists, immediately if it already does. Safe to
 	 * call before `init()`; `c15t.devtools.js` mounts through this.
+	 *
+	 * @param listener - Called with the client.
+	 * @returns A function that cancels the call if it has not run yet.
 	 */
 	onInit: (listener: (client: ConsentClient) => void) => Unsubscribe;
 	/** The DevTools panel, once `c15t.devtools.js` has mounted it. */
@@ -148,7 +152,9 @@ export const createGlobal = function createGlobal(
 	context: CreateConsentClientContext
 ): C15tGlobal {
 	let client: ConsentClient | null = null;
-	const clientReady = createDeferred<ConsentClient>();
+	// Replaced on dispose, so `ready()` and `on()` after a re-init wait for
+	// the new client instead of answering from the disposed one.
+	let clientReady = createDeferred<ConsentClient>();
 	const queuedConfig: ConsentClientOptions[] = [];
 
 	const require = function require(): ConsentClient {
@@ -185,6 +191,7 @@ export const createGlobal = function createGlobal(
 			api.devtools = null;
 			client?.dispose();
 			client = null;
+			clientReady = createDeferred<ConsentClient>();
 		},
 		getSnapshot: () => require().getSnapshot(),
 		has: (condition) => require().has(condition),

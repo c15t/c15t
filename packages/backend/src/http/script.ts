@@ -7,6 +7,7 @@
  * `@c15t/browser`; this module only prepends a queued `config` call.
  */
 
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 
@@ -133,6 +134,8 @@ export const deriveBackendURL = function deriveBackendURL(
 /** What {@link buildScriptResponse} needs. */
 export interface ScriptRequest {
 	readonly variant: ScriptVariant;
+	/** The bundle source, from {@link loadScriptBundle}. */
+	readonly bundle: string;
 	readonly manifest: ConsentManifestConfig;
 	readonly cache: ManifestCacheOptions | undefined;
 	readonly language: string | null;
@@ -158,10 +161,8 @@ export interface ScriptResult {
 export const buildScriptResponse = async function buildScriptResponse(
 	request: ScriptRequest
 ): Promise<ScriptResult> {
-	const [bundle, manifest] = await Promise.all([
-		loadScriptBundle(request.variant, request.options),
-		buildConsentManifestFromConfig(request.manifest),
-	]);
+	const { bundle } = request;
+	const manifest = await buildConsentManifestFromConfig(request.manifest);
 	const defaults = {
 		...request.options.config,
 		backendURL: request.backendURL,
@@ -178,8 +179,9 @@ export const buildScriptResponse = async function buildScriptResponse(
 	return {
 		body: `${prelude}${bundle}`,
 		cacheControl: createManifestCacheControl(request.cache),
-		// The manifest revision covers the config; the bundle length stands
-		// in for its version so a package upgrade also invalidates.
-		etag: `"${manifest.revision}.${request.variant}.${bundle.length}"`,
+		// The prelude hash covers the manifest revision, the backend URL and
+		// `script.config`, so a config change on the same URI invalidates;
+		// the bundle length stands in for its version.
+		etag: `"${createHash('sha1').update(prelude).digest('hex').slice(0, 16)}.${request.variant}.${bundle.length}"`,
 	};
 };

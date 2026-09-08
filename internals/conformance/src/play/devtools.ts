@@ -1,16 +1,36 @@
 import type { PlayFunction } from 'storybook/internal/types';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+/**
+ * The mounted panel root. The panel renders inside a shadow root on a
+ * `[data-c15t-dev-tools-host]` element by default, and directly in the
+ * page when an adapter passes `shadow: false`.
+ */
+export const findDevToolsRoot =
+	function findDevToolsRoot(): HTMLElement | null {
+		for (const host of document.querySelectorAll(
+			'[data-c15t-dev-tools-host]'
+		)) {
+			const root = host.shadowRoot?.querySelector<HTMLElement>(
+				'[data-c15t-dev-tools]'
+			);
+			if (root) {
+				return root;
+			}
+		}
+		return document.querySelector<HTMLElement>('[data-c15t-dev-tools]');
+	};
+
 export const devToolsReady: PlayFunction = async () => {
 	await waitFor(() => {
-		expect(document.querySelector('[data-c15t-dev-tools]')).not.toBeNull();
+		expect(findDevToolsRoot()).not.toBeNull();
 	});
 };
 
 /** Shared behavior contract for floating and embedded framework adapters. */
 export const devToolsFlow: PlayFunction = async (context) => {
 	await devToolsReady(context);
-	const root = document.querySelector<HTMLElement>('[data-c15t-dev-tools]');
+	const root = findDevToolsRoot();
 	if (!root) {
 		throw new Error('DevTools did not mount');
 	}

@@ -196,6 +196,15 @@ describe('createConsentClient', () => {
 		expect(snapshot.activeUI).toBe('none');
 	});
 
+	it('rejects inherited object keys as preset names', () => {
+		expect(() =>
+			createConsentClient(
+				{ policies: ['constructor' as never] },
+				{ pkg: 'test' }
+			)
+		).toThrow(/unknown policy preset/u);
+	});
+
 	it('rejects an unknown policy preset name', () => {
 		expect(() =>
 			createConsentClient(
