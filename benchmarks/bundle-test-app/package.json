@@ -15,6 +15,7 @@
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
+		"@c15t/browser": "workspace:*",
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",

@@ -1,0 +1,99 @@
+{
+	"name": "@c15t/browser",
+	"version": "0.1.0",
+	"description": "Drop-in consent banner and headless consent runtime for sites without a build step: Framer, Webflow, WordPress, Squarespace, and plain HTML.",
+	"keywords": [
+		"c15t",
+		"cmp",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"cookie-banner",
+		"cookie-consent",
+		"framer",
+		"gdpr",
+		"headless",
+		"privacy",
+		"script-tag",
+		"vanilla-js",
+		"webflow",
+		"wordpress"
+	],
+	"homepage": "https://c15t.com/docs/frameworks/javascript/script-tag",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/browser"
+	},
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs",
+		"README.md",
+		"CHANGELOG.md"
+	],
+	"type": "module",
+	"sideEffects": [
+		"./dist/c15t.js",
+		"./dist/c15t.headless.js",
+		"**/*.css"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"unpkg": "./dist/c15t.js",
+	"jsdelivr": "./dist/c15t.js",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./headless": {
+			"types": "./dist-types/headless.d.ts",
+			"import": "./dist/headless.js",
+			"default": "./dist/headless.js"
+		},
+		"./styles.css": "./dist/c15t.css",
+		"./c15t.js": "./dist/c15t.js",
+		"./c15t.headless.js": "./dist/c15t.headless.js"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "bun prebuild && rslib build && bun scripts/copy-styles.ts && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/browser",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/browser",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts && bun scripts/build-styles.ts",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"test": "bun prebuild && vitest run",
+		"test:watch": "bun prebuild && vitest"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*",
+		"@c15t/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"genversion": "3.2.0",
+		"jsdom": "^25.0.0",
+		"typescript": "7.0.2"
+	},
+	"browserslist": [
+		">0.5%",
+		"last 2 versions",
+		"not dead",
+		"not op_mini all"
+	]
+}

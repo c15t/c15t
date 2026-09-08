@@ -1,0 +1,5 @@
+dist
+dist-types
+coverage
+src/version.ts
+src/generated/

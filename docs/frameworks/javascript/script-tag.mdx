@@ -1,0 +1,217 @@
+---
+title: Script Tag
+description: Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
+group: frameworks
+---
+
+`@c15t/browser` is the c15t consent banner for sites you cannot bundle: page builders, CMS themes, static HTML. One `<script>` tag from a CDN installs the banner, the preference centre, and script gating. Nothing to compile, nothing to import.
+
+It is built on the same `@c15t/core` runtime and `@c15t/ui` stylesheet as the React, Vue, and Svelte packages, so the banner looks and behaves the same everywhere.
+
+## Add the tag
+
+Paste this before `</head>` (Framer: Site Settings → Custom Code; Webflow: Project Settings → Custom Code; WordPress: a header scripts plugin or your theme's `header.php`).
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js"
+  data-backend-url="https://your-instance.c15t.dev"
+  data-categories="measurement,marketing"
+  defer
+></script>
+```
+
+Reload the page. You should see the banner in the bottom left corner. Accept or reject, and it stays hidden on the next visit.
+
+Pin a version in the URL so a release cannot change your banner without you.
+
+### Without a backend
+
+Drop `data-backend-url` and the banner runs in offline mode: every visitor gets an opt-in banner for the categories you list, and the choice is stored in the browser only. That is enough for a portfolio or a docs site. A hosted or [self-hosted](/docs/self-host/quickstart) backend adds geo-aware policies, audit records, and translations.
+
+## Attributes
+
+Every attribute is optional.
+
+| Attribute | What it does |
+| --- | --- |
+| `data-backend-url` | Backend origin. Selects hosted mode. |
+| `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
+| `data-manifest-url` | The backend's `/manifest` URL, for manifest mode. |
+| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. `necessary` is always included. |
+| `data-language` | Force a language instead of reading the browser's. |
+| `data-country`, `data-region` | Known location, when your host injects it. |
+| `data-color-scheme` | `light`, `dark`, or `system` (default). |
+| `data-trigger` | Show a floating button that reopens the preference centre. |
+| `data-hide-branding` | Drop the "Secured by c15t" tag. |
+| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Legal links the surfaces can render. |
+| `data-shadow="false"` | Render into the page instead of a shadow root, so your CSS applies. |
+| `data-no-ui` | Run the runtime with no banner. Same as loading `c15t.headless.js`. |
+| `data-manual` | Do not initialise. The page calls `c15t.init()` itself. |
+
+For anything the attributes cannot express, set `window.c15tConfig` before the tag. It accepts every option of [`init()`](#the-window-api) and wins over the attributes.
+
+```html
+<script>
+  window.c15tConfig = {
+    consentCategories: ['measurement', 'marketing'],
+    legalLinks: { privacyPolicy: { href: '/privacy' } },
+    scripts: [
+      {
+        id: 'ga4',
+        src: 'https://www.googletagmanager.com/gtag/js?id=G-XXXX',
+        category: 'measurement',
+      },
+    ],
+    ui: { colorScheme: 'dark', trigger: true },
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js" defer></script>
+```
+
+## Gate your own scripts
+
+Two ways. In JavaScript, list them under `scripts` as above and they load only once the category is granted; withdrawing consent reloads the page so they are gone. In HTML, keep the tag inert until consent by changing its `type`:
+
+```html
+<script type="text/plain" data-c15t-category="marketing" src="https://pixel.example/tag.js"></script>
+```
+
+See [script gating](/docs/frameworks/javascript/script-loader) for the full `scripts` option, and the [integrations](/docs/integrations) for ready-made GTM, GA4, and pixel loaders.
+
+## Buttons and links
+
+Any element on the page can drive the banner. Add `data-c15t-action` and the client wires it:
+
+```html
+<button data-c15t-action="customize">Cookie settings</button>
+<button data-c15t-action="accept">Accept all</button>
+<button data-c15t-action="reject">Reject all</button>
+```
+
+`customize` opens the preference centre, `banner` shows the banner again, and `close` hides whatever is open. A plain link to `#c15t-preferences` opens the preference centre too, which is the easiest hook in a page builder's footer.
+
+## The window API
+
+The tag installs `window.c15t`. Use it from your own code:
+
+```js
+c15t.on('consent', (snapshot) => {
+  if (c15t.has('measurement')) {
+    startAnalytics();
+  }
+});
+
+await c15t.ready(); // the policy is resolved and the banner has rendered
+c15t.hasConsented(); // true once the visitor decided
+c15t.openDialog();
+c15t.acceptAll();
+c15t.save({ measurement: true, marketing: false });
+c15t.identify({ id: 'user_123' });
+```
+
+`ready()` and `on()` are safe to call before the tag has loaded if you queue them:
+
+```html
+<script>
+  window.c15t = [['on', 'consent', (snapshot) => console.log(snapshot.consents)]];
+</script>
+```
+
+The same events fire on `document` as `c15t:ready`, `c15t:consent`, `c15t:ui`, and `c15t:error`, with the payload in `event.detail`.
+
+## Headless
+
+Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still resolves the policy, gates scripts, and persists consent; your HTML renders the banner and calls the API. `c15t.on('ui', surface)` tells you when to show it: `surface` is `'banner'`, `'dialog'`, or `'none'`.
+
+```html
+<div id="banner" hidden>
+  <p>We use cookies.</p>
+  <button data-c15t-action="reject">Reject</button>
+  <button data-c15t-action="accept">Accept</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
+<script>
+  window.c15t = [['on', 'ui', (surface) => { document.getElementById('banner').hidden = surface !== 'banner'; }]];
+</script>
+```
+
+## Styling
+
+The banner renders inside a shadow root with its own copy of the stylesheet, so a theme's global `button {}` rule cannot reach it and the banner's rules cannot leak out. Customise it through the theme tokens rather than selectors:
+
+```js
+window.c15tConfig = {
+  ui: {
+    theme: { colors: { primary: '#0a66ff' }, radius: 'lg' },
+    css: '.c15t-theme-root { font-family: inherit; }',
+  },
+};
+```
+
+`theme` takes the same object `@c15t/react` accepts. `css` is appended after the bundled stylesheet, still inside the shadow root. To take over completely, set `shadow: false` (or `data-shadow="false"`) and the DOM renders in the page with the stylesheet in `<head>`; `noStyle: true` then strips every class so you start from unstyled markup with the same `data-testid` attributes as the other c15t packages.
+
+## Faster first paint with a manifest
+
+Hosted mode asks the backend for `/init` on every fresh visit before the banner can render. The backend also serves `/manifest`: the geo-independent half of that decision, cacheable at the CDN. In manifest mode the browser resolves the policy itself, so a "one banner for everyone" policy renders with no request at all when the manifest is inlined.
+
+```html
+<script>
+  window.c15tConfig = {
+    mode: 'manifest',
+    backendURL: 'https://your-instance.c15t.dev',
+    manifest: {/* GET https://your-instance.c15t.dev/manifest */},
+  };
+</script>
+```
+
+Or point at the URL with `data-manifest-url` and it is fetched once, honouring the backend's cache headers. When the policy depends on location and the browser does not know its country, the client falls back to `/init`, so the answer is always the one the backend would give. Saves go to the backend either way.
+
+Only English ships in the bundle; a manifest carries its own translations for the languages the site serves.
+
+### Serve it from your backend
+
+A [self-hosted backend](/docs/self-host/quickstart) does the inlining for you. It serves `GET /c15t.js` (and `/c15t.headless.js`): the same bundle behind a `window.c15tConfig` prelude that already carries the manifest, the backend origin, and any defaults you configure. One tag, one request, and the banner renders as soon as the script parses.
+
+```html
+<script src="https://consent.example.com/c15t.js" defer></script>
+```
+
+Configure what gets baked in with the backend's `script` option:
+
+```ts
+createApp(runtime, {
+  script: {
+    config: {
+      consentCategories: ['measurement', 'marketing'],
+      legalLinks: { privacyPolicy: { href: 'https://example.com/privacy' } },
+    },
+  },
+});
+```
+
+The page's own `window.c15tConfig` still wins over the baked-in defaults. The response carries the same `Cache-Control` and `ETag` as `/manifest`, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
+
+## In a bundler
+
+The same client is published as ES modules for projects that do have a build step but no framework:
+
+```package-install
+@c15t/browser
+```
+
+```ts
+import { init } from '@c15t/browser';
+
+const c15t = init({
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['measurement', 'marketing'],
+});
+```
+
+`@c15t/browser/headless` exports the client without the UI, and `@c15t/browser/styles.css` is the stylesheet for `shadow: false`.
+
+## Limitations
+
+- IAB TCF is not supported in this package yet. Use `@c15t/react`, `@c15t/vue`, or `@c15t/svelte` for TCF sites.
+- The bundle carries English only. Other languages come from the backend or the manifest.

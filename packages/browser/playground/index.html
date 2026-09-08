@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>@c15t/browser playground</title>
+		<style>
+			/* Hostile host styles, the kind a page builder theme ships. */
+			body {
+				font-family: Georgia, serif;
+				margin: 0;
+				padding: 2rem;
+				background: #f6f2ea;
+				color: #1a1a1a;
+			}
+			button {
+				background: hotpink !important;
+				border: 4px dashed lime !important;
+				font-size: 30px !important;
+			}
+			h2 {
+				color: red;
+				text-transform: uppercase;
+			}
+			main {
+				max-width: 40rem;
+			}
+			pre {
+				background: #eee;
+				padding: 1rem;
+				overflow: auto;
+			}
+		</style>
+		<script>
+			// Config the page sets before the script loads.
+			window.c15tConfig = {
+				consentCategories: ['measurement', 'marketing'],
+				legalLinks: {
+					privacyPolicy: { href: '/privacy' },
+				},
+				ui: { trigger: true },
+			};
+			// Calls queued before the script loads are replayed after init.
+			window.c15t = [
+				[
+					'on',
+					'consent',
+					(snapshot) => {
+						document.getElementById('log').textContent = JSON.stringify(
+							snapshot.consents,
+							null,
+							2
+						);
+					},
+				],
+			];
+		</script>
+		<script
+			src="../dist/c15t.js"
+			data-mode="offline"
+			data-color-scheme="system"
+			defer
+		></script>
+	</head>
+	<body>
+		<main>
+			<h1>@c15t/browser playground</h1>
+			<p>
+				The page's own <code>button</code> and <code>h2</code> rules are
+				deliberately ugly. The banner should ignore them because it renders in a
+				shadow root.
+			</p>
+			<p>
+				<button data-c15t-action="customize">Cookie settings</button>
+				<button data-c15t-action="banner">Show banner</button>
+				<a href="#c15t-preferences">Preferences link</a>
+			</p>
+			<h2>Last consent</h2>
+			<pre id="log">(none yet)</pre>
+			<h2>Ugly host button</h2>
+			<button type="button">Page button</button>
+		</main>
+	</body>
+</html>

@@ -1,0 +1,474 @@
+import { allConsentNames, custom, has, hosted } from '@c15t/core';
+import type {
+	AllConsentNames,
+	ConsentSnapshot,
+	ConsentState,
+	HasCondition,
+	KernelActiveUI,
+	KernelOverrides,
+	KernelUser,
+	ProviderTransportFactory,
+	Unsubscribe,
+} from '@c15t/core';
+import { createConsentRuntime } from '@c15t/core/runtime';
+
+import { createDeferred } from './deferred';
+import { activateGatedScripts } from './gated-scripts';
+import { manifest } from './transports/manifest';
+import { offline } from './transports/offline';
+import type {
+	ConsentClient,
+	ConsentClientEventMap,
+	ConsentClientOptions,
+	ConsentModeName,
+	ConsentUIHandle,
+	ConsentUIMounter,
+	ConsentUIOptions,
+} from './types';
+
+export { custom, hosted };
+
+/** Attribute a page element can carry to drive the client on click. */
+export const ACTION_ATTRIBUTE = 'data-c15t-action';
+
+/** Link fragment that opens the preference centre, matching `@c15t/astro`. */
+export const PREFERENCES_HASH = '#c15t-preferences';
+
+/** Values `data-c15t-action` accepts. */
+export type PageAction = 'accept' | 'reject' | 'customize' | 'close' | 'banner';
+
+const PAGE_ACTIONS: ReadonlySet<string> = new Set<PageAction>([
+	'accept',
+	'reject',
+	'customize',
+	'close',
+	'banner',
+]);
+
+/** Extra wiring the entry points hand to the client. */
+export interface CreateConsentClientContext {
+	/** Mounts the prebuilt UI. Absent in the headless build. */
+	mountUI?: ConsentUIMounter;
+	/** Package name reported on `window.c15t`. */
+	pkg?: string;
+}
+
+interface ResolvedMode {
+	factory: ProviderTransportFactory;
+	name: ConsentModeName | 'custom';
+}
+
+const defaultModeName = function defaultModeName(
+	options: ConsentClientOptions
+): ConsentModeName {
+	if (options.manifest || options.manifestURL) {
+		return 'manifest';
+	}
+	return options.backendURL ? 'hosted' : 'offline';
+};
+
+const resolveMode = function resolveMode(
+	options: ConsentClientOptions
+): ResolvedMode {
+	if (typeof options.mode === 'function') {
+		const { kind } = options.mode;
+		return {
+			factory: options.mode,
+			name: kind === 'hosted' || kind === 'offline' ? kind : 'custom',
+		};
+	}
+	const name = options.mode ?? defaultModeName(options);
+	if (name === 'hosted') {
+		if (!options.backendURL) {
+			throw new Error(
+				'@c15t/browser: hosted mode needs `backendURL` (or data-backend-url on the script tag).'
+			);
+		}
+		return { factory: hosted({ url: options.backendURL }), name };
+	}
+	if (name === 'manifest') {
+		return {
+			factory: manifest({
+				backendURL: options.backendURL,
+				inputs: options.overrides,
+				manifest: options.manifest,
+				manifestURL: options.manifestURL,
+			}),
+			name,
+		};
+	}
+	return { factory: offline({ policyPacks: options.policies }), name };
+};
+
+/**
+ * Categories the UI should offer: the configured list intersected with
+ * what the resolved policy allows, always including `necessary`.
+ */
+const resolveConsentCategories = function resolveConsentCategories(
+	snapshot: ConsentSnapshot,
+	configured: readonly AllConsentNames[]
+): AllConsentNames[] {
+	const { policyCategories } = snapshot;
+	const available = policyCategories.some(
+		(category) => category !== 'necessary'
+	)
+		? policyCategories
+		: allConsentNames;
+	if (configured.length === 0) {
+		return Array.from(available);
+	}
+	const allowed = new Set(available);
+	return Array.from(
+		new Set<AllConsentNames>([
+			'necessary',
+			...configured.filter((category) => allowed.has(category)),
+		])
+	);
+};
+
+const dispatchDocumentEvent = function dispatchDocumentEvent(
+	name: keyof ConsentClientEventMap,
+	detail: unknown
+): void {
+	if (typeof document === 'undefined') {
+		return;
+	}
+	document.dispatchEvent(new CustomEvent(`c15t:${name}`, { detail }));
+};
+
+const resolvePageAction = function resolvePageAction(
+	target: EventTarget | null
+): PageAction | null {
+	if (!(target instanceof Element)) {
+		return null;
+	}
+	const actionElement = target.closest(`[${ACTION_ATTRIBUTE}]`);
+	const action = actionElement?.getAttribute(ACTION_ATTRIBUTE);
+	if (action && PAGE_ACTIONS.has(action)) {
+		return action as PageAction;
+	}
+	const link = target.closest('a[href]');
+	const href = link?.getAttribute('href') ?? '';
+	return href.endsWith(PREFERENCES_HASH) ? 'customize' : null;
+};
+
+/**
+ * Create the page's consent client without starting it.
+ *
+ * Construction hydrates stored consent synchronously, so a returning
+ * visitor's first paint already knows there is nothing to show. Call
+ * {@link ConsentClient.start} to resolve the policy and mount the UI.
+ *
+ * @param options - Client options.
+ * @param context - Entry-point wiring.
+ * @returns The client.
+ * @throws {Error} When the mode cannot be resolved from the options.
+ */
+// oxlint-disable-next-line max-lines-per-function -- One cohesive lifecycle: construct, start, dispose.
+export const createConsentClient = function createConsentClient(
+	options: ConsentClientOptions = {},
+	context: CreateConsentClientContext = {}
+): ConsentClient {
+	const mode = resolveMode(options);
+	const configuredCategories = options.consentCategories ?? [];
+	const runtime = createConsentRuntime({
+		callbacks: options.callbacks,
+		consentCategories: options.consentCategories,
+		enabled: options.enabled,
+		i18n: options.i18n,
+		iframeBlocker: options.iframeBlocker,
+		mode: mode.factory,
+		networkBlocker: options.networkBlocker,
+		overrides: options.overrides,
+		pkg: options.pkg ?? context.pkg ?? '@c15t/browser',
+		policies: options.policies,
+		prefetch: options.prefetch,
+		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
+		scripts: options.scripts,
+		storageConfig: options.storageConfig,
+		user: options.user,
+		// The script-tag build owns `window.c15t`; core must not overwrite it.
+		windowDebug: false,
+	});
+	const { kernel } = runtime;
+
+	const listeners: {
+		[EventName in keyof ConsentClientEventMap]: Set<
+			(payload: ConsentClientEventMap[EventName]) => void
+		>;
+	} = {
+		consent: new Set(),
+		error: new Set(),
+		ready: new Set(),
+		ui: new Set(),
+	};
+	const emit = function emit<EventName extends keyof ConsentClientEventMap>(
+		event: EventName,
+		payload: ConsentClientEventMap[EventName]
+	): void {
+		for (const listener of listeners[event]) {
+			listener(payload);
+		}
+		dispatchDocumentEvent(event, payload);
+	};
+
+	const ready = createDeferred<ConsentSnapshot>();
+	let readySnapshot: ConsentSnapshot | null = null;
+	const markReady = function markReady(snapshot: ConsentSnapshot): void {
+		if (readySnapshot) {
+			return;
+		}
+		readySnapshot = snapshot;
+		ready.resolve(snapshot);
+		emit('ready', snapshot);
+	};
+
+	let ui: ConsentUIHandle | null = null;
+	let started = false;
+	let disposed = false;
+	let detachPageActions: (() => void) | null = null;
+
+	const initial = kernel.getSnapshot();
+	let lastActiveUI: KernelActiveUI = initial.activeUI;
+	let lastConsents = initial.consents;
+	let lastHasConsented = initial.hasConsented;
+	const disposers: (() => void)[] = [
+		kernel.events.on('init:applied', ({ snapshot }) => {
+			markReady(snapshot);
+		}),
+		kernel.events.on('init:failed', ({ error }) => {
+			emit('error', error);
+		}),
+		// One subscription rather than per-command events: a save, a draft
+		// write and a hydration all change `consents`, and listeners want
+		// every one of them.
+		kernel.subscribe((snapshot) => {
+			if (
+				snapshot.consents !== lastConsents ||
+				snapshot.hasConsented !== lastHasConsented
+			) {
+				lastConsents = snapshot.consents;
+				lastHasConsented = snapshot.hasConsented;
+				if (started) {
+					activateGatedScripts(snapshot);
+				}
+				emit('consent', snapshot);
+			}
+			if (snapshot.activeUI !== lastActiveUI) {
+				lastActiveUI = snapshot.activeUI;
+				emit('ui', snapshot.activeUI);
+			}
+		}),
+	];
+
+	const categories = function categories(): AllConsentNames[] {
+		return resolveConsentCategories(kernel.getSnapshot(), configuredCategories);
+	};
+
+	// The actions the UI, the page and the API all share.
+	const closeSurfaces = function closeSurfaces(): void {
+		kernel.set.activeUI('none');
+	};
+	const openDialog = function openDialog(): void {
+		kernel.set.activeUI('dialog');
+	};
+	const showBanner = function showBanner(): void {
+		kernel.set.activeUI('banner');
+	};
+	const acceptAll = async function acceptAll(): Promise<void> {
+		closeSurfaces();
+		await kernel.commands.save('all', { categories: categories() });
+	};
+	const rejectAll = async function rejectAll(): Promise<void> {
+		closeSurfaces();
+		await kernel.commands.save('none', { categories: categories() });
+	};
+
+	const onPageClick = function onPageClick(event: MouseEvent): void {
+		const action = resolvePageAction(event.target);
+		if (!action) {
+			return;
+		}
+		event.preventDefault();
+		switch (action) {
+			case 'accept': {
+				void acceptAll();
+				break;
+			}
+			case 'reject': {
+				void rejectAll();
+				break;
+			}
+			case 'customize': {
+				openDialog();
+				break;
+			}
+			case 'banner': {
+				showBanner();
+				break;
+			}
+			default: {
+				closeSurfaces();
+			}
+		}
+	};
+
+	const client: ConsentClient = {
+		acceptAll,
+		closeDialog: closeSurfaces,
+		get consentCategories() {
+			return categories();
+		},
+		dispose() {
+			if (disposed) {
+				return;
+			}
+			disposed = true;
+			started = false;
+			detachPageActions?.();
+			detachPageActions = null;
+			ui?.destroy();
+			ui = null;
+			for (const dispose of disposers.reverse()) {
+				dispose();
+			}
+			disposers.length = 0;
+			runtime.dispose();
+		},
+		getSnapshot() {
+			return kernel.getSnapshot();
+		},
+		has(condition: HasCondition<AllConsentNames>) {
+			const snapshot = kernel.getSnapshot();
+			const policyCategories = Array.from(snapshot.policyCategories);
+			return has(condition, snapshot.consents as ConsentState, {
+				policyCategories: policyCategories.length > 0 ? policyCategories : null,
+				policyScopeMode: snapshot.policyScopeMode,
+			});
+		},
+		hasConsented() {
+			return kernel.getSnapshot().hasConsented;
+		},
+		async identify(user: KernelUser) {
+			await runtime.identify(user);
+		},
+		kernel,
+		mode: mode.name,
+		mountUI(uiOptions?: ConsentUIOptions) {
+			if (!context.mountUI) {
+				throw new Error(
+					'@c15t/browser: this build is headless. Load c15t.js, or import `mountConsentUI` from "@c15t/browser".'
+				);
+			}
+			ui?.destroy();
+			ui = context.mountUI(
+				client,
+				uiOptions ?? (options.ui === false ? undefined : options.ui)
+			);
+			return ui;
+		},
+		on(event, listener) {
+			const set = listeners[event] as Set<typeof listener>;
+			set.add(listener);
+			// A listener attached after the fact still learns the runtime is
+			// ready, the way a resolved promise would tell it.
+			if (event === 'ready' && readySnapshot) {
+				(listener as (payload: ConsentSnapshot) => void)(readySnapshot);
+			}
+			return function unsubscribe() {
+				set.delete(listener);
+			};
+		},
+		openDialog,
+		options,
+		ready() {
+			return ready.promise;
+		},
+		rejectAll,
+		runtime,
+		async save(consents: Partial<ConsentState>) {
+			const allowed = new Set<string>(categories());
+			closeSurfaces();
+			await kernel.commands.save(
+				Object.fromEntries(
+					Object.entries(consents).filter(([name]) => allowed.has(name))
+				),
+				{ categories: categories() }
+			);
+		},
+		setLanguage(code: string) {
+			kernel.set.language(code);
+			void kernel.commands.init();
+		},
+		setOverrides(overrides: KernelOverrides) {
+			runtime.setOverrides(overrides);
+		},
+		showBanner,
+		start() {
+			if (started || disposed || typeof document === 'undefined') {
+				return;
+			}
+			started = true;
+			runtime.start();
+			// Inert `<script type="text/plain" data-c15t-category>` tags a
+			// returning visitor already consented to run straight away.
+			activateGatedScripts(kernel.getSnapshot());
+			if (options.enabled === false) {
+				// Nothing will ever resolve a policy; do not leave `ready()`
+				// hanging for callers that gate analytics on it.
+				markReady(kernel.getSnapshot());
+			}
+			document.addEventListener('click', onPageClick);
+			detachPageActions = () => {
+				document.removeEventListener('click', onPageClick);
+			};
+			if (options.ui === false || !context.mountUI) {
+				return;
+			}
+			// A script in `<head>` runs before `<body>` exists; the runtime can
+			// start now, the UI has to wait for somewhere to mount.
+			const mount = function mount(): void {
+				if (!(disposed || ui)) {
+					ui = client.mountUI();
+				}
+			};
+			if (document.body) {
+				mount();
+				return;
+			}
+			document.addEventListener('DOMContentLoaded', mount, { once: true });
+			disposers.push(() => {
+				document.removeEventListener('DOMContentLoaded', mount);
+			});
+		},
+		get started() {
+			return started;
+		},
+		subscribe(listener) {
+			return kernel.subscribe(listener);
+		},
+		get ui() {
+			return ui;
+		},
+	};
+
+	return client;
+};
+
+/**
+ * Create and start a client in one call.
+ *
+ * @param options - Client options.
+ * @param context - Entry-point wiring.
+ * @returns The started client.
+ */
+export const initConsentClient = function initConsentClient(
+	options: ConsentClientOptions = {},
+	context: CreateConsentClientContext = {}
+): ConsentClient {
+	const client = createConsentClient(options, context);
+	client.start();
+	return client;
+};
+
+export type { Unsubscribe };

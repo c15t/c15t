@@ -227,6 +227,12 @@ export interface ConsentRuntimeOptions {
 	/** Categories surfaced in the banner and preference center. */
 	consentCategories?: AllConsentNames[];
 	/**
+	 * Install the `window.c15t` debug object (`{ version, pkg, mode }`) on
+	 * `start()`. Defaults to `true`. A host that owns `window.c15t` itself,
+	 * such as the script-tag build, turns it off.
+	 */
+	windowDebug?: boolean;
+	/**
 	 * Package name reported through `window.c15t` — for example
 	 * `'@c15t/svelte'`. Defaults to `'@c15t/core'`.
 	 */
