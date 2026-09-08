@@ -45,7 +45,9 @@ const policyRules = [
 
 `model` controls permission defaults. `prompt` controls whether the visitor must
 make a choice, dismiss a notice, or see no prompt. Opt-in and IAB models require
-`prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`.
+`prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`. The `none`
+model permits optional categories in scope, allows only `prompt: 'none'`, owes
+no rights, and renders no consent UI. v2's `none` model maps to it directly.
 
 When `categories` selects only some optional categories, you must set
 `scopeMode` explicitly. A strict scope blocks categories outside the rule. A permissive scope allows
@@ -53,9 +55,11 @@ those categories unless another restriction applies. An omitted scope, `['*']`,
 or a list containing only `necessary` expands to the default optional categories.
 `necessary` is always permitted.
 
-Use an explicit fallback rule for unknown locations. Resolution exposes
-`matched`, `no-match`, `unconfigured`, or `failed`; non-matched outcomes use the
-engine's conservative fallback. A missing or malformed policy never grants
+`offline()` without `policyRules` resolves `recommendedPolicyRules()`, whose
+Europe rule also matches a visitor with no location and whose last rule is
+`none` for every other unmatched location. Resolution exposes `matched`, `no-match`,
+`unconfigured`, or `failed`; while nothing has matched, optional categories stay
+denied and no consent surface renders. A missing or malformed policy never grants
 optional permissions by itself.
 
 ## Read the state you need

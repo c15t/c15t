@@ -218,7 +218,10 @@ export const COMPONENT_KEYS = Object.keys(
  * init that has not answered). Without a policy there is nothing to consent
  * to, so no prebuilt consent surface renders: not the banner, the preference
  * dialog or widget, nor the link or floating trigger that would open them.
- * App-owned controls a host places beside them are unaffected.
+ * App-owned controls a host places beside them are unaffected. The same
+ * roots stay absent under a resolved `none` rule that lists no rights: it
+ * owes no prompt and keeps no route to preferences. A `none` rule with
+ * `rights: ['preferences']` renders the trigger, link and dialog again.
  */
 export const NO_POLICY_HIDDEN_ROOTS = [
 	TEST_IDS.consentBanner.root,

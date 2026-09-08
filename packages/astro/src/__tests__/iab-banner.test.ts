@@ -137,9 +137,20 @@ describe('<IABConsentBanner />', () => {
 	});
 
 	it('renders nothing for a policy that is not IAB', async () => {
+		// A bare offline() now resolves the recommended pack, which picks the
+		// IAB rule when a CMP is configured, so pin an opt-in rule instead.
 		const locals = await buildLocals({
 			iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
-			mode: offlineMode(),
+			mode: offlineMode({
+				policyRules: [
+					{
+						id: 'opt-in-only',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 		});
 		const html = await render(locals);
 		expect(html).not.toContain('data-testid="iab-consent-banner-root"');

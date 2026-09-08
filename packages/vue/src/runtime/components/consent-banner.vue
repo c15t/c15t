@@ -17,7 +17,7 @@ import {
 	useConsentSave,
 	useConsentKernel,
 	useConsentSnapshot,
-	useHasConsentPolicy,
+	useHasConsentUi,
 } from '../composables';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
@@ -104,15 +104,15 @@ const primaryActions = computed(() => {
 	return ordered.length === 1 && ordered[0] === 'dismiss' ? ordered : [];
 });
 
-const hasPolicy = useHasConsentPolicy();
+const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
-	if (!hasPolicy.value) {
+	if (!hasConsentUi.value) {
 		return false;
 	}
 	const { model } = snapshot.value.policyRule;
 	const models = config.value.bannerModels ?? config.value.models;
 	const matchesModel =
-		!models?.length || (model !== undefined && models.includes(model));
+		!models?.length || (model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'banner' &&
 		matchesModel &&

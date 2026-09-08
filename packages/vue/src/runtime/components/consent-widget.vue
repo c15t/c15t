@@ -27,7 +27,7 @@ import {
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
-	useHasConsentPolicy,
+	useHasConsentUi,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
@@ -53,7 +53,7 @@ const props = withDefaults(
 const init = useConsentInit();
 const config = useConsentConfig();
 // No resolved policy means nothing to manage: render no surface at all.
-const hasPolicy = useHasConsentPolicy();
+const hasConsentUi = useHasConsentUi();
 
 const manager = inject(consentWidgetManagerKey, null);
 const save = useConsentSave();
@@ -211,7 +211,7 @@ const onAction = async function onAction(action: PresentationAction) {
 
 <template>
 	<div
-		v-if="hasPolicy && isStale && !manager"
+		v-if="hasConsentUi && isStale && !manager"
 		role="status"
 	>
 		Privacy choices have changed.
@@ -223,7 +223,7 @@ const onAction = async function onAction(action: PresentationAction) {
 		</button>
 	</div>
 	<div
-		v-if="hasPolicy"
+		v-if="hasConsentUi"
 		v-bind="config.components?.manager?.root"
 		:class="noStyle ? undefined : managerStyles.manager"
 		:dir="textDirection"

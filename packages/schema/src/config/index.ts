@@ -1,3 +1,5 @@
+import type { PolicyRuleModel } from '../shared/policy-rule';
+
 export type ButtonVariant = 'primary' | 'neutral';
 
 export type ButtonMode = 'filled' | 'stroke' | 'lighter' | 'ghost';
@@ -30,7 +32,11 @@ export type ConsentLegalLinks = Partial<
 	Record<ConsentLegalLinkKey, ConsentLegalLink>
 >;
 
-export type PolicyModel = 'opt-in' | 'opt-out' | 'iab';
+/**
+ * Consent model a host component can be scoped to. Equal to the policy
+ * rule model list so a `none` rule is a model too, never `null`.
+ */
+export type PolicyModel = PolicyRuleModel;
 
 export type ConsentDialogTriggerPosition =
 	| 'top-left'

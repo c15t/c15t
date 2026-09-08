@@ -1,5 +1,6 @@
 import type { ProviderTransportFactory, InitContext } from '@c15t/core';
 import {
+	recommendedPolicyRules,
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -7,12 +8,18 @@ import type { PolicyRule } from '@c15t/schema/types';
 
 /** Policy rules evaluated locally when initialization runs. */
 export interface OfflineModeOptions {
+	/**
+	 * Rules to resolve locally. Omit them to use `recommendedPolicyRules()`:
+	 * strict opt-in for Europe, the UK, Quebec and unknown locations, opt-out
+	 * for the US states with a privacy law, and `none` everywhere else.
+	 * Passing rules replaces that pack entirely.
+	 */
 	policyRules?: PolicyRule[];
 }
 
 /**
  * Resolve local rules outside render and hydration.
- * @param options - Explicit policy rules; absence retains the safe fallback.
+ * @param options - Explicit policy rules; absence resolves the recommended pack.
  * @returns A provider transport with no network requests.
  */
 export const offline = function offline(
@@ -27,7 +34,9 @@ export const offline = function offline(
 							countryCode: overrides.country ?? null,
 							iabEnabled: context.iabEnabled,
 							regionCode: overrides.region ?? null,
-							rules: options.policyRules,
+							rules:
+								options.policyRules ??
+								recommendedPolicyRules({ iab: context.iabEnabled }),
 						})
 					),
 					translations: context.translations,

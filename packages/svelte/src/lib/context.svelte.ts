@@ -101,6 +101,13 @@ export interface ConsentManagerState extends Pick<
 	 * appear on their own once a later init supplies a rule.
 	 */
 	hasPolicy: boolean;
+	/**
+	 * Whether the resolved rule owes any consent UI. A prompt owes a banner
+	 * and a preference center; rights owe a way back to preferences. A `none`
+	 * rule with no rights owes neither, so every surface stays hidden while
+	 * the permissions it grants apply. `false` until a rule is resolved.
+	 */
+	hasConsentUi: boolean;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
@@ -252,6 +259,14 @@ const createConsentState = function createConsentState(
 		},
 		get hasPolicy() {
 			return getSnapshotLocal().resolution.status === 'matched';
+		},
+		get hasConsentUi() {
+			const snapshot = getSnapshotLocal();
+			return (
+				snapshot.resolution.status === 'matched' &&
+				(snapshot.policyRule.prompt !== 'none' ||
+					snapshot.policyRule.rights.length > 0)
+			);
 		},
 
 		// -- Snapshot passthrough (was previously served by a Proxy) -------------

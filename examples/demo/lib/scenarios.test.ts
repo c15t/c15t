@@ -34,7 +34,10 @@ describe('demo policy scenarios', () => {
 						id !== 'usPrivacyStatesOptIn' &&
 						id !== 'californiaOptIn' &&
 						id !== 'californiaOptOut' &&
-						id !== 'switzerlandOptOutNoPrompt'
+						id !== 'switzerlandOptOutNoPrompt' &&
+						// The recommended pack's default is world_none; the opt-out
+						// alternative would be a second default rule.
+						id !== 'worldOptOutNoPrompt'
 				)
 				.map(({ rule }) => rule);
 			const kernel = createConsentKernel({
@@ -56,7 +59,8 @@ describe('demo policy scenarios', () => {
 		'$id resolves its authored rule and preserves preference access',
 		(scenario) => {
 			const resolution = resolvePolicyRules({
-				countryCode: scenario.country,
+				// An empty country simulates an unknown location.
+				countryCode: scenario.country || null,
 				regionCode: scenario.region ?? null,
 				rules: getScenarioPolicyRules(scenario.id),
 			});
@@ -95,6 +99,67 @@ describe('demo policy scenarios', () => {
 			['reject', 'accept'],
 		]);
 		expect(scenario.policy).not.toHaveProperty('ui');
+	});
+	it('resolves South Dakota to the none rule through the recommended pack', () => {
+		const scenario = getScenarioById('custom-us-sd-none');
+		expect(scenario.useRecommendedPack).toBe(true);
+		const resolution = resolvePolicyRules({
+			countryCode: scenario.country,
+			regionCode: scenario.region ?? null,
+			rules: getScenarioPolicyRules(scenario.id),
+		});
+		if (resolution.status !== 'matched') {
+			throw new Error('Scenario did not match');
+		}
+		expect(resolution.policy.id).toBe('world_none');
+		expect(resolution.policy.model).toBe('none');
+		expect(resolution.policy.rights).toEqual([]);
+		expect(scenario.showsTriggerToolbar).toBe(false);
+		expect(getScenarioById('custom-us-notice').showsTriggerToolbar).toBe(true);
+		expect(getScenarioById('custom-fr-iab').showsTriggerToolbar).toBe(false);
+		const prompt = resolveConsentPresentation({
+			policy: resolution.policy,
+			surface: 'prompt',
+		});
+		expect(prompt.orderedActions).toEqual([]);
+		expect(prompt.preferenceControls).toEqual([]);
+		const kernel = createConsentKernel({ initialPolicyResolution: resolution });
+		const snapshot = kernel.getSnapshot();
+		expect(snapshot.promptRequirement.kind).toBe('none');
+		expect(snapshot.activeUI).toBe('none');
+		expect(snapshot.explicitChoice).toBeNull();
+		expect(snapshot.effectivePermissions).toMatchObject({
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		});
+		kernel.dispose();
+	});
+	it('resolves an unknown location to the strict opt-in fallback', () => {
+		const scenario = getScenarioById('custom-unknown-location');
+		expect(scenario.country).toBe('');
+		const resolution = resolvePolicyRules({
+			countryCode: null,
+			regionCode: null,
+			rules: getScenarioPolicyRules(scenario.id),
+		});
+		if (resolution.status !== 'matched') {
+			throw new Error('Scenario did not match');
+		}
+		expect(resolution.policy.id).toBe('europe_opt_in');
+		expect(resolution.policy.model).toBe('opt-in');
+		const kernel = createConsentKernel({ initialPolicyResolution: resolution });
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		kernel.dispose();
+		// The scenario's own rule is what the pack selected, so the demo card
+		// describes exactly what the visitor gets.
+		expect(presentationForRule(resolution.policy)).toEqual({
+			position: 'bottom-left',
+			variant: 'floating',
+		});
 	});
 	it('does not create a choice for the explicit no-prompt default', () => {
 		const scenario = getScenarioById('preset-world-no-banner');

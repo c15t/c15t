@@ -18,7 +18,7 @@ import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui'
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
-import { useHasConsentPolicy } from '~/hooks';
+import { useHasConsentUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
@@ -31,7 +31,9 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Overlay } from './overlay';
 
-const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
+// `none` is included: it never owes a prompt, but a `none` rule that lists
+// the `preferences` right still opens this dialog as its settings route.
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out', 'none'];
 
 const resolveDialogOptions = (
 	localDisableAnimation: boolean | undefined,
@@ -47,14 +49,15 @@ const resolveDialogOptions = (
 });
 
 const resolveDialogOpen = (
-	hasPolicy: boolean,
+	hasConsentUI: boolean,
 	models: C15tCoreTypes.Model[],
 	model: C15tCoreTypes.Model,
 	open: boolean | undefined,
 	activeUI: string
 ): boolean => {
-	// Without a resolved policy there is nothing to manage: never open.
-	if (!hasPolicy || !models.includes(model)) {
+	// Without a resolved policy, or under a `none` rule with no rights, there
+	// is nothing to manage: never open.
+	if (!hasConsentUI || !models.includes(model)) {
 		return false;
 	}
 	return open ?? activeUI === 'dialog';
@@ -93,7 +96,7 @@ export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDivElement> {
 
 	/**
 	 * Which consent models this dialog responds to.
-	 * @default ['opt-in', 'opt-out']
+	 * @default ['opt-in', 'opt-out', 'none']
 	 */
 	models?: C15tCoreTypes.Model[];
 
@@ -179,9 +182,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager).
-	const hasPolicy = useHasConsentPolicy();
+	const hasConsentUI = useHasConsentUI();
 	const isOpen = resolveDialogOpen(
-		hasPolicy,
+		hasConsentUI,
 		models,
 		model,
 		openProp,

@@ -20,6 +20,9 @@ import {
 	setPresentationVariant,
 	toConsentPresentation,
 	toPolicyRule,
+	isRecommendedPreset,
+	promptsForModel,
+	RECOMMENDED_PRESET_IDS,
 } from './policy-playground';
 
 describe('policy playground helpers', () => {
@@ -194,6 +197,63 @@ describe('policy playground helpers', () => {
 		}
 	});
 
+	it('treats a none rule as no consent UI in the demo map', () => {
+		const worldNone = policyRulePresets.worldNone();
+		expect(worldNone.model).toBe('none');
+		expect(presentationForRule(worldNone)).toBeUndefined();
+		expect('world_none' in DEMO_PRESENTATION_BY_RULE).toBe(true);
+	});
+	it('offers only a none prompt for the none model and drops choice-only fields', () => {
+		expect(promptsForModel('none')).toEqual(['none']);
+		const form = {
+			...fromPolicyRule(policyRulePresets.europeOptIn()),
+			model: 'none' as const,
+			preselected: ['measurement' as const],
+			prompt: 'none' as const,
+		};
+		const rule = toPolicyRule(form);
+		expect(rule.model).toBe('none');
+		expect(rule.prompt).toBe('none');
+		expect(rule.actions).toBeUndefined();
+		expect(rule.preselectedCategories).toBeUndefined();
+		expect(
+			inspectPlaygroundRule(rule, { country: 'US', region: 'SD' }).errors
+		).toEqual([]);
+	});
+	it('emits a bare offline() for presets in the recommended pack', () => {
+		expect([...RECOMMENDED_PRESET_IDS].sort()).toEqual(
+			[
+				'europeOptIn',
+				'quebecOptIn',
+				'usPrivacyStatesOptOut',
+				'worldNone',
+			].sort()
+		);
+		expect(isRecommendedPreset('worldNone')).toBe(true);
+		expect(isRecommendedPreset('californiaOptOut')).toBe(false);
+		expect(isRecommendedPreset(null)).toBe(false);
+		const recommended = buildProviderSnippet(
+			policyRulePresets.worldNone(),
+			'worldNone',
+			undefined,
+			{ recommended: true }
+		);
+		expect(recommended).toContain('mode: offline()');
+		expect(recommended).toContain('recommended pack');
+		expect(recommended).not.toContain('offline({ policyRules })');
+		expect(recommended).not.toContain('policyRulePresets');
+		const explicit = buildProviderSnippet(
+			policyRulePresets.californiaOptOut(),
+			'californiaOptOut'
+		);
+		expect(explicit).toContain('offline({ policyRules })');
+		expect(explicit).toContain('policyRulePresets.californiaOptOut()');
+		expect(
+			buildBackendSnippet(policyRulePresets.worldNone(), 'worldNone', {
+				recommended: true,
+			})
+		).toContain('policyRules: recommendedPolicyRules()');
+	});
 	it('gives any notice prompt the notice shape ahead of the id map', () => {
 		const notice = toPolicyRule({
 			...fromPolicyRule(policyRulePresets.californiaOptOut()),

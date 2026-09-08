@@ -11,7 +11,7 @@
 
 import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
-import { policyRulePresets } from 'c15t';
+import { policyRulePresets, recommendedPolicyRules } from 'c15t';
 import type { ConsentPresentation, PolicyRule } from 'c15t';
 
 import { presentationForRule } from './policy-playground';
@@ -169,6 +169,18 @@ export interface DemoScenario {
 	/** Host presentation the scenario sets explicitly, if any. */
 	presentation?: ConsentPresentation;
 	/**
+	 * Resolve through `recommendedPolicyRules()`, the pack a bare `offline()`
+	 * applies, instead of the scenario's policy plus the demo fallback. The
+	 * scenario's `policy` is then the rule the pack is expected to select.
+	 */
+	useRecommendedPack?: boolean;
+	/**
+	 * Whether the demo mounts the trigger toolbar: not for IAB, which has its
+	 * own resurface control, and not for a none rule with no added rights,
+	 * which owes no control at all. Computed once at module load.
+	 */
+	showsTriggerToolbar?: boolean;
+	/**
 	 * Presentation the runtime applies: `presentation` when set, otherwise
 	 * the demo's per-policy shape from `presentationForRule`. Filled in once
 	 * at module load so render only reads a property.
@@ -178,7 +190,10 @@ export interface DemoScenario {
 
 const worldFallbackPolicy = policyRulePresets.worldOptOutNoPrompt();
 
-const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
+const authoredScenarios: Omit<
+	DemoScenario,
+	'runtimePresentation' | 'showsTriggerToolbar'
+>[] = [
 	// ── Built-in presets ──────────────────────────────────────────────────
 	{
 		country: 'GB',
@@ -707,10 +722,40 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 			prompt: { variant: 'wall' },
 		},
 	},
+	{
+		country: 'US',
+		description:
+			'A visitor in a US state with no comprehensive privacy law. The recommended pack resolves the world `none` rule: every category is permitted, nothing is recorded, and no consent UI renders because no law grants rights to opt in or out.',
+		group: 'custom',
+		id: 'custom-us-sd-none',
+		label: 'South Dakota',
+		policy: policyRulePresets.worldNone(),
+		region: 'SD',
+		useRecommendedPack: true,
+	},
+	{
+		country: '',
+		description:
+			'A visitor whose location could not be determined. The Europe opt-in rule carries the unknown-location fallback, so the recommended pack shows the strict choice prompt and grants nothing until the visitor chooses.',
+		group: 'custom',
+		id: 'custom-unknown-location',
+		label: 'Unknown location',
+		policy: policyRulePresets.europeOptIn(),
+		useRecommendedPack: true,
+	},
 ];
 
+const showsTriggerToolbarFor = function showsTriggerToolbarFor(
+	policy: PolicyRule
+): boolean {
+	if (policy.model === 'iab') {
+		return false;
+	}
+	return policy.model !== 'none' || (policy.rights?.length ?? 0) > 0;
+};
+
 const runtimePresentationFor = function runtimePresentationFor(
-	scenario: Omit<DemoScenario, 'runtimePresentation'>
+	scenario: Omit<DemoScenario, 'runtimePresentation' | 'showsTriggerToolbar'>
 ): ConsentPresentation | undefined {
 	if (scenario.presentation) {
 		return scenario.presentation;
@@ -723,6 +768,7 @@ export const demoScenarios: DemoScenario[] = authoredScenarios.map(
 	(scenario) => ({
 		...scenario,
 		runtimePresentation: runtimePresentationFor(scenario),
+		showsTriggerToolbar: showsTriggerToolbarFor(scenario.policy),
 	})
 );
 
@@ -738,13 +784,18 @@ export const getScenarioById = function getScenarioById(
 };
 
 /**
- * Policy packs for one scenario: the scenario's policy plus the world
- * no-banner fallback (unless the scenario itself is the default fallback).
+ * Policy packs for one scenario: the recommended pack for scenarios that
+ * opt into it, otherwise the scenario's policy plus the world no-banner
+ * fallback (unless the scenario itself is the default fallback).
  */
 export const getScenarioPolicyRules = function getScenarioPolicyRules(
 	id: string
 ): PolicyRule[] {
 	const scenario = getScenarioById(id);
+
+	if (scenario.useRecommendedPack) {
+		return recommendedPolicyRules();
+	}
 
 	if (scenario.policy.match?.isDefault) {
 		return [scenario.policy];

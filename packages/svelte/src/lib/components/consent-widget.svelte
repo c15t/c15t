@@ -124,7 +124,7 @@
 	const shouldFillActions = $derived(presentation.shouldFillActions);
 </script>
 
-{#if consent.state.hasPolicy}
+{#if consent.state.hasConsentUi}
 	<div
 		class={noStyle ? className : widgetRootStyle.className || ''}
 		dir={textDirection}

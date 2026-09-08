@@ -33,13 +33,15 @@ through the provider, so the same component serves every region:
   preferences. A notice never traps focus or locks scroll.
 - A rule with `prompt: 'none'` renders nothing.
 
-A rule with `prompt: 'none'` still has a resolved model, so the preference
-center and the dialog trigger stay available as the route to preferences.
-With no resolved rule at all, because resolution failed, no rule matched and
-you set no default, or init is still withheld, no consent surface renders:
-not the banner, the dialog, the widget, the preferences link, or the trigger.
-They appear as soon as a rule resolves, without a remount. `offline()`
-without `policyRules` is that unconfigured state and shows nothing.
+An opt-out rule with `prompt: 'none'` still has rights, so the preference
+center and the dialog trigger stay available as the route to preferences. A
+rule with `model: 'none'` owes no rights, so nothing renders unless you add
+`rights: ['preferences']`. With no resolved rule at all, because resolution
+failed, no rule matched and you set no default, or init is still withheld, no
+consent surface renders: not the banner, the dialog, the widget, the
+preferences link, or the trigger. They appear as soon as a rule resolves,
+without a remount. `offline()` without `policyRules` resolves the recommended
+pack, so it shows the strict opt-in banner until you pass a country.
 
 Acknowledging a notice records its dismissal. It does not record consent or
 change category permissions, including existing denials and privacy-signal

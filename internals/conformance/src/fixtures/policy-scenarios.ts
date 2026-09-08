@@ -35,6 +35,15 @@ export const POLICY_NOTICE: ScenarioPolicy = {
 	prompt: 'notice',
 };
 
+/** A `none` regime: everything in scope granted, no prompt, no rights. */
+export const POLICY_NONE: ScenarioPolicy = {
+	...POLICY_CHOICE,
+	gpcDenyCategories: [],
+	model: 'none',
+	prompt: 'none',
+	rights: [],
+};
+
 const quiet: PolicyObservation = {
 	consentCallbacks: 0,
 	consentRequests: 0,
@@ -49,6 +58,113 @@ const blockedGates: PolicyObservation['gates'] = {
 	network: 'blocked',
 	script: 'blocked',
 };
+
+const openGates: PolicyObservation['gates'] = {
+	consentMode: 'granted',
+	iframe: 'loaded',
+	network: 'allowed',
+	script: 'loaded',
+};
+
+/**
+ * A `none` regime owes nothing: permissions are granted by default, no
+ * surface renders, nothing is stored, and a save records no choice. Listing
+ * `preferences` as a right restores the settings route without a prompt.
+ */
+const noneRegime: readonly PolicyScenario[] = [
+	{
+		covers: ['A'],
+		id: 'none-grants-without-ui',
+		now: POLICY_NOW,
+		policy: POLICY_NONE,
+		probeGates: true,
+		steps: [
+			{
+				expect: {
+					...quiet,
+					choice: null,
+					firstLayer: 'hidden',
+					gates: openGates,
+					permissions: granted,
+					persistentRights: [],
+					preferencesOpen: false,
+					prompt: { kind: 'none' },
+					resolution: 'matched',
+				},
+				operation: { kind: 'hydrate' },
+			},
+			{
+				expect: {
+					...quiet,
+					choice: null,
+					firstLayer: 'hidden',
+					permissions: granted,
+					prompt: { kind: 'none' },
+				},
+				operation: { kind: 'save', values: { marketing: false } },
+			},
+		],
+	},
+	{
+		covers: ['A'],
+		id: 'none-with-preferences-right',
+		now: POLICY_NOW,
+		policy: { ...POLICY_NONE, rights: ['preferences'] },
+		steps: [
+			{
+				expect: {
+					...quiet,
+					choice: null,
+					firstLayer: 'hidden',
+					permissions: granted,
+					persistentRights: ['preferences'],
+					preferencesOpen: false,
+					prompt: { kind: 'none' },
+				},
+				operation: { kind: 'hydrate' },
+			},
+			{
+				expect: {
+					...quiet,
+					choice: null,
+					permissions: granted,
+					preferencesOpen: true,
+					prompt: { kind: 'none' },
+				},
+				operation: { kind: 'open-preferences', via: 'trigger' },
+			},
+			{
+				expect: {
+					...quiet,
+					choice: null,
+					permissions: granted,
+					preferencesOpen: false,
+					prompt: { kind: 'none' },
+				},
+				operation: { kind: 'save-current' },
+			},
+		],
+	},
+	{
+		covers: ['A', 'F4'],
+		gpc: true,
+		id: 'none-gpc-restricts-mapped-categories',
+		now: POLICY_NOW,
+		policy: { ...POLICY_NONE, gpcDenyCategories: ['marketing'] },
+		steps: [
+			{
+				expect: {
+					choice: null,
+					firstLayer: 'hidden',
+					permissions: { marketing: false, measurement: true, necessary: true },
+					prompt: { kind: 'none' },
+					standingOptOut: ['marketing'],
+				},
+				operation: { kind: 'hydrate' },
+			},
+		],
+	},
+];
 
 const hydrateScenario = function hydrateScenario(
 	id: string,
@@ -281,6 +397,7 @@ const ssr = (
  * permission fallback and resolution status remain independently asserted.
  */
 export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
+	...noneRegime,
 	{
 		covers: ['F1', 'F10'],
 		id: 'accept-persist-reload',

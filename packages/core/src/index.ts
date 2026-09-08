@@ -252,10 +252,12 @@ export type {
 	PolicyResolutionFailure,
 	PolicyRule,
 	PolicyRulePresets,
+	RecommendedPolicyRulesOptions,
 } from '@c15t/schema/types';
 export {
 	normalizePolicyRule,
 	policyRulePresets,
+	recommendedPolicyRules,
 	readPolicyResolutionWire,
 	resolvePolicyRules,
 	writePolicyResolutionWire,

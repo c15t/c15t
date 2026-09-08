@@ -103,7 +103,7 @@ export interface ConsentDialogProps {
 
 	/**
 	 * Which consent models this dialog responds to.
-	 * @default ['opt-in', 'opt-out']
+	 * @default ['opt-in', 'opt-out', 'none']
 	 */
 	models?: C15tCoreTypes.Model[];
 

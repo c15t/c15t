@@ -33,8 +33,11 @@ export const OPTIONAL_CONSENT_CATEGORIES = [
 	'marketing',
 ] as const satisfies readonly OptionalConsentCategory[];
 
-/** Permission model the policy enforces. Notice is a prompt, not a model. */
-export type PolicyModel = 'opt-in' | 'opt-out' | 'iab';
+/**
+ * Permission model the policy enforces. Notice is a prompt, not a model.
+ * `none` permits processing by default with no prompt and no rights.
+ */
+export type PolicyModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
 
 /** First-layer interaction the policy requires. */
 export type PolicyPrompt = 'choice' | 'notice' | 'none';

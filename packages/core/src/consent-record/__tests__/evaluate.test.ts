@@ -780,3 +780,40 @@ describe('evaluateConsentRecord: meaningful deadlines', () => {
 		expect(evaluation.nextDeadline).toBe(NOW + 40);
 	});
 });
+
+describe('evaluateConsentRecord: the none model', () => {
+	it('grants in-scope categories, owes no prompt and ignores GPC unless mapped', () => {
+		const policy = makePolicy({ model: 'none', prompt: 'none' });
+		const fresh = evaluateConsentRecord({ choice: null, now: NOW, policy });
+		expect(fresh.permissions).toEqual(allTrue);
+		expect(fresh.promptRequirement).toEqual({ kind: 'none' });
+		expect(fresh.nextDeadline).toBeNull();
+		const signalled = evaluateConsentRecord({
+			choice: null,
+			gpc: true,
+			now: NOW,
+			policy,
+		});
+		expect(signalled.permissions).toEqual(allTrue);
+		const mapped = evaluateConsentRecord({
+			choice: null,
+			gpc: true,
+			now: NOW,
+			policy: makePolicy({
+				gpcDenyCategories: ['marketing'],
+				model: 'none',
+				prompt: 'none',
+			}),
+		});
+		expect(mapped.permissions).toEqual({
+			...allTrue,
+			marketing: false,
+		});
+	});
+
+	it('requires the none prompt', () => {
+		expect(() => makePolicy({ model: 'none', prompt: 'choice' })).toThrow(
+			/requires prompt "none"/u
+		);
+	});
+});

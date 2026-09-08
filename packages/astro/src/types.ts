@@ -335,6 +335,14 @@ export interface C15tLocals {
 	 */
 	hasPolicy: boolean;
 
+	/**
+	 * Whether the resolved rule owes any consent UI. A prompt owes a banner
+	 * and a preference center; rights owe a way back to preferences. A `none`
+	 * rule with no rights owes neither, so no surface renders while the
+	 * permissions it grants apply. `false` until a rule is resolved.
+	 */
+	hasConsentUi: boolean;
+
 	/** Resolved policy decision, when the transport produced one. */
 	decision: PolicyResolution;
 

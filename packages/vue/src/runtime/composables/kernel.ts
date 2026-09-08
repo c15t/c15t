@@ -63,6 +63,21 @@ export const useHasConsentPolicy = () => {
 	const resolution = usePolicyResolution();
 	return computed(() => resolution.value.status === 'matched');
 };
+/**
+ * Whether the resolved rule owes any consent UI. A prompt owes a banner and
+ * a preference center; rights owe a way back to preferences. A `none` rule
+ * with no rights owes neither, so every surface stays hidden while the
+ * permissions it grants apply. `false` until a rule is resolved.
+ */
+export const useHasConsentUi = () => {
+	const resolution = usePolicyResolution();
+	const rule = usePolicyRule();
+	return computed(
+		() =>
+			resolution.value.status === 'matched' &&
+			(rule.value.prompt !== 'none' || rule.value.rights.length > 0)
+	);
+};
 /** Read the reasons that currently restrict permissions. */
 export const useConsentRestrictions = () => useSnapshotField('restrictions');
 /** Return the explicit notice dismissal command. */

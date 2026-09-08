@@ -1,6 +1,6 @@
 import { dedupeDefinedValues } from './policy-utils';
 
-export type PolicyModel = 'opt-in' | 'opt-out' | 'iab';
+export type PolicyModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
 export type PolicyScopeMode = 'strict' | 'permissive';
 export interface PolicyMatch {
 	regions?: { country: string; region: string }[];

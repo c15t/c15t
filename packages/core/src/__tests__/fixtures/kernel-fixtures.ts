@@ -68,6 +68,19 @@ export const optOutRule = function optOutRule(
 	};
 };
 
+/** A `none` regime: processing permitted, no prompt, no rights. */
+export const noneRule = function noneRule(
+	overrides: Partial<PolicyRule> = {}
+): PolicyRule {
+	return {
+		id: 'test-none',
+		match: { isDefault: true },
+		model: 'none',
+		prompt: 'none',
+		...overrides,
+	};
+};
+
 export const noticeRule = function noticeRule(
 	overrides: Partial<PolicyRule> = {}
 ): PolicyRule {

@@ -55,6 +55,10 @@ export function Consent({ children }: { children: React.ReactNode }) {
 }
 ```
 
+Omit `policyRules` to use `recommendedPolicyRules()`, the pack `offline()`
+resolves by default. Offline mode has no location unless you pass a country,
+so the default pack shows the strict opt-in banner to every visitor.
+
 Presentation is global. To give one region a different shape, render the
 banner with props chosen from the active rule:
 

@@ -151,6 +151,22 @@ export const useHasConsentPolicy = function useHasConsentPolicy(): boolean {
 };
 
 /**
+ * Whether any prebuilt consent surface has something to show: a policy rule
+ * is resolved and it either owes a first-layer prompt or keeps a right
+ * reachable. A `none` rule without rights owes nothing, so every surface
+ * renders nothing; give it `rights: ['preferences']` to keep a settings
+ * route. Every other model always carries rights, so for them this equals
+ * {@link useHasConsentPolicy}.
+ */
+export const useHasConsentUI = function useHasConsentUI(): boolean {
+	return useKernelSelector(
+		(snap) =>
+			snap.resolution.status === 'matched' &&
+			(snap.policyRule.prompt !== 'none' || snap.policyRule.rights.length > 0)
+	);
+};
+
+/**
  * Derived consent model (opt-in / opt-out / iab), or `null` while no policy
  * rule is resolved. The kernel keeps a safe fallback rule internally; this
  * hook hides it so hosts can key "no consent UI" on `null`.

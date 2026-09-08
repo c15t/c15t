@@ -51,7 +51,8 @@ export interface PolicyRecordFixture {
 
 /** Policy inputs expressed independently of pending public schema names. */
 export interface ScenarioPolicy {
-	model: 'opt-in' | 'opt-out' | 'iab';
+	/** `none` grants everything in scope, owes no prompt, and carries no rights unless listed. */
+	model: 'opt-in' | 'opt-out' | 'iab' | 'none';
 	prompt: 'choice' | 'notice' | 'none';
 	scope: readonly PolicyCategory[];
 	scopeMode: 'strict' | 'permissive';

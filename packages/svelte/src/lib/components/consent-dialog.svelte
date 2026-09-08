@@ -31,7 +31,8 @@
 		hideBranding,
 		legalLinks,
 		showTrigger = false,
-		models = ['opt-in', 'opt-out', 'iab'] as Model[],
+		// A `none` rule that grants the preferences right still opens here.
+		models = ['opt-in', 'opt-out', 'iab', 'none'] as Model[],
 		class: className,
 	}: {
 		open?: boolean;
@@ -76,7 +77,7 @@
 
 	// Open state
 	const isOpen = $derived(
-		consent.state.hasPolicy &&
+		consent.state.hasConsentUi &&
 			models.includes(consent.state.model) &&
 			(openProp ?? consent.state.activeUI === 'dialog')
 	);

@@ -185,9 +185,20 @@ describe('banner actions', () => {
 			'[data-testid="consent-dialog-trigger"]'
 		);
 		const unresolved = {
+			policyRule: { prompt: 'choice', rights: ['disclosure', 'preferences'] },
 			resolution: { policy: null, reason: 'transport', status: 'failed' },
 		} as unknown as ConsentSnapshot;
 		const resolved = {
+			policyRule: { prompt: 'choice', rights: ['disclosure', 'preferences'] },
+			resolution: { status: 'matched' },
+		} as unknown as ConsentSnapshot;
+		// A `none` rule with no rights owes no UI even though it resolved.
+		const noneWithoutRights = {
+			policyRule: { prompt: 'none', rights: [] },
+			resolution: { status: 'matched' },
+		} as unknown as ConsentSnapshot;
+		const noneWithPreferences = {
+			policyRule: { prompt: 'none', rights: ['preferences'] },
 			resolution: { status: 'matched' },
 		} as unknown as ConsentSnapshot;
 
@@ -200,6 +211,12 @@ describe('banner actions', () => {
 
 		syncSurfaceVisibility(unresolved);
 		expect(trigger?.hidden).toBe(true);
+
+		syncSurfaceVisibility(noneWithoutRights);
+		expect(trigger?.hidden).toBe(true);
+
+		syncSurfaceVisibility(noneWithPreferences);
+		expect(trigger?.hidden).toBe(false);
 	});
 
 	it('locks scroll and traps focus while a blocking banner shows', () => {
@@ -319,10 +336,11 @@ describe('opening without an inlined resolution', () => {
 		);
 
 		renderBanner();
-		// No policy rules: the offline transport resolves `unconfigured`.
+		// An empty rule list resolves `unconfigured`; omitting it would resolve
+		// the recommended pack instead.
 		const booted = startPending({
 			consentCategories: OPTIONS.consentCategories,
-			mode: offlineMode({}),
+			mode: offlineMode({ policyRules: [] }),
 		});
 		await booted.openDialog();
 
@@ -330,6 +348,71 @@ describe('opening without an inlined resolution', () => {
 		expect(booted.getConsent().resolution.status).not.toBe('matched');
 		expect(mount).not.toHaveBeenCalled();
 		expect(booted.getConsent().activeUI).not.toBe('dialog');
+	});
+
+	it('does not mount the dialog under a none rule that owes no rights', async () => {
+		const mount = vi.fn(() =>
+			Promise.resolve({
+				close: vi.fn(),
+				destroy: vi.fn(),
+			} as ConsentDialogHandle)
+		);
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({ mount, name: 'svelte' })
+		);
+
+		renderBanner();
+		const booted = startPending({
+			consentCategories: OPTIONS.consentCategories,
+			mode: offlineMode({
+				policyRules: [
+					{
+						id: 'none',
+						match: { fallback: true, isDefault: true },
+						model: 'none',
+						prompt: 'none',
+					},
+				],
+			}),
+		});
+		await booted.openDialog();
+
+		expect(booted.getConsent().resolution.status).toBe('matched');
+		expect(booted.getConsent().policyRule.model).toBe('none');
+		expect(mount).not.toHaveBeenCalled();
+		expect(booted.getConsent().activeUI).not.toBe('dialog');
+	});
+
+	it('mounts the dialog under a none rule that grants preferences', async () => {
+		const mount = vi.fn(() =>
+			Promise.resolve({
+				close: vi.fn(),
+				destroy: vi.fn(),
+			} as ConsentDialogHandle)
+		);
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({ mount, name: 'svelte' })
+		);
+
+		renderBanner();
+		const booted = startPending({
+			consentCategories: OPTIONS.consentCategories,
+			mode: offlineMode({
+				policyRules: [
+					{
+						id: 'none-with-preferences',
+						match: { fallback: true, isDefault: true },
+						model: 'none',
+						prompt: 'none',
+						rights: ['preferences'],
+					},
+				],
+			}),
+		});
+		await booted.openDialog();
+
+		expect(booted.getConsent().policyRule.model).toBe('none');
+		expect(mount).toHaveBeenCalledTimes(1);
 	});
 });
 

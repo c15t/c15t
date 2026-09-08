@@ -98,7 +98,8 @@ const defaultPermission = function defaultPermission(
 	if (!inScope) {
 		return policy.scopeMode === 'permissive';
 	}
-	return policy.model === 'opt-out';
+	// Opt-out and none both permit processing until something restricts it.
+	return policy.model === 'opt-out' || policy.model === 'none';
 };
 
 const collectRestrictions = function collectRestrictions(
@@ -277,7 +278,9 @@ const deriveNextDeadline = function deriveNextDeadline(
 		const evaluation = categories[category];
 		const decision = input.choice?.categories[category];
 		const permissionCanChange =
-			policy.model !== 'opt-out' && evaluation.restrictions.length === 0;
+			policy.model !== 'opt-out' &&
+			policy.model !== 'none' &&
+			evaluation.restrictions.length === 0;
 		if (
 			decision?.value === true &&
 			evaluation.authority === 'valid' &&

@@ -5,6 +5,21 @@ group: frameworks
 ---
 
 ```ts
+import { recommendedPolicyRules } from 'c15t';
+
+export const policyRules = recommendedPolicyRules();
+```
+
+`recommendedPolicyRules()` returns the pack `offline()` uses when you pass no
+`policyRules`, in this order: Europe opt-in (or IAB TCF 2.3 with
+`{ iab: true }`), Québec opt-in, the US privacy states opt-out, and `none` as
+the default for every other known location. The Europe preset also carries the
+fallback for a visitor with no location, so an unknown location gets the strict
+opt-in banner. Passing your own `policyRules` replaces the pack entirely.
+
+Compose your own from the catalog when the pack does not fit:
+
+```ts
 import { policyRulePresets } from 'c15t';
 
 export const policyRules = [
@@ -16,7 +31,7 @@ export const policyRules = [
 	policyRulePresets.japanOptOut(),
 	policyRulePresets.singaporeOptIn(),
 	policyRulePresets.malaysiaOptIn(),
-	policyRulePresets.worldOptOutNoPrompt(),
+	policyRulePresets.worldNone(),
 ];
 ```
 
@@ -48,27 +63,35 @@ export default defineConfig({
 Save the first example in `consent-policies.ts`. For managed hosting, configure
 the rules with the hosted service. `hosted()` takes connection options;
 importing presets in the browser does not change the server's policies.
-Existing offline setups use `offline({ policyRules })` with country and
-region inputs. Offline mode does not look up the visitor's IP address.
+Offline setups use `offline({ policyRules })` with country and region inputs,
+or `offline()` alone for the recommended pack. Offline mode does not look up
+the visitor's IP address, so without a country input every visitor resolves to
+the Europe preset's unknown-location fallback and sees the strict opt-in banner.
 
 Keep one banner and one preference dialog mounted. They follow the active
 rule. Keep a preference trigger accessible even when no banner appears.
 
 ## No banner and unknown locations
 
-`worldOptOutNoPrompt()` explicitly allows optional categories without an
-initial prompt when a known location matches no regional rule. It replaces
-the v2 `worldNoBanner` shortcut. In the example, US-NY gets that global default,
-while US-CO gets US opt-out rights and GPC handling, also without a banner.
-Neither result means the location has no privacy obligations.
+`worldNone()` is the default for a known location that matches no regional
+rule. It uses `model: 'none'`: optional categories in scope are granted,
+`necessary` as always, there is no prompt, and no rights are owed, so no
+consent surface renders, not even the preference trigger. A visitor in South
+Dakota, which has no comprehensive privacy law, resolves to it and sees
+nothing. In the example, US-CO gets US opt-out rights and GPC handling instead,
+also without a banner. Neither result means the location has no privacy
+obligations. Add `rights: ['preferences']` to a `none` rule if you want a
+settings link and dialog anyway. `worldOptOutNoPrompt()` remains available as an
+explicit alternative default that keeps opt-out rights and the preference
+controls for every unmatched location.
 
-Europe supplies the fallback for an unknown country. When the state or
-province is missing, an explicit country rule wins. If none exists and the
-pack has subdivision rules for that country, c15t uses the fallback. Without
-one, resolution fails with `reason: 'insufficient-inputs'`: optional categories
-stay denied and a choice banner appears for a visitor without saved refusals.
-The global default does not silently replace a missing subdivision. While no rule
-has resolved, no consent surface renders, including the dialog trigger.
+The Europe preset supplies the fallback for an unknown country, so a visitor
+with no location gets the strict opt-in rule. When the state or province is
+missing, an explicit country rule wins. If none exists and the pack has subdivision rules for that
+country, c15t uses the fallback. Without one, resolution fails with
+`reason: 'insufficient-inputs'`: optional categories stay denied and no
+consent surface renders, including the dialog trigger. The global default does
+not silently replace a missing subdivision.
 
 To use US opt-out behavior when the state is unknown, add an explicit country
 rule alongside your state rules:
@@ -102,8 +125,9 @@ allow-by-default configuration without a fallback when location is uncertain.
 
 Opt-in means optional categories wait for choice. Opt-out means included
 categories can run before choice, subject to the stated processing basis.
-The prompt controls whether c15t asks for a choice, displays a notice or
-shows no initial UI.
+`none` means included categories run, no prompt appears, and no rights are
+owed, so no consent UI renders. The prompt controls whether c15t asks for a
+choice, displays a notice or shows no initial UI.
 
 | Preset | Location | Default prompt |
 | --- | --- | --- |
@@ -132,7 +156,8 @@ shows no initial UI.
 | `turkeyOptIn()` | TR | Choice |
 | `uaeOptIn()` | AE, federal-law starter | Choice |
 | `saudiArabiaOptIn()` | SA | Choice |
-| `worldOptOutNoPrompt()` | Explicit global default | None |
+| `worldNone()` | Global default, `model: 'none'` | None |
+| `worldOptOutNoPrompt()` | Optional opt-out global default | None |
 
 Choose one variant for each overlapping location. Put a California override
 before the US group. Canadian opt-out excludes Québec, so it cannot shadow

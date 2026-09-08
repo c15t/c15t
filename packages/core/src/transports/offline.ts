@@ -5,9 +5,9 @@
  * No network. Same response shape as `createHostedTransport`, so
  * consumers can swap transports without touching the kernel or adapter.
  *
- * Policy comes from `policyRules`, resolved with `resolvePolicyRules`.
- * Every init emits an explicit
- * `policyResolution`: unconfigured, matched, no-match or failed. Resolution
+ * Policy comes from `policyRules`, or the recommended pack when the caller
+ * passes none, resolved with `resolvePolicyRules`. Every init emits an
+ * explicit `policyResolution`: matched, no-match or failed. Resolution
  * runs once per init, inside the transport, so nothing hashes during kernel
  * construction, hydration or render.
  *
@@ -22,6 +22,7 @@ import type {
 	TranslationsResponse,
 } from '@c15t/schema/types';
 import {
+	recommendedPolicyRules,
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -45,8 +46,10 @@ export interface OfflineKernelTransport extends KernelTransport {
 export interface OfflineTransportOptions {
 	/**
 	 * v3 policy rules to resolve at init time. Matched against the request
-	 * context's country/region. Use `@c15t/schema`'s `policyRulePresets`
-	 * for reviewed starting points.
+	 * context's country/region. Omitted, the transport resolves
+	 * `recommendedPolicyRules()`: strict opt-in for Europe and unknown
+	 * locations, opt-out for US privacy states, and `none` everywhere else.
+	 * Passing rules replaces that pack entirely.
 	 */
 	policyRules?: PolicyRule[];
 
@@ -120,7 +123,8 @@ export const createOfflineTransport = function createOfflineTransport(
 		options.translations,
 		defaultLanguage
 	);
-	const rules = options.policyRules;
+	const rules =
+		options.policyRules ?? recommendedPolicyRules({ iab: iabEnabled });
 
 	return {
 		init(ctx: InitContext): Promise<TransportInitResponse> {

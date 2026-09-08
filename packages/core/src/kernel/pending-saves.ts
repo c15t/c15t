@@ -138,7 +138,8 @@ const isSavePayload = function isSavePayload(
 		value.model === null ||
 		value.model === 'opt-in' ||
 		value.model === 'opt-out' ||
-		value.model === 'iab';
+		value.model === 'iab' ||
+		value.model === 'none';
 	const validUiSource =
 		value.uiSource === null ||
 		value.uiSource === 'none' ||

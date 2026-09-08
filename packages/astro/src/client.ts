@@ -232,6 +232,20 @@ const hasConsentPolicy = function hasConsentPolicy(
 };
 
 /**
+ * Whether the resolved rule owes any consent UI. A prompt owes a banner and
+ * a preference center; rights owe a way back to preferences. A `none` rule
+ * with no rights owes neither, so no surface renders or opens while the
+ * permissions it grants apply.
+ */
+const hasConsentUi = function hasConsentUi(snapshot: ConsentSnapshot): boolean {
+	return (
+		hasConsentPolicy(snapshot) &&
+		(snapshot.policyRule.prompt !== 'none' ||
+			snapshot.policyRule.rights.length > 0)
+	);
+};
+
+/**
  * Resolve once the initial policy resolution has settled.
  *
  * A page whose server did not inline a resolution boots with the init still
@@ -263,19 +277,20 @@ const whenPolicySettled = function whenPolicySettled(
  * Show or hide the persistent consent controls the page rendered on the
  * server (`<ConsentDialogTrigger />`) as the policy resolution changes.
  *
- * With nothing to manage the controls stay hidden; they appear on their own
- * once a later init supplies a rule.
+ * With nothing to manage the controls stay hidden: before a rule resolves,
+ * and under a `none` rule that owes no rights. They appear on their own once
+ * a later init supplies a rule that does.
  *
  * @param snapshot - The current kernel snapshot.
  */
 export const syncSurfaceVisibility = function syncSurfaceVisibility(
 	snapshot: ConsentSnapshot
 ): void {
-	const hasPolicy = hasConsentPolicy(snapshot);
+	const owesUi = hasConsentUi(snapshot);
 	for (const control of document.querySelectorAll<HTMLElement>(
 		'[data-c15t-surface="trigger"]'
 	)) {
-		control.hidden = !hasPolicy;
+		control.hidden = !owesUi;
 	}
 };
 
@@ -431,9 +446,10 @@ const createClient = function createClient(
 				return;
 			}
 			// Decide against the settled resolution: an init still in flight is
-			// not "no policy". Nothing to consent to without a resolved rule.
+			// not "no policy". Nothing to open without a rule that owes UI, which
+			// excludes a `none` rule with no rights.
 			await whenPolicySettled(runtime.kernel);
-			if (disposed || !hasConsentPolicy(runtime.kernel.getSnapshot())) {
+			if (disposed || !hasConsentUi(runtime.kernel.getSnapshot())) {
 				return;
 			}
 			if (opening) {

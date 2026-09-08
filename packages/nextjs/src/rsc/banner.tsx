@@ -200,6 +200,11 @@ export const RscConsentBanner = ({
 	children,
 }: RscConsentBannerProps) => {
 	const policy = readPolicy(config);
+	// A `none` rule with no rights owes no consent UI at all, so the server
+	// emits no banner shell; the client root stays hidden for the same reason.
+	if (policy?.prompt === 'none' && policy.rights.length === 0) {
+		return null;
+	}
 	const copy = readCopy(config, policy?.prompt === 'notice');
 	const surface = readSurface(policy, presentation);
 

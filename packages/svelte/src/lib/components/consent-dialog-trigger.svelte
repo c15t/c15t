@@ -61,7 +61,7 @@
 	const branding = $derived(consent.state.branding);
 	// Nothing to manage without a resolved policy.
 	const visible = $derived(
-		consent.state.hasPolicy &&
+		consent.state.hasConsentUi &&
 			showWhen !== 'never' &&
 			consent.snapshot.activeUI !== 'dialog'
 	);

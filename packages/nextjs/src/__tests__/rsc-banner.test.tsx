@@ -275,3 +275,26 @@ describe('RscConsentBanner without a resolved policy', () => {
 		expect(html).not.toContain('data-testid="consent-banner-card"');
 	});
 });
+
+describe('RscConsentBanner under a none rule', () => {
+	/** A regime with no consent law: permitted by default, nothing owed. */
+	const noneRule: Partial<PolicyRule> = {
+		id: 'next_world_none',
+		match: { isDefault: true },
+		model: 'none',
+		prompt: 'none',
+	};
+
+	test('emits no consent markup when no rights are owed', () => {
+		const html = renderShell(noneRule);
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+		expect(html).not.toContain('data-testid="consent-banner-rights"');
+	});
+
+	test('still emits no banner when the rule grants preferences, since there is no prompt', () => {
+		const html = renderShell({ ...noneRule, rights: ['preferences'] });
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+		expect(html).not.toContain('data-testid="consent-banner-accept-button"');
+	});
+});

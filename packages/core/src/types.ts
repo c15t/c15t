@@ -76,7 +76,7 @@ export type KernelBranding = 'c15t' | 'consent' | 'inth';
  * The kernel always resolves a model because every non-matched resolution uses the
  * safe opt-in fallback rule.
  */
-export type KernelModel = 'opt-in' | 'opt-out' | 'iab';
+export type KernelModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
 
 /**
  * Consent model alias used by UI adapters.

@@ -657,7 +657,7 @@ describe('offline transport resolution', () => {
 		expect(response).not.toHaveProperty('policy');
 	});
 
-	test('emits unconfigured, no-match and failed explicitly', async () => {
+	test('emits the recommended default, no-match and failed explicitly', async () => {
 		const read = async (
 			transport: ReturnType<typeof createOfflineTransport>,
 			country?: string
@@ -667,9 +667,14 @@ describe('offline transport resolution', () => {
 					?.policyResolution
 			);
 
-		expect(await read(createOfflineTransport(), 'DE')).toEqual({
+		expect(
+			await read(createOfflineTransport({ policyRules: undefined }), 'DE')
+		).toMatchObject({ policyId: 'europe_opt_in', status: 'matched' });
+		expect(
+			await read(createOfflineTransport({ policyRules: [] }), 'DE')
+		).toEqual({
 			policy: null,
-			status: 'unconfigured',
+			status: 'no-match',
 		});
 		expect(
 			await read(createOfflineTransport({ policyRules: rules }), 'BR')

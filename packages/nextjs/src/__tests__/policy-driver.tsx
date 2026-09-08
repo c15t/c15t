@@ -472,7 +472,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			>
 				<Mount />
 				<ConsentBanner />
-				<ConsentDialog models={['opt-in', 'opt-out', 'iab']} />
+				<ConsentDialog models={['opt-in', 'opt-out', 'iab', 'none']} />
 				<ConsentDialogTrigger />
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 				{setup.probeGates ? (
@@ -713,6 +713,18 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 						operation.via === 'trigger'
 							? 'consent-dialog-trigger'
 							: 'consent-dialog-link'
+					);
+					// The framework boundary applies the surface change a tick after
+					// the click, later than a fixed settle covers under load.
+					await vi.waitFor(
+						() => {
+							if (
+								!document.querySelector('[data-testid="consent-dialog-root"]')
+							) {
+								throw new Error('Preference center did not open');
+							}
+						},
+						{ interval: 50, timeout: 5000 }
 					);
 					break;
 				case 'reload':

@@ -3,26 +3,35 @@ import { describe, expect, test } from 'vitest';
 import { resolvePolicyRules } from './policy-resolution';
 import { inspectPolicyRules, normalizePolicyRule } from './policy-rule';
 import { createPolicyRuleFingerprints } from './policy-rule-fingerprint';
-import { policyRulePresets } from './policy-rule-presets';
+import {
+	policyRulePresets,
+	recommendedPolicyRules,
+} from './policy-rule-presets';
 
 const presetNames = Object.keys(
 	policyRulePresets
 ) as (keyof typeof policyRulePresets)[];
 
 describe('policyRulePresets', () => {
-	test.each(presetNames)('%s normalizes with a dated source review', (name) => {
+	test.each(presetNames)('%s normalizes with review metadata', (name) => {
 		const rule = policyRulePresets[name]();
 		expect(() => normalizePolicyRule(rule)).not.toThrow();
+		expect(rule.review?.reviewBy).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+		expect(rule.review?.assumptions?.length).toBeGreaterThan(0);
+		if (name === 'worldNone') {
+			// No consent law to cite; the assumptions carry the claim instead.
+			expect(rule.review?.status).toBe('pending');
+			expect(rule.model).toBe('none');
+			return;
+		}
 		expect(rule.review?.status).toBe('reviewed');
 		expect(rule.review?.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
-		expect(rule.review?.reviewBy).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
 		expect(Date.parse(rule.review?.reviewBy ?? '')).toBeGreaterThan(
 			Date.parse(rule.review?.reviewedOn ?? '')
 		);
 		if (name !== 'worldOptOutNoPrompt') {
 			expect(rule.review?.sources?.length).toBeGreaterThan(0);
 		}
-		expect(rule.review?.assumptions?.length).toBeGreaterThan(0);
 		expect(rule.model).not.toBe('none');
 	});
 
@@ -33,7 +42,7 @@ describe('policyRulePresets', () => {
 					policyRulePresets[europe](),
 					policyRulePresets.californiaOptIn(),
 					policyRulePresets.quebecOptIn(),
-					policyRulePresets.worldOptOutNoPrompt(),
+					policyRulePresets.worldNone(),
 				],
 				{ iabEnabled: true }
 			);
@@ -85,11 +94,61 @@ describe('policyRulePresets', () => {
 	});
 
 	test('europe presets keep the EEA, UK and geo fallback matcher', () => {
-		const rule = policyRulePresets.europeOptIn();
-		expect(rule.match.fallback).toBe(true);
-		expect(rule.match.countries).toEqual(
-			expect.arrayContaining(['DE', 'GB', 'NO'])
-		);
+		for (const name of ['europeOptIn', 'europeIab'] as const) {
+			const rule = policyRulePresets[name]();
+			expect(rule.match.fallback).toBe(true);
+			expect(rule.match.countries).toEqual(
+				expect.arrayContaining(['DE', 'GB', 'NO'])
+			);
+		}
+	});
+
+	test('worldNone permits processing with no prompt, no rights and no GPC mapping', () => {
+		const rule = policyRulePresets.worldNone();
+		expect(rule.match).toEqual({ isDefault: true });
+		const normalized = normalizePolicyRule(rule);
+		expect(normalized).toMatchObject({
+			id: 'world_none',
+			model: 'none',
+			privacySignals: { gpc: { denyCategories: [] } },
+			prompt: 'none',
+			rights: [],
+			scope: ['experience', 'functionality', 'marketing', 'measurement'],
+		});
+		expect(normalized.actions).toEqual({
+			allowed: [],
+			equivalent: [],
+			required: [],
+		});
+	});
+
+	test('recommendedPolicyRules resolves strict when unknown, none when unregulated', () => {
+		const rules = recommendedPolicyRules();
+		expect(rules.map((rule) => rule.id)).toEqual([
+			'europe_opt_in',
+			'quebec_opt_in',
+			'us_privacy_states_opt_out',
+			'world_none',
+		]);
+		expect(inspectPolicyRules(rules).errors).toEqual([]);
+		for (const [countryCode, regionCode, policyId, matchedBy] of [
+			[null, null, 'europe_opt_in', 'fallback'],
+			['DE', null, 'europe_opt_in', 'country'],
+			['GB', null, 'europe_opt_in', 'country'],
+			['CA', 'QC', 'quebec_opt_in', 'region'],
+			['US', 'CA', 'us_privacy_states_opt_out', 'region'],
+			['US', 'SD', 'world_none', 'default'],
+			['BR', null, 'world_none', 'default'],
+		] as const) {
+			expect(
+				resolvePolicyRules({ countryCode, regionCode, rules })
+			).toMatchObject({ matchedBy, policyId, status: 'matched' });
+		}
+		// A US visitor with no state cannot be placed; fall back to strict.
+		expect(
+			resolvePolicyRules({ countryCode: 'US', regionCode: null, rules })
+		).toMatchObject({ matchedBy: 'fallback', policyId: 'europe_opt_in' });
+		expect(recommendedPolicyRules({ iab: true })[0]?.id).toBe('europe_iab');
 	});
 
 	test.each(['AX', 'GF', 'GP', 'MQ', 'MF', 'RE', 'YT', 'GI'])(

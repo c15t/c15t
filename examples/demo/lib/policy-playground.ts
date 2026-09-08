@@ -263,7 +263,29 @@ export const playgroundPresets: PlaygroundPreset[] = [
 		label: 'World opt-out, no prompt',
 		rule: policyRulePresets.worldOptOutNoPrompt(),
 	},
+	{
+		country: 'US',
+		id: 'worldNone',
+		label: 'World none',
+		region: 'SD',
+		rule: policyRulePresets.worldNone(),
+	},
 ];
+
+/** Preset ids that make up `recommendedPolicyRules()`, what a bare `offline()` resolves. */
+export const RECOMMENDED_PRESET_IDS: ReadonlySet<string> = new Set([
+	'europeOptIn',
+	'quebecOptIn',
+	'usPrivacyStatesOptOut',
+	'worldNone',
+]);
+
+/** Whether an untouched preset is already covered by the recommended pack. */
+export const isRecommendedPreset = function isRecommendedPreset(
+	presetId: string | null
+): boolean {
+	return presetId !== null && RECOMMENDED_PRESET_IDS.has(presetId);
+};
 
 export const DEFAULT_PLAYGROUND_PRESET = 'europeOptIn';
 
@@ -416,7 +438,8 @@ export const toPolicyRule = function toPolicyRule(
 	};
 	rule.categories = form.allCategories ? ['*'] : [...form.categories];
 	rule.scopeMode = form.scopeMode;
-	if (form.preselected.length > 0) {
+	// A none rule owes no preference form, so it never preselects anything.
+	if (form.preselected.length > 0 && form.model !== 'none') {
 		rule.preselectedCategories = [...form.preselected];
 	}
 	if (form.prompt === 'choice') {
@@ -589,6 +612,8 @@ export const DEMO_PRESENTATION_BY_RULE: Record<
 	europe_opt_in: { position: 'bottom-left', variant: 'floating' },
 	// This example uses a wall for Quebec.
 	quebec_opt_in: { variant: 'wall' },
+	// A none rule owes no prompt and no rights, so no consent UI renders.
+	world_none: undefined,
 	// No prompt here either.
 	world_opt_out_no_prompt: undefined,
 	// IAB has its own surfaces; variants do not apply.
@@ -791,7 +816,16 @@ export interface ProviderSnippetOptions {
 	 * under the banner.
 	 */
 	toolbar?: boolean;
+	/**
+	 * The rule is part of the recommended pack, so the snippet calls
+	 * `offline()` with no `policyRules` and lets the defaults apply.
+	 */
+	recommended?: boolean;
 }
+
+const RECOMMENDED_PACK_COMMENT = `// offline() with no policyRules applies the recommended pack: EU/UK and
+// Quebec opt-in (Europe also covers an unknown location), US privacy states
+// opt-out, and none elsewhere. Pass policyRules to replace it.`;
 
 export const buildProviderSnippet = function buildProviderSnippet(
 	rule: PolicyRule,
@@ -799,12 +833,14 @@ export const buildProviderSnippet = function buildProviderSnippet(
 	presentation?: ConsentPresentation,
 	options: ProviderSnippetOptions = {}
 ): string {
+	const recommended = Boolean(options.recommended && presetId);
 	const ruleSource = presetId
 		? `policyRulePresets.${presetId}()`
 		: indent(JSON.stringify(stripForSnippet(rule), null, 2), 2);
-	const presetImport = presetId
-		? "import { policyRulePresets } from 'c15t';\n"
-		: '';
+	const presetImport =
+		presetId && !recommended
+			? "import { policyRulePresets } from 'c15t';\n"
+			: '';
 	// Presentation is host configuration: it never touches the rule or its
 	// fingerprints, so it sits on the provider, not in the policy pack.
 	const presentationOption = presentation
@@ -816,15 +852,19 @@ export const buildProviderSnippet = function buildProviderSnippet(
 	const toolbarLine = options.toolbar
 		? '\n    <ConsentDialogTriggerToolbar showWhen="after-prompt" />'
 		: '';
-	return `${presetImport}import { ${componentImports} } from 'c15t/react';
-
-// Region matches beat country matches. Array order breaks ties.
+	const rulesBlock = recommended
+		? `${RECOMMENDED_PACK_COMMENT}\n`
+		: `// Region matches beat country matches. Array order breaks ties.
 const policyRules = [
   ${ruleSource},
 ];
+`;
+	const mode = recommended ? 'offline()' : 'offline({ policyRules })';
+	return `${presetImport}import { ${componentImports} } from 'c15t/react';
 
+${rulesBlock}
 export const Providers = ({ children }) => (
-  <ConsentProvider options={{ mode: offline({ policyRules })${presentationOption} }}>
+  <ConsentProvider options={{ mode: ${mode}${presentationOption} }}>
     {children}
     <ConsentBanner />
     <ConsentDialog />${toolbarLine}
@@ -835,8 +875,22 @@ export const Providers = ({ children }) => (
 /** Backend counterpart: the same rules served by `@c15t/backend`. */
 export const buildBackendSnippet = function buildBackendSnippet(
 	rule: PolicyRule,
-	presetId: string | null
+	presetId: string | null,
+	options: Pick<ProviderSnippetOptions, 'recommended'> = {}
 ): string {
+	if (options.recommended && presetId) {
+		return `import { recommendedPolicyRules } from '@c15t/schema';
+import { defineConfig } from '@c15t/backend';
+
+// The same pack offline() applies by default, served from the backend.
+export default defineConfig({
+  database: { dialect: 'postgres', url: process.env.DATABASE_URL },
+  manifest: {
+    appName: 'my-app',
+    policyRules: recommendedPolicyRules(),
+  },
+});`;
+	}
 	const ruleSource = presetId
 		? `policyRulePresets.${presetId}()`
 		: indent(JSON.stringify(stripForSnippet(rule), null, 2), 4);

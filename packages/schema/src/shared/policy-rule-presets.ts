@@ -77,6 +77,30 @@ const europeRule = function europeRule(mode: EuropePolicyRuleMode): PolicyRule {
 	};
 };
 
+/**
+ * Known location with no consent law that grants rights: processing is
+ * permitted by default, no prompt, no rights, so no consent UI renders.
+ */
+const worldNoneRule = function worldNoneRule(): PolicyRule {
+	return {
+		id: 'world_none',
+		match: policyMatchers.default(),
+		model: 'none',
+		prompt: 'none',
+		proof: { storeIp: false, storeLanguage: false, storeUserAgent: false },
+		review: {
+			assumptions: [
+				'Applies where no consent law grants the visitor rights over the optional categories, so no prompt, control or acknowledgement is owed.',
+				'Matches known locations no other rule covers. The matcher dataset is finite and does not establish that an unlisted location has no privacy law; review the locations your traffic actually comes from.',
+				'No GPC mapping; add privacySignals.gpc where the deployment honors the signal anyway.',
+				...SHARED_ASSUMPTIONS,
+			],
+			reviewBy: '2026-12-15',
+			status: 'pending',
+		},
+	};
+};
+
 const californiaRule = function californiaRule(
 	mode: 'opt-in' | 'opt-out'
 ): PolicyRule {
@@ -377,8 +401,14 @@ export interface PolicyRulePresets {
 	/** Quebec opt-in preset (CA-QC). Choice prompt. */
 	quebecOptIn: () => PolicyRule;
 	/**
-	 * Explicit global default: opt-out with no first-layer prompt.
-	 * Replaces the v2 `worldNoBanner` model shortcut.
+	 * Known location with no consent law granting rights: `none` model, no
+	 * prompt, no rights, no consent UI. The recommended global default.
+	 */
+	worldNone: () => PolicyRule;
+	/**
+	 * Explicit global default that keeps preferences reachable: opt-out with
+	 * no first-layer prompt. Not part of the recommended pack; choose it when
+	 * every uncovered location should still offer a preference center.
 	 */
 	worldOptOutNoPrompt: () => PolicyRule;
 }
@@ -720,8 +750,45 @@ export const policyRulePresets: PolicyRulePresets = {
 				'Keep distinct purposes separately selectable. This category preset does not implement processing impact assessments, transfer duties or platform-specific tracking obligations.',
 			]
 		),
+	worldNone: () => worldNoneRule(),
 	worldOptOutNoPrompt: () => ({
 		...worldOptOutNoPromptRule(),
 		legacyMaterial: structuredClone(legacyPresetMaterial.worldOptOutNoPrompt),
 	}),
+};
+
+/** Options for {@link recommendedPolicyRules}. */
+export interface RecommendedPolicyRulesOptions {
+	/**
+	 * Use the IAB TCF 2.3 Europe rule instead of plain opt-in. The runtime
+	 * still needs the IAB module enabled for the rule to run as `iab`.
+	 * @default false
+	 */
+	iab?: boolean;
+}
+
+/**
+ * The recommended global pack, in match order: Europe (EEA, UK, Gibraltar,
+ * and the geo fallback for an unknown location) opt-in or IAB, Quebec
+ * opt-in, the US privacy states opt-out with GPC, and `none` for every other
+ * known location. `offline()` resolves this pack when the host passes no rules.
+ *
+ * @example
+ * ```ts
+ * import { recommendedPolicyRules } from '@c15t/schema';
+ *
+ * const rules = recommendedPolicyRules({ iab: true });
+ * ```
+ */
+export const recommendedPolicyRules = function recommendedPolicyRules(
+	options: RecommendedPolicyRulesOptions = {}
+): PolicyRule[] {
+	return [
+		options.iab
+			? policyRulePresets.europeIab()
+			: policyRulePresets.europeOptIn(),
+		policyRulePresets.quebecOptIn(),
+		policyRulePresets.usPrivacyStatesOptOut(),
+		policyRulePresets.worldNone(),
+	];
 };

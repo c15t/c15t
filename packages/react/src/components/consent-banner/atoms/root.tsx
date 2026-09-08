@@ -16,7 +16,7 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import {
 	useActiveUI,
-	useHasConsentPolicy,
+	useHasConsentUI,
 	useTranslations as useKernelTranslations,
 	useModel,
 	usePolicyRule,
@@ -260,7 +260,7 @@ const ConsentBannerRootChildren = createForwardRef<
 	) => {
 		const activeUI = useActiveUI();
 		const { components } = useUIConfig();
-		const hasPolicy = useHasConsentPolicy();
+		const hasConsentUI = useHasConsentUI();
 		const model = useModel() ?? 'opt-in';
 		const policy = usePolicyRule();
 		const surface = useConsentBannerSurface();
@@ -277,7 +277,7 @@ const ConsentBannerRootChildren = createForwardRef<
 		// ConsentBanner shows when a policy is resolved, activeUI is 'banner'
 		// and the current model matches. Without a policy nothing renders.
 		const shouldShowBanner =
-			hasPolicy && activeUI === 'banner' && models.includes(model);
+			hasConsentUI && activeUI === 'banner' && models.includes(model);
 		const [isVisible, setIsVisible] = useState(shouldShowBanner);
 		const [hasAnimated, setHasAnimated] = useState(shouldShowBanner);
 		// Default fallback for SSR

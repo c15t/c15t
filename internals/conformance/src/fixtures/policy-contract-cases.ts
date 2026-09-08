@@ -3,7 +3,7 @@
  * the schema suite maps these through the finalized public schema builder.
  */
 
-/** All model/prompt pairs, including the forbidden notice permission model. */
+/** All model/prompt pairs: `none` allows only a `none` prompt, and `notice` is a prompt, never a model. */
 export const POLICY_MODEL_PROMPT_CASES = [
 	{ model: 'opt-in', prompt: 'choice', valid: true },
 	{ model: 'opt-in', prompt: 'notice', valid: false },
@@ -15,7 +15,9 @@ export const POLICY_MODEL_PROMPT_CASES = [
 	{ model: 'iab', prompt: 'notice', valid: false },
 	{ model: 'iab', prompt: 'none', valid: false },
 	{ model: 'notice', prompt: 'notice', valid: false },
-	{ model: 'none', prompt: 'none', valid: false },
+	{ model: 'none', prompt: 'none', valid: true },
+	{ model: 'none', prompt: 'choice', valid: false },
+	{ model: 'none', prompt: 'notice', valid: false },
 ] as const;
 
 /** Validate before hashing; duplicate GPC mappings are errors, not repairs. */

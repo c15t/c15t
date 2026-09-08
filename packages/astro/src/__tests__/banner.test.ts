@@ -188,12 +188,14 @@ describe('<ConsentBanner /> without a resolved policy', () => {
 		expect(locals.hasPolicy).toBe(false);
 	});
 
-	it('treats an unconfigured deployment as having nothing to consent to', async () => {
+	it('resolves the recommended pack when no rules are configured', async () => {
+		// An unknown location is strict by default: an opt-in choice prompt.
 		const locals = await buildLocals({ mode: offlineMode() });
-		expect(locals.decision.status).toBe('unconfigured');
-		expect(locals.hasPolicy).toBe(false);
-		const html = await render(locals, { force: true });
-		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(locals.decision.status).toBe('matched');
+		expect(locals.snapshot.policyRule.model).toBe('opt-in');
+		expect(locals.snapshot.policyRule.prompt).toBe('choice');
+		expect(locals.hasPolicy).toBe(true);
+		expect(locals.hasConsentUi).toBe(true);
 	});
 
 	it('renders no banner, even when forced', async () => {
@@ -455,5 +457,60 @@ describe('<ConsentBanner /> surface shape', () => {
 		);
 		expect(readRoot(html)).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+	});
+});
+
+describe('<ConsentBanner /> under a none rule', () => {
+	/** A regime with no consent law: permitted by default, nothing owed. */
+	const noneRule = {
+		id: 'astro_world_none',
+		match: { isDefault: true },
+		model: 'none',
+		prompt: 'none',
+	} as const;
+	const noneLocals = (rights?: ('preferences' | 'disclosure')[]) =>
+		buildLocals(
+			{
+				mode: offlineMode({
+					policyRules: [rights ? { ...noneRule, rights } : noneRule],
+				}),
+			},
+			{ 'x-vercel-ip-country': 'US', 'x-vercel-ip-country-region': 'SD' }
+		);
+
+	it('grants every category and renders no surface when no rights are owed', async () => {
+		const locals = await noneLocals();
+		expect(locals.decision.status).toBe('matched');
+		expect(locals.snapshot.policyRule.model).toBe('none');
+		expect(locals.snapshot.effectivePermissions.marketing).toBe(true);
+		expect(locals.snapshot.effectivePermissions.measurement).toBe(true);
+		expect(locals.hasPolicy).toBe(true);
+		expect(locals.hasConsentUi).toBe(false);
+
+		const html = await render(locals, { force: true });
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+
+		const trigger = await container.renderToString(ConsentDialogTrigger, {
+			locals: { c15t: locals },
+		});
+		expect(
+			/<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(trigger)?.[0]
+		).toContain('hidden');
+	});
+
+	it('keeps the trigger when the rule grants the preferences right', async () => {
+		const locals = await noneLocals(['preferences']);
+		expect(locals.hasConsentUi).toBe(true);
+		// No prompt, so the server does not decide to show a banner.
+		expect(locals.shouldShowBanner).toBe(false);
+		const html = await render(locals);
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+
+		const trigger = await container.renderToString(ConsentDialogTrigger, {
+			locals: { c15t: locals },
+		});
+		expect(
+			/<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(trigger)?.[0]
+		).not.toContain('hidden');
 	});
 });

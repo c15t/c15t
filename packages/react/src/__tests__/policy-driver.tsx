@@ -456,7 +456,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			>
 				<Mount />
 				<ConsentBanner />
-				<ConsentDialog models={['opt-in', 'opt-out', 'iab']} />
+				<ConsentDialog models={['opt-in', 'opt-out', 'iab', 'none']} />
 				<ConsentDialogTrigger />
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 				{setup.probeGates ? (
