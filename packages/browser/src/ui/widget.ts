@@ -2,7 +2,6 @@ import { consentTypes } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
-	ConsentState,
 	PolicyUiAction,
 } from '@c15t/core';
 import type { CompleteTranslations } from '@c15t/translations';
@@ -20,8 +19,6 @@ export interface Widget {
 	readonly element: HTMLElement;
 	/** Reconcile the rows and switches with a snapshot. */
 	sync: (snapshot: ConsentSnapshot) => void;
-	/** Drop unsaved toggles. */
-	resetDraft: () => void;
 }
 
 /** Options for {@link createWidget}. */
@@ -168,8 +165,9 @@ const patchOpen = function patchOpen(row: Row, open: boolean): void {
 /**
  * The category list the preference centre renders.
  *
- * Toggles are a draft until the visitor saves, the way every other adapter
- * treats them; "Accept all" and "Reject all" bypass the draft.
+ * Toggles stage in the client's draft (`setSelectedConsent`) until the
+ * visitor saves, the way every other adapter treats them; "Accept all" and
+ * "Reject all" bypass the draft.
  *
  * @param ctx - The mount context.
  * @param options - Widget options.
@@ -183,7 +181,6 @@ export const createWidget = function createWidget(
 	const { noStyle } = ctx;
 	const hideBranding = options.hideBranding ?? true;
 
-	let draft: Partial<ConsentState> = {};
 	let openItem: AllConsentNames | null = null;
 	let rows: Row[] = [];
 	let renderedFrom: {
@@ -201,7 +198,9 @@ export const createWidget = function createWidget(
 		snapshot: ConsentSnapshot,
 		name: AllConsentNames
 	): boolean {
-		return draft[name] ?? snapshot.consents[name] ?? false;
+		return (
+			ctx.client.selectedConsents[name] ?? snapshot.consents[name] ?? false
+		);
 	};
 
 	const setOpen = function setOpen(name: AllConsentNames): void {
@@ -213,7 +212,7 @@ export const createWidget = function createWidget(
 
 	const toggle = function toggle(name: AllConsentNames): void {
 		const next = !isChecked(ctx.client.getSnapshot(), name);
-		draft = { ...draft, [name]: next };
+		ctx.client.setSelectedConsent(name, next);
 		const row = rows.find((candidate) => candidate.name === name);
 		if (row) {
 			patchSwitch(row, next);
@@ -321,14 +320,12 @@ export const createWidget = function createWidget(
 			label: (action) => labels[action],
 			noStyle,
 			onAction: (action) => {
-				const pending = draft;
-				draft = {};
 				if (action === 'accept') {
-					void ctx.client.acceptAll();
+					void ctx.client.saveConsents('all');
 				} else if (action === 'reject') {
-					void ctx.client.rejectAll();
+					void ctx.client.saveConsents('necessary');
 				} else {
-					void ctx.client.save(pending);
+					void ctx.client.saveConsents('custom');
 				}
 			},
 			subGroupTestId: 'consent-widget-footer-sub-group',
@@ -373,9 +370,6 @@ export const createWidget = function createWidget(
 
 	return {
 		element,
-		resetDraft() {
-			draft = {};
-		},
 		sync(snapshot) {
 			const categories = ctx.client.consentCategories.join(',');
 			if (

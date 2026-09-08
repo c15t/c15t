@@ -205,6 +205,86 @@ describe('createConsentClient', () => {
 		).toThrow(/unknown policy preset/u);
 	});
 
+	it('exposes the fields useConsentManager() returns in @c15t/react', async () => {
+		const client = start();
+		await client.ready();
+
+		const reactFields = [
+			'activeUI',
+			'branding',
+			'consentCategories',
+			'consentInfo',
+			'consentTypes',
+			'consents',
+			'getDisplayedConsents',
+			'has',
+			'hasConsented',
+			'location',
+			'model',
+			'overrides',
+			'policy',
+			'policyBanner',
+			'policyCategories',
+			'policyDialog',
+			'policyScopeMode',
+			'saveConsents',
+			'selectedConsents',
+			'setActiveUI',
+			'setConsent',
+			'setSelectedConsent',
+			'subjectId',
+			'subscribeToConsentChanges',
+			'translationConfig',
+			'translations',
+			'user',
+		] as const;
+		for (const field of reactFields) {
+			expect(client[field], field).not.toBeUndefined();
+		}
+		expect(client.activeUI).toBe('banner');
+		expect(client.model).toBe('opt-in');
+		expect(client.branding).toBe('c15t');
+		expect(client.consentInfo).toBeNull();
+		expect(client.consentTypes.map((type) => type.name)).toEqual([
+			'necessary',
+			'measurement',
+			'marketing',
+		]);
+		expect(client.translationConfig.defaultLanguage).toBe('en');
+	});
+
+	it('stages a draft with setSelectedConsent and saves it with saveConsents', async () => {
+		const client = start();
+		await client.ready();
+		const changes = vi.fn();
+		client.subscribeToConsentChanges(changes);
+
+		client.setActiveUI('dialog');
+		client.setSelectedConsent('measurement', true);
+		expect(client.selectedConsents).toEqual({ measurement: true });
+		expect(client.has('measurement')).toBe(false);
+
+		await client.saveConsents('custom');
+
+		expect(client.has('measurement')).toBe(true);
+		expect(client.activeUI).toBe('none');
+		expect(client.selectedConsents).toEqual({});
+		expect(client.consentInfo).toEqual({ type: 'v3' });
+		expect(changes).toHaveBeenCalled();
+	});
+
+	it('discards the draft when a surface closes without saving', async () => {
+		const client = start();
+		await client.ready();
+
+		client.setActiveUI('dialog');
+		client.setSelectedConsent('marketing', true);
+		client.setActiveUI('none');
+
+		expect(client.selectedConsents).toEqual({});
+		expect(client.has('marketing')).toBe(false);
+	});
+
 	it('throws from mountUI in the headless build', () => {
 		const client = start({ ui: false });
 		expect(() => client.mountUI()).toThrow(/headless/u);

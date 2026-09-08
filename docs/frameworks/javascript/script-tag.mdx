@@ -122,6 +122,8 @@ Every method can be queued before the tag has loaded; `config` and `on` are the 
 
 The same events fire on `document` as `c15t:ready`, `c15t:consent`, `c15t:ui`, and `c15t:error`, with the payload in `event.detail`.
 
+`window.c15t` also carries every field `useConsentManager()` returns in `@c15t/react`, under the same names: `consents`, `activeUI`, `model`, `policy`, `policyBanner`, `policyDialog`, `consentTypes`, `translationConfig`, `has()`, `hasConsented()`, `setActiveUI()`, `setConsent()`, `setSelectedConsent()`, `saveConsents('all' | 'necessary' | 'custom')`, and `subscribeToConsentChanges()`. A custom banner written against one moves to the other unchanged; the script-tag conveniences (`acceptAll()`, `openDialog()`, `on()`, `ready()`) sit on top.
+
 ## Headless
 
 Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still resolves the policy, gates scripts, and persists consent; your HTML renders the banner and calls the API. `c15t.on('ui', surface)` tells you when to show it: `surface` is `'banner'`, `'dialog'`, or `'none'`.

@@ -206,7 +206,6 @@ export const createDialog = function createDialog(
 		if (!positioner) {
 			return;
 		}
-		widget?.resetDraft();
 		if (noStyle || ctx.disableAnimation) {
 			removeNow();
 			return;

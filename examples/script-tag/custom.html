@@ -212,7 +212,9 @@
 				<code>data-c15t-action</code> buttons, so they need no code. The rest is
 				one listener on <code>ui</code> to show, hide and switch the card into
 				configure mode, one on <code>consent</code> to keep the switches honest,
-				and <code>c15t.save()</code> on the Save button.
+				and the draft API React's <code>useConsentManager()</code> has:
+				<code>setSelectedConsent()</code> per toggle and
+				<code>saveConsents('custom')</code> on Save.
 			</p>
 			<p>
 				Compare with the <a href="/">prebuilt banner</a>. Change the country on
@@ -421,16 +423,19 @@
 				},
 			]);
 
+			// The same draft API as React's useConsentManager(): stage each
+			// toggle with setSelectedConsent, then saveConsents('custom').
+			for (const input of switches) {
+				input.addEventListener('change', () => {
+					c15t.setSelectedConsent(input.name, input.checked);
+				});
+			}
 			configure.addEventListener('click', () => {
 				if (card.dataset.mode !== 'configure') {
-					c15t.openDialog();
+					c15t.setActiveUI('dialog');
 					return;
 				}
-				const choice = {};
-				for (const input of switches) {
-					choice[input.name] = input.checked;
-				}
-				c15t.save(choice);
+				c15t.saveConsents('custom');
 			});
 		</script>
 	</body>
