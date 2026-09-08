@@ -136,6 +136,21 @@ describe('RscConsentBanner surface shape', () => {
 		expect(root).toContain('data-variant="floating"');
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
+		// A choice prompt traps focus by default, so the card is a modal dialog
+		// even though it is not blocking.
+		const card = readCard(html);
+		expect(card).toContain('aria-modal="true"');
+		expect(card).toContain('role="dialog"');
+	});
+
+	test('a choice is a region when the host turns the focus trap off', () => {
+		const html = renderShell(
+			{ model: 'opt-in', prompt: 'choice' },
+			{ prompt: { trapFocus: false } }
+		);
+		const card = readCard(html);
+		expect(card).not.toContain('aria-modal');
+		expect(card).toContain('role="region"');
 	});
 
 	test('a notice resolves to a bottom bar when the host asks for one', () => {

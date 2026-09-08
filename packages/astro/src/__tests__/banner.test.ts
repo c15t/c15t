@@ -291,7 +291,21 @@ describe('<ConsentBanner /> surface shape', () => {
 		expect(root).toContain('data-variant="floating"');
 		expect(root).toContain('data-position="bottom-left"');
 		expect(root).not.toContain('data-blocking');
+		// A choice prompt traps focus by default, so the card is a modal dialog
+		// even though it is not blocking.
+		expect(readCard(html)).toContain('aria-modal="true"');
+		expect(readCard(html)).toContain('role="dialog"');
+	});
+
+	it('renders a choice as a region when the host turns the focus trap off', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode(),
+				presentation: { prompt: { trapFocus: false } },
+			})
+		);
 		expect(readCard(html)).not.toContain('aria-modal');
+		expect(readCard(html)).toContain('role="region"');
 	});
 
 	it('mirrors a defaulted corner for right-to-left text but keeps a host corner', async () => {

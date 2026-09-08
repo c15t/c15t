@@ -170,19 +170,30 @@ const readSurface = function readSurface(
 	presentation: ConsentPresentation | undefined
 ) {
 	if (!policy) {
-		return { blocking: false, position: undefined, variant: undefined };
+		return {
+			blocking: false,
+			position: undefined,
+			trapFocus: false,
+			variant: undefined,
+		};
 	}
-	const { blocking, position, positionSource, variant } =
+	const { blocking, position, positionSource, trapFocus, variant } =
 		resolveConsentPresentation({ policy, presentation, surface: 'prompt' });
 	return {
 		blocking,
 		position: positionSource === 'host' ? position : undefined,
+		// The resolver turns the trap off for a notice and on when blocking.
+		trapFocus: blocking || trapFocus,
 		variant,
 	};
 };
 
-const modalProps = function modalProps(blocking: boolean) {
-	return blocking
+/**
+ * The same rule the React card uses: a trapping card is a modal dialog, a
+ * non-trapping one a labelled region.
+ */
+const modalProps = function modalProps(trapping: boolean) {
+	return trapping
 		? ({ 'aria-modal': 'true', role: 'dialog' } as const)
 		: ({ role: 'region' } as const);
 };
@@ -209,7 +220,7 @@ export const RscConsentBanner = ({
 		>
 			<div
 				className={classNames?.card}
-				{...modalProps(surface.blocking)}
+				{...modalProps(surface.trapFocus)}
 				data-testid="consent-banner-card"
 			>
 				<h2

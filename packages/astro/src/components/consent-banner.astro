@@ -128,9 +128,14 @@ const {
 	direction,
 	primaryActions,
 	shouldFillActions: shouldFill,
+	trapFocus,
 	uncoveredRights,
 	variant,
 } = presentation;
+// The same rule the React card uses: a trapping card is a modal dialog, a
+// non-trapping one a labelled region. The resolver already turns the trap off
+// for a notice and on for a blocking surface.
+const trapping = blocking || trapFocus;
 
 // A corner the host did not choose follows the text direction, the same
 // mirroring the React and Svelte roots apply; a host corner is kept as is.
@@ -214,10 +219,10 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal={blocking ? "true" : undefined}
+					aria-modal={trapping ? "true" : undefined}
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
-					role={blocking ? "dialog" : "region"}
+					role={trapping ? "dialog" : "region"}
 					tabindex="-1"
 				>
 					<div
