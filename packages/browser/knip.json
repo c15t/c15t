@@ -13,7 +13,6 @@
 		"**/*.test.{js,ts}",
 		"rslib.config.ts",
 		"vitest.config.ts",
-		"src/generated/**",
-		"playground/**"
+		"src/generated/**"
 	]
 }

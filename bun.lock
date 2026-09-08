@@ -567,6 +567,13 @@
         "vue-tsc": "^3.3.6",
       },
     },
+    "examples/script-tag": {
+      "name": "@c15t/example-script-tag",
+      "version": "0.1.0",
+      "dependencies": {
+        "@c15t/browser": "workspace:*",
+      },
+    },
     "examples/sveltekit-demo": {
       "name": "sveltekit-demo",
       "version": "0.0.0",
@@ -1532,6 +1539,8 @@
     "@c15t/example-demo": ["@c15t/example-demo@workspace:examples/demo"],
 
     "@c15t/example-nuxt": ["@c15t/example-nuxt@workspace:examples/nuxt"],
+
+    "@c15t/example-script-tag": ["@c15t/example-script-tag@workspace:examples/script-tag"],
 
     "@c15t/example-tanstack-start": ["@c15t/example-tanstack-start@workspace:examples/tanstack-start"],
 

@@ -1,0 +1,13 @@
+{
+	"name": "@c15t/example-script-tag",
+	"version": "0.1.0",
+	"private": true,
+	"description": "The @c15t/browser banner on a plain HTML page, the way a Framer or WordPress site loads it.",
+	"scripts": {
+		"dev": "bun serve.ts",
+		"fmt": "oxfmt ."
+	},
+	"dependencies": {
+		"@c15t/browser": "workspace:*"
+	}
+}
