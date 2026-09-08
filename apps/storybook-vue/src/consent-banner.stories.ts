@@ -46,12 +46,12 @@ export const Notice: Story = {
 	}),
 };
 
-/** Full-width edge bar, an opt-in shape that suits a short notice. */
+/** Full-width edge bar pinned to the bottom of the viewport. */
 export const Bar: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },
 		setup() {
-			setupStorybookConsent('banner', undefined, storybookNoticeInit);
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner variant="bar" /><ConsentManager />',
 	}),
@@ -76,6 +76,18 @@ export const Wall: Story = {
 			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner variant="wall" /><ConsentManager />',
+	}),
+};
+
+/** The default card moved to the bottom center. */
+export const FloatingBottomCenter: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template:
+			'<ConsentBanner variant="floating" position="bottom-center" /><ConsentManager />',
 	}),
 };
 
@@ -112,6 +124,7 @@ export const BannerAcceptViaKeyboard: Story = {
 	}),
 };
 
+/** A blocking banner: the card is a modal dialog that takes initial focus. */
 export const BannerFocusManagement: Story = {
 	play: bannerFocusManagement,
 	render: () => ({
@@ -119,6 +132,6 @@ export const BannerFocusManagement: Story = {
 		setup() {
 			setupStorybookConsent('banner');
 		},
-		template: '<ConsentBanner />',
+		template: '<ConsentBanner blocking />',
 	}),
 };

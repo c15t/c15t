@@ -60,6 +60,26 @@ const apps = [
 	},
 ];
 
+/**
+ * Optional app filter for local runs: a comma-separated list matched against
+ * each app directory name or label, for example `C15T_E2E_APPS=sveltekit`.
+ */
+const selectedApps = (process.env.C15T_E2E_APPS ?? '')
+	.split(',')
+	.map((entry) => entry.trim().toLowerCase())
+	.filter(Boolean);
+
+const isSelectedApp = function isSelectedApp(app) {
+	return (
+		selectedApps.length === 0 ||
+		selectedApps.some(
+			(entry) =>
+				app.dir.toLowerCase().includes(entry) ||
+				app.label.toLowerCase().includes(entry)
+		)
+	);
+};
+
 const appUrl = function appUrl(app) {
 	return `http://127.0.0.1:${app.port}${app.path}`;
 };
@@ -592,7 +612,7 @@ const main = async function main() {
 	const browser = await chromium.launch({ headless: true });
 	try {
 		const failures = [];
-		await apps.reduce(async (previousApp, app) => {
+		await apps.filter(isSelectedApp).reduce(async (previousApp, app) => {
 			await previousApp;
 			try {
 				await verifyApp(browser, app);

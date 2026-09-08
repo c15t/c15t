@@ -11,6 +11,7 @@ import {
 import type { TriggerOrientation } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
+	editableStoredConsent,
 	StorybookConsentProvider,
 } from './storybook-consent-fixtures';
 

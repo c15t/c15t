@@ -39,6 +39,10 @@
 			regionCode?: string | null;
 		} | null;
 		hasConsented: boolean;
+		/** Mirrors the Nuxt and Next.js probes so the consent e2e can read GPC provenance. */
+		privacySignals?: ConsentSnapshot['privacySignals'];
+		/** True once the kernel holds an explicit stored choice. */
+		hasStoredChoice?: boolean;
 		bannerReadyMs?: number;
 		bannerVisibleMs?: number;
 		bannerPaintMs?: number | null;
@@ -245,6 +249,8 @@
 				}
 			: null;
 		state.overrides = { ...snapshot.overrides };
+		state.privacySignals = snapshot.privacySignals;
+		state.hasStoredChoice = Boolean(snapshot.explicitChoice);
 		markRepeatVisitorReady(state, snapshot);
 		watchBannerVisibility();
 	};

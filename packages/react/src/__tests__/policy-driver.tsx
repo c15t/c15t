@@ -501,6 +501,17 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				onRecoverableError: (error) => errors.push(String(error)),
 			});
 			await settle();
+			// Hydration schedules the provider effect that publishes the kernel;
+			// under load it can land after the first settle, so wait for it.
+			await vi.waitFor(
+				() => {
+					if (!kernel) {
+						throw new Error('Provider kernel is not ready after hydration');
+					}
+					return kernel;
+				},
+				{ interval: 50, timeout: 5000 }
+			);
 			observer.disconnect();
 			const dom = getDom(kernel);
 			ssr = {
@@ -528,12 +539,20 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		}
 	};
 	const click = async (testId: string) => {
-		const button = document.querySelector<HTMLButtonElement>(
-			`[data-testid="${testId}"]`
+		const button = await vi.waitFor(
+			() => {
+				const control = document.querySelector<HTMLButtonElement>(
+					`[data-testid="${testId}"]`
+				);
+				if (!control) {
+					throw new Error(`Required rendered control missing: ${testId}`);
+				}
+				return control;
+			},
+			// Browser conformance runs share a machine with every other suite;
+			// controls can take more than the default second to appear.
+			{ interval: 50, timeout: 5000 }
 		);
-		if (!button) {
-			throw new Error(`Required rendered control missing: ${testId}`);
-		}
 		button.click();
 		await settle();
 	};

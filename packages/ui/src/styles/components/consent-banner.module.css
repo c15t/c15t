@@ -273,7 +273,7 @@
 
 		.root[data-variant='bar']:not(:global(.headless))
 			.footer
-			button[data-action] {
+			button[data-action]:not(.rightLink) {
 			width: auto;
 			flex: none;
 		}
@@ -633,7 +633,7 @@
 
 		.root[data-prompt='notice']:not(:global(.headless))
 			.footer
-			button[data-action] {
+			button[data-action]:not(.rightLink) {
 			width: auto;
 			flex: none;
 		}
