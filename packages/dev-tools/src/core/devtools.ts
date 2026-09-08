@@ -25,8 +25,6 @@ import type {
 } from './state-manager';
 import { createDevToolsView } from './view';
 
-import '../styles/dev-tools.css';
-
 /** Options for a kernel-bound DevTools instance. */
 export interface DevToolsOptions {
 	/** Kernel to inspect. DevTools never discovers a kernel through globals. */
@@ -39,6 +37,13 @@ export interface DevToolsOptions {
 	clearRecords?: () => void;
 	/** Parent node for the imperative UI. Defaults to `document.body`. */
 	container?: HTMLElement;
+	/**
+	 * Render the panel inside a shadow root with its own stylesheet, so the
+	 * host page's CSS cannot restyle it and its CSS cannot leak out.
+	 * `element` is still the panel root; reach it through the host's
+	 * `shadowRoot`. @default true
+	 */
+	shadow?: boolean;
 	/** Floating panel placement. @default 'bottom-right' */
 	position?: DevToolsPosition;
 	/** Whether the panel starts open. @default false */
@@ -106,6 +111,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	const {
 		kernel,
 		container,
+		shadow = true,
 		position = 'bottom-right',
 		defaultOpen = false,
 		defaultTab = 'consents',
@@ -257,6 +263,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 		getConsentCategories,
 		getPresentation: options.getPresentation,
 		kernel,
+		shadow,
 		stateManager,
 	});
 

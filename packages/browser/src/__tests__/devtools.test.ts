@@ -43,10 +43,14 @@ describe('mountDevTools', () => {
 
 		const devtools = mountDevTools(client, { defaultOpen: true });
 
+		// The panel lives in a shadow root on a host in <body>.
+		const host = document.body.querySelector('[data-c15t-dev-tools-host]');
 		expect(devtools.element).not.toBeNull();
-		expect(document.body.contains(devtools.element)).toBe(true);
+		expect(host?.shadowRoot?.contains(devtools.element)).toBe(true);
 		devtools.destroy();
-		expect(document.body.contains(devtools.element)).toBe(false);
+		expect(
+			document.body.querySelector('[data-c15t-dev-tools-host]')
+		).toBeNull();
 	});
 
 	it('changes location through the panel and re-resolves the policy', async () => {

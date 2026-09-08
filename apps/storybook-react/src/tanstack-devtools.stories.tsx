@@ -50,7 +50,11 @@ type Story = StoryObj<typeof meta>;
 export const ConsentAndScriptsFlow: Story = {
 	play: async (context) => {
 		await devToolsFlow(context);
-		const root = document.querySelector('[data-c15t-dev-tools]');
+		const panelRoot = () =>
+			document
+				.querySelector('[data-c15t-dev-tools-host]')
+				?.shadowRoot?.querySelector('[data-c15t-dev-tools]') ?? null;
+		const root = panelRoot();
 		expect(root?.classList.contains('c15t-dev-tools--embedded')).toBe(true);
 		expect(
 			within(document.body).queryByRole('button', {
@@ -60,14 +64,14 @@ export const ConsentAndScriptsFlow: Story = {
 		await userEvent.click(
 			within(document.body).getByRole('button', { name: 'Toggle host' })
 		);
-		await waitFor(() =>
-			expect(document.querySelector('[data-c15t-dev-tools]')).toBeNull()
-		);
+		await waitFor(() => expect(panelRoot()).toBeNull());
 		await userEvent.click(
 			within(document.body).getByRole('button', { name: 'Toggle host' })
 		);
 		await waitFor(() =>
-			expect(document.querySelectorAll('[data-c15t-dev-tools]')).toHaveLength(1)
+			expect(
+				document.querySelectorAll('[data-c15t-dev-tools-host]')
+			).toHaveLength(1)
 		);
 	},
 };

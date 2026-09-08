@@ -8,7 +8,8 @@
 		/>
 		<title>@c15t/browser script-tag example</title>
 		<style>
-			/* Hostile host styles, the kind a page builder theme ships. */
+			/* A page-builder theme: opinionated global rules the banner and
+			   the DevTools panel must survive. */
 			body {
 				font-family: Georgia, serif;
 				margin: 0;
@@ -19,45 +20,167 @@
 			button {
 				background: hotpink !important;
 				border: 4px dashed lime !important;
-				font-size: 30px !important;
+				font-size: 24px !important;
 			}
 			h2 {
 				color: red;
 				text-transform: uppercase;
+				font-size: 1.1rem;
+				margin: 2.5rem 0 0.75rem;
 			}
 			main {
-				max-width: 40rem;
+				max-width: 52rem;
+			}
+			.grid {
+				display: grid;
+				gap: 1rem;
+				grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+			}
+			.card {
+				background: #fff;
+				border: 1px solid #e3ddd2;
+				border-radius: 8px;
+				padding: 1rem;
+			}
+			.card h3 {
+				margin: 0 0 0.25rem;
+				font-size: 1rem;
+			}
+			.card p {
+				margin: 0.25rem 0 0.75rem;
+				font-size: 0.9rem;
+				color: #555;
+			}
+			.embed {
+				position: relative;
+				aspect-ratio: 16 / 9;
+				background: repeating-linear-gradient(
+					45deg,
+					#eee,
+					#eee 10px,
+					#f7f7f7 10px,
+					#f7f7f7 20px
+				);
+				border-radius: 6px;
+				overflow: hidden;
+			}
+			.embed iframe {
+				position: absolute;
+				inset: 0;
+				width: 100%;
+				height: 100%;
+				border: 0;
+			}
+			.embed .placeholder {
+				position: absolute;
+				inset: 0;
+				display: grid;
+				place-items: center;
+				text-align: center;
+				font-size: 0.85rem;
+				color: #666;
+				padding: 1rem;
+			}
+			.embed iframe[src] + .placeholder {
+				display: none;
+			}
+			.status {
+				display: inline-block;
+				font:
+					12px ui-monospace,
+					monospace;
+				padding: 0.15rem 0.5rem;
+				border-radius: 999px;
+				background: #eee;
+			}
+			.status[data-on='true'] {
+				background: #d1fae5;
+				color: #065f46;
 			}
 			pre {
-				background: #eee;
+				background: #1e1e1e;
+				color: #d4d4d4;
 				padding: 1rem;
 				overflow: auto;
+				font-size: 12px;
+				max-height: 18rem;
+				border-radius: 6px;
+			}
+			#log:empty::before {
+				content: '(nothing yet)';
+				color: #888;
 			}
 		</style>
+
 		<script>
-			// Config the page sets before the script loads.
+			// Config the page sets before the tag. Everything here is plain
+			// JSON except the script callbacks.
 			window.c15tConfig = {
-				consentCategories: ['measurement', 'marketing'],
+				consentCategories: ['functionality', 'measurement', 'marketing'],
 				legalLinks: {
 					privacyPolicy: { href: '/privacy' },
+					cookiePolicy: { href: '/cookies' },
 				},
-				ui: { trigger: true },
+				scripts: [
+					{
+						id: 'example-analytics',
+						src: '/vendor/analytics.js',
+						category: 'measurement',
+						onLoad: () => window.exampleAnalytics.track('page_view'),
+					},
+					{
+						id: 'example-chat',
+						src: '/vendor/chat-widget.js',
+						category: 'functionality',
+					},
+				],
+				networkBlocker: {
+					rules: [
+						{
+							id: 'track',
+							domain: location.hostname,
+							pathIncludes: '/api/track',
+							category: 'measurement',
+						},
+					],
+					onRequestBlocked: (info) =>
+						window.dispatchEvent(
+							new CustomEvent('example:log', {
+								detail: `network blocker stopped ${info.method} ${new URL(info.url).pathname}`,
+							})
+						),
+				},
+				ui: {
+					banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
+					trigger: true,
+				},
 			};
-			// Calls queued before the script loads are replayed after init.
+			// Calls queued before the tag loads run once the client exists.
 			window.c15t = [
 				[
 					'on',
-					'consent',
-					(snapshot) => {
-						document.getElementById('log').textContent = JSON.stringify(
-							snapshot.consents,
-							null,
-							2
-						);
-					},
+					'ready',
+					(s) =>
+						log(
+							`ready: policy ${s.policy?.id ?? '-'}, model ${s.model}, ui ${s.activeUI}`
+						),
 				],
+				['on', 'consent', (s) => log(`consent: ${JSON.stringify(s.consents)}`)],
+				['on', 'ui', (surface) => log(`ui: ${surface}`)],
 			];
+			function log(line) {
+				const el = document.getElementById('log');
+				if (!el) return;
+				el.textContent += `${new Date().toLocaleTimeString()}  ${line}\n`;
+				el.scrollTop = el.scrollHeight;
+			}
+			window.addEventListener('example:log', (e) => log(e.detail));
 		</script>
+
+		<!-- Offline mode with three geo-keyed presets, starting as a German
+		     visitor. Change the country on the DevTools Location tab and run
+		     init: DE/FR show the opt-in banner, US-CA the opt-out flow,
+		     anywhere else no banner. -->
 		<script
 			src="/c15t.js"
 			data-mode="offline"
@@ -66,9 +189,6 @@
 			data-color-scheme="system"
 			defer
 		></script>
-		<!-- Change the country on the Location tab and re-run init to see
-		     the policy switch: DE shows the opt-in banner, US-CA the opt-out
-		     flow, anywhere else no banner. -->
 		<script
 			src="/c15t.devtools.js"
 			data-open
@@ -80,19 +200,172 @@
 		<main>
 			<h1>@c15t/browser script-tag example</h1>
 			<p>
-				The page's own <code>button</code> and <code>h2</code> rules are
-				deliberately ugly. The banner should ignore them because it renders in a
-				shadow root.
+				A plain page with a hostile theme: every <code>button</code> is pink
+				with a dashed lime border. The banner, the preference centre and the
+				DevTools panel each render in a shadow root and ignore it. Everything
+				below is gated on consent; watch the log as you accept, reject and
+				customise.
+			</p>
+
+			<h2>Page hooks</h2>
+			<p>
+				Any element can drive the banner with <code>data-c15t-action</code>, and
+				a link to <code>#c15t-preferences</code> opens the preference centre. No
+				JavaScript on the page.
 			</p>
 			<p>
 				<button data-c15t-action="customize">Cookie settings</button>
 				<button data-c15t-action="banner">Show banner</button>
+				<button data-c15t-action="accept">Accept all</button>
+				<button data-c15t-action="reject">Reject all</button>
 				<a href="#c15t-preferences">Preferences link</a>
 			</p>
-			<h2>Last consent</h2>
-			<pre id="log">(none yet)</pre>
+
+			<h2>Gated scripts</h2>
+			<div class="grid">
+				<div class="card">
+					<h3>Analytics SDK</h3>
+					<p>
+						Listed under <code>scripts</code> with
+						<code>category: 'measurement'</code>. Loads once granted; its
+						<code>onLoad</code> tracks a page view.
+					</p>
+					<span
+						class="status"
+						data-check="measurement"
+						>measurement: ?</span
+					>
+				</div>
+				<div class="card">
+					<h3>Chat widget</h3>
+					<p>
+						<code>category: 'functionality'</code>. Draws a bubble top right
+						when it runs, so consent decides whether it ever appears.
+					</p>
+					<span
+						class="status"
+						data-check="functionality"
+						>functionality: ?</span
+					>
+				</div>
+				<div class="card">
+					<h3>Inline pixel</h3>
+					<p>
+						A
+						<code
+							>&lt;script type="text/plain"
+							data-c15t-category="marketing"&gt;</code
+						>
+						in the HTML. Inert until marketing is granted, then re-inserted and
+						executed.
+					</p>
+					<span
+						class="status"
+						data-check="marketing"
+						>marketing: ?</span
+					>
+					<script
+						type="text/plain"
+						data-c15t-category="marketing"
+					>
+						window.dispatchEvent(new CustomEvent('example:log', { detail: 'inline marketing pixel executed' }));
+					</script>
+				</div>
+			</div>
+
+			<h2>Gated iframes</h2>
+			<p>
+				An iframe with <code>data-src</code> and <code>data-category</code> gets
+				its <code>src</code> only once the category is granted, and loses it
+				again if consent is withdrawn.
+			</p>
+			<div class="grid">
+				<div class="card">
+					<h3>Map (functionality)</h3>
+					<div class="embed">
+						<iframe
+							data-src="/embed/map.html"
+							data-category="functionality"
+							title="Map embed"
+						></iframe>
+						<div class="placeholder">
+							Blocked until <em>functionality</em> is granted.
+						</div>
+					</div>
+				</div>
+				<div class="card">
+					<h3>Video (marketing)</h3>
+					<div class="embed">
+						<iframe
+							data-src="/embed/video.html"
+							data-category="marketing"
+							title="Video embed"
+						></iframe>
+						<div class="placeholder">
+							Blocked until <em>marketing</em> is granted.
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<h2>Network blocker</h2>
+			<p>
+				A rule blocks <code>fetch('/api/track')</code> until
+				<em>measurement</em> is granted. The button always tries; the log shows
+				whether the request left the page.
+			</p>
+			<p>
+				<button
+					type="button"
+					id="track"
+				>
+					Send analytics event
+				</button>
+				<button
+					type="button"
+					id="check"
+				>
+					Check c15t.has('marketing')
+				</button>
+			</p>
+
+			<h2>Event log</h2>
+			<pre id="log"></pre>
+
 			<h2>Ugly host button</h2>
 			<button type="button">Page button</button>
 		</main>
+
+		<script>
+			document.getElementById('track').addEventListener('click', async () => {
+				try {
+					const response = await fetch('/api/track', { method: 'POST' });
+					log(
+						`fetch /api/track -> ${response.status} ${await response.text()}`
+					);
+				} catch (error) {
+					log(`fetch /api/track failed: ${error.message}`);
+				}
+			});
+			document.getElementById('check').addEventListener('click', () => {
+				log(`c15t.has('marketing') = ${c15t.has('marketing')}`);
+			});
+			// Keep the category badges honest.
+			c15t.push([
+				'onInit',
+				(client) => {
+					const paint = () => {
+						for (const badge of document.querySelectorAll('[data-check]')) {
+							const name = badge.dataset.check;
+							const on = client.has(name);
+							badge.dataset.on = String(on);
+							badge.textContent = `${name}: ${on ? 'granted' : 'denied'}`;
+						}
+					};
+					client.subscribe(paint);
+					paint();
+				},
+			]);
+		</script>
 	</body>
 </html>
