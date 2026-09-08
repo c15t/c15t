@@ -170,6 +170,9 @@ describe('ConsentBanner under a notice prompt', () => {
 		expect(optOut?.classList.contains(bannerStyles.rightLink)).toBe(true);
 		expect(optOut?.hasAttribute('data-variant')).toBe(false);
 		expect(optOut?.hasAttribute('data-mode')).toBe(false);
+		expect(optOut?.getAttribute('data-c15t-rights')?.split(' ')).toContain(
+			'opt-out'
+		);
 		expect(query('consent-banner-right-link-preferences')).toBeNull();
 		const group = query('consent-banner-footer-sub-group');
 		expect(group).toBeInstanceOf(HTMLElement);

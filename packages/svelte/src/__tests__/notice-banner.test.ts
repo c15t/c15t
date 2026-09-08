@@ -95,9 +95,13 @@ describe('notice banner', () => {
 
 	test('the opt-out link opens the preference center without a choice', async () => {
 		const { context, view } = renderFixture(notice());
-		await fireEvent.click(
-			required(query('[data-testid="consent-banner-right-link-opt-out"]'))
+		const optOut = required(
+			query('[data-testid="consent-banner-right-link-opt-out"]')
 		);
+		expect(optOut.getAttribute('data-c15t-rights')?.split(' ')).toContain(
+			'opt-out'
+		);
+		await fireEvent.click(optOut);
 		await waitFor(() =>
 			expect(query('[data-testid="consent-dialog-root"]')).not.toBeNull()
 		);

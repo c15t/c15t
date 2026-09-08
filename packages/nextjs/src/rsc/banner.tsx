@@ -184,7 +184,7 @@ const readSurface = function readSurface(
 const modalProps = function modalProps(blocking: boolean) {
 	return blocking
 		? ({ 'aria-modal': 'true', role: 'dialog' } as const)
-		: undefined;
+		: ({ role: 'region' } as const);
 };
 
 export const RscConsentBanner = ({

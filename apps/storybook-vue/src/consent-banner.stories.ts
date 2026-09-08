@@ -124,7 +124,6 @@ export const BannerAcceptViaKeyboard: Story = {
 	}),
 };
 
-/** A blocking banner: the card is a modal dialog that takes initial focus. */
 export const BannerFocusManagement: Story = {
 	play: bannerFocusManagement,
 	render: () => ({
@@ -132,6 +131,6 @@ export const BannerFocusManagement: Story = {
 		setup() {
 			setupStorybookConsent('banner');
 		},
-		template: '<ConsentBanner blocking />',
+		template: '<ConsentBanner />',
 	}),
 };

@@ -375,8 +375,8 @@
 				<div
 					class={noStyle ? '' : cardStyle.className || ''}
 					data-testid="consent-banner-card"
-					tabindex={shouldTrapFocus ? -1 : undefined}
-					role={shouldTrapFocus ? 'dialog' : undefined}
+					tabindex={-1}
+					role={shouldTrapFocus ? 'dialog' : 'region'}
 					aria-modal={shouldTrapFocus ? 'true' : undefined}
 					aria-label={resolvedTitle}
 					use:focusTrap={shouldTrapFocus}
@@ -438,6 +438,9 @@
 														.join(';')
 												: undefined}
 											data-action="right"
+											data-c15t-rights={consent.snapshot.policyRule.rights.join(
+												' '
+											)}
 											data-right={right}
 											data-testid={`consent-banner-right-link-${right}`}
 											onclick={openPreferences}

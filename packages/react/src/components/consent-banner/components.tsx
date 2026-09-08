@@ -233,6 +233,7 @@ const ConsentBannerCard = createForwardRef<
 	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
 	// A blocking surface always traps focus and announces as a modal dialog.
+	// A non-trapping card is a labelled region that never claims aria-modal.
 	const shouldTrapFocus = blocking || Boolean(trapFocus);
 	useFocusTrap(shouldTrapFocus, cardRef);
 
@@ -245,7 +246,7 @@ const ConsentBannerCard = createForwardRef<
 			slotKey="banner.card"
 			aria-label={props['aria-label'] || title}
 			aria-modal={shouldTrapFocus ? 'true' : undefined}
-			role={shouldTrapFocus ? 'dialog' : undefined}
+			role={shouldTrapFocus ? 'dialog' : 'region'}
 			{...props}
 		>
 			{children}

@@ -217,7 +217,7 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 					aria-modal={blocking ? "true" : undefined}
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
-					role="dialog"
+					role={blocking ? "dialog" : "region"}
 					tabindex="-1"
 				>
 					<div

@@ -282,6 +282,7 @@ describe('<ConsentBanner /> surface shape', () => {
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
 		expect(readCard(html)).not.toContain('aria-modal');
+		expect(readCard(html)).toContain('role="region"');
 	});
 
 	it('renders a choice as a floating card at the leading bottom corner', async () => {

@@ -127,6 +127,7 @@ describe('RscConsentBanner surface shape', () => {
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
 		expect(readCard(html)).not.toContain('aria-modal');
+		expect(readCard(html)).toContain('role="region"');
 	});
 
 	test('a choice resolves to a floating card by default', () => {

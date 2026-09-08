@@ -234,8 +234,12 @@ const onAction = function onAction(action: PresentationAction) {
 			<div
 				v-if="isOpen && scrollLock"
 				v-bind="config.components?.banner?.overlay"
+				aria-hidden="true"
 				data-testid="consent-banner-overlay"
-				:class="bannerStyles.overlay"
+				:class="[
+					bannerStyles.overlay,
+					disableAnimation ? undefined : bannerStyles.overlayVisible,
+				]"
 			/>
 		</Transition>
 		<Transition
@@ -328,6 +332,7 @@ const onAction = function onAction(action: PresentationAction) {
 										type="button"
 										:class="bannerStyles.rightLink"
 										data-action="right"
+										:data-c15t-rights="snapshot.policyRule.rights.join(' ')"
 										:data-right="right"
 										:data-testid="`consent-banner-right-link-${right}`"
 										@click="onRight"

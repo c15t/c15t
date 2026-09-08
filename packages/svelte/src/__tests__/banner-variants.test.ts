@@ -72,6 +72,8 @@ describe('banner variants', () => {
 		expect(root().dataset.blocking).toBeUndefined();
 		expect(overlay()).toBeNull();
 		expect(card().getAttribute('aria-modal')).toBeNull();
+		expect(card().getAttribute('role')).toBe('region');
+		expect(card().getAttribute('tabindex')).toBe('-1');
 		view.unmount();
 	});
 

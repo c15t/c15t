@@ -94,6 +94,7 @@ describe('ConsentBanner variants', () => {
 		expect(root.dataset.blocking).toBeUndefined();
 		expect(query('consent-banner-overlay')).toBeNull();
 		expect(query('consent-banner-card')?.getAttribute('aria-modal')).toBeNull();
+		expect(query('consent-banner-card')?.getAttribute('role')).toBe('region');
 	});
 
 	test('a notice renders as a bottom bar when the host asks for one', async () => {
