@@ -1,7 +1,9 @@
 import { custom, hosted } from '@c15t/core';
 import type {
+	AllConsentNames,
 	ConsentSnapshot,
 	ConsentState,
+	HasCondition,
 	KernelUser,
 	Unsubscribe,
 } from '@c15t/core';
@@ -17,7 +19,6 @@ import type {
 	ConsentClient,
 	ConsentClientEventMap,
 	ConsentClientOptions,
-	ConsentManagerState,
 	ConsentUIHandle,
 	ConsentUIOptions,
 } from './types';
@@ -47,7 +48,7 @@ export type QueuedCall = [method: string, ...args: unknown[]];
  * it everything proxies to the page's client. `version`, `pkg` and `mode`
  * keep the shape `@c15t/core` installs for devtools.
  */
-export interface C15tGlobal extends ConsentManagerState {
+export interface C15tGlobal {
 	/** Package version. */
 	readonly version: string;
 	/** Package name. */
@@ -88,6 +89,8 @@ export interface C15tGlobal extends ConsentManagerState {
 	) => Unsubscribe;
 	getSnapshot: () => ConsentSnapshot;
 	subscribe: (listener: (snapshot: ConsentSnapshot) => void) => Unsubscribe;
+	has: (condition: HasCondition<AllConsentNames>) => boolean;
+	hasConsented: () => boolean;
 	acceptAll: () => Promise<void>;
 	rejectAll: () => Promise<void>;
 	save: (consents: Partial<ConsentState>) => Promise<void>;
@@ -159,12 +162,6 @@ export const createGlobal = function createGlobal(
 
 	const api: C15tGlobal = {
 		acceptAll: () => require().acceptAll(),
-		get activeUI() {
-			return require().activeUI;
-		},
-		get branding() {
-			return require().branding;
-		},
 		get client() {
 			return client;
 		},
@@ -181,18 +178,6 @@ export const createGlobal = function createGlobal(
 			}
 			queuedConfig.push(options);
 		},
-		get consentCategories() {
-			return require().consentCategories;
-		},
-		get consentInfo() {
-			return require().consentInfo;
-		},
-		get consentTypes() {
-			return require().consentTypes;
-		},
-		get consents() {
-			return require().consents;
-		},
 		custom,
 		devtools: null,
 		dispose: () => {
@@ -201,7 +186,6 @@ export const createGlobal = function createGlobal(
 			client?.dispose();
 			client = null;
 		},
-		getDisplayedConsents: () => require().getDisplayedConsents(),
 		getSnapshot: () => require().getSnapshot(),
 		has: (condition) => require().has(condition),
 		hasConsented: () => require().hasConsented(),
@@ -221,15 +205,9 @@ export const createGlobal = function createGlobal(
 			clientReady.resolve(created);
 			return created;
 		},
-		get location() {
-			return require().location;
-		},
 		manifest,
 		get mode() {
 			return client?.mode ?? null;
-		},
-		get model() {
-			return require().model;
 		},
 		mountUI: (options) => require().mountUI(options),
 		offline,
@@ -264,65 +242,20 @@ export const createGlobal = function createGlobal(
 		openDialog: () => {
 			require().openDialog();
 		},
-		get overrides() {
-			return require().overrides;
-		},
 		pkg: context.pkg ?? '@c15t/browser',
-		get policy() {
-			return require().policy;
-		},
-		get policyBanner() {
-			return require().policyBanner;
-		},
-		get policyCategories() {
-			return require().policyCategories;
-		},
-		get policyDialog() {
-			return require().policyDialog;
-		},
-		get policyScopeMode() {
-			return require().policyScopeMode;
-		},
 		async ready() {
 			const resolvedClient = await clientReady.promise;
 			return resolvedClient.ready();
 		},
 		rejectAll: () => require().rejectAll(),
 		save: (consents) => require().save(consents),
-		saveConsents: (type) => require().saveConsents(type),
-		get selectedConsents() {
-			return require().selectedConsents;
-		},
-		setActiveUI: (surface) => {
-			require().setActiveUI(surface);
-		},
-		setConsent: (name, value) => {
-			require().setConsent(name, value);
-		},
 		setLanguage: (code) => {
 			require().setLanguage(code);
-		},
-		setSelectedConsent: (name, value) => {
-			require().setSelectedConsent(name, value);
 		},
 		showBanner: () => {
 			require().showBanner();
 		},
-		get subjectId() {
-			return require().subjectId;
-		},
 		subscribe: (listener) => require().subscribe(listener),
-		subscribeToConsentChanges: (listener) =>
-			require().subscribeToConsentChanges(listener),
-		get translationConfig() {
-			return require().translationConfig;
-		},
-		get translations() {
-			return require().translations;
-		},
-		get user() {
-			return require().user;
-		},
 		version,
 	};
 	return api;

@@ -1,31 +1,21 @@
 import type {
-	ActiveUI,
 	AllConsentNames,
 	Callbacks,
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
-	ConsentType,
 	HasCondition,
 	I18nConfig,
 	KernelActiveUI,
-	KernelBranding,
 	KernelConfig,
 	KernelOverrides,
-	KernelTranslations,
 	KernelUser,
 	LegalLinks,
-	LocationResponse,
-	Model,
 	PolicyConfig,
 	policyPackPresets,
-	PolicyScopeMode,
-	PolicyUiSurfaceConfig,
 	ProviderTransportFactory,
-	ResolvedPolicy,
 	Script,
 	StorageConfig,
-	TranslationConfig,
 	Unsubscribe,
 } from '@c15t/core';
 import type {
@@ -230,103 +220,8 @@ export interface ConsentClientEventMap {
 	error: unknown;
 }
 
-/** What `saveConsents()` persists. */
-export type SaveType = 'all' | 'custom' | 'necessary';
-
-/**
- * The fields `useConsentManager()` returns in `@c15t/react`, with the same
- * names and meaning, so code written against one moves to the other. The
- * client adds the script-tag conveniences on top.
- */
-export interface ConsentManagerState {
-	/** Current consent per category. */
-	readonly consents: Readonly<ConsentState>;
-	/** Which surface should be shown. */
-	readonly activeUI: ActiveUI;
-	/** The consent model the policy enforces; `opt-in` until resolved. */
-	readonly model: Model;
-	/** Brand shown on the surfaces; `c15t` until resolved. */
-	readonly branding: KernelBranding;
-	/** The resolved policy, or `null` before init. */
-	readonly policy: Readonly<ResolvedPolicy> | null;
-	/** Banner hints from the policy. */
-	readonly policyBanner: Readonly<PolicyUiSurfaceConfig>;
-	/** Dialog hints from the policy. */
-	readonly policyDialog: Readonly<PolicyUiSurfaceConfig>;
-	/** Categories the policy allows; empty means all. */
-	readonly policyCategories: AllConsentNames[];
-	/** How out-of-policy categories are treated. */
-	readonly policyScopeMode: PolicyScopeMode;
-	/** Location the transport resolved. */
-	readonly location: Readonly<LocationResponse> | null;
-	/** Subject id, once one exists. */
-	readonly subjectId: string | null;
-	/** Identified user, if any. */
-	readonly user: Readonly<KernelUser> | null;
-	/** Country, region, language and GPC context. */
-	readonly overrides: Readonly<KernelOverrides>;
-	/** The resolved translation bundle. */
-	readonly translations: Readonly<KernelTranslations> | null;
-	/** Translations in the config shape the UI layers consume. */
-	readonly translationConfig: TranslationConfig;
-	/** Category descriptors the preference centre lists. */
-	readonly consentTypes: ConsentType[];
-	/** Categories the UI should offer, after policy filtering. */
-	readonly consentCategories: AllConsentNames[];
-	/** Set once the visitor has decided. */
-	readonly consentInfo: { type: 'v3' } | null;
-	/** Unsaved toggles from the preference centre. */
-	readonly selectedConsents: Partial<ConsentState>;
-	/** Category descriptors the preference centre lists. */
-	getDisplayedConsents: () => ConsentType[];
-	/**
-	 * Whether the given category (or condition) is granted.
-	 *
-	 * @param condition - A category name or a `has()` condition.
-	 */
-	has: (condition: HasCondition<AllConsentNames>) => boolean;
-	/** Whether the visitor has already made a choice. */
-	hasConsented: () => boolean;
-	/**
-	 * Show a surface, or none.
-	 *
-	 * @param ui - `banner`, `dialog` or `none`.
-	 */
-	setActiveUI: (ui: ActiveUI) => void;
-	/**
-	 * Set one category in the kernel without saving.
-	 *
-	 * @param name - The category.
-	 * @param value - Granted or not.
-	 */
-	setConsent: (name: AllConsentNames, value: boolean) => void;
-	/**
-	 * Stage one category in the draft the preference centre saves.
-	 *
-	 * @param name - The category.
-	 * @param value - Granted or not.
-	 */
-	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
-	/**
-	 * Persist a decision and close the UI: everything, only what is
-	 * necessary, or the staged draft.
-	 *
-	 * @param type - `all`, `necessary` or `custom`.
-	 */
-	saveConsents: (type: SaveType) => Promise<void>;
-	/**
-	 * Observe consent values only.
-	 *
-	 * @param listener - Called when any category changes.
-	 * @returns An unsubscribe function.
-	 */
-	subscribeToConsentChanges: (
-		listener: (consents: ConsentState) => void
-	) => Unsubscribe;
-}
-
 /** The page's consent client. */
-export interface ConsentClient extends ConsentManagerState {
+export interface ConsentClient {
 	/** The runtime that owns this page's kernel. */
 	readonly runtime: ConsentRuntime;
 	/** The kernel: snapshot, commands and events. */
@@ -335,6 +230,8 @@ export interface ConsentClient extends ConsentManagerState {
 	readonly options: ConsentClientOptions;
 	/** Which transport is in use. */
 	readonly mode: ConsentModeName | 'custom';
+	/** Categories the UI should offer, after policy filtering. */
+	readonly consentCategories: AllConsentNames[];
 	/** The mounted UI, if any. */
 	readonly ui: ConsentUIHandle | null;
 	/** Whether `start()` has run. */
@@ -354,6 +251,14 @@ export interface ConsentClient extends ConsentManagerState {
 	 * too, so callers can rely on `hasConsented()` afterwards.
 	 */
 	ready: () => Promise<ConsentSnapshot>;
+	/**
+	 * Whether the given category (or condition) is granted.
+	 *
+	 * @param condition - A category name or a `has()` condition.
+	 */
+	has: (condition: HasCondition<AllConsentNames>) => boolean;
+	/** Whether the visitor has already made a choice. */
+	hasConsented: () => boolean;
 	/** Grant every offered category and close the UI. */
 	acceptAll: () => Promise<void>;
 	/** Grant only strictly necessary and close the UI. */

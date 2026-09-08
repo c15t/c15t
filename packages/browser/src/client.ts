@@ -1,26 +1,20 @@
 import {
 	allConsentNames,
-	consentTypes,
 	custom,
-	defaultTranslationConfig,
 	has,
 	hosted,
 	policyPackPresets,
 } from '@c15t/core';
 import type {
-	ActiveUI,
 	AllConsentNames,
 	ConsentSnapshot,
 	ConsentState,
-	ConsentType,
 	HasCondition,
 	KernelActiveUI,
 	KernelOverrides,
 	KernelUser,
 	PolicyConfig,
-	PolicyUiSurfaceConfig,
 	ProviderTransportFactory,
-	TranslationConfig,
 	Unsubscribe,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
@@ -37,7 +31,6 @@ import type {
 	ConsentUIHandle,
 	ConsentUIMounter,
 	ConsentUIOptions,
-	SaveType,
 } from './types';
 
 export { custom, hosted };
@@ -196,34 +189,6 @@ const resolvePageAction = function resolvePageAction(
 	return href.endsWith(PREFERENCES_HASH) ? 'customize' : null;
 };
 
-const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
-
-const toTranslationConfig = function toTranslationConfig(
-	snapshot: ConsentSnapshot
-): TranslationConfig {
-	const resolved = snapshot.translations;
-	if (!resolved) {
-		return defaultTranslationConfig;
-	}
-	return {
-		...defaultTranslationConfig,
-		defaultLanguage: resolved.language,
-		translations: {
-			...defaultTranslationConfig.translations,
-			[resolved.language]: resolved.translations,
-		},
-	};
-};
-
-const displayedConsentTypes = function displayedConsentTypes(
-	categories: readonly AllConsentNames[]
-): ConsentType[] {
-	const allowed = new Set(categories);
-	return consentTypes
-		.filter((type) => allowed.has(type.name))
-		.map((type) => ({ ...type, display: true }));
-};
-
 /**
  * Create the page's consent client without starting it.
  *
@@ -337,13 +302,8 @@ export const createConsentClient = function createConsentClient(
 		return resolveConsentCategories(kernel.getSnapshot(), configuredCategories);
 	};
 
-	// Toggles in the preference centre stage here until saved, the way
-	// React's `useConsentDraft` does; closing any surface discards them.
-	let draft: Partial<ConsentState> = {};
-
 	// The actions the UI, the page and the API all share.
 	const closeSurfaces = function closeSurfaces(): void {
-		draft = {};
 		kernel.set.activeUI('none');
 	};
 	const openDialog = function openDialog(): void {
@@ -359,31 +319,6 @@ export const createConsentClient = function createConsentClient(
 	const rejectAll = async function rejectAll(): Promise<void> {
 		closeSurfaces();
 		await kernel.commands.save('none', { categories: categories() });
-	};
-	const save = async function save(
-		consents: Partial<ConsentState>
-	): Promise<void> {
-		const allowed = new Set<string>(categories());
-		closeSurfaces();
-		await kernel.commands.save(
-			Object.fromEntries(
-				Object.entries(consents).filter(([name]) => allowed.has(name))
-			),
-			{ categories: categories() }
-		);
-	};
-	const saveConsents = async function saveConsents(
-		type: SaveType
-	): Promise<void> {
-		if (type === 'all') {
-			await acceptAll();
-			return;
-		}
-		if (type === 'necessary') {
-			await rejectAll();
-			return;
-		}
-		await save(draft);
 	};
 
 	const onPageClick = function onPageClick(event: MouseEvent): void {
@@ -415,28 +350,11 @@ export const createConsentClient = function createConsentClient(
 		}
 	};
 
-	const draftListeners = new Set<() => void>();
-
 	const client: ConsentClient = {
 		acceptAll,
-		get activeUI() {
-			return (kernel.getSnapshot().activeUI ?? 'none') as ActiveUI;
-		},
-		get branding() {
-			return kernel.getSnapshot().branding ?? 'c15t';
-		},
 		closeDialog: closeSurfaces,
 		get consentCategories() {
 			return categories();
-		},
-		get consentInfo() {
-			return kernel.getSnapshot().hasConsented ? { type: 'v3' as const } : null;
-		},
-		get consentTypes() {
-			return displayedConsentTypes(categories());
-		},
-		get consents() {
-			return kernel.getSnapshot().consents;
 		},
 		dispose() {
 			if (disposed) {
@@ -453,9 +371,6 @@ export const createConsentClient = function createConsentClient(
 			}
 			disposers.length = 0;
 			runtime.dispose();
-		},
-		getDisplayedConsents() {
-			return displayedConsentTypes(categories());
 		},
 		getSnapshot() {
 			return kernel.getSnapshot();
@@ -475,13 +390,7 @@ export const createConsentClient = function createConsentClient(
 			await runtime.identify(user);
 		},
 		kernel,
-		get location() {
-			return kernel.getSnapshot().location;
-		},
 		mode: mode.name,
-		get model() {
-			return (kernel.getSnapshot().model ?? 'opt-in') as ConsentClient['model'];
-		},
 		mountUI(uiOptions?: ConsentUIOptions) {
 			if (!context.mountUI) {
 				throw new Error(
@@ -516,43 +425,20 @@ export const createConsentClient = function createConsentClient(
 		},
 		openDialog,
 		options,
-		get overrides() {
-			return kernel.getSnapshot().overrides;
-		},
-		get policy() {
-			return kernel.getSnapshot().policy;
-		},
-		get policyBanner() {
-			return kernel.getSnapshot().policyBanner ?? EMPTY_POLICY_SURFACE;
-		},
-		get policyCategories() {
-			return Array.from(kernel.getSnapshot().policyCategories);
-		},
-		get policyDialog() {
-			return kernel.getSnapshot().policyDialog ?? EMPTY_POLICY_SURFACE;
-		},
-		get policyScopeMode() {
-			return kernel.getSnapshot().policyScopeMode;
-		},
 		ready() {
 			return ready.promise;
 		},
 		rejectAll,
 		runtime,
-		save,
-		saveConsents,
-		get selectedConsents() {
-			return draft;
-		},
-		setActiveUI(surface: ActiveUI) {
-			if (surface === 'none') {
-				closeSurfaces();
-				return;
-			}
-			kernel.set.activeUI(surface as KernelActiveUI);
-		},
-		setConsent(name: AllConsentNames, value: boolean) {
-			kernel.set.consent({ [name]: value } as Partial<ConsentState>);
+		async save(consents: Partial<ConsentState>) {
+			const allowed = new Set<string>(categories());
+			closeSurfaces();
+			await kernel.commands.save(
+				Object.fromEntries(
+					Object.entries(consents).filter(([name]) => allowed.has(name))
+				),
+				{ categories: categories() }
+			);
 		},
 		setLanguage(code: string) {
 			kernel.set.language(code);
@@ -560,13 +446,6 @@ export const createConsentClient = function createConsentClient(
 		},
 		setOverrides(overrides: KernelOverrides) {
 			runtime.setOverrides(overrides);
-		},
-		setSelectedConsent(name: AllConsentNames, value: boolean) {
-			draft = { ...draft, [name]: value };
-			// Surfaces re-render off the kernel; nudge them without changing it.
-			for (const listener of draftListeners) {
-				listener();
-			}
 		},
 		showBanner,
 		start() {
@@ -609,42 +488,11 @@ export const createConsentClient = function createConsentClient(
 		get started() {
 			return started;
 		},
-		get subjectId() {
-			return kernel.getSnapshot().subjectId;
-		},
 		subscribe(listener) {
-			const unsubscribeKernel = kernel.subscribe(listener);
-			// Draft changes reach subscribers too, so the prebuilt widget and a
-			// custom UI both see a staged toggle.
-			const onDraft = () => {
-				listener(kernel.getSnapshot());
-			};
-			draftListeners.add(onDraft);
-			return function unsubscribe() {
-				draftListeners.delete(onDraft);
-				unsubscribeKernel();
-			};
-		},
-		subscribeToConsentChanges(listener) {
-			let last = kernel.getSnapshot().consents;
-			return kernel.subscribe((snapshot) => {
-				if (snapshot.consents !== last) {
-					last = snapshot.consents;
-					listener(snapshot.consents as ConsentState);
-				}
-			});
-		},
-		get translationConfig() {
-			return toTranslationConfig(kernel.getSnapshot());
-		},
-		get translations() {
-			return kernel.getSnapshot().translations;
+			return kernel.subscribe(listener);
 		},
 		get ui() {
 			return ui;
-		},
-		get user() {
-			return kernel.getSnapshot().user;
 		},
 	};
 
