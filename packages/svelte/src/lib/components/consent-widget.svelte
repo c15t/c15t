@@ -125,196 +125,196 @@
 </script>
 
 {#if consent.state.hasPolicy}
-<div
-	class={noStyle ? className : widgetRootStyle.className || ''}
-	dir={textDirection}
-	data-testid="consent-widget-root"
->
-	{#if consent.state.draft.isStale}
-		<div role="alert">
-			The policy changed. Review your preferences before saving. <button
-				type="button"
-				onclick={() => consent.state.draft.reset()}>Review preferences</button
-			>
-		</div>
-	{/if}
 	<div
-		class={noStyle ? '' : accordionStyles.list || ''}
-		data-testid="consent-widget-accordion"
+		class={noStyle ? className : widgetRootStyle.className || ''}
+		dir={textDirection}
+		data-testid="consent-widget-root"
 	>
-		{#each displayedConsents as consentType (consentType.name)}
-			{@const isOpen = openItems[consentType.name] ?? false}
-			{@const isChecked =
-				consent.state.selectedConsents?.[consentType.name] ??
-				consent.snapshot.explicitChoice?.categories[
-					consentType.name as Exclude<AllConsentNames, 'necessary'>
-				]?.value ??
-				false}
-			{@const isDisabled =
-				consentType.name === 'necessary' || (consentType.disabled ?? false)}
-			{@const restricted =
-				consentType.name !== 'necessary' &&
-				consent.snapshot.explicitChoice?.categories[
-					consentType.name as Exclude<AllConsentNames, 'necessary'>
-				]?.value === true &&
-				(consent.snapshot.restrictions[
-					consentType.name as Exclude<AllConsentNames, 'necessary'>
-				]?.length ?? 0) > 0}
-			<PreferenceItem.Root
-				class={noStyle ? '' : accordionStyles.item || ''}
-				open={isOpen}
-				noStyle
-				data-testid={`consent-widget-accordion-item-${consentType.name}`}
-			>
-				<div class={noStyle ? '' : accordionStyles.triggerRow || ''}>
-					<PreferenceItem.Trigger
-						class={noStyle ? '' : accordionStyles.trigger || ''}
-						onclick={() => toggleOpenItem(consentType.name)}
-						data-testid={`consent-widget-accordion-trigger-${consentType.name}`}
-					>
-						<PreferenceItem.Leading
-							class={noStyle ? '' : accordionStyles.arrow || ''}
-							data-testid={`consent-widget-accordion-arrow-${consentType.name}`}
+		{#if consent.state.draft.isStale}
+			<div role="alert">
+				The policy changed. Review your preferences before saving. <button
+					type="button"
+					onclick={() => consent.state.draft.reset()}>Review preferences</button
+				>
+			</div>
+		{/if}
+		<div
+			class={noStyle ? '' : accordionStyles.list || ''}
+			data-testid="consent-widget-accordion"
+		>
+			{#each displayedConsents as consentType (consentType.name)}
+				{@const isOpen = openItems[consentType.name] ?? false}
+				{@const isChecked =
+					consent.state.selectedConsents?.[consentType.name] ??
+					consent.snapshot.explicitChoice?.categories[
+						consentType.name as Exclude<AllConsentNames, 'necessary'>
+					]?.value ??
+					false}
+				{@const isDisabled =
+					consentType.name === 'necessary' || (consentType.disabled ?? false)}
+				{@const restricted =
+					consentType.name !== 'necessary' &&
+					consent.snapshot.explicitChoice?.categories[
+						consentType.name as Exclude<AllConsentNames, 'necessary'>
+					]?.value === true &&
+					(consent.snapshot.restrictions[
+						consentType.name as Exclude<AllConsentNames, 'necessary'>
+					]?.length ?? 0) > 0}
+				<PreferenceItem.Root
+					class={noStyle ? '' : accordionStyles.item || ''}
+					open={isOpen}
+					noStyle
+					data-testid={`consent-widget-accordion-item-${consentType.name}`}
+				>
+					<div class={noStyle ? '' : accordionStyles.triggerRow || ''}>
+						<PreferenceItem.Trigger
+							class={noStyle ? '' : accordionStyles.trigger || ''}
+							onclick={() => toggleOpenItem(consentType.name)}
+							data-testid={`consent-widget-accordion-trigger-${consentType.name}`}
 						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
+							<PreferenceItem.Leading
+								class={noStyle ? '' : accordionStyles.arrow || ''}
+								data-testid={`consent-widget-accordion-arrow-${consentType.name}`}
 							>
-								<title>{isOpen ? 'Close' : 'Open'}</title>
-								{#if isOpen}
-									<path d="M5 12h14" />
-								{:else}
-									<path d="M5 12h14M12 5v14" />
-								{/if}
-							</svg>
-						</PreferenceItem.Leading>
-						<PreferenceItem.Header>
-							<PreferenceItem.Title
-								class={noStyle ? '' : accordionStyles.title || ''}
-							>
-								{translations.consentTypes[consentType.name]?.title ??
-									formatConsentName(consentType.name)}
-							</PreferenceItem.Title>
-						</PreferenceItem.Header>
-					</PreferenceItem.Trigger>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<title>{isOpen ? 'Close' : 'Open'}</title>
+									{#if isOpen}
+										<path d="M5 12h14" />
+									{:else}
+										<path d="M5 12h14M12 5v14" />
+									{/if}
+								</svg>
+							</PreferenceItem.Leading>
+							<PreferenceItem.Header>
+								<PreferenceItem.Title
+									class={noStyle ? '' : accordionStyles.title || ''}
+								>
+									{translations.consentTypes[consentType.name]?.title ??
+										formatConsentName(consentType.name)}
+								</PreferenceItem.Title>
+							</PreferenceItem.Header>
+						</PreferenceItem.Trigger>
 
-					<PreferenceItem.Control
-						class={noStyle ? '' : accordionStyles.control || ''}
-					>
-						<Switch.Root
-							aria-label={translations.consentTypes[consentType.name]?.title ??
-								formatConsentName(consentType.name)}
-							checked={isChecked}
-							aria-describedby={restricted
-								? `${widgetId}-${consentType.name}-restriction`
-								: undefined}
-							onclick={() => toggleConsent(consentType.name, !isChecked)}
-							disabled={isDisabled}
-							class={noStyle ? '' : sw.root()}
-							data-testid={`consent-widget-switch-${consentType.name}`}
+						<PreferenceItem.Control
+							class={noStyle ? '' : accordionStyles.control || ''}
 						>
-							<Switch.Control
-								class={noStyle ? '' : sw.track({ disabled: isDisabled })}
+							<Switch.Root
+								aria-label={translations.consentTypes[consentType.name]
+									?.title ?? formatConsentName(consentType.name)}
+								checked={isChecked}
+								aria-describedby={restricted
+									? `${widgetId}-${consentType.name}-restriction`
+									: undefined}
+								onclick={() => toggleConsent(consentType.name, !isChecked)}
+								disabled={isDisabled}
+								class={noStyle ? '' : sw.root()}
+								data-testid={`consent-widget-switch-${consentType.name}`}
 							>
-								<Switch.Thumb
-									class={noStyle ? '' : sw.thumb({ disabled: isDisabled })}
-								/>
-							</Switch.Control>
-						</Switch.Root>
-					</PreferenceItem.Control>
-				</div>
+								<Switch.Control
+									class={noStyle ? '' : sw.track({ disabled: isDisabled })}
+								>
+									<Switch.Thumb
+										class={noStyle ? '' : sw.thumb({ disabled: isDisabled })}
+									/>
+								</Switch.Control>
+							</Switch.Root>
+						</PreferenceItem.Control>
+					</div>
 
-				{#if restricted}
-					<p
-						id={`${widgetId}-${consentType.name}-restriction`}
-						class={noStyle ? '' : accordionStyles.restriction || ''}
-						data-testid={`consent-widget-restriction-${consentType.name}`}
+					{#if restricted}
+						<p
+							id={`${widgetId}-${consentType.name}-restriction`}
+							class={noStyle ? '' : accordionStyles.restriction || ''}
+							data-testid={`consent-widget-restriction-${consentType.name}`}
+						>
+							Your saved choice is restricted by the current privacy settings.
+						</p>
+					{/if}
+					<PreferenceItem.Content
+						viewportClassName={noStyle
+							? undefined
+							: accordionStyles.contentViewport}
+						innerClassName={noStyle ? undefined : accordionStyles.contentInner}
+						class={noStyle ? '' : accordionStyles.content || ''}
+						data-testid={`consent-widget-accordion-content-${consentType.name}`}
 					>
-						Your saved choice is restricted by the current privacy settings.
-					</p>
+						{translations.consentTypes[consentType.name]?.description ??
+							consentType.description ??
+							''}
+					</PreferenceItem.Content>
+				</PreferenceItem.Root>
+			{/each}
+		</div>
+
+		<PolicyActionsRenderer
+			{actionGroups}
+			{primaryActions}
+			{shouldFillActions}
+			{direction}
+			{noStyle}
+			footerClassName={noStyle ? '' : footerStyle.className || ''}
+			footerSubGroupClassName={noStyle ? '' : footerGroupStyle.className || ''}
+			footerTestId="consent-widget-footer"
+			footerSubGroupTestId="consent-widget-footer-sub-group"
+		>
+			{#snippet renderAction(action: string, isPrimary: boolean)}
+				{#if action === 'reject'}
+					<ConsentButton
+						action="reject-consent"
+						variant={themedActions.reject.variant ??
+							(isPrimary ? 'primary' : 'neutral')}
+						mode={themedActions.reject.mode ?? 'stroke'}
+						closeConsentBanner
+						closeConsentDialog
+						data-action="reject"
+						data-testid="consent-widget-reject-button"
+					>
+						{translations.common.rejectAll}
+					</ConsentButton>
+				{:else if action === 'accept'}
+					<ConsentButton
+						action="accept-consent"
+						variant={themedActions.accept.variant ??
+							(isPrimary ? 'primary' : 'neutral')}
+						mode={themedActions.accept.mode ?? 'stroke'}
+						closeConsentBanner
+						closeConsentDialog
+						data-action="accept"
+						data-testid="consent-widget-footer-accept-all-button"
+					>
+						{translations.common.acceptAll}
+					</ConsentButton>
+				{:else if action === 'save'}
+					<ConsentButton
+						action="custom-consent"
+						disabled={consent.state.draft.isStale}
+						variant={themedActions.save.variant ??
+							(isPrimary ? 'primary' : 'neutral')}
+						mode={themedActions.save.mode ?? 'stroke'}
+						closeConsentDialog
+						data-action="save"
+						data-testid="consent-widget-footer-save-button"
+					>
+						{translations.common.save}
+					</ConsentButton>
 				{/if}
-				<PreferenceItem.Content
-					viewportClassName={noStyle
-						? undefined
-						: accordionStyles.contentViewport}
-					innerClassName={noStyle ? undefined : accordionStyles.contentInner}
-					class={noStyle ? '' : accordionStyles.content || ''}
-					data-testid={`consent-widget-accordion-content-${consentType.name}`}
-				>
-					{translations.consentTypes[consentType.name]?.description ??
-						consentType.description ??
-						''}
-				</PreferenceItem.Content>
-			</PreferenceItem.Root>
-		{/each}
+			{/snippet}
+		</PolicyActionsRenderer>
+
+		<Branding
+			{hideBranding}
+			{noStyle}
+			variant="dialog-tag"
+			themeKey="consentWidgetTag"
+			data-testid="consent-widget-branding"
+		/>
 	</div>
-
-	<PolicyActionsRenderer
-		{actionGroups}
-		{primaryActions}
-		{shouldFillActions}
-		{direction}
-		{noStyle}
-		footerClassName={noStyle ? '' : footerStyle.className || ''}
-		footerSubGroupClassName={noStyle ? '' : footerGroupStyle.className || ''}
-		footerTestId="consent-widget-footer"
-		footerSubGroupTestId="consent-widget-footer-sub-group"
-	>
-		{#snippet renderAction(action: string, isPrimary: boolean)}
-			{#if action === 'reject'}
-				<ConsentButton
-					action="reject-consent"
-					variant={themedActions.reject.variant ??
-						(isPrimary ? 'primary' : 'neutral')}
-					mode={themedActions.reject.mode ?? 'stroke'}
-					closeConsentBanner
-					closeConsentDialog
-					data-action="reject"
-					data-testid="consent-widget-reject-button"
-				>
-					{translations.common.rejectAll}
-				</ConsentButton>
-			{:else if action === 'accept'}
-				<ConsentButton
-					action="accept-consent"
-					variant={themedActions.accept.variant ??
-						(isPrimary ? 'primary' : 'neutral')}
-					mode={themedActions.accept.mode ?? 'stroke'}
-					closeConsentBanner
-					closeConsentDialog
-					data-action="accept"
-					data-testid="consent-widget-footer-accept-all-button"
-				>
-					{translations.common.acceptAll}
-				</ConsentButton>
-			{:else if action === 'save'}
-				<ConsentButton
-					action="custom-consent"
-					disabled={consent.state.draft.isStale}
-					variant={themedActions.save.variant ??
-						(isPrimary ? 'primary' : 'neutral')}
-					mode={themedActions.save.mode ?? 'stroke'}
-					closeConsentDialog
-					data-action="save"
-					data-testid="consent-widget-footer-save-button"
-				>
-					{translations.common.save}
-				</ConsentButton>
-			{/if}
-		{/snippet}
-	</PolicyActionsRenderer>
-
-	<Branding
-		{hideBranding}
-		{noStyle}
-		variant="dialog-tag"
-		themeKey="consentWidgetTag"
-		data-testid="consent-widget-branding"
-	/>
-</div>
 {/if}

@@ -19,15 +19,15 @@
 </script>
 
 {#if consent.state.hasPolicy}
-<ConsentButton
-	action="open-consent-dialog"
-	{noStyle}
-	data-testid="consent-dialog-link"
-	data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
-	{...restProps}
->
-	{#if children}
-		{@render children()}
-	{/if}
-</ConsentButton>
+	<ConsentButton
+		action="open-consent-dialog"
+		{noStyle}
+		data-testid="consent-dialog-link"
+		data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
+		{...restProps}
+	>
+		{#if children}
+			{@render children()}
+		{/if}
+	</ConsentButton>
 {/if}
