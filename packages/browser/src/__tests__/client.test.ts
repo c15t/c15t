@@ -107,14 +107,17 @@ describe('createConsentClient', () => {
 		document.removeEventListener('c15t:ui', onDocument);
 	});
 
-	it('replays ready to listeners attached after init', async () => {
+	it('replays ready and the current surface to listeners attached after init', async () => {
 		const client = start();
 		await client.ready();
 		const onReady = vi.fn();
+		const onUI = vi.fn();
 
 		client.on('ready', onReady);
+		client.on('ui', onUI);
 
 		expect(onReady).toHaveBeenCalledOnce();
+		expect(onUI).toHaveBeenCalledWith('banner');
 	});
 
 	it('wires data-c15t-action buttons anywhere on the page', async () => {

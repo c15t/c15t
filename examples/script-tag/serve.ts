@@ -31,6 +31,7 @@ const bundles: Record<string, string> = {
 
 const pages: Record<string, string> = {
 	'/': here('./index.html'),
+	'/custom': here('./custom.html'),
 	'/embed/map.html': here('./embed/map.html'),
 	'/embed/video.html': here('./embed/video.html'),
 	'/vendor/analytics.js': here('./vendor/analytics.js'),

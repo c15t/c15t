@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>@c15t/browser custom UI example</title>
+		<style>
+			/* The site's own design system. Nothing here comes from c15t. */
+			:root {
+				color-scheme: light dark;
+				--bg: light-dark(#fdfcfb, #0f1115);
+				--fg: light-dark(#1a1a1a, #e6e6e6);
+				--muted: light-dark(#5c6470, #9aa3ad);
+				--card: light-dark(#ffffff, #171a21);
+				--line: light-dark(#e6e1d8, #2a2f3a);
+				--accent: light-dark(#1c5cf5, #6b9bff);
+				--accent-ink: light-dark(#ffffff, #0f1115);
+				--shadow: 6px 6px 0 color-mix(in oklab, var(--accent) 12%, transparent);
+			}
+			body {
+				margin: 0;
+				padding: 2rem;
+				font:
+					15px/1.5 ui-sans-serif,
+					system-ui,
+					sans-serif;
+				background: var(--bg);
+				color: var(--fg);
+			}
+			main {
+				max-width: 46rem;
+			}
+			a {
+				color: var(--accent);
+			}
+			code {
+				font-size: 0.9em;
+			}
+			pre {
+				background: light-dark(#f1eee8, #0b0d11);
+				padding: 1rem;
+				border-radius: 6px;
+				overflow: auto;
+				font-size: 12px;
+			}
+			footer {
+				margin-top: 3rem;
+				padding-top: 1rem;
+				border-top: 1px solid var(--line);
+				font-size: 0.85rem;
+				color: var(--muted);
+			}
+			footer button {
+				all: unset;
+				cursor: pointer;
+				color: var(--accent);
+				text-decoration: underline;
+			}
+
+			/* The consent card. Small, docked bottom right, the site's own look. */
+			#consent {
+				position: fixed;
+				right: 16px;
+				bottom: 16px;
+				z-index: 9999;
+				width: min(320px, calc(100vw - 32px));
+				background: var(--card);
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				box-shadow: var(--shadow);
+				font-size: 13px;
+			}
+			#consent[hidden] {
+				display: none;
+			}
+			#consent .body {
+				padding: 12px;
+			}
+			#consent .body p {
+				margin: 0;
+			}
+			#consent .prefs {
+				display: none;
+				flex-direction: column;
+				gap: 8px;
+				padding: 12px;
+				border-top: 1px solid var(--line);
+			}
+			#consent[data-mode='configure'] .prefs {
+				display: flex;
+			}
+			#consent .prefs label.row {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				font-size: 11px;
+			}
+			#consent .footer {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 6px;
+				padding: 10px 12px;
+				border-top: 1px solid var(--line);
+				background: color-mix(in oklab, var(--line) 30%, transparent);
+			}
+			#consent button {
+				all: unset;
+				cursor: pointer;
+				padding: 4px 10px;
+				border-radius: 4px;
+				border: 1px solid transparent;
+				font-size: 13px;
+			}
+			#consent button:hover {
+				background: color-mix(in oklab, var(--line) 60%, transparent);
+			}
+			#consent button.primary {
+				color: var(--accent-ink);
+				background: var(--accent);
+			}
+			#consent button.icon {
+				padding: 4px;
+				line-height: 0;
+			}
+			#consent .actions {
+				display: flex;
+				gap: 6px;
+			}
+
+			/* A tiny switch. */
+			.switch {
+				position: relative;
+				display: inline-block;
+				width: 32px;
+				height: 20px;
+			}
+			.switch input {
+				position: absolute;
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+			.switch span {
+				position: absolute;
+				inset: 0;
+				border-radius: 20px;
+				background: color-mix(in oklab, var(--line) 80%, transparent);
+				transition: background-color 0.2s;
+			}
+			.switch span::before {
+				content: '';
+				position: absolute;
+				left: 3px;
+				bottom: 3px;
+				width: 14px;
+				height: 14px;
+				border-radius: 50%;
+				background: #fff;
+				box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+				transition: transform 0.2s;
+			}
+			.switch input:checked + span {
+				background: var(--accent);
+			}
+			.switch input:checked + span::before {
+				transform: translateX(12px);
+			}
+			.switch input:disabled + span {
+				opacity: 0.5;
+			}
+		</style>
+
+		<!-- The headless build: runtime, storage, gating, window.c15t, no
+		     UI and no CSS. Same offline geo setup as the main page. -->
+		<script
+			src="/c15t.headless.js"
+			data-mode="offline"
+			data-policies="europeOptIn,californiaOptOut,worldNoBanner"
+			data-categories="functionality,measurement,marketing"
+			data-country="DE"
+			defer
+		></script>
+		<script
+			src="/c15t.devtools.js"
+			data-tab="location"
+			defer
+		></script>
+	</head>
+	<body>
+		<main>
+			<h1>Custom UI on the headless build</h1>
+			<p>
+				This page loads <code>c15t.headless.js</code>: the same runtime,
+				storage, script gating and <code>window.c15t</code> API as the main
+				page, but no banner and no CSS. The card in the corner is the site's own
+				HTML, styled by the site's own stylesheet, the way
+				<a
+					href="https://zed.dev/docs"
+					rel="noreferrer"
+					>zed.dev/docs</a
+				>
+				ships its consent banner on c15t.
+			</p>
+			<p>
+				The wiring is small. Accept and reject are
+				<code>data-c15t-action</code> buttons, so they need no code. The rest is
+				one listener on <code>ui</code> to show, hide and switch the card into
+				configure mode, one on <code>consent</code> to keep the switches honest,
+				and <code>c15t.save()</code> on the Save button.
+			</p>
+			<p>
+				Compare with the <a href="/">prebuilt banner</a>. Change the country on
+				the DevTools Location tab to see the same policy switch drive this UI.
+			</p>
+
+			<h2>What the page does</h2>
+			<pre id="log">(nothing yet)</pre>
+
+			<footer>
+				Example site
+				<span aria-hidden="true">•</span>
+				<button
+					type="button"
+					data-c15t-action="customize"
+				>
+					Manage site cookies
+				</button>
+			</footer>
+		</main>
+
+		<!-- The consent card. Hidden until the runtime asks for the banner. -->
+		<div
+			id="consent"
+			hidden
+			data-mode="banner"
+			role="dialog"
+			aria-label="Cookie preferences"
+		>
+			<div class="body">
+				<p>
+					This site uses cookies to improve your experience and for marketing.
+					Read <a href="/cookies">our cookie policy</a> for details.
+				</p>
+			</div>
+			<div class="prefs">
+				<label class="row">
+					Strictly necessary
+					<span class="switch"
+						><input
+							type="checkbox"
+							checked
+							disabled /><span></span
+					></span>
+				</label>
+				<label class="row">
+					Functionality
+					<span class="switch"
+						><input
+							type="checkbox"
+							name="functionality" /><span></span
+					></span>
+				</label>
+				<label class="row">
+					Analytics
+					<span class="switch"
+						><input
+							type="checkbox"
+							name="measurement" /><span></span
+					></span>
+				</label>
+				<label class="row">
+					Marketing
+					<span class="switch"
+						><input
+							type="checkbox"
+							name="marketing" /><span></span
+					></span>
+				</label>
+			</div>
+			<div class="footer">
+				<button
+					type="button"
+					id="configure"
+					class="icon"
+					title="Configure"
+					aria-label="Configure cookie preferences"
+				>
+					<svg
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M20 7h-9" />
+						<path d="M14 17H5" />
+						<circle
+							cx="17"
+							cy="17"
+							r="3"
+						/>
+						<circle
+							cx="7"
+							cy="7"
+							r="3"
+						/>
+					</svg>
+				</button>
+				<div class="actions">
+					<button
+						type="button"
+						data-c15t-action="reject"
+					>
+						Reject all
+					</button>
+					<button
+						type="button"
+						class="primary"
+						data-c15t-action="accept"
+					>
+						Accept all
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			const card = document.getElementById('consent');
+			const configure = document.getElementById('configure');
+			const switches = card.querySelectorAll('input[name]');
+			const logEl = document.getElementById('log');
+			const gear =
+				'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>';
+			const log = (line) => {
+				if (logEl.textContent === '(nothing yet)') logEl.textContent = '';
+				logEl.textContent += `${new Date().toLocaleTimeString()}  ${line}\n`;
+			};
+
+			// Fill the switches from the runtime's current consents.
+			const syncSwitches = (snapshot) => {
+				for (const input of switches) {
+					input.checked = snapshot.consents[input.name] === true;
+				}
+			};
+
+			const setMode = (mode) => {
+				card.dataset.mode = mode;
+				if (mode === 'configure') {
+					configure.classList.add('primary');
+					configure.classList.remove('icon');
+					configure.textContent = 'Save';
+					configure.title = '';
+					return;
+				}
+				configure.classList.remove('primary');
+				configure.classList.add('icon');
+				configure.title = 'Configure';
+				configure.innerHTML = gear;
+			};
+
+			// The tag is deferred, so it has not run yet when this inline
+			// script does. Calls pushed onto window.c15t are replayed once it
+			// installs; after that the same array is the real API.
+			window.c15t = window.c15t || [];
+			const queue = (call) => {
+				if (Array.isArray(window.c15t)) {
+					window.c15t.push(call);
+				} else {
+					window.c15t[call[0]](...call.slice(1));
+				}
+			};
+
+			// The runtime says which surface it wants; the page decides what
+			// that looks like. An opt-out policy gets no banner, only the
+			// footer link, the way the prebuilt banner behaves.
+			queue([
+				'on',
+				'ui',
+				(surface) => {
+					const snapshot = c15t.getSnapshot();
+					log(`ui: ${surface} (model ${snapshot.model})`);
+					if (surface === 'dialog') {
+						syncSwitches(snapshot);
+						setMode('configure');
+						card.hidden = false;
+						return;
+					}
+					if (surface === 'banner' && snapshot.model === 'opt-in') {
+						setMode('banner');
+						card.hidden = false;
+						return;
+					}
+					card.hidden = true;
+				},
+			]);
+			queue([
+				'on',
+				'consent',
+				(snapshot) => {
+					syncSwitches(snapshot);
+					log(`consent: ${JSON.stringify(snapshot.consents)}`);
+				},
+			]);
+			queue([
+				'on',
+				'ready',
+				(snapshot) => {
+					log(
+						`ready: policy ${snapshot.policy?.id ?? '-'}, ${snapshot.hasConsented ? 'already decided' : 'no decision yet'}`
+					);
+				},
+			]);
+
+			configure.addEventListener('click', () => {
+				if (card.dataset.mode !== 'configure') {
+					c15t.openDialog();
+					return;
+				}
+				const choice = {};
+				for (const input of switches) {
+					choice[input.name] = input.checked;
+				}
+				c15t.save(choice);
+			});
+		</script>
+	</body>
+</html>

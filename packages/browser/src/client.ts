@@ -408,9 +408,16 @@ export const createConsentClient = function createConsentClient(
 			const set = listeners[event] as Set<typeof listener>;
 			set.add(listener);
 			// A listener attached after the fact still learns the runtime is
-			// ready, the way a resolved promise would tell it.
+			// ready, the way a resolved promise would tell it; a `ui` listener
+			// learns which surface is already up, so a custom banner wired
+			// after a fast offline init does not miss its cue.
 			if (event === 'ready' && readySnapshot) {
 				(listener as (payload: ConsentSnapshot) => void)(readySnapshot);
+			}
+			if (event === 'ui' && readySnapshot) {
+				(listener as (payload: KernelActiveUI) => void)(
+					kernel.getSnapshot().activeUI
+				);
 			}
 			return function unsubscribe() {
 				set.delete(listener);

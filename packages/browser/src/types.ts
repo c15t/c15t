@@ -296,6 +296,10 @@ export interface ConsentClient {
 	/**
 	 * Listen for a client event.
 	 *
+	 * Once the policy is resolved, a new `ready` listener runs at once and
+	 * a new `ui` listener receives the surface currently up, so wiring
+	 * attached after a fast init misses nothing.
+	 *
 	 * @param event - The event name.
 	 * @param listener - Called with the event payload.
 	 * @returns An unsubscribe function.
