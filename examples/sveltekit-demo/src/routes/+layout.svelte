@@ -76,6 +76,7 @@
 							model: 'iab',
 							prompt: 'choice',
 							categories: ['marketing', 'measurement'],
+							scopeMode: 'permissive',
 						},
 					],
 				})

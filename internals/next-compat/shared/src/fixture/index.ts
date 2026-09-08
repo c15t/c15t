@@ -89,11 +89,17 @@ const resolution = resolvePolicyRules({
 			match: { fallback: true, isDefault: true },
 			model: 'opt-in',
 			prompt: 'choice',
+			// A partial category scope must say how the rest behaves.
+			scopeMode: 'permissive',
 		},
 	],
 });
 if (resolution.status !== 'matched') {
-	throw new Error('Expected fixture policy');
+	const reason = 'reason' in resolution ? ` (${resolution.reason})` : '';
+	throw new Error(
+		`Expected fixture policy to match, got status "${resolution.status}"${reason}. ` +
+			'Run inspectPolicyRules from @c15t/schema on the fixture rules to see the validation errors.'
+	);
 }
 const rule = resolution.policy;
 const { fingerprints } = resolution;

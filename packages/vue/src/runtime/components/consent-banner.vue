@@ -269,8 +269,8 @@ const onAction = function onAction(action: PresentationAction) {
 						v-bind="config.components?.banner?.card"
 						data-testid="consent-banner-card"
 						:class="bannerStyles.card"
-						:role="blocking || shouldTrapFocus ? 'dialog' : 'region'"
-						:aria-modal="blocking || shouldTrapFocus ? 'true' : undefined"
+						:role="blocking ? 'dialog' : 'region'"
+						:aria-modal="blocking ? 'true' : undefined"
 						:aria-label="bannerTitle"
 						tabindex="-1"
 					>
@@ -327,6 +327,7 @@ const onAction = function onAction(action: PresentationAction) {
 										data-action="right"
 										:data-c15t-rights="snapshot.policyRule.rights.join(' ')"
 										:data-right="right"
+										:data-c15t-rights="snapshot.policyRule.rights.join(' ')"
 										:data-testid="`consent-banner-right-link-${right}`"
 										@click="onRight"
 									>

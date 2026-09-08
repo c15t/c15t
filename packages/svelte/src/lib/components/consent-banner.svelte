@@ -380,9 +380,9 @@
 				<div
 					class={noStyle ? '' : cardStyle.className || ''}
 					data-testid="consent-banner-card"
-					tabindex={-1}
-					role={shouldTrapFocus ? 'dialog' : 'region'}
-					aria-modal={shouldTrapFocus ? 'true' : undefined}
+					tabindex="-1"
+					role={isBlocking ? 'dialog' : 'region'}
+					aria-modal={isBlocking ? 'true' : undefined}
 					aria-label={resolvedTitle}
 					use:focusTrap={shouldTrapFocus}
 				>
@@ -443,10 +443,10 @@
 														.join(';')
 												: undefined}
 											data-action="right"
+											data-right={right}
 											data-c15t-rights={consent.snapshot.policyRule.rights.join(
 												' '
 											)}
-											data-right={right}
 											data-testid={`consent-banner-right-link-${right}`}
 											onclick={openPreferences}
 										>

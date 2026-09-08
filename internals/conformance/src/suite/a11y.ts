@@ -165,6 +165,10 @@ const waitForActiveElement = async function waitForActiveElement(
 	return doc.activeElement;
 };
 
+/**
+ * A banner the host makes blocking through the legacy `trapFocus` option.
+ * The resolver maps it onto `blocking`, so the card is a modal dialog.
+ */
 const mountBanner = function mountBanner(
 	driver: TestDriver
 ): Promise<MountResult> {
@@ -174,6 +178,13 @@ const mountBanner = function mountBanner(
 	});
 };
 
+/** The default banner: non-blocking, a labelled region. */
+const mountDefaultBanner = function mountDefaultBanner(
+	driver: TestDriver
+): Promise<MountResult> {
+	return driver.mount({ component: 'consent-banner' });
+};
+
 export const runA11yConformance = function runA11yConformance(
 	driver: TestDriver,
 	api: SuiteApi
@@ -181,7 +192,44 @@ export const runA11yConformance = function runA11yConformance(
 	api.describe(`[${driver.framework}] a11y`, () => {
 		conformanceTest(
 			api,
-			'a11y banner card exposes dialog semantics when trapping',
+			'a11y default banner card is a labelled non-blocking region',
+			async () => {
+				const mounted = await mountDefaultBanner(driver);
+				try {
+					const body = ownerBody(mounted);
+					const card = await waitForElement(body, TEST_IDS.consentBanner.card);
+					api.expect(card.getAttribute('role')).toBe('region');
+					api.expect(card.getAttribute('aria-modal')).toBe(null);
+					api.expect(hasAccessibleName(card)).toBe(true);
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
+		conformanceTest(
+			api,
+			'a11y default banner leaves focus on the page',
+			async () => {
+				const mounted = await mountDefaultBanner(driver);
+				try {
+					const body = ownerBody(mounted);
+					const card = await waitForElement(body, TEST_IDS.consentBanner.card);
+					// Give any deferred focus move a chance to run, then assert it
+					// never happened.
+					await wait(60);
+					api
+						.expect(card.contains(body.ownerDocument.activeElement))
+						.toBe(false);
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
+		conformanceTest(
+			api,
+			'a11y blocking banner card exposes dialog semantics',
 			async () => {
 				const mounted = await mountBanner(driver);
 				try {
@@ -200,7 +248,7 @@ export const runA11yConformance = function runA11yConformance(
 
 		conformanceTest(
 			api,
-			'a11y banner moves initial focus to the card on open',
+			'a11y blocking banner moves initial focus to the card on open',
 			async () => {
 				const mounted = await mountBanner(driver);
 				try {
@@ -217,7 +265,7 @@ export const runA11yConformance = function runA11yConformance(
 			}
 		);
 
-		conformanceTest(api, 'a11y banner focus trap wraps', async () => {
+		conformanceTest(api, 'a11y blocking banner focus trap wraps', async () => {
 			const mounted = await mountBanner(driver);
 			try {
 				const body = ownerBody(mounted);
@@ -243,7 +291,7 @@ export const runA11yConformance = function runA11yConformance(
 
 		conformanceTest(
 			api,
-			'a11y Shift+Tab from the focused banner card stays trapped',
+			'a11y Shift+Tab from the focused blocking banner card stays trapped',
 			async () => {
 				const mounted = await mountBanner(driver);
 				try {

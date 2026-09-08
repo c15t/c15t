@@ -119,7 +119,8 @@ export const storybookConsentConfig: ConsentConfig = {
 	// don't disable them) so the Vue stories showcase the real dialog +
 	// accordion motion. The parity-runner freezes animations itself via
 	// Playwright's `animations: 'disabled'`, so screenshots stay stable.
-	trapFocus: true,
+	// No global `trapFocus`: the default banner is non-blocking in every
+	// adapter, and stories that need a blocking banner opt in themselves.
 } as ConsentConfig;
 
 export const provideStorybookConsentContext =

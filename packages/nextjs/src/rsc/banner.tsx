@@ -171,32 +171,26 @@ const readSurface = function readSurface(
 	presentation: ConsentPresentation | undefined
 ) {
 	if (!policy) {
-		return {
-			blocking: false,
-			position: undefined,
-			trapFocus: false,
-			variant: undefined,
-		};
+		return { blocking: false, position: undefined, variant: undefined };
 	}
-	const { blocking, position, positionSource, trapFocus, variant } =
+	const { blocking, position, positionSource, variant } =
 		resolveConsentPresentation({ policy, presentation, surface: 'prompt' });
 	return {
 		blocking,
 		position: positionSource === 'host' ? position : undefined,
-		// The resolver turns the trap off for a notice and on when blocking.
-		trapFocus: blocking || trapFocus,
 		variant,
 	};
 };
 
 /**
- * The same rule the React card uses: a trapping card is a modal dialog, a
- * non-trapping one a labelled region.
+ * A blocking banner is a modal dialog; a non-blocking one is a labelled
+ * region that never claims `aria-modal`. Matches the client root exactly so
+ * first paint and hydration agree.
  */
-const modalProps = function modalProps(trapping: boolean) {
-	return trapping
-		? ({ 'aria-modal': 'true', role: 'dialog' } as const)
-		: ({ role: 'region' } as const);
+const modalProps = function modalProps(blocking: boolean, title: string) {
+	return blocking
+		? ({ 'aria-label': title, 'aria-modal': 'true', role: 'dialog' } as const)
+		: ({ 'aria-label': title, role: 'region' } as const);
 };
 
 export const RscConsentBanner = ({
@@ -221,7 +215,7 @@ export const RscConsentBanner = ({
 		>
 			<div
 				className={classNames?.card}
-				{...modalProps(surface.trapFocus)}
+				{...modalProps(surface.blocking, copy.title)}
 				data-testid="consent-banner-card"
 			>
 				<h2

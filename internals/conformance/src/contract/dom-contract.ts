@@ -45,14 +45,26 @@ export interface ComponentContract {
 	stableElements: readonly string[];
 }
 
+/**
+ * Attributes a blocking banner card adds on top of the default contract.
+ * A banner resolved as blocking (`wall`, or a host `blocking: true`) is a
+ * modal dialog that traps focus and receives it on open. The default banner
+ * is a labelled `region` that never claims `aria-modal` and never steals
+ * focus from the page.
+ */
+export const BLOCKING_BANNER_CARD: AriaRoleExpectation = {
+	exactAttrs: { 'aria-modal': 'true' },
+	requiredAttrs: ['aria-label'],
+	role: 'dialog',
+	testId: TEST_IDS.consentBanner.card,
+};
+
 export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	consentBanner: {
 		elements: [
 			{
-				exactAttrs: { 'aria-modal': 'true' },
-
 				requiredAttrs: ['aria-label'],
-				role: 'dialog',
+				role: 'region',
 				testId: TEST_IDS.consentBanner.card,
 			},
 			{ role: 'heading', testId: TEST_IDS.consentBanner.title },
@@ -75,14 +87,9 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 				testId: TEST_IDS.consentBanner.customizeButton,
 			},
 		],
-		focus: {
-			initialFocusTestId: TEST_IDS.consentBanner.card,
-			tabOrderTestIds: [
-				TEST_IDS.consentBanner.rejectButton,
-				TEST_IDS.consentBanner.acceptButton,
-				TEST_IDS.consentBanner.customizeButton,
-			],
-		},
+		// No focus contract: the default banner is non-blocking and leaves
+		// focus where it is. A blocking banner takes focus on the card; see
+		// `BLOCKING_BANNER_CARD` and the a11y suite.
 		key: 'consentBanner',
 		rootTestId: TEST_IDS.consentBanner.root,
 		stableElements: [
