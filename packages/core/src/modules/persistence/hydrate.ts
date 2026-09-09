@@ -99,16 +99,18 @@ export const readStoredRecordsFromCookieHeader =
 /**
  * Read stored records and apply them to the kernel. Returns the read
  * result so the caller can keep the IAB metadata for the next save, or
- * `null` when storage APIs are unavailable.
+ * `null` outside the browser.
  */
 export const hydrateFromStorage = function hydrateFromStorage(
 	kernel: ConsentKernel,
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): StoredRecords | null {
-	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+	if (typeof document === 'undefined') {
 		return null;
 	}
+	// Cookies can remain usable when localStorage is blocked. Let each
+	// storage reader guard its own access, including property getters.
 	const stored = readStoredRecords(storageConfig, now);
 	const result = kernel.hydrate(stored.records);
 	if (result.ok === false) {

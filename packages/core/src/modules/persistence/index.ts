@@ -62,8 +62,6 @@ export const createPersistence = function createPersistence(
 ): PersistenceHandle {
 	const { kernel, storageConfig } = options;
 	const now = options.now ?? (() => Date.now());
-	const hasStorageAPIs =
-		typeof document !== 'undefined' && typeof localStorage !== 'undefined';
 
 	// IAB transport metadata carried by the stored record. Preserved on the
 	// next explicit save so an envelope rewrite never drops it.
@@ -127,7 +125,7 @@ export const createPersistence = function createPersistence(
 		clear() {
 			cancelAll();
 			storedIab = null;
-			if (hasStorageAPIs) {
+			if (typeof document !== 'undefined') {
 				clearStoredConsentRecords(undefined, storageConfig);
 			}
 			kernel.hydrate({
