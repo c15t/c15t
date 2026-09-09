@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { version } from '../version';
 import { fetchSSRData } from './fetch-ssr-data';
 
 const createRequestHeaders = function createRequestHeaders(): Headers {
@@ -99,21 +100,34 @@ describe('fetchSSRData', () => {
 		});
 	});
 
-	it('sends the client version header on the init request', async () => {
-		const fetchMock = vi
-			.fn()
-			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
-		vi.stubGlobal('fetch', fetchMock);
+	it.each([undefined, '3.0.0-proxy'])(
+		'sends the incoming version %s or the package version on init',
+		async (incomingVersion) => {
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+			vi.stubGlobal('fetch', fetchMock);
 
-		await fetchSSRData({
-			backendURL: 'https://consent.example.com/api/c15t',
-			headers: createRequestHeaders(),
-		});
+			const requestHeaders = createRequestHeaders();
+			if (incomingVersion !== undefined) {
+				requestHeaders.set('x-c15t-version', incomingVersion);
+			}
 
-		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-		const headers = init.headers as Record<string, string>;
-		expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
-	});
+			await fetchSSRData({
+				backendURL: 'https://consent.example.com/api/c15t',
+				headers: requestHeaders,
+			});
+
+			expect(fetchMock).toHaveBeenCalledWith(
+				'https://consent.example.com/api/c15t/init',
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						'x-c15t-version': incomingVersion ?? version,
+					}),
+				})
+			);
+		}
+	);
 
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi

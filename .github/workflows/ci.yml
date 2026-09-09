@@ -8,6 +8,11 @@ on:
   # branch and PR target, so that full run is the backstop for the
   # affected-only checks that run on pull requests.
   workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
+      TURBO_TEAM:
+        required: false
 
 env:
   # The leadtype package-docs generation inside package builds exceeds Node's

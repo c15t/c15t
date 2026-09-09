@@ -84,6 +84,9 @@ Configured consent-gated scripts load immediately. The provider skips
 initialization, persistence, IAB, and network blocking, and does not record a
 visitor choice.
 
+You can change `enabled` after mounting. Setting it back to `true` restores
+the enabled consent state, including any previously recorded choice.
+
 ## Content Security Policy nonce
 
 Pass your response's Content Security Policy nonce through `options.nonce`.

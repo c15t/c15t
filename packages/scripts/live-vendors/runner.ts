@@ -24,6 +24,10 @@ import type { Browser, Response } from 'playwright';
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
 import { evaluateDeniedConsentProbe } from './denied-consent';
 import { forEachSequential } from './for-each-sequential';
+import {
+	captureBrowserLoaderBody,
+	captureStreamLoaderBody,
+} from './loader-body';
 import { assertsRuntime, digestBody } from './probe-policy';
 import { failedPhases } from './report';
 import type {
@@ -196,8 +200,8 @@ const loaderResponseDetails = async function loaderResponseDetails(
 	// Redirects and cached/aborted responses can have no readable body; the
 	// status and content type are still worth reporting on their own. Bound the
 	// read as a response can deliver headers while its body stalls indefinitely.
-	const body = await withTimeout(response.body(), LOADER_TIMEOUT_MS).catch(
-		() => undefined
+	const body = await captureBrowserLoaderBody(headers, () =>
+		withTimeout(response.body(), LOADER_TIMEOUT_MS)
 	);
 
 	return {
@@ -220,11 +224,11 @@ const fetchLoaderDetails = async function fetchLoaderDetails(
 		const response = await fetch(url, {
 			signal: AbortSignal.timeout(LOADER_TIMEOUT_MS),
 		});
-		const body = new Uint8Array(await response.arrayBuffer());
+		const body = await captureStreamLoaderBody(response.body);
 
 		return {
-			bodyHash: digestBody(body),
-			bytes: body.byteLength,
+			bodyHash: body ? digestBody(body) : undefined,
+			bytes: body?.byteLength,
 			contentType: response.headers.get('content-type') ?? undefined,
 			status: response.status,
 			url,

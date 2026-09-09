@@ -7,6 +7,11 @@ on:
 
 permissions: {}
 
+# Keep checks and publishing in the same branch-level concurrency group.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # npm trusted publishing binds the OIDC identity to the *top-level* workflow
   # file. Publishing must therefore start here and pull the checks in, rather
@@ -18,13 +23,14 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/ci.yml
-    secrets: inherit
+    secrets:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
   publish:
     name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
     runs-on: ubuntu-latest
-    concurrency: release-${{ github.ref }}
     permissions:
       contents: write # Needed by changesets/action to create releases/tags and commit version bumps
       pull-requests: write # Needed by changesets/action to create the "Version Packages" PR

@@ -84,10 +84,15 @@ logic is pure and unit-tested in `report.test.ts`.
 
 ## Known limitations
 
-- Vendors whose loaders reject placeholder ids (`loader-only` tier) get
-  bootstrap + consent + endpoint-reachability coverage, but not runtime
-  validation. Upgrading them to `full` needs real test account ids provided
-  as repo secrets — tracked as a follow-up.
+- `loader-only` vendors that declare neither `runtimeCheck` nor a nonempty
+  `runtimeReplacedGlobals` list get bootstrap, consent, and endpoint-reachability
+  coverage without runtime validation. Upgrading them to `full` needs real
+  test account ids provided as repo secrets, tracked as a follow-up.
+- Loader body provenance is limited to 2 MiB of decoded bytes. Browser capture
+  also requires a valid `Content-Length` within that limit and no compression,
+  because Playwright cannot stream response bodies. Missing, oversized, or
+  unreadable bodies omit the hash and byte count while retaining HTTP metadata.
+  These limits apply to provenance capture, not Chromium's script execution.
 - The runner needs `--tsconfig-override live-vendors/tsconfig.json` (already
   baked into the package scripts) because Bun otherwise applies the package
   tsconfig's `c15t → dist-types` path mapping at runtime.

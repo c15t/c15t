@@ -495,6 +495,8 @@ const createProviderKernel = function createProviderKernel(
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
+		initialRecords: enabled ? prefetch.initialRecords : undefined,
+		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
 		// avoids reading the clock during Next.js static prerender; init
 		// takes the real clock after mount. Prepared records retain their clock.
@@ -959,8 +961,10 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 /**
  * v3 ConsentProvider.
  *
- * Creates one kernel per mount, provides it via context, and wires the
- * curated v2-like options surface to v3 modules. It does not mirror the
+ * Retains the enabled kernel while disabled mode uses a separate permissive
+ * kernel, so toggling enabled preserves recorded choices. Provides the active
+ * kernel via context and wires the curated v2-like options surface to v3
+ * modules. It does not mirror the
  * snapshot into React state; selector hooks still subscribe directly to
  * the kernel through `useSyncExternalStore`.
  *
@@ -984,12 +988,21 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
 	const options = (props.options ?? {}) as ConsentProviderOptions;
+	const enabled = getEnabled(options);
 	const [owned, setOwned] = useState(() => ({
+		disabledKernel: props.runtime
+			? undefined
+			: createProviderKernel({ ...options, enabled: false }),
 		external: props.runtime,
-		kernel: props.runtime?.kernel ?? createProviderKernel(options),
+		kernel:
+			props.runtime?.kernel ??
+			createProviderKernel({ ...options, enabled: true }),
 	}));
 	void setOwned;
-	const { kernel, external: externalRuntime } = owned;
+	const { external: externalRuntime } = owned;
+	const kernel = enabled
+		? owned.kernel
+		: (owned.disabledKernel ?? owned.kernel);
 	const ownsRuntime = externalRuntime === undefined;
 	const clearRef = useRef<(() => void) | null>(null);
 	const services = useMemo(
@@ -1025,7 +1038,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		}),
 		[kernel, options.consentCategories, options.presentation, externalRuntime]
 	);
-	const enabled = getEnabled(options);
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
@@ -1035,7 +1047,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		? resolveWindowDebugMode(options.mode)
 		: 'hosted';
 
-	useProviderOptionSync(kernel, options, enabled, ownsRuntime);
+	useProviderOptionSync(owned.kernel, options, enabled, ownsRuntime);
 	const lifecycle = useRef(0);
 	useEffect(() => {
 		if (!ownsRuntime) {
@@ -1046,11 +1058,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		return () => {
 			queueMicrotask(() => {
 				if (lifecycle.current === generation) {
-					kernel.dispose();
+					owned.kernel.dispose();
+					owned.disabledKernel?.dispose();
 				}
 			});
 		};
-	}, [kernel, ownsRuntime]);
+	}, [owned, ownsRuntime]);
 
 	const userTheme = options.theme;
 
