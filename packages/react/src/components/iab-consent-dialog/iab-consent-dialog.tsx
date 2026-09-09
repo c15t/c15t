@@ -140,7 +140,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
+	trapFocus: localTrapFocus,
 	hideBranding,
 	initialTab,
 	showTrigger = false,
@@ -156,10 +156,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		policyDialog,
 		translationConfig,
 		model,
-	} = useIABConsentManager();
+	} = useIABConsentManager({
+		preferences: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
+	});
 	const { closeUI, openDialog, performDialogAction } =
 		useHeadlessIABConsentUI();
-	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
+	const resolvedScrollLock = policyDialog.blocking;
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 	const cardRef = useRef<HTMLDivElement>(null);
@@ -177,14 +179,14 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const [isVisible, setIsVisible] = useState(false);
 
 	const isOpen =
-		open ?? (model !== null && activeUI === 'dialog' && models.includes(model));
+		model !== null && models.includes(model) && (open ?? activeUI === 'dialog');
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		disableAnimation: localDisableAnimation,
 		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
-		trapFocus: localTrapFocus,
+		trapFocus: policyDialog.blocking,
 	});
 
 	const {
@@ -256,7 +258,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Focus trap
 	useFocusTrap(
-		Boolean(isOpen && config.trapFocus),
+		Boolean(isMounted && isOpen && config.trapFocus),
 		cardRef as RefObject<HTMLElement>
 	);
 

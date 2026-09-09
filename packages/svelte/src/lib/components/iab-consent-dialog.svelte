@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { defaultTranslationConfig } from '@c15t/core';
+	import {
+		defaultTranslationConfig,
+		resolveConsentPresentation,
+	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -49,6 +52,20 @@
 	const theme = getThemeContext();
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+
+	const preferences = $derived(
+		resolveConsentPresentation({
+			policy: consent.snapshot.policyRule,
+			presentation: {
+				preferences: {
+					scrollLock: theme.scrollLock,
+					trapFocus: theme.trapFocus,
+					...consent.state.presentation?.preferences,
+				},
+			},
+			surface: 'preferences',
+		})
+	);
 
 	// IAB state
 	const iabState = $derived(consent.state.iab);
@@ -208,10 +225,12 @@
 -->
 {#if isOpen}
 	<div use:portal>
-		<Overlay
-			variant="iab-dialog"
-			visible={isOpen}
-		/>
+		{#if preferences.blocking}
+			<Overlay
+				variant="iab-dialog"
+				visible={isOpen}
+			/>
+		{/if}
 		<div
 			class={noStyle
 				? ''
@@ -227,11 +246,11 @@
 					: `${styles.card || ''} ${className || ''} ${styles.contentVisible || ''}`}
 				data-testid="iab-consent-dialog-card"
 				role="dialog"
-				aria-modal="true"
+				aria-modal={preferences.blocking ? 'true' : undefined}
 				aria-label={iabT.preferenceCenter.title}
 				tabindex="-1"
-				use:focusTrap={true}
-				use:scrollLock={true}
+				use:focusTrap={preferences.blocking}
+				use:scrollLock={preferences.blocking}
 				onkeydown={handleDialogKeydown}
 			>
 				<!-- Header -->

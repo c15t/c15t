@@ -59,7 +59,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	noStyle,
 	disableAnimation,
 	scrollLock,
-	trapFocus = true,
+	trapFocus,
 	uiSource,
 }) => {
 	const {
@@ -68,7 +68,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		iab: iabState,
 		policyDialog,
 		model,
-	} = useIABConsentManager();
+	} = useIABConsentManager({ preferences: { scrollLock, trapFocus } });
 	const setActiveUI = useSetActiveUI();
 	const { components } = useUIConfig();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -79,16 +79,16 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	// IABConsentDialog only opens when the consent model matches
 	const isOpen =
 		model !== null && models.includes(model) && (open ?? activeUI === 'dialog');
-	const resolvedScrollLock = scrollLock ?? policyDialog.scrollLock ?? true;
+	const resolvedScrollLock = policyDialog.blocking;
 
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,
 			noStyle,
 			scrollLock: resolvedScrollLock,
-			trapFocus,
+			trapFocus: resolvedScrollLock,
 		}),
-		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+		[disableAnimation, noStyle, resolvedScrollLock]
 	);
 
 	// Scroll lock

@@ -429,3 +429,17 @@ it('uses generic preference copy for a non-US opt-out message profile', () => {
 	expect(presentation.rights).toContain('opt-out');
 	expect(presentation.orderedActions).toEqual(['dismiss']);
 });
+
+it.each([{ scrollLock: true }, { trapFocus: true }])(
+	'maps a legacy prompt option %j to full blocking',
+	(prompt) => {
+		const result = resolveConsentPresentation({
+			policy: choice,
+			presentation: { prompt },
+			surface: 'prompt',
+		});
+		expect(result.blocking).toBe(true);
+		expect(result.scrollLock).toBe(true);
+		expect(result.trapFocus).toBe(true);
+	}
+);

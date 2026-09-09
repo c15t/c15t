@@ -178,3 +178,39 @@ not verify disclosure or persistent access to policy rights.
 
 Notice acknowledgement uses `common.acknowledge`, falling back to
 `common.dismiss` for older translation bundles. It does not record a choice.
+
+## Astro notice acknowledgement
+
+```astro
+---
+import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+---
+
+<ConsentBanner dismissButtonText="Got it" />
+```
+
+Astro's `ConsentBanner` accepts `dismissButtonText` as an optional string. It
+labels the notice acknowledgement button, which defaults to
+`common.acknowledge` and falls back to `common.dismiss` in older translation
+bundles. Acknowledging a notice preserves the visitor's consent choices.
+
+## IAB blocking behavior
+
+IAB banners and dialogs use the same `presentation.prompt.blocking` and
+`presentation.preferences.blocking` settings as the other consent components.
+A blocking surface shows a backdrop, traps focus and locks page scrolling.
+Explicit `blocking` values take precedence over deprecated `scrollLock` and
+`trapFocus` options. IAB components stay hidden without a matched policy,
+including when a dialog receives `open={true}`.
+
+The React consent dialog still blocks pointer interaction with the page when
+`blocking` is true and you hide its backdrop with `overlay={false}`.
+
+Legacy prompt options now control the whole blocking behavior. For example,
+`scrollLock: true` alone enables a backdrop and focus trapping as well as
+scroll locking. Set `blocking: false` explicitly for a non-modal banner.
+
+Custom dialog backdrops follow the same rule. A dialog resolved as non-blocking
+omits both the default backdrop and a supplied `overlay`. To retain a custom
+backdrop when migrating from `trapFocus: false`, set
+`presentation.preferences.blocking: true` and keep your `overlay` prop.

@@ -276,6 +276,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 		[uiSource]
 	);
 
+	const blockingAttribute = dialog.blocking ? 'true' : undefined;
 	const dialogNode = (
 		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
@@ -294,6 +295,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						<div
 							ref={dialogRef}
 							data-slot="dialog-positioner"
+							data-blocking={blockingAttribute}
 							{...themedStyle}
 							className={themedStyle.className}
 						>
@@ -303,7 +305,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 								aria-describedby="consent-dialog-description"
 								aria-labelledby="consent-dialog-title"
 								aria-modal={trapFocus ? 'true' : undefined}
-								data-blocking={dialog.blocking ? 'true' : undefined}
+								data-blocking={blockingAttribute}
 								data-testid="consent-dialog-root"
 								dir={textDirection}
 								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` is the positioning shell here, not the panel; the panel is what carries the role.

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveConsentPresentation } from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import buttonStyles from '@c15t/ui/styles/components/button';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -20,7 +21,7 @@
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
 		scrollLock: localScrollLock,
-		trapFocus: localTrapFocus = true,
+		trapFocus: localTrapFocus,
 		hideBranding = false,
 		primaryButton = 'customize' as 'reject' | 'accept' | 'customize',
 		models = ['iab'] as Model[],
@@ -43,12 +44,22 @@
 	const disableAnimation = $derived(
 		localDisableAnimation ?? theme.disableAnimation ?? false
 	);
-	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
-	// The IAB banner is modal — `aria-modal` on the card, focus trapped —
-	// so it locks the page and paints a backdrop unless a host opts out.
-	const shouldScrollLock = $derived(
-		localScrollLock ?? theme.scrollLock ?? true
+	const presentation = $derived(
+		resolveConsentPresentation({
+			override: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
+			policy: consent.snapshot.policyRule,
+			presentation: {
+				prompt: {
+					scrollLock: theme.scrollLock,
+					trapFocus: theme.trapFocus,
+					...consent.state.presentation?.prompt,
+				},
+			},
+			surface: 'prompt',
+		})
 	);
+	const shouldTrapFocus = $derived(presentation.blocking);
+	const shouldScrollLock = $derived(presentation.blocking);
 
 	// IAB state
 	const iabState = $derived(consent.state.iab);
@@ -183,7 +194,7 @@
 			dir={textDirection}
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="iab-consent-banner-root"
-			use:focusTrap={shouldTrapFocus}
+			tabindex="-1"
 			use:scrollLock={shouldScrollLock}
 		>
 			<div class={noStyle ? '' : styles.cardShell || ''}>
@@ -197,9 +208,10 @@
 				<div
 					class={noStyle ? '' : styles.card}
 					data-testid="iab-consent-banner-card"
-					role={shouldTrapFocus ? 'dialog' : undefined}
+					role={shouldTrapFocus ? 'dialog' : 'region'}
 					aria-modal={shouldTrapFocus ? 'true' : undefined}
 					aria-label={iabT.banner.title}
+					use:focusTrap={shouldTrapFocus}
 				>
 					<!-- Header -->
 					<div

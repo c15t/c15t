@@ -384,3 +384,73 @@ it('starts real expiry timers for prepared records without replaying choice or w
 	expect(onPermissionsChanged).toHaveBeenCalledTimes(1);
 	expect(writes).not.toHaveBeenCalled();
 });
+
+it.each([false, true])(
+	'honors blocking=%s without a visual dialog overlay',
+	async (blocking) => {
+		const screen = await render(
+			<ConsentProvider
+				options={{
+					disableAnimation: true,
+					mode: custom({}),
+					persistence: false,
+					prefetch: { initialPolicyResolution: resolution(), now },
+					presentation: { preferences: { blocking } },
+				}}
+			>
+				<button
+					type="button"
+					data-testid="outside"
+					style={{ left: 2, position: 'fixed', top: 2 }}
+				>
+					Outside
+				</button>
+				<ConsentDialog.Root
+					open
+					overlay={false}
+				>
+					<ConsentDialog.Card>Preferences</ConsentDialog.Card>
+				</ConsentDialog.Root>
+			</ConsentProvider>
+		);
+		await expect
+			.element(screen.getByTestId('consent-dialog-root'))
+			.toBeVisible();
+		const outside = document.querySelector('[data-testid="outside"]');
+		const target = document.elementFromPoint(5, 5);
+		expect(outside?.contains(target)).toBe(!blocking);
+		expect(
+			document.querySelector('[data-testid="consent-dialog-overlay"]')
+		).toBeNull();
+	}
+);
+
+it.each([false, true])(
+	'renders a custom backdrop only with blocking=%s',
+	async (blocking) => {
+		const screen = await render(
+			<ConsentProvider
+				options={{
+					disableAnimation: true,
+					mode: custom({}),
+					persistence: false,
+					prefetch: { initialPolicyResolution: resolution(), now },
+					presentation: { preferences: { blocking } },
+				}}
+			>
+				<ConsentDialog.Root
+					open
+					overlay={<div data-testid="custom-backdrop" />}
+				>
+					<ConsentDialog.Card>Preferences</ConsentDialog.Card>
+				</ConsentDialog.Root>
+			</ConsentProvider>
+		);
+		await expect
+			.element(screen.getByTestId('consent-dialog-root'))
+			.toBeVisible();
+		expect(
+			Boolean(document.querySelector('[data-testid="custom-backdrop"]'))
+		).toBe(blocking);
+	}
+);

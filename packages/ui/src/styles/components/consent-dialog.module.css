@@ -88,6 +88,10 @@
 		height: var(--consent-dialog-height);
 	}
 
+	.root:not(:global(.headless))[data-blocking='true'] {
+		pointer-events: auto;
+	}
+
 	.root:not(:global(.headless))[dir='rtl'] {
 		direction: rtl;
 	}

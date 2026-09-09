@@ -1,13 +1,16 @@
 'use client';
 
-import type { ActiveUI, Model, TranslationConfig } from '@c15t/core';
+import type {
+	ActiveUI,
+	ConsentPresentation,
+	TranslationConfig,
+} from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
+import { useHeadlessConsentUI } from '../component-hooks/use-headless-consent-ui';
 import {
 	useActiveUI,
 	useModel,
-	usePromptPresentation,
-	usePreferencesPresentation,
 	useSetActiveUI,
 	useTranslations,
 } from '../hooks';
@@ -31,11 +34,13 @@ const toTranslationConfig = function toTranslationConfig(
 	};
 };
 
-export const useIABConsentManager = function useIABConsentManager() {
+export const useIABConsentManager = function useIABConsentManager(
+	overrides?: ConsentPresentation
+) {
 	const activeUI = useActiveUI();
 	const model = useModel();
-	const policyBanner = usePromptPresentation();
-	const policyDialog = usePreferencesPresentation();
+	const { banner: policyBanner, dialog: policyDialog } =
+		useHeadlessConsentUI(overrides);
 	const setKernelActiveUI = useSetActiveUI();
 	const translations = useTranslations();
 	const iab = useIAB();
@@ -53,9 +58,9 @@ export const useIABConsentManager = function useIABConsentManager() {
 	return {
 		activeUI: (activeUI ?? 'none') as ActiveUI,
 		iab,
-		model: (model ?? 'opt-in') as Model,
-		policyBanner: policyBanner ?? {},
-		policyDialog: policyDialog ?? {},
+		model,
+		policyBanner,
+		policyDialog,
 		setActiveUI,
 		translationConfig,
 	};

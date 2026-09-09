@@ -217,10 +217,10 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	 * hydration; under load that effect can land after the first settle, so
 	 * every mount path waits for it before touching the kernel.
 	 */
-	const waitForKernel = () =>
+	const waitForKernel = (previous: ConsentKernel | undefined) =>
 		vi.waitFor(
 			() => {
-				if (!kernel) {
+				if (!kernel || kernel === previous) {
 					throw new Error('Provider kernel is not ready after hydration');
 				}
 				return kernel;
@@ -478,6 +478,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		);
 	};
 	const mount = async (hydrate = false) => {
+		const previousKernel = kernel;
 		container = document.createElement('div');
 		document.body.append(container);
 		if (hydrate) {
@@ -518,7 +519,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				onRecoverableError: (error) => errors.push(String(error)),
 			});
 			await settle();
-			await waitForKernel();
+			await waitForKernel(previousKernel);
 			observer.disconnect();
 			const dom = getDom(kernel);
 			ssr = {
@@ -541,7 +542,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			root = createRoot(container);
 			root.render(tree());
 			await settle();
-			await waitForKernel();
+			await waitForKernel(previousKernel);
 			await kernel.commands.init();
 			await settle();
 		}

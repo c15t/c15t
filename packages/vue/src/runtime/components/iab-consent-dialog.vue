@@ -285,7 +285,7 @@ const scrollLock = computed(() => presentation.value.scrollLock);
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
+	Boolean(isOpen.value && presentation.value.blocking)
 );
 const card = ref<HTMLElement | null>(null);
 useFocusTrap(card, () => shouldTrapFocus.value);
@@ -342,7 +342,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						v-bind="config.components?.['iab-dialog']?.card"
 						data-testid="iab-consent-dialog-card"
 						:class="[dialogStyles.card, dialogStyles.contentVisible]"
-						:role="shouldTrapFocus ? 'dialog' : undefined"
+						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
 						tabindex="-1"

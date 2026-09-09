@@ -1,6 +1,10 @@
 import type { PolicyRule } from './policy-rule';
 
 const DEFAULT_PROFILE = 'default';
+
+/** Stock profiles use the base translations unless the host supplies a profile. */
+export const isBuiltInMessageProfile = (profile: string): boolean =>
+	profile === DEFAULT_PROFILE || profile === 'preferences';
 const SUPPORTED_BASE_LANGUAGES = new Set([
 	'bg',
 	'cs',
@@ -164,7 +168,17 @@ export const validatePolicyI18nConfig = function validatePolicyI18nConfig(
 		});
 		const language = normalizeLanguage(policy.i18n.language);
 
-		if (policy.i18n.messageProfile && !profiles[policy.i18n.messageProfile]) {
+		const usesBuiltInProfile = Boolean(
+			policy.i18n.messageProfile &&
+			isBuiltInMessageProfile(policy.i18n.messageProfile) &&
+			!profiles[policy.i18n.messageProfile]
+		);
+
+		if (
+			policy.i18n.messageProfile &&
+			!profiles[policy.i18n.messageProfile] &&
+			!usesBuiltInProfile
+		) {
 			errors.push(
 				`Policy '${policy.id}' references missing i18n profile '${policy.i18n.messageProfile}'.`
 			);
@@ -175,7 +189,11 @@ export const validatePolicyI18nConfig = function validatePolicyI18nConfig(
 			!!activeProfile &&
 			Object.keys(activeProfile.translations ?? {}).length > 0;
 
-		if (policy.i18n.messageProfile && !hasProfileTranslations) {
+		if (
+			policy.i18n.messageProfile &&
+			!hasProfileTranslations &&
+			!usesBuiltInProfile
+		) {
 			errors.push(
 				`Policy '${policy.id}' references i18n profile '${policy.i18n.messageProfile}' with no configured translations.`
 			);

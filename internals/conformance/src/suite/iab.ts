@@ -59,6 +59,56 @@ export const runIabUiConformance = function runIabUiConformance(
 	api: SuiteApi
 ): void {
 	api.describe(`[${driver.framework}] iab`, () => {
+		for (const surface of ['banner', 'dialog'] as const) {
+			for (const blocking of [false, true]) {
+				conformanceTest(
+					api,
+					`IAB ${surface} honors blocking=${blocking} over legacy focus settings`,
+					async () => {
+						const originalOverflow = document.body.style.overflow;
+						const mounted = await driver.mount({
+							component:
+								surface === 'banner'
+									? 'iab-consent-banner'
+									: 'iab-consent-dialog',
+							providerOptions: {
+								disableAnimation: true,
+								presentation: {
+									preferences: { blocking },
+									prompt: { blocking },
+								},
+								trapFocus: !blocking,
+							},
+						});
+						try {
+							const card = () =>
+								queryByTestId(document.body, `iab-consent-${surface}-card`);
+							await waitForCondition(() => card() !== null);
+							api
+								.expect(card()?.getAttribute('role'))
+								.toBe(surface === 'dialog' || blocking ? 'dialog' : 'region');
+							api
+								.expect(card()?.getAttribute('aria-modal'))
+								.toBe(blocking ? 'true' : null);
+							api
+								.expect(
+									queryByTestId(
+										document.body,
+										`iab-consent-${surface}-overlay`
+									) !== null
+								)
+								.toBe(blocking);
+							api
+								.expect(document.body.style.overflow)
+								.toBe(blocking ? 'hidden' : originalOverflow);
+						} finally {
+							await mounted.unmount();
+						}
+						api.expect(document.body.style.overflow).toBe(originalOverflow);
+					}
+				);
+			}
+		}
 		conformanceTest(
 			api,
 			'IAB banner renders the contract root and customize button',

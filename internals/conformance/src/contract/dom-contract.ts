@@ -151,10 +151,8 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	iabConsentBanner: {
 		elements: [
 			{
-				exactAttrs: { 'aria-modal': 'true' },
-
 				requiredAttrs: ['aria-label'],
-				role: 'dialog',
+				role: 'region',
 				testId: TEST_IDS.iabConsentBanner.card,
 			},
 			{

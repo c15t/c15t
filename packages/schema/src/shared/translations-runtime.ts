@@ -3,7 +3,10 @@ import type { CompleteTranslations, Translations } from '@c15t/translations';
 import type { BaseTranslations } from '@c15t/translations/all';
 import { translations as enTranslations } from '@c15t/translations/en';
 
-import { validatePolicyI18nConfig } from './policy-i18n-validation';
+import {
+	isBuiltInMessageProfile,
+	validatePolicyI18nConfig,
+} from './policy-i18n-validation';
 import type { PolicyRule } from './policy-rule';
 
 type SupportedBaseLanguage = Extract<keyof BaseTranslations, string>;
@@ -192,7 +195,7 @@ const resolveActiveProfile = function resolveActiveProfile(input: {
 		return requestedProfile;
 	}
 
-	if (input.policyProfile) {
+	if (input.policyProfile && !isBuiltInMessageProfile(input.policyProfile)) {
 		warnOnce(
 			input.logger,
 			`i18n.profile.missing:${requestedProfile}`,

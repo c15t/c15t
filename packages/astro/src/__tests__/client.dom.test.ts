@@ -219,26 +219,34 @@ describe('banner actions', () => {
 		expect(trigger?.hidden).toBe(false);
 	});
 
-	it('locks scroll and traps focus while a blocking banner shows', () => {
-		document.body.innerHTML = `
-			<div data-testid="consent-banner-root" data-blocking="true">
-				<div data-testid="consent-banner-card" tabindex="-1">
+	it.each(['consent-banner', 'iab-consent-banner'])(
+		'locks scroll and traps focus while a blocking %s shows',
+		(name) => {
+			document.body.innerHTML = `
+			<div data-testid="${name}-overlay"></div>
+			<div data-testid="${name}-root" data-blocking="true">
+				<div data-testid="${name}-card" tabindex="-1">
 					<button data-c15t-action="accept" type="button">Accept</button>
 				</div>
 			</div>
 		`;
-		const shown = { activeUI: 'banner' } as ConsentSnapshot;
-		const hidden = { activeUI: 'none' } as ConsentSnapshot;
+			const shown = { activeUI: 'banner' } as ConsentSnapshot;
+			const hidden = { activeUI: 'none' } as ConsentSnapshot;
 
-		syncBannerVisibility(shown);
-		expect(document.body.style.overflow).toBe('hidden');
-		// A second sync while shown keeps the same lock.
-		syncBannerVisibility(shown);
-		expect(document.body.style.overflow).toBe('hidden');
+			syncBannerVisibility(shown);
+			expect(document.body.style.overflow).toBe('hidden');
+			// A second sync while shown keeps the same lock.
+			syncBannerVisibility(shown);
+			expect(document.body.style.overflow).toBe('hidden');
 
-		syncBannerVisibility(hidden);
-		expect(document.body.style.overflow).toBe('');
-	});
+			syncBannerVisibility(hidden);
+			expect(document.body.style.overflow).toBe('');
+			expect(
+				document.querySelector<HTMLElement>(`[data-testid="${name}-overlay"]`)
+					?.hidden
+			).toBe(true);
+		}
+	);
 
 	it('leaves scroll alone for a non-blocking banner', () => {
 		renderBanner();

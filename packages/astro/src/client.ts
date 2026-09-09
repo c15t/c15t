@@ -298,7 +298,7 @@ export const syncBannerVisibility = function syncBannerVisibility(
 	snapshot: ConsentSnapshot
 ): void {
 	const banner = document.querySelector<HTMLElement>(
-		'[data-testid="consent-banner-root"]'
+		'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]'
 	);
 	if (!banner) {
 		releaseBlocking?.();
@@ -309,6 +309,11 @@ export const syncBannerVisibility = function syncBannerVisibility(
 	banner.setAttribute('data-c15t-visible', shouldShow ? 'true' : 'false');
 
 	const blocking = shouldShow && banner.dataset.blocking === 'true';
+	for (const overlay of document.querySelectorAll<HTMLElement>(
+		'[data-testid="consent-banner-overlay"], [data-testid="iab-consent-banner-overlay"]'
+	)) {
+		overlay.hidden = !blocking;
+	}
 	if (!blocking) {
 		releaseBlocking?.();
 		return;
@@ -317,8 +322,9 @@ export const syncBannerVisibility = function syncBannerVisibility(
 		return;
 	}
 	const card =
-		banner.querySelector<HTMLElement>('[data-testid="consent-banner-card"]') ??
-		banner;
+		banner.querySelector<HTMLElement>(
+			'[data-testid="consent-banner-card"], [data-testid="iab-consent-banner-card"]'
+		) ?? banner;
 	const unlockScroll = setupScrollLock();
 	const releaseFocus = setupFocusTrap(card);
 	releaseBlocking = () => {

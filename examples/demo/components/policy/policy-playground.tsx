@@ -1023,7 +1023,7 @@ const RuntimeInspector = ({
 					<p className="font-mono text-xs">
 						{banner.orderedActions.join(', ') || 'none'}
 						{banner.preferenceControls.length > 0
-							? ` · rights ${banner.preferenceControls.join(', ')}`
+							? ` · preference controls ${banner.preferenceControls.join(', ')}`
 							: ''}
 					</p>
 					<p className="text-muted-foreground text-xs leading-5">

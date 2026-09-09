@@ -226,9 +226,8 @@ describe('IAB Banner E2E Tests', () => {
 				'[data-testid="iab-consent-banner-card"]'
 			);
 
-			// The card carries the dialog role explicitly: a native `dialog`
-			// brings the user agent's 1em padding with it.
-			expect(banner.getAttribute('role')).toBe('dialog');
+			// The default non-blocking banner is a labelled region.
+			expect(banner.getAttribute('role')).toBe('region');
 
 			// Should have aria-label
 			expect(banner.getAttribute('aria-label')).toBeTruthy();

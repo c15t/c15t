@@ -163,13 +163,10 @@ const scrollLock = computed(() => presentation.value.scrollLock);
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
+	Boolean(isOpen.value && presentation.value.blocking)
 );
-// The trap goes on the root, not the card: `setupFocusTrap` stamps
-// `tabindex="-1"` on whatever it is given, and the root is the element
-// that declares one in every other adapter.
-const bannerRoot = ref<HTMLElement | null>(null);
-useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
+const bannerCard = ref<HTMLElement | null>(null);
+useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 </script>
 
 <template>
@@ -203,7 +200,6 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner"
 				v-bind="config.components?.['iab-banner']?.root"
-				ref="bannerRoot"
 				data-testid="iab-consent-banner-root"
 				:data-position="
 					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
@@ -222,9 +218,10 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 					/>
 					<div
 						v-bind="config.components?.['iab-banner']?.card"
+						ref="bannerCard"
 						data-testid="iab-consent-banner-card"
 						:class="bannerStyles.card"
-						role="dialog"
+						:role="shouldTrapFocus ? 'dialog' : 'region'"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"
 					>

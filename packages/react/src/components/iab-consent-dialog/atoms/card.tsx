@@ -1,10 +1,15 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
-import { forwardRef as createForwardRef, useEffect, useState } from 'react';
-import type { HTMLAttributes, ReactNode, RefObject } from 'react';
+import {
+	useCallback,
+	useRef,
+	forwardRef as createForwardRef,
+	useEffect,
+	useState,
+} from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
-import { useActiveUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -32,23 +37,28 @@ const IABConsentDialogCard = createForwardRef<
 >(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { trapFocus } = useTheme();
 	const { components } = useUIConfig();
-	const activeUI = useActiveUI();
+	const cardRef = useRef<HTMLDivElement>(null);
+	const setCardRef = useCallback(
+		(node: HTMLDivElement | null) => {
+			cardRef.current = node;
+			if (typeof ref === 'function') {
+				return ref(node);
+			}
+			if (ref) {
+				ref.current = node;
+			}
+		},
+		[ref]
+	);
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
-	const showDialog = activeUI === 'dialog';
 
-	useFocusTrap(Boolean(showDialog && trapFocus), ref as RefObject<HTMLElement>);
+	useFocusTrap(Boolean(trapFocus), cardRef);
 
 	useEffect(() => {
-		if (showDialog) {
-			const frame = requestAnimationFrame(() => setIsVisible(true));
-			return () => cancelAnimationFrame(frame);
-		}
-		const timer = setTimeout(() => {
-			setIsVisible(false);
-		}, 150);
-		return () => clearTimeout(timer);
-	}, [showDialog]);
+		const frame = requestAnimationFrame(() => setIsVisible(true));
+		return () => cancelAnimationFrame(frame);
+	}, []);
 
 	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.card, {
 		baseClassName: cn(
@@ -64,7 +74,7 @@ const IABConsentDialogCard = createForwardRef<
 		// A `div`, not a `dialog`: the user agent's dialog padding is 1em,
 		// which the card sets for itself.
 		<div
-			ref={ref}
+			ref={setCardRef}
 			{...themedStyle}
 			aria-label={iabTranslations.preferenceCenter.title}
 			aria-modal={trapFocus ? 'true' : undefined}
