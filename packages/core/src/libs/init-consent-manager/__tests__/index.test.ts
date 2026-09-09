@@ -414,7 +414,10 @@ describe('initConsentManager', () => {
 				set: storeSet,
 			});
 
-			expect(state.consentInfo).toBeNull();
+			expect(state.consentInfo).toMatchObject({
+				subjectId: 'sub_existing',
+				requiresReconsent: true,
+			});
 			expect(state.activeUI).toBe('banner');
 			expect(state.consents.necessary).toBe(true);
 			expect(state.consents.measurement).toBe(false);

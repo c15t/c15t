@@ -209,9 +209,12 @@ export const createConsentManagerStore = (
 		}
 
 		if (storedConsent) {
+			const consents = storedConsent.consentInfo?.requiresReconsent
+				? { ...initialState.consents }
+				: storedConsent.consents;
 			return {
-				consents: storedConsent.consents,
-				selectedConsents: storedConsent.consents,
+				consents,
+				selectedConsents: consents,
 				consentInfo: storedConsent.consentInfo,
 				user: storedConsent.consentInfo?.externalId
 					? {

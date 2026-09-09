@@ -191,6 +191,8 @@ group: reference
 
   When you change a policy in a way that affects consent semantics — like adding a category, changing the consent model, or modifying allowed actions — c15t automatically re-prompts returning users.
 
+  A material policy change invalidates previous grants but keeps the user's choice record and denials. Optional categories stay denied until the user makes a new choice. The resolved policy controls whether a banner or dialog appears; a no-banner policy does not silently grant previously rejected categories. A temporary hosted initialization failure does not count as an authoritative policy change.
+
   This works through the **material policy fingerprint**: a hash of only the consent-affecting fields (model, categories, scope, allowed actions, grouped action layout, direction, proof settings). Presentation-only changes like copy, button styling, or scroll lock do not trigger re-prompts.
 
   | Change | Re-prompts? |

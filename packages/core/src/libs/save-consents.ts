@@ -224,9 +224,12 @@ export async function saveConsents({
 				previousDeniedCategories: previousConsentCategoryLists.deniedCategories,
 			}
 		: null;
-	const materialPolicyFingerprint = lastBannerFetchData?.policy
-		? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
-		: undefined;
+	const isTransportFallback = get().initDataSource === 'offline-fallback';
+	const materialPolicyFingerprint = isTransportFallback
+		? consentInfo?.materialPolicyFingerprint
+		: lastBannerFetchData?.policy
+			? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
+			: undefined;
 
 	// Get or generate subjectId
 	// If we have a subjectId from previous consent, reuse it
@@ -251,6 +254,9 @@ export async function saveConsents({
 		time: givenAt,
 		subjectId,
 		materialPolicyFingerprint,
+		...(isTransportFallback || consentInfo?.requiresReconsent
+			? { requiresReconsent: isTransportFallback }
+			: {}),
 		...(externalId ? { externalId } : {}),
 		...(identityProvider ? { identityProvider } : {}),
 	};
