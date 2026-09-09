@@ -8,7 +8,8 @@
  * 2. `bootstrap` — queue stubs must exist after the loader mounts, before the
  *                  remote loader executes.
  * 3. `load`      — the real vendor loader URL must respond.
- * 4. `runtime`   — the vendor runtime must initialize (full tier only).
+ * 4. `runtime`   — the vendor runtime must initialize (full tier, plus any
+ *                  loader-only vendor that declares a runtime assertion).
  * 5. `network`   — every non-allowlisted third-party request is answered with
  *                  an empty 204 so no real analytics data is sent.
  *
@@ -23,6 +24,11 @@ import type { Browser, Response } from 'playwright';
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
 import { evaluateDeniedConsentProbe } from './denied-consent';
 import { forEachSequential } from './for-each-sequential';
+import {
+	captureBrowserLoaderBody,
+	captureStreamLoaderBody,
+} from './loader-body';
+import { assertsRuntime, digestBody } from './probe-policy';
 import { failedPhases } from './report';
 import type {
 	LiveProbeCheckResult,
@@ -160,10 +166,29 @@ const buildHarnessBundle =
 interface ProbeAttemptOutcome {
 	phases: LiveVendorResult['phases'];
 	loader?: LiveVendorResult['loader'];
+	sdkVersion?: string;
 	blockedRequests: number;
 	consoleErrors: string[];
 	pageErrors: string[];
 }
+
+const withTimeout = async function withTimeout<Value>(
+	promise: Promise<Value>,
+	timeoutMs: number
+): Promise<Value> {
+	let timeout: ReturnType<typeof setTimeout> | undefined;
+	const expiry = createDeferredPromise<never>((_resolve, reject) => {
+		timeout = setTimeout(() => {
+			reject(new Error(`operation timed out after ${timeoutMs}ms`));
+		}, timeoutMs);
+	});
+
+	try {
+		return await Promise.race([promise, expiry]);
+	} finally {
+		clearTimeout(timeout);
+	}
+};
 
 const loaderResponseDetails = async function loaderResponseDetails(
 	response: Response
@@ -172,7 +197,16 @@ const loaderResponseDetails = async function loaderResponseDetails(
 		.allHeaders()
 		.catch(() => ({}));
 
+	// Redirects and cached/aborted responses can have no readable body; the
+	// status and content type are still worth reporting on their own. Bound the
+	// read as a response can deliver headers while its body stalls indefinitely.
+	const body = await captureBrowserLoaderBody(headers, () =>
+		withTimeout(response.body(), LOADER_TIMEOUT_MS)
+	);
+
 	return {
+		bodyHash: body ? digestBody(body) : undefined,
+		bytes: body?.byteLength,
 		contentType: headers['content-type'],
 		status: response.status(),
 		url: response.url(),
@@ -190,9 +224,11 @@ const fetchLoaderDetails = async function fetchLoaderDetails(
 		const response = await fetch(url, {
 			signal: AbortSignal.timeout(LOADER_TIMEOUT_MS),
 		});
-		await response.body?.cancel();
+		const body = await captureStreamLoaderBody(response.body);
 
 		return {
+			bodyHash: body ? digestBody(body) : undefined,
+			bytes: body?.byteLength,
 			contentType: response.headers.get('content-type') ?? undefined,
 			status: response.status,
 			url,
@@ -526,8 +562,10 @@ const probeVendorAttempt = async function probeVendorAttempt(
 			};
 		}
 
-		// Phase: runtime — full tier only; poll until the vendor runtime is up.
-		if (config.tier === 'full' && phases.load.ok) {
+		// Phase: runtime — poll until the vendor runtime is up. Full tier always
+		// asserts it; loader-only vendors assert it too whenever they declare a
+		// check that placeholder credentials can still satisfy.
+		if (assertsRuntime(config) && phases.load.ok) {
 			const deadline = Date.now() + RUNTIME_TIMEOUT_MS;
 			let runtime: LiveProbeCheckResult = {
 				detail: 'runtime check never ran',
@@ -559,6 +597,18 @@ const probeVendorAttempt = async function probeVendorAttempt(
 			phases.runtime = runtime;
 		}
 
+		// Provenance, never an assertion: records which upstream build this run
+		// actually validated so a later regression can be bisected by report.
+		const sdkVersion = config.runtimeVersion
+			? await page.evaluate<string | undefined, string>(
+					(vendor) =>
+						(
+							globalThis as unknown as ProbeWindow
+						).__c15tLiveVendorProbe?.version(vendor),
+					config.vendor
+				)
+			: undefined;
+
 		// Phase: network — informational; the route handler guarantees blocking.
 		phases.network = {
 			detail: `${blocked.length} third-party request(s) answered with an empty 204`,
@@ -571,6 +621,7 @@ const probeVendorAttempt = async function probeVendorAttempt(
 			loader,
 			pageErrors,
 			phases,
+			sdkVersion,
 		};
 	} finally {
 		await context.close();
@@ -663,6 +714,7 @@ const probeVendor = async function probeVendor(
 				ok: true,
 				pageErrors: lastOutcome?.pageErrors ?? [],
 				phases: lastOutcome?.phases ?? {},
+				sdkVersion: lastOutcome?.sdkVersion,
 			};
 		}
 
@@ -691,6 +743,7 @@ const probeVendor = async function probeVendor(
 				ok: false,
 			},
 		},
+		sdkVersion: lastOutcome?.sdkVersion,
 	};
 };
 

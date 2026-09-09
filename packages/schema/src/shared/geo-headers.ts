@@ -195,6 +195,7 @@ export {
 
 // Origin allowlisting: shared for the same reason as the rest of this
 // module — a security decision that two live backends must not disagree on.
+export { getAppScheme } from './app-scheme';
 export {
 	isOriginTrusted,
 	type LoggerLike,

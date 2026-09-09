@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { version } from '../version';
 import { fetchSSRData } from './fetch-ssr-data';
 
 const createRequestHeaders = function createRequestHeaders(): Headers {
@@ -98,6 +99,35 @@ describe('fetchSSRData', () => {
 			isHit: false,
 		});
 	});
+
+	it.each([undefined, '3.0.0-proxy'])(
+		'sends the incoming version %s or the package version on init',
+		async (incomingVersion) => {
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+			vi.stubGlobal('fetch', fetchMock);
+
+			const requestHeaders = createRequestHeaders();
+			if (incomingVersion !== undefined) {
+				requestHeaders.set('x-c15t-version', incomingVersion);
+			}
+
+			await fetchSSRData({
+				backendURL: 'https://consent.example.com/api/c15t',
+				headers: requestHeaders,
+			});
+
+			expect(fetchMock).toHaveBeenCalledWith(
+				'https://consent.example.com/api/c15t/init',
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						'x-c15t-version': incomingVersion ?? version,
+					}),
+				})
+			);
+		}
+	);
 
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi

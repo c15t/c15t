@@ -2,7 +2,10 @@
 	"extends": "@c15t/typescript-config/base.json",
 	"compilerOptions": {
 		"noEmit": true,
-		"types": ["bun"]
+		"types": ["bun"],
+		"paths": {
+			"~/*": ["../../core/src/*"]
+		}
 	},
 	"include": ["."],
 	"exclude": ["node_modules"]

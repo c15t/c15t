@@ -107,6 +107,7 @@ export const createScriptLoader = function createScriptLoader(
 		getSnapshot: kernel.getSnapshot,
 		hasDebugListener,
 		loadedElements,
+		nonce: options.nonce,
 		ownedScriptIds,
 		retainedElements,
 	};

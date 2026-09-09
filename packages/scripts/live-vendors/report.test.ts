@@ -122,6 +122,74 @@ describe('buildMonitorIssueBody', () => {
 		expect(body).toContain('Console errors');
 	});
 
+	it('reports loader bundle provenance so a failure can be bisected', () => {
+		// These two lines are the whole reason the digest and version are
+		// collected: comparing a red report against the last green one should
+		// say whether upstream shipped a new bundle without diffing CDN files.
+		const result = makeResult({
+			loader: {
+				bodyHash: 'a1b2c3d4e5f60718',
+				bytes: 48_213,
+				contentType: 'application/javascript',
+				status: 200,
+				url: 'https://eu-assets.i.posthog.com/static/array.js',
+			},
+			ok: false,
+			phases: { runtime: { detail: 'SDK never installed', ok: false } },
+			sdkVersion: '1.410.2',
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(body).toContain(
+			'**Loader bundle**: `a1b2c3d4e5f60718` (48213 bytes)'
+		);
+		expect(body).toContain('**Vendor SDK version**: `1.410.2`');
+	});
+
+	it('reports a known zero-byte loader body', () => {
+		const result = makeResult({
+			loader: {
+				bodyHash: 'e3b0c44298fc1c14',
+				bytes: 0,
+				status: 200,
+				url: 'https://example.test/empty.js',
+			},
+			ok: false,
+			phases: { load: { detail: 'empty response', ok: false } },
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(body).toContain('**Loader bundle**: `e3b0c44298fc1c14` (0 bytes)');
+	});
+
+	it('omits provenance lines when the loader body was unreadable', () => {
+		// Redirects and cached/aborted responses carry no body, and not every
+		// vendor declares `runtimeVersion` — neither should print an empty row.
+		const result = makeResult({
+			loader: { status: 302, url: 'https://example.test/tag.js' },
+			ok: false,
+			phases: { load: { detail: 'no response', ok: false } },
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(body).not.toContain('**Loader bundle**');
+		expect(body).not.toContain('**Vendor SDK version**');
+	});
+
+	it('sanitizes a vendor-supplied SDK version before embedding it', () => {
+		// `sdkVersion` is read out of the probed page, so it is third-party text
+		// on the same footing as console output.
+		const result = makeResult({
+			ok: false,
+			phases: { runtime: { detail: 'nope', ok: false } },
+			sdkVersion: '1.0.0` <img src=x onerror=alert(1)>',
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(body).toContain('**Vendor SDK version**');
+		expect(body).not.toContain('onerror=alert(1)>`');
+	});
+
 	it('sanitizes third-party text and notes overflowed error lists', () => {
 		const errors = Array.from(
 			{ length: 12 },

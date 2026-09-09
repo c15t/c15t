@@ -1,5 +1,7 @@
+import { C15T_VERSION_HEADER } from '@c15t/core';
 import type { InitOutput, SSRInitialData } from '@c15t/core';
 
+import { version } from '../version';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
@@ -235,8 +237,9 @@ export const fetchSSRData = async function fetchSSRData(
 		console.log(`[c15t/server] Fetching from: ${normalizedURL}/init`);
 	}
 
-	// Apply overrides to headers
-	const initHeaders = { ...relevantHeaders };
+	// Preserve an incoming client version; direct SSR requests use this
+	// package's version so the backend can attribute them to a release.
+	const initHeaders = { [C15T_VERSION_HEADER]: version, ...relevantHeaders };
 	if (overrides?.country) {
 		initHeaders['x-c15t-country'] = overrides.country;
 		if (debug) {
