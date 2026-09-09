@@ -1,5 +1,5 @@
 import {
-	c15tVersionHeaders,
+	c15tProtocolHeaders,
 	createHostedTransport,
 	mapInitOutputToInitResponse,
 } from '@c15t/core';
@@ -86,8 +86,8 @@ export const manifestNeedsLocation = function manifestNeedsLocation(
 	}
 	return packs.some(
 		(pack) =>
-			(pack.policy.match.countries?.length ?? 0) > 0 ||
-			(pack.policy.match.regions?.length ?? 0) > 0
+			(pack.match.countries?.length ?? 0) > 0 ||
+			(pack.match.regions?.length ?? 0) > 0
 	);
 };
 
@@ -167,7 +167,7 @@ export const manifest = function manifest(
 		async function fetchManifest(): Promise<ConsentManifest> {
 			const fetchImpl = options.fetch ?? globalThis.fetch;
 			const response = await fetchImpl(options.manifestURL as string, {
-				headers: { ...c15tVersionHeaders },
+				headers: { ...c15tProtocolHeaders },
 			});
 			if (!response.ok) {
 				throw new Error(
@@ -196,7 +196,14 @@ export const manifest = function manifest(
 		async init(ctx: InitContext): Promise<InitResponse> {
 			const resolved = await loadManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			if (!inputs.country && manifestNeedsLocation(resolved)) {
+			if (
+				manifestNeedsLocation(resolved) &&
+				(!inputs.country ||
+					(!inputs.region &&
+						resolved.policyPacks?.some(
+							(pack) => (pack.match.regions?.length ?? 0) > 0
+						)))
+			) {
 				if (hosted?.init) {
 					return hosted.init(ctx);
 				}
@@ -211,6 +218,8 @@ export const manifest = function manifest(
 			});
 			return mapInitOutputToInitResponse(output, {});
 		},
+		loadSubjectRecord: hosted?.loadSubjectRecord,
+		recordPrivacyOptOut: hosted?.recordPrivacyOptOut,
 		save: hosted?.save,
 	};
 

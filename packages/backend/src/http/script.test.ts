@@ -1,6 +1,7 @@
 /**
  * The script-tag routes, exercised through real requests.
  */
+import { policyRulePresets } from '@c15t/schema/types';
 import { Effect, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -9,7 +10,7 @@ import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { createApp } from './app';
 import type { AppOptions } from './context';
-import { deriveBackendURL } from './script';
+import { buildScriptResponse, deriveBackendURL } from './script';
 
 const [engine] = ENGINES;
 
@@ -18,6 +19,25 @@ if (!engine) {
 }
 
 describe('deriveBackendURL', () => {
+	it('invalidates cached scripts when bundle bytes change without changing length', async () => {
+		const request = {
+			backendURL: 'https://example.test',
+			cache: undefined,
+			language: null,
+			manifest: { policyRules: [policyRulePresets.europeOptIn()] },
+			options: {},
+			variant: 'full' as const,
+		};
+		const first = await buildScriptResponse({
+			...request,
+			bundle: 'const a=1;',
+		});
+		const second = await buildScriptResponse({
+			...request,
+			bundle: 'const a=2;',
+		});
+		expect(first.etag).not.toBe(second.etag);
+	});
 	it('strips the route path and keeps a mount prefix', () => {
 		expect(deriveBackendURL('https://x.c15t.dev/c15t.js', '/c15t.js')).toBe(
 			'https://x.c15t.dev'
@@ -37,12 +57,8 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 	const makeApp = function makeApp(options: AppOptions = {}) {
 		return createApp(runtime, {
 			manifest: {
-				policyPacks: [
-					{
-						consent: { model: 'opt-in' },
-						id: 'everywhere',
-						match: { isDefault: true },
-					},
+				policyRules: [
+					{ ...policyRulePresets.europeOptIn(), match: { isDefault: true } },
 				],
 			},
 			...options,

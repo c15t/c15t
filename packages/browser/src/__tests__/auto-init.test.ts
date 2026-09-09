@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { readPageOptions, readScriptOptions } from '../auto-init';
-import { createGlobal, installGlobal } from '../global';
+import { autoInit, createGlobal, installGlobal } from '../global';
 import type { C15tGlobal } from '../global';
 
 type TestWindow = Window & {
@@ -46,7 +46,7 @@ describe('readScriptOptions', () => {
 				'data-color-scheme': 'dark',
 				'data-country': 'DE',
 				'data-hide-branding': '',
-				'data-policies': 'europeOptIn,worldNoBanner',
+				'data-policy-rules': 'europeOptIn,worldNone',
 				'data-privacy-policy-url': '/privacy',
 				'data-trigger': 'true',
 			})
@@ -57,7 +57,7 @@ describe('readScriptOptions', () => {
 			consentCategories: ['measurement', 'marketing'],
 			legalLinks: { privacyPolicy: { href: '/privacy' } },
 			overrides: { country: 'DE' },
-			policies: ['europeOptIn', 'worldNoBanner'],
+			policyRules: ['europeOptIn', 'worldNone'],
 			ui: {
 				banner: { hideBranding: true },
 				colorScheme: 'dark',
@@ -116,6 +116,30 @@ describe('readPageOptions', () => {
 });
 
 describe('window.c15t', () => {
+	it('reuses the installed client when the script tag loads twice', async () => {
+		const first = installGlobal(createGlobal({ pkg: '@c15t/browser' }));
+		first.init({ ui: false });
+		await first.ready();
+		const second = installGlobal(createGlobal({ pkg: '@c15t/browser' }));
+		expect(second).toBe(first);
+		expect(second.init()).toBe(first.client);
+	});
+	it('keeps queued config above tag attributes during auto-init', async () => {
+		const script = scriptWith({ 'data-categories': 'marketing' });
+		const currentScript = vi
+			.spyOn(document, 'currentScript', 'get')
+			.mockReturnValue(script);
+		const api = createGlobal({ pkg: 'test' });
+		installGlobal(api);
+		api.config({ consentCategories: ['measurement'], ui: false });
+		try {
+			autoInit(api);
+			await api.ready();
+			expect(api.client?.options.consentCategories).toEqual(['measurement']);
+		} finally {
+			currentScript.mockRestore();
+		}
+	});
 	it('waits for init before ready() and on() fire', async () => {
 		const api = createGlobal({ pkg: '@c15t/browser/test' });
 		installGlobal(api);

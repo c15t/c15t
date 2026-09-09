@@ -13,7 +13,6 @@ import type { Surface, SurfaceContext } from './surface';
 import { createTrigger } from './trigger';
 
 const HOST_ATTRIBUTE = 'data-c15t-ui';
-const LIGHT_DOM_STYLE_ID = 'c15t-styles';
 
 const resolveContainer = function resolveContainer(
 	container: ConsentUIOptions['container']
@@ -116,11 +115,7 @@ export const mountConsentUI = function mountConsentUI(
 
 	const styleText = buildStyleText(options);
 	if (styleText) {
-		if (useShadow) {
-			root.append(h('style', {}, styleText));
-		} else if (!document.getElementById(LIGHT_DOM_STYLE_ID)) {
-			document.head.append(h('style', { id: LIGHT_DOM_STYLE_ID }, styleText));
-		}
+		root.append(h('style', {}, styleText));
 	}
 
 	const wrapper = h('div', { class: 'c15t-host' });

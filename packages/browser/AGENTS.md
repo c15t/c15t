@@ -9,7 +9,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
 - [Script Loader](./docs/frameworks/javascript/script-loader.md): Load third-party scripts only after the required consent.
-- [Script Tag](./docs/frameworks/javascript/script-tag.md): Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
+- [Script tag](./docs/frameworks/javascript/script-tag.md): Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
 
 ## Integrations
 

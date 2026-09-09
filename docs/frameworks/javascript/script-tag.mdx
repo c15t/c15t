@@ -1,12 +1,12 @@
 ---
-title: Script Tag
+title: Script tag
 description: Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
 group: frameworks
 ---
 
 `@c15t/browser` is the c15t consent banner for sites you cannot bundle: page builders, CMS themes, static HTML. One `<script>` tag from a CDN installs the banner, the preference centre, and script gating. Nothing to compile, nothing to import.
 
-It is built on the same `@c15t/core` runtime and `@c15t/ui` stylesheet as the React, Vue, and Svelte packages, so the banner looks and behaves the same everywhere.
+It is built on the same `@c15t/core` runtime and `@c15t/ui` stylesheet as the React, Vue, and Svelte packages, and uses the same policy and presentation resolvers. Framework API parity is covered under [limitations](#limitations).
 
 ## Add the tag
 
@@ -14,9 +14,8 @@ Paste this before `</head>` (Framer: Site Settings → Custom Code; Webflow: Pro
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js"
   data-backend-url="https://your-instance.c15t.dev"
-  data-categories="measurement,marketing"
   defer
 ></script>
 ```
@@ -27,7 +26,7 @@ Pin a version in the URL so a release cannot change your banner without you.
 
 ### Without a backend
 
-Drop `data-backend-url` and the banner runs in offline mode: every visitor gets an opt-in banner for the categories you list, and the choice is stored in the browser only. That is enough for a portfolio or a docs site. A hosted or [self-hosted](/docs/self-host/quickstart) backend adds geo-aware policies, audit records, and translations.
+Drop `data-backend-url` to use offline mode. It resolves the same recommended rules as React and stores records in the browser. Unknown locations use the strict opt-in fallback. Pass known location through `overrides` or the data attributes, or use a hosted backend to resolve location. A backend also stores audit records and supplies translations.
 
 ## Attributes
 
@@ -38,8 +37,8 @@ Every attribute is optional.
 | `data-backend-url` | Backend origin. Selects hosted mode. |
 | `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
 | `data-manifest-url` | The backend's `/manifest` URL, for manifest mode. |
-| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. `necessary` is always included. |
-| `data-policies` | Comma-separated policy presets for offline mode: `europeOptIn`, `europeIab`, `californiaOptIn`, `californiaOptOut`, `quebecOptIn`, `worldNoBanner`. Resolved by the visitor's country. |
+| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the entire policy scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
+| `data-policy-rules` | Comma-separated policy presets for offline mode: `europeOptIn`, `usPrivacyStatesOptOut`, `quebecOptIn`, `worldNone`. Resolved by the visitor's country. |
 | `data-language` | Force a language instead of reading the browser's. |
 | `data-country`, `data-region` | Known location, when your host injects it. |
 | `data-color-scheme` | `light`, `dark`, or `system` (default). |
@@ -56,28 +55,29 @@ For anything the attributes cannot express, queue a `config` call on `window.c15
 <script>
   window.c15t = window.c15t || [];
   c15t.push(['config', {
-    consentCategories: ['measurement', 'marketing'],
     legalLinks: { privacyPolicy: { href: '/privacy' } },
     scripts: [
       {
-        id: 'ga4',
-        src: 'https://www.googletagmanager.com/gtag/js?id=G-XXXX',
+        id: 'analytics',
+        src: '/analytics.js',
         category: 'measurement',
       },
     ],
     ui: { colorScheme: 'dark', trigger: true },
   }]);
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js" defer></script>
 ```
 
 ## Gate your own scripts
 
-Two ways. In JavaScript, list them under `scripts` as above and they load only once the category is granted; withdrawing consent reloads the page so they are gone. In HTML, keep the tag inert until consent by changing its `type`:
+List scripts under `scripts` for the core loader lifecycle, including cleanup callbacks. In HTML, keep a tag inert until consent by changing its `type`:
 
 ```html
 <script type="text/plain" data-c15t-category="marketing" src="https://pixel.example/tag.js"></script>
 ```
+
+An activated inline or external script cannot be undone. Supply cleanup through the `scripts` API when a vendor supports it; otherwise reload after withdrawal. The HTML scanner activates only `type="text/plain"` scripts and also watches newly inserted tags.
 
 See [script gating](/docs/frameworks/javascript/script-loader) for the full `scripts` option, and the [integrations](/docs/integrations) for ready-made GTM, GA4, and pixel loaders.
 
@@ -91,7 +91,7 @@ Any element on the page can drive the banner. Add `data-c15t-action` and the cli
 <button data-c15t-action="reject">Reject all</button>
 ```
 
-`customize` opens the preference centre, `banner` shows the banner again, and `close` hides whatever is open. A plain link to `#c15t-preferences` opens the preference centre too, which is the easiest hook in a page builder's footer.
+`dismiss` acknowledges a notice without changing category choices. `customize` opens the preference centre, `banner` shows the banner again, and `close` hides whatever is open. A plain link to `#c15t-preferences` opens the preference centre too, which is the easiest hook in a page builder's footer.
 
 ## The window API
 
@@ -106,7 +106,7 @@ c15t.on('consent', (snapshot) => {
 
 c15t.ready().then(() => {
   // the policy is resolved and the banner has rendered
-  c15t.hasConsented(); // true once the visitor decided
+  c15t.hasConsented(); // an explicit category receipt exists; use has() for permission
 });
 c15t.openDialog();
 c15t.acceptAll();
@@ -114,11 +114,11 @@ c15t.save({ measurement: true, marketing: false });
 c15t.identify({ id: 'user_123' });
 ```
 
-Every method can be queued before the tag has loaded; `config` and `on` are the usual ones:
+Queue `config` and `on` before the tag loads. Call action methods after initialization:
 
 ```html
 <script>
-  window.c15t = [['on', 'consent', (snapshot) => console.log(snapshot.consents)]];
+  window.c15t = [['on', 'consent', (snapshot) => console.log(snapshot.effectivePermissions)]];
 </script>
 ```
 
@@ -134,7 +134,7 @@ Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still re
   <button data-c15t-action="reject">Reject</button>
   <button data-c15t-action="accept">Accept</button>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
 <script>
   window.c15t = [['on', 'ui', (surface) => { document.getElementById('banner').hidden = surface !== 'banner'; }]];
 </script>
@@ -148,13 +148,40 @@ The banner renders inside a shadow root with its own copy of the stylesheet, so 
 window.c15t = window.c15t || [];
 c15t.push(['config', {
   ui: {
-    theme: { colors: { primary: '#0a66ff' }, radius: 'lg' },
-    css: '.c15t-theme-root { font-family: inherit; }',
+    theme: {
+      colors: { primary: '#0a66ff' },
+      radius: { lg: '1rem' },
+      typography: { fontFamily: 'system-ui, sans-serif' },
+    },
+    css: '[data-testid="consent-banner-card"] { border: 3px solid #0a66ff; }',
   },
 }]);
 ```
 
-`theme` takes the same object `@c15t/react` accepts. `css` is appended after the bundled stylesheet, still inside the shadow root. To take over completely, set `shadow: false` (or `data-shadow="false"`) and the DOM renders in the page with the stylesheet in `<head>`; `noStyle: true` then strips every class so you start from unstyled markup with the same `data-testid` attributes as the other c15t packages.
+`theme` takes the same object `@c15t/react` accepts. `css` is appended after the bundled stylesheet, still inside the shadow root. To take over completely, set `shadow: false` (or `data-shadow="false"`) and the DOM renders in the page with a stylesheet owned by the mounted host; `noStyle: true` then strips every class so you start from unstyled markup with the same `data-testid` attributes as the other c15t packages.
+
+For an ordinary page stylesheet, configure `ui: { shadow: false }` before loading the tag, then add:
+
+```css
+[data-c15t-ui] [data-testid="consent-banner-card"] {
+  border: 3px solid #0a66ff;
+}
+```
+
+For layout, pass host presentation separately from the policy:
+
+```js
+c15t.push(['config', {
+  presentation: {
+    prompt: { variant: 'bar', position: 'bottom' },
+    preferences: { uiProfile: 'balanced' },
+  },
+}]);
+```
+
+The prompt supports `floating`, `bar`, `widget`, and `wall`. The shared resolver applies policy constraints, including nonblocking notices and blocking choice walls. Colors, fonts, spacing, borders, and layout are frontend configuration. A backend would only be needed to store and distribute remotely managed settings.
+
+The repository's `examples/script-tag/styled.html` shows both CSS modes. Run `bun turbo run build --filter=@c15t/browser` and `bun run --cwd examples/script-tag dev`, then open `/styled` or `/styled?shadow=false`. `/custom` shows a banner made from your own HTML on the headless build.
 
 ## Faster first paint with a manifest
 
@@ -171,7 +198,7 @@ Hosted mode asks the backend for `/init` on every fresh visit before the banner 
 </script>
 ```
 
-Or point at the URL with `data-manifest-url` and it is fetched once, honouring the backend's cache headers. When the policy depends on location and the browser does not know its country, the client falls back to `/init`, so the answer is always the one the backend would give. Saves go to the backend either way.
+Or point at the URL with `data-manifest-url` and it is fetched once, honouring the backend's cache headers. When the policy depends on location and the browser does not know the country or region needed by a rule, the client falls back to `/init`, to resolve the missing location. Saves go to the backend either way.
 
 Only English ships in the bundle; a manifest carries its own translations for the languages the site serves.
 
@@ -189,24 +216,23 @@ Configure what gets baked in with the backend's `script` option:
 createApp(runtime, {
   script: {
     config: {
-      consentCategories: ['measurement', 'marketing'],
       legalLinks: { privacyPolicy: { href: 'https://example.com/privacy' } },
     },
   },
 });
 ```
 
-Anything the page queues with `c15t.push(['config', ...])` before the tag still wins over the baked-in defaults. The response carries the same `Cache-Control` and `ETag` as `/manifest`, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
+Anything the page queues with `c15t.push(['config', ...])` before the tag still wins over the baked-in defaults. The response uses the same cache policy as `/manifest`, with an ETag covering the configuration and bundle, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
 
 ## Dev tools
 
 Add a second tag and the c15t DevTools panel attaches to the page's client. It shows consents, gated scripts, the resolved policy and every kernel event, and its Location tab changes country, region, language and GPC and re-runs init, so you can watch a geo-keyed policy switch without spoofing headers or a VPN.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
 ```
 
-Tag order does not matter; the panel waits for the client. It is also on `window.c15t.devtools`, so `c15t.devtools.actions.setOverrides({ country: 'US' })` followed by `c15t.devtools.actions.init()` does the same from the console. Leave the tag out of production pages; it is 13 KB gzipped and shows internals. Bundler users import `mountDevTools` from `@c15t/browser/devtools`.
+Tag order does not matter; the panel waits for the client. It is also on `window.c15t.devtools`, so `c15t.devtools.actions.setOverrides({ country: 'US' })` followed by `c15t.devtools.actions.init()` does the same from the console. Leave the tag out of production pages; it shows internal state. Bundler users import `mountDevTools` from `@c15t/browser/devtools`.
 
 ## In a bundler
 
@@ -221,7 +247,6 @@ import { init } from '@c15t/browser';
 
 const c15t = init({
   backendURL: 'https://your-instance.c15t.dev',
-  consentCategories: ['measurement', 'marketing'],
 });
 ```
 
@@ -230,4 +255,8 @@ const c15t = init({
 ## Limitations
 
 - IAB TCF is not supported in this package yet. Use `@c15t/react`, `@c15t/vue`, or `@c15t/svelte` for TCF sites.
-- The bundle carries English only. Other languages come from the backend or the manifest.
+- The bundle carries English only. Other languages come from the backend, manifest, or `i18n` overrides.
+- The browser client exposes `getSnapshot()`, `subscribe()`, and imperative actions. It does not expose React's `useConsentDraft()` API or compound component composition. A custom preference center must own its draft, seed it from explicit choices and policy defaults, and discard stale drafts when the choice fingerprint changes.
+- `acceptAll()`, `rejectAll()`, and `save()` resolve to a `SaveResult`. Check `result.ok`; a transport failure keeps the local receipt and queues a retry. The prebuilt preferences remain open on failure.
+- `ready()` waits for successful initialization. Listen for `error` when a transport cannot initialize.
+- `script.bundles` supplies filesystem paths. The backend routes currently depend on Node filesystem APIs; passing a path does not add support for runtimes without a filesystem.

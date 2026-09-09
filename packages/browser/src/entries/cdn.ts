@@ -9,6 +9,7 @@
 import { autoInit, createGlobal, installGlobal } from '../global';
 import { mountConsentUI } from '../ui/mount';
 
-const api = createGlobal({ mountUI: mountConsentUI, pkg: '@c15t/browser' });
-installGlobal(api);
+const api = installGlobal(
+	createGlobal({ mountUI: mountConsentUI, pkg: '@c15t/browser' })
+);
 autoInit(api);

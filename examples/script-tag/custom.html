@@ -188,8 +188,7 @@
 		<script
 			src="/c15t.headless.js"
 			data-mode="offline"
-			data-policies="europeOptIn,californiaOptOut,worldNoBanner"
-			data-categories="functionality,measurement,marketing"
+			data-policy-rules="europeOptIn,usPrivacyStatesOptOut,worldNone"
 			data-country="DE"
 			defer
 		></script>
@@ -271,6 +270,14 @@
 						><input
 							type="checkbox"
 							name="functionality" /><span></span
+					></span>
+				</label>
+				<label class="row">
+					Experience
+					<span class="switch"
+						><input
+							type="checkbox"
+							name="experience" /><span></span
 					></span>
 				</label>
 				<label class="row">
@@ -356,7 +363,10 @@
 			// Fill the switches from the runtime's current consents.
 			const syncSwitches = (snapshot) => {
 				for (const input of switches) {
-					input.checked = snapshot.consents[input.name] === true;
+					input.checked =
+						snapshot.explicitChoice?.categories[input.name]?.value ??
+						(snapshot.policyRule.model === 'opt-out' ||
+							snapshot.policyRule.preselectedCategories.includes(input.name));
 				}
 			};
 
@@ -417,7 +427,7 @@
 				'consent',
 				(snapshot) => {
 					syncSwitches(snapshot);
-					log(`consent: ${JSON.stringify(snapshot.consents)}`);
+					log(`consent: ${JSON.stringify(snapshot.effectivePermissions)}`);
 				},
 			]);
 			queue([
@@ -425,7 +435,7 @@
 				'ready',
 				(snapshot) => {
 					log(
-						`ready: policy ${snapshot.policy?.id ?? '-'}, ${snapshot.hasConsented ? 'already decided' : 'no decision yet'}`
+						`ready: policy ${snapshot.policyRule.id ?? '-'}, ${snapshot.explicitChoice !== null ? 'already decided' : 'no decision yet'}`
 					);
 				},
 			]);

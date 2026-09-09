@@ -1,6 +1,9 @@
 import type {
 	AllConsentNames,
 	Callbacks,
+	ConsentPresentation,
+	SaveResult,
+	NoticeDismissResult,
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
@@ -11,8 +14,8 @@ import type {
 	KernelOverrides,
 	KernelUser,
 	LegalLinks,
-	PolicyConfig,
-	policyPackPresets,
+	PolicyRule,
+	policyRulePresets,
 	ProviderTransportFactory,
 	Script,
 	StorageConfig,
@@ -37,8 +40,8 @@ import type { Theme } from '@c15t/ui/theme';
  */
 export type ConsentModeName = 'hosted' | 'offline' | 'manifest';
 
-/** A built-in policy pack, by the name `policyPackPresets` exports it under. */
-export type PolicyPresetName = keyof typeof policyPackPresets;
+/** A built-in policy pack, by the name `policyRulePresets` exports it under. */
+export type PolicyPresetName = keyof typeof policyRulePresets;
 
 /** Corner the floating preferences button docks to. */
 export type TriggerPosition =
@@ -65,7 +68,7 @@ export interface ConsentBannerOptions {
 	legalLinks?: (keyof LegalLinks)[] | null;
 	/** Dim the page and stop it scrolling while the banner is up. */
 	scrollLock?: boolean;
-	/** Keep keyboard focus inside the banner. Defaults to `true`. */
+	/** Legacy blocking override. Prefer `presentation.prompt.blocking`. */
 	trapFocus?: boolean;
 }
 
@@ -114,8 +117,8 @@ export interface ConsentUIOptions {
 	/** Extra CSS appended after the bundled stylesheet. */
 	css?: string;
 	/**
-	 * Include the bundled stylesheet. Defaults to `true`. Set `false` when
-	 * the page already loads `@c15t/browser/styles.css`.
+	 * Include the bundled stylesheet. Defaults to `true`. With `shadow: false`,
+	 * set `false` when the page loads `@c15t/browser/styles.css`.
 	 */
 	styles?: boolean;
 	/** Ship the DOM without any class names, for fully custom CSS. */
@@ -131,9 +134,8 @@ export interface ConsentUIOptions {
 }
 
 /**
- * Everything `init()` accepts. Every field is JSON-serialisable except
- * `mode` as a factory, `scripts` callbacks and `callbacks`, so the same
- * object works queued as `c15t.push(['config', {...}])` on a no-code site.
+ * Everything `init()` accepts. Queue serializable options, transport
+ * factories, callbacks, and DOM containers through `c15t.push(['config', {...}])` on a no-code site.
  */
 export interface ConsentClientOptions {
 	/**
@@ -150,11 +152,11 @@ export interface ConsentClientOptions {
 	/** URL of the backend's `GET /manifest` for `manifest` mode. */
 	manifestURL?: string;
 	/**
-	 * Policy packs for `offline` mode. A preset name such as
-	 * `'europeOptIn'` stands in for `policyPackPresets.europeOptIn()`, so a
-	 * JSON config or a `data-policies` attribute can name them.
+	 * Policy rules for `offline` mode. A preset name such as
+	 * `'europeOptIn'` stands in for `policyRulePresets.europeOptIn()`, so a
+	 * JSON config or a `data-policy-rules` attribute can name them.
 	 */
-	policies?: (PolicyConfig | PolicyPresetName)[];
+	policyRules?: (PolicyRule | PolicyPresetName)[];
 	/** Categories the UI offers. Defaults to every category the policy allows. */
 	consentCategories?: AllConsentNames[];
 	/** Third-party scripts to load once their category is granted. */
@@ -180,10 +182,10 @@ export interface ConsentClientOptions {
 	networkBlocker?: RuntimeNetworkBlockerOptions | false;
 	/** Gate iframes by category. On by default. */
 	iframeBlocker?: ConsentRuntimeOptions['iframeBlocker'];
-	/** Reload the page when consent is withdrawn. Defaults to `true`. */
-	reloadOnConsentRevoked?: boolean;
 	/** `false` grants every category and mounts nothing. */
 	enabled?: boolean;
+	/** Host layout and behavior, resolved under the active policy constraints. */
+	presentation?: ConsentPresentation;
 	/** UI options, or `false` for headless use. */
 	ui?: ConsentUIOptions | false;
 	/** Package name reported on `window.c15t`. */
@@ -260,15 +262,17 @@ export interface ConsentClient {
 	/** Whether the visitor has already made a choice. */
 	hasConsented: () => boolean;
 	/** Grant every offered category and close the UI. */
-	acceptAll: () => Promise<void>;
+	acceptAll: () => Promise<SaveResult>;
 	/** Grant only strictly necessary and close the UI. */
-	rejectAll: () => Promise<void>;
+	rejectAll: () => Promise<SaveResult>;
 	/**
 	 * Persist a specific set of consents and close the UI.
 	 *
 	 * @param consents - Categories to grant or deny.
 	 */
-	save: (consents: Partial<ConsentState>) => Promise<void>;
+	save: (consents: Partial<ConsentState>) => Promise<SaveResult>;
+	/** Acknowledge a notice without recording category choices. */
+	dismissNotice: () => Promise<NoticeDismissResult>;
 	/** Show the banner. */
 	showBanner: () => void;
 	/** Open the preference centre. */

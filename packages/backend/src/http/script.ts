@@ -51,7 +51,7 @@ export interface ScriptOptions {
 	readonly config?: Readonly<Record<string, unknown>>;
 	/**
 	 * Bundle files to serve instead of the ones resolved from
-	 * `@c15t/browser`, for runtimes without a filesystem or a custom build.
+	 * `@c15t/browser`, for deployments with a custom bundle location. Paths require a filesystem.
 	 */
 	readonly bundles?: Partial<Readonly<Record<ScriptVariant, string>>>;
 }
@@ -180,8 +180,7 @@ export const buildScriptResponse = async function buildScriptResponse(
 		body: `${prelude}${bundle}`,
 		cacheControl: createManifestCacheControl(request.cache),
 		// The prelude hash covers the manifest revision, the backend URL and
-		// `script.config`, so a config change on the same URI invalidates;
-		// the bundle length stands in for its version.
-		etag: `"${createHash('sha1').update(prelude).digest('hex').slice(0, 16)}.${request.variant}.${bundle.length}"`,
+		// `script.config` and bundle bytes, so every representation change invalidates.
+		etag: `"${createHash('sha256').update(prelude).update(bundle).digest('hex').slice(0, 32)}.${request.variant}.${bundle.length}"`,
 	};
 };

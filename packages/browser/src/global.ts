@@ -2,7 +2,6 @@ import { custom, hosted } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
-	ConsentState,
 	HasCondition,
 	KernelUser,
 	Unsubscribe,
@@ -95,9 +94,10 @@ export interface C15tGlobal {
 	subscribe: (listener: (snapshot: ConsentSnapshot) => void) => Unsubscribe;
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
 	hasConsented: () => boolean;
-	acceptAll: () => Promise<void>;
-	rejectAll: () => Promise<void>;
-	save: (consents: Partial<ConsentState>) => Promise<void>;
+	acceptAll: ConsentClient['acceptAll'];
+	rejectAll: ConsentClient['rejectAll'];
+	save: ConsentClient['save'];
+	dismissNotice: ConsentClient['dismissNotice'];
 	showBanner: () => void;
 	openDialog: () => void;
 	closeDialog: () => void;
@@ -122,15 +122,29 @@ type GlobalWindow = Window & {
  *
  * @param api - The API object.
  */
-export const installGlobal = function installGlobal(api: C15tGlobal): void {
+export const installGlobal = function installGlobal(
+	api: C15tGlobal
+): C15tGlobal {
 	if (typeof window === 'undefined') {
-		return;
+		return api;
 	}
 	const target = window as GlobalWindow;
 	const existing = target[GLOBAL_NAME];
+	if (
+		existing !== null &&
+		typeof existing === 'object' &&
+		'pkg' in existing &&
+		typeof existing.pkg === 'string' &&
+		existing.pkg.startsWith('@c15t/browser') &&
+		'init' in existing &&
+		typeof existing.init === 'function' &&
+		'client' in existing
+	) {
+		return existing as C15tGlobal;
+	}
 	target[GLOBAL_NAME] = api;
 	if (!Array.isArray(existing)) {
-		return;
+		return api;
 	}
 	for (const call of existing as QueuedCall[]) {
 		const [method, ...args] = call;
@@ -139,6 +153,7 @@ export const installGlobal = function installGlobal(api: C15tGlobal): void {
 			(fn as (...params: unknown[]) => unknown)(...args);
 		}
 	}
+	return api;
 };
 
 /**
@@ -186,6 +201,7 @@ export const createGlobal = function createGlobal(
 		},
 		custom,
 		devtools: null,
+		dismissNotice: () => require().dismissNotice(),
 		dispose: () => {
 			api.devtools?.destroy();
 			api.devtools = null;
@@ -280,9 +296,9 @@ export const autoInit = function autoInit(
 	if (typeof document === 'undefined') {
 		return null;
 	}
-	const { manual, options } = readPageOptions(document.currentScript);
+	const { manual } = readPageOptions(document.currentScript);
 	if (manual || api.client) {
 		return api.client;
 	}
-	return api.init(options);
+	return api.init();
 };

@@ -59,7 +59,7 @@ Include these fields alongside the choice submission. Omit `fingerprint` for a n
 
 Matched policies retain their existing token or decision-assertion validation. No-match saves do not create a matched runtime policy decision. Queued retries keep the inputs captured when the visitor acted.
 
-### GET /c15t.js
+## GET /c15t.js
 
 The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI.
 
@@ -68,4 +68,3 @@ The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent ba
 | `language` | Slice the inlined manifest's translations to one language. |
 
 Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. Requires `@c15t/browser` next to `@c15t/backend`, or `script.bundles` pointing at the bundle files. Set `script.enabled: false` to remove both routes.
-

@@ -1,4 +1,4 @@
-import type { ConsentSnapshot, PolicyUiAction } from '@c15t/core';
+import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
 import { classes } from '../generated/styles';
@@ -11,17 +11,11 @@ import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 
 const DEFAULT_DURATION_MS = 200;
-const BANNER_MODELS: ReadonlySet<ConsentSnapshot['model']> = new Set([
-	'opt-in',
-]);
-
 /**
  * The cookie banner.
  *
- * Same DOM shape and `data-testid`s as the React, Svelte and Astro
- * banners, so cross-framework tests and the shared stylesheet both hold.
- * Shows when the kernel says `activeUI === 'banner'` under an opt-in
- * model; an opt-out policy shows nothing until the visitor asks.
+ * Reuses the framework banners' stylesheet classes and test IDs.
+ * Shows when the kernel requests a category choice or notice prompt.
  *
  * @param ctx - The mount context.
  * @param options - Copy and behaviour overrides.
@@ -34,8 +28,8 @@ export const createBanner = function createBanner(
 ): Surface {
 	const styles = classes.banner;
 	const { noStyle } = ctx;
-	const trapFocus = options.trapFocus ?? true;
-	const scrollLock = options.scrollLock ?? false;
+	let trapFocus = false;
+	let scrollLock = false;
 
 	let element: HTMLElement | null = null;
 	let overlay: HTMLElement | null = null;
@@ -43,23 +37,46 @@ export const createBanner = function createBanner(
 	let hideTimer: ReturnType<typeof setTimeout> | undefined;
 	let renderedFrom: {
 		translations: ConsentSnapshot['translations'];
-		policyBanner: ConsentSnapshot['policyBanner'];
+		policyRule: ConsentSnapshot['policyRule'];
 		branding: ConsentSnapshot['branding'];
 	} | null = null;
 
+	// oxlint-disable-next-line complexity -- Notice copy, action labels and presentation are resolved together.
 	const build = function build(snapshot: ConsentSnapshot): HTMLElement {
 		const copy = resolveCopy(snapshot);
 		const { t } = copy;
-		const labels: Record<PolicyUiAction, string> = {
+		const notice = snapshot.policyRule.prompt === 'notice';
+		const labels: Record<PresentationAction, string> = {
 			accept: options.acceptButtonText ?? t.common.acceptAll,
 			customize: options.customizeButtonText ?? t.common.customize,
+			dismiss: t.common.acknowledge,
 			reject: options.rejectButtonText ?? t.common.rejectAll,
+			save: t.common.save,
 		};
-		const title = options.title ?? t.cookieBanner.title;
-		const description = options.description ?? t.cookieBanner.description;
-		const actions = resolveActions(snapshot.policyBanner, {
-			primary: ['customize'],
-		});
+		const title =
+			options.title ??
+			(notice ? t.cookieBanner.noticeTitle : t.cookieBanner.title);
+		const description =
+			options.description ??
+			(notice ? t.cookieBanner.noticeDescription : t.cookieBanner.description);
+		const actions = resolveActions(
+			snapshot,
+			'prompt',
+			ctx.client.options.presentation,
+			{
+				scrollLock: options.scrollLock,
+				trapFocus: options.trapFocus,
+			}
+		);
+		({ trapFocus, scrollLock } = actions);
+		let { position } = actions;
+		if (copy.dir === 'rtl' && actions.positionSource === 'default') {
+			if (position.endsWith('-left')) {
+				position = position.replace('-left', '-right') as typeof position;
+			} else if (position.endsWith('-right')) {
+				position = position.replace('-right', '-left') as typeof position;
+			}
+		}
 
 		const card = h(
 			'div',
@@ -113,6 +130,8 @@ export const createBanner = function createBanner(
 						void ctx.client.acceptAll();
 					} else if (action === 'reject') {
 						void ctx.client.rejectAll();
+					} else if (action === 'dismiss') {
+						void ctx.client.dismissNotice();
 					} else {
 						ctx.client.openDialog();
 					}
@@ -122,12 +141,33 @@ export const createBanner = function createBanner(
 			})
 		);
 
+		for (const control of actions.preferenceControls) {
+			card.append(
+				h(
+					'button',
+					{
+						class: noStyle ? '' : classes.button.button,
+						'data-action': 'customize',
+						'data-mode': noStyle ? undefined : 'stroke',
+						'data-size': noStyle ? undefined : 'small',
+						'data-testid': `consent-banner-right-${control}-button`,
+						'data-variant': noStyle ? undefined : 'neutral',
+						onclick: () => ctx.client.openDialog(),
+						type: 'button',
+					},
+					control === 'opt-out' ? t.rights.optOut : t.rights.preferences
+				)
+			);
+		}
+
 		const root = h(
 			'div',
 			{
 				class: noStyle ? '' : styles.root,
-				'data-position': copy.dir === 'ltr' ? 'bottom-left' : 'bottom-right',
+				'data-blocking': String(actions.blocking),
+				'data-position': position,
 				'data-testid': 'consent-banner-root',
+				'data-variant': actions.variant,
 				dir: copy.dir,
 				lang: copy.language,
 			},
@@ -146,12 +186,6 @@ export const createBanner = function createBanner(
 			)
 		);
 
-		if (trapFocus) {
-			cleanups.push(setupFocusTrap(card));
-		}
-		if (scrollLock) {
-			cleanups.push(setupScrollLock());
-		}
 		return root;
 	};
 
@@ -176,7 +210,7 @@ export const createBanner = function createBanner(
 		element = build(snapshot);
 		renderedFrom = {
 			branding: snapshot.branding,
-			policyBanner: snapshot.policyBanner,
+			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
 		if (scrollLock) {
@@ -188,6 +222,12 @@ export const createBanner = function createBanner(
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(element);
+		if (trapFocus) {
+			cleanups.push(setupFocusTrap(element));
+		}
+		if (scrollLock) {
+			cleanups.push(setupScrollLock());
+		}
 		if (noStyle) {
 			return;
 		}
@@ -206,9 +246,13 @@ export const createBanner = function createBanner(
 	};
 
 	const hide = function hide(): void {
-		if (!element) {
+		if (!element || hideTimer !== undefined) {
 			return;
 		}
+		for (const cleanup of cleanups) {
+			cleanup();
+		}
+		cleanups = [];
 		if (noStyle || ctx.disableAnimation) {
 			removeNow();
 			return;
@@ -229,7 +273,9 @@ export const createBanner = function createBanner(
 		},
 		sync(snapshot) {
 			const shouldShow =
-				snapshot.activeUI === 'banner' && BANNER_MODELS.has(snapshot.model);
+				snapshot.activeUI === 'banner' &&
+				snapshot.model !== 'iab' &&
+				snapshot.policyRule.prompt !== 'none';
 			if (!shouldShow) {
 				hide();
 				return;
@@ -239,7 +285,7 @@ export const createBanner = function createBanner(
 				hideTimer === undefined &&
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
-				renderedFrom.policyBanner === snapshot.policyBanner &&
+				renderedFrom.policyRule === snapshot.policyRule &&
 				renderedFrom.branding === snapshot.branding
 			) {
 				return;

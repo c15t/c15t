@@ -42,7 +42,10 @@ export const mountDevTools = function mountDevTools(
 ): DevToolsInstance {
 	return createDevTools({
 		...options,
+		clearRecords: options.clearRecords ?? client.runtime.clearRecords,
 		getConsentCategories: () => client.consentCategories,
+		getPresentation:
+			options.getPresentation ?? (() => client.options.presentation),
 		kernel: client.kernel,
 	});
 };

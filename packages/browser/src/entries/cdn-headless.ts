@@ -8,6 +8,5 @@
 
 import { autoInit, createGlobal, installGlobal } from '../global';
 
-const api = createGlobal({ pkg: '@c15t/browser/headless' });
-installGlobal(api);
+const api = installGlobal(createGlobal({ pkg: '@c15t/browser/headless' }));
 autoInit(api);

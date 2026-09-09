@@ -1,5 +1,9 @@
 import type { ConsentManifest } from '@c15t/schema/types';
-import { policyDefaults } from '@c15t/schema/types';
+import {
+	createConsentManifestPolicyPack,
+	policyRulePresets,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
@@ -21,46 +25,29 @@ const everywhereManifest: ConsentManifest = {
 	branding: 'c15t',
 	defaults: { disableGeoLocation: true },
 	policyPacks: [
-		{
-			fingerprint: 'everywhere',
-			policy: {
-				consent: { model: 'opt-in' },
-				id: 'everywhere',
-				match: { isDefault: true },
-			},
-			resolvedPolicy: policyDefaults.offlineOptInBanner(),
-		},
+		createConsentManifestPolicyPack({
+			...policyRulePresets.europeOptIn(),
+			id: 'everywhere',
+			match: { isDefault: true },
+		}),
 	],
 	revision: '1',
-	schemaVersion: 1,
+	schemaVersion: 2,
 };
 
 const geoManifest: ConsentManifest = {
 	...everywhereManifest,
 	defaults: {},
 	policyPacks: [
-		{
-			fingerprint: 'eu',
-			policy: {
-				consent: { model: 'opt-in' },
-				id: 'eu',
-				match: { countries: ['DE', 'FR'] },
-			},
-			resolvedPolicy: policyDefaults.offlineOptInBanner(),
-		},
+		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
 	],
 };
 
 const initResponse = function initResponse(): Response {
 	return new Response(
-		JSON.stringify({
-			branding: 'c15t',
-			hasConsented: false,
-			location: { countryCode: 'DE', regionCode: null },
-			policy: policyDefaults.offlineOptInBanner(),
-			policyDecision: { fingerprint: 'eu', matchedBy: 'country' },
-			translations: { language: 'en', translations: {} },
-		}),
+		JSON.stringify(
+			resolveInitFromManifest(geoManifest, { country: 'DE', language: 'en' })
+		),
 		{ headers: { 'content-type': 'application/json' }, status: 200 }
 	);
 };
@@ -95,6 +82,55 @@ describe('manifestNeedsLocation', () => {
 });
 
 describe('manifest()', () => {
+	it('sends the locally resolved policy assertion when saving', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(
+				new Response(JSON.stringify({ ok: true, subjectId: 'sub_browser1' }))
+			)
+		);
+		const client = createConsentClient({
+			mode: manifest({
+				backendURL: 'https://example.test',
+				fetch: fetchSpy,
+				manifest: everywhereManifest,
+			}),
+		});
+		clients.push(client);
+		client.start();
+		await client.ready();
+		await client.acceptAll();
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			'https://example.test/subjects'
+		);
+		const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body));
+		expect(body.policyId).toBe('everywhere');
+		expect(body.fingerprint).toEqual(expect.any(String));
+		expect(body.choice.categories.measurement.value).toBe(true);
+	});
+
+	it('resolves an unknown region through the backend even when the country is known', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(() => Promise.resolve(initResponse()));
+		const client = createConsentClient({
+			mode: manifest({
+				backendURL: 'https://example.test',
+				fetch: fetchSpy,
+				manifest: {
+					...geoManifest,
+					policyPacks: [
+						createConsentManifestPolicyPack(
+							policyRulePresets.usPrivacyStatesOptOut()
+						),
+					],
+				},
+			}),
+			overrides: { country: 'US' },
+		});
+		clients.push(client);
+		client.start();
+		await client.ready();
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+	});
 	it('throws without a manifest source', () => {
 		expect(() => manifest({})).toThrow(/manifest/u);
 	});
@@ -119,8 +155,8 @@ describe('manifest()', () => {
 
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(snapshot.activeUI).toBe('banner');
-		expect(snapshot.policy?.id).toBe(
-			everywhereManifest.policyPacks?.[0]?.resolvedPolicy.id
+		expect(snapshot.policyRule.id).toBe(
+			everywhereManifest.policyPacks?.[0]?.rule.id
 		);
 		expect(snapshot.translations?.language).toBe('en');
 	});

@@ -1,3 +1,4 @@
+import { resolveConsentPresentation } from '@c15t/core';
 import type { ConsentSnapshot } from '@c15t/core';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
@@ -11,10 +12,6 @@ import type { Surface, SurfaceContext } from './surface';
 import { createWidget } from './widget';
 
 const DEFAULT_DURATION_MS = 200;
-const DIALOG_MODELS: ReadonlySet<ConsentSnapshot['model']> = new Set([
-	'opt-in',
-	'opt-out',
-]);
 
 /**
  * The preference centre dialog.
@@ -44,6 +41,7 @@ export const createDialog = function createDialog(
 	let renderedFrom: {
 		translations: ConsentSnapshot['translations'];
 		branding: ConsentSnapshot['branding'];
+		policyRule: ConsentSnapshot['policyRule'];
 	} | null = null;
 
 	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
@@ -64,7 +62,13 @@ export const createDialog = function createDialog(
 			{
 				'aria-describedby': 'consent-dialog-description',
 				'aria-labelledby': 'consent-dialog-title',
-				'aria-modal': 'true',
+				'aria-modal': resolveConsentPresentation({
+					policy: snapshot.policyRule,
+					presentation: ctx.client.options.presentation,
+					surface: 'preferences',
+				}).blocking
+					? 'true'
+					: undefined,
 				class: noStyle ? '' : styles.container,
 				'data-state': 'open',
 				'data-testid': 'consent-dialog-root',
@@ -144,6 +148,7 @@ export const createDialog = function createDialog(
 		});
 		renderedFrom = {
 			branding: snapshot.branding,
+			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
 	};
@@ -189,7 +194,16 @@ export const createDialog = function createDialog(
 			return;
 		}
 		ctx.root.append(overlay, positioner);
-		cleanups.push(setupScrollLock(), setupFocusTrap(content));
+		const { blocking } = resolveConsentPresentation({
+			policy: snapshot.policyRule,
+			presentation: ctx.client.options.presentation,
+			surface: 'preferences',
+		});
+		if (blocking) {
+			cleanups.push(setupScrollLock(), setupFocusTrap(content));
+		} else {
+			overlay.hidden = true;
+		}
 		if (noStyle) {
 			return;
 		}
@@ -203,9 +217,13 @@ export const createDialog = function createDialog(
 	};
 
 	const close = function close(): void {
-		if (!positioner) {
+		if (!positioner || closeTimer !== undefined) {
 			return;
 		}
+		for (const cleanup of cleanups) {
+			cleanup();
+		}
+		cleanups = [];
 		widget?.resetDraft();
 		if (noStyle || ctx.disableAnimation) {
 			removeNow();
@@ -226,7 +244,7 @@ export const createDialog = function createDialog(
 		},
 		sync(snapshot) {
 			const shouldShow =
-				snapshot.activeUI === 'dialog' && DIALOG_MODELS.has(snapshot.model);
+				snapshot.activeUI === 'dialog' && snapshot.model !== 'iab';
 			if (!shouldShow) {
 				close();
 				return;
@@ -236,7 +254,8 @@ export const createDialog = function createDialog(
 				closeTimer === undefined &&
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
-				renderedFrom.branding === snapshot.branding
+				renderedFrom.branding === snapshot.branding &&
+				renderedFrom.policyRule === snapshot.policyRule
 			) {
 				widget?.sync(snapshot);
 				return;

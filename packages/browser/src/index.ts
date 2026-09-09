@@ -11,7 +11,7 @@
  * import '@c15t/browser/styles.css'; // only with `ui: { shadow: false }`
  *
  * const c15t = init({ backendURL: 'https://your-instance.c15t.dev' });
- * c15t.on('consent', (snapshot) => console.log(snapshot.consents));
+ * c15t.on('consent', (snapshot) => console.log(snapshot.effectivePermissions));
  * ```
  */
 
@@ -49,7 +49,7 @@ export const init = function init(
 
 export { ACTION_ATTRIBUTE, custom, hosted, PREFERENCES_HASH } from './client';
 export type { PageAction } from './client';
-export { resolvePolicies } from './client';
+export { resolveRules } from './client';
 export {
 	ACTIVATED_ATTRIBUTE,
 	activateGatedScripts,

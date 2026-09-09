@@ -1,4 +1,4 @@
-import { allConsentNames, has } from '@c15t/core';
+import { allConsentNames, evaluateConsent } from '@c15t/core';
 import type { AllConsentNames, ConsentSnapshot } from '@c15t/core';
 
 /** Attribute that names the category an inert `<script>` waits on. */
@@ -51,7 +51,7 @@ const activate = function activate(element: HTMLScriptElement): void {
  *
  * The same contract `@c15t/astro` uses, so a tag written for one works in
  * the other. Each script runs at most once; withdrawing consent afterwards
- * is handled by the page reload the runtime performs.
+ * requires vendor cleanup or a page reload.
  *
  * @param snapshot - The kernel snapshot.
  * @param root - Where to look. Defaults to the document.
@@ -61,7 +61,7 @@ export const activateGatedScripts = function activateGatedScripts(
 	snapshot: ConsentSnapshot,
 	root: ParentNode = document
 ): number {
-	const selector = `script[${CATEGORY_ATTRIBUTE}]:not([${ACTIVATED_ATTRIBUTE}])`;
+	const selector = `script[type="text/plain"][${CATEGORY_ATTRIBUTE}]:not([${ACTIVATED_ATTRIBUTE}])`;
 	let activated = 0;
 	for (const element of root.querySelectorAll<HTMLScriptElement>(selector)) {
 		const category = element.getAttribute(CATEGORY_ATTRIBUTE);
@@ -78,10 +78,10 @@ export const activateGatedScripts = function activateGatedScripts(
 			element.setAttribute(ACTIVATED_ATTRIBUTE, 'invalid');
 			continue;
 		}
-		const allowed = has(category as AllConsentNames, snapshot.consents, {
-			policyCategories: snapshot.policyCategories as string[] | null,
-			policyScopeMode: snapshot.policyScopeMode,
-		});
+		const allowed = evaluateConsent(
+			{ category: category as AllConsentNames },
+			snapshot
+		);
 		if (!allowed) {
 			continue;
 		}

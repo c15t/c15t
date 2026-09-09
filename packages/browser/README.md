@@ -42,9 +42,8 @@ Paste before `</head>`:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js"
   data-backend-url="https://your-instance.c15t.dev"
-  data-categories="measurement,marketing"
   defer
 ></script>
 ```

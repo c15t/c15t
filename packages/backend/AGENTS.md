@@ -12,3 +12,9 @@ Run the c15t backend, configure storage, and operate consent infrastructure.
 - [Endpoints](./docs/self-host/api/endpoints.md): HTTP endpoints exposed by the self-hosted backend.
 - [Database Setup](./docs/self-host/guides/database-setup.md): Connect the backend to a supported database.
 - [Quickstart](./docs/self-host/quickstart.md): Self-host the c15t consent backend in your own infrastructure.
+
+## Reference
+
+Concepts, legal templates, open-source policies, and contributor documentation.
+
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.

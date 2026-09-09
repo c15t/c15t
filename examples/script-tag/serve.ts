@@ -34,6 +34,7 @@ const pages: Record<string, string> = {
 	'/custom': here('./custom.html'),
 	'/embed/map.html': here('./embed/map.html'),
 	'/embed/video.html': here('./embed/video.html'),
+	'/styled': here('./styled.html'),
 	'/vendor/analytics.js': here('./vendor/analytics.js'),
 	'/vendor/chat-widget.js': here('./vendor/chat-widget.js'),
 };

@@ -38,10 +38,30 @@ afterEach(() => {
 });
 
 describe('gated inline scripts', () => {
+	it('does not execute an ordinary script again', () => {
+		const script = inertScript('necessary', 'window.__once = true;');
+		script.type = 'text/javascript';
+		const client = createConsentClient({ ui: false });
+		clients.push(client);
+		expect(activateGatedScripts(client.getSnapshot())).toBe(0);
+		expect(document.querySelector('script')).toBe(script);
+	});
+
+	it('activates inert scripts inserted after initialization', async () => {
+		const client = createConsentClient({ ui: false });
+		clients.push(client);
+		client.start();
+		await client.ready();
+		const script = inertScript('necessary', 'window.__late = true;');
+		await vi.waitFor(() => expect(script.isConnected).toBe(false));
+		expect(
+			document.querySelector('[data-c15t-activated="true"]')
+		).not.toBeNull();
+	});
 	it('activates a script once its category is granted', async () => {
 		inertScript('measurement', 'window.__gated = (window.__gated ?? 0) + 1;');
 		const client = createConsentClient(
-			{ consentCategories: ['measurement'], reloadOnConsentRevoked: false },
+			{ consentCategories: ['measurement'] },
 			{ pkg: 'test' }
 		);
 		clients.push(client);

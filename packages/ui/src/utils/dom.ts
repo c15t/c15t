@@ -234,12 +234,21 @@ const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
 	return null;
 };
 
+/** Read focus inside nested shadow roots as well as the document. */
+const readActiveElement = (): Element | null => {
+	let active = document.activeElement;
+	while (active?.shadowRoot?.activeElement) {
+		active = active.shadowRoot.activeElement;
+	}
+	return active;
+};
+
 /**
  * Traps focus within a container.
  * @returns Cleanup function to remove listeners and restore focus
  */
 export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
-	const activeElement = document.activeElement as HTMLElement | null;
+	const activeElement = readActiveElement() as HTMLElement | null;
 	const previousFocus =
 		activeElement &&
 		activeElement !== document.body &&
@@ -253,9 +262,9 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 	if (container.tabIndex < 0) {
 		container.tabIndex = -1;
 	}
-	setTimeout(() => {
+	const focusTimer = setTimeout(() => {
 		try {
-			const activeElementLocal = document.activeElement;
+			const activeElementLocal = readActiveElement();
 			if (
 				activeElementLocal instanceof HTMLElement &&
 				activeElementLocal !== document.body &&
@@ -283,7 +292,7 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const firstElement = elements[0];
 		const lastElement = elements[elements.length - 1];
-		const active = document.activeElement as HTMLElement | null;
+		const active = readActiveElement() as HTMLElement | null;
 		const inside = active
 			? active === container || container.contains(active)
 			: false;
@@ -311,6 +320,7 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 	document.addEventListener('keydown', handleKeyDown);
 
 	return () => {
+		clearTimeout(focusTimer);
 		document.removeEventListener('keydown', handleKeyDown);
 
 		// Restore focus when trap is disabled. If the previously-focused

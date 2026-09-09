@@ -57,7 +57,7 @@ describe('mountDevTools', () => {
 		const client = createConsentClient(
 			{
 				overrides: { country: 'DE' },
-				policies: ['europeOptIn', 'worldNoBanner'],
+				policyRules: ['europeOptIn', 'worldNone'],
 				ui: false,
 			},
 			{ pkg: 'test' }
@@ -72,7 +72,7 @@ describe('mountDevTools', () => {
 		await devtools.actions.init();
 
 		expect(client.getSnapshot().activeUI).toBe('none');
-		expect(client.getSnapshot().model).toBeNull();
+		expect(client.getSnapshot().model).toBe('none');
 		devtools.destroy();
 	});
 });

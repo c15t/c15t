@@ -1,100 +1,47 @@
-import { createOfflineTransport } from '@c15t/core';
-import type {
-	InitContext,
-	InitResponse,
-	KernelConfig,
-	KernelTransport,
-	PolicyConfig,
-	ProviderTransportContext,
-	ProviderTransportFactory,
-} from '@c15t/core';
-import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
+import type { ProviderTransportFactory, InitContext } from '@c15t/core';
+import {
+	recommendedPolicyRules,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import type { PolicyRule } from '@c15t/schema/types';
 
-/** Options for {@link offline}. */
+/** Policy rules evaluated locally when initialization runs. */
 export interface OfflineModeOptions {
 	/**
-	 * Policy packs to resolve against the visitor's geo overrides. Without
-	 * any, every visitor gets an opt-in banner for the configured
-	 * categories.
+	 * Rules to resolve locally. Omit them to use `recommendedPolicyRules()`:
+	 * strict opt-in for Europe, the UK, Quebec and unknown locations, opt-out
+	 * for the US states with a privacy law, and `none` everywhere else.
+	 * Passing rules replaces that pack entirely.
 	 */
-	policyPacks?: PolicyConfig[];
+	policyRules?: PolicyRule[];
 }
 
-const buildInlinePolicy = function buildInlinePolicy(
-	categories: ProviderTransportContext['consentCategories']
-): KernelConfig['initialPolicy'] {
-	const fallback = policyDefaults.offlineOptInBanner();
-	const inline = buildDefaultOptInPolicy(categories);
-	return {
-		...inline,
-		consent: { ...fallback.consent, ...inline.consent },
-		ui: fallback.ui,
-	};
-};
-
 /**
- * Consent kept in the browser only, with no backend.
- *
- * The same factory `@c15t/react`, `@c15t/svelte` and `@c15t/astro` ship;
- * `@c15t/core` exposes only the transport, so each adapter wires it up.
- *
- * @param options - Optional policy packs.
- * @returns A transport factory for `mode`.
- *
- * @example
- * ```ts
- * init({ mode: offline(), consentCategories: ['measurement'] });
- * ```
+ * Resolve local rules outside render and hydration.
+ * @param options - Explicit policy rules; absence resolves the recommended pack.
+ * @returns A provider transport with no network requests.
  */
 export const offline = function offline(
 	options: OfflineModeOptions = {}
 ): ProviderTransportFactory {
-	const createTransport = function createTransport(
-		context: ProviderTransportContext
-	): KernelTransport {
-		const policyPacks =
-			options.policyPacks ??
-			context.policies ??
-			context.offlinePolicy?.policyPacks;
-		const baseTransport = createOfflineTransport({
-			// A pack whose model is `iab` only resolves when a CMP is
-			// configured; without this an offline IAB site fell through to
-			// the no-banner fallback.
-			iabEnabled: context.iabEnabled,
-			policyPacks,
-			translations: context.translations,
-		});
-		const configuredPolicy =
-			context.prefetch.initialPolicy ?? context.offlinePolicy?.policy;
-		const policy =
-			configuredPolicy ??
-			(policyPacks === undefined
-				? buildInlinePolicy(context.consentCategories)
-				: undefined);
-		if (!policy) {
-			return baseTransport;
-		}
-		return {
-			...baseTransport,
-			async init(initContext: InitContext): Promise<InitResponse> {
-				const response = (await baseTransport.init?.(initContext)) ?? {};
-				return {
-					...response,
-					branding: context.prefetch.initialBranding ?? response.branding,
-					policy,
-					policyDecision:
-						context.prefetch.initialPolicyDecision ??
-						context.offlinePolicy?.policyDecision ??
-						response.policyDecision,
-					policySnapshotToken:
-						context.prefetch.initialPolicySnapshotToken ??
-						context.offlinePolicy?.policySnapshotToken ??
-						response.policySnapshotToken,
-					translations:
-						context.prefetch.initialTranslations ?? response.translations,
-				};
-			},
-		};
-	};
-	return Object.assign(createTransport, { kind: 'offline' as const });
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]) => ({
+			init: ({ overrides }: InitContext) =>
+				Promise.resolve({
+					policyResolution: writePolicyResolutionWire(
+						resolvePolicyRules({
+							countryCode: overrides.country ?? null,
+							iabEnabled: context.iabEnabled,
+							regionCode: overrides.region ?? null,
+							rules:
+								options.policyRules ??
+								recommendedPolicyRules({ iab: context.iabEnabled }),
+						})
+					),
+					translations: context.translations,
+				}),
+		}),
+		{ kind: 'offline' as const }
+	);
 };

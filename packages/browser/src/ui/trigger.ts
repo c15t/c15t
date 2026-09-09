@@ -193,7 +193,7 @@ export const createTrigger = function createTrigger(
 			element.remove();
 		},
 		sync(snapshot: ConsentSnapshot) {
-			const allowed = showWhen === 'always' || snapshot.hasConsented;
+			const allowed = showWhen === 'always' || snapshot.explicitChoice !== null;
 			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
 			applyClasses(snapTimer !== undefined);

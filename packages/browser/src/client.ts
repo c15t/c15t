@@ -1,10 +1,4 @@
-import {
-	allConsentNames,
-	custom,
-	has,
-	hosted,
-	policyPackPresets,
-} from '@c15t/core';
+import { custom, evaluateConsent, hosted, policyRulePresets } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
@@ -13,7 +7,9 @@ import type {
 	KernelActiveUI,
 	KernelOverrides,
 	KernelUser,
-	PolicyConfig,
+	PolicyRule,
+	SaveResult,
+	SaveInput,
 	ProviderTransportFactory,
 	Unsubscribe,
 } from '@c15t/core';
@@ -42,13 +38,20 @@ export const ACTION_ATTRIBUTE = 'data-c15t-action';
 export const PREFERENCES_HASH = '#c15t-preferences';
 
 /** Values `data-c15t-action` accepts. */
-export type PageAction = 'accept' | 'reject' | 'customize' | 'close' | 'banner';
+export type PageAction =
+	| 'accept'
+	| 'reject'
+	| 'customize'
+	| 'dismiss'
+	| 'close'
+	| 'banner';
 
 const PAGE_ACTIONS: ReadonlySet<string> = new Set<PageAction>([
 	'accept',
 	'reject',
 	'customize',
 	'close',
+	'dismiss',
 	'banner',
 ]);
 
@@ -66,29 +69,29 @@ interface ResolvedMode {
 }
 
 /**
- * Turn preset names into policy packs.
+ * Turn preset names into policy rules.
  *
- * @param policies - Packs, preset names, or a mix.
- * @returns Packs only, or `undefined` when none were given.
- * @throws {Error} On a name `policyPackPresets` does not export.
+ * @param policyRules - Rules, preset names, or a mix.
+ * @returns Rules only, or `undefined` when none were given.
+ * @throws {Error} On a name `policyRulePresets` does not export.
  */
-export const resolvePolicies = function resolvePolicies(
-	policies: ConsentClientOptions['policies']
-): PolicyConfig[] | undefined {
-	if (!policies) {
+export const resolveRules = function resolveRules(
+	policyRules: ConsentClientOptions['policyRules']
+): PolicyRule[] | undefined {
+	if (!policyRules) {
 		return undefined;
 	}
-	return policies.map((entry) => {
+	return policyRules.map((entry) => {
 		if (typeof entry !== 'string') {
 			return entry;
 		}
 		// Own keys only: `'constructor'` would otherwise resolve to Object.
-		const preset = Object.hasOwn(policyPackPresets, entry)
-			? (policyPackPresets[entry] as () => PolicyConfig)
+		const preset = Object.hasOwn(policyRulePresets, entry)
+			? (policyRulePresets[entry] as () => PolicyRule)
 			: undefined;
 		if (typeof preset !== 'function') {
 			throw new Error(
-				`@c15t/browser: unknown policy preset "${entry}". Expected one of ${Object.keys(policyPackPresets).join(', ')}.`
+				`@c15t/browser: unknown policy preset "${entry}". Expected one of ${Object.keys(policyRulePresets).join(', ')}.`
 			);
 		}
 		return preset();
@@ -135,7 +138,7 @@ const resolveMode = function resolveMode(
 		};
 	}
 	return {
-		factory: offline({ policyPacks: resolvePolicies(options.policies) }),
+		factory: offline({ policyRules: resolveRules(options.policyRules) }),
 		name,
 	};
 };
@@ -148,12 +151,10 @@ const resolveConsentCategories = function resolveConsentCategories(
 	snapshot: ConsentSnapshot,
 	configured: readonly AllConsentNames[]
 ): AllConsentNames[] {
-	const { policyCategories } = snapshot;
-	const available = policyCategories.some(
-		(category) => category !== 'necessary'
-	)
-		? policyCategories
-		: allConsentNames;
+	const available: AllConsentNames[] = [
+		'necessary',
+		...snapshot.policyRule.scope,
+	];
 	if (configured.length === 0) {
 		return Array.from(available);
 	}
@@ -195,9 +196,8 @@ const resolvePageAction = function resolvePageAction(
 /**
  * Create the page's consent client without starting it.
  *
- * Construction hydrates stored consent synchronously, so a returning
- * visitor's first paint already knows there is nothing to show. Call
- * {@link ConsentClient.start} to resolve the policy and mount the UI.
+ * Construction has no DOM or storage effects. Call {@link ConsentClient.start}
+ * to hydrate stored records, resolve the policy and mount the UI.
  *
  * @param options - Client options.
  * @param context - Entry-point wiring.
@@ -221,9 +221,9 @@ export const createConsentClient = function createConsentClient(
 		networkBlocker: options.networkBlocker,
 		overrides: options.overrides,
 		pkg: options.pkg ?? context.pkg ?? '@c15t/browser',
-		policies: resolvePolicies(options.policies),
+		policyRules: resolveRules(options.policyRules),
 		prefetch: options.prefetch,
-		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
+		presentation: options.presentation,
 		scripts: options.scripts,
 		storageConfig: options.storageConfig,
 		user: options.user,
@@ -270,25 +270,24 @@ export const createConsentClient = function createConsentClient(
 
 	const initial = kernel.getSnapshot();
 	let lastActiveUI: KernelActiveUI = initial.activeUI;
-	let lastConsents = initial.consents;
-	let lastHasConsented = initial.hasConsented;
+	let lastConsents = initial.effectivePermissions;
+	let lastHasConsented = initial.explicitChoice;
 	const disposers: (() => void)[] = [
 		kernel.events.on('init:applied', ({ snapshot }) => {
 			markReady(snapshot);
 		}),
-		kernel.events.on('init:failed', ({ error }) => {
+		kernel.events.on('command:error', ({ error }) => {
 			emit('error', error);
 		}),
-		// One subscription rather than per-command events: a save, a draft
-		// write and a hydration all change `consents`, and listeners want
-		// every one of them.
+		// Saves and hydration can change permissions or explicit receipts;
+		// one subscription observes both paths.
 		kernel.subscribe((snapshot) => {
 			if (
-				snapshot.consents !== lastConsents ||
-				snapshot.hasConsented !== lastHasConsented
+				snapshot.effectivePermissions !== lastConsents ||
+				snapshot.explicitChoice !== lastHasConsented
 			) {
-				lastConsents = snapshot.consents;
-				lastHasConsented = snapshot.hasConsented;
+				lastConsents = snapshot.effectivePermissions;
+				lastHasConsented = snapshot.explicitChoice;
 				if (started) {
 					activateGatedScripts(snapshot);
 				}
@@ -305,24 +304,44 @@ export const createConsentClient = function createConsentClient(
 		return resolveConsentCategories(kernel.getSnapshot(), configuredCategories);
 	};
 
-	// The actions the UI, the page and the API all share.
-	const closeSurfaces = function closeSurfaces(): void {
+	// Explicit navigation invalidates an older save's attempt to close the UI.
+	let navigation = 0;
+	const closeSurfaces = (): void => {
+		navigation += 1;
 		kernel.set.activeUI('none');
 	};
-	const openDialog = function openDialog(): void {
+	const openDialog = (): void => {
+		navigation += 1;
 		kernel.set.activeUI('dialog');
 	};
-	const showBanner = function showBanner(): void {
+	const showBanner = (): void => {
+		navigation += 1;
 		kernel.set.activeUI('banner');
 	};
-	const acceptAll = async function acceptAll(): Promise<void> {
-		closeSurfaces();
-		await kernel.commands.save('all', { categories: categories() });
+	const saveSelection = async (input: SaveInput): Promise<SaveResult> => {
+		navigation += 1;
+		const current = navigation;
+		const surface = kernel.getSnapshot().activeUI;
+		const { fingerprint } = kernel.getSnapshot().evaluationPolicy.choice;
+		const pending = kernel.commands.save(input, { categories: categories() });
+		// Local recording can close the surface before the transport answers.
+		kernel.set.activeUI(surface);
+		const result = await pending;
+		if (
+			result.ok &&
+			current === navigation &&
+			fingerprint === kernel.getSnapshot().evaluationPolicy.choice.fingerprint
+		) {
+			kernel.set.activeUI(
+				kernel.getSnapshot().promptRequirement.kind === 'none'
+					? 'none'
+					: 'banner'
+			);
+		}
+		return result;
 	};
-	const rejectAll = async function rejectAll(): Promise<void> {
-		closeSurfaces();
-		await kernel.commands.save('none', { categories: categories() });
-	};
+	const acceptAll = (): Promise<SaveResult> => saveSelection('all');
+	const rejectAll = (): Promise<SaveResult> => saveSelection('none');
 
 	const onPageClick = function onPageClick(event: MouseEvent): void {
 		const action = resolvePageAction(event.target);
@@ -343,6 +362,10 @@ export const createConsentClient = function createConsentClient(
 				openDialog();
 				break;
 			}
+			case 'dismiss': {
+				void kernel.commands.dismissNotice();
+				break;
+			}
 			case 'banner': {
 				showBanner();
 				break;
@@ -359,11 +382,13 @@ export const createConsentClient = function createConsentClient(
 		get consentCategories() {
 			return categories();
 		},
+		dismissNotice: () => kernel.commands.dismissNotice(),
 		dispose() {
 			if (disposed) {
 				return;
 			}
 			disposed = true;
+			navigation += 1;
 			started = false;
 			detachPageActions?.();
 			detachPageActions = null;
@@ -380,14 +405,10 @@ export const createConsentClient = function createConsentClient(
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = kernel.getSnapshot();
-			const policyCategories = Array.from(snapshot.policyCategories);
-			return has(condition, snapshot.consents as ConsentState, {
-				policyCategories: policyCategories.length > 0 ? policyCategories : null,
-				policyScopeMode: snapshot.policyScopeMode,
-			});
+			return evaluateConsent({ category: condition }, snapshot);
 		},
 		hasConsented() {
-			return kernel.getSnapshot().hasConsented;
+			return kernel.getSnapshot().explicitChoice !== null;
 		},
 		async identify(user: KernelUser) {
 			await runtime.identify(user);
@@ -433,14 +454,12 @@ export const createConsentClient = function createConsentClient(
 		},
 		rejectAll,
 		runtime,
-		async save(consents: Partial<ConsentState>) {
+		save(consents: Partial<ConsentState>) {
 			const allowed = new Set<string>(categories());
-			closeSurfaces();
-			await kernel.commands.save(
+			return saveSelection(
 				Object.fromEntries(
 					Object.entries(consents).filter(([name]) => allowed.has(name))
-				),
-				{ categories: categories() }
+				)
 			);
 		},
 		setLanguage(code: string) {
@@ -460,6 +479,14 @@ export const createConsentClient = function createConsentClient(
 			// Inert `<script type="text/plain" data-c15t-category>` tags a
 			// returning visitor already consented to run straight away.
 			activateGatedScripts(kernel.getSnapshot());
+			const observer = new MutationObserver(() =>
+				activateGatedScripts(kernel.getSnapshot())
+			);
+			observer.observe(document.documentElement, {
+				childList: true,
+				subtree: true,
+			});
+			disposers.push(() => observer.disconnect());
 			if (options.enabled === false) {
 				// Nothing will ever resolve a policy; do not leave `ready()`
 				// hanging for callers that gate analytics on it.

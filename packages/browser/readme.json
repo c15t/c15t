@@ -19,7 +19,7 @@
 		"",
 		"Paste before `</head>`:",
 		"",
-		"```html\n<script\n  src=\"https://cdn.jsdelivr.net/npm/@c15t/browser@0.1/dist/c15t.js\"\n  data-backend-url=\"https://your-instance.c15t.dev\"\n  data-categories=\"measurement,marketing\"\n  defer\n></script>\n```",
+		"```html\n<script\n  src=\"https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js\"\n  data-backend-url=\"https://your-instance.c15t.dev\"\n  defer\n></script>\n```",
 		"",
 		"Drop `data-backend-url` for offline mode. Load `dist/c15t.headless.js` instead for the runtime without any UI.",
 		"",

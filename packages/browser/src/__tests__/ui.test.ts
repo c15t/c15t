@@ -1,3 +1,4 @@
+import { policyRulePresets } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
@@ -31,7 +32,14 @@ const mount = async function mount(
 		{
 			consentCategories: ['measurement', 'marketing'],
 			legalLinks: { privacyPolicy: { href: '/privacy' } },
-			reloadOnConsentRevoked: false,
+			policyRules: [
+				{
+					...policyRulePresets.europeOptIn(),
+					categories: ['measurement', 'marketing'],
+					match: { isDefault: true },
+					scopeMode: 'strict',
+				},
+			],
 			// jsdom cannot parse the modern CSS in the sheet; one test opts in.
 			ui: { disableAnimation: true, styles: false, ...ui },
 			...options,
@@ -67,6 +75,68 @@ afterEach(() => {
 });
 
 describe('mountConsentUI', () => {
+	it('records untouched displayed preferences when Save is clicked', async () => {
+		const { client, root } = await mount();
+		client.openDialog();
+		query(root, 'consent-widget-footer-save-button').click();
+		await vi.waitFor(() => expect(client.getSnapshot().activeUI).toBe('none'));
+		expect(client.getSnapshot().explicitChoice?.categories).toMatchObject({
+			marketing: { value: false },
+			measurement: { value: false },
+		});
+	});
+
+	it('acknowledges an opt-out notice without recording a choice', async () => {
+		const { client, root } = await mount(
+			{},
+			{
+				overrides: { country: 'US', region: 'CA' },
+				policyRules: [
+					{ ...policyRulePresets.usPrivacyStatesOptOut(), prompt: 'notice' },
+				],
+			}
+		);
+		const before = client.getSnapshot().effectivePermissions;
+		expect(query(root, 'consent-banner-card').hasAttribute('aria-modal')).toBe(
+			false
+		);
+		query(root, 'consent-banner-dismiss-button').click();
+		await vi.waitFor(() => expect(client.getSnapshot().activeUI).toBe('none'));
+		expect(client.getSnapshot().explicitChoice).toBeNull();
+		expect(client.getSnapshot().noticeDismissal).not.toBeNull();
+		expect(client.getSnapshot().effectivePermissions).toEqual(before);
+	});
+
+	it('uses prompt geometry and blocking from presentation', async () => {
+		const { root } = await mount(
+			{},
+			{ presentation: { prompt: { variant: 'wall' } } }
+		);
+		expect(query(root, 'consent-banner-root').dataset.variant).toBe('wall');
+		expect(query(root, 'consent-banner-root').dataset.position).toBe('center');
+		expect(query(root, 'consent-banner-card').getAttribute('aria-modal')).toBe(
+			'true'
+		);
+		expect(document.body.style.overflow).toBe('hidden');
+	});
+
+	it('replaces light DOM customization when remounted and removes it on disposal', async () => {
+		const { client, handle } = await mount({
+			css: 'button { color: red; }',
+			shadow: false,
+		});
+		const next = client.mountUI({
+			css: 'button { color: blue; }',
+			shadow: false,
+			styles: false,
+		});
+		expect(handle.host.isConnected).toBe(false);
+		expect(next.host.querySelector('style')?.textContent).toBe(
+			'button { color: blue; }'
+		);
+		client.dispose();
+		expect(document.querySelector('[data-c15t-ui] style')).toBeNull();
+	});
 	it('renders the banner inside a shadow root with the shared DOM contract', async () => {
 		const { root, handle } = await mount({ styles: true });
 
@@ -102,7 +172,7 @@ describe('mountConsentUI', () => {
 		const { root, client } = await mount();
 
 		query(root, 'consent-banner-accept-button').click();
-		await client.ready();
+		await vi.waitFor(() => expect(client.getSnapshot().activeUI).toBe('none'));
 
 		expect(client.hasConsented()).toBe(true);
 		expect(
@@ -134,6 +204,7 @@ describe('mountConsentUI', () => {
 		query(root, 'consent-widget-footer-save-button').click();
 		await vi.waitFor(() => {
 			expect(client.has('measurement')).toBe(true);
+			expect(client.getSnapshot().activeUI).toBe('none');
 		});
 
 		expect(client.has('marketing')).toBe(false);
@@ -196,12 +267,12 @@ describe('mountConsentUI', () => {
 		expect(client.getSnapshot().activeUI).toBe('dialog');
 	});
 
-	it('renders into the light DOM with the stylesheet in <head>', async () => {
+	it('renders into the light DOM with a stylesheet owned by the mount', async () => {
 		const { root, handle } = await mount({ shadow: false, styles: true });
 
 		expect(handle.host.shadowRoot).toBeNull();
 		expect(root).toBe(handle.host);
-		expect(document.getElementById('c15t-styles')).not.toBeNull();
+		expect(handle.host.querySelector('style')).not.toBeNull();
 		expect(
 			document.querySelector('[data-testid="consent-banner-root"]')
 		).not.toBeNull();

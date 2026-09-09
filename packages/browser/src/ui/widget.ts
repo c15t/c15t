@@ -3,7 +3,7 @@ import type {
 	AllConsentNames,
 	ConsentSnapshot,
 	ConsentState,
-	PolicyUiAction,
+	PresentationAction,
 } from '@c15t/core';
 import type { CompleteTranslations } from '@c15t/translations';
 
@@ -184,12 +184,13 @@ export const createWidget = function createWidget(
 	const hideBranding = options.hideBranding ?? true;
 
 	let draft: Partial<ConsentState> = {};
+	let { fingerprint } = ctx.client.getSnapshot().evaluationPolicy.choice;
 	let openItem: AllConsentNames | null = null;
 	let rows: Row[] = [];
 	let renderedFrom: {
 		categories: string;
 		translations: ConsentSnapshot['translations'];
-		policyDialog: ConsentSnapshot['policyDialog'];
+		policyRule: ConsentSnapshot['policyRule'];
 	} | null = null;
 
 	const element = h('div', {
@@ -201,7 +202,16 @@ export const createWidget = function createWidget(
 		snapshot: ConsentSnapshot,
 		name: AllConsentNames
 	): boolean {
-		return draft[name] ?? snapshot.consents[name] ?? false;
+		if (name === 'necessary') {
+			return true;
+		}
+		return (
+			draft[name] ??
+			snapshot.explicitChoice?.categories[name]?.value ??
+			ctx.client.options.presentation?.preferences?.defaults?.[name] ??
+			(snapshot.policyRule.model === 'opt-out' ||
+				snapshot.policyRule.preselectedCategories.includes(name))
+		);
 	};
 
 	const setOpen = function setOpen(name: AllConsentNames): void {
@@ -304,25 +314,38 @@ export const createWidget = function createWidget(
 		snapshot: ConsentSnapshot,
 		t: CompleteTranslations
 	): HTMLElement {
-		const labels: Record<PolicyUiAction, string> = {
+		const labels: Record<PresentationAction, string> = {
 			accept: t.common.acceptAll,
-			customize: t.common.save,
+			customize: t.common.customize,
+			dismiss: t.common.acknowledge,
 			reject: t.common.rejectAll,
+			save: t.common.save,
 		};
-		const testIds: Record<PolicyUiAction, string> = {
+		const testIds: Record<PresentationAction, string> = {
 			accept: 'consent-widget-footer-accept-all-button',
-			customize: 'consent-widget-footer-save-button',
+			customize: 'consent-widget-footer-customize-button',
+			dismiss: 'consent-widget-footer-dismiss-button',
 			reject: 'consent-widget-reject-button',
+			save: 'consent-widget-footer-save-button',
 		};
 		return renderActionFooter({
-			actions: resolveActions(snapshot.policyDialog, { primary: [] }),
+			actions: resolveActions(
+				snapshot,
+				'preferences',
+				ctx.client.options.presentation
+			),
 			buttonTestId: (action) => testIds[action],
 			footerClassName: classes.manager.footer,
 			label: (action) => labels[action],
 			noStyle,
 			onAction: (action) => {
-				const pending = draft;
-				draft = {};
+				const current = ctx.client.getSnapshot();
+				const pending: Partial<ConsentState> = {};
+				for (const category of ctx.client.consentCategories) {
+					if (category !== 'necessary') {
+						pending[category] = isChecked(current, category);
+					}
+				}
 				if (action === 'accept') {
 					void ctx.client.acceptAll();
 				} else if (action === 'reject') {
@@ -366,7 +389,7 @@ export const createWidget = function createWidget(
 		}
 		renderedFrom = {
 			categories: categories.join(','),
-			policyDialog: snapshot.policyDialog,
+			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
 	};
@@ -377,12 +400,16 @@ export const createWidget = function createWidget(
 			draft = {};
 		},
 		sync(snapshot) {
+			if (fingerprint !== snapshot.evaluationPolicy.choice.fingerprint) {
+				draft = {};
+				({ fingerprint } = snapshot.evaluationPolicy.choice);
+			}
 			const categories = ctx.client.consentCategories.join(',');
 			if (
 				!renderedFrom ||
 				renderedFrom.categories !== categories ||
 				renderedFrom.translations !== snapshot.translations ||
-				renderedFrom.policyDialog !== snapshot.policyDialog
+				renderedFrom.policyRule !== snapshot.policyRule
 			) {
 				rebuild(snapshot);
 				return;

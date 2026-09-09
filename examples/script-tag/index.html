@@ -120,7 +120,6 @@
 			c15t.push([
 				'config',
 				{
-					consentCategories: ['functionality', 'measurement', 'marketing'],
 					legalLinks: {
 						privacyPolicy: { href: '/privacy' },
 						cookiePolicy: { href: '/cookies' },
@@ -167,10 +166,14 @@
 					'ready',
 					(s) =>
 						log(
-							`ready: policy ${s.policy?.id ?? '-'}, model ${s.model}, ui ${s.activeUI}`
+							`ready: policy ${s.policyRule.id ?? '-'}, model ${s.model}, ui ${s.activeUI}`
 						),
 				],
-				['on', 'consent', (s) => log(`consent: ${JSON.stringify(s.consents)}`)],
+				[
+					'on',
+					'consent',
+					(s) => log(`consent: ${JSON.stringify(s.effectivePermissions)}`),
+				],
 				['on', 'ui', (surface) => log(`ui: ${surface}`)]
 			);
 			function log(line) {
@@ -189,7 +192,7 @@
 		<script
 			src="/c15t.js"
 			data-mode="offline"
-			data-policies="europeOptIn,californiaOptOut,worldNoBanner"
+			data-policy-rules="europeOptIn,usPrivacyStatesOptOut,worldNone"
 			data-country="DE"
 			data-color-scheme="system"
 			defer

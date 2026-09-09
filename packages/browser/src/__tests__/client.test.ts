@@ -1,3 +1,8 @@
+import { policyRulePresets, custom } from '@c15t/core';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
@@ -20,7 +25,14 @@ const start = function start(
 	const client = createConsentClient(
 		{
 			consentCategories: ['measurement', 'marketing'],
-			reloadOnConsentRevoked: false,
+			policyRules: [
+				{
+					...policyRulePresets.europeOptIn(),
+					categories: ['measurement', 'marketing'],
+					match: { isDefault: true },
+					scopeMode: 'strict',
+				},
+			],
 			...options,
 		},
 		{ pkg: '@c15t/browser/test' }
@@ -40,6 +52,71 @@ afterEach(() => {
 });
 
 describe('createConsentClient', () => {
+	it('keeps preferences open and reports a transport failure', async () => {
+		const client = start({
+			mode: custom({
+				init: () =>
+					Promise.resolve({
+						policyResolution: writePolicyResolutionWire(
+							resolvePolicyRules({
+								rules: [
+									{
+										...policyRulePresets.europeOptIn(),
+										categories: ['measurement', 'marketing'],
+										match: { isDefault: true },
+										scopeMode: 'strict',
+									},
+								],
+							})
+						),
+					}),
+				save: () => Promise.reject(new Error('offline')),
+			}),
+		});
+		await client.ready();
+		const onError = vi.fn();
+		client.on('error', onError);
+		client.openDialog();
+		expect(
+			(await client.save({ marketing: false, measurement: true })).ok
+		).toBe(false);
+		expect(client.getSnapshot().activeUI).toBe('dialog');
+		expect(onError).toHaveBeenCalled();
+	});
+
+	it('does not let an older save close preferences reopened while saving', async () => {
+		const { promise, resolve: complete } = Promise.withResolvers<{
+			ok: boolean;
+		}>();
+		const client = start({
+			mode: custom({
+				init: () =>
+					Promise.resolve({
+						policyResolution: writePolicyResolutionWire(
+							resolvePolicyRules({
+								rules: [
+									{
+										...policyRulePresets.europeOptIn(),
+										categories: ['measurement', 'marketing'],
+										match: { isDefault: true },
+										scopeMode: 'strict',
+									},
+								],
+							})
+						),
+					}),
+				save: () => promise,
+			}),
+		});
+		await client.ready();
+		client.openDialog();
+		const saving = client.acceptAll();
+		client.closeDialog();
+		client.openDialog();
+		complete({ ok: true });
+		await saving;
+		expect(client.getSnapshot().activeUI).toBe('dialog');
+	});
 	it('resolves an offline policy and asks for the banner', async () => {
 		const client = start();
 		const snapshot = await client.ready();
@@ -175,31 +252,31 @@ describe('createConsentClient', () => {
 	it('resolves policy presets by name and picks one by country', async () => {
 		const german = start({
 			overrides: { country: 'DE' },
-			policies: ['europeOptIn', 'californiaOptOut', 'worldNoBanner'],
+			policyRules: ['europeOptIn', 'usPrivacyStatesOptOut', 'worldNone'],
 		});
 		expect((await german.ready()).model).toBe('opt-in');
 		german.dispose();
 
 		const californian = start({
 			overrides: { country: 'US', region: 'CA' },
-			policies: ['europeOptIn', 'californiaOptOut', 'worldNoBanner'],
+			policyRules: ['europeOptIn', 'usPrivacyStatesOptOut', 'worldNone'],
 		});
 		expect((await californian.ready()).model).toBe('opt-out');
 		californian.dispose();
 
 		const elsewhere = start({
 			overrides: { country: 'BR' },
-			policies: ['europeOptIn', 'californiaOptOut', 'worldNoBanner'],
+			policyRules: ['europeOptIn', 'usPrivacyStatesOptOut', 'worldNone'],
 		});
 		const snapshot = await elsewhere.ready();
-		expect(snapshot.model).toBeNull();
+		expect(snapshot.model).toBe('none');
 		expect(snapshot.activeUI).toBe('none');
 	});
 
 	it('rejects inherited object keys as preset names', () => {
 		expect(() =>
 			createConsentClient(
-				{ policies: ['constructor' as never] },
+				{ policyRules: ['constructor' as never] },
 				{ pkg: 'test' }
 			)
 		).toThrow(/unknown policy preset/u);
@@ -208,7 +285,7 @@ describe('createConsentClient', () => {
 	it('rejects an unknown policy preset name', () => {
 		expect(() =>
 			createConsentClient(
-				{ policies: ['everywhereOptIn' as never] },
+				{ policyRules: ['everywhereOptIn' as never] },
 				{ pkg: 'test' }
 			)
 		).toThrow(/unknown policy preset/u);
