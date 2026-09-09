@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 import { computed } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
+import { useConsentSnapshot } from '../composables/kernel';
 import ConsentLegalLinks from './consent-legal-links.vue';
 
 const props = defineProps<{
@@ -13,6 +15,23 @@ const props = defineProps<{
 
 const init = useConsentInit();
 const config = useConsentConfig();
+const snapshot = useConsentSnapshot();
+
+/**
+ * A notice prompt explains and points at the opt-out instead of asking;
+ * it reads the notice copy and falls back to the choice copy.
+ */
+const bannerDescription = computed(() => {
+	const cookieBanner = (
+		init.value?.translations?.translations as
+			| Partial<CompleteTranslations>
+			| undefined
+	)?.cookieBanner;
+	if (snapshot.value.policyRule.prompt === 'notice') {
+		return cookieBanner?.noticeDescription ?? cookieBanner?.description;
+	}
+	return cookieBanner?.description;
+});
 
 const legalLinks = computed(() => {
 	if (props.context === 'banner') {
@@ -54,12 +73,14 @@ const testId = computed(() =>
 		v-bind="config.components?.description?.[context]"
 		:id="descriptionId"
 		:data-testid="testId"
-		:class="descriptionClass"
+		:class="
+			context === 'dialog' ? dialogStyles.description : bannerStyles.description
+		"
 		:data-context="context"
 	>
 		<slot>
 			<template v-if="context === 'banner'">
-				{{ init?.translations?.translations?.cookieBanner?.description }}
+				{{ bannerDescription }}
 			</template>
 			<template v-else>
 				{{

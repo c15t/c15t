@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Priimti visus',
 		close: 'Uždaryti',
 		customize: 'Rinktis',
+		dismiss: 'Uždaryti',
 		rejectAll: 'Atmesti visus',
 		save: 'Išsaugoti nustatymus',
 		securedBy: 'Apsaugą teikia',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Ši svetainė naudoja slapukus naršymo patirčiai gerinti, svetainės srautui analizuoti ir rodyti jums pritaikytą turinį.',
+		noticeDescription:
+			'Naudojame slapukus ir panašias technologijas šiai svetainei veikti, srautui matuoti bei turiniui ir reklamoms pritaikyti. Galite bet kada atsisakyti arba tvarkyti savo nuostatas.',
+		noticeTitle: 'Privatumo pranešimas',
 		title: 'Mes vertiname jūsų privatumą',
 	},
 	frame: {
@@ -139,6 +143,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Slapukų politika',
 		privacyPolicy: 'Privatumo politika',
 		termsOfService: 'Naudojimosi sąlygos',
+	},
+	rights: {
+		optOut: 'Neparduoti ir nesidalyti mano duomenimis',
+		preferences: 'Tvarkyti nuostatas',
 	},
 };
 export default translations;

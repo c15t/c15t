@@ -2,6 +2,7 @@
 	import { defaultTranslationConfig } from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/branding';
 	import { resolveTranslations } from '@c15t/ui/utils';
+	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
@@ -61,13 +62,16 @@
 
 	const resolvedBranding = $derived(resolveBranding(branding));
 	const showBranding = $derived(!hideBranding && resolvedBranding !== 'none');
-	const brandingHref = $derived.by(() => {
-		const refParam =
-			typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
-		return resolvedBranding === 'inth'
-			? `https://inth.com${refParam}`
-			: `https://c15t.com${refParam}`;
+	let refHostname = $state('');
+	onMount(() => {
+		refHostname = window.location.hostname;
 	});
+	const refParam = $derived(refHostname ? `?ref=${refHostname}` : '');
+	const brandingHref = $derived(
+		resolvedBranding === 'inth'
+			? `https://inth.com${refParam}`
+			: `https://c15t.com${refParam}`
+	);
 
 	const baseClassName = $derived(
 		[

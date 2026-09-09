@@ -40,6 +40,7 @@ import type { DatabaseClassification } from './classify';
 import type { UnsupportedDialectError } from './dialect';
 import { up as baselineUp } from './migrations/1-baseline';
 import { up as indexesUp } from './migrations/2-hot-path-indexes';
+import { up as receiptsUp } from './migrations/3-consent-receipts-and-privacy-directives';
 import { encodeRow, encoder } from './values';
 
 const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
@@ -70,6 +71,11 @@ export interface Migration {
 export const MIGRATIONS: readonly Migration[] = [
 	{ id: 1, name: '1-baseline', up: baselineUp },
 	{ id: 2, name: '2-hot-path-indexes', up: indexesUp },
+	{
+		id: 3,
+		name: '3-consent-receipts-and-privacy-directives',
+		up: receiptsUp,
+	},
 ];
 
 export interface MigrateOptions extends ApplyOptions {

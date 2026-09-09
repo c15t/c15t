@@ -28,3 +28,9 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Intercom](./docs/integrations/intercom.md): Load the Intercom messenger behind consent.
 - [Meta Pixel](./docs/integrations/meta-pixel.md): Load the Meta Pixel behind consent.
 - [Integrations](./docs/integrations/overview.md): Load analytics, pixels, tag managers, and widgets behind consent.
+
+## Reference
+
+Concepts, legal templates, open-source policies, and contributor documentation.
+
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.

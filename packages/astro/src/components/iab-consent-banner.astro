@@ -100,7 +100,7 @@ const summary = resolveIABBannerSummary(
 const shouldRender =
 	(force || c15t.shouldShowBanner) &&
 	summary.isReady &&
-	models.includes(snapshot.model);
+	models.includes(snapshot.policyRule.model);
 
 const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
 const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;

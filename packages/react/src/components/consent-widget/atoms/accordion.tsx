@@ -130,8 +130,22 @@ const ConsentWidgetAccordion = ({
 };
 
 const ConsentWidgetAccordionItems = () => {
-	const { selectedConsents, setSelectedConsent, getDisplayedConsents } =
-		useConsentManager();
+	const {
+		selectedConsents,
+		setSelectedConsent,
+		getDisplayedConsents,
+		explicitChoice,
+		restrictions,
+	} = useConsentManager();
+	// Only a saved grant that the current policy or a privacy signal
+	// overrides is "restricted". An unsaved draft toggle is not.
+	const isRestricted = function isRestricted(name: AllConsentNames): boolean {
+		if (name === 'necessary') {
+			return false;
+		}
+		const decision = explicitChoice?.categories[name];
+		return decision?.value === true && (restrictions[name]?.length ?? 0) > 0;
+	};
 	const { noStyle, onToggleItem, openValues } =
 		useConsentWidgetAccordionContext();
 	const handleConsentChange = useCallback(
@@ -215,6 +229,11 @@ const ConsentWidgetAccordionItems = () => {
 							formatConsentName(consent.name)
 						}
 						checked={selectedConsents[consent.name]}
+						aria-describedby={
+							isRestricted(consent.name)
+								? `c15t-restriction-${consent.name}`
+								: undefined
+						}
 						onCheckedChange={(checked) =>
 							handleConsentChange(consent.name, checked)
 						}
@@ -224,6 +243,15 @@ const ConsentWidgetAccordionItems = () => {
 					/>
 				</PreferenceItem.Control>
 			</ConsentWidgetAccordionTrigger>
+			{isRestricted(consent.name) ? (
+				<output
+					className={noStyle ? undefined : accordionStyles.restriction}
+					data-testid={`consent-widget-restriction-${consent.name}`}
+					id={`c15t-restriction-${consent.name}`}
+				>
+					Your saved choice is restricted by the current privacy settings.
+				</output>
+			) : null}
 			<ConsentWidgetAccordionContent
 				className={noStyle ? undefined : accordionStyles.content}
 				data-testid={`consent-widget-accordion-content-${consent.name}`}

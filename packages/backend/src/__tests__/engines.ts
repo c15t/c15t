@@ -47,6 +47,8 @@ import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import type { Tenant } from '../db/tenant';
 
 const MYSQL_URL = process.env.C15T_TEST_MYSQL_URL;
+/** Postgres `timestamp without time zone`. */
+const TIMESTAMP_OID = 1114;
 const PG_URL = process.env.C15T_TEST_PG_URL;
 
 export interface TestEngine {
@@ -71,7 +73,17 @@ const client = {
 	// keeps them out of logs and error messages by construction.
 	mysql: () => MysqlClient.layer({ url: Redacted.make(MYSQL_URL ?? '') }),
 
-	pglite: () => PgliteClient.layer({}),
+	// PGlite serialises a Date as UTC (`toISOString`) but parses a zoneless
+	// `timestamp` back through `new Date(text)`, which JavaScript reads as
+	// local time. On any host outside UTC a stored instant therefore comes
+	// back shifted by the local offset, and only during the months with no
+	// offset would a round-trip assertion pass by accident. node-postgres,
+	// which real Postgres uses, formats and parses in local time symmetrically
+	// and has no such gap. Parsing as UTC restores the symmetry PGlite lacks.
+	pglite: () =>
+		PgliteClient.layer({
+			parsers: { [TIMESTAMP_OID]: (value: string) => new Date(`${value}Z`) },
+		}),
 	postgres: () => PgClient.layer({ url: Redacted.make(PG_URL ?? '') }),
 	sqlite: () => SqliteClient.layer({ filename: ':memory:' }),
 } as const;

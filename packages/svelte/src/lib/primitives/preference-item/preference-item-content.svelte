@@ -17,11 +17,16 @@
 		children,
 		class: localClassName,
 		innerClassName,
+		viewportClassName,
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
 		innerClassName?: string;
+		/** Presentation class for the consent widget viewport.
+		 * @internal
+		 */
+		viewportClassName?: string;
 	} = $props();
 
 	const open = $derived(context.open);
@@ -31,7 +36,9 @@
 	const contentClassName = $derived.by(() =>
 		variants.content({ class: localClassName })
 	);
-	const viewportClassName = $derived.by(() => variants.contentViewport());
+	const viewportClassNameValue = $derived.by(() =>
+		variants.contentViewport({ class: viewportClassName })
+	);
 	const innerClassNameValue = $derived.by(() =>
 		variants.contentInner({ class: innerClassName })
 	);
@@ -48,7 +55,7 @@
 	{...restProps}
 >
 	<div
-		class={viewportClassName}
+		class={viewportClassNameValue}
 		data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentViewport}
 	>
 		<div

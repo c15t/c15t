@@ -8,15 +8,13 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentBoundary } from '../boundary';
+import { policyFixture } from './policy-fixture';
 
 describe('ConsentBoundary module props', () => {
 	test('scripts prop mounts <script> tags for eligible categories', async () => {
 		const { getByText } = await render(
 			<ConsentBoundary
-				config={{
-					initialConsents: { marketing: true },
-					initialHasConsented: true,
-				}}
+				config={policyFixture({ marketing: true })}
 				persistence={false}
 				scripts={[
 					{

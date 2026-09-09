@@ -2,8 +2,8 @@ import type { Translations } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { offline } from '~/transports/offline';
 
 import { useTranslations } from '../use-translations';
@@ -67,13 +67,13 @@ describe('useTranslations', () => {
 		);
 	});
 
-	test('returns German translations when German is selected via legacy translations', async () => {
+	test('returns German translations when German is selected via i18n', async () => {
 		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: createWrapper({
-				translations: {
-					defaultLanguage: 'de',
-					disableAutoLanguageSwitch: true,
-					translations: {
+				i18n: {
+					detectBrowserLanguage: false,
+					locale: 'de',
+					messages: {
 						de: {
 							common: {
 								acceptAll: 'German Accept All',
@@ -129,7 +129,9 @@ describe('useTranslations', () => {
 		};
 
 		const { result } = await renderHook(() => useTranslations(), {
-			wrapper: createWrapper({ translations: customTranslations }),
+			wrapper: createWrapper({
+				i18n: { messages: customTranslations.translations },
+			}),
 		});
 
 		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
@@ -191,37 +193,5 @@ describe('useTranslations', () => {
 
 		expect(result.current.cookieBanner.title).toBe('Neuer Titel');
 		expect(result.current.common.acceptAll).toBe('Alles');
-	});
-
-	test('prefers i18n over legacy translations when both are provided', async () => {
-		const { result } = await renderHook(() => useTranslations(), {
-			wrapper: createWrapper({
-				i18n: {
-					detectBrowserLanguage: false,
-					locale: 'fr',
-					messages: {
-						fr: {
-							cookieBanner: {
-								title: 'Nouveau Titre',
-							},
-						},
-					},
-				},
-				translations: {
-					defaultLanguage: 'en',
-					translations: {
-						en: {
-							cookieBanner: {
-								title: 'Legacy Title',
-							},
-						},
-					},
-				},
-			}),
-		});
-
-		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
-
-		expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
 	});
 });

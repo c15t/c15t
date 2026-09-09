@@ -10,6 +10,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { IABConsentBanner } from '~/components/iab-consent-banner';
@@ -18,8 +21,6 @@ import {
 	clearConsentState,
 	defaultProviderIABOptions,
 } from '~/components/iab/__tests__/e2e-setup';
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
 
 interface DeferredPromise<Value> {
@@ -75,25 +76,19 @@ const optInOptions: ConsentProviderOptions = {
 		'measurement',
 	],
 	mode: offline(),
-	offlinePolicy: {
-		policy: {
-			consent: {
-				categories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
-				scopeMode: 'permissive',
-			},
-			id: 'models-prop-opt-in-test',
-			model: 'opt-in',
-			ui: {
-				mode: 'banner',
-			},
-		},
-	},
+	prefetch: policyFixture(undefined, {
+		categories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		id: 'models-prop-opt-in-test',
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	}),
 };
 
 describe('models Prop E2E Tests', () => {

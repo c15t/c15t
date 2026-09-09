@@ -1,4 +1,3 @@
-import { getConsentAvailableCategories } from '@c15t/core/consent-record';
 import { createDevTools } from '@c15t/dev-tools';
 import type {
 	DevToolsInstance,
@@ -11,7 +10,7 @@ import type { PropType } from 'vue';
 
 import { useConsentConfig } from './runtime/composables/config';
 import { useConsentKernel } from './runtime/composables/kernel';
-import { symbolInit } from './runtime/utils/symbols';
+import { symbolKernelContext } from './runtime/utils/symbols';
 
 /** Props for the kernel-bound Vue DevTools adapter. */
 export type ConsentDevToolsProps = Omit<
@@ -34,18 +33,32 @@ export type DevToolsProps = ConsentDevToolsProps;
 export const ConsentDevTools = defineComponent({
 	name: 'ConsentDevTools',
 	props: {
+		clearRecords: Function as PropType<DevToolsOptions['clearRecords']>,
 		defaultOpen: Boolean,
 		defaultTab: String as PropType<DevToolsTab>,
 		getConsentCategories: Function as PropType<
 			DevToolsOptions['getConsentCategories']
 		>,
+		getPresentation: Function as PropType<DevToolsOptions['getPresentation']>,
 		maxEvents: Number,
 		position: String as PropType<DevToolsPosition>,
 	},
 	setup(props) {
 		const kernel = useConsentKernel();
 		const config = useConsentConfig();
-		const init = inject(symbolInit, undefined);
+		const context = inject(symbolKernelContext, undefined);
+		const getCategories = () => {
+			const configured =
+				props.getConsentCategories?.() ?? config.value.consentCategories;
+			return [
+				'necessary' as const,
+				...kernel
+					.getSnapshot()
+					.policyRule.scope.filter(
+						(name) => !configured?.length || configured.includes(name)
+					),
+			];
+		};
 		let devTools: DevToolsInstance | null = null;
 		let stopWatching: (() => void) | undefined;
 
@@ -56,26 +69,23 @@ export const ConsentDevTools = defineComponent({
 					() => props.defaultTab,
 					() => props.maxEvents,
 					() => props.position,
-					() =>
-						JSON.stringify(
-							props.getConsentCategories?.() ??
-								getConsentAvailableCategories(
-									init?.value,
-									config.value.consentCategories
-								)
-						),
+					() => JSON.stringify([...new Set(getCategories())].sort()),
+					() => Boolean(props.clearRecords ?? context?.clearRecords),
 				],
 				() => {
 					devTools?.destroy();
 					devTools = createDevTools({
+						clearRecords:
+							props.clearRecords || context
+								? () => (props.clearRecords ?? context?.clearRecords)?.()
+								: undefined,
 						defaultOpen: props.defaultOpen,
 						defaultTab: props.defaultTab,
-						getConsentCategories: () =>
-							props.getConsentCategories?.() ??
-							getConsentAvailableCategories(
-								init?.value,
-								config.value.consentCategories
-							),
+						getConsentCategories: getCategories,
+						getPresentation: () =>
+							props.getPresentation
+								? props.getPresentation()
+								: config.value.presentation,
 						kernel,
 						maxEvents: props.maxEvents,
 						position: props.position,

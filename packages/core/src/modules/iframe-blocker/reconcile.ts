@@ -15,7 +15,7 @@
 import type { AllConsentNames } from '../../consent/consent-types';
 import { allConsentNames } from '../../consent/consent-types';
 import type { ConsentSnapshot, ConsentState } from '../../types';
-import { has } from '../has';
+import { getEffectiveGateState, has } from '../has';
 
 /**
  * Per-pass eligibility context. Built once per kernel tick / DOM scan
@@ -32,7 +32,7 @@ export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
 	return {
-		consents: snapshot.consents as ConsentState,
+		consents: getEffectiveGateState(snapshot).effectivePermissions,
 	};
 };
 
@@ -86,7 +86,11 @@ export const reconcileIframe = function reconcileIframe(
 	}
 
 	// Not allowed. Clear src if present.
-	if (iframe.getAttribute('src')) {
+	const src = iframe.getAttribute('src');
+	if (src) {
+		if (!dataSrc) {
+			iframe.setAttribute('data-src', src);
+		}
 		iframe.removeAttribute('src');
 	}
 };

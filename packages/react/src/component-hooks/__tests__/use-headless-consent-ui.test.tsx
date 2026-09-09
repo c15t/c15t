@@ -1,28 +1,41 @@
-import type { ConsentKernel, ResolvedPolicy } from '@c15t/core';
+import type {
+	ConsentKernel,
+	SurfacePresentation,
+	KernelActiveUI,
+} from '@c15t/core';
 import { useContext } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { KernelContext } from '~/context';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 import { useHeadlessConsentUI } from '../use-headless-consent-ui';
 
-const createWrapper = function createWrapper(ui: ResolvedPolicy['ui']) {
+const createWrapper = function createWrapper(ui: {
+	banner?: SurfacePresentation;
+	dialog?: SurfacePresentation;
+	mode?: KernelActiveUI;
+}) {
 	return function Wrapper({ children }: { children: React.ReactNode }) {
 		return (
 			<ConsentProvider
 				options={{
+					initialUI: ui?.mode,
 					mode: offline(),
 					persistence: false,
 					prefetch: {
-						initialPolicy: {
+						...policyFixture(undefined, {
+							categories: undefined,
 							id: 'headless-test',
 							model: 'opt-in',
-							ui,
-						},
+							prompt: 'choice',
+							scopeMode: 'strict',
+						}),
 					},
+					presentation: { preferences: ui?.dialog, prompt: ui?.banner },
 				}}
 			>
 				{children}
@@ -42,7 +55,6 @@ describe('useHeadlessConsentUI', () => {
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {
 			wrapper: createWrapper({
 				banner: {
-					allowedActions: ['accept', 'reject'],
 					direction: 'row',
 					layout: [['reject', 'accept']],
 					primaryActions: ['accept'],
@@ -50,10 +62,9 @@ describe('useHeadlessConsentUI', () => {
 					uiProfile: 'balanced',
 				},
 				dialog: {
-					allowedActions: ['reject', 'accept', 'customize'],
 					direction: 'row',
-					layout: ['customize', ['reject', 'accept']],
-					primaryActions: ['customize'],
+					layout: ['save', ['reject', 'accept']],
+					primaryActions: ['save'],
 					scrollLock: false,
 					uiProfile: 'strict',
 				},
@@ -65,26 +76,34 @@ describe('useHeadlessConsentUI', () => {
 			expect(result.current.banner.isVisible).toBe(true);
 		});
 
-		expect(result.current.banner.allowedActions).toEqual(['accept', 'reject']);
+		expect(result.current.banner.allowedActions).toEqual([
+			'accept',
+			'customize',
+			'reject',
+		]);
 		expect(result.current.banner.orderedActions).toEqual(['reject', 'accept']);
 		expect(result.current.banner.primaryActions).toEqual(['accept']);
 		expect(result.current.banner.actionGroups).toEqual([['reject', 'accept']]);
 		expect(result.current.banner.scrollLock).toBe(true);
-		expect(result.current.banner.hasPolicyHints).toBe(true);
+		expect(result.current.banner.diagnostics).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ code: 'equivalent-prominence-overridden' }),
+			])
+		);
 
 		expect(result.current.dialog.allowedActions).toEqual([
 			'reject',
 			'accept',
-			'customize',
+			'save',
 		]);
 		expect(result.current.dialog.orderedActions).toEqual([
-			'customize',
+			'save',
 			'reject',
 			'accept',
 		]);
-		expect(result.current.dialog.primaryActions).toEqual(['customize']);
+		expect(result.current.dialog.primaryActions).toEqual(['save']);
 		expect(result.current.dialog.actionGroups).toEqual([
-			['customize'],
+			['save'],
 			['reject', 'accept'],
 		]);
 		expect(result.current.dialog.scrollLock).toBe(false);
@@ -107,7 +126,7 @@ describe('useHeadlessConsentUI', () => {
 			expect(result.current.kernel.getSnapshot().activeUI).toBe('dialog');
 			expect(result.current.headless.dialog.isVisible).toBe(true);
 		});
-		expect(result.current.kernel.getSnapshot().hasConsented).toBe(false);
+		expect(result.current.kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 
 	test('accept saves all consents and closes the UI', async () => {
@@ -123,8 +142,8 @@ describe('useHeadlessConsentUI', () => {
 
 		await vi.waitFor(() => {
 			const snapshot = result.current.kernel.getSnapshot();
-			expect(snapshot.hasConsented).toBe(true);
-			expect(snapshot.consents.marketing).toBe(true);
+			expect(snapshot.explicitChoice).not.toBeNull();
+			expect(snapshot.effectivePermissions.marketing).toBe(true);
 			expect(snapshot.activeUI).toBe('none');
 		});
 	});
@@ -142,17 +161,16 @@ describe('useHeadlessConsentUI', () => {
 
 		await vi.waitFor(() => {
 			const snapshot = result.current.kernel.getSnapshot();
-			expect(snapshot.hasConsented).toBe(true);
-			expect(snapshot.consents.marketing).toBe(false);
-			expect(snapshot.consents.necessary).toBe(true);
+			expect(snapshot.explicitChoice).not.toBeNull();
+			expect(snapshot.effectivePermissions.marketing).toBe(false);
+			expect(snapshot.effectivePermissions.necessary).toBe(true);
 		});
 	});
 
-	test('treats empty arrays as absent when calculating policy hints', async () => {
+	test('empty host layouts restore required controls', async () => {
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {
 			wrapper: createWrapper({
 				banner: {
-					allowedActions: [],
 					layout: [],
 				},
 				dialog: {
@@ -162,9 +180,11 @@ describe('useHeadlessConsentUI', () => {
 			}),
 		});
 
-		await vi.waitFor(() => {
-			expect(result.current.dialog.hasPolicyHints).toBe(true);
-		});
-		expect(result.current.banner.hasPolicyHints).toBe(false);
+		expect(result.current.banner.orderedActions).toEqual(['accept', 'reject']);
+		expect(result.current.banner.diagnostics).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ code: 'required-action-restored' }),
+			])
+		);
 	});
 });

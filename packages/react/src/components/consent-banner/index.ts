@@ -19,10 +19,13 @@ import {
 	Card,
 	CustomizeButton,
 	Description,
+	DismissButton,
 	Footer,
 	FooterSubGroup,
 	Header,
 	RejectButton,
+	RightLink,
+	Rights,
 	Title,
 } from './components';
 import { ConsentBanner as ConsentBannerComponent } from './consent-banner';
@@ -49,6 +52,9 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
 	RejectButton: typeof RejectButton;
 	CustomizeButton: typeof CustomizeButton;
 	AcceptButton: typeof AcceptButton;
+	DismissButton: typeof DismissButton;
+	Rights: typeof Rights;
+	RightLink: typeof RightLink;
 	Overlay: typeof Overlay;
 }
 /**
@@ -138,12 +144,15 @@ const ConsentBanner = Object.assign(ConsentBannerComponent, {
 	Content: Card,
 	CustomizeButton,
 	Description,
+	DismissButton,
 	Footer,
 	FooterSubGroup,
 	Header,
 	Overlay,
 	PolicyActions,
 	RejectButton,
+	RightLink,
+	Rights,
 	Root,
 	Title,
 }) as ConsentBannerCompoundComponent;
@@ -161,19 +170,33 @@ export {
 	ConsentBannerCard,
 	ConsentBannerCustomizeButton,
 	ConsentBannerDescription,
+	ConsentBannerDismissButton,
 	ConsentBannerFooter,
 	ConsentBannerFooterSubGroup,
 	ConsentBannerHeader,
 	ConsentBannerRejectButton,
+	type ConsentBannerRight,
+	ConsentBannerRightLink,
+	type ConsentBannerRightLinkProps,
+	ConsentBannerRights,
+	type ConsentBannerRightsProps,
 	ConsentBannerTitle,
 	CustomizeButton,
 	Description,
+	DismissButton,
 	Footer,
 	FooterSubGroup,
 	Header,
 	RejectButton,
+	RightLink,
+	Rights,
 	Title,
 } from './components';
+export {
+	type ConsentBannerSurface,
+	useConsentBannerSurface,
+} from './surface-context';
+export { useBannerCopy } from './use-banner-copy';
 export {
 	type ConsentBannerPolicyActionRenderProps,
 	ConsentBannerPolicyActions,

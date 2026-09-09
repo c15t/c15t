@@ -25,14 +25,6 @@
 	import { isIABConfigured, lazyCreateIAB, whenIABReady } from '../iab-loader';
 	import type { ConsentManagerOptions } from '../types';
 
-	const ALL_CONSENTS_ON: ConsentState = {
-		experience: true,
-		functionality: true,
-		marketing: true,
-		measurement: true,
-		necessary: true,
-	};
-
 	type ProviderOptionsInput = Omit<ConsentManagerOptions, 'mode'> & {
 		mode?: ConsentManagerOptions['mode'];
 	};
@@ -110,6 +102,9 @@
 	const { kernel } = runtime;
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
+	let draftFingerprint = $state<string | null>(null);
+	let draftRevision = 0;
+	let draftSaveSequence = 0;
 	let draftValues = $state<Partial<ConsentState>>({});
 	let iabHandle = $state<IABHandle | null>(
 		untrack(() => runtime.iab as IABHandle | null)
@@ -123,23 +118,75 @@
 	);
 
 	const draft: ConsentDraftState = {
+		get isStale() {
+			return (
+				draftFingerprint !== null &&
+				draftFingerprint !== snapshot.evaluationPolicy.choice.fingerprint
+			);
+		},
 		reset() {
+			draftRevision += 1;
 			draftValues = {};
+			draftFingerprint = null;
 		},
 		async save(categories) {
-			const allowed = new Set<string>(categories);
-			await kernel.commands.save(
+			const revision = draftRevision;
+			draftSaveSequence += 1;
+			const sequence = draftSaveSequence;
+			const current = kernel.getSnapshot();
+			if (
+				draftFingerprint !== null &&
+				draftFingerprint !== current.evaluationPolicy.choice.fingerprint
+			) {
+				throw new Error(
+					'The policy changed. Review your preferences before saving.'
+				);
+			}
+			const { values } = draft;
+			const result = await kernel.commands.save(
 				Object.fromEntries(
-					Object.entries(draftValues).filter(([name]) => allowed.has(name))
+					current.policyRule.scope
+						.filter(
+							(name) =>
+								configuredCategories.length === 0 ||
+								configuredCategories.includes(name)
+						)
+						.filter(
+							(name) => categories === undefined || categories.includes(name)
+						)
+						.map((name) => [name, values[name]])
 				)
 			);
-			draftValues = {};
+			if (!result.ok) {
+				throw new Error('Unable to save preferences.');
+			}
+			if (revision === draftRevision && sequence === draftSaveSequence) {
+				draft.reset();
+			}
 		},
 		set(name, value) {
+			if (name === 'necessary') {
+				return;
+			}
+			draftRevision += 1;
+			draftFingerprint ??=
+				kernel.getSnapshot().evaluationPolicy.choice.fingerprint;
 			draftValues = { ...draftValues, [name]: value };
 		},
 		get values() {
-			return draftValues;
+			return {
+				necessary: true,
+				...Object.fromEntries(
+					snapshot.policyRule.scope.map((name) => [
+						name,
+						draftValues[name] ??
+							snapshot.explicitChoice?.categories[name]?.value ??
+							options.presentation?.preferences?.defaults?.[name] ??
+							(snapshot.policyRule.model === 'opt-out' ||
+								snapshot.policyRule.preselectedCategories.includes(name)),
+					])
+				),
+			};
 		},
 	};
 
@@ -197,10 +244,18 @@
 	};
 
 	setConsentContext(kernel, {
-		getConsentCategories: () => configuredCategories,
+		clearRecords: () => runtime.clearRecords(),
+		getConsentCategories: () => [
+			'necessary',
+			...snapshot.policyRule.scope.filter(
+				(name) =>
+					!configuredCategories.length || configuredCategories.includes(name)
+			),
+		],
 		getDraft: () => draft,
 		getIAB: getIABState,
 		getLegalLinks: () => options.legalLinks,
+		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
 	});
 
@@ -320,6 +375,9 @@
 	let lastIdentifiedKey: string | null = null;
 
 	$effect(() => {
+		if (!ownsRuntime) {
+			return;
+		}
 		const nextUser = normalizeKernelUser(userOption);
 		const key = userKey(nextUser);
 		if (key === null || key === lastIdentifiedKey) {
@@ -333,6 +391,9 @@
 	let hasSkippedInitialOverridesInit = false;
 
 	$effect(() => {
+		if (!ownsRuntime) {
+			return;
+		}
 		const overrides: KernelOverrides = overridesOption ?? {};
 		const key = JSON.stringify(
 			Object.entries(overrides).sort(([left], [right]) =>
@@ -343,23 +404,21 @@
 			return;
 		}
 		lastOverridesKey = key;
-		runtime.setOverrides(overrides);
 		if (!hasSkippedInitialOverridesInit) {
 			hasSkippedInitialOverridesInit = true;
 			return;
 		}
+		runtime.setOverrides(overrides);
 		if (enabledOption) {
 			void runtime.reinit();
 		}
 	});
 
 	$effect(() => {
-		if (enabledOption) {
+		if (!ownsRuntime || enabledOption) {
 			return;
 		}
-		kernel.set.consent(ALL_CONSENTS_ON);
 		kernel.set.activeUI('none');
-		kernel.set.hasConsented(true);
 	});
 
 	let prefersReducedMotion = $state(false);

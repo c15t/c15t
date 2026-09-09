@@ -128,9 +128,18 @@ const createLazyManifestTransport = function createLazyManifestTransport(
 	};
 
 	return {
+		async identify(user, subjectId) {
+			await (await load()).identify?.(user, subjectId);
+		},
 		async init(ctx) {
 			const transport = await load();
 			return (await transport.init?.(ctx)) ?? {};
+		},
+		async loadSubjectRecord(subjectId) {
+			return (await (await load()).loadSubjectRecord?.(subjectId)) ?? null;
+		},
+		async recordPrivacyOptOut(directive, subjectId) {
+			await (await load()).recordPrivacyOptOut?.(directive, subjectId);
 		},
 		async save(payload) {
 			const transport = await load();

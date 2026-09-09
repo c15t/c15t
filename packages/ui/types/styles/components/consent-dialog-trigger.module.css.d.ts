@@ -9,6 +9,10 @@ declare const styles: {
   readonly "sm": string;
   readonly "snapping": string;
   readonly "text": string;
+  readonly "toolbar": string;
+  readonly "toolbarIcon": string;
+  readonly "toolbarItem": string;
+  readonly "toolbarVertical": string;
   readonly "topLeft": string;
   readonly "topRight": string;
   readonly "trigger": string;

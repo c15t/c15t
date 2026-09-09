@@ -1,3 +1,4 @@
+import { resolvePolicyRules, writePolicyResolutionWire } from '@c15t/core';
 /**
  * In-process stand-in for the c15t backend.
  *
@@ -8,7 +9,6 @@
  * they work in App Router route handlers, Pages API routes, and plain Node
  * servers alike.
  */
-
 import type { StaticConsentResolverOptions } from '@c15t/nextjs/static';
 
 /**
@@ -79,52 +79,25 @@ const translations = {
 	},
 };
 
-type CompatPolicyPack = NonNullable<CompatManifest['policyPacks']>[number];
-type CompatPolicyConfig = CompatPolicyPack['policy'];
-type CompatResolvedPolicy = CompatPolicyPack['resolvedPolicy'];
-
-const consentCategories = ['necessary', 'measurement', 'marketing'];
-
-const policyUI: CompatResolvedPolicy['ui'] = {
-	banner: {
-		allowedActions: ['reject', 'accept', 'customize'],
-		primaryActions: ['accept'],
-		scrollLock: false,
-	},
-	dialog: {
-		allowedActions: ['reject', 'accept', 'customize'],
-		primaryActions: ['accept'],
-		scrollLock: false,
-	},
-	mode: 'banner',
-};
-
-/**
- * The policy as the backend stores it. `/manifest` ships it so the client
- * can match and resolve locally.
- */
-const policyConfig: CompatPolicyConfig = {
-	consent: {
-		categories: consentCategories,
-		model: 'opt-in',
-		scopeMode: 'strict',
-	},
-	id: 'next-compat',
-	match: { isDefault: true },
-	ui: policyUI,
-};
-
-/**
- * The same policy resolved, the shape `/init` returns and the manifest
- * carries beside the config.
- */
-const resolvedPolicy: CompatResolvedPolicy = {
-	consent: { categories: consentCategories, scopeMode: 'strict' },
-	id: 'next-compat',
-	model: 'opt-in',
-	proof: {},
-	ui: policyUI,
-};
+const resolution = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			categories: ['measurement', 'marketing'],
+			id: 'next-compat',
+			match: { fallback: true, isDefault: true },
+			model: 'opt-in',
+			prompt: 'choice',
+		},
+	],
+});
+if (resolution.status !== 'matched') {
+	throw new Error('Expected fixture policy');
+}
+const rule = resolution.policy;
+const { fingerprints } = resolution;
+const policyResolution = writePolicyResolutionWire(resolution);
 
 /**
  * A v3 `/init` payload: resolved opt-in policy, explicit UI hints, and the
@@ -140,15 +113,7 @@ export const buildInitResponse = function buildInitResponse(
 			countryCode,
 			regionCode: null,
 		},
-		policy: resolvedPolicy,
-		policyDecision: {
-			country: countryCode,
-			fingerprint: 'fingerprint_next_compat',
-			jurisdiction: countryCode === 'US' ? 'CCPA' : 'GDPR',
-			matchedBy: 'default',
-			policyId: resolvedPolicy.id,
-			region: null,
-		},
+		policyResolution,
 		translations: {
 			language: 'en',
 			translations,
@@ -168,14 +133,10 @@ export const buildManifestResponse =
 		return {
 			branding: 'c15t',
 			policyPacks: [
-				{
-					fingerprint: 'fingerprint_next_compat',
-					policy: policyConfig,
-					resolvedPolicy,
-				},
+				{ fingerprints, match: { fallback: true, isDefault: true }, rule },
 			],
 			revision: 'next-compat-manifest',
-			schemaVersion: 1,
+			schemaVersion: 2,
 			translations: {
 				i18n: {
 					defaultProfile: 'default',

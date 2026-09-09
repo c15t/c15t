@@ -51,11 +51,10 @@ export const useBannerVisibility = function useBannerVisibility(
 	let isVisible = $state(serverVisible);
 	let isMounted = $state(serverVisible);
 	let shouldRender = $state(serverVisible);
-	let bannerEl: HTMLElement | undefined = $state();
-
 	onMount(() => {
 		isMounted = true;
 	});
+	let bannerEl: HTMLElement | undefined = $state();
 
 	$effect(() => {
 		const shouldShow = getShouldShow();

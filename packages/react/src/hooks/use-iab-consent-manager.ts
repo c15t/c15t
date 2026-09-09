@@ -6,8 +6,8 @@ import { useCallback, useMemo } from 'react';
 import {
 	useActiveUI,
 	useModel,
-	usePolicyBanner,
-	usePolicyDialog,
+	usePromptPresentation,
+	usePreferencesPresentation,
 	useSetActiveUI,
 	useTranslations,
 } from '../hooks';
@@ -34,8 +34,8 @@ const toTranslationConfig = function toTranslationConfig(
 export const useIABConsentManager = function useIABConsentManager() {
 	const activeUI = useActiveUI();
 	const model = useModel();
-	const policyBanner = usePolicyBanner();
-	const policyDialog = usePolicyDialog();
+	const policyBanner = usePromptPresentation();
+	const policyDialog = usePreferencesPresentation();
 	const setKernelActiveUI = useSetActiveUI();
 	const translations = useTranslations();
 	const iab = useIAB();

@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
-	import { defaultTranslationConfig } from '@c15t/core';
+	import {
+		defaultTranslationConfig,
+		resolveConsentPresentation,
+	} from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/consent-dialog';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
@@ -15,7 +18,7 @@
 	interface ConsentDialogTriggerProps {
 		defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 		persistPosition?: boolean;
-		showWhen?: 'always' | 'after-consent' | 'never';
+		showWhen?: 'always' | 'never';
 		size?: 'sm' | 'md' | 'lg';
 		ariaLabel?: string;
 		noStyle?: boolean;
@@ -28,7 +31,7 @@
 		hideBranding,
 		legalLinks,
 		showTrigger = false,
-		models = ['opt-in', 'opt-out'] as Model[],
+		models = ['opt-in', 'opt-out', 'iab'] as Model[],
 		class: className,
 	}: {
 		open?: boolean;
@@ -42,6 +45,14 @@
 
 	const consent = getConsentContext();
 	const theme = getThemeContext();
+	const preferences = $derived(
+		resolveConsentPresentation({
+			override: { scrollLock: theme.scrollLock },
+			policy: consent.snapshot.policyRule,
+			presentation: consent.state.presentation,
+			surface: 'preferences',
+		})
+	);
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 	const disableAnimation = $derived(theme.disableAnimation ?? false);
@@ -154,8 +165,8 @@
 	bind:open={dialogOpen}
 	closeOnInteractOutside={false}
 	closeOnEscape={true}
-	trapFocus={true}
-	preventScroll={true}
+	trapFocus={preferences.trapFocus && (theme.trapFocus ?? true)}
+	preventScroll={preferences.scrollLock}
 	lazyMount
 	unmountOnExit
 >

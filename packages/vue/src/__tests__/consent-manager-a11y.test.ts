@@ -1,14 +1,22 @@
 import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
-import type { ComponentPublicInstance } from 'vue';
+import type { Component, ComponentPublicInstance } from 'vue';
 
+import ConsentDialogTrigger from '../runtime/components/consent-dialog-trigger.vue';
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
+import type {
+	RuntimeConsentConfig,
+	VueConsentKernelContext,
+} from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -96,30 +104,22 @@ const init: InitOutput = {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	policy: {
-		consent: {
-			categories: ['necessary', 'functionality', 'measurement'],
-			scopeMode: 'permissive',
-		},
-		id: 'vue_a11y_policy',
-		model: 'opt-in',
-		ui: {
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['customize'],
-				scrollLock: false,
-			},
-			mode: 'dialog',
-		},
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'vue_a11y_fingerprint',
-		jurisdiction: 'GDPR',
-		matchedBy: 'default',
-		policyId: 'vue_a11y_policy',
-		region: null,
-	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: null,
+			regionCode: null,
+			rules: [
+				{
+					categories: ['functionality', 'measurement'],
+					id: 'vue_a11y_policy',
+					match: { fallback: true },
+					model: 'opt-in',
+					prompt: 'choice',
+					scopeMode: 'permissive',
+				},
+			],
+		})
+	),
 	policySnapshotToken: 'vue_a11y_token',
 	translations: {
 		language: 'en',
@@ -138,7 +138,10 @@ const mockFetch = function mockFetch(): typeof fetch {
 	) as unknown as typeof fetch;
 };
 
-const renderManager = async function renderManager() {
+const renderManager = async function renderManager(
+	overrides: Partial<RuntimeConsentConfig> = {},
+	component: Component = ConsentManager
+) {
 	const config = {
 		backendURL: 'https://consent.example',
 		consentCategories: ['necessary', 'functionality', 'measurement'],
@@ -147,11 +150,12 @@ const renderManager = async function renderManager() {
 		domain: 'consent.example',
 		hideBranding: false,
 		trapFocus: false,
+		...overrides,
 	} as ConsentConfig;
 	const context = createVueConsentKernelContext({ config, prefetch: init });
 	context.activeUI.value = 'manager';
 
-	const wrapper = mount(ConsentManager, {
+	const wrapper = mount(component, {
 		attachTo: document.body,
 		global: {
 			provide: {
@@ -210,7 +214,7 @@ describe('ConsentManager accordion accessibility', () => {
 		}
 	});
 
-	test('Space toggles a focused switch without opening the accordion', async () => {
+	test('native switch activation toggles without opening the accordion', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const switchEl = document.querySelector(
@@ -223,9 +227,7 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(switchEl.getAttribute('aria-checked')).toBe('false');
 			expect(content?.getAttribute('data-state')).toBe('closed');
 
-			switchEl.dispatchEvent(
-				new KeyboardEvent('keydown', { bubbles: true, key: ' ' })
-			);
+			switchEl.click();
 			await flushPromises();
 
 			expect(switchEl.getAttribute('aria-checked')).toBe('true');
@@ -235,7 +237,7 @@ describe('ConsentManager accordion accessibility', () => {
 		}
 	});
 
-	test('Enter toggles the accordion trigger and updates aria-expanded', async () => {
+	test('native trigger activation updates aria-expanded', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const trigger = document.querySelector(
@@ -248,9 +250,7 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(trigger.getAttribute('aria-expanded')).toBe('false');
 			expect(content?.getAttribute('data-state')).toBe('closed');
 
-			trigger.dispatchEvent(
-				new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' })
-			);
+			trigger.click();
 			await flushPromises();
 
 			expect(trigger.getAttribute('aria-expanded')).toBe('true');
@@ -293,12 +293,12 @@ describe('ConsentManager accordion accessibility', () => {
 		}
 	});
 
-	test('dialog policy actions make only customize primary', async () => {
+	test('preferences keep accept and reject equivalent and expose save', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const reject = document.querySelector('[data-action="reject"]');
 			const accept = document.querySelector('[data-action="accept"]');
-			const customize = document.querySelector('[data-action="customize"]');
+			const customize = document.querySelector('[data-action="save"]');
 
 			expect(reject?.getAttribute('data-variant')).toBe('neutral');
 			expect(reject?.getAttribute('data-mode')).toBe('stroke');
@@ -310,4 +310,320 @@ describe('ConsentManager accordion accessibility', () => {
 			await cleanup(wrapper, context);
 		}
 	});
+});
+
+describe('ConsentManager widget composition', () => {
+	const button = (action: string) => {
+		const element = document.querySelector<HTMLButtonElement>(
+			`[data-action="${action}"]`
+		);
+		expect(element).toBeInstanceOf(HTMLButtonElement);
+		if (!element) {
+			throw new Error(`Missing ${action} action`);
+		}
+		return element;
+	};
+
+	for (const action of ['accept', 'reject', 'save']) {
+		test(`${action} waits for completion, stays open on failure, and returns to a required prompt`, async () => {
+			const { context, wrapper } = await renderManager();
+			try {
+				let complete: ((value: { ok: false }) => void) | undefined;
+				const pending = createDeferredPromise<{ ok: false }>((resolve) => {
+					complete = resolve;
+				});
+				const save = vi
+					.spyOn(context.kernel.commands, 'save')
+					.mockReturnValueOnce(pending)
+					.mockResolvedValueOnce({ ok: true });
+				button(action).click();
+				await flushPromises();
+				expect(save).toHaveBeenCalledTimes(1);
+				expect(context.activeUI.value).toBe('manager');
+				complete?.({ ok: false });
+				await flushPromises();
+				expect(context.activeUI.value).toBe('manager');
+				button(action).click();
+				await flushPromises();
+				expect(save).toHaveBeenCalledTimes(2);
+				expect(context.activeUI.value).toBe('banner');
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+	}
+
+	test('successful save closes when no prompt remains', async () => {
+		const { context, wrapper } = await renderManager();
+		try {
+			await context.kernel.commands.save('all');
+			await flushPromises();
+			expect(context.snapshot.value.promptRequirement.kind).toBe('none');
+			context.activeUI.value = 'manager';
+			await flushPromises();
+			button('save').click();
+			await flushPromises();
+			await vi.waitFor(() => expect(context.activeUI.value).toBeNull());
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('reopening discards unsaved draft changes and save uses the displayed draft', async () => {
+		const { context, wrapper } = await renderManager();
+		const toggle = () => {
+			const element = document.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-widget-switch-functionality"]'
+			);
+			if (!element) {
+				throw new Error('Missing functionality switch');
+			}
+			return element;
+		};
+		try {
+			toggle().click();
+			await flushPromises();
+			expect(toggle().getAttribute('aria-checked')).toBe('true');
+			context.activeUI.value = null;
+			await flushPromises();
+			context.activeUI.value = 'manager';
+			await flushPromises();
+			expect(toggle().getAttribute('aria-checked')).toBe('false');
+			toggle().click();
+			await flushPromises();
+			const save = vi
+				.spyOn(context.kernel.commands, 'save')
+				.mockResolvedValue({ ok: false });
+			button('save').click();
+			await flushPromises();
+			expect(save).toHaveBeenCalledWith({
+				functionality: true,
+				measurement: false,
+			});
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('configuration reaches widget regions and retains host handlers', async () => {
+		const onClick = vi.fn();
+		const { context, wrapper } = await renderManager({
+			components: {
+				accordion: {
+					contentInner: { class: 'host-inner' },
+					triggerRow: { onClick },
+				},
+				'accordion-item': { trigger: { class: 'host-trigger' } },
+				button: { primary: { class: 'host-primary' } },
+				manager: {
+					actionGroup: { class: 'host-group' },
+					actions: { class: 'host-actions' },
+					footer: { class: 'host-footer' },
+					root: { class: 'host-root' },
+				},
+				switch: { thumb: { class: 'host-thumb' } },
+			},
+		});
+		try {
+			for (const region of [
+				'inner',
+				'trigger',
+				'primary',
+				'group',
+				'footer',
+				'root',
+				'thumb',
+			]) {
+				expect(document.querySelector(`.host-${region}`)).not.toBeNull();
+			}
+			expect(document.querySelector('.host-actions')).not.toBeNull();
+			document.querySelector<HTMLButtonElement>('.host-trigger')?.click();
+			await flushPromises();
+			expect(onClick).toHaveBeenCalledTimes(1);
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+});
+
+test('branding trigger renders the current brand mark instead of a menu icon', async () => {
+	const { context, wrapper } = await renderManager(
+		{ triggerIcon: 'branding' },
+		ConsentDialogTrigger
+	);
+	try {
+		context.activeUI.value = null;
+		await flushPromises();
+		const trigger = document.querySelector(
+			'[data-testid="consent-dialog-trigger"]'
+		);
+		expect(trigger?.getAttribute('data-c15t-trigger')).toBe('true');
+		expect(trigger?.querySelector('svg')?.getAttribute('viewBox')).toBe(
+			'0 0 446 445'
+		);
+	} finally {
+		await cleanup(wrapper, context);
+	}
+});
+
+describe('ConsentManager real transport completion', () => {
+	const deferredTransport = () => {
+		const replies: ((response: Response) => void)[] = [];
+		const customFetch = vi.fn(() =>
+			createDeferredPromise<Response>((resolve) => {
+				replies.push(resolve);
+			})
+		);
+		const finish = (index: number, ok: boolean) => {
+			const reply = replies[index];
+			if (!reply) {
+				throw new Error('Request not started');
+			}
+			reply(
+				new Response(JSON.stringify({ ok }), {
+					headers: { 'content-type': 'application/json' },
+					status: ok ? 200 : 500,
+				})
+			);
+		};
+		return { customFetch: customFetch as unknown as typeof fetch, finish };
+	};
+	const click = (action: string) => {
+		const element = document.querySelector<HTMLButtonElement>(
+			`[data-action="${action}"]`
+		);
+		if (!element) {
+			throw new Error(`Missing ${action} action`);
+		}
+		element.click();
+	};
+	for (const action of ['accept', 'reject', 'save']) {
+		test(`${action} retains the visible draft until a real successful response`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				expect(context.snapshot.value.resolution.status).toBe('matched');
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				const switches = () =>
+					[...document.querySelectorAll('[role="switch"]')].map((node) =>
+						node.getAttribute('aria-checked')
+					);
+				const draft = switches();
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				expect(context.snapshot.value.explicitChoice).not.toBeNull();
+				expect(context.activeUI.value).toBe('manager');
+				expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+				expect(switches()).toEqual(draft);
+				transport.finish(0, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(completed.mock.calls[0]?.[0].result.ok).toBe(false);
+				expect(context.activeUI.value).toBe('manager');
+				expect(switches()).toEqual(draft);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledTimes(2)
+				);
+				expect(context.activeUI.value).toBe('manager');
+				transport.finish(1, true);
+				await vi.waitFor(() => expect(context.activeUI.value).toBeNull());
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+		test(`${action} completion cannot close a reopened dialog or a newer action`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				context.activeUI.value = null;
+				await flushPromises();
+				expect(document.querySelector('[role="dialog"]')).toBeNull();
+				context.activeUI.value = 'manager';
+				await flushPromises();
+				click('save');
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledTimes(2)
+				);
+				transport.finish(0, true);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(context.activeUI.value).toBe('manager');
+				transport.finish(1, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+				expect(context.activeUI.value).toBe('manager');
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+		test(`${action} response cannot finish a newer pending action`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				click('save');
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledTimes(2)
+				);
+				const choice = document.querySelector<HTMLButtonElement>(
+					'[role="switch"]:not([disabled])'
+				);
+				if (!choice) {
+					throw new Error('Missing editable choice');
+				}
+				choice.click();
+				await flushPromises();
+				const checked = choice.getAttribute('aria-checked');
+				transport.finish(0, true);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(context.activeUI.value).toBe('manager');
+				expect(choice.getAttribute('aria-checked')).toBe(checked);
+				transport.finish(1, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+				expect(context.activeUI.value).toBe('manager');
+				expect(choice.getAttribute('aria-checked')).toBe(checked);
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+		test(`${action} failure respects an explicit close`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				context.activeUI.value = null;
+				transport.finish(0, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(context.activeUI.value).toBeNull();
+				expect(document.querySelector('[role="dialog"]')).toBeNull();
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+	}
 });

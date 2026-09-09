@@ -19,41 +19,49 @@ const BASE58_ALPHABET =
 	'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 /**
- * Encodes a Uint8Array to a base58 string.
+ * Encodes the 20-byte subject buffer to a base58 string.
  *
- * @param bytes - The bytes to encode
+ * @param bytes - The 20 bytes to encode
+ * @param view - Big-endian view of the same buffer
  * @returns Base58 encoded string
  *
  * @internal
  */
-const base58Encode = function base58Encode(bytes: Uint8Array): string {
-	const base = BigInt(58);
+const base58Encode = function base58Encode(
+	bytes: Uint8Array,
+	view: DataView
+): string {
 	let num = BigInt(0);
-
-	// Convert bytes to a big integer
-	for (const byte of bytes) {
-		num = num * BigInt(256) + BigInt(byte);
+	// The subject buffer is exactly five big-endian 32-bit words.
+	for (let offset = 0; offset < bytes.length; offset += 4) {
+		num = num * BigInt(2 ** 32) + BigInt(view.getUint32(offset, false));
 	}
 
-	// Convert to base58
-	const chars: string[] = [];
-	while (num > 0) {
-		const remainder = num % base;
-		// remainder is always 0-57, so this index is always valid
-		chars.unshift(BASE58_ALPHABET.charAt(Number(remainder)));
-		num /= base;
+	// Five base58 digits fit exactly in a Number. Divide the wide integer
+	// once per group, then extract those digits with ordinary arithmetic.
+	const groupBase = BigInt(58 ** 5);
+	let encoded = '';
+	while (num > BigInt(0)) {
+		let group = Number(num % groupBase);
+		num /= groupBase;
+		let digits = '';
+		for (let index = 0; index < 5; index += 1) {
+			digits = BASE58_ALPHABET.charAt(group % 58) + digits;
+			group = Math.floor(group / 58);
+			if (num === BigInt(0) && group === 0) {
+				break;
+			}
+		}
+		encoded = digits + encoded;
 	}
 
-	// Handle leading zeros
 	for (const byte of bytes) {
-		if (byte === 0) {
-			chars.unshift(BASE58_ALPHABET.charAt(0));
-		} else {
+		if (byte !== 0) {
 			break;
 		}
+		encoded = BASE58_ALPHABET.charAt(0) + encoded;
 	}
-
-	return chars.join('') || BASE58_ALPHABET.charAt(0);
+	return encoded || BASE58_ALPHABET.charAt(0);
 };
 
 /**
@@ -97,7 +105,7 @@ export const generateSubjectId = function generateSubjectId(): string {
 	view.setUint32(0, Math.floor(t / 2 ** 32), false);
 	view.setUint32(4, t % 2 ** 32, false);
 
-	return `sub_${base58Encode(buf)}`;
+	return `sub_${base58Encode(buf, view)}`;
 };
 
 /**

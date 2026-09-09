@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Godta alle',
 		close: 'Lukk',
 		customize: 'Tilpass',
+		dismiss: 'Lukk',
 		rejectAll: 'Avvis alle',
 		save: 'Lagre innstillingar',
 		securedBy: 'Sikra av',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Denne nettstaden brukar informasjonskapslar for å forbetre nettopplevinga di, analysere nettstadtrafikk og vise personleg tilpassa innhald.',
+		noticeDescription:
+			'Vi brukar informasjonskapslar og liknande teknologi for å drive denne nettstaden, måle trafikk og tilpasse innhald og annonsar. Du kan reservere deg eller administrere innstillingane dine når som helst.',
+		noticeTitle: 'Personvernmelding',
 		title: 'Vi verdset personvernet ditt',
 	},
 	frame: {
@@ -138,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Retningslinjer for informasjonskapslar',
 		privacyPolicy: 'Personvernerklæring',
 		termsOfService: 'Brukarvilkår',
+	},
+	rights: {
+		optOut: 'Ikkje sel eller del dataa mine',
+		preferences: 'Administrer innstillingar',
 	},
 };
 export default translations;

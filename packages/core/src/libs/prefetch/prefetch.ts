@@ -1,7 +1,7 @@
 import type { InitOutput } from '@c15t/schema/types';
 
 import type { SSRInitialData } from '../../options/ssr';
-import { c15tVersionHeaders } from '../../transports/version-header';
+import { c15tProtocolHeaders } from '../../transports/version-header';
 import {
 	buildRequestContextHeaders,
 	createBrowserRequestContext,
@@ -12,7 +12,11 @@ import type { PrefetchOptions } from './types';
 
 const WINDOW_PROMISES_KEY = '__c15tInitialDataPromises';
 
-type PrefetchPromise = Promise<SSRInitialData | undefined>;
+/** Raw init response and producer declaration retained until transport initialization. */
+export interface PrefetchedInitialData extends SSRInitialData {
+	producerPolicyContract?: string | null;
+}
+type PrefetchPromise = Promise<PrefetchedInitialData | undefined>;
 interface PrefetchEntry {
 	promise: PrefetchPromise;
 	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'];
@@ -62,8 +66,9 @@ const buildPrefetchConfig = function buildPrefetchConfig(
 	const url = buildInitURL(requestContext.backendURL);
 	const credentials = requestContext.credentials ?? 'include';
 	const headers = {
-		...c15tVersionHeaders,
+		...c15tProtocolHeaders,
 		...buildRequestContextHeaders(options.overrides),
+		'sec-gpc': requestContext.gpc ? '1' : '0',
 	};
 
 	return {
@@ -82,8 +87,9 @@ const buildPrefetchConfig = function buildPrefetchConfig(
 
 const toInitialData = function toInitialData(
 	config: Pick<PrefetchConfig, 'requestContext'>,
-	init: InitOutput | undefined
-): SSRInitialData | undefined {
+	init: InitOutput | undefined,
+	producerPolicyContract?: string | null
+): PrefetchedInitialData | undefined {
 	if (!init) {
 		return undefined;
 	}
@@ -94,6 +100,7 @@ const toInitialData = function toInitialData(
 		metadata: {
 			requestContext: config.requestContext,
 		},
+		producerPolicyContract,
 	};
 };
 
@@ -130,7 +137,11 @@ const createPrefetchEntry = function createPrefetchEntry(
 			const init = response.ok
 				? ((await response.json()) as InitOutput)
 				: undefined;
-			return toInitialData(config, init);
+			return toInitialData(
+				config,
+				init,
+				response.headers.get('x-c15t-policy-contract')
+			);
 		} catch {
 			return undefined;
 		}
@@ -164,9 +175,15 @@ const getMatchingPrefetchEntry = function getMatchingPrefetchEntry(options: {
 	const entries = Object.values(browserWindow[WINDOW_PROMISES_KEY] ?? {});
 	const matches = entries.filter((entry) => {
 		const { requestContext } = entry;
-		return requestContext
-			? matchesStoredRequestContext(requestContext, matcher)
-			: false;
+		// An omitted browser override is a request input, not a wildcard for
+		// a prefetched response resolved with an explicit override.
+		return (
+			!!requestContext &&
+			matchesStoredRequestContext(requestContext, matcher) &&
+			requestContext.country === (matcher.country ?? null) &&
+			requestContext.region === (matcher.region ?? null) &&
+			requestContext.language === (matcher.language ?? null)
+		);
 	});
 
 	return matches.length === 1 ? matches[0] : undefined;
@@ -180,6 +197,28 @@ export const getMatchingPrefetchedInitialData =
 	}): PrefetchPromise | undefined {
 		return getMatchingPrefetchEntry(options)?.promise;
 	};
+
+/**
+ * Take one matching browser prefetch during initialization, never rendering.
+ * @param options - Request identity that must match the early fetch.
+ * @returns Its pending response, or undefined when no unambiguous match exists.
+ */
+export const consumePrefetchedInitialData = (
+	options: Parameters<typeof getMatchingPrefetchedInitialData>[0]
+): PrefetchPromise | undefined => {
+	const entry = getMatchingPrefetchEntry(options);
+	const browser = getBrowserWindow();
+	if (!entry || !browser) {
+		return undefined;
+	}
+	const entries = browser[WINDOW_PROMISES_KEY];
+	for (const [key, candidate] of Object.entries(entries ?? {})) {
+		if (candidate === entry && entries) {
+			Reflect.deleteProperty(entries, key);
+		}
+	}
+	return entry.promise;
+};
 
 /**
  * Generates a self-contained inline script that starts the `/init`
@@ -204,7 +243,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
 		// `x-c15t-gpc` inside `headers`; `null` means detect at runtime.
 		gpc: options.overrides?.gpc ?? null,
 		headers: {
-			...c15tVersionHeaders,
+			...c15tProtocolHeaders,
 			...buildRequestContextHeaders(options.overrides),
 		},
 		requestContext: {
@@ -254,7 +293,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
   const detectGpc = () => {
     try {
       const value = window.navigator.globalPrivacyControl;
-      return value === true || value === '1';
+      return value === true;
     } catch {
       return false;
     }
@@ -264,6 +303,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
     return;
   }
   const gpc = payload.gpc === null ? detectGpc() : payload.gpc;
+  payload.headers['sec-gpc'] = gpc ? '1' : '0';
   const requestContext = {
     backendURL,
     country: payload.requestContext.country,
@@ -283,16 +323,16 @@ export const buildPrefetchScript = function buildPrefetchScript(
     credentials: payload.credentials,
     headers: payload.headers
   })
-    .then((response) => (response.ok ? response.json() : undefined))
-    .then((init) => (init
-      ? {
-          init,
-          gvl: init.gvl,
-          metadata: {
-            requestContext
-          }
-        }
-      : undefined))
+    .then(async (response) => {
+      if (!response.ok) return undefined;
+      const init = await response.json();
+      return init ? {
+        init,
+        gvl: init.gvl,
+        producerPolicyContract: response.headers.get('x-c15t-policy-contract'),
+        metadata: { requestContext }
+      } : undefined;
+    })
     .catch(() => undefined);
   promises[cacheKey] = {
     promise,

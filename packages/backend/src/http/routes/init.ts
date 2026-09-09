@@ -27,11 +27,14 @@ export const register = function register({
 				options.manifest ?? {},
 				c.req.raw.headers,
 				options.policySnapshot,
-				options.gvl
+				options.gvl,
+				options.tenantId ?? options.manifest?.tenantId
 			);
 			// Geo-dependent by definition, so it must never be cached across
-			// visitors the way /manifest is.
+			// visitors the way /manifest is. The contract header is part of the
+			// response identity too, for any cache that ignores no-store.
 			c.header('Cache-Control', 'no-store');
+			c.header('Vary', 'Origin, x-c15t-policy-contract');
 			return c.json(body);
 		}
 	);

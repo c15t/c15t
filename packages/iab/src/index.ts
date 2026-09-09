@@ -29,6 +29,13 @@ import type {
 	NonIABVendor,
 } from '@c15t/core';
 
+import {
+	clearAuthorityReceipt,
+	createAuthorityReceipt,
+	readAuthorityReceipt,
+	storeAuthority,
+	validateAuthority,
+} from './authority';
 import { createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL } from './tcf/fetch-gvl';
 import { getTCFCore } from './tcf/lazy-load';
@@ -216,14 +223,18 @@ const applyBlanket = function applyBlanket(
 	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
-
-	const vendorConsents: Record<string, boolean> = {};
-	const vendorLegitimateInterests: Record<string, boolean> = {};
-	for (const vendor of vendors) {
-		vendorConsents[vendor.id] = value && vendor.purposes.length > 0;
-		vendorLegitimateInterests[vendor.id] =
-			value && (vendor.legIntPurposes?.length ?? 0) > 0;
-	}
+	const vendorConsents: Record<string, boolean> = Object.fromEntries(
+		vendors.map((vendor) => [
+			String(vendor.id),
+			value && vendor.purposes.length > 0,
+		])
+	);
+	const vendorLegitimateInterests: Record<string, boolean> = Object.fromEntries(
+		vendors.map((vendor) => [
+			String(vendor.id),
+			value && (vendor.legIntPurposes?.length ?? 0) > 0,
+		])
+	);
 	const purposeConsents: Record<number, boolean> = {};
 	const purposeLegitimateInterests: Record<number, boolean> = {};
 	for (const id of purposeIds) {
@@ -242,20 +253,32 @@ const applyBlanket = function applyBlanket(
 		vendorConsents,
 		vendorLegitimateInterests,
 	});
+};
 
-	// Also map purposes → c15t categories so the top-level consent record
-	// reflects the IAB choices.
-	if (value) {
-		const consents = iabPurposesToC15tConsents(purposeConsents);
-		kernel.set.consent(consents);
-	} else {
-		kernel.set.consent({
-			experience: false,
-			functionality: false,
-			marketing: false,
-			measurement: false,
-		});
-	}
+const sameConfirmationContext = function sameConfirmationContext(
+	left: ConsentSnapshot,
+	right: ConsentSnapshot
+): boolean {
+	return (
+		left.evaluationPolicy.choice.fingerprint ===
+			right.evaluationPolicy.choice.fingerprint &&
+		left.iab === right.iab &&
+		left.subject === right.subject &&
+		left.user === right.user &&
+		left.explicitChoice === right.explicitChoice
+	);
+};
+
+const changedIABDraft = function changedIABDraft(
+	previous: ConsentSnapshot,
+	current: ConsentSnapshot
+): boolean {
+	return (
+		current.iab !== previous.iab &&
+		current.iab?.gvl === previous.iab?.gvl &&
+		current.iab?.enabled === previous.iab?.enabled &&
+		!current.iab?.authority
+	);
 };
 
 export const createIAB = function createIAB(
@@ -278,6 +301,24 @@ export const createIAB = function createIAB(
 
 	let cmpApi: CMPApi | null = null;
 	let disposed = false;
+	let authorityTimer: ReturnType<typeof setTimeout> | undefined;
+	let confirmationGeneration = 0;
+	const armAuthorityTimer = function armAuthorityTimer(): void {
+		clearTimeout(authorityTimer);
+		const authority = kernel.getSnapshot().iab?.authority;
+		if (!authority || disposed) {
+			return;
+		}
+		const remaining = authority.expiresAt - Date.now();
+		if (remaining <= 0) {
+			kernel.set.iab({ authority: null });
+			return;
+		}
+		authorityTimer = setTimeout(
+			armAuthorityTimer,
+			Math.min(remaining, 2_147_483_647)
+		);
+	};
 
 	// Install the __tcfapi stub synchronously so vendor scripts that
 	// load before our async initialization can queue calls.
@@ -298,6 +339,57 @@ export const createIAB = function createIAB(
 				})()
 			: Promise.resolve(preloadedGvl);
 
+	let restoredFingerprint: string | null = null;
+	let hydrationCancelled = false;
+	const restoreAuthority = async function restoreAuthority(): Promise<void> {
+		if (options.persistence === false) {
+			return;
+		}
+		const hydrationSnapshot = kernel.getSnapshot();
+		const recordsGeneration = kernel.getRecordsGeneration();
+		if (
+			disposed ||
+			hydrationCancelled ||
+			hydrationSnapshot.iab?.authority ||
+			!hydrationSnapshot.iab?.gvl ||
+			hydrationSnapshot.model !== 'iab' ||
+			hydrationSnapshot.resolution.status !== 'matched'
+		) {
+			return;
+		}
+		const { fingerprint } = hydrationSnapshot.evaluationPolicy.choice;
+		if (restoredFingerprint === fingerprint) {
+			return;
+		}
+		restoredFingerprint = fingerprint;
+		const generation = confirmationGeneration;
+		const authority = await validateAuthority(
+			readAuthorityReceipt(),
+			hydrationSnapshot,
+			Date.now()
+		);
+		const current = kernel.getSnapshot();
+		if (
+			!disposed &&
+			!hydrationCancelled &&
+			authority &&
+			generation === confirmationGeneration &&
+			kernel.getRecordsGeneration() === recordsGeneration &&
+			current.iab === hydrationSnapshot.iab &&
+			current.explicitChoice === hydrationSnapshot.explicitChoice &&
+			current.subject === hydrationSnapshot.subject &&
+			current.evaluationPolicy.choice.fingerprint === fingerprint
+		) {
+			kernel.set.iab({ authority, tcString: authority.tcString });
+			armAuthorityTimer();
+		}
+	};
+	const unsubscribeClear = kernel.events.on('records:cleared', () => {
+		hydrationCancelled = true;
+		confirmationGeneration += 1;
+		clearAuthorityReceipt();
+	});
+	const initializationSnapshot = kernel.getSnapshot();
 	void (async () => {
 		const gvl = await gvlPromise;
 		if (disposed) {
@@ -308,13 +400,13 @@ export const createIAB = function createIAB(
 			kernel.set.iab({ enabled: false, gvl: null });
 			return;
 		}
+		const mayHydrate = kernel.getSnapshot().iab === initializationSnapshot.iab;
 		kernel.set.iab({ enabled: true, gvl });
 		try {
-			cmpApi = createCMPApi({
-				cmpId,
-				cmpVersion,
-				gvl,
-			});
+			cmpApi = createCMPApi({ cmpId, cmpVersion, gvl });
+			if (mayHydrate) {
+				void restoreAuthority();
+			}
 		} catch {
 			// Failing to install CMP API is non-fatal; kernel state is
 			// still correct, the rest of the module just can't respond
@@ -324,14 +416,31 @@ export const createIAB = function createIAB(
 
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
+	let previousAuthority = kernel.getSnapshot().iab?.authority;
+	let previousSnapshot = kernel.getSnapshot();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
+		const policyChanged = snapshot.resolution !== previousSnapshot.resolution;
+		if (!policyChanged && changedIABDraft(previousSnapshot, snapshot)) {
+			hydrationCancelled = true;
+		}
+		previousSnapshot = snapshot;
+		if (policyChanged) {
+			queueMicrotask(() => {
+				void restoreAuthority();
+			});
+		}
+		if (previousAuthority && !snapshot.iab?.authority) {
+			clearAuthorityReceipt();
+		}
+		previousAuthority = snapshot.iab?.authority;
+		armAuthorityTimer();
 		if (!cmpApi) {
 			return;
 		}
-		const tcString = snapshot.iab?.tcString ?? null;
-		if (tcString) {
-			cmpApi.updateConsent(tcString);
-		}
+		// Expiry can synchronously publish a newer snapshot while arming the
+		// timer. Never restore the expired receipt from this notification.
+		const tcString = kernel.getSnapshot().iab?.authority?.tcString ?? null;
+		cmpApi.updateConsent(tcString ?? '');
 	});
 
 	const buildTCFConsentData = function buildTCFConsentData() {
@@ -362,16 +471,19 @@ export const createIAB = function createIAB(
 			disclosed[id] = true;
 		}
 		return {
-			purposeConsents: iab.purposeConsents,
-			purposeLegitimateInterests: iab.purposeLegitimateInterests,
-			specialFeatureOptIns: iab.specialFeatureOptIns,
-			vendorConsents,
-			vendorLegitimateInterests,
+			purposeConsents: { ...iab.purposeConsents },
+			purposeLegitimateInterests: { ...iab.purposeLegitimateInterests },
+			specialFeatureOptIns: { ...iab.specialFeatureOptIns },
+			vendorConsents: { ...vendorConsents },
+			vendorLegitimateInterests: { ...vendorLegitimateInterests },
 			vendorsDisclosed: disclosed,
 		};
 	};
 
 	const generateTC = async function generateTC(): Promise<string> {
+		const snapshot = kernel.getSnapshot();
+		const recordsGeneration = kernel.getRecordsGeneration();
+		const generation = confirmationGeneration;
 		const iab = readIAB(kernel);
 		if (!iab.gvl) {
 			throw new Error(
@@ -379,18 +491,28 @@ export const createIAB = function createIAB(
 			);
 		}
 		// Lazy-load @iabtechlabtcf/core only when we actually encode.
-		await getTCFCore();
 		const consentData = buildTCFConsentData();
+		await getTCFCore();
 		const tcString = await generateTCString(consentData, iab.gvl, {
 			cmpId,
 			cmpVersion,
 			isServiceSpecific: options.isServiceSpecific ?? true,
 			publisherCountryCode: options.publisherCountryCode ?? 'US',
 		});
-		kernel.set.iab({ tcString });
+		if (
+			!disposed &&
+			generation === confirmationGeneration &&
+			kernel.getRecordsGeneration() === recordsGeneration &&
+			sameConfirmationContext(kernel.getSnapshot(), snapshot)
+		) {
+			kernel.set.iab({ tcString });
+		}
 		return tcString;
 	};
 
+	// Registration needs the completed handle; dispose runs after registration.
+	// oxlint-disable-next-line prefer-const -- Assigned after the handle closes over this teardown.
+	let unregisterControls: (() => void) | undefined;
 	const handle: IABHandle = {
 		acceptAll() {
 			const { gvl } = readIAB(kernel);
@@ -404,9 +526,10 @@ export const createIAB = function createIAB(
 		},
 		dispose() {
 			disposed = true;
-			// oxlint-disable-next-line no-use-before-define -- Cleanup runs after this handle has been registered.
-			unregisterControls();
+			clearTimeout(authorityTimer);
+			unregisterControls?.();
 			unsubscribe();
+			unsubscribeClear();
 			if (cmpApi) {
 				try {
 					cmpApi.destroy();
@@ -432,19 +555,60 @@ export const createIAB = function createIAB(
 			applyBlanket(kernel, gvl, false);
 		},
 		async save() {
-			const consentData = buildTCFConsentData();
-			const tcString = await generateTC();
-			if (options.persistence !== false) {
-				cmpApi?.saveToStorage(tcString);
+			const actionAt = Date.now();
+			confirmationGeneration += 1;
+			const generation = confirmationGeneration;
+			const snapshot = kernel.getSnapshot();
+			const recordsGeneration = kernel.getRecordsGeneration();
+			if (!snapshot.iab?.gvl) {
+				return;
 			}
-			cmpApi?.updateConsent(tcString, consentData);
-			// Map purposes → c15t consents one more time to make sure
-			// the final save payload reflects what we just generated.
-			const purposes = readIAB(kernel).purposeConsents;
-			const consents = iabPurposesToC15tConsents(purposes);
-			const result = await kernel.commands.save(consents);
+			const consentData = buildTCFConsentData();
+			const receipt = createAuthorityReceipt(snapshot, '', actionAt);
+			const tcString = await generateTCString(consentData, snapshot.iab.gvl, {
+				cmpId,
+				cmpVersion,
+				confirmedAt: actionAt,
+				isServiceSpecific: options.isServiceSpecific ?? true,
+				publisherCountryCode: options.publisherCountryCode ?? 'US',
+			});
+			const authority = await validateAuthority(
+				{ ...receipt, tcString },
+				snapshot,
+				Date.now()
+			);
+			if (
+				!authority ||
+				disposed ||
+				generation !== confirmationGeneration ||
+				kernel.getRecordsGeneration() !== recordsGeneration ||
+				!sameConfirmationContext(kernel.getSnapshot(), snapshot)
+			) {
+				return;
+			}
+			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
+			const pendingSave = kernel.commands.save(consents, {
+				actionAt,
+				iabAuthority: authority,
+			});
+			// Save commits locally before its first yield. Transport acknowledgement
+			// cannot revoke that action or assign authority to a later action.
+			if (
+				kernel.getSnapshot().iab?.authority?.tcString === tcString &&
+				!disposed &&
+				generation === confirmationGeneration &&
+				kernel.getRecordsGeneration() === recordsGeneration
+			) {
+				if (options.persistence !== false) {
+					storeAuthority(authority);
+					cmpApi?.saveToStorage(tcString);
+				}
+				cmpApi?.updateConsent(tcString, consentData);
+				armAuthorityTimer();
+			}
+			const result = await pendingSave;
 			if (!result.ok) {
-				throw new Error('IAB consent could not be saved. Retry the save.');
+				throw new Error('Unable to save IAB preferences.');
 			}
 		},
 		setPurposeConsent(id, value) {
@@ -454,9 +618,6 @@ export const createIAB = function createIAB(
 			}
 			const next = { ...current, [id]: value };
 			kernel.set.iab({ purposeConsents: next });
-			// Also propagate to c15t categories so scripts/blockers see
-			// the change.
-			kernel.set.consent(iabPurposesToC15tConsents(next));
 		},
 		setPurposeLegitimateInterest(id, value) {
 			const current = readIAB(kernel).purposeLegitimateInterests;
@@ -497,7 +658,7 @@ export const createIAB = function createIAB(
 			});
 		},
 	};
-	const unregisterControls = registerIABControls(kernel, handle);
+	unregisterControls = registerIABControls(kernel, handle);
 	return handle;
 };
 

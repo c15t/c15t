@@ -7,11 +7,12 @@
  * lifecycle handle. Framework packages extend {@link ConsentRuntimeOptions}
  * with their own UI-only fields rather than restating the shared ones.
  */
-import type { PolicyConfig } from '@c15t/schema/types';
+import type { PolicyRule } from '@c15t/schema/types';
 import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { StorageConfig } from '../libs/cookie';
+import type { ConsentPresentation } from '../libs/policy-actions';
 import type { IframeBlockerOptions } from '../modules/iframe-blocker';
 import type {
 	NetworkBlockerConfig,
@@ -21,7 +22,6 @@ import type { PersistenceOptions } from '../modules/persistence';
 import type { Script, ScriptLoaderDebugEvent } from '../modules/script-loader';
 import type { Callbacks } from '../options/callbacks';
 import type { IABConfig } from '../options/iab';
-import type { OfflinePolicyConfig } from '../options/offline-policy';
 import type { User } from '../options/user';
 import type { ProviderTransportFactory } from '../transports/mode';
 import type {
@@ -178,14 +178,14 @@ export interface ConsentRuntimeOptions {
 	/** Decision inputs (country, region, language, GPC) forced by the host. */
 	overrides?: KernelOverrides;
 	/** Server-prefetched kernel configuration, for SSR without a flash. */
-	prefetch?: KernelConfig;
+	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'>;
+	/** Host presentation, separate from policy semantics. */
+	presentation?: ConsentPresentation;
 	/** Lifecycle callbacks invoked as consent is fetched, set and changed. */
-	callbacks?: Callbacks;
-	/**
-	 * Reload the page when a previously granted category is revoked, so
-	 * already-executed trackers stop. Defaults to `true`.
-	 */
-	reloadOnConsentRevoked?: boolean;
+	callbacks?: Pick<
+		Callbacks,
+		'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+	>;
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];
 	/** Script-loader tuning. */
@@ -206,20 +206,11 @@ export interface ConsentRuntimeOptions {
 	createIAB?: ConsentRuntimeIABFactory;
 	/**
 	 * Storage persistence. `true`/omitted hydrates from cookie +
-	 * localStorage on creation; `false` disables storage entirely.
+	 * localStorage on start; `false` disables storage entirely.
 	 */
 	persistence?: boolean | RuntimePersistenceOptions;
-	/** Policy packs evaluated by the transport. */
-	policies?: PolicyConfig[];
-	/**
-	 * Offline policy preview configuration.
-	 *
-	 * @remarks
-	 * With `offline()` it lets you inject a synthetic resolved policy
-	 * (`policy`, `policyDecision`, `policySnapshotToken`) or
-	 * backend-compatible `policyPacks` without a live `/init` endpoint.
-	 */
-	offlinePolicy?: OfflinePolicyConfig;
+	/** Ordered policy rules evaluated by local transports. */
+	policyRules?: PolicyRule[];
 	/** Locale and message overrides merged over the bundled translations. */
 	i18n?: Partial<I18nConfig>;
 	/** Categories surfaced in the banner and preference center. */
@@ -234,8 +225,7 @@ export interface ConsentRuntimeOptions {
 /**
  * A started or startable consent runtime.
  *
- * Construction is SSR-safe and free of DOM side effects beyond an early
- * cookie hydration in the browser, so a server can read
+ * Construction is SSR-safe and free of storage and DOM side effects, so a server can read
  * `kernel.getSnapshot()` immediately. {@link ConsentRuntime.start} owns
  * every browser side effect and {@link ConsentRuntime.dispose} undoes them
  * in reverse.
@@ -243,6 +233,8 @@ export interface ConsentRuntimeOptions {
 export interface ConsentRuntime {
 	/** The consent kernel. Adapters subscribe to it for reactivity. */
 	readonly kernel: ConsentKernel;
+	/** Clear receipts, identity and persisted records. */
+	clearRecords: () => void;
 	/** The mounted IAB CMP, or `null` while IAB is off or not yet ready. */
 	readonly iab: ConsentRuntimeIABHandle | null;
 	/** Categories surfaced in the UI. See {@link ConsentRuntime.setConsentCategories}. */
@@ -270,8 +262,7 @@ export interface ConsentRuntime {
 	/** Replace the kernel's decision-input overrides. */
 	setOverrides: (overrides: KernelOverrides) => void;
 	/**
-	 * Re-run `kernel.commands.init()` and drop the banner when the subject
-	 * has already consented. A no-op when `enabled` is `false`.
+	 * Re-run `kernel.commands.init()` and evaluate the current records. A no-op when `enabled` is `false`.
 	 */
 	reinit: () => Promise<void>;
 	/** Replace the categories surfaced in the UI. */

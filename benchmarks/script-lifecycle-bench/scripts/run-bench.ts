@@ -5,16 +5,17 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import { scriptLifecycleBudgetsForMetric } from '@c15t/benchmarking/budgets';
+import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
-	BENCHMARK_SCHEMA_VERSION,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
-	scriptLifecycleBudgets,
+	safeGitDirty,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking';
-import type { BenchmarkResult } from '@c15t/benchmarking';
+} from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
@@ -363,9 +364,7 @@ const run = async function run() {
 
 				const result: BenchmarkResult = {
 					baseSha: safeBaseSha(),
-					budgetDefinitions: scriptLifecycleBudgets.filter((budget) =>
-						[config.metric, 'errorCount'].includes(budget.metric)
-					),
+					budgetDefinitions: scriptLifecycleBudgetsForMetric(config.metric),
 					budgets: [],
 					commitSha: safeCommitSha(),
 					environment: getEnvironment(browser.version()),
@@ -381,6 +380,11 @@ const run = async function run() {
 						themeComplexity: 'minimal',
 					},
 					framework: 'core',
+					metadata: {
+						gitDirty: safeGitDirty(),
+						iterations,
+						warmupIterations,
+					},
 					metrics: [
 						summarizeMetric(config.metric, 'ms', durationSamples),
 						summarizeMetric('loadedScriptCount', 'count', loadedScriptCounts),

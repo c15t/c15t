@@ -31,11 +31,14 @@ export const TEST_IDS = {
 		card: 'consent-banner-card',
 		customizeButton: 'consent-banner-customize-button',
 		description: 'consent-banner-description',
+		dismissButton: 'consent-banner-dismiss-button',
 		footer: 'consent-banner-footer',
 		footerSubGroup: 'consent-banner-footer-sub-group',
 		header: 'consent-banner-header',
 		overlay: 'consent-banner-overlay',
 		rejectButton: 'consent-banner-reject-button',
+		// Footer group holding persistent-right links (opt-out, preferences).
+		rights: 'consent-banner-rights',
 		root: 'consent-banner-root',
 		title: 'consent-banner-title',
 	},
@@ -117,11 +120,15 @@ export const TEST_IDS = {
 export const TEST_ID_PATTERNS = [
 	/^consent-banner-legal-link-(?:privacyPolicy|cookiePolicy|termsOfService)$/u,
 	/^consent-dialog-legal-link-(?:privacyPolicy|cookiePolicy|termsOfService)$/u,
+	// Persistent-right links in the banner footer, keyed by right
+	// (`opt-out`, `preferences`). Kept kebab-case so the dynamic probe matches.
+	/^consent-banner-right-link-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-accordion-item-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-accordion-trigger-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-accordion-arrow-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-accordion-content-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-switch-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-restriction-[a-z][a-z0-9-]*$/u,
 	/^stack-item-[a-z0-9][a-z0-9-]*$/u,
 	/^purpose-item-[a-z0-9][a-z0-9-]*$/u,
 	// A GVL numbers purposes, special purposes, features and special

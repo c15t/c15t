@@ -2,7 +2,8 @@ import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { MouseEvent } from 'react';
 
-import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/hooks';
+import { useConsentSaveAction } from '~/draft';
+import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -26,7 +27,12 @@ const NON_DOM_PROPS = [
 	'performDefaultAction',
 ] as const;
 
-type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
+type ConsentActionThemeKey =
+	| 'accept'
+	| 'reject'
+	| 'customize'
+	| 'dismiss'
+	| 'save';
 
 /**
  * Resolves the final variant and mode for a consent button.
@@ -42,8 +48,9 @@ type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
  * Resolution order:
  * 1. Explicit `variant` / `mode` props
  * 2. `theme.consentActions[consentAction]`
- * 3. `theme.consentActions.default`
- * 4. Hardcoded fallback based on `isPrimary`
+ * 3. `theme.consentActions.primary` when the action is primary
+ * 4. `theme.consentActions.default`
+ * 5. Hardcoded fallback based on `isPrimary`
  */
 const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
 	consentAction?: ConsentActionThemeKey;
@@ -59,18 +66,26 @@ const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
 		};
 	}
 
-	const defaultStyle = params.isPrimary
-		? { mode: 'stroke' as const, variant: 'primary' as const }
-		: { mode: 'stroke' as const, variant: 'neutral' as const };
-	const themedDefault = params.theme?.consentActions?.default ?? {};
-	const themedAction = params.consentAction
-		? params.theme?.consentActions?.[params.consentAction]
-		: undefined;
+	const consentActions = params.theme?.consentActions;
+	// `save` has no theme key; every other action can be themed individually.
+	const themedAction =
+		params.consentAction && params.consentAction !== 'save'
+			? consentActions?.[params.consentAction]
+			: undefined;
+	// Most specific first; the last entry is the hardcoded fallback.
+	const layers = [
+		themedAction,
+		params.isPrimary ? consentActions?.primary : undefined,
+		consentActions?.default,
+		{
+			mode: 'stroke' as const,
+			variant: params.isPrimary ? ('primary' as const) : ('neutral' as const),
+		},
+	];
 
 	return {
-		mode: themedAction?.mode ?? themedDefault.mode ?? defaultStyle.mode,
-		variant:
-			themedAction?.variant ?? themedDefault.variant ?? defaultStyle.variant,
+		mode: layers.find((layer) => layer?.mode)?.mode ?? 'stroke',
+		variant: layers.find((layer) => layer?.variant)?.variant ?? 'neutral',
 	};
 };
 
@@ -100,7 +115,8 @@ export const ConsentButton = createForwardRef<
 				| 'reject-consent'
 				| 'custom-consent'
 				| 'open-consent-dialog'
-				| 'set-consent';
+				| 'set-consent'
+				| 'dismiss-notice';
 			category?: AllConsentNames;
 			closeConsentDialog?: boolean;
 			closeConsentBanner?: boolean;
@@ -130,9 +146,9 @@ export const ConsentButton = createForwardRef<
 		},
 		ref
 	) => {
-		const saveConsents = useSaveConsents();
+		const saveConsents = useConsentSaveAction();
 		const setActiveUI = useSetActiveUI();
-		const setConsent = useSetConsent();
+		const dismissNotice = useDismissNotice();
 		const { noStyle: contextNoStyle, theme } = useTheme();
 		const { components } = useUIConfig();
 		const resolvedButtonStyle = resolveConsentButtonStyle({
@@ -172,6 +188,10 @@ export const ConsentButton = createForwardRef<
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
+				forwardedOnClick?.(e);
+				if (e.defaultPrevented) {
+					return;
+				}
 				const actionSavesConsent =
 					action === 'accept-consent' ||
 					action === 'reject-consent' ||
@@ -186,11 +206,6 @@ export const ConsentButton = createForwardRef<
 					setActiveUI('dialog');
 				}
 
-				// Call the user's onClick handler after UI updates
-				if (forwardedOnClick) {
-					forwardedOnClick(e);
-				}
-
 				if (performDefaultAction && action !== 'open-consent-dialog') {
 					switch (action) {
 						case 'accept-consent':
@@ -200,14 +215,17 @@ export const ConsentButton = createForwardRef<
 							saveConsents('none');
 							break;
 						case 'custom-consent':
-							saveConsents();
+							void saveConsents();
+							break;
+						case 'dismiss-notice':
+							void dismissNotice();
 							break;
 						case 'set-consent':
 							if (!category) {
 								throw new Error('Category is required for set-consent action');
 							}
 
-							setConsent({ [category]: true });
+							void saveConsents({ [category]: true });
 							break;
 						default:
 							break;
@@ -222,7 +240,7 @@ export const ConsentButton = createForwardRef<
 				setActiveUI,
 				action,
 				category,
-				setConsent,
+				dismissNotice,
 				performDefaultAction,
 			]
 		);
@@ -246,6 +264,7 @@ export const ConsentButton = createForwardRef<
 				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
 				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
 				data-size={isStyled ? size : undefined}
+				data-action={consentAction}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				{...domProps}

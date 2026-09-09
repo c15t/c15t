@@ -197,7 +197,7 @@ const reconcileScripts = function reconcileScripts(
 	consents: ConsentState
 ): ScriptUpdateResult {
 	const before = loader ? loader.getLoadedScriptIds() : [];
-	kernel.set.consent(consents);
+	void kernel.commands.save(consents);
 
 	if (loader) {
 		loader.updateScripts(scripts);

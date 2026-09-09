@@ -1,20 +1,31 @@
 'use client';
 
-import type { PolicyConfig } from '@c15t/schema/types';
-import { policyPackPresets } from 'c15t';
+import type { PolicyRule } from '@c15t/schema/types';
+import { policyRulePresets } from 'c15t';
+import type { PresentationAction, PromptPosition, PromptVariant } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentProvider,
 	ConsentWidget,
 	offline,
-	useSetConsent,
+	useConsentDraft,
 	useSnapshot,
 } from 'c15t/react';
 import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
+import {
+	applySurfaceParams,
+	parseSurfaceParams,
+	PROMPT_VARIANTS,
+	setSurfaceVariant,
+	surfacePositionOptions,
+	withSurface,
+} from '../../lib/prompt-surface';
+import type { SurfaceParams } from '../../lib/prompt-surface';
+import { getScenarioById } from '../../lib/scenarios';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -34,9 +45,14 @@ interface Snapshot {
 	orderedActions: string[];
 	actionGroups: string[][];
 	primaryActions: string[];
+	uncoveredRights: string[];
 	direction: string;
 	uiProfile?: string;
 	shouldFillActions: boolean;
+	variant: string;
+	position: string;
+	positionSource: string;
+	blocking: boolean;
 }
 
 const locationPresets = [
@@ -67,13 +83,10 @@ const renderJson = function renderJson(snapshot: Snapshot) {
 };
 
 const actionLabel = function actionLabel(
-	action: 'accept' | 'reject' | 'customize',
-	labels: { accept: string; customize: string; reject: string }
+	action: PresentationAction,
+	labels: Record<PresentationAction, string>
 ): string {
-	if (action === 'accept') {
-		return labels.accept;
-	}
-	return action === 'reject' ? labels.reject : labels.customize;
+	return labels[action];
 };
 
 const buildSurfaceSnapshot = function buildSurfaceSnapshot(
@@ -82,23 +95,54 @@ const buildSurfaceSnapshot = function buildSurfaceSnapshot(
 	return {
 		actionGroups: surface.actionGroups,
 		allowedActions: surface.allowedActions,
+		blocking: surface.blocking,
 		direction: surface.direction,
 		isVisible: surface.isVisible,
 		orderedActions: surface.orderedActions,
+		position: surface.position,
+		positionSource: surface.positionSource,
 		primaryActions: surface.primaryActions,
 		shouldFillActions: surface.shouldFillActions,
 		uiProfile: surface.uiProfile,
+		uncoveredRights: surface.uncoveredRights,
+		variant: surface.variant,
 	};
+};
+
+/** Read the draft inside ConsentWidget.Root, where the switches edit it. */
+const CustomDialogAction = ({
+	action,
+	isPrimary,
+	style,
+}: {
+	action: PresentationAction;
+	isPrimary: boolean;
+	style?: React.CSSProperties;
+}) => {
+	const { performDialogAction } = useHeadlessConsentUI();
+	const { common } = useTranslations();
+	return (
+		<Button
+			type="button"
+			variant={isPrimary ? 'default' : 'outline'}
+			className="justify-center"
+			style={style}
+			onClick={() => performDialogAction(action)}
+		>
+			{actionLabel(action, {
+				accept: common.acceptAll,
+				customize: common.customize,
+				dismiss: common.acceptAll,
+				reject: common.rejectAll,
+				save: common.save,
+			})}
+		</Button>
+	);
 };
 
 const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 	const [openItem, setOpenItem] = React.useState('');
-	const {
-		openDialog,
-		performBannerAction,
-		performDialogAction,
-		saveCustomPreferences,
-	} = useHeadlessConsentUI();
+	const { openDialog, performBannerAction } = useHeadlessConsentUI();
 	const { common } = useTranslations();
 
 	return (
@@ -145,6 +189,16 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 												className={className}
 											/>
 										);
+									case 'dismiss':
+										return (
+											<Button
+												key={key}
+												className={className}
+												onClick={() => performBannerAction('dismiss')}
+											>
+												{common.acceptAll}
+											</Button>
+										);
 									default:
 										return null;
 								}
@@ -172,7 +226,9 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 									{actionLabel(action, {
 										accept: common.acceptAll,
 										customize: common.customize,
+										dismiss: common.acceptAll,
 										reject: common.rejectAll,
+										save: common.save,
 									})}
 								</Button>
 							)}
@@ -182,7 +238,6 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 			</ConsentBanner.Root>
 
 			<ConsentDialog.Root>
-				<ConsentDialog.Overlay />
 				<ConsentDialog.Card>
 					<ConsentDialog.Header>
 						<ConsentDialog.HeaderTitle />
@@ -227,7 +282,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 														className={className}
 													/>
 												);
-											case 'customize':
+											case 'save':
 												return (
 													<ConsentWidget.SaveButton
 														key={key}
@@ -244,27 +299,12 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 							{variant === 'custom' && (
 								<ConsentWidget.PolicyActions
 									renderAction={(action, props) => (
-										<Button
+										<CustomDialogAction
 											key={props.key}
-											type="button"
-											variant={props.isPrimary ? 'default' : 'outline'}
-											className="justify-center"
+											action={action}
+											isPrimary={props.isPrimary}
 											style={props.style}
-											onClick={() => {
-												if (action === 'customize') {
-													void saveCustomPreferences();
-													return;
-												}
-
-												void performDialogAction(action);
-											}}
-										>
-											{actionLabel(action, {
-												accept: common.acceptAll,
-												customize: common.save,
-												reject: common.rejectAll,
-											})}
-										</Button>
+										/>
 									)}
 								/>
 							)}
@@ -277,40 +317,97 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 	);
 };
 
-const PolicyActionsDemoContent = () => {
+const SurfaceControls = ({
+	surface,
+	onChange,
+}: {
+	surface: SurfaceParams;
+	onChange: (next: SurfaceParams) => void;
+}) => {
+	const positions = surfacePositionOptions(surface.variant);
+	return (
+		<div className="flex flex-wrap items-end gap-3">
+			<label className="flex flex-col gap-1 text-xs">
+				Variant
+				<select
+					data-testid="policy-demo-variant"
+					value={surface.variant}
+					onChange={(event) =>
+						onChange(
+							setSurfaceVariant(
+								surface,
+								event.target.value as PromptVariant | ''
+							)
+						)
+					}
+					className="h-9 rounded-md border border-slate-300 bg-white px-3 font-mono text-xs dark:border-slate-700 dark:bg-slate-950"
+				>
+					<option value="">auto</option>
+					{PROMPT_VARIANTS.map((variant) => (
+						<option
+							key={variant}
+							value={variant}
+						>
+							{variant}
+						</option>
+					))}
+				</select>
+			</label>
+			<label className="flex flex-col gap-1 text-xs">
+				Position
+				<select
+					data-testid="policy-demo-position"
+					value={surface.position}
+					disabled={!surface.variant}
+					onChange={(event) =>
+						onChange({
+							...surface,
+							position: event.target.value as PromptPosition | '',
+						})
+					}
+					className="h-9 rounded-md border border-slate-300 bg-white px-3 font-mono text-xs disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950"
+				>
+					<option value="">auto</option>
+					{positions.map((position) => (
+						<option
+							key={position}
+							value={position}
+						>
+							{position}
+						</option>
+					))}
+				</select>
+			</label>
+			<label className="flex h-9 items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					data-testid="policy-demo-blocking"
+					checked={surface.blocking}
+					onChange={(event) =>
+						onChange({ ...surface, blocking: event.target.checked })
+					}
+					className="size-4"
+				/>
+				Blocking
+			</label>
+		</div>
+	);
+};
+
+const PolicyActionsDemoContent = ({
+	surface,
+	onSurfaceChange,
+}: {
+	surface: SurfaceParams;
+	onSurfaceChange: (next: SurfaceParams) => void;
+}) => {
 	const [variant, setVariant] = React.useState<DemoVariant>('default');
+	const draft = useConsentDraft();
 	const snapshot = useSnapshot();
-	const setConsent = useSetConsent();
 	const { banner, dialog, openBanner, openDialog } = useHeadlessConsentUI();
-	const lastAutoOpenedKey = React.useRef<string | null>(null);
 
-	React.useEffect(() => {
-		if (!snapshot.policy) {
-			return;
-		}
-
-		const resolvedKey = [
-			snapshot.policy.id,
-			snapshot.location?.countryCode ?? 'none',
-			snapshot.location?.regionCode ?? 'none',
-			snapshot.translations?.language ?? 'none',
-		].join(':');
-
-		if (lastAutoOpenedKey.current === resolvedKey) {
-			return;
-		}
-
-		lastAutoOpenedKey.current = resolvedKey;
-		openBanner();
-	}, [snapshot.location, snapshot.policy, snapshot.translations, openBanner]);
-
-	const resetConsents = () => {
-		setConsent({
-			experience: false,
-			functionality: false,
-			marketing: false,
-			measurement: false,
-		});
+	const resetDraft = () => {
+		draft.reset();
 	};
 
 	const bannerSnapshot = React.useMemo(
@@ -318,12 +415,17 @@ const PolicyActionsDemoContent = () => {
 			buildSurfaceSnapshot({
 				actionGroups: banner.actionGroups,
 				allowedActions: banner.allowedActions,
+				blocking: banner.blocking,
 				direction: banner.direction,
 				isVisible: banner.isVisible,
 				orderedActions: banner.orderedActions,
+				position: banner.position,
+				positionSource: banner.positionSource,
 				primaryActions: banner.primaryActions,
 				shouldFillActions: banner.shouldFillActions,
 				uiProfile: banner.uiProfile,
+				uncoveredRights: banner.uncoveredRights,
+				variant: banner.variant,
 			}),
 		[banner]
 	);
@@ -333,12 +435,17 @@ const PolicyActionsDemoContent = () => {
 			buildSurfaceSnapshot({
 				actionGroups: dialog.actionGroups,
 				allowedActions: dialog.allowedActions,
+				blocking: dialog.blocking,
 				direction: dialog.direction,
 				isVisible: dialog.isVisible,
 				orderedActions: dialog.orderedActions,
+				position: dialog.position,
+				positionSource: dialog.positionSource,
 				primaryActions: dialog.primaryActions,
 				shouldFillActions: dialog.shouldFillActions,
 				uiProfile: dialog.uiProfile,
+				uncoveredRights: dialog.uncoveredRights,
+				variant: dialog.variant,
 			}),
 		[dialog]
 	);
@@ -369,17 +476,17 @@ const PolicyActionsDemoContent = () => {
 						<Button
 							variant="outline"
 							onClick={() => {
-								resetConsents();
-								openBanner();
+								resetDraft();
+								openDialog();
 							}}
 						>
-							Reset + show banner
+							Reset draft + open preferences
 						</Button>
 						<Button
 							variant="outline"
 							onClick={() => openBanner()}
 						>
-							Force banner
+							Show required banner
 						</Button>
 						<Button onClick={() => openDialog()}>Open dialog</Button>
 					</div>
@@ -411,25 +518,55 @@ const PolicyActionsDemoContent = () => {
 								</Button>
 							))}
 						</CardContent>
+						<CardContent className="space-y-2 border-t border-slate-200/70 pt-4 dark:border-slate-800">
+							<p className="text-sm font-medium">Prompt surface</p>
+							<p className="text-xs text-slate-600 dark:text-slate-300">
+								`variant`, `position` and `blocking=1` in the URL layer over the
+								scenario presentation. A notice defaults to a bottom bar, a
+								choice to a floating card; a wall always blocks.
+							</p>
+							<SurfaceControls
+								surface={surface}
+								onChange={onSurfaceChange}
+							/>
+						</CardContent>
 					</Card>
 
 					<Card className="border-slate-200/70 bg-white/80 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
 						<CardHeader>
 							<CardTitle>Current behavior</CardTitle>
 							<CardDescription>
-								Resolved policy hints are shown below. If you accept or reject,
-								use reset to reopen the flow.
+								Resolved policy hints are shown below. Preferences stay
+								available after accepting or rejecting.
 							</CardDescription>
 						</CardHeader>
-						<CardContent className="flex flex-wrap gap-2">
-							<Badge variant="secondary">activeUI: {snapshot.activeUI}</Badge>
-							<Badge variant="secondary">
-								banner: {banner.isVisible ? 'visible' : 'hidden'}
-							</Badge>
-							<Badge variant="secondary">
-								dialog: {dialog.isVisible ? 'visible' : 'hidden'}
-							</Badge>
-							<Badge variant="secondary">variant: {variant}</Badge>
+						<CardContent className="space-y-3">
+							<div className="flex flex-wrap gap-2">
+								<Badge variant="secondary">activeUI: {snapshot.activeUI}</Badge>
+								<Badge variant="secondary">
+									banner: {banner.isVisible ? 'visible' : 'hidden'}
+								</Badge>
+								<Badge variant="secondary">
+									dialog: {dialog.isVisible ? 'visible' : 'hidden'}
+								</Badge>
+								<Badge variant="secondary">variant: {variant}</Badge>
+							</div>
+							<div>
+								<p className="text-xs text-slate-500 dark:text-slate-400">
+									Surface
+								</p>
+								<p
+									className="font-mono text-xs"
+									data-testid="policy-demo-surface"
+									data-variant={banner.variant}
+									data-position={banner.position}
+									data-position-source={banner.positionSource}
+									data-blocking={banner.blocking ? 'true' : 'false'}
+								>
+									{banner.variant} · {banner.position} ({banner.positionSource})
+									{banner.blocking ? ' · blocking' : ' · non-blocking'}
+								</p>
+							</div>
 						</CardContent>
 					</Card>
 				</div>
@@ -552,45 +689,39 @@ const PolicyActionsDemoContent = () => {
 	);
 };
 
-const spainSplitStackPolicy = {
-	consent: {
-		categories: ['necessary', 'measurement', 'marketing'],
-		expiryDays: 180,
-		model: 'opt-in' as const,
-	},
-	id: 'es_split_stack',
-	match: { countries: ['ES'] },
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			direction: 'column' as const,
-			layout: ['customize', ['reject', 'accept']],
-			primaryActions: ['accept'],
-			uiProfile: 'balanced' as const,
-		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			direction: 'column' as const,
-			layout: ['customize', ['reject', 'accept']],
-			primaryActions: ['accept'],
-			uiProfile: 'balanced' as const,
-		},
-		mode: 'banner' as const,
-	},
-} satisfies PolicyConfig;
+const spainSplitStackPolicy = getScenarioById('custom-es-split-stack').policy;
 
 const offlinePolicies = [
 	spainSplitStackPolicy,
-	policyPackPresets.europeOptIn(),
-	policyPackPresets.californiaOptIn(),
-	policyPackPresets.worldNoBanner(),
-] satisfies PolicyConfig[];
+	policyRulePresets.europeOptIn(),
+	policyRulePresets.californiaOptIn(),
+	policyRulePresets.worldOptOutNoPrompt(),
+] satisfies PolicyRule[];
 
 export const PolicyActionsDemo = () => {
+	const router = useRouter();
+	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const country = searchParams.get('country')?.toUpperCase() ?? 'DE';
 	const region = searchParams.get('region')?.toUpperCase() ?? undefined;
-	const providerKey = `${country}:${region ?? 'none'}`;
+	const surface = parseSurfaceParams(searchParams);
+	const providerKey = `${country}:${region ?? 'none'}:${surface.variant}:${surface.position}:${surface.blocking}`;
+	const presentation = withSurface(
+		getScenarioById(
+			country === 'ES' ? 'custom-es-split-stack' : 'custom-de-strict'
+		).presentation,
+		surface
+	);
+	const setSurface = (next: SurfaceParams) => {
+		const params = applySurfaceParams(
+			new URLSearchParams(searchParams.toString()),
+			next
+		);
+		const search = params.toString();
+		router.replace(search ? `${pathname}?${search}` : pathname, {
+			scroll: false,
+		});
+	};
 
 	return (
 		<ConsentProvider
@@ -604,14 +735,18 @@ export const PolicyActionsDemo = () => {
 						href: '/legal/terms-of-service',
 					},
 				},
-				mode: offline({ policyPacks: offlinePolicies }),
+				mode: offline({ policyRules: offlinePolicies }),
 				overrides: {
 					country,
 					region,
 				},
+				presentation,
 			}}
 		>
-			<PolicyActionsDemoContent />
+			<PolicyActionsDemoContent
+				surface={surface}
+				onSurfaceChange={setSurface}
+			/>
 		</ConsentProvider>
 	);
 };

@@ -1,9 +1,11 @@
-import { saveConsentToStorage } from '@c15t/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { createConsentKernel } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
+import { testRule, testResolution } from './policy-fixture';
 
 /**
  * The returning-visitor contract, end to end.
@@ -28,57 +30,58 @@ const clearCookies = function clearCookies(): void {
 const resolve = async function resolve(cookieHeader: string) {
 	return await resolveConsentContext({
 		headers: new Headers(cookieHeader ? { cookie: cookieHeader } : {}),
-		options: resolveOptions({ mode: offlineMode() }),
+		options: resolveOptions({ mode: offlineMode({ policyRules: [testRule] }) }),
 	});
 };
 
 beforeEach(() => {
+	vi.useFakeTimers();
 	clearCookies();
 });
 
+afterEach(() => vi.useRealTimers());
+
+const saveReceipt = async (value: boolean) => {
+	const kernel = createConsentKernel({
+		initialPolicyResolution: testResolution(),
+		now: Date.now(),
+	});
+	const persistence = createPersistence({ kernel });
+	await kernel.commands.save(value ? 'all' : 'none');
+	vi.advanceTimersByTime(0);
+	persistence.dispose();
+	kernel.dispose();
+};
+
 describe('cookie round-trip', () => {
 	it('hides the banner for a visitor who already consented', async () => {
-		saveConsentToStorage({
-			consentInfo: { time: Date.now(), type: 'all' } as never,
-			consents: {
-				experience: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				necessary: true,
-			},
-		});
+		await saveReceipt(true);
 		expect(document.cookie).not.toBe('');
 
 		const context = await resolve(document.cookie);
-		expect(context.config.initialHasConsented).toBe(true);
-		expect(context.config.initialConsents?.marketing).toBe(true);
-		expect(context.snapshot.hasConsented).toBe(true);
+		expect(context.config.initialRecords?.choice).not.toBeNull();
+		expect(context.snapshot.explicitChoice?.categories.marketing?.value).toBe(
+			true
+		);
+		expect(context.snapshot.explicitChoice).not.toBeNull();
 		expect(context.shouldShowBanner).toBe(false);
 	});
 
-	it('still shows the banner when only necessary was accepted', async () => {
-		saveConsentToStorage({
-			consentInfo: { time: Date.now(), type: 'necessary' } as never,
-			consents: {
-				experience: false,
-				functionality: false,
-				marketing: false,
-				measurement: false,
-				necessary: true,
-			},
-		});
+	it('hides the banner after an explicit rejection', async () => {
+		await saveReceipt(false);
 
 		const context = await resolve(document.cookie);
 		// A recorded decision, even a decline, is still a decision.
-		expect(context.config.initialHasConsented).toBe(true);
-		expect(context.config.initialConsents?.marketing).toBe(false);
+		expect(context.config.initialRecords?.choice).not.toBeNull();
+		expect(context.snapshot.explicitChoice?.categories.marketing?.value).toBe(
+			false
+		);
 		expect(context.shouldShowBanner).toBe(false);
 	});
 
 	it('shows the banner when there is no cookie', async () => {
 		const context = await resolve('');
-		expect(context.config.initialHasConsented).toBeUndefined();
+		expect(context.config.initialRecords?.choice).toBeNull();
 		expect(context.shouldShowBanner).toBe(true);
 	});
 

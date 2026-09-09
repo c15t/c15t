@@ -21,7 +21,11 @@
 import { getRegionFromHeaders, headersToRecord } from '@c15t/schema/geo';
 import {
 	buildConsentManifestFromConfig,
+	parsePolicyContractHeader,
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
 	resolveInitFromManifest,
+	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
@@ -36,7 +40,22 @@ export interface InitRequestSignals {
 	readonly region: string | null;
 	readonly language: string;
 	readonly gpc: boolean;
+	/**
+	 * The policy contract the client declared it can represent, or
+	 * `undefined` for a client that predates the header. `null` when the
+	 * header was present but unparseable.
+	 */
+	readonly policyContract: number | null | undefined;
 }
+
+const readPolicyContract = function readPolicyContract(
+	value: string | null
+): number | null | undefined {
+	if (value === null) {
+		return undefined;
+	}
+	return parsePolicyContractHeader(value) ?? null;
+};
 
 /**
  * Extracts the four per-request inputs from headers.
@@ -60,8 +79,16 @@ export const readInitSignals = function readInitSignals(
 		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
 		// primary subtag happens downstream in the resolver, not here.
 		language: headers.get('accept-language') || 'en',
+		policyContract: readPolicyContract(headers.get(POLICY_CONTRACT_HEADER)),
 		region: region ?? null,
 	};
+};
+
+/** Negotiation cannot revoke grants already running in cached original clients. */
+const isContractSupported = function isContractSupported(
+	declared: number | null | undefined
+): boolean {
+	return declared === undefined || declared === POLICY_CONTRACT_VERSION;
 };
 
 /**
@@ -74,7 +101,13 @@ export const buildInitResponse = async function buildInitResponse(
 	config: ConsentManifestConfig,
 	headers: Headers,
 	snapshot?: PolicySnapshotOptions,
-	gvl?: GvlOptions & { enabled?: boolean }
+	gvl?: GvlOptions & { enabled?: boolean },
+	/**
+	 * Tenant the token audience is scoped to. The instance's tenant when it
+	 * has one, so the save route verifying under `options.tenantId` and the
+	 * init route minting agree; the manifest's tenant otherwise.
+	 */
+	tokenTenantId: string | undefined = config.tenantId
 ): Promise<{ body: InitOutput; signals: InitRequestSignals }> {
 	const signals = readInitSignals(headers);
 	const manifest = await buildConsentManifestFromConfig(config);
@@ -90,47 +123,51 @@ export const buildInitResponse = async function buildInitResponse(
 		{ baseTranslations }
 	);
 
-	// Signed evidence of the decision just made, so the consent submitted
-	// against it can be checked to be the one this server actually issued.
-	// Absent when no signing key is configured — `policySnapshotToken` is
-	// optional in the contract precisely because signing is opt-in.
-	// policyDecision carries the *why* — which policy matched and how — while
-	// `policy` carries the resolved content. The token attests to the former.
-	// IAB deployments get the vendor list inline. Matching @c15t/backend, this
-	// is fetched only when IAB is enabled *and* the resolved policy is an IAB
-	// one — a non-IAB visitor on an IAB-enabled tenant should not pay for it.
+	const supported = isContractSupported(signals.policyContract);
+	const negotiated: InitOutput = supported
+		? resolved
+		: {
+				branding: resolved.branding,
+				jurisdiction: resolved.jurisdiction,
+				location: resolved.location,
+				policyResolution: writePolicyResolutionWire({
+					policy: null,
+					reason: 'unsupported-contract',
+					status: 'failed',
+				}),
+				translations: resolved.translations,
+			};
+	const resolution = negotiated.policyResolution;
 	const wantsGvl =
 		gvl?.enabled === true &&
-		(resolved.policy === undefined || resolved.policy.model === 'iab');
+		resolution.status === 'matched' &&
+		resolution.policy.model === 'iab';
 	const gvlDocument = wantsGvl
 		? await resolveGvl(signals.language, gvl)
 		: undefined;
-
-	const withGvl =
-		gvlDocument === undefined ? resolved : { ...resolved, gvl: gvlDocument };
-
-	const decision = resolved.policyDecision;
-	if (!decision || !snapshot?.signingKey) {
-		return { body: withGvl, signals };
+	const body =
+		gvlDocument === undefined
+			? negotiated
+			: { ...negotiated, gvl: gvlDocument };
+	if (resolution.status !== 'matched' || !snapshot?.signingKey) {
+		return { body, signals };
 	}
-
 	const token = await createPolicySnapshotToken(
 		{
 			country: signals.country,
-			fingerprint: decision.fingerprint,
+			fingerprint: resolution.fingerprints.policy,
 			jurisdiction: resolved.jurisdiction,
 			language: signals.language,
-			matchedBy: decision.matchedBy,
-			model: resolved.policy?.model ?? 'none',
-			policyId: decision.policyId,
+			matchedBy: resolution.matchedBy,
+			model: resolution.policy.model,
+			policyId: resolution.policyId,
 			region: signals.region,
-			tenantId: config.tenantId,
+			tenantId: tokenTenantId,
 		},
 		snapshot
 	);
-
 	return {
-		body: token ? { ...withGvl, policySnapshotToken: token.token } : withGvl,
+		body: token ? { ...body, policySnapshotToken: token.token } : body,
 		signals,
 	};
 };

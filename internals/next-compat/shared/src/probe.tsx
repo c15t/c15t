@@ -51,12 +51,12 @@ export const CompatProbe = ({ scenario }: { scenario: string }) => {
 		window.__c15tCompat = {
 			activeUI: activeUI ?? 'none',
 			countryCode: snapshot.location?.countryCode ?? null,
-			hasConsented: snapshot.hasConsented,
-			hasPolicy: snapshot.policy !== null,
+			hasConsented: snapshot.explicitChoice !== null,
+			hasPolicy: snapshot.resolution.status === 'matched',
 			onBannerFetchedCount: counters?.onBannerFetchedCount ?? 0,
 			onConsentSetCount: counters?.onConsentSetCount ?? 0,
 			onErrorCount: counters?.onErrorCount ?? 0,
-			policyProvisional: snapshot.policyProvisional,
+			policyProvisional: snapshot.policyPending,
 			scenario,
 		};
 	});

@@ -32,7 +32,7 @@ export const evaluateBlock = function evaluateBlock(
 			continue;
 		}
 
-		const allowed = evaluateConsent({ category: rule.category }, snapshot);
+		const allowed = evaluateConsent(rule, snapshot);
 		if (!allowed) {
 			return { rule, shouldBlock: true };
 		}

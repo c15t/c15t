@@ -1,62 +1,26 @@
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import type { ConsentManifest } from '@c15t/schema/types';
 
 /** Shared manifest fixture for the SvelteKit layer tests. */
 export const MANIFEST_FIXTURE = {
 	branding: 'c15t',
 	policyPacks: [
-		{
-			fingerprint: 'eu-fingerprint',
-			policy: {
-				consent: {
-					categories: ['necessary', 'measurement', 'marketing'],
-					expiryDays: 365,
-					model: 'opt-in',
-					scopeMode: 'strict',
-				},
-				id: 'eu-opt-in',
-				match: { countries: ['DE'] },
-				ui: { mode: 'banner' },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['necessary', 'measurement', 'marketing'],
-					expiryDays: 365,
-					scopeMode: 'strict',
-				},
-				id: 'eu-opt-in',
-				model: 'opt-in',
-				proof: {},
-				ui: { mode: 'banner' },
-			},
-		},
-		{
-			fingerprint: 'notice-fingerprint',
-			policy: {
-				consent: {
-					categories: ['necessary'],
-					expiryDays: 30,
-					model: 'none',
-					scopeMode: 'permissive',
-				},
-				id: 'notice-default',
-				match: { isDefault: true },
-				ui: { mode: 'none' },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['necessary'],
-					expiryDays: 30,
-					scopeMode: 'permissive',
-				},
-				id: 'notice-default',
-				model: 'none',
-				proof: {},
-				ui: { mode: 'none' },
-			},
-		},
+		createConsentManifestPolicyPack({
+			categories: ['marketing', 'measurement'],
+			id: 'eu-opt-in',
+			match: { countries: ['DE'] },
+			model: 'opt-in',
+			prompt: 'choice',
+		}),
+		createConsentManifestPolicyPack({
+			id: 'notice-default',
+			match: { fallback: true, isDefault: true },
+			model: 'opt-out',
+			prompt: 'none',
+		}),
 	],
 	revision: 'manifest-revision',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',

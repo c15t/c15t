@@ -10,7 +10,12 @@ import ConsentDevToolsDefault, {
 	ConsentDevTools,
 	DevTools,
 } from '../devtools';
-import { symbolKernel } from '../runtime/utils/symbols';
+import { consentConfigKey } from '../runtime/composables/config';
+import {
+	createVueConsentKernelContext,
+	startVueConsentRuntime,
+} from '../runtime/kernel';
+import { symbolKernelContext, symbolKernel } from '../runtime/utils/symbols';
 
 const KernelProvider = defineComponent({
 	props: {
@@ -38,6 +43,102 @@ afterEach(() => {
 });
 
 describe('@c15t/vue/devtools', () => {
+	test('keeps explicit service callbacks live without remounting', async () => {
+		const firstClear = vi.fn();
+		const nextClear = vi.fn();
+		const clear = ref<() => void>(firstClear);
+		const kernel = createConsentKernel();
+		const Root = defineComponent({
+			setup() {
+				provide(consentConfigKey, {
+					presentation: { preferences: { primaryActions: ['accept'] } },
+				});
+				return () =>
+					provider(
+						kernel,
+						h(ConsentDevTools, {
+							clearRecords: () => clear.value(),
+							defaultOpen: true,
+							defaultTab: 'policy',
+							getPresentation: () => undefined,
+						})
+					);
+			},
+		});
+		const wrapper = mount(Root);
+		try {
+			await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
+			const [root] = mountedDevTools();
+			expect(root?.textContent).toContain('Resolved defaults only');
+			clear.value = nextClear;
+			await nextTick();
+			expect(mountedDevTools()[0]).toBe(root);
+			root?.querySelector<HTMLButtonElement>('[data-tab="actions"]')?.click();
+			[...(root?.querySelectorAll('button') ?? [])]
+				.find((button) => button.textContent === 'Clear stored records')
+				?.click();
+			expect(firstClear).not.toHaveBeenCalled();
+			expect(nextClear).toHaveBeenCalledOnce();
+		} finally {
+			wrapper.unmount();
+			kernel.dispose();
+		}
+	});
+
+	test('uses provider presentation and clears its custom persistence key', async () => {
+		const storageKey = 'vue-devtools-clear';
+		const config = {
+			presentation: {
+				preferences: { primaryActions: ['accept'] as 'accept'[] },
+			},
+			storageConfig: { storageKey },
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			kernelConfig: { transport: {} },
+		});
+		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		const Root = defineComponent({
+			setup() {
+				provide(symbolKernel, context.kernel);
+				provide(symbolKernelContext, context);
+				provide(consentConfigKey, config);
+				return () =>
+					h(ConsentDevTools, { defaultOpen: true, defaultTab: 'policy' });
+			},
+		});
+		const wrapper = mount(Root);
+		try {
+			await vi.waitFor(() =>
+				expect(mountedDevTools()[0]?.textContent).toContain('host-options')
+			);
+			expect(mountedDevTools()[0]?.textContent).toContain(
+				'equivalent-prominence-overridden'
+			);
+			await context.kernel.commands.save('all');
+			await vi.waitFor(() =>
+				expect(localStorage.getItem(storageKey)).not.toBeNull()
+			);
+			mountedDevTools()[0]
+				?.querySelector<HTMLButtonElement>('[data-tab="actions"]')
+				?.click();
+			const clear = [
+				...(mountedDevTools()[0]?.querySelectorAll('button') ?? []),
+			].find((element) => element.textContent === 'Clear stored records');
+			expect(clear).toBeDefined();
+			clear?.click();
+			await vi.waitFor(() =>
+				expect(localStorage.getItem(storageKey)).toBeNull()
+			);
+			expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+		} finally {
+			wrapper.unmount();
+			dispose();
+			localStorage.removeItem(storageKey);
+			document.cookie = `${storageKey}=; Max-Age=0; Path=/`;
+		}
+	});
+
 	test('keeps the panel mounted when a new callback returns the same scope', async () => {
 		const getConsentCategories = ref(
 			() => ['necessary', 'measurement'] as const
@@ -57,9 +158,9 @@ describe('@c15t/vue/devtools', () => {
 		await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
 		const [root] = mountedDevTools();
 		root?.querySelector<HTMLButtonElement>('[data-tab="events"]')?.click();
-		kernel.set.consent({ measurement: true });
+		await kernel.commands.save({ measurement: true });
 		const events = root?.querySelector('[role="tabpanel"]')?.textContent;
-		expect(events).toContain('consent:set');
+		expect(events).toContain('choice:recorded');
 		getConsentCategories.value = () => ['necessary', 'measurement'] as const;
 		await nextTick();
 		expect(mountedDevTools()[0]).toBe(root);
@@ -99,7 +200,7 @@ describe('@c15t/vue/devtools', () => {
 			).toBeNull();
 		});
 		const [root] = mountedDevTools();
-		kernel.set.consent({ measurement: true });
+		await kernel.commands.save({ measurement: true });
 		await vi.waitFor(() =>
 			expect(
 				document.querySelector<HTMLInputElement>(

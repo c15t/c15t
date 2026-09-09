@@ -10,8 +10,8 @@ import {
 	offline,
 	ConsentWidget,
 	useConsentDraft,
-	useConsents,
-	useHasConsented,
+	useEffectivePermissions,
+	useExplicitChoice,
 	useSaveConsents,
 } from '@c15t/react';
 
@@ -24,14 +24,14 @@ const CATEGORIES: AllConsentNames[] = [
 ];
 
 const TestComponent = () => {
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
-	const hasConsented = useHasConsented();
+	const hasStoredChoice = Boolean(useExplicitChoice());
 
 	return (
 		<div>
-			<p>Has consented: {String(hasConsented)}</p>
+			<p>Has stored choice: {String(hasStoredChoice)}</p>
 			<div>
 				{CATEGORIES.map((category) => (
 					<label

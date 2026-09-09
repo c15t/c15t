@@ -12,6 +12,19 @@ export interface CommonTranslations {
 	save: string;
 	close: string;
 	securedBy: string;
+	/** Acknowledges a notice prompt without recording a choice. */
+	dismiss: string;
+}
+
+/**
+ * Labels for persistent rights a surface exposes when no action covers them,
+ * such as the opt-out and preferences links on a notice prompt.
+ */
+export interface RightsTranslations {
+	/** Opt-out right. Keeps the statutory "do not sell or share" meaning. */
+	optOut: string;
+	/** Preferences right; opens the preference center. */
+	preferences: string;
 }
 
 export interface LegalLinksTranslations {
@@ -23,6 +36,10 @@ export interface LegalLinksTranslations {
 export interface CookieBannerTranslations {
 	title: string;
 	description: string;
+	/** Title shown when the active policy requires a notice prompt. */
+	noticeTitle: string;
+	/** Description shown when the active policy requires a notice prompt. */
+	noticeDescription: string;
 }
 
 export interface ConsentManagerDialogTranslations {
@@ -190,6 +207,7 @@ export interface CompleteTranslations {
 	frame: FrameTranslations;
 	legalLinks: LegalLinksTranslations;
 	iab: IABTranslations;
+	rights: RightsTranslations;
 }
 
 // Partial translations interface (used for other languages)
@@ -203,6 +221,7 @@ export interface Translations {
 	frame?: Partial<FrameTranslations>;
 	legalLinks?: Partial<LegalLinksTranslations>;
 	iab?: DeepPartial<IABTranslations>;
+	rights?: Partial<RightsTranslations>;
 }
 
 // Helper type for deep partial

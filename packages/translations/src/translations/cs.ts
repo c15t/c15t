@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Přijmout vše',
 		close: 'Zavřít',
 		customize: 'Přizpůsobit',
+		dismiss: 'Zavřít',
 		rejectAll: 'Odmítnout vše',
 		save: 'Uložit nastavení',
 		securedBy: 'Zabezpečuje',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Tento web používá soubory cookie ke zlepšení vašeho prohlížení, analýze provozu na webu a zobrazování personalizovaného obsahu.',
+		noticeDescription:
+			'Používáme soubory cookie a podobné technologie k provozu tohoto webu, měření návštěvnosti a personalizaci obsahu a reklam. Kdykoli se můžete odhlásit nebo spravovat své předvolby.',
+		noticeTitle: 'Oznámení o ochraně soukromí',
 		title: 'Vážíme si vašeho soukromí',
 	},
 	frame: {
@@ -140,6 +144,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Zásady používání souborů cookie',
 		privacyPolicy: 'Zásady ochrany osobních údajů',
 		termsOfService: 'Podmínky služby',
+	},
+	rights: {
+		optOut: 'Neprodávejte ani nesdílejte moje údaje',
+		preferences: 'Spravovat předvolby',
 	},
 };
 export default translations;

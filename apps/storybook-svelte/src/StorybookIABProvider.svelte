@@ -4,6 +4,7 @@
 	import type { Snippet } from 'svelte';
 
 	import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
+	import { storybookIABPolicy } from '../../storybook-consent-policy';
 	import {
 		defaultIABOptions,
 		resetStorybookConsentState,
@@ -31,7 +32,7 @@
 	if (typeof window !== 'undefined') {
 		resetStorybookConsentState();
 		if (initialStoredConsent) {
-			seedStoredConsent(initialStoredConsent);
+			seedStoredConsent(initialStoredConsent, storybookIABPolicy);
 		}
 		seedTCString(initialTcString);
 	}

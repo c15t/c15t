@@ -10,6 +10,7 @@ import { SqlClient } from 'effect/unstable/sql';
 
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { singleTenant } from '../db/tenant';
 import {
 	countByExternalId,
@@ -23,6 +24,7 @@ const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 
 const migrate = Effect.gen(function* migrate() {
 	yield* baseline;
+	yield* receipts;
 	yield* indexes;
 });
 
@@ -213,8 +215,8 @@ describe('subject repository', () => {
 
 				assert.strictEqual(
 					smallCost,
-					2,
-					'expected the join plus the policy rank'
+					3,
+					'expected the join, the policy rank and the purpose codes'
 				);
 				assert.strictEqual(
 					largeCost,

@@ -274,7 +274,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 				{isOpen && (
 					<>
 						{/* Backdrop (customisable) */}
-						{overlay === false ? null : (overlay ?? <Overlay open />)}
+						{overlay === false ? null : (overlay ?? <Overlay open={isOpen} />)}
 
 						{/* The outer element only positions the panel over
 						    the viewport. The panel wrapper below is the
@@ -283,6 +283,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						    name the same element in every adapter. */}
 						<div
 							ref={dialogRef}
+							data-slot="dialog-positioner"
 							{...themedStyle}
 							className={themedStyle.className}
 						>

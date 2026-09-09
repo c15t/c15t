@@ -123,13 +123,16 @@ for (const engine of ENGINES) {
 					// ledger stamped 1, no hot-path indexes. This is the state every
 					// early adopter would have been stuck in.
 					yield* migrate();
-					yield* sql`delete from ${sql(LEDGER_TABLE)} where ${sql('id')} = ${2}`;
+					yield* sql`delete from ${sql(LEDGER_TABLE)} where ${sql('id')} > ${1}`;
 
 					const report = yield* migrate();
 
 					assert.deepStrictEqual(report.adoption, []);
-					assert.deepStrictEqual(report.pending, ['2-hot-path-indexes']);
-					assert.deepStrictEqual(yield* ledger, [1, 2]);
+					assert.deepStrictEqual(report.pending, [
+						'2-hot-path-indexes',
+						'3-consent-receipts-and-privacy-directives',
+					]);
+					assert.deepStrictEqual(yield* ledger, [1, 2, 3]);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);
@@ -185,7 +188,10 @@ for (const engine of ENGINES) {
 
 					assert.isFalse(report.applied);
 					assert.isAbove(report.adoption.length, 0);
-					assert.deepStrictEqual(report.pending, ['2-hot-path-indexes']);
+					assert.deepStrictEqual(report.pending, [
+						'2-hot-path-indexes',
+						'3-consent-receipts-and-privacy-directives',
+					]);
 
 					// The assertion that makes the flag mean something: no tables, no
 					// ledger, nothing.

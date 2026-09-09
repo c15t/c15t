@@ -8,7 +8,9 @@
 		"dev:localhost": "next dev",
 		"fmt": "oxfmt .",
 		"start": "PORTLESS_HTTPS=1 portless run --name example-demo next start",
-		"start:localhost": "next start"
+		"start:localhost": "next start",
+		"test": "vitest run --config vitest.config.ts",
+		"test:browser": "vitest run --config vitest.browser.config.ts"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

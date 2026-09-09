@@ -220,7 +220,9 @@ const manyScripts: Script[] = [
 ];
 
 const conditionKernel = createConsentKernel();
-const benchmarkConsents = { ...conditionKernel.getSnapshot().consents };
+const benchmarkConsents = {
+	...conditionKernel.getSnapshot().effectivePermissions,
+};
 
 const runWithLoader = function runWithLoader(
 	scripts: Script[],

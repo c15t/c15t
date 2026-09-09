@@ -1,27 +1,45 @@
 import { defineConfig } from '@rslib/core';
 
+import {
+	compactModuleMinify,
+	publicEntryAliases,
+} from '../shared/rslib-modules';
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
 	lib: [
 		{
-			bundle: true,
+			bundle: false,
 			dts: {
 				distPath: './dist-types',
 			},
 			format: 'esm',
+			outBase: './src',
 		},
 	],
 	output: {
 		cleanDistPath: true,
+		minify: compactModuleMinify,
 		target: 'node',
 	},
+	performance: {
+		// Avoid stale externalized imports when switching bundled/module builds.
+		buildCache: false,
+	},
+	plugins: [
+		publicEntryAliases({
+			'config.js': './config/index.js',
+			'geo.js': './shared/geo-headers.js',
+		}),
+	],
 	source: {
 		entry: {
-			config: ['./src/config/index.ts'],
-			geo: ['./src/shared/geo-headers.ts'],
-			index: ['./src/index.ts'],
-			types: ['./src/types.ts'],
+			index: [
+				'./src/**/*.ts',
+				'!./src/**/__tests__/**',
+				'!./src/**/*.test.ts',
+				'!./src/**/*.spec.ts',
+			],
 		},
 		exclude: [
 			'**/__tests__/**',

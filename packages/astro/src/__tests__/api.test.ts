@@ -1,6 +1,6 @@
 import {
 	buildConsentManifestFromConfig,
-	policyPackPresets,
+	policyRulePresets,
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,9 +17,9 @@ import type { C15tAstroOptions } from '../types';
 // backend serves — a hand-written stand-in silently resolves to `none`.
 const MANIFEST = await buildConsentManifestFromConfig({
 	branding: 'c15t',
-	policyPacks: [
-		policyPackPresets.europeOptIn(),
-		policyPackPresets.worldNoBanner(),
+	policyRules: [
+		policyRulePresets.europeOptIn(),
+		policyRulePresets.worldOptOutNoPrompt(),
 	],
 });
 
@@ -199,7 +199,7 @@ describe('route handlers', () => {
 		};
 
 		expect(german.translations.language).toBe('de');
-		expect(german.policy.model).toBe('opt-in');
+		expect(german.policyResolution.policy.model).toBe('opt-in');
 
 		// The same manifest, a different country, a different decision.
 		const american = (await (
@@ -208,8 +208,8 @@ describe('route handlers', () => {
 					'x-c15t-country': 'US',
 				})
 			)
-		).json()) as { policy: { ui: { mode: string } } };
-		expect(american.policy.ui.mode).toBe('none');
+		).json()) as { policyResolution: { policy: { prompt: string } } };
+		expect(american.policyResolution.policy.prompt).toBe('none');
 
 		const response = await handlers.init(makeRequest());
 		expect(response.headers.get('cache-control')).toBe('private, no-store');
@@ -223,7 +223,7 @@ describe('route handlers', () => {
 				enabled: true,
 				gvl: { url: 'https://vendor-list.example.com/gvl.json' },
 			},
-			policyPacks: [policyPackPresets.europeIab()],
+			policyRules: [policyRulePresets.europeIab()],
 		});
 		const handlers = createConsentRouteHandlers({
 			fetch: () => Promise.resolve(jsonResponse(iabManifest)),
@@ -343,9 +343,9 @@ describe('route handlers', () => {
 			)
 		).json()) as { resolvedOverrides: Record<string, unknown> };
 
+		expect(payload.resolvedPrivacySignals).toEqual({ gpc: true });
 		expect(payload.resolvedOverrides).toEqual({
 			country: 'DE',
-			gpc: true,
 			language: 'de',
 			region: 'BY',
 		});

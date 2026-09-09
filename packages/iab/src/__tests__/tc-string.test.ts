@@ -3,6 +3,7 @@
  */
 
 import { createConsentKernel } from '@c15t/core';
+import { resolvePolicyRules } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createIAB } from '../index';
@@ -16,7 +17,19 @@ describe('@c15t/iab TC string encode/decode', () => {
 		'controls TC storage with persistence=%s',
 		async (persistence) => {
 			const save = vi.fn().mockResolvedValue({ ok: true });
-			const kernel = createConsentKernel({ transport: { save } });
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolvePolicyRules({
+					rules: [
+						{
+							id: 'iab-save',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				}),
+				transport: { save },
+			});
 			const iab = createIAB({
 				cmpId: 28,
 				gvl: createMockGVL(),
@@ -24,6 +37,7 @@ describe('@c15t/iab TC string encode/decode', () => {
 				persistence,
 			});
 			localStorage.setItem('euconsent-v2', 'existing');
+			localStorage.setItem('c15t-iab-authority-v1', 'existing');
 			document.cookie = 'euconsent-v2=existing; path=/';
 			try {
 				iab.acceptAll();
@@ -35,10 +49,22 @@ describe('@c15t/iab TC string encode/decode', () => {
 				);
 				const stored = persistence === false ? 'existing' : tcString;
 				expect(localStorage.getItem('euconsent-v2')).toBe(stored);
+				if (persistence === false) {
+					expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(
+						'existing'
+					);
+				} else {
+					expect(
+						JSON.parse(localStorage.getItem('c15t-iab-authority-v1') ?? 'null')
+							.tcString
+					).toBe(tcString);
+				}
 				expect(document.cookie).toContain(`euconsent-v2=${stored}`);
 			} finally {
 				iab.dispose();
 				localStorage.removeItem('euconsent-v2');
+				localStorage.removeItem('c15t-iab-authority-v1');
+				kernel.dispose();
 				document.cookie = 'euconsent-v2=; Max-Age=0; path=/';
 			}
 		}
@@ -47,7 +73,19 @@ describe('@c15t/iab TC string encode/decode', () => {
 		'saves %s with custom vendors without adding them to TCF vectors',
 		async (action) => {
 			const save = vi.fn().mockResolvedValue({ ok: true });
-			const kernel = createConsentKernel({ transport: { save } });
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolvePolicyRules({
+					rules: [
+						{
+							id: 'iab-save',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				}),
+				transport: { save },
+			});
 			const iab = createIAB({
 				cmpId: 28,
 				customVendors: ['internal-analytics', '999', 2].map((id) => ({

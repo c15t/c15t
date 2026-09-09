@@ -21,6 +21,7 @@
  */
 
 import { generateEntityId } from '@c15t/schema';
+import type { SubjectChoiceWire } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
@@ -32,7 +33,7 @@ import { record } from './consent';
 import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
 import { recordDecision } from './runtime-policy-decision';
 import type { DecisionInput } from './runtime-policy-decision';
-import type { SubjectTenantConflictError } from './subject';
+import type { IdentityAuthority, SubjectTenantConflictError } from './subject';
 import { findOrCreate } from './subject';
 
 export interface ConsentSubmissionRequest {
@@ -40,14 +41,26 @@ export interface ConsentSubmissionRequest {
 	readonly domainId: string;
 	readonly externalId?: string | null;
 	readonly identityProvider?: string | null;
+	/** Who asserted `externalId` on a fresh subject. Defaults to `browser`. */
+	readonly identityAuthority?: IdentityAuthority;
 	readonly policyId?: string | null;
 	readonly purposeIds: readonly string[];
+	/** v3 receipts this act confirmed, only those categories. */
+	readonly choice?: SubjectChoiceWire | null;
 	readonly givenAt: Date;
 	readonly metadata?: unknown;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
+	readonly jurisdiction?: string | null;
+	readonly jurisdictionModel?: string | null;
+	readonly tcString?: string | null;
+	readonly uiSource?: string | null;
+	readonly consentAction?: string | null;
+	readonly validUntil?: Date | null;
 	/** Present when the request resolved a policy; absent for a bare consent. */
 	readonly decision?: DecisionInput;
+	/** Where the decision came from: a verified token or a recompute. */
+	readonly runtimePolicySource?: 'snapshot_token' | 'write_time_fallback';
 }
 
 export interface SubmissionResult {
@@ -81,6 +94,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 
 	const subject = yield* findOrCreate({
 		externalId: request.externalId,
+		identityAuthority: request.identityAuthority,
 		identityProvider: request.identityProvider,
 		subjectId: request.subjectId,
 		tenantId,
@@ -93,15 +107,23 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		: undefined;
 
 	const submission: ConsentSubmission = {
+		choice: request.choice,
+		consentAction: request.consentAction,
 		domainId: request.domainId,
 		givenAt: request.givenAt,
 		ipAddress: request.ipAddress,
+		jurisdiction: request.jurisdiction,
+		jurisdictionModel: request.jurisdictionModel,
 		metadata: request.metadata,
 		policyId: request.policyId,
 		purposeIds: request.purposeIds,
+		runtimePolicySource: decision ? request.runtimePolicySource : undefined,
 		subjectId: subject.id,
+		tcString: request.tcString,
 		tenantId,
+		uiSource: request.uiSource,
 		userAgent: request.userAgent,
+		validUntil: request.validUntil,
 	};
 
 	const consent = yield* record(submission);
@@ -114,7 +136,10 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 			insert into ${sql('auditLog')} ${sql.insert(
 				encodeRow(yield* encoder, {
 					actionType: 'consent_given',
-					changes: JSON.stringify({ purposeIds: request.purposeIds }),
+					changes: JSON.stringify({
+						choice: request.choice ?? null,
+						purposeIds: request.purposeIds,
+					}),
 					createdAt: new Date(),
 					entityId: consent.id,
 					entityType: 'consent',

@@ -1,6 +1,5 @@
 import type { ConsentState } from '../consent/compliance';
 import type { AllConsentNames } from '../consent/consent-types';
-import { applyPolicyScopeForRuntimeGating } from './policy';
 
 /**
  * Defines a flexible condition system for checking consent states.
@@ -42,22 +41,6 @@ export type HasCondition<CategoryType> =
 	| { or: HasCondition<CategoryType> | HasCondition<CategoryType>[] }
 	// e.g., { not: "measurement" }, { not: { and: ["measurement", "marketing"] } }
 	| { not: HasCondition<CategoryType> };
-
-/**
- * Optional runtime policy options for consent evaluation.
- *
- * @public
- */
-export interface HasOptions {
-	/**
-	 * Allowed categories from the active policy.
-	 */
-	policyCategories?: string[] | null;
-	/**
-	 * Runtime scope handling for out-of-policy categories.
-	 */
-	policyScopeMode?: 'strict' | 'permissive' | null;
-}
 
 /**
  * Validates that a condition array is not empty.
@@ -219,18 +202,9 @@ const evaluateConditionRecursive = function evaluateConditionRecursive<
  */
 export const has = function has<CategoryType extends AllConsentNames>(
 	condition: HasCondition<CategoryType>,
-	consents: ConsentState,
-	options?: HasOptions
+	permissions: ConsentState
 ): boolean {
-	const runtimeConsents = options
-		? applyPolicyScopeForRuntimeGating(
-				consents,
-				options.policyCategories,
-				options.policyScopeMode
-			)
-		: consents;
-
-	return evaluateConditionRecursive(condition, runtimeConsents);
+	return evaluateConditionRecursive(condition, permissions);
 };
 
 /**

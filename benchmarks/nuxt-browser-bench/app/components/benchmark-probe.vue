@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ConsentSnapshot } from '@c15t/vue';
 import { nextTick, onBeforeUpdate, onMounted, watch } from 'vue';
 
 import {
@@ -30,18 +31,19 @@ interface NuxtBenchState {
 		language?: string;
 		gpc?: boolean;
 	};
+	privacySignals?: ConsentSnapshot['privacySignals'];
 	location?: {
 		countryCode?: string | null;
 		regionCode?: string | null;
 	} | null;
-	hasConsented?: boolean;
+	hasStoredChoice?: boolean;
 	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
 	bannerPaintMs?: number | null;
 	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 }
 
@@ -76,7 +78,7 @@ const getBenchState = function getBenchState(): NuxtBenchState | undefined {
 			activeUI: 'none',
 			mountCount: 0,
 			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
+			onChoiceRecordedCount: 0,
 			onErrorCount: 0,
 			renderCount: 0,
 			scenario: props.scenario,
@@ -101,13 +103,14 @@ const updateSnapshotProbe = function updateSnapshotProbe(
 	state: NuxtBenchState
 ) {
 	state.overrides = { ...snapshot.value.overrides };
+	state.privacySignals = snapshot.value.privacySignals;
 	state.location = snapshot.value.location
 		? {
 				countryCode: snapshot.value.location.countryCode,
 				regionCode: snapshot.value.location.regionCode,
 			}
 		: null;
-	state.hasConsented = snapshot.value.hasConsented;
+	state.hasStoredChoice = Boolean(snapshot.value.explicitChoice);
 };
 
 const isElementVisible = function isElementVisible(element: Element): boolean {
@@ -169,7 +172,7 @@ const markRepeatVisitorReady = function markRepeatVisitorReady() {
 		return;
 	}
 	if (
-		snapshot.value.hasConsented &&
+		Boolean(snapshot.value.explicitChoice) &&
 		normalizeActiveUI(activeUI.value) === 'none'
 	) {
 		state.bannerReadyMs ??= 0;
@@ -270,11 +273,11 @@ watch(
 );
 
 watch(
-	() => snapshot.value.hasConsented,
-	(hasConsented, hadConsented) => {
+	() => Boolean(snapshot.value.explicitChoice),
+	(hasStoredChoice, hadStoredChoice) => {
 		const state = getBenchState();
-		if (state && hasConsented && !hadConsented) {
-			state.onConsentSetCount += 1;
+		if (state && hasStoredChoice && !hadStoredChoice) {
+			state.onChoiceRecordedCount += 1;
 		}
 		void (async () => {
 			await nextTick();

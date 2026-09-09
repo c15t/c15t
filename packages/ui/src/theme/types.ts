@@ -348,6 +348,10 @@ export interface ComponentSlots {
 	consentBannerFooter?: SlotStyle;
 	/** Nested button group inside the banner footer. */
 	consentBannerFooterSubGroup?: SlotStyle;
+	/** Group of persistent-right links (opt-out, preferences) in the banner footer. */
+	consentBannerRights?: SlotStyle;
+	/** One persistent-right link inside the banner rights group. */
+	consentBannerRightLink?: SlotStyle;
 	/** Branding tag rendered above the consent banner card. */
 	consentBannerTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the banner when enabled. */
@@ -521,6 +525,8 @@ export interface Theme {
 		accept?: ConsentActionStyle;
 		reject?: ConsentActionStyle;
 		customize?: ConsentActionStyle;
+		/** Treatment for the notice dismissal action. */
+		dismiss?: ConsentActionStyle;
 	};
 	/** Component-specific style overrides. */
 	slots?: ComponentSlots;

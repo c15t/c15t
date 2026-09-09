@@ -41,7 +41,7 @@ describe('c15tHandle', () => {
 
 		expect(event.request.headers.get('sec-gpc')).toBe('1');
 		expect(locals.inputs.gpc).toBe(true);
-		expect(locals.config.initialOverrides?.gpc).toBe(true);
+		expect(locals.config.initialPrivacySignals?.gpc).toBe(true);
 	});
 
 	test('lets explicit x-c15t-* headers beat infrastructure headers', async () => {
@@ -81,15 +81,21 @@ describe('c15tHandle', () => {
 		const event = createEvent({ headers: { cookie: CONSENTED_COOKIE } });
 		const { locals } = await runHandle(event);
 
-		expect(locals.config.initialHasConsented).toBe(true);
-		expect(locals.config.initialConsents?.marketing).toBe(true);
+		expect(locals.config.initialRecords?.choice).not.toBeNull();
+		expect(
+			locals.config.initialRecords?.choice?.categories.marketing
+		).toMatchObject({ basis: { kind: 'legacy-v2' }, value: true });
 	});
 
 	test('leaves the config empty when there is no request context', async () => {
 		const event = createEvent();
 		const { locals } = await runHandle(event);
 
-		expect(locals.config).toEqual({});
+		expect(locals.config).toMatchObject({
+			initialPrivacySignals: { gpc: false },
+			initialRecords: { choice: null, subject: null },
+			now: expect.any(Number),
+		});
 		expect(locals.inputs.country).toBeUndefined();
 	});
 

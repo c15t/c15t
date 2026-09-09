@@ -2,7 +2,7 @@
 	let {
 		title = 'c15t',
 		titleId = 'c15t-icon',
-		class: className,
+		class: className = 'c15t-icon',
 		...restProps
 	}: {
 		title?: string;

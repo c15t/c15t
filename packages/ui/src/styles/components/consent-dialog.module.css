@@ -67,6 +67,7 @@
 		box-sizing: border-box;
 		isolation: isolate;
 		font-family: var(--consent-dialog-font-family);
+		color: var(--c15t-text);
 		line-height: var(--consent-dialog-line-height);
 		-webkit-text-size-adjust: 100%;
 		tab-size: 4;
@@ -297,6 +298,17 @@
 		max-height: 100%;
 		display: flex;
 		flex-direction: column;
+	}
+
+	/* Keep programmatic container focus while drawing its ring on the card. */
+	.container:not(:global(.headless)):focus-visible {
+		outline: none;
+	}
+
+	.container:not(:global(.headless)):focus-visible
+		> .card:not(:global(.headless)) {
+		outline: 2px solid var(--c15t-primary);
+		outline-offset: 2px;
 	}
 
 	.headerWrapper:not(:global(.headless)) {

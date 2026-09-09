@@ -1,18 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { createConsentKernel } from '@c15t/core';
 import type { ConsentRuntimeIABFactoryOptions } from '@c15t/core/runtime';
 import { describe, expect, it } from 'vitest';
 
 import { lazyCreateIAB, whenIABReady } from '../browser/iab';
+import { testResolution } from './policy-fixture';
 
 const factoryOptions = {
 	cmpId: 42,
-	kernel: {
-		getSnapshot: () => ({ consents: {}, iab: null }),
-		set: { iab: () => undefined },
-		subscribe: () => () => undefined,
-	} as never,
+	kernel: createConsentKernel({
+		initialPolicyResolution: testResolution({ model: 'iab' }),
+	}),
 } satisfies ConsentRuntimeIABFactoryOptions;
 
 /**

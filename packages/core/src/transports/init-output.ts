@@ -1,7 +1,21 @@
-import type { InitOutput } from '@c15t/schema/types';
+/**
+ * Shared fold from a producer init payload to kernel initialization.
+ * Versioned policy outcomes are validated before kernel construction.
+ * Older producers without a policy contract fail safely. Detected GPC
+ * remains separate from a developer override.
+ */
+import type {
+	InitOutput,
+	PolicyResolution,
+	PolicyResolutionWire,
+} from '@c15t/schema/types';
+import {
+	POLICY_CONTRACT_VERSION,
+	readPolicyResolutionWire,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 
 import type {
-	ConsentState,
 	InitResponse,
 	KernelBranding,
 	KernelConfig,
@@ -10,12 +24,39 @@ import type {
 } from '../types';
 
 type RichInitOutput = InitOutput &
-	Partial<
-		Pick<
-			InitResponse,
-			'consents' | 'hasConsented' | 'resolvedOverrides' | 'subjectId'
-		>
-	>;
+	Partial<Pick<InitResponse, 'resolvedOverrides' | 'subjectId'>>;
+
+/** Init payload after transport protocol negotiation and record mapping. */
+export type TransportInitResponse = Omit<InitResponse, 'policyResolution'> & {
+	policyResolution?: PolicyResolutionWire;
+};
+
+/** Options for {@link mapInitOutputToInitResponse}. */
+export interface MapInitOutputOptions {
+	/**
+	 * The policy contract the producer declared on its response.
+	 *
+	 * `undefined` permits a versioned wire body, but fails when it is absent.
+	 * A declared value this client speaks marks a
+	 * negotiated producer, whose response must carry `policyResolution` or is
+	 * a failed payload. A declared value this client does not speak, or one it
+	 * cannot parse (`null`), fails as `unsupported-contract` before the body
+	 * is read at all: a body under an unknown contract is not evidence.
+	 */
+	producerContract?: number | null;
+}
+
+const FAILED_INVALID_PAYLOAD: PolicyResolution = {
+	policy: null,
+	reason: 'invalid-payload',
+	status: 'failed',
+};
+
+const FAILED_UNSUPPORTED_CONTRACT: PolicyResolution = {
+	policy: null,
+	reason: 'unsupported-contract',
+	status: 'failed',
+};
 
 const mapBranding = function mapBranding(
 	branding: InitOutput['branding']
@@ -24,8 +65,7 @@ const mapBranding = function mapBranding(
 };
 
 const mapResolvedOverrides = function mapResolvedOverrides(
-	payload: Pick<InitOutput, 'location' | 'translations'>,
-	headers: Record<string, string>
+	payload: Pick<InitOutput, 'location' | 'translations'>
 ): KernelOverrides {
 	const overrides: KernelOverrides = {
 		language: payload.translations.language,
@@ -37,44 +77,84 @@ const mapResolvedOverrides = function mapResolvedOverrides(
 	if (payload.location.regionCode) {
 		overrides.region = payload.location.regionCode;
 	}
-	// The application override wins over the browser signal, matching
-	// `gpcFromHeaders`.
-	const gpcHeader = headers['x-c15t-gpc'] ?? headers['sec-gpc'];
-	if (gpcHeader === '1') {
-		overrides.gpc = true;
-	} else if (gpcHeader === '0') {
-		overrides.gpc = false;
-	}
 
 	return overrides;
 };
 
+/** The `Sec-GPC` request header as a detected signal. Exact values only. */
+export const mapPrivacySignals = function mapPrivacySignals(
+	headers: Record<string, string>
+): NonNullable<InitResponse['resolvedPrivacySignals']> | undefined {
+	const value = headers['sec-gpc'];
+	if (value === '1') {
+		return { gpc: true };
+	}
+	if (value === '0') {
+		return { gpc: false };
+	}
+	return undefined;
+};
+
+/**
+ * The policy resolution wire a client should read for this payload.
+ *
+ * A producer declaring a contract this client does not speak fails closed
+ * whatever its body says. A negotiated producer's wire passes through as-is.
+ * A missing wire body fails protocol negotiation.
+ */
+export const resolveInitPolicyWire = function resolveInitPolicyWire(
+	payload: Pick<InitOutput, 'policyResolution'>,
+	options: MapInitOutputOptions = {}
+): PolicyResolutionWire {
+	const declared = options.producerContract;
+	if (declared !== undefined && declared !== POLICY_CONTRACT_VERSION) {
+		return writePolicyResolutionWire(FAILED_UNSUPPORTED_CONTRACT);
+	}
+	if (payload.policyResolution !== undefined) {
+		// Untouched. The kernel's strict reader decides what it can represent.
+		return payload.policyResolution;
+	}
+	if (declared !== undefined) {
+		return writePolicyResolutionWire(FAILED_INVALID_PAYLOAD);
+	}
+	return writePolicyResolutionWire(FAILED_UNSUPPORTED_CONTRACT);
+};
+
 export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	payload: RichInitOutput,
-	headers: Record<string, string>
-): InitResponse {
-	const mapped: InitResponse = {
+	headers: Record<string, string>,
+	options: MapInitOutputOptions = {}
+): TransportInitResponse {
+	const mapped: TransportInitResponse = {
 		// On the real backend, omitted `gvl` on a 200 response means IAB is not
 		// active for this request. The kernel disables IAB on explicit null.
 		gvl: payload.gvl ?? null,
 
 		location: payload.location,
+		policyResolution: resolveInitPolicyWire(payload, options),
 		resolvedOverrides: {
-			...mapResolvedOverrides(payload, headers),
+			...mapResolvedOverrides(payload),
 			...(payload.resolvedOverrides ?? {}),
 		},
 		translations: payload.translations,
 	};
 
+	const overrideGpc = headers['x-c15t-gpc'];
+	if (overrideGpc === '1' || overrideGpc === '0') {
+		mapped.resolvedOverrides = {
+			...mapped.resolvedOverrides,
+			gpc: overrideGpc === '1',
+		};
+	}
+
+	const privacySignals =
+		mapPrivacySignals(headers) ?? payload.resolvedPrivacySignals;
+	if (privacySignals) {
+		mapped.resolvedPrivacySignals = privacySignals;
+	}
 	const branding = mapBranding(payload.branding);
 	if (branding !== undefined) {
 		mapped.branding = branding;
-	}
-	if (payload.policy !== undefined) {
-		mapped.policy = payload.policy;
-	}
-	if (payload.policyDecision !== undefined) {
-		mapped.policyDecision = payload.policyDecision;
 	}
 	if (payload.policySnapshotToken !== undefined) {
 		mapped.policySnapshotToken = payload.policySnapshotToken;
@@ -85,17 +165,6 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (payload.cmpId !== undefined) {
 		mapped.cmpId = payload.cmpId;
 	}
-	if (payload.consents !== undefined) {
-		mapped.consents = payload.consents;
-		// A consent-bearing init payload implies a subject who has consented
-		// unless the backend explicitly says otherwise — without this, the
-		// opt-in fresh-visitor defaults reset the returned values and the
-		// banner re-shows. Keeps the client fold consistent with the server
-		// prefetch merge, which makes the same inference.
-		mapped.hasConsented = payload.hasConsented ?? true;
-	} else if (payload.hasConsented !== undefined) {
-		mapped.hasConsented = payload.hasConsented;
-	}
 	if (payload.subjectId !== undefined && payload.subjectId !== null) {
 		mapped.subjectId = payload.subjectId;
 	}
@@ -103,17 +172,22 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	return mapped;
 };
 
+/**
+ * Configuration after folding validated prefetch records and policy.
+ */
+export type TransportKernelConfig = KernelConfig;
+
 export const mergeInitResponseIntoKernelConfig =
 	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 	function mergeInitResponseIntoKernelConfig(
-		base: KernelConfig,
-		response: InitResponse | undefined
-	): KernelConfig {
+		base: TransportKernelConfig,
+		response: TransportInitResponse | undefined
+	): TransportKernelConfig {
 		if (!response) {
 			return base;
 		}
 
-		const merged: KernelConfig = { ...base };
+		const merged: TransportKernelConfig = { ...base };
 		const derivedOverrides: KernelOverrides = {};
 
 		if (response.location?.countryCode) {
@@ -134,20 +208,21 @@ export const mergeInitResponseIntoKernelConfig =
 		if (Object.keys(nextOverrides).length > 0) {
 			merged.initialOverrides = nextOverrides;
 		}
-
-		if (response.consents) {
-			merged.initialConsents = {
-				...(base.initialConsents ?? {}),
-				...(response.consents as Partial<ConsentState>),
+		if (response.resolvedPrivacySignals !== undefined) {
+			merged.initialPrivacySignals = {
+				...(base.initialPrivacySignals ?? {}),
+				...response.resolvedPrivacySignals,
 			};
 		}
-		if (response.hasConsented !== undefined) {
-			merged.initialHasConsented = response.hasConsented;
-		} else if (response.consents) {
-			merged.initialHasConsented = true;
-		}
-		if (response.subjectId) {
-			merged.initialSubjectId = response.subjectId;
+
+		if (response.records !== undefined || response.subjectId !== undefined) {
+			merged.initialRecords = { ...base.initialRecords, ...response.records };
+			if (response.subjectId && response.records?.subject === undefined) {
+				merged.initialRecords.subject = {
+					...merged.initialRecords.subject,
+					subjectId: response.subjectId,
+				};
+			}
 		}
 		if (response.location !== undefined) {
 			merged.initialLocation = response.location;
@@ -161,11 +236,11 @@ export const mergeInitResponseIntoKernelConfig =
 		) {
 			merged.initialBranding = response.branding;
 		}
-		if (response.policy !== undefined) {
-			merged.initialPolicy = response.policy;
-		}
-		if (response.policyDecision !== undefined) {
-			merged.initialPolicyDecision = response.policyDecision;
+		if (response.policyResolution !== undefined) {
+			// Read here, on the server, so the kernel is constructed from a
+			// resolution and never lifts or hashes anything itself.
+			const resolution = readPolicyResolutionWire(response.policyResolution);
+			merged.initialPolicyResolution = resolution;
 		}
 		if (response.policySnapshotToken !== undefined) {
 			merged.initialPolicySnapshotToken = response.policySnapshotToken;
@@ -191,12 +266,23 @@ export const mergeInitResponseIntoKernelConfig =
 			merged.initialIab = nextIab;
 		}
 
+		if (
+			merged.initialPolicyResolution &&
+			merged.initialPolicyResolution.status !== 'matched'
+		) {
+			// Clear after folding the response: a failed producer may include
+			// stale legacy metadata alongside its non-matching resolution.
+
+			delete merged.initialPolicySnapshotToken;
+			delete merged.initialIab;
+		}
+
 		return merged;
 	};
 
 export const initResponseToKernelConfig = function initResponseToKernelConfig(
-	response: InitResponse | undefined
-): KernelConfig {
+	response: TransportInitResponse | undefined
+): TransportKernelConfig {
 	return mergeInitResponseIntoKernelConfig({}, response);
 };
 
@@ -226,16 +312,15 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
  */
 export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 	config: KernelConfig
-): InitResponse | undefined {
-	if (config.initialPolicy === undefined) {
+): TransportInitResponse | undefined {
+	if (config.initialPolicyResolution === undefined) {
 		return undefined;
 	}
 
-	const response: InitResponse = { policy: config.initialPolicy };
+	const response: TransportInitResponse = {
+		policyResolution: writePolicyResolutionWire(config.initialPolicyResolution),
+	};
 
-	if (config.initialPolicyDecision !== undefined) {
-		response.policyDecision = config.initialPolicyDecision;
-	}
 	if (config.initialPolicySnapshotToken !== undefined) {
 		response.policySnapshotToken = config.initialPolicySnapshotToken;
 	}
@@ -254,14 +339,11 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 	) {
 		response.resolvedOverrides = { ...config.initialOverrides };
 	}
-	if (config.initialConsents !== undefined) {
-		response.consents = { ...config.initialConsents };
+	if (config.initialRecords !== undefined) {
+		response.records = { ...config.initialRecords };
 	}
-	if (config.initialHasConsented !== undefined) {
-		response.hasConsented = config.initialHasConsented;
-	}
-	if (config.initialSubjectId) {
-		response.subjectId = config.initialSubjectId;
+	if (config.initialPrivacySignals !== undefined) {
+		response.resolvedPrivacySignals = { ...config.initialPrivacySignals };
 	}
 
 	const iab = config.initialIab;
@@ -282,19 +364,23 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 
 export const mergeInitOutputIntoKernelConfig =
 	function mergeInitOutputIntoKernelConfig(
-		base: KernelConfig,
+		base: TransportKernelConfig,
 		payload: RichInitOutput | undefined,
-		headers: Record<string, string> = {}
-	): KernelConfig {
+		headers: Record<string, string> = {},
+		options: MapInitOutputOptions = {}
+	): TransportKernelConfig {
 		return mergeInitResponseIntoKernelConfig(
 			base,
-			payload ? mapInitOutputToInitResponse(payload, headers) : undefined
+			payload
+				? mapInitOutputToInitResponse(payload, headers, options)
+				: undefined
 		);
 	};
 
 export const initOutputToKernelConfig = function initOutputToKernelConfig(
 	payload: RichInitOutput | undefined,
-	headers: Record<string, string> = {}
-): KernelConfig {
-	return mergeInitOutputIntoKernelConfig({}, payload, headers);
+	headers: Record<string, string> = {},
+	options: MapInitOutputOptions = {}
+): TransportKernelConfig {
+	return mergeInitOutputIntoKernelConfig({}, payload, headers, options);
 };

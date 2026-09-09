@@ -3,9 +3,10 @@ import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 type ConsentManagerState = ReturnType<typeof useConsentManager>;
@@ -82,24 +83,22 @@ const renderBanner = function renderBanner(
 				mode: offline(),
 				persistence: false,
 				prefetch: {
-					initialConsents: state.consents,
-					initialPolicy: {
-						consent: {
-							categories: state.consentCategories,
-							scopeMode: 'permissive',
-						},
+					...policyFixture(undefined, {
+						categories: state.consentCategories,
 						id: 'banner-policy-ordering-test',
 						model: state.model ?? 'opt-in',
-						ui: {
-							banner: state.policyBanner,
-							dialog: state.policyDialog,
-							mode: 'banner',
-						},
-					},
+						prompt: 'choice',
+						scopeMode: 'permissive',
+					}),
+					initialDraft: state.consents,
 					initialTranslations: {
 						language: 'en',
 						translations: defaultTranslationConfig.translations.en as never,
 					},
+				},
+				presentation: {
+					preferences: state.policyDialog,
+					prompt: state.policyBanner,
 				},
 			}}
 		>
@@ -140,8 +139,8 @@ describe('ConsentBanner policy ordering', () => {
 		]);
 	});
 
-	test('uses policy primary actions before the primaryButton prop', async () => {
-		await renderBanner({
+	test('component primaryButton overrides host primary actions', async () => {
+		renderBanner({
 			primaryButton: 'reject',
 		});
 
@@ -154,12 +153,12 @@ describe('ConsentBanner policy ordering', () => {
 			'[data-testid="consent-banner-reject-button"]'
 		);
 
-		expect(acceptButton?.className).toContain('button-primary-marker');
-		expect(rejectButton?.className).toContain('button-secondary-marker');
+		expect(acceptButton?.className).toContain('button-secondary-marker');
+		expect(rejectButton?.className).toContain('button-primary-marker');
 	});
 
-	test('drops policy-disallowed actions from a local layout', async () => {
-		await renderBanner(
+	test('host action hints cannot remove policy-required controls', async () => {
+		renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
 			},
@@ -180,10 +179,10 @@ describe('ConsentBanner policy ordering', () => {
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="consent-banner-reject-button"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="consent-banner-customize-button"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	});
 
 	test('groups the default layout when policy has hints but no policy layout', async () => {
@@ -217,41 +216,6 @@ describe('ConsentBanner policy ordering', () => {
 		expect(footerGroups).toEqual([
 			['consent-banner-reject-button', 'consent-banner-accept-button'],
 			['consent-banner-customize-button'],
-		]);
-	});
-
-	test('keeps the subgroup shape of a scalar policy layout', async () => {
-		// `banner.actionGroups` normalizes a scalar entry into a
-		// single-element array; the banner's own filter does the same, so
-		// the rendered subgroups have to match the policy's shape either
-		// way, with `customize` on its own rather than folded in.
-		await renderBanner(
-			{},
-			{
-				policyBanner: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					direction: 'row',
-					layout: ['customize', ['reject', 'accept']],
-					primaryActions: ['accept'],
-				},
-			}
-		);
-
-		await waitForBanner();
-
-		const footerGroups = Array.from(
-			document.querySelectorAll(
-				'[data-testid="consent-banner-footer-sub-group"]'
-			)
-		).map((group) =>
-			Array.from(group.querySelectorAll<HTMLButtonElement>('button')).map(
-				(button) => button.dataset.testid
-			)
-		);
-
-		expect(footerGroups).toEqual([
-			['consent-banner-customize-button'],
-			['consent-banner-reject-button', 'consent-banner-accept-button'],
 		]);
 	});
 

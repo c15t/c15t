@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E tests for the complete consent flow.
  *
@@ -5,7 +6,6 @@
  *
  * Mirrors: packages/react/src/components/__tests__/consent-flow.e2e.test.tsx
  */
-
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -122,9 +122,9 @@ describe('Consent Flow E2E Tests', () => {
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(getDefined(stored));
-				expect(consent.consents).toBeTruthy();
-				expect(consent.consents.necessary).toBe(true);
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.categories).toBeTruthy();
+				expect(consent?.version).toBe(3);
 			});
 		});
 
@@ -146,10 +146,10 @@ describe('Consent Flow E2E Tests', () => {
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(getDefined(stored));
-				expect(consent.consents.necessary).toBe(true);
-				expect(consent.consents.marketing).toBe(false);
-				expect(consent.consents.measurement).toBe(false);
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.version).toBe(3);
+				expect(consent?.categories.marketing?.value).toBe(false);
+				expect(consent?.categories.measurement?.value).toBe(false);
 			});
 		});
 	});
@@ -287,8 +287,8 @@ describe('Consent Flow E2E Tests', () => {
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(getDefined(stored));
-				expect(consent.consents).toBeTruthy();
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.categories).toBeTruthy();
 			});
 		});
 	});

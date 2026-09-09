@@ -2,6 +2,7 @@
  * Shared InitOutput/InitResponse mapping — the single fold every framework
  * server helper and transport uses (shared-logic audit #4).
  */
+import { enTranslations } from '@c15t/translations';
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -11,6 +12,12 @@ import {
 	mergeInitResponseIntoKernelConfig,
 } from '../transports/init-output';
 import type { KernelConfig } from '../types';
+import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
+
+const POLICY = {
+	...matchedResolution(optInRule({ id: 'p1' })),
+	version: 1 as const,
+};
 
 const BASE_PAYLOAD = {
 	location: { countryCode: 'DE', regionCode: null },
@@ -22,40 +29,39 @@ const BASE_PAYLOAD = {
 } as any;
 
 describe('mapInitOutputToInitResponse: consent inference', () => {
-	test('consent-bearing payload implies hasConsented', () => {
+	test('receipt-free booleans cannot seed authority', () => {
 		const mapped = mapInitOutputToInitResponse(
 			{ ...BASE_PAYLOAD, consents: { marketing: true } },
 			{}
 		);
-		expect(mapped.consents).toEqual({ marketing: true });
+		expect(mapped).not.toHaveProperty('consents');
 		// Without this, opt-in fresh-visitor defaults would reset the values
 		// and re-show the banner — and the client fold would disagree with
 		// the server prefetch merge.
-		expect(mapped.hasConsented).toBe(true);
+		expect(mapped).not.toHaveProperty('hasConsented');
 	});
 
-	test('explicit hasConsented: false wins over the inference', () => {
+	test('legacy false marker is not forwarded', () => {
 		const mapped = mapInitOutputToInitResponse(
 			{ ...BASE_PAYLOAD, consents: { marketing: true }, hasConsented: false },
 			{}
 		);
-		expect(mapped.hasConsented).toBe(false);
+		expect(mapped).not.toHaveProperty('hasConsented');
 	});
 
-	test('no consents → hasConsented passes through untouched', () => {
-		expect(
-			mapInitOutputToInitResponse(BASE_PAYLOAD, {}).hasConsented
-		).toBeUndefined();
+	test('legacy true marker is not forwarded', () => {
+		expect(mapInitOutputToInitResponse(BASE_PAYLOAD, {})).not.toHaveProperty(
+			'hasConsented'
+		);
 		expect(
 			mapInitOutputToInitResponse({ ...BASE_PAYLOAD, hasConsented: true }, {})
-				.hasConsented
-		).toBe(true);
+		).not.toHaveProperty('hasConsented');
 	});
 });
 
 describe('mergeInitResponseIntoKernelConfig', () => {
 	test('undefined response returns base untouched', () => {
-		const base = { initialSubjectId: 'sub_1' };
+		const base = { initialRecords: { subject: { subjectId: 'sub_1' } } };
 		expect(mergeInitResponseIntoKernelConfig(base, undefined)).toBe(base);
 	});
 
@@ -65,7 +71,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			{
 				location: { countryCode: 'DE', regionCode: 'BE' },
 				resolvedOverrides: { country: 'FR' },
-				translations: { language: 'de', translations: {} },
+				translations: { language: 'de', translations: enTranslations },
 			}
 		);
 		// base < derived < resolvedOverrides
@@ -77,19 +83,14 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		});
 	});
 
-	test('consents merge implies hasConsented; explicit false wins', () => {
-		const inferred = mergeInitResponseIntoKernelConfig(
-			{},
-			{ consents: { marketing: true } }
+	test('init preserves the local draft without accepting server draft input', () => {
+		const response = { consents: { marketing: true }, resolvedOverrides: {} };
+		const merged = mergeInitResponseIntoKernelConfig(
+			{ initialDraft: { measurement: false } },
+			response
 		);
-		expect(inferred.initialConsents).toEqual({ marketing: true });
-		expect(inferred.initialHasConsented).toBe(true);
-
-		const explicit = mergeInitResponseIntoKernelConfig(
-			{},
-			{ consents: { marketing: true }, hasConsented: false }
-		);
-		expect(explicit.initialHasConsented).toBe(false);
+		expect(merged.initialDraft).toEqual({ measurement: false });
+		expect(merged).not.toHaveProperty('initialHasConsented');
 	});
 
 	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
@@ -109,18 +110,19 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		const merged = mergeInitResponseIntoKernelConfig(
 			{},
 			{
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
-				policyDecision: { policyId: 'p1' } as any,
+				policyResolution: POLICY,
 				policySnapshotToken: 'tok',
 
 				subjectId: 'sub_9',
 			}
 		);
-		expect(merged.initialSubjectId).toBe('sub_9');
-		expect(merged.initialPolicy?.id).toBe('p1');
-		expect(merged.initialPolicyDecision).toBeDefined();
+		expect(merged.initialRecords?.subject?.subjectId).toBe('sub_9');
+		expect(merged.initialPolicyResolution).toMatchObject({
+			policyId: 'p1',
+			status: 'matched',
+		});
+		expect(merged).not.toHaveProperty('initialPolicyDecision');
 		expect(merged.initialPolicySnapshotToken).toBe('tok');
 	});
 
@@ -141,153 +143,90 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		const config = initOutputToKernelConfig(
 			{
 				branding: 'c15t',
+				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
+				policyResolution: POLICY,
 
-				translations: { language: 'de', translations: {} },
+				translations: { language: 'de', translations: enTranslations },
 			},
 			{ 'sec-gpc': '1' }
 		);
-		expect(config.initialOverrides).toMatchObject({
+		expect(config.initialOverrides).toEqual({
 			country: 'DE',
-			gpc: true,
 			language: 'de',
 		});
-		expect(config.initialPolicy?.id).toBe('p1');
+		// The detected header signal is a privacy signal, not an override.
+		expect(config.initialPrivacySignals).toEqual({ gpc: true });
+		expect(config.initialPolicyResolution).toMatchObject({
+			policyId: 'p1',
+			status: 'matched',
+		});
 		expect(config.initialBranding).toBe('c15t');
+		// A producer that sent no `policyResolution` and declared no contract
+		// is a legacy producer: its policy is lifted on the server, once.
+		expect(config.initialPolicyResolution).toMatchObject({
+			policyId: 'p1',
+			status: 'matched',
+		});
 	});
 });
 
 describe('kernelConfigToInitResponse', () => {
-	const BANNER_POLICY = {
-		id: 'gdpr',
-		model: 'opt-in',
-		ui: { mode: 'banner' },
-		// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-	} as any;
-
-	// Init payloads a hosted `/init` or the manifest transport can produce,
-	// covering every field the merge folds into a KernelConfig.
-	const INIT_OUTPUTS = [
-		{ ...BASE_PAYLOAD, branding: 'c15t', policy: BANNER_POLICY },
-		{ ...BASE_PAYLOAD, branding: 'none', policy: BANNER_POLICY },
-		{
-			...BASE_PAYLOAD,
-			branding: 'c15t',
-			consents: { marketing: true, measurement: false },
-			policy: BANNER_POLICY,
-			subjectId: 'sub_9',
-		},
-		{
-			...BASE_PAYLOAD,
-			branding: 'c15t',
-			consents: { marketing: true },
-			hasConsented: false,
-			policy: BANNER_POLICY,
-		},
-		{
-			...BASE_PAYLOAD,
-			branding: 'c15t',
-			cmpId: 28,
-			customVendors: [{ id: 'v1', name: 'Vendor' }],
-			gvl: { vendors: {} },
-			policy: BANNER_POLICY,
-			policyDecision: { policyId: 'gdpr' },
-			policySnapshotToken: 'tok',
-		},
-		{
-			...BASE_PAYLOAD,
-			branding: 'c15t',
-			location: { countryCode: 'US', regionCode: 'CA' },
-			policy: BANNER_POLICY,
-			resolvedOverrides: { country: 'FR' },
-			translations: { language: 'fr', translations: {} },
-		},
-	];
-
-	const BASES: KernelConfig[] = [
-		{},
-		{ initialOverrides: { gpc: true, language: 'en' } },
-		{
-			initialConsents: { functionality: true },
-			initialHasConsented: true,
-			initialSubjectId: 'sub_cookie',
-		},
-		{ initialIab: { cmpId: 1, enabled: true } },
-	];
-
-	const HEADERS = [{}, { 'sec-gpc': '1' }, { 'sec-gpc': '0' }];
-
-	test('round-trips every merged config back through the merge', () => {
-		for (const base of BASES) {
-			for (const payload of INIT_OUTPUTS) {
-				for (const headers of HEADERS) {
-					const merged = mergeInitResponseIntoKernelConfig(
-						base,
-						mapInitOutputToInitResponse(payload, headers)
-					);
-					const roundTripped = mergeInitResponseIntoKernelConfig(
-						base,
-						kernelConfigToInitResponse(merged)
-					);
-					expect(roundTripped).toEqual(merged);
-				}
+	test('round-trips policy outcomes, records, signals and metadata', () => {
+		const records = {
+			choice: null,
+			now: 1700000000000,
+			subject: { subjectId: 'sub_cookie' },
+		};
+		const resolutions = [
+			matchedResolution(optInRule({ id: 'p1' })),
+			{ policy: null, status: 'no-match' },
+			{ policy: null, status: 'unconfigured' },
+			{ policy: null, reason: 'transport', status: 'failed' },
+		] as const;
+		for (const initialPolicyResolution of resolutions) {
+			const base: KernelConfig = { initialRecords: records };
+			const config: KernelConfig = {
+				...base,
+				initialBranding: 'c15t',
+				initialLocation: { countryCode: 'DE', regionCode: null },
+				initialOverrides: { country: 'DE', gpc: false, language: 'de' },
+				initialPolicyResolution,
+				initialPrivacySignals: { gpc: true },
+				initialTranslations: { language: 'de', translations: {} },
+			};
+			if (initialPolicyResolution.status === 'matched') {
+				config.initialIab = {
+					cmpId: 28,
+					customVendors: [],
+					enabled: false,
+					gvl: null,
+				};
+				config.initialPolicySnapshotToken = 'token';
 			}
+
+			expect(
+				mergeInitResponseIntoKernelConfig(
+					base,
+					kernelConfigToInitResponse(config)
+				)
+			).toEqual(config);
 		}
 	});
-
-	test('returns undefined when the config carries no policy', () => {
-		expect(kernelConfigToInitResponse({})).toBeUndefined();
+	test('leaves records-only configurations for the transport to resolve', () => {
 		expect(
-			kernelConfigToInitResponse({
-				initialConsents: { marketing: true },
-				initialHasConsented: true,
-				initialOverrides: { country: 'DE' },
-				initialSubjectId: 'sub_cookie',
-			})
+			kernelConfigToInitResponse({ initialRecords: { choice: null } })
 		).toBeUndefined();
 	});
-
-	test('maps every init-derived field to its response key', () => {
+	test('does not serialize transport or empty overrides', () => {
 		const response = kernelConfigToInitResponse({
-			initialBranding: 'c15t',
-			initialConsents: { marketing: true },
-			initialHasConsented: false,
-			initialIab: { cmpId: 28, customVendors: [], enabled: false, gvl: null },
-			initialLocation: { countryCode: 'DE', regionCode: null },
-			initialOverrides: { country: 'DE', language: 'de' },
-			initialPolicy: BANNER_POLICY,
-			// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
-			initialPolicyDecision: { policyId: 'gdpr' } as any,
-			initialPolicySnapshotToken: 'tok',
-			initialSubjectId: 'sub_9',
-			initialTranslations: { language: 'de', translations: {} },
+			initialOverrides: {},
+			initialPolicyResolution: matchedResolution(optInRule()),
+			transport: { init: () => Promise.resolve({}) },
 		});
-		expect(response).toEqual({
-			branding: 'c15t',
-			cmpId: 28,
-			consents: { marketing: true },
-			customVendors: [],
-			gvl: null,
-			hasConsented: false,
-			location: { countryCode: 'DE', regionCode: null },
-			policy: BANNER_POLICY,
-			policyDecision: { policyId: 'gdpr' },
-			policySnapshotToken: 'tok',
-			resolvedOverrides: { country: 'DE', language: 'de' },
-			subjectId: 'sub_9',
-			translations: { language: 'de', translations: {} },
-		});
-	});
-
-	test('leaves empty overrides and the transport out of the response', () => {
-		expect(
-			kernelConfigToInitResponse({
-				initialOverrides: {},
-				initialPolicy: BANNER_POLICY,
-				transport: { init: () => Promise.resolve({}) },
-			})
-		).toEqual({ policy: BANNER_POLICY });
+		expect(response).not.toHaveProperty('transport');
+		expect(response).not.toHaveProperty('resolvedOverrides');
+		expect(response?.policyResolution?.status).toBe('matched');
 	});
 });

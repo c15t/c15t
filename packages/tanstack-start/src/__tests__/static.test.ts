@@ -1,3 +1,7 @@
+import {
+	createConsentManifestPolicyPack,
+	POLICY_OPTIONAL_CATEGORIES,
+} from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import {
@@ -13,8 +17,8 @@ describe('@c15t/tanstack-start/static', () => {
 			language: 'en',
 		});
 
-		expect(payload.policy?.id).toBe('eu-opt-in');
-		expect(payload.policy?.model).toBe('opt-in');
+		expect(payload.policyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(payload.policyResolution?.policy?.model).toBe('opt-in');
 		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
 	});
 
@@ -49,9 +53,9 @@ describe('@c15t/tanstack-start/static', () => {
 			manifest: MANIFEST_FIXTURE,
 		});
 
-		expect(resolution.initial.policy?.id).toBe('eu-opt-in');
+		expect(resolution.initial.policyResolution?.policy?.id).toBe('eu-opt-in');
 		const resolved = await resolution.resolved;
-		expect(resolved.policy?.id).toBe('us-ca-opt-out');
+		expect(resolved.policyResolution?.policy?.id).toBe('us-ca-opt-out');
 		expect(resolved.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
 	});
 
@@ -118,14 +122,8 @@ describe('resolveStrictestDefaultInit: ties within a model', () => {
 		id: string
 	) {
 		const copy = structuredClone(pack);
-		copy.policy.id = id;
-		copy.resolvedPolicy.id = id;
-		if (copy.policy.consent) {
-			copy.policy.consent.scopeMode = 'permissive';
-		}
-		if (copy.resolvedPolicy.consent) {
-			copy.resolvedPolicy.consent.scopeMode = 'permissive';
-		}
+		copy.rule.id = id;
+		copy.rule.scopeMode = 'permissive';
 		return copy;
 	};
 
@@ -143,8 +141,8 @@ describe('resolveStrictestDefaultInit: ties within a model', () => {
 				{ ...MANIFEST_FIXTURE, policyPacks },
 				{ language: 'en' }
 			);
-			expect(payload.policy?.id).toBe('eu-opt-in');
-			expect(payload.policy?.consent?.scopeMode).toBe('strict');
+			expect(payload.policyResolution?.policy?.id).toBe('eu-opt-in');
+			expect(payload.policyResolution?.policy?.scopeMode).toBe('strict');
 		}
 	});
 });
@@ -179,119 +177,75 @@ describe('createStaticManifestModule: importSource', () => {
 	});
 });
 
-describe('resolveStrictestDefaultInit: effective pre-consent grants', () => {
-	type Pack = (typeof MANIFEST_FIXTURE.policyPacks)[number];
-	const clonePack = function clonePack(
-		pack: Pack,
+describe('resolveStrictestDefaultInit: effective permissions', () => {
+	const pack = (
 		id: string,
-		patch: (consent: Record<string, unknown>) => void
-	) {
-		const copy = structuredClone(pack);
-		copy.policy.id = id;
-		copy.resolvedPolicy.id = id;
-		if (copy.policy.consent) {
-			patch(copy.policy.consent as never);
-		}
-		if (copy.resolvedPolicy.consent) {
-			patch(copy.resolvedPolicy.consent as never);
-		}
-		return copy;
-	};
-	const optOutFixture = function optOutFixture() {
-		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
-		if (!optOut) {
-			throw new Error('fixture has no opt-out pack');
-		}
-		return optOut;
-	};
-	const pickFor = function pickFor(policyPacks: Pack[], gpc?: boolean) {
-		return resolveStrictestDefaultInit(
-			{ ...MANIFEST_FIXTURE, policyPacks },
-			{ gpc, language: 'en' }
-		).policy?.id;
-	};
-	const bothOrders = function bothOrders(
-		left: Pack,
-		right: Pack,
-		expected: string,
-		gpc?: boolean
-	) {
-		expect(pickFor([left, right], gpc)).toBe(expected);
-		expect(pickFor([right, left], gpc)).toBe(expected);
-	};
-
-	test('among strict opt-out packs, fewer optional categories wins', () => {
-		const optOut = optOutFixture();
-		const narrow = clonePack(optOut, 'us-narrow', (consent) => {
-			consent.scopeMode = 'strict';
+		categories: string[],
+		scopeMode: 'strict' | 'permissive' = 'strict',
+		gpc: string[] = []
+	) =>
+		createConsentManifestPolicyPack({
+			categories,
+			id,
+			match: { fallback: true },
+			model: 'opt-out',
+			privacySignals: { gpc: { denyCategories: gpc } },
+			prompt: 'notice',
+			scopeMode,
 		});
-		const wide = clonePack(optOut, 'us-wide', (consent) => {
-			consent.scopeMode = 'strict';
-			consent.categories = [
-				'necessary',
-				'measurement',
-				'marketing',
-				'functionality',
-			];
-		});
-		bothOrders(narrow, wide, 'us-narrow');
-	});
-
-	test('a wildcard or empty list ranks below any explicit allowlist', () => {
-		const optOut = optOutFixture();
-		const narrow = clonePack(optOut, 'us-narrow', (consent) => {
-			consent.scopeMode = 'strict';
-		});
-		for (const categories of [['*'], []]) {
-			const open = clonePack(optOut, 'us-open', (consent) => {
-				consent.scopeMode = 'strict';
-				consent.categories = categories;
-			});
-			bothOrders(narrow, open, 'us-narrow');
+	const pick = (
+		policyPacks: typeof MANIFEST_FIXTURE.policyPacks,
+		gpc = false
+	) =>
+		resolveStrictestDefaultInit({ ...MANIFEST_FIXTURE, policyPacks }, { gpc })
+			.policyResolution;
+	test('prefers fewer permitted categories regardless of pack order', () => {
+		const narrow = pack('narrow', ['marketing']);
+		const wide = pack('wide', ['marketing', 'measurement']);
+		for (const packs of [
+			[narrow, wide],
+			[wide, narrow],
+		]) {
+			expect(pick(packs)).toMatchObject({ policyId: 'narrow' });
 		}
 	});
-
-	test('a permissive pack grants everything, whatever its list says', () => {
-		const optOut = optOutFixture();
-		const permissiveNecessary = clonePack(
-			optOut,
-			'us-permissive',
-			(consent) => {
-				consent.scopeMode = 'permissive';
-				consent.categories = ['necessary'];
-			}
-		);
-		const strictOne = clonePack(optOut, 'us-strict-one', (consent) => {
-			consent.scopeMode = 'strict';
-			consent.categories = ['necessary', 'marketing'];
-		});
-		bothOrders(permissiveNecessary, strictOne, 'us-strict-one');
+	test('necessary-only authoring expands to the default optional scope', () => {
+		expect(
+			pick([
+				pack('default-scope', ['necessary']),
+				pack('marketing', ['marketing']),
+			])
+		).toMatchObject({ policyId: 'marketing' });
 	});
-
-	test('an opt-in pack that preselects a category ranks below one that does not', () => {
-		const [optIn] = MANIFEST_FIXTURE.policyPacks;
-		if (!optIn) {
-			throw new Error('fixture has no packs');
-		}
-		const preselecting = clonePack(optIn, 'eu-opt-in-preselect', (consent) => {
-			consent.preselectedCategories = ['marketing'];
-		});
-		bothOrders(optIn, preselecting, 'eu-opt-in');
+	test('permissive scope allows categories outside its scope', () => {
+		expect(
+			pick([
+				pack('permissive', [], 'permissive'),
+				pack('strict', ['marketing']),
+			])
+		).toMatchObject({ policyId: 'strict' });
 	});
-
-	test('a GPC-honouring open pack only beats a limited one when GPC is present', () => {
-		const optOut = optOutFixture();
-		const strictOne = clonePack(optOut, 'us-strict-one', (consent) => {
-			consent.scopeMode = 'strict';
-			consent.categories = ['necessary', 'marketing'];
-			consent.gpc = false;
+	test('GPC only restricts its configured categories', () => {
+		const limited = pack('limited', ['marketing']);
+		const mapped = pack('gpc', [...POLICY_OPTIONAL_CATEGORIES], 'strict', [
+			...POLICY_OPTIONAL_CATEGORIES,
+		]);
+		expect(pick([limited, mapped], false)).toMatchObject({
+			policyId: 'limited',
 		});
-		const gpcOpen = clonePack(optOut, 'us-gpc-open', (consent) => {
-			consent.scopeMode = 'permissive';
-			consent.categories = ['*'];
-			consent.gpc = true;
+		expect(pick([limited, mapped], true)).toMatchObject({ policyId: 'gpc' });
+	});
+	test('preselection does not grant permission before a choice', () => {
+		const preselected = createConsentManifestPolicyPack({
+			categories: ['marketing'],
+			id: 'preselected',
+			match: { fallback: true },
+			model: 'opt-in',
+			preselectedCategories: ['marketing'],
+			prompt: 'choice',
 		});
-		bothOrders(strictOne, gpcOpen, 'us-strict-one', false);
-		bothOrders(strictOne, gpcOpen, 'us-gpc-open', true);
+		expect(pick([preselected, pack('opt-out', ['marketing'])])).toMatchObject({
+			policyId: 'preselected',
+		});
 	});
 });

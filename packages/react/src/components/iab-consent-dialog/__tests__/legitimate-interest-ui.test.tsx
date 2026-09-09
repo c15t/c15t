@@ -7,8 +7,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { offline } from '~/transports/offline';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
@@ -218,9 +219,13 @@ const defaultIABOptions: ConsentProviderOptions = {
 		gvl: mockGVL,
 	},
 	mode: offline(),
-	offlinePolicy: {
-		policy: { id: 'iab_test', model: 'iab' },
-	},
+	prefetch: policyFixture(undefined, {
+		categories: undefined,
+		id: 'iab_test',
+		model: 'iab',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	}),
 };
 
 describe('Legitimate Interest UI - Purpose Level', () => {

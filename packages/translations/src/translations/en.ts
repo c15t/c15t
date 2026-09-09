@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Accept All',
 		close: 'Close',
 		customize: 'Customize',
+		dismiss: 'Dismiss',
 		rejectAll: 'Reject All',
 		save: 'Save Settings',
 		securedBy: 'Secured by',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
+		noticeDescription:
+			'We use cookies and similar technologies to run this site, measure traffic, and personalize content and ads. You can opt out or manage your preferences at any time.',
+		noticeTitle: 'Privacy notice',
 		title: 'We value your privacy',
 	},
 	frame: {
@@ -142,6 +146,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Cookie Policy',
 		privacyPolicy: 'Privacy Policy',
 		termsOfService: 'Terms of Service',
+	},
+	rights: {
+		optOut: 'Do not sell or share my data',
+		preferences: 'Manage preferences',
 	},
 };
 

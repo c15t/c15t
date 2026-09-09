@@ -14,7 +14,7 @@
  */
 import type { ConsentManifest } from '@c15t/schema/types';
 
-import { c15tVersionHeaders } from '../transports/version-header';
+import { c15tProtocolHeaders } from '../transports/version-header';
 
 /**
  * Just the call signature the manifest routes need.
@@ -266,7 +266,7 @@ const revalidate = async function revalidate(input: {
 
 	const headers: Record<string, string> = {
 		accept: 'application/json',
-		...c15tVersionHeaders,
+		...c15tProtocolHeaders,
 	};
 	if (cached?.headers.etag) {
 		headers['if-none-match'] = cached.headers.etag;

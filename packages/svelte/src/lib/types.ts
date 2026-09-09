@@ -95,3 +95,8 @@ export interface ConsentManagerOptions
 }
 
 export type SvelteUIOptions = UIOptions;
+
+/** Public policy lifecycle callbacks. */
+export type ConsentProviderCallbacks = NonNullable<
+	ConsentRuntimeOptions['callbacks']
+>;

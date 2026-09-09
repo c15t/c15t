@@ -5,8 +5,8 @@ import {
 	useConsents,
 	useLocation,
 	useModel,
-	usePolicy,
-	usePolicyDecision,
+	usePolicyRule,
+	usePolicyResolution,
 	useSetActiveUI,
 } from 'c15t/tanstack-start';
 
@@ -16,8 +16,8 @@ const HomePage = () => {
 	const location = useLocation();
 	const marketingAllowed = useConsent('marketing');
 	const model = useModel();
-	const policy = usePolicy();
-	const policyDecision = usePolicyDecision();
+	const policy = usePolicyRule();
+	const policyDecision = usePolicyResolution();
 	const setActiveUI = useSetActiveUI();
 
 	const granted = Object.entries(consents)
@@ -40,7 +40,7 @@ const HomePage = () => {
 					<dd>
 						<code data-testid="active-ui">{activeUI ?? 'none'}</code>
 					</dd>
-					<dt>Granted categories</dt>
+					<dt>Permitted categories</dt>
 					<dd>
 						<code data-testid="granted">{granted.join(', ') || '—'}</code>
 					</dd>
@@ -58,7 +58,9 @@ const HomePage = () => {
 					<dt>Policy pack</dt>
 					<dd>
 						<code data-testid="policy-id">
-							{policyDecision?.policyId ?? '—'}
+							{policyDecision.status === 'matched'
+								? policyDecision.policyId
+								: policyDecision.status}
 						</code>
 					</dd>
 					<dt>Policy model</dt>
@@ -67,7 +69,7 @@ const HomePage = () => {
 					</dd>
 					<dt>Consent surface</dt>
 					<dd>
-						<code data-testid="ui-mode">{policy?.ui?.mode ?? '—'}</code>
+						<code data-testid="ui-mode">{policy.prompt}</code>
 					</dd>
 				</dl>
 			</section>

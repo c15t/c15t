@@ -65,10 +65,10 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
 			'https://consent.example.com/manifest'
 		);
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
-		expect(config.initialPolicyDecision).toMatchObject({
-			country: 'DE',
-			fingerprint: 'eu-fingerprint',
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution).toMatchObject({
+			fingerprints: MANIFEST_FIXTURE.policyPacks[0]?.fingerprints,
+			status: 'matched',
 		});
 		expect(config.initialTranslations?.language).toBe('de');
 		expect(config.initialOverrides).toMatchObject({
@@ -92,7 +92,7 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 		);
 
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(config.initialPolicy?.id).toBe('us-ca-opt-out');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('us-ca-opt-out');
 	});
 
 	test('keeps persisted cookie consent alongside the resolved policy', async () => {
@@ -107,9 +107,11 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 			})
 		);
 
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents).toMatchObject({ marketing: true });
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 
 	test('resolves a relative backendURL from forwarded headers when trusted', async () => {
@@ -144,7 +146,7 @@ describe('prefetchInitialConsent: degradation', () => {
 		);
 
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(config.initialPolicy).toBeUndefined();
+		expect(config.initialPolicyResolution).toBeUndefined();
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 
@@ -168,8 +170,8 @@ describe('prefetchInitialConsent: degradation', () => {
 			const config = await handler();
 
 			expect(fetchSpy).not.toHaveBeenCalled();
-			expect(config.initialHasConsented).toBe(true);
-			expect(config.initialPolicy).toBeUndefined();
+			expect(!!config.initialRecords?.choice).toBe(true);
+			expect(config.initialPolicyResolution).toBeUndefined();
 			expect(warn).not.toHaveBeenCalled();
 			expect(error).not.toHaveBeenCalled();
 		} finally {
@@ -190,7 +192,7 @@ describe('prefetchInitialConsent: degradation', () => {
 			createRequest({ 'x-vercel-ip-country': 'DE' })
 		);
 
-		expect(config).toEqual({ initialOverrides: { country: 'DE' } });
+		expect(config).toMatchObject({ initialOverrides: { country: 'DE' } });
 	});
 
 	test('returns the baseline config when fetch throws', async () => {
@@ -200,7 +202,10 @@ describe('prefetchInitialConsent: degradation', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		expect(config).toEqual({});
+		expect(config).toMatchObject({
+			initialRecords: { choice: null, subject: null },
+			now: expect.any(Number),
+		});
 	});
 });
 
@@ -214,7 +219,7 @@ describe('createConsentConfigHandler', () => {
 		});
 
 		const config = await handler();
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 
 	test('only reads the request without a backendURL', async () => {
@@ -222,7 +227,9 @@ describe('createConsentConfigHandler', () => {
 			request: createRequest({ 'x-vercel-ip-country': 'DE' }),
 		});
 
-		expect(await handler()).toEqual({ initialOverrides: { country: 'DE' } });
+		expect(await handler()).toMatchObject({
+			initialOverrides: { country: 'DE' },
+		});
 	});
 });
 

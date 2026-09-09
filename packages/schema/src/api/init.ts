@@ -4,12 +4,7 @@ import { brandingSchema } from '~/shared/branding';
 import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
-import {
-	policyModelSchema,
-	policyScopeModeSchema,
-	policyUiModeSchema,
-	policyUiSurfaceConfigSchema,
-} from '~/shared/policy-schema';
+import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
 
 /**
  * Title and description schema for translations
@@ -28,6 +23,37 @@ export const partialTitleDescriptionSchema = v.object({
 });
 
 /**
+ * Cookie banner copy. The notice pair is used when the resolved policy
+ * requires a `notice` prompt; older backends omit it.
+ */
+export const cookieBannerTranslationsSchema = v.object({
+	...titleDescriptionSchema.entries,
+	noticeDescription: v.optional(v.string()),
+	noticeTitle: v.optional(v.string()),
+});
+
+/**
+ * Partial cookie banner copy for older backend versions
+ */
+export const partialCookieBannerTranslationsSchema = v.object({
+	...partialTitleDescriptionSchema.entries,
+	noticeDescription: v.optional(v.string()),
+	noticeTitle: v.optional(v.string()),
+});
+
+/**
+ * Labels for persistent rights a surface exposes when no prompt action
+ * covers them, such as the opt-out and preferences links on a notice.
+ * Optional so older backends still validate.
+ */
+export const rightsTranslationsSchema = v.optional(
+	v.object({
+		optOut: v.optional(v.string()),
+		preferences: v.optional(v.string()),
+	})
+);
+
+/**
  * Complete translations schema for newer backend versions
  * All fields are required for full functionality
  */
@@ -35,6 +61,7 @@ export const completeTranslationsSchema = v.object({
 	common: v.object({
 		acceptAll: v.string(),
 		customize: v.string(),
+		dismiss: v.optional(v.string()),
 		rejectAll: v.string(),
 		save: v.string(),
 	}),
@@ -46,7 +73,7 @@ export const completeTranslationsSchema = v.object({
 		measurement: titleDescriptionSchema,
 		necessary: titleDescriptionSchema,
 	}),
-	cookieBanner: titleDescriptionSchema,
+	cookieBanner: cookieBannerTranslationsSchema,
 	frame: v.object({
 		actionButton: v.string(),
 
@@ -58,6 +85,7 @@ export const completeTranslationsSchema = v.object({
 		privacyPolicy: v.string(),
 		termsOfService: v.string(),
 	}),
+	rights: rightsTranslationsSchema,
 });
 
 /**
@@ -69,6 +97,7 @@ export const partialTranslationsSchema = v.object({
 		v.object({
 			acceptAll: v.optional(v.string()),
 			customize: v.optional(v.string()),
+			dismiss: v.optional(v.string()),
 			rejectAll: v.optional(v.string()),
 			save: v.optional(v.string()),
 		})
@@ -83,7 +112,7 @@ export const partialTranslationsSchema = v.object({
 			necessary: partialTitleDescriptionSchema,
 		})
 	),
-	cookieBanner: partialTitleDescriptionSchema,
+	cookieBanner: partialCookieBannerTranslationsSchema,
 	frame: v.optional(
 		v.partial(
 			v.object({
@@ -103,6 +132,7 @@ export const partialTranslationsSchema = v.object({
 			})
 		)
 	),
+	rights: rightsTranslationsSchema,
 });
 
 /**
@@ -120,68 +150,6 @@ export const translationsSchema = v.union([
 export const locationSchema = v.object({
 	countryCode: v.nullable(v.string()),
 	regionCode: v.nullable(v.string()),
-});
-
-/**
- * Matching strategy used to resolve the policy for the request.
- */
-export const policyMatchedBySchema = v.picklist([
-	'region',
-	'country',
-	'default',
-	'fallback',
-]);
-
-/**
- * Resolved runtime policy returned by /init.
- */
-export const resolvedPolicySchema = v.object({
-	consent: v.optional(
-		v.object({
-			categories: v.optional(v.array(v.string())),
-			expiryDays: v.optional(v.number()),
-			gpc: v.optional(v.boolean()),
-
-			preselectedCategories: v.optional(v.array(v.string())),
-			scopeMode: v.optional(policyScopeModeSchema),
-		})
-	),
-	i18n: v.optional(
-		v.object({
-			language: v.optional(v.string()),
-			messageProfile: v.optional(v.string()),
-		})
-	),
-	id: v.string(),
-	model: policyModelSchema,
-	proof: v.optional(
-		v.object({
-			storeIp: v.optional(v.boolean()),
-			storeLanguage: v.optional(v.boolean()),
-
-			storeUserAgent: v.optional(v.boolean()),
-		})
-	),
-	ui: v.optional(
-		v.object({
-			banner: v.optional(policyUiSurfaceConfigSchema),
-			dialog: v.optional(policyUiSurfaceConfigSchema),
-
-			mode: v.optional(policyUiModeSchema),
-		})
-	),
-});
-
-/**
- * Explainability details for the resolved policy decision.
- */
-export const policyDecisionSchema = v.object({
-	country: v.nullable(v.string()),
-	fingerprint: v.string(),
-	jurisdiction: jurisdictionCodeSchema,
-	matchedBy: policyMatchedBySchema,
-	policyId: v.string(),
-	region: v.nullable(v.string()),
 });
 
 /**
@@ -208,20 +176,17 @@ export const initOutputSchema = v.object({
 	gvl: v.optional(v.nullable(globalVendorListSchema)),
 	jurisdiction: jurisdictionCodeSchema,
 	location: locationSchema,
-	/**
-	 * Runtime policy resolved for the request's geo/jurisdiction context.
-	 * Present only when backend policies are configured and a match is found.
-	 */
-	policy: v.optional(resolvedPolicySchema),
-	/**
-	 * Explainability details for how the runtime policy was matched.
-	 */
-	policyDecision: v.optional(policyDecisionSchema),
+	/** Explicit, versioned policy outcome for every complete response. */
+	policyResolution: policyResolutionWireSchema,
 	/**
 	 * Signed policy snapshot token to ensure write-time consistency.
 	 * Present when backend policy snapshots are configured.
 	 */
 	policySnapshotToken: v.optional(v.string()),
+	/** Privacy signal used to resolve this request; never a recorded choice. */
+	resolvedPrivacySignals: v.optional(
+		v.object({ gpc: v.optional(v.boolean()) })
+	),
 	translations: v.object({
 		language: v.string(),
 		translations: translationsSchema,
@@ -231,17 +196,3 @@ export const initOutputSchema = v.object({
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;
 export type TranslationsResponse = v.InferOutput<typeof translationsSchema>;
 export type LocationResponse = v.InferOutput<typeof locationSchema>;
-/**
- * Runtime policy payload returned by `/init`.
- *
- * This is the fully resolved policy after backend geo/jurisdiction matching.
- * Frontend clients can persist this object and reuse it as an outage fallback.
- */
-export type ResolvedPolicy = v.InferOutput<typeof resolvedPolicySchema>;
-/**
- * Explainability metadata describing how the runtime policy was matched.
- *
- * Includes the match strategy (`matchedBy`), normalized location context,
- * and a deterministic policy fingerprint for snapshot consistency checks.
- */
-export type PolicyDecision = v.InferOutput<typeof policyDecisionSchema>;

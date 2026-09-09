@@ -1,25 +1,24 @@
 import type { Translations } from '@c15t/translations';
 import type { BaseTranslations } from '@c15t/translations/all';
 
-import type { InitOutput, PolicyDecision, ResolvedPolicy } from '../api/init';
+import type { InitOutput } from '../api/init';
 import type { brandingValues } from './constants';
 import {
 	checkJurisdiction,
 	getJurisdictionFromLocation,
 } from './jurisdiction-runtime';
+import { createDeterministicFingerprintSync } from './policy-fingerprint';
 import {
-	createDeterministicFingerprintSync,
-	createPolicyFingerprint,
-} from './policy-fingerprint';
-import {
-	createResolvedPolicyFromConfig,
-	validatePolicies,
-} from './policy-runtime';
-import type {
-	JurisdictionCode,
-	PolicyConfig,
-	PolicyMatchedBy,
-} from './policy-runtime';
+	matchPolicyRules,
+	readPolicyResolutionWire,
+	writePolicyResolutionWire,
+} from './policy-resolution';
+import type { PolicyResolution } from './policy-resolution';
+import { inspectPolicyRules, normalizePolicyRule } from './policy-rule';
+import type { PolicyRule, ResolvedPolicyRule } from './policy-rule';
+import { createPolicyRuleFingerprints } from './policy-rule-fingerprint';
+import type { PolicyFingerprints } from './policy-rule-fingerprint';
+import type { PolicyMatch } from './policy-runtime';
 import { getTranslationsData } from './translations-runtime';
 import type { I18nOptions, LoggerLike } from './translations-runtime';
 
@@ -31,9 +30,18 @@ export interface ConsentManifestGVLReference {
 }
 
 export interface ConsentManifestPolicyPack {
-	policy: PolicyConfig;
-	resolvedPolicy: ResolvedPolicy;
-	fingerprint: string;
+	/** The authored geographic matcher. */
+	match: PolicyMatch;
+	/** Normalized behavior, without presentation or author metadata. */
+	rule: ResolvedPolicyRule;
+	/** Fingerprints precomputed by the producer. */
+	fingerprints: PolicyFingerprints;
+}
+
+/** Recorded when the configured rules failed validation at build time. */
+export interface ConsentManifestPolicyFailure {
+	reason: 'invalid-configuration';
+	errors: string[];
 }
 
 export interface ConsentManifestTranslationInputs {
@@ -52,13 +60,19 @@ export interface ConsentManifestIAB {
 }
 
 export interface ConsentManifest {
-	schemaVersion: 1;
+	schemaVersion: 2;
 	revision: string;
 	tenantId?: string;
 	appName?: string;
 	branding: ConsentManifestBranding;
 	defaults?: ConsentManifestDefaults;
 	policyPacks?: ConsentManifestPolicyPack[];
+	/**
+	 * Present when the configured rules were invalid. Every request then
+	 * resolves to `failed` with `invalid-configuration` and the client applies
+	 * the safe fallback.
+	 */
+	policyFailure?: ConsentManifestPolicyFailure;
 	translations?: ConsentManifestTranslationInputs;
 	cmpId?: number;
 	iab?: ConsentManifestIAB;
@@ -93,186 +107,112 @@ const stripIabTranslations = function stripIabTranslations(
 	return rest;
 };
 
-export const resolveNoPolicyFallback =
-	function resolveNoPolicyFallback(): ResolvedPolicy {
-		return {
-			id: 'no_banner',
-			model: 'none',
-			ui: {
-				mode: 'none',
-			},
-		};
-	};
-
-const DEFAULT_CONSENT_CATEGORIES = [
-	'necessary',
-	'functionality',
-	'marketing',
-	'measurement',
-	'experience',
-] as const;
-
-export const buildDefaultOptInPolicy = function buildDefaultOptInPolicy(
-	categories?: string[]
-): ResolvedPolicy {
-	return {
-		consent: {
-			categories:
-				categories && categories.length > 0
-					? categories
-					: [...DEFAULT_CONSENT_CATEGORIES],
-			scopeMode: 'permissive',
-		},
-		id: 'default-opt-in',
-		model: 'opt-in',
-		ui: {
-			mode: 'banner',
-		},
-	};
-};
-
-const normalizeCountryCode = function normalizeCountryCode(
-	countryCode: string | null
-): string | null {
-	if (!countryCode) {
-		return null;
-	}
-
-	return countryCode.toUpperCase();
-};
-
-const normalizeRegionCode = function normalizeRegionCode(
-	regionCode: string | null
-): string | null {
-	if (!regionCode) {
-		return null;
-	}
-
-	return (
-		(regionCode.includes('-') ? regionCode.split('-').pop() : regionCode)
-			?.toUpperCase()
-			.trim() ?? null
-	);
-};
-
-const createRegionMatcherKey = function createRegionMatcherKey(
-	countryCode: string,
-	regionCode: string
-): string {
-	return `${countryCode}:${regionCode}`;
-};
-
-// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
-const resolvePolicyPackMatch = function resolvePolicyPackMatch(params: {
-	packs: ConsentManifestPolicyPack[];
-	countryCode: string | null;
-	regionCode: string | null;
-	iabEnabled?: boolean;
-}):
-	| {
-			pack: ConsentManifestPolicyPack;
-			matchedBy: PolicyMatchedBy;
-	  }
-	| undefined {
-	const policies = params.packs.map((pack) => pack.policy);
-	try {
-		validatePolicies(
-			policies,
-			params.iabEnabled === undefined
-				? undefined
-				: { iabEnabled: params.iabEnabled }
-		);
-	} catch {
-		return undefined;
-	}
-
-	const countryCode = normalizeCountryCode(params.countryCode);
-	const regionCode = normalizeRegionCode(params.regionCode);
-	const regionKey =
-		countryCode && regionCode
-			? createRegionMatcherKey(countryCode, regionCode)
-			: undefined;
-	let fallbackPack: ConsentManifestPolicyPack | undefined;
-	let defaultPack: ConsentManifestPolicyPack | undefined;
-
-	for (const pack of params.packs) {
-		for (const region of pack.policy.match.regions ?? []) {
-			const normalizedRegion = {
-				country: region.country.trim().toUpperCase(),
-				region: (region.region.includes('-')
-					? region.region.split('-').pop()
-					: region.region
-				)
-					?.trim()
-					.toUpperCase(),
+/** Resolves precomputed canonical packs without hashing in the client. */
+export const resolvePolicyResolutionFromManifest =
+	function resolvePolicyResolutionFromManifest(
+		manifest: ConsentManifest,
+		location: { countryCode: string | null; regionCode: string | null }
+	): PolicyResolution {
+		if (manifest.schemaVersion !== 2) {
+			return { policy: null, reason: 'unsupported-contract', status: 'failed' };
+		}
+		if (manifest.policyFailure) {
+			return {
+				policy: null,
+				reason: 'invalid-configuration',
+				status: 'failed',
 			};
+		}
+		const packs = manifest.policyPacks;
+		if (packs === undefined) {
+			return { policy: null, status: 'unconfigured' };
+		}
+		try {
+			if (!Array.isArray(packs)) {
+				throw new TypeError('Invalid packs');
+			}
+			const entries = packs.map((pack) => {
+				if (
+					Object.keys(pack).some(
+						(key) => !['match', 'rule', 'fingerprints'].includes(key)
+					)
+				) {
+					throw new TypeError('Unsupported pack field');
+				}
+				const parsed = readPolicyResolutionWire({
+					fingerprints: pack.fingerprints,
+					matchedBy: 'default',
+					policy: pack.rule,
+					policyId: pack.rule?.id,
+					status: 'matched',
+					version: 1,
+				});
+				if (parsed.status !== 'matched') {
+					throw new TypeError('Invalid pack');
+				}
+				return { id: parsed.policy.id, match: pack.match };
+			});
+			// Validate all matchers and IAB configuration, including unmatched entries.
+			const authored = packs.map((pack) => ({
+				id: pack.rule.id,
+				match: pack.match,
+				model: pack.rule.model,
+				prompt: pack.rule.prompt,
+			}));
 			if (
-				regionKey &&
-				normalizedRegion.region &&
-				createRegionMatcherKey(
-					normalizedRegion.country,
-					normalizedRegion.region
-				) === regionKey
+				inspectPolicyRules(authored, { iabEnabled: manifest.iab?.enabled })
+					.errors.length
 			) {
-				return { matchedBy: 'region', pack };
+				throw new TypeError('Invalid matchers');
 			}
-		}
-	}
-
-	for (const pack of params.packs) {
-		for (const country of pack.policy.match.countries ?? []) {
-			if (countryCode && country.trim().toUpperCase() === countryCode) {
-				return { matchedBy: 'country', pack };
+			if (packs.length === 0) {
+				return { policy: null, status: 'no-match' };
 			}
+			const outcome = matchPolicyRules({ ...location, entries });
+			if (outcome.status === 'insufficient-inputs') {
+				return {
+					policy: null,
+					reason: 'insufficient-inputs',
+					status: 'failed',
+				};
+			}
+			if (outcome.status === 'no-match') {
+				return { policy: null, status: 'no-match' };
+			}
+			const pack = packs[outcome.index];
+			if (!pack) {
+				throw new TypeError('Invalid match');
+			}
+			return readPolicyResolutionWire({
+				fingerprints: pack.fingerprints,
+				matchedBy: outcome.matchedBy,
+				policy: pack.rule,
+				policyId: pack.rule.id,
+				status: 'matched',
+				version: 1,
+			});
+		} catch {
+			return {
+				policy: null,
+				reason: 'invalid-configuration',
+				status: 'failed',
+			};
 		}
-	}
-
-	for (const pack of params.packs) {
-		if (!defaultPack && pack.policy.match.isDefault === true) {
-			defaultPack = pack;
-		}
-		if (!fallbackPack && pack.policy.match.fallback === true) {
-			fallbackPack = pack;
-		}
-	}
-
-	if (!countryCode && fallbackPack) {
-		return { matchedBy: 'fallback', pack: fallbackPack };
-	}
-
-	if (defaultPack) {
-		return { matchedBy: 'default', pack: defaultPack };
-	}
-
-	return undefined;
-};
-
-const createPolicyDecision = function createPolicyDecision(params: {
-	pack: ConsentManifestPolicyPack;
-	matchedBy: PolicyMatchedBy;
-	countryCode: string | null;
-	regionCode: string | null;
-	jurisdiction: JurisdictionCode;
-}): PolicyDecision {
-	return {
-		country: params.countryCode,
-		fingerprint: params.pack.fingerprint,
-		jurisdiction: params.jurisdiction,
-		matchedBy: params.matchedBy,
-		policyId: params.pack.resolvedPolicy.id,
-		region: params.regionCode,
 	};
-};
 
+/** Prepares one manifest entry outside render and hydration. */
 export const createConsentManifestPolicyPack =
-	function createConsentManifestPolicyPack(input: {
-		policy: PolicyConfig;
-		fingerprint: string;
-	}): ConsentManifestPolicyPack {
+	function createConsentManifestPolicyPack(
+		rule: PolicyRule
+	): ConsentManifestPolicyPack {
+		const normalized = normalizePolicyRule(rule);
 		return {
-			fingerprint: input.fingerprint,
-			policy: input.policy,
-			resolvedPolicy: createResolvedPolicyFromConfig(input.policy),
+			fingerprints: createPolicyRuleFingerprints(
+				normalized,
+				rule.legacyMaterial
+			),
+			match: rule.match,
+			rule: normalized,
 		};
 	};
 
@@ -335,24 +275,11 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 	const jurisdiction = getJurisdictionFromLocation(location, {
 		disableGeoLocation: manifest.defaults?.disableGeoLocation,
 	});
-	const hasExplicitPolicyPack = manifest.policyPacks !== undefined;
-	const isExplicitEmptyPolicyPack =
-		hasExplicitPolicyPack && (manifest.policyPacks?.length ?? 0) === 0;
-	const policyMatch =
-		isExplicitEmptyPolicyPack || !manifest.policyPacks
-			? undefined
-			: resolvePolicyPackMatch({
-					countryCode: location.countryCode,
-					iabEnabled: manifest.iab?.enabled,
-					packs: manifest.policyPacks,
-					regionCode: location.regionCode,
-				});
-	const resolvedPolicy = hasExplicitPolicyPack
-		? (policyMatch?.pack.resolvedPolicy ?? resolveNoPolicyFallback())
-		: undefined;
+	const resolution = resolvePolicyResolutionFromManifest(manifest, location);
+	const resolvedPolicy =
+		resolution.status === 'matched' ? resolution.policy : undefined;
 	const shouldIncludeIabPayload =
-		manifest.iab?.enabled === true &&
-		(!hasExplicitPolicyPack || resolvedPolicy?.model === 'iab');
+		manifest.iab?.enabled === true && resolvedPolicy?.model === 'iab';
 
 	const translationsResult = getTranslationsData(
 		inputs.language ?? 'en',
@@ -372,29 +299,16 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 					translationsResult.translations as unknown as Record<string, unknown>
 				),
 			};
-	const policyDecision = policyMatch
-		? createPolicyDecision({
-				countryCode: location.countryCode,
-				jurisdiction,
-				matchedBy: policyMatch.matchedBy,
-				pack: policyMatch.pack,
-				regionCode: location.regionCode,
-			})
-		: undefined;
+	const policyResolution = writePolicyResolutionWire(resolution);
 
 	return {
 		branding: manifest.branding,
 		jurisdiction,
 		location,
+		policyResolution,
 		translations: responseTranslations as InitOutput['translations'],
 		...(shouldIncludeIabPayload && {
 			customVendors: manifest.iab?.customVendors,
-		}),
-		...(resolvedPolicy && {
-			policy: resolvedPolicy,
-		}),
-		...(policyDecision && {
-			policyDecision,
 		}),
 		...(shouldIncludeIabPayload &&
 			manifest.cmpId !== null &&
@@ -418,9 +332,7 @@ export interface ConsentManifestConfig {
 	readonly appName?: string;
 	readonly branding?: ConsentManifest['branding'];
 	readonly disableGeoLocation?: boolean;
-	readonly policyPacks?: Parameters<
-		typeof createConsentManifestPolicyPack
-	>[0]['policy'][];
+	readonly policyRules?: readonly PolicyRule[];
 	readonly customTranslations?: ConsentManifest['translations'] extends
 		| { customTranslations?: infer T }
 		| undefined
@@ -457,31 +369,43 @@ const buildGvlReference = function buildGvlReference(
 	};
 };
 
-/**
- * Builds a consent manifest from per-tenant configuration.
- *
- * Lives here rather than in a backend so that every implementation serving
- * `/manifest` produces a byte-identical document from the same config. RFC
- * 0001 makes that a design principle — "there is exactly one resolver
- * implementation" — and it matters more during RFC 0004's parallel phase,
- * where two backends serve the same tenants and any divergence would
- * invalidate both the contract tests and the benchmark comparison.
- *
- * Pure and geo-independent by construction: nothing here reads a request.
- */
+const buildManifestPolicy = function buildManifestPolicy(
+	config: ConsentManifestConfig
+): Pick<ConsentManifest, 'policyPacks' | 'policyFailure'> {
+	if ('policyPacks' in config) {
+		return {
+			policyFailure: {
+				errors: [
+					'policyPacks configuration is unsupported; configure policyRules.',
+				],
+				reason: 'invalid-configuration',
+			},
+			policyPacks: [],
+		};
+	}
+	if (config.policyRules === undefined) {
+		return {};
+	}
+	const { errors } = inspectPolicyRules(config.policyRules, {
+		iabEnabled: config.iab?.enabled,
+	});
+	if (errors.length) {
+		return {
+			policyFailure: { errors, reason: 'invalid-configuration' },
+			policyPacks: [],
+		};
+	}
+	return {
+		policyPacks: config.policyRules.map(createConsentManifestPolicyPack),
+	};
+};
+
+/** Builds a versioned manifest and precomputes fingerprints once per configuration. */
 export const buildConsentManifestFromConfig =
 	async function buildConsentManifestFromConfig(
 		config: ConsentManifestConfig
 	): Promise<ConsentManifest> {
-		const policyPacks = config.policyPacks
-			? await Promise.all(
-					config.policyPacks.map(async (policy) => {
-						const resolvedPolicy = createResolvedPolicyFromConfig(policy);
-						const fingerprint = await createPolicyFingerprint(resolvedPolicy);
-						return createConsentManifestPolicyPack({ fingerprint, policy });
-					})
-				)
-			: undefined;
+		const { policyFailure, policyPacks } = await buildManifestPolicy(config);
 
 		const manifest: ConsentManifest = {
 			appName: config.appName,
@@ -489,9 +413,10 @@ export const buildConsentManifestFromConfig =
 			cmpId: config.iab?.cmpId,
 			defaults: { disableGeoLocation: config.disableGeoLocation },
 			iab: buildGvlReference(config),
+			policyFailure,
 			policyPacks,
 			revision: '',
-			schemaVersion: 1,
+			schemaVersion: 2,
 			tenantId: config.tenantId,
 			translations: {
 				customTranslations: config.customTranslations,

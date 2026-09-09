@@ -15,3 +15,68 @@ TODO.
 ## Props
 
 TODO.
+
+## Presentation
+
+Policies decide behavior. `options.presentation` decides how the prompt and
+the preference center look, and it never changes a policy fingerprint, so
+changing it never re-prompts a returning visitor.
+
+`presentation.prompt` takes `variant`, `position`, and `blocking` alongside
+`layout` and `primaryActions`. Every prompt defaults to a `floating` card at the
+bottom left, a notice included, and a `wall` is always blocking. `bar`,
+`widget`, and `wall` are host choices. The server shell resolves the same values before the first
+paint, so the first HTML already carries the variant. Props on
+`ConsentBanner` override these for one banner.
+
+```tsx
+// app/layout.tsx
+import { ConsentBanner, ConsentBoundary, ConsentDialog } from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+	const backendURL = process.env.C15T_BACKEND_URL;
+	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+	const config = prefetchInitialConsent({ backendURL });
+
+	return (
+		<html lang="en">
+			<body>
+				<ConsentBoundary
+					config={config}
+					backendURL={backendURL}
+					options={{
+						presentation: {
+							prompt: { variant: 'bar', position: 'top' },
+							preferences: { blocking: true },
+						},
+					}}
+				>
+					{children}
+					<ConsentBanner />
+					<ConsentDialog />
+				</ConsentBoundary>
+			</body>
+		</html>
+	);
+}
+```
+
+Presentation is global. To give one region a different shape, render the
+banner with props chosen from the active rule:
+
+```tsx
+'use client';
+
+import { ConsentBanner, usePolicyRule } from '@c15t/nextjs';
+
+export function RegionalBanner() {
+	const rule = usePolicyRule();
+	const wall = rule.model === 'opt-in';
+	return <ConsentBanner variant={wall ? 'wall' : 'bar'} />;
+}
+```
+
+`presentation.preferences` accepts the same fields for the preference center,
+which defaults to a blocking `wall`. Set `scrollLock: false` or
+`trapFocus: false` there to make it non-blocking.

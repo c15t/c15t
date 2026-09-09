@@ -15,3 +15,59 @@ TODO.
 ## Props
 
 TODO.
+
+## Presentation
+
+Policies decide behavior. `presentation` decides how the prompt and the
+preference center look, and it never changes a policy fingerprint, so
+changing it never re-prompts a returning visitor.
+
+`presentation.prompt` takes `variant`, `position`, and `blocking` alongside
+`layout` and `primaryActions`. Every prompt defaults to a `floating` card at the
+bottom left, a notice included, and a `wall` is always blocking. `bar`,
+`widget`, and `wall` are host choices. Props on `ConsentBanner` override these for one banner.
+
+```tsx
+import { ConsentProvider, offline } from '@c15t/react';
+import { policyRulePresets } from '@c15t/schema';
+
+const mode = offline({
+	policyRules: [
+		policyRulePresets.europeOptIn(),
+		policyRulePresets.californiaOptOut(),
+	],
+});
+
+export function Consent({ children }: { children: React.ReactNode }) {
+	return (
+		<ConsentProvider
+			options={{
+				mode,
+				presentation: {
+					prompt: { variant: 'bar', position: 'top' },
+					preferences: { blocking: true },
+				},
+			}}
+		>
+			{children}
+		</ConsentProvider>
+	);
+}
+```
+
+Presentation is global. To give one region a different shape, render the
+banner with props chosen from the active rule:
+
+```tsx
+import { ConsentBanner, usePolicyRule } from '@c15t/react';
+
+export function RegionalBanner() {
+	const rule = usePolicyRule();
+	const wall = rule.model === 'opt-in';
+	return <ConsentBanner variant={wall ? 'wall' : 'bar'} />;
+}
+```
+
+`presentation.preferences` accepts the same fields for the preference center,
+which defaults to a blocking `wall`. Set `scrollLock: false` or
+`trapFocus: false` there to make it non-blocking.

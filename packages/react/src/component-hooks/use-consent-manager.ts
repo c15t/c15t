@@ -7,37 +7,34 @@ import type {
 	ConsentType,
 	HasCondition,
 	KernelActiveUI,
-	KernelIABState,
 	Model,
-	PolicyUiSurfaceConfig,
+	PromptPresentation,
 	TranslationConfig,
 } from '@c15t/core';
-import { useCallback, useMemo } from 'react';
+import { evaluateConsent } from '@c15t/core';
+import { useCallback, useContext, useMemo } from 'react';
 
-import { useConsentDraft } from '../draft';
+import { ProviderServicesContext } from '../context';
+import { useConsentManagerDraft } from '../draft';
 import {
 	useActiveUI,
 	useBranding,
 	useConsents,
-	useHasConsented,
 	useModel,
-	usePolicyBanner,
+	usePromptPresentation,
 	usePolicyCategories,
-	usePolicyDialog,
+	usePreferencesPresentation,
 	usePolicyScopeMode,
-	useSaveConsents,
 	useSetActiveUI,
-	useSetConsent,
 	useSnapshot,
 	useSubscribeToConsentChanges,
 	useTranslations,
 } from '../hooks';
-import type { ReactIABState } from '../iab-context';
 import { defaultTranslationConfig } from '../utils/default-translation-config';
 
 type SaveType = 'all' | 'custom' | 'necessary';
 
-const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
+const EMPTY_POLICY_SURFACE: PromptPresentation = {};
 const DEFAULT_CONSENT_TYPES: ConsentType[] = [
 	{
 		defaultValue: true,
@@ -98,112 +95,34 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
 };
 
-const evaluateHas = function evaluateHas(
-	condition: HasCondition<AllConsentNames>,
-	consents: ConsentState,
-	options: {
-		policyCategories: AllConsentNames[] | null;
-		policyScopeMode: 'strict' | 'permissive';
-	}
-): boolean {
-	if (typeof condition !== 'string') {
-		if ('and' in condition) {
-			const entries = Array.isArray(condition.and)
-				? condition.and
-				: [condition.and];
-			return entries.every((entry: HasCondition<AllConsentNames>) =>
-				evaluateHas(entry, consents, options)
-			);
-		}
-		if ('or' in condition) {
-			const entries = Array.isArray(condition.or)
-				? condition.or
-				: [condition.or];
-			return entries.some((entry: HasCondition<AllConsentNames>) =>
-				evaluateHas(entry, consents, options)
-			);
-		}
-		if ('not' in condition) {
-			return !evaluateHas(condition.not, consents, options);
-		}
-		return false;
-	}
-
-	const category = condition as AllConsentNames;
-	const allowed = options.policyCategories;
-	if (allowed && options.policyScopeMode === 'strict') {
-		return allowed.includes(category) && Boolean(consents[category]);
-	}
-	return Boolean(consents[category]);
-};
-
-const toLightweightIab = function toLightweightIab(
-	iab: KernelIABState | null
-): ReactIABState | null {
-	if (!iab) {
-		return null;
-	}
-	const noop = () => {
-		/* empty */
-	};
-	const noopAsync = async () => {
-		/* empty */
-	};
-
-	return {
-		...iab,
-		acceptAll: noop,
-		config: {
-			cmpId: iab.cmpId,
-			enabled: false,
-		},
-		isLoadingGVL: iab.enabled,
-		nonIABVendors: iab.customVendors,
-		preferenceCenterTab: 'purposes',
-		rejectAll: noop,
-		save: noopAsync,
-		setPreferenceCenterTab: noop,
-		setPurposeConsent: noop,
-		setPurposeLegitimateInterest: noop,
-		setSpecialFeatureOptIn: noop,
-		setVendorConsent: noop,
-		setVendorLegitimateInterest: noop,
-	};
-};
-
 export const useConsentManager = function useConsentManager() {
 	const snapshot = useSnapshot();
+	const services = useContext(ProviderServicesContext);
 	const consents = useConsents();
 	const activeUI = useActiveUI();
 	const branding = useBranding();
-	const hasConsentedValue = useHasConsented();
 	const model = useModel();
-	const policyBanner = usePolicyBanner();
+	const policyBanner = usePromptPresentation();
 	const policyCategoriesSnapshot = usePolicyCategories();
-	const policyDialog = usePolicyDialog();
+	const policyDialog = usePreferencesPresentation();
 	const policyScopeMode = usePolicyScopeMode();
-	const saveKernelConsents = useSaveConsents();
+	const { draft, save: saveKernelConsents } = useConsentManagerDraft();
 	const setKernelActiveUI = useSetActiveUI();
-	const setKernelConsent = useSetConsent();
 	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
 	const translations = useTranslations();
-	const draft = useConsentDraft();
-	const iab = useMemo(() => toLightweightIab(snapshot.iab), [snapshot.iab]);
+
 	const translationConfig = useMemo(
 		() => toTranslationConfig(translations),
 		[translations]
 	);
 
 	const policyCategories = useMemo(
-		() => Array.from(policyCategoriesSnapshot),
+		() => ['necessary', ...policyCategoriesSnapshot] as AllConsentNames[],
 		[policyCategoriesSnapshot]
 	);
 	const consentCategories = useMemo<AllConsentNames[]>(
-		() =>
-			policyCategories.length > 0
-				? (policyCategories as AllConsentNames[])
-				: DEFAULT_CONSENT_TYPES.map((type) => type.name),
-		[policyCategories]
+		() => [...(services?.getConsentCategories() ?? policyCategories)],
+		[services, policyCategories]
 	);
 
 	const getDisplayedConsents = useCallback((): ConsentType[] => {
@@ -215,16 +134,8 @@ export const useConsentManager = function useConsentManager() {
 
 	const has = useCallback(
 		(condition: HasCondition<AllConsentNames>) =>
-			evaluateHas(condition, consents as ConsentState, {
-				policyCategories: policyCategories.length > 0 ? policyCategories : null,
-				policyScopeMode,
-			}),
-		[consents, policyScopeMode, policyCategories]
-	);
-
-	const hasConsented = useCallback(
-		() => hasConsentedValue,
-		[hasConsentedValue]
+			evaluateConsent({ category: condition }, snapshot),
+		[snapshot]
 	);
 
 	const setActiveUI = useCallback(
@@ -236,33 +147,22 @@ export const useConsentManager = function useConsentManager() {
 
 	const saveConsents = useCallback(
 		async (type: SaveType, _options?: { uiSource?: string }) => {
-			if (type === 'all') {
-				await saveKernelConsents('all');
-				draft.reset();
+			if (type === 'custom') {
+				await saveKernelConsents();
 				return;
 			}
-			if (type === 'necessary') {
-				await saveKernelConsents('none');
-				draft.reset();
-				return;
-			}
-			await draft.save();
+			await saveKernelConsents(type === 'all' ? 'all' : 'none');
 		},
-		[draft, saveKernelConsents]
-	);
-
-	const setConsent = useCallback(
-		(name: AllConsentNames, value: boolean) => {
-			setKernelConsent({ [name]: value } as Partial<ConsentState>);
-		},
-		[setKernelConsent]
+		[saveKernelConsents]
 	);
 
 	const setSelectedConsent = useCallback(
 		(name: AllConsentNames, value: boolean) => {
-			draft.set(name, value);
+			if (consentCategories.includes(name)) {
+				draft.set(name, value);
+			}
 		},
-		[draft]
+		[draft, consentCategories]
 	);
 
 	const updateConsentCategories = useCallback((_names: AllConsentNames[]) => {
@@ -276,28 +176,35 @@ export const useConsentManager = function useConsentManager() {
 	);
 
 	return {
-		...snapshot,
 		activeUI: toActiveUI(activeUI),
 		branding: branding ?? 'c15t',
 		consentCategories,
-		consentInfo: hasConsentedValue ? { type: 'v3' } : null,
 		consentTypes: getDisplayedConsents(),
 		consents: consents as ConsentState,
+		draftIsStale: draft.isStale,
+		effectivePermissions: snapshot.effectivePermissions,
+		explicitChoice: snapshot.explicitChoice,
 		getDisplayedConsents,
 		has,
-		hasConsented,
-		iab,
+		iab: snapshot.iab,
 		manager: null,
 		model: (model ?? 'opt-in') as Model,
+		noticeDismissal: snapshot.noticeDismissal,
+		optOutDirectives: snapshot.optOutDirectives,
 		policyBanner: policyBanner ?? EMPTY_POLICY_SURFACE,
 		policyCategories,
 		policyDialog: policyDialog ?? EMPTY_POLICY_SURFACE,
+		policyRule: snapshot.policyRule,
 		policyScopeMode,
+		privacySignals: snapshot.privacySignals,
+		promptRequirement: snapshot.promptRequirement,
+		resetDraft: draft.reset,
+		resolution: snapshot.resolution,
+		restrictions: snapshot.restrictions,
 		saveConsents,
 		selectedConsentTypes: draft.values,
 		selectedConsents: draft.values,
 		setActiveUI,
-		setConsent,
 		setSelectedConsent,
 		subscribeToConsentChanges,
 		translationConfig,

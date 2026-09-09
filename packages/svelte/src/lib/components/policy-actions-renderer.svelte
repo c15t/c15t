@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PolicyUiActionDirection } from '@c15t/core';
+	import type { SurfacePresentation } from '@c15t/core';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import type { Snippet } from 'svelte';
 
@@ -19,17 +19,20 @@
 		footerSubGroupClassName,
 		footerTestId,
 		footerSubGroupTestId,
+		leading,
 		renderAction,
 	}: {
 		actionGroups?: string[][];
 		primaryActions?: string[];
 		shouldFillActions?: boolean;
-		direction?: PolicyUiActionDirection;
+		direction?: SurfacePresentation['direction'];
 		noStyle?: boolean;
 		footerClassName?: string;
 		footerSubGroupClassName?: string;
 		footerTestId?: string;
 		footerSubGroupTestId?: string;
+		/** Rendered inside the footer before the action groups, e.g. rights links. */
+		leading?: Snippet;
 		renderAction?: Snippet<[string, boolean]>;
 	} = $props();
 
@@ -60,6 +63,7 @@
 	data-fill={shouldFillActions ? true : undefined}
 	data-split={isSplit && !shouldFillActions ? true : undefined}
 >
+	{@render leading?.()}
 	{#each keyedActionGroups as actionGroup (actionGroup.key)}
 		<div
 			class={resolvedFooterSubGroupClassName}

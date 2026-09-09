@@ -8,31 +8,54 @@
  * globally; Cloudflare Workers is fine globally; some edge hosts may
  * require a specific binding).
  *
+ * Every request declares the policy contract this client reads, and
+ * `/init` responses are interpreted by what the producer declared back: a
+ * negotiated producer's `policyResolution` is passed through raw for the
+ * kernel's strict reader. Producers without a versioned wire fail safely. A negotiated producer
+ * whose response lacks the field is a failed payload, never a permissive
+ * fallback.
+ *
+ * Beyond `init`, `save` and `identify`, two optional methods carry the v3
+ * record boundary: `loadSubjectRecord` reads the backend's merged receipts
+ * and standing privacy directives for a subject as hydration records, and
+ * `recordPrivacyOptOut` records a directive against the subject's own
+ * server record through the privacy route, never the consent-saving one.
+ *
+ * Identity before a server subject exists is kernel-local. `identify`
+ * without a subject resolves at once and sends nothing: the transport keeps
+ * no pending promise for a subject that may never be created, and never
+ * manufactures a consent to create one. The next legitimate save carries
+ * the identity in its body, the backend links it when it creates the
+ * subject, and the kernel then forwards its standing directives to that
+ * subject's privacy route with their original times. Local identification
+ * is not server persistence and not trusted cross-profile authority; only
+ * an authenticated link is.
+ *
+ * The subject id the kernel passes is the only subject this transport acts
+ * on. It remembers no subject of its own: after the kernel clears its data a
+ * later identify or directive with no subject must not reach the subject an
+ * earlier save established.
+ *
  * Out of scope for this MVP (deferred to follow-ups):
  * - Response caching / revalidation
- * - Policy-pack evaluation on the client (server returns the effective
- *   policy, full pack logic stays server-side)
  * - Translation bundle fetching
- * - GVL fetching for IAB TCF
  * - Retry / backoff
- *
- * The response shape is narrow on purpose: anything the transport
- * returns is applied directly to the snapshot. Extending this shape in a
- * backwards-compatible way means adding optional fields; the kernel
- * ignores unknown fields.
  */
-import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
+import type { PrivacyOptOut } from '../consent-record/types';
+import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { buildRequestContextHeaders } from '../libs/request-context';
 import type { SSRInitialData } from '../options/ssr';
 import type {
-	InitContext,
 	KernelOverrides,
-	InitResponse,
+	InitContext,
 	KernelTransport,
 	KernelUser,
-	SavePayload,
 	SaveResult,
 } from '../types';
 import {
@@ -43,8 +66,18 @@ import {
 } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { mapInitOutputToInitResponse } from './init-output';
+import type { TransportInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
-import { c15tVersionHeaders } from './version-header';
+import type { SubjectSavePayload } from './subject-body';
+import {
+	mapSubjectRecordToHydrationRecords,
+	reviveSubjectRecord,
+} from './subject-record';
+import type { TransportHydrationRecords } from './subject-record';
+import {
+	c15tProtocolHeaders,
+	readProducerPolicyContract,
+} from './version-header';
 
 export interface HostedTransportOptions {
 	/**
@@ -83,6 +116,14 @@ export interface HostedTransportOptions {
 	fetch?: typeof globalThis.fetch;
 
 	/**
+	 * Request headers that may be passed through to `GET /init`.
+	 *
+	 * Only the backend-recognized init headers are forwarded:
+	 * `accept-language`, supported geo CDN headers, and `sec-gpc`.
+	 * Other names are ignored so callers do not accidentally forward
+	 * arbitrary request header bags.
+	 */
+	/**
 	 * An init response that was already requested, for example by an inline
 	 * prefetch script that ran before hydration. The first `init()` consumes
 	 * it instead of calling `initURL`, and still records the decision inputs
@@ -99,14 +140,6 @@ export interface HostedTransportOptions {
 	 */
 	decisionInputs?: RememberedDecisionInputs;
 
-	/**
-	 * Request headers that may be passed through to `GET /init`.
-	 *
-	 * Only the backend-recognized init headers are forwarded:
-	 * `accept-language`, supported geo CDN headers, and `sec-gpc`.
-	 * Other names are ignored so callers do not accidentally forward
-	 * arbitrary request header bags.
-	 */
 	headers?: Record<string, string>;
 
 	/**
@@ -121,6 +154,41 @@ export interface HostedTransportOptions {
 	 * the backend URL hostname for absolute URLs in server runtimes.
 	 */
 	domain?: string;
+
+	/**
+	 * Clock used to validate records read from the backend. Defaults to
+	 * `Date.now`. Inject for deterministic tests.
+	 */
+	now?: () => number;
+}
+
+/**
+ * The hosted transport's full surface.
+ *
+ * `loadSubjectRecord` and `recordPrivacyOptOut` are the record boundary a
+ * v3 kernel calls; both names match the kernel's optional transport methods
+ * and the interface collapses into `KernelTransport` once those land.
+ */
+export interface HostedKernelTransport extends KernelTransport {
+	init: (ctx: InitContext) => Promise<TransportInitResponse>;
+	save: (payload: SubjectSavePayload) => Promise<SaveResult>;
+	identify: (user: KernelUser, subjectId: string | null) => Promise<void>;
+	/**
+	 * Reads the backend's merged receipts and standing privacy directives for
+	 * a subject. `null` when the backend has no such subject.
+	 */
+	loadSubjectRecord: (
+		subjectId: string
+	) => Promise<TransportHydrationRecords | null>;
+	/**
+	 * Records a standing privacy directive against the subject's own server
+	 * record. Resolves without a request when there is no server subject yet;
+	 * the directive stays local until one exists.
+	 */
+	recordPrivacyOptOut: (
+		directive: PrivacyOptOut,
+		subjectId: string | null
+	) => Promise<void>;
 }
 
 /** Strip a single trailing slash so `${base}/init` doesn't double up. */
@@ -173,27 +241,21 @@ const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 	return allowed;
 };
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	reject: (reason?: unknown) => void;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
+/**
+ * A `SaveResult` from the backend's answer.
+ *
+ * The backend's 2.x response shape has no `ok`; success is the HTTP status.
+ * Reading the body as a `SaveResult` made every successful save look failed
+ * and queued it for replay forever.
+ */
+const toSaveResult = function toSaveResult(data: unknown): SaveResult {
+	const subjectId =
+		typeof data === 'object' &&
+		data !== null &&
+		typeof (data as { subjectId?: unknown }).subjectId === 'string'
+			? (data as { subjectId: string }).subjectId
+			: undefined;
+	return subjectId === undefined ? { ok: true } : { ok: true, subjectId };
 };
 
 /**
@@ -203,7 +265,7 @@ const createDeferredPromise = function createDeferredPromise<Value>(
  */
 export const createHostedTransport = function createHostedTransport(
 	options: HostedTransportOptions
-): KernelTransport {
+): HostedKernelTransport {
 	const base = trimSlash(options.backendURL);
 	const initURL = options.initURL ?? `${base}/init`;
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
@@ -215,124 +277,38 @@ export const createHostedTransport = function createHostedTransport(
 	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
-	let establishedSubjectId: string | null = null;
-	let lastDecisionInputs: RememberedDecisionInputs | undefined =
-		options.assertDecisionInputs ? options.decisionInputs : undefined;
-	interface PendingIdentity {
-		reject: (error: unknown) => void;
-		resolve: () => void;
-		user: KernelUser;
-	}
-	let pendingIdentities: PendingIdentity[] = [];
+	const now = options.now ?? Date.now;
+	let lastDecisionInputs = options.assertDecisionInputs
+		? options.decisionInputs
+		: undefined;
+
+	const jsonHeaders = {
+		accept: 'application/json',
+		'content-type': 'application/json',
+		...c15tProtocolHeaders,
+	};
+
+	const subjectURL = (subjectId: string): string =>
+		`${base}/subjects/${encodeURIComponent(subjectId)}`;
 
 	const patchIdentity = async function patchIdentity(
 		user: KernelUser,
 		subjectId: string
 	): Promise<void> {
-		const response = await fetchImpl(
-			`${base}/subjects/${encodeURIComponent(subjectId)}`,
-			{
-				body: JSON.stringify({
-					externalId: user.externalId,
-					identityProvider: user.identityProvider,
-				}),
-				credentials,
-				headers: {
-					accept: 'application/json',
-					'content-type': 'application/json',
-					...c15tVersionHeaders,
-				},
-				method: 'PATCH',
-			}
-		);
+		const response = await fetchImpl(subjectURL(subjectId), {
+			body: JSON.stringify({
+				externalId: user.externalId,
+				identityProvider: user.identityProvider,
+			}),
+			credentials,
+			headers: jsonHeaders,
+			method: 'PATCH',
+		});
 
 		if (!response.ok) {
 			throw new Error(
 				`c15t hosted transport: /subjects/:id responded ${response.status} ${response.statusText}`
 			);
-		}
-	};
-
-	const flushPendingIdentities = async function flushPendingIdentities(
-		subjectId: string
-	): Promise<void> {
-		const pending = pendingIdentities;
-		pendingIdentities = [];
-		const latest = pending.at(-1);
-		if (!latest) {
-			return;
-		}
-		try {
-			await patchIdentity(latest.user, subjectId);
-			for (const item of pending) {
-				item.resolve();
-			}
-		} catch (error) {
-			for (const item of pending) {
-				item.reject(error);
-			}
-		}
-	};
-
-	let { initialData } = options;
-
-	const resolvedGpc = function resolvedGpc(
-		payload: InitOutput
-	): boolean | undefined {
-		const value = (payload as { resolvedOverrides?: { gpc?: unknown } })
-			.resolvedOverrides?.gpc;
-		return typeof value === 'boolean' ? value : undefined;
-	};
-
-	/** Takes the prefetched init once; `undefined` when absent or failed. */
-	const consumeInitialData = async function consumeInitialData(): Promise<
-		InitOutput | undefined
-	> {
-		if (!initialData) {
-			return undefined;
-		}
-		const pending = initialData;
-		initialData = undefined;
-		const data = await pending.catch(() => undefined);
-		if (!data?.init) {
-			return undefined;
-		}
-		return { ...data.init, gvl: data.gvl ?? data.init.gvl } as InitOutput;
-	};
-
-	const overrideHeaders = function overrideHeaders(
-		ctx: InitContext
-	): Record<string, string> {
-		return buildRequestContextHeaders(ctx.overrides);
-	};
-
-	const fetchInit = async function fetchInit(
-		headers: Record<string, string>
-	): Promise<InitOutput> {
-		const response = await fetchImpl(initURL, {
-			credentials,
-			headers: {
-				accept: 'application/json',
-				...c15tVersionHeaders,
-				...headers,
-			},
-			method: 'GET',
-		});
-
-		if (!response.ok) {
-			throw new Error(
-				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
-			);
-		}
-
-		return (await response.json()) as InitOutput;
-	};
-
-	const resolvePendingIdentities = function resolvePendingIdentities(): void {
-		const pending = pendingIdentities;
-		pendingIdentities = [];
-		for (const item of pending) {
-			item.resolve();
 		}
 	};
 
@@ -354,16 +330,11 @@ export const createHostedTransport = function createHostedTransport(
 		);
 	};
 
-	const runInit = async function runInit(
-		ctx: InitContext
-	): Promise<InitResponse> {
-		initGeneration += 1;
-		const generation = initGeneration;
+	let pendingInit: Promise<TransportInitResponse> | undefined;
+	let { initialData } = options;
+
+	const prepareInit = (ctx: InitContext) => {
 		if (options.assertDecisionInputs && lastDecisionInputs) {
-			// A seed is kept while the first init runs for matching inputs;
-			// after that, any change to the overrides (including removing
-			// one) re-resolves, and a save made meanwhile must wait for the
-			// new decision rather than assert the superseded one.
 			const stale = lastInitOverrides
 				? !sameOverrides(lastInitOverrides, ctx.overrides)
 				: !decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides);
@@ -372,47 +343,96 @@ export const createHostedTransport = function createHostedTransport(
 			}
 		}
 		lastInitOverrides = { ...ctx.overrides };
-		// The kernel's current overrides (country, region, language, GPC)
-		// travel as the canonical consent headers so a same-origin init
-		// route resolves the requested inputs rather than the CDN's.
-		const headers = { ...initHeaders, ...overrideHeaders(ctx) };
-		const prefetched = await consumeInitialData();
-		const payload = prefetched ?? (await fetchInit(headers));
-		if (options.assertDecisionInputs && generation === initGeneration) {
-			// Explicit headers first; otherwise the GPC value the resolver
-			// saw (the browser sends Sec-GPC itself on a same-origin init),
-			// so the assertion carries the input that produced the decision.
-			lastDecisionInputs = rememberDecisionInputs(
-				payload,
-				gpcFromHeaders(headers) ?? resolvedGpc(payload)
-			);
-		}
-		const result = mapInitOutputToInitResponse(payload, headers);
-		if (result.subjectId) {
-			establishedSubjectId = result.subjectId;
-			await flushPendingIdentities(result.subjectId);
-		}
-		return result;
 	};
 
-	let pendingInit: Promise<InitResponse> | undefined;
+	const runInit = async (ctx: InitContext): Promise<TransportInitResponse> => {
+		initGeneration += 1;
+		const generation = initGeneration;
+		prepareInit(ctx);
+		const requestHeaders = {
+			...initHeaders,
+			...buildRequestContextHeaders(ctx.overrides),
+		};
+		const supplied = initialData;
+		initialData = undefined;
+		let prefetched: SSRInitialData | undefined;
+		if (supplied) {
+			prefetched = await supplied.catch(() => undefined);
+		} else if (!options.initURL) {
+			prefetched = await consumePrefetchedInitialData({
+				backendURL: base,
+				credentials,
+				overrides: {
+					...extractConsentRequestInputs(new Headers(requestHeaders)),
+					...ctx.overrides,
+				},
+			});
+		}
+		if (prefetched?.init) {
+			const headers = { ...requestHeaders };
+			const gpc = prefetched.metadata?.requestContext?.gpc;
+			if (gpc !== undefined) {
+				headers['sec-gpc'] = gpc ? '1' : '0';
+			}
+			if (options.assertDecisionInputs && generation === initGeneration) {
+				lastDecisionInputs = rememberDecisionInputs(
+					prefetched.init,
+					gpcFromHeaders(headers)
+				);
+			}
+			const producerHeaders = new Headers();
+			if (typeof prefetched.producerPolicyContract === 'string') {
+				producerHeaders.set(
+					'x-c15t-policy-contract',
+					prefetched.producerPolicyContract
+				);
+			}
+			return mapInitOutputToInitResponse(prefetched.init, headers, {
+				producerContract: readProducerPolicyContract(producerHeaders),
+			});
+		}
+		const response = await fetchImpl(initURL, {
+			credentials,
+			headers: {
+				accept: 'application/json',
+				...c15tProtocolHeaders,
+				...requestHeaders,
+			},
+			method: 'GET',
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
+			);
+		}
+
+		const payload = (await response.json()) as InitOutput;
+		if (options.assertDecisionInputs && generation === initGeneration) {
+			lastDecisionInputs = rememberDecisionInputs(
+				payload,
+				gpcFromHeaders(requestHeaders) ??
+					payload.resolvedPrivacySignals?.gpc ??
+					(payload as InitOutput & { resolvedOverrides?: { gpc?: boolean } })
+						.resolvedOverrides?.gpc
+			);
+		}
+		return mapInitOutputToInitResponse(payload, requestHeaders, {
+			producerContract: readProducerPolicyContract(response.headers),
+		});
+	};
 
 	return {
 		async identify(user, subjectId): Promise<void> {
-			const resolvedSubjectId = subjectId ?? establishedSubjectId;
-			if (!resolvedSubjectId) {
-				return createDeferredPromise<undefined>((resolve, reject) => {
-					pendingIdentities.push({
-						reject,
-						resolve: () => resolve(undefined),
-						user,
-					});
-				});
+			if (!subjectId) {
+				// No server subject to link. The identity stays in the kernel and
+				// travels with the next save; nothing is owed to the network.
+				return;
 			}
-			await patchIdentity(user, resolvedSubjectId);
+			await patchIdentity(user, subjectId);
 		},
 
-		async init(ctx: InitContext): Promise<InitResponse> {
+		async init(ctx: InitContext): Promise<TransportInitResponse> {
 			const run = runInit(ctx);
 			pendingInit = run;
 			try {
@@ -424,8 +444,63 @@ export const createHostedTransport = function createHostedTransport(
 			}
 		},
 
-		async save(payload: SavePayload): Promise<SaveResult> {
-			if (options.assertDecisionInputs) {
+		async loadSubjectRecord(
+			subjectId
+		): Promise<TransportHydrationRecords | null> {
+			const response = await fetchImpl(subjectURL(subjectId), {
+				credentials,
+				headers: { accept: 'application/json', ...c15tProtocolHeaders },
+				method: 'GET',
+			});
+			if (response.status === 404) {
+				return null;
+			}
+			if (!response.ok) {
+				throw new Error(
+					`c15t hosted transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				);
+			}
+			const record = reviveSubjectRecord(await response.json());
+			if (!record) {
+				throw new Error(
+					'c15t hosted transport: /subjects/:id returned an unreadable record'
+				);
+			}
+			return mapSubjectRecordToHydrationRecords(record, { now: now() });
+		},
+
+		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
+			if (!subjectId) {
+				// No server record exists for this device yet. The kernel keeps the
+				// directive locally; it is never sent through the consent route.
+				return;
+			}
+			const response = await fetchImpl(
+				`${subjectURL(subjectId)}/privacy-directives`,
+				{
+					body: JSON.stringify({
+						categories: [...directive.categories],
+						recordedAt: directive.recordedAt,
+						source: directive.source,
+					}),
+					credentials,
+					headers: jsonHeaders,
+					method: 'POST',
+				}
+			);
+			if (!response.ok) {
+				throw new Error(
+					`c15t hosted transport: /subjects/:id/privacy-directives responded ${response.status} ${response.statusText}`
+				);
+			}
+		},
+
+		async save(payload): Promise<SaveResult> {
+			if (
+				options.assertDecisionInputs &&
+				!payload.policySnapshotToken &&
+				!payload.decisionInputs
+			) {
 				// A server-rendered banner is interactive before the client init
 				// resolves, and the provider re-initialises when its overrides
 				// change. Wait out every init in flight (a newer one may start
@@ -437,23 +512,20 @@ export const createHostedTransport = function createHostedTransport(
 					await awaited.catch(() => undefined);
 					awaited = pendingInit;
 				}
-				if (!lastDecisionInputs) {
+				if (!buildDecisionAssertion(payload, lastDecisionInputs)) {
 					throw new Error(
 						'c15t hosted transport: cannot save before init resolved a policy decision (assertDecisionInputs is set).'
 					);
 				}
 			}
+
 			const response = await fetchImpl(`${base}/subjects`, {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
 					...buildDecisionAssertion(payload, lastDecisionInputs),
 				}),
 				credentials,
-				headers: {
-					accept: 'application/json',
-					'content-type': 'application/json',
-					...c15tVersionHeaders,
-				},
+				headers: jsonHeaders,
 				method: 'POST',
 			});
 
@@ -463,25 +535,7 @@ export const createHostedTransport = function createHostedTransport(
 				);
 			}
 
-			const data = (await response.json()) as SaveResult;
-			if (data.subjectId) {
-				establishedSubjectId = data.subjectId;
-			}
-			const latestPendingUser = pendingIdentities.at(-1)?.user;
-			const savedUser = payload.user;
-			if (
-				data.subjectId &&
-				savedUser &&
-				latestPendingUser &&
-				savedUser.externalId === latestPendingUser.externalId &&
-				savedUser.identityProvider === latestPendingUser.identityProvider
-			) {
-				// POST /subjects already linked the latest queued identity.
-				resolvePendingIdentities();
-			} else if (data.subjectId) {
-				await flushPendingIdentities(data.subjectId);
-			}
-			return data;
+			return toSaveResult(await response.json());
 		},
 	};
 };

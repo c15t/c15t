@@ -1,3 +1,4 @@
+import type { KernelConfig } from '@c15t/core';
 /**
  * End-to-end tests for the Next.js adapter.
  *
@@ -8,15 +9,18 @@
  * 4. Prefetched banner visibility reaches the snapshot before the client
  *    roundtrip completes.
  */
-
-import type { KernelConfig } from '@c15t/core';
 import { useConsent, useSaveConsents, useSnapshot } from '@c15t/react';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentBoundary } from '../boundary';
 import { defineConsentConfig } from '../config';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
+import { policyFixture } from './policy-fixture';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -49,16 +53,25 @@ type WindowWithC15t = Window & {
 	};
 };
 
-const POLICY = {
-	id: 'gdpr',
-	model: 'opt-in',
-	ui: { mode: 'banner' },
-} as const;
+const POLICY_RESOLUTION = writePolicyResolutionWire(
+	resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				id: 'gdpr',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	})
+);
 
 describe('ConsentBoundary: backendURL triggers auto-init', () => {
 	test('boundary reports Next.js adapter identity on window.c15t', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ policy: POLICY }), {
+			new Response(JSON.stringify({ policyResolution: POLICY_RESOLUTION }), {
 				headers: { 'content-type': 'application/json' },
 				status: 200,
 			})
@@ -99,7 +112,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 					branding: 'c15t',
 					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
-					policy: POLICY,
+					policyResolution: POLICY_RESOLUTION,
 					translations: { language: 'en', translations: { common: {} } },
 				}),
 				{
@@ -114,7 +127,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const Probe = () => {
 			const snap = useSnapshot();
 			return (
-				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
+				<div data-testid="probe">{`${(snap.resolution.status === 'matched' ? snap.resolution.policyId : undefined) ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
 		};
 
@@ -201,7 +214,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 });
 
 describe('ConsentBoundary: prefetched config reaches first paint', () => {
-	test('prefetched policy-derived UI is visible before init finishes', async () => {
+	test('prepared policy renders without a duplicate browser init', async () => {
 		// Fetch that resolves on demand — simulates a slow roundtrip.
 		let resolveInit: (value: unknown) => void = () => undefined;
 		const fetchSpy = vi.fn(() =>
@@ -222,13 +235,11 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 		const Probe = () => {
 			const snap = useSnapshot();
 			return (
-				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
+				<div data-testid="probe">{`${(snap.resolution.status === 'matched' ? snap.resolution.policyId : undefined) ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
 		};
 
-		const config: KernelConfig = {
-			initialPolicy: POLICY as never,
-		};
+		const config: KernelConfig = policyFixture({}, { id: 'gdpr' });
 
 		try {
 			const { getByTestId } = await render(
@@ -248,7 +259,8 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 				.toHaveTextContent('gdpr|opt-in|banner');
 
 			// Now resolve the slow init. Snapshot should not regress.
-			resolveInit({ policy: POLICY });
+			expect(fetchSpy).not.toHaveBeenCalled();
+			resolveInit({ policyResolution: POLICY_RESOLUTION });
 			await createDeferredPromise((r) => setTimeout(r, 10));
 			await expect
 				.element(getByTestId('probe'))
@@ -271,7 +283,7 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 		const save = useSaveConsents();
 		return (
 			<div>
-				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.location?.countryCode ?? 'null'}|${String(snap.hasConsented)}`}</div>
+				<div data-testid="probe">{`${snap.policyRule.id}|${snap.location?.countryCode ?? 'null'}|${String(!!snap.explicitChoice)}`}</div>
 				<button
 					type="button"
 					data-testid="save"
@@ -294,12 +306,15 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 							branding: 'c15t',
 							jurisdiction: 'GDPR',
 							location: { countryCode: 'DE', regionCode: null },
-							policy: POLICY,
 							policyDecision: {
 								country: 'DE',
-								fingerprint: 'eu-fingerprint',
+								fingerprint: policyFixture({}, { id: 'gdpr' })
+									.initialPolicyResolution.fingerprints.policy,
 								policyId: 'gdpr',
 							},
+							policyResolution: writePolicyResolutionWire(
+								policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+							),
 							translations: { language: 'en', translations: { common: {} } },
 						})
 			)
@@ -339,7 +354,8 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 			// asserts the policy it was made against.
 			const saveInit = fetchSpy.mock.calls[1]?.[1];
 			expect(JSON.parse(String(saveInit?.body))).toMatchObject({
-				fingerprint: 'eu-fingerprint',
+				fingerprint: policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+					.fingerprints.policy,
 				policyId: 'gdpr',
 			});
 		} finally {
@@ -393,7 +409,9 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 				branding: 'c15t',
 				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
-				policy: POLICY,
+				policyResolution: writePolicyResolutionWire(
+					policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+				),
 				translations: { language: 'en', translations: { common: {} } },
 			})
 		);
@@ -428,7 +446,11 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 		const fetchSpy = vi.fn().mockResolvedValue(new Response());
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
-		const init = vi.fn().mockResolvedValue({ policy: POLICY });
+		const init = vi.fn().mockResolvedValue({
+			policyResolution: writePolicyResolutionWire(
+				policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+			),
+		});
 
 		try {
 			const { getByTestId } = await render(

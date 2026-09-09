@@ -33,20 +33,10 @@ const createOptions = function createOptions(
 ): ConsentProviderOptions {
 	return {
 		callbacks: {
-			onBannerFetched() {
-				const state = getState(scenario);
-				if (!state) {
-					return;
-				}
-				state.onBannerFetchedCount += 1;
-				if (state.onBannerFetchedMs === undefined) {
-					state.onBannerFetchedMs = performance.now();
-				}
-			},
-			onConsentSet() {
+			onChoiceRecorded() {
 				const state = getState(scenario);
 				if (state) {
-					state.onConsentSetCount += 1;
+					state.onChoiceRecordedCount += 1;
 				}
 			},
 			onError() {
@@ -147,9 +137,8 @@ export const NextjsPrefetchedBenchmarkProvider = ({
 	// wiring nested a second ConsentProvider that shadowed the boundary's
 	// kernel — its banner-in-first-HTML came from the synthetic placeholder
 	// policy, which authoritative-only rendering correctly suppresses.
-	// backendURL keeps direct-init semantics for client refreshes.
+	// The prefetched arm consumes server init without a second browser init.
 	<ConsentBoundary
-		backendURL="/api/bench-consent"
 		config={config}
 		options={createBoundaryOptions(scenario)}
 	>

@@ -39,6 +39,10 @@
 			regionCode?: string | null;
 		} | null;
 		hasConsented: boolean;
+		/** Mirrors the Nuxt and Next.js probes so the consent e2e can read GPC provenance. */
+		privacySignals?: ConsentSnapshot['privacySignals'];
+		/** True once the kernel holds an explicit stored choice. */
+		hasStoredChoice?: boolean;
 		bannerReadyMs?: number;
 		bannerVisibleMs?: number;
 		bannerPaintMs?: number | null;
@@ -157,7 +161,10 @@
 		if (scenario !== 'repeat-visitor') {
 			return;
 		}
-		if (snapshot.hasConsented && (snapshot.activeUI ?? 'none') === 'none') {
+		if (
+			Boolean(snapshot.explicitChoice) &&
+			(snapshot.activeUI ?? 'none') === 'none'
+		) {
 			state.bannerReadyMs ??= 0;
 			state.bannerVisibleMs ??= 0;
 			state.bannerPaintMs ??= null;
@@ -223,15 +230,18 @@
 		const state = getState();
 		state.renderCount += 1;
 		const nextActiveUI = snapshot.activeUI ?? 'none';
-		if (snapshot.hasConsented && !state.hasConsented) {
+		if (Boolean(snapshot.explicitChoice) && !state.hasConsented) {
 			state.onConsentSetCount += 1;
 		}
-		if (snapshot.policy && state.onBannerFetchedMs === undefined) {
+		if (
+			snapshot.resolution.status === 'matched' &&
+			state.onBannerFetchedMs === undefined
+		) {
 			state.onBannerFetchedCount += 1;
 			state.onBannerFetchedMs = performance.now();
 		}
 		state.activeUI = nextActiveUI;
-		state.hasConsented = snapshot.hasConsented;
+		state.hasConsented = Boolean(snapshot.explicitChoice);
 		state.location = snapshot.location
 			? {
 					countryCode: snapshot.location.countryCode,
@@ -239,6 +249,8 @@
 				}
 			: null;
 		state.overrides = { ...snapshot.overrides };
+		state.privacySignals = snapshot.privacySignals;
+		state.hasStoredChoice = Boolean(snapshot.explicitChoice);
 		markRepeatVisitorReady(state, snapshot);
 		watchBannerVisibility();
 	};

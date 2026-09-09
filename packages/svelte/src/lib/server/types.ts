@@ -1,5 +1,7 @@
 export interface ReadInitialConsentConfigOptions {
 	headers: Headers;
+	/** Request clock shared with the client seed. */
+	now?: number;
 	cookieHeader?: string | null;
 	/**
 	 * Cookie name holding persisted consent. Defaults to `c15t` — the

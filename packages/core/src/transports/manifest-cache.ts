@@ -25,7 +25,7 @@ import {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
-import { c15tVersionHeaders } from './version-header';
+import { c15tProtocolHeaders } from './version-header';
 
 /**
  * Just the call signature the manifest cache needs.
@@ -429,7 +429,7 @@ const PUBLIC_MANIFEST_HEADERS = new Set([
 	'sec-gpc',
 	'user-agent',
 	...CONSENT_REQUEST_HEADER_NAMES,
-	...Object.keys(c15tVersionHeaders),
+	...Object.keys(c15tProtocolHeaders),
 ]);
 
 const findIdentityHeader = function findIdentityHeader(
@@ -537,7 +537,7 @@ const revalidateManifest = async function revalidateManifest(input: {
 	};
 	const headers: Record<string, string> = {
 		accept: 'application/json',
-		...c15tVersionHeaders,
+		...c15tProtocolHeaders,
 		...input.headers,
 	};
 	if (cached?.headers.etag) {
@@ -759,9 +759,9 @@ export const resolveManifestInit = function resolveManifestInit(
 		// the fields dropped instead.
 		resolvedOverrides: consentInputsToOverrides({
 			country: inputs.country ?? undefined,
-			gpc: inputs.gpc,
 			language: inputs.language ?? undefined,
 			region: inputs.region ?? undefined,
 		}),
+		resolvedPrivacySignals: { gpc: inputs.gpc },
 	} as InitOutput;
 };

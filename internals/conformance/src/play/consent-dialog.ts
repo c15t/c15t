@@ -19,6 +19,55 @@ export const dialogContract: PlayFunction = async () => {
 	await body.findByTestId('consent-dialog-root');
 	assertDomContract(document.body, 'consentDialog');
 	assertStableElements(document.body, 'consentDialog');
+	const root = body.getByTestId('consent-dialog-root');
+	const card = body.getByTestId('consent-dialog-card');
+	const description = body.getByTestId('consent-dialog-description');
+	expect(root).toHaveAccessibleDescription(
+		(description.textContent ?? '').replace(/\s+/gu, ' ').trim()
+	);
+	const title = body.getByTestId('consent-dialog-title');
+	expect(getComputedStyle(title).marginBlockStart).toBe('0px');
+	expect(getComputedStyle(title).marginBlockEnd).toBe('0px');
+	await waitFor(() => {
+		const focused = document.activeElement;
+		expect(root.contains(focused)).toBe(true);
+		if (
+			focused instanceof HTMLElement &&
+			getComputedStyle(focused).outlineStyle !== 'none'
+		) {
+			expect(focused.getBoundingClientRect().width).toBeLessThanOrEqual(
+				card.getBoundingClientRect().width + 4
+			);
+		}
+		if (root.dataset.slot === 'dialog-content' && focused === root) {
+			expect(getComputedStyle(card).outlineStyle).not.toBe('none');
+			expect(
+				Number.parseFloat(getComputedStyle(card).outlineWidth)
+			).toBeGreaterThan(0);
+		}
+	});
+	// Native controls must work through browser keyboard activation, separately.
+	const trigger = body.getByTestId(
+		'consent-widget-accordion-trigger-functionality'
+	);
+	const toggle = body.getByTestId('consent-widget-switch-functionality');
+	trigger.focus();
+	await userEvent.keyboard('{Enter}');
+	await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'true'));
+	await userEvent.keyboard('{Enter}');
+	await waitFor(() =>
+		expect(trigger).toHaveAttribute('aria-expanded', 'false')
+	);
+	const previous = toggle.getAttribute('aria-checked');
+	toggle.focus();
+	await userEvent.keyboard(' ');
+	await waitFor(() =>
+		expect(toggle.getAttribute('aria-checked')).not.toBe(previous)
+	);
+	expect(trigger).toHaveAttribute('aria-expanded', 'false');
+	await userEvent.keyboard(' ');
+	await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', previous));
+	root.focus();
 };
 
 /**

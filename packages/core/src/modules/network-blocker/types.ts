@@ -18,7 +18,7 @@ export type { BlockedRequestInfo, NetworkBlockerConfig, NetworkBlockerRule };
 
 export interface NetworkBlockerOptions extends Omit<
 	NetworkBlockerConfig,
-	'initialConsents'
+	'initialDraft'
 > {
 	kernel: ConsentKernel;
 }

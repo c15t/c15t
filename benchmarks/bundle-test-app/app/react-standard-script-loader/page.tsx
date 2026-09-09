@@ -9,8 +9,8 @@ import { ConsentDialog } from '@c15t/react/consent-dialog';
 import { ConsentWidget } from '@c15t/react/consent-widget';
 import { ConsentDraftProvider, useConsentDraft } from '@c15t/react/draft';
 import {
-	useConsents,
-	useHasConsented,
+	useEffectivePermissions,
+	useExplicitChoice,
 	useSaveConsents,
 } from '@c15t/react/hooks';
 import { ConsentProvider } from '@c15t/react/provider';
@@ -51,14 +51,14 @@ const CATEGORIES: AllConsentNames[] = [
 ];
 
 const TestComponent = () => {
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
-	const hasConsented = useHasConsented();
+	const hasStoredChoice = Boolean(useExplicitChoice());
 
 	return (
 		<div>
-			<p>Has consented: {String(hasConsented)}</p>
+			<p>Has stored choice: {String(hasStoredChoice)}</p>
 			<div>
 				{CATEGORIES.map((category) => (
 					<label

@@ -6,12 +6,21 @@
  * fetch so we know the request shape and error handling are correct.
  */
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel, createHostedTransport } from '../index';
 import type { InitResponse, KernelTransport, SaveResult } from '../index';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
+import { buildDecisionAssertion } from '../transports/decision-inputs';
 import { createManifestTransport } from '../transports/manifest';
+import {
+	choiceRecords,
+	explicitChoice,
+	matchedResolution,
+	optInRule,
+	iabRule,
+} from './fixtures/kernel-fixtures';
 
 const fallbackStorageValues = new Map<string, string>();
 const fallbackLocalStorage: Storage = {
@@ -110,50 +119,12 @@ const REALISTIC_INIT_OUTPUT = {
 	},
 	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: 'BE' },
-	policy: {
-		consent: {
-			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
-			expiryDays: 180,
-			gpc: true,
-			preselectedCategories: ['necessary'],
-			scopeMode: 'strict',
-		},
-		i18n: {
-			language: 'de',
-			messageProfile: 'formal',
-		},
-		id: 'de-iab',
-		model: 'iab',
-		proof: {
-			storeIp: false,
-			storeLanguage: true,
-			storeUserAgent: true,
-		},
-		ui: {
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				direction: 'row',
-				primaryActions: ['accept'],
-				scrollLock: false,
-				uiProfile: 'balanced',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				direction: 'column',
-				primaryActions: ['accept', 'customize'],
-				scrollLock: true,
-				uiProfile: 'strict',
-			},
-			mode: 'dialog',
-		},
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'policy-fingerprint',
-		jurisdiction: 'GDPR',
-		matchedBy: 'region',
-		policyId: 'de-iab',
-		region: 'BE',
+	policyResolution: {
+		...matchedResolution(
+			iabRule({ id: 'de-iab', scopeMode: 'strict' }),
+			'region'
+		),
+		version: 1,
 	},
 	policySnapshotToken: 'snapshot-token',
 	translations: {
@@ -212,44 +183,32 @@ const MANIFEST_FIXTURE = {
 	branding: 'c15t',
 	cmpId: 28,
 	iab: {
-		customVendors: [{ id: 'internal-analytics' }],
+		customVendors: [
+			{
+				id: 'internal-analytics',
+				name: 'Internal analytics',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [1],
+			},
+		],
 		enabled: true,
 		gvl: { url: 'https://gvl.example.com', version: 42 },
 	},
 	policyPacks: [
-		{
-			fingerprint: 'policy-fingerprint',
-
-			policy: {
-				consent: {
-					expiryDays: 180,
-					gpc: true,
-
-					model: 'iab',
-					scopeMode: 'strict',
-				},
-
-				i18n: { language: 'de', messageProfile: 'formal' },
-				id: 'de-iab',
-				match: { regions: [{ country: 'DE', region: 'BE' }] },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['*'],
-					expiryDays: 180,
-					gpc: true,
-
-					scopeMode: 'strict',
-				},
-				i18n: { language: 'de', messageProfile: 'formal' },
-				id: 'de-iab',
-				model: 'iab',
-				proof: {},
-			},
-		},
+		createConsentManifestPolicyPack({
+			categories: ['*'],
+			i18n: { language: 'de', messageProfile: 'formal' },
+			id: 'de-iab',
+			match: { regions: [{ country: 'DE', region: 'BE' }] },
+			model: 'iab',
+			privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
+			prompt: 'choice',
+			scopeMode: 'strict',
+			validity: { choiceDays: 180 },
+		}),
 	],
 	revision: 'manifest-revision',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'formal',
@@ -295,7 +254,9 @@ describe('kernel transport: no transport = no-op commands', () => {
 
 			expect(result.ok).toBe(true);
 			expect(fetchSpy).not.toHaveBeenCalled();
-			expect(kernel.getSnapshot().hasConsented).toBe(true);
+			expect(
+				Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+			).not.toHaveLength(0);
 		} finally {
 			vi.unstubAllGlobals();
 		}
@@ -306,29 +267,40 @@ describe('kernel transport: init applies response to snapshot', () => {
 	test('legacy jurisdiction + showConsentBanner init fields are ignored', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					jurisdiction: 'GDPR',
 					showConsentBanner: true,
-				} as InitResponse;
+				} as InitResponse);
 			},
 		};
 		const kernel = createConsentKernel({ transport });
 
-		expect(kernel.getSnapshot().model).toBeNull();
-		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().resolution.status).toBe('unconfigured');
 
 		await kernel.commands.init();
 
-		expect(kernel.getSnapshot().model).toBeNull();
+		// A complete response without any policy field is a malformed init:
+		// failed, strict opt-in permissions, first layer hidden.
+		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().resolution).toEqual({
+			policy: null,
+			reason: 'invalid-payload',
+			status: 'failed',
+		});
+		expect(kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 	});
 
 	test('resolvedOverrides merge into snapshot.overrides', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					resolvedOverrides: { country: 'DE', region: 'BE' },
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({
@@ -345,13 +317,13 @@ describe('kernel transport: init applies response to snapshot', () => {
 		});
 	});
 
-	test('server-side consents override config when returned', async () => {
+	test('legacy server booleans cannot seed a draft or a choice', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					consents: { marketing: true, measurement: true },
 					hasConsented: true,
-				};
+				} as unknown as InitResponse);
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -359,9 +331,16 @@ describe('kernel transport: init applies response to snapshot', () => {
 		await kernel.commands.init();
 
 		const snap = kernel.getSnapshot();
-		expect(snap.consents.marketing).toBe(true);
-		expect(snap.consents.measurement).toBe(true);
-		expect(snap.hasConsented).toBe(true);
+		// Booleans without receipts cannot be an explicit choice.
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.effectivePermissions.marketing).toBe(false);
+
+		// Missing receipts cannot preselect a later explicit confirmation.
+		await kernel.commands.save();
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.experience).toBe(false);
 	});
 
 	test('init passes current overrides + user as InitContext', async () => {
@@ -387,7 +366,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		const events: string[] = [];
 		const transport: KernelTransport = {
 			init() {
-				return {};
+				return Promise.resolve({});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -419,13 +398,18 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(result.ok).toBe(false);
 		expect(result.error).toBe(boom);
 		expect(errors).toEqual([boom]);
-		// Snapshot should be unchanged.
-		expect(kernel.getSnapshot().model).toBeNull();
+		// Failure is observable, permissions stay safe, first layer hidden.
+		expect(kernel.getSnapshot().resolution).toEqual({
+			policy: null,
+			reason: 'transport',
+			status: 'failed',
+		});
+		expect(kernel.getSnapshot().model).toBe('opt-in');
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 	});
 
 	test('provisional policy suppresses activeUI until init resolves', async () => {
-		let resolveInit: (value: Record<string, never>) => void = () => {};
+		let resolveInit: (value: InitResponse) => void = () => {};
 		const transport: KernelTransport = {
 			init() {
 				return createDeferredPromise((resolve) => {
@@ -434,28 +418,24 @@ describe('kernel transport: init applies response to snapshot', () => {
 			},
 		};
 		const kernel = createConsentKernel({
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport,
 		});
 
 		// Model is populated for SSR ergonomics, but no surface renders.
 		expect(kernel.getSnapshot().model).toBe('opt-in');
 		expect(kernel.getSnapshot().activeUI).toBe('none');
-		expect(kernel.getSnapshot().policyProvisional).toBe(true);
+		expect(kernel.getSnapshot().policyPending).toBe(true);
 
 		const pending = kernel.commands.init();
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 
-		resolveInit({});
+		resolveInit({
+			policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+		});
 		await pending;
 
-		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 
@@ -469,13 +449,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		};
 		const kernel = createConsentKernel({
 			initRetry: false,
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport,
 		});
 		const initFailures: {
@@ -494,7 +468,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		const result = await kernel.commands.init();
 
 		expect(result.ok).toBe(false);
-		expect(kernel.getSnapshot().policyProvisional).toBe(true);
+		expect(kernel.getSnapshot().policyPending).toBe(true);
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		expect(initFailures).toEqual([
 			{ attempt: 1, error: boom, nextRetryMs: null, type: 'init:failed' },
@@ -510,16 +484,12 @@ describe('kernel transport: init applies response to snapshot', () => {
 			.fn<NonNullable<KernelTransport['init']>>()
 			.mockRejectedValueOnce(new Error('first failure'))
 			.mockRejectedValueOnce(new Error('second failure'))
-			.mockResolvedValue({});
+			.mockResolvedValue({
+				policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+			});
 		const kernel = createConsentKernel({
 			initRetry: { baseDelayMs: 100, maxAttempts: 3, maxDelayMs: 1000 },
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport: { init: initSpy },
 		});
 		const failures: { attempt: number; nextRetryMs: number | null }[] = [];
@@ -549,7 +519,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 		await vi.advanceTimersByTimeAsync(150);
 		expect(initSpy).toHaveBeenCalledTimes(3);
-		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 		expect(commandEvents).toEqual([
 			'started',
@@ -764,16 +734,14 @@ describe('kernel transport: init applies response to snapshot', () => {
 	});
 
 	test('getServerSnapshot stays at revision 0 through client mutations', async () => {
+		const resolution = matchedResolution(optInRule());
 		const kernel = createConsentKernel({
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+			initialPolicyResolution: resolution,
 			transport: {
 				init() {
-					return {};
+					return Promise.resolve({
+						policyResolution: { ...resolution, version: 1 },
+					});
 				},
 			},
 		});
@@ -782,9 +750,18 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(server.activeUI).toBe('banner');
 
 		// Simulate the client boot mutations that land before hydration
-		// completes: persistence hydrate flips the UI off…
-		kernel.set.hasConsented(true);
-		kernel.set.activeUI('none');
+		// completes: persistence hydrate applies a stored full choice…
+		kernel.hydrate(
+			choiceRecords(
+				{
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+				},
+				{ fingerprint: resolution.fingerprints.choice, now: Date.now() }
+			)
+		);
 		await kernel.commands.init();
 
 		// …but hydration must still be able to render what the server saw.
@@ -795,19 +772,13 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 	test('provisional policy finalizes when the transport has no init', async () => {
 		const kernel = createConsentKernel({
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport: {},
 		});
 
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		await kernel.commands.init();
-		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 });
@@ -835,9 +806,9 @@ describe('kernel transport: save flows consents to backend', () => {
 		const kernel = createConsentKernel({ transport: { save: saveSpy } });
 
 		await kernel.commands.save('all');
-		const first = kernel.getSnapshot().subjectId;
+		const first = kernel.getSnapshot().subject?.subjectId ?? null;
 		await kernel.commands.save({ marketing: false });
-		const second = kernel.getSnapshot().subjectId;
+		const second = kernel.getSnapshot().subject?.subjectId ?? null;
 
 		expect(first).toMatch(/^sub_/u);
 		expect(second).toBe(first);
@@ -853,7 +824,9 @@ describe('kernel transport: save flows consents to backend', () => {
 		const pending = kernel.commands.save('all');
 
 		// The optimistic commit is synchronous — UI can flip and paint…
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		// …while the network call is deferred a macrotask so it never
 		// contends with the commit/paint task.
@@ -880,7 +853,9 @@ describe('kernel transport: save flows consents to backend', () => {
 		expect(result.ok).toBe(false);
 		expect(errors).toEqual([boom]);
 		// Snapshot mutation still happened (local optimistic commit).
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 	});
 });
 
@@ -916,7 +891,9 @@ describe('kernel transport: failed save replay', () => {
 			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
 		);
 		expect(stored).toHaveLength(1);
-		expect(stored[0].payload.subjectId).toBe(kernel.getSnapshot().subjectId);
+		expect(stored[0].payload.subjectId).toBe(
+			kernel.getSnapshot().subject?.subjectId ?? null
+		);
 
 		const initResult = await kernel.commands.init();
 		expect(initResult.ok).toBe(true);
@@ -931,7 +908,10 @@ describe('kernel transport: failed save replay', () => {
 		resolveReplay({ ok: true });
 		await vi.waitFor(() => {
 			expect(replayed).toEqual([
-				{ ok: true, subjectId: kernel.getSnapshot().subjectId },
+				{
+					ok: true,
+					subjectId: kernel.getSnapshot().subject?.subjectId ?? null,
+				},
 			]);
 		});
 		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
@@ -964,7 +944,7 @@ describe('kernel transport: failed save replay', () => {
 			.mockRejectedValueOnce(new Error('save offline'))
 			.mockResolvedValue({ ok: true });
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub_fixed',
+			initialRecords: { subject: { subjectId: 'sub_fixed' } },
 			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
 		});
 		const replayed: boolean[] = [];
@@ -1019,6 +999,54 @@ describe('kernel transport: failed save replay', () => {
 		kernel.dispose();
 	});
 
+	test('queued no-match saves retain the action inputs after init changes location', async () => {
+		const saveSpy = vi
+			.fn<NonNullable<KernelTransport['save']>>()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			initialLocation: { countryCode: 'US', regionCode: null },
+			initialOverrides: { region: 'CA' },
+			initialPolicyResolution: { policy: null, status: 'no-match' },
+			transport: {
+				init: () =>
+					Promise.resolve({
+						location: { countryCode: 'DE', regionCode: 'BE' },
+					}),
+				save: saveSpy,
+			},
+		});
+		try {
+			expect((await kernel.commands.save('none')).ok).toBe(false);
+			await kernel.commands.init();
+			await vi.waitFor(() => expect(saveSpy).toHaveBeenCalledTimes(2));
+			const replay = saveSpy.mock.calls[1]?.[0];
+			expect(replay).toBeDefined();
+			if (!replay) {
+				throw new Error('Expected queued save replay');
+			}
+			expect(
+				buildDecisionAssertion(replay, {
+					country: 'DE',
+					fingerprint: 'new-policy',
+					language: 'de',
+					policyId: 'new-policy',
+					region: 'BE',
+				})
+			).toEqual({
+				country: 'US',
+				fingerprint: undefined,
+				gpc: false,
+				language: 'en',
+				policyId: null,
+				region: null,
+			});
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		} finally {
+			kernel.dispose();
+		}
+	});
+
 	test('queue updates wait for the cross-tab Web Lock', async () => {
 		const originalNavigator = globalThis.navigator;
 		let chain: Promise<unknown> = Promise.resolve();
@@ -1033,7 +1061,7 @@ describe('kernel transport: failed save replay', () => {
 		};
 		vi.stubGlobal('navigator', { locks });
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub_fixed',
+			initialRecords: { subject: { subjectId: 'sub_fixed' } },
 			transport: {
 				save: vi.fn().mockRejectedValue(new Error('save offline')),
 			},
@@ -1061,7 +1089,7 @@ describe('kernel transport: failed save replay', () => {
 			expect(saveCompleted).toEqual([]);
 
 			releaseLock();
-			await expect(pendingSave).resolves.toEqual({ ok: false });
+			await expect(pendingSave).resolves.toMatchObject({ ok: false });
 			expect(saveCompleted).toEqual([false]);
 			expect(
 				JSON.parse(
@@ -1123,7 +1151,9 @@ describe('kernel transport: failed save replay', () => {
 		});
 
 		try {
-			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: false });
+			await expect(kernel.commands.save('all')).resolves.toMatchObject({
+				ok: false,
+			});
 			expect(
 				JSON.parse(
 					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
@@ -1180,12 +1210,27 @@ describe('kernel transport: failed save replay', () => {
 
 	test('drops malformed persisted queue entries before replay', async () => {
 		const validPayload = {
+			choice: {
+				categories: {
+					marketing: {
+						basis: { fingerprint: 'fp', kind: 'choice-v1' },
+						confirmedAt: 1_700_000_000_000,
+						value: true,
+					},
+				},
+				version: 3,
+			},
+			confirmed: {
+				actionAt: 1_700_000_000_000,
+				categories: { marketing: true },
+			},
 			consentAction: 'custom',
 			consents: { marketing: true, necessary: true },
 			givenAt: 1_700_000_000_000,
 			model: 'opt-out',
 			overrides: {},
 			policySnapshotToken: 'snap-1',
+			subject: { subjectId: 'sub_valid' },
 			subjectId: 'sub_valid',
 			tcString: null,
 			uiSource: 'dialog',
@@ -1283,11 +1328,11 @@ describe('kernel transport: failed save replay', () => {
 	test('replays every queued subject and records each result separately', async () => {
 		const failingSave = vi.fn().mockRejectedValue(new Error('save offline'));
 		const tabA = createConsentKernel({
-			initialSubjectId: 'sub_a',
+			initialRecords: { subject: { subjectId: 'sub_a' } },
 			transport: { save: failingSave },
 		});
 		const tabB = createConsentKernel({
-			initialSubjectId: 'sub_b',
+			initialRecords: { subject: { subjectId: 'sub_b' } },
 			transport: { save: failingSave },
 		});
 		await tabA.commands.save('all');
@@ -1374,7 +1419,9 @@ describe('kernel transport: failed save replay', () => {
 		});
 
 		try {
-			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: true });
+			await expect(kernel.commands.save('all')).resolves.toMatchObject({
+				ok: true,
+			});
 			await expect(kernel.commands.init()).resolves.toEqual({ ok: true });
 			await createDeferredPromise((resolve) => {
 				setTimeout(resolve, 0);
@@ -1435,7 +1482,7 @@ describe('kernel transport: failed save replay', () => {
 
 		expect(saveSpy).toHaveBeenCalledTimes(2);
 		expect(replayed).toEqual([
-			{ ok: false, subjectId: kernel.getSnapshot().subjectId },
+			{ ok: false, subjectId: kernel.getSnapshot().subject?.subjectId ?? null },
 		]);
 		expect(
 			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
@@ -1445,7 +1492,7 @@ describe('kernel transport: failed save replay', () => {
 
 	test('queued saves dedupe by subjectId and keep the newest payload', async () => {
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub_fixed',
+			initialRecords: { subject: { subjectId: 'sub_fixed' } },
 			transport: {
 				save: vi.fn().mockRejectedValue(new Error('save offline')),
 			},
@@ -1549,7 +1596,9 @@ describe('kernel transport: failed save replay', () => {
 		});
 
 		try {
-			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: false });
+			await expect(kernel.commands.save('all')).resolves.toMatchObject({
+				ok: false,
+			});
 			expect(
 				originalWindow.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)
 			).toBeNull();
@@ -1577,7 +1626,9 @@ describe('kernel transport: failed save replay', () => {
 		});
 
 		try {
-			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: false });
+			await expect(kernel.commands.save('all')).resolves.toMatchObject({
+				ok: false,
+			});
 		} finally {
 			kernel.dispose();
 			vi.stubGlobal('window', originalWindow);
@@ -1592,7 +1643,7 @@ describe('kernel transport: identify forwards to transport', () => {
 		const transport: KernelTransport = { identify: identifySpy };
 
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub-42',
+			initialRecords: { subject: { subjectId: 'sub-42' } },
 			transport,
 		});
 		await kernel.commands.identify({ externalId: 'user-42' });
@@ -1647,7 +1698,7 @@ describe('createHostedTransport: request shape', () => {
 			user: { externalId: 'user-1' },
 		});
 
-		expect(response?.policy?.id).toBe('de-iab');
+		expect(response?.policyResolution?.policy?.id).toBe('de-iab');
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		// Trailing slash on backendURL is stripped.
@@ -1687,7 +1738,7 @@ describe('createHostedTransport: request shape', () => {
 		});
 	});
 
-	test('identify waits for the first save to establish a fresh subject', async () => {
+	test('identify without a server subject resolves at once and sends nothing', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-created' }), {
 				status: 200,
@@ -1699,26 +1750,42 @@ describe('createHostedTransport: request shape', () => {
 		});
 		const user = { externalId: 'user-42', identityProvider: 'clerk' };
 
-		const identified = transport.identify?.(user, null);
+		// Kernel-local identity: no pending promise waits for a subject that
+		// may never be created, so a later clear has nothing to cancel.
+		await expect(transport.identify(user, null)).resolves.toBeUndefined();
 		expect(fetchSpy).not.toHaveBeenCalled();
 
-		await transport.save?.({
+		// The next legitimate save carries the identity; the backend links it
+		// when it creates the subject.
+		await transport.save({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
+			subject: { subjectId: 'sub-created' },
 			subjectId: 'sub-created',
 			uiSource: 'banner',
 			user,
 		});
-
-		await expect(identified).resolves.toBeUndefined();
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/c15t/subjects');
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('/api/c15t/subjects');
+		expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({
+			externalSubjectId: 'user-42',
+			identityProvider: 'clerk',
+		});
 	});
 
-	test('identify PATCHes after a save establishes the subject', async () => {
+	test('the subject the kernel passes is the only subject the transport acts on', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-created' }), {
 				status: 200,
@@ -1729,21 +1796,41 @@ describe('createHostedTransport: request shape', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		const identified = transport.identify?.({ externalId: 'user-42' }, null);
-		await transport.save?.({
+		await transport.save({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
+			subject: { subjectId: 'sub-created' },
 			subjectId: 'sub-created',
 			uiSource: 'banner',
 			user: null,
 		});
+		// After the kernel cleared its data it passes no subject. The transport
+		// must not reach the subject that earlier save established.
+		await transport.identify({ externalId: 'user-42' }, null);
+		await transport.recordPrivacyOptOut(
+			{ categories: ['marketing'], recordedAt: 1, source: 'gpc' },
+			null
+		);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-		await expect(identified).resolves.toBeUndefined();
+		// With the kernel's real subject it links exactly that subject.
+		await transport.identify({ externalId: 'user-42' }, 'sub-created');
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
-		expect(fetchSpy.mock.calls[1]?.[0]).toBe('/api/c15t/subjects/sub-created');
+		const [, patchCall] = fetchSpy.mock.calls;
+		const [patchUrl, patchInit] = patchCall ?? [];
+		expect(patchUrl).toBe('/api/c15t/subjects/sub-created');
+		expect((patchInit as RequestInit).method).toBe('PATCH');
 	});
 
 	test('initURL overrides init without changing the save endpoint', async () => {
@@ -1763,6 +1850,8 @@ describe('createHostedTransport: request shape', () => {
 
 		await transport.init?.({ overrides: {}, user: null });
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
 			consents: {
 				experience: true,
@@ -1774,6 +1863,7 @@ describe('createHostedTransport: request shape', () => {
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: 'snap-1',
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			uiSource: 'banner',
 			user: null,
@@ -1797,7 +1887,16 @@ describe('createHostedTransport: request shape', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
+		const values = {
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+		};
+		const actionAt = 1_700_000_000_000;
 		const result = await transport.save?.({
+			choice: explicitChoice(values, { confirmedAt: actionAt, legacy: true }),
+			confirmed: { actionAt, categories: values },
 			consentAction: 'all',
 			consents: {
 				experience: true,
@@ -1810,6 +1909,7 @@ describe('createHostedTransport: request shape', () => {
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: 'snap-1',
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			tcString: 'tc-1',
 			uiSource: 'banner',
@@ -1861,11 +1961,20 @@ describe('createHostedTransport: request shape', () => {
 		});
 
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			uiSource: 'banner',
 			user: null,
@@ -1896,11 +2005,20 @@ describe('createHostedTransport: request shape', () => {
 
 		await transport.init?.({ overrides: {}, user: null });
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'iab',
 			overrides: {},
 			policySnapshotToken: null,
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			uiSource: 'banner',
 			user: null,
@@ -1913,7 +2031,7 @@ describe('createHostedTransport: request shape', () => {
 		const [, saveInit] = fetchSpy.mock.calls[1] ?? [];
 		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
 			country: 'DE',
-			fingerprint: 'policy-fingerprint',
+			fingerprint: REALISTIC_INIT_OUTPUT.policyResolution.fingerprints.policy,
 			gpc: true,
 			language: 'de',
 			policyId: 'de-iab',
@@ -1944,11 +2062,20 @@ describe('createHostedTransport: request shape', () => {
 
 			await transport.init?.({ overrides: {}, user: null });
 			await transport.save?.({
+				choice: { categories: {}, version: 3 },
+				confirmed: { actionAt: 0, categories: {} },
 				consentAction: 'all',
-				consents: { necessary: true },
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+					necessary: true,
+				},
 				model: 'iab',
 				overrides: {},
 				policySnapshotToken: null,
+				subject: { subjectId: 'sub_test' },
 				subjectId: 'sub_test',
 				uiSource: 'banner',
 				user: null,
@@ -1989,8 +2116,9 @@ describe('createHostedTransport: request shape', () => {
 			'accept-language': 'de-DE,de;q=0.9',
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
-			'x-c15t-region': 'BE',
 			// Always attached by the transport itself, not consumer-forwarded.
+			'x-c15t-policy-contract': '1',
+			'x-c15t-region': 'BE',
 			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
 	});
@@ -2016,21 +2144,21 @@ describe('createHostedTransport: request shape', () => {
 			customVendors: [{ id: 'internal-analytics' }],
 			gvl: { vendorListVersion: 42 },
 			location: { countryCode: 'DE', regionCode: 'BE' },
-			policy: { id: 'de-iab', model: 'iab' },
-			policyDecision: {
-				jurisdiction: 'GDPR',
-				matchedBy: 'region',
-				policyId: 'de-iab',
+			policyResolution: {
+				policy: { id: 'de-iab', model: 'iab' },
+				status: 'matched',
 			},
 			policySnapshotToken: 'snapshot-token',
 			resolvedOverrides: {
 				country: 'DE',
-				gpc: true,
 				language: 'de',
 				region: 'BE',
 			},
+			// The detected header signal, kept apart from developer overrides.
+			resolvedPrivacySignals: { gpc: true },
 			translations: { language: 'de' },
 		});
+		expect(response?.resolvedOverrides).not.toHaveProperty('gpc');
 		expect('jurisdiction' in (response ?? {})).toBe(false);
 	});
 
@@ -2094,18 +2222,16 @@ describe('createManifestTransport: local init resolution', () => {
 			cmpId: 28,
 			customVendors: [{ id: 'internal-analytics' }],
 			gvl: { vendorListVersion: 42 },
-			policy: { id: 'de-iab', model: 'iab' },
-			policyDecision: {
-				fingerprint: 'policy-fingerprint',
-				matchedBy: 'region',
-				policyId: 'de-iab',
+			policyResolution: {
+				policy: { id: 'de-iab', model: 'iab' },
+				status: 'matched',
 			},
 			resolvedOverrides: {
 				country: 'DE',
-				gpc: true,
 				language: 'de',
 				region: 'BE',
 			},
+			resolvedPrivacySignals: { gpc: true },
 		});
 		expect(fetchGvl).toHaveBeenCalledWith({
 			fetch: expect.any(Function),
@@ -2138,7 +2264,16 @@ describe('createManifestTransport: local init resolution', () => {
 		});
 
 		await transport.init?.({ overrides: {}, user: null });
+		const values = {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+		};
+		const actionAt = 1_700_000_000_000;
 		const result = await transport.save?.({
+			choice: explicitChoice(values, { confirmedAt: actionAt, legacy: true }),
+			confirmed: { actionAt, categories: values },
 			consentAction: 'custom',
 			consents: {
 				experience: false,
@@ -2150,6 +2285,7 @@ describe('createManifestTransport: local init resolution', () => {
 			model: 'iab',
 			overrides: {},
 			policySnapshotToken: null,
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			uiSource: 'banner',
 			user: {
@@ -2170,7 +2306,7 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(body).toMatchObject({
 			country: 'DE',
 			externalSubjectId: 'user-2',
-			fingerprint: 'policy-fingerprint',
+			fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
 			gpc: true,
 			language: 'de',
 			metadata: {
@@ -2209,6 +2345,8 @@ describe('createManifestTransport: local init resolution', () => {
 		});
 
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'custom',
 			consents: {
 				experience: false,
@@ -2220,6 +2358,7 @@ describe('createManifestTransport: local init resolution', () => {
 			model: 'iab',
 			overrides: {},
 			policySnapshotToken: 'snapshot-token',
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			uiSource: 'banner',
 			user: null,
@@ -2239,7 +2378,7 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(body).not.toHaveProperty('gpc');
 	});
 
-	test('does not send asserted decision inputs when the manifest resolved no policy pack', async () => {
+	test('explicitly asserts no-match when the configured manifest contains no policy packs', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
 				status: 200,
@@ -2264,6 +2403,8 @@ describe('createManifestTransport: local init resolution', () => {
 
 		await transport.init?.({ overrides: {}, user: null });
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'custom',
 			consents: {
 				experience: false,
@@ -2275,6 +2416,7 @@ describe('createManifestTransport: local init resolution', () => {
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
+			subject: { subjectId: 'sub_test' },
 			subjectId: 'sub_test',
 			uiSource: 'banner',
 			user: null,
@@ -2283,33 +2425,36 @@ describe('createManifestTransport: local init resolution', () => {
 		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
 		const body = JSON.parse((subjectsInit as RequestInit).body as string);
 		expect(body).toMatchObject({ subjectId: 'sub_test' });
-		// Partial inputs (country/language without policyId/fingerprint) are
-		// rejected by the backend as incomplete — none may be sent.
-		expect(body).not.toHaveProperty('policyId');
+		// Null distinguishes a successful no-match from missing decision inputs.
+		expect(body).toMatchObject({
+			country: null,
+			language: 'de',
+			policyId: null,
+			region: null,
+		});
 		expect(body).not.toHaveProperty('fingerprint');
-		expect(body).not.toHaveProperty('country');
-		expect(body).not.toHaveProperty('region');
-		expect(body).not.toHaveProperty('language');
 		expect(body).not.toHaveProperty('gpc');
 	});
 });
 
 describe('x-c15t-version header (issue #916)', () => {
 	test('hosted init and save carry the client version', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
-			const s = String(url);
-			if (s.endsWith('/init')) {
-				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+		const fetchSpy = vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (url: RequestInfo | URL, _init?: RequestInit) => {
+				const s = String(url);
+				if (s.endsWith('/init')) {
+					return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+						headers: { 'content-type': 'application/json' },
+						status: 200,
+					});
+				}
+				return new Response(JSON.stringify({ ok: true }), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
 				});
 			}
-			return new Response(JSON.stringify({ ok: true }), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
-		});
+		);
 		const kernel = createConsentKernel({
 			transport: createHostedTransport({
 				backendURL: 'https://backend.example',
@@ -2331,20 +2476,22 @@ describe('x-c15t-version header (issue #916)', () => {
 	});
 
 	test('manifest fetch and save both carry the client version', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
-			const s = String(url);
-			if (s.endsWith('/manifest')) {
-				return new Response(JSON.stringify(MANIFEST_FIXTURE), {
+		const fetchSpy = vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (url: RequestInfo | URL, _init?: RequestInit) => {
+				const s = String(url);
+				if (s.endsWith('/manifest')) {
+					return new Response(JSON.stringify(MANIFEST_FIXTURE), {
+						headers: { 'content-type': 'application/json' },
+						status: 200,
+					});
+				}
+				return new Response(JSON.stringify({ ok: true }), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
 				});
 			}
-			return new Response(JSON.stringify({ ok: true }), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
-		});
+		);
 		const kernel = createConsentKernel({
 			transport: createManifestTransport({
 				backendURL: 'https://backend.example',
@@ -2379,6 +2526,179 @@ describe('x-c15t-version header (issue #916)', () => {
 	});
 });
 
+describe('independent partial save transport', () => {
+	test('disjoint confirmations made in one turn both reach transport', async () => {
+		const send = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: send } });
+		try {
+			const first = kernel.commands.save({ marketing: true });
+			const second = kernel.commands.save({ measurement: false });
+			await Promise.all([first, second]);
+			expect(
+				send.mock.calls.map(([payload]) => payload.confirmed.categories)
+			).toEqual([{ marketing: true }, { measurement: false }]);
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test.each(['same-subject', 'canonical-subject'])(
+		'failed disjoint confirmation replays its original payload after %s acknowledgement',
+		async (mapping) => {
+			let finish: (result: SaveResult) => void = () => {};
+			const send = vi
+				.fn()
+				.mockImplementationOnce(() =>
+					createDeferredPromise<SaveResult>((resolve) => {
+						finish = resolve;
+					})
+				)
+				.mockResolvedValue(
+					mapping === 'canonical-subject'
+						? { ok: true, subjectId: 'canonical' }
+						: { ok: true }
+				);
+			const kernel = createConsentKernel({ transport: { save: send } });
+			try {
+				const first = kernel.commands.save({ marketing: true });
+				await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+				await kernel.commands.save({ measurement: false });
+				finish({ ok: false });
+				await first;
+				await kernel.commands.init();
+				await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(3));
+				expect(send.mock.calls[2]?.[0]).toEqual(send.mock.calls[0]?.[0]);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(true);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+				).toBe(false);
+			} finally {
+				kernel.dispose();
+			}
+		}
+	);
+
+	test('an older disjoint response cannot replace the latest canonical subject', async () => {
+		let finish: (result: SaveResult) => void = () => {};
+		const send = vi
+			.fn()
+			.mockImplementationOnce(() =>
+				createDeferredPromise<SaveResult>((resolve) => {
+					finish = resolve;
+				})
+			)
+			.mockResolvedValue({ ok: true, subjectId: 'latest' });
+		const kernel = createConsentKernel({ transport: { save: send } });
+		try {
+			const first = kernel.commands.save({ marketing: true });
+			await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+			await kernel.commands.save({ measurement: false });
+			finish({ ok: true, subjectId: 'older' });
+			await first;
+			expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe('latest');
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test('an explicit subject switch cancels a pending retry even after switching back', async () => {
+		let finish: (result: SaveResult) => void = () => {};
+		const send = vi.fn().mockImplementationOnce(() =>
+			createDeferredPromise<SaveResult>((resolve) => {
+				finish = resolve;
+			})
+		);
+		const kernel = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'original' } },
+			transport: { save: send },
+		});
+		try {
+			const pending = kernel.commands.save({ marketing: true });
+			await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+			kernel.set.subjectId('other');
+			kernel.set.subjectId('original');
+			finish({ ok: false });
+			await pending;
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		} finally {
+			kernel.dispose();
+		}
+	});
+});
+
+describe('partially superseded confirmations', () => {
+	test.each([
+		'deferred',
+		'in-flight',
+		'queued-success',
+		'queued-failure',
+	] as const)(
+		'preserves measurement without replaying superseded marketing: %s',
+		async (phase) => {
+			let finish: (result: SaveResult) => void = () => {};
+			const send = vi.fn().mockResolvedValue({ ok: true });
+			if (phase === 'in-flight') {
+				send.mockImplementationOnce(() =>
+					createDeferredPromise<SaveResult>((resolve) => {
+						finish = resolve;
+					})
+				);
+			}
+			if (phase.startsWith('queued')) {
+				send.mockResolvedValueOnce({ ok: false });
+			}
+			if (phase === 'queued-failure') {
+				send.mockResolvedValueOnce({ ok: false });
+			}
+			const kernel = createConsentKernel({ transport: { save: send } });
+			try {
+				const first = kernel.commands.save({
+					marketing: true,
+					measurement: true,
+				});
+				const original =
+					kernel.getSnapshot().explicitChoice?.categories.measurement;
+				if (phase === 'in-flight') {
+					await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+				}
+				if (phase.startsWith('queued')) {
+					await first;
+				}
+				await kernel.commands.save({ marketing: false });
+				if (phase === 'in-flight') {
+					finish({ ok: false });
+				}
+				await first;
+				if (phase !== 'deferred') {
+					await kernel.commands.init();
+					await vi.waitFor(() =>
+						expect(send.mock.calls.length).toBeGreaterThanOrEqual(3)
+					);
+				}
+				const surviving =
+					phase === 'deferred'
+						? send.mock.calls[0]?.[0]
+						: send.mock.calls[2]?.[0];
+				expect(surviving.confirmed.categories).toEqual({ measurement: true });
+				expect(surviving.choice.categories).toEqual({ measurement: original });
+				expect(surviving.givenAt).toBe(original?.confirmedAt);
+				expect(surviving.confirmed.actionAt).toBe(original?.confirmedAt);
+				expect(surviving.consents.marketing).toBe(false);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(false);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.measurement
+				).toBe(original);
+			} finally {
+				kernel.dispose();
+			}
+		}
+	);
+});
+
 describe('hosted transport: initialData', () => {
 	test('consumes a prefetched init once and keeps the decision assertion', async () => {
 		const fetchSpy = vi
@@ -2399,10 +2719,14 @@ describe('hosted transport: initialData', () => {
 		});
 
 		const first = await transport.init?.({ overrides: {}, user: null });
-		expect(first?.policy?.id).toBe(REALISTIC_INIT_OUTPUT.policy.id);
+		expect(first?.policyResolution?.policyId).toBe(
+			REALISTIC_INIT_OUTPUT.policyResolution.policyId
+		);
 		expect(fetchSpy).not.toHaveBeenCalled();
 
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1700000000000, categories: {} },
 			consentAction: 'all',
 			consents: { necessary: true },
 			model: 'iab',
@@ -2416,7 +2740,7 @@ describe('hosted transport: initialData', () => {
 		expect(saveURL).toBe('https://api.example.com/c15t/subjects');
 		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
 			country: 'DE',
-			fingerprint: 'policy-fingerprint',
+			fingerprint: REALISTIC_INIT_OUTPUT.policyResolution.fingerprints.policy,
 			gpc: true,
 			policyId: 'de-iab',
 		});
@@ -2476,6 +2800,8 @@ describe('hosted transport: GPC in decision assertions', () => {
 
 		await transport.init?.({ overrides: {}, user: null });
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1700000000000, categories: {} },
 			consentAction: 'all',
 			consents: { necessary: true },
 			model: 'iab',
@@ -2549,6 +2875,8 @@ describe('hosted transport: decisionInputs seed', () => {
 		});
 
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1700000000000, categories: {} },
 			consentAction: 'all',
 			consents: { necessary: true },
 			model: 'opt-in',
@@ -2585,6 +2913,8 @@ describe('hosted transport: decisionInputs seed', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1700000000000, categories: {} },
 			consentAction: 'all',
 			consents: { necessary: true },
 			model: 'opt-in',
@@ -2622,6 +2952,8 @@ describe('hosted transport: save waits for an in-flight init', () => {
 
 		const initPromise = transport.init?.({ overrides: {}, user: null });
 		const savePromise = transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1700000000000, categories: {} },
 			consentAction: 'all',
 			consents: { necessary: true },
 			model: 'opt-in',
@@ -2647,7 +2979,7 @@ describe('hosted transport: save waits for an in-flight init', () => {
 		expect(
 			JSON.parse((saveCall[1] as RequestInit).body as string)
 		).toMatchObject({
-			fingerprint: 'policy-fingerprint',
+			fingerprint: REALISTIC_INIT_OUTPUT.policyResolution.fingerprints.policy,
 			policyId: 'de-iab',
 		});
 	});
@@ -2655,6 +2987,8 @@ describe('hosted transport: save waits for an in-flight init', () => {
 
 describe('hosted transport: assertion state across overlapping inits', () => {
 	const savePayload = {
+		choice: { categories: {}, version: 3 },
+		confirmed: { actionAt: 1700000000000, categories: {} },
 		consentAction: 'all',
 		consents: { necessary: true },
 		model: 'opt-in',
@@ -2679,9 +3013,12 @@ describe('hosted transport: assertion state across overlapping inits', () => {
 				return new Response(
 					JSON.stringify({
 						...REALISTIC_INIT_OUTPUT,
-						policyDecision: {
-							...REALISTIC_INIT_OUTPUT.policyDecision,
-							fingerprint: `fp-${index}`,
+						policyResolution: {
+							...REALISTIC_INIT_OUTPUT.policyResolution,
+							fingerprints: {
+								...REALISTIC_INIT_OUTPUT.policyResolution.fingerprints,
+								policy: `fp-${index}`,
+							},
 							policyId: `policy-${index}`,
 						},
 					}),
@@ -2750,6 +3087,8 @@ describe('hosted transport: assertion state across overlapping inits', () => {
 
 describe('hosted transport: re-init with different inputs', () => {
 	const savePayload = {
+		choice: { categories: {}, version: 3 },
+		confirmed: { actionAt: 1700000000000, categories: {} },
 		consentAction: 'all',
 		consents: { necessary: true },
 		model: 'opt-in',
@@ -2773,9 +3112,12 @@ describe('hosted transport: re-init with different inputs', () => {
 				return new Response(
 					JSON.stringify({
 						...REALISTIC_INIT_OUTPUT,
-						policyDecision: {
-							...REALISTIC_INIT_OUTPUT.policyDecision,
-							fingerprint: `fp-${index}`,
+						policyResolution: {
+							...REALISTIC_INIT_OUTPUT.policyResolution,
+							fingerprints: {
+								...REALISTIC_INIT_OUTPUT.policyResolution.fingerprints,
+								policy: `fp-${index}`,
+							},
 							policyId: `policy-${index}`,
 						},
 					}),
@@ -2883,6 +3225,8 @@ describe('hosted transport: removing an override', () => {
 		await transport.init?.({ overrides: { country: 'DE' }, user: null });
 		const reinit = transport.init?.({ overrides: {}, user: null });
 		const save = transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1700000000000, categories: {} },
 			consentAction: 'all',
 			consents: { necessary: true },
 			model: 'opt-in',

@@ -1,12 +1,13 @@
 'use client';
 
-import type { LegalLinks } from '@c15t/core';
+import type { LegalLinks, ConsentPresentation } from '@c15t/core';
 import { createContext, useContext } from 'react';
 
 import type { ReactComponentSlots } from '~/types/slots';
 
 export interface V3UIConfigValue {
 	components?: ReactComponentSlots;
+	presentation?: ConsentPresentation;
 	legalLinks?: LegalLinks;
 }
 

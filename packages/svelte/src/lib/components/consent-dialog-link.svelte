@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
+	import { getConsentContext } from '../context.svelte';
 	import ConsentButton from './consent-button.svelte';
+
+	const consent = getConsentContext();
 
 	let {
 		children,
@@ -19,6 +22,7 @@
 	action="open-consent-dialog"
 	{noStyle}
 	data-testid="consent-dialog-link"
+	data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
 	{...restProps}
 >
 	{#if children}

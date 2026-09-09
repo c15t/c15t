@@ -13,16 +13,19 @@ import type {
 	InitOutput,
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
-import { resolveInitFromManifest } from '@c15t/schema/types';
+import {
+	POLICY_CONTRACT_VERSION,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
+import type { PrivacyOptOut } from '../consent-record/types';
 import type {
 	InitContext,
-	InitResponse,
 	KernelOverrides,
 	KernelTransport,
-	SavePayload,
+	KernelUser,
 	SaveResult,
 } from '../types';
 import {
@@ -32,8 +35,15 @@ import {
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { fetchCachedGvl } from './gvl-cache';
 import { mapInitOutputToInitResponse } from './init-output';
+import type { TransportInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
-import { c15tVersionHeaders } from './version-header';
+import type { SubjectSavePayload } from './subject-body';
+import {
+	mapSubjectRecordToHydrationRecords,
+	reviveSubjectRecord,
+} from './subject-record';
+import type { TransportHydrationRecords } from './subject-record';
+import { c15tProtocolHeaders } from './version-header';
 
 const getDefined = <Value>(
 	value: Value,
@@ -109,6 +119,29 @@ export interface ManifestTransportOptions {
 	 * backend URL hostname for absolute URLs in server runtimes.
 	 */
 	domain?: string;
+
+	/**
+	 * Clock used to validate records read from the backend. Defaults to
+	 * `Date.now`. Inject for deterministic tests.
+	 */
+	now?: () => number;
+}
+
+/**
+ * The manifest transport's full surface. Same record boundary as the hosted
+ * transport, against the same backend routes.
+ */
+export interface ManifestKernelTransport extends KernelTransport {
+	init: (ctx: InitContext) => Promise<TransportInitResponse>;
+	save: (payload: SubjectSavePayload) => Promise<SaveResult>;
+	identify: (user: KernelUser, subjectId: string | null) => Promise<void>;
+	loadSubjectRecord: (
+		subjectId: string
+	) => Promise<TransportHydrationRecords | null>;
+	recordPrivacyOptOut: (
+		directive: PrivacyOptOut,
+		subjectId: string | null
+	) => Promise<void>;
 }
 
 const trimSlash = function trimSlash(url: string): string {
@@ -179,11 +212,29 @@ const shouldFetchGvl = function shouldFetchGvl(
 	manifest: ConsentManifest,
 	payload: InitOutput
 ): boolean {
+	const model =
+		payload.policyResolution?.status === 'matched'
+			? payload.policyResolution.policy.model
+			: undefined;
 	return (
 		manifest.iab?.enabled === true &&
 		manifest.iab.gvl !== undefined &&
-		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
+		model === 'iab'
 	);
+};
+
+/**
+ * A `SaveResult` from the backend's answer. Success is the HTTP status; the
+ * 2.x body has no `ok` and must not be read as one.
+ */
+const toSaveResult = function toSaveResult(data: unknown): SaveResult {
+	const subjectId =
+		typeof data === 'object' &&
+		data !== null &&
+		typeof (data as { subjectId?: unknown }).subjectId === 'string'
+			? (data as { subjectId: string }).subjectId
+			: undefined;
+	return subjectId === undefined ? { ok: true } : { ok: true, subjectId };
 };
 
 const defaultFetchGvl = function defaultFetchGvl(input: {
@@ -193,7 +244,7 @@ const defaultFetchGvl = function defaultFetchGvl(input: {
 }): Promise<GlobalVendorList | null> {
 	return fetchCachedGvl({
 		fetch: input.fetch,
-		headers: c15tVersionHeaders,
+		headers: c15tProtocolHeaders,
 		label: 'c15t manifest transport',
 		language: input.language,
 		url: input.reference.url,
@@ -231,7 +282,7 @@ const defaultFetchGvl = function defaultFetchGvl(input: {
  */
 export const createManifestTransport = function createManifestTransport(
 	options: ManifestTransportOptions
-): KernelTransport {
+): ManifestKernelTransport {
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
 	if (!fetchImpl) {
 		throw new Error(
@@ -247,6 +298,22 @@ export const createManifestTransport = function createManifestTransport(
 	const backendURL = deriveBackendURL(options);
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(backendURL, options.domain);
+	const now = options.now ?? Date.now;
+	const jsonHeaders = {
+		accept: 'application/json',
+		'content-type': 'application/json',
+		...c15tProtocolHeaders,
+	};
+	const requireBackendURL = function requireBackendURL(what: string): string {
+		if (!backendURL) {
+			throw new Error(
+				`createManifestTransport: \`backendURL\` is required to ${what} when using an inline manifest without \`manifestURL\`.`
+			);
+		}
+		return backendURL;
+	};
+	const subjectURL = (subjectId: string): string =>
+		`${requireBackendURL('read a subject')}/subjects/${encodeURIComponent(subjectId)}`;
 	let manifestPromise: Promise<ConsentManifest> | undefined;
 	let lastDecisionInputs: RememberedDecisionInputs | undefined =
 		options.initialInit
@@ -258,31 +325,61 @@ export const createManifestTransport = function createManifestTransport(
 			return Promise.resolve(options.manifest);
 		}
 		if (!manifestPromise) {
+			// Cached on success only. A rejected fetch is dropped so the kernel's
+			// init retry fetches again instead of replaying the same failure.
 			manifestPromise = (async () => {
-				const response = await fetchImpl(getDefined(options.manifestURL), {
-					credentials,
-					headers: {
-						accept: 'application/json',
-						...c15tVersionHeaders,
-						...options.headers,
-					},
-					method: 'GET',
-				});
+				try {
+					const response = await fetchImpl(getDefined(options.manifestURL), {
+						credentials,
+						headers: {
+							accept: 'application/json',
+							...c15tProtocolHeaders,
+							...options.headers,
+						},
+						method: 'GET',
+					});
 
-				if (!response.ok) {
-					throw new Error(
-						`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
-					);
+					if (!response.ok) {
+						throw new Error(
+							`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+						);
+					}
+
+					return (await response.json()) as ConsentManifest;
+				} catch (error) {
+					manifestPromise = undefined;
+					throw error;
 				}
-
-				return (await response.json()) as ConsentManifest;
 			})();
 		}
 		return manifestPromise;
 	};
 
 	return {
-		async init(ctx: InitContext): Promise<InitResponse> {
+		async identify(user, subjectId): Promise<void> {
+			if (!subjectId) {
+				// No server subject to link. The identity stays in the kernel and
+				// travels with the next save; nothing is owed to the network. Same
+				// contract as the hosted transport.
+				return;
+			}
+			const response = await fetchImpl(subjectURL(subjectId), {
+				body: JSON.stringify({
+					externalId: user.externalId,
+					identityProvider: user.identityProvider,
+				}),
+				credentials,
+				headers: jsonHeaders,
+				method: 'PATCH',
+			});
+			if (!response.ok) {
+				throw new Error(
+					`c15t manifest transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				);
+			}
+		},
+
+		async init(ctx: InitContext): Promise<TransportInitResponse> {
 			const manifest = await getManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
 			const payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
@@ -299,29 +396,75 @@ export const createManifestTransport = function createManifestTransport(
 			}
 
 			lastDecisionInputs = rememberDecisionInputs(payload, inputs.gpc);
-			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs));
+			// Local resolution always produces the v3 wire; the manifest's own
+			// schema version decides matched, lifted, or failed inside it.
+			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs), {
+				producerContract: POLICY_CONTRACT_VERSION,
+			});
 		},
 
-		async save(payload: SavePayload): Promise<SaveResult> {
-			if (!backendURL) {
+		async loadSubjectRecord(
+			subjectId
+		): Promise<TransportHydrationRecords | null> {
+			const response = await fetchImpl(subjectURL(subjectId), {
+				credentials,
+				headers: { accept: 'application/json', ...c15tProtocolHeaders },
+				method: 'GET',
+			});
+			if (response.status === 404) {
+				return null;
+			}
+			if (!response.ok) {
 				throw new Error(
-					'createManifestTransport: `backendURL` is required to save when using an inline manifest without `manifestURL`.'
+					`c15t manifest transport: /subjects/:id responded ${response.status} ${response.statusText}`
 				);
 			}
+			const record = reviveSubjectRecord(await response.json());
+			if (!record) {
+				throw new Error(
+					'c15t manifest transport: /subjects/:id returned an unreadable record'
+				);
+			}
+			return mapSubjectRecordToHydrationRecords(record, { now: now() });
+		},
 
-			const response = await fetchImpl(`${backendURL}/subjects`, {
-				body: JSON.stringify({
-					...buildSubjectPostBody(payload, { domain }),
-					...buildDecisionAssertion(payload, lastDecisionInputs),
-				}),
-				credentials,
-				headers: {
-					accept: 'application/json',
-					'content-type': 'application/json',
-					...c15tVersionHeaders,
-				},
-				method: 'POST',
-			});
+		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
+			if (!subjectId) {
+				return;
+			}
+			const response = await fetchImpl(
+				`${subjectURL(subjectId)}/privacy-directives`,
+				{
+					body: JSON.stringify({
+						categories: [...directive.categories],
+						recordedAt: directive.recordedAt,
+						source: directive.source,
+					}),
+					credentials,
+					headers: jsonHeaders,
+					method: 'POST',
+				}
+			);
+			if (!response.ok) {
+				throw new Error(
+					`c15t manifest transport: /subjects/:id/privacy-directives responded ${response.status} ${response.statusText}`
+				);
+			}
+		},
+
+		async save(payload): Promise<SaveResult> {
+			const response = await fetchImpl(
+				`${requireBackendURL('save')}/subjects`,
+				{
+					body: JSON.stringify({
+						...buildSubjectPostBody(payload, { domain }),
+						...buildDecisionAssertion(payload, lastDecisionInputs),
+					}),
+					credentials,
+					headers: jsonHeaders,
+					method: 'POST',
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(
@@ -329,7 +472,7 @@ export const createManifestTransport = function createManifestTransport(
 				);
 			}
 
-			return (await response.json()) as SaveResult;
+			return toSaveResult(await response.json());
 		},
 	};
 };

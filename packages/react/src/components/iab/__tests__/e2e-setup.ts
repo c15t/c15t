@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E Test Setup for IAB TCF 2.3 Components
  *
@@ -6,13 +7,13 @@
  *
  * @packageDocumentation
  */
-
 import { vi } from 'vitest';
 
 import {
 	createDeferredPromise,
 	createVoidDeferredPromise,
 } from '~/__tests__/deferred-promise';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
 
@@ -231,9 +232,13 @@ export const defaultProviderIABOptions: ConsentProviderOptions = {
 		gvl: mockGVL,
 	},
 	mode: offline(),
-	offlinePolicy: {
-		policy: { id: 'iab_default', model: 'iab' },
-	},
+	prefetch: policyFixture(undefined, {
+		categories: undefined,
+		id: 'iab_default',
+		model: 'iab',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	}),
 };
 
 /**
@@ -305,21 +310,9 @@ export const waitForElementRemoved = function waitForElementRemoved(
 /**
  * Gets consent from localStorage
  */
-export const getStoredConsent = function getStoredConsent(): {
-	consents?: Record<string, boolean>;
-	consentInfo?: { time: number; subjectId: string };
-	iabCustomVendorConsents?: Record<string, boolean>;
-	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
-} | null {
-	const stored = window.localStorage.getItem('c15t');
-	if (!stored) {
-		return null;
-	}
-	try {
-		return JSON.parse(stored);
-	} catch {
-		return null;
-	}
+export const getStoredConsent = function getStoredConsent() {
+	const { records } = readStoredRecords(undefined, Date.now());
+	return records.choice ? records : null;
 };
 
 /**

@@ -6,17 +6,17 @@ import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
 
+import { artifactBudgets, bundleBudgets } from '@c15t/benchmarking/budgets';
+import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
-	artifactBudgets,
-	BENCHMARK_SCHEMA_VERSION,
-	bundleBudgets,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking';
-import type { BenchmarkResult } from '@c15t/benchmarking';
+} from '@c15t/benchmarking/utils';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -68,6 +68,7 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 // entry benchmarks for transport-level comparisons.
 const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/': 'baseline',
+	'/core-only': 'core-only',
 	'/css-banner-modules': 'css-banner-modules',
 	'/css-iab-lazy': 'css-iab-lazy',
 	'/css-iab-modules': 'css-iab-modules',
@@ -352,6 +353,7 @@ const main = async function main() {
 			environment: getEnvironment(),
 			fixture: routeFixture(route),
 			framework: frameworkForRoute(route),
+			metadata: { gitDirty: safeGitDirty() },
 			metrics: [
 				summarizeMetric('gzipSize', 'bytes', [route.totalGzip]),
 				summarizeMetric('jsGzipSize', 'bytes', [route.jsGzip]),
@@ -391,6 +393,7 @@ const main = async function main() {
 				themeComplexity: 'minimal',
 			},
 			framework: 'core',
+			metadata: { gitDirty: safeGitDirty() },
 			metrics: [
 				summarizeMetric('c15t', 'bytes', [coreTarball.size ?? 0]),
 				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size ?? 0]),

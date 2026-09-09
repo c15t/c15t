@@ -1,27 +1,13 @@
 'use client';
 
-/**
- * Consent draft — local UI state for preference-center-style flows.
- *
- * The kernel's `consents` is the single source of truth for "what's
- * actually in effect" (what gates scripts, blockers, iframes). But
- * preference-center UIs need a staging layer: the user ticks checkboxes
- * to build up a draft choice, then commits via "Save" — cancel or close
- * should discard the draft without touching the kernel.
- *
- * This module provides that staging primitive:
- *
- *   <ConsentDraftProvider>     — scopes a shared draft across siblings
- *   useConsentDraft()          — read + mutate + commit the current draft
- *
- * The draft state lives in React state (shared via context when the
- * provider is used). It never writes to the kernel until the caller
- * invokes `save()`. At commit, the draft flushes through
- * `kernel.commands.save(values)` and resets itself to a fresh copy of
- * the kernel's new consents.
- */
-
-import type { AllConsentNames, ConsentState } from '@c15t/core';
+import type {
+	AllConsentNames,
+	ConsentKernel,
+	ConsentSnapshot,
+	ConsentState,
+	SaveResult,
+	SaveInput,
+} from '@c15t/core';
 import {
 	createContext,
 	useCallback,
@@ -33,258 +19,294 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
-import { KernelContext } from './context';
+import { KernelContext, ProviderServicesContext } from './context';
+import { useUIConfig } from './ui-config-context';
+import { saveConsentUI } from './ui-save';
 
+/** A local, unmasked selection, committed only by an explicit save. */
 export interface ConsentDraftHandle {
-	/** Current draft values. Starts identical to the kernel's consents. */
 	values: Readonly<ConsentState>;
-	/** Has the draft diverged from the kernel's current consents? */
+	displayedCategories: readonly AllConsentNames[];
 	isDirty: boolean;
-	/** Update a single category in the draft. Does not touch the kernel. */
+	/** A material policy change requires reset and review before saving. */
+	isStale: boolean;
 	set: (category: AllConsentNames, value: boolean) => void;
-	/** Replace the whole draft with a partial update. */
 	update: (patch: Partial<ConsentState>) => void;
-	/** Select every category (except stays as-is for necessary). */
 	acceptAll: () => void;
-	/** Flip every category to false except `necessary`. */
 	rejectAll: () => void;
-	/** Commit the draft through `kernel.commands.save(values)`. */
-	save: () => Promise<void>;
-	/** Reseed the draft from the kernel's current consents. */
+	save: () => Promise<SaveResult>;
 	reset: () => void;
 }
-
-interface DraftStore {
-	getSnapshot: () => Readonly<ConsentState>;
-	subscribe: (listener: () => void) => () => void;
-	setCategory: (category: AllConsentNames, value: boolean) => void;
-	replace: (patch: Partial<ConsentState>) => void;
-	overwrite: (next: ConsentState) => void;
+interface DraftSnapshot {
+	values: ConsentState;
+	displayedCategories: readonly AllConsentNames[];
+	isDirty: boolean;
+	isStale: boolean;
 }
-
+const seed = function seed(
+	snapshot: ConsentSnapshot,
+	defaults?: Partial<ConsentState>
+): ConsentState {
+	const values: ConsentState = {
+		experience: false,
+		functionality: false,
+		marketing: false,
+		measurement: false,
+		necessary: true,
+	};
+	for (const category of snapshot.policyRule.scope) {
+		values[category] =
+			snapshot.explicitChoice?.categories[category]?.value ??
+			defaults?.[category] ??
+			(snapshot.policyRule.model === 'opt-out' ||
+				snapshot.policyRule.preselectedCategories.includes(category));
+	}
+	return values;
+};
 const createDraftStore = function createDraftStore(
-	initial: ConsentState
-): DraftStore {
-	let current: ConsentState = { ...initial };
+	kernel: ConsentKernel,
+	defaults?: Partial<ConsentState>
+) {
+	let revision = 0;
+	let saveSequence = 0;
+	let source = kernel.getSnapshot();
+	let base = seed(source, defaults);
+	let { fingerprint } = source.evaluationPolicy.choice;
+	let current: DraftSnapshot = {
+		displayedCategories: ['necessary', ...source.policyRule.scope],
+		isDirty: false,
+		isStale: false,
+		values: base,
+	};
 	const listeners = new Set<() => void>();
-	const notify = function notify(): void {
-		for (const l of listeners) {
-			l();
+	const publish = (next: DraftSnapshot) => {
+		current = next;
+		for (const listener of listeners) {
+			listener();
+		}
+	};
+	const reset = () => {
+		revision += 1;
+		source = kernel.getSnapshot();
+		base = seed(source, defaults);
+		({ fingerprint } = source.evaluationPolicy.choice);
+		publish({
+			displayedCategories: ['necessary', ...source.policyRule.scope],
+			isDirty: false,
+			isStale: false,
+			values: base,
+		});
+	};
+	const update = (patch: Partial<ConsentState>) => {
+		const values = { ...current.values };
+		let changed = false;
+		for (const category of current.displayedCategories) {
+			if (
+				category !== 'necessary' &&
+				typeof patch[category] === 'boolean' &&
+				values[category] !== patch[category]
+			) {
+				values[category] = patch[category];
+				changed = true;
+			}
+		}
+		if (changed) {
+			revision += 1;
+			publish({
+				...current,
+				isDirty: current.displayedCategories.some(
+					(category) => values[category] !== base[category]
+				),
+				values,
+			});
+		}
+	};
+	const sync = () => {
+		const next = kernel.getSnapshot();
+		if (
+			source.explicitChoice === next.explicitChoice &&
+			source.policyRule === next.policyRule &&
+			source.evaluationPolicy === next.evaluationPolicy
+		) {
+			return;
+		}
+		const material = fingerprint !== next.evaluationPolicy.choice.fingerprint;
+		source = next;
+		if (!current.isDirty) {
+			reset();
+		} else if (material && !current.isStale) {
+			publish({ ...current, isStale: true });
 		}
 	};
 	return {
-		getSnapshot: () => current,
-		overwrite(next) {
-			current = { ...next };
-			notify();
+		acceptAll() {
+			update(
+				Object.fromEntries(
+					current.displayedCategories.map((category) => [category, true])
+				)
+			);
 		},
-		replace(patch) {
-			let changed = false;
-			const next = { ...current };
-			for (const key of Object.keys(patch) as AllConsentNames[]) {
-				const value = patch[key];
-				if (typeof value === 'boolean' && next[key] !== value) {
-					next[key] = value;
-					changed = true;
+		connect() {
+			sync();
+			return kernel.subscribe(sync);
+		},
+		getSnapshot: () => current,
+		rejectAll() {
+			update(
+				Object.fromEntries(
+					current.displayedCategories.map((category) => [category, false])
+				)
+			);
+		},
+		reset,
+		async save(
+			input?: SaveInput,
+			categories?: readonly AllConsentNames[],
+			onSuccess?: () => void
+		): Promise<SaveResult> {
+			// Guard against changes between the render and the click as well.
+			if (
+				fingerprint !==
+					kernel.getSnapshot().evaluationPolicy.choice.fingerprint ||
+				current.isStale
+			) {
+				publish({ ...current, isStale: true });
+				return { ok: false };
+			}
+			const patch: Partial<ConsentState> = {};
+			const selection = new Set(categories ?? current.displayedCategories);
+			for (const category of current.displayedCategories) {
+				if (category !== 'necessary' && selection.has(category)) {
+					patch[category] = current.values[category];
 				}
 			}
-			if (!changed) {
-				return;
+			saveSequence += 1;
+			const sequence = saveSequence;
+			const pending = kernel.commands.save(input ?? patch, { categories });
+			// A clean draft can reseed synchronously from the local receipt.
+			const savedRevision = revision;
+			const result = await pending;
+			if (
+				result.ok &&
+				sequence === saveSequence &&
+				revision === savedRevision &&
+				!current.isStale &&
+				fingerprint === kernel.getSnapshot().evaluationPolicy.choice.fingerprint
+			) {
+				reset();
+				onSuccess?.();
 			}
-			current = next;
-			notify();
+			return result;
 		},
-		setCategory(category, value) {
-			if (current[category] === value) {
-				return;
-			}
-			current = { ...current, [category]: value };
-			notify();
+		set(category: AllConsentNames, value: boolean) {
+			update({ [category]: value });
 		},
-		subscribe(listener) {
+		subscribe(listener: () => void) {
 			listeners.add(listener);
 			return () => {
 				listeners.delete(listener);
 			};
 		},
+		update,
 	};
 };
-
-/**
- * Context for a shared draft store. When provided, sibling components
- * (banner + dialog, for example) see the same draft.
- */
+type DraftStore = ReturnType<typeof createDraftStore>;
 const DraftContext = createContext<DraftStore | null>(null);
-
+const useKernel = function useKernel() {
+	const kernel = useContext(KernelContext);
+	if (!kernel) {
+		throw new Error('Consent drafts require a ConsentProvider.');
+	}
+	return kernel;
+};
 export interface ConsentDraftProviderProps {
 	children: ReactNode;
-	/** Override the initial draft values. Defaults to kernel's current consents. */
+	/** Defaults apply only to categories without an explicit receipt. */
 	initial?: Partial<ConsentState>;
 }
-
 export const ConsentDraftProvider = ({
 	children,
 	initial,
 }: ConsentDraftProviderProps) => {
-	const kernel = useContext(KernelContext);
-	const parentStore = useContext(DraftContext);
-	if (!kernel) {
-		throw new Error(
-			'ConsentDraftProvider: no kernel in context. Wrap with <ConsentProvider options={...}> first.'
-		);
-	}
-
-	const shouldUseParentStore = Boolean(parentStore && !initial);
-
-	// Seed the store exactly once. `initial` wins, then kernel's current consents.
-	const [store, setStore] = useState(() => {
-		const base = kernel.getSnapshot().consents as ConsentState;
-		const seed: ConsentState = initial ? { ...base, ...initial } : base;
-		return createDraftStore(seed);
-	});
-	void setStore;
-
-	// Re-seed whenever the kernel's consents change externally (e.g.
-	// another tab wrote to storage and persistence hydrated). Only fires
-	// when the draft is NOT dirty — otherwise the user's in-progress
-	// edits win until they save or reset.
-	//
-	// "Dirty" here means "the user modified the draft relative to the
-	// PREVIOUS kernel state". We compare the draft against the old
-	// snapshot (what it was seeded from), not the new one — otherwise
-	// every external kernel change would look "dirty" simply because the
-	// kernel moved on.
-	useEffect(() => {
-		if (shouldUseParentStore) {
-			return;
-		}
-		let lastKernelConsents = kernel.getSnapshot().consents as ConsentState;
-		return kernel.subscribe((snap) => {
-			const nextKernelConsents = snap.consents as ConsentState;
-			if (nextKernelConsents === lastKernelConsents) {
-				return;
-			}
-			const drafts = store.getSnapshot();
-			let dirty = false;
-			for (const key of Object.keys(drafts) as AllConsentNames[]) {
-				if (drafts[key] !== lastKernelConsents[key]) {
-					dirty = true;
-					break;
-				}
-			}
-			lastKernelConsents = nextKernelConsents;
-			if (!dirty) {
-				store.overwrite(nextKernelConsents);
-			}
-		});
-	}, [kernel, shouldUseParentStore, store]);
-
-	if (shouldUseParentStore) {
-		return children;
-	}
-
+	const kernel = useKernel();
+	const parent = useContext(DraftContext);
+	const { presentation } = useUIConfig();
+	const [local, setLocal] = useState(() =>
+		createDraftStore(kernel, initial ?? presentation?.preferences?.defaults)
+	);
+	void setLocal;
+	const store = parent && !initial ? parent : local;
+	useEffect(() => store.connect(), [store]);
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
 	);
 };
-
-const useKernelOrThrow = function useKernelOrThrow() {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'useConsentDraft: no kernel in context. Wrap with <ConsentProvider options={...}>.'
-		);
-	}
-	return kernel;
-};
-
-/**
- * Read + mutate the current consent draft. When used inside a
- * `<ConsentDraftProvider>`, draft state is shared across siblings.
- * Without a provider, a fresh local draft is created per hook call.
- */
-export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
-	const kernel = useKernelOrThrow();
+const useDraftStore = function useDraftStore() {
+	const kernel = useKernel();
 	const shared = useContext(DraftContext);
-
-	// If no provider is in scope, create a component-local draft store.
-	// This is fine for single-dialog usage.
+	const { presentation } = useUIConfig();
 	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel.getSnapshot().consents as ConsentState)
+		createDraftStore(kernel, presentation?.preferences?.defaults)
 	);
 	void setLocal;
 	const store = shared ?? local;
+	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
+	return store;
+};
 
-	const values = useSyncExternalStore(
-		(listener) => store.subscribe(listener),
-		() => store.getSnapshot(),
-		() => store.getSnapshot()
-	);
-
-	const kernelConsents = useSyncExternalStore(
-		(listener) => kernel.subscribe(listener),
-		() => kernel.getSnapshot().consents as ConsentState,
-		() => kernel.getServerSnapshot().consents as ConsentState
-	);
-
-	const isDirty = useMemo(() => {
-		for (const key of Object.keys(values) as AllConsentNames[]) {
-			if (values[key] !== kernelConsents[key]) {
-				return true;
-			}
-		}
-		return false;
-	}, [values, kernelConsents]);
-
-	const set = useCallback(
-		(category: AllConsentNames, value: boolean) => {
-			store.setCategory(category, value);
+const useSaveAction = function useSaveAction(store: DraftStore) {
+	const kernel = useKernel();
+	const services = useContext(ProviderServicesContext);
+	return useCallback(
+		(input?: SaveInput) => {
+			let current = false;
+			return saveConsentUI(
+				kernel,
+				() =>
+					store.save(input, services?.getConsentCategories(), () => {
+						current = true;
+					}),
+				() => current
+			);
 		},
-		[store]
+		[kernel, store, services]
 	);
+};
 
-	const update = useCallback(
-		(patch: Partial<ConsentState>) => {
-			store.replace(patch);
-		},
-		[store]
+const useDraftHandle = function useDraftHandle(
+	store: DraftStore
+): ConsentDraftHandle {
+	const snapshot = useSyncExternalStore(
+		store.subscribe,
+		store.getSnapshot,
+		store.getSnapshot
 	);
+	return useMemo(
+		() => ({
+			...snapshot,
+			acceptAll: store.acceptAll,
+			rejectAll: store.rejectAll,
+			reset: store.reset,
+			save: store.save,
+			set: store.set,
+			update: store.update,
+		}),
+		[snapshot, store]
+	);
+};
 
-	const acceptAll = useCallback(() => {
-		const next: ConsentState = { ...values };
-		for (const key of Object.keys(next) as AllConsentNames[]) {
-			next[key] = true;
-		}
-		store.overwrite(next);
-	}, [store, values]);
+/** Internal UI save path shared by stock controls and headless actions. */
+export const useConsentSaveAction = function useConsentSaveAction() {
+	return useSaveAction(useDraftStore());
+};
 
-	const rejectAll = useCallback(() => {
-		const next: ConsentState = { ...values };
-		for (const key of Object.keys(next) as AllConsentNames[]) {
-			next[key] = key === 'necessary';
-		}
-		store.overwrite(next);
-	}, [store, values]);
+/** Keep the compatibility manager selection and its save on the same draft. */
+export const useConsentManagerDraft = function useConsentManagerDraft() {
+	const store = useDraftStore();
+	return { draft: useDraftHandle(store), save: useSaveAction(store) };
+};
 
-	const save = useCallback(async () => {
-		await kernel.commands.save(store.getSnapshot());
-		// After commit, reseed the draft from the kernel's newly-current
-		// consents — the commit might have been modified by policy scope.
-		store.overwrite(kernel.getSnapshot().consents as ConsentState);
-	}, [kernel, store]);
-
-	const reset = useCallback(() => {
-		store.overwrite(kernel.getSnapshot().consents as ConsentState);
-	}, [kernel, store]);
-
-	return {
-		acceptAll,
-		isDirty,
-		rejectAll,
-		reset,
-		save,
-		set,
-		update,
-		values,
-	};
+/** Read and edit displayed choices without replacing masked effective permissions. */
+export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
+	return useDraftHandle(useDraftStore());
 };

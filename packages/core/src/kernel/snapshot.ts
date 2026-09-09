@@ -1,23 +1,42 @@
 /**
  * Snapshot construction and freezing.
  *
- * Pure: no DOM, no window, no network, no closure capture. Every helper
- * here takes plain data in and returns plain data out. The kernel index
- * holds the mutable `let snapshot` cell; this file only produces values.
+ * Pure: no DOM, no window, no network, no hashing, no timers. The initial
+ * snapshot evaluates the supplied records against the supplied (or
+ * precomputed) policy resolution at `config.now`, so a server render and a
+ * client construction with the same inputs produce the same revision-0
+ * snapshot.
  */
 
+import type { PolicyResolution } from '@c15t/schema/types';
+
+import { evaluateConsentRecord } from '../consent-record/evaluate';
+import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
+import type {
+	ExplicitChoice,
+	OptionalConsentCategory,
+} from '../consent-record/types';
 import { allConsentNames } from '../consent/consent-types';
-import { applyPolicyToConsents, deriveActiveUI, deriveModel } from '../policy';
+import { deepFreeze } from '../libs/freeze-data';
+import {
+	buildEvaluationPolicy,
+	deriveActiveUI,
+	deriveModel,
+	resolveEffectivePolicy,
+} from '../policy';
+import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelConfig,
+	KernelIABAuthority,
 	KernelIABState,
 } from '../types';
+import { validateHydrationRecords } from './records';
 
 /**
- * Default consent state. `necessary` is always granted (legal floor);
- * everything else starts denied so kernels are safe before init runs.
+ * Default effective permissions before any evaluation. `necessary` is
+ * always granted; everything else starts denied.
  */
 export const DEFAULT_CONSENTS: ConsentState = {
 	experience: false,
@@ -32,6 +51,7 @@ export const DEFAULT_CONSENTS: ConsentState = {
  * state and when folding partial IAB patches onto a previously-null slice.
  */
 export const DEFAULT_IAB: KernelIABState = {
+	authority: null,
 	cmpId: null,
 	customVendors: [],
 	enabled: false,
@@ -44,35 +64,99 @@ export const DEFAULT_IAB: KernelIABState = {
 	vendorLegitimateInterests: {},
 };
 
+const UNCONFIGURED: PolicyResolution = Object.freeze({
+	policy: null,
+	status: 'unconfigured',
+});
+
+// The fallback evaluation without records has no expiry or directive deadline.
+// Its permissions and prompt are independent of the clock and GPC because
+// the fallback has no GPC deny mapping. Compute the real evaluator once and
+// freeze its result before sharing it between independently owned snapshots.
+const DEFAULT_EFFECTIVE_POLICY = resolveEffectivePolicy(UNCONFIGURED);
+const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
+	DEFAULT_EFFECTIVE_POLICY
+);
+const EMPTY_DIRECTIVES: ConsentSnapshot['optOutDirectives'] = Object.freeze([]);
+const EMPTY_OVERRIDES = Object.freeze({});
+const DEFAULT_PRIVACY_SIGNALS: ConsentSnapshot['privacySignals'] =
+	Object.freeze({
+		gpc: Object.freeze({ active: false, detected: false, override: undefined }),
+	});
+const DEFAULT_RECORD_EVALUATION = evaluateConsentRecord({
+	choice: null,
+	noticeDismissal: null,
+	now: 0,
+	optOuts: EMPTY_DIRECTIVES,
+	policy: DEFAULT_EVALUATION_POLICY,
+});
+deepFreeze(DEFAULT_RECORD_EVALUATION);
+
 /**
- * Merge user-supplied initial consents over the default consent state.
- *
- * Only boolean values for known category names are accepted; anything
- * else is dropped silently. This guards against config typos surfacing
- * later as runtime gating bugs.
+ * Staged draft values from a `Partial<ConsentState>`. Only own boolean
+ * values for optional categories are kept; `necessary` and unknown keys
+ * are dropped. Returns `null` when nothing usable was supplied.
+ */
+export const buildDraft = function buildDraft(
+	input: Partial<ConsentState> | undefined
+): PresentedSelection | null {
+	if (!input || typeof input !== 'object') {
+		return null;
+	}
+	const draft: PresentedSelection = {};
+	let any = false;
+	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+		if (
+			Object.hasOwn(input, category) &&
+			typeof input[category] === 'boolean'
+		) {
+			draft[category] = input[category];
+			any = true;
+		}
+	}
+	return any ? draft : null;
+};
+
+/**
+ * Merge user-supplied booleans over the default state. Only used
+ * to seed drafts; permissions are never built from it.
  */
 export const buildInitialConsents = function buildInitialConsents(
 	initial: Partial<ConsentState> | undefined
 ): ConsentState {
-	if (!initial) {
-		return { ...DEFAULT_CONSENTS };
-	}
 	const merged: ConsentState = { ...DEFAULT_CONSENTS };
+	if (!initial) {
+		return merged;
+	}
 	for (const name of allConsentNames) {
-		if (name in initial && typeof initial[name] === 'boolean') {
+		if (Object.hasOwn(initial, name) && typeof initial[name] === 'boolean') {
 			merged[name] = initial[name] as boolean;
 		}
 	}
+	merged.necessary = true;
 	return merged;
 };
 
 /**
- * Merge a user-supplied initial IAB slice over the IAB defaults.
- *
- * Returns `null` when no IAB seed was provided — the IAB slice on the
- * snapshot is `null`-by-default so consumers can detect "IAB not in play"
- * without checking `enabled`.
+ * Merge a user-supplied initial IAB slice over the IAB defaults. Returns
+ * `null` when no IAB seed was provided.
  */
+export const copyIABAuthority = function copyIABAuthority(
+	authority: KernelIABAuthority | null
+): KernelIABAuthority | null {
+	if (!authority) {
+		return null;
+	}
+	return {
+		...authority,
+		purposeConsents: { ...authority.purposeConsents },
+		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
+		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
+		vendorConsents: { ...authority.vendorConsents },
+		vendorLegitimateInterests: { ...authority.vendorLegitimateInterests },
+	};
+};
+
 export const buildInitialIab = function buildInitialIab(
 	initial: Partial<KernelIABState> | undefined
 ): KernelIABState | null {
@@ -82,116 +166,176 @@ export const buildInitialIab = function buildInitialIab(
 	return {
 		...DEFAULT_IAB,
 		...initial,
+		authority: copyIABAuthority(initial.authority ?? null),
 	};
+};
+
+const freezeChoice = function freezeChoice(
+	choice: ExplicitChoice | null
+): void {
+	if (!choice || Object.isFrozen(choice)) {
+		return;
+	}
+	for (const category of Object.keys(
+		choice.categories
+	) as OptionalConsentCategory[]) {
+		const decision = choice.categories[category];
+		if (decision) {
+			Object.freeze(decision.basis);
+			Object.freeze(decision);
+		}
+	}
+	Object.freeze(choice.categories);
+	Object.freeze(choice);
 };
 
 /**
  * Deep-freeze a snapshot in place and return it typed as `ConsentSnapshot`.
- *
- * Every nested object on the snapshot is frozen so subscribers can do
- * `===` reference checks at any depth and trust that the value won't
- * mutate underneath them. Frozen primitives are no-ops.
- *
- * Mutates the input object (freezes it) but returns the same reference.
+ * Nested objects are frozen so subscribers can trust `===` at any depth.
  */
 export const freezeSnapshot = function freezeSnapshot(
 	snapshot: ConsentSnapshot
 ): ConsentSnapshot {
-	Object.freeze(snapshot.consents);
-	Object.freeze(snapshot.overrides);
-	if (snapshot.user) {
-		Object.freeze(snapshot.user);
+	deepFreeze(snapshot.iab?.authority);
+	// Only skip branches whose identity proves they are our frozen defaults.
+	// Caller-owned objects still take the full freezing path.
+	if (snapshot.effectivePermissions !== DEFAULT_RECORD_EVALUATION.permissions) {
+		Object.freeze(snapshot.effectivePermissions);
 	}
-	if (snapshot.translations) {
-		Object.freeze(snapshot.translations);
+	if (snapshot.overrides !== EMPTY_OVERRIDES) {
+		Object.freeze(snapshot.overrides);
 	}
-	if (snapshot.policy) {
-		Object.freeze(snapshot.policy);
+	if (
+		snapshot.promptRequirement !== DEFAULT_RECORD_EVALUATION.promptRequirement
+	) {
+		Object.freeze(snapshot.promptRequirement);
 	}
-	if (snapshot.policyDecision) {
-		Object.freeze(snapshot.policyDecision);
+	if (
+		snapshot.restrictions !== DEFAULT_RECORD_EVALUATION.restrictions &&
+		!Object.isFrozen(snapshot.restrictions)
+	) {
+		for (const reasons of Object.values(snapshot.restrictions)) {
+			Object.freeze(reasons);
+		}
+		Object.freeze(snapshot.restrictions);
 	}
-	if (snapshot.policyBanner) {
-		Object.freeze(snapshot.policyBanner);
+	if (snapshot.optOutDirectives !== EMPTY_DIRECTIVES) {
+		for (const directive of snapshot.optOutDirectives) {
+			Object.freeze(directive.categories);
+			Object.freeze(directive);
+		}
+		Object.freeze(snapshot.optOutDirectives);
 	}
-	if (snapshot.policyDialog) {
-		Object.freeze(snapshot.policyDialog);
+	if (snapshot.privacySignals !== DEFAULT_PRIVACY_SIGNALS) {
+		Object.freeze(snapshot.privacySignals.gpc);
+		Object.freeze(snapshot.privacySignals);
 	}
-	if (snapshot.iab) {
-		Object.freeze(snapshot.iab);
+	if (snapshot.resolution !== UNCONFIGURED) {
+		deepFreeze(snapshot.resolution);
 	}
-	if (snapshot.location) {
-		Object.freeze(snapshot.location);
+	if (snapshot.policyRule !== DEFAULT_EFFECTIVE_POLICY.rule) {
+		deepFreeze(snapshot.policyRule);
 	}
-	Object.freeze(snapshot.policyCategories);
+	if (snapshot.evaluationPolicy !== DEFAULT_EVALUATION_POLICY) {
+		deepFreeze(snapshot.evaluationPolicy);
+	}
+	freezeChoice(snapshot.explicitChoice as ExplicitChoice | null);
+	for (const nested of [
+		snapshot.noticeDismissal,
+		snapshot.subject,
+		snapshot.user,
+		snapshot.translations,
+
+		snapshot.iab,
+		snapshot.location,
+	]) {
+		if (nested) {
+			Object.freeze(nested);
+		}
+	}
 	return Object.freeze(snapshot) as ConsentSnapshot;
 };
 
 /**
  * Build the initial frozen snapshot from a kernel config.
  *
- * Steps:
- * 1. Materialize the IAB slice from `config.initialIab` (or `null`).
- * 2. Materialize the resolved policy from `config.initialPolicy`.
- * 3. Run policy derivations once so `model`, `activeUI`,
- *    `policyCategories`, and `policyScopeMode` are populated up-front.
- *    Without this an SSR consumer would see `null` model on the very
- *    first render before init resolves.
- * 4. Freeze and return.
- *
- * Pure — no side effects. Returns a snapshot at revision 0.
+ * Pure. Evaluates once at `config.now` (default `Date.now()`), using the
+ * precomputed resolution when supplied and the safe fallback otherwise.
+ * A pending policy keeps the first layer hidden until init finishes.
  */
-// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+// oxlint-disable-next-line complexity -- Construction reads every config field once in a fixed order.
 export const buildInitialSnapshot = function buildInitialSnapshot(
 	config: KernelConfig
 ): ConsentSnapshot {
-	const initialIab = buildInitialIab(config.initialIab);
-	const initialPolicy = config.initialPolicy
-		? { ...config.initialPolicy }
-		: null;
-	const initialModel = deriveModel(initialPolicy, initialIab?.enabled ?? false);
-	const initialHasConsented = config.initialHasConsented ?? false;
-	const initialPolicyResult = applyPolicyToConsents({
-		consents: buildInitialConsents(config.initialConsents),
-		gpc: config.initialOverrides?.gpc,
-		hasConsented: initialHasConsented,
-		policy: initialPolicy,
-	});
+	// One clock for validation and evaluation: an explicit config clock, else
+	// the clock the record seed was read with, else the wall clock.
+	const now = config.now ?? config.initialRecords?.now ?? Date.now();
+	const resolution = config.initialPolicyResolution ?? UNCONFIGURED;
+	const effective = resolveEffectivePolicy(resolution);
+	const evaluationPolicy = buildEvaluationPolicy(effective);
+	const policyPending = config.initialPolicyPending ?? false;
 
-	const initialPolicyProvisional = config.initialPolicyProvisional ?? false;
+	const validated = config.initialRecords
+		? validateHydrationRecords(config.initialRecords, now)
+		: null;
+	const records = validated?.ok === true ? validated.records : null;
+	const explicitChoice = records?.choice ?? null;
+	const noticeDismissal = records?.noticeDismissal ?? null;
+	const optOutDirectives = records?.optOutDirectives ?? EMPTY_DIRECTIVES;
+	const subject = records?.subject ?? null;
+
+	const iab = buildInitialIab(config.initialIab);
+	const override = config.initialOverrides?.gpc;
+	const detected = config.initialPrivacySignals?.gpc === true;
+	const privacySignals =
+		override === undefined && !detected
+			? DEFAULT_PRIVACY_SIGNALS
+			: { gpc: { active: override ?? detected, detected, override } };
+
+	const evaluation =
+		evaluationPolicy === DEFAULT_EVALUATION_POLICY &&
+		explicitChoice === null &&
+		noticeDismissal === null &&
+		optOutDirectives.length === 0
+			? DEFAULT_RECORD_EVALUATION
+			: evaluateConsentRecord({
+					choice: explicitChoice,
+					gpc: privacySignals.gpc.active,
+					noticeDismissal,
+					now,
+					optOuts: optOutDirectives,
+					policy: evaluationPolicy,
+				});
 
 	return freezeSnapshot({
-		// A provisional policy must not drive a visible surface — the copy
-		// and actions it would render can be replaced by the in-flight init
-		// (mid-read copy swap, CLS, consent recorded against a placeholder).
-		activeUI:
-			initialHasConsented || initialPolicyProvisional
-				? 'none'
-				: deriveActiveUI(initialModel, initialPolicy),
+		activeUI: deriveActiveUI({
+			policyPending,
+			promptRequirement: evaluation.promptRequirement,
+			resolution,
+		}),
 		branding: config.initialBranding ?? null,
-		consents: initialPolicyResult.consents,
-		hasConsented: initialHasConsented,
-		iab: initialIab,
-
+		effectivePermissions: evaluation.permissions,
+		evaluatedAt: now,
+		evaluationPolicy,
+		explicitChoice,
+		iab,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
-		model: initialModel,
-		overrides: { ...(config.initialOverrides ?? {}) },
-		policy: initialPolicy,
-		policyBanner: config.initialPolicy?.ui?.banner
-			? { ...config.initialPolicy.ui.banner }
-			: null,
-		policyCategories: initialPolicyResult.policyCategories,
-		policyDecision: config.initialPolicyDecision
-			? { ...config.initialPolicyDecision }
-			: null,
-		policyDialog: config.initialPolicy?.ui?.dialog
-			? { ...config.initialPolicy.ui.dialog }
-			: null,
-		policyProvisional: initialPolicyProvisional,
-		policyScopeMode: initialPolicyResult.policyScopeMode,
+		model: deriveModel(effective.rule, iab?.enabled ?? false),
+		nextDeadline: evaluation.nextDeadline,
+		noticeDismissal,
+		optOutDirectives,
+		overrides: config.initialOverrides
+			? { ...config.initialOverrides }
+			: EMPTY_OVERRIDES,
+		policyPending,
+		policyRule: effective.rule,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
+		privacySignals,
+		promptRequirement: evaluation.promptRequirement,
+		resolution,
+		restrictions: evaluation.restrictions,
 		revision: 0,
-		subjectId: config.initialSubjectId ?? null,
+		subject,
 		translations: config.initialTranslations
 			? { ...config.initialTranslations }
 			: null,

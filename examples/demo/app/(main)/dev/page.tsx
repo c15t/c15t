@@ -23,6 +23,12 @@ const devPages = [
 		href: '/policy-actions',
 		title: 'Policy actions',
 	},
+	{
+		description:
+			'Load a shipped policy preset, edit every rule field, and watch validation, fingerprints, geo resolution and the live runtime respond.',
+		href: '/policy',
+		title: 'Policy playground',
+	},
 ];
 
 const DevIndexPage = () => (

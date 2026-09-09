@@ -8,7 +8,10 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentBanner from '../../../packages/vue/src/runtime/components/consent-banner.vue';
 import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
-import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
+import {
+	storybookNoticeInit,
+	useStorybookConsent as setupStorybookConsent,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentBanner,
@@ -29,6 +32,62 @@ export const Default: Story = {
 			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner />',
+	}),
+};
+
+/** Opt-out notice: an underlined opt-out link beside the primary Accept All. */
+export const Notice: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner', undefined, storybookNoticeInit);
+		},
+		template: '<ConsentBanner /><ConsentManager />',
+	}),
+};
+
+/** Full-width edge bar pinned to the bottom of the viewport. */
+export const Bar: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template: '<ConsentBanner variant="bar" /><ConsentManager />',
+	}),
+};
+
+/** Compact corner chip for a choice prompt. */
+export const Widget: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template: '<ConsentBanner variant="widget" /><ConsentManager />',
+	}),
+};
+
+/** Centered blocking prompt: backdrop, scroll lock and focus trap. */
+export const Wall: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template: '<ConsentBanner variant="wall" /><ConsentManager />',
+	}),
+};
+
+/** The default card moved to the bottom center. */
+export const FloatingBottomCenter: Story = {
+	render: () => ({
+		components: { ConsentBanner, ConsentManager },
+		setup() {
+			setupStorybookConsent('banner');
+		},
+		template:
+			'<ConsentBanner variant="floating" position="bottom-center" /><ConsentManager />',
 	}),
 };
 

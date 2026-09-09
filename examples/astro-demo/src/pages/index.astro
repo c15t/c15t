@@ -19,7 +19,7 @@ const { c15t } = Astro.locals;
 			{
 				inputs: c15t.inputs,
 				model: c15t.snapshot.model,
-				policy: c15t.snapshot.policy?.id ?? null,
+				policy: c15t.snapshot.policyRule.id ?? null,
 				shouldShowBanner: c15t.shouldShowBanner,
 			},
 			null,

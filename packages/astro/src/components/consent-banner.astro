@@ -19,16 +19,7 @@
  * <ConsentBanner />
  * ```
  */
-import {
-	DEFAULT_POLICY_ACTION_LAYOUT,
-	defaultTranslationConfig,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	shouldFillPolicyActions,
-} from '@c15t/core';
+import {defaultTranslationConfig, resolveConsentPresentation} from '@c15t/core';
 import type { LegalLinks, TranslationsResponse } from '@c15t/core';
 import {
 	buildColorSchemeScript,
@@ -99,47 +90,75 @@ const colorSchemeScript = emitConfig
 
 const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
 const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
+// A notice prompt explains and points at the opt-out; it never asks.
+const notice = snapshot.policyRule.prompt === 'notice';
 const copy = {
 	accept: acceptButtonText ?? bundle.common?.acceptAll ?? fallback.common.acceptAll,
 	customize:
 		customizeButtonText ?? bundle.common?.customize ?? fallback.common.customize,
 	description:
-		description ?? bundle.cookieBanner?.description ?? fallback.cookieBanner.description,
+		description ??
+		(notice
+			? (bundle.cookieBanner?.noticeDescription ?? fallback.cookieBanner.noticeDescription)
+			: (bundle.cookieBanner?.description ?? fallback.cookieBanner.description)),
+	// A notice exists only under opt-out, where everything is already
+	// permitted, so the acknowledgement reads as "Accept All".
+	dismiss: acceptButtonText ?? bundle.common?.acceptAll ?? fallback.common.acceptAll,
 	reject: rejectButtonText ?? bundle.common?.rejectAll ?? fallback.common.rejectAll,
 	securedBy: bundle.common?.securedBy ?? fallback.common.securedBy,
-	title: title ?? bundle.cookieBanner?.title ?? fallback.cookieBanner.title,
+	title:
+		title ??
+		(notice
+			? (bundle.cookieBanner?.noticeTitle ?? fallback.cookieBanner.noticeTitle)
+			: (bundle.cookieBanner?.title ?? fallback.cookieBanner.title)),
+};
+const rightLabels: Record<string, string> = {
+	'opt-out': bundle.rights?.optOut ?? fallback.rights.optOut,
+	preferences: bundle.rights?.preferences ?? fallback.rights.preferences,
 };
 
 const textDirection = getTextDirection(snapshot.translations?.language);
 
 // Same policy-driven action resolution the Svelte and React banners use, so
 // an opt-out or IAB policy produces the same buttons in the same order.
-const allowedActions = resolvePolicyAllowedActions({
-	allowedActions: snapshot.policyBanner?.allowedActions,
-});
-const layout =
-	(snapshot.policyBanner?.layout?.length ?? 0) > 0
-		? snapshot.policyBanner?.layout
-		: DEFAULT_POLICY_ACTION_LAYOUT;
-const orderedActions = resolvePolicyOrderedActions({ allowedActions, layout });
-const actionGroups = resolvePolicyActionGroups({ allowedActions, layout });
-const direction = resolvePolicyDirection(snapshot.policyBanner?.direction);
-const primaryActions = resolvePolicyPrimaryActions({
-	orderedActions,
-	primaryActions:
-		(snapshot.policyBanner?.primaryActions?.length ?? 0) > 0
-			? (snapshot.policyBanner?.primaryActions ?? [])
-			: ['customize'],
-});
-const shouldFill = shouldFillPolicyActions({
+const presentation = resolveConsentPresentation({policy: snapshot.policyRule, presentation: c15t.options.presentation, surface: 'prompt'});
+const {
 	actionGroups,
+	blocking,
 	direction,
-	uiProfile: snapshot.policyBanner?.uiProfile,
-});
+	primaryActions,
+	shouldFillActions: shouldFill,
+	trapFocus,
+	uncoveredRights,
+	variant,
+} = presentation;
+// The same rule the React card uses: a trapping card is a modal dialog, a
+// non-trapping one a labelled region. The resolver already turns the trap off
+// for a notice and on for a blocking surface.
+const trapping = blocking || trapFocus;
+
+// A corner the host did not choose follows the text direction, the same
+// mirroring the React and Svelte roots apply; a host corner is kept as is.
+const mirrorCorner = function mirrorCorner(position: string): string {
+	if (position.endsWith('-left')) {
+		return position.replace(/-left$/u, '-right');
+	}
+	if (position.endsWith('-right')) {
+		return position.replace(/-right$/u, '-left');
+	}
+	return position;
+};
+const position =
+	textDirection === 'rtl' &&
+	presentation.positionSource === 'default' &&
+	(variant === 'floating' || variant === 'widget')
+		? mirrorCorner(presentation.position)
+		: presentation.position;
 
 const labels: Record<string, string> = {
 	accept: copy.accept,
 	customize: copy.customize,
+	dismiss: copy.dismiss,
 	reject: copy.reject,
 };
 
@@ -165,12 +184,26 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 
 {
+	shouldRender && blocking && (
+		<div
+			aria-hidden="true"
+			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
+			data-testid="consent-banner-overlay"
+		/>
+	)
+}
+
+{
 	shouldRender && (
 		<div
 			class={rootClass}
+			data-blocking={blocking ? 'true' : undefined}
 			data-c15t-visible="true"
-			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-model={snapshot.policyRule.model}
+			data-position={position}
+			data-prompt={snapshot.policyRule.prompt === 'none' ? undefined : snapshot.policyRule.prompt}
 			data-testid="consent-banner-root"
+			data-variant={variant}
 			dir={textDirection}
 			lang={snapshot.translations?.language}
 		>
@@ -186,10 +219,10 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal="true"
+					aria-modal={trapping ? "true" : undefined}
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
-					role="dialog"
+					role={trapping ? "dialog" : "region"}
 					tabindex="-1"
 				>
 					<div
@@ -229,6 +262,25 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 						data-split={actionGroups.length > 1 && !shouldFill ? 'true' : undefined}
 						data-testid="consent-banner-footer"
 					>
+						{uncoveredRights.length > 0 && (
+							<div
+								class={noStyle ? '' : styles.rights}
+								data-testid="consent-banner-rights"
+							>
+								{uncoveredRights.map((right) => (
+									<button
+										class={noStyle ? '' : styles.rightLink}
+										data-action="right"
+										data-c15t-action="customize"
+										data-right={right}
+										data-testid={`consent-banner-right-link-${right}`}
+										type="button"
+									>
+										{rightLabels[right] ?? right}
+									</button>
+								))}
+							</div>
+						)}
 						{actionGroups.map((group) => (
 							<div
 								class={noStyle ? '' : actionStyles.actionGroup}

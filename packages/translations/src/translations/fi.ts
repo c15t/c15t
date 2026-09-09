@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Hyväksy kaikki',
 		close: 'Sulje',
 		customize: 'Mukauta',
+		dismiss: 'Sulje',
 		rejectAll: 'Hylkää kaikki',
 		save: 'Tallenna asetukset',
 		securedBy: 'Suojauksen tarjoaa',
@@ -44,6 +45,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Tämä sivusto käyttää evästeitä parantaakseen selauskokemustasi, analysoidakseen sivuston liikennettä ja näyttääkseen yksilöllistä sisältöä.',
+		noticeDescription:
+			'Käytämme evästeitä ja vastaavia tekniikoita sivuston toimintaan, liikenteen mittaamiseen sekä sisällön ja mainosten yksilöimiseen. Voit kieltäytyä tai hallita asetuksiasi milloin tahansa.',
+		noticeTitle: 'Tietosuojailmoitus',
 		title: 'Arvostamme yksityisyyttäsi',
 	},
 	frame: {
@@ -137,6 +141,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Evästekäytäntö',
 		privacyPolicy: 'Tietosuojakäytäntö',
 		termsOfService: 'Käyttöehdot',
+	},
+	rights: {
+		optOut: 'Älä myy tai jaa tietojani',
+		preferences: 'Hallitse asetuksia',
 	},
 };
 export default translations;

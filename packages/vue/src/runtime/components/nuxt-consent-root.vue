@@ -10,6 +10,7 @@ import {
 	useConsentKernel,
 } from '../composables';
 import ConsentBanner from './consent-banner.vue';
+import ConsentDialogTrigger from './consent-dialog-trigger.vue';
 import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
@@ -89,4 +90,5 @@ onMounted(() => {
 	<ConsentBanner v-else />
 	<LazyIabConsentDialog v-if="init?.gvl && iabDialogNeeded" />
 	<LazyConsentManager v-else-if="!init?.gvl && managerNeeded" />
+	<ConsentDialogTrigger v-if="config.showTrigger" />
 </template>

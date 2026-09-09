@@ -5,24 +5,61 @@
  * `routes/` layout — a single file holding every route grows past the point
  * where a reviewer can hold it in mind, and makes the eventual cutover diff
  * harder to read than it needs to be.
+ *
+ * `POST /subjects` accepts the documented wire (`postSubjectInputSchema`),
+ * which is what every c15t client transport sends: a domain name, an
+ * effective `preferences` map, an epoch `givenAt`, and for v3 clients the
+ * per-category receipts this act confirmed. The mapping onto storage lives in
+ * `../consent-submission.ts`; this file is transport only.
  */
 
 import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
+import type { ConsentItem } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
 import * as v from 'valibot';
 
 import { setFields } from '../../observability/log';
+import { findOrCreateRuntimePolicy } from '../../repository/consent-policy';
+import { findOrCreatePurposeIds } from '../../repository/consent-purpose';
+import { findOrCreateDomain } from '../../repository/domain';
+import { listDirectivesForSubject } from '../../repository/privacy-directive';
+import type { PrivacyDirective } from '../../repository/privacy-directive';
 import { submit } from '../../repository/record-consent';
 import {
 	findById,
 	linkExternalId,
 	listByExternalId,
 } from '../../repository/subject';
+import type { ConsentRow } from '../../repository/subject';
 import { validateRequestAuth } from '../auth';
+import { prepareSubmission } from '../consent-submission';
 import type { RouteContext } from '../context';
 import { BadRequestError, NotFoundError } from '../errors';
+
+/** One consent as the wire reports it, with 2.x fields plus v3 receipts. */
+const toConsentItem = (consent: ConsentRow): ConsentItem => ({
+	choice: consent.choice,
+	givenAt: consent.givenAt,
+	id: consent.id,
+	isLatestPolicy: consent.isLatestPolicy,
+	policyEffectiveDate: consent.policyEffectiveDate,
+	policyHash: consent.policyHash,
+	policyId: consent.policyId,
+	policyVersion: consent.policyVersion,
+	preferences: consent.preferences,
+	type: consent.type,
+});
+
+const toDirectiveWire = (directive: PrivacyDirective) => ({
+	authority: directive.authority,
+	categories: [...directive.categories],
+	id: directive.id,
+	recordedAt: directive.recordedAt.getTime(),
+	signalHeader: directive.signalHeader,
+	source: directive.source,
+});
 
 export const register = function register({
 	app,
@@ -73,16 +110,7 @@ export const register = function register({
 							// column is null, and the schema requires a string.
 							externalId: subject.externalId ?? externalId,
 							createdAt: subject.createdAt,
-							consents: subject.consents.map((consent) => ({
-								givenAt: consent.givenAt,
-								id: consent.id,
-								isLatestPolicy: consent.isLatestPolicy,
-								policyEffectiveDate: consent.policyEffectiveDate,
-								policyHash: consent.policyHash,
-								policyId: consent.policyId,
-								policyVersion: consent.policyVersion,
-								type: consent.type,
-							})),
+							consents: subject.consents.map(toConsentItem),
 						})),
 					};
 				})
@@ -134,22 +162,14 @@ export const register = function register({
 							resource: 'Subject',
 						});
 					}
+					const directives = (yield* listDirectivesForSubject(subjectId)) ?? [];
 
 					const consents = subject.consents
 						.filter(
 							(consent) =>
 								typeFilter.length === 0 || typeFilter.includes(consent.type)
 						)
-						.map((consent) => ({
-							givenAt: consent.givenAt,
-							id: consent.id,
-							isLatestPolicy: consent.isLatestPolicy,
-							policyEffectiveDate: consent.policyEffectiveDate,
-							policyHash: consent.policyHash,
-							policyId: consent.policyId,
-							policyVersion: consent.policyVersion,
-							type: consent.type,
-						}));
+						.map(toConsentItem);
 
 					// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 					return {
@@ -157,6 +177,10 @@ export const register = function register({
 							createdAt: subject.createdAt,
 							externalId: subject.externalId ?? undefined,
 							id: subject.id,
+							identityProvider:
+								subject.externalId === null
+									? undefined
+									: (subject.identityProvider ?? undefined),
 						},
 						consents,
 						// Valid only if every requested type has consent against the
@@ -169,6 +193,11 @@ export const register = function register({
 									(consent) => consent.type === type && consent.isLatestPolicy
 								)
 							),
+						// The merged receipt view is independent of the type filter:
+						// it is derived from cookie-banner rows only and a client
+						// asking about legal documents still needs its category state.
+						subjectChoice: subject.choice,
+						privacyDirectives: directives.map(toDirectiveWire),
 					};
 				})
 			);
@@ -186,6 +215,8 @@ export const register = function register({
 				);
 			}
 
+			// A subject's own state, never cacheable across visitors.
+			c.header('Cache-Control', 'no-store');
 			return c.json(result.value);
 		}
 	);
@@ -198,47 +229,56 @@ export const register = function register({
 		}),
 		async (c) => {
 			const body = await c.req.json().catch(() => undefined);
+			const authenticated = validateRequestAuth(
+				c.req.raw.headers,
+				options.apiKeys
+			);
+			// One clock reading per request, so every timestamp check and every
+			// stored `createdAt` agree about when the request happened.
+			const now = Date.now();
 
 			const result = await run(
 				c,
 				Effect.gen(function* result() {
-					if (!body?.subjectId) {
-						return yield* new BadRequestError({
-							code: 'SUBJECT_ID_REQUIRED',
-							message: 'subjectId is required',
-						});
-					}
-					if (!body?.domainId) {
-						return yield* new BadRequestError({
-							code: 'DOMAIN_ID_REQUIRED',
-							message: 'domainId is required',
-						});
-					}
+					const prepared = yield* prepareSubmission(body, {
+						authenticated,
+						headers: c.req.raw.headers,
+						ipAddress: options.ipAddress,
+						manifest: options.manifest,
+						now,
+						policySnapshot: options.policySnapshot,
+						// The same tenant the init route scoped the token audience to.
+						tenantId: options.tenantId ?? options.manifest?.tenantId,
+					});
+					const { input } = prepared;
 
-					// givenAt is client-supplied so a queued submission records when
-					// consent was *given*, not when it arrived. It is also part of
-					// the consent's deterministic id, so an absent one would make
-					// every retry a distinct consent.
-					const givenAt = body.givenAt ? new Date(body.givenAt) : new Date();
-					if (Number.isNaN(givenAt.getTime())) {
-						return yield* new BadRequestError({
-							code: 'INPUT_VALIDATION_FAILED',
-							message: 'givenAt must be a valid ISO-8601 string',
-						});
-					}
+					const domain = yield* findOrCreateDomain(input.domain);
+					const policy = yield* findOrCreateRuntimePolicy(input.type);
+					const purposeIds = yield* findOrCreatePurposeIds(
+						prepared.grantedCodes
+					);
 
 					const submission = yield* submit({
-						decision: body.decision,
-						domainId: body.domainId,
-						externalId: body.externalId ?? null,
-						givenAt,
-						identityProvider: body.identityProvider ?? null,
-						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
-						metadata: body.metadata,
-						policyId: body.policyId ?? null,
-						purposeIds: body.purposeIds ?? [],
-						subjectId: body.subjectId,
-						userAgent: c.req.header('user-agent') ?? null,
+						choice: prepared.choice ?? null,
+						consentAction: prepared.consentAction ?? null,
+						decision: prepared.decision?.input,
+						domainId: domain.id,
+						externalId: input.externalSubjectId ?? null,
+						givenAt: prepared.givenAt,
+						identityAuthority: authenticated ? 'api' : 'browser',
+						identityProvider: input.identityProvider ?? null,
+						ipAddress: prepared.ipAddress,
+						jurisdiction: prepared.jurisdiction,
+						jurisdictionModel: prepared.jurisdictionModel ?? null,
+						metadata: prepared.metadata,
+						policyId: policy.id,
+						purposeIds,
+						runtimePolicySource: prepared.decision?.source,
+						subjectId: input.subjectId,
+						tcString: input.tcString ?? null,
+						uiSource: input.uiSource ?? null,
+						userAgent: prepared.userAgent,
+						validUntil: prepared.validUntil ?? null,
 					});
 
 					// `created` is the fact worth querying on: a replay is a normal,
@@ -249,13 +289,23 @@ export const register = function register({
 							created: submission.created,
 							decisionId: submission.decisionId ?? null,
 							id: submission.consentId,
+							receipts: prepared.choice
+								? Object.keys(prepared.choice.categories)
+								: null,
 						},
 					});
 
 					return {
+						appliedPreferences: prepared.appliedPreferences,
 						consentId: submission.consentId,
-						givenAt,
+						domain: domain.name,
+						domainId: domain.id,
+						givenAt: prepared.givenAt,
+						metadata: input.metadata,
+						ok: true as const,
 						subjectId: submission.subjectId,
+						type: input.type,
+						uiSource: input.uiSource,
 					};
 				}).pipe(
 					// The client chose this `subjectId` and it is already taken by
@@ -268,9 +318,9 @@ export const register = function register({
 						)
 					),
 					// Same shape, different cause: the identity exists but the
-					// submitted purposes differ from what was recorded. Answering 200
-					// would tell the client its purposes were stored when they were
-					// not.
+					// submitted purposes or receipts differ from what was recorded.
+					// Answering 200 would tell the client its choice was stored when
+					// it was not.
 					Effect.catchTag('ConsentPurposeConflictError', (error) =>
 						Effect.fail(
 							new BadRequestError({ code: 'CONFLICT', message: error.message })
@@ -296,6 +346,11 @@ export const register = function register({
 		async (c) => {
 			const subjectId = c.req.param('id');
 			const body = await c.req.json().catch(() => undefined);
+			// Who is asserting the link decides what it may unlock later: a
+			// browser-asserted link never exposes identity-level privacy data.
+			const authority = validateRequestAuth(c.req.raw.headers, options.apiKeys)
+				? 'api'
+				: 'browser';
 
 			const result = await run(
 				c,
@@ -308,6 +363,7 @@ export const register = function register({
 					}
 
 					const linked = yield* linkExternalId({
+						authority,
 						externalId: body.externalId,
 						// Matches @c15t/backend's default: an identity supplied
 						// without a named provider is still externally sourced.

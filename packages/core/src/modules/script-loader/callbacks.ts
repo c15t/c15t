@@ -11,6 +11,7 @@
  * its own.
  */
 import type { ConsentSnapshot } from '../../types';
+import { getEffectiveGateState } from '../has';
 import type {
 	Script,
 	ScriptCallbackInfo,
@@ -32,7 +33,7 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	error?: Error
 ): ScriptCallbackInfo {
 	return {
-		consents: snapshot.consents as ScriptCallbackInfo['consents'],
+		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		element,
 		elementId,
 		error,

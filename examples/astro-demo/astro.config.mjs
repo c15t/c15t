@@ -29,9 +29,20 @@ const iab = process.env.C15T_IAB === '1';
 const iabOptions = iab
 	? {
 			iab: { cmpId: 160, gvl: demoGvl },
-			mode: offline({ policyPacks: [demoIabPolicy] }),
+			mode: offline({ policyRules: [demoIabPolicy] }),
 		}
-	: { mode: offline() };
+	: {
+			mode: offline({
+				policyRules: [
+					{
+						id: 'default',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
+		};
 
 // Only the selected framework's Astro integration is listed. Loading all
 // three would let a stray chunk from the others reach the page and make the

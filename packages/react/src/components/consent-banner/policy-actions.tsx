@@ -11,10 +11,13 @@ import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,
+	ConsentBannerDismissButton,
 	ConsentBannerFooter,
 	ConsentBannerFooterSubGroup,
 	ConsentBannerRejectButton,
+	ConsentBannerRights,
 } from './components';
+import { resolveBannerPrimaryActions } from './resolve-banner-primary-actions';
 
 export type ConsentBannerPolicyActionRenderProps =
 	PolicyActionRenderProps<HeadlessConsentBannerAction>;
@@ -62,6 +65,17 @@ const renderDefaultAction = function renderDefaultAction(
 					{...buttonProps}
 				/>
 			);
+		case 'dismiss':
+			return (
+				<ConsentBannerDismissButton
+					key={key}
+					consentAction={consentAction}
+					data-testid="consent-banner-dismiss-button"
+					{...buttonProps}
+				/>
+			);
+		case 'save':
+			return null;
 		default: {
 			const _exhaustive: never = action;
 			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);
@@ -73,10 +87,20 @@ export const ConsentBannerPolicyActions = ({
 	renderAction,
 }: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
+	const state = {
+		...banner,
+		primaryActions: [
+			...resolveBannerPrimaryActions(
+				banner.primaryActions,
+				banner.orderedActions
+			),
+		],
+	};
 
 	return (
 		<PolicyActionsRenderer
-			state={banner}
+			state={state}
+			leading={<ConsentBannerRights rights={banner.uncoveredRights} />}
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
 			classNames={{}}

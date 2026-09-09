@@ -54,8 +54,8 @@ import {
 	mergeInitResponseIntoKernelConfig,
 	mergeInitOutputIntoKernelConfig,
 } from '@c15t/core';
-import type { KernelConfig, KernelOverrides } from '@c15t/core';
-import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
+import type { KernelConfig } from '@c15t/core';
+import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
 	fetchCachedManifest,
@@ -139,6 +139,8 @@ const readCurrentRequest = async function readCurrentRequest(
 };
 
 export interface ReadInitialConsentConfigOptions {
+	/** Request clock reused for validation and hydration. */
+	now?: number;
 	/**
 	 * Cookie name holding persisted consent. Defaults to `c15t`, the
 	 * persistence module's storage key. Set this only if you customized
@@ -193,32 +195,20 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 ): Promise<ConsentConfig> {
 	const request = await readCurrentRequest(options.request);
 	const cookieHeader = request.headers.get('cookie') ?? undefined;
-	const persisted = readStoredConsentFromCookie(
+	const now = options.now ?? Date.now();
+	const initialRecords = readStoredRecordsFromCookieHeader(
 		cookieHeader,
-		options.cookieName ? { storageKey: options.cookieName } : undefined
+		options.cookieName ? { storageKey: options.cookieName } : undefined,
+		now
 	);
-	const storedConsent =
-		persisted?.consents && persisted.consentInfo
-			? {
-					consents: persisted.consents,
-					subjectId:
-						typeof persisted.consentInfo.subjectId === 'string'
-							? persisted.consentInfo.subjectId
-							: undefined,
-				}
-			: undefined;
-
 	const inputs = resolveRequestInputs(request, options);
-	const overrides = consentInputsToOverrides(inputs) as KernelOverrides;
+	const overrides = consentInputsToOverrides({ ...inputs, gpc: undefined });
+	const config: ConsentConfig = {
+		initialPrivacySignals: { gpc: inputs.gpc },
+		initialRecords,
+		now,
+	};
 
-	const config: ConsentConfig = {};
-	if (storedConsent) {
-		config.initialConsents = storedConsent.consents;
-		config.initialHasConsented = true;
-		if (storedConsent.subjectId) {
-			config.initialSubjectId = storedConsent.subjectId;
-		}
-	}
 	if (Object.keys(overrides).length > 0) {
 		config.initialOverrides = overrides;
 	}
@@ -433,7 +423,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		const response = await transport.init?.({
 			overrides: {
 				...(base.initialOverrides ?? {}),
-				...consentInputsToOverrides(inputs),
+				...consentInputsToOverrides({ ...inputs, gpc: undefined }),
 			},
 			user: base.initialUser ?? null,
 		});

@@ -1,4 +1,5 @@
 import { c15tInstance } from '@c15t/backend';
+import { policyRulePresets } from 'c15t';
 
 import type { RequestHandler } from './$types';
 
@@ -34,23 +35,10 @@ const handler = c15tInstance({
 			cmpId: 10,
 			enabled: true,
 		},
-		// Policy packs are what make manifest mode resolvable without the
-		// backend: `/api/c15t` matches the request's geo against these locally
-		// and hands the result to the provider as `prefetch`, so the banner is
-		// in the first HTML.
-		policyPacks: [
-			{
-				consent: {
-					categories: ['necessary', 'marketing', 'measurement'],
-					expiryDays: 365,
-					model: 'iab',
-					scopeMode: 'strict',
-				},
-				// No `ui` block: TCF mode fixes the banner and dialog controls,
-				// and a policy that overrides them fails validation.
-				id: 'iab-default',
-				match: { isDefault: true },
-			},
+		policyRules: [
+			policyRulePresets.europeIab(),
+			policyRulePresets.californiaOptOut(),
+			policyRulePresets.worldOptOutNoPrompt(),
 		],
 		tenantId: 'ins_1',
 	},

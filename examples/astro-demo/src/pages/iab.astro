@@ -38,7 +38,7 @@ const isIAB = c15t.snapshot.model === 'iab';
 		<pre>{JSON.stringify(
 			{
 				model: c15t.snapshot.model,
-				policy: c15t.snapshot.policy?.id ?? null,
+				policy: c15t.snapshot.policyRule.id ?? null,
 				shouldShowBanner: c15t.shouldShowBanner,
 				vendorCount: Object.keys(c15t.snapshot.iab?.gvl?.vendors ?? {}).length,
 			},

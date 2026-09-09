@@ -1,3 +1,4 @@
+import { resolvePolicyRules } from '@c15t/schema/types';
 /**
  * @vitest-environment jsdom
  *
@@ -5,7 +6,6 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { saveConsentToStorage } from '../../libs/cookie';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
@@ -65,26 +65,30 @@ afterEach(() => {
 });
 
 const RESOLVED_PREFETCH = {
-	initialPolicy: {
-		id: 'policy_1',
-		model: 'opt-in',
-		ui: { mode: 'banner' },
-	},
-	initialPolicyDecision: { jurisdiction: 'GDPR' },
-} as never;
+	initialPolicyResolution: resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				id: 'policy_1',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	}),
+};
 
 describe('hasResolvedPrefetch', () => {
-	test('needs a policy, a decision and no provisional marker', () => {
+	test('requires a resolution with no pending marker', () => {
 		expect(hasResolvedPrefetch(undefined)).toBe(false);
 		expect(hasResolvedPrefetch({})).toBe(false);
-		expect(
-			hasResolvedPrefetch({ initialPolicy: { id: 'p', model: 'opt-in' } })
-		).toBe(false);
+		expect(hasResolvedPrefetch({ initialPolicyPending: true })).toBe(false);
 		expect(hasResolvedPrefetch(RESOLVED_PREFETCH)).toBe(true);
 		expect(
 			hasResolvedPrefetch({
 				...(RESOLVED_PREFETCH as object),
-				initialPolicyProvisional: true,
+				initialPolicyPending: true,
 			} as never)
 		).toBe(false);
 	});
@@ -103,8 +107,8 @@ describe('createRuntimeKernel', () => {
 			mode: custom(createTransport()),
 		});
 
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
-		expect(kernel.getSnapshot().policy?.id).toBe('no_banner');
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(kernel.getSnapshot().policyRule.id).toBe('disabled');
 	});
 
 	test('merges provider overrides over prefetched overrides', () => {
@@ -134,37 +138,29 @@ describe('createRuntimeKernel', () => {
 });
 
 describe('createConsentRuntime', () => {
-	test('hydrates stored consent before `start()` so the banner never shows', () => {
-		saveConsentToStorage({
-			consentInfo: { time: Date.now(), type: 'all' },
-			consents: {
-				experience: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				necessary: true,
-			},
-		} as never);
+	test('defers storage hydration until start and preserves valid legacy records', () => {
+		document.cookie = `c15t=c.necessary:1,c.marketing:1,i.t:${Date.now()}; path=/`;
 
 		const runtime = createConsentRuntime({ mode: custom(createTransport()) });
 
-		expect(runtime.kernel.getSnapshot().hasConsented).toBe(true);
+		expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
+		runtime.start();
+		expect(runtime.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			true
+		);
 		expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
 		runtime.dispose();
 	});
 
 	test('skips early hydration when persistence is disabled', () => {
-		saveConsentToStorage({
-			consentInfo: { time: Date.now(), type: 'all' },
-			consents: { necessary: true },
-		} as never);
+		document.cookie = `c15t=c.necessary:1,c.marketing:1,i.t:${Date.now()}; path=/`;
 
 		const runtime = createConsentRuntime({
 			mode: custom(createTransport()),
 			persistence: false,
 		});
 
-		expect(runtime.kernel.getSnapshot().hasConsented).toBe(false);
+		expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
 		runtime.dispose();
 	});
 
@@ -192,7 +188,7 @@ describe('createConsentRuntime', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		expect(transport.init).not.toHaveBeenCalled();
-		expect(runtime.kernel.getSnapshot().policy?.id).toBe('policy_1');
+		expect(runtime.kernel.getSnapshot().policyRule.id).toBe('policy_1');
 		runtime.dispose();
 	});
 

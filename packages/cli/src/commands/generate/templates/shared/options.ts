@@ -4,6 +4,16 @@
  * Used by both App Directory and Pages Directory implementations
  */
 
+/** Explicit starting rule for generated offline applications. */
+export const DEFAULT_OFFLINE_RULES = `[{
+				id: 'site-consent',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+				categories: ['functionality', 'measurement', 'experience', 'marketing'],
+				scopeMode: 'strict',
+			}]`;
+
 /**
  * Gets the backend URL value for templates based on configuration
  *
@@ -51,9 +61,7 @@ export const getBackendURLValue = function getBackendURLValue(
  * @param backendURL - URL for the c15t backend/API (for 'hosted'/'self-hosted' modes)
  * @param useEnvFile - Whether to use environment variable for backendURL
  * @param proxyNextjs - Whether to use Next.js API proxy for hosted mode
- * @param inlineCustomHandlers - When true, generates inline fetch-based endpoint handlers
- *   for 'custom' mode instead of referencing createCustomHandlers(). Used by React templates
- *   that don't generate a separate handlers file.
+ * @param _inlineCustomHandlers - Reserved positional argument; custom transports are inline.
  * @returns The formatted options content (without outer braces) as a string
  *
  * @remarks
@@ -64,7 +72,7 @@ export const getBackendURLValue = function getBackendURLValue(
  * @example
  * ```ts
  * const options = generateOptionsText('hosted', 'https://api.example.com', false, true);
- * // Returns: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t', ..."
+ * // Returns: "mode: hosted({ url: '/api/c15t' }),"
  * ```
  */
 export const generateOptionsText = function generateOptionsText(
@@ -72,7 +80,7 @@ export const generateOptionsText = function generateOptionsText(
 	backendURL?: string,
 	useEnvFile?: boolean,
 	proxyNextjs?: boolean,
-	inlineCustomHandlers?: boolean,
+	_inlineCustomHandlers?: boolean,
 	envVarPrefix = 'NEXT_PUBLIC'
 ): string {
 	switch (mode) {
@@ -88,28 +96,32 @@ export const generateOptionsText = function generateOptionsText(
 			return `mode: hosted({ url: ${backendURLValue} }),`;
 		}
 		case 'custom': {
-			if (inlineCustomHandlers !== false) {
-				const url = useEnvFile
-					? `process.env.${envVarPrefix}_CONSENT_API_URL`
-					: `'${backendURL || '/api/consent'}'`;
-				return `mode: custom({
+			const url = useEnvFile
+				? `process.env.${envVarPrefix}_CONSENT_API_URL`
+				: `'${backendURL || '/api/consent'}'`;
+			return `mode: custom({
 				async init() {
-					const res = await fetch(${url});
-					return { ok: res.ok, data: await res.json() };
+					const res = await fetch(${url}, {
+						headers: { 'x-c15t-policy-contract': '1' },
+					});
+					if (!res.ok) throw new Error('Consent initialization failed');
+					return res.json();
 				},
-				async setConsent({ body }) {
+				async save(payload) {
 					const res = await fetch(${url}, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(body),
+						headers: {
+							'Content-Type': 'application/json',
+							'x-c15t-policy-contract': '1',
+						},
+						body: JSON.stringify(payload),
 					});
-					return { ok: res.ok, data: await res.json() };
+					if (!res.ok) throw new Error('Consent save failed');
+					return res.json();
 				},
 			}),`;
-			}
-			return `mode: custom(createCustomHandlers()),`;
 		}
 		default:
-			return `mode: offline(),`;
+			return `mode: offline({ policyRules: ${DEFAULT_OFFLINE_RULES} }),`;
 	}
 };

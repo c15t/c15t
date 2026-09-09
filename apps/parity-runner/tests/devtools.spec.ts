@@ -11,10 +11,7 @@ const urls: Record<string, string> = {
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
 	vue: process.env.VUE_STORYBOOK_URL ?? 'http://127.0.0.1:6008',
 };
-// Only the frameworks that ship a DevTools panel. `PARITY_FRAMEWORKS` also
-// names Astro, whose Storybook renders the server banner and the dialog
-// islands — there is no DevTools surface there to compare.
-const frameworks = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
+const frameworks = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte,vue')
 	.split(',')
 	.map((value) => value.trim())
 	// `in` would also accept `toString` and friends off the prototype.
@@ -148,9 +145,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
 						body: image,
 						contentType: 'image/png',
 					});
-					const dom = (await captureDomSnapshot(page, rootSelector))
+					const dom = (
+						await captureDomSnapshot(page, rootSelector, { includeRoot: true })
+					)
 						.replace(/c15t-dev-tools-\d+/gu, 'c15t-dev-tools-instance')
 						.replace(/c15t-[0-9a-f]{8}\b/gu, 'c15t-anonymized-script');
+					expect(dom).toContain('data-c15t-dev-tools');
 					const a11y = await root.ariaSnapshot();
 					const styles = await captureComputedStyleMap(page, rootSelector, '*');
 					const reference = baseline.get(tab);

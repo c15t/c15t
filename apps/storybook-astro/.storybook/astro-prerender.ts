@@ -87,22 +87,6 @@ const COMPONENT_FILES: Record<string, string> = {
 };
 
 /**
- * The offline policy pack an IAB variant resolves against.
- *
- * TCF fixes the IAB banner and dialog controls, so the pack carries no
- * `ui` overrides — `resolvePolicySync` rejects a pack that does.
- */
-const IAB_POLICY = {
-	consent: {
-		categories: ['necessary', 'marketing'],
-		model: 'iab',
-		scopeMode: 'permissive',
-	},
-	id: 'storybook_astro_iab_policy',
-	match: { isDefault: true },
-};
-
-/**
  * Astro strips `data-astro-source-*` in production but not in dev. The
  * fragments have to be byte-stable for the parity DOM diff, so they are
  * removed unconditionally.
@@ -146,10 +130,13 @@ const renderVariants = async function renderVariants(
 			server: { hmr: false, middlewareMode: true },
 		});
 
-		const [serverModule, integration, mode] = await Promise.all([
+		const [serverModule, integration, mode, storybook] = await Promise.all([
 			server.ssrLoadModule(path.join(astroSrc, 'server.ts')),
 			server.ssrLoadModule(path.join(astroSrc, 'integration.ts')),
 			server.ssrLoadModule(path.join(astroSrc, 'mode.ts')),
+			server.ssrLoadModule(
+				path.resolve(astroSrc, '../../../apps/storybook-consent-policy.ts')
+			),
 		]);
 		const container = await experimental_AstroContainer.create();
 
@@ -164,15 +151,19 @@ const renderVariants = async function renderVariants(
 			const astroOptions: Record<string, unknown> = {
 				colorScheme: variant.options?.colorScheme ?? 'light',
 				consentCategories: variant.options?.consentCategories,
-				mode: mode.offlineMode(),
+				mode: mode.offlineMode({ policyRules: [storybook.storybookPolicy] }),
+				presentation: storybook.storybookPresentation,
 				ui: variant.ui ?? 'svelte',
 			};
 			if (variant.options?.iab) {
+				astroOptions.presentation = storybook.storybookIABPresentation;
 				// The server needs the list to render the banner at all, and
 				// the policy pack is what makes the runtime's model `iab`.
 				astroOptions.iab = { cmpId: 160, gvl: mockGVL };
 				astroOptions.consentCategories = ['necessary', 'marketing'];
-				astroOptions.mode = mode.offlineMode({ policyPacks: [IAB_POLICY] });
+				astroOptions.mode = mode.offlineMode({
+					policyRules: [storybook.storybookIABPolicy],
+				});
 			}
 			const resolved = integration.resolveOptions(astroOptions);
 			// oxlint-disable-next-line no-await-in-loop -- See above.

@@ -1,5 +1,12 @@
-import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
+import {
+	readStoredRecords,
+	readStoredRecordsFromCookieHeader,
+} from '@c15t/core/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createSSRApp, defineComponent } from 'vue';
@@ -42,32 +49,23 @@ const initFixture: InitOutput = {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	policy: {
-		consent: {
-			categories: ['necessary', 'measurement', 'marketing'],
-			preselectedCategories: ['necessary', 'measurement', 'marketing'],
-			scopeMode: 'strict',
-		},
-		id: 'policy_gdpr',
-		model: 'opt-in',
-		ui: {
-			banner: {
-				allowedActions: ['reject', 'accept', 'customize'],
-			},
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-			},
-			mode: 'banner',
-		},
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'fingerprint_gdpr',
-		jurisdiction: 'GDPR',
-		matchedBy: 'country',
-		policyId: 'policy_gdpr',
-		region: null,
-	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: null,
+			regionCode: null,
+			rules: [
+				{
+					categories: ['measurement', 'marketing'],
+					id: 'policy_gdpr',
+					match: { fallback: true },
+					model: 'opt-in',
+					preselectedCategories: ['measurement', 'marketing'],
+					prompt: 'choice',
+					scopeMode: 'strict',
+				},
+			],
+		})
+	),
 	policySnapshotToken: 'token_gdpr',
 	translations: {
 		language: 'en',
@@ -224,13 +222,14 @@ const renderRootToString = async function renderRootToString(
 		customFetch: fetchMock as unknown as typeof fetch,
 		domain: 'consent.example',
 	};
-	const initialStoredConsent = readStoredConsentFromCookie(
+	const initialRecords = readStoredRecordsFromCookieHeader(
 		cookieHeader,
-		config.storageConfig
+		config.storageConfig,
+		Date.now()
 	);
 	const context = createVueConsentKernelContext({
 		config,
-		initialStoredConsent,
+		initialRecords,
 		prefetch: initFixture,
 	});
 
@@ -266,6 +265,40 @@ afterEach(() => {
 });
 
 describe('@c15t/vue kernel runtime', () => {
+	test('preserves the prefetched subject through empty cookie hydration and mount', async () => {
+		const { fetchMock } = createFetchMock();
+		const prefetch = { ...initFixture, subjectId: 'backend+literal' };
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			customFetch: fetchMock as unknown as typeof fetch,
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			initialRecords: readStoredRecordsFromCookieHeader(
+				undefined,
+				undefined,
+				Date.now()
+			),
+			prefetch,
+		});
+		expect(context.kernel.getSnapshot().subject?.subjectId).toBe(
+			'backend+literal'
+		);
+		expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		try {
+			await flushPromises();
+			expect(context.kernel.getSnapshot().subject?.subjectId).toBe(
+				'backend+literal'
+			);
+			expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+			expect(config.customFetch).not.toHaveBeenCalled();
+		} finally {
+			dispose();
+		}
+	});
+
 	test('disposes the kernel with its Vue context', () => {
 		const context = createVueConsentKernelContext({
 			config: {
@@ -303,22 +336,22 @@ describe('@c15t/vue kernel runtime', () => {
 		wrapper.unmount();
 	});
 
-	test('server-render starts from stored consent cookie and omits banner', async () => {
+	test('server-render retains an expired legacy receipt and asks for a new choice', async () => {
 		const { context, html } = await renderRootToString(
 			'c15t=c.necessary:1,c.measurement:1,c.marketing:1,i.sid:sub_111AEMh5qpiLmhEcbnqwrmsB7X,i.t:1234567890,i.y:all'
 		);
 
 		try {
 			const snapshot = context.kernel.getSnapshot();
-			expect(snapshot.hasConsented).toBe(true);
-			expect(snapshot.activeUI).toBe('none');
-			expect(snapshot.consents).toMatchObject({
-				marketing: true,
-				measurement: true,
+			expect(snapshot.explicitChoice).not.toBeNull();
+			expect(snapshot.activeUI).toBe('banner');
+			expect(snapshot.effectivePermissions).toMatchObject({
+				marketing: false,
+				measurement: false,
 				necessary: true,
 			});
-			expect(html).not.toContain('data-testid="consent-banner-root"');
-			expect(html).not.toContain('Cookie choices');
+			expect(html).toContain('data-testid="consent-banner-root"');
+			expect(html).toContain('Cookie choices');
 		} finally {
 			context.dispose();
 		}
@@ -329,7 +362,7 @@ describe('@c15t/vue kernel runtime', () => {
 
 		try {
 			const snapshot = context.kernel.getSnapshot();
-			expect(snapshot.hasConsented).toBe(false);
+			expect(snapshot.explicitChoice).toBeNull();
 			expect(snapshot.activeUI).toBe('banner');
 			expect(html).toContain('data-testid="consent-banner-root"');
 			expect(html).toContain('Cookie choices');
@@ -337,6 +370,29 @@ describe('@c15t/vue kernel runtime', () => {
 			context.dispose();
 		}
 	});
+
+	test.each([1, 99, null])(
+		'prefetch fails closed for missing or unsupported negotiated contract %s',
+		(producerContract) => {
+			const { policyResolution: _removedWire, ...unversionedInit } =
+				initFixture;
+			const context = createVueConsentKernelContext({
+				config: {},
+				// @ts-expect-error Deliberately test a producer omitting the required contract.
+				prefetch: unversionedInit,
+				producerContract,
+			});
+			try {
+				expect(context.snapshot.value.resolution.status).toBe('failed');
+				expect(context.snapshot.value.effectivePermissions.marketing).toBe(
+					false
+				);
+				expect(context.snapshot.value.policySnapshotToken).toBeNull();
+			} finally {
+				context.dispose();
+			}
+		}
+	);
 
 	test('prefetch seeds overrides from init location and language', () => {
 		const context = createVueConsentKernelContext({
@@ -446,15 +502,14 @@ describe('@c15t/vue kernel runtime', () => {
 		await vi.waitFor(() => {
 			expect(window.localStorage.getItem('c15t')).toBeTruthy();
 		});
-		const stored = JSON.parse(window.localStorage.getItem('c15t') ?? '{}');
+		const stored = readStoredRecords(undefined, Date.now()).records;
 		expect(stored).toMatchObject({
-			consentInfo: {
-				subjectId: expect.stringMatching(/^sub_/u),
-			},
-			consents: {
-				marketing: true,
-				measurement: true,
-				necessary: true,
+			choice: {
+				categories: {
+					marketing: { value: true },
+					measurement: { value: true },
+				},
+				version: 3,
 			},
 		});
 		expect(document.cookie).toContain('c15t=');
@@ -462,7 +517,7 @@ describe('@c15t/vue kernel runtime', () => {
 		wrapper.unmount();
 	});
 
-	test('persists consent with the v2-compatible c15t storage payload', async () => {
+	test('persists a canonical explicit reject receipt', async () => {
 		const { wrapper } = await mountRoot();
 
 		document
@@ -476,15 +531,14 @@ describe('@c15t/vue kernel runtime', () => {
 		await vi.waitFor(() => {
 			expect(window.localStorage.getItem('c15t')).toBeTruthy();
 		});
-		const stored = JSON.parse(window.localStorage.getItem('c15t') ?? '{}');
+		const stored = readStoredRecords(undefined, Date.now()).records;
 		expect(stored).toMatchObject({
-			consentInfo: {
-				subjectId: expect.stringMatching(/^sub_/u),
-			},
-			consents: {
-				marketing: false,
-				measurement: false,
-				necessary: true,
+			choice: {
+				categories: {
+					marketing: { value: false },
+					measurement: { value: false },
+				},
+				version: 3,
 			},
 		});
 		expect(document.cookie).toContain('c15t=');
@@ -518,7 +572,7 @@ describe('@c15t/vue kernel runtime', () => {
 			expect(blocked.status).toBe(451);
 			expect(onRequestBlocked).toHaveBeenCalledTimes(1);
 
-			context.kernel.set.consent({ marketing: true });
+			await context.kernel.commands.save({ marketing: true });
 			// jsdom has no real network — reaching the (failing) transport is
 			// enough to prove the request was allowed through the blocker.
 			await window.fetch('https://tracker.example/pixel').catch(() => null);

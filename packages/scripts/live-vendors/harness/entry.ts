@@ -174,7 +174,8 @@ const harness: LiveVendorProbeHarness = {
 				consents = grantedConsents;
 			}
 			loaders.get(vendor)?.dispose();
-			const kernel = createConsentKernel({ initialConsents: consents });
+			const kernel = createConsentKernel();
+			void kernel.commands.save(consents);
 			const loader = createScriptLoader({ kernel, scripts: [script] });
 			loaders.set(vendor, loader);
 			const requested = loader.getLoadedScriptIds().includes(script.id);

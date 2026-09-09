@@ -29,5 +29,4 @@ export const createEvent = function createEvent(
  * format: `c.<category>:<0|1>` pairs plus an `i.t` consent timestamp, which is
  * what makes the read count as "has consented".
  */
-export const CONSENTED_COOKIE =
-	'c15t=c.necessary:1,c.marketing:1,i.t:1234567890';
+export const CONSENTED_COOKIE = `c15t=c.necessary:1,c.marketing:1,i.t:${Date.now()}`;

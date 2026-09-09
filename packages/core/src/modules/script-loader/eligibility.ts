@@ -8,8 +8,8 @@
  * script in that reconcile.
  */
 
-import type { ConsentSnapshot, ConsentState } from '../../types';
-import { has, hasIABConsent } from '../has';
+import type { ConsentSnapshot } from '../../types';
+import { evaluateConsent, getEffectiveGateState, has } from '../has';
 import type { NormalizedScript, ReconcilePass } from './types';
 
 /**
@@ -21,7 +21,7 @@ export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
 	return {
-		consents: snapshot.consents as ConsentState,
+		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		iab: snapshot.iab,
 		isIabMode: snapshot.model === 'iab',
 		snapshot,
@@ -39,11 +39,8 @@ export const hasScriptConsent = function hasScriptConsent(
 ): boolean {
 	const { script } = entry;
 
-	if (pass.isIabMode && entry.hasIabMeta) {
-		if (!pass.iab) {
-			return false;
-		}
-		return hasIABConsent(script, pass.iab);
+	if (entry.hasIabMeta) {
+		return evaluateConsent(script, pass.snapshot);
 	}
 
 	if (entry.simpleCategory) {

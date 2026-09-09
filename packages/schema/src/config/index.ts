@@ -30,7 +30,7 @@ export type ConsentLegalLinks = Partial<
 	Record<ConsentLegalLinkKey, ConsentLegalLink>
 >;
 
-export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
+export type PolicyModel = 'opt-in' | 'opt-out' | 'iab';
 
 export type ConsentDialogTriggerPosition =
 	| 'top-left'
@@ -65,6 +65,8 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		footer?: T;
 		actions?: T;
 		actionGroup?: T;
+		rights?: T;
+		rightLink?: T;
 		overlay?: T;
 	};
 	dialog?: {
@@ -95,6 +97,12 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		root?: T;
 		icon?: T;
 		text?: T;
+		/** Toolbar group rendered by `ConsentDialogTriggerToolbar`. */
+		toolbar?: T;
+		/** One action button inside the trigger toolbar. */
+		toolbarItem?: T;
+		/** Icon wrapper inside a trigger toolbar action. */
+		toolbarIcon?: T;
 	};
 	accordion?: {
 		root?: T;
@@ -233,6 +241,8 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		footer: true,
 		header: true,
 		overlay: true,
+		rightLink: true,
+		rights: true,
 		root: true,
 		title: true,
 	},
@@ -348,6 +358,9 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		icon: true,
 		root: true,
 		text: true,
+		toolbar: true,
+		toolbarIcon: true,
+		toolbarItem: true,
 	},
 } as const satisfies ConsentComponentSlotKeyMap;
 

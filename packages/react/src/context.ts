@@ -1,4 +1,8 @@
-import type { ConsentKernel } from '@c15t/core';
+import type {
+	AllConsentNames,
+	ConsentKernel,
+	ConsentPresentation,
+} from '@c15t/core';
 import { createContext } from 'react';
 
 /**
@@ -11,3 +15,13 @@ import { createContext } from 'react';
  */
 export const KernelContext = createContext<ConsentKernel | null>(null);
 KernelContext.displayName = 'C15tKernelContext';
+
+/** Provider-owned services used by optional integrations. */
+export interface ProviderServices {
+	clearRecords: () => void;
+	getPresentation: () => ConsentPresentation | undefined;
+	getConsentCategories: () => readonly AllConsentNames[];
+}
+export const ProviderServicesContext = createContext<ProviderServices | null>(
+	null
+);

@@ -67,21 +67,21 @@
 	-->
 	<ConsentManagerProvider
 		prefetch={isIabPlayground ? undefined : data.prefetch}
-		mode={isIabPlayground ? offline() : hosted({ url: '/api/c15t' })}
+		mode={isIabPlayground
+			? offline({
+					policyRules: [
+						{
+							id: 'devtools-iab-playground',
+							match: { fallback: true, isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+							categories: ['marketing', 'measurement'],
+						},
+					],
+				})
+			: hosted({ url: '/api/c15t' })}
 		options={{
 			persistence: isIabPlayground ? false : undefined,
-			offlinePolicy: isIabPlayground
-				? {
-						policy: {
-							id: 'devtools-iab-playground',
-							model: 'iab',
-							ui: { mode: 'banner' },
-							consent: {
-								categories: ['necessary', 'marketing', 'measurement'],
-							},
-						},
-					}
-				: undefined,
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			iab: {
 				enabled: true,

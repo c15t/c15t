@@ -1,40 +1,28 @@
 /**
- * Fold an `InitResponse` from a transport onto a snapshot.
- *
- * Pure: takes the current snapshot + the response, returns a patch the
- * caller can hand to `advance()`. Returns `null` when the response would
- * be a no-op so the caller can skip notifying subscribers entirely.
- *
- * Field order matters: model/activeUI/policyCategories/policyScopeMode
- * are derived AFTER all input fields are merged so they reflect the
- * effective post-patch policy + IAB enablement, not the pre-patch state.
+ * Fold a complete transport response through the versioned policy reader.
+ * Missing or invalid policy contracts fail safely and clear policy proof.
  */
+import type { PolicyResolution } from '@c15t/schema/types';
+import { readPolicyResolutionWire } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
-import { allConsentNames } from '../consent/consent-types';
-import { applyPolicyToConsents, deriveActiveUI, deriveModel } from '../policy';
+import type { RecordIssue } from '../consent-record/validation';
 import type {
 	ConsentSnapshot,
-	ConsentState,
 	InitResponse,
 	KernelIABState,
 	KernelTranslations,
 } from '../types';
 import type { SnapshotPatch } from './patch';
+import { mergeNewestChoice, validateHydrationRecords } from './records';
+import { mergeServerPatch } from './server-records';
 import { DEFAULT_IAB } from './snapshot';
 
 /**
  * Merge incoming init translations over the snapshot's current ones.
- *
- * Transports built on the shared resolver deliver complete per-language
- * sets, but custom transports and hand-rolled fixtures can send partial
- * payloads. Wholesale replacement would silently blank every omitted key
- * (e.g. `common.securedBy` disappearing from the branding tag), so when
- * the language matches we deep-merge the response over the current copy —
- * complete responses win per-key and omissions keep their current value.
- * A language switch replaces outright: mixing languages is worse than
- * trusting the transport.
+ * Same-language responses deep-merge so omitted keys keep their copy; a
+ * language switch replaces outright.
  */
 const mergeInitTranslations = function mergeInitTranslations(
 	current: Readonly<KernelTranslations> | null,
@@ -56,16 +44,33 @@ const mergeInitTranslations = function mergeInitTranslations(
 	};
 };
 
+/** Resolve the policy outcome a complete transport response carries. */
+export const readInitResolution = function readInitResolution(
+	response: InitResponse
+): PolicyResolution {
+	if (Object.hasOwn(response, 'policyResolution')) {
+		return readPolicyResolutionWire(response.policyResolution);
+	}
+	return { policy: null, reason: 'invalid-payload', status: 'failed' };
+};
+
+export interface AppliedInitResponse {
+	patch: SnapshotPatch;
+	/** Issues found in `response.records`; the records were not applied. */
+	recordIssues: RecordIssue[] | null;
+}
+
 /**
- * Build a `SnapshotPatch` from an init response. Returns `null` if the
- * response carries no fields that would change the snapshot.
+ * Build the patch for an init response. Always returns a patch: a complete
+ * init at least finalizes the resolution and the provisional flag.
  */
-// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+// oxlint-disable-next-line complexity -- One pass over every response field keeps the fold order visible.
 export const applyInitResponse = function applyInitResponse(
 	current: ConsentSnapshot,
-	response: InitResponse
-): SnapshotPatch | null {
-	const patch: SnapshotPatch = {};
+	response: InitResponse,
+	now: number
+): AppliedInitResponse {
+	const patch: SnapshotPatch = { now, policyPending: false };
 
 	if (response.resolvedOverrides) {
 		patch.overrides = {
@@ -84,28 +89,24 @@ export const applyInitResponse = function applyInitResponse(
 	if (response.branding !== undefined) {
 		patch.branding = response.branding;
 	}
-	if (response.policy !== undefined) {
-		patch.policy = response.policy;
-		patch.policyBanner = response.policy.ui?.banner ?? null;
-		patch.policyDialog = response.policy.ui?.dialog ?? null;
-	}
-	if (response.policyDecision !== undefined) {
-		patch.policyDecision = response.policyDecision;
-	}
-	if (response.policySnapshotToken !== undefined) {
-		patch.policySnapshotToken = response.policySnapshotToken;
+
+	const resolution = readInitResolution(response);
+	patch.resolution = resolution;
+	if (resolution.status === 'matched') {
+		patch.policySnapshotToken = response.policySnapshotToken ?? null;
+	} else {
+		patch.policySnapshotToken = null;
 	}
 
-	// IAB passthrough: fold gvl / customVendors / cmpId into the iab
-	// slice. The IAB module decides whether to enable itself based on
-	// the presence of a GVL.
+	// IAB passthrough: fold gvl / customVendors / cmpId into the iab slice.
+	let nextIab: KernelIABState | null | undefined;
 	if (
 		response.gvl !== undefined ||
 		response.customVendors !== undefined ||
 		response.cmpId !== undefined
 	) {
 		const baseline = current.iab ?? DEFAULT_IAB;
-		const nextIab: KernelIABState = {
+		nextIab = {
 			...baseline,
 			cmpId: response.cmpId === undefined ? baseline.cmpId : response.cmpId,
 			customVendors:
@@ -114,82 +115,50 @@ export const applyInitResponse = function applyInitResponse(
 					: response.customVendors,
 			gvl: response.gvl === undefined ? baseline.gvl : response.gvl,
 		};
-		// Server explicitly returned `gvl: null` → IAB disabled for this
-		// request (non-IAB region on a 200 response).
+		// Server explicitly returned `gvl: null` → IAB disabled for this request.
 		if (response.gvl === null) {
 			nextIab.enabled = false;
 		}
+	}
+	if (resolution.status !== 'matched') {
+		const baseline = nextIab ?? current.iab;
+		if (baseline?.enabled) {
+			nextIab = { ...baseline, enabled: false };
+		}
+	}
+	if (nextIab !== undefined) {
 		patch.iab = nextIab;
 	}
 
-	// Merge server-side consent state with current consents.
-	if (response.consents) {
-		const nextConsents: ConsentState = { ...current.consents };
-		let changed = false;
-		for (const name of allConsentNames) {
-			if (
-				name in response.consents &&
-				typeof response.consents[name] === 'boolean' &&
-				nextConsents[name] !== response.consents[name]
-			) {
-				nextConsents[name] = response.consents[name] as boolean;
-				changed = true;
-			}
-		}
-		if (changed) {
-			patch.consents = nextConsents;
-		}
+	if (response.resolvedPrivacySignals?.gpc !== undefined) {
+		patch.privacyDetected = response.resolvedPrivacySignals.gpc === true;
 	}
-	if (response.hasConsented !== undefined) {
-		patch.hasConsented = response.hasConsented;
+
+	let recordIssues: RecordIssue[] | null = null;
+	if (response.records) {
+		const validated = validateHydrationRecords(response.records, now);
+		if (validated.ok === true) {
+			if (validated.records.choice !== undefined) {
+				// Server receipts merge by newest confirmation per category so
+				// a local action made before init resolved is never overwritten.
+				patch.explicitChoice = mergeNewestChoice(
+					current.explicitChoice,
+					validated.records.choice
+				);
+			}
+			Object.assign(patch, mergeServerPatch(current, validated.records, now));
+		} else {
+			recordIssues = validated.issues;
+		}
 	}
 	if (response.subjectId !== undefined) {
-		patch.subjectId = response.subjectId;
+		const subject =
+			patch.subject === undefined ? current.subject : patch.subject;
+		patch.subject = { ...subject, subjectId: response.subjectId };
 	}
 
-	// If nothing in the response touched the snapshot, return null so the
-	// caller can skip notifying subscribers and emitting `init:applied` —
-	// unless the current policy is provisional: init completing (even with
-	// an empty response) finalizes the placeholder so `activeUI` can be
-	// derived and surfaces may render.
-	if (Object.keys(patch).length === 0 && !current.policyProvisional) {
-		return null;
-	}
-	if (current.policyProvisional) {
-		patch.policyProvisional = false;
-	}
-
-	// Derive model / activeUI / policy-filtered categories AFTER the
-	// input fields are resolved. Policy derivations depend on the final
-	// effective policy + iab.enabled, so compute them last.
-	const effectivePolicy =
-		patch.policy === undefined ? current.policy : patch.policy;
-	const effectiveOverrides =
-		patch.overrides === undefined ? current.overrides : patch.overrides;
-	const effectiveIabEnabled =
-		(patch.iab === undefined ? current.iab : patch.iab)?.enabled ?? false;
-
-	const hasConsentedForPolicy =
-		patch.hasConsented === undefined
-			? current.hasConsented
-			: patch.hasConsented;
-	const nextModel = deriveModel(effectivePolicy, effectiveIabEnabled);
-	patch.model = nextModel;
-	patch.activeUI = hasConsentedForPolicy
-		? 'none'
-		: deriveActiveUI(nextModel, effectivePolicy);
-
-	const consentsForPolicy =
-		patch.consents === undefined ? current.consents : patch.consents;
-	const policyResult = applyPolicyToConsents({
-		consents: consentsForPolicy,
-		gpc: effectiveOverrides.gpc,
-		hasConsented: hasConsentedForPolicy,
-		policy: effectivePolicy,
-	});
-	patch.consents = policyResult.consents;
-	patch.policyCategories = policyResult.policyCategories;
-	patch.policyScopeMode = policyResult.policyScopeMode;
-
-	return patch;
+	return {
+		patch,
+		recordIssues,
+	};
 };

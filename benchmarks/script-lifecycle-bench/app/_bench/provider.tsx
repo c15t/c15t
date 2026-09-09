@@ -216,8 +216,12 @@ export const ScriptLifecycleProvider = ({
 	const kernelRef = useRef<ConsentKernel | null>(null);
 	const loaderRef = useRef<ScriptLoaderHandle | null>(null);
 	const [ready, setReady] = useState(false);
+	// Start from `null` on both server and client. Reading the browser
+	// state in the initializer rendered a different `<pre>` on the client
+	// than the server HTML carried, which React reported as a hydration
+	// mismatch (#418) on every scenario load.
 	const [currentState, setCurrentState] = useState<ScriptBenchState | null>(
-		() => getBenchState(config.name) ?? null
+		null
 	);
 
 	useEffect(() => {
@@ -263,16 +267,6 @@ export const ScriptLifecycleProvider = ({
 
 			const hasInitialConsent = config.initialConsent === 'all';
 			const kernel = createConsentKernel({
-				initialConsents: hasInitialConsent
-					? {
-							experience: true,
-							functionality: true,
-							marketing: true,
-							measurement: true,
-							necessary: true,
-						}
-					: undefined,
-				initialHasConsented: hasInitialConsent,
 				transport: createHostedTransport({
 					backendURL: '/api/bench-consent',
 				}),
@@ -282,6 +276,12 @@ export const ScriptLifecycleProvider = ({
 			const initResult = await kernel.commands.init();
 			if (!initResult.ok) {
 				state.errors.push(String(initResult.error));
+			}
+			if (hasInitialConsent) {
+				const saved = await kernel.commands.save('all');
+				if (!saved.ok) {
+					throw new Error('Failed to prepare saved-choice lifecycle fixture');
+				}
 			}
 			loaderRef.current = createScriptLoader({
 				kernel,

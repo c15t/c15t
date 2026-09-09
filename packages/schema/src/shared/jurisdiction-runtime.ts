@@ -1,4 +1,4 @@
-import type { JurisdictionCode } from './policy-runtime';
+import type { JurisdictionCode } from './jurisdiction';
 
 const getDefined = <Value>(
 	value: Value,

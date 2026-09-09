@@ -12,6 +12,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentBoundary, DEFAULT_INIT_ROUTE } from '../boundary';
+import { policyFixture } from './policy-fixture';
 
 describe('ConsentBoundary: config is honored', () => {
 	test('initial consents from config reach useConsent', async () => {
@@ -23,8 +24,7 @@ describe('ConsentBoundary: config is honored', () => {
 		const { getByTestId } = await render(
 			<ConsentBoundary
 				config={{
-					initialConsents: { marketing: true, measurement: true },
-					initialHasConsented: true,
+					...policyFixture({ marketing: true, measurement: true }),
 				}}
 				persistence={false}
 			>
@@ -69,8 +69,7 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 			<>
 				<ConsentBoundary
 					config={{
-						initialConsents: { marketing: true },
-						initialHasConsented: true,
+						...policyFixture({ marketing: true }),
 					}}
 					persistence={false}
 				>
@@ -78,8 +77,7 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 				</ConsentBoundary>
 				<ConsentBoundary
 					config={{
-						initialConsents: { marketing: false },
-						initialHasConsented: true,
+						...policyFixture({ marketing: false }),
 					}}
 					persistence={false}
 				>

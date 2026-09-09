@@ -1,3 +1,4 @@
+import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -6,6 +7,7 @@ import {
 	getConsent,
 	getConsentClient,
 	subscribe,
+	syncBannerVisibility,
 } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
@@ -13,22 +15,15 @@ import { offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
+import { testResolution, testRule } from './policy-fixture';
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement', 'marketing'],
-	mode: offlineMode(),
+	mode: offlineMode({ policyRules: [testRule] }),
 };
 
 const INLINE_CONFIG = {
-	initialPolicy: {
-		consent: {
-			categories: ['necessary', 'measurement', 'marketing'],
-			scopeMode: 'permissive',
-		},
-		id: 'test',
-		model: 'opt-in',
-		ui: { mode: 'banner' },
-	},
+	initialPolicyResolution: testResolution(),
 	initialTranslations: { language: 'en', translations: {} },
 };
 
@@ -110,7 +105,7 @@ describe('boot', () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 		renderBanner();
 		const booted = start();
-		expect(booted.getConsent().policy?.id).toBe('test');
+		expect(booted.getConsent().policyRule.id).toBe('test');
 		expect(fetchSpy).not.toHaveBeenCalled();
 		fetchSpy.mockRestore();
 	});
@@ -118,7 +113,7 @@ describe('boot', () => {
 	it('exposes the snapshot and a subscription', () => {
 		renderBanner();
 		start();
-		expect(getConsent()?.consents.necessary).toBeDefined();
+		expect(getConsent()?.effectivePermissions.necessary).toBeDefined();
 
 		const listener = vi.fn();
 		const unsubscribe = subscribe(listener);
@@ -141,7 +136,7 @@ describe('banner actions', () => {
 			.querySelector<HTMLButtonElement>('[data-c15t-action="accept"]')
 			?.click();
 		await vi.waitFor(() => {
-			expect(booted.getConsent().consents.marketing).toBe(true);
+			expect(booted.getConsent().effectivePermissions.marketing).toBe(true);
 		});
 	});
 
@@ -152,8 +147,8 @@ describe('banner actions', () => {
 			.querySelector<HTMLButtonElement>('[data-c15t-action="reject"]')
 			?.click();
 		await vi.waitFor(() => {
-			expect(booted.getConsent().consents.marketing).toBe(false);
-			expect(booted.getConsent().consents.necessary).toBe(true);
+			expect(booted.getConsent().effectivePermissions.marketing).toBe(false);
+			expect(booted.getConsent().effectivePermissions.necessary).toBe(true);
 		});
 	});
 
@@ -180,6 +175,33 @@ describe('banner actions', () => {
 			expect(banner?.getAttribute('data-c15t-visible')).toBe('false');
 		});
 	});
+
+	it('locks scroll and traps focus while a blocking banner shows', () => {
+		document.body.innerHTML = `
+			<div data-testid="consent-banner-root" data-blocking="true">
+				<div data-testid="consent-banner-card" tabindex="-1">
+					<button data-c15t-action="accept" type="button">Accept</button>
+				</div>
+			</div>
+		`;
+		const shown = { activeUI: 'banner' } as ConsentSnapshot;
+		const hidden = { activeUI: 'none' } as ConsentSnapshot;
+
+		syncBannerVisibility(shown);
+		expect(document.body.style.overflow).toBe('hidden');
+		// A second sync while shown keeps the same lock.
+		syncBannerVisibility(shown);
+		expect(document.body.style.overflow).toBe('hidden');
+
+		syncBannerVisibility(hidden);
+		expect(document.body.style.overflow).toBe('');
+	});
+
+	it('leaves scroll alone for a non-blocking banner', () => {
+		renderBanner();
+		syncBannerVisibility({ activeUI: 'banner' } as ConsentSnapshot);
+		expect(document.body.style.overflow).toBe('');
+	});
 });
 
 describe('ClientRouter navigation', () => {
@@ -193,7 +215,7 @@ describe('ClientRouter navigation', () => {
 		document.dispatchEvent(new Event('astro:after-swap'));
 
 		expect(getConsentClient()).toBe(booted);
-		expect(booted.getConsent().consents.marketing).toBe(true);
+		expect(booted.getConsent().effectivePermissions.marketing).toBe(true);
 		await vi.waitFor(() => {
 			expect(
 				document.querySelector<HTMLElement>(

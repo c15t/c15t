@@ -29,19 +29,22 @@ import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
 const API_KEY = 'sk_test_key';
 const GIVEN_AT = new Date(1_800_000_000_000);
+/** A moment that has already happened; later-than-server times are refused. */
+const ACTED_AT = new Date(1_700_000_000_000);
 
 const submission = {
-	domainId: 'dom_1',
-	externalId: 'ext_tenanted',
-	givenAt: GIVEN_AT.toISOString(),
-	policyId: 'pol_1',
-	purposeIds: ['analytics'],
+	domain: 'example.com',
+	externalSubjectId: 'ext_tenanted',
+	givenAt: ACTED_AT.getTime(),
+	preferences: { analytics: true, necessary: true },
 	subjectId: 'sub_tenanted',
+	type: 'cookie_banner',
 };
 
 for (const engine of ENGINES) {
@@ -65,6 +68,7 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* indexes;
+					yield* receipts;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// Untenanted so every tenant's instance can reference them; the
@@ -248,7 +252,7 @@ for (const engine of ENGINES) {
 
 			const changed = await post(appFor('tenant_a'), {
 				...submission,
-				purposeIds: ['analytics', 'marketing'],
+				preferences: { analytics: true, marketing: true, necessary: true },
 			});
 			assert.strictEqual(changed.status, 400);
 			const body = (await changed.json()) as { cause?: { code?: string } };
@@ -260,11 +264,12 @@ for (const engine of ENGINES) {
 			// a different order are the same act.
 			await post(appFor('tenant_a'), {
 				...submission,
-				purposeIds: ['analytics', 'marketing'],
+				preferences: { analytics: true, marketing: true, necessary: true },
 			});
 			const replay = await post(appFor('tenant_a'), {
 				...submission,
-				purposeIds: ['marketing', 'analytics'],
+				// oxlint-disable-next-line sort-keys -- Key order is the point: the same map in a different order is the same act.
+				preferences: { marketing: true, necessary: true, analytics: true },
 			});
 
 			assert.strictEqual(replay.status, 200);

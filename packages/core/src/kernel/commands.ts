@@ -3,32 +3,43 @@
  *
  * Commands are the I/O boundary of the kernel: each one optionally
  * delegates to a transport for network I/O, but otherwise operates on
- * snapshot data only. Commands are responsible for emitting their
- * lifecycle events (`*:started`, `*:completed`, `command:error`).
+ * snapshot data only. Commands emit their lifecycle events
+ * (`*:started`, `*:completed`, `command:error`).
  *
- * The save command's input ladder (`'all' | 'none' | partial | undefined`)
- * is extracted into the pure helper `resolveSavePatch` so each branch
- * can be unit-tested without standing up a full kernel.
+ * Only `save()` records an explicit choice, and it captures one action
+ * time before any yield, network call or persistence. `dismissNotice()`
+ * records the local dismissal only. `init()` folds a complete transport
+ * response and installs the deadline timer.
  */
 
-import { allConsentNames } from '../consent/consent-types';
+import { recordCategoryPatch } from '../consent-record/record';
+import type {
+	ConsentSubject,
+	OptionalConsentCategory,
+} from '../consent-record/types';
+import type { AllConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
-import { deriveActiveUI } from '../policy';
+import { presentedSelection, scopeSelection } from '../policy';
+import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
-	ConsentState,
 	InitContext,
 	InitResult,
 	KernelConfig,
-	KernelEvent,
+	KernelIABAuthority,
 	KernelTransport,
 	KernelUser,
+	NoticeDismissResult,
+	SaveInput,
 	SavePayload,
 	SaveResult,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import { createPendingSaveQueue } from './pending-saves';
+import type { KernelRuntime } from './runtime';
+import { selectSavePayload } from './save-selection';
+import { copyIABAuthority } from './snapshot';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_BASE_DELAY_MS = 1000;
@@ -84,12 +95,16 @@ const getRetryDelay = function getRetryDelay(
 	return Math.floor(cappedDelay * jitterMultiplier);
 };
 
+const isProduction = function isProduction(): boolean {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	return nodeEnv === 'production';
+};
+
 const warnInitFailure = function warnInitFailure(
 	nextRetryMs: number | null
 ): void {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv === 'production') {
+	if (isProduction()) {
 		return;
 	}
 
@@ -98,7 +113,7 @@ const warnInitFailure = function warnInitFailure(
 			? 'No retry is scheduled.'
 			: `A retry is scheduled in ${nextRetryMs} ms.`;
 	console.warn(
-		`[c15t] Backend/manifest init failed. The consent banner is withheld. ${retryMessage}`
+		`[c15t] Backend/manifest init failed. The consent banner is withheld and optional categories stay denied. ${retryMessage}`
 	);
 };
 
@@ -126,151 +141,182 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 };
 
 /**
- * Finalize a provisional policy when the transport has no `init` method.
- * This is an explicit offline/no-transport path, so the placeholder is the
- * effective policy and can safely drive the UI.
+ * Patch that clears every policy-derived field for a transport failure
+ * before the safe fallback applies. A stale permissive policy must not
+ * survive a failed init.
  */
-const resolveProvisionalPolicy = function resolveProvisionalPolicy(
-	snapshot: ConsentSnapshot
-): SnapshotPatch | null {
-	if (!snapshot.policyProvisional) {
-		return null;
-	}
-	return {
-		activeUI: snapshot.hasConsented
-			? 'none'
-			: deriveActiveUI(snapshot.model, snapshot.policy),
-		policyProvisional: false,
+const failedResolutionPatch = function failedResolutionPatch(
+	current: ConsentSnapshot,
+	now: number
+): SnapshotPatch {
+	const patch: SnapshotPatch = {
+		now,
+		policySnapshotToken: null,
+		resolution: { policy: null, reason: 'transport', status: 'failed' },
 	};
+	if (current.iab?.enabled) {
+		patch.iab = { ...current.iab, enabled: false };
+	}
+	return patch;
 };
 
 /**
- * Result of resolving a `save()` input against the current snapshot.
- * The patch is what the kernel should advance through; `consentAction`
- * is the audit-log shape sent to the backend in the save payload.
+ * Values one save input confirms. Object input is passed through untouched
+ * so the record helper validates it and reports the exact issue.
  */
-export interface ResolvedSave {
-	patch: SnapshotPatch;
-	consentAction: SavePayload['consentAction'];
-}
-
-/**
- * Pure: derive the snapshot patch and consent-action from a `save()`
- * input. Called by the save command before any transport I/O.
- *
- * Branches:
- * - `'all'` sets displayed categories to `true`; `'none'` sets displayed
- *   optional categories to `false`. Full-policy actions are recorded as
- *   `all` or `necessary`, respectively; a partial-policy scope is `custom`.
- * Categories outside the displayed scope retain their current values.
- * - object — applied as a partial consent merge; if no category
- *   changed, only metadata (subjectId / hasConsented / activeUI)
- *   is updated. Action is `custom`.
- * - `undefined` — finalize the current consents in place. Action
- *   is `custom`.
- */
-export const resolveSavePatch = function resolveSavePatch(
-	current: ConsentSnapshot,
-	subjectId: string,
-	input: Partial<ConsentState> | 'all' | 'none' | undefined,
-	options?: { categories?: readonly (keyof ConsentState)[] }
-): ResolvedSave {
-	const policyCategories =
-		current.policyCategories.length > 0
-			? current.policyCategories
-			: allConsentNames;
-	const categories = options?.categories ?? policyCategories;
-	// A partial UI action must not claim to accept or reject the whole policy.
-	const coversPolicy = policyCategories.every(
-		(name) => name === 'necessary' || categories.includes(name)
-	);
-	if (input === 'all') {
-		const all: ConsentState = { ...current.consents };
-		for (const name of categories) {
-			all[name] = true;
-		}
-		all.necessary = true;
+export const resolveSaveSelection = function resolveSaveSelection(
+	snapshot: ConsentSnapshot,
+	draft: PresentedSelection | null,
+	input: SaveInput | undefined,
+	categories?: readonly AllConsentNames[]
+): { values: unknown; consentAction: SavePayload['consentAction'] } {
+	const rule = snapshot.policyRule;
+	const displayed =
+		categories === undefined
+			? rule.scope
+			: rule.scope.filter((category) => categories.includes(category));
+	const narrow = (values: PresentedSelection) =>
+		categories === undefined
+			? values
+			: Object.fromEntries(
+					displayed.map((category) => [category, values[category]])
+				);
+	if (input === 'all' || input === 'none') {
+		const bulkAction = input === 'all' ? 'all' : 'necessary';
 		return {
-			consentAction: coversPolicy ? 'all' : 'custom',
-			patch: {
-				activeUI: 'none',
-				consents: all,
-				hasConsented: true,
-				subjectId,
-			},
+			consentAction:
+				displayed.length === rule.scope.length ? bulkAction : 'custom',
+			values: narrow(scopeSelection(rule, input === 'all')),
 		};
 	}
-
-	if (input === 'none') {
-		const none: ConsentState = { ...current.consents };
-		for (const name of categories) {
-			none[name] = name === 'necessary';
-		}
-		none.necessary = true;
-		return {
-			consentAction: coversPolicy ? 'necessary' : 'custom',
-			patch: {
-				activeUI: 'none',
-				consents: none,
-				hasConsented: true,
-				subjectId,
-			},
-		};
-	}
-
-	if (input && typeof input === 'object') {
-		const next: ConsentState = { ...current.consents };
-		let changed = false;
-		for (const name of allConsentNames) {
-			if (
-				name in input &&
-				typeof input[name] === 'boolean' &&
-				next[name] !== input[name]
-			) {
-				next[name] = input[name] as boolean;
-				changed = true;
-			}
-		}
-		if (changed) {
-			return {
-				consentAction: 'custom',
-				patch: {
-					activeUI: 'none',
-					consents: next,
-					hasConsented: true,
-					subjectId,
-				},
-			};
-		}
-		// No category changed, but save() is still an explicit consent act.
-		// Advance with a fresh consent object so persistence subscribers can
-		// refresh storage timestamps and policy acknowledgements.
+	if (input === undefined) {
 		return {
 			consentAction: 'custom',
-			patch: {
-				activeUI: 'none',
-				consents: next,
-				hasConsented: true,
-				subjectId,
-			},
+			values: narrow(presentedSelection(rule, draft, snapshot.explicitChoice)),
 		};
 	}
+	return { consentAction: 'custom', values: input };
+};
 
+/** Subject written by a save: the stored identifiers plus the current user's. */
+const saveSubject = function saveSubject(
+	snapshot: ConsentSnapshot,
+	subjectId: string
+): ConsentSubject {
+	const subject: ConsentSubject = { ...snapshot.subject, subjectId };
+	if (snapshot.user?.externalId) {
+		subject.externalId = snapshot.user.externalId;
+		if (snapshot.user.identityProvider) {
+			subject.identityProvider = snapshot.user.identityProvider;
+		}
+	}
+	return subject;
+};
+
+/** Capture the action’s policy evidence before init or navigation changes it. */
+const saveDecisionInputs = (
+	snapshot: ConsentSnapshot
+): Pick<SavePayload, 'decisionInputs'> => {
+	if (
+		snapshot.resolution.status !== 'no-match' &&
+		snapshot.resolution.status !== 'matched'
+	) {
+		return {};
+	}
 	return {
-		consentAction: 'custom',
-		patch: { activeUI: 'none', hasConsented: true, subjectId },
+		decisionInputs: {
+			country: snapshot.location
+				? snapshot.location.countryCode
+				: (snapshot.overrides.country ?? null),
+			fingerprint:
+				snapshot.resolution.status === 'matched'
+					? snapshot.resolution.fingerprints.policy
+					: undefined,
+			gpc: snapshot.privacySignals.gpc.active,
+			language:
+				snapshot.translations?.language ?? snapshot.overrides.language ?? 'en',
+			policyId:
+				snapshot.resolution.status === 'matched'
+					? snapshot.resolution.policyId
+					: null,
+			region: snapshot.location
+				? snapshot.location.regionCode
+				: (snapshot.overrides.region ?? null),
+		},
 	};
 };
 
+const isRecord = function isRecord(
+	value: unknown
+): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
+/** Validate addon metadata before the local action can mutate any state. */
+const validSaveAuthority = function validSaveAuthority(
+	value: unknown,
+	snapshot: ConsentSnapshot,
+	actionAt: number,
+	now: number
+): value is KernelIABAuthority {
+	if (!isRecord(value)) {
+		return false;
+	}
+	const authority = value;
+	return (
+		snapshot.model === 'iab' &&
+		snapshot.resolution.status === 'matched' &&
+		snapshot.iab?.enabled === true &&
+		typeof authority.tcString === 'string' &&
+		authority.tcString.length > 0 &&
+		authority.choiceFingerprint ===
+			snapshot.evaluationPolicy.choice.fingerprint &&
+		authority.confirmedAt === actionAt &&
+		typeof authority.expiresAt === 'number' &&
+		Number.isSafeInteger(authority.expiresAt) &&
+		authority.expiresAt > now &&
+		authority.expiresAt > actionAt &&
+		authority.expiresAt <=
+			actionAt +
+				Math.min(
+					snapshot.evaluationPolicy.choice.maxAgeMs ?? 395 * 86400000,
+					395 * 86400000
+				) &&
+		[
+			authority.vendorConsents,
+			authority.vendorLegitimateInterests,
+			authority.purposeConsents,
+			authority.purposeLegitimateInterests,
+			authority.specialFeatureOptIns,
+		].every(
+			(map) =>
+				map !== null &&
+				typeof map === 'object' &&
+				!Array.isArray(map) &&
+				Object.values(map).every((entry) => typeof entry === 'boolean')
+		)
+	);
+};
+
+const applySaveAuthority = function applySaveAuthority(
+	patch: SnapshotPatch,
+	snapshot: ConsentSnapshot,
+	authority?: KernelIABAuthority
+): void {
+	if (authority && snapshot.iab) {
+		patch.iab = {
+			...snapshot.iab,
+			authority: copyIABAuthority(authority),
+			tcString: authority.tcString,
+		};
+	}
+};
+
 /**
- * Dependencies required by `buildCommands`. The kernel index supplies
- * a getter for the live snapshot, the `advance` function, the event
- * emitter, and the optional transport.
+ * Dependencies required by `buildCommands`.
  */
 export interface CommandDeps {
-	getSnapshot: () => ConsentSnapshot;
-	advance: (patch: SnapshotPatch) => void;
-	emit: (event: KernelEvent) => void;
+	runtime: KernelRuntime;
 	transport: KernelTransport | undefined;
 	initRetry: KernelConfig['initRetry'];
 }
@@ -278,8 +324,10 @@ export interface CommandDeps {
 /**
  * Build the `kernel.commands.*` object given the kernel's runtime deps.
  */
+// oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
-	const { getSnapshot, advance, emit, transport, initRetry } = deps;
+	const { runtime, transport, initRetry } = deps;
+	const { getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
 		? createPendingSaveQueue({ emit, save: transport.save })
@@ -296,6 +344,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	let pendingRetryAttempt: number | null = null;
 	let retryInFlight = false;
 	let retryTimer: ReturnType<typeof setTimeout> | null = null;
+	// Bumped by every `identify()` so a subject read started by an earlier
+	// identify cannot apply after a later one.
+	let identifyGeneration = 0;
 
 	const getBrowserWindow = function getBrowserWindow(): Window | null {
 		return typeof window === 'undefined' ? null : window;
@@ -316,7 +367,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		) {
 			return;
 		}
-		// Browser retry callbacks call each other through event listeners.
 		// oxlint-disable-next-line no-use-before-define
 		document.removeEventListener('visibilitychange', onVisibilityChange);
 		visibilityListenerInstalled = false;
@@ -331,7 +381,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		) {
 			return;
 		}
-		// Browser retry callbacks call each other through event listeners.
 		// oxlint-disable-next-line no-use-before-define
 		document.addEventListener('visibilitychange', onVisibilityChange);
 		visibilityListenerInstalled = true;
@@ -350,23 +399,41 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 			const hasRemaining = await pendingSaves.replay();
 			if (hasRemaining) {
-				// Browser retry callbacks call each other through event listeners.
 				// oxlint-disable-next-line no-use-before-define
 				ensureOnlineListener();
 			}
 		};
 
+	const finishLifecycle = function finishLifecycle(
+		now: number,
+		activatePrivacy = true
+	): void {
+		if (activatePrivacy) {
+			runtime.reconcilePrivacy(now);
+		}
+		runtime.armDeadlineTimer();
+	};
+
+	/** Finalize local init while preserving its precomputed resolution. */
+	const finalizeWithoutTransport = function finalizeWithoutTransport(
+		now: number
+	): void {
+		const patch: SnapshotPatch = { now, policyPending: false };
+		if (commit(patch)) {
+			emit({ snapshot: getSnapshot(), type: 'init:applied' });
+		}
+	};
+
 	const runInitAttempt = async function runInitAttempt(
 		attempt: number
 	): Promise<InitResult> {
 		emit({ type: 'command:init:started' });
+		runtime.start();
 
 		if (!transport?.init) {
-			const finalize = resolveProvisionalPolicy(getSnapshot());
-			if (finalize) {
-				advance(finalize);
-				emit({ snapshot: getSnapshot(), type: 'init:applied' });
-			}
+			const now = runtime.now();
+			finalizeWithoutTransport(now);
+			finishLifecycle(now);
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
 			void replayPendingSaves();
@@ -374,6 +441,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		}
 
 		const generation = initGeneration;
+		const recordsGeneration = runtime.getGeneration();
 		const completeSuperseded = function completeSuperseded(
 			error: unknown
 		): InitResult {
@@ -394,11 +462,33 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					new Error('c15t: init attempt superseded by a newer init()')
 				);
 			}
-			const patch = applyInitResponse(getSnapshot(), response);
-			if (patch) {
-				advance(patch);
+			const now = runtime.now();
+			const current = getSnapshot();
+			const recordsAreCurrent =
+				recordsGeneration === runtime.getGeneration() &&
+				snapshot.subject?.subjectId === current.subject?.subjectId &&
+				snapshot.user === current.user;
+			// Policy can still resolve after clear or identification changes,
+			// but the old request no longer owns this subject's stored records.
+			const acceptedResponse = recordsAreCurrent
+				? response
+				: {
+						...response,
+						records: undefined,
+						subjectId: undefined,
+					};
+			const applied = applyInitResponse(current, acceptedResponse, now);
+			if (applied.recordIssues && !isProduction()) {
+				console.warn(
+					'[c15t] Ignored invalid server records on init.',
+					applied.recordIssues
+				);
+			}
+			const changed = commit(applied.patch);
+			if (changed || snapshot.policyPending) {
 				emit({ snapshot: getSnapshot(), type: 'init:applied' });
 			}
+			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
 			clearRetryTimer();
 			pendingRetryAttempt = null;
 			removeVisibilityListener();
@@ -411,6 +501,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return completeSuperseded(error);
 			}
 			emit({ command: 'init', error, type: 'command:error' });
+			const now = runtime.now();
+			commit(failedResolutionPatch(getSnapshot(), now));
+			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
 			const nextRetryMs =
 				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
 					? getRetryDelay(retryPolicy, attempt)
@@ -418,7 +511,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ attempt, error, nextRetryMs, type: 'init:failed' });
 			warnInitFailure(nextRetryMs);
 			if (nextRetryMs !== null) {
-				// Init failures schedule the next attempt through this callback.
 				// oxlint-disable-next-line no-use-before-define
 				scheduleRetry(attempt + 1, nextRetryMs);
 			}
@@ -469,7 +561,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		}
 		clearRetryTimer();
 		pendingRetryAttempt = attempt;
-		// Browser retry callbacks call each other through event listeners.
 		// oxlint-disable-next-line no-use-before-define
 		ensureOnlineListener();
 		retryTimer = setTimeout(() => {
@@ -503,10 +594,154 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		onlineListenerInstalled = true;
 	};
 
+	const loadSubjectRecord = async function loadSubjectRecord(
+		subjectId: string | null,
+		identifyAttempt: number
+	): Promise<void> {
+		if (!transport?.loadSubjectRecord || !subjectId) {
+			return;
+		}
+		// The read is bound to the subject it was requested for and to the
+		// records generation at request time. A clear, a newer identify or a
+		// subject switch while it was in flight makes the result stale.
+		const generation = runtime.getGeneration();
+		try {
+			const records = await transport.loadSubjectRecord(subjectId);
+			const stale =
+				identifyAttempt !== identifyGeneration ||
+				runtime.getGeneration() !== generation ||
+				(getSnapshot().subject?.subjectId ?? null) !== subjectId;
+			if (records && !stale) {
+				// Newest receipt per category wins: a local refusal made while
+				// the server read was in flight is never overwritten.
+				const result = runtime.mergeServerRecords(records);
+				if (result.ok === false) {
+					emit({
+						command: 'loadSubjectRecord',
+						error: new Error('c15t: server record rejected by validation'),
+						type: 'command:error',
+					});
+				}
+			}
+		} catch (error) {
+			emit({ command: 'loadSubjectRecord', error, type: 'command:error' });
+		}
+	};
+
+	/**
+	 * Transport phase of a save. The outcome only touches the replay queue
+	 * while this action's confirmed receipts are current. Disjoint category
+	 * actions remain independent. Only the newest action can map the subject
+	 * returned by the server; older outcomes cannot replace its identity.
+	 */
+	const sendSave = async function sendSave(
+		payload: SavePayload,
+		generation: number,
+		confirmed: readonly OptionalConsentCategory[],
+		actionSnapshot: ConsentSnapshot
+	): Promise<SaveResult> {
+		const currentPayload = (): SavePayload | null => {
+			const current = getSnapshot();
+			if (
+				runtime.getGeneration() !== generation ||
+				current.user !== actionSnapshot.user ||
+				current.evaluationPolicy.choice.fingerprint !==
+					actionSnapshot.evaluationPolicy.choice.fingerprint
+			) {
+				return null;
+			}
+			return selectSavePayload(
+				payload,
+				(category) =>
+					current.explicitChoice?.categories[category] ===
+					actionSnapshot.explicitChoice?.categories[category]
+			);
+		};
+		const send = transport?.save;
+		if (!send) {
+			return { confirmed, ok: true, subjectId: payload.subjectId };
+		}
+		try {
+			// Yield one macrotask before the network call so the UI commit
+			// from `commit()` above can paint first.
+			await createDeferredPromise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			const sending = currentPayload();
+			if (!sending) {
+				return { confirmed, ok: false };
+			}
+			const result = await send(sending);
+			const remaining = currentPayload();
+			if (!remaining) {
+				return { ...result, confirmed };
+			}
+			if (result.ok) {
+				await pendingSaves?.discard(remaining);
+			} else {
+				await pendingSaves?.enqueue(remaining);
+				ensureOnlineListener();
+			}
+			if (!currentPayload()) {
+				return { ...result, confirmed };
+			}
+			if (result.ok) {
+				if (
+					result.subjectId &&
+					result.subjectId !== getSnapshot().subject?.subjectId &&
+					getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
+					getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
+				) {
+					commit({
+						subject: { ...getSnapshot().subject, subjectId: result.subjectId },
+					});
+					emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
+				}
+				// The accepted save established or confirmed the subject: standing
+				// directives recorded while anonymous can be forwarded now.
+				runtime.flushPrivacy();
+			}
+			return { ...result, confirmed };
+		} catch (error) {
+			emit({ command: 'save', error, type: 'command:error' });
+			const remaining = currentPayload();
+			if (remaining) {
+				await pendingSaves?.enqueue(remaining);
+				ensureOnlineListener();
+			}
+			return { confirmed, ok: false };
+		}
+	};
+
 	const commands = {
+		dismissNotice(): Promise<NoticeDismissResult> {
+			const snapshot = getSnapshot();
+			if (snapshot.promptRequirement.kind !== 'notice') {
+				return Promise.resolve({ ok: false, reason: 'not-required' });
+			}
+			const actionAt = runtime.now();
+			const dismissal = {
+				dismissedAt: actionAt,
+				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
+				version: 1 as const,
+			};
+			commit({ noticeDismissal: dismissal, now: actionAt });
+			emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			runtime.armDeadlineTimer();
+			return Promise.resolve({ dismissal, ok: true });
+		},
+
 		async identify(user: KernelUser): Promise<void> {
-			const { subjectId } = getSnapshot();
-			advance({ user: { ...user } });
+			identifyGeneration += 1;
+			const attempt = identifyGeneration;
+			const generation = runtime.getGeneration();
+			const { subject, iab } = getSnapshot();
+			const subjectId = subject?.subjectId ?? null;
+			const patch: SnapshotPatch = { user: { ...user } };
+			if (iab) {
+				patch.iab = { ...iab, authority: null, tcString: null };
+			}
+			commit(patch);
 			emit({ snapshot: getSnapshot(), type: 'user:identified' });
 			if (transport?.identify) {
 				try {
@@ -516,6 +751,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					throw error;
 				}
 			}
+			if (
+				attempt !== identifyGeneration ||
+				runtime.getGeneration() !== generation ||
+				(getSnapshot().subject?.subjectId ?? null) !== subjectId
+			) {
+				return;
+			}
+			// An existing subject forwards standing directives right away;
+			// without one they stay pending until a save establishes it.
+			runtime.flushPrivacy();
+			await loadSubjectRecord(subjectId, attempt);
 		},
 
 		init(): Promise<InitResult> {
@@ -523,6 +769,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			// effect cleanup (which disposes) and then re-mounts with the same
 			// memoized kernel and calls init again; retries must work after that.
 			disposed = false;
+			runtime.rearm();
 			initGeneration += 1;
 			clearRetryTimer();
 			pendingRetryAttempt = null;
@@ -531,77 +778,131 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		},
 
 		async save(
-			input?: Partial<ConsentState> | 'all' | 'none',
-			options?: { categories?: readonly (keyof ConsentState)[] }
+			input?: SaveInput,
+			context?: {
+				actionAt?: number;
+				iabAuthority?: KernelIABAuthority;
+				categories?: readonly AllConsentNames[];
+			}
 		): Promise<SaveResult> {
+			const currentTime = runtime.now();
+			const actionAt =
+				context?.actionAt === undefined ? currentTime : context.actionAt;
+			if (
+				!Number.isSafeInteger(actionAt) ||
+				actionAt < 0 ||
+				actionAt > currentTime
+			) {
+				return {
+					issues: [{ code: 'invalid-timestamp', path: 'actionAt' }],
+					ok: false,
+				};
+			}
+			if (
+				context?.iabAuthority !== undefined &&
+				!validSaveAuthority(
+					context.iabAuthority,
+					getSnapshot(),
+					actionAt,
+					currentTime
+				)
+			) {
+				return { ok: false };
+			}
 			emit({ type: 'command:save:started' });
 
-			const beforeSnapshot = getSnapshot();
-			const subjectId = beforeSnapshot.subjectId ?? generateSubjectId();
-			const uiSource = beforeSnapshot.activeUI;
-
-			const { patch, consentAction } = resolveSavePatch(
-				beforeSnapshot,
-				subjectId,
+			const before = getSnapshot();
+			// Captured once, before validation, yield, network or persistence.
+			const uiSource = before.activeUI;
+			const { values, consentAction } = resolveSaveSelection(
+				before,
+				runtime.getDraft(),
 				input,
-				options
+				context?.categories
 			);
-			if (Object.keys(patch).length > 0) {
-				advance(patch);
+			const recorded = recordCategoryPatch(before.explicitChoice, values, {
+				actionAt,
+				now: currentTime,
+				policy: before.evaluationPolicy,
+			});
+			if (recorded.ok === false) {
+				const result: SaveResult = { issues: recorded.issues, ok: false };
+				emit({ result, type: 'command:save:completed' });
+				return result;
 			}
-
-			const after = getSnapshot();
-
-			if (!transport?.save) {
-				const result: SaveResult = { ok: true, subjectId };
+			if (recorded.confirmed.length === 0) {
+				// Nothing confirmed: no receipt, no choice event, no request, no write.
+				const result: SaveResult = {
+					confirmed: [],
+					ok: true,
+					subjectId: before.subject?.subjectId,
+				};
 				emit({ result, type: 'command:save:completed' });
 				return result;
 			}
 
-			// Captured once so a queued replay records when the visitor decided,
+			const subjectId = before.subject?.subjectId ?? generateSubjectId();
+			const subject = saveSubject(before, subjectId);
+			runtime.setDraft(null);
+			const patch: SnapshotPatch = {
+				explicitChoice: recorded.choice,
+				now: currentTime,
+				subject,
+			};
+			applySaveAuthority(patch, before, context?.iabAuthority);
+			commit(patch);
+			const after = getSnapshot();
+			// Records generation at the moment the action landed. A hydration
+			// boundary (storage clear, server record) that replaces the choice
+			// afterwards supersedes this action: its outcome must not queue a
+			// replay or touch the subject.
+			const generation = runtime.getGeneration();
+			// Exactly the confirmed keys with their recorded values, copied so a
+			// caller mutating its input object cannot change the queued payload.
+			const confirmedCategories: Partial<
+				Record<OptionalConsentCategory, boolean>
+			> = {};
+			for (const category of recorded.confirmed) {
+				const decision = recorded.choice.categories[category];
+				if (decision) {
+					confirmedCategories[category] = decision.value;
+				}
+			}
+			emit({
+				actionAt,
+				confirmed: recorded.confirmed,
+				snapshot: after,
+				type: 'choice:recorded',
+			});
+			runtime.armDeadlineTimer();
+
+			// Built once so a queued replay records when the visitor decided,
 			// not when the retry ran, and derives the same backend consent id.
 			const payload: SavePayload = {
+				choice: recorded.choice,
+				confirmed: { actionAt, categories: confirmedCategories },
 				consentAction,
-				consents: after.consents,
-				givenAt: Date.now(),
+				consents: after.effectivePermissions,
+				...saveDecisionInputs(after),
+				givenAt: actionAt,
 				model: after.model,
 				overrides: after.overrides,
 				policySnapshotToken: after.policySnapshotToken,
+				subject,
 				subjectId,
 				tcString: after.iab?.tcString ?? null,
-
 				uiSource,
 				user: after.user,
 			};
 
-			try {
-				// Yield one macrotask before the network call so the UI commit
-				// from `advance()` above can paint first — starting the fetch in
-				// the click task contends with the banner-dismiss frame under
-				// CPU throttle. Mirrors v2's yielded background save.
-				await createDeferredPromise((resolve) => {
-					setTimeout(resolve, 0);
-				});
-				const result = await transport.save(payload);
-				if (result.ok) {
-					await pendingSaves?.discard(subjectId);
-				} else {
-					await pendingSaves?.enqueue(payload);
-					ensureOnlineListener();
-				}
-				if (result.subjectId && result.subjectId !== getSnapshot().subjectId) {
-					advance({ subjectId: result.subjectId });
-				}
-				emit({ result, type: 'command:save:completed' });
-				return result;
-			} catch (error) {
-				emit({ command: 'save', error, type: 'command:error' });
-				await pendingSaves?.enqueue(payload);
-				ensureOnlineListener();
-				const result: SaveResult = { ok: false };
-				emit({ result, type: 'command:save:completed' });
-				return result;
-			}
+			const result = await sendSave(
+				payload,
+				generation,
+				recorded.confirmed,
+				after
+			);
+			emit({ result, type: 'command:save:completed' });
+			return result;
 		},
 	};
 
@@ -613,6 +914,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		clearRetryTimer();
 		pendingRetryAttempt = null;
 		removeVisibilityListener();
+		runtime.stopTimers();
 
 		const browserWindow = getBrowserWindow();
 		if (

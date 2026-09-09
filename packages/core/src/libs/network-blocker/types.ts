@@ -8,6 +8,10 @@ import type { HasCondition } from '../has';
  * @public
  */
 export interface NetworkBlockerRule {
+	vendorId?: number | string;
+	iabPurposes?: number[];
+	iabLegIntPurposes?: number[];
+	iabSpecialFeatures?: number[];
 	/**
 	 * Optional identifier for the rule.
 	 * Useful for debugging and logging.
@@ -112,7 +116,7 @@ export interface NetworkBlockerConfig {
 	 * This allows the blocker to use a slightly stale consent snapshot so that
 	 * script teardown callbacks can finish before stricter blocking is applied.
 	 */
-	initialConsents?: ConsentState;
+	initialDraft?: ConsentState;
 
 	/**
 	 * Whether to automatically log blocked requests to the console.

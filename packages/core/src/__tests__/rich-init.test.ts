@@ -3,81 +3,45 @@
  *
  * Verifies:
  * 1. commands.init applies all new fields (location, translations, branding,
- *    policy, policyDecision, policySnapshotToken) to the snapshot.
- * 2. Policy drives derived state: model, activeUI, policyCategories,
- *    policyScopeMode, policyBanner, policyDialog.
+ *    policyResolution, policySnapshotToken) to the snapshot.
+ * 2. Policy drives derived state: model, activeUI and policyRule.
  * 3. Preselected consents do not become runtime grants before consent.
  * 4. IAB passthrough: gvl/customVendors/cmpId land on snapshot.iab.
  * 5. set.iab mutates snapshot.iab idempotently and re-derives model
  *    when enabled flips.
  * 6. SavePayload carries policySnapshotToken and tcString.
  */
-import type { PolicyDecision, ResolvedPolicy } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
 import type { KernelTransport, SavePayload } from '../index';
+import {
+	iabRule,
+	matchedResolution,
+	optInRule,
+} from './fixtures/kernel-fixtures';
 
 // --- Fixture: a reasonable GDPR policy with all the fields we care about ---
 
-const GDPR_POLICY: ResolvedPolicy = {
-	consent: {
-		categories: ['necessary', 'functionality', 'marketing', 'measurement'],
-		model: 'opt-in',
-		preselectedCategories: ['necessary', 'functionality'],
-		scopeMode: 'permissive',
-	},
-	id: 'gdpr-strict',
-	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['accept', 'reject', 'customize'],
-			direction: 'row',
-			primaryActions: ['accept', 'reject'],
-			scrollLock: false,
-			uiProfile: 'balanced',
-		},
-		dialog: {
-			allowedActions: ['accept', 'reject', 'customize'],
-			direction: 'column',
-			primaryActions: ['accept'],
-			scrollLock: true,
-			uiProfile: 'balanced',
-		},
-		mode: 'banner',
-	},
-} as unknown as ResolvedPolicy;
-
-const GDPR_DECISION: PolicyDecision = {
-	fingerprint: 'abc123',
-	matchedBy: 'region',
-} as unknown as PolicyDecision;
-
-const IAB_POLICY: ResolvedPolicy = {
-	...GDPR_POLICY,
-	consent: {
-		...GDPR_POLICY.consent,
-		model: 'iab',
-	},
-	id: 'iab-policy',
-	model: 'iab',
-} as unknown as ResolvedPolicy;
-
-const NO_BANNER_POLICY: ResolvedPolicy = {
-	id: 'no_banner',
-	model: 'none',
-	ui: { mode: 'none' },
-} as unknown as ResolvedPolicy;
+const GDPR_RESOLUTION = {
+	...matchedResolution(
+		optInRule({
+			categories: ['functionality', 'marketing', 'measurement'],
+			id: 'gdpr-strict',
+			preselectedCategories: ['functionality'],
+		})
+	),
+	version: 1,
+};
 
 describe('rich init: applies full response to snapshot', () => {
-	test('fills location / translations / branding / policy / policyDecision / policySnapshotToken', async () => {
+	test('fills location / translations / branding / policyResolution / policySnapshotToken', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					branding: 'c15t',
 					location: { countryCode: 'DE', regionCode: 'BE' },
-					policy: GDPR_POLICY,
-					policyDecision: GDPR_DECISION,
+					policyResolution: GDPR_RESOLUTION,
 					policySnapshotToken: 'token-xyz',
 					translations: {
 						language: 'de',
@@ -85,7 +49,7 @@ describe('rich init: applies full response to snapshot', () => {
 							common: { acceptAll: 'Alle akzeptieren' },
 						} as never,
 					},
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -96,17 +60,20 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(snap.translations?.language).toBe('de');
 		expect(snap.branding).toBe('c15t');
-		expect(snap.policy).toMatchObject({ id: 'gdpr-strict', model: 'opt-in' });
-		expect(snap.policyDecision?.matchedBy).toBe('region');
+		expect(snap.policyRule).toMatchObject({
+			id: 'gdpr-strict',
+			model: 'opt-in',
+		});
+		expect(snap.resolution).toMatchObject({ matchedBy: 'default' });
 		expect(snap.policySnapshotToken).toBe('token-xyz');
 	});
 
-	test('derives model, activeUI, policyCategories, policyScopeMode from policy', async () => {
+	test('derives model, activeUI and scope from policyRule', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
-					policy: GDPR_POLICY,
-				};
+				return Promise.resolve({
+					policyResolution: GDPR_RESOLUTION,
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -120,49 +87,42 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.activeUI).toBe('banner');
 		// policy.consent.categories — order follows allConsentNames, not the
 		// input allowlist, so compare as a set.
-		expect(new Set(snap.policyCategories)).toEqual(
-			new Set(['necessary', 'functionality', 'marketing', 'measurement'])
+		expect(new Set(snap.policyRule.scope)).toEqual(
+			new Set(['functionality', 'marketing', 'measurement'])
 		);
 		// policy.consent.scopeMode
-		expect(snap.policyScopeMode).toBe('permissive');
-		// policy.ui.banner + dialog landed
-		expect(snap.policyBanner?.allowedActions).toEqual([
-			'accept',
-			'reject',
-			'customize',
-		]);
-		expect(snap.policyDialog?.scrollLock).toBe(true);
+		expect(snap.policyRule.scopeMode).toBe('permissive');
+		expect(snap.policyRule.actions.required).toEqual(['accept', 'reject']);
 	});
 
-	test('does not grant policy.preselectedCategories when hasConsented is false', async () => {
+	test('does not grant preselected categories without a receipt', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { policy: GDPR_POLICY };
+				return Promise.resolve({ policyResolution: GDPR_RESOLUTION });
 			},
 		};
 		const kernel = createConsentKernel({ transport });
 
-		expect(kernel.getSnapshot().consents.functionality).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.functionality).toBe(false);
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
 		// preselectedCategories can seed UI drafts, but opt-in silence is denied
 		// in the kernel's runtime gating snapshot.
-		expect(snap.consents.necessary).toBe(true);
-		expect(snap.consents.functionality).toBe(false);
-		expect(snap.consents.marketing).toBe(false);
+		expect(snap.effectivePermissions.necessary).toBe(true);
+		expect(snap.effectivePermissions.functionality).toBe(false);
+		expect(snap.effectivePermissions.marketing).toBe(false);
 	});
 
-	test('does NOT overwrite consents when hasConsented=true', async () => {
+	test('does not import bare consent booleans as choice receipts', async () => {
 		const transport: KernelTransport = {
 			init() {
 				// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-				return {
-					policy: GDPR_POLICY,
-					// Server says hasConsented=true — user has prior choice
-					hasConsented: true,
+				return Promise.resolve({
+					policyResolution: GDPR_RESOLUTION,
+					// Bare server booleans do not establish a prior choice.
 					consents: { marketing: true },
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -170,24 +130,32 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		expect(snap.hasConsented).toBe(true);
-		// Server consent respected
-		expect(snap.consents.marketing).toBe(true);
-		// Preselected not applied (hasConsented=true)
-		expect(snap.consents.functionality).toBe(false);
+		// Booleans without receipts are a draft, not a choice: nothing is
+		// granted until an explicit save confirms them.
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.effectivePermissions.functionality).toBe(false);
 	});
 
-	test('model=null when policy.model is none', async () => {
+	test('legacy no_banner sentinel is a successful no-match with the safe fallback', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { policy: NO_BANNER_POLICY };
+				return Promise.resolve({
+					policyResolution: { policy: null, status: 'no-match', version: 1 },
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
 
 		await kernel.commands.init();
-		expect(kernel.getSnapshot().model).toBeNull();
-		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getSnapshot().resolution).toEqual({
+			policy: null,
+			status: 'no-match',
+		});
+		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 });
 
@@ -195,7 +163,7 @@ describe('rich init: IAB passthrough', () => {
 	test('gvl / customVendors / cmpId land on snapshot.iab', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					cmpId: 28,
 					customVendors: [{ id: 'cv-1', name: 'Custom Vendor 1' } as never],
 					gvl: {
@@ -210,7 +178,7 @@ describe('rich init: IAB passthrough', () => {
 						vendorListVersion: 42,
 						vendors: {},
 					} as never,
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -227,7 +195,7 @@ describe('rich init: IAB passthrough', () => {
 	test('gvl=null on 200 response → iab.enabled remains false', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { gvl: null };
+				return Promise.resolve({ gvl: null });
 			},
 		};
 		const kernel = createConsentKernel({
@@ -243,7 +211,7 @@ describe('rich init: IAB passthrough', () => {
 	test('no IAB fields in response → snapshot.iab unchanged', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {};
+				return Promise.resolve({});
 			},
 		};
 		const kernel = createConsentKernel({
@@ -295,16 +263,17 @@ describe('set.iab: kernel action', () => {
 	test('flipping enabled re-derives model + activeUI', () => {
 		const kernel = createConsentKernel({
 			initialIab: { enabled: false },
-			initialPolicy: IAB_POLICY,
+			initialPolicyResolution: matchedResolution(iabRule()),
 		});
 
-		expect(kernel.getSnapshot().model).toBeNull();
+		// An IAB rule without the IAB module runs its categories as opt-in.
+		expect(kernel.getSnapshot().model).toBe('opt-in');
 
 		kernel.set.iab({ enabled: true });
 		expect(kernel.getSnapshot().model).toBe('iab');
 
 		kernel.set.iab({ enabled: false });
-		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().model).toBe('opt-in');
 	});
 
 	test('no-op patch does not notify subscribers', () => {
@@ -324,7 +293,10 @@ describe('SavePayload: carries policySnapshotToken + tcString', () => {
 		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
 		const transport: KernelTransport = {
 			init() {
-				return { policySnapshotToken: 'snap-42' };
+				return Promise.resolve({
+					policyResolution: GDPR_RESOLUTION,
+					policySnapshotToken: 'snap-42',
+				});
 			},
 			save: saveSpy,
 		};

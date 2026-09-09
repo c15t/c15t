@@ -5,7 +5,11 @@ import {
 	Scripts,
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
+import {
+	IABConsentBanner,
+	IABProvider,
+	IABConsentDialog,
+} from 'c15t/react/iab';
 import {
 	ConsentBanner,
 	ConsentBoundary,
@@ -51,14 +55,13 @@ const RootComponent = () => {
 				<ConsentBoundary
 					config={config}
 					backendURL={consentRoute}
-					// Presence opts the provider into IAB TCF; the CMP id and GVL
-					// come from the manifest through init, so nothing else is set.
-					options={{ iab: {} }}
 				>
 					<ConsentBanner />
 					<ConsentDialog />
-					<IABConsentBanner />
-					<IABConsentDialog />
+					<IABProvider cmpId={config.initialIab?.cmpId ?? 10}>
+						<IABConsentBanner />
+						<IABConsentDialog />
+					</IABProvider>
 					<Outlet />
 				</ConsentBoundary>
 				<Scripts />

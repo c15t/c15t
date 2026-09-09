@@ -47,6 +47,7 @@ const generateDocsConfig = () =>
 			},
 		],
 		navigation: [
+			{ pages: ['upgrade-v3'], title: 'Migration' },
 			defineFrameworkNavigation({
 				base: 'frameworks',
 				frameworks: [
@@ -88,6 +89,7 @@ const generateDocsConfig = () =>
 								pages: [
 									'components/consent-manager-provider',
 									'components/consent-banner',
+									'components/consent-dialog-trigger',
 									'components/dev-tools',
 								],
 

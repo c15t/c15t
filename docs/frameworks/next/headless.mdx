@@ -4,14 +4,84 @@ description: Build your own consent UI on top of the c15t hooks.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## When to go headless
 
-TODO.
+The pre-built banner and dialog cover most designs through props, slots, and
+the stylesheet. Go headless when your markup has to be something else
+entirely: a design system component, a native sheet, or a layout the compound
+parts cannot express.
+
+Headless code owns the rendered controls, so it also owns the compliance
+outcome. The hooks hand you the actions a policy requires, the rights it must
+keep reachable, and diagnostics when your presentation drops one. Render from
+those lists rather than from a fixed set of buttons, and a site that later adds
+a notice region keeps working without a code change.
 
 ## Minimal example
 
-TODO.
+```tsx
+import { useHeadlessConsentUI, useTranslations } from '@c15t/nextjs/headless';
+
+const ACTION_LABELS = {
+	accept: 'acceptAll',
+	reject: 'rejectAll',
+	customize: 'customize',
+	dismiss: 'acceptAll',
+	save: 'save',
+} as const;
+
+export function Banner() {
+	const { banner, performAction, openDialog } = useHeadlessConsentUI();
+	const { common, rights } = useTranslations();
+
+	if (!banner.isVisible) {
+		return null;
+	}
+
+	return (
+		<section role="region" aria-label="Privacy">
+			{banner.uncoveredRights.map((right) => (
+				<button key={right} type="button" onClick={openDialog}>
+					{right === 'opt-out' ? rights?.optOut : rights?.preferences}
+				</button>
+			))}
+			{banner.actionGroups.map((group) => (
+				<div key={group.join('-')}>
+					{group.map((action) => (
+						<button
+							key={action}
+							type="button"
+							data-primary={banner.primaryActions.includes(action) || undefined}
+							onClick={() => performAction(action)}
+						>
+							{common[ACTION_LABELS[action]]}
+						</button>
+					))}
+				</div>
+			))}
+		</section>
+	);
+}
+```
+
+`banner.actionGroups` is the resolved layout: reject and accept share a group
+at equal prominence, and the rest follow. `banner.orderedActions` is the same
+list flattened. Under a notice the only action is `dismiss`, and
+`banner.uncoveredRights` lists the rights no action covers, so the example
+above renders an "Accept All" button plus one opt-out link without a
+notice-specific branch. An opt-out control opens the preference center, so
+the resolver does not list `preferences` next to it. The pre-built banner
+labels the dismiss action "Accept All" because a notice only exists under the
+opt-out model, where every category is already permitted; use
+`common.dismiss` if you prefer "Dismiss".
+
+`performAction` saves all categories for `accept`, none for `reject`, the
+current draft for `save`, records a dismissal for `dismiss`, and opens the
+preference center for `customize`. `banner.diagnostics` reports when a host
+layout drops a required action or gives equivalent actions different
+prominence. It is empty when you render from the resolved lists.
+
+`banner.variant`, `banner.position`, and `banner.blocking` carry the resolved
+shape from `presentation.prompt`, so a headless surface can follow the same
+bar, widget, or wall choice the pre-built banner would make, and can trap
+focus and lock scroll exactly when `blocking` is true.

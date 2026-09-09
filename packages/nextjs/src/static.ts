@@ -1,6 +1,6 @@
+import { c15tProtocolHeaders } from '@c15t/core';
 import type {
 	ConsentManifest,
-	ConsentManifestPolicyPack,
 	InitOutput,
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
@@ -31,8 +31,8 @@ export interface StaticConsentResolverOptions {
 
 export interface StaticConsentResolution {
 	/**
-	 * Safe synchronous result for first paint. Uses the strictest known policy
-	 * when geo has not been resolved yet.
+	 * Synchronous policy outcome for first paint. Unknown geography never
+	 * rewrites a configured matcher.
 	 */
 	initial: InitOutput;
 
@@ -42,14 +42,6 @@ export interface StaticConsentResolution {
 	 */
 	resolved: Promise<InitOutput>;
 }
-
-const POLICY_STRICTNESS: Record<string, number> = {
-	iab: 4,
-	none: 0,
-	notice: 1,
-	'opt-in': 3,
-	'opt-out': 2,
-};
 
 const readBrowserLanguage = function readBrowserLanguage(): string | undefined {
 	if (typeof navigator === 'undefined') {
@@ -62,8 +54,10 @@ const readBrowserGpc = function readBrowserGpc(): boolean | undefined {
 	if (typeof navigator === 'undefined') {
 		return undefined;
 	}
-	return (navigator as Navigator & { globalPrivacyControl?: boolean })
-		.globalPrivacyControl;
+	return (
+		(navigator as Navigator & { globalPrivacyControl?: unknown })
+			.globalPrivacyControl === true
+	);
 };
 
 const normalizeGeo = function normalizeGeo(
@@ -75,57 +69,14 @@ const normalizeGeo = function normalizeGeo(
 	};
 };
 
-const comparePolicyStrictness = function comparePolicyStrictness(
-	left: ConsentManifestPolicyPack,
-	right: ConsentManifestPolicyPack
-) {
-	const leftScore = POLICY_STRICTNESS[left.resolvedPolicy.model] ?? -1;
-	const rightScore = POLICY_STRICTNESS[right.resolvedPolicy.model] ?? -1;
-	return leftScore - rightScore;
-};
-
-const pickStrictestPolicyPack = function pickStrictestPolicyPack(
-	manifest: ConsentManifest
-): ConsentManifestPolicyPack | undefined {
-	const sorted = manifest.policyPacks?.slice().sort(comparePolicyStrictness);
-	return sorted?.[sorted.length - 1];
-};
-
+/** Resolve unknown geography without rewriting configured policy matchers. */
 export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
 	manifest: ConsentManifest,
 	inputs: Omit<ResolveInitFromManifestInputs, 'country' | 'region'> = {}
 ): InitOutput {
-	const strictestPack = pickStrictestPolicyPack(manifest);
-	if (!strictestPack) {
-		return resolveInitFromManifest(
-			manifest,
-			{
-				...inputs,
-				country: null,
-				region: null,
-			},
-			{ baseTranslations }
-		);
-	}
-
 	return resolveInitFromManifest(
-		{
-			...manifest,
-			policyPacks: [
-				{
-					...strictestPack,
-					policy: {
-						...strictestPack.policy,
-						match: { fallback: true },
-					},
-				},
-			],
-		},
-		{
-			...inputs,
-			country: null,
-			region: null,
-		},
+		manifest,
+		{ ...inputs, country: null, region: null },
 		{ baseTranslations }
 	);
 };
@@ -203,7 +154,7 @@ export const loadStaticManifest = async function loadStaticManifest(
 		throw new Error('@c15t/nextjs/static: no fetch available.');
 	}
 	const response = await fetchImpl(options.manifestURL, {
-		headers: { accept: 'application/json' },
+		headers: { accept: 'application/json', ...c15tProtocolHeaders },
 		method: 'GET',
 	});
 	if (!response.ok) {

@@ -32,7 +32,7 @@ const { c15t } = Astro.locals;
 			{
 				decision: c15t.decision,
 				language: c15t.snapshot.translations?.language ?? null,
-				policy: c15t.snapshot.policy?.id ?? null,
+				policy: c15t.snapshot.policyRule.id ?? null,
 				shouldShowBanner: c15t.shouldShowBanner,
 			},
 			null,

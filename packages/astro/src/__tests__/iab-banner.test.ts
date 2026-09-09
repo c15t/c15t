@@ -23,19 +23,17 @@ beforeAll(async () => {
 });
 
 const IAB_POLICY = {
-	consent: {
-		categories: ['necessary', 'marketing'],
-		model: 'iab',
-		scopeMode: 'permissive',
-	},
+	categories: ['marketing'],
 	id: 'astro_iab_test',
-	match: { isDefault: true },
+	match: { fallback: true },
+	model: 'iab',
+	prompt: 'choice',
 } as const;
 
 const iabOptions: C15tAstroOptions = {
 	consentCategories: ['necessary', 'marketing'],
 	iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
-	mode: offlineMode({ policyPacks: [IAB_POLICY as never] }),
+	mode: offlineMode({ policyRules: [IAB_POLICY as never] }),
 };
 
 const buildLocals = async function buildLocals(
@@ -131,7 +129,7 @@ describe('<IABConsentBanner />', () => {
 		const locals = await buildLocals({
 			consentCategories: ['necessary', 'marketing'],
 			iab: { cmpId: 160 },
-			mode: offlineMode({ policyPacks: [IAB_POLICY as never] }),
+			mode: offlineMode({ policyRules: [IAB_POLICY as never] }),
 		});
 		const html = await render(locals);
 		expect(html).not.toContain('data-testid="iab-consent-banner-root"');
