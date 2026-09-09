@@ -205,6 +205,7 @@ export const parseCookieValue = function parseCookieValue<ReturnType = unknown>(
  * Reads one cookie's raw value from `document.cookie` without parsing it.
  *
  * @param name - Cookie name to read
+ * @param onUnavailable - Called when browser cookies cannot be read.
  * @returns The raw value, or `null` outside the browser, when the cookie
  * is absent, or when `document.cookie` cannot be read.
  *
@@ -215,9 +216,11 @@ export const parseCookieValue = function parseCookieValue<ReturnType = unknown>(
  * @internal
  */
 export const getRawCookieValue = function getRawCookieValue(
-	name: string
+	name: string,
+	onUnavailable?: () => void
 ): string | null {
 	if (typeof document === 'undefined') {
+		onUnavailable?.();
 		return null;
 	}
 
@@ -225,6 +228,7 @@ export const getRawCookieValue = function getRawCookieValue(
 		return readCookieValueFromHeader(document.cookie, name) ?? null;
 	} catch (error) {
 		console.warn(`Failed to get cookie "${name}":`, error);
+		onUnavailable?.();
 		return null;
 	}
 };

@@ -17,10 +17,6 @@ import {
 } from './record-storage';
 import type { StorageConfig } from './types';
 
-const hasStorageAPIs = function hasStorageAPIs(): boolean {
-	return typeof document !== 'undefined' && typeof localStorage !== 'undefined';
-};
-
 /** Envelope a snapshot's explicit choice serializes to, or `null`. */
 export const buildStoredEnvelope = function buildStoredEnvelope(
 	snapshot: ConsentSnapshot,
@@ -52,7 +48,7 @@ export const writeChoiceToStorage = function writeChoiceToStorage(
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): void {
-	if (!hasStorageAPIs()) {
+	if (typeof document === 'undefined') {
 		return;
 	}
 	const envelope = buildStoredEnvelope(snapshot, iab);
@@ -74,7 +70,7 @@ export const writeNoticeToStorage = function writeNoticeToStorage(
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): void {
-	if (!hasStorageAPIs() || !snapshot.noticeDismissal) {
+	if (typeof document === 'undefined' || !snapshot.noticeDismissal) {
 		return;
 	}
 	writeStoredNoticeDismissal(snapshot.noticeDismissal, storageConfig, now);
@@ -86,7 +82,7 @@ export const writePrivacyToStorage = function writePrivacyToStorage(
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): void {
-	if (!hasStorageAPIs()) {
+	if (typeof document === 'undefined') {
 		return;
 	}
 	writeStoredPrivacyOptOuts(snapshot.optOutDirectives, storageConfig, now);

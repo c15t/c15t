@@ -23,6 +23,7 @@ import type { StorageConfig } from './types';
 
 /** Stored records plus the IAB transport metadata the next save preserves. */
 export interface StoredRecords {
+	/** Unreadable records are omitted so hydration preserves in-memory values. */
 	records: HydrationRecords;
 	iab: StoredIabMetadata | null;
 	/** Whether any valid record was found. */
@@ -60,12 +61,32 @@ export const readStoredRecords = function readStoredRecords(
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): StoredRecords {
-	return composeRecords(
-		readStoredConsentRecord(storageConfig, now),
-		readStoredNoticeDismissal(storageConfig, now),
-		readStoredPrivacyOptOuts(storageConfig, now),
-		now
-	);
+	let choiceUnavailable = false;
+	let noticeUnavailable = false;
+	let privacyUnavailable = false;
+	const selection = readStoredConsentRecord(storageConfig, now, () => {
+		choiceUnavailable = true;
+	});
+	const notice = readStoredNoticeDismissal(storageConfig, now, () => {
+		noticeUnavailable = true;
+	});
+	const privacy = readStoredPrivacyOptOuts(storageConfig, now, () => {
+		privacyUnavailable = true;
+	});
+	const stored = composeRecords(selection, notice, privacy, now);
+	// An absent value only clears memory when every candidate was readable.
+	// A valid record from an available source can still hydrate normally.
+	if (!selection.selected && choiceUnavailable) {
+		delete stored.records.choice;
+		delete stored.records.subject;
+	}
+	if (!notice?.ok && noticeUnavailable) {
+		delete stored.records.noticeDismissal;
+	}
+	if (!privacy?.ok && privacyUnavailable) {
+		delete stored.records.optOutDirectives;
+	}
+	return stored;
 };
 
 /**
@@ -99,16 +120,18 @@ export const readStoredRecordsFromCookieHeader =
 /**
  * Read stored records and apply them to the kernel. Returns the read
  * result so the caller can keep the IAB metadata for the next save, or
- * `null` when storage APIs are unavailable.
+ * `null` outside the browser.
  */
 export const hydrateFromStorage = function hydrateFromStorage(
 	kernel: ConsentKernel,
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): StoredRecords | null {
-	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+	if (typeof document === 'undefined') {
 		return null;
 	}
+	// Cookies can remain usable when localStorage is blocked. Let each
+	// storage reader guard its own access, including property getters.
 	const stored = readStoredRecords(storageConfig, now);
 	const result = kernel.hydrate(stored.records);
 	if (result.ok === false) {
