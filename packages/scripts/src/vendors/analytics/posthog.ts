@@ -272,6 +272,7 @@ export const posthogManifest = {
 	],
 	onLoadGranted: [
 		{
+			args: [{ captureEventName: null }],
 			global: 'posthog',
 			method: 'opt_in_capturing',
 

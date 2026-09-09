@@ -94,6 +94,7 @@ describe('posthog', () => {
 		);
 
 		expect(optIn).toHaveBeenCalledTimes(1);
+		expect(optIn).toHaveBeenCalledWith();
 	});
 
 	it('uses consent-aware defaults when optional options are omitted', () => {

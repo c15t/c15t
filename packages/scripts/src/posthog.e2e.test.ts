@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -88,6 +88,30 @@ describe('posthog contract', () => {
 			['opt_in_capturing', { captureEventName: null }],
 			['capture', 'signup', { plan: 'pro' }],
 		]);
+	});
+
+	it('syncs granted consent after load without emitting another opt-in event', () => {
+		const optIn = vi.fn();
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			win.posthog = {
+				capture: vi.fn(),
+				get_explicit_consent_status: () => 'granted',
+				init: vi.fn(),
+				opt_in_capturing: optIn,
+				opt_out_capturing: vi.fn(),
+			};
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts([posthog({ id: 'phc_load_sync' })], grantedMeasurementConsents);
+
+		// PostHog emits $opt_in on every argument-free opt-in call, including
+		// calls that only reapply consent already restored from the queue.
+		expect(optIn).toHaveBeenCalledExactlyOnceWith({ captureEventName: null });
 	});
 
 	it('queues opt-out ahead of capture when measurement consent is denied', () => {
