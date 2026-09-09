@@ -81,10 +81,11 @@ for (const [name, config] of [
 				.replace('./dist-types/', '')
 				.replace(/\.d\.ts$/u, '.js');
 			const emitted = readFileSync(join(output, publicFile), 'utf8');
-			if (publicFile !== canonical) {
-				expect(emitted).toBe(`export * from './${canonical}';\n`);
-			}
 			expect(readFileSync(join(output, canonical), 'utf8')).toBeTruthy();
+			if (publicFile === canonical) {
+				continue;
+			}
+			expect(emitted).toBe(`export * from './${canonical}';\n`);
 		}
 		expect(
 			Object.keys(original).some((file) =>

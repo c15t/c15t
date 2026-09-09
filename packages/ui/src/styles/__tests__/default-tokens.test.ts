@@ -125,9 +125,7 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		const layerStart = css.indexOf('@layer');
 		const tokensEnd = css.indexOf('}', css.indexOf(LIGHT_SELECTOR));
 
-		if (layerStart !== -1) {
-			expect(tokensEnd).toBeLessThan(layerStart);
-		}
+		expect(tokensEnd).toBeLessThan(layerStart === -1 ? Infinity : layerStart);
 	});
 });
 

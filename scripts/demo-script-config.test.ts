@@ -9,10 +9,8 @@ describe('Svelte demo script configuration', () => {
 		expect(new Set(scripts.map((script) => script.id)).size).toBe(
 			scripts.length
 		);
-		for (const script of scripts) {
-			if (script.src) {
-				expect(script.src).toMatch(/^\/api\/devtools-scripts\//u);
-			}
+		for (const script of scripts.filter((entry) => entry.src)) {
+			expect(script.src).toMatch(/^\/api\/devtools-scripts\//u);
 		}
 	});
 

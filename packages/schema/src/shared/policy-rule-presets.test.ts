@@ -18,21 +18,35 @@ describe('policyRulePresets', () => {
 		expect(() => normalizePolicyRule(rule)).not.toThrow();
 		expect(rule.review?.reviewBy).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
 		expect(rule.review?.assumptions?.length).toBeGreaterThan(0);
-		if (name === 'worldNone') {
-			// No consent law to cite; the assumptions carry the claim instead.
-			expect(rule.review?.status).toBe('pending');
-			expect(rule.model).toBe('none');
-			return;
+	});
+
+	test('worldNone keeps review pending without citing a consent law', () => {
+		const rule = policyRulePresets.worldNone();
+		expect(rule.review?.status).toBe('pending');
+		expect(rule.model).toBe('none');
+	});
+
+	test.each(presetNames.filter((name) => name !== 'worldNone'))(
+		'%s has completed review metadata',
+		(name) => {
+			const rule = policyRulePresets[name]();
+			expect(rule.review?.status).toBe('reviewed');
+			expect(rule.review?.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+			expect(Date.parse(rule.review?.reviewBy ?? '')).toBeGreaterThan(
+				Date.parse(rule.review?.reviewedOn ?? '')
+			);
+			expect(rule.model).not.toBe('none');
 		}
-		expect(rule.review?.status).toBe('reviewed');
-		expect(rule.review?.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
-		expect(Date.parse(rule.review?.reviewBy ?? '')).toBeGreaterThan(
-			Date.parse(rule.review?.reviewedOn ?? '')
+	);
+
+	test.each(
+		presetNames.filter(
+			(name) => name !== 'worldNone' && name !== 'worldOptOutNoPrompt'
+		)
+	)('%s cites review sources', (name) => {
+		expect(policyRulePresets[name]().review?.sources?.length).toBeGreaterThan(
+			0
 		);
-		if (name !== 'worldOptOutNoPrompt') {
-			expect(rule.review?.sources?.length).toBeGreaterThan(0);
-		}
-		expect(rule.model).not.toBe('none');
 	});
 
 	test('each Europe variant validates with the regional presets as one pack', () => {

@@ -2,7 +2,7 @@
  * Tests for C15TError custom error class.
  */
 
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import { C15TError, isC15TError } from '../error';
 
@@ -203,16 +203,15 @@ describe('C15TError', () => {
 				});
 			};
 
+			let caught: unknown;
 			try {
 				throwError();
 			} catch (error) {
-				if (isC15TError(error)) {
-					expect(error.status).toBe(404);
-					expect(error.isNotFound()).toBe(true);
-				} else {
-					throw new Error('Expected C15TError', { cause: error });
-				}
+				caught = error;
 			}
+			assert(isC15TError(caught));
+			expect(caught.status).toBe(404);
+			expect(caught.isNotFound()).toBe(true);
 		});
 	});
 });

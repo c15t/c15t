@@ -441,6 +441,7 @@ describe('displayed consent actions', () => {
 					'marketing',
 					'measurement',
 				] as const) {
+					/* oxlint-disable vitest/no-conditional-expect -- Displayed categories change; categories outside the fixture scope must stay unchanged. */
 					if (displayed.includes(category)) {
 						expect(categories?.[category]?.value).toBe(action === 'all');
 						expect(categories?.[category]?.confirmedAt).toBeGreaterThan(
@@ -451,6 +452,7 @@ describe('displayed consent actions', () => {
 							before?.categories[category]
 						);
 					}
+					/* oxlint-enable vitest/no-conditional-expect */
 				}
 			} finally {
 				result.unmount();

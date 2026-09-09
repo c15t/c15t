@@ -195,6 +195,7 @@ describe('Next.js request policy and RSC hydration', () => {
 			expect(
 				rendered.prompts.every((value) => value === (prompt !== 'none'))
 			).toBe(true);
+			/* oxlint-disable vitest/no-conditional-expect -- Only the notice fixture offers dismissal without saving a choice. */
 			if (prompt === 'notice') {
 				expect(
 					rendered.element.querySelector(
@@ -214,6 +215,7 @@ describe('Next.js request policy and RSC hydration', () => {
 					rendered.element.querySelector('[aria-modal="true"]')
 				).toBeNull();
 			}
+			/* oxlint-enable vitest/no-conditional-expect */
 		});
 	}
 

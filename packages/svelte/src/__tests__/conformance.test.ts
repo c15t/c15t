@@ -289,8 +289,10 @@ const api: SuiteApi = {
 	expect: expect as unknown as SuiteApi['expect'],
 	test: (name, body) => {
 		if (name.startsWith('ssr-')) {
+			// oxlint-disable-next-line vitest/expect-expect -- The shared conformance suite supplies the assertions in body.
 			test(name, body, SSR_SCENARIO_TIMEOUT_MS);
 		} else {
+			// oxlint-disable-next-line vitest/expect-expect -- The shared conformance suite supplies the assertions in body.
 			test(name, body);
 		}
 	},

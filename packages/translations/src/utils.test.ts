@@ -26,7 +26,7 @@ describe('bundled frame translations', () => {
 });
 
 describe('bundled notice and rights translations', () => {
-	const nonEmpty = (value: string) => {
+	const expectNonEmpty = (value: string) => {
 		expect(value).toEqual(expect.any(String));
 		expect(value.trim()).not.toBe('');
 	};
@@ -34,12 +34,12 @@ describe('bundled notice and rights translations', () => {
 	it.each(Object.entries(bundledTranslations))(
 		'%s defines dismiss, notice copy, and rights labels',
 		(_language, translations) => {
-			nonEmpty(translations.common.dismiss);
-			nonEmpty(translations.common.acknowledge);
-			nonEmpty(translations.cookieBanner.noticeTitle);
-			nonEmpty(translations.cookieBanner.noticeDescription);
-			nonEmpty(translations.rights.optOut);
-			nonEmpty(translations.rights.preferences);
+			expectNonEmpty(translations.common.dismiss);
+			expectNonEmpty(translations.common.acknowledge);
+			expectNonEmpty(translations.cookieBanner.noticeTitle);
+			expectNonEmpty(translations.cookieBanner.noticeDescription);
+			expectNonEmpty(translations.rights.optOut);
+			expectNonEmpty(translations.rights.preferences);
 		}
 	);
 

@@ -97,12 +97,14 @@ describe('shared fixtures: structural reading', () => {
 	test.each(ids)('%s decodes to its expected choice', (id) => {
 		const fixture = POLICY_RECORDS[id];
 		const records = recordsFor(id);
+		/* oxlint-disable vitest/no-conditional-expect -- Valid and invalid record fixtures have different expected shapes. */
 		if (fixture.expected.valid) {
 			expect(records.choice).toEqual(fixture.expected.choice);
 			expect(records.subject).toEqual(fixture.expected.subject);
 		} else {
 			expect(records.choice).toBeNull();
 		}
+		/* oxlint-enable vitest/no-conditional-expect */
 	});
 });
 

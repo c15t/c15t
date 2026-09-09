@@ -3,6 +3,7 @@ import antiSlop from 'ultracite/oxlint/anti-slop';
 import core from 'ultracite/oxlint/core';
 import next from 'ultracite/oxlint/next';
 import react from 'ultracite/oxlint/react';
+import vitest from 'ultracite/oxlint/vitest';
 import vue from 'ultracite/oxlint/vue';
 
 const nextAppDirectories = [
@@ -127,6 +128,45 @@ export default defineConfig({
 		'packages/c15t/shims/**',
 	],
 	overrides: [
+		{
+			files: [
+				'**/*.{test,spec,test-d,spec-d}.{ts,tsx,js,jsx}',
+				'**/__tests__/**/*.{ts,tsx,js,jsx}',
+			],
+			plugins: ['vitest'],
+			rules: {
+				// Loading the plugin also enables its default rules. Adopt only
+				// these two checks from Ultracite's Vitest preset for now.
+				...Object.fromEntries(
+					Object.keys(vitest.overrides?.[0]?.rules ?? {})
+						.filter((rule) => rule.startsWith('vitest/'))
+						.map((rule) => [rule, 'off'])
+				),
+				'vitest/expect-expect': [
+					'error',
+					{
+						assertFunctionNames: [
+							'expect',
+							'expectTypeOf',
+							'assert',
+							'assertType',
+							// These helpers assert values or throw when a DOM condition fails.
+							'assertParity',
+							'checkCommit',
+							'createBackendConformanceTest',
+							'expectRejected',
+							'expectNonEmpty',
+							'expectScriptMatchesIntegration',
+							'expectStubCommandQueue',
+							'expectUnique',
+							'waitForElement',
+							'waitForElementRemoved',
+						],
+					},
+				],
+				'vitest/no-conditional-expect': 'error',
+			},
+		},
 		{
 			files: nextAppFiles,
 			plugins: next.plugins,

@@ -24,7 +24,7 @@ import {
 	readPolicyResolutionWire,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 } from '@c15t/schema/types';
-import { describe, expect, test, vi } from 'vitest';
+import { assert, describe, expect, test, vi } from 'vitest';
 
 import type { ExplicitChoice } from '../consent-record/types';
 import {
@@ -646,12 +646,11 @@ describe('offline transport resolution', () => {
 		});
 		const resolution = readPolicyResolutionWire(response?.policyResolution);
 		expect(resolution).toMatchObject({ policyId: 'ca', status: 'matched' });
-		if (resolution.status === 'matched') {
-			expect(resolution.policy.prompt).toBe('notice');
-			expect(resolution.fingerprints.choice).not.toBe(
-				SAFE_FALLBACK_POLICY_FINGERPRINTS.choice
-			);
-		}
+		assert(resolution.status === 'matched');
+		expect(resolution.policy.prompt).toBe('notice');
+		expect(resolution.fingerprints.choice).not.toBe(
+			SAFE_FALLBACK_POLICY_FINGERPRINTS.choice
+		);
 		// The legacy field is the strictest v2 shape for the old kernel: a
 		// notice-with-GPC rule cannot be expressed, so it is the opt-in banner.
 		expect(response).not.toHaveProperty('policy');

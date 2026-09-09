@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { assert, describe, expect, test } from 'vitest';
 
 import {
 	matchPolicyRules,
@@ -82,15 +82,14 @@ describe('resolvePolicyRules', () => {
 			policyId: 'california',
 			status: 'matched',
 		});
-		if (matched.status === 'matched') {
-			expect(matched.policy.privacySignals.gpc.denyCategories).toEqual([
-				'marketing',
-				'measurement',
-			]);
-			expect(matched.fingerprints).toEqual(
-				createPolicyRuleFingerprints(matched.policy)
-			);
-		}
+		assert(matched.status === 'matched');
+		expect(matched.policy.privacySignals.gpc.denyCategories).toEqual([
+			'marketing',
+			'measurement',
+		]);
+		expect(matched.fingerprints).toEqual(
+			createPolicyRuleFingerprints(matched.policy)
+		);
 
 		expect(
 			resolvePolicyRules({
@@ -454,11 +453,9 @@ describe('readPolicyResolutionWire', () => {
 			scope: [...policy.scope].reverse(),
 		});
 		const read = readPolicyResolutionWire(shuffled);
-		expect(read.status).toBe('matched');
-		if (read.status === 'matched') {
-			expect(read.policy).toEqual(policy);
-			expect(collectResolvedPolicyRuleIssues(read.policy)).toEqual([]);
-		}
+		assert(read.status === 'matched');
+		expect(read.policy).toEqual(policy);
+		expect(collectResolvedPolicyRuleIssues(read.policy)).toEqual([]);
 	});
 
 	test('keeps an optional legacy material fingerprint', () => {

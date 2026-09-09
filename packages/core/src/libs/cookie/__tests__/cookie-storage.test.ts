@@ -59,7 +59,7 @@ describe('Cookie Storage', () => {
 			const originalDocument = globalThis.document;
 			Reflect.deleteProperty(globalThis, 'document');
 
-			setCookie('test-cookie', 'value');
+			expect(() => setCookie('test-cookie', 'value')).not.toThrow();
 
 			// Restore document
 			globalThis.document = originalDocument;
@@ -146,7 +146,7 @@ describe('Cookie Storage', () => {
 			});
 
 			// Should not throw
-			deleteConsentFromStorage();
+			expect(() => deleteConsentFromStorage()).not.toThrow();
 
 			// Restore
 			window.localStorage.removeItem = originalRemoveItem;

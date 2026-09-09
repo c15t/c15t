@@ -82,6 +82,7 @@ describe('demo policy scenarios', () => {
 				presentation: scenario.presentation,
 				surface: 'prompt',
 			});
+			/* oxlint-disable vitest/no-conditional-expect -- The declared choice-policy fixtures require balanced accept and reject actions. */
 			if (resolution.policy.prompt === 'choice') {
 				expect(prompt.orderedActions).toEqual(
 					expect.arrayContaining(['accept', 'reject'])
@@ -90,6 +91,7 @@ describe('demo policy scenarios', () => {
 					prompt.primaryActions.includes('reject')
 				);
 			}
+			/* oxlint-enable vitest/no-conditional-expect */
 		}
 	);
 	it('preserves the Spanish split layout independently from policy rules', () => {

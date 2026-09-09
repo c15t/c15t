@@ -323,11 +323,10 @@ describe('package exports: aggregated stylesheets', () => {
 			expect(resolvedPath).toContain('/dist/');
 			expect(contents).toContain('c15t-ui-');
 			expect(contents).toContain('@keyframes');
-			if (entry.endsWith('.tw3.css')) {
-				expect(contents).not.toMatch(/@layer\b/u);
-			} else {
-				expect(contents).toContain('@layer components');
-			}
+			expect(/@layer\b/u.test(contents)).toBe(!entry.endsWith('.tw3.css'));
+			expect(contents.includes('@layer components')).toBe(
+				!entry.endsWith('.tw3.css')
+			);
 		});
 	}
 });

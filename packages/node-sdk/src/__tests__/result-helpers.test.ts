@@ -21,15 +21,14 @@ describe('Result Type Helpers', () => {
 				status: 404,
 			});
 
-			try {
-				context.unwrap();
-			} catch (error) {
-				expect(error).toBeInstanceOf(C15TError);
-				const c15tError = error as C15TError;
-				expect(c15tError.message).toBe('Not found');
-				expect(c15tError.status).toBe(404);
-				expect(c15tError.code).toBe('NOT_FOUND');
-			}
+			expect(() => context.unwrap()).toThrow(
+				expect.objectContaining({
+					code: 'NOT_FOUND',
+					constructor: C15TError,
+					message: 'Not found',
+					status: 404,
+				})
+			);
 		});
 
 		it('should throw with default message when no error message', () => {
@@ -50,12 +49,9 @@ describe('Result Type Helpers', () => {
 				status: 400,
 			});
 
-			try {
-				context.unwrap();
-			} catch (error) {
-				const c15tError = error as C15TError;
-				expect(c15tError.details).toEqual({ field: 'email' });
-			}
+			expect(() => context.unwrap()).toThrow(
+				expect.objectContaining({ details: { field: 'email' } })
+			);
 		});
 	});
 
@@ -95,15 +91,14 @@ describe('Result Type Helpers', () => {
 				status: 404,
 			});
 
-			try {
-				context.expect('Subject not found');
-			} catch (error) {
-				expect(error).toBeInstanceOf(C15TError);
-				const c15tError = error as C15TError;
-				expect(c15tError.message).toBe('Subject not found');
-				expect(c15tError.status).toBe(404);
-				expect(c15tError.code).toBe('NOT_FOUND');
-			}
+			expect(() => context.expect('Subject not found')).toThrow(
+				expect.objectContaining({
+					code: 'NOT_FOUND',
+					constructor: C15TError,
+					message: 'Subject not found',
+					status: 404,
+				})
+			);
 		});
 
 		it('should throw custom message when data is null', () => {

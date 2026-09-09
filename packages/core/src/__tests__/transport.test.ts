@@ -2646,9 +2646,11 @@ describe('partially superseded confirmations', () => {
 				});
 				const original =
 					kernel.getSnapshot().explicitChoice?.categories.measurement;
+				/* oxlint-disable vitest/no-conditional-expect -- The in-flight fixture waits for its first request before changing consent. */
 				if (phase === 'in-flight') {
 					await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
 				}
+				/* oxlint-enable vitest/no-conditional-expect */
 				if (phase.startsWith('queued')) {
 					await first;
 				}
@@ -2657,12 +2659,14 @@ describe('partially superseded confirmations', () => {
 					finish({ ok: false });
 				}
 				await first;
+				/* oxlint-disable vitest/no-conditional-expect -- Only non-deferred fixtures initialize and send queued requests. */
 				if (phase !== 'deferred') {
 					await kernel.commands.init();
 					await vi.waitFor(() =>
 						expect(send.mock.calls.length).toBeGreaterThanOrEqual(3)
 					);
 				}
+				/* oxlint-enable vitest/no-conditional-expect */
 				const surviving =
 					phase === 'deferred'
 						? send.mock.calls[0]?.[0]

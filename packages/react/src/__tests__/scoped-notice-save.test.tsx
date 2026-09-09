@@ -65,6 +65,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				);
 				expect(kernel.getSnapshot().resolution.status).toBe('matched');
 				expect(kernel.getSnapshot().policyRule.id).toBe(scenario);
+				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
 				if (scenario === 'scoped') {
 					expect(
 						document.querySelector(
@@ -77,6 +78,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 						)
 					).not.toBeNull();
 				}
+				/* oxlint-enable vitest/no-conditional-expect */
 				const id = {
 					accept: 'consent-widget-footer-accept-all-button',
 					reject: 'consent-widget-reject-button',
@@ -90,6 +92,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
 				expect(kernel.getSnapshot().activeUI).toBe('dialog');
 				expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
 				if (scenario === 'scoped') {
 					expect(
 						kernel.getSnapshot().explicitChoice?.categories.marketing
@@ -98,6 +101,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 						kernel.getSnapshot().explicitChoice?.categories.measurement?.value
 					).toBe(action === 'accept');
 				}
+				/* oxlint-enable vitest/no-conditional-expect */
 				pending.resolve({ ok: true });
 				let prompt = 'none';
 				if (scenario === 'notice') {
@@ -111,6 +115,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 					)
 				);
 				expect(kernel.getSnapshot().promptRequirement.kind).toBe(prompt);
+				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
 				if (scenario === 'scoped') {
 					// Missing marketing consent remains denied when a measurement
 					// refusal suppresses the automatic choice banner.
@@ -118,6 +123,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 						false
 					);
 				}
+				/* oxlint-enable vitest/no-conditional-expect */
 				expect(
 					document.querySelector('[data-testid="consent-dialog-root"]')
 				).toBeNull();
