@@ -20,6 +20,10 @@ group: reference
   **1. c15t itself**
   c15t stores the user's consent state in a `c15t` cookie (and mirrors it to localStorage). This cookie records which categories the user consented to, when they consented, and their subject ID. This is a strictly necessary cookie - it exists so the site remembers the user's consent choice.
 
+  If reading `window.localStorage` or calling a storage method throws, c15t logs a warning and skips unavailable pending-submission queues. Runtime construction still completes, and cookie-backed choices can still be read and saved. In v2, a failed localStorage access check skips policy initialization and hides the banner. Optional categories without a saved choice remain denied.
+
+  If the browser also blocks cookies, it cannot retain your choice across page loads. Do not use `enabled: false` to handle storage restrictions: that option grants every category.
+
   **2. Third-party scripts**
   When you load a tracking script (Google Analytics, Meta Pixel, etc.), that script sets its own cookies. Google Analytics creates `_ga` and `_gid` cookies. Meta creates `_fbp` and `_fbc`. These cookies are set by the script's code running in the browser - c15t prevents them by not loading the script until the user consents.
 

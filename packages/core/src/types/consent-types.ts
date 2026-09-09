@@ -295,6 +295,13 @@ export type ConsentInfo = {
 	materialPolicyFingerprint?: string;
 
 	/**
+	 * Whether the saved choice needs confirmation under an authoritative policy.
+	 * Denials remain in effect while previous positive grants are invalid.
+	 * @internal
+	 */
+	requiresReconsent?: boolean;
+
+	/**
 	 * The identity provider that provided the external ID
 	 *
 	 * @remarks
