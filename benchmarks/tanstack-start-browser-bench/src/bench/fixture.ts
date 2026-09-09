@@ -1,5 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { resolvePolicyRules, writePolicyResolutionWire } from '@c15t/core';
+
 export type BenchConsentFixtureEndpoint = 'init' | 'manifest' | 'subjects';
 
 export type BenchConsentFixtureCounts = Record<
@@ -83,42 +85,24 @@ export const benchConsentTranslations = {
 	},
 };
 
-const policy = {
-	consent: {
-		categories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		],
-		model: 'opt-in',
-		scopeMode: 'strict',
-	},
-	id: 'nextjs-browser-bench',
-	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
+const resolution = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			id: 'tanstack-start-browser-bench',
+			match: { fallback: true },
+			model: 'opt-in',
+			prompt: 'choice',
 		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		mode: 'banner',
-	},
-};
-
-const resolvedPolicy = {
-	consent: policy.consent,
-	id: policy.id,
-	model: policy.model,
-	proof: {},
-	ui: policy.ui,
-};
+	],
+});
+if (resolution.status !== 'matched') {
+	throw new Error('Expected fixture policy');
+}
+const rule = resolution.policy;
+const { fingerprints } = resolution;
+const policyResolution = writePolicyResolutionWire(resolution);
 
 export const benchConsentInitResponse = {
 	branding: 'c15t',
@@ -127,15 +111,7 @@ export const benchConsentInitResponse = {
 		countryCode: null,
 		regionCode: null,
 	},
-	policy: resolvedPolicy,
-	policyDecision: {
-		country: null,
-		fingerprint: 'fingerprint_nextjs_browser_bench',
-		jurisdiction: 'NONE',
-		matchedBy: 'default',
-		policyId: policy.id,
-		region: null,
-	},
+	policyResolution,
 	translations: {
 		language: 'en',
 		translations: benchConsentTranslations,
@@ -144,19 +120,9 @@ export const benchConsentInitResponse = {
 
 export const benchConsentManifestResponse = {
 	branding: 'c15t',
-	policyPacks: [
-		{
-			fingerprint: 'fingerprint_nextjs_browser_bench',
-
-			policy: {
-				...policy,
-				match: { isDefault: true },
-			},
-			resolvedPolicy,
-		},
-	],
+	policyPacks: [{ fingerprints, match: { fallback: true }, rule }],
 	revision: 'nextjs-browser-bench-manifest',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',

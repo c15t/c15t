@@ -3,11 +3,14 @@ import {
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
 	has as evaluateHas,
+	resolveConsentPresentation,
 } from '@c15t/core';
 import type {
 	ActiveUI,
 	AllConsentNames,
 	ConsentKernel,
+	ConsentPresentation,
+	ResolvedConsentPresentation,
 	ConsentSnapshot,
 	ConsentState,
 	ConsentType,
@@ -15,7 +18,6 @@ import type {
 	KernelActiveUI,
 	KernelIABState,
 	Model,
-	PolicyUiSurfaceConfig,
 	TranslationConfig,
 } from '@c15t/core';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
@@ -25,8 +27,6 @@ import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
 const THEME_CONTEXT_KEY = Symbol('c15t-v3-theme');
-
-const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
 
 export type SaveType = 'all' | 'custom' | 'necessary';
 
@@ -54,38 +54,65 @@ export interface SvelteIABState extends KernelIABState {
 
 export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
+	readonly isStale: boolean;
 	set: (name: AllConsentNames, value: boolean) => void;
 	reset: () => void;
 	save: (categories: readonly AllConsentNames[]) => Promise<void>;
 }
 
-export interface ConsentCompatState extends Omit<
+export interface ConsentManagerState extends Pick<
 	ConsentSnapshot,
-	| 'activeUI'
-	| 'branding'
-	| 'hasConsented'
-	| 'model'
-	| 'policyBanner'
-	| 'policyDialog'
+	| 'explicitChoice'
+	| 'effectivePermissions'
+	| 'promptRequirement'
+	| 'noticeDismissal'
+	| 'privacySignals'
+	| 'optOutDirectives'
+	| 'resolution'
+	| 'policyRule'
+	| 'restrictions'
+	| 'nextDeadline'
+	| 'subject'
+	| 'evaluatedAt'
+	| 'evaluationPolicy'
+	| 'policyPending'
+	| 'location'
+	| 'overrides'
+	| 'revision'
+	| 'translations'
+	| 'user'
 > {
 	activeUI: ActiveUI;
 	branding: NonNullable<ConsentSnapshot['branding']>;
-	consents: Readonly<ConsentState>;
+
 	selectedConsents: Partial<ConsentState>;
 	selectedConsentTypes: Partial<ConsentState>;
-	consentInfo: { type: 'v3' } | null;
+	presentation?: ConsentPresentation;
+	readonly draft: ConsentDraftState;
 	consentCategories: AllConsentNames[];
 	consentTypes: ConsentType[];
 	iab: SvelteIABState | null;
 	manager: null;
 	model: Model;
-	policyBanner: PolicyUiSurfaceConfig;
-	policyDialog: PolicyUiSurfaceConfig;
+	/**
+	 * Whether a policy rule is resolved for this visitor. Every c15t consent
+	 * surface renders nothing until one is: an unconfigured, failed, or
+	 * unmatched resolution leaves nothing to consent to, and the surfaces
+	 * appear on their own once a later init supplies a rule.
+	 */
+	hasPolicy: boolean;
+	/**
+	 * Whether the resolved rule owes any consent UI. A prompt owes a banner
+	 * and a preference center; rights owe a way back to preferences. A `none`
+	 * rule with no rights owes neither, so every surface stays hidden while
+	 * the permissions it grants apply. `false` until a rule is resolved.
+	 */
+	hasConsentUi: boolean;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
-	hasConsented: () => boolean;
+	dismissNotice: () => Promise<unknown>;
 	saveConsents: (type: SaveType) => Promise<void>;
 	setActiveUI: (ui: ActiveUI, options?: { force?: boolean }) => void;
 	setConsent: (name: AllConsentNames, value: boolean) => void;
@@ -97,9 +124,10 @@ export interface ConsentCompatState extends Omit<
 }
 
 export interface ConsentContextValue {
+	readonly clearRecords: () => void;
 	readonly kernel: ConsentKernel;
 	readonly snapshot: ConsentSnapshot;
-	readonly state: ConsentCompatState;
+	readonly state: ConsentManagerState;
 	readonly manager: ConsentKernel;
 }
 
@@ -114,11 +142,13 @@ export interface ThemeContextValue {
 }
 
 export interface ConsentControllerOptions {
+	clearRecords?: () => void;
 	getSnapshot: () => ConsentSnapshot;
 	getDraft: () => ConsentDraftState;
 	getIAB: () => SvelteIABState | null;
 	getConsentCategories: () => AllConsentNames[];
 	getLegalLinks: () => ConsentManagerOptions['legalLinks'];
+	getPresentation: () => ConsentPresentation | undefined;
 }
 
 const toTranslationConfig = function toTranslationConfig(
@@ -143,10 +173,6 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
 };
 
-const toModel = function toModel(model: ConsentSnapshot['model']): Model {
-	return (model ?? 'opt-in') as Model;
-};
-
 const displayedConsentTypes = function displayedConsentTypes(
 	categories: readonly AllConsentNames[]
 ) {
@@ -159,46 +185,43 @@ const displayedConsentTypes = function displayedConsentTypes(
 		.map((type) => ({ ...type, display: true }));
 };
 
-const createCompatState = function createCompatState(
+const createConsentState = function createConsentState(
 	kernel: ConsentKernel,
 	options: ConsentControllerOptions
-): ConsentCompatState {
+): ConsentManagerState {
 	const getSnapshotLocal = options.getSnapshot;
+	let actionSequence = 0;
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-	const controller: ConsentCompatState = {
+	const controller: ConsentManagerState = {
 		get activeUI() {
 			return toActiveUI(getSnapshotLocal().activeUI);
 		},
 		get branding() {
 			return getSnapshotLocal().branding ?? 'c15t';
 		},
-		get consentCategories() {
+		get consentCategories(): AllConsentNames[] {
 			const configured = options.getConsentCategories();
-			const { policyCategories } = getSnapshotLocal();
-			const available = policyCategories.some(
-				(category) => category !== 'necessary'
-			)
-				? policyCategories
-				: allConsentNames;
-			if (configured.length === 0) {
-				return Array.from(available);
-			}
-			const allowed = new Set(available);
-			return Array.from(
-				new Set<AllConsentNames>([
+			const { scope } = getSnapshotLocal().policyRule;
+			return [
+				...new Set<AllConsentNames>([
 					'necessary',
-					...configured.filter((category) => allowed.has(category)),
-				])
-			);
+					...(configured.length === 0
+						? scope
+						: configured.filter((name) =>
+								scope.some((category) => category === name)
+							)),
+				]),
+			];
 		},
-		get consentInfo() {
-			return getSnapshotLocal().hasConsented ? { type: 'v3' as const } : null;
+		get draft() {
+			return options.getDraft();
+		},
+		get presentation() {
+			return options.getPresentation();
 		},
 		// -- Controller-owned state (computed from snapshot + provider options) --
-		get consents() {
-			return getSnapshotLocal().consents;
-		},
+
 		get consentTypes() {
 			return displayedConsentTypes(controller.consentCategories);
 		},
@@ -209,16 +232,13 @@ const createCompatState = function createCompatState(
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshotLocal();
-			const categories = Array.from(
-				snapshot.policyCategories
-			) as AllConsentNames[];
-			return evaluateHas(condition, snapshot.consents as ConsentState, {
-				policyCategories: categories.length > 0 ? categories : null,
-				policyScopeMode: snapshot.policyScopeMode,
-			});
+			return evaluateHas(
+				condition,
+				snapshot.effectivePermissions as ConsentState
+			);
 		},
-		hasConsented() {
-			return getSnapshotLocal().hasConsented;
+		dismissNotice() {
+			return kernel.commands.dismissNotice();
 		},
 		get iab() {
 			return options.getIAB();
@@ -233,56 +253,126 @@ const createCompatState = function createCompatState(
 			return null;
 		},
 		get model() {
-			return toModel(getSnapshotLocal().model);
+			return getSnapshotLocal().iab?.enabled
+				? 'iab'
+				: getSnapshotLocal().policyRule.model;
+		},
+		get hasPolicy() {
+			return getSnapshotLocal().resolution.status === 'matched';
+		},
+		get hasConsentUi() {
+			const snapshot = getSnapshotLocal();
+			return (
+				snapshot.resolution.status === 'matched' &&
+				(snapshot.policyRule.prompt !== 'none' ||
+					snapshot.policyRule.rights.length > 0)
+			);
 		},
 
 		// -- Snapshot passthrough (was previously served by a Proxy) -------------
+		get explicitChoice() {
+			return getSnapshotLocal().explicitChoice;
+		},
+		get effectivePermissions() {
+			return getSnapshotLocal().effectivePermissions;
+		},
+		get promptRequirement() {
+			return getSnapshotLocal().promptRequirement;
+		},
+		get noticeDismissal() {
+			return getSnapshotLocal().noticeDismissal;
+		},
+		get privacySignals() {
+			return getSnapshotLocal().privacySignals;
+		},
+		get optOutDirectives() {
+			return getSnapshotLocal().optOutDirectives;
+		},
+		get resolution() {
+			return getSnapshotLocal().resolution;
+		},
+		get policyRule() {
+			return getSnapshotLocal().policyRule;
+		},
+		get restrictions() {
+			return getSnapshotLocal().restrictions;
+		},
+		get nextDeadline() {
+			return getSnapshotLocal().nextDeadline;
+		},
+		get subject() {
+			return getSnapshotLocal().subject;
+		},
+		get evaluatedAt() {
+			return getSnapshotLocal().evaluatedAt;
+		},
+		get evaluationPolicy() {
+			return getSnapshotLocal().evaluationPolicy;
+		},
 		get overrides() {
 			return getSnapshotLocal().overrides;
 		},
-		get policy() {
-			return getSnapshotLocal().policy;
+
+		get policyPending() {
+			return getSnapshotLocal().policyPending;
 		},
-		get policyBanner() {
-			return getSnapshotLocal().policyBanner ?? EMPTY_POLICY_SURFACE;
-		},
-		get policyCategories() {
-			return getSnapshotLocal().policyCategories;
-		},
-		get policyDecision() {
-			return getSnapshotLocal().policyDecision;
-		},
-		get policyDialog() {
-			return getSnapshotLocal().policyDialog ?? EMPTY_POLICY_SURFACE;
-		},
-		get policyProvisional() {
-			return getSnapshotLocal().policyProvisional;
-		},
-		get policyScopeMode() {
-			return getSnapshotLocal().policyScopeMode;
-		},
-		get policySnapshotToken() {
-			return getSnapshotLocal().policySnapshotToken;
-		},
+
 		get revision() {
 			return getSnapshotLocal().revision;
 		},
 		async saveConsents(type: SaveType) {
-			if (type === 'all') {
-				await kernel.commands.save('all', {
-					categories: controller.consentCategories,
-				});
-				options.getDraft().reset();
-				return;
+			actionSequence += 1;
+			const sequence = actionSequence;
+			const preserveDialog = kernel.getSnapshot().activeUI === 'dialog';
+			const save = async () => {
+				if (type === 'custom') {
+					await options.getDraft().save(controller.consentCategories);
+					return;
+				}
+				const result = await kernel.commands.save(
+					type === 'all' ? 'all' : 'none',
+					{
+						categories: controller.consentCategories,
+					}
+				);
+				if (!result.ok) {
+					throw new Error('Unable to save preferences.');
+				}
+				if (sequence === actionSequence) {
+					options.getDraft().reset();
+				}
+			};
+			// The local receipt commits synchronously, before the transport settles.
+			// Restore the open dialog now so loading and failure never hide its draft.
+			const pending = save();
+			if (preserveDialog && sequence === actionSequence) {
+				kernel.set.activeUI('dialog');
 			}
-			if (type === 'necessary') {
-				await kernel.commands.save('none', {
-					categories: controller.consentCategories,
-				});
-				options.getDraft().reset();
-				return;
+			const unsubscribe = kernel.subscribe((next) => {
+				if (
+					preserveDialog &&
+					next.activeUI !== 'dialog' &&
+					sequence === actionSequence
+				) {
+					actionSequence += 1;
+				}
+			});
+			try {
+				await pending;
+				if (sequence !== actionSequence || !preserveDialog) {
+					return;
+				}
+				const current = kernel.getSnapshot();
+				kernel.set.activeUI(
+					current.policyPending ||
+						current.resolution.status === 'failed' ||
+						current.promptRequirement.kind === 'none'
+						? 'none'
+						: 'banner'
+				);
+			} finally {
+				unsubscribe();
 			}
-			await options.getDraft().save(controller.consentCategories);
 		},
 		get selectedConsents() {
 			return options.getDraft().values;
@@ -291,6 +381,7 @@ const createCompatState = function createCompatState(
 			return options.getDraft().values;
 		},
 		setActiveUI(ui: ActiveUI) {
+			actionSequence += 1;
 			(
 				kernel.set as typeof kernel.set & {
 					activeUI: (ui: KernelActiveUI) => void;
@@ -298,7 +389,7 @@ const createCompatState = function createCompatState(
 			).activeUI(ui as KernelActiveUI);
 		},
 		setConsent(name: AllConsentNames, value: boolean) {
-			kernel.set.consent({ [name]: value } as Partial<ConsentState>);
+			options.getDraft().set(name, value);
 		},
 		setLanguage(code: string) {
 			kernel.set.language(code);
@@ -307,12 +398,10 @@ const createCompatState = function createCompatState(
 		setSelectedConsent(name: AllConsentNames, value: boolean) {
 			options.getDraft().set(name, value);
 		},
-		get subjectId() {
-			return getSnapshotLocal().subjectId;
-		},
+
 		subscribeToConsentChanges(listener: (state: ConsentState) => void) {
 			return kernel.subscribe((snapshot: ConsentSnapshot) =>
-				listener(snapshot.consents as ConsentState)
+				listener(snapshot.effectivePermissions as ConsentState)
 			);
 		},
 
@@ -334,8 +423,21 @@ export const setConsentContext = function setConsentContext(
 	kernel: ConsentKernel,
 	options: ConsentControllerOptions
 ): void {
-	const compatState = createCompatState(kernel, options);
+	const consentState = createConsentState(kernel, options);
 	setContext(CONSENT_CONTEXT_KEY, {
+		clearRecords: () => {
+			if (options.clearRecords) {
+				options.clearRecords();
+			} else {
+				kernel.hydrate({
+					choice: null,
+					noticeDismissal: null,
+					optOutDirectives: [],
+					subject: null,
+				});
+				kernel.events.emit({ type: 'records:cleared' });
+			}
+		},
 		kernel,
 		get manager() {
 			return kernel;
@@ -344,7 +446,7 @@ export const setConsentContext = function setConsentContext(
 			return options.getSnapshot();
 		},
 		get state() {
-			return compatState;
+			return consentState;
 		},
 	} satisfies ConsentContextValue);
 };
@@ -381,59 +483,24 @@ export const getSnapshot = function getSnapshot(): ConsentSnapshot {
  * Must be called inside a component tree wrapped in `<ConsentManagerProvider>`.
  */
 export const getConsentManager =
-	function getConsentManager(): ConsentCompatState {
+	function getConsentManager(): ConsentManagerState {
 		return getConsentContext().state;
 	};
 
-export interface HeadlessConsentSurfaceState {
-	allowedActions: string[];
-	orderedActions: string[];
-	actionGroups: string[][];
-	primaryActions: string[];
-	layout?: unknown[];
-	direction: 'row' | 'column';
-	uiProfile?: string;
-	scrollLock?: boolean;
-	hasPolicyHints: boolean;
-	shouldFillActions: boolean;
+export interface HeadlessConsentSurfaceState extends ResolvedConsentPresentation {
 	isVisible: boolean;
 }
-
-const resolveHeadlessSurface = function resolveHeadlessSurface(
-	consent: ConsentCompatState,
-	surface: 'banner' | 'dialog',
-	policy: PolicyUiSurfaceConfig
-): HeadlessConsentSurfaceState {
-	const allowedActions = (policy.allowedActions ?? [
-		'reject',
-		'accept',
-		'customize',
-	]) as string[];
-	const layout = policy.layout as unknown[] | undefined;
-	const orderedActions =
-		layout?.flatMap((group) => (Array.isArray(group) ? group : [group])) ??
-		allowedActions;
-	const actionGroups = layout?.map((group) =>
-		Array.isArray(group) ? group : [group]
-	) ?? [allowedActions];
-	const direction = policy.direction === 'column' ? 'column' : 'row';
-	const primaryActions = (policy.primaryActions as string[] | undefined) ?? [
-		'customize',
-	];
-	return {
-		actionGroups: actionGroups as string[][],
-		allowedActions,
-		direction,
-		hasPolicyHints: Object.keys(policy).length > 0,
-		isVisible: consent.activeUI === surface,
-		layout,
-		orderedActions: orderedActions as string[],
-		primaryActions,
-		scrollLock: policy.scrollLock,
-		shouldFillActions: direction === 'column' && actionGroups.length > 1,
-		uiProfile: policy.uiProfile as string | undefined,
-	};
-};
+const resolveHeadlessSurface = (
+	consent: ConsentManagerState,
+	surface: 'banner' | 'dialog'
+): HeadlessConsentSurfaceState => ({
+	...resolveConsentPresentation({
+		policy: consent.policyRule,
+		presentation: consent.presentation,
+		surface: surface === 'banner' ? 'prompt' : 'preferences',
+	}),
+	isVisible: consent.activeUI === surface,
+});
 
 export const getHeadlessConsent = function getHeadlessConsent() {
 	const consent = getConsentManager();
@@ -442,13 +509,13 @@ export const getHeadlessConsent = function getHeadlessConsent() {
 			return consent.activeUI;
 		},
 		get banner() {
-			return resolveHeadlessSurface(consent, 'banner', consent.policyBanner);
+			return resolveHeadlessSurface(consent, 'banner');
 		},
 		closeUI() {
 			consent.setActiveUI('none');
 		},
 		get dialog() {
-			return resolveHeadlessSurface(consent, 'dialog', consent.policyDialog);
+			return resolveHeadlessSurface(consent, 'dialog');
 		},
 		openBanner() {
 			consent.setActiveUI('banner');
@@ -456,7 +523,17 @@ export const getHeadlessConsent = function getHeadlessConsent() {
 		openDialog() {
 			consent.setActiveUI('dialog');
 		},
-		async performAction(action: 'accept' | 'reject' | 'customize') {
+		async performAction(
+			action: 'accept' | 'reject' | 'customize' | 'dismiss' | 'save'
+		) {
+			if (action === 'dismiss') {
+				await consent.dismissNotice();
+				return;
+			}
+			if (action === 'save') {
+				await consent.saveConsents('custom');
+				return;
+			}
 			if (action === 'accept') {
 				await consent.saveConsents('all');
 				return;
@@ -489,8 +566,8 @@ export const getThemeContext = function getThemeContext(): ThemeContextValue {
 			colorScheme: 'system',
 			disableAnimation: false,
 			noStyle: false,
-			scrollLock: false,
-			trapFocus: true,
+			scrollLock: undefined,
+			trapFocus: undefined,
 		}
 	);
 };

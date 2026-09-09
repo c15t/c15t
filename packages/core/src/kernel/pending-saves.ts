@@ -10,8 +10,11 @@
  * unsynchronized access.
  */
 
+import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
+import { validateExplicitChoice } from '../consent-record/validation';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
+import { selectSavePayload } from './save-selection';
 
 const MAX_PENDING_SAVE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_REPLAY_ATTEMPTS = 10;
@@ -73,6 +76,47 @@ const isSaveUser = function isSaveUser(value: unknown): boolean {
 	);
 };
 
+const isSubject = function isSubject(value: unknown): boolean {
+	return (
+		isRecord(value) &&
+		isOptionalString(value.subjectId) &&
+		isOptionalString(value.externalId) &&
+		isOptionalString(value.identityProvider)
+	);
+};
+
+const isConfirmedCoverage = function isConfirmedCoverage(
+	value: unknown
+): boolean {
+	if (!isRecord(value) || !isRecord(value.categories)) {
+		return false;
+	}
+	if (
+		typeof value.actionAt !== 'number' ||
+		!Number.isSafeInteger(value.actionAt) ||
+		value.actionAt < 0
+	) {
+		return false;
+	}
+	const known = new Set<string>(OPTIONAL_CONSENT_CATEGORIES);
+	return Object.entries(value.categories).every(
+		([key, item]) => known.has(key) && typeof item === 'boolean'
+	);
+};
+
+const isDecisionInputs = (value: unknown): boolean =>
+	value === undefined ||
+	(isRecord(value) &&
+		(value.policyId === null ||
+			(typeof value.policyId === 'string' &&
+				value.policyId.length > 0 &&
+				typeof value.fingerprint === 'string' &&
+				value.fingerprint.length > 0)) &&
+		(value.country === null || typeof value.country === 'string') &&
+		(value.region === null || typeof value.region === 'string') &&
+		typeof value.language === 'string' &&
+		typeof value.gpc === 'boolean');
+
 // Validate every persisted payload field before replaying it.
 // oxlint-disable-next-line complexity
 const isSavePayload = function isSavePayload(
@@ -81,12 +125,21 @@ const isSavePayload = function isSavePayload(
 	if (!isRecord(value)) {
 		return false;
 	}
+	if (
+		!isSubject(value.subject) ||
+		!isDecisionInputs(value.decisionInputs) ||
+		!isConfirmedCoverage(value.confirmed) ||
+		!validateExplicitChoice(value.choice, Date.now()).ok
+	) {
+		return false;
+	}
 
 	const validModel =
 		value.model === null ||
 		value.model === 'opt-in' ||
 		value.model === 'opt-out' ||
-		value.model === 'iab';
+		value.model === 'iab' ||
+		value.model === 'none';
 	const validUiSource =
 		value.uiSource === null ||
 		value.uiSource === 'none' ||
@@ -191,6 +244,23 @@ const writePendingSaves = function writePendingSaves(
 	}
 };
 
+/** Remove only the older categories covered by this newer action. */
+const subtractSuperseded = function subtractSuperseded(
+	older: SavePayload,
+	newer: SavePayload
+): SavePayload | null {
+	if (
+		older.subjectId !== newer.subjectId ||
+		older.confirmed.actionAt > newer.confirmed.actionAt
+	) {
+		return older;
+	}
+	return selectSavePayload(
+		older,
+		(category) => !Object.hasOwn(newer.confirmed.categories, category)
+	);
+};
+
 const normalizePendingSaves = function normalizePendingSaves(
 	value: unknown,
 	now: number
@@ -200,7 +270,7 @@ const normalizePendingSaves = function normalizePendingSaves(
 	}
 
 	const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
-	const newestBySubject = new Map<string, PendingSaveEntry>();
+	const entries: PendingSaveEntry[] = [];
 	for (const entry of value) {
 		if (
 			!isPendingSaveEntry(entry) ||
@@ -209,14 +279,22 @@ const normalizePendingSaves = function normalizePendingSaves(
 		) {
 			continue;
 		}
-
-		const current = newestBySubject.get(entry.payload.subjectId);
-		if (!current || entry.queuedAt >= current.queuedAt) {
-			newestBySubject.delete(entry.payload.subjectId);
-			newestBySubject.set(entry.payload.subjectId, entry);
-		}
+		entries.push(entry);
 	}
-	return [...newestBySubject.values()];
+	entries.sort(
+		(left, right) =>
+			left.payload.confirmed.actionAt - right.payload.confirmed.actionAt ||
+			left.queuedAt - right.queuedAt
+	);
+	return entries.flatMap((entry, index) => {
+		let payload: SavePayload | null = entry.payload;
+		for (const later of entries.slice(index + 1)) {
+			if (payload) {
+				payload = subtractSuperseded(payload, later.payload);
+			}
+		}
+		return payload ? [{ ...entry, payload }] : [];
+	});
 };
 
 const readPendingSaves = function readPendingSaves(
@@ -292,20 +370,18 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 		}
 
 		await withQueueLock(() => {
-			const pending = readPendingSaves(storage).filter(
-				(candidate) => candidate.payload.subjectId !== payload.subjectId
-			);
+			const pending = readPendingSaves(storage);
 			pending.push({ attempts: 0, payload, queuedAt: Date.now() });
-			writePendingSaves(storage, pending);
+			writePendingSaves(storage, normalizePendingSaves(pending, Date.now()));
 		});
 	};
 
 	/**
-	 * Drop the queued save for a subject once a newer save for that subject
-	 * reached the backend, so a later replay cannot overwrite the newer
-	 * choice with the stale one.
+	 * Drop queued saves a newer accepted save superseded, so a later replay
+	 * cannot overwrite the newer receipts with stale ones. Queued actions
+	 * for other categories keep waiting for their own replay.
 	 */
-	const discard = async function discard(subjectId: string): Promise<void> {
+	const discard = async function discard(payload: SavePayload): Promise<void> {
 		const storage = getLocalStorage();
 		if (!storage) {
 			return;
@@ -313,10 +389,11 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 
 		await withQueueLock(() => {
 			const pending = readPendingSaves(storage);
-			const remaining = pending.filter(
-				(candidate) => candidate.payload.subjectId !== subjectId
-			);
-			if (remaining.length !== pending.length) {
+			const remaining = pending.flatMap((candidate) => {
+				const selected = subtractSuperseded(candidate.payload, payload);
+				return selected ? [{ ...candidate, payload: selected }] : [];
+			});
+			if (JSON.stringify(remaining) !== JSON.stringify(pending)) {
 				writePendingSaves(storage, remaining);
 			}
 		});

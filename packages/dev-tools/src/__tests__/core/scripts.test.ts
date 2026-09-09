@@ -7,6 +7,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDevTools } from '../../index';
+import { choiceRecords } from '../helpers/kernel';
 
 const disposers: (() => void)[] = [];
 
@@ -22,9 +23,9 @@ describe('script inspection', () => {
 		'does not report a foreign element as retained when %s',
 		(scenario) => {
 			const kernel = createConsentKernel({
-				initialConsents: {
+				initialRecords: choiceRecords({
 					marketing: scenario === 'replaced after revocation',
-				},
+				}),
 			});
 			const foreign = document.createElement('div');
 			foreign.id = 'c15t-script-retained-identity';
@@ -45,7 +46,7 @@ describe('script inspection', () => {
 			});
 			disposers.push(loader.dispose);
 			if (scenario === 'replaced after revocation') {
-				kernel.set.consent({ marketing: false });
+				kernel.commands.save({ marketing: false });
 				expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
 				document.getElementById(foreign.id)?.replaceWith(foreign);
 			}
@@ -97,7 +98,7 @@ describe('script inspection', () => {
 		'observes a retained script finishing with %s while consent is revoked',
 		(event) => {
 			const kernel = createConsentKernel({
-				initialConsents: { marketing: true },
+				initialRecords: choiceRecords({ marketing: true }),
 			});
 			const callback = vi.fn();
 			const loader = createScriptLoader({
@@ -117,7 +118,7 @@ describe('script inspection', () => {
 			const element = document.getElementById(
 				getScriptDiagnostics(kernel)[0]?.elementId ?? ''
 			);
-			kernel.set.consent({ marketing: false });
+			kernel.commands.save({ marketing: false });
 			element?.dispatchEvent(new Event(event));
 			expect(callback).toHaveBeenCalledOnce();
 			expect(callback).toHaveBeenCalledWith(
@@ -127,7 +128,7 @@ describe('script inspection', () => {
 				})
 			);
 			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
-			kernel.set.consent({ marketing: true });
+			kernel.commands.save({ marketing: true });
 			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
 				event === 'load' ? 'loaded' : 'error'
 			);
@@ -138,7 +139,7 @@ describe('script inspection', () => {
 		'ignores late completion when a retained script is %s',
 		(state) => {
 			const kernel = createConsentKernel({
-				initialConsents: { marketing: true },
+				initialRecords: choiceRecords({ marketing: true }),
 			});
 			const onLoad = vi.fn();
 			const loader = createScriptLoader({
@@ -157,7 +158,7 @@ describe('script inspection', () => {
 			const element = document.getElementById(
 				getScriptDiagnostics(kernel)[0]?.elementId ?? ''
 			);
-			kernel.set.consent({ marketing: false });
+			kernel.commands.save({ marketing: false });
 			if (state === 'removed') {
 				element?.remove();
 			}
@@ -193,7 +194,7 @@ describe('script inspection', () => {
 			})
 		).toThrow();
 		expect(getScriptDiagnostics(kernel)).toEqual([]);
-		expect(() => kernel.set.consent({ marketing: true })).not.toThrow();
+		expect(() => kernel.commands.save({ marketing: true })).not.toThrow();
 	});
 	it.each([false, true])(
 		'records initial script mounts with callbackOnly=%s',
@@ -228,7 +229,7 @@ describe('script inspection', () => {
 	);
 	it('records retained revocations without legacy forwarding', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const devTools = createDevTools({ kernel });
 		disposers.push(devTools.destroy);
@@ -247,7 +248,7 @@ describe('script inspection', () => {
 			],
 		});
 		disposers.push(loader.dispose);
-		kernel.set.consent({ marketing: false });
+		kernel.commands.save({ marketing: false });
 		expect(listener).toHaveBeenCalledWith(
 			expect.objectContaining({
 				action: 'unloaded',
@@ -268,7 +269,7 @@ describe('script inspection', () => {
 		"preserves a retained script's observed %s result after consent is granted again",
 		(event) => {
 			const kernel = createConsentKernel({
-				initialConsents: { marketing: true },
+				initialRecords: choiceRecords({ marketing: true }),
 			});
 			const loader = createScriptLoader({
 				kernel,
@@ -288,9 +289,9 @@ describe('script inspection', () => {
 			element?.dispatchEvent(new Event(event));
 			const status = event === 'load' ? 'loaded' : 'error';
 			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(status);
-			kernel.set.consent({ marketing: false });
+			kernel.commands.save({ marketing: false });
 			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
-			kernel.set.consent({ marketing: true });
+			kernel.commands.save({ marketing: true });
 			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(status);
 			expect(element?.isConnected).toBe(true);
 			element?.remove();
@@ -303,7 +304,7 @@ describe('script inspection', () => {
 			.spyOn(document.head, 'appendChild')
 			.mockImplementation((node) => {
 				const result = append(node);
-				kernel.set.consent({ marketing: false });
+				kernel.commands.save({ marketing: false });
 				return result;
 			});
 		const bodyProbe = vi.spyOn(document.body, 'appendChild');
@@ -323,7 +324,7 @@ describe('script inspection', () => {
 				],
 			});
 			disposers.push(loader.dispose);
-			kernel.set.consent({ marketing: true });
+			kernel.commands.save({ marketing: true });
 			expect(headProbe).toHaveBeenCalledOnce();
 			expect(bodyProbe).not.toHaveBeenCalled();
 			expect(onBodyLoad).not.toHaveBeenCalled();
@@ -471,7 +472,7 @@ describe('script inspection', () => {
 		disposers.push(devTools.destroy);
 		expect(devTools.getState().scripts[0]?.status).toBe('blocked');
 		expect(devTools.element?.textContent).toContain('analytics');
-		kernel.set.consent({ measurement: true });
+		kernel.commands.save({ measurement: true });
 		await vi.waitFor(() =>
 			expect(devTools.getState().scripts[0]?.status).toBe('loading')
 		);
@@ -488,12 +489,12 @@ describe('script inspection', () => {
 				.getState()
 				.events.some((event) => event.type === 'script:load_completed')
 		).toBe(true);
-		kernel.set.consent({ measurement: false });
+		kernel.commands.save({ measurement: false });
 		await vi.waitFor(() =>
 			expect(devTools.getState().scripts[0]?.status).toBe('blocked')
 		);
 		expect(element?.isConnected).toBe(false);
-		kernel.set.consent({ measurement: true });
+		kernel.commands.save({ measurement: true });
 		element?.dispatchEvent(new Event('load'));
 		element?.dispatchEvent(new Event('error'));
 		await vi.waitFor(() =>
@@ -550,7 +551,9 @@ describe('script inspection', () => {
 	});
 
 	it('reports a network failure and keeps different providers isolated', async () => {
-		const first = createConsentKernel({ initialConsents: { marketing: true } });
+		const first = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+		});
 		const second = createConsentKernel();
 		const devTools = createDevTools({ kernel: first });
 		disposers.push(devTools.destroy);
@@ -578,7 +581,7 @@ describe('script inspection', () => {
 
 	it('tracks callback-only scripts, updates, and retained elements', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const loader = createScriptLoader({
 			kernel,
@@ -596,7 +599,7 @@ describe('script inspection', () => {
 		expect(getScriptDiagnostics(kernel).map((script) => script.status)).toEqual(
 			['loaded', 'loaded']
 		);
-		kernel.set.consent({ marketing: false });
+		kernel.commands.save({ marketing: false });
 		expect(getScriptDiagnostics(kernel).map((script) => script.status)).toEqual(
 			['blocked', 'retained']
 		);
@@ -621,7 +624,7 @@ describe('script inspection', () => {
 			throw new Error('Missing country input');
 		}
 		country.value = 'GB';
-		kernel.set.consent({ marketing: true });
+		kernel.commands.save({ marketing: true });
 		expect(
 			devTools.element?.querySelector<HTMLInputElement>(
 				'[data-focus-key="field:Country"]'

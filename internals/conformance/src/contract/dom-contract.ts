@@ -45,14 +45,26 @@ export interface ComponentContract {
 	stableElements: readonly string[];
 }
 
+/**
+ * Attributes a blocking banner card adds on top of the default contract.
+ * A banner resolved as blocking (`wall`, or a host `blocking: true`) is a
+ * modal dialog that traps focus and receives it on open. The default banner
+ * is a labelled `region` that never claims `aria-modal` and never steals
+ * focus from the page.
+ */
+export const BLOCKING_BANNER_CARD: AriaRoleExpectation = {
+	exactAttrs: { 'aria-modal': 'true' },
+	requiredAttrs: ['aria-label'],
+	role: 'dialog',
+	testId: TEST_IDS.consentBanner.card,
+};
+
 export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	consentBanner: {
 		elements: [
 			{
-				exactAttrs: { 'aria-modal': 'true' },
-
 				requiredAttrs: ['aria-label'],
-				role: 'dialog',
+				role: 'region',
 				testId: TEST_IDS.consentBanner.card,
 			},
 			{ role: 'heading', testId: TEST_IDS.consentBanner.title },
@@ -75,14 +87,9 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 				testId: TEST_IDS.consentBanner.customizeButton,
 			},
 		],
-		focus: {
-			initialFocusTestId: TEST_IDS.consentBanner.card,
-			tabOrderTestIds: [
-				TEST_IDS.consentBanner.rejectButton,
-				TEST_IDS.consentBanner.acceptButton,
-				TEST_IDS.consentBanner.customizeButton,
-			],
-		},
+		// No focus contract: the default banner is non-blocking and leaves
+		// focus where it is. A blocking banner takes focus on the card; see
+		// `BLOCKING_BANNER_CARD` and the a11y suite.
 		key: 'consentBanner',
 		rootTestId: TEST_IDS.consentBanner.root,
 		stableElements: [
@@ -144,10 +151,8 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	iabConsentBanner: {
 		elements: [
 			{
-				exactAttrs: { 'aria-modal': 'true' },
-
 				requiredAttrs: ['aria-label'],
-				role: 'dialog',
+				role: 'region',
 				testId: TEST_IDS.iabConsentBanner.card,
 			},
 			{
@@ -204,3 +209,22 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 export const COMPONENT_KEYS = Object.keys(
 	DOM_CONTRACT
 ) as readonly (keyof typeof DOM_CONTRACT)[];
+
+/**
+ * Root test-ids that must be absent while the kernel has no resolved policy
+ * rule (resolution `unconfigured`, `no-match`, or `failed`, and a pending
+ * init that has not answered). Without a policy there is nothing to consent
+ * to, so no prebuilt consent surface renders: not the banner, the preference
+ * dialog or widget, nor the link or floating trigger that would open them.
+ * App-owned controls a host places beside them are unaffected. The same
+ * roots stay absent under a resolved `none` rule that lists no rights: it
+ * owes no prompt and keeps no route to preferences. A `none` rule with
+ * `rights: ['preferences']` renders the trigger, link and dialog again.
+ */
+export const NO_POLICY_HIDDEN_ROOTS = [
+	TEST_IDS.consentBanner.root,
+	TEST_IDS.consentDialog.root,
+	TEST_IDS.consentDialog.link,
+	TEST_IDS.consentDialog.trigger,
+	TEST_IDS.consentWidget.root,
+] as const;

@@ -1,19 +1,10 @@
+export { resolveConsentPresentation } from '@c15t/core';
 export type {
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
-} from '@c15t/core';
-export {
-	DEFAULT_POLICY_ACTION_LAYOUT,
-	flattenPolicyActionGroups,
-	hasPolicyHints,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	resolvePolicyUiProfile,
-	shouldFillPolicyActions,
+	ConsentPresentation,
+	PromptPresentation,
+	PreferencesPresentation,
+	SurfacePresentation,
+	PresentationAction,
+	PresentationDiagnostic,
+	ResolvedConsentPresentation,
 } from '@c15t/core';

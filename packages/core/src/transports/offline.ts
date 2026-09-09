@@ -1,9 +1,15 @@
 /**
  * `@c15t/core/transports/offline` — pure client-side transport.
  *
- * Synthesizes an `InitResponse` from local policy packs + translations.
+ * Synthesizes an `InitResponse` from local policy rules + translations.
  * No network. Same response shape as `createHostedTransport`, so
  * consumers can swap transports without touching the kernel or adapter.
+ *
+ * Policy comes from `policyRules`, or the recommended pack when the caller
+ * passes none, resolved with `resolvePolicyRules`. Every init emits an
+ * explicit `policyResolution`: matched, no-match or failed. Resolution
+ * runs once per init, inside the transport, so nothing hashes during kernel
+ * construction, hydration or render.
  *
  * Use cases:
  * - Pure static sites with no backend.
@@ -11,30 +17,42 @@
  * - Apps that deliberately choose a bundled policy instead of a backend.
  */
 import type {
-	PolicyConfig,
-	PolicyDecision,
-	ResolvedPolicy,
+	PolicyResolution,
+	PolicyRule,
 	TranslationsResponse,
 } from '@c15t/schema/types';
-import { buildDefaultOptInPolicy, resolvePolicySync } from '@c15t/schema/types';
+import {
+	recommendedPolicyRules,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 
 import type {
 	InitContext,
-	InitResponse,
 	KernelBranding,
 	KernelTranslations,
 	KernelTransport,
 	SavePayload,
 	SaveResult,
 } from '../types';
+import type { TransportInitResponse } from './init-output';
+
+/** The offline transport's surface: every init carries `policyResolution`. */
+export interface OfflineKernelTransport extends KernelTransport {
+	init: (ctx: InitContext) => Promise<TransportInitResponse>;
+	save: (payload: SavePayload) => Promise<SaveResult>;
+}
 
 export interface OfflineTransportOptions {
 	/**
-	 * Policy packs to resolve at init time. Matched against the request
-	 * context's country/region. Use `@c15t/schema`'s policyPackPresets
-	 * for ready-made GDPR / CCPA / LGPD configs.
+	 * v3 policy rules to resolve at init time. Matched against the request
+	 * context's country/region. Omitted, the transport resolves
+	 * `recommendedPolicyRules()`: strict opt-in for Europe and unknown
+	 * countries, opt-out for US privacy states and missing US states, and
+	 * `none` for other known locations. Missing Canadian provinces stay strict.
+	 * Passing rules replaces that pack entirely.
 	 */
-	policyPacks?: PolicyConfig[];
+	policyRules?: PolicyRule[];
 
 	/**
 	 * Translations to serve. Optional — defaults to en with empty
@@ -98,7 +116,7 @@ const normalizeTranslations = function normalizeTranslations(
  */
 export const createOfflineTransport = function createOfflineTransport(
 	options: OfflineTransportOptions = {}
-): KernelTransport {
+): OfflineKernelTransport {
 	const defaultLanguage = options.defaultLanguage ?? 'en';
 	const branding: KernelBranding = options.branding ?? 'c15t';
 	const iabEnabled = options.iabEnabled === true;
@@ -106,40 +124,21 @@ export const createOfflineTransport = function createOfflineTransport(
 		options.translations,
 		defaultLanguage
 	);
+	const rules =
+		options.policyRules ?? recommendedPolicyRules({ iab: iabEnabled });
 
 	return {
-		init(ctx: InitContext): Promise<InitResponse> {
+		init(ctx: InitContext): Promise<TransportInitResponse> {
 			const country = ctx.overrides.country ?? null;
 			const region = ctx.overrides.region ?? null;
 
-			// Resolve policy pack locally. Returns undefined if no pack matches.
-			const match = options.policyPacks
-				? resolvePolicySync({
-						countryCode: country,
-						iabEnabled,
-						policies: options.policyPacks,
-						regionCode: region,
-					})
-				: undefined;
-
-			const hasPolicyPacks =
-				options.policyPacks !== undefined && options.policyPacks.length > 0;
-			const policy: ResolvedPolicy =
-				match?.policy ??
-				(hasPolicyPacks
-					? {
-							id: 'no_banner',
-							model: 'none',
-							ui: { mode: 'none' },
-						}
-					: buildDefaultOptInPolicy());
-
-			const policyDecision: PolicyDecision | undefined = match
-				? ({
-						fingerprint: '',
-						matchedBy: match.matchedBy,
-					} as unknown as PolicyDecision)
-				: undefined;
+			// The v3 outcome, resolved and fingerprinted once here.
+			const resolution: PolicyResolution = resolvePolicyRules({
+				countryCode: country,
+				iabEnabled,
+				regionCode: region,
+				rules,
+			});
 
 			// Override language if caller supplied one.
 			const resolvedTranslations: KernelTranslations = ctx.overrides.language
@@ -149,18 +148,15 @@ export const createOfflineTransport = function createOfflineTransport(
 					}
 				: translations;
 
-			const response: InitResponse = {
+			const response: TransportInitResponse = {
 				branding,
 				location: {
 					countryCode: country,
 					regionCode: region,
 				},
-				policy,
+				policyResolution: writePolicyResolutionWire(resolution),
 				translations: resolvedTranslations,
 			};
-			if (policyDecision) {
-				response.policyDecision = policyDecision;
-			}
 			return Promise.resolve(response);
 		},
 

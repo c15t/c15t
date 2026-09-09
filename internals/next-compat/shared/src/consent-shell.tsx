@@ -100,13 +100,7 @@ export const ConsentShell = ({
 			config={config ?? {}}
 			options={{
 				callbacks: {
-					onBannerFetched() {
-						const counters = getCompatCounters();
-						if (counters) {
-							counters.onBannerFetchedCount += 1;
-						}
-					},
-					onConsentSet() {
+					onChoiceRecorded() {
 						const counters = getCompatCounters();
 						if (counters) {
 							counters.onConsentSetCount += 1;

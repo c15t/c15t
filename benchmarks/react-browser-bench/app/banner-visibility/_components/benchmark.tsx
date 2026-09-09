@@ -9,13 +9,10 @@ import { useEffect, useRef } from 'react';
 import { getBenchState, observeBannerVisibility } from './state';
 
 const BENCHMARK_POLICY = {
-	consent: {
-		categories: ['necessary', 'measurement', 'marketing'],
-		scopeMode: 'permissive' as const,
-	},
-	id: 'banner-visibility-benchmark',
+	id: 'benchmark-opt-in',
+	match: { isDefault: true },
 	model: 'opt-in' as const,
-	ui: { mode: 'banner' as const },
+	prompt: 'choice' as const,
 };
 
 const Probe = () => {
@@ -45,8 +42,7 @@ const Probe = () => {
 export const BannerVisibilityBenchmark = () => (
 	<ConsentProvider
 		options={{
-			mode: offline(),
-			offlinePolicy: { policy: BENCHMARK_POLICY },
+			mode: offline({ policyRules: [BENCHMARK_POLICY] }),
 			persistence: false,
 			theme: {
 				motion: {

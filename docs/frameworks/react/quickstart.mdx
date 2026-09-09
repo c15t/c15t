@@ -14,22 +14,78 @@ variants:
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## Install
 
-TODO.
+```package-install
+@c15t/react @c15t/schema
+```
 
-## Configure the provider
+## Configure policies and UI
 
-TODO.
+```tsx
+import type { ReactNode } from 'react';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentProvider,
+	offline,
+} from '@c15t/react';
+import { policyRulePresets } from '@c15t/schema';
 
-## Add the consent UI
+const mode = offline({
+	policyRules: [policyRulePresets.europeOptIn()],
+});
 
-TODO.
+export function Consent({ children }: { children: ReactNode }) {
+	return (
+		<ConsentProvider options={{ mode }}>
+			{children}
+			<ConsentBanner />
+			<ConsentDialog />
+			<footer>
+				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+			</footer>
+		</ConsentProvider>
+	);
+}
+```
 
-## Next steps
+Wrap your app in `Consent`. On a fresh browser, the banner asks for a choice.
+Rejecting keeps optional categories blocked; accepting permits the categories in
+scope. The footer link lets visitors change their choices later.
 
-TODO.
+This example stores choices in the browser. The Europe preset also handles
+unknown locations through its fallback. Presets are starter configurations;
+review their categories and regional behavior for your application.
+
+For a hosted or self-hosted backend, replace `offline(...)` with
+`hosted({ url: 'https://consent.example.com' })`, imported from `@c15t/react`.
+Configure policy rules on that backend. Keep the provider mounted across page
+navigation. Its mode and prefetch configuration apply when it mounts.
+
+## Gate optional functionality
+
+```tsx
+import { useConsent } from '@c15t/react';
+
+export function MarketingWidget() {
+	const allowed = useConsent('marketing');
+	return allowed ? <div>Marketing content</div> : null;
+}
+```
+
+`useConsent` returns effective permission. Under an opt-out policy, permission
+can be true before the visitor makes a choice. Use `useExplicitChoice` when you
+need recorded choices, and `usePromptRequirement` when building a custom prompt.
+Use c15t's script loader for third-party scripts so their loading follows the
+same permission state.
+
+## Verify the integration
+
+In a fresh browser session, reject optional categories and reload. They should
+remain blocked. Open Privacy settings, change a category, save, and reload again.
+A notice dismissal or browser GPC signal must not produce a choice callback.
+
+See the [v3 migration guide](/docs/upgrade-v3) for the policy contracts and
+callback changes.

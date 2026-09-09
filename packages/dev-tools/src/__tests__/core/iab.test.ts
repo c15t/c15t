@@ -9,6 +9,7 @@ import { createMockGVL } from '../../../../iab/src/__tests__/test-setup';
 import { decodeTCString } from '../../../../iab/src/tcf/tc-string';
 import { createDevTools } from '../../index';
 import type { DevToolsInstance } from '../../index';
+import { policyResolution } from '../helpers/kernel';
 
 /** Encoding and decoding a TC string outruns `waitFor`'s 1s default on CI. */
 const SAVE_TIMEOUT_MS = 5000;
@@ -22,7 +23,7 @@ const SAVE_TEST_TIMEOUT_MS = SAVE_TIMEOUT_MS * 2 + 5000;
 const cleanups: (() => void)[] = [];
 const makeKernel = (): ConsentKernel =>
 	createConsentKernel({
-		initialPolicy: { model: 'iab' },
+		initialPolicyResolution: policyResolution({ model: 'iab' }),
 	});
 const mount = (kernel: ConsentKernel) => {
 	const tools = createDevTools({
@@ -212,7 +213,7 @@ describe('IAB DevTools', () => {
 
 	it('updates gated scripts and includes custom vendors in bulk actions', async () => {
 		const kernel = makeKernel();
-		attachIAB(kernel);
+		attachIAB(kernel, createMockGVL());
 		const loader = createScriptLoader({
 			kernel,
 			scripts: [
@@ -230,13 +231,29 @@ describe('IAB DevTools', () => {
 		expect(kernel.getSnapshot().iab?.vendorConsents['internal-analytics']).toBe(
 			true
 		);
+		expect(tools.getState().scripts[0]?.status).toBe('blocked');
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		button(tools, 'Save IAB consent').click();
+		await vi.waitFor(() =>
+			expect(
+				tools.element?.querySelector('[role="status"]')?.textContent,
+				tools.element?.querySelector('[role="alert"]')?.textContent ??
+					'no alert'
+			).toBe('IAB consent saved.')
+		);
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
 		await vi.waitFor(() =>
 			expect(tools.getState().scripts[0]?.status).toBe('loaded')
+		);
+		await vi.waitFor(() =>
+			expect(button(tools, 'Reject all IAB').disabled).toBe(false)
 		);
 		button(tools, 'Reject all IAB').click();
 		expect(kernel.getSnapshot().iab?.vendorConsents['internal-analytics']).toBe(
 			false
 		);
+		expect(tools.getState().scripts[0]?.status).toBe('loaded');
+		button(tools, 'Save IAB consent').click();
 		await vi.waitFor(() =>
 			expect(tools.getState().scripts[0]?.status).toBe('blocked')
 		);
@@ -251,7 +268,7 @@ describe('IAB DevTools', () => {
 				.mockResolvedValueOnce({ ok: false })
 				.mockResolvedValue({ ok: true });
 			const kernel = createConsentKernel({
-				initialPolicy: { model: 'iab' },
+				initialPolicyResolution: policyResolution({ model: 'iab' }),
 				transport: { save },
 			});
 			attachIAB(kernel, createMockGVL());
@@ -267,7 +284,7 @@ describe('IAB DevTools', () => {
 				() =>
 					expect(
 						tools.element?.querySelector('[role="alert"]')?.textContent
-					).toContain('could not be saved'),
+					).toContain('Unable to save IAB preferences.'),
 				{ timeout: SAVE_TIMEOUT_MS }
 			);
 			expect(save).toHaveBeenCalledOnce();

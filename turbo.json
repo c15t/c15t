@@ -27,7 +27,17 @@
 		},
 		"@c15t/core#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts",
+				"$TURBO_ROOT$/scripts/prune-dist-types.ts",
+				"$TURBO_ROOT$/scripts/manifest-utils.ts",
+				"$TURBO_ROOT$/packages/shared/rslib-modules.ts",
+				"$TURBO_ROOT$/packages/shared/rslib-utils.ts",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": [
 				"dist/**",
 				"dist-types/**",
@@ -37,9 +47,26 @@
 			],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"@c15t/schema#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/packages/shared/rslib-modules.ts",
+				"$TURBO_ROOT$/packages/shared/rslib-utils.ts",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
+			"outputs": ["dist/**", "dist-types/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
 		"@c15t/react#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": [
 				"dist/**",
 				"dist-types/**",
@@ -51,7 +78,12 @@
 		},
 		"@c15t/nextjs#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": [
 				"dist/**",
 				"dist-types/**",
@@ -69,7 +101,12 @@
 		},
 		"@c15t/backend#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": [
 				"dist/**",
 				"dist-types/**",
@@ -439,6 +476,28 @@
 		},
 		"transit": {
 			"dependsOn": ["^transit"]
+		},
+		"@c15t/scripts#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/cli#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
 		}
 	}
 }

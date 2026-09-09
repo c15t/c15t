@@ -78,6 +78,6 @@ describe('ConsentProvider with an external runtime', () => {
 		const kernel = seen.mock.calls[0]?.[0] as { dispose: () => void };
 		const dispose = vi.spyOn(kernel, 'dispose');
 		unmount();
-		expect(dispose).toHaveBeenCalled();
+		await vi.waitFor(() => expect(dispose).toHaveBeenCalled());
 	});
 });

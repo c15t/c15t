@@ -78,7 +78,7 @@ export const renderIABPanel = (
 	const summary = createSection(
 		document,
 		'IAB consent',
-		'Edits apply immediately to script gating. Save IAB consent to generate a fresh TC string and record these choices.'
+		'Edits are unsaved selections. Save IAB consent to generate a fresh TC string and apply these choices to script access.'
 	);
 	if (!controls) {
 		summary.append(

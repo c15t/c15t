@@ -11,9 +11,9 @@ import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import { ConsentProvider } from '~/provider';
 
 import {
 	clearConsentState,
@@ -191,7 +191,7 @@ describe('IAB Banner E2E Tests', () => {
 				},
 				{ timeout: 2000 }
 			);
-			expect(consent?.consents?.necessary).toBe(true);
+			expect(consent?.choice?.categories.marketing?.value).toBe(false);
 		});
 
 		test('should open preference center from banner', async () => {
@@ -226,9 +226,8 @@ describe('IAB Banner E2E Tests', () => {
 				'[data-testid="iab-consent-banner-card"]'
 			);
 
-			// The card carries the dialog role explicitly: a native `dialog`
-			// brings the user agent's 1em padding with it.
-			expect(banner.getAttribute('role')).toBe('dialog');
+			// The default non-blocking banner is a labelled region.
+			expect(banner.getAttribute('role')).toBe('region');
 
 			// Should have aria-label
 			expect(banner.getAttribute('aria-label')).toBeTruthy();

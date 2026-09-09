@@ -80,9 +80,16 @@ export interface TriggerRootProps {
 
 	/**
 	 * Controls when the trigger is visible.
-	 * @default 'after-consent'
+	 * @default 'always'
 	 */
 	showWhen?: TriggerVisibility;
+
+	/**
+	 * Replaces the `showWhen` calculation with a host-computed value. The
+	 * toolbar uses it so app-owned actions stay mounted while only the
+	 * built-in preferences action follows the prompt state.
+	 */
+	visible?: boolean;
 
 	/**
 	 * Callback when position changes.
@@ -111,15 +118,17 @@ export const TriggerRoot = ({
 	children,
 	defaultPosition = 'bottom-right',
 	persistPosition: shouldPersist = true,
-	showWhen = 'after-consent',
+	showWhen = 'always',
+	visible,
 	onPositionChange,
 	onClick,
 }: TriggerRootProps): ReactNode => {
 	const { branding } = useConsentManager();
-	const { isVisible, openDialog } = useConsentDialogTrigger({
+	const { isVisible: computedVisible, openDialog } = useConsentDialogTrigger({
 		onClick,
 		showWhen,
 	});
+	const isVisible = visible ?? computedVisible;
 
 	const { corner, isDragging, isSnapping, wasDragged, handlers, dragStyle } =
 		useDraggable({

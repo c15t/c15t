@@ -6,7 +6,9 @@
 
 import * as v from 'valibot';
 
+import { subjectChoiceWireSchema } from './choice-wire';
 import { subjectIdSchema } from './post';
+import { privacyDirectiveWireSchema } from './privacy-directive';
 
 /**
  * GET /subject/:id combined input schema (path param + query params).
@@ -66,6 +68,11 @@ export const getSubjectParamsSchema = v.object({
  * Consent item in GET /subject/:id response
  */
 export const consentItemSchema = v.object({
+	/**
+	 * v3 receipts this submission confirmed, exactly as the client sent them.
+	 * Absent on rows written before receipts existed; null when unreadable.
+	 */
+	choice: v.optional(v.nullable(subjectChoiceWireSchema)),
 	givenAt: v.date(),
 	id: v.string(),
 	isLatestPolicy: v.boolean(),
@@ -83,12 +90,28 @@ export const consentItemSchema = v.object({
 export const getSubjectOutputSchema = v.object({
 	consents: v.array(consentItemSchema),
 	isValid: v.boolean(),
+	/**
+	 * Standing privacy directives that apply to this subject: its own, plus
+	 * authenticated identity-level directives when its identity link is
+	 * trusted. Absent from backends that predate directives.
+	 */
+	privacyDirectives: v.optional(v.array(privacyDirectiveWireSchema)),
 	subject: v.object({
 		createdAt: v.optional(v.date()),
 
 		externalId: v.optional(v.string()),
 		id: v.string(),
+		/** Provider of `externalId`, as stored. Absent when not identified. */
+		identityProvider: v.optional(v.string()),
 	}),
+	/**
+	 * Latest receipt per category across every cookie-banner consent, with
+	 * each receipt's original confirmation time and basis. Rows written
+	 * before receipts existed contribute legacy-v2 receipts timed at their
+	 * `givenAt`. Null means there is no usable choice. Only backends that
+	 * predate receipts omit this field and require client-side reconstruction.
+	 */
+	subjectChoice: v.optional(v.nullable(subjectChoiceWireSchema)),
 });
 
 /**

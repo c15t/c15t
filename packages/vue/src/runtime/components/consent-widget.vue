@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 /**
  * Inline consent-management widget for settings and privacy pages.
  *
@@ -12,7 +10,8 @@ import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
  * Svelte `ConsentWidget` implementations so the cross-framework parity
  * runner sees identical DOM.
  */
-import type { PolicyUiAction } from '@c15t/schema/types';
+import type { PresentationAction } from '@c15t/core';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 import buttonStyles from '@c15t/ui/styles/components/button';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -22,17 +21,18 @@ import {
 	switchVariants,
 } from '@c15t/ui/styles/primitives';
 import { getTextDirection } from '@c15t/ui/utils/dom';
-import { computed, ref, useId, watch } from 'vue';
+import { computed, inject, mergeProps, ref, useId } from 'vue';
 
 import {
-	useConsentActiveUI,
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
-	useHasConsent,
+	useHasConsentUi,
 } from '../composables';
+import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import ConsentTag from './consent-tag.vue';
+import { consentWidgetManagerKey } from './consent-widget-manager-context';
 
 const props = withDefaults(
 	defineProps<{
@@ -52,8 +52,10 @@ const props = withDefaults(
 
 const init = useConsentInit();
 const config = useConsentConfig();
-const granted = useHasConsent();
-const activeUI = useConsentActiveUI();
+// No resolved policy means nothing to manage: render no surface at all.
+const hasConsentUi = useHasConsentUi();
+
+const manager = inject(consentWidgetManagerKey, null);
 const save = useConsentSave();
 
 const pi = preferenceItemVariants();
@@ -66,13 +68,13 @@ const sw = switchVariants({ size: 'small' });
  */
 const uid = useId();
 
-const surface = computed(() => init.value?.policy?.ui?.dialog);
-const { actionGroups, direction, primaryActions, shouldFillActions } =
-	useConsentPolicyActions(surface);
-
-const categories = computed(() =>
-	getConsentAvailableCategories(init.value, config.value.consentCategories)
-);
+const {
+	presentation: surface,
+	actionGroups,
+	direction,
+	primaryActions,
+	shouldFillActions,
+} = useConsentPolicyActions('preferences');
 
 const textDirection = computed(() =>
 	getTextDirection(props.language ?? init.value?.translations?.language)
@@ -108,24 +110,14 @@ const consentDescription = function consentDescription(
 };
 
 /** Draft selection, saved only when the user hits the save action. */
-const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
-	{} as Record<CONSENT_CATEGORY, boolean>
-);
-
-const resetDraft = function resetDraft() {
-	const grantedSet = new Set(granted.value);
-	const next = {} as Record<CONSENT_CATEGORY, boolean>;
-	for (const category of categories.value) {
-		next[category] = category === 'necessary' || grantedSet.has(category);
-	}
-	draft.value = next;
-};
-
-watch(
-	() => [categories.value.join(','), granted.value.join(',')] as const,
-	() => resetDraft(),
-	{ immediate: true }
-);
+const {
+	values: draft,
+	displayedCategories: draftCategories,
+	isStale,
+	reset: resetDraft,
+	save: saveDraft,
+} = manager?.draft ?? useConsentDraft();
+const categories = draftCategories;
 
 /** Single-open accordion state (opening one category closes the rest). */
 const openItems = ref<Record<string, boolean>>({});
@@ -166,15 +158,15 @@ const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
-		customize: common?.save ?? 'Save',
 		reject: common?.rejectAll ?? 'Reject all',
-	} as Record<PolicyUiAction, string>;
+		save: common?.save ?? 'Save',
+	} as Partial<Record<PresentationAction, string>>;
 });
 
-const ACTION_TEST_IDS: Record<PolicyUiAction, string> = {
+const ACTION_TEST_IDS: Partial<Record<PresentationAction, string>> = {
 	accept: 'consent-widget-footer-accept-all-button',
-	customize: 'consent-widget-footer-save-button',
 	reject: 'consent-widget-reject-button',
+	save: 'consent-widget-footer-save-button',
 };
 
 const actionClass = function actionClass(): string | undefined {
@@ -185,7 +177,7 @@ const actionClass = function actionClass(): string | undefined {
 };
 
 const actionVariant = function actionVariant(
-	action: PolicyUiAction
+	action: PresentationAction
 ): 'primary' | 'neutral' {
 	return primaryActions.value.includes(action) ? 'primary' : 'neutral';
 };
@@ -202,47 +194,66 @@ const footerSubGroupClass = computed(() =>
 	props.noStyle ? undefined : actionStyles.actionGroup
 );
 
-const onAction = function onAction(action: PolicyUiAction) {
+const onAction = async function onAction(action: PresentationAction) {
+	if (manager) {
+		await manager.onAction(action);
+		return;
+	}
 	if (action === 'accept') {
 		save('all');
 	} else if (action === 'reject') {
 		save('none');
-	} else if (action === 'customize') {
-		const selected = Object.entries(draft.value)
-			.filter(([, enabled]) => enabled)
-			.map(([category]) => category as CONSENT_CATEGORY);
-		save(selected);
-	} else {
-		return;
+	} else if (action === 'save') {
+		await saveDraft();
 	}
-	activeUI.value = null;
 };
 </script>
 
 <template>
 	<div
+		v-if="hasConsentUi && isStale && !manager"
+		role="status"
+	>
+		Privacy choices have changed.
+		<button
+			type="button"
+			@click="resetDraft"
+		>
+			Review updated choices
+		</button>
+	</div>
+	<div
+		v-if="hasConsentUi"
+		v-bind="config.components?.manager?.root"
 		:class="noStyle ? undefined : managerStyles.manager"
 		:dir="textDirection"
 		data-testid="consent-widget-root"
+		:data-disable-animation="config.disableAnimation ? true : undefined"
 	>
 		<div
+			v-bind="config.components?.accordion?.root"
 			:class="noStyle ? undefined : accordionStyles.list"
 			data-testid="consent-widget-accordion"
 		>
 			<div
 				v-for="(category, index) in categories"
 				:key="category"
+				v-bind="config.components?.['accordion-item']?.root"
 				:class="noStyle ? undefined : accordionStyles.item"
 				data-slot="preference-item-root"
 				:data-state="isOpen(category) ? 'open' : 'closed'"
 				:data-testid="`consent-widget-accordion-item-${category}`"
 			>
-				<div :class="noStyle ? undefined : accordionStyles.triggerRow">
+				<div
+					v-bind="config.components?.accordion?.triggerRow"
+					:class="noStyle ? undefined : accordionStyles.triggerRow"
+				>
 					<button
 						:id="triggerId(index)"
 						type="button"
 						:aria-controls="contentId(index)"
 						:aria-expanded="isOpen(category) ? 'true' : 'false'"
+						v-bind="config.components?.['accordion-item']?.trigger"
 						:class="noStyle ? undefined : accordionStyles.trigger"
 						data-slot="preference-item-trigger"
 						:data-state="isOpen(category) ? 'open' : 'closed'"
@@ -250,6 +261,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 						@click="toggleOpenItem(category)"
 					>
 						<div
+							v-bind="config.components?.accordion?.arrow"
 							:class="noStyle ? undefined : accordionStyles.arrow"
 							data-slot="preference-item-leading"
 							:data-testid="`consent-widget-accordion-arrow-${category}`"
@@ -268,8 +280,12 @@ const onAction = function onAction(action: PolicyUiAction) {
 								<path :d="isOpen(category) ? 'M5 12h14' : 'M5 12h14M12 5v14'" />
 							</svg>
 						</div>
-						<div data-slot="preference-item-header">
+						<div
+							v-bind="config.components?.accordion?.header"
+							data-slot="preference-item-header"
+						>
 							<h3
+								v-bind="config.components?.accordion?.title"
 								:class="noStyle ? undefined : accordionStyles.title"
 								data-slot="preference-item-title"
 							>
@@ -278,6 +294,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 						</div>
 					</button>
 					<div
+						v-bind="config.components?.accordion?.control"
 						:class="noStyle ? undefined : accordionStyles.control"
 						data-slot="preference-item-control"
 					>
@@ -286,6 +303,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 							role="switch"
 							:aria-checked="draft[category] ? 'true' : 'false'"
 							:aria-label="consentTitle(category)"
+							v-bind="config.components?.switch?.root"
 							:class="noStyle ? undefined : sw.root()"
 							:data-disabled="category === 'necessary' ? '' : undefined"
 							data-slot="switch"
@@ -300,6 +318,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 										? undefined
 										: sw.track({ disabled: category === 'necessary' })
 								"
+								v-bind="config.components?.switch?.track"
 								data-slot="switch-track"
 							>
 								<span
@@ -308,6 +327,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 											? undefined
 											: sw.thumb({ disabled: category === 'necessary' })
 									"
+									v-bind="config.components?.switch?.thumb"
 									data-slot="switch-thumb"
 								/>
 							</span>
@@ -315,6 +335,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 					</div>
 				</div>
 				<div
+					v-bind="config.components?.['accordion-item']?.content"
 					:id="contentId(index)"
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
@@ -327,11 +348,21 @@ const onAction = function onAction(action: PolicyUiAction) {
 					:inert="!isOpen(category)"
 				>
 					<div
-						:class="pi.contentViewport()"
+						:class="
+							pi.contentViewport({
+								class: noStyle ? undefined : accordionStyles.contentViewport,
+							})
+						"
+						v-bind="config.components?.accordion?.contentViewport"
 						data-slot="preference-item-content-viewport"
 					>
 						<div
-							:class="pi.contentInner()"
+							:class="
+								pi.contentInner({
+									class: noStyle ? undefined : accordionStyles.contentInner,
+								})
+							"
+							v-bind="config.components?.accordion?.contentInner"
 							data-slot="preference-item-content-inner"
 						>
 							{{ consentDescription(category) }}
@@ -341,6 +372,12 @@ const onAction = function onAction(action: PolicyUiAction) {
 			</div>
 		</div>
 		<div
+			v-bind="
+				mergeProps(
+					{ ...config.components?.manager?.footer },
+					{ ...config.components?.manager?.actions }
+				)
+			"
 			:class="footerClass"
 			data-testid="consent-widget-footer"
 			:data-direction="direction"
@@ -350,6 +387,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 			<div
 				v-for="(group, groupIndex) in actionGroups"
 				:key="`group-${group.join('-') || groupIndex}`"
+				v-bind="config.components?.manager?.actionGroup"
 				:class="footerSubGroupClass"
 				data-testid="consent-widget-footer-sub-group"
 				:data-direction="direction"
@@ -359,7 +397,13 @@ const onAction = function onAction(action: PolicyUiAction) {
 					v-for="action in group"
 					:key="action"
 					type="button"
+					v-bind="
+						actionVariant(action) === 'primary'
+							? config.components?.button?.primary
+							: config.components?.button?.secondary
+					"
 					:class="actionClass()"
+					:disabled="isStale"
 					:data-action="action"
 					:data-mode="noStyle ? undefined : 'stroke'"
 					:data-size="noStyle ? undefined : 'small'"

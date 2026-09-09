@@ -1,19 +1,18 @@
 import {
-	c15tVersionHeaders,
+	c15tProtocolHeaders,
 	createConsentKernel,
 	createHostedTransport,
 	initOutputToKernelConfig,
-	isValidSubjectId,
 } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	InitResponse,
 	KernelActiveUI,
+	HydrationRecords,
 	KernelConfig,
 	KernelTransport,
 } from '@c15t/core';
-import type { Consent } from '@c15t/core/consent-record';
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
 import type { IframeBlockerOptions } from '@c15t/core/modules/iframe-blocker';
 import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
@@ -22,10 +21,7 @@ import type {
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
 import { createPersistence } from '@c15t/core/modules/persistence';
-import type {
-	StorageConfig,
-	StoredPayload,
-} from '@c15t/core/modules/persistence';
+import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
@@ -50,17 +46,21 @@ export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
 
 const INIT_HEADER_ALLOWLIST = new Set<string>(INIT_HEADER_NAMES);
 
+/** Translation, location and branding data for Vue components. Policy lives in the kernel snapshot. */
+export type VueConsentDisplayData = Pick<
+	InitOutput,
+	'branding' | 'cmpId' | 'customVendors' | 'gvl' | 'location' | 'translations'
+>;
+
 export interface VueConsentKernelContext {
+	/** Clears records through the mounted persistence instance when available. */
+	clearRecords: () => void;
 	kernel: ConsentKernel;
 	snapshot: Ref<ConsentSnapshot>;
-	init: Ref<InitOutput | undefined>;
+	init: Ref<VueConsentDisplayData | undefined>;
 	activeUI: Ref<ConsentActiveUI>;
-	storedConsent: Ref<Consent>;
-	/**
-	 * Whether this context created the kernel. `false` when a
-	 * {@link ConsentRuntime} was handed in — its owner runs `start()` and
-	 * `dispose()`, and every side-effecting module belongs to it.
-	 */
+	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
+	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
 	dispose: () => void;
 }
@@ -137,9 +137,9 @@ const toVueActiveUI = function toVueActiveUI(
 	return ui;
 };
 
-const snapshotToInitOutput = function snapshotToInitOutput(
+const snapshotToDisplayData = function snapshotToDisplayData(
 	snapshot: ConsentSnapshot
-): InitOutput | undefined {
+): VueConsentDisplayData | undefined {
 	if (!snapshot.location || !snapshot.translations) {
 		return undefined;
 	}
@@ -148,59 +148,9 @@ const snapshotToInitOutput = function snapshotToInitOutput(
 		cmpId: snapshot.iab?.cmpId ?? undefined,
 		customVendors: snapshot.iab?.customVendors,
 		gvl: snapshot.iab?.gvl ?? undefined,
-		jurisdiction: snapshot.policyDecision?.jurisdiction ?? 'NONE',
 		location: snapshot.location,
-		policy: snapshot.policy ?? undefined,
-		policyDecision: snapshot.policyDecision ?? undefined,
-		policySnapshotToken: snapshot.policySnapshotToken ?? undefined,
 		translations: snapshot.translations,
-	} as InitOutput;
-};
-
-const snapshotToStoredConsent = function snapshotToStoredConsent(
-	snapshot: ConsentSnapshot
-): Consent {
-	const categories: Consent['categories'] = {};
-	if (snapshot.hasConsented) {
-		for (const [category, enabled] of Object.entries(snapshot.consents)) {
-			categories[category as keyof Consent['categories']] = enabled;
-		}
-	}
-	const policies: Consent['policies'] = {};
-	if (
-		snapshot.hasConsented &&
-		snapshot.policy?.id &&
-		snapshot.policyDecision?.fingerprint
-	) {
-		policies[snapshot.policy.id] = {
-			fingerprint: snapshot.policyDecision.fingerprint,
-			timestamp: Date.now().toString(),
-		};
-	}
-	return { categories, policies };
-};
-
-const storedPayloadToKernelConfig = function storedPayloadToKernelConfig(
-	stored: StoredPayload | null | undefined
-): KernelConfig {
-	if (!stored || typeof stored !== 'object') {
-		return {};
-	}
-
-	const config: KernelConfig = {};
-	if (stored.consents) {
-		config.initialConsents = stored.consents;
-		config.initialHasConsented = true;
-	}
-	if (stored.consentInfo) {
-		config.initialHasConsented = true;
-		const storedId = stored.consentInfo.subjectId;
-		if (storedId && isValidSubjectId(storedId)) {
-			config.initialSubjectId = storedId;
-		}
-	}
-
-	return config;
+	};
 };
 
 export const getNuxtInitFetchTarget = function getNuxtInitFetchTarget(
@@ -236,9 +186,13 @@ const getBrowserGpc = function getBrowserGpc(): boolean | undefined {
 	if (typeof navigator === 'undefined') {
 		return undefined;
 	}
-	const value = (navigator as Navigator & { globalPrivacyControl?: boolean })
-		.globalPrivacyControl;
-	return typeof value === 'boolean' ? value : undefined;
+	try {
+		const value = (navigator as Navigator & { globalPrivacyControl?: unknown })
+			.globalPrivacyControl;
+		return typeof value === 'boolean' ? value : undefined;
+	} catch {
+		return undefined;
+	}
 };
 
 const getManifestInputs = function getManifestInputs(
@@ -296,7 +250,7 @@ const createVueHostedTransport = function createVueHostedTransport(
 	let activeTransport = baseTransport;
 
 	return {
-		identify: baseTransport.identify,
+		...baseTransport,
 		async init(ctx) {
 			const initHeaders = { ...headers };
 			if (ctx.overrides.language) {
@@ -375,7 +329,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 				credentials: 'include',
 				headers: {
 					accept: 'application/json',
-					...c15tVersionHeaders,
+					...c15tProtocolHeaders,
 					...headers,
 				},
 				method: 'GET',
@@ -408,6 +362,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 		typeof window === 'undefined' ? undefined : loadClientResources();
 
 	return {
+		...hostedTransport,
 		async init(ctx) {
 			if (typeof window === 'undefined') {
 				return {};
@@ -443,63 +398,94 @@ const createVueManifestTransport = function createVueManifestTransport(
 	};
 };
 
-const createContextKernel = function createContextKernel(options: {
-	config: RuntimeConsentConfig;
-	headers: Record<string, string>;
-	prefetch?: InitOutput;
-	initialStoredConsent?: StoredPayload | null;
-}): ConsentKernel {
-	const { config, headers } = options;
-	const transport = isClientManifestModeEnabled(config)
-		? createVueManifestTransport(config, headers, options.prefetch)
-		: createVueHostedTransport(
-				config,
-				headers,
-				isServerManifestModeEnabled(config)
-					? getNuxtInitFetchTarget(config)?.url
-					: undefined
-			);
-	return createConsentKernel({
-		...initOutputToKernelConfig(options.prefetch, headers),
-		...storedPayloadToKernelConfig(options.initialStoredConsent),
-		transport,
-	});
+const prepareVueRecords = (
+	initialConfig: KernelConfig,
+	rawRecords?: HydrationRecords,
+	kernelRecords?: HydrationRecords
+) => {
+	const merged = { ...rawRecords, ...initialConfig.initialRecords };
+	const initialRecords =
+		kernelRecords ?? (Object.keys(merged).length ? merged : undefined);
+	return {
+		hydrationRecords:
+			rawRecords ||
+			kernelRecords ||
+			(initialConfig.initialRecords &&
+				(initialConfig.initialRecords.subject === null ||
+					Object.keys(initialConfig.initialRecords).some(
+						(key) => key !== 'subject'
+					)))
+				? initialRecords
+				: undefined,
+		initialRecords,
+	};
 };
 
-/**
- * Build the reactive consent context a Vue app provides.
- *
- * @param options - Config, request headers, prefetched init and, optionally,
- * an externally owned runtime to borrow instead of building a kernel.
- * @returns Refs and computed values for the composables, plus a disposer.
- * @example
- * ```ts
- * // Borrow a runtime an Astro page already created.
- * const context = createVueConsentKernelContext({ config: {}, runtime });
- * ```
- */
+const hydrateVuePersistence = (
+	context: VueConsentKernelContext,
+	persistence: ReturnType<typeof createPersistence>
+): void => {
+	if (context.initialRecords) {
+		context.kernel.hydrate(context.initialRecords);
+		return;
+	}
+	const prefetchedSubject = context.kernel.getSnapshot().subject;
+	persistence.hydrate();
+	if (prefetchedSubject) {
+		context.kernel.hydrate({ subject: prefetchedSubject });
+	}
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
 		headers?: Record<string, string | undefined>;
 		prefetch?: InitOutput;
-		initialStoredConsent?: StoredPayload | null;
-		/**
-		 * A runtime whose kernel this context should render. When present no
-		 * transport and no kernel are created, and `dispose()` only drops
-		 * this context's own subscription.
-		 */
+		initialRecords?: HydrationRecords;
+		now?: number;
+		kernelConfig?: KernelConfig;
+		producerContract?: number | null;
 		runtime?: ConsentRuntime;
 	}): VueConsentKernelContext {
 		const headers = pickAllowedInitHeaders(options.headers ?? {});
 		const ownsKernel = options.runtime === undefined;
+		// oxlint-disable-next-line no-nested-ternary -- A borrowed runtime constructs neither transport.
+		const transport = options.runtime
+			? undefined
+			: isClientManifestModeEnabled(options.config)
+				? createVueManifestTransport(
+						options.config,
+						headers,
+						options.prefetch ?? options.config.prefetch
+					)
+				: createVueHostedTransport(
+						options.config,
+						headers,
+						isServerManifestModeEnabled(options.config)
+							? getNuxtInitFetchTarget(options.config)?.url
+							: undefined
+					);
+		const initialConfig = initOutputToKernelConfig(
+			options.prefetch ?? options.config.prefetch,
+			headers,
+			{ producerContract: options.producerContract }
+		);
+		const records = prepareVueRecords(
+			initialConfig,
+			options.initialRecords ?? options.config.initialRecords,
+			options.kernelConfig?.initialRecords
+		);
 		const kernel =
 			options.runtime?.kernel ??
-			createContextKernel({
-				config: options.config,
-				headers,
-				initialStoredConsent: options.initialStoredConsent,
-				prefetch: options.prefetch,
+			createConsentKernel({
+				...initialConfig,
+				initialRecords: records.initialRecords,
+				now:
+					options.now ??
+					options.initialRecords?.now ??
+					options.config.initialRecords?.now,
+				transport,
+				...options.kernelConfig,
 			});
 
 		const snapshot = shallowRef(kernel.getSnapshot());
@@ -507,29 +493,62 @@ export const createVueConsentKernelContext =
 			snapshot.value = next;
 		});
 
-		const init = computed(() => snapshotToInitOutput(snapshot.value));
+		const init = computed(() => snapshotToDisplayData(snapshot.value));
 		const activeUI = computed<ConsentActiveUI>({
 			get: () => toVueActiveUI(snapshot.value.activeUI),
 			set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
 		});
-		const storedConsent = computed<Consent>({
-			get: () => snapshotToStoredConsent(snapshot.value),
-			set: (value) => {
-				kernel.set.consent(value.categories);
-			},
-		});
+		const storedConsent = computed(() => snapshot.value.explicitChoice);
+		const unsubscribeChoice = kernel.events.on(
+			'choice:recorded',
+			({ snapshot: eventSnapshot, confirmed, actionAt }) => {
+				(ownsKernel ? options.config.callbacks : undefined)?.onChoiceRecorded?.(
+					{
+						actionAt,
+						confirmed,
+						snapshot: eventSnapshot,
+					}
+				);
+			}
+		);
+		const unsubscribePermissions = kernel.events.on(
+			'permissions:changed',
+			({ snapshot: eventSnapshot, previous }) => {
+				(ownsKernel
+					? options.config.callbacks
+					: undefined
+				)?.onPermissionsChanged?.({
+					previous,
+					snapshot: eventSnapshot,
+				});
+			}
+		);
 
 		return {
 			activeUI,
+			clearRecords: () => {
+				if (options.runtime) {
+					options.runtime.clearRecords();
+					return;
+				}
+				kernel.hydrate({
+					choice: null,
+					noticeDismissal: null,
+					optOutDirectives: [],
+					subject: null,
+				});
+				kernel.events.emit({ type: 'records:cleared' });
+			},
 			dispose() {
 				unsubscribe();
-				// Only the owner disposes. A borrowed kernel outlives this
-				// component tree — other islands on the page still read it.
+				unsubscribeChoice();
+				unsubscribePermissions();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
 			},
 			init,
+			initialRecords: records.hydrationRecords,
 			kernel,
 			ownsKernel,
 			snapshot,
@@ -642,8 +661,20 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 			skipHydration: true,
 			storageConfig: config.storageConfig,
 		});
-		persistence.hydrate();
-		disposers.push(() => persistence.dispose());
+		hydrateVuePersistence(context, persistence);
+		const clearMemory = context.clearRecords;
+		context.clearRecords = persistence.clear;
+		disposers.push(() => {
+			context.clearRecords = clearMemory;
+			persistence.dispose();
+		});
+	}
+
+	const detectedGpc = context.snapshot.value.privacySignals.gpc;
+	if (detectedGpc.detected && detectedGpc.active) {
+		// Prepared hydration is read-only. Commit the honored request signal
+		// through the public setter once the provider has mounted.
+		context.kernel.set.privacySignals({ gpc: true });
 	}
 
 	if (typeof document !== 'undefined' && config.scripts?.length) {
@@ -674,6 +705,10 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => iframeBlocker.dispose());
 	}
 
+	const browserGpc = getBrowserGpc();
+	if (browserGpc !== undefined) {
+		context.kernel.set.privacySignals({ gpc: browserGpc });
+	}
 	let active = true;
 	const isActive = () => active;
 

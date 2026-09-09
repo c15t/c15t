@@ -11,14 +11,18 @@
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
+	ConsentPresentation,
 	KernelConfig,
 	LegalLinks,
-	PolicyConfig,
-	PolicyDecision,
 	Script,
 	StorageConfig,
 } from '@c15t/core';
-import type { ConsentManifest, GlobalVendorList } from '@c15t/schema/types';
+import type {
+	PolicyRule,
+	PolicyResolution,
+	ConsentManifest,
+	GlobalVendorList,
+} from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
 
 /** Transport selection, in a form that survives serialization. */
@@ -42,7 +46,7 @@ export interface C15tHostedDescriptor {
 export interface C15tOfflineDescriptor {
 	type: 'offline';
 	/** Policy packs resolved locally. */
-	policyPacks?: PolicyConfig[];
+	policyRules?: PolicyRule[];
 }
 
 /**
@@ -124,6 +128,8 @@ export interface C15tMiddlewareOptions {
 
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
+	/** Host layout and styling constrained by the active policy. */
+	presentation?: ConsentPresentation;
 	/**
 	 * Transport selection. Build it with `hosted()`, `offline()` or
 	 * `manifest()` so the descriptor stays well-formed.
@@ -321,8 +327,24 @@ export interface C15tLocals {
 	/** Whether the server decided this request should see the banner. */
 	shouldShowBanner: boolean;
 
+	/**
+	 * Whether a policy rule is resolved for this request. Every c15t consent
+	 * surface renders nothing until one is: an unconfigured, failed, or
+	 * unmatched resolution leaves nothing to consent to, and the browser shows
+	 * the surfaces on its own once a later init supplies a rule.
+	 */
+	hasPolicy: boolean;
+
+	/**
+	 * Whether the resolved rule owes any consent UI. A prompt owes a banner
+	 * and a preference center; rights owe a way back to preferences. A `none`
+	 * rule with no rights owes neither, so no surface renders while the
+	 * permissions it grants apply. `false` until a rule is resolved.
+	 */
+	hasConsentUi: boolean;
+
 	/** Resolved policy decision, when the transport produced one. */
-	decision: PolicyDecision | null;
+	decision: PolicyResolution;
 
 	/** Normalized request inputs (geo, language, GPC). */
 	inputs: {

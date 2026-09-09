@@ -11,6 +11,7 @@ import {
 	legalDocumentPolicyTypeSchema,
 	policyTypeSchema,
 } from '../../domain/consent-policy';
+import { subjectChoiceWireSchema } from './choice-wire';
 
 /**
  * Base subject ID validation - must be in sub_xxx format
@@ -163,14 +164,16 @@ const manifestDecisionInputEntries = {
 			v.examples(['en'])
 		)
 	),
-	/** Runtime policy ID asserted by manifest-mode clients for recompute-on-write validation */
+	/** Policy ID to recompute on write; null explicitly asserts no matching policy. */
 	policyId: v.optional(
-		v.pipe(
-			v.string(),
-			v.description(
-				'Runtime policy ID asserted by manifest-mode clients for recompute-on-write validation.'
-			),
-			v.examples(['eu_opt_in'])
+		v.nullable(
+			v.pipe(
+				v.string(),
+				v.description(
+					'Runtime policy ID to recompute on write. Null asserts a successful no-match resolution.'
+				),
+				v.examples(['eu_opt_in'])
+			)
 		)
 	),
 	/** Region input used by the manifest resolver */
@@ -191,6 +194,12 @@ const manifestDecisionInputEntries = {
 export const subjectCookieBannerInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	...manifestDecisionInputEntries,
+	/**
+	 * v3 per-category receipts confirmed by this action. When present, the
+	 * backend records coverage and confirmation time per category from here
+	 * rather than from `preferences` plus one `givenAt`.
+	 */
+	choice: v.optional(subjectChoiceWireSchema),
 	preferences: v.pipe(
 		v.record(v.string(), v.boolean()),
 		v.description('Consent preferences keyed by category.'),

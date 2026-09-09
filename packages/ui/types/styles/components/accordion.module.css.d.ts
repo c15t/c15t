@@ -7,6 +7,7 @@ declare const styles: {
   readonly "header": string;
   readonly "item": string;
   readonly "list": string;
+  readonly "restriction": string;
   readonly "title": string;
   readonly "trigger": string;
   readonly "triggerRow": string;

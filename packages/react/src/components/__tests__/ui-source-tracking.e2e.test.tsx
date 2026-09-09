@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E tests for uiSource tracking through the consent flow.
  *
@@ -6,16 +7,16 @@
  *
  * @packageDocumentation
  */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(
@@ -58,25 +59,19 @@ const defaultOptions: ConsentProviderOptions = {
 		'measurement',
 	],
 	mode: offline(),
-	offlinePolicy: {
-		policy: {
-			consent: {
-				categories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
-				scopeMode: 'permissive',
-			},
-			id: 'ui-source-tracking-test',
-			model: 'opt-in',
-			ui: {
-				mode: 'banner',
-			},
-		},
-	},
+	prefetch: policyFixture(undefined, {
+		categories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		id: 'ui-source-tracking-test',
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	}),
 };
 
 describe('UI Source Tracking E2E Tests', () => {
@@ -118,10 +113,11 @@ describe('UI Source Tracking E2E Tests', () => {
 			// Verify consent is saved
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(getDefined(stored));
-					expect(consent.consents.necessary).toBe(true);
+					const consent = getDefined(stored);
+					expect(consent.categories.necessary).toBeUndefined();
 				},
 				{ timeout: 3000 }
 			);
@@ -173,7 +169,8 @@ describe('UI Source Tracking E2E Tests', () => {
 
 				await vi.waitFor(
 					() => {
-						const stored = window.localStorage.getItem('c15t');
+						const stored = readStoredRecords(undefined, Date.now()).records
+							.choice;
 						expect(stored).toBeTruthy();
 					},
 					{ timeout: 3000 }
@@ -269,10 +266,11 @@ describe('UI Source Tracking E2E Tests', () => {
 			// Verify consent was saved
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(getDefined(stored));
-					expect(consent.consents).toBeTruthy();
+					const consent = getDefined(stored);
+					expect(consent.categories).toBeTruthy();
 				},
 				{ timeout: 3000 }
 			);

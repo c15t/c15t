@@ -9,6 +9,7 @@
  */
 import { describe, expect, test } from 'vitest';
 
+import { choiceRecords } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../index';
 import type { ConsentSnapshot, KernelIABState } from '../../types';
 import { evaluateConsent, has, hasIABConsent } from '../has';
@@ -17,6 +18,7 @@ const iabSlice = function iabSlice(
 	patch: Partial<KernelIABState> = {}
 ): KernelIABState {
 	return {
+		authority: null,
 		cmpId: null,
 		customVendors: [],
 		enabled: true,
@@ -73,13 +75,13 @@ describe('hasIABConsent — v2 parity', () => {
 		expect(
 			hasIABConsent(
 				{ vendorId: 755 },
-				iabSlice({ vendorConsents: { '755': true } }).valueOf()
+				iabSlice({ vendorConsents: { '755': true } })
 			)
 		).toBe(true);
 		expect(
 			hasIABConsent(
 				{ vendorId: 755 },
-				iabSlice({ vendorConsents: { '755': false } }).valueOf()
+				iabSlice({ vendorConsents: { '755': false } })
 			)
 		).toBe(false);
 	});
@@ -127,19 +129,18 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		options: {
 			model?: ConsentSnapshot['model'];
 			iab?: Partial<KernelIABState>;
-			consents?: Partial<ConsentSnapshot['consents']>;
+			consents?: Partial<ConsentSnapshot['effectivePermissions']>;
 		} = {}
 	): ConsentSnapshot {
 		const kernel = createConsentKernel({
-			initialConsents: {
+			initialIab: options.iab,
+			initialRecords: choiceRecords({
 				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				necessary: true,
 				...options.consents,
-			},
-			initialIab: options.iab,
+			}),
 		});
 		// Force a specific model for the test — kernel usually derives this
 		// from jurisdiction, but here we want deterministic dispatch tests.
@@ -156,20 +157,20 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		expect(evaluateConsent({ category: 'functionality' }, snap)).toBe(false);
 	});
 
-	test('IAB path: model==="iab" + vendorId → IAB evaluation', () => {
+	test('IAB draft maps cannot authorize a target', () => {
 		const snap = snapshotFor({
 			iab: { vendorConsents: { '755': true } },
 			model: 'iab',
 		});
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 755 }, snap)
-		).toBe(true);
+		).toBe(false);
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 500 }, snap)
 		).toBe(false);
 	});
 
-	test('model!=="iab" + IAB fields → category path still wins', () => {
+	test('IAB targets require IAB authority even outside IAB mode', () => {
 		const snap = snapshotFor({
 			consents: { marketing: true },
 			iab: { vendorConsents: { '755': true } },
@@ -178,7 +179,7 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		// Not in iab mode → vendorId is ignored, marketing check wins.
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 999 }, snap)
-		).toBe(true);
+		).toBe(false);
 	});
 
 	test('model==="iab" but iab slice is null → denies access', () => {

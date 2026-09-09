@@ -18,6 +18,7 @@ import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui'
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
+import { useHasConsentUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
@@ -30,31 +31,33 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Overlay } from './overlay';
 
-const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
+// `none` is included: it never owes a prompt, but a `none` rule that lists
+// the `preferences` right still opens this dialog as its settings route.
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out', 'none'];
 
 const resolveDialogOptions = (
 	localDisableAnimation: boolean | undefined,
 	globalDisableAnimation: boolean | undefined,
 	localNoStyle: boolean | undefined,
 	globalNoStyle: boolean | undefined,
-	localScrollLock: boolean | undefined,
-	policyScrollLock: boolean | undefined,
-	localTrapFocus: boolean | undefined,
-	globalTrapFocus: boolean | undefined
+	blocking: boolean
 ) => ({
 	disableAnimation: localDisableAnimation ?? globalDisableAnimation ?? false,
 	noStyle: localNoStyle ?? globalNoStyle ?? false,
-	scrollLock: localScrollLock ?? policyScrollLock ?? true,
-	trapFocus: localTrapFocus ?? globalTrapFocus ?? true,
+	scrollLock: blocking,
+	trapFocus: blocking,
 });
 
 const resolveDialogOpen = (
+	hasConsentUI: boolean,
 	models: C15tCoreTypes.Model[],
 	model: C15tCoreTypes.Model,
 	open: boolean | undefined,
 	activeUI: string
 ): boolean => {
-	if (!models.includes(model)) {
+	// Without a resolved policy, or under a `none` rule with no rights, there
+	// is nothing to manage: never open.
+	if (!hasConsentUI || !models.includes(model)) {
 		return false;
 	}
 	return open ?? activeUI === 'dialog';
@@ -93,7 +96,7 @@ export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDivElement> {
 
 	/**
 	 * Which consent models this dialog responds to.
-	 * @default ['opt-in', 'opt-out']
+	 * @default ['opt-in', 'opt-out', 'none']
 	 */
 	models?: C15tCoreTypes.Model[];
 
@@ -152,7 +155,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
+	trapFocus: localTrapFocus,
 	overlay,
 	uiSource,
 	className,
@@ -164,24 +167,29 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const { components } = useUIConfig();
 
 	// Consent manager state
-	const { activeUI, translationConfig, model, policyDialog } =
-		useConsentManager();
-	const { closeUI } = useHeadlessConsentUI();
+	const { activeUI, translationConfig, model } = useConsentManager();
+	const { closeUI, dialog } = useHeadlessConsentUI({
+		preferences: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
+	});
 	const { disableAnimation, noStyle, scrollLock, trapFocus } =
 		resolveDialogOptions(
 			localDisableAnimation,
 			globalTheme.disableAnimation,
 			localNoStyle,
 			globalTheme.noStyle,
-			localScrollLock,
-			policyDialog.scrollLock,
-			localTrapFocus,
-			globalTheme.trapFocus
+			dialog.blocking
 		);
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
-	// Final open state (controlled or managed by consent manager)
-	const isOpen = resolveDialogOpen(models, model, openProp, activeUI);
+	// Final open state (controlled or managed by consent manager).
+	const hasConsentUI = useHasConsentUI();
+	const isOpen = resolveDialogOpen(
+		hasConsentUI,
+		models,
+		model,
+		openProp,
+		activeUI
+	);
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);
@@ -268,13 +276,16 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 		[uiSource]
 	);
 
+	const blockingAttribute = dialog.blocking ? 'true' : undefined;
 	const dialogNode = (
 		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
 				{isOpen && (
 					<>
 						{/* Backdrop (customisable) */}
-						{overlay === false ? null : (overlay ?? <Overlay open />)}
+						{dialog.blocking && overlay !== false
+							? (overlay ?? <Overlay open={isOpen} />)
+							: null}
 
 						{/* The outer element only positions the panel over
 						    the viewport. The panel wrapper below is the
@@ -283,6 +294,8 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						    name the same element in every adapter. */}
 						<div
 							ref={dialogRef}
+							data-slot="dialog-positioner"
+							data-blocking={blockingAttribute}
 							{...themedStyle}
 							className={themedStyle.className}
 						>
@@ -292,6 +305,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 								aria-describedby="consent-dialog-description"
 								aria-labelledby="consent-dialog-title"
 								aria-modal={trapFocus ? 'true' : undefined}
+								data-blocking={blockingAttribute}
 								data-testid="consent-dialog-root"
 								dir={textDirection}
 								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` is the positioning shell here, not the panel; the panel is what carries the role.

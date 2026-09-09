@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'All akzeptéieren',
+		acknowledge: 'OK',
 		close: 'Zoumaachen',
 		customize: 'Upassen',
+		dismiss: 'Zoumaachen',
 		rejectAll: 'All refuséieren',
 		save: 'Astellunge späicheren',
 		securedBy: 'Ofgeséchert vun',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Dës Websäit benotzt Cookien fir Är Surferfahrung ze verbesseren, Websäit-Verkéier ze analyséieren an personaliséierten Inhalt unzebidden.',
+		noticeDescription:
+			'Mir benotze Cookien an ähnlech Technologien fir dës Websäit ze bedreiwen, de Verkéier ze moossen an Inhalter a Reklammen ze personaliséieren. Dir kënnt Iech zu all Moment ofmellen oder Är Astellunge verwalten.',
+		noticeTitle: 'Dateschutzhiweis',
 		title: 'Mir schätzen Är Privatsphär',
 	},
 	frame: {
@@ -137,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Cookie-Politik',
 		privacyPolicy: 'Dateschutzrichtlinn',
 		termsOfService: 'Notzungsbedingungen',
+	},
+	rights: {
+		optOut: 'Meng Donnéeën net verkafen oder deelen',
+		preferences: 'Astellungen verwalten',
 	},
 };
 export default translations;

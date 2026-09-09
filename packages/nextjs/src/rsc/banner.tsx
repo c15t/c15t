@@ -5,24 +5,25 @@
  * Component**: zero hydration cost and zero client-bundle bytes for
  * everything static. Only two small islands ship to the browser:
  * `RscBannerGate` (kernel-driven visibility) and `RscBannerActions`
- * (the button row).
+ * (the rights links and the button row).
  *
  * Usage (App Router):
  * ```tsx
  * const config = await prefetchInitialConsent({ backendURL, manifestURL });
- * <ConsentBoundary options={{ prefetch: config }}>
+ * <ConsentBoundary config={config}>
  *   <RscConsentBanner config={config} />
  *   {children}
  * </ConsentBoundary>
  * ```
  *
- * The server renders the shell only when the prefetched decision says the
- * banner should show (returning users get zero banner bytes, client or
- * server). Same data-testids and DOM shape as the client `ConsentBanner`.
+ * The shared React root evaluates visibility from the prepared policy and
+ * records. Keeping the gate mounted lets expiry reopen the prompt later.
  */
-import type { KernelConfig } from '@c15t/core';
+import { resolveConsentPresentation } from '@c15t/core';
+import type { ConsentPresentation } from '@c15t/core';
 import type { ReactNode } from 'react';
 
+import type { InitialConsentConfig } from '../types';
 import { RscBannerActions, RscBannerGate } from './islands';
 
 interface BannerCopy {
@@ -31,6 +32,9 @@ interface BannerCopy {
 	acceptLabel: string;
 	rejectLabel: string;
 	customizeLabel: string;
+	dismissLabel: string;
+	optOutLabel: string;
+	preferencesLabel: string;
 }
 
 const FALLBACK_COPY: BannerCopy = {
@@ -38,44 +42,86 @@ const FALLBACK_COPY: BannerCopy = {
 	customizeLabel: 'Customize',
 	description:
 		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
+	dismissLabel: 'OK',
+	optOutLabel: 'Do not sell or share my data',
+	preferencesLabel: 'Manage preferences',
 	rejectLabel: 'Reject All',
 	title: 'We value your privacy',
 };
 
-const readCopy = function readCopy(config: KernelConfig): BannerCopy {
-	const bundle = (
-		config.initialTranslations as
-			| {
-					translations?: {
-						cookieBanner?: { title?: string; description?: string };
-						common?: {
-							acceptAll?: string;
-							rejectAll?: string;
-							customize?: string;
-						};
-					};
-			  }
-			| undefined
-	)?.translations;
-
-	return {
-		acceptLabel: bundle?.common?.acceptAll ?? FALLBACK_COPY.acceptLabel,
-		customizeLabel: bundle?.common?.customize ?? FALLBACK_COPY.customizeLabel,
-		description: bundle?.cookieBanner?.description ?? FALLBACK_COPY.description,
-		rejectLabel: bundle?.common?.rejectAll ?? FALLBACK_COPY.rejectLabel,
-		title: bundle?.cookieBanner?.title ?? FALLBACK_COPY.title,
-	};
+const FALLBACK_NOTICE_COPY = {
+	description:
+		'We use cookies and similar technologies to run this site, measure traffic, and personalize content and ads. You can opt out or manage your preferences at any time.',
+	title: 'Privacy notice',
 };
 
-const shouldRenderBanner = function shouldRenderBanner(
-	config: KernelConfig
-): boolean {
-	return config.initialHasConsented !== true;
+/** Resolved rule on the prefetched config, when the server matched one. */
+const readPolicy = function readPolicy(config: InitialConsentConfig) {
+	const resolution = config.initialPolicyResolution;
+	return resolution?.status === 'matched' ? resolution.policy : undefined;
+};
+
+interface TranslationBundle {
+	cookieBanner?: {
+		title?: string;
+		description?: string;
+		noticeTitle?: string;
+		noticeDescription?: string;
+	};
+	common?: {
+		acceptAll?: string;
+		rejectAll?: string;
+		customize?: string;
+		acknowledge?: string;
+		dismiss?: string;
+	};
+	rights?: {
+		optOut?: string;
+		preferences?: string;
+	};
+}
+
+const readBundle = function readBundle(
+	config: InitialConsentConfig
+): TranslationBundle {
+	return (
+		(
+			config.initialTranslations as
+				| { translations?: TranslationBundle }
+				| undefined
+		)?.translations ?? {}
+	);
+};
+
+const readCopy = function readCopy(
+	config: InitialConsentConfig,
+	notice: boolean
+): BannerCopy {
+	const { cookieBanner = {}, common = {}, rights = {} } = readBundle(config);
+	const title = notice
+		? (cookieBanner.noticeTitle ?? FALLBACK_NOTICE_COPY.title)
+		: (cookieBanner.title ?? FALLBACK_COPY.title);
+	const description = notice
+		? (cookieBanner.noticeDescription ?? FALLBACK_NOTICE_COPY.description)
+		: (cookieBanner.description ?? FALLBACK_COPY.description);
+
+	return {
+		acceptLabel: common.acceptAll ?? FALLBACK_COPY.acceptLabel,
+		customizeLabel: common.customize ?? FALLBACK_COPY.customizeLabel,
+		description,
+		// Dismissal closes the notice without recording a consent choice.
+		dismissLabel:
+			common.acknowledge ?? common.dismiss ?? FALLBACK_COPY.dismissLabel,
+		optOutLabel: rights.optOut ?? FALLBACK_COPY.optOutLabel,
+		preferencesLabel: rights.preferences ?? FALLBACK_COPY.preferencesLabel,
+		rejectLabel: common.rejectAll ?? FALLBACK_COPY.rejectLabel,
+		title,
+	};
 };
 
 export interface RscConsentBannerProps {
 	/** The prefetched kernel config (from `prefetchInitialConsent`). */
-	config: KernelConfig;
+	config: InitialConsentConfig;
 	/**
 	 * Optional class names for shell slots (e.g. from
 	 * `@c15t/ui/styles` CSS Modules). The shell is headless by default.
@@ -89,65 +135,127 @@ export interface RscConsentBannerProps {
 		acceptButton?: string;
 		rejectButton?: string;
 		customizeButton?: string;
+		dismissButton?: string;
+		/**
+		 * Group of extra preferences buttons, such as
+		 * the opt-out under a notice. Rendered before the action row so the
+		 * notice layout in `@c15t/ui` applies.
+		 */
+		rights?: string;
+		/**
+		 * One right control inside the rights group. The styled adapters
+		 * render it as a button styled like a link. This class styles the
+		 * button in the server shell. Carries
+		 * `data-action="right"` and `data-right` for host CSS.
+		 */
+		rightLink?: string;
 	};
+	/**
+	 * Host presentation for the prompt: variant, position, blocking, layout.
+	 * Pass the same object you give `ConsentBoundary` as
+	 * `options.presentation`, so the server resolves the identical shape the
+	 * client hydrates with. Omit it when the boundary has none.
+	 */
+	presentation?: ConsentPresentation;
 	/** Extra server-rendered content inside the card (links, branding). */
 	children?: ReactNode;
 }
 
+/**
+ * Variant, blocking state and any host-chosen position, from the same pure
+ * resolver the shared root runs. A defaulted position is not forwarded: the
+ * root derives it from the variant and mirrors it for right-to-left text.
+ */
+const readSurface = function readSurface(
+	policy: ReturnType<typeof readPolicy>,
+	presentation: ConsentPresentation | undefined
+) {
+	if (!policy) {
+		return { blocking: false, position: undefined, variant: undefined };
+	}
+	const { blocking, position, positionSource, variant } =
+		resolveConsentPresentation({ policy, presentation, surface: 'prompt' });
+	return {
+		blocking,
+		position: positionSource === 'host' ? position : undefined,
+		variant,
+	};
+};
+
+/**
+ * A blocking banner is a modal dialog; a non-blocking one is a labelled
+ * region that never claims `aria-modal`. Matches the client root exactly so
+ * first paint and hydration agree.
+ */
+const modalProps = function modalProps(blocking: boolean, title: string) {
+	return blocking
+		? ({ 'aria-label': title, 'aria-modal': 'true', role: 'dialog' } as const)
+		: ({ 'aria-label': title, role: 'region' } as const);
+};
+
 export const RscConsentBanner = ({
 	config,
 	classNames,
+	presentation,
 	children,
 }: RscConsentBannerProps) => {
-	if (!shouldRenderBanner(config)) {
+	const policy = readPolicy(config);
+	// A `none` rule with no rights owes no consent UI at all, so the server
+	// emits no banner shell; the client root stays hidden for the same reason.
+	if (policy?.prompt === 'none' && policy.rights.length === 0) {
 		return null;
 	}
-	const copy = readCopy(config);
+	const copy = readCopy(config, policy?.prompt === 'notice');
+	const surface = readSurface(policy, presentation);
 
 	return (
-		<RscBannerGate>
-			<dialog
-				aria-label={copy.title}
-				aria-modal="false"
-				className={classNames?.root}
-				data-testid="consent-banner-root"
-				open
-				style={
-					classNames?.root
-						? undefined
-						: { bottom: 0, left: 0, position: 'fixed', zIndex: 999 }
-				}
+		<RscBannerGate
+			title={copy.title}
+			className={classNames?.root}
+			prompt={policy?.prompt}
+			model={policy?.model}
+			variant={surface.variant}
+			position={surface.position}
+			blocking={surface.blocking}
+		>
+			<div
+				className={classNames?.card}
+				{...modalProps(surface.blocking, copy.title)}
+				data-testid="consent-banner-card"
 			>
-				<div
-					className={classNames?.card}
-					data-testid="consent-banner-card"
+				<h2
+					className={classNames?.title}
+					data-testid="consent-banner-title"
 				>
-					<h2
-						className={classNames?.title}
-						data-testid="consent-banner-title"
-					>
-						{copy.title}
-					</h2>
-					<p
-						className={classNames?.description}
-						data-testid="consent-banner-description"
-					>
-						{copy.description}
-					</p>
-					{children}
-					<RscBannerActions
-						acceptLabel={copy.acceptLabel}
-						classNames={{
-							acceptButton: classNames?.acceptButton,
-							customizeButton: classNames?.customizeButton,
-							footer: classNames?.footer,
-							rejectButton: classNames?.rejectButton,
-						}}
-						customizeLabel={copy.customizeLabel}
-						rejectLabel={copy.rejectLabel}
-					/>
-				</div>
-			</dialog>
+					{copy.title}
+				</h2>
+				<p
+					className={classNames?.description}
+					data-testid="consent-banner-description"
+				>
+					{copy.description}
+				</p>
+				{children}
+				<RscBannerActions
+					acceptLabel={copy.acceptLabel}
+					classNames={{
+						acceptButton: classNames?.acceptButton,
+						customizeButton: classNames?.customizeButton,
+						dismissButton: classNames?.dismissButton,
+						footer: classNames?.footer,
+						rejectButton: classNames?.rejectButton,
+						rightLink: classNames?.rightLink,
+						rights: classNames?.rights,
+					}}
+					customizeLabel={copy.customizeLabel}
+					rejectLabel={copy.rejectLabel}
+					dismissLabel={copy.dismissLabel}
+					rightLabels={{
+						'opt-out': copy.optOutLabel,
+						preferences: copy.preferencesLabel,
+					}}
+				/>
+			</div>
 		</RscBannerGate>
 	);
 };

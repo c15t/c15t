@@ -10,7 +10,7 @@ const snapshot = function snapshot(
 	consents: Partial<Record<string, boolean>>
 ): ConsentSnapshot {
 	return {
-		consents: {
+		effectivePermissions: {
 			experience: false,
 			functionality: false,
 			marketing: false,

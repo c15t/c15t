@@ -31,6 +31,7 @@
  *   loaders (or already in the DOM) are left alone.
  */
 import type { ConsentSnapshot } from '../../types';
+import { getEffectiveGateState } from '../has';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
 import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
@@ -119,22 +120,33 @@ export const createScriptLoader = function createScriptLoader(
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
 	let lastIab: unknown = null;
+	let lastRestrictions: unknown = null;
+	let lastModel: unknown = null;
+	let lastEvaluationPolicy: unknown = null;
 
 	const reconcile = function reconcile(force = false): void {
 		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+		const effective = getEffectiveGateState(snapshot);
+		const permissionsChanged = effective.effectivePermissions !== lastConsents;
 
 		if (
 			!force &&
-			snapshot.consents === lastConsents &&
-			snapshot.policyCategories === lastPolicyCategories &&
-			snapshot.policyScopeMode === lastScopeMode &&
-			snapshot.iab === lastIab
+			!permissionsChanged &&
+			snapshot.policyRule.scope === lastPolicyCategories &&
+			snapshot.policyRule.scopeMode === lastScopeMode &&
+			snapshot.iab === lastIab &&
+			effective.restrictions === lastRestrictions &&
+			snapshot.model === lastModel &&
+			snapshot.evaluationPolicy === lastEvaluationPolicy
 		) {
 			return;
 		}
-		lastConsents = snapshot.consents;
-		lastPolicyCategories = snapshot.policyCategories;
-		lastScopeMode = snapshot.policyScopeMode;
+		lastConsents = effective.effectivePermissions;
+		lastRestrictions = effective.restrictions;
+		lastModel = snapshot.model;
+		lastEvaluationPolicy = snapshot.evaluationPolicy;
+		lastPolicyCategories = snapshot.policyRule.scope;
+		lastScopeMode = snapshot.policyRule.scopeMode;
 		lastIab = snapshot.iab;
 
 		const pass = buildReconcilePass(snapshot);
@@ -151,13 +163,11 @@ export const createScriptLoader = function createScriptLoader(
 
 			// Always-loaded integrations can map several categories (Google
 			// Consent Mode), so they need updates even when mounting is unchanged.
-			const needsConsentUpdate =
-				script.alwaysLoad && typeof script.onConsentChange === 'function';
 			if (
 				!force &&
 				previousEligibility === eligible &&
 				previousConsent === hasConsent &&
-				!needsConsentUpdate
+				!(permissionsChanged && typeof script.onConsentChange === 'function')
 			) {
 				continue;
 			}

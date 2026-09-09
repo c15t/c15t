@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Samþykkja allt',
+		acknowledge: 'Í lagi',
 		close: 'Loka',
 		customize: 'Sérsníða',
+		dismiss: 'Loka',
 		rejectAll: 'Hafna öllu',
 		save: 'Vista stillingar',
 		securedBy: 'Varið af',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Þessi vefur notar vafrakökur til að bæta vafraupplifun þína, greina umferð á vefnum og sýna persónumiðað efni.',
+		noticeDescription:
+			'Við notum vafrakökur og sambærilega tækni til að reka þennan vef, mæla umferð og sérsníða efni og auglýsingar. Þú getur afþakkað eða stjórnað stillingum þínum hvenær sem er.',
+		noticeTitle: 'Persónuverndartilkynning',
 		title: 'Við metum friðhelgi þína',
 	},
 	frame: {
@@ -137,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Stefna um vafrakökur',
 		privacyPolicy: 'Persónuverndarstefna',
 		termsOfService: 'Þjónustuskilmálar',
+	},
+	rights: {
+		optOut: 'Ekki selja eða deila gögnunum mínum',
+		preferences: 'Stjórna stillingum',
 	},
 };
 export default translations;

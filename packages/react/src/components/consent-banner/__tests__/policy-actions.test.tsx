@@ -3,9 +3,10 @@ import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 type ConsentManagerState = ReturnType<typeof useConsentManager>;
@@ -78,24 +79,22 @@ const PolicyTestProvider = ({
 			mode: offline(),
 			persistence: false,
 			prefetch: {
-				initialConsents: state.consents,
-				initialPolicy: {
-					consent: {
-						categories: state.consentCategories,
-						scopeMode: 'permissive',
-					},
+				...policyFixture(undefined, {
+					categories: state.consentCategories,
 					id: 'policy-actions-test',
 					model: state.model ?? 'opt-in',
-					ui: {
-						banner: state.policyBanner,
-						dialog: state.policyDialog,
-						mode: 'banner',
-					},
-				},
+					prompt: 'choice',
+					scopeMode: 'permissive',
+				}),
+				initialDraft: state.consents,
 				initialTranslations: {
 					language: 'en',
 					translations: defaultTranslationConfig.translations.en as never,
 				},
+			},
+			presentation: {
+				preferences: state.policyDialog,
+				prompt: state.policyBanner,
 			},
 			theme: providerOverrides?.theme,
 		}}
@@ -187,7 +186,7 @@ describe('ConsentBanner.PolicyActions', () => {
 		).toHaveAttribute('data-consent-action', 'customize');
 	});
 
-	test('filters disallowed actions', async () => {
+	test('host hints cannot remove policy actions', async () => {
 		await renderPolicyActions({
 			policyBanner: {
 				allowedActions: ['accept'],
@@ -202,10 +201,10 @@ describe('ConsentBanner.PolicyActions', () => {
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="banner-action-reject"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="banner-action-customize"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	});
 
 	test('applies stacked and fill layout behavior', async () => {

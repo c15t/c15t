@@ -1,104 +1,153 @@
 /**
  * `@c15t/core/modules/persistence`
  *
- * Kernel-consuming persistence module. Reads consent from cookie +
- * localStorage on mount (`hydrate`) and writes back on every relevant
- * kernel change with a debounce. Uses the v2 cookie library so both
- * v2 and v3 consumers read/write the same format — a v2 user upgrading
- * to v3 does not lose stored consent.
+ * Kernel-consuming persistence module. Reads stored records on mount
+ * (`hydrate`) and writes back on explicit kernel events.
  *
  * Concerns are split across siblings:
- * - `types.ts`     — public + internal type definitions.
- * - `hydrate.ts`   — pure-ish read path.
- * - `write.ts`     — pure-ish write path.
- * - `schedule.ts`  — microtask-debounced write scheduler.
- * - `index.ts`     — this file: subscription wiring + lifecycle.
+ * - `types.ts`          — public type definitions.
+ * - `record-codec.ts`   — versioned codecs for every stored record.
+ * - `record-storage.ts` — raw candidate reads, selection, writes, clear.
+ * - `hydrate.ts`        — read path and the SSR seed reader.
+ * - `write.ts`          — write path.
+ * - `schedule.ts`       — macrotask-debounced write scheduler.
+ * - `index.ts`          — this file: subscription wiring + lifecycle.
  *
  * Invariants:
  * - Hydration runs synchronously inside `createPersistence` so the
- *   caller can block first paint until stored consent is applied.
- *   This is still pure (no async work), but it does read cookies and
- *   localStorage — caller must invoke inside the browser only.
- * - Write path subscribes to kernel; on every tick where `consents`
- *   or `hasConsented` change, schedules a write. Writes are batched
- *   with a microtask debounce so rapid flips produce one write.
- * - Dispose unsubscribes but does not clear storage.
+ *   caller can block first paint until stored records are applied. It
+ *   reads cookies and localStorage, so call it in the browser only.
+ * - Hydration is read-only and never creates a choice. Kernel changes it
+ *   causes never schedule a write, so startup does not renew a receipt or
+ *   recreate a missing cookie or localStorage mirror. A `hydrate()` call
+ *   flushes any queued write first.
+ * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
+ *   A canonical subject acknowledgement preserves every receipt timestamp.
+ *   Separate writes follow
+ *   `notice:dismissed` (the notice record and its cookie projection) and
+ *   `privacy:opt-out` (the privacy record and its cookie projection).
+ *   Permission changes, policy changes and elapsed time never write.
+ * - `clear()` cancels queued writes before it removes storage, so a
+ *   pending flush cannot recreate what was just cleared.
  */
-import {
-	deleteConsentFromStorage,
-	getConsentFromCookieHeader,
-} from '../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { hydrateFromStorage } from './hydrate';
+import type { StoredIabMetadata } from './record-codec';
+import { clearStoredConsentRecords } from './record-storage';
 import { createWriteScheduler } from './schedule';
-import type {
-	PersistenceHandle,
-	PersistenceOptions,
-	StorageConfig,
-	StoredPayload,
-} from './types';
-import { writeToStorage } from './write';
+import type { PersistenceHandle, PersistenceOptions } from './types';
+import {
+	writeChoiceToStorage,
+	writeNoticeToStorage,
+	writePrivacyToStorage,
+} from './write';
 
 export type {
 	PersistenceHandle,
 	PersistenceOptions,
 	StorageConfig,
-	StoredPayload,
 } from './types';
+export {
+	readStoredRecords,
+	readStoredRecordsFromCookieHeader,
+} from './hydrate';
+export type { StoredRecords } from './hydrate';
+export type { StoredIabMetadata, StoredConsentEnvelope } from './record-codec';
+export { resolveStorageKeys } from './record-storage';
 
 export const CONSENT_STORAGE_KEY = STORAGE_KEY_V2;
-
-export const readStoredConsentFromCookie = function readStoredConsentFromCookie(
-	cookieHeader: string | undefined,
-	storageConfig?: StorageConfig
-): StoredPayload | null {
-	return getConsentFromCookieHeader<StoredPayload>(cookieHeader, storageConfig);
-};
 
 export const createPersistence = function createPersistence(
 	options: PersistenceOptions
 ): PersistenceHandle {
-	const { kernel } = options;
-	const { storageConfig } = options;
+	const { kernel, storageConfig } = options;
+	const now = options.now ?? (() => Date.now());
 	const hasStorageAPIs =
 		typeof document !== 'undefined' && typeof localStorage !== 'undefined';
 
-	let lastSnapshot = kernel.getSnapshot();
+	// IAB transport metadata carried by the stored record. Preserved on the
+	// next explicit save so an envelope rewrite never drops it.
+	let storedIab: StoredIabMetadata | null = null;
 
-	const scheduler = createWriteScheduler(() => {
-		writeToStorage(kernel.getSnapshot(), kernel, storageConfig);
+	const choiceWrites = createWriteScheduler(() => {
+		writeChoiceToStorage(kernel.getSnapshot(), storedIab, storageConfig, now());
+	});
+	const noticeWrites = createWriteScheduler(() => {
+		writeNoticeToStorage(kernel.getSnapshot(), storageConfig, now());
+	});
+	const privacyWrites = createWriteScheduler(() => {
+		writePrivacyToStorage(kernel.getSnapshot(), storageConfig, now());
 	});
 
-	const unsubscribe = kernel.subscribe((snapshot) => {
-		const consentsChanged = snapshot.consents !== lastSnapshot.consents;
-		const statusChanged = snapshot.hasConsented !== lastSnapshot.hasConsented;
-		lastSnapshot = snapshot;
-		if (consentsChanged || statusChanged) {
-			scheduler.schedule();
+	const unsubscribers = [
+		kernel.events.on('choice:recorded', () => {
+			choiceWrites.schedule();
+		}),
+		kernel.events.on('subject:resolved', () => {
+			choiceWrites.schedule();
+		}),
+		kernel.events.on('notice:dismissed', () => {
+			noticeWrites.schedule();
+		}),
+		kernel.events.on('privacy:opt-out', () => {
+			privacyWrites.schedule();
+		}),
+	];
+
+	const flushAll = function flushAll(): void {
+		choiceWrites.flush();
+		noticeWrites.flush();
+		privacyWrites.flush();
+	};
+
+	const cancelAll = function cancelAll(): void {
+		choiceWrites.cancel();
+		noticeWrites.cancel();
+		privacyWrites.cancel();
+	};
+
+	const hydrate = function hydrate(): boolean {
+		// An explicit choice may still be queued. Land it first so
+		// rehydration reads the new choice back instead of overwriting it
+		// with whatever storage held before the user acted.
+		flushAll();
+		const stored = hydrateFromStorage(kernel, storageConfig, now());
+		if (!stored) {
+			return false;
 		}
-	});
+		storedIab = stored.iab;
+		return stored.found;
+	};
 
 	if (!options.skipHydration) {
-		hydrateFromStorage(kernel, storageConfig);
+		hydrate();
 	}
 
 	return {
 		clear() {
-			if (!hasStorageAPIs) {
-				return;
+			cancelAll();
+			storedIab = null;
+			if (hasStorageAPIs) {
+				clearStoredConsentRecords(undefined, storageConfig);
 			}
-			deleteConsentFromStorage(storageConfig);
+			kernel.hydrate({
+				choice: null,
+				noticeDismissal: null,
+				now: now(),
+				optOutDirectives: [],
+				subject: null,
+			});
+			kernel.events.emit({ type: 'records:cleared' });
 		},
 		dispose() {
-			unsubscribe();
-			// A write queued in the current tick must not fire after dispose —
-			// it would flush the (possibly stale) snapshot into storage after a
-			// newer provider took over. Flushing synchronously keeps the last
-			// consent change durable without leaving a timer behind.
-			scheduler.flush();
+			for (const unsubscribe of unsubscribers) {
+				unsubscribe();
+			}
+			// A write queued in the current tick must not fire after dispose.
+			// Flushing synchronously keeps the last change durable without
+			// leaving a timer behind.
+			flushAll();
 		},
-		hydrate() {
-			return hydrateFromStorage(kernel, storageConfig);
-		},
+		hydrate,
 	};
 };

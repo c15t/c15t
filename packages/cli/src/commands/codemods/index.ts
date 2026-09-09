@@ -8,7 +8,6 @@ import { runComponentRenamesCodemod } from './component-renames';
 import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-categories';
 import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
-import { runOfflineAddPolicyPacksCodemod } from './offline-add-policy-packs';
 import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
@@ -173,24 +172,7 @@ const codemods: CodemodDefinition[] = [
 			toRange: '>=2.0.0',
 		},
 	},
-	{
-		hint: 'Adds starter policyPackPresets to offline configs missing policies.',
-		id: 'offline-add-policy-packs',
-		label: 'offline mode -> add policy packs',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runOfflineAddPolicyPacksCodemod({
-				dryRun,
 
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
-		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
-		},
-	},
 	{
 		hint: 'Lifts react.theme/colorScheme/disableAnimation to top-level.',
 		id: 'react-options-to-top-level',

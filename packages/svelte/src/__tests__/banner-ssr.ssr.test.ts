@@ -1,3 +1,4 @@
+import { createConsentKernel } from '@c15t/core';
 /**
  * Server-render contract for the consent banner.
  *
@@ -6,7 +7,9 @@
  * server-compiled components. The client project resolves `browser` and
  * would hand it client-compiled output, which throws `effect_orphan`.
  */
-import type { KernelConfig, ResolvedPolicy } from '@c15t/core';
+import type { ConsentPresentation, KernelConfig } from '@c15t/core';
+import { resolvePolicyRules } from '@c15t/schema/types';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { render } from 'svelte/server';
 import { describe, expect, test } from 'vitest';
 
@@ -15,44 +18,77 @@ import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 import BannerFixture from './fixtures/banner-fixture.svelte';
 
-const BANNER_POLICY: ResolvedPolicy = {
-	consent: {
-		categories: ['necessary', 'marketing', 'measurement'],
-		scopeMode: 'strict',
-	},
-	id: 'ssr_policy',
-	model: 'opt-in',
-	ui: {
-		banner: { allowedActions: ['reject', 'accept', 'customize'] },
-		mode: 'banner',
-	},
+const BANNER_POLICY = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			categories: ['marketing', 'measurement'],
+			id: 'ssr_policy',
+			match: { fallback: true },
+			model: 'opt-in',
+			prompt: 'choice',
+			scopeMode: 'permissive',
+		},
+	],
+});
+const savedKernel = createConsentKernel({
+	initialPolicyResolution: BANNER_POLICY,
+	now: Date.now(),
+});
+await savedKernel.commands.save('all');
+const RETURNING_RECORDS = {
+	choice: savedKernel.getSnapshot().explicitChoice,
+	now: Date.now(),
 };
+savedKernel.dispose();
 
 const buildOptions = function buildOptions(
-	prefetch: KernelConfig
+	prefetch: KernelConfig,
+	presentation?: ConsentPresentation
 ): ConsentManagerOptions {
 	return {
 		mode: offline(),
 		persistence: false,
 		prefetch,
+		presentation,
 	} as ConsentManagerOptions;
 };
 
-const renderBanner = function renderBanner(prefetch: KernelConfig): string {
-	return render(BannerFixture, { props: { options: buildOptions(prefetch) } })
-		.body;
+const renderBanner = function renderBanner(
+	prefetch: KernelConfig,
+	presentation?: ConsentPresentation
+): string {
+	return render(BannerFixture, {
+		props: { options: buildOptions(prefetch, presentation) },
+	}).body;
 };
+const rootTag = function rootTag(html: string): string | undefined {
+	return /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html)?.[0];
+};
+const NOTICE_POLICY = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			id: 'notice',
+			match: { fallback: true },
+			model: 'opt-out',
+			prompt: 'notice',
+		},
+	],
+});
 
 describe('consent banner SSR', () => {
 	test('renders the banner shell when the prefetched policy says to show it', () => {
-		const html = renderBanner({ initialPolicy: BANNER_POLICY });
+		const html = renderBanner({ initialPolicyResolution: BANNER_POLICY });
 
 		expect(html).toContain('data-testid="consent-banner-root"');
 		expect(html).toContain('data-testid="consent-banner-accept-button"');
 	});
 
 	test('renders in its final visible state, not the pre-animation one', () => {
-		const html = renderBanner({ initialPolicy: BANNER_POLICY });
+		const html = renderBanner({ initialPolicyResolution: BANNER_POLICY });
 		// Assert against the whole opening tag rather than a bare substring, so
 		// a class landing on some other element cannot pass this by accident.
 		const tag = /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html);
@@ -64,8 +100,9 @@ describe('consent banner SSR', () => {
 
 	test('renders nothing for a returning visitor', () => {
 		const html = renderBanner({
-			initialHasConsented: true,
-			initialPolicy: BANNER_POLICY,
+			initialPolicyResolution: BANNER_POLICY,
+			initialRecords: RETURNING_RECORDS,
+			now: Date.now(),
 		});
 
 		expect(html).not.toContain('data-testid="consent-banner-root"');
@@ -79,14 +116,25 @@ describe('consent banner SSR', () => {
 
 	test('renders nothing when the policy asks for no surface', () => {
 		const html = renderBanner({
-			initialPolicy: { ...BANNER_POLICY, ui: { mode: 'none' } },
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: null,
+				regionCode: null,
+				rules: [
+					{
+						id: 'none',
+						match: { fallback: true },
+						model: 'opt-out',
+						prompt: 'none',
+					},
+				],
+			}),
 		});
 
 		expect(html).not.toContain('data-testid="consent-banner-root"');
 	});
 
 	test('puts real copy and real actions in the first HTML', () => {
-		const html = renderBanner({ initialPolicy: BANNER_POLICY });
+		const html = renderBanner({ initialPolicyResolution: BANNER_POLICY });
 
 		// Not a placeholder shell: the resolved title and the policy's own
 		// allowed actions are already painted before any JS runs.
@@ -96,9 +144,95 @@ describe('consent banner SSR', () => {
 		expect(html).toContain('data-action="customize"');
 	});
 
+	test('paints the notice rights and dismiss in the first HTML', () => {
+		const html = renderBanner({
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: null,
+				regionCode: null,
+				rules: [
+					{
+						id: 'notice',
+						match: { fallback: true },
+						model: 'opt-out',
+						prompt: 'notice',
+					},
+				],
+			}),
+		});
+		const tag = /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html);
+
+		expect(tag?.[0]).toMatch(/data-prompt="notice"/u);
+		expect(tag?.[0]).toMatch(/data-model="opt-out"/u);
+		expect(html).toContain('Privacy notice');
+		expect(html).toContain('data-right="opt-out"');
+		expect(html).not.toContain('data-right="preferences"');
+		expect(html).toContain('Do not sell or share my data');
+		expect(html).toContain('data-action="right"');
+		const rightTag = /<button[^>]*data-action="right"[^>]*>/u.exec(html);
+		expect(rightTag?.[0]).toContain(bannerStyles.rightLink);
+		expect(rightTag?.[0]).not.toMatch(/data-variant=/u);
+		expect(html).toContain('data-action="dismiss"');
+		expect(html).toContain('>OK<');
+		expect(html).not.toContain('>Dismiss<');
+		expect(html.indexOf('data-right="opt-out"')).toBeLessThan(
+			html.indexOf('data-action="dismiss"')
+		);
+		expect(html).not.toContain('data-action="accept"');
+	});
+
+	test('marks a choice prompt on the root', () => {
+		const html = renderBanner({ initialPolicyResolution: BANNER_POLICY });
+		const tag = /<div[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html);
+
+		expect(tag?.[0]).toMatch(/data-prompt="choice"/u);
+		expect(tag?.[0]).toMatch(/data-model="opt-in"/u);
+		expect(html).not.toContain('consent-banner-rights');
+	});
+
+	test('paints the resolved variant and position in the first HTML', () => {
+		const choiceTag = rootTag(
+			renderBanner({ initialPolicyResolution: BANNER_POLICY })
+		);
+		expect(choiceTag).toMatch(/data-variant="floating"/u);
+		expect(choiceTag).toMatch(/data-position="bottom-left"/u);
+		expect(choiceTag).not.toMatch(/data-blocking/u);
+
+		const noticeTag = rootTag(
+			renderBanner({ initialPolicyResolution: NOTICE_POLICY })
+		);
+		expect(noticeTag).toMatch(/data-variant="floating"/u);
+		expect(noticeTag).toMatch(/data-position="bottom-left"/u);
+		expect(noticeTag).not.toMatch(/data-blocking/u);
+
+		const barTag = rootTag(
+			renderBanner(
+				{ initialPolicyResolution: NOTICE_POLICY },
+				{ prompt: { variant: 'bar' } }
+			)
+		);
+		expect(barTag).toMatch(/data-variant="bar"/u);
+		expect(barTag).toMatch(/data-position="bottom"/u);
+	});
+
+	test('a blocking wall paints its backdrop and modal state on the server', () => {
+		const html = renderBanner(
+			{ initialPolicyResolution: BANNER_POLICY },
+			{ prompt: { variant: 'wall' } }
+		);
+		const tag = rootTag(html);
+
+		expect(tag).toMatch(/data-variant="wall"/u);
+		expect(tag).toMatch(/data-position="center"/u);
+		expect(tag).toMatch(/data-blocking="true"/u);
+		expect(html).toContain('data-testid="consent-banner-overlay"');
+		expect(html).toMatch(/consent-banner-card"[^>]*aria-modal="true"/u);
+	});
+
 	test('the provider alone renders no banner', () => {
 		const html = render(ConsentManagerProvider, {
-			props: { options: buildOptions({ initialPolicy: BANNER_POLICY }) },
+			props: {
+				options: buildOptions({ initialPolicyResolution: BANNER_POLICY }),
+			},
 		}).body;
 
 		expect(html).not.toContain('consent-banner-root');

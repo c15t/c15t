@@ -7,26 +7,25 @@ import triggerStyles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { computed, ref, watch } from 'vue';
 
 import {
-	useConsent,
 	useConsentActiveUI,
 	useConsentConfig,
-	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
 
+import { useHasConsentUi, usePolicyRule } from '../composables/kernel';
 import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
 import { useWindowSize } from '../composables/use-window-size';
+import ConsentBrandingIcon from './consent-branding-icon.vue';
 
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
+const policy = usePolicyRule();
 const init = useConsentInit();
-const consent = useConsent();
-const iabSelection = useConsentIabSelection();
 
 const STORAGE_KEY = 'c15t:dialog-trigger-position';
-const STORAGE_OFFSET = 20;
+const FALLBACK_OFFSET = 20;
 
 const mounted = useMounted();
 const { width, height } = useWindowSize();
@@ -48,27 +47,38 @@ const resolveSizePixels = function resolveSizePixels(
 	return 40;
 };
 
+// Resolve the same CSS length as class-positioned triggers, including rem,
+// calc(), and caller overrides inherited by the rendered trigger.
+const resolveOffset = function resolveOffset(): number {
+	const trigger = triggerRef.value;
+	if (!trigger) {
+		return FALLBACK_OFFSET;
+	}
+	const probe = document.createElement('span');
+	probe.style.cssText =
+		'position:absolute;visibility:hidden;padding-left:var(--cdt-offset,20px)';
+	trigger.append(probe);
+	const offset = Number.parseFloat(getComputedStyle(probe).paddingLeft);
+	probe.remove();
+	return Number.isFinite(offset) ? offset : FALLBACK_OFFSET;
+};
+
 const resolveInitialPosition = function resolveInitialPosition(
 	position: ConsentDialogTriggerPosition,
 	size: ConsentDialogTriggerSize
 ) {
 	const sizePixels = resolveSizePixels(size);
-	const maxX = Math.max(
-		width.value - sizePixels - STORAGE_OFFSET,
-		STORAGE_OFFSET
-	);
-	const maxY = Math.max(
-		height.value - sizePixels - STORAGE_OFFSET,
-		STORAGE_OFFSET
-	);
+	const offset = resolveOffset();
+	const maxX = Math.max(width.value - sizePixels - offset, offset);
+	const maxY = Math.max(height.value - sizePixels - offset, offset);
 	if (position === 'top-left') {
-		return { x: STORAGE_OFFSET, y: STORAGE_OFFSET };
+		return { x: offset, y: offset };
 	}
 	if (position === 'top-right') {
-		return { x: maxX, y: STORAGE_OFFSET };
+		return { x: maxX, y: offset };
 	}
 	if (position === 'bottom-left') {
-		return { x: STORAGE_OFFSET, y: maxY };
+		return { x: offset, y: maxY };
 	}
 	return { x: maxX, y: maxY };
 };
@@ -96,7 +106,7 @@ const { position, isDragging } = useDraggable(triggerRef, {
 });
 
 watch(
-	[mounted, width, height],
+	[mounted, width, height, activeUI],
 	() => {
 		if (!mounted.value || isDragging.value) {
 			return;
@@ -111,36 +121,24 @@ watch(
 		);
 		position.value = next;
 	},
-	{ immediate: true }
+	{ flush: 'post', immediate: true }
 );
 
-const hasIabConsent = function hasIabConsent(): boolean {
-	const state = iabSelection.value;
-	return Object.values(state.vendorConsents).some(Boolean);
-};
-
-const hasConsented = computed(() => {
-	if (init.value?.policy?.model === 'iab') {
-		return hasIabConsent();
-	}
-
-	return Object.keys(consent.value).length > 0;
-});
-
+const hasConsentUi = useHasConsentUi();
 const isVisible = computed(() => {
 	if (!mounted.value) {
 		return false;
 	}
-	// Match React/Svelte: the trigger hides while any consent surface
-	// (banner or manager) is open and re-renders once it closes.
-	if (activeUI.value !== null) {
+	// Nothing to manage without a resolved policy.
+	if (!hasConsentUi.value) {
+		return false;
+	}
+	// Keep persistent preferences accessible while a notice is open.
+	if (activeUI.value === 'manager') {
 		return false;
 	}
 	if (config.value.triggerShowWhen === 'never') {
 		return false;
-	}
-	if (config.value.triggerShowWhen === 'after-consent') {
-		return hasConsented.value;
 	}
 	return true;
 });
@@ -158,17 +156,22 @@ const openDialog = function openDialog() {
 </script>
 
 <template>
-	<Teleport to="body">
+	<Teleport
+		v-if="mounted"
+		to="body"
+	>
 		<button
 			v-if="isVisible"
 			ref="triggerRef"
 			v-bind="config.components?.trigger?.root"
 			type="button"
 			data-testid="consent-dialog-trigger"
+			data-c15t-trigger="true"
+			:data-c15t-rights="policy.rights.join(' ')"
 			:class="triggerStyles.trigger"
 			:data-size="config.triggerSize"
 			:data-dragging="isDragging ? true : undefined"
-			:style="triggerStyle"
+			:style="[config.components?.trigger?.root?.style, triggerStyle]"
 			:aria-label="config.triggerAriaLabel"
 			@click="openDialog"
 		>
@@ -217,18 +220,10 @@ const openDialog = function openDialog() {
 						0 0 0-1.51 1z"
 					/>
 				</svg>
-				<svg
+				<ConsentBrandingIcon
 					v-else
-					aria-hidden="true"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M4 12h16" />
-					<path d="M4 6h16" />
-					<path d="M4 18h16" />
-				</svg>
+					:branding="init?.branding"
+				/>
 			</span>
 			<span
 				v-if="config.components?.trigger?.text"

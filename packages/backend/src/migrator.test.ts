@@ -137,7 +137,10 @@ for (const [name, makeConfig] of CONFIGS) {
 				assert.isUndefined(planned.blocked);
 				assert.isFalse(planned.applied, 'plan must not write');
 				assert.isAbove(planned.adoption.length, 0);
-				assert.deepStrictEqual(planned.pending, ['2-hot-path-indexes']);
+				assert.deepStrictEqual(planned.pending, [
+					'2-hot-path-indexes',
+					'3-consent-receipts-and-privacy-directives',
+				]);
 
 				const applied = await migrator.apply();
 				assert.isTrue(applied.applied);

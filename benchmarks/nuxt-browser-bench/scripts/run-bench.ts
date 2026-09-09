@@ -13,20 +13,27 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { nuxtBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
+
+import { assertConsentFreeBaseline, baselineServerOutputDir } from './baseline';
+import {
+	assertRepeatVisitor,
+	createRepeatVisitorCookie,
+} from './repeat-visitor';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -79,13 +86,11 @@ interface NuxtBrowserBenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
-	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
 	bannerPaintMs?: number | null;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 }
 
@@ -105,7 +110,12 @@ const HOST = '127.0.0.1';
 const PORT = 4313;
 const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const serverEntryPath = join(appDir, '.output', 'server', 'index.mjs');
+const serverEntry = (baseline: boolean) =>
+	join(
+		baseline ? baselineServerOutputDir : join(appDir, '.output'),
+		'server',
+		'index.mjs'
+	);
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/nuxt';
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
@@ -113,15 +123,6 @@ const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 const bannerRootTestId = 'consent-banner-root';
 const bannerAcceptButtonTestId = 'consent-banner-accept-button';
 const bannerElementTimingName = 'c15t-consent-banner';
-const repeatVisitorCookieValue = [
-	'c.necessary:1',
-	'c.functionality:1',
-	'c.experience:1',
-	'c.measurement:1',
-	'c.marketing:1',
-	'i.t:1800000000000',
-	'i.sid:sub_2VZxR7YmNpKq3WfLs8TgHd',
-].join(',');
 
 const readCliFlag = function readCliFlag(name: string): string | undefined {
 	const index = process.argv.indexOf(name);
@@ -211,7 +212,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 	}
 
 	const before = await page.evaluate(
-		() => window.__c15tNuxtBench?.onConsentSetCount ?? 0
+		() => window.__c15tNuxtBench?.onChoiceRecordedCount ?? 0
 	);
 	const startedAt = performance.now();
 	await page.click(`[data-testid="${bannerAcceptButtonTestId}"]`);
@@ -220,7 +221,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 			const state = window.__c15tNuxtBench;
 			return (
 				!!state &&
-				state.onConsentSetCount > expected &&
+				state.onChoiceRecordedCount > expected &&
 				state.activeUI === 'none'
 			);
 		},
@@ -248,10 +249,15 @@ const waitForServer = async function waitForServer() {
 	throw new Error('Timed out waiting for nuxt browser bench server');
 };
 
-const runCommand = async function runCommand(args: string[], label: string) {
+const runCommand = async function runCommand(
+	args: string[],
+	label: string,
+	baseline: boolean
+) {
 	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
+			env: { ...process.env, C15T_BENCH_BASELINE: baseline ? '1' : '0' },
 			stdio: ['ignore', 'pipe', 'pipe'],
 		});
 
@@ -277,12 +283,12 @@ const runCommand = async function runCommand(args: string[], label: string) {
 	});
 };
 
-const ensureBuild = async function ensureBuild() {
-	if (existsSync(serverEntryPath)) {
+const ensureBuild = async function ensureBuild(baseline: boolean) {
+	if (existsSync(serverEntry(baseline))) {
 		return;
 	}
 
-	await runCommand(['run', 'build'], 'nuxt browser benchmark build');
+	await runCommand(['run', 'build'], 'nuxt browser benchmark build', baseline);
 };
 
 const applyPageProfile = async function applyPageProfile(
@@ -309,7 +315,7 @@ const seedRepeatVisitorCookie = async function seedRepeatVisitorCookie(
 			path: '/',
 			sameSite: 'Lax',
 			secure: false,
-			value: repeatVisitorCookieValue,
+			value: createRepeatVisitorCookie(),
 		},
 	]);
 };
@@ -380,7 +386,27 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	await page.waitForLoadState('load');
 	await page.waitForTimeout(250);
 
+	if (scenario === 'baseline' || scenario === 'baseline-client') {
+		assertConsentFreeBaseline({
+			bannerCount: await page
+				.locator('[data-testid="consent-banner-root"]')
+				.count(),
+			bannerInFirstHtml,
+			initRequests,
+			manifestRequests,
+		});
+	}
+
 	const state = await page.evaluate(() => window.__c15tNuxtBench);
+	if (scenario === 'repeat-visitor') {
+		assertRepeatVisitor({
+			bannerCount: await page
+				.locator('[data-testid="consent-banner-root"]')
+				.count(),
+			bannerInFirstHtml,
+			hasStoredChoice: state?.hasStoredChoice,
+		});
+	}
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
@@ -435,68 +461,6 @@ type NuxtBrowserSample = Omit<
 	interactionLatencyMs?: number;
 };
 
-const budgetsForScenario = function budgetsForScenario(
-	scenario: string
-): MetricBudget[] {
-	const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-	const shared = browserBudgets.filter((budget) =>
-		[
-			'bannerReadyMs',
-			'lastAppScriptEndMs',
-			'interactionLatencyMs',
-			'longTaskTotalMs',
-		].includes(budget.metric)
-	);
-
-	if (
-		baseScenario === 'ssr' ||
-		baseScenario === 'ssr-manifest' ||
-		baseScenario === 'repeat-visitor'
-	) {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'SSR and repeat-visitor routes should not trigger browser-observed init requests.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	if (baseScenario === 'client-manifest') {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'Nuxt client manifest mode resolves from the browser manifest transport without any init request.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-			{
-				comparator: 'count-eq',
-				description:
-					'Nuxt client manifest mode must not call a same-origin init endpoint.',
-				metric: 'sameOriginInitRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	return [
-		...shared,
-		{
-			comparator: 'count-eq',
-			description:
-				'Client SPA flow should make exactly one init request on cold load.',
-			metric: 'initRequestsAfterLoad',
-			threshold: 1,
-		},
-	];
-};
-
 interface BenchConsentFixtureCounts {
 	init: number;
 	manifest: number;
@@ -524,8 +488,14 @@ const isManifestScenario = function isManifestScenario(
 	return scenario.includes('manifest');
 };
 
-const run = async function run() {
-	await ensureBuild();
+const run = async function run(baseline: boolean) {
+	const buildScenarios = scenarios.filter(
+		(scenario) => scenario.name.startsWith('baseline') === baseline
+	);
+	if (buildScenarios.length === 0) {
+		return;
+	}
+	await ensureBuild(baseline);
 
 	const env = {
 		...process.env,
@@ -539,7 +509,7 @@ const run = async function run() {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
 	}
 
-	const server = spawn('node', ['.output/server/index.mjs'], {
+	const server = spawn('node', [serverEntry(baseline)], {
 		cwd: appDir,
 		env,
 		stdio: ['ignore', 'pipe', 'pipe'],
@@ -558,7 +528,7 @@ const run = async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 
-		await Array.from(scenarios).reduce<Promise<void>>(
+		await Array.from(buildScenarios).reduce<Promise<void>>(
 			async (previousScenario, scenario) => {
 				await previousScenario;
 				const samples: NuxtBrowserSample[] = [];
@@ -622,7 +592,7 @@ const run = async function run() {
 					const outputScenario = resultScenarioName(groupScenario);
 					const result: BenchmarkResult = {
 						baseSha: safeBaseSha(),
-						budgetDefinitions: budgetsForScenario(groupScenario),
+						budgetDefinitions: nuxtBrowserBudgetsForScenario(groupScenario),
 						budgets: [],
 						commitSha: safeCommitSha(),
 						environment: getEnvironment(browser.version()),
@@ -650,6 +620,7 @@ const run = async function run() {
 							fixtureInitExecutions: fixtureCounts.init,
 							fixtureManifestExecutions: fixtureCounts.manifest,
 							fixtureSubjectExecutions: fixtureCounts.subjects,
+							gitDirty: safeGitDirty(),
 							initLatencyMs,
 							profile: throttleProfile,
 						},
@@ -821,7 +792,8 @@ const run = async function run() {
 };
 
 try {
-	await run();
+	await run(true);
+	await run(false);
 } catch (error) {
 	console.error(error);
 	process.exit(1);

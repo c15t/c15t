@@ -16,6 +16,10 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 
 const workspaceAliases = [
 	{
+		find: '@c15t/core/transports',
+		replacement: resolve(__dirname, '../core/src/transports/index.ts'),
+	},
+	{
 		find: '@c15t/core/runtime',
 		replacement: resolve(__dirname, '../core/src/runtime/index.ts'),
 	},
@@ -95,6 +99,7 @@ export default mergeConfig(
 	defineConfig({
 		test: {
 			coverage: {
+				exclude: ['.svelte-kit/**'],
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {

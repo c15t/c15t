@@ -50,9 +50,31 @@ describe('kernel event mapping', () => {
 	it('maps every core kernel event to a serializable log entry', () => {
 		const snapshot = createConsentKernel().getSnapshot();
 		const events: KernelEvent[] = [
-			{ snapshot, type: 'consent:set' },
+			{ type: 'records:cleared' },
+			{
+				actionAt: 1,
+				confirmed: ['marketing'],
+				snapshot,
+				type: 'choice:recorded',
+			},
+			{
+				previous: snapshot.effectivePermissions,
+				snapshot,
+				type: 'permissions:changed',
+			},
+			{
+				dismissal: { dismissedAt: 1, fingerprint: 'notice', version: 1 },
+				snapshot,
+				type: 'notice:dismissed',
+			},
+			{
+				directive: { categories: ['marketing'], recordedAt: 1, source: 'gpc' },
+				snapshot,
+				type: 'privacy:opt-out',
+			},
 			{ snapshot, type: 'overrides:set' },
 			{ snapshot, type: 'user:identified' },
+			{ snapshot, type: 'subject:resolved' },
 			{ snapshot, type: 'iab:set' },
 			{ snapshot, type: 'init:applied' },
 			{

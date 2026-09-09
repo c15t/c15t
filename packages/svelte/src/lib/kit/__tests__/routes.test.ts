@@ -35,7 +35,7 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			expect(fetchImpl.mock.calls[0]?.[0]).toBe(
 				'https://api.example.com/manifest'
 			);
-			expect(payload.policy.id).toBe('eu-opt-in');
+			expect(payload.policyResolution.policy.id).toBe('eu-opt-in');
 			expect(payload.location).toEqual({ countryCode: 'DE', regionCode: null });
 		});
 
@@ -67,9 +67,9 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			);
 			const payload = await response.json();
 
+			expect(payload.resolvedPrivacySignals).toEqual({ gpc: true });
 			expect(payload.resolvedOverrides).toEqual({
 				country: 'DE',
-				gpc: true,
 				language: 'de',
 			});
 		});
@@ -85,7 +85,7 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			);
 			const payload = await response.json();
 
-			expect(payload.policy.id).toBe('notice-default');
+			expect(payload.policyResolution.policy.id).toBe('notice-default');
 		});
 
 		test('resolves a relative backendURL against the request origin', async () => {

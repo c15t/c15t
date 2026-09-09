@@ -10,7 +10,16 @@ export const App = () => (
 	<ConsentProvider
 		options={{
 			disableAnimation: true,
-			mode: offline(),
+			mode: offline({
+				policyRules: [
+					{
+						id: 'repro-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 		}}
 	>
 		<main className="app-shell">

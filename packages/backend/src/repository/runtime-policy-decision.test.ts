@@ -19,6 +19,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import * as Dialect from '../db/dialect';
 import { up as baseline } from '../db/migrations/1-baseline';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
@@ -74,6 +75,7 @@ for (const engine of ENGINES) {
 				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
+					yield* receipts;
 
 					const a = yield* recordDecision(input).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
@@ -107,6 +109,7 @@ for (const engine of ENGINES) {
 				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
+					yield* receipts;
 
 					// Scoping must not cost idempotency, which is the whole point of
 					// the key.
@@ -130,6 +133,7 @@ for (const engine of ENGINES) {
 				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
+					yield* receipts;
 
 					const first = yield* recordDecision(input);
 					const second = yield* recordDecision(input);

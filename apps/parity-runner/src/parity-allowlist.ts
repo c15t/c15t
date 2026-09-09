@@ -50,105 +50,6 @@ const IAB_VENDOR_LIST_REASON =
 
 export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	// ---------------------------------------------------------------------
-	// Dialog primitives. Every adapter now agrees on the boxes, the roles and
-	// the computed styles of the dialog; what is left is the bookkeeping each
-	// primitive library stamps on its own elements.
-	// ---------------------------------------------------------------------
-	{
-		check: 'dom',
-		framework: 'svelte',
-		reason:
-			"Ark and Reka stamp their own bookkeeping on the dialog they render — `data-slot`, `data-state` and a generated `id` — which React's hand-rolled dialog has no equivalent for. The boxes, the roles and the computed styles all match; only the adapters' primitive libraries differ. React styles the switch through `data-size`/`data-variant` on the `components/switch` sheet while Svelte appends `root-small`/`track-small` classes from the `primitives/switch` sheet. Two stylesheets for one control, producing identical computed styles; picking one is its own change.",
-		slot: '*',
-		story: 'Core/Consent Dialog/Default',
-	},
-	{
-		check: 'dom',
-		framework: 'svelte',
-		reason:
-			"Ark and Reka stamp their own bookkeeping on the dialog they render — `data-slot`, `data-state` and a generated `id` — which React's hand-rolled dialog has no equivalent for. The boxes, the roles and the computed styles all match; only the adapters' primitive libraries differ. React styles the switch through `data-size`/`data-variant` on the `components/switch` sheet while Svelte appends `root-small`/`track-small` classes from the `primitives/switch` sheet. Two stylesheets for one control, producing identical computed styles; picking one is its own change.",
-		slot: '*',
-		story: 'Core/Consent Dialog Trigger/Default',
-	},
-	{
-		check: 'dom',
-		framework: 'svelte',
-		reason:
-			"Ark and Reka stamp their own bookkeeping on the dialog they render — `data-slot`, `data-state` and a generated `id` — which React's hand-rolled dialog has no equivalent for. The boxes, the roles and the computed styles all match; only the adapters' primitive libraries differ. React styles the switch through `data-size`/`data-variant` on the `components/switch` sheet while Svelte appends `root-small`/`track-small` classes from the `primitives/switch` sheet. Two stylesheets for one control, producing identical computed styles; picking one is its own change.",
-		slot: '*',
-		story: 'Core/Consent Dialog Link/Default',
-	},
-	{
-		check: 'dom',
-		framework: 'svelte',
-		reason:
-			"Ark and Reka stamp their own bookkeeping on the dialog they render — `data-slot`, `data-state` and a generated `id` — which React's hand-rolled dialog has no equivalent for. The boxes, the roles and the computed styles all match; only the adapters' primitive libraries differ. React styles the switch through `data-size`/`data-variant` on the `components/switch` sheet while Svelte appends `root-small`/`track-small` classes from the `primitives/switch` sheet. Two stylesheets for one control, producing identical computed styles; picking one is its own change.",
-		slot: '*',
-		story: 'Core/Consent Banner/Banner To Dialog Flow',
-	},
-	{
-		check: 'dom',
-		framework: 'vue',
-		reason:
-			"Vue's category accordion is Reka's, so it carries `role=\"button\"` and `tabindex` on the trigger and none of the `data-slot` bookkeeping React's preference-item primitive emits. Same boxes, same computed styles, different primitive library.",
-		slot: '*',
-		story: 'Core/Consent Dialog/Default',
-	},
-	{
-		check: 'dom',
-		framework: 'vue',
-		reason:
-			"Vue's category accordion is Reka's, so it carries `role=\"button\"` and `tabindex` on the trigger and none of the `data-slot` bookkeeping React's preference-item primitive emits. Same boxes, same computed styles, different primitive library.",
-		slot: '*',
-		story: 'Core/Consent Dialog Trigger/Default',
-	},
-	{
-		check: 'dom',
-		framework: 'vue',
-		reason:
-			"Vue's category accordion is Reka's, so it carries `role=\"button\"` and `tabindex` on the trigger and none of the `data-slot` bookkeeping React's preference-item primitive emits. Same boxes, same computed styles, different primitive library.",
-		slot: '*',
-		story: 'Core/Consent Banner/Banner To Dialog Flow',
-	},
-	{
-		check: 'dom',
-		framework: 'vue',
-		reason:
-			"Vue's category accordion is Reka's, so it carries `role=\"button\"` and `tabindex` on the trigger and none of the `data-slot` bookkeeping React's preference-item primitive emits. Same boxes, same computed styles, different primitive library.",
-		slot: '*',
-		story: 'Core/Consent Dialog/Dialog Contract',
-	},
-	{
-		check: 'dom',
-		framework: 'vue',
-		reason:
-			"Vue's category accordion is Reka's, so it carries `role=\"button\"` and `tabindex` on the trigger and none of the `data-slot` bookkeeping React's preference-item primitive emits. Same boxes, same computed styles, different primitive library.",
-		slot: '*',
-		story: 'Core/Consent Dialog Trigger/Dialog Focus Management',
-	},
-	{
-		check: 'dom',
-		framework: 'vue',
-		reason:
-			"Vue's category accordion is Reka's, so it carries `role=\"button\"` and `tabindex` on the trigger and none of the `data-slot` bookkeeping React's preference-item primitive emits. Same boxes, same computed styles, different primitive library.",
-		slot: '*',
-		story: 'Core/Consent Widget/Expanded Categories',
-	},
-
-	// ---------------------------------------------------------------------
-	// The consent widget. React wraps each category in a preference-item
-	// primitive; Svelte and Vue use their own. The boxes match.
-	// ---------------------------------------------------------------------
-	{
-		check: 'dom',
-		framework: '*',
-		reason:
-			"React's widget renders the shared preference-item primitive and Svelte's renders its own, so the trees differ on that wrapper. The boxes and the visible styles match.",
-		slot: '*',
-		story: 'Core/Consent Widget/Default',
-	},
-
-	// ---------------------------------------------------------------------
 	// Astro. Its banner is server-rendered and progressively enhanced, so the
 	// markup carries the hooks the client boot looks for.
 	// ---------------------------------------------------------------------
@@ -159,14 +60,6 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 			"Astro's server-rendered banner carries the attributes its client boot reads — `data-c15t-visible` on the root, `data-c15t-action` on each button — and the `lang` the server resolved. Nothing else renders them because nothing else needs them.",
 		slot: '*',
 		story: 'Core/Consent Banner/Default',
-	},
-	{
-		check: 'dom',
-		framework: 'astro',
-		reason:
-			'The Astro dialog is a Svelte island mounted into a server-rendered host, so the tree carries the host wrapper React does not have. Structural by design.',
-		slot: '*',
-		story: 'Core/Consent Dialog/Default',
 	},
 	{
 		check: 'dom',

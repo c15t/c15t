@@ -12,17 +12,97 @@ const mountedDevTools = (): NodeListOf<HTMLElement> =>
 	document.querySelectorAll('[data-c15t-dev-tools]');
 
 describe('@c15t/svelte/devtools', () => {
-	test('keeps configured optional categories under a necessary-only policy', async () => {
+	test('keeps explicit service callbacks live without remounting', async () => {
+		const firstClear = vi.fn();
+		const nextClear = vi.fn();
+		const result = render(DevToolsFixture, {
+			clearRecords: firstClear,
+			getPresentation: () => undefined,
+			presentation: { preferences: { primaryActions: ['accept'] } },
+		});
+		try {
+			await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
+			const [root] = mountedDevTools();
+			root?.querySelector<HTMLButtonElement>('[data-tab="policy"]')?.click();
+			expect(root?.textContent).toContain('Resolved defaults only');
+			await result.rerender({
+				clearRecords: nextClear,
+				getPresentation: () => undefined,
+			});
+			expect(mountedDevTools()[0]).toBe(root);
+			root?.querySelector<HTMLButtonElement>('[data-tab="actions"]')?.click();
+			[...(root?.querySelectorAll('button') ?? [])]
+				.find((button) => button.textContent === 'Clear stored records')
+				?.click();
+			expect(firstClear).not.toHaveBeenCalled();
+			expect(nextClear).toHaveBeenCalledOnce();
+		} finally {
+			result.unmount();
+		}
+	});
+
+	test('uses provider presentation and clears its custom persistence key', async () => {
+		const storageKey = 'svelte-devtools-clear';
+		const result = render(DevToolsFixture, {
+			presentation: { preferences: { primaryActions: ['accept'] } },
+			storageKey,
+		});
+		try {
+			await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
+			mountedDevTools()[0]
+				?.querySelector<HTMLButtonElement>('[data-tab="policy"]')
+				?.click();
+			expect(mountedDevTools()[0]?.textContent).toContain('host-options');
+			expect(mountedDevTools()[0]?.textContent).toContain(
+				'equivalent-prominence-overridden'
+			);
+			const click = (label: string) => {
+				const button = [
+					...(mountedDevTools()[0]?.querySelectorAll('button') ?? []),
+				].find((element) => element.textContent === label);
+				expect(button).toBeDefined();
+				button?.click();
+			};
+			mountedDevTools()[0]
+				?.querySelector<HTMLButtonElement>('[data-tab="consents"]')
+				?.click();
+			click('Accept all');
+			await vi.waitFor(() =>
+				expect(localStorage.getItem(storageKey)).not.toBeNull()
+			);
+			await vi.waitFor(() =>
+				expect(
+					mountedDevTools()[0]?.querySelector('[role="status"]')?.textContent
+				).toContain('accepted')
+			);
+			mountedDevTools()[0]
+				?.querySelector<HTMLButtonElement>('[data-tab="actions"]')
+				?.click();
+			click('Clear stored records');
+			await vi.waitFor(() =>
+				expect(localStorage.getItem(storageKey)).toBeNull()
+			);
+			mountedDevTools()[0]
+				?.querySelector<HTMLButtonElement>('[data-tab="policy"]')
+				?.click();
+			expect(mountedDevTools()[0]?.textContent).toContain('Absent');
+		} finally {
+			result.unmount();
+			localStorage.removeItem(storageKey);
+			document.cookie = `${storageKey}=; Max-Age=0; Path=/`;
+		}
+	});
+
+	test('uses the canonical wildcard scope for a necessary-only authored policy', async () => {
 		const result = render(DevToolsFixture, {
 			categories: ['necessary', 'marketing'],
 			policyCategories: ['necessary'],
 		});
 		try {
-			await vi.waitFor(() =>
-				expect(
-					document.querySelector('[data-focus-key="consent:marketing"]')
-				).not.toBeNull()
-			);
+			await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
+			expect(
+				document.querySelector('[data-focus-key="consent:marketing"]')
+			).not.toBeNull();
 			expect(
 				document.querySelector('[data-focus-key="consent:measurement"]')
 			).toBeNull();

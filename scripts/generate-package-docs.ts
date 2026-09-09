@@ -15,7 +15,11 @@ interface PackageDocsConfig {
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
-		include: ['frameworks/javascript/**/*.mdx', 'integrations/**/*.mdx'],
+		include: [
+			'upgrade-v3.mdx',
+			'frameworks/javascript/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
 		name: '@c15t/core',
 		outDir: 'packages/core',
 		summary:
@@ -23,6 +27,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
+			'upgrade-v3.mdx',
 			'frameworks/react/**/*.mdx',
 			'integrations/**/*.mdx',
 			'shared/react/components/dev-tools.mdx',
@@ -34,6 +39,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
+			'upgrade-v3.mdx',
 			'frameworks/next/**/*.mdx',
 			'integrations/**/*.mdx',
 			'shared/react/components/dev-tools.mdx',
@@ -44,7 +50,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/nextjs for c15t/next, @c15t/core for root c15t imports, and @c15t/react for c15t/react.',
 	},
 	{
-		include: ['self-host/**/*.mdx', 'self-host/**/*.md'],
+		include: ['upgrade-v3.mdx', 'self-host/**/*.mdx', 'self-host/**/*.md'],
 		name: '@c15t/backend',
 		outDir: 'packages/backend',
 		summary:

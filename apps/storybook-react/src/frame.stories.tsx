@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Frame } from '../../../packages/react/src/index';
-import { StorybookConsentProvider } from './storybook-consent-fixtures';
+import {
+	editableConsentOptions,
+	StorybookConsentProvider,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: Frame,
@@ -18,14 +21,22 @@ type Story = StoryObj<typeof meta>;
 export const Placeholder: Story = {
 	render: () => (
 		<StorybookConsentProvider
+			options={editableConsentOptions}
 			storedConsent={{
 				marketing: false,
 				necessary: true,
 			}}
 		>
 			<div style={{ width: '32rem' }}>
-				<Frame category="marketing">
-					<div>Marketing content</div>
+				<Frame
+					category="marketing"
+					placeholder={
+						<div data-testid="frame-placeholder">
+							Marketing content requires consent.
+						</div>
+					}
+				>
+					<div data-testid="parity-frame-content">Marketing content</div>
 				</Frame>
 			</div>
 		</StorybookConsentProvider>
@@ -35,14 +46,23 @@ export const Placeholder: Story = {
 export const GrantedContent: Story = {
 	render: () => (
 		<StorybookConsentProvider
+			options={editableConsentOptions}
 			storedConsent={{
 				marketing: true,
 				necessary: true,
 			}}
 		>
 			<div style={{ width: '32rem' }}>
-				<Frame category="marketing">
+				<Frame
+					category="marketing"
+					placeholder={
+						<div data-testid="frame-placeholder">
+							Marketing content requires consent.
+						</div>
+					}
+				>
 					<div
+						data-testid="parity-frame-content"
 						style={{
 							background: 'var(--c15t-surface)',
 							border: '1px solid var(--c15t-border)',

@@ -1,7 +1,16 @@
+import { c15tProtocolHeaders, mapInitOutputToInitResponse } from '@c15t/core';
 import {
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 } from '@c15t/core/transports/manifest-cache';
+import type { InitOutput } from '@c15t/schema/types';
+import {
+	parsePolicyContractHeader,
+	readPolicyResolutionWire,
+	writePolicyResolutionWire,
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+} from '@c15t/schema/types';
 import {
 	defineEventHandler,
 	getRequestHeader,
@@ -94,6 +103,32 @@ export const createManifestRoute = function createManifestRoute(
 	});
 };
 
+const negotiateInit = function negotiateInit(
+	output: InitOutput,
+	clientContract: string | undefined
+): InitOutput {
+	const negotiated = { ...output };
+	if (
+		clientContract !== undefined &&
+		parsePolicyContractHeader(clientContract) !== POLICY_CONTRACT_VERSION
+	) {
+		negotiated.policyResolution = writePolicyResolutionWire({
+			policy: null,
+			reason: 'unsupported-contract',
+			status: 'failed',
+		});
+	}
+	if (
+		readPolicyResolutionWire(negotiated.policyResolution).status !== 'matched'
+	) {
+		delete negotiated.policySnapshotToken;
+		delete negotiated.gvl;
+		delete negotiated.cmpId;
+		delete negotiated.customVendors;
+	}
+	return negotiated;
+};
+
 export const createInitRoute = function createInitRoute(
 	dependencies: InitRouteDependencies
 ) {
@@ -102,6 +137,11 @@ export const createInitRoute = function createInitRoute(
 			const runtimeConfig = dependencies.useRuntimeConfig(event);
 			const config = readConsentConfig(runtimeConfig);
 			setResponseHeader(event, 'cache-control', 'private, no-store');
+			setResponseHeader(
+				event,
+				POLICY_CONTRACT_HEADER,
+				String(POLICY_CONTRACT_VERSION)
+			);
 			const headers = getRequestHeaders(event);
 
 			try {
@@ -109,17 +149,17 @@ export const createInitRoute = function createInitRoute(
 					config,
 					fetch: dependencies.fetch,
 				});
-				return resolveManifestInit({
-					headers,
-					manifest: manifest.manifest,
-				});
+				return negotiateInit(
+					resolveManifestInit({ headers, manifest: manifest.manifest }),
+					getRequestHeader(event, POLICY_CONTRACT_HEADER)
+				);
 			} catch (cause) {
 				// Older backends may not expose /manifest; fall back to GET /init
 				// through the same fetch adapter so relative backend URLs work.
 				if (!config.backendURL) {
 					throw cause;
 				}
-				const forward: Record<string, string> = {};
+				const forward: Record<string, string> = { ...c15tProtocolHeaders };
 				for (const key of [
 					'accept-language',
 					'sec-gpc',
@@ -145,7 +185,35 @@ export const createInitRoute = function createInitRoute(
 				if (!response.ok) {
 					throw cause;
 				}
-				return await response.json();
+				const payload = (await response.json()) as InitOutput;
+				const declaration = response.headers.get(POLICY_CONTRACT_HEADER);
+				const producerContract =
+					declaration === null
+						? undefined
+						: (parsePolicyContractHeader(declaration) ?? null);
+				const mapped = mapInitOutputToInitResponse(payload, forward, {
+					producerContract,
+				});
+				// Rebuild the canonical output. Unknown upstream fields must
+				// not keep stale policy evidence alongside the new outcome.
+				const output = {
+					branding: payload.branding,
+					cmpId: mapped.cmpId,
+					customVendors: mapped.customVendors,
+					gvl: mapped.gvl,
+					jurisdiction: payload.jurisdiction,
+					location: payload.location,
+					policyResolution: writePolicyResolutionWire(
+						readPolicyResolutionWire(mapped.policyResolution)
+					),
+					policySnapshotToken: mapped.policySnapshotToken,
+					subjectId: mapped.subjectId,
+					translations: payload.translations,
+				};
+				return negotiateInit(
+					output,
+					getRequestHeader(event, POLICY_CONTRACT_HEADER)
+				);
 			}
 		},
 		{

@@ -83,6 +83,7 @@
 			unsubscribe();
 			loader?.dispose();
 			loader = null;
+			kernel?.dispose();
 			kernel = null;
 			delete window.__c15tGetScriptCountBenchState;
 		};

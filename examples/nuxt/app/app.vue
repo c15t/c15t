@@ -12,6 +12,7 @@ const ConsentDevTools = import.meta.dev
 const activeUI = useConsentActiveUI();
 const hasConsent = useHasConsent();
 const init = useConsentInit();
+const snapshot = useConsentSnapshot();
 
 const reopenBanner = () => {
 	activeUI.value = 'banner';
@@ -57,21 +58,21 @@ const openPreferences = () => {
 						}}
 					</code>
 				</dd>
-				<dt>Jurisdiction</dt>
+				<dt>Policy resolution</dt>
 				<dd>
-					<code>{{ init?.jurisdiction ?? '—' }}</code>
+					<code>{{ snapshot.resolution.status }}</code>
 				</dd>
 				<dt>Policy pack</dt>
 				<dd>
-					<code>{{ init?.policy?.id ?? '—' }}</code>
+					<code>{{ snapshot.policyRule.id ?? '—' }}</code>
 				</dd>
 				<dt>Policy model</dt>
 				<dd>
-					<code>{{ init?.policy?.model ?? '—' }}</code>
+					<code>{{ snapshot.policyRule.model ?? '—' }}</code>
 				</dd>
-				<dt>Consent surface</dt>
+				<dt>Prompt requirement</dt>
 				<dd>
-					<code>{{ init?.policy?.ui?.mode ?? '—' }}</code>
+					<code>{{ snapshot.promptRequirement.kind ?? '—' }}</code>
 				</dd>
 			</dl>
 		</section>

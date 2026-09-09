@@ -101,15 +101,15 @@ export const createIframeBlocker = function createIframeBlocker(
 			return;
 		}
 		if (
-			snapshot.consents === lastConsents &&
-			snapshot.policyCategories === lastPolicyCategories &&
-			snapshot.policyScopeMode === lastScopeMode
+			snapshot.effectivePermissions === lastConsents &&
+			snapshot.policyRule.scope === lastPolicyCategories &&
+			snapshot.policyRule.scopeMode === lastScopeMode
 		) {
 			return;
 		}
-		lastConsents = snapshot.consents;
-		lastPolicyCategories = snapshot.policyCategories;
-		lastScopeMode = snapshot.policyScopeMode;
+		lastConsents = snapshot.effectivePermissions;
+		lastPolicyCategories = snapshot.policyRule.scope;
+		lastScopeMode = snapshot.policyRule.scopeMode;
 		processAll();
 	});
 

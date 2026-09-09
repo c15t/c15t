@@ -1,4 +1,5 @@
 import { createManifestCache } from '@c15t/core/transports/manifest-cache';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentServerRoute } from '../api';
@@ -58,12 +59,13 @@ describe('createConsentServerRoute: splat dispatch', () => {
 		const body = await response.json();
 		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(body.translations.language).toBe('de');
-		expect(body.policyDecision).toMatchObject({
-			country: 'DE',
-			fingerprint: 'eu-fingerprint',
+		expect(body.policyResolution).toMatchObject({
+			fingerprints: MANIFEST_FIXTURE.policyPacks[0]?.fingerprints,
 			policyId: 'eu-opt-in',
+			status: 'matched',
 		});
-		expect(body.resolvedOverrides).toMatchObject({ country: 'DE', gpc: true });
+		expect(body.resolvedOverrides).toMatchObject({ country: 'DE' });
+		expect(body.resolvedOverrides).not.toHaveProperty('gpc');
 	});
 
 	test('routes the manifest splat to the manifest handler', async () => {
@@ -237,7 +239,14 @@ describe('createConsentServerRoute: GVL and forwarded hosts', () => {
 				enabled: true,
 				gvl: { url: 'https://gvl.example/vendor-list.json' },
 			},
-			policyPacks: undefined,
+			policyPacks: [
+				createConsentManifestPolicyPack({
+					id: 'iab',
+					match: { fallback: true },
+					model: 'iab',
+					prompt: 'choice',
+				}),
+			],
 		};
 		const fetch = vi.fn().mockImplementation(() =>
 			Promise.resolve(

@@ -4,6 +4,7 @@
  * route handlers built for the App Router.
  */
 import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { defineConsentConfig } from '../config';
@@ -15,6 +16,7 @@ import {
 	readInitialConsentConfig,
 } from '../pages';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
+import { policyFixture } from './policy-fixture';
 
 const createInitOutput = function createInitOutput(
 	overrides: Record<string, unknown> = {}
@@ -105,7 +107,6 @@ describe('@c15t/nextjs/pages: header conversion', () => {
 		});
 		expect(config.initialOverrides).toEqual({
 			country: 'DE',
-			gpc: true,
 			language: 'de',
 			region: 'BE',
 		});
@@ -119,8 +120,10 @@ describe('@c15t/nextjs/pages: cookies', () => {
 				cookie: 'sess=abc; c15t=c.necessary:1,c.marketing:1,i.t:1',
 			},
 		});
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents?.marketing).toBe(true);
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
 	});
 
 	test('cookieName follows a custom storage key', async () => {
@@ -128,8 +131,10 @@ describe('@c15t/nextjs/pages: cookies', () => {
 			{ headers: { cookie: 'consent=c.necessary:1,c.marketing:0,i.t:1' } },
 			{ cookieName: 'consent' }
 		);
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents?.marketing).toBe(false);
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			false
+		);
 	});
 
 	test('returns plain JSON', async () => {
@@ -147,7 +152,9 @@ describe('@c15t/nextjs/pages: prefetchInitialConsent', () => {
 				JSON.stringify(
 					createInitOutput({
 						location: { countryCode: 'DE', regionCode: null },
-						policy: { id: 'gdpr', model: 'opt-in', ui: { mode: 'banner' } },
+						policyResolution: writePolicyResolutionWire(
+							policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						),
 					})
 				),
 				{ headers: { 'content-type': 'application/json' }, status: 200 }
@@ -173,7 +180,7 @@ describe('@c15t/nextjs/pages: prefetchInitialConsent', () => {
 		const headers = (init as RequestInit).headers as Record<string, string>;
 		expect(headers.cookie).toBe('sess=abc');
 		expect(headers['x-c15t-country']).toBe('DE');
-		expect(config.initialPolicy?.id).toBe('gdpr');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('gdpr');
 		expect(config.initialLocation).toEqual({
 			countryCode: 'DE',
 			regionCode: null,
@@ -204,7 +211,7 @@ describe('@c15t/nextjs/pages: prefetchInitialConsent', () => {
 
 		const [url] = fetchSpy.mock.calls[0] ?? [];
 		expect(url).toBe('https://app.example.com/api/consent/manifest');
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 });
 
@@ -358,6 +365,6 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			'https://app.example.com/api/consent/manifest',
 		]);
 		expect(sink.res.statusCode).toBe(200);
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 });

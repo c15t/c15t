@@ -1,6 +1,6 @@
 import {
 	buildConsentManifestFromConfig,
-	policyPackPresets,
+	policyRulePresets,
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,9 +12,9 @@ import type { C15tAstroOptions, C15tLocals } from '../types';
 
 const MANIFEST = await buildConsentManifestFromConfig({
 	branding: 'c15t',
-	policyPacks: [
-		policyPackPresets.europeOptIn(),
-		policyPackPresets.worldNoBanner(),
+	policyRules: [
+		policyRulePresets.europeOptIn(),
+		policyRulePresets.worldOptOutNoPrompt(),
 	],
 });
 
@@ -83,8 +83,8 @@ describe('manifest-mode server prefetch', () => {
 		expect(fetchImpl.mock.calls[0]?.[0]).toBe(
 			'https://consent.example.com/manifest'
 		);
-		expect(first.c15t?.snapshot.policy?.id).toBe(
-			second.c15t?.snapshot.policy?.id
+		expect(first.c15t?.snapshot.policyRule.id).toBe(
+			second.c15t?.snapshot.policyRule.id
 		);
 	});
 
@@ -111,7 +111,7 @@ describe('manifest-mode server prefetch', () => {
 			fetch: fetchImpl as never,
 			headers: { 'sec-gpc': '1', 'x-c15t-country': 'DE' },
 		});
-		expect(c15t?.config.initialOverrides?.gpc).toBe(true);
+		expect(c15t?.config.initialPrivacySignals?.gpc).toBe(true);
 	});
 
 	it('resolves a relative manifest URL against the request origin', async () => {
@@ -128,7 +128,7 @@ describe('manifest-mode server prefetch', () => {
 	it('degrades to the cookie-only config when the manifest is down', async () => {
 		const fetchImpl = vi.fn(() => Promise.reject(new Error('ECONNREFUSED')));
 		const { c15t } = await render({ fetch: fetchImpl as never });
-		expect(c15t?.snapshot.policy).toBeNull();
+		expect(c15t?.snapshot.resolution.status).toBe('unconfigured');
 		expect(c15t?.config.initialTranslations?.language).toBe('en');
 	});
 

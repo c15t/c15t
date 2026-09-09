@@ -1,29 +1,55 @@
-import type { ConsentSnapshot } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
+import type {
+	ConsentSnapshot,
+	ConsentState,
+	HydrationRecords,
+} from '@c15t/core';
 
-export const createConsentSnapshot = function createConsentSnapshot(
-	overrides: Partial<ConsentSnapshot> = {}
-): ConsentSnapshot {
-	return {
-		activeUI: 'none',
-		branding: null,
-		consents: { necessary: true },
-		hasConsented: false,
-		iab: null,
-		location: null,
-		model: 'opt-in',
-		overrides: {},
-		policy: null,
-		policyBanner: null,
-		policyCategories: [],
-		policyDecision: null,
-		policyDialog: null,
-		policyProvisional: false,
-		policyScopeMode: 'strict',
-		policySnapshotToken: null,
-		revision: 0,
-		subjectId: null,
-		translations: null,
-		user: null,
-		...overrides,
-	};
+import { resolvePolicyRules } from '../../../../schema/src/types';
+import type { PolicyRule } from '../../../../schema/src/types';
+
+export const choiceRecords = (
+	values: Partial<ConsentState>,
+	confirmedAt = Date.now() - 1
+): HydrationRecords => ({
+	choice: {
+		categories: Object.fromEntries(
+			Object.entries(values)
+				.filter(([category]) => category !== 'necessary')
+				.map(([category, value]) => [
+					category,
+					{ basis: { kind: 'legacy-v2' }, confirmedAt, value },
+				])
+		),
+		version: 3,
+	},
+});
+
+export const policyResolution = (input: Partial<PolicyRule> = {}) => {
+	const resolution = resolvePolicyRules({
+		countryCode: null,
+		iabEnabled: input.model === 'iab',
+		regionCode: null,
+		rules: [
+			{
+				categories: ['marketing', 'measurement', 'experience', 'functionality'],
+				id: 'devtools-test',
+				match: { isDefault: true },
+				model: 'opt-in',
+				prompt: 'choice',
+				...input,
+			},
+		],
+	});
+	if (resolution.status !== 'matched') {
+		throw new Error('Devtools fixture policy must resolve');
+	}
+	return resolution;
 };
+
+export const createConsentSnapshot = (
+	overrides: Partial<ConsentSnapshot> = {}
+): ConsentSnapshot => ({
+	...createConsentKernel().getSnapshot(),
+	...overrides,
+});

@@ -1,10 +1,12 @@
 import {
 	devToolsPrefetch,
+	devToolsPresentation,
 	devToolsScripts,
 	getDevToolsCategories,
 } from '@c15t/conformance/fixtures/devtools';
 import { devToolsFlow, devToolsReady } from '@c15t/conformance/play/devtools';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { onUnmounted } from 'vue';
 
@@ -34,7 +36,9 @@ export const Default: Story = {
 				branding: storybookInit.branding,
 				jurisdiction: storybookInit.jurisdiction,
 				location: devToolsPrefetch.initialLocation,
-				policy: devToolsPrefetch.initialPolicy,
+				policyResolution: writePolicyResolutionWire(
+					devToolsPrefetch.initialPolicyResolution
+				),
 				translations: storybookInit.translations,
 			};
 			const config = {
@@ -45,11 +49,23 @@ export const Default: Story = {
 						new Response(
 							JSON.stringify(
 								String(input).endsWith('/subjects') ? { ok: true } : init
-							)
+							),
+							{
+								headers: {
+									'content-type': 'application/json',
+									'x-c15t-policy-contract': '1',
+								},
+							}
 						)
 					),
+				presentation: devToolsPresentation,
 			};
-			const context = createVueConsentKernelContext({ config, prefetch: init });
+			const context = createVueConsentKernelContext({
+				config,
+				prefetch: init,
+				producerContract: 1,
+			});
+			context.kernel.hydrate({ now: devToolsPrefetch.now });
 			provideStorybookConsentContext(null, context, config);
 			const loader = createScriptLoader({
 				kernel: context.kernel,

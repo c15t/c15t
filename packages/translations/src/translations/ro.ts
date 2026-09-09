@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Acceptă toate',
+		acknowledge: 'OK',
 		close: 'Închide',
 		customize: 'Personalizează',
+		dismiss: 'Închide',
 		rejectAll: 'Respinge toate',
 		save: 'Salvează setările',
 		securedBy: 'Securizat de',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Acest site folosește cookie-uri pentru a îmbunătăți experiența de navigare, a analiza traficul site-ului și a afișa conținut personalizat.',
+		noticeDescription:
+			'Folosim cookie-uri și tehnologii similare pentru a opera acest site, a măsura traficul și a personaliza conținutul și reclamele. Poți renunța sau gestiona preferințele oricând.',
+		noticeTitle: 'Notificare privind confidențialitatea',
 		title: 'Prețuim confidențialitatea ta',
 	},
 	frame: {
@@ -139,6 +144,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Politica privind cookie-urile',
 		privacyPolicy: 'Politica de confidențialitate',
 		termsOfService: 'Termeni și condiții',
+	},
+	rights: {
+		optOut: 'Nu vindeți și nu partajați datele mele',
+		preferences: 'Gestionează preferințele',
 	},
 };
 export default translations;

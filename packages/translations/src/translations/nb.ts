@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Godta alle',
+		acknowledge: 'OK',
 		close: 'Lukk',
 		customize: 'Tilpass',
+		dismiss: 'Lukk',
 		rejectAll: 'Avslå alle',
 		save: 'Lagre innstillinger',
 		securedBy: 'Sikret av',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Dette nettstedet bruker informasjonskapsler for å forbedre din nettopplevelse, analysere trafikk og vise personlig tilpasset innhold.',
+		noticeDescription:
+			'Vi bruker informasjonskapsler og lignende teknologi for å drive dette nettstedet, måle trafikk og tilpasse innhold og annonser. Du kan reservere deg eller administrere innstillingene dine når som helst.',
+		noticeTitle: 'Personvernmelding',
 		title: 'Vi verdsetter ditt personvern',
 	},
 	frame: {
@@ -138,6 +143,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Retningslinjer for informasjonskapsler',
 		privacyPolicy: 'Personvernerklæring',
 		termsOfService: 'Vilkår for bruk',
+	},
+	rights: {
+		optOut: 'Ikke selg eller del dataene mine',
+		preferences: 'Administrer innstillinger',
 	},
 };
 export default translations;

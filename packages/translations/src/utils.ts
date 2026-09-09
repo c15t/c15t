@@ -13,7 +13,8 @@ type TranslationSection =
 	| 'consentTypes'
 	| 'frame'
 	| 'legalLinks'
-	| 'iab';
+	| 'iab'
+	| 'rights';
 
 const isPlainObject = function isPlainObject(
 	value: unknown
@@ -98,6 +99,7 @@ export const deepMergeTranslations = function deepMergeTranslations(
 		'frame',
 		'legalLinks',
 		'iab',
+		'rights',
 	];
 
 	const result: Partial<Translations> = {};
@@ -109,6 +111,16 @@ export const deepMergeTranslations = function deepMergeTranslations(
 		if (baseSection || overrideSection) {
 			result[section] = deepMergeSection(baseSection, overrideSection);
 		}
+	}
+
+	// Older bundles used dismiss for notice acknowledgement. Keep their label
+	// when adding the new key from the base language.
+	if (
+		override.common?.acknowledge === undefined &&
+		override.common?.dismiss !== undefined &&
+		result.common
+	) {
+		result.common.acknowledge = override.common.dismiss;
 	}
 
 	// All required sections are present on the base translations object,

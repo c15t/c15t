@@ -112,11 +112,9 @@ export const demoGvl = {
  * carry `ui.*` overrides — the policy resolver rejects one that does.
  */
 export const demoIabPolicy = {
-	consent: {
-		categories: ['necessary', 'marketing'],
-		model: 'iab',
-		scopeMode: 'permissive',
-	},
-	id: 'astro_demo_iab',
-	match: { isDefault: true },
+	categories: ['marketing', 'measurement'],
+	id: 'demo-iab',
+	match: { fallback: true, isDefault: true },
+	model: 'iab',
+	prompt: 'choice',
 };

@@ -14,7 +14,7 @@ import {
 	c15tInstance,
 	createMigrator,
 	policyMatchers,
-	policyPackPresets,
+	policyRulePresets,
 } from '@c15t/backend';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -85,17 +85,17 @@ const createInstance = async function createInstance() {
 			// rules and POST /subjects exercises recompute-on-write. Europe runs
 			// the IAB TCF model; the world fallback guarantees every visitor
 			// resolves a policy decision.
-			policyPacks: [
+			policyRules: [
 				// The UK is GDPR-shaped but outside the IAB pack: a plain opt-in
 				// banner, listed first so it wins over the IAB matcher.
 				{
-					...policyPackPresets.europeOptIn(),
+					...policyRulePresets.europeOptIn(),
 					id: 'uk_opt_in',
 					match: policyMatchers.countries(['GB']),
 				},
-				policyPackPresets.europeIab(),
-				policyPackPresets.californiaOptOut(),
-				policyPackPresets.worldNoBanner(),
+				policyRulePresets.europeIab(),
+				policyRulePresets.californiaOptOut(),
+				policyRulePresets.worldOptOutNoPrompt(),
 			],
 			tenantId: 'ins_1',
 		},

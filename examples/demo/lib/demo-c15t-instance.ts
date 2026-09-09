@@ -10,7 +10,7 @@ import {
 	DEMO_IAB_VENDOR_IDS,
 	DEMO_POLICY_SNAPSHOT_KEY,
 	demoI18nMessages,
-	getScenarioPolicyPacks,
+	getScenarioPolicyRules,
 } from './scenarios';
 
 /**
@@ -68,7 +68,7 @@ export const createDemoInstance = function createDemoInstance(
 				customVendors: DEMO_CUSTOM_VENDORS,
 				enabled: true,
 			},
-			policyPacks: getScenarioPolicyPacks(scenario),
+			policyRules: getScenarioPolicyRules(scenario),
 			tenantId: 'ins_1',
 		},
 		policySnapshot: {

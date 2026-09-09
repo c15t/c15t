@@ -1,6 +1,7 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
+import type { PromptPosition, PromptVariant } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-banner';
 import {
 	forwardRef as createForwardRef,
@@ -10,13 +11,15 @@ import {
 } from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import {
 	useActiveUI,
+	useHasConsentUI,
 	useTranslations as useKernelTranslations,
 	useModel,
-	usePolicyBanner,
+	usePolicyRule,
 } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
@@ -24,9 +27,15 @@ import { useUIConfig } from '~/ui-config-context';
 import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import {
+	ConsentBannerSurfaceContext,
+	mirrorDefaultPosition,
+	useConsentBannerSurface,
+} from '../surface-context';
+import type { ConsentBannerSurface } from '../surface-context';
 import { Overlay } from './overlay';
 
-const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in'];
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
 
 const getBannerAnimationClass = (
 	disableAnimation: boolean | undefined,
@@ -97,6 +106,27 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * @default 'banner'
 	 */
 	uiSource?: string;
+
+	/**
+	 * Shape of the prompt. Overrides `presentation.prompt.variant`.
+	 * @remarks A notice defaults to `bar`; a choice prompt defaults to `floating`.
+	 */
+	variant?: PromptVariant;
+
+	/**
+	 * Placement of the prompt. Overrides `presentation.prompt.position`.
+	 * @remarks Must be valid for the resolved variant; otherwise the variant
+	 * default is used and a development diagnostic is logged. Host-chosen
+	 * positions are never mirrored for right-to-left text.
+	 */
+	position?: PromptPosition;
+
+	/**
+	 * Backdrop, scroll lock, focus trap and no outside dismissal, as one value.
+	 * Overrides `presentation.prompt.blocking`.
+	 * @remarks `wall` is always blocking; a notice never is.
+	 */
+	blocking?: boolean;
 }
 
 /**
@@ -230,20 +260,30 @@ const ConsentBannerRootChildren = createForwardRef<
 	) => {
 		const activeUI = useActiveUI();
 		const { components } = useUIConfig();
+		const hasConsentUI = useHasConsentUI();
 		const model = useModel() ?? 'opt-in';
+		const policy = usePolicyRule();
+		const surface = useConsentBannerSurface();
 		const translations = useKernelTranslations();
 		const textDirection = useTextDirection(
 			translations?.language ?? defaultTranslationConfig.defaultLanguage
 		);
-		const [isVisible, setIsVisible] = useState(false);
-		const [hasAnimated, setHasAnimated] = useState(false);
+		const renderedPosition = mirrorDefaultPosition(
+			surface.position,
+			surface.positionSource,
+			surface.variant,
+			textDirection
+		);
+		// ConsentBanner shows when a policy is resolved, activeUI is 'banner'
+		// and the current model matches. Without a policy nothing renders.
+		const shouldShowBanner =
+			hasConsentUI && activeUI === 'banner' && models.includes(model);
+		const [isVisible, setIsVisible] = useState(shouldShowBanner);
+		const [hasAnimated, setHasAnimated] = useState(shouldShowBanner);
 		// Default fallback for SSR
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
-
-		// ConsentBanner shows when activeUI is 'banner' and the current model matches
-		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 		const [hasInitializedVisibility, setHasInitializedVisibility] =
-			useState(false);
+			useState(true);
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {
@@ -341,9 +381,11 @@ const ConsentBannerRootChildren = createForwardRef<
 					ref={ref}
 					{...contentStyle}
 					className={finalClassName}
-					data-position={
-						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
-					}
+					data-variant={surface.variant}
+					data-position={renderedPosition}
+					data-blocking={surface.blocking ? 'true' : undefined}
+					data-prompt={policy.prompt}
+					data-model={policy.model}
 					data-testid="consent-banner-root"
 					dir={textDirection}
 				>
@@ -359,27 +401,36 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	noStyle,
 	disableAnimation,
 	scrollLock,
-	trapFocus = true,
+	trapFocus,
 	models,
 	uiSource,
+	variant,
+	position,
+	blocking,
 	...props
 }) => {
-	const policyBanner = usePolicyBanner();
-
-	/**
-	 * Combine consent manager state with styling configuration
-	 * to create the context value for child components
-	 */
-	const resolvedScrollLock =
-		scrollLock ?? policyBanner?.scrollLock ?? undefined;
+	const { banner } = useHeadlessConsentUI({
+		prompt: { blocking, position, scrollLock, trapFocus, variant },
+	});
+	const resolvedScrollLock = banner.scrollLock;
+	const resolvedTrapFocus = banner.trapFocus;
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,
 			noStyle,
 			scrollLock: resolvedScrollLock,
-			trapFocus,
+			trapFocus: resolvedTrapFocus,
 		}),
-		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+		[disableAnimation, noStyle, resolvedScrollLock, resolvedTrapFocus]
+	);
+	const surfaceValue = useMemo<ConsentBannerSurface>(
+		() => ({
+			blocking: banner.blocking,
+			position: banner.position,
+			positionSource: banner.positionSource,
+			variant: banner.variant,
+		}),
+		[banner.blocking, banner.position, banner.positionSource, banner.variant]
 	);
 	const trackingContextValue = useMemo(
 		() => ({ uiSource: uiSource ?? 'banner' }),
@@ -389,15 +440,17 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	return (
 		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
-				<ConsentBannerRootChildren
-					disableAnimation={disableAnimation}
-					className={className}
-					noStyle={noStyle}
-					models={models}
-					{...props}
-				>
-					{children}
-				</ConsentBannerRootChildren>
+				<ConsentBannerSurfaceContext.Provider value={surfaceValue}>
+					<ConsentBannerRootChildren
+						disableAnimation={disableAnimation}
+						className={className}
+						noStyle={noStyle}
+						models={models}
+						{...props}
+					>
+						{children}
+					</ConsentBannerRootChildren>
+				</ConsentBannerSurfaceContext.Provider>
 			</LocalThemeContext.Provider>
 		</ConsentTrackingContext.Provider>
 	);

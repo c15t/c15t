@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDevTools } from '../../index';
 import type { DevToolsInstance } from '../../index';
+import { choiceRecords } from '../helpers/kernel';
 
 const instances: DevToolsInstance[] = [];
 
@@ -35,7 +36,7 @@ describe('createDevTools', () => {
 			);
 			launcher?.focus();
 			for (let index = 0; index < 110; index += 1) {
-				kernel.set.consent({ measurement: index % 2 === 0 });
+				kernel.set.overrides({ country: index % 2 === 0 ? 'DE' : 'FR' });
 			}
 			expect(tools.getState().events).toHaveLength(
 				Number.isFinite(maxEvents) ? 1 : 100
@@ -89,7 +90,7 @@ describe('createDevTools', () => {
 
 	it('accepts and rejects only displayed categories, preserving hidden choices', async () => {
 		const kernel = createConsentKernel({
-			initialConsents: { experience: true, functionality: false },
+			initialRecords: choiceRecords({ experience: true, functionality: false }),
 		});
 		const devTools = createDevTools({
 			defaultOpen: true,
@@ -110,7 +111,7 @@ describe('createDevTools', () => {
 			button.click();
 		};
 		click('Accept all');
-		expect(kernel.getSnapshot().consents).toEqual({
+		expect(kernel.getSnapshot().effectivePermissions).toEqual({
 			experience: true,
 			functionality: false,
 			marketing: true,
@@ -123,7 +124,7 @@ describe('createDevTools', () => {
 			).toBe('Displayed consents accepted.');
 		});
 		click('Reject optional');
-		expect(kernel.getSnapshot().consents).toEqual({
+		expect(kernel.getSnapshot().effectivePermissions).toEqual({
 			experience: true,
 			functionality: false,
 			marketing: false,
@@ -131,12 +132,12 @@ describe('createDevTools', () => {
 			necessary: true,
 		});
 		await devTools.actions.save('all');
-		expect(kernel.getSnapshot().consents.functionality).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.functionality).toBe(false);
 		await devTools.actions.save('none');
-		expect(kernel.getSnapshot().consents.experience).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.experience).toBe(true);
 	});
 
-	it('updates consent through labeled switches and keeps necessary consent locked', () => {
+	it('stages choices through labeled switches and keeps necessary consent locked', async () => {
 		const kernel = createConsentKernel();
 		const devTools = createInstance(kernel);
 		devTools.open();
@@ -151,7 +152,13 @@ describe('createDevTools', () => {
 		expect(necessary?.closest('label')?.textContent).toContain('Always on');
 		expect(marketing?.getAttribute('role')).toBe('switch');
 		marketing?.closest('label')?.click();
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(devTools.getState().draft.marketing).toBe(true);
+		await devTools.actions.save();
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(true);
 	});
 
 	it('opens from an accessible icon-only launcher', () => {
@@ -206,9 +213,11 @@ describe('createDevTools', () => {
 		const listener = vi.fn();
 		const unsubscribe = devTools.subscribe(listener);
 
-		kernel.set.consent({ measurement: true });
+		kernel.commands.save({ measurement: true });
 
-		expect(devTools.getState().snapshot.consents.measurement).toBe(true);
+		expect(devTools.getState().snapshot.effectivePermissions.measurement).toBe(
+			true
+		);
 		expect(listener).toHaveBeenCalled();
 		expect(listener.mock.lastCall?.[0].snapshot).toBe(kernel.getSnapshot());
 
@@ -235,11 +244,13 @@ describe('createDevTools', () => {
 		const { element } = devTools;
 
 		devTools.destroy();
-		kernel.set.consent({ marketing: true });
+		kernel.commands.save({ marketing: true });
 
 		expect(element?.isConnected).toBe(false);
 		expect(devTools.getState()).toBe(stateBeforeDestroy);
-		expect(devTools.getState().snapshot.consents.marketing).toBe(false);
+		expect(devTools.getState().snapshot.effectivePermissions.marketing).toBe(
+			false
+		);
 		expect(listener).not.toHaveBeenCalled();
 	});
 
@@ -253,14 +264,18 @@ describe('createDevTools', () => {
 		const second = createInstance(secondKernel, secondContainer);
 
 		first.open();
-		firstKernel.set.consent({ experience: true });
+		firstKernel.commands.save({ experience: true });
 
 		expect(first.getState().isOpen).toBe(true);
 		expect(second.getState().isOpen).toBe(false);
-		expect(first.getState().snapshot.consents.experience).toBe(true);
-		expect(second.getState().snapshot.consents.experience).toBe(false);
+		expect(first.getState().snapshot.effectivePermissions.experience).toBe(
+			true
+		);
+		expect(second.getState().snapshot.effectivePermissions.experience).toBe(
+			false
+		);
 		expect(first.getState().events.map((event) => event.type)).toContain(
-			'consent:set'
+			'choice:recorded'
 		);
 		expect(second.getState().events).toHaveLength(0);
 
@@ -268,7 +283,9 @@ describe('createDevTools', () => {
 		expect(firstContainer.childElementCount).toBe(0);
 		expect(secondContainer.childElementCount).toBe(1);
 
-		secondKernel.set.consent({ functionality: true });
-		expect(second.getState().snapshot.consents.functionality).toBe(true);
+		secondKernel.commands.save({ functionality: true });
+		expect(second.getState().snapshot.effectivePermissions.functionality).toBe(
+			true
+		);
 	});
 });

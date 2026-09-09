@@ -14,15 +14,9 @@ import {
 	hosted,
 } from '@c15t/core';
 import type {
-	KernelConfig,
-	KernelTransport,
-	PolicyConfig,
 	ProviderTransportContext,
 	ProviderTransportFactory,
-	InitContext,
-	InitResponse,
 } from '@c15t/core';
-import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
 
 import type {
 	C15tHostedDescriptor,
@@ -54,7 +48,7 @@ export const hostedMode = function hostedMode(
 /**
  * Resolve policies locally with no backend.
  *
- * @param options - Optional policy packs to resolve against.
+ * @param options - Explicit policy rules to resolve against.
  * @returns A serializable offline-mode descriptor.
  * @example
  * ```ts
@@ -87,87 +81,19 @@ export const manifestMode = function manifestMode(
 	return { ...options, type: 'manifest' };
 };
 
-/**
- * The opt-in banner policy an offline site gets when it declared no packs.
- *
- * Narrowed to the configured categories: the policy is what every surface
- * reads to decide which toggles exist, and what a save is recorded against.
- * The server prefetch builds the same policy, so a page and its islands
- * cannot disagree about which categories a visitor was offered.
- *
- * @param categories - The configured consent categories.
- * @returns The inline policy, or `undefined` when none applies.
- * @internal
- */
-export const buildInlineOfflinePolicy = function buildInlineOfflinePolicy(
-	categories: ProviderTransportContext['consentCategories']
-): KernelConfig['initialPolicy'] {
-	const fallback = policyDefaults.offlineOptInBanner();
-	const inline = buildDefaultOptInPolicy(categories);
-	return {
-		...inline,
-		consent: { ...fallback.consent, ...inline.consent },
-		ui: fallback.ui,
-	};
-};
-
-/**
- * Local-only transport factory.
- *
- * Mirrors `offline()` in `@c15t/react` and `@c15t/svelte`. It is duplicated
- * here rather than imported so the client boot never pulls a framework
- * package into the page bundle.
- */
-const createOfflineFactory = function createOfflineFactory(
+/** Resolve explicit policy rules through the shared offline transport. */
+const createOfflineFactory = (
 	descriptor: C15tOfflineDescriptor
-): ProviderTransportFactory {
-	const createTransport = (context: ProviderTransportContext) => {
-		const policyPacks: PolicyConfig[] | undefined =
-			descriptor.policyPacks ??
-			context.policies ??
-			context.offlinePolicy?.policyPacks;
-		const baseTransport = createOfflineTransport({
-			// A pack whose model is `iab` only resolves when a CMP is
-			// configured; without this an offline IAB site fell through to
-			// the no-banner fallback.
-			iabEnabled: context.iabEnabled,
-			policyPacks,
-			translations: context.translations,
-		});
-		const configuredPolicy =
-			context.prefetch.initialPolicy ?? context.offlinePolicy?.policy;
-		const policy =
-			configuredPolicy ??
-			(policyPacks === undefined
-				? buildInlineOfflinePolicy(context.consentCategories)
-				: undefined);
-		if (!policy) {
-			return baseTransport;
-		}
-		return {
-			...baseTransport,
-			async init(initContext: InitContext): Promise<InitResponse> {
-				const response = (await baseTransport.init?.(initContext)) ?? {};
-				return {
-					...response,
-					branding: context.prefetch.initialBranding ?? response.branding,
-					policy,
-					policyDecision:
-						context.prefetch.initialPolicyDecision ??
-						context.offlinePolicy?.policyDecision ??
-						response.policyDecision,
-					policySnapshotToken:
-						context.prefetch.initialPolicySnapshotToken ??
-						context.offlinePolicy?.policySnapshotToken ??
-						response.policySnapshotToken,
-					translations:
-						context.prefetch.initialTranslations ?? response.translations,
-				};
-			},
-		} satisfies KernelTransport;
-	};
-	return Object.assign(createTransport, { kind: 'offline' as const });
-};
+): ProviderTransportFactory =>
+	Object.assign(
+		(context: ProviderTransportContext) =>
+			createOfflineTransport({
+				iabEnabled: context.iabEnabled,
+				policyRules: descriptor.policyRules ?? context.policyRules,
+				translations: context.translations,
+			}),
+		{ kind: 'offline' as const }
+	);
 
 /** Where the browser reaches manifest-resolved init data. */
 export interface ManifestClientEndpoints {
@@ -210,6 +136,7 @@ export const resolveTransportFactory = function resolveTransportFactory(
 		const base = endpoints.initPath.replace(/\/init$/u, '');
 		const backendURL = endpoints.backendURL ?? descriptor.backendURL ?? base;
 		const transport = createHostedTransport({
+			assertDecisionInputs: true,
 			backendURL,
 			initURL: endpoints.initPath,
 		});

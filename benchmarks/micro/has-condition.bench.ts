@@ -3,7 +3,7 @@ import { createConsentKernel, has } from '@c15t/core';
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 const kernel = createConsentKernel();
-const consents = { ...kernel.getSnapshot().consents };
+const consents = { ...kernel.getSnapshot().effectivePermissions };
 
 // Simple single consent checks
 bench('has() - single consent (measurement)', () => {

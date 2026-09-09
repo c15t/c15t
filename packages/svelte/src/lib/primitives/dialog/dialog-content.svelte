@@ -65,7 +65,7 @@
 		id={contentId}
 		role="dialog"
 		tabindex={-1}
-		aria-modal="true"
+		aria-modal={dialog.trapFocus ? 'true' : undefined}
 		aria-labelledby={titleId}
 		aria-describedby={descriptionId}
 		class={className}

@@ -1,3 +1,7 @@
+import {
+	createEvaluationPolicy,
+	evaluateConsentRecord,
+} from '@c15t/core/consent-record';
 import type {
 	ConsentManifest,
 	ConsentManifestPolicyPack,
@@ -139,50 +143,39 @@ const normalizeGeo = function normalizeGeo(
 	};
 };
 
-/** Tie-breakers after the grant count: a strict scope, then honouring GPC. */
-const scoreScope = function scoreScope(pack: ConsentManifestPolicyPack) {
-	const { consent } = pack.resolvedPolicy;
-	return (consent?.scopeMode === 'strict' ? 2 : 0) + (consent?.gpc ? 1 : 0);
-};
+/** Tie-breakers after effective permission counts. */
+const scoreScope = (pack: ConsentManifestPolicyPack) =>
+	(pack.rule.scopeMode === 'strict' ? 2 : 0) +
+	(pack.rule.privacySignals.gpc.denyCategories.length > 0 ? 1 : 0);
 
-const isUnrestricted = function isUnrestricted(
-	categories: readonly string[] | undefined
-): categories is undefined {
-	// The runtime reads an absent, empty, or `*` list as every category.
-	return !categories || categories.length === 0 || categories.includes('*');
-};
-
-/**
- * How many optional categories a pack grants before the visitor interacts,
- * for the supplied GPC input. This is what "strictest" has to rank: an
- * opt-in pack grants only what it preselects, while an opt-out, notice, or
- * none pack grants its whole allowlist unless it honours a GPC signal that
- * is present.
- */
-const countPreConsentGrants = function countPreConsentGrants(
+const countPreConsentGrants = (
 	pack: ConsentManifestPolicyPack,
 	gpc: boolean | undefined
-): number {
-	const { consent, model } = pack.resolvedPolicy;
-	const categories = consent?.categories;
-	const optional = (list: readonly string[]) =>
-		list.filter((category) => category !== 'necessary');
-	if (model === 'opt-in' || model === 'iab') {
-		const preselected = optional(consent?.preselectedCategories ?? []);
-		return isUnrestricted(categories)
-			? preselected.length
-			: preselected.filter((category) => categories.includes(category)).length;
-	}
-	if (consent?.gpc && gpc === true) {
-		return 0;
-	}
-	// The runtime grants every optional category to a permissive pack with
-	// no consent recorded, whatever its list says; only a strict scope
-	// limits the grants to the allowlist.
-	const strict = (consent?.scopeMode ?? 'permissive') === 'strict';
-	return strict && !isUnrestricted(categories)
-		? optional(categories).length
-		: Number.POSITIVE_INFINITY;
+): number => {
+	const { rule } = pack;
+	const policy = createEvaluationPolicy({
+		choice: {
+			fingerprint: pack.fingerprints.choice,
+			maxAgeMs: rule.validity.choiceMs,
+		},
+		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
+		model: rule.model,
+		notice: {
+			fingerprint: pack.fingerprints.notice,
+			maxAgeMs: rule.validity.noticeMs,
+		},
+		prompt: rule.prompt,
+		scope: rule.scope,
+		scopeMode: rule.scopeMode,
+	});
+	const evaluation = evaluateConsentRecord({
+		choice: null,
+		gpc,
+		noticeDismissal: null,
+		now: 0,
+		policy,
+	});
+	return Object.values(evaluation.permissions).filter(Boolean).length;
 };
 
 const comparePolicyStrictness = function comparePolicyStrictness(
@@ -190,8 +183,8 @@ const comparePolicyStrictness = function comparePolicyStrictness(
 	right: ConsentManifestPolicyPack,
 	gpc: boolean | undefined
 ) {
-	const leftScore = POLICY_STRICTNESS[left.resolvedPolicy.model] ?? -1;
-	const rightScore = POLICY_STRICTNESS[right.resolvedPolicy.model] ?? -1;
+	const leftScore = POLICY_STRICTNESS[left.rule.model] ?? -1;
+	const rightScore = POLICY_STRICTNESS[right.rule.model] ?? -1;
 	if (leftScore !== rightScore) {
 		return leftScore - rightScore;
 	}
@@ -236,10 +229,7 @@ export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
 			policyPacks: [
 				{
 					...strictestPack,
-					policy: {
-						...strictestPack.policy,
-						match: { fallback: true },
-					},
+					match: { fallback: true },
 				},
 			],
 		},

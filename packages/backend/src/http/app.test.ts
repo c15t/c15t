@@ -18,6 +18,7 @@ import { ENGINES, resetDatabase } from '../__tests__/engines';
 import * as Dialect from '../db/dialect';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -35,6 +36,7 @@ for (const engine of ENGINES) {
 				yield* resetDatabase;
 				yield* baseline;
 				yield* indexes;
+				yield* receipts;
 			})
 		);
 		app = createApp(runtime, {
@@ -667,22 +669,39 @@ for (const engine of ENGINES) {
 				method: 'POST',
 			});
 
+		// The documented wire: what `buildSubjectPostBody` in `@c15t/core`
+		// sends, and what the shipped 2.x backend accepted.
 		const submission = {
-			domainId: 'dom_1',
-			givenAt: new Date(1_800_000_000_000).toISOString(),
-			policyId: 'pol_1',
-			purposeIds: ['analytics'],
-			subjectId: 'sub_client',
+			domain: 'example.com',
+			// A moment that has already happened: receipts later than the server
+			// clock are rejected rather than clamped.
+			givenAt: 1_700_000_000_000,
+			preferences: { marketing: false, measurement: true, necessary: true },
+			subjectId: 'sub_visitor1',
+			type: 'cookie_banner',
 		};
 
 		it('records a consent', async () => {
 			await seed();
 			const response = await post(submission);
 
-			assert.strictEqual(response.status, 200);
+			assert.strictEqual(response.status, 200, await response.clone().text());
 			const body = await response.json();
 			assert.match(body.consentId, /^cns_/u);
-			assert.strictEqual(body.subjectId, 'sub_client');
+			assert.strictEqual(body.subjectId, 'sub_visitor1');
+			assert.strictEqual(body.domain, 'example.com');
+			// Granted codes only, as 2.x echoed them.
+			assert.deepStrictEqual(body.appliedPreferences, submission.preferences);
+			// `ok` so a v3 transport can tell success from a queued failure.
+			assert.strictEqual(body.ok, true);
+		});
+
+		it('resolves the domain by name and reuses the row on the next save', async () => {
+			await seed();
+			const first = await (await post(submission)).json();
+			// The seed created example.com as dom_1; the save must attach to it
+			// rather than create a second row for the same name.
+			assert.strictEqual(first.domainId, 'dom_1');
 		});
 
 		it('is unauthenticated', async () => {
@@ -730,55 +749,14 @@ for (const engine of ENGINES) {
 		});
 
 		it('rejects a submission missing its identifiers', async () => {
-			assert.strictEqual((await post({ domainId: 'dom_1' })).status, 400);
-			assert.strictEqual((await post({ subjectId: 'sub_1' })).status, 400);
-		});
-
-		it('clamps a far-future givenAt to server time and keeps the claim', async () => {
-			await seed();
-			// Five minutes of skew is tolerated; an hour ahead is a broken clock
-			// and would otherwise distort the audit record.
-			const farFuture = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-			const before = Date.now();
-			const response = await post({ ...submission, givenAt: farFuture });
-			assert.strictEqual(response.status, 200);
-			const body = await response.json();
-
-			const recorded = new Date(body.givenAt).getTime();
-			assert.ok(recorded >= before && recorded <= Date.now() + 1_000);
-
-			const rows = await runtime.runPromise(
-				Effect.gen(function* rows() {
-					const sql = yield* SqlClient.SqlClient;
-					return yield* sql<{ metadata: unknown }>`
-						select ${sql('metadata')} from ${sql('consent')}
-						where ${sql('id')} = ${body.consentId}
-					`;
-				})
+			assert.strictEqual(
+				(await post({ ...submission, subjectId: undefined })).status,
+				400
 			);
-			// SQLite hands the JSON column back as text; Postgres parses it.
-			const stored = rows[0]?.metadata;
-			const metadata =
-				typeof stored === 'string'
-					? (JSON.parse(stored) as { clientGivenAt?: string })
-					: (stored as { clientGivenAt?: string } | null);
-			assert.strictEqual(metadata?.clientGivenAt, farFuture);
-
-			// The id derives from the claim, so a retry of the same skewed
-			// submission is still a replay rather than a second consent.
-			const retry = await (
-				await post({ ...submission, givenAt: farFuture })
-			).json();
-			assert.strictEqual(retry.consentId, body.consentId);
-		});
-
-		it('preserves a slightly skewed or past givenAt', async () => {
-			await seed();
-			const skewed = new Date(Date.now() + 60 * 1000).toISOString();
-			const body = await (
-				await post({ ...submission, givenAt: skewed })
-			).json();
-			assert.strictEqual(new Date(body.givenAt).toISOString(), skewed);
+			assert.strictEqual(
+				(await post({ ...submission, domain: undefined })).status,
+				400
+			);
 		});
 
 		it('rejects an unparseable givenAt rather than defaulting to now', async () => {
@@ -787,6 +765,22 @@ for (const engine of ENGINES) {
 			// givenAt is part of the deterministic id.
 			const response = await post({ ...submission, givenAt: 'not-a-date' });
 			assert.strictEqual(response.status, 400);
+		});
+
+		it('rejects a givenAt later than the server clock rather than clamping it', async () => {
+			await seed();
+			// A receipt records when the subject acted. Moving it to server time
+			// would rewrite the evidence, so a clock ahead of the server is a
+			// visible rejection instead.
+			const response = await post({
+				...submission,
+				givenAt: Date.now() + 60_000,
+			});
+			assert.strictEqual(response.status, 400);
+			assert.strictEqual(
+				(await response.json()).cause.code,
+				'INPUT_VALIDATION_FAILED'
+			);
 		});
 	});
 

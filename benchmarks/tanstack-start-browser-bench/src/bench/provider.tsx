@@ -33,17 +33,7 @@ const createOptions = function createOptions(
 ): ConsentProviderOptions {
 	return {
 		callbacks: {
-			onBannerFetched() {
-				const state = getState(scenario);
-				if (!state) {
-					return;
-				}
-				state.onBannerFetchedCount += 1;
-				if (state.onBannerFetchedMs === undefined) {
-					state.onBannerFetchedMs = performance.now();
-				}
-			},
-			onConsentSet() {
+			onChoiceRecorded() {
 				const state = getState(scenario);
 				if (state) {
 					state.onConsentSetCount += 1;

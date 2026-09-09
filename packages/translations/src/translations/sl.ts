@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Sprejmi vse',
+		acknowledge: 'V redu',
 		close: 'Zapri',
 		customize: 'Prilagodi',
+		dismiss: 'Zapri',
 		rejectAll: 'Zavrni vse',
 		save: 'Shrani nastavitve',
 		securedBy: 'Zaščito zagotavlja',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Ta spletna stran uporablja piškotke za izboljšanje vaše uporabniške izkušnje, analizo prometa na strani in prikaz personaliziranih vsebin.',
+		noticeDescription:
+			'Uporabljamo piškotke in podobne tehnologije za delovanje te strani, merjenje prometa ter prilagajanje vsebin in oglasov. Kadar koli se lahko odjavite ali upravljate svoje nastavitve.',
+		noticeTitle: 'Obvestilo o zasebnosti',
 		title: 'Cenimo vašo zasebnost',
 	},
 	frame: {
@@ -137,6 +142,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Pravilnik o piškotkih',
 		privacyPolicy: 'Pravilnik o zasebnosti',
 		termsOfService: 'Pogoji uporabe',
+	},
+	rights: {
+		optOut: 'Ne prodajajte in ne delite mojih podatkov',
+		preferences: 'Upravljanje nastavitev',
 	},
 };
 export default translations;

@@ -32,7 +32,10 @@ const readInitialConsentConfig = (
 
 describe('readInitialConsentConfig: cookies', () => {
 	test('returns empty config when nothing is present', async () => {
-		expect(await readInitialConsentConfig()).toEqual({});
+		expect(await readInitialConsentConfig()).toMatchObject({
+			initialRecords: { choice: null, subject: null },
+			now: expect.any(Number),
+		});
 	});
 
 	test('reads the compact persistence module cookie', async () => {
@@ -41,11 +44,10 @@ describe('readInitialConsentConfig: cookies', () => {
 		const config = await readInitialConsentConfig({
 			cookie: 'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1234567890',
 		});
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents).toMatchObject({
-			marketing: true,
-			measurement: false,
-			necessary: true,
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories).toMatchObject({
+			marketing: { value: true },
+			measurement: { value: false },
 		});
 	});
 
@@ -53,8 +55,8 @@ describe('readInitialConsentConfig: cookies', () => {
 		const config = await readInitialConsentConfig({
 			cookie: 'c15t=not-a-consent-payload',
 		});
-		expect(config.initialConsents).toBeUndefined();
-		expect(config.initialHasConsented).toBeUndefined();
+		expect(config.initialRecords?.choice).toBeNull();
+		expect(config.initialRecords?.choice).toBeNull();
 	});
 
 	test('respects a customized storage key', async () => {
@@ -62,8 +64,10 @@ describe('readInitialConsentConfig: cookies', () => {
 			{ cookie: 'my-consent=c.necessary:1,c.marketing:1,i.t:1' },
 			{ cookieName: 'my-consent' }
 		);
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents).toMatchObject({ marketing: true });
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
 	});
 
 	test('accepts a request factory', async () => {
@@ -128,7 +132,7 @@ describe('readInitialConsentConfig: language and GPC', () => {
 
 	test('reads sec-gpc', async () => {
 		const config = await readInitialConsentConfig({ 'sec-gpc': '1' });
-		expect(config.initialOverrides?.gpc).toBe(true);
+		expect(config.initialPrivacySignals?.gpc).toBe(true);
 	});
 });
 

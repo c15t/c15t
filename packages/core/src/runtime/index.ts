@@ -3,9 +3,9 @@
  *
  * A provider is two things: a kernel wired to every opt-in module, and a
  * component tree that renders it. This module is the first half. It builds
- * the kernel (SSR-safe, including early cookie hydration so a server
- * snapshot is readable), then mounts persistence, the script loader, the
- * network and iframe blockers, IAB, the callback bridge, `window.c15t`
+ * a kernel from the prepared server snapshot, then mounts persistence,
+ * the script loader, network and iframe blockers, IAB, the callback bridge,
+ * `window.c15t`
  * and the initial `init()` on `start()` — and undoes all of it on
  * `dispose()`.
  *
@@ -26,6 +26,7 @@
  * runtime.start();
  * ```
  */
+import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { I18nConfig } from '@c15t/translations';
 
@@ -167,16 +168,18 @@ export const resolveRuntimeTranslations = function resolveRuntimeTranslations(
 	};
 };
 
-const buildNoBannerPolicy =
-	function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {
-		return {
-			id: 'no_banner',
-			model: 'none',
-			ui: {
-				mode: 'none',
-			},
-		};
-	};
+const DISABLED_RESOLUTION = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			id: 'disabled',
+			match: { fallback: true },
+			model: 'opt-out',
+			prompt: 'none',
+		},
+	],
+});
 
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentRuntimeOptions
@@ -212,9 +215,7 @@ export const hasResolvedPrefetch = function hasResolvedPrefetch(
 	prefetch: KernelConfig | undefined
 ): boolean {
 	return Boolean(
-		prefetch?.initialPolicy &&
-		prefetch.initialPolicyDecision &&
-		prefetch.initialPolicyProvisional !== true
+		prefetch?.initialPolicyResolution && prefetch.initialPolicyPending !== true
 	);
 };
 
@@ -245,15 +246,13 @@ export const createRuntimeKernel = function createRuntimeKernel(
 ): ConsentKernel {
 	const enabled = options.enabled ?? true;
 	const prefetch = options.prefetch ?? {};
-	const { offlinePolicy } = options;
 	const i18nTranslations =
 		resolveRuntimeTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
 		iabEnabled: isIABConfigured(options.iab),
-		offlinePolicy,
-		policies: options.policies,
+		policyRules: options.policyRules,
 		prefetch,
 		translations: i18nTranslations,
 	};
@@ -261,23 +260,22 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	return createConsentKernel({
 		...prefetch,
-		initialConsents: enabled
-			? (prefetch.initialConsents ?? undefined)
-			: ALL_CONSENTS_GRANTED,
 		initialOverrides: {
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
 		},
-		initialPolicy:
-			enabled === false
-				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
-				: (prefetch.initialPolicy ?? offlinePolicy?.policy),
-		initialPolicyDecision:
-			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-		initialPolicySnapshotToken:
-			prefetch.initialPolicySnapshotToken ?? offlinePolicy?.policySnapshotToken,
+		initialPolicyPending:
+			prefetch.initialPolicyPending ??
+			(enabled && !prefetch.initialPolicyResolution),
+		initialPolicyResolution: enabled
+			? prefetch.initialPolicyResolution
+			: DISABLED_RESOLUTION,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
+		now:
+			prefetch.now ??
+			prefetch.initialRecords?.now ??
+			(prefetch.initialRecords ? undefined : 0),
 		transport,
 	});
 };
@@ -312,10 +310,8 @@ const normalizeIABOptions = function normalizeIABOptions(
 /**
  * Creates a consent runtime: a kernel plus every opt-in module, wired.
  *
- * Construction is safe on the server. In the browser it also performs the
- * early cookie + localStorage hydration (unless `persistence` is disabled
- * or `skipHydration` is set) so the first paint already knows whether the
- * visitor has consented and the banner never flashes.
+ * Construction preserves the prepared server snapshot. Storage hydration and
+ * browser privacy-signal activation happen on start.
  *
  * Nothing else happens until {@link ConsentRuntime.start} is called.
  *
@@ -365,65 +361,35 @@ export const createConsentRuntime = function createConsentRuntime(
 	disposers.push(
 		wireRuntimeCallbacks({
 			callbacks: options.callbacks,
-			fallbackTranslations: DEFAULT_TRANSLATIONS,
 			kernel,
-			reloadOnConsentRevoked: options.reloadOnConsentRevoked,
 		})
 	);
 
-	// Early hydration: reading stored consent before first paint is what
-	// keeps an already-consented visitor from seeing the banner at all.
-	let earlyPersistence: PersistenceHandle | null = null;
-	if (
-		typeof document !== 'undefined' &&
-		typeof localStorage !== 'undefined' &&
-		enabled &&
-		persistenceOptions &&
-		persistenceOptions.skipHydration !== true
-	) {
-		earlyPersistence = createPersistence({
-			kernel,
-			storageConfig: persistenceOptions.storageConfig,
-		});
-		if (kernel.getSnapshot().hasConsented) {
-			kernel.set.activeUI('none');
-		}
-		const handle = earlyPersistence;
-		disposers.push(() => handle.dispose());
-	}
+	let persistenceHandle: PersistenceHandle | null = null;
 
 	const runInit = async function runInit(): Promise<void> {
 		if (disposed) {
 			return;
 		}
 		await kernel.commands.init();
-		// `dispose()` can land while `init()` is in flight. Writing to a
-		// disposed kernel would notify subscribers the owner has already
-		// let go of.
-		if (disposed) {
-			return;
-		}
-		if (kernel.getSnapshot().hasConsented) {
-			kernel.set.activeUI('none');
-		}
 	};
 
 	const startPersistence = function startPersistence() {
-		if (!(enabled && persistenceOptions) || earlyPersistence) {
+		if (!(enabled && persistenceOptions)) {
 			return;
 		}
 		const persistence = createPersistence({
 			kernel,
-			skipHydration: true,
+			skipHydration:
+				persistenceOptions.skipHydration ??
+				Boolean(options.prefetch?.initialRecords),
 			storageConfig: persistenceOptions.storageConfig,
 		});
-		if (persistenceOptions.skipHydration !== true) {
-			persistence.hydrate();
-			if (kernel.getSnapshot().hasConsented) {
-				kernel.set.activeUI('none');
-			}
-		}
-		disposers.push(() => persistence.dispose());
+		persistenceHandle = persistence;
+		disposers.push(() => {
+			persistence.dispose();
+			persistenceHandle = null;
+		});
 	};
 
 	const startIAB = function startIAB() {
@@ -457,6 +423,19 @@ export const createConsentRuntime = function createConsentRuntime(
 	};
 
 	return {
+		clearRecords() {
+			if (persistenceHandle) {
+				persistenceHandle.clear();
+				return;
+			}
+			kernel.hydrate({
+				choice: null,
+				noticeDismissal: null,
+				optOutDirectives: [],
+				subject: null,
+			});
+			kernel.events.emit({ type: 'records:cleared' });
+		},
 		get consentCategories() {
 			return consentCategories;
 		},
@@ -469,7 +448,7 @@ export const createConsentRuntime = function createConsentRuntime(
 			disposers.length = 0;
 			iabListeners.clear();
 			iabHandle = null;
-			earlyPersistence = null;
+			persistenceHandle = null;
 		},
 		get iab() {
 			return iabHandle;
@@ -523,9 +502,14 @@ export const createConsentRuntime = function createConsentRuntime(
 			if (enabled && !hasResolvedPrefetch(options.prefetch)) {
 				void runInit();
 			} else if (enabled) {
+				kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });
+				const { gpc } = kernel.getSnapshot().privacySignals;
+				if (gpc.detected && gpc.active) {
+					kernel.set.privacySignals({ gpc: true });
+				}
 				// The prefetch stands in for the response, so replay the event
-				// the applied response would have raised — `onBannerFetched`
-				// fires with the server's policy instead of not at all.
+				// the applied response would have raised. Subscribers receive
+				// the server's policy without a second request.
 				kernel.events.emit({
 					snapshot: kernel.getSnapshot(),
 					type: 'init:applied',

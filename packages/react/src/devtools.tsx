@@ -25,7 +25,7 @@ import type {
 	RefCallback,
 } from 'react';
 
-import { KernelContext } from './context';
+import { KernelContext, ProviderServicesContext } from './context';
 import { useIsHydrated } from './hooks/use-is-hydrated';
 
 /** Props for the kernel-bound React DevTools adapter. */
@@ -76,6 +76,29 @@ const useStableConsentCategories = (
 	}, [categoryKey]);
 };
 
+const useStableServices = (
+	clearRecords: DevToolsOptions['clearRecords'],
+	getPresentation: DevToolsOptions['getPresentation']
+) => {
+	const latest = useRef({ clearRecords, getPresentation });
+	useLayoutEffect(() => {
+		latest.current = { clearRecords, getPresentation };
+	}, [clearRecords, getPresentation]);
+	const hasClear = clearRecords !== undefined;
+	const hasPresentation = getPresentation !== undefined;
+	return useMemo(
+		() => ({
+			clearRecords: hasClear
+				? () => latest.current.clearRecords?.()
+				: undefined,
+			getPresentation: hasPresentation
+				? () => latest.current.getPresentation?.()
+				: undefined,
+		}),
+		[hasClear, hasPresentation]
+	);
+};
+
 /**
  * Mounts the c15t DevTools engine for the nearest v3 consent provider.
  *
@@ -84,16 +107,23 @@ const useStableConsentCategories = (
  */
 export const ConsentDevTools = ({
 	disabled = false,
+	clearRecords,
+	getPresentation,
 	defaultOpen,
 	defaultTab,
 	getConsentCategories,
 	maxEvents,
 	position,
 }: ConsentDevToolsProps): null => {
+	const services = useContext(ProviderServicesContext);
+	const stableServices = useStableServices(
+		clearRecords ?? services?.clearRecords,
+		getPresentation ?? services?.getPresentation
+	);
 	const contextKernel = useContext(KernelContext);
 	const kernel = disabled ? null : requireKernel(contextKernel);
 	const getDisplayedCategories = useStableConsentCategories(
-		getConsentCategories,
+		getConsentCategories ?? services?.getConsentCategories,
 		disabled
 	);
 
@@ -103,6 +133,7 @@ export const ConsentDevTools = ({
 		}
 
 		const devTools = createDevTools({
+			...stableServices,
 			defaultOpen,
 			defaultTab,
 			getConsentCategories: getDisplayedCategories,
@@ -115,6 +146,7 @@ export const ConsentDevTools = ({
 		defaultOpen,
 		defaultTab,
 		getDisplayedCategories,
+		stableServices,
 		kernel,
 		maxEvents,
 		position,
@@ -133,7 +165,14 @@ export const C15TDevTools = ConsentDevTools;
 export interface C15tTanStackDevtoolsPanelProps
 	extends
 		HTMLAttributes<HTMLDivElement>,
-		Pick<DevToolsOptions, 'defaultTab' | 'maxEvents' | 'getConsentCategories'> {
+		Pick<
+			DevToolsOptions,
+			| 'defaultTab'
+			| 'maxEvents'
+			| 'getConsentCategories'
+			| 'getPresentation'
+			| 'clearRecords'
+		> {
 	/** Prevents the embedded DevTools engine from mounting. @default false */
 	disabled?: boolean;
 }
@@ -182,6 +221,8 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 	function C15tTanStackDevtoolsPanel(
 		{
 			disabled = false,
+			clearRecords,
+			getPresentation,
 			defaultTab,
 			getConsentCategories,
 			maxEvents,
@@ -190,10 +231,15 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 		},
 		forwardedRef
 	) {
+		const services = useContext(ProviderServicesContext);
+		const stableServices = useStableServices(
+			clearRecords ?? services?.clearRecords,
+			getPresentation ?? services?.getPresentation
+		);
 		const contextKernel = useContext(KernelContext);
 		const kernel = disabled ? null : requireKernel(contextKernel);
 		const getDisplayedCategories = useStableConsentCategories(
-			getConsentCategories,
+			getConsentCategories ?? services?.getConsentCategories,
 			disabled
 		);
 		const containerRef = useRef<HTMLDivElement | null>(null);
@@ -218,6 +264,7 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 			}
 
 			const devTools = createDevTools({
+				...stableServices,
 				container,
 				defaultOpen: true,
 				defaultTab,
@@ -228,7 +275,7 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 			devTools.element?.classList.add('c15t-dev-tools--embedded');
 
 			return () => devTools.destroy();
-		}, [defaultTab, getDisplayedCategories, kernel, maxEvents]);
+		}, [defaultTab, getDisplayedCategories, stableServices, kernel, maxEvents]);
 
 		return (
 			<div

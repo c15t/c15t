@@ -31,22 +31,17 @@ const MANIFEST: ConsentManifest = {
 	branding: 'c15t',
 	policyPacks: [
 		createConsentManifestPolicyPack({
-			fingerprint: 'fingerprint-eu',
-			policy: {
-				consent: {
-					categories: ['necessary'],
-					expiryDays: 365,
-					model: 'opt-in',
-					scopeMode: 'strict',
-				},
-				id: 'eu-opt-in',
-				match: { countries: ['DE'], fallback: true },
-				ui: { mode: 'banner' },
-			},
+			categories: [],
+			id: 'eu-opt-in',
+			match: { countries: ['DE'], fallback: true },
+			model: 'opt-in',
+			prompt: 'choice',
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
 		}),
 	],
 	revision: 'rev-1',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',
@@ -228,6 +223,115 @@ describe('fetchCachedManifest upstream dedupe', () => {
 });
 
 describe('init route', () => {
+	test.each([
+		{ reason: 'transport', status: 'failed' },
+		{ status: 'no-match' },
+		{ status: 'unconfigured' },
+	])(
+		'clears stale proof after $status fallback resolution',
+		async (resolution) => {
+			mocks.serverFetch
+				.mockResolvedValueOnce(new Response('missing', { status: 404 }))
+				.mockResolvedValueOnce(
+					new Response(
+						JSON.stringify({
+							branding: 'c15t',
+							cmpId: 7,
+							customVendors: [{ id: 'stale' }],
+							gvl: { vendorListVersion: 1 },
+							location: { countryCode: 'DE', regionCode: null },
+							policy: { id: 'stale', model: 'iab' },
+							policyDecision: { policyId: 'stale' },
+							policyResolution: {
+								policy: null,
+								version: 1,
+								...resolution,
+							},
+							policySnapshotToken: 'stale-token',
+							subjectId: 'backend+literal',
+							translations: { language: 'en', translations: {} },
+						}),
+						{ headers: { 'x-c15t-policy-contract': '1' } }
+					)
+				);
+			const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+			const body = await response.json();
+			expect(body.policyResolution.status).toBe(resolution.status);
+			for (const key of [
+				'policy',
+				'policyDecision',
+				'policySnapshotToken',
+				'gvl',
+				'cmpId',
+				'customVendors',
+			]) {
+				expect(body).not.toHaveProperty(key);
+			}
+			expect(body.branding).toBe('c15t');
+			expect(body.subjectId).toBe('backend+literal');
+			expect(body.translations.language).toBe('en');
+		}
+	);
+
+	test.each(['99', 'invalid', ''])(
+		'rejects unsupported client declaration %s',
+		async (contract) => {
+			mocks.serverFetch.mockResolvedValue(manifestResponse({}));
+			const response = await callInitRoute({
+				'x-c15t-policy-contract': contract,
+			});
+			expect(await response.json()).toMatchObject({
+				policyResolution: { reason: 'unsupported-contract', status: 'failed' },
+			});
+		}
+	);
+
+	test.each([
+		{
+			declaration: undefined,
+			reason: 'unsupported-contract',
+			status: 'failed',
+		},
+		{ declaration: '1', reason: 'invalid-payload', status: 'failed' },
+		{ declaration: '99', reason: 'unsupported-contract', status: 'failed' },
+		{
+			declaration: 'invalid',
+			reason: 'unsupported-contract',
+			status: 'failed',
+		},
+	])(
+		'negotiates fallback producer $declaration',
+		async ({ declaration, status, reason }) => {
+			const headers = new Headers();
+			if (declaration !== undefined) {
+				headers.set('x-c15t-policy-contract', declaration);
+			}
+			mocks.serverFetch
+				.mockResolvedValueOnce(new Response('missing', { status: 404 }))
+				.mockResolvedValueOnce(
+					new Response(
+						JSON.stringify({
+							location: { countryCode: 'DE', regionCode: null },
+							policy: { id: 'legacy', model: 'opt-in', ui: { mode: 'banner' } },
+							translations: { language: 'en', translations: {} },
+						}),
+						{ headers }
+					)
+				);
+			const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+			expect(response.headers.get('x-c15t-policy-contract')).toBe('1');
+			const body = await response.json();
+			expect(body.policyResolution.status).toBe(status);
+			expect(body.policyResolution.reason).toBe(reason);
+			expect(mocks.serverFetch).toHaveBeenLastCalledWith(
+				'/api/self-host/init',
+				expect.objectContaining({
+					headers: expect.objectContaining({ 'x-c15t-policy-contract': '1' }),
+				})
+			);
+		}
+	);
+
 	test('resolves geo locally from the manifest and never caches the answer', async () => {
 		mocks.serverFetch.mockResolvedValue(
 			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
@@ -239,7 +343,7 @@ describe('init route', () => {
 		expect(await response.json()).toMatchObject({
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE' },
-			policy: { id: 'eu-opt-in' },
+			policyResolution: { policy: { id: 'eu-opt-in' }, status: 'matched' },
 		});
 		// Resolved from the manifest — no `/init` round trip to the backend.
 		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
@@ -255,10 +359,17 @@ describe('init route', () => {
 			if (url.includes('/manifest')) {
 				return new Response('nope', { status: 404 });
 			}
-			return new Response(JSON.stringify({ jurisdiction: 'NONE' }), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
+			return new Response(
+				JSON.stringify({
+					jurisdiction: 'NONE',
+					location: { countryCode: null, regionCode: null },
+					translations: { language: 'en', translations: {} },
+				}),
+				{
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				}
+			);
 		});
 
 		const response = await callInitRoute({ 'x-c15t-country': 'DE' });

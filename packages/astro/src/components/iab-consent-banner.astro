@@ -28,7 +28,7 @@
  * <IABConsentDialog />
  * ```
  */
-import { defaultTranslationConfig } from '@c15t/core';
+import { defaultTranslationConfig, resolveConsentPresentation } from '@c15t/core';
 import type { TranslationsResponse } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import {
@@ -73,7 +73,7 @@ const {
 	noStyle = false,
 	class: className,
 	hideBranding = false,
-	scrollLock = true,
+	scrollLock,
 	force = false,
 } = Astro.props;
 
@@ -86,6 +86,12 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
+const { blocking } = resolveConsentPresentation({
+	override: { scrollLock },
+	policy: snapshot.policyRule,
+	presentation: c15t.options.presentation,
+	surface: 'prompt',
+});
 const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
@@ -98,9 +104,10 @@ const summary = resolveIABBannerSummary(
 // the summary derives from it. The browser boots, fetches one and mounts
 // the client banner instead.
 const shouldRender =
+	c15t.hasConsentUi &&
 	(force || c15t.shouldShowBanner) &&
 	summary.isReady &&
-	models.includes(snapshot.model);
+	models.includes(snapshot.policyRule.model);
 
 const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
 const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
@@ -170,7 +177,7 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 
 {
-	shouldRender && scrollLock && (
+	shouldRender && blocking && (
 		<div
 			aria-hidden="true"
 			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
@@ -184,6 +191,7 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 		<div
 			class={rootClass}
 			data-c15t-visible="true"
+			data-blocking={blocking ? 'true' : undefined}
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="iab-consent-banner-root"
 			dir={textDirection}
@@ -202,10 +210,10 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal="true"
+					aria-modal={blocking ? 'true' : undefined}
 					class={noStyle ? '' : styles.card}
 					data-testid="iab-consent-banner-card"
-					role="dialog"
+					role={blocking ? 'dialog' : 'region'}
 				>
 					<div
 						class={noStyle ? '' : styles.header}

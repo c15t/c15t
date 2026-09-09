@@ -52,10 +52,10 @@ describe('@c15t/nextjs/api', () => {
 		const body = await response.json();
 		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(body.translations.language).toBe('de');
-		expect(body.policyDecision).toMatchObject({
-			country: 'DE',
-			fingerprint: 'eu-fingerprint',
+		expect(body.policyResolution).toMatchObject({
+			fingerprints: MANIFEST_FIXTURE.policyPacks[0].fingerprints,
 			policyId: 'eu-opt-in',
+			status: 'matched',
 		});
 	});
 
@@ -118,6 +118,28 @@ describe('@c15t/nextjs/api', () => {
 		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://edge.example.com/api/c15t/manifest',
 			expect.any(Object)
+		);
+	});
+
+	test('declares the response contract and rejects unsupported client contracts', async () => {
+		const fetch = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(MANIFEST_FIXTURE)));
+		const { GET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com',
+			fetch,
+		});
+		const response = await GET(
+			new Request('https://example.com/api/c15t/init', {
+				headers: { 'x-c15t-country': 'DE', 'x-c15t-policy-contract': '99' },
+			})
+		);
+		expect(response.headers.get('x-c15t-policy-contract')).toBe('1');
+		expect(await response.json()).toMatchObject({
+			policyResolution: { reason: 'unsupported-contract', status: 'failed' },
+		});
+		expect(fetch.mock.calls[0]?.[1].headers['x-c15t-policy-contract']).toBe(
+			'1'
 		);
 	});
 
@@ -208,6 +230,6 @@ describe('@c15t/nextjs/api', () => {
 			expect(url).toBe('https://consent.example.com/api/c15t/manifest');
 		}
 		const body = await response.json();
-		expect(body.policyDecision).toMatchObject({ policyId: 'eu-opt-in' });
+		expect(body.policyResolution).toMatchObject({ policyId: 'eu-opt-in' });
 	});
 });

@@ -88,20 +88,10 @@ const HeadlessPage = () => (
 	<ConsentProvider
 		options={{
 			callbacks: {
-				onBannerFetched() {
-					const state = getBenchState(scenario);
-					if (!state) {
-						return;
-					}
-					state.onBannerFetchedCount += 1;
-					if (state.onBannerFetchedMs === undefined) {
-						state.onBannerFetchedMs = performance.now();
-					}
-				},
-				onConsentSet() {
+				onChoiceRecorded() {
 					const state = getBenchState(scenario);
 					if (state) {
-						state.onConsentSetCount += 1;
+						state.onChoiceRecordedCount += 1;
 					}
 				},
 				onError() {

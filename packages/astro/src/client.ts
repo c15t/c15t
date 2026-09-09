@@ -15,11 +15,12 @@
  * import { getConsentClient } from '@c15t/astro/client';
  *
  * const c15t = getConsentClient();
- * c15t?.subscribe((snapshot) => console.log(snapshot.consents));
+ * c15t?.subscribe((snapshot) => console.log(snapshot.effectivePermissions));
  * ```
  */
 
 import type {
+	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
 	KernelConfig,
@@ -32,7 +33,11 @@ import type {
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
-import { setupColorScheme } from '@c15t/ui/utils/dom';
+import {
+	setupColorScheme,
+	setupFocusTrap,
+	setupScrollLock,
+} from '@c15t/ui/utils/dom';
 
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
@@ -74,7 +79,12 @@ export const DIALOG_ATTRIBUTE = 'data-c15t-dialog';
 export const DIALOG_TAB_ATTRIBUTE = 'data-c15t-tab';
 
 /** Actions the banner can trigger. */
-export type ConsentAction = 'accept' | 'reject' | 'customize' | 'close';
+export type ConsentAction =
+	| 'accept'
+	| 'reject'
+	| 'customize'
+	| 'dismiss'
+	| 'close';
 
 /** The page-level consent client. */
 export interface AstroConsentClient {
@@ -194,26 +204,134 @@ const ensureDialogHost = function ensureDialogHost(): HTMLElement {
 };
 
 /**
+ * Undo the scroll lock and focus trap of a blocking banner, if one is
+ * active. Module-level because the banner element can be replaced by a
+ * ClientRouter swap while the lock is still held.
+ */
+let releaseBlocking: (() => void) | null = null;
+
+/**
  * Show or hide the server-rendered banner to match the kernel.
  *
  * The server already decided the initial state, so this only has to keep
  * the DOM honest afterwards — after a save, or after a ClientRouter
- * navigation replaced the markup.
+ * navigation replaced the markup. A banner the server resolved as blocking
+ * (`data-blocking="true"`) also locks scroll and traps focus in its card
+ * while it is shown.
  *
  * @param snapshot - The current kernel snapshot.
  */
+/**
+ * Whether a policy rule is resolved. An unconfigured, failed, or unmatched
+ * resolution leaves nothing to consent to, so no consent surface renders.
+ */
+const hasConsentPolicy = function hasConsentPolicy(
+	snapshot: ConsentSnapshot
+): boolean {
+	return snapshot.resolution.status === 'matched';
+};
+
+/**
+ * Whether the resolved rule owes any consent UI. A prompt owes a banner and
+ * a preference center; rights owe a way back to preferences. A `none` rule
+ * with no rights owes neither, so no surface renders or opens while the
+ * permissions it grants apply.
+ */
+const hasConsentUi = function hasConsentUi(snapshot: ConsentSnapshot): boolean {
+	return (
+		hasConsentPolicy(snapshot) &&
+		(snapshot.policyRule.prompt !== 'none' ||
+			snapshot.policyRule.rights.length > 0)
+	);
+};
+
+/**
+ * Resolve once the initial policy resolution has settled.
+ *
+ * A page whose server did not inline a resolution boots with the init still
+ * in flight, so a synchronous read of the snapshot would report "no policy"
+ * for a policy that arrives a moment later. Waiting here lets `openDialog()`
+ * calls made on page load (a `#c15t-preferences` link, a storybook, a host
+ * script) decide against the settled answer instead of the pending one.
+ *
+ * @param kernel - The runtime's kernel.
+ */
+const whenPolicySettled = function whenPolicySettled(
+	kernel: ConsentKernel
+): Promise<void> {
+	if (!kernel.getSnapshot().policyPending) {
+		return Promise.resolve();
+	}
+	// oxlint-disable-next-line promise/avoid-new -- Bridges the kernel's subscription into one awaitable.
+	return new Promise<void>((resolve) => {
+		const unsubscribe = kernel.subscribe((snapshot) => {
+			if (!snapshot.policyPending) {
+				unsubscribe();
+				resolve();
+			}
+		});
+	});
+};
+
+/**
+ * Show or hide the persistent consent controls the page rendered on the
+ * server (`<ConsentDialogTrigger />`) as the policy resolution changes.
+ *
+ * With nothing to manage the controls stay hidden: before a rule resolves,
+ * and under a `none` rule that owes no rights. They appear on their own once
+ * a later init supplies a rule that does.
+ *
+ * @param snapshot - The current kernel snapshot.
+ */
+export const syncSurfaceVisibility = function syncSurfaceVisibility(
+	snapshot: ConsentSnapshot
+): void {
+	const owesUi = hasConsentUi(snapshot);
+	for (const control of document.querySelectorAll<HTMLElement>(
+		'[data-c15t-surface="trigger"]'
+	)) {
+		control.hidden = !owesUi;
+	}
+};
+
 export const syncBannerVisibility = function syncBannerVisibility(
 	snapshot: ConsentSnapshot
 ): void {
 	const banner = document.querySelector<HTMLElement>(
-		'[data-testid="consent-banner-root"]'
+		'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]'
 	);
 	if (!banner) {
+		releaseBlocking?.();
 		return;
 	}
 	const shouldShow = snapshot.activeUI === 'banner';
 	banner.hidden = !shouldShow;
 	banner.setAttribute('data-c15t-visible', shouldShow ? 'true' : 'false');
+
+	const blocking = shouldShow && banner.dataset.blocking === 'true';
+	for (const overlay of document.querySelectorAll<HTMLElement>(
+		'[data-testid="consent-banner-overlay"], [data-testid="iab-consent-banner-overlay"]'
+	)) {
+		overlay.hidden = !blocking;
+	}
+	if (!blocking) {
+		releaseBlocking?.();
+		return;
+	}
+	if (releaseBlocking) {
+		return;
+	}
+	const card =
+		banner.querySelector<HTMLElement>(
+			'[data-testid="consent-banner-card"], [data-testid="iab-consent-banner-card"]'
+		) ?? banner;
+	const unlockScroll = setupScrollLock();
+	const releaseFocus = setupFocusTrap(card);
+	releaseBlocking = () => {
+		releaseFocus();
+		unlockScroll();
+		releaseBlocking = null;
+	};
 };
 
 interface ResolvedAction {
@@ -234,6 +352,7 @@ const resolveAction = function resolveAction(
 		action !== 'accept' &&
 		action !== 'reject' &&
 		action !== 'customize' &&
+		action !== 'dismiss' &&
 		action !== 'close'
 	) {
 		return null;
@@ -272,8 +391,8 @@ const createClient = function createClient(
 			initPath: options.endpoints.initPath,
 		}),
 		pkg: '@c15t/astro',
-		policies:
-			options.mode.type === 'offline' ? options.mode.policyPacks : undefined,
+		policyRules:
+			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
 		prefetch: config,
 		scripts,
 		storageConfig: options.storageConfig,
@@ -307,6 +426,7 @@ const createClient = function createClient(
 			}
 			disposed = true;
 			detachPageSwapListeners();
+			releaseBlocking?.();
 			void dialog?.destroy();
 			dialog = null;
 			dialogKind = null;
@@ -329,6 +449,13 @@ const createClient = function createClient(
 			tab?: 'purposes' | 'vendors'
 		) {
 			if (disposed) {
+				return;
+			}
+			// Decide against the settled resolution: an init still in flight is
+			// not "no policy". Nothing to open without a rule that owes UI, which
+			// excludes a `none` rule with no rights.
+			await whenPolicySettled(runtime.kernel);
+			if (disposed || !hasConsentUi(runtime.kernel.getSnapshot())) {
 				return;
 			}
 			if (opening) {
@@ -410,6 +537,7 @@ const createClient = function createClient(
 const attach = function attach(client: AstroConsentClient): void {
 	const snapshot = client.getConsent();
 	syncBannerVisibility(snapshot);
+	syncSurfaceVisibility(snapshot);
 	activateGatedScripts(snapshot);
 };
 
@@ -449,6 +577,10 @@ export const attachBannerActions = function attachBannerActions(): void {
 			return;
 		}
 		event.preventDefault();
+		if (resolved.action === 'dismiss') {
+			void client.runtime.kernel.commands.dismissNotice();
+			return;
+		}
 		if (resolved.action === 'accept') {
 			void client.acceptAll();
 			return;
@@ -496,6 +628,7 @@ export const boot = function boot(
 
 	client.subscribe((snapshot) => {
 		syncBannerVisibility(snapshot);
+		syncSurfaceVisibility(snapshot);
 		activateGatedScripts(snapshot);
 	});
 

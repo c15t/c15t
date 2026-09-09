@@ -8,9 +8,9 @@ import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import { ConsentProvider } from '~/provider';
 
 import {
 	clearConsentState,
@@ -48,16 +48,15 @@ describe('IAB Storage E2E Tests', () => {
 			// Wait for localStorage to be updated
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = getStoredConsent();
 					expect(stored).not.toBeNull();
 					return stored;
 				},
 				{ timeout: 1000 }
 			);
 
-			const stored = window.localStorage.getItem('c15t');
-			const parsed = JSON.parse(stored || '{}');
-			expect(parsed.consents).toBeDefined();
+			const stored = getStoredConsent();
+			expect(stored?.choice?.categories).toBeDefined();
 		});
 
 		test('should store TC string in localStorage', async () => {
@@ -172,7 +171,7 @@ describe('IAB Storage E2E Tests', () => {
 				() => {
 					const consent = getStoredConsent();
 					expect(consent).not.toBeNull();
-					expect(consent?.consents?.necessary).toBe(true);
+					expect(consent?.choice?.categories.marketing?.value).toBe(false);
 				},
 				{ timeout: 2000 }
 			);
@@ -201,18 +200,20 @@ describe('IAB Storage E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const c = getStoredConsent();
-					expect(c?.consentInfo?.time).toBeDefined();
+					expect(c?.choice?.categories.marketing?.confirmedAt).toBeDefined();
 					return c;
 				},
 				{ timeout: 2000 }
 			);
 
 			const consent = getStoredConsent();
-			expect(consent?.consentInfo?.time).toBeDefined();
-			expect(consent?.consentInfo?.time).toBeGreaterThanOrEqual(
-				beforeTime - 1000
-			);
-			expect(consent?.consentInfo?.time).toBeLessThanOrEqual(afterTime + 1000);
+			expect(consent?.choice?.categories.marketing?.confirmedAt).toBeDefined();
+			expect(
+				consent?.choice?.categories.marketing?.confirmedAt
+			).toBeGreaterThanOrEqual(beforeTime - 1000);
+			expect(
+				consent?.choice?.categories.marketing?.confirmedAt
+			).toBeLessThanOrEqual(afterTime + 1000);
 		});
 
 		test('should store consent info with subjectId', async () => {
@@ -234,8 +235,8 @@ describe('IAB Storage E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const consent = getStoredConsent();
-					expect(consent?.consentInfo?.subjectId).toBeDefined();
-					expect(typeof consent?.consentInfo?.subjectId).toBe('string');
+					expect(consent?.subject?.subjectId).toBeDefined();
+					expect(typeof consent?.subject?.subjectId).toBe('string');
 				},
 				{ timeout: 2000 }
 			);
@@ -262,7 +263,7 @@ describe('IAB Storage E2E Tests', () => {
 			// Should use c15t key
 			await vi.waitFor(
 				() => {
-					expect(window.localStorage.getItem('c15t')).not.toBeNull();
+					expect(getStoredConsent()).not.toBeNull();
 				},
 				{ timeout: 2000 }
 			);

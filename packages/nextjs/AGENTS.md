@@ -9,9 +9,11 @@ These docs ship inside the package so coding agents can read them offline. Open 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
+- [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentManagerProvider](./docs/frameworks/next/components/consent-manager-provider.md): Root provider that initializes the consent manager for your Next.js app.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent Categories](./docs/frameworks/next/concepts/consent-categories.md): How c15t groups cookies and scripts into consent categories.
+- [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [Headless](./docs/frameworks/next/headless.md): Build your own consent UI on top of the c15t hooks.
 - [useConsentManager](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Read and update consent state from any component.
 - [IAB TCF](./docs/frameworks/next/iab/overview.md): Enable IAB TCF 2.3 in your Next.js app.
@@ -38,3 +40,4 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 Concepts, legal templates, open-source policies, and contributor documentation.
 
 - [Dev Tools](./docs/shared/react/components/dev-tools.md): Reference page for dev tools.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.

@@ -2,6 +2,7 @@ import type { KernelTranslations } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
 import { decisionInputsFromConfig } from '../libs/decision-seed';
+import { policyFixture } from './policy-fixture';
 
 const NO_TRANSLATIONS = {} as KernelTranslations['translations'];
 
@@ -20,19 +21,12 @@ describe('decisionInputsFromConfig', () => {
 			decisionInputsFromConfig({
 				initialLocation: { countryCode: 'DE', regionCode: 'BE' },
 				initialOverrides: { gpc: true },
-				initialPolicyDecision: {
-					country: 'DE',
-					fingerprint: 'fp-1',
-					jurisdiction: 'GDPR',
-					matchedBy: 'country',
-					policyId: 'eu-opt-in',
-					region: null,
-				},
+				...policyFixture({}, { id: 'eu-opt-in' }),
 				initialTranslations: { language: 'de', translations: NO_TRANSLATIONS },
 			})
 		).toEqual({
 			country: 'DE',
-			fingerprint: 'fp-1',
+			fingerprint: expect.any(String),
 			gpc: true,
 			language: 'de',
 			policyId: 'eu-opt-in',
@@ -45,14 +39,7 @@ describe('decisionInputsFromConfig: client overrides', () => {
 	const config = {
 		initialLocation: { countryCode: 'DE', regionCode: null },
 		initialOverrides: { gpc: false },
-		initialPolicyDecision: {
-			country: 'DE',
-			fingerprint: 'fp-1',
-			jurisdiction: 'GDPR',
-			matchedBy: 'country',
-			policyId: 'eu-opt-in',
-			region: null,
-		},
+		...policyFixture({}, { id: 'eu-opt-in' }),
 		initialTranslations: { language: 'de', translations: NO_TRANSLATIONS },
 	} as const;
 

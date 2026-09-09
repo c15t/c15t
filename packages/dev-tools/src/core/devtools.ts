@@ -1,5 +1,7 @@
 import type {
 	ConsentKernel,
+	ConsentPresentation,
+	NoticeDismissResult,
 	ConsentState,
 	InitResult,
 	KernelActiveUI,
@@ -13,6 +15,7 @@ import {
 } from '@c15t/core/modules/script-loader';
 
 import { KERNEL_EVENT_TYPES, kernelEventToDevToolsEvent } from './events';
+import { readSelection } from './selection';
 import { createStateManager } from './state-manager';
 import type {
 	DevToolsPosition,
@@ -30,6 +33,10 @@ export interface DevToolsOptions {
 	kernel: ConsentKernel;
 	/** Read the categories displayed by the provider. Defaults to policy categories. */
 	getConsentCategories?: () => readonly (keyof ConsentState)[];
+	/** Host presentation to resolve for diagnostics. Omitted means defaults only. */
+	getPresentation?: () => ConsentPresentation | undefined;
+	/** Clear through the existing persistence handle, including its configured storage keys. */
+	clearRecords?: () => void;
 	/** Parent node for the imperative UI. Defaults to `document.body`. */
 	container?: HTMLElement;
 	/** Floating panel placement. @default 'bottom-right' */
@@ -44,8 +51,14 @@ export interface DevToolsOptions {
 
 /** Kernel operations exposed by DevTools. */
 export interface DevToolsActions {
-	/** Update a category locally without saving it. */
-	setConsent: (name: keyof ConsentState, value: boolean) => void;
+	/** Stage unsaved selections in this DevTools instance. Never changes permissions. */
+	setDraft: (input: Partial<ConsentState>) => void;
+	/** Discard unsaved selections and review the current policy defaults/receipts. */
+	resetDraft: () => void;
+	/** Dismiss the current local notice without recording consent. */
+	dismissNotice: () => Promise<NoticeDismissResult>;
+	/** Clear records through the host persistence handle when supplied. */
+	clearRecords?: () => void;
 	/** Update location, language, and privacy overrides without refreshing. */
 	setOverrides: (overrides: KernelOverrides) => void;
 	/** Select the visible consent interface. */
@@ -101,12 +114,18 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	const eventLimit = Number.isFinite(maxEvents)
 		? Math.max(1, Math.trunc(maxEvents))
 		: 100;
-	const getConsentCategories =
-		options.getConsentCategories ??
-		(() => {
-			const categories = kernel.getSnapshot().policyCategories;
-			return categories.length > 0 ? categories : CONSENT_CATEGORIES;
-		});
+	const getConsentCategories = () => {
+		const { scope } = kernel.getSnapshot().policyRule;
+		const displayed = options.getConsentCategories?.() ?? [
+			'necessary',
+			...scope,
+		];
+		return CONSENT_CATEGORIES.filter(
+			(category) =>
+				displayed.includes(category) &&
+				(category === 'necessary' || scope.includes(category))
+		);
+	};
 	const stateManager = createStateManager({
 		activeTab: defaultTab,
 		isOpen: defaultOpen,
@@ -146,31 +165,100 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	});
 	const unsubscribeEvents = KERNEL_EVENT_TYPES.map((type) =>
 		kernel.events.on(type, (event) => {
+			if (event.type === 'records:cleared') {
+				stateManager.setDraft({});
+			}
 			eventSequence += 1;
 			stateManager.addEvent(
 				kernelEventToDevToolsEvent(event, String(eventSequence), Date.now())
 			);
 		})
 	);
-	const view = createDevToolsView({
-		container,
-		getConsentCategories,
-		kernel,
-		stateManager,
-	});
-
 	const actions: DevToolsActions = {
+		clearRecords: options.clearRecords
+			? () => {
+					options.clearRecords?.();
+					stateManager.setDraft({});
+				}
+			: undefined,
+		dismissNotice: () => kernel.commands.dismissNotice(),
 		init: () => kernel.commands.init(),
-		save: (input) =>
-			kernel.commands.save(input, { categories: getConsentCategories() }),
+		resetDraft: () => stateManager.setDraft({}),
+		save: async (input) => {
+			const captured = stateManager.getState();
+			const snapshot = kernel.getSnapshot();
+			if (
+				input !== 'all' &&
+				input !== 'none' &&
+				captured.draftFingerprint !== null &&
+				captured.draftFingerprint !==
+					snapshot.evaluationPolicy.choice.fingerprint
+			) {
+				throw new Error(
+					'Policy changed. Discard the draft and review the current choices before saving.'
+				);
+			}
+			const commit = async (values: Partial<ConsentState> | 'all' | 'none') => {
+				const result = await kernel.commands.save(values);
+				if (result.ok && stateManager.getState().draft === captured.draft) {
+					stateManager.setDraft({});
+				}
+				return result;
+			};
+			const categories = getConsentCategories().filter(
+				(category) => category !== 'necessary'
+			);
+			if (
+				(input === 'all' || input === 'none') &&
+				categories.length === snapshot.policyRule.scope.length
+			) {
+				return await commit(input);
+			}
+			const values: Partial<ConsentState> = {};
+			const defaults = options.getPresentation?.()?.preferences?.defaults;
+			for (const category of categories) {
+				if (input === 'all' || input === 'none') {
+					values[category] = input === 'all';
+				} else if (input === undefined) {
+					values[category] = readSelection(
+						snapshot,
+						captured.draft,
+						category,
+						defaults
+					);
+				} else if (
+					Object.hasOwn(input, category) &&
+					typeof input[category] === 'boolean'
+				) {
+					values[category] = input[category];
+				}
+			}
+			return await commit(values);
+		},
 		setActiveUI: (activeUI) => kernel.set.activeUI(activeUI),
-		setConsent(name, value) {
-			const patch: Partial<ConsentState> = {};
-			patch[name] = value;
-			kernel.set.consent(patch);
+		setDraft(input) {
+			const draft = { ...stateManager.getState().draft };
+			for (const category of getConsentCategories()) {
+				if (
+					category !== 'necessary' &&
+					Object.hasOwn(input, category) &&
+					typeof input[category] === 'boolean'
+				) {
+					draft[category] = input[category];
+				}
+			}
+			stateManager.setDraft(draft);
 		},
 		setOverrides: (overrides) => kernel.set.overrides(overrides),
 	};
+	const view = createDevToolsView({
+		actions,
+		container,
+		getConsentCategories,
+		getPresentation: options.getPresentation,
+		kernel,
+		stateManager,
+	});
 
 	return {
 		actions,

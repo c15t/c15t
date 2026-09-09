@@ -174,7 +174,8 @@ const shouldFetchGvl = function shouldFetchGvl(
 	return (
 		manifest.iab?.enabled === true &&
 		manifest.iab.gvl !== undefined &&
-		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
+		payload.policyResolution?.status === 'matched' &&
+		payload.policyResolution.policy.model === 'iab'
 	);
 };
 
@@ -255,6 +256,11 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 	// path — the browser never sends `Sec-GPC` to the init route when the
 	// page was server-rendered. Echo them back so the kernel folds the
 	// same overrides it would have derived client-side.
-	payload.resolvedOverrides = consentInputsToOverrides(inputs);
+	payload.resolvedOverrides = consentInputsToOverrides({
+		country: inputs.country,
+		language: inputs.language,
+		region: inputs.region,
+	});
+	payload.resolvedPrivacySignals = { gpc: inputs.gpc };
 	return payload;
 };

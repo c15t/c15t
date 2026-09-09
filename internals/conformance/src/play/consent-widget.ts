@@ -30,5 +30,21 @@ export const expandedCategories: PlayFunction = async ({ canvasElement }) => {
 	await waitFor(() => {
 		expect(functionalityContent).toHaveAttribute('data-state', 'closed');
 		expect(analyticsContent).toHaveAttribute('data-state', 'open');
+		const viewport = analyticsContent.querySelector(
+			'[data-slot="preference-item-content-viewport"]'
+		);
+		expect(viewport).not.toBeNull();
+		if (viewport) {
+			expect(
+				Number.parseFloat(getComputedStyle(viewport).paddingInlineStart)
+			).toBeGreaterThan(0);
+			expect(
+				Number.parseFloat(getComputedStyle(viewport).paddingInlineEnd)
+			).toBeGreaterThan(0);
+		}
+		const arrow = canvas.getByTestId(
+			'consent-widget-accordion-arrow-measurement'
+		);
+		expect(getComputedStyle(arrow).transform).toBe('none');
 	});
 };

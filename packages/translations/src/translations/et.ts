@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Nõustu kõigiga',
+		acknowledge: 'OK',
 		close: 'Sulge',
 		customize: 'Kohanda',
+		dismiss: 'Sulge',
 		rejectAll: 'Keeldu kõigist',
 		save: 'Salvesta seaded',
 		securedBy: 'Kaitse pakub',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'See sait kasutab küpsiseid, et parandada teie sirvimiskogemust, analüüsida saidi liiklust ja näidata isikupärastatud sisu.',
+		noticeDescription:
+			'Kasutame küpsiseid ja sarnaseid tehnoloogiaid selle saidi töös hoidmiseks, liikluse mõõtmiseks ning sisu ja reklaamide isikupärastamiseks. Saate igal ajal loobuda või oma eelistusi hallata.',
+		noticeTitle: 'Privaatsusteade',
 		title: 'Hindame teie privaatsust',
 	},
 	frame: {
@@ -136,6 +141,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Küpsiste poliitika',
 		privacyPolicy: 'Privaatsuspoliitika',
 		termsOfService: 'Kasutustingimused',
+	},
+	rights: {
+		optOut: 'Ära müü ega jaga minu andmeid',
+		preferences: 'Halda eelistusi',
 	},
 };
 export default translations;

@@ -47,6 +47,7 @@ const generateDocsConfig = () =>
 			},
 		],
 		navigation: [
+			{ pages: ['upgrade-v3'], title: 'Migration' },
 			defineFrameworkNavigation({
 				base: 'frameworks',
 				frameworks: [
@@ -75,7 +76,10 @@ const generateDocsConfig = () =>
 					componentFramework: {
 						children: [
 							{
-								pages: ['concepts/consent-categories'],
+								pages: [
+									'concepts/consent-categories',
+									'concepts/policy-presets',
+								],
 
 								title: 'Concepts',
 							},
@@ -88,6 +92,7 @@ const generateDocsConfig = () =>
 								pages: [
 									'components/consent-manager-provider',
 									'components/consent-banner',
+									'components/consent-dialog-trigger',
 									'components/dev-tools',
 								],
 
@@ -125,7 +130,10 @@ const generateDocsConfig = () =>
 					javascript: {
 						children: [
 							{
-								pages: ['concepts/consent-categories'],
+								pages: [
+									'concepts/consent-categories',
+									'concepts/policy-presets',
+								],
 
 								title: 'Concepts',
 							},

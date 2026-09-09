@@ -1,4 +1,9 @@
+import { c15tProtocolHeaders } from '@c15t/core';
 import { clearManifestCache } from '@c15t/core/server';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { c15tHandle } from '../handle';
@@ -9,20 +14,22 @@ import { CONSENTED_COOKIE, createEvent } from './event';
 const INIT_PAYLOAD = {
 	branding: 'c15t',
 	location: { countryCode: 'DE', regionCode: null },
-	policy: {
-		consent: { categories: ['necessary', 'marketing'], scopeMode: 'strict' },
-		id: 'eu-opt-in',
-		model: 'opt-in',
-		ui: { mode: 'banner' },
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'eu-fingerprint',
-		jurisdiction: 'GDPR',
-		matchedBy: 'country',
-		policyId: 'eu-opt-in',
-		region: null,
-	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: 'DE',
+			regionCode: null,
+			rules: [
+				{
+					categories: ['marketing'],
+					id: 'eu-opt-in',
+					match: { fallback: true, isDefault: true },
+					model: 'opt-in',
+					prompt: 'choice',
+					scopeMode: 'permissive',
+				},
+			],
+		})
+	),
 	translations: { language: 'de', translations: {} },
 };
 
@@ -63,7 +70,7 @@ describe('loadConsent', () => {
 		const config = await loadConsent(event);
 
 		expect(config).toBe((event.locals as { c15t: C15tLocals }).c15t.config);
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 
@@ -86,7 +93,7 @@ describe('loadConsent', () => {
 
 		const config = await loadConsent(event);
 
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
 		expect(config.initialOverrides?.country).toBe('FR');
 	});
 
@@ -102,7 +109,7 @@ describe('loadConsent', () => {
 
 		const config = await loadConsent(event, { country: 'DE' });
 
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 
@@ -119,7 +126,7 @@ describe('loadConsent', () => {
 			fetch: fetchImpl as unknown as typeof globalThis.fetch,
 		});
 
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
 	});
 
 	test('a per-call cookie name still beats the handle one', async () => {
@@ -130,7 +137,7 @@ describe('loadConsent', () => {
 
 		const config = await loadConsent(event, { cookieName: 'c15t' });
 
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
 	});
 
 	test('manifest mode folds the same-origin init route into the config', async () => {
@@ -143,12 +150,32 @@ describe('loadConsent', () => {
 		const config = await loadConsent(event, { initRoute: '/api/c15t' });
 
 		expect(fetchImpl).toHaveBeenCalledWith('/api/c15t', {
-			headers: { 'x-c15t-country': 'DE' },
+			headers: { ...c15tProtocolHeaders, 'x-c15t-country': 'DE' },
 		});
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
-		expect(config.initialPolicyDecision?.policyId).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution?.policyId).toBe('eu-opt-in');
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
+
+	test.each(['999', 'invalid'])(
+		'rejects an unsupported init-route producer contract %s',
+		async (contract) => {
+			const event = createEvent({
+				fetch: vi.fn(() =>
+					Promise.resolve(
+						Response.json(INIT_PAYLOAD, {
+							headers: { 'x-c15t-policy-contract': contract },
+						})
+					)
+				) as typeof globalThis.fetch,
+			});
+			const config = await loadConsent(event, { initRoute: '/api/c15t' });
+			expect(config.initialPolicyResolution).toMatchObject({
+				reason: 'unsupported-contract',
+				status: 'failed',
+			});
+		}
+	);
 
 	test('restates geo, language and GPC on the same-origin init call', async () => {
 		// event.fetch only inherits cookie/authorization, so anything the init
@@ -166,11 +193,12 @@ describe('loadConsent', () => {
 		const config = await loadConsent(event, { initRoute: '/api/c15t' });
 
 		expect(fetchImpl.mock.calls[0]?.[1]?.headers).toEqual({
+			...c15tProtocolHeaders,
 			'accept-language': 'de',
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
 		});
-		expect(config.initialOverrides?.gpc).toBe(true);
+		expect(config.initialPrivacySignals?.gpc).toBe(true);
 	});
 
 	test('option overrides reach the init route instead of the raw headers', async () => {
@@ -187,6 +215,7 @@ describe('loadConsent', () => {
 		});
 
 		expect(fetchImpl.mock.calls[0]?.[1]?.headers).toEqual({
+			...c15tProtocolHeaders,
 			'x-c15t-country': 'CA',
 			'x-c15t-region': 'QC',
 		});
@@ -203,8 +232,8 @@ describe('loadConsent', () => {
 
 		const config = await loadConsent(event, { initRoute: '/api/c15t' });
 
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialPolicy).toBeUndefined();
+		expect(config.initialRecords?.choice).not.toBeNull();
+		expect(config.initialPolicyResolution).toBeUndefined();
 	});
 
 	test('degrades to the cookie-only config when the init route throws', async () => {
@@ -218,7 +247,7 @@ describe('loadConsent', () => {
 
 		const config = await loadConsent(event, { initRoute: '/api/c15t' });
 
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
 	});
 
 	test('hosted mode calls the backend /init directly', async () => {
@@ -231,7 +260,7 @@ describe('loadConsent', () => {
 		});
 
 		expect(fetchImpl.mock.calls[0]?.[0]).toBe('https://api.example.com/init');
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(config.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
 	});
 
 	test('returns the base config when no mode is configured', async () => {
@@ -239,7 +268,7 @@ describe('loadConsent', () => {
 
 		const config = await loadConsent(event);
 
-		expect(config).toEqual({ initialOverrides: { country: 'DE' } });
+		expect(config).toMatchObject({ initialOverrides: { country: 'DE' } });
 	});
 
 	test('returns a JSON-serializable config', async () => {

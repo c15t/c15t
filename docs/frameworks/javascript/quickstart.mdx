@@ -14,22 +14,60 @@ variants:
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## Install
 
-TODO.
+```package-install
+@c15t/core @c15t/schema
+```
 
-## Configure
+## Create the consent engine
 
-TODO.
+```ts
+import { createConsentKernel, createOfflineTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { policyRulePresets } from '@c15t/schema';
 
-## Build the UI
+const kernel = createConsentKernel({
+	transport: createOfflineTransport({
+		policyRules: [policyRulePresets.europeOptIn()],
+	}),
+});
+const persistence = createPersistence({ kernel });
+await kernel.commands.init();
 
-TODO.
+const unsubscribe = kernel.subscribe((snapshot) => {
+	console.log(snapshot.effectivePermissions.marketing);
+});
 
-## Next steps
+// Call this from your UI's explicit reject action.
+async function rejectOptionalCategories() {
+	await kernel.commands.save('none');
+}
 
-TODO.
+// Call this when the app or consent integration is torn down.
+function dispose() {
+	unsubscribe();
+	persistence.dispose();
+	kernel.dispose();
+}
+```
+
+Run this code in the browser. The headless engine does not render a banner.
+Connect your UI to `snapshot.promptRequirement` and expose persistent privacy
+settings. Use `save('all')` for accept, `save('none')` for reject, or
+`save({ marketing: false })` to confirm only that category.
+
+The offline transport keeps choices local. For a backend, use
+`createHostedTransport({ backendURL: 'https://consent.example.com' })` and
+configure rules there.
+
+## Read permissions and choices
+
+Use `effectivePermissions` for script and feature gates. `explicitChoice` holds
+recorded per-category values and confirmation times. A partial save preserves
+receipts for categories you omit. `commands.dismissNotice()` only dismisses the
+current notice; it does not save a choice.
+
+Validate the integration by rejecting, reloading, and confirming that optional
+features stay blocked. See the [v3 migration guide](/docs/upgrade-v3) for policy
+configuration and storage compatibility.

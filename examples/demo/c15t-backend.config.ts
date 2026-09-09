@@ -23,7 +23,7 @@ export default defineConfig({
 			defaultProfile: 'default',
 			messages: demoI18nMessages,
 		},
-		policyPacks: demoPolicies,
+		policyRules: demoPolicies,
 	},
 	policySnapshot: {
 		signingKey: DEMO_POLICY_SNAPSHOT_KEY,

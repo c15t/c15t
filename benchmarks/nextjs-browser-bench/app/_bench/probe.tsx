@@ -3,7 +3,13 @@
 import { useActiveUI, useSnapshot } from '@c15t/nextjs';
 import { useEffect, useRef } from 'react';
 
-import { getState, hasRunningAnimations, isElementVisible } from './state';
+import {
+	getState,
+	hasRunningAnimations,
+	isElementVisible,
+	isPolicySettled,
+	readPromptKind,
+} from './state';
 import type { NextjsBenchScenario } from './state';
 
 const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
@@ -48,13 +54,14 @@ export const NextjsBenchmarkProbe = ({
 		if (state) {
 			state.renderCount = renderRef.current;
 			state.overrides = { ...snapshot.overrides };
+			state.privacySignals = snapshot.privacySignals;
 			state.location = snapshot.location
 				? {
 						countryCode: snapshot.location.countryCode,
 						regionCode: snapshot.location.regionCode,
 					}
 				: null;
-			state.hasConsented = snapshot.hasConsented;
+			state.hasStoredChoice = Boolean(snapshot.explicitChoice);
 		}
 	});
 
@@ -104,15 +111,24 @@ export const NextjsBenchmarkProbe = ({
 			return;
 		}
 
-		current.activeUI = activeUI ?? 'none';
+		const ui = activeUI ?? 'none';
+		current.activeUI = ui;
+		if (current.activeUiHistory.at(-1) !== ui) {
+			current.activeUiHistory.push(ui);
+		}
+		current.promptKind = readPromptKind(snapshot);
+		if (current.promptSettledMs === undefined && isPolicySettled(snapshot)) {
+			current.promptSettledMs = performance.now();
+		}
 		current.overrides = { ...snapshot.overrides };
+		current.privacySignals = snapshot.privacySignals;
 		current.location = snapshot.location
 			? {
 					countryCode: snapshot.location.countryCode,
 					regionCode: snapshot.location.regionCode,
 				}
 			: null;
-		current.hasConsented = snapshot.hasConsented;
+		current.hasStoredChoice = Boolean(snapshot.explicitChoice);
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}

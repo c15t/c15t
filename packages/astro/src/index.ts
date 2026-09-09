@@ -64,9 +64,9 @@ export type {
 	ConsentState,
 	KernelConfig,
 	LegalLinks,
-	PolicyConfig,
+	PolicyRule,
 	Script,
 	StorageConfig,
 } from '@c15t/core';
-export { policyPackPresets } from '@c15t/core';
+export { policyRulePresets } from '@c15t/core';
 export type { Theme } from '@c15t/ui/theme';

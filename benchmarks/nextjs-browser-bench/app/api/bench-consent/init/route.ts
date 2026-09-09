@@ -10,7 +10,7 @@ export const GET = async function GET() {
 	recordBenchConsentFixtureExecution('init');
 	await applyBenchConsentLatency();
 
-	return NextResponse.json(benchConsentInitResponse, {
+	return NextResponse.json(await benchConsentInitResponse, {
 		headers: {
 			'cache-control': 'no-store',
 		},

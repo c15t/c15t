@@ -39,6 +39,7 @@
  *   `img` nodes in the a11y tree; SVGs that convey meaning use `aria-label`.
  */
 
+// oxlint-disable-next-line oxc/no-barrel-file -- Storybooks share this public conformance entry point.
 export * from './a11y';
 export * from './computed-style';
 export * from './contract';

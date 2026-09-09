@@ -4,18 +4,281 @@ description: Pre-built consent banner shown when consent is required.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
 ## Usage
 
-TODO.
+```tsx
+// app/layout.tsx
+import { ConsentBanner, ConsentBoundary, ConsentDialog } from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+	const backendURL = process.env.C15T_BACKEND_URL;
+	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+	const config = prefetchInitialConsent({ backendURL });
+
+	return (
+		<html lang="en">
+			<body>
+				<ConsentBoundary config={config} backendURL={backendURL}>
+					{children}
+					<ConsentBanner />
+					<ConsentDialog />
+				</ConsentBoundary>
+			</body>
+		</html>
+	);
+}
+```
+
+The banner renders whatever the active policy rule requires. The server shell
+resolves the rule before the first paint and the client reads the same rule, so the same component serves every region:
+
+- A `choice` prompt shows the actions the rule allows: reject and accept at
+  equal prominence, plus customize when the rule offers it.
+- A `notice` prompt shows an "OK" button and a button styled as
+  underlined text, labeled "Do not sell or share my data". The latter opens
+  preferences. A notice never traps focus or locks scroll.
+- A rule with `prompt: 'none'` renders nothing.
+
+An opt-out rule with `prompt: 'none'` still has rights, so the preference
+center and the dialog trigger stay available as the route to preferences. A
+rule with `model: 'none'` owes no rights, so nothing renders unless you add
+`rights: ['preferences']`. With no resolved rule at all, because resolution
+failed, no rule matched and you set no default, or init is still withheld, no
+consent surface renders: not the banner, the dialog, the widget, the
+preferences link, or the trigger. They appear as soon as a rule resolves,
+without a remount. `offline()` without `policyRules` resolves the recommended
+pack, so it shows the strict opt-in banner until you pass a country.
+
+Acknowledging a notice records its dismissal. It does not record consent or
+change category permissions, including existing denials and privacy-signal
+restrictions. Customize the label through `common.acknowledge` in your
+translations, or use `dismissButtonText` for one banner.
+
+The additional preferences button uses the opt-out label when appropriate.
+A choice prompt without Customize renders a "Manage preferences" button.
+Both are button elements that open the preference center; CSS gives them
+an underlined text appearance. They do not submit an opt-out by themselves.
+
+`preferenceControls` recommends these extra buttons for the stock UI.
+It does not verify disclosure or access to rights. Configure your legal links
+and keep preferences reachable after the banner closes.
 
 ## Props
 
-TODO.
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | `ReactNode` | translation | Overrides the title. Under a notice the default is `cookieBanner.noticeTitle`. |
+| `description` | `ReactNode` | translation | Overrides the description. Under a notice the default is `cookieBanner.noticeDescription`. |
+| `acceptButtonText` | `ReactNode` | `common.acceptAll` | Accept label. |
+| `rejectButtonText` | `ReactNode` | `common.rejectAll` | Reject label. |
+| `customizeButtonText` | `ReactNode` | `common.customize` | Customize label. |
+| `dismissButtonText` | `ReactNode` | `common.acknowledge` | Label of the notice acknowledgement. |
+| `variant` | `PromptVariant` | `floating` | Shape of the prompt. See [Variants](#variants). |
+| `position` | `PromptPosition` | per variant | Where the prompt sits. Must be valid for the variant. |
+| `blocking` | `boolean` | `true` on `wall` | Backdrop, scroll lock, focus trap, and no outside dismissal, as one value. |
+| `layout` | `ConsentBannerLayout` | policy default | Orders and groups actions. Required actions the layout omits are restored. |
+| `primaryButton` | `ConsentBannerButton \| ConsentBannerButton[]` | `'customize'` | Which actions get the primary treatment. On a notice, dismiss is primary when it is the only action. |
+| `direction` | `'row' \| 'column'` | `'row'` | How action groups flow. |
+| `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which configured legal links render inline. |
+| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `scrollLock` | `boolean` | unset | Deprecated. Use `blocking` to control scrolling, focus and backdrop together. |
+| `trapFocus` | `boolean` | unset | Deprecated. Use `blocking`. |
+| `disableAnimation` | `boolean` | `false` | Skips enter and exit animations. |
+| `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
+
+## Per-policy buttons
+
+The default already makes Customize primary on a choice banner and OK
+primary on a notice. To set button order and treatment for specific rules,
+read the active policy inside the provider:
+
+```tsx
+'use client';
+
+import { ConsentBanner, usePolicyRule } from '@c15t/react';
+import type { ConsentBannerProps } from '@c15t/react';
+
+const banners: Record<
+	string,
+	Pick<ConsentBannerProps, 'layout' | 'primaryButton' | 'variant'>
+> = {
+	europe_opt_in: {
+		layout: [['reject', 'accept'], 'customize'],
+		primaryButton: 'customize',
+	},
+	us_privacy_states: {
+		layout: ['dismiss'],
+		primaryButton: 'dismiss',
+		variant: 'bar',
+	},
+};
+
+export function RegionalBanner() {
+	const policy = usePolicyRule();
+	return <ConsentBanner {...(policy ? banners[policy.id] : undefined)} />;
+}
+```
+
+Render `RegionalBanner` inside `ConsentProvider`. The layout controls the
+action groups; the opt-out preferences button still appears on a notice.
+Required actions omitted from a layout are restored. Accept and Reject
+keep equivalent default prominence.
+
+Choose one brand color and make whichever action is primary use a filled
+button through the provider's theme:
+
+```ts
+const theme = {
+	colors: { primary: '#2f6f4e', primaryHover: '#24563c' },
+	consentActions: {
+		primary: { variant: 'primary', mode: 'filled' },
+	},
+} as const;
+```
+
+Pass `theme` in `ConsentProvider` options. Per-action theme overrides such
+as `consentActions.dismiss` take precedence over this primary style.
+See [Styling](../styling/overview) for tokens and slots, and
+[Policy presets](../concepts/policy-presets) for the rule IDs and coverage.
+
+## Variants
+
+The policy decides which actions the banner offers. The variant decides the
+shape those actions take. Both come from the same component, so a bar for a
+notice region and a card for an opt-in region need no extra components.
+
+Set the variant on the banner, or on the provider under
+`presentation.prompt` when every banner should share it. The prop wins.
+
+```tsx
+<ConsentBanner variant="floating" position="bottom-center" />
+```
+
+A floating card in a corner or centered on an edge. This is the default for
+every prompt. A notice keeps the same card, with its right link and "OK" in the footer.
+
+```tsx
+<ConsentBanner variant="bar" position="top" />
+```
+
+A bar across the full width of the viewport. From 1024px wide the text, the
+right links, and the controls share one row. Opt in to it for regions that
+expect a classic cookie bar.
+
+```tsx
+<ConsentBanner variant="widget" position="bottom-right" />
+```
+
+A compact card with smaller type. The full description and its legal links
+remain visible. Pair it with a short notice.
+
+```tsx
+<ConsentBanner variant="wall" />
+```
+
+A centered card over a backdrop that blocks the page until the visitor
+answers. A wall is always blocking.
+
+Each variant accepts its own positions:
+
+| Variant | Positions | Default |
+| --- | --- | --- |
+| `floating` | `bottom-left`, `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` | `bottom-left` |
+| `bar` | `top`, `bottom` | `bottom` |
+| `widget` | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-right` |
+| `wall` | `center` | `center` |
+
+A default corner mirrors left and right for right-to-left languages. A
+position you set is never mirrored. A position that is not valid for the
+variant falls back to the default and logs an `invalid-position` diagnostic
+in development.
+
+`blocking` controls the backdrop, scroll lock, and focus trap together.
+An explicit value overrides the deprecated `scrollLock` and `trapFocus`
+options. Without `blocking`, either legacy option set to `false` selects
+non-blocking behavior; otherwise a legacy `true` selects blocking behavior.
+
+A choice `wall` always blocks. Notices always stay non-blocking, and asking
+for a notice `wall` falls back to `floating` with an `invalid-variant`
+diagnostic. Blocking banners carry `role="dialog"` and `aria-modal="true"`.
+Non-blocking banners leave page controls usable by keyboard and pointer.
+
+`PromptVariant` and `PromptPosition` are exported from `@c15t/nextjs`.
+Compound parts can read the resolved shape with `useConsentBannerSurface()`,
+which returns `variant`, `position`, `positionSource` (`host` or `default`),
+and `blocking`.
 
 ## Composition
 
-TODO.
+Every part is available as `ConsentBanner.<Part>` for custom layouts. The
+parts read the same policy state the pre-built banner does, so a custom layout
+still gets the right actions for the active rule.
+
+```tsx
+import { ConsentBanner } from '@c15t/nextjs';
+
+export function CompactBanner() {
+	return (
+		<ConsentBanner.Root>
+			<ConsentBanner.Card>
+				<ConsentBanner.Header>
+					<ConsentBanner.Title />
+					<ConsentBanner.Description />
+				</ConsentBanner.Header>
+				<ConsentBanner.PolicyActions />
+			</ConsentBanner.Card>
+		</ConsentBanner.Root>
+	);
+}
+```
+
+`ConsentBanner.PolicyActions` renders the resolved action groups and, before
+them, the additional preferences buttons. Pass children to replace those
+buttons while retaining the policy action groups. This supports custom labels
+and button markup.
+
+Use the individual parts when you need a different order or your own markup:
+
+- `ConsentBanner.AcceptButton`, `ConsentBanner.RejectButton`,
+  `ConsentBanner.CustomizeButton`, and `ConsentBanner.DismissButton` render one
+  action each. `DismissButton` defaults its label to `common.acknowledge`.
+- `ConsentBanner.Rights` renders the additional preferences buttons. It
+  renders nothing when the list is empty. Pass `rights` to override the
+  list.
+- `ConsentBanner.RightLink` renders a single right. `right` is `'opt-out'`
+  or `'preferences'`. By default it is a button element styled as an
+  underlined text link, carrying `data-action="right"` and `data-right`; it
+  opens the preference center on click and accepts `asChild` to render your
+  own element, such as an anchor to a dedicated opt-out page.
+
+```tsx
+<ConsentBanner.Rights>
+	<ConsentBanner.RightLink right="opt-out" asChild>
+		<a href="/privacy/do-not-sell">Do not sell or share my data</a>
+	</ConsentBanner.RightLink>
+</ConsentBanner.Rights>
+```
+
+`useBannerCopy()` returns the title, description, and prompt kind the banner
+would use, for custom headers that still follow the notice copy.
+
+## Data attributes
+
+The root element carries attributes you can target from CSS or Tailwind. The
+card carries `data-state` (`open` or `closed`) for the enter and exit
+animations.
+
+| Attribute | Values |
+| --- | --- |
+| `data-prompt` | `choice`, `notice` |
+| `data-model` | `opt-in`, `opt-out`, `iab` |
+| `data-variant` | `floating`, `bar`, `widget`, `wall` |
+| `data-position` | The resolved position for the variant |
+| `data-blocking` | `true`, present only while blocking |
+
+Each action button carries `data-action`, and each right link carries
+`data-action="right"` plus `data-right`. The built-in stylesheet keys every
+variant's geometry on `data-variant` and `data-position`, and uses
+`data-prompt="notice"` to lay the footer out as one row with the right
+links leading and "OK" trailing.

@@ -1,33 +1,5 @@
-:root {
-	/* Layout variables */
-	--accordion-padding: var(--c15t-space-md);
-	--accordion-radius: var(--c15t-radius-md);
-	--accordion-duration: var(--c15t-duration-normal);
-	--accordion-ease: var(--c15t-easing);
-
-	/* Icon sizes */
-	--accordion-icon-size: 1.25rem;
-
-	/* Colors */
-	--accordion-background-color: var(--c15t-surface);
-	--accordion-background-color-dark: var(--c15t-surface);
-	--accordion-background-hover: var(--c15t-surface-hover);
-	--accordion-background-hover-dark: var(--c15t-surface-hover);
-	--accordion-border-color: var(--c15t-border);
-	--accordion-border-color-dark: var(--c15t-border);
-	--accordion-text-color: var(--c15t-text);
-	--accordion-text-color-dark: var(--c15t-text);
-	--accordion-icon-color: var(--c15t-text-muted);
-	--accordion-icon-color-dark: var(--c15t-text-muted);
-	--accordion-arrow-color: var(--c15t-text-muted);
-	--accordion-arrow-color-dark: var(--c15t-text-muted);
-	--accordion-content-color: var(--c15t-text-muted);
-	--accordion-content-color-dark: var(--c15t-text-muted);
-	--accordion-focus-ring: var(--c15t-primary);
-	--accordion-focus-ring-dark: var(--c15t-primary);
-	--accordion-focus-shadow: 0 0 0 2px var(--accordion-focus-ring);
-	--accordion-focus-shadow-dark: 0 0 0 2px var(--accordion-focus-ring-dark);
-}
+/* Resolve defaults at use sites so imports cannot override one another.
+   Host custom properties and scoped theme tokens remain inherited. */
 
 @layer components {
 	.root {
@@ -40,49 +12,78 @@
 
 	.item {
 		position: relative;
-		padding: var(--accordion-padding);
-		background-color: var(--accordion-background-color);
-		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+		padding: var(--accordion-padding, var(--c15t-space-md));
+		background-color: var(--accordion-background-color, var(--c15t-surface));
+		box-shadow: inset 0 0 0 1px
+			var(--accordion-border-color, var(--c15t-border));
 		transition:
-			background-color var(--accordion-duration) var(--accordion-ease),
-			box-shadow var(--accordion-duration) var(--accordion-ease);
-		border-radius: var(--accordion-radius);
+			background-color var(--accordion-duration, var(--c15t-duration-normal))
+				var(--accordion-ease, var(--c15t-easing)),
+			box-shadow var(--accordion-duration, var(--c15t-duration-normal))
+				var(--accordion-ease, var(--c15t-easing));
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
 		overflow: visible;
 	}
 
 	:global(.c15t-dark) .item {
-		background-color: var(--accordion-background-color-dark);
-		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+		background-color: var(
+			--accordion-background-color-dark,
+			var(--c15t-surface)
+		);
+		box-shadow: inset 0 0 0 1px
+			var(--accordion-border-color-dark, var(--c15t-border));
 	}
 
 	.item:is(:hover, [data-state='open']) {
-		background-color: var(--accordion-background-hover);
-		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+		background-color: var(
+			--accordion-background-hover,
+			var(--c15t-surface-hover)
+		);
+		box-shadow: inset 0 0 0 1px
+			var(--accordion-border-color, var(--c15t-border));
 	}
 
 	:global(.c15t-dark) .item:is(:hover, [data-state='open']) {
-		background-color: var(--accordion-background-hover-dark);
-		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+		background-color: var(
+			--accordion-background-hover-dark,
+			var(--c15t-surface-hover)
+		);
+		box-shadow: inset 0 0 0 1px
+			var(--accordion-border-color-dark, var(--c15t-border));
 	}
 
 	/* Focus styles for item */
 	.item:focus-within:not(:has(.triggerInner:focus-visible)) {
-		background-color: var(--accordion-background-hover);
-		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+		background-color: var(
+			--accordion-background-hover,
+			var(--c15t-surface-hover)
+		);
+		box-shadow: inset 0 0 0 1px
+			var(--accordion-border-color, var(--c15t-border));
 	}
 
 	:global(.c15t-dark)
 		.item:focus-within:not(:has(.triggerInner:focus-visible)) {
-		background-color: var(--accordion-background-hover-dark);
-		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+		background-color: var(
+			--accordion-background-hover-dark,
+			var(--c15t-surface-hover)
+		);
+		box-shadow: inset 0 0 0 1px
+			var(--accordion-border-color-dark, var(--c15t-border));
 	}
 
 	.item:has(.triggerInner:focus-visible) {
-		box-shadow: var(--accordion-focus-shadow);
+		box-shadow: var(
+			--accordion-focus-shadow,
+			0 0 0 2px var(--accordion-focus-ring, var(--c15t-primary))
+		);
 	}
 
 	:global(.c15t-dark) .item:has(.triggerInner:focus-visible) {
-		box-shadow: var(--accordion-focus-shadow-dark);
+		box-shadow: var(
+			--accordion-focus-shadow-dark,
+			0 0 0 2px var(--accordion-focus-ring-dark, var(--c15t-primary))
+		);
 	}
 
 	.trigger {
@@ -107,11 +108,11 @@
 		letter-spacing: -0.006em;
 		font-weight: 500;
 		text-align: left;
-		color: var(--accordion-text-color);
+		color: var(--accordion-text-color, var(--c15t-text));
 		border: 0;
 		background: none;
 		cursor: pointer;
-		border-radius: var(--accordion-radius);
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
 		position: relative;
 		z-index: 1;
 		touch-action: manipulation;
@@ -122,7 +123,7 @@
 	}
 
 	:global(.c15t-dark) .triggerInner {
-		color: var(--accordion-text-color-dark);
+		color: var(--accordion-text-color-dark, var(--c15t-text));
 	}
 
 	.triggerInner:focus-visible {
@@ -130,48 +131,49 @@
 	}
 
 	.icon {
-		width: var(--accordion-icon-size);
-		height: var(--accordion-icon-size);
-		color: var(--accordion-icon-color);
+		width: var(--accordion-icon-size, 1.25rem);
+		height: var(--accordion-icon-size, 1.25rem);
+		color: var(--accordion-icon-color, var(--c15t-text-muted));
 		flex-shrink: 0;
 	}
 
 	:global(.c15t-dark) .icon {
-		color: var(--accordion-icon-color-dark);
+		color: var(--accordion-icon-color-dark, var(--c15t-text-muted));
 	}
 
 	.arrowOpen,
 	.arrowClose {
 		display: block;
-		width: var(--accordion-icon-size);
-		height: var(--accordion-icon-size);
-		transition: color var(--accordion-duration) var(--accordion-ease);
+		width: var(--accordion-icon-size, 1.25rem);
+		height: var(--accordion-icon-size, 1.25rem);
+		transition: color var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
 		flex-shrink: 0;
 	}
 
 	.arrowOpen {
-		color: var(--accordion-arrow-color);
+		color: var(--accordion-arrow-color, var(--c15t-text-muted));
 	}
 
 	:global(.c15t-dark) .arrowOpen {
-		color: var(--accordion-arrow-color-dark);
+		color: var(--accordion-arrow-color-dark, var(--c15t-text-muted));
 	}
 
 	.item:hover .arrowOpen {
-		color: var(--accordion-icon-color);
+		color: var(--accordion-icon-color, var(--c15t-text-muted));
 	}
 
 	:global(.c15t-dark) .item:hover .arrowOpen {
-		color: var(--accordion-icon-color-dark);
+		color: var(--accordion-icon-color-dark, var(--c15t-text-muted));
 	}
 
 	.arrowClose {
-		color: var(--accordion-icon-color);
+		color: var(--accordion-icon-color, var(--c15t-text-muted));
 		display: none;
 	}
 
 	:global(.c15t-dark) .arrowClose {
-		color: var(--accordion-icon-color-dark);
+		color: var(--accordion-icon-color-dark, var(--c15t-text-muted));
 	}
 
 	.item[data-state='open'] .arrowOpen {
@@ -186,8 +188,9 @@
 		display: grid;
 		grid-template-rows: 0fr;
 		overflow: hidden;
-		transition: grid-template-rows var(--accordion-duration)
-			var(--accordion-ease);
+		transition: grid-template-rows
+			var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
 	}
 
 	.content[data-state='open'] {
@@ -207,13 +210,17 @@
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		letter-spacing: -0.006em;
-		color: var(--accordion-content-color);
+		color: var(--accordion-content-color, var(--c15t-text-muted));
 		padding-top: 0.75rem;
 		opacity: 1;
 		transform: translateY(0);
 		transition:
-			opacity calc(var(--accordion-duration) * 0.35) ease-out,
-			transform calc(var(--accordion-duration) * 0.35) ease-out;
+			opacity
+				calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
+				ease-out,
+			transform
+				calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
+				ease-out;
 		will-change: opacity, transform;
 	}
 
@@ -223,7 +230,7 @@
 	}
 
 	:global(.c15t-dark) .contentInner {
-		color: var(--accordion-content-color-dark);
+		color: var(--accordion-content-color-dark, var(--c15t-text-muted));
 	}
 
 	/* Reduced motion preference */
@@ -239,11 +246,11 @@
 	/* Touch device hover reset - prevents "sticky" hover on tap */
 	@media (hover: none) {
 		.item:hover {
-			background-color: var(--accordion-background-color);
+			background-color: var(--accordion-background-color, var(--c15t-surface));
 		}
 
 		.item:hover .arrowOpen {
-			color: var(--accordion-arrow-color);
+			color: var(--accordion-arrow-color, var(--c15t-text-muted));
 		}
 	}
 }

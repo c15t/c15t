@@ -10,34 +10,74 @@ import { describe, expect, test } from 'vitest';
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {
-	test('no policy packs → returns shared default opt-in policy', async () => {
+	test('no rules resolve the recommended pack', async () => {
 		const transport = createOfflineTransport();
-		const response = await transport.init?.({
-			overrides: {},
+		const unknown = await transport.init?.({ overrides: {}, user: null });
+		expect(unknown?.policyResolution).toMatchObject({
+			matchedBy: 'fallback',
+			policyId: 'europe_opt_in',
+			status: 'matched',
+		});
+		expect(unknown?.branding).toBe('c15t');
+		expect(unknown?.translations?.language).toBe('en');
+		const germany = await transport.init?.({
+			overrides: { country: 'DE' },
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('default-opt-in');
-		expect(response?.policy?.model).toBe('opt-in');
-		expect(response?.policy?.ui?.mode).toBe('banner');
-		expect(response?.policy?.consent?.categories).toEqual([
-			'necessary',
-			'functionality',
-			'marketing',
-			'measurement',
-			'experience',
-		]);
-		expect(response?.branding).toBe('c15t');
-		expect(response?.translations?.language).toBe('en');
+		expect(germany?.policyResolution).toMatchObject({
+			policyId: 'europe_opt_in',
+		});
+		const southDakota = await transport.init?.({
+			overrides: { country: 'US', region: 'SD' },
+			user: null,
+		});
+		expect(southDakota?.policyResolution).toMatchObject({
+			policy: { model: 'none', prompt: 'none', rights: [] },
+			policyId: 'world_none',
+		});
 	});
 
-	test('empty policy packs → returns shared default opt-in policy', async () => {
-		const transport = createOfflineTransport({ policyPacks: [] });
+	test('iabEnabled selects the IAB Europe rule in the recommended pack', async () => {
+		const transport = createOfflineTransport({ iabEnabled: true });
+		const response = await transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		expect(response?.policyResolution).toMatchObject({
+			policyId: 'europe_iab',
+		});
+	});
+
+	test('a missing US state uses opt-out with persistent preferences and GPC', async () => {
+		const response = await createOfflineTransport().init({
+			overrides: { country: 'US' },
+			user: null,
+		});
+		expect(response.policyResolution).toMatchObject({
+			matchedBy: 'fallback',
+			policy: {
+				model: 'opt-out',
+				privacySignals: {
+					gpc: { denyCategories: ['marketing', 'measurement'] },
+				},
+				prompt: 'none',
+				rights: ['disclosure', 'opt-out', 'preferences'],
+			},
+			policyId: 'us_privacy_states_opt_out',
+		});
+	});
+
+	test('empty rules report no-match', async () => {
+		const transport = createOfflineTransport({ policyRules: [] });
 		const response = await transport.init?.({
 			overrides: {},
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('default-opt-in');
-		expect(response?.policy?.ui?.mode).toBe('banner');
+		expect(response?.policyResolution).toEqual({
+			policy: null,
+			status: 'no-match',
+			version: 1,
+		});
 	});
 
 	test('custom defaultLanguage + branding honored', async () => {
@@ -76,14 +116,14 @@ describe('createOfflineTransport: basic behavior', () => {
 });
 
 describe('createOfflineTransport: policy-pack resolution', () => {
-	test('matching policy pack drives policy UI mode', async () => {
+	test('matching rule drives model and prompt', async () => {
 		const transport = createOfflineTransport({
-			policyPacks: [
+			policyRules: [
 				{
-					consent: { model: 'opt-in' },
 					id: 'gdpr',
 					match: { countries: ['DE'] },
-					ui: { mode: 'banner' },
+					model: 'opt-in',
+					prompt: 'choice',
 				},
 			],
 		});
@@ -91,19 +131,20 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 			overrides: { country: 'DE' },
 			user: null,
 		});
-		expect(response?.policy?.ui?.mode).toBe('banner');
-		expect(response?.policy).toBeDefined();
-		expect(response?.policyDecision).toBeDefined();
+		expect(response?.policyResolution).toMatchObject({
+			policy: { id: 'gdpr', model: 'opt-in', prompt: 'choice' },
+			status: 'matched',
+		});
 	});
 
-	test('non-matching override returns no-banner fallback policy', async () => {
+	test('non-matching location reports no-match', async () => {
 		const transport = createOfflineTransport({
-			policyPacks: [
+			policyRules: [
 				{
-					consent: { model: 'opt-in' },
 					id: 'gdpr',
 					match: { countries: ['DE'] },
-					ui: { mode: 'banner' },
+					model: 'opt-in',
+					prompt: 'choice',
 				},
 			],
 		});
@@ -111,8 +152,11 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 			overrides: { country: 'US' },
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('no_banner');
-		expect(response?.policy?.ui?.mode).toBe('none');
+		expect(response?.policyResolution).toEqual({
+			policy: null,
+			status: 'no-match',
+			version: 1,
+		});
 	});
 });
 
@@ -121,12 +165,12 @@ describe('createOfflineTransport: kernel integration', () => {
 		const kernel = createConsentKernel({
 			initialOverrides: { country: 'DE' },
 			transport: createOfflineTransport({
-				policyPacks: [
+				policyRules: [
 					{
-						consent: { model: 'opt-in' },
 						id: 'gdpr',
 						match: { countries: ['DE'] },
-						ui: { mode: 'banner' },
+						model: 'opt-in',
+						prompt: 'choice',
 					},
 				],
 			}),
@@ -136,7 +180,7 @@ describe('createOfflineTransport: kernel integration', () => {
 		expect(snap.activeUI).toBe('banner');
 		expect(snap.model).toBe('opt-in');
 		expect(snap.location).toEqual({ countryCode: 'DE', regionCode: null });
-		expect(snap.policy).toBeDefined();
+		expect(snap.policyRule.id).toBe('gdpr');
 		expect(snap.translations).toBeDefined();
 	});
 
@@ -146,7 +190,11 @@ describe('createOfflineTransport: kernel integration', () => {
 		});
 		const result = await kernel.commands.save('all');
 		expect(result.ok).toBe(true);
-		expect(result.subjectId).toBe(kernel.getSnapshot().subjectId);
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(result.subjectId).toBe(
+			kernel.getSnapshot().subject?.subjectId ?? null
+		);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 	});
 });

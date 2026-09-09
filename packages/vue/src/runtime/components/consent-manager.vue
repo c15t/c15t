@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
-import type { PolicyUiAction } from '@c15t/schema/types';
-import accordionStyles from '@c15t/ui/styles/components/accordion';
+import type { PresentationAction } from '@c15t/core';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
-import managerStyles from '@c15t/ui/styles/components/consent-manager';
-import { DEFAULT_POLICY_ACTION_LAYOUT, getTextDirection } from '@c15t/ui/utils';
-import { computed, mergeProps, nextTick, ref, watch } from 'vue';
+import { getTextDirection } from '@c15t/ui/utils';
+import { computed, nextTick, onUnmounted, provide, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 
 import {
@@ -14,41 +10,41 @@ import {
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
-	useHasConsent,
+	useConsentSnapshot,
+	useHasConsentUi,
 } from '../composables';
+import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import {
-	AccordionContent,
-	AccordionHeader,
-	AccordionItem,
-	AccordionRoot,
-	AccordionTrigger,
 	DialogContent,
 	DialogOverlay,
 	DialogPortal,
 	DialogRoot,
 } from '../primitives';
-import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
-import ConsentSwitch from './consent-switch.vue';
 import ConsentTag from './consent-tag.vue';
+import { consentWidgetManagerKey } from './consent-widget-manager-context';
+import ConsentWidget from './consent-widget.vue';
 
 const init = useConsentInit();
-const granted = useHasConsent();
+const textDirection = computed(() =>
+	getTextDirection(init.value?.translations?.language)
+);
+
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
-/** The shared default layout, flattened into the groups it describes. */
-const DEFAULT_ACTIONS: PolicyUiAction[][] = DEFAULT_POLICY_ACTION_LAYOUT.map(
-	(group) => (Array.isArray(group) ? group : [group])
-);
-const surface = computed(() => init.value?.policy?.ui?.dialog);
-const { actionGroups, direction, primaryActions, shouldFillActions } =
-	useConsentPolicyActions(surface);
-const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
-	{} as Record<CONSENT_CATEGORY, boolean>
-);
+const snapshot = useConsentSnapshot();
+// No resolved policy means nothing to manage: render no surface at all.
+const hasConsentUi = useHasConsentUi();
+
+const { presentation: surface } = useConsentPolicyActions('preferences');
+let pendingActions = 0;
+let actionSequence = 0;
+let applyingSave = false;
+const draftState = useConsentDraft(() => pendingActions === 0);
+const { isStale, reset: resetDraft, save: saveDraft } = draftState;
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
@@ -88,112 +84,90 @@ watch(
 );
 
 useConsentScrollLock(
-	computed(
-		() =>
-			activeUI.value === 'manager' &&
-			Boolean(init.value?.policy?.ui?.dialog?.scrollLock)
-	)
+	computed(() => activeUI.value === 'manager' && surface.value.scrollLock)
 );
-
-const consentTitle = function consentTitle(category: CONSENT_CATEGORY) {
-	const types = init.value?.translations?.translations?.consentTypes as
-		| Record<string, { title?: string }>
-		| undefined;
-	const title = types?.[category]?.title;
-	if (title) {
-		return title;
-	}
-
-	return category
-		.replace(/_/gu, ' ')
-		.replace(/\b\w/gu, (character) => character.toUpperCase());
-};
-
-const reset = function reset() {
-	const categories = getConsentAvailableCategories(
-		init.value,
-		config.value.consentCategories
-	);
-
-	const grantedSet = new Set(granted.value);
-	const next = {} as Record<CONSENT_CATEGORY, boolean>;
-	for (const category of categories) {
-		next[category] = category === 'necessary' || grantedSet.has(category);
-	}
-	draft.value = next;
-};
 
 watch(
 	activeUI,
 	(ui) => {
 		if (ui === 'manager') {
-			reset();
+			resetDraft();
 		}
 	},
 	{ immediate: true }
 );
 
-const labels = computed(() => {
-	const common = init.value?.translations?.translations?.common;
-	return {
-		accept: common?.acceptAll ?? 'Accept all',
-		customize: common?.save ?? 'Save',
-		reject: common?.rejectAll ?? 'Reject all',
-	} as const;
+// A local receipt can hide the kernel prompt before its transport settles.
+// Explicit close/reopen and newer actions invalidate the older completion.
+watch(
+	activeUI,
+	(ui) => {
+		if (!applyingSave && ui !== 'manager') {
+			actionSequence += 1;
+		}
+	},
+	{ flush: 'sync' }
+);
+onUnmounted(() => {
+	actionSequence += 1;
 });
 
-const actionTestIds = {
-	accept: 'consent-widget-footer-accept-all-button',
-	customize: 'consent-widget-footer-save-button',
-	reject: 'consent-widget-reject-button',
-} as const;
-
-// The footer and the action root are one element, so both slots merge
-// onto it.
-const textDirection = computed(() =>
-	getTextDirection(init.value?.translations?.language)
-);
-
-const footerAttrs = computed(() =>
-	mergeProps(
-		(config.value.components?.manager?.footer ?? {}) as Record<string, unknown>,
-		(config.value.components?.manager?.actions ?? {}) as Record<string, unknown>
-	)
-);
-
-const savePreferences = function savePreferences() {
-	const selected = Object.entries(draft.value)
-		.filter(([, enabled]) => enabled)
-		.map(([category]) => category as CONSENT_CATEGORY);
-	save(selected);
-};
-
-const onAction = function onAction(action: PolicyUiAction) {
-	if (action === 'customize') {
-		savePreferences();
-		activeUI.value = null;
-		return;
-	}
-	if (action === 'accept') {
-		save('all');
-		activeUI.value = null;
-		return;
-	}
-	if (action === 'reject') {
-		save('none');
-		activeUI.value = null;
+const onAction = async function onAction(action: PresentationAction) {
+	actionSequence += 1;
+	const sequence = actionSequence;
+	const preserveManager = activeUI.value === 'manager';
+	pendingActions += 1;
+	try {
+		applyingSave = true;
+		let pending;
+		try {
+			if (action === 'save') {
+				pending = saveDraft();
+			} else if (action === 'accept') {
+				pending = save('all');
+			} else if (action === 'reject') {
+				pending = save('none');
+			}
+			if (preserveManager && sequence === actionSequence) {
+				activeUI.value = 'manager';
+			}
+		} finally {
+			applyingSave = false;
+		}
+		const result = await pending;
+		if (result?.ok && preserveManager && sequence === actionSequence) {
+			activeUI.value =
+				snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
+		}
+	} finally {
+		pendingActions -= 1;
 	}
 };
+provide(consentWidgetManagerKey, { draft: draftState, onAction });
 </script>
 
 <template>
+	<div
+		v-if="hasConsentUi && isStale"
+		role="status"
+	>
+		Privacy choices have changed.
+		<button
+			type="button"
+			@click="resetDraft"
+		>
+			Review updated choices
+		</button>
+	</div>
 	<DialogRoot
+		v-if="hasConsentUi"
 		:open="activeUI === 'manager'"
-		:modal="config.trapFocus"
+		:modal="surface.blocking"
 		@update:open="(open) => (activeUI = open ? 'manager' : null)"
 	>
 		<DialogPortal>
 			<DialogOverlay
+				v-if="surface.blocking"
 				:style="overlayFallbackStyle"
 				v-bind="config.components?.dialog?.overlay"
 				data-testid="consent-dialog-overlay"
@@ -213,11 +187,15 @@ const onAction = function onAction(action: PolicyUiAction) {
 			<div
 				v-bind="config.components?.dialog?.root"
 				data-mode="dialog"
+				data-slot="dialog-positioner"
 				:class="dialogStyles.root"
 				:data-disable-animation="disableAnimation ? true : undefined"
+				aria-labelledby="consent-dialog-title"
+				aria-describedby="consent-dialog-description"
 			>
 				<DialogContent
 					v-bind="config.components?.dialog?.container"
+					:data-blocking="surface.blocking ? 'true' : undefined"
 					data-testid="consent-dialog-root"
 					:dir="textDirection"
 					:class="[dialogStyles.container, dialogStyles.contentVisible]"
@@ -252,149 +230,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 							data-testid="consent-dialog-content"
 							:class="dialogStyles.content"
 						>
-							<div
-								v-bind="config.components?.manager?.root"
-								data-testid="consent-widget-root"
-								:dir="textDirection"
-								:class="managerStyles.manager"
-								:data-disable-animation="
-									config?.disableAnimation ? true : undefined
-								"
-							>
-								<AccordionRoot
-									v-bind="
-										config.components?.accordion?.root as Omit<
-											HTMLAttributes,
-											'dir'
-										>
-									"
-									type="single"
-									collapsible
-									:unmount-on-hide="false"
-									data-testid="consent-widget-accordion"
-									:class="accordionStyles.list"
-								>
-									<AccordionItem
-										v-for="(_enabled, category) in draft"
-										:key="category"
-										:value="category"
-										v-bind="config.components?.['accordion-item']?.root"
-										:data-testid="`consent-widget-accordion-item-${category}`"
-										:unmount-on-hide="false"
-										:class="accordionStyles.item"
-									>
-										<AccordionHeader as-child>
-											<div
-												v-bind="config.components?.accordion?.triggerRow"
-												:class="accordionStyles.triggerRow"
-											>
-												<AccordionTrigger
-													as-child
-													v-bind="
-														config.components?.['accordion-item']?.trigger
-													"
-													:data-testid="`consent-widget-accordion-trigger-${category}`"
-												>
-													<button
-														type="button"
-														:class="accordionStyles.trigger"
-													>
-														<span
-															v-bind="config.components?.accordion?.arrow"
-															:class="accordionStyles.arrow"
-															:data-testid="`consent-widget-accordion-arrow-${category}`"
-														>
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-linecap="round"
-																stroke-linejoin="round"
-																stroke-width="2"
-															>
-																<title>Open</title>
-																<path d="M5 12h14M12 5v14" />
-															</svg>
-														</span>
-														<span
-															v-bind="config.components?.accordion?.header"
-															:class="accordionStyles.header"
-														>
-															<h3
-																v-bind="config.components?.accordion?.title"
-																:class="accordionStyles.title"
-															>
-																{{ consentTitle(category) }}
-															</h3>
-														</span>
-													</button>
-												</AccordionTrigger>
-												<div
-													v-bind="config.components?.accordion?.control"
-													:class="accordionStyles.control"
-												>
-													<ConsentSwitch
-														size="small"
-														v-model="draft[category]"
-														:disabled="category === 'necessary'"
-														:aria-label="consentTitle(category)"
-														:data-testid="`consent-widget-switch-${category}`"
-													/>
-												</div>
-											</div>
-										</AccordionHeader>
-										<AccordionContent
-											v-bind="config.components?.['accordion-item']?.content"
-											:data-testid="`consent-widget-accordion-content-${category}`"
-											:class="accordionStyles.content"
-										>
-											<div
-												v-bind="config.components?.accordion?.contentViewport"
-												:class="accordionStyles.contentViewport"
-											>
-												<div
-													v-bind="config.components?.accordion?.contentInner"
-													:class="accordionStyles.contentInner"
-												>
-													{{
-														(
-															init?.translations?.translations
-																?.consentTypes as Record<
-																string,
-																{ description?: string }
-															>
-														)?.[category]?.description
-													}}
-												</div>
-											</div>
-										</AccordionContent>
-									</AccordionItem>
-								</AccordionRoot>
-								<!-- The footer is the action root, as it is in
-								     React: one element carrying both class sets
-								     rather than an extra wrapper. -->
-								<ConsentActions
-									:action-groups="
-										actionGroups.length ? actionGroups : DEFAULT_ACTIONS
-									"
-									:direction="direction"
-									:ui-profile="surface?.uiProfile"
-									:primary-actions="primaryActions"
-									:fill="shouldFillActions"
-									:labels="labels"
-									:test-ids="actionTestIds"
-									root-test-id="consent-widget-footer"
-									group-test-id="consent-widget-footer-sub-group"
-									:root-class="managerStyles.footer"
-									:root-attrs="footerAttrs"
-									:group-attrs="
-										config.components?.manager?.actionGroup as
-											object | undefined
-									"
-									@action="onAction"
-								/>
-							</div>
+							<ConsentWidget />
 						</div>
 						<ConsentTag
 							v-if="!(config.dialogHideBranding ?? config.hideBranding)"

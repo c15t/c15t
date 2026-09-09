@@ -29,5 +29,6 @@
 export * from '@c15t/react';
 export type { ConsentBoundaryProps } from './boundary';
 export { ConsentBoundary } from './boundary';
+export type { InitialConsentConfig } from './types';
 export type { ConsentConfig } from './config';
 export { defineConsentConfig } from './config';

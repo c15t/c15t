@@ -657,4 +657,3 @@ on the median, negative is faster or smaller.
 | `cls` | 0.00 ratio | 0.00 ratio |
 | `longTaskTotalMs` | 62.00 ms | 120.00 ms |
 | `bannerInFirstHtml` | yes | |
-

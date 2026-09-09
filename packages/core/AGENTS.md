@@ -11,6 +11,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Store API](./docs/frameworks/javascript/api/overview.md): The consent store API for reading and setting consent.
 - [Building Framework Libraries](./docs/frameworks/javascript/building-ui.md): Build a framework adapter on top of the core consent store.
 - [Consent Categories](./docs/frameworks/javascript/concepts/consent-categories.md): How c15t groups cookies and scripts into consent categories.
+- [Policy presets](./docs/frameworks/javascript/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [DevTools](./docs/frameworks/javascript/dev-tools.md): Inspect a JavaScript consent kernel with the imperative DevTools API.
 - [IAB TCF](./docs/frameworks/javascript/iab/overview.md): Enable IAB TCF 2.3 with the core store.
 - [Quickstart](./docs/frameworks/javascript/quickstart.md): Add consent management to a vanilla JavaScript app.
@@ -28,3 +29,9 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Intercom](./docs/integrations/intercom.md): Load the Intercom messenger behind consent.
 - [Meta Pixel](./docs/integrations/meta-pixel.md): Load the Meta Pixel behind consent.
 - [Integrations](./docs/integrations/overview.md): Load analytics, pixels, tag managers, and widgets behind consent.
+
+## Reference
+
+Concepts, legal templates, open-source policies, and contributor documentation.
+
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.

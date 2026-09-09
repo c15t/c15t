@@ -191,15 +191,15 @@ const { scenario } = Astro.props;
 		if (!snapshot) {
 			return;
 		}
-		if (snapshot.hasConsented && !state.hasConsented) {
+		if (Boolean(snapshot.explicitChoice) && !state.hasConsented) {
 			state.onConsentSetCount += 1;
 		}
-		if (snapshot.policy && state.onBannerFetchedMs === undefined) {
+		if (snapshot.resolution.status === 'matched' && state.onBannerFetchedMs === undefined) {
 			state.onBannerFetchedCount += 1;
 			state.onBannerFetchedMs = performance.now();
 		}
 		state.activeUI = snapshot.activeUI ?? 'none';
-		state.hasConsented = snapshot.hasConsented;
+		state.hasConsented = Boolean(snapshot.explicitChoice);
 		state.location = snapshot.location
 			? {
 					countryCode: snapshot.location.countryCode,

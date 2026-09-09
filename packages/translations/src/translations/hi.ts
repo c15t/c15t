@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'सभी स्वीकार करें',
+		acknowledge: 'ठीक है',
 		close: 'बंद करें',
 		customize: 'अनुकूलित करें',
+		dismiss: 'बंद करें',
 		rejectAll: 'सभी अस्वीकार करें',
 		save: 'सेटिंग्स सेव करें',
 		securedBy: 'सुरक्षित द्वारा',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'यह साइट आपके ब्राउज़िंग अनुभव को बेहतर बनाने, साइट ट्रैफ़िक का विश्लेषण करने और व्यक्तिगत सामग्री दिखाने के लिए कुकीज़ का उपयोग करती है।',
+		noticeDescription:
+			'हम इस साइट को चलाने, ट्रैफ़िक मापने और सामग्री तथा विज्ञापनों को वैयक्तिकृत करने के लिए कुकीज़ और समान तकनीकों का उपयोग करते हैं। आप किसी भी समय ऑप्ट आउट कर सकते हैं या अपनी प्राथमिकताएँ प्रबंधित कर सकते हैं।',
+		noticeTitle: 'गोपनीयता सूचना',
 		title: 'हम आपकी गोपनीयता को महत्व देते हैं',
 	},
 	frame: {
@@ -134,6 +139,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'कुकी नीति',
 		privacyPolicy: 'गोपनीयता नीति',
 		termsOfService: 'सेवा की शर्तें',
+	},
+	rights: {
+		optOut: 'मेरा डेटा न बेचें और न साझा करें',
+		preferences: 'प्राथमिकताएँ प्रबंधित करें',
 	},
 };
 

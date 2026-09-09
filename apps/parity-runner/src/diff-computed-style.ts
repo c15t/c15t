@@ -299,7 +299,28 @@ export const captureComputedStyleMap = async function captureComputedStyleMap(
 					continue;
 				}
 				seen.add(id);
-				out[id] = captureOne(el);
+				// Svelte keeps dialog semantics/focus on Content, inside Positioner.
+				// Compare the actual positioned shell here; dialog-evidence separately
+				// checks Content role/name/modal/focus and visible card geometry.
+				const measured =
+					id === 'consent-dialog-root'
+						? (el.closest('[data-slot="dialog-positioner"]') ?? el)
+						: el;
+				out[id] = captureOne(measured);
+			}
+			for (const part of roots.flatMap((root) =>
+				Array.from(
+					root.querySelectorAll(
+						'[data-slot="switch-track"], [data-slot="switch-thumb"]'
+					)
+				)
+			)) {
+				const control = part.closest('[role="switch"][data-testid]');
+				if (control) {
+					out[
+						`${control.getAttribute('data-testid')}::${part.getAttribute('data-slot')}`
+					] = captureOne(part);
+				}
 			}
 			return out;
 		},

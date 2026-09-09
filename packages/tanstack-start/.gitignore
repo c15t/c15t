@@ -3,4 +3,4 @@ coverage/
 node_modules/
 .turbo/
 *.log
-.DS_Store 
+.DS_Store

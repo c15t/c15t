@@ -26,7 +26,7 @@
  * {@link ConsentServerRouteOptions.proxy}.
  */
 
-import { c15tVersionHeaders, fetchCachedGvl } from '@c15t/core';
+import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
 import {
 	fetchCachedManifest,
 	getManifestAge,
@@ -288,7 +288,8 @@ const shouldFetchGvl = function shouldFetchGvl(
 	return (
 		manifest.iab?.enabled === true &&
 		manifest.iab.gvl !== undefined &&
-		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
+		payload.policyResolution?.status === 'matched' &&
+		payload.policyResolution.policy.model === 'iab'
 	);
 };
 
@@ -299,7 +300,7 @@ const defaultFetchGvl = function defaultFetchGvl(input: {
 }): Promise<GlobalVendorList | null> {
 	return fetchCachedGvl({
 		fetch: input.fetch,
-		headers: c15tVersionHeaders,
+		headers: c15tProtocolHeaders,
 		label: '@c15t/tanstack-start/api',
 		language: input.language,
 		url: input.reference.url,

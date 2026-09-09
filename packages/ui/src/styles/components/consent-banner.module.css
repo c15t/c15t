@@ -11,6 +11,9 @@
 	--consent-banner-border-radius-sm: var(--c15t-radius-sm);
 	--consent-banner-border-radius: var(--c15t-radius-lg);
 	--consent-banner-max-width: 440px;
+	/* `widget` chips and `wall` cards size independently of the floating card. */
+	--consent-banner-widget-max-width: 20rem;
+	--consent-banner-wall-max-width: 30rem;
 	--consent-banner-branding-tag-offset: 2rem;
 
 	/* Animation variables */
@@ -144,6 +147,258 @@
 		top: 0;
 	}
 
+	/* Variant geometry. The root carries `data-variant`, `data-position`,
+	   `data-prompt`, `data-model`, and `data-blocking`. The corner rules
+	   above stay unscoped so a root without `data-variant` keeps today's
+	   floating card. */
+
+	/* floating: horizontally centred edges. Width comes from the card shell;
+	   no transform, because the enter/exit animation already owns it. */
+	.root[data-variant='floating'][data-position='bottom-center']:not(
+			:global(.headless)
+		) {
+		inset-inline: 0;
+		bottom: 0;
+		margin-inline: auto;
+		width: fit-content;
+	}
+
+	.root[data-variant='floating'][data-position='top-center']:not(
+			:global(.headless)
+		) {
+		inset-inline: 0;
+		top: 0;
+		margin-inline: auto;
+		width: fit-content;
+	}
+
+	/* bar: full-width edge strip. */
+	.root[data-variant='bar']:not(:global(.headless)) {
+		left: 0;
+		right: 0;
+		width: 100%;
+		padding: 0;
+	}
+
+	.root[data-variant='bar'][data-position='bottom']:not(:global(.headless)) {
+		bottom: 0;
+		top: auto;
+	}
+
+	.root[data-variant='bar'][data-position='top']:not(:global(.headless)) {
+		top: 0;
+		bottom: auto;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .cardShell {
+		width: 100%;
+		max-width: none;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .card {
+		border-radius: 0;
+		border-width: 0;
+		box-shadow: var(--consent-banner-shadow);
+	}
+
+	/* Only the inner edge keeps a border: the one facing the page. */
+	.root[data-variant='bar'][data-position='bottom']:not(:global(.headless))
+		.card {
+		border-top-width: var(--consent-banner-border-width);
+		border-top-style: solid;
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+
+	.root[data-variant='bar'][data-position='top']:not(:global(.headless)) .card {
+		border-bottom-width: var(--consent-banner-border-width);
+		border-bottom-style: solid;
+	}
+
+	/* The branding tag keeps its tab look on a bar, with room from the
+	   viewport edge. A top bar hangs it below the card instead. */
+	.root[data-variant='bar']:not(:global(.headless))
+		.cardShell
+		> [data-variant='banner-tag'] {
+		margin-inline-end: 1.5rem;
+	}
+
+	.root[data-variant='bar'][data-position='top']:not(:global(.headless))
+		.cardShell
+		> [data-variant='banner-tag'] {
+		order: 1;
+		margin-block-end: 0;
+		margin-block-start: -1px;
+		border-bottom-width: 1px;
+		border-top-width: 0;
+		border-radius: 0 0 0.75rem 0.75rem;
+	}
+
+	/* Any prompt in a bar reads as rights leading, actions trailing. */
+	.root[data-variant='bar']:not(:global(.headless)) .footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless))
+		.footer
+		button[data-action]:not(.rightLink) {
+		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			margin-inline-end: auto;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer > * {
+			width: auto;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.footer
+			button[data-action]:not(.rightLink) {
+			width: auto;
+			flex: none;
+		}
+	}
+
+	/* Wide bar: text and controls share one row, like a classic cookie bar.
+	   The footer drops its own background and divider; the card is the
+	   surface. */
+	@media (min-width: 1024px) {
+		.root[data-variant='bar']:not(:global(.headless)) .card {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		/* The footer also carries `actionRoot`, whose base rule is
+		   `width: 100%`; in the row it must size to its controls. */
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			width: auto;
+			min-width: 0;
+			background-color: transparent;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.card
+			> :not([hidden])
+			~ :not([hidden]) {
+			border-top-width: 0;
+		}
+	}
+
+	/* Below 640px the root spans the viewport, so the shell must hug the
+	   corner named by `data-position`. Positions are physical, so these use
+	   physical auto margins rather than logical `align-items` keywords,
+	   which would flip under `dir="rtl"`. */
+	.root[data-variant='floating'][data-position$='-right']:not(
+			:global(.headless)
+		)
+		.cardShell,
+	.root[data-variant='widget'][data-position$='-right']:not(:global(.headless))
+		.cardShell {
+		margin-left: auto;
+		margin-right: 0;
+	}
+
+	.root[data-variant='floating'][data-position$='-left']:not(:global(.headless))
+		.cardShell,
+	.root[data-variant='widget'][data-position$='-left']:not(:global(.headless))
+		.cardShell {
+		margin-left: 0;
+		margin-right: auto;
+	}
+
+	.root[data-variant='floating'][data-position$='-center']:not(
+			:global(.headless)
+		)
+		.cardShell {
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	/* widget: compact chip in a corner. */
+	.root[data-variant='widget']:not(:global(.headless)) {
+		padding: 0.75rem;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='widget']:not(:global(.headless)) {
+			padding: 1rem;
+		}
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .cardShell {
+		width: min(calc(100vw - 1.5rem), var(--consent-banner-widget-max-width));
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .header {
+		padding: 0.75rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .title {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .description {
+		font-size: 0.8125rem;
+		line-height: 1.125rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .footer {
+		padding: 0.75rem;
+		gap: 0.5rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless))
+		.footer
+		button[data-action]:not(.rightLink) {
+		padding: 0.5rem 0.75rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .footer .rightLink {
+		font-size: 0.8125rem;
+		line-height: 1.125rem;
+	}
+
+	/* wall: centred blocker. The adapter renders the overlay and locks
+	   scroll because `wall` always resolves to `blocking`. */
+	.root[data-variant='wall']:not(:global(.headless)) {
+		inset: 0;
+		display: grid;
+		place-items: center;
+		width: auto;
+		padding: 1rem;
+	}
+
+	.root[data-variant='wall']:not(:global(.headless)) .cardShell {
+		width: min(calc(100vw - 2rem), var(--consent-banner-wall-max-width));
+	}
+
 	/* Card styles */
 	.card:not(:global(.headless)) {
 		position: relative;
@@ -173,6 +428,10 @@
 	:global(.c15t-dark) .card:not(:global(.headless)) {
 		background-color: var(--consent-banner-background-color-dark);
 		border-color: var(--consent-banner-border-color-dark);
+		box-shadow: var(--consent-banner-shadow-dark);
+	}
+
+	:global(.c15t-dark) .root[data-variant='bar']:not(:global(.headless)) .card {
 		box-shadow: var(--consent-banner-shadow-dark);
 	}
 
@@ -250,6 +509,192 @@
 	@media (min-width: 640px) {
 		.footer:not(:global(.headless)) {
 			flex-direction: row;
+		}
+	}
+
+	/* Persistent-right links (opt-out, preferences) rendered in the footer
+	   when the prompt recommends an additional preferences button. */
+	.rights:not(:global(.headless)) {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	.rightLink:not(:global(.headless)) {
+		display: inline-block;
+		width: auto;
+		flex: none;
+		align-self: center;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		font-family: var(--consent-banner-font-family);
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
+		text-align: start;
+		cursor: pointer;
+		border-radius: var(--consent-banner-border-radius-sm);
+		touch-action: manipulation;
+	}
+
+	.rightLink:not(:global(.headless)):hover {
+		color: var(--consent-banner-text-color);
+	}
+
+	.rightLink:not(:global(.headless)):focus-visible {
+		outline: none;
+		box-shadow: var(
+			--button-shadow-primary-focus,
+			0 0 0 2px var(--c15t-primary)
+		);
+	}
+
+	:global(.c15t-dark) .rightLink:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	:global(.c15t-dark) .rightLink:not(:global(.headless)):hover {
+		color: var(--consent-banner-text-color-dark);
+	}
+
+	:global(.c15t-dark) .rightLink:not(:global(.headless)):focus-visible {
+		box-shadow: var(
+			--button-shadow-primary-focus-dark,
+			0 0 0 2px var(--c15t-primary)
+		);
+	}
+
+	/* Notice prompt: rights lead, the dismiss action trails. The root carries
+	   `data-prompt` and `data-model` so hosts can target either in CSS.
+	   Rights render as underlined text (`.rightLink`, `data-action="right"`)
+	   so the primary action is the only button and carries the emphasis.
+	   Below 640px the footer stacks: the link keeps its natural width at the
+	   start, and only real buttons fill the width, like a choice prompt. */
+	.root[data-prompt='notice']:not(:global(.headless)) .footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless))
+		.footer
+		button[data-action]:not(.rightLink) {
+		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless)) .footer .rightLink {
+		width: auto;
+		flex: none;
+		align-self: flex-start;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-prompt='notice']:not(:global(.headless)) .footer {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
+			flex: 1 1 auto;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 0.75rem;
+			min-width: 0;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer > * {
+			width: auto;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless))
+			.footer
+			button[data-action]:not(.rightLink) {
+			width: auto;
+			flex: none;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer .rightLink {
+			align-self: center;
+		}
+	}
+
+	/* Bar polish: tighter paddings at every width, and from 1024px the
+	   description clamps to two lines while the rights sit inline on one
+	   row between the text and the trailing action. Placed after the
+	   notice rules so a notice in a bar takes the inline layout. */
+	.root[data-variant='bar']:not(:global(.headless)) .header {
+		padding: 0.75rem 1rem;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .footer {
+		padding: 0.75rem 1rem;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			padding: 1rem 1.5rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			padding: 0.75rem 1.5rem;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			padding: 0.75rem 1.5rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.header
+			> :not([hidden])
+			~ :not([hidden]) {
+			margin-top: 0.25rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .title {
+			line-height: 1.25rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			flex: 0 0 auto;
+			gap: 0.75rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+			flex: 0 0 auto;
+			flex-direction: row;
+			flex-wrap: nowrap;
+			align-items: center;
+			gap: 0.75rem;
+			margin-inline-end: 0;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rightLink {
+			font-size: 0.8125rem;
+			line-height: 1.125rem;
+			white-space: nowrap;
 		}
 	}
 

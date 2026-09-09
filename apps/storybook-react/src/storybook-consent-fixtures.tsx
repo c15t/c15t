@@ -2,8 +2,17 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
+import { IABProvider } from '../../../packages/react/src/iab';
 import { ConsentProvider, offline } from '../../../packages/react/src/index';
 import type { ConsentProviderOptions } from '../../../packages/react/src/index';
+import {
+	storybookPolicy,
+	storybookPolicyResolution,
+	storybookIABPolicy,
+	storybookIABPresentation,
+	storybookPresentation,
+	seedStorybookChoice,
+} from '../../storybook-consent-policy';
 
 type ConsentRecord = Record<string, boolean>;
 
@@ -33,20 +42,7 @@ export const resetStorybookConsentState =
 		clearCookies();
 	};
 
-export const seedStoredConsent = function seedStoredConsent(
-	consents: ConsentRecord
-) {
-	window.localStorage.setItem(
-		'c15t',
-		JSON.stringify({
-			consentInfo: {
-				time: Date.now(),
-				type: 'storybook',
-			},
-			consents,
-		})
-	);
-};
+export const seedStoredConsent = seedStorybookChoice;
 
 export const seedTCString = function seedTCString(tcString: string | null) {
 	if (!tcString) {
@@ -58,31 +54,20 @@ export const seedTCString = function seedTCString(tcString: string | null) {
 };
 
 export const defaultConsentOptions: ConsentProviderOptions = {
-	consentCategories: [
-		'necessary',
-		'functionality',
-		'measurement',
-		'experience',
-		'marketing',
-	],
-	mode: offline(),
-	offlinePolicy: {
-		policy: {
-			consent: {
-				categories: [
-					'necessary',
-					'functionality',
-					'measurement',
-					'experience',
-					'marketing',
-				],
-				scopeMode: 'permissive',
-			},
-			id: 'storybook',
-			model: 'opt-in',
-			ui: { mode: 'banner' },
-		},
-	},
+	mode: offline({ policyRules: [storybookPolicy] }),
+	presentation: storybookPresentation,
+};
+
+/**
+ * The default policy, already resolved, for stories that keep the default
+ * `mode`. Consent surfaces render only once a policy exists, so a story that
+ * waits on the async `offline()` init paints without its link, trigger, and
+ * widget for a tick, which a play function that tabs straight away notices.
+ * Stories that bring their own `mode` (a notice rule, IAB) must not receive
+ * it: it would override their rule with the default choice policy.
+ */
+const defaultPrefetch: ConsentProviderOptions['prefetch'] = {
+	initialPolicyResolution: storybookPolicyResolution,
 };
 
 export const editableConsentOptions: Partial<ConsentProviderOptions> = {
@@ -105,14 +90,8 @@ export const editableStoredConsent: ConsentRecord = {
 
 export const defaultIABOptions: ConsentProviderOptions = {
 	...defaultConsentOptions,
-	iab: {
-		cmpId: 160,
-		cmpVersion: 1,
-		gvl: mockGVL,
-	},
-	offlinePolicy: {
-		policy: { id: 'storybook_iab', model: 'iab' },
-	},
+	mode: offline({ policyRules: [storybookIABPolicy] }),
+	presentation: storybookIABPresentation,
 };
 
 export const StorybookConsentProvider = ({
@@ -134,13 +113,13 @@ export const StorybookConsentProvider = ({
 	void initialized;
 	void setInitialized;
 
+	const merged = { ...defaultConsentOptions, ...options };
+	const prefetch =
+		merged.prefetch ??
+		(merged.mode === defaultConsentOptions.mode ? defaultPrefetch : undefined);
+
 	return (
-		<ConsentProvider
-			options={{
-				...defaultConsentOptions,
-				...options,
-			}}
-		>
+		<ConsentProvider options={{ ...merged, prefetch }}>
 			{children}
 		</ConsentProvider>
 	);
@@ -156,7 +135,7 @@ export const StorybookIABProvider = ({
 		resetStorybookConsentState();
 
 		if (storedConsent) {
-			seedStoredConsent(storedConsent);
+			seedStoredConsent(storedConsent, storybookIABPolicy);
 		}
 
 		seedTCString(tcString);
@@ -172,7 +151,13 @@ export const StorybookIABProvider = ({
 				...options,
 			}}
 		>
-			{children}
+			<IABProvider
+				cmpId={160}
+				cmpVersion={1}
+				gvl={mockGVL}
+			>
+				{children}
+			</IABProvider>
 		</ConsentProvider>
 	);
 };

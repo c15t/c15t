@@ -52,7 +52,7 @@ export const TanstackBenchmarkProbe = ({
 						regionCode: snapshot.location.regionCode,
 					}
 				: null;
-			state.hasConsented = snapshot.hasConsented;
+			state.hasConsented = snapshot.explicitChoice !== null;
 		}
 	});
 
@@ -110,7 +110,7 @@ export const TanstackBenchmarkProbe = ({
 					regionCode: snapshot.location.regionCode,
 				}
 			: null;
-		current.hasConsented = snapshot.hasConsented;
+		current.hasConsented = snapshot.explicitChoice !== null;
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}

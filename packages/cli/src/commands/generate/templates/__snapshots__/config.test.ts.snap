@@ -13,13 +13,10 @@ void kernel.commands.init();
  * Usage Examples
  **/
 
-// View all consents
-// kernel.getSnapshot().consents;
+// Read the permissions currently applied to processing
+// kernel.getSnapshot().effectivePermissions;
 
-// Update consent locally before saving
-// kernel.set.consent({ measurement: true });
-
-// Save the current choices
-// await kernel.commands.save('custom');
+// Confirm only the category the visitor chose
+// await kernel.commands.save({ measurement: true });
 "
 `;

@@ -5,7 +5,6 @@ import type {
 	IABConfig,
 	LegalLinks,
 	NetworkBlockerConfig,
-	OfflinePolicyConfig,
 	Overrides,
 	ProviderTransportFactory,
 	Script,
@@ -33,18 +32,6 @@ export interface CommonTransportOptions {
 	 * @see {@link ProviderTransportFactory}
 	 */
 	mode?: ProviderTransportFactory;
-
-	/**
-	 * Offline policy preview configuration.
-	 *
-	 * @remarks
-	 * With `offline()` this injects a synthetic resolved policy or
-	 * backend-compatible policy packs without a live `/init` endpoint.
-	 *
-	 * @see https://c15t.com/docs/frameworks/react/policy-packs
-	 * @see {@link OfflinePolicyConfig} for available options
-	 */
-	offlinePolicy?: OfflinePolicyConfig;
 }
 
 /**

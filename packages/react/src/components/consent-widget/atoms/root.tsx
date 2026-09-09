@@ -1,12 +1,11 @@
 'use client';
 
+import styles from '@c15t/ui/styles/components/consent-manager';
 /**
  * @packageDocumentation
  * Provides the root component for the consent management interface.
  * Implements context provider pattern with theme support and state management.
  */
-
-import styles from '@c15t/ui/styles/components/consent-manager';
 import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
 
@@ -18,6 +17,8 @@ import {
 } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
+import { ConsentDraftProvider } from '~/draft';
+import { useHasConsentUI } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 
 /**
@@ -130,6 +131,12 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		() => ({ uiSource: resolvedUiSource }),
 		[resolvedUiSource]
 	);
+	const hasConsentUI = useHasConsentUI();
+	if (!hasConsentUI) {
+		// No resolved policy, or a `none` rule with no right to exercise: there
+		// is nothing to manage, so render nothing.
+		return null;
+	}
 
 	const content = (
 		<Box
@@ -146,7 +153,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		return (
 			<ConsentTrackingContext.Provider value={trackingContextValue}>
 				<LocalThemeContext.Provider value={contextValue}>
-					{content}
+					<ConsentDraftProvider>{content}</ConsentDraftProvider>
 				</LocalThemeContext.Provider>
 			</ConsentTrackingContext.Provider>
 		);
@@ -154,7 +161,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 
 	return (
 		<ConsentTrackingContext.Provider value={trackingContextValue}>
-			{content}
+			<ConsentDraftProvider>{content}</ConsentDraftProvider>
 		</ConsentTrackingContext.Provider>
 	);
 };

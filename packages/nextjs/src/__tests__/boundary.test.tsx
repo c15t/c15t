@@ -12,6 +12,7 @@ import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentBoundary } from '../boundary';
+import { policyFixture } from './policy-fixture';
 
 describe('ConsentBoundary: config is honored', () => {
 	test('initial consents from config reach useConsent', async () => {
@@ -22,10 +23,7 @@ describe('ConsentBoundary: config is honored', () => {
 
 		const { getByTestId } = await render(
 			<ConsentBoundary
-				config={{
-					initialConsents: { marketing: true, measurement: true },
-					initialHasConsented: true,
-				}}
+				config={policyFixture({ marketing: true, measurement: true })}
 				persistence={false}
 			>
 				<MarketingStatus />
@@ -74,16 +72,13 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 		const screen = await render(
 			<div>
 				<ConsentBoundary
-					config={{
-						initialConsents: { marketing: true },
-						initialHasConsented: true,
-					}}
+					config={policyFixture({ marketing: true })}
 					persistence={false}
 				>
 					<MarketingStatus label="a" />
 				</ConsentBoundary>
 				<ConsentBoundary
-					config={{ initialConsents: { marketing: false } }}
+					config={policyFixture({ marketing: false })}
 					persistence={false}
 				>
 					<MarketingStatus label="b" />

@@ -103,7 +103,7 @@ export interface ConsentDialogProps {
 
 	/**
 	 * Which consent models this dialog responds to.
-	 * @default ['opt-in', 'opt-out']
+	 * @default ['opt-in', 'opt-out', 'none']
 	 */
 	models?: C15tCoreTypes.Model[];
 
@@ -119,22 +119,19 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
+	trapFocus: localTrapFocus,
 	hideBranding,
 	legalLinks,
 	showTrigger = false,
 	models,
 	uiSource,
 }) => {
-	const { activeUI, policyDialog } = useConsentManager();
-	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
+	const { activeUI } = useConsentManager();
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		disableAnimation: localDisableAnimation,
 		noStyle: localNoStyle,
-		scrollLock: resolvedScrollLock,
-		trapFocus: localTrapFocus,
 	});
 
 	// Compose the props we want to forward to the Root primitive
@@ -142,6 +139,8 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 		open: open ?? activeUI === 'dialog',
 		...config,
 		models,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
 		uiSource,
 	};
 

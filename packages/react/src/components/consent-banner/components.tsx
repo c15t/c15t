@@ -4,17 +4,26 @@
  * Implements accessible, customizable components following GDPR requirements.
  */
 
+import type { PolicyRight } from '@c15t/schema/types';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
 import { forwardRef as createForwardRef, useRef } from 'react';
-import type { Ref, RefObject } from 'react';
+import type {
+	ButtonHTMLAttributes,
+	MouseEvent,
+	ReactNode,
+	Ref,
+	RefObject,
+} from 'react';
 
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { Slot } from '~/components/shared/libs/slot';
+import { usePolicyRule, useSetActiveUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
-import { mergeSlotProps } from '~/utils/merge-slot-props';
+import { getSlotProps, mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Box } from '../shared/primitives/box';
 import type { BoxProps } from '../shared/primitives/box';
@@ -22,6 +31,8 @@ import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 import type { InlineLegalLinksProps } from '../shared/primitives/legal-links';
 import { InlineLegalLinks } from '../shared/primitives/legal-links';
+import { useConsentBannerSurface } from './surface-context';
+import { useBannerCopy } from './use-banner-copy';
 
 const CONSENT_BANNER_TITLE_NAME = 'ConsentBannerTitle';
 const CONSENT_BANNER_DESCRIPTION_NAME = 'ConsentBannerDescription';
@@ -32,6 +43,18 @@ const CONSENT_BANNER_FOOTER_SUB_GROUP_NAME = 'ConsentBannerFooterSubGroup';
 const CONSENT_BANNER_REJECT_BUTTON_NAME = 'ConsentBannerRejectButton';
 const CONSENT_BANNER_CUSTOMIZE_BUTTON_NAME = 'ConsentBannerCustomizeButton';
 const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
+const CONSENT_BANNER_DISMISS_BUTTON_NAME = 'ConsentBannerDismissButton';
+const CONSENT_BANNER_RIGHTS_NAME = 'ConsentBannerRights';
+const CONSENT_BANNER_RIGHT_LINK_NAME = 'ConsentBannerRightLink';
+
+/** English labels used when a language bundle has no `rights` section. */
+const FALLBACK_RIGHT_LABELS: Record<ConsentBannerRight, string> = {
+	'opt-out': 'Do not sell or share my data',
+	preferences: 'Manage preferences',
+};
+
+/** Rights the banner can expose as links. `disclosure` is carried by legal links. */
+export type ConsentBannerRight = Exclude<PolicyRight, 'disclosure'>;
 
 /**
  * Title component for the consent banner.
@@ -51,7 +74,7 @@ const ConsentBannerTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
-	const { cookieBanner: consentBanner } = useTranslations();
+	const { title } = useBannerCopy();
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -61,7 +84,7 @@ const ConsentBannerTitle = createForwardRef<
 			{...props}
 			asChild
 		>
-			<h2>{children ?? consentBanner.title}</h2>
+			<h2>{children ?? title}</h2>
 		</Box>
 	);
 });
@@ -93,7 +116,7 @@ const ConsentBannerDescription = createForwardRef<
 		{ children, legalLinks, asChild, className, style, noStyle, ...props },
 		ref
 	) => {
-		const { cookieBanner: consentBanner } = useTranslations();
+		const { description } = useBannerCopy();
 		const { components } = useUIConfig();
 		const { noStyle: contextNoStyle } = useTheme();
 		const context = 'banner';
@@ -117,7 +140,7 @@ const ConsentBannerDescription = createForwardRef<
 					ref={ref as Ref<HTMLDivElement>}
 					{...descriptionProps}
 				>
-					{children ?? consentBanner.description}
+					{children ?? description}
 				</Comp>
 			);
 		}
@@ -127,7 +150,7 @@ const ConsentBannerDescription = createForwardRef<
 				ref={ref as Ref<HTMLDivElement>}
 				{...descriptionProps}
 			>
-				{children ?? consentBanner.description}
+				{children ?? description}
 				<InlineLegalLinks
 					links={legalLinks}
 					context="banner"
@@ -203,13 +226,14 @@ const ConsentBannerCard = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
-	const { trapFocus } = useTheme();
-	const { cookieBanner } = useTranslations();
+	const { blocking } = useConsentBannerSurface();
+	const { title } = useBannerCopy();
 	const localRef = useRef<HTMLDivElement>(null);
 	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
-	// Call the useFocusTrap hook with the appropriate parameters
-	const shouldTrapFocus = Boolean(trapFocus);
+	// A blocking surface traps focus and announces as a modal dialog. A
+	// non-blocking surface is a labelled region that never steals focus.
+	const shouldTrapFocus = blocking;
 	useFocusTrap(shouldTrapFocus, cardRef);
 
 	return (
@@ -219,9 +243,9 @@ const ConsentBannerCard = createForwardRef<
 			baseClassName={styles.card}
 			data-testid="consent-banner-card"
 			slotKey="banner.card"
-			aria-label={props['aria-label'] || cookieBanner.title}
-			aria-modal={shouldTrapFocus ? 'true' : undefined}
-			role={shouldTrapFocus ? 'dialog' : undefined}
+			aria-label={props['aria-label'] || title}
+			aria-modal={blocking ? 'true' : undefined}
+			role={blocking ? 'dialog' : 'region'}
 			{...props}
 		>
 			{children}
@@ -376,6 +400,193 @@ const ConsentBannerAcceptButton = createForwardRef<
 
 ConsentBannerAcceptButton.displayName = CONSENT_BANNER_ACCEPT_BUTTON_NAME;
 
+/**
+ * Button that acknowledges a notice prompt.
+ *
+ * @remarks
+ * Records a notice dismissal without recording a category choice, so no
+ * choice callbacks fire. Only rendered when the active policy requires a
+ * notice. Uses `common.acknowledge`, with `common.dismiss` as a fallback.
+ * Children or `dismissButtonText` override the label.
+ * Themed through `theme.consentActions.dismiss`.
+ *
+ * @example
+ * ```tsx
+ * <ConsentBannerDismissButton>
+ *   Got it
+ * </ConsentBannerDismissButton>
+ * ```
+ */
+const ConsentBannerDismissButton = createForwardRef<
+	HTMLButtonElement,
+	ConsentButtonProps
+>(({ children, ...props }, ref) => {
+	const { common } = useTranslations();
+	const { noStyle } = useTheme();
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="dismiss-notice"
+			consentAction="dismiss"
+			data-action="dismiss"
+			data-testid="consent-banner-dismiss-button"
+			noStyle={noStyle}
+			{...props}
+		>
+			{children ?? common.acknowledge ?? common.dismiss}
+		</ConsentButton>
+	);
+});
+
+ConsentBannerDismissButton.displayName = CONSENT_BANNER_DISMISS_BUTTON_NAME;
+
+/**
+ * Props for {@link ConsentBannerRightLink}.
+ * @public
+ */
+export interface ConsentBannerRightLinkProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'children' | 'type'
+> {
+	/** Which persistent right the control keeps reachable. */
+	right: ConsentBannerRight;
+	/** Custom label. Defaults to the `rights` translation for `right`. */
+	children?: ReactNode;
+	/** Render the child element instead of a button, keeping the behavior. */
+	asChild?: boolean;
+	/** Skip the banner stylesheet for this control. */
+	noStyle?: boolean;
+}
+
+/**
+ * Underlined text control that keeps a persistent right reachable from the
+ * banner.
+ *
+ * @remarks
+ * Opens the preference center, where the subject can opt out or change
+ * category preferences. Renders as plain underlined text through the
+ * `rightLink` class and the `banner.rightLink` slot so the primary action
+ * beside it keeps the emphasis. The label comes from the `rights`
+ * translations and children override it. Carries `data-action="right"`,
+ * `data-right`, and `data-c15t-rights` for styling hooks. With `asChild`
+ * the child element, such as a link to a dedicated opt-out page, receives
+ * the same class, attributes, and click handling.
+ *
+ * @example
+ * ```tsx
+ * <ConsentBannerRightLink right="opt-out" />
+ * ```
+ */
+const ConsentBannerRightLink = createForwardRef<
+	HTMLButtonElement,
+	ConsentBannerRightLinkProps
+>(
+	(
+		{ right, children, asChild, className, style, noStyle, onClick, ...props },
+		ref
+	) => {
+		const { rights } = useTranslations();
+		const policy = usePolicyRule();
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const setActiveUI = useSetActiveUI();
+		const label =
+			(right === 'opt-out' ? rights?.optOut : rights?.preferences) ??
+			FALLBACK_RIGHT_LABELS[right];
+		const mergedProps = mergeSlotProps(
+			getSlotProps(components, 'banner.rightLink'),
+			{
+				baseClassName: styles.rightLink,
+				className,
+				noStyle: noStyle ?? contextNoStyle,
+				style,
+			}
+		);
+		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+			onClick?.(event);
+			if (!event.defaultPrevented) {
+				setActiveUI('dialog');
+			}
+		};
+		const Comp = asChild ? Slot : 'button';
+		return (
+			<Comp
+				ref={ref as Ref<HTMLButtonElement>}
+				type={asChild ? undefined : 'button'}
+				{...mergedProps}
+				data-action="right"
+				data-right={right}
+				data-c15t-rights={policy.rights.join(' ')}
+				data-testid={`consent-banner-right-link-${right}`}
+				onClick={handleClick}
+				{...props}
+			>
+				{children ?? label}
+			</Comp>
+		);
+	}
+);
+
+ConsentBannerRightLink.displayName = CONSENT_BANNER_RIGHT_LINK_NAME;
+
+/**
+ * Props for {@link ConsentBannerRights}.
+ * @public
+ */
+export interface ConsentBannerRightsProps extends Omit<BoxProps, 'slotKey'> {
+	/**
+	 * Additional preferences buttons to render. Defaults to the resolved
+	 * presentation recommendation: a notice under an opt-out rule shows the
+	 * opt-out control (which also keeps preferences reachable), and a choice
+	 * prompt with customize shows nothing.
+	 */
+	rights?: readonly PolicyRight[];
+}
+
+/**
+ * Group of additional buttons that open preferences.
+ *
+ * @remarks
+ * Renders nothing when no additional preferences button is recommended. Children replace the default
+ * controls; use {@link ConsentBannerRightLink} to keep the behavior.
+ *
+ * @example
+ * ```tsx
+ * <ConsentBannerRights />
+ * ```
+ */
+const ConsentBannerRights = createForwardRef<
+	HTMLDivElement,
+	ConsentBannerRightsProps
+>(({ rights, children, ...props }, ref) => {
+	const { banner } = useHeadlessConsentUI();
+	const resolvedRights = (rights ?? banner.preferenceControls).filter(
+		(right): right is ConsentBannerRight => right !== 'disclosure'
+	);
+	if (children === undefined && resolvedRights.length === 0) {
+		return null;
+	}
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.rights}
+			data-testid="consent-banner-rights"
+			slotKey="banner.rights"
+			{...props}
+		>
+			{children ??
+				resolvedRights.map((right) => (
+					<ConsentBannerRightLink
+						key={right}
+						right={right}
+					/>
+				))}
+		</Box>
+	);
+});
+
+ConsentBannerRights.displayName = CONSENT_BANNER_RIGHTS_NAME;
+
 const Title = ConsentBannerTitle;
 const Description = ConsentBannerDescription;
 const Footer = ConsentBannerFooter;
@@ -385,6 +596,9 @@ const Header = ConsentBannerHeader;
 const RejectButton = ConsentBannerRejectButton;
 const CustomizeButton = ConsentBannerCustomizeButton;
 const AcceptButton = ConsentBannerAcceptButton;
+const DismissButton = ConsentBannerDismissButton;
+const Rights = ConsentBannerRights;
+const RightLink = ConsentBannerRightLink;
 
 export {
 	AcceptButton,
@@ -393,16 +607,22 @@ export {
 	ConsentBannerCard,
 	ConsentBannerCustomizeButton,
 	ConsentBannerDescription,
+	ConsentBannerDismissButton,
 	ConsentBannerFooter,
 	ConsentBannerFooterSubGroup,
 	ConsentBannerHeader,
 	ConsentBannerRejectButton,
+	ConsentBannerRightLink,
+	ConsentBannerRights,
 	ConsentBannerTitle,
 	CustomizeButton,
 	Description,
+	DismissButton,
 	Footer,
 	FooterSubGroup,
 	Header,
 	RejectButton,
+	RightLink,
+	Rights,
 	Title,
 };

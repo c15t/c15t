@@ -1,3 +1,4 @@
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 /**
  * Provider transport factories: `hosted()` and `custom()`.
  *
@@ -9,6 +10,7 @@ import { describe, expect, test, vi } from 'vitest';
 import type { KernelTransport, SavePayload } from '../index';
 import { custom, hosted } from '../transports/mode';
 import type { ProviderTransportContext } from '../transports/mode';
+import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
 
 const context: ProviderTransportContext = {
 	prefetch: {},
@@ -16,12 +18,30 @@ const context: ProviderTransportContext = {
 };
 
 const payload: SavePayload = {
+	choice: {
+		categories: {
+			marketing: {
+				basis: { fingerprint: 'test-choice', kind: 'choice-v1' },
+				confirmedAt: 1_700_000_000_000,
+				value: false,
+			},
+		},
+		version: 3,
+	},
+	confirmed: { actionAt: 1_700_000_000_000, categories: { marketing: false } },
 	consentAction: 'all',
-	consents: { necessary: true },
+	consents: {
+		experience: false,
+		functionality: false,
+		marketing: false,
+		measurement: false,
+		necessary: true,
+	},
 	givenAt: 1_700_000_000_000,
 	model: 'opt-in',
 	overrides: {},
 	policySnapshotToken: null,
+	subject: { subjectId: 'sub_test' },
 	subjectId: 'sub_test',
 	uiSource: 'banner',
 	user: null,
@@ -56,14 +76,9 @@ describe('hosted()', () => {
 				scopeMode: 'strict',
 				uiMode: 'banner',
 			},
-			policyDecision: {
-				country: 'DE',
-				fingerprint: 'fingerprint-eu',
-				jurisdiction: 'GDPR',
-				matchedBy: 'country',
-				policyId: 'eu-opt-in',
-				region: 'BE',
-			},
+			policyResolution: writePolicyResolutionWire(
+				matchedResolution(optInRule({ id: 'eu-opt-in' }))
+			),
 			resolvedOverrides: { country: 'DE', language: 'de', region: 'BE' },
 			translations: { language: 'de', translations: {} as never },
 		};
@@ -94,7 +109,7 @@ describe('hosted()', () => {
 		const body = JSON.parse(String(fetchSpy.mock.calls[1]?.[1]?.body));
 		expect(body).toMatchObject({
 			country: 'DE',
-			fingerprint: 'fingerprint-eu',
+			fingerprint: init.policyResolution.fingerprints.policy,
 			language: 'de',
 			policyId: 'eu-opt-in',
 			region: 'BE',
@@ -111,74 +126,12 @@ describe('custom()', () => {
 		expect(mode(context)).toBe(transport);
 	});
 
-	test('maps v2 endpoint handlers onto the kernel transport', async () => {
-		const setConsent = vi.fn().mockResolvedValue({
-			data: { subjectId: 'sub_backend' },
-			ok: true,
-		});
-		const mode = custom({
-			init: vi.fn().mockResolvedValue({
-				data: { hasConsented: true, subjectId: 'sub_init' },
-				ok: true,
-			}),
-			setConsent,
-		});
-		const transport = mode(context);
-
-		const initResponse = await transport.init?.({ overrides: {}, user: null });
-		expect(initResponse).toMatchObject({
-			hasConsented: true,
-			subjectId: 'sub_init',
-		});
-
-		const saveResult = await transport.save?.(payload);
-		expect(saveResult).toEqual({ ok: true, subjectId: 'sub_backend' });
-		expect(setConsent).toHaveBeenCalledWith({
-			body: expect.objectContaining({
-				consentAction: 'all',
-				givenAt: 1_700_000_000_000,
-				preferences: { necessary: true },
-				subjectId: 'sub_test',
-				type: 'cookie_banner',
-			}),
-		});
-	});
-
-	test('surfaces an endpoint init failure as a thrown error', async () => {
-		const boom = new Error('init unavailable');
-		const transport = custom({
-			init: vi.fn().mockResolvedValue({ data: null, error: boom, ok: false }),
-			setConsent: vi.fn(),
-		})(context);
-
-		await expect(transport.init?.({ overrides: {}, user: null })).rejects.toBe(
-			boom
-		);
-	});
-
-	test('maps identifyUser onto the kernel transport', async () => {
-		const identifyUser = vi.fn().mockResolvedValue({ ok: true });
-		const transport = custom({
-			identifyUser,
-			setConsent: vi.fn(),
-		})(context);
-		const user = {
-			externalId: 'user_123',
-			identityProvider: 'clerk',
-		};
-
-		await transport.identify?.(user, 'sub_123');
-
-		expect(identifyUser).toHaveBeenCalledWith({
-			body: { ...user, subjectId: 'sub_123' },
-		});
-	});
-
-	test('treats missing init as an empty response', async () => {
-		const transport = custom({ setConsent: vi.fn() })(context);
-
-		await expect(
-			transport.init?.({ overrides: {}, user: null })
-		).resolves.toEqual({});
+	test('rejects removed endpoint-handler configuration', () => {
+		expect(() =>
+			custom({
+				// @ts-expect-error Old endpoint handlers are no longer supported.
+				setConsent: vi.fn(),
+			})
+		).toThrow('custom() requires a KernelTransport');
 	});
 });

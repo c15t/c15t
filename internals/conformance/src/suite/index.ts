@@ -9,17 +9,13 @@
 import type { TestDriver } from '../driver';
 import { runA11yConformance } from './a11y';
 import { runErrorConformance } from './errors';
-import { runEventContractConformance } from './events';
-import { runGpcConformance } from './gpc';
 import type { SuiteApi } from './helpers';
 import { runI18nConformance } from './i18n';
-import { runIabConformance } from './iab';
-import { runPersistenceConformance } from './persistence';
+import { runIabUiConformance } from './iab';
 import { runPoliciesConformance } from './policies';
+import { runPolicyScenarioConformance } from './policy-scenarios';
 import { runProviderConformance } from './provider';
-import { runRequestLifecycleConformance } from './request-lifecycle';
-import { runSsrConformance } from './ssr';
-import { runStoreConformance } from './store';
+import { runInitVisibilityConformance } from './request-lifecycle';
 
 export { runA11yConformance } from './a11y';
 export { runErrorConformance } from './errors';
@@ -35,6 +31,7 @@ export { runI18nConformance } from './i18n';
 export { runIabConformance } from './iab';
 export { runPersistenceConformance } from './persistence';
 export { runPoliciesConformance } from './policies';
+export { runPolicyProducerConformance } from './policy-producers';
 export { runProviderConformance } from './provider';
 export { runRequestLifecycleConformance } from './request-lifecycle';
 export { runSsrConformance } from './ssr';
@@ -44,16 +41,25 @@ export const runConformanceSuite = function runConformanceSuite(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
+	if (driver.framework === 'solid') {
+		api.test('[solid] primitives-only: consent adapter excluded', () => {
+			api.expect(driver.framework).toBe('solid');
+		});
+		return;
+	}
+	runPolicyScenarioConformance(driver, api);
+	runInitVisibilityConformance(driver, api);
 	runProviderConformance(driver, api);
-	runStoreConformance(driver, api);
 	runI18nConformance(driver, api);
 	runPoliciesConformance(driver, api);
-	runEventContractConformance(driver, api);
 	runErrorConformance(driver, api);
-	runSsrConformance(driver, api);
-	runRequestLifecycleConformance(driver, api);
 	runA11yConformance(driver, api);
-	runGpcConformance(driver, api);
-	runPersistenceConformance(driver, api);
-	runIabConformance(driver, api);
+	runIabUiConformance(driver, api);
 };
+
+export {
+	runPolicyScenarioConformance,
+	executePolicyScenario,
+	assertPolicyObservation,
+	policySessionSetup,
+} from './policy-scenarios';

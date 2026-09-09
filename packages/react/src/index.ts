@@ -63,11 +63,16 @@ export type {
 	ConsentBannerButton,
 	ConsentBannerLayout,
 	ConsentBannerProps,
+	ConsentBannerRight,
+	ConsentBannerRightLinkProps,
+	ConsentBannerRightsProps,
+	ConsentBannerSurface,
 } from './components/consent-banner';
 // -- UI components ----------------------------------------------------------
 export {
 	ConsentBanner,
 	type ConsentBannerCompoundComponent,
+	useConsentBannerSurface,
 } from './components/consent-banner';
 export type {
 	ConsentDialogCompoundComponent,
@@ -75,8 +80,17 @@ export type {
 } from './components/consent-dialog';
 export type { ConsentDialogLinkProps } from './components/consent-dialog-link';
 export { ConsentDialogLink } from './components/consent-dialog-link';
-export type { ConsentDialogTriggerProps } from './components/consent-dialog-trigger';
-export { ConsentDialogTrigger } from './components/consent-dialog-trigger';
+export type {
+	ConsentDialogTriggerProps,
+	ConsentDialogTriggerToolbarAction,
+	ConsentDialogTriggerToolbarPreferences,
+	ConsentDialogTriggerToolbarProps,
+	TriggerOrientation,
+} from './components/consent-dialog-trigger';
+export {
+	ConsentDialogTrigger,
+	ConsentDialogTriggerToolbar,
+} from './components/consent-dialog-trigger';
 export type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
@@ -92,7 +106,8 @@ export {
 	useBranding,
 	useConsent,
 	useConsents,
-	useHasConsented,
+	useHasConsentPolicy,
+	useHasConsentUI,
 	useIABEnabled,
 	useIABSnapshot,
 	useIdentify,
@@ -100,16 +115,13 @@ export {
 	useLocation,
 	useModel,
 	useOverrides,
-	usePolicy,
-	usePolicyBanner,
+	usePromptPresentation,
 	usePolicyCategories,
-	usePolicyDecision,
-	usePolicyDialog,
+	usePreferencesPresentation,
 	usePolicyScopeMode,
 	usePurposeConsent,
 	useSaveConsents,
 	useSetActiveUI,
-	useSetConsent,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
@@ -132,6 +144,8 @@ export {
 } from './module-hooks';
 export type {
 	ConsentProviderOptions,
+	ConsentProviderCallbacks,
+	ConsentProviderPrefetch,
 	ConsentProviderProps,
 	ExternalRuntimeProviderOptions,
 	ExternalRuntimeProviderProps,
@@ -139,3 +153,25 @@ export type {
 } from './provider';
 export { ConsentProvider } from './provider';
 export type { ReactUIOptions } from './types/consent-manager';
+
+export {
+	useExplicitChoice,
+	useEffectivePermissions,
+	usePromptRequirement,
+	useNoticeDismissal,
+	usePrivacySignals,
+	useOptOutDirectives,
+	usePolicyResolution,
+	usePolicyRule,
+	useRestrictions,
+	useDismissNotice,
+} from './hooks';
+export type {
+	ConsentPresentation,
+	PromptPresentation,
+	PreferencesPresentation,
+	PresentationAction,
+	PromptPosition,
+	PromptVariant,
+	ResolvedConsentPresentation,
+} from '@c15t/core';

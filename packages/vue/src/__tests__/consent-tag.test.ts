@@ -42,6 +42,28 @@ const renderTagOnServer = function renderTagOnServer(
 };
 
 describe('consent tag branding link', () => {
+	test('uses same-page navigation by default and preserves configured targets', () => {
+		const stock = mountTag();
+		expect(stock.get('a').attributes('target')).toBeUndefined();
+		stock.unmount();
+		const configured = mount(ConsentTag, {
+			global: {
+				provide: {
+					...provides('c15t'),
+					[consentConfigKey as symbol]: {
+						components: {
+							tag: { banner: { rel: 'noopener', target: '_blank' } },
+						},
+					},
+				},
+			},
+			props: { context: 'banner' },
+		});
+		expect(configured.get('a').attributes('target')).toBe('_blank');
+		expect(configured.get('a').attributes('rel')).toBe('noopener');
+		configured.unmount();
+	});
+
 	test('server-rendered markup carries no ref param', async () => {
 		// `onMounted` never runs on the server, so the href has to be the bare
 		// host — anything else is the hydration mismatch this guards against.

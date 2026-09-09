@@ -1,4 +1,4 @@
-import { c15tVersionHeaders } from '@c15t/core';
+import { c15tProtocolHeaders } from '@c15t/core';
 import { fetchCachedManifest as fetchManifestThroughCache } from '@c15t/core/libs/manifest-cache';
 import type {
 	ConsentManifest,
@@ -6,7 +6,12 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
-import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
+import {
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+	resolveBackendURL,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
 import type { ConsentConfig } from './config';
@@ -187,7 +192,7 @@ export const createManifestFetchInit = function createManifestFetchInit(
 ): NextFetchInit {
 	const revalidate = getManifestRevalidate(options);
 	return {
-		headers: { accept: 'application/json', ...c15tVersionHeaders },
+		headers: { accept: 'application/json', ...c15tProtocolHeaders },
 		method: 'GET',
 		next: { revalidate },
 	};
@@ -237,7 +242,8 @@ const shouldFetchGvl = function shouldFetchGvl(
 	return (
 		manifest.iab?.enabled === true &&
 		manifest.iab.gvl !== undefined &&
-		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
+		payload.policyResolution?.status === 'matched' &&
+		payload.policyResolution.policy.model === 'iab'
 	);
 };
 
@@ -249,6 +255,7 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
 	const response = await input.fetch(input.reference.url, {
 		headers: {
 			'accept-language': input.language,
+			...c15tProtocolHeaders,
 		},
 		method: 'GET',
 	});
@@ -314,6 +321,22 @@ export const createNextConsentRouteHandlers =
 					baseTranslations,
 				});
 
+				const contract = request.headers.get(POLICY_CONTRACT_HEADER);
+				if (
+					contract !== null &&
+					contract.trim() !== String(POLICY_CONTRACT_VERSION)
+				) {
+					payload.policyResolution = {
+						policy: null,
+						reason: 'unsupported-contract',
+						status: 'failed',
+						version: POLICY_CONTRACT_VERSION,
+					};
+
+					delete payload.policySnapshotToken;
+					delete payload.gvl;
+				}
+
 				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 					const language = payload.translations.language.split('-')[0] || 'en';
 					payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
@@ -326,6 +349,7 @@ export const createNextConsentRouteHandlers =
 				return Response.json(payload, {
 					headers: {
 						'cache-control': INIT_CACHE_CONTROL,
+						[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
 					},
 				});
 			},
@@ -340,6 +364,7 @@ export const createNextConsentRouteHandlers =
 				const headers = new Headers({
 					'cache-control': result.cacheControl,
 					'content-type': 'application/json',
+					[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
 				});
 				if (result.etag) {
 					headers.set('etag', result.etag);

@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E tests for uiSource tracking through the consent flow.
  *
@@ -5,7 +6,6 @@
  *
  * Mirrors: packages/react/src/components/__tests__/ui-source-tracking.e2e.test.tsx
  */
-
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -13,7 +13,7 @@ import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
-import { offline } from '../../lib/transports/offline';
+import { testOffline } from '../../__tests__/test-offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -27,7 +27,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: offline(),
+	mode: testOffline(),
 };
 
 describe('UI Source Tracking E2E Tests', () => {
@@ -62,8 +62,8 @@ describe('UI Source Tracking E2E Tests', () => {
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(getDefined(stored));
-				expect(consent.consents.necessary).toBe(true);
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.version).toBe(3);
 			});
 		});
 
@@ -168,8 +168,8 @@ describe('UI Source Tracking E2E Tests', () => {
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(getDefined(stored));
-				expect(consent.consents).toBeTruthy();
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.categories).toBeTruthy();
 			});
 		});
 	});

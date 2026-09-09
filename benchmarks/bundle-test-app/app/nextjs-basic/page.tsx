@@ -4,17 +4,26 @@ import {
 	ConsentBanner,
 	ConsentProvider,
 	offline,
-	useConsents,
+	useEffectivePermissions,
 } from '@c15t/nextjs';
 
 const BasicState = () => {
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 	return <pre>{JSON.stringify(consents, null, 2)}</pre>;
 };
 const NextjsBasicPage = () => (
 	<ConsentProvider
 		options={{
-			mode: offline(),
+			mode: offline({
+				policyRules: [
+					{
+						id: 'bench-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 		}}
 	>
 		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>

@@ -1,0 +1,216 @@
+---
+title: Upgrade to v3 policies
+description: Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+group: reference
+---
+
+## Start with a policy rule
+
+```ts
+import { policyRulePresets } from '@c15t/schema';
+import { offline } from '@c15t/react';
+
+const mode = offline({
+	policyRules: [policyRulePresets.europeOptIn()],
+});
+```
+
+Pass `mode` to `ConsentProvider`. For a backend integration, configure
+`policyRules` on the backend and use `hosted({ url })` in the provider. Follow the
+[React quickstart](/docs/frameworks/react/quickstart),
+[Next.js quickstart](/docs/frameworks/next/quickstart), or
+[JavaScript quickstart](/docs/frameworks/javascript/quickstart) for a complete
+integration.
+
+The CLI no longer offers `offline-add-policy-packs`, which generated v2
+configuration. For offline integrations, configure `offline({ policyRules })`
+as shown above.
+
+Replace legacy `policyPacks` and nested `consent` configuration with rules:
+
+```ts
+import type { PolicyRule } from '@c15t/schema';
+
+const policyRules = [
+	{
+		id: 'default-opt-in',
+		match: { fallback: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		categories: ['measurement', 'marketing'],
+		scopeMode: 'strict',
+	},
+] satisfies PolicyRule[];
+```
+
+`model` controls permission defaults. `prompt` controls whether the visitor must
+make a choice, dismiss a notice, or see no prompt. Opt-in and IAB models require
+`prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`. The `none`
+model permits optional categories in scope, allows only `prompt: 'none'`, owes
+no rights, and renders no consent UI. v2's `none` model maps to it directly.
+
+When `categories` selects only some optional categories, you must set
+`scopeMode` explicitly. A strict scope blocks categories outside the rule. A permissive scope allows
+those categories unless another restriction applies. An omitted scope, `['*']`,
+or a list containing only `necessary` expands to the default optional categories.
+`necessary` is always permitted.
+
+`offline()` without `policyRules` resolves `recommendedPolicyRules()`, whose
+Europe rule also matches a visitor with no country. A known US country with a
+missing state uses US opt-out with GPC and persistent preferences; a missing
+Canadian province stays strict opt-in. The last rule is `none` for other known
+unmatched locations. Resolution exposes `matched`, `no-match`,
+`unconfigured`, or `failed`; while nothing has matched, optional categories stay
+denied and no consent surface renders. A missing or malformed policy never grants
+optional permissions by itself.
+
+## Read the state you need
+
+| Purpose | Snapshot field | React hook |
+| --- | --- | --- |
+| Gate scripts and optional features | `effectivePermissions` | `useConsent(category)`, `useConsents()` |
+| Inspect recorded choices and confirmation times | `explicitChoice` | `useExplicitChoice()` |
+| Decide whether to prompt | `promptRequirement` | `usePromptRequirement()` |
+| Inspect the resolved rule | `policyRule` | `usePolicyRule()` |
+| Inspect matching or failure | `resolution` | `usePolicyResolution()` |
+
+An effective permission is not evidence of a grant. Under an opt-out rule it can
+be true before a visitor acts. A notice dismissal updates `noticeDismissal` and
+does not record consent. Global Privacy Control updates privacy signals and
+configured opt-out directives without turning a browser signal into a choice.
+
+## Replace choice callbacks
+
+```tsx
+<ConsentProvider
+	options={{
+		mode,
+		callbacks: {
+			onChoiceRecorded(event) {
+				console.log('Visitor recorded a choice', event);
+			},
+			onPermissionsChanged(event) {
+				console.log('Effective permissions changed', event);
+			},
+		},
+	}}
+>
+	{children}
+</ConsentProvider>
+```
+
+Replace `onConsentSet` with `onChoiceRecorded` for explicit accept, reject, or
+save actions. Use `onPermissionsChanged` for permission changes caused by a
+choice, expiry, policy update, or privacy signal. Provider callbacks no longer
+include `onBannerFetched`; use the resolved policy and pending state to render
+loading UI.
+
+Only `kernel.commands.save()` creates an explicit choice. `save('all')` accepts,
+`save('none')` rejects, and `save({ marketing: false })` confirms only marketing.
+A partial save keeps the other categories' confirmation times. Use
+`commands.dismissNotice()` for the notice action and `kernel.hydrate()` to apply
+validated records without recording an action.
+
+## Keep existing storage
+
+The reader accepts valid v2 storage and translates it into per-category receipts.
+It does not rewrite storage on startup. Existing denials continue to restrict
+permissions; expired or incompatible positive receipts cannot restore grants.
+The next explicit action writes the v3 record. Notice dismissal and privacy
+opt-out directives have separate records.
+
+Pass server-prepared `initialRecords`, `initialPolicyResolution`, and `now`
+through the adapter's prefetch configuration. Do not rebuild consent from a
+boolean `hasConsented` or copy effective permissions into explicit choice records.
+Pending prefetch results cannot restore records after a clear or overwrite a
+newer choice.
+
+## Update custom transports and backend clients
+
+Use `KernelTransport` from `@c15t/core/transports`. Init returns a versioned
+`policyResolution` with a matched rule and fingerprints, or an explicit
+non-matched outcome. Use `mapInitOutputToInitResponse` for an HTTP init payload.
+Do not return legacy `policy` or `policyDecision` fields.
+
+Save requests contain the explicit choice and the categories confirmed by this
+action. Return a `SaveResult` with `ok`; optional identity and record methods
+must preserve the same receipt format. Forward the policy contract headers when
+implementing an HTTP proxy. Keep client, schema, backend, and framework adapters
+on compatible v3 versions.
+
+Use the supplied hosted or manifest transports to capture policy evidence for
+saves and retries. They preserve the action's policy, location, language, and
+privacy signal inputs. A stale policy assertion is an error; it must not silently
+save under a different rule. See the
+[backend endpoint reference](/docs/self-host/api/endpoints) for wire fields.
+
+## Shared runtime ownership
+
+Astro and SvelteKit can create a runtime outside a component tree with
+`createConsentRuntime` from `@c15t/core/runtime`. Pass that runtime to a
+framework provider with its `runtime` prop. The owner calls `start()` after
+mount and `dispose()` when the page no longer needs it. Borrowing providers
+subscribe to the kernel and render UI without initializing or disposing it.
+
+Runtime construction preserves the prepared server snapshot. Storage reads,
+privacy-signal activation and script loading begin on `start()`. Pass server
+records through `prefetch.initialRecords` with their evaluation time to keep
+the first browser render consistent with the server. `runtime.clearRecords()`
+clears both persisted and in-memory records.
+
+Runtime callbacks use `onChoiceRecorded`, `onPermissionsChanged` and
+`onError`. Hydrating records does not report a new visitor choice.
+
+Astro's serializable offline descriptor accepts `policyRules`, just like the
+other adapters' offline factories. Configure a preset or explicit rules;
+omitting them keeps the conservative fallback.
+
+## Presentation corrections
+
+Use `blocking` for backdrop, scroll locking and focus trapping together.
+Choice banners default to non-blocking, choice walls always block, and notices
+never block. A notice configured as a wall falls back to a floating card.
+Preferences remain centered; `variant` and `position` apply only to prompts.
+
+Replace reads of `uncoveredRights` with `preferenceControls`. The latter is a
+list of additional preferences buttons recommended for the stock UI. It does
+not verify disclosure or persistent access to policy rights.
+
+Notice acknowledgement uses `common.acknowledge`, falling back to
+`common.dismiss` for older translation bundles. It does not record a choice.
+
+## Astro notice acknowledgement
+
+```astro
+---
+import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+---
+
+<ConsentBanner dismissButtonText="Got it" />
+```
+
+Astro's `ConsentBanner` accepts `dismissButtonText` as an optional string. It
+labels the notice acknowledgement button, which defaults to
+`common.acknowledge` and falls back to `common.dismiss` in older translation
+bundles. Acknowledging a notice preserves the visitor's consent choices.
+
+## IAB blocking behavior
+
+IAB banners and dialogs use the same `presentation.prompt.blocking` and
+`presentation.preferences.blocking` settings as the other consent components.
+A blocking surface shows a backdrop, traps focus and locks page scrolling.
+Explicit `blocking` values take precedence over deprecated `scrollLock` and
+`trapFocus` options. IAB components stay hidden without a matched policy,
+including when a dialog receives `open={true}`.
+
+The React consent dialog still blocks pointer interaction with the page when
+`blocking` is true and you hide its backdrop with `overlay={false}`.
+
+Legacy prompt options now control the whole blocking behavior. For example,
+`scrollLock: true` alone enables a backdrop and focus trapping as well as
+scroll locking. Set `blocking: false` explicitly for a non-modal banner.
+
+Custom dialog backdrops follow the same rule. A dialog resolved as non-blocking
+omits both the default backdrop and a supplied `overlay`. To retain a custom
+backdrop when migrating from `trapFocus: false`, set
+`presentation.preferences.blocking: true` and keep your `overlay` prop.

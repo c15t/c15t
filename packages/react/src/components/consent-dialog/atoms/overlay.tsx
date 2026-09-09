@@ -66,7 +66,7 @@ export type OverlayProps = PropsWithChildren<{
 	open?: boolean;
 }>;
 
-const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, open, style }) => {
+const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style, open }) => {
 	const { activeUI } = useConsentManager();
 	const { components } = useUIConfig();
 	const {

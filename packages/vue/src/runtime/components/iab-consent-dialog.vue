@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import type { PresentationAction } from '@c15t/core';
 import { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
 import type {
 	HeadlessIABDisplayRow,
 	HeadlessIABDisplayStackRow,
 } from '@c15t/iab/headless';
-import type { PolicyUiAction } from '@c15t/schema/types';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { getTextDirection } from '@c15t/ui/utils';
@@ -21,6 +21,8 @@ import {
 } from '#c15t/composables';
 import type { ConsentIabSelection } from '#c15t/composables';
 
+import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
@@ -32,9 +34,9 @@ import IabPurposeItem from './iab-purpose-item.vue';
 import IabStackItem from './iab-stack-item.vue';
 import IabVendorList from './iab-vendor-list.vue';
 
-const IAB_DIALOG_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
+const IAB_DIALOG_LAYOUT: (PresentationAction | PresentationAction[])[] = [
 	['reject', 'accept'],
-	'customize',
+	'save',
 ];
 
 /**
@@ -43,11 +45,13 @@ const IAB_DIALOG_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
  * `ConsentActions` only falls back to its own ids when a surface names
  * none at all.
  */
-const IAB_DIALOG_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {};
+const IAB_DIALOG_ACTION_TEST_IDS: Partial<Record<PresentationAction, string>> =
+	{};
 
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
+const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
@@ -70,14 +74,19 @@ const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 const draftIab = ref<ConsentIabSelection>(createDefaultIabSelection());
 
+const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
+	if (!hasConsentUi.value) {
+		return false;
+	}
 	const models = config.value.iabDialogModels;
-	const model = initValue.value?.policy?.model;
+	const { model } = snapshot.value.policyRule;
 	const matchesModel =
-		!models?.length || (model !== undefined && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'manager' &&
-		initValue.value?.policy?.model === 'iab' &&
+		snapshot.value.policyRule.model === 'iab' &&
 		Boolean(gvl.value) &&
 		matchesModel
 	);
@@ -107,8 +116,8 @@ const iabT = useIabTranslations();
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
-	customize: iabT.value?.common?.saveSettings ?? 'Save settings',
 	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
+	save: iabT.value?.common?.saveSettings ?? 'Save settings',
 }));
 
 // Which rows this surface renders, and in what order, comes from the
@@ -243,8 +252,8 @@ const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 	}
 };
 
-const onAction = function onAction(action: PolicyUiAction) {
-	if (action === 'customize') {
+const onAction = function onAction(action: PresentationAction) {
+	if (action === 'save') {
 		save(
 			{
 				...structuredClone(draftIab.value),
@@ -268,14 +277,15 @@ const handleVendorClick = function handleVendorClick(vendorId: IabVendorId) {
 	activeTab.value = 'vendors';
 };
 
-const scrollLock = computed(
-	() => initValue.value?.policy?.ui?.dialog?.scrollLock ?? true
-);
+const { presentation } = useConsentPolicyActions('preferences', {
+	layout: IAB_DIALOG_LAYOUT,
+});
+const scrollLock = computed(() => presentation.value.scrollLock);
 
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
+	Boolean(isOpen.value && presentation.value.blocking)
 );
 const card = ref<HTMLElement | null>(null);
 useFocusTrap(card, () => shouldTrapFocus.value);
@@ -332,7 +342,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						v-bind="config.components?.['iab-dialog']?.card"
 						data-testid="iab-consent-dialog-card"
 						:class="[dialogStyles.card, dialogStyles.contentVisible]"
-						:role="shouldTrapFocus ? 'dialog' : undefined"
+						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
 						tabindex="-1"
@@ -697,8 +707,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						</TabsRoot>
 
 						<ConsentActions
-							:layout="IAB_DIALOG_LAYOUT"
-							:primary-actions="['customize']"
+							:action-groups="presentation.actionGroups"
+							:direction="presentation.direction"
+							:primary-actions="presentation.primaryActions"
 							:labels="labels"
 							:test-ids="IAB_DIALOG_ACTION_TEST_IDS"
 							primary-mode="filled"

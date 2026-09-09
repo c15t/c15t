@@ -15,3 +15,83 @@ TODO.
 ## Props
 
 TODO.
+
+## Presentation
+
+Policies decide behavior. `presentation` decides how the prompt and the
+preference center look, and it never changes a policy fingerprint, so
+changing it never re-prompts a returning visitor.
+
+`presentation.prompt` takes `variant`, `position`, and `blocking` alongside
+`layout` and `primaryActions`. Every prompt defaults to a `floating` card at the
+bottom left, a notice included, and a `wall` is always blocking. `bar`,
+`widget`, and `wall` are host choices. Props on `ConsentBanner` override these for one banner.
+
+```tsx
+import { ConsentProvider, offline } from '@c15t/react';
+import { policyRulePresets } from '@c15t/schema';
+
+const mode = offline({
+	policyRules: [
+		policyRulePresets.europeOptIn(),
+		policyRulePresets.californiaOptOut(),
+	],
+});
+
+export function Consent({ children }: { children: React.ReactNode }) {
+	return (
+		<ConsentProvider
+			options={{
+				mode,
+				presentation: {
+					prompt: { variant: 'bar', position: 'top' },
+					preferences: { blocking: true },
+				},
+			}}
+		>
+			{children}
+		</ConsentProvider>
+	);
+}
+```
+
+Omit `policyRules` to use `recommendedPolicyRules()`, the pack `offline()`
+resolves by default. Offline mode has no location unless you pass a country,
+so the default pack shows the strict opt-in banner to every visitor.
+
+Presentation is global. To give one region a different shape, render the
+banner with props chosen from the active rule:
+
+```tsx
+import { ConsentBanner, usePolicyRule } from '@c15t/react';
+
+export function RegionalBanner() {
+	const rule = usePolicyRule();
+	const wall = rule.model === 'opt-in';
+	return <ConsentBanner variant={wall ? 'wall' : 'bar'} />;
+}
+```
+
+`presentation.preferences` accepts action layout, primary actions, defaults,
+and `blocking`. It renders a centered dialog; `variant` and `position` are
+prompt-only options. Preferences default to blocking. Set `blocking: false`
+to remove the backdrop, scroll lock and focus trap together.
+
+## Disabled mode
+
+Set `options.enabled` to `false` to grant every category and hide consent UI.
+Configured consent-gated scripts load immediately. The provider skips
+initialization, persistence, IAB, and network blocking, and does not record a
+visitor choice.
+
+## Content Security Policy nonce
+
+Pass your response's Content Security Policy nonce through `options.nonce`.
+The provider applies it to its injected theme style and the script loader
+applies it to each script it creates. A script's own `nonce` takes precedence.
+
+```tsx
+<ConsentProvider options={{ mode, nonce }}>
+	{children}
+</ConsentProvider>
+```

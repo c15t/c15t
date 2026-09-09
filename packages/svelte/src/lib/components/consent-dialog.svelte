@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
-	import { defaultTranslationConfig } from '@c15t/core';
+	import {
+		defaultTranslationConfig,
+		resolveConsentPresentation,
+	} from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/consent-dialog';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
@@ -15,7 +18,7 @@
 	interface ConsentDialogTriggerProps {
 		defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 		persistPosition?: boolean;
-		showWhen?: 'always' | 'after-consent' | 'never';
+		showWhen?: 'always' | 'never';
 		size?: 'sm' | 'md' | 'lg';
 		ariaLabel?: string;
 		noStyle?: boolean;
@@ -28,7 +31,8 @@
 		hideBranding,
 		legalLinks,
 		showTrigger = false,
-		models = ['opt-in', 'opt-out'] as Model[],
+		// A `none` rule that grants the preferences right still opens here.
+		models = ['opt-in', 'opt-out', 'iab', 'none'] as Model[],
 		class: className,
 	}: {
 		open?: boolean;
@@ -42,6 +46,20 @@
 
 	const consent = getConsentContext();
 	const theme = getThemeContext();
+	const preferences = $derived(
+		resolveConsentPresentation({
+			policy: consent.snapshot.policyRule,
+			presentation: {
+				...consent.state.presentation,
+				preferences: {
+					scrollLock: theme.scrollLock,
+					trapFocus: theme.trapFocus,
+					...consent.state.presentation?.preferences,
+				},
+			},
+			surface: 'preferences',
+		})
+	);
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 	const disableAnimation = $derived(theme.disableAnimation ?? false);
@@ -59,7 +77,8 @@
 
 	// Open state
 	const isOpen = $derived(
-		models.includes(consent.state.model) &&
+		consent.state.hasConsentUi &&
+			models.includes(consent.state.model) &&
 			(openProp ?? consent.state.activeUI === 'dialog')
 	);
 	let dialogOpen = $state(false);
@@ -154,16 +173,18 @@
 	bind:open={dialogOpen}
 	closeOnInteractOutside={false}
 	closeOnEscape={true}
-	trapFocus={true}
-	preventScroll={true}
+	trapFocus={preferences.blocking}
+	preventScroll={preferences.scrollLock}
 	lazyMount
 	unmountOnExit
 >
 	<Portal>
-		<Dialog.Backdrop
-			class={noStyle ? '' : styles.overlay || ''}
-			data-testid="consent-dialog-overlay"
-		/>
+		{#if preferences.blocking}
+			<Dialog.Backdrop
+				class={noStyle ? '' : styles.overlay || ''}
+				data-testid="consent-dialog-overlay"
+			/>
+		{/if}
 		<Dialog.Positioner
 			class={noStyle
 				? ''
@@ -176,6 +197,7 @@
 				dir={textDirection}
 				aria-labelledby="consent-dialog-title"
 				aria-describedby="consent-dialog-description"
+				data-blocking={preferences.blocking ? 'true' : undefined}
 				data-testid="consent-dialog-root"
 			>
 				<!-- Card -->

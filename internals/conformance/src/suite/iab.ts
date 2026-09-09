@@ -6,20 +6,18 @@
  * the banner root and customize button test-ids, basic button semantics,
  * and that the store reports the IAB policy model.
  *
- * Deliberately shallow on interaction: no vendor/purpose toggling: portal
- * and focus-trap behavior is flaky under jsdom and is covered by the
- * storybook interaction suites instead. What it does assert deeply is the
- * shared display model — which rows each surface lists, and under which
- * test-id — because that is the contract the four adapters have to agree
- * on and the one they used to derive four different ways. Drivers without
- * IAB component support throw `DriverNotImplementedError` and degrade to
- * todo.
+ * Deliberately shallow: no vendor/purpose toggling or deep dialog
+ * interaction — portal + focus-trap behavior is flaky under jsdom and is
+ * covered by the storybook interaction suites instead. Drivers without IAB
+ * component support throw `DriverNotImplementedError` and fail.
  */
 
 import { TEST_IDS } from '../contract/test-ids';
 import type { TestDriver } from '../driver';
+import { POLICY_SCENARIOS } from '../fixtures/policy-scenarios';
 import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
 import type { SuiteApi } from './helpers';
+import { runPolicyScenarioConformance } from './policy-scenarios';
 
 /**
  * The rows `MINIMAL_GVL` produces, in render order.
@@ -56,11 +54,61 @@ const accessibleName = function accessibleName(el: HTMLElement): string {
 	return (el.getAttribute('aria-label') ?? el.textContent ?? '').trim();
 };
 
-export const runIabConformance = function runIabConformance(
+export const runIabUiConformance = function runIabUiConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
 	api.describe(`[${driver.framework}] iab`, () => {
+		for (const surface of ['banner', 'dialog'] as const) {
+			for (const blocking of [false, true]) {
+				conformanceTest(
+					api,
+					`IAB ${surface} honors blocking=${blocking} over legacy focus settings`,
+					async () => {
+						const originalOverflow = document.body.style.overflow;
+						const mounted = await driver.mount({
+							component:
+								surface === 'banner'
+									? 'iab-consent-banner'
+									: 'iab-consent-dialog',
+							providerOptions: {
+								disableAnimation: true,
+								presentation: {
+									preferences: { blocking },
+									prompt: { blocking },
+								},
+								trapFocus: !blocking,
+							},
+						});
+						try {
+							const card = () =>
+								queryByTestId(document.body, `iab-consent-${surface}-card`);
+							await waitForCondition(() => card() !== null);
+							api
+								.expect(card()?.getAttribute('role'))
+								.toBe(surface === 'dialog' || blocking ? 'dialog' : 'region');
+							api
+								.expect(card()?.getAttribute('aria-modal'))
+								.toBe(blocking ? 'true' : null);
+							api
+								.expect(
+									queryByTestId(
+										document.body,
+										`iab-consent-${surface}-overlay`
+									) !== null
+								)
+								.toBe(blocking);
+							api
+								.expect(document.body.style.overflow)
+								.toBe(blocking ? 'hidden' : originalOverflow);
+						} finally {
+							await mounted.unmount();
+						}
+						api.expect(document.body.style.overflow).toBe(originalOverflow);
+					}
+				);
+			}
+		}
 		conformanceTest(
 			api,
 			'IAB banner renders the contract root and customize button',
@@ -215,4 +263,17 @@ export const runIabConformance = function runIabConformance(
 			}
 		);
 	});
+};
+
+/** Category restrictions and confirmed IAB authority remain independent. */
+export const runIabConformance = function runIabConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
+	runIabUiConformance(driver, api);
+	runPolicyScenarioConformance(
+		driver,
+		api,
+		POLICY_SCENARIOS.filter((scenario) => scenario.covers.includes('F11'))
+	);
 };

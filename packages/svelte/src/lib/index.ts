@@ -4,7 +4,6 @@ export {
 	detectBrowserLanguage,
 	hosted,
 	mergeTranslationConfigs,
-	policyPackPresets,
 	prepareTranslationConfig,
 } from '@c15t/core';
 export type {
@@ -30,14 +29,11 @@ export type {
 	KernelUser,
 	LocationResponse,
 	NonIABVendor,
-	PolicyDecision,
 	PolicyScopeMode,
-	PolicyUiSurfaceConfig,
 	HostedModeOptions,
 	ProviderTransportContext,
 	ProviderTransportFactory,
 	ProviderTransportKind,
-	ResolvedPolicy,
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,
@@ -95,6 +91,7 @@ export {
 } from './primitives';
 export type {
 	ConsentManagerOptions,
+	ConsentProviderCallbacks,
 	ProviderIABOptions,
 	SvelteUIOptions,
 	UseNetworkBlockerOptions,
@@ -103,3 +100,11 @@ export type {
 } from './types';
 export type { OfflineModeOptions } from './transports/offline';
 export { offline } from './transports/offline';
+
+export type { ConsentManagerState, ConsentDraftState } from './context.svelte';
+export { resolveConsentPresentation } from '@c15t/core';
+export type {
+	ConsentPresentation,
+	PresentationAction,
+	ResolvedConsentPresentation,
+} from '@c15t/core';

@@ -90,6 +90,13 @@ const extractSlotKeyPaths = function extractSlotKeyPaths(source: string) {
 
 const extractStaticSlotPaths = function extractStaticSlotPaths(source: string) {
 	const paths = new Set<string>();
+	for (const match of source.matchAll(
+		/getSlotProps\(\s*components\s*,\s*['"](?<slot>[^'"]+\.[^'"]+)['"]/gu
+	)) {
+		if (match.groups?.slot) {
+			paths.add(match.groups.slot);
+		}
+	}
 	const componentPathPattern =
 		/components\?\.(?:\[['"](?<capture1>[^'"]+)['"]\]|(?<capture2>[A-Za-z_$][\w$-]*))\?\.(?:\[['"](?<capture3>[^'"]+)['"]\]|(?<capture4>[A-Za-z_$][\w$-]*))/gu;
 	let match = componentPathPattern.exec(source);

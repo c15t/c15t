@@ -7,8 +7,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { offline } from '~/transports/offline';
 
 import { IABConsentBanner } from '../iab-consent-banner';
@@ -117,9 +118,13 @@ const defaultIABOptions: ConsentProviderOptions = {
 		gvl: mockGVL,
 	},
 	mode: offline(),
-	offlinePolicy: {
-		policy: { id: 'iab_test', model: 'iab' },
-	},
+	prefetch: policyFixture(undefined, {
+		categories: undefined,
+		id: 'iab_test',
+		model: 'iab',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	}),
 };
 
 describe('IAB Consent Banner Unit Tests', () => {
@@ -230,7 +235,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 	});
 
 	describe('Accessibility', () => {
-		test('should have dialog role', async () => {
+		test('should have region role by default', async () => {
 			render(
 				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
@@ -242,7 +247,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 					const banner = document.querySelector(
 						'[data-testid="iab-consent-banner-card"]'
 					);
-					expect(banner?.getAttribute('role')).toBe('dialog');
+					expect(banner?.getAttribute('role')).toBe('region');
 				},
 				{ timeout: 3000 }
 			);

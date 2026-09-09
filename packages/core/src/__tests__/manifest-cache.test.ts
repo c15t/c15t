@@ -35,37 +35,25 @@ const createManifestFixture = function createManifestFixture(
 		branding: 'c15t',
 		policyPacks: [
 			createConsentManifestPolicyPack({
-				fingerprint: 'fingerprint-eu',
-				policy: {
-					consent: {
-						categories: ['necessary', 'measurement', 'marketing'],
-						expiryDays: 365,
-						model: 'opt-in',
-						scopeMode: 'strict',
-					},
-					id: 'eu-opt-in',
-					match: { countries: ['DE'], fallback: true },
-					ui: { mode: 'banner' },
-				},
+				categories: ['measurement', 'marketing'],
+				id: 'eu-opt-in',
+				match: { countries: ['DE'], fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+				scopeMode: 'strict',
 			}),
 			createConsentManifestPolicyPack({
-				fingerprint: 'fingerprint-ca',
-				policy: {
-					consent: {
-						categories: ['necessary', 'marketing'],
-						expiryDays: 365,
-						gpc: true,
-						model: 'opt-out',
-						scopeMode: 'permissive',
-					},
-					id: 'ca-opt-out',
-					match: { regions: [{ country: 'US', region: 'CA' }] },
-					ui: { mode: 'banner' },
-				},
+				categories: ['marketing'],
+				id: 'ca-opt-out',
+				match: { regions: [{ country: 'US', region: 'CA' }] },
+				model: 'opt-out',
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+				prompt: 'choice',
+				scopeMode: 'permissive',
 			}),
 		],
 		revision,
-		schemaVersion: 1,
+		schemaVersion: 2,
 		translations: {
 			i18n: {
 				defaultProfile: 'default',
@@ -395,13 +383,10 @@ describe('resolveManifestInit', () => {
 			branding: 'c15t',
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: 'BE' },
-			policy: { id: 'eu-opt-in', model: 'opt-in' },
-			policyDecision: {
-				country: 'DE',
-				fingerprint: 'fingerprint-eu',
+			policyResolution: {
 				matchedBy: 'country',
 				policyId: 'eu-opt-in',
-				region: 'BE',
+				status: 'matched',
 			},
 			resolvedOverrides: { country: 'DE', language: 'de', region: 'BE' },
 			translations: { language: 'de' },
@@ -422,14 +407,13 @@ describe('resolveManifestInit', () => {
 		});
 
 		expect(init).toMatchObject({
-			policy: { id: 'ca-opt-out', model: 'opt-out' },
-			policyDecision: { matchedBy: 'region', policyId: 'ca-opt-out' },
+			policyResolution: { matchedBy: 'region', policyId: 'ca-opt-out' },
 			resolvedOverrides: {
 				country: 'US',
-				gpc: true,
 				language: 'en',
 				region: 'CA',
 			},
+			resolvedPrivacySignals: { gpc: true },
 		});
 	});
 
@@ -441,8 +425,8 @@ describe('resolveManifestInit', () => {
 
 		expect(init).toMatchObject({
 			location: { countryCode: null, regionCode: null },
-			policyDecision: { matchedBy: 'fallback', policyId: 'eu-opt-in' },
-			resolvedOverrides: { gpc: false, language: 'en' },
+			policyResolution: { matchedBy: 'fallback', policyId: 'eu-opt-in' },
+			resolvedOverrides: { language: 'en' },
 		});
 		expect(init.resolvedOverrides).not.toHaveProperty('country');
 	});

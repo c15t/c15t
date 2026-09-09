@@ -12,24 +12,29 @@
  *   onMounted / onMount. Never at kernel construction.
  */
 
-export {
-	DEFAULT_POLICY_ACTION_LAYOUT,
-	flattenPolicyActionGroups,
-	hasPolicyHints,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	resolvePolicyUiProfile,
-	shouldFillPolicyActions,
-} from './libs/policy-actions';
-export type { CONSENT_CATEGORY, Consent } from './consent-record';
+export type {
+	CategoryDecision,
+	ChoiceBasis,
+	CONSENT_CATEGORY,
+	ConsentEvaluation,
+	ConsentSubject,
+	EvaluationPolicy,
+	ExplicitChoice,
+	NoticeDismissal,
+	OptionalConsentCategory,
+	PrivacyOptOut,
+	PromptReason,
+	PromptRequirement,
+	RecordIssue,
+	RestrictionReason,
+} from './consent-record';
 export {
 	CONSENT_CATEGORIES,
-	deriveActiveConsentUi,
-	getConsentAvailableCategories,
-	interpretStoredConsent,
+	createEvaluationPolicy,
+	evaluateConsentRecord,
+	OPTIONAL_CONSENT_CATEGORIES,
+	validateExplicitChoice,
+	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
 export type { KernelIABControls } from './modules/iab-controls';
@@ -78,18 +83,26 @@ export type {
 	ProviderTransportKind,
 } from './transports/mode';
 export { custom, hosted } from './transports/mode';
-export type { OfflineTransportOptions } from './transports/offline';
+export type {
+	OfflineKernelTransport,
+	OfflineTransportOptions,
+} from './transports/offline';
 export { createOfflineTransport } from './transports/offline';
 export { buildSubjectPostBody } from './transports/subject-body';
 export {
+	C15T_POLICY_CONTRACT_HEADER,
 	C15T_VERSION_HEADER,
+	c15tProtocolHeaders,
 	c15tVersionHeaders,
 } from './transports/version-header';
 export type {
+	ConfirmedCoverage,
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
 	GlobalVendorList,
+	HydrationRecords,
+	HydrationResult,
 	InitContext,
 	InitResponse,
 	InitResult,
@@ -97,24 +110,22 @@ export type {
 	KernelBranding,
 	KernelConfig,
 	KernelEvent,
+	KernelIABAuthority,
 	KernelIABState,
 	KernelModel,
 	KernelOverrides,
+	KernelPrivacySignals,
 	KernelTranslations,
 	KernelTransport,
 	KernelUser,
 	Listener,
 	LocationResponse,
 	NonIABVendor,
-	PolicyDecision,
+	NoticeDismissResult,
+	PolicyResolution,
 	PolicyScopeMode,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
-	ResolvedPolicy,
+	ResolvedPolicyRule,
+	SaveInput,
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,
@@ -135,7 +146,7 @@ export type {
 } from './consent/compliance';
 
 // -- Consent conditions --------------------------------------------------------
-export type { HasCondition, HasOptions } from './libs/has';
+export type { HasCondition } from './libs/has';
 export { extractConsentNamesFromCondition, has } from './libs/has';
 
 // -- Storage -------------------------------------------------------------------
@@ -143,10 +154,8 @@ export type { CookieOptions, StorageConfig } from './libs/cookie';
 export {
 	deleteConsentFromStorage,
 	deleteCookie,
-	getConsentFromStorage,
 	getCookie,
 	getRootDomain,
-	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
 
@@ -189,10 +198,9 @@ export type {
 	IABConfig,
 	LegalLink,
 	LegalLinks,
-	OfflinePolicyConfig,
 	OnBannerFetchedPayload,
-	OnConsentChangedPayload,
-	OnConsentSetPayload,
+	OnChoiceRecordedPayload,
+	OnPermissionsChangedPayload,
 	OnErrorPayload,
 	Overrides,
 	PingData,
@@ -238,10 +246,42 @@ export { defaultTranslationConfig } from './translations';
 // -- Schema re-exports ---------------------------------------------------------
 export type {
 	Branding,
-	EuropePolicyMode,
 	InitOutput,
 	JurisdictionCode,
-	PolicyConfig,
-	PolicyPackPresets,
+	PolicyPrompt,
+	PolicyResolutionFailure,
+	PolicyRule,
+	PolicyRulePresets,
+	RecommendedPolicyRulesOptions,
 } from '@c15t/schema/types';
-export { policyPackPresets } from '@c15t/schema/types';
+export {
+	normalizePolicyRule,
+	policyRulePresets,
+	recommendedPolicyRules,
+	readPolicyResolutionWire,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+	safeFallbackPolicyRule,
+} from '@c15t/schema/types';
+export {
+	PROMPT_VARIANT_DEFAULT_POSITION,
+	PROMPT_VARIANT_POSITIONS,
+	resolveConsentPresentation,
+} from './libs/policy-actions';
+export type {
+	ConsentPresentation,
+	PromptPresentation,
+	PromptVariant,
+	PromptPosition,
+	FloatingPromptPosition,
+	BarPromptPosition,
+	WidgetPromptPosition,
+	WallPromptPosition,
+	PreferencesPresentation,
+	SurfacePresentation,
+	PresentationAction,
+	PresentationDiagnostic,
+	ResolvedConsentPresentation,
+} from './libs/policy-actions';
+
+export { evaluateConsent, getEffectiveGateState } from './modules/has';

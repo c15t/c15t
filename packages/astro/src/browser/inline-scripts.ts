@@ -100,10 +100,10 @@ export const activateGatedScripts = function activateGatedScripts(
 			element.setAttribute(ACTIVATED_ATTRIBUTE, 'invalid');
 			continue;
 		}
-		const allowed = has(category as AllConsentNames, snapshot.consents, {
-			policyCategories: snapshot.policyCategories as string[] | null,
-			policyScopeMode: snapshot.policyScopeMode,
-		});
+		const allowed = has(
+			category as AllConsentNames,
+			snapshot.effectivePermissions
+		);
 		if (!allowed) {
 			continue;
 		}

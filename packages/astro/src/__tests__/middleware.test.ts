@@ -4,6 +4,7 @@ import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
 import { hostedMode, offlineMode } from '../mode';
 import type { C15tAstroOptions, C15tLocals } from '../types';
+import { testRule, testWire } from './policy-fixture';
 
 interface RunInput {
 	headers?: Record<string, string>;
@@ -14,7 +15,9 @@ interface RunInput {
 
 const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
 	const middleware = createConsentMiddleware(
-		resolveOptions(input.options ?? { mode: offlineMode() }),
+		resolveOptions(
+			input.options ?? { mode: offlineMode({ policyRules: [testRule] }) }
+		),
 		{ fetch: input.fetch }
 	);
 	const locals = {} as { c15t: C15tLocals };
@@ -37,7 +40,7 @@ describe('consent middleware', () => {
 	it('populates locals for a first-time visitor', async () => {
 		const c15t = await run();
 		expect(c15t.shouldShowBanner).toBe(true);
-		expect(c15t.snapshot.hasConsented).toBe(false);
+		expect(c15t.snapshot.explicitChoice).toBeNull();
 	});
 
 	it('reads geo through the shared header precedence', async () => {
@@ -71,7 +74,10 @@ describe('consent middleware', () => {
 	it('lets an explicit locale beat accept-language', async () => {
 		const c15t = await run({
 			headers: { 'accept-language': 'de-DE' },
-			options: { i18n: { locale: 'fr' }, mode: offlineMode() },
+			options: {
+				i18n: { locale: 'fr' },
+				mode: offlineMode({ policyRules: [testRule] }),
+			},
 		});
 		expect(c15t.snapshot.translations?.language).toBe('fr');
 	});
@@ -87,7 +93,7 @@ describe('consent middleware', () => {
 		// No request to resolve means no server-side decision, so the banner
 		// stays out of the cached HTML and the browser decides instead.
 		expect(c15t.shouldShowBanner).toBe(false);
-		expect(c15t.snapshot.policy).toBeNull();
+		expect(c15t.snapshot.resolution.status).toBe('unconfigured');
 	});
 
 	it('folds a hosted /init response into the config', async () => {
@@ -97,11 +103,7 @@ describe('consent middleware', () => {
 				consents: {},
 				hasConsented: false,
 				location: { countryCode: 'DE', regionCode: null },
-				policy: {
-					id: 'gdpr',
-					model: 'opt-in',
-					ui: { mode: 'banner' },
-				},
+				policyResolution: testWire({ id: 'gdpr' }),
 				translations: { language: 'en', translations: {} },
 			})
 		);
@@ -118,6 +120,30 @@ describe('consent middleware', () => {
 		);
 		expect(c15t.config.initialLocation?.countryCode).toBe('DE');
 	});
+
+	it.each(['999', 'invalid'])(
+		'denies an unsupported producer contract %s',
+		async (contract) => {
+			const c15t = await run({
+				fetch: vi.fn(() =>
+					Response.json(
+						{
+							location: { countryCode: null, regionCode: null },
+							policyResolution: testWire({ model: 'opt-out', prompt: 'none' }),
+							translations: { language: 'en', translations: {} },
+						},
+						{ headers: { 'x-c15t-policy-contract': contract } }
+					)
+				) as never,
+				options: { mode: hostedMode({ url: 'https://consent.example.com' }) },
+			});
+			expect(c15t.snapshot.resolution).toMatchObject({
+				reason: 'unsupported-contract',
+				status: 'failed',
+			});
+			expect(c15t.snapshot.effectivePermissions.marketing).toBe(false);
+		}
+	);
 
 	it('degrades silently when the backend is down', async () => {
 		const fetchImpl = vi.fn(() => {

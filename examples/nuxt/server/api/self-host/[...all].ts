@@ -9,7 +9,8 @@
  * Storage selection lives in `lib/adapter.ts`, shared with the CLI config and
  * the migration script so the three cannot drift.
  */
-import { c15tInstance, createMigrator, policyPackPresets } from '@c15t/backend';
+import { c15tInstance, createMigrator } from '@c15t/backend';
+import { policyRulePresets } from 'c15t';
 import { toWebRequest } from 'h3';
 
 import { createAdapter } from '../../../lib/adapter';
@@ -77,10 +78,10 @@ const createInstance = async function createInstance() {
 			// Real policy packs so the manifest carries fingerprints + matching
 			// rules and POST /subjects exercises recompute-on-write. The world
 			// fallback guarantees every visitor resolves a policy decision.
-			policyPacks: [
-				policyPackPresets.europeOptIn(),
-				policyPackPresets.californiaOptOut(),
-				policyPackPresets.worldNoBanner(),
+			policyRules: [
+				policyRulePresets.europeOptIn(),
+				policyRulePresets.californiaOptOut(),
+				policyRulePresets.worldOptOutNoPrompt(),
 			],
 
 			tenantId: 'ins_1',

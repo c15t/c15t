@@ -1,4 +1,4 @@
-import type { ConsentSnapshot, KernelEvent } from '@c15t/core';
+import type { ConsentSnapshot, ConsentState, KernelEvent } from '@c15t/core';
 import type {
 	ScriptDiagnostic,
 	ScriptLoaderDebugEvent,
@@ -43,6 +43,10 @@ export interface DevToolsState {
 	readonly activeTab: DevToolsTab;
 	readonly position: DevToolsPosition;
 	readonly snapshot: ConsentSnapshot;
+	/** Unsaved selections owned by this DevTools instance. */
+	readonly draft: Readonly<Partial<ConsentState>>;
+	/** Choice policy under which the current draft was first edited. */
+	readonly draftFingerprint: string | null;
 	readonly events: readonly DevToolsEvent[];
 	readonly scripts: readonly ScriptDiagnostic[];
 }
@@ -64,6 +68,7 @@ export interface StateManager {
 	setOpen: (isOpen: boolean) => void;
 	setActiveTab: (tab: DevToolsTab) => void;
 	setSnapshot: (snapshot: ConsentSnapshot) => void;
+	setDraft: (draft: Partial<ConsentState>) => void;
 	setScripts: (scripts: readonly ScriptDiagnostic[]) => void;
 	addEvent: (event: DevToolsEvent) => void;
 	clearEvents: () => void;
@@ -85,6 +90,8 @@ export function createStateManager(options: {
 }): StateManager {
 	let state: DevToolsState = {
 		activeTab: options.activeTab,
+		draft: Object.freeze({}),
+		draftFingerprint: null,
 		events: [],
 		isOpen: options.isOpen,
 		position: options.position,
@@ -125,6 +132,15 @@ export function createStateManager(options: {
 				update({ activeTab });
 			}
 		},
+		setDraft: (draft) =>
+			update({
+				draft: Object.freeze({ ...draft }),
+				draftFingerprint:
+					Object.keys(draft).length > 0
+						? (state.draftFingerprint ??
+							state.snapshot.evaluationPolicy.choice.fingerprint)
+						: null,
+			}),
 		setOpen: (isOpen) => {
 			if (state.isOpen !== isOpen) {
 				update({ isOpen });
@@ -133,7 +149,12 @@ export function createStateManager(options: {
 		setScripts: (scripts) => update({ scripts }),
 		setSnapshot: (snapshot) => {
 			if (state.snapshot !== snapshot) {
-				update({ snapshot });
+				const reset = snapshot.user !== state.snapshot.user;
+				update({
+					draft: reset ? Object.freeze({}) : state.draft,
+					draftFingerprint: reset ? null : state.draftFingerprint,
+					snapshot,
+				});
 			}
 		},
 		subscribe(listener) {

@@ -6,8 +6,12 @@
  * server, so the banner is in the first HTML instead of appearing a frame
  * after hydration.
  */
-import { mergeInitOutputIntoKernelConfig } from '@c15t/core';
+import {
+	c15tProtocolHeaders,
+	mergeInitOutputIntoKernelConfig,
+} from '@c15t/core';
 import type { KernelConfig } from '@c15t/core';
+import { readProducerPolicyContract } from '@c15t/core/transports';
 import type {
 	ConsentRequestHeaderInputs,
 	InitOutput,
@@ -108,7 +112,7 @@ const resolveBase = async function resolveBase(
 const initRequestHeaders = function initRequestHeaders(
 	inputs: ConsentRequestHeaderInputs
 ): Record<string, string> {
-	const headers: Record<string, string> = {};
+	const headers: Record<string, string> = { ...c15tProtocolHeaders };
 	if (inputs.country) {
 		headers['x-c15t-country'] = inputs.country;
 	}
@@ -172,10 +176,15 @@ export const loadConsent = async function loadConsent(
 				return config;
 			}
 			const payload = (await response.json()) as InitOutput;
-			return mergeInitOutputIntoKernelConfig(config, payload, {
-				...headersToRecord(event.request.headers),
-				...forwarded,
-			});
+			return mergeInitOutputIntoKernelConfig(
+				config,
+				payload,
+				{
+					...headersToRecord(event.request.headers),
+					...forwarded,
+				},
+				{ producerContract: readProducerPolicyContract(response.headers) }
+			);
 		} catch {
 			// Fail soft: the client re-runs init on hydration.
 			return config;

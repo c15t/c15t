@@ -133,11 +133,12 @@ describe('createIAB: mutations', () => {
 		// `marketing` requires purposes 2+3+4 all true. Flip them in
 		// sequence and verify marketing flips on the last.
 		iab.setPurposeConsent(2, true);
-		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		iab.setPurposeConsent(3, true);
-		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		iab.setPurposeConsent(4, true);
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 
 		iab.dispose();
 	});
@@ -155,7 +156,8 @@ describe('createIAB: mutations', () => {
 		expect(snap.iab?.purposeConsents[3]).toBe(true);
 		expect(snap.iab?.specialFeatureOptIns[1]).toBe(true);
 		// c15t categories should follow.
-		expect(snap.consents.marketing).toBe(true);
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
 
 		iab.dispose();
 	});
@@ -168,7 +170,7 @@ describe('createIAB: mutations', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.iab?.vendorConsents['755']).toBe(false);
 		expect(snap.iab?.purposeConsents[2]).toBe(false);
-		expect(snap.consents.marketing).toBe(false);
+		expect(snap.effectivePermissions.marketing).toBe(false);
 		iab.dispose();
 	});
 });
@@ -185,7 +187,7 @@ describe('createIAB: dispose', () => {
 
 		// Mutation after dispose should still notify external subscribers
 		// (we unsubscribed the module's internal one, not the caller's).
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: true });
 		expect(listener).toHaveBeenCalled();
 	});
 });

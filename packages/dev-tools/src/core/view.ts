@@ -1,13 +1,19 @@
 import type {
+	ConsentPresentation,
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
 	KernelOverrides,
 } from '@c15t/core';
-import { CONSENT_CATEGORIES, subscribeIABControls } from '@c15t/core';
+import {
+	CONSENT_CATEGORIES,
+	resolveConsentPresentation,
+	subscribeIABControls,
+} from '@c15t/core';
 
 import type { RunAction } from './action-runner';
 import { appendActionFeedback } from './action-runner';
+import type { DevToolsActions } from './devtools';
 import {
 	createButton,
 	createCodeBlock,
@@ -19,6 +25,7 @@ import {
 import { renderIABPanel } from './iab-panel';
 import type { IABPanelState } from './iab-panel';
 import { createLogo } from './logo';
+import { readSelection } from './selection';
 import type {
 	DevToolsPosition,
 	DevToolsState,
@@ -47,6 +54,8 @@ export interface DevToolsView {
 }
 
 interface ViewOptions {
+	actions: DevToolsActions;
+	getPresentation?: () => ConsentPresentation | undefined;
 	kernel: ConsentKernel;
 	getConsentCategories: () => readonly (keyof ConsentState)[];
 	stateManager: StateManager;
@@ -63,23 +72,39 @@ interface ViewState {
 function renderConsents(
 	document: Document,
 	container: HTMLElement,
-	kernel: ConsentKernel,
-	snapshot: ConsentSnapshot,
+	state: DevToolsState,
+	actionsController: DevToolsActions,
 	getConsentCategories: ViewOptions['getConsentCategories'],
+	getPresentation: ViewOptions['getPresentation'],
 	run: RunAction
 ): void {
 	const section = createSection(
 		document,
 		'Consent categories',
-		'Changes apply immediately. Save to record your preferences.'
+		'Draft selections do not change permissions. Save to record the displayed choices.'
 	);
+	const { snapshot, draft } = state;
+	if (
+		state.draftFingerprint !== null &&
+		state.draftFingerprint !== snapshot.evaluationPolicy.choice.fingerprint
+	) {
+		const stale = createElement(
+			document,
+			'p',
+			'c15t-dev-tools__muted',
+			'Policy changed. Discard the draft and review the current choices before saving.'
+		);
+		stale.setAttribute('role', 'alert');
+		section.append(stale);
+	}
 	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
 
 	const displayed = new Set(getConsentCategories());
+	const defaults = getPresentation?.()?.preferences?.defaults;
 	for (const name of CONSENT_CATEGORIES.filter((category) =>
 		displayed.has(category)
 	)) {
-		const enabled = snapshot.consents[name];
+		const enabled = readSelection(snapshot, draft, name, defaults);
 		const label = createElement(document, 'label', 'c15t-dev-tools__check');
 		const input = createElement(document, 'input');
 		input.type = 'checkbox';
@@ -91,7 +116,7 @@ function renderConsents(
 		input.addEventListener('change', () => {
 			const patch: Partial<ConsentState> = {};
 			patch[name] = input.checked;
-			kernel.set.consent(patch);
+			actionsController.setDraft(patch);
 		});
 		label.append(
 			createElement(
@@ -107,6 +132,14 @@ function renderConsents(
 			);
 		}
 		label.append(input);
+		label.append(
+			createElement(
+				document,
+				'span',
+				'c15t-dev-tools__muted',
+				`Effective: ${snapshot.effectivePermissions[name] ? 'allowed' : 'blocked'}`
+			)
+		);
 		list.append(label);
 	}
 
@@ -129,27 +162,36 @@ function renderConsents(
 			document,
 			'Save changes',
 			() => {
-				run('Saving consent…', () => kernel.commands.save(), 'Consent saved.');
+				run(
+					'Saving consent…',
+					() => actionsController.save(),
+					'Consent saved.'
+				);
 			},
 			'primary'
 		),
 		createButton(document, 'Accept all', () => {
 			run(
 				'Accepting displayed consents…',
-				() =>
-					kernel.commands.save('all', { categories: getConsentCategories() }),
+				() => actionsController.save('all'),
 				'Displayed consents accepted.'
 			);
 		}),
 		createButton(document, 'Reject optional', () => {
 			run(
 				'Rejecting optional consents…',
-				() =>
-					kernel.commands.save('none', { categories: getConsentCategories() }),
+				() => actionsController.save('none'),
 				'Optional displayed consents rejected.'
 			);
 		})
 	);
+	const discard = createButton(
+		document,
+		'Discard draft',
+		actionsController.resetDraft
+	);
+	discard.disabled = Object.keys(draft).length === 0;
+	actions.append(discard);
 	section.append(list, actions);
 	container.append(section);
 }
@@ -463,43 +505,88 @@ function renderLocation(
 function renderPolicy(
 	document: Document,
 	container: HTMLElement,
-	snapshot: ConsentSnapshot
+	snapshot: ConsentSnapshot,
+	getPresentation?: () => ConsentPresentation | undefined
 ): void {
-	const summary = createSection(document, 'Effective policy');
+	const summary = createSection(document, 'Policy and interaction');
 	const stats = createElement(document, 'dl', 'c15t-dev-tools__stats');
 	stats.append(
-		createStat(document, 'Model', snapshot.model ?? 'none'),
-		createStat(document, 'Active UI', snapshot.activeUI ?? 'none'),
+		createStat(document, 'Resolution', snapshot.resolution.status),
+		createStat(document, 'Model', snapshot.model ?? 'Unresolved'),
+		createStat(document, 'Configured prompt', snapshot.policyRule.prompt),
+		createStat(document, 'Required prompt', snapshot.promptRequirement.kind),
+		createStat(
+			document,
+			'Prompt reason',
+			'reason' in snapshot.promptRequirement
+				? snapshot.promptRequirement.reason
+				: 'Not required'
+		),
+		createStat(document, 'Active UI', snapshot.activeUI ?? 'None'),
 		createStat(document, 'Revision', String(snapshot.revision)),
 		createStat(
 			document,
-			'Consent recorded',
-			snapshot.hasConsented ? 'yes' : 'no'
+			'Explicit choice',
+			snapshot.explicitChoice ? 'Recorded' : 'Absent'
 		)
 	);
 	summary.append(stats);
-
-	const policy = createSection(document, 'Resolved policy data');
-	policy.append(
-		snapshot.policy
-			? createCodeBlock(document, snapshot.policy)
-			: createElement(
-					document,
-					'p',
-					'c15t-dev-tools__empty',
-					'No policy is available.'
-				)
-	);
-	if (snapshot.policyDecision) {
-		const decision = createSection(document, 'Policy decision');
-		decision.append(createCodeBlock(document, snapshot.policyDecision));
-		container.append(summary, policy, decision);
-		return;
+	container.append(summary);
+	for (const [title, value] of [
+		['Explicit choice receipts', snapshot.explicitChoice],
+		['Effective permissions', snapshot.effectivePermissions],
+		['Restrictions', snapshot.restrictions],
+		['Local notice dismissal', snapshot.noticeDismissal],
+		['Privacy signals', snapshot.privacySignals],
+		['Standing privacy directives', snapshot.optOutDirectives],
+		['Policy resolution', snapshot.resolution],
+		['Active policy rule', snapshot.policyRule],
+		[
+			'Action constraints and persistent rights',
+			{
+				actions: snapshot.policyRule.actions,
+				rights: snapshot.policyRule.rights,
+			},
+		],
+		['Fingerprints and validity', snapshot.evaluationPolicy],
+		[
+			'Evaluation clock',
+			{
+				evaluatedAt: snapshot.evaluatedAt,
+				nextDeadline: snapshot.nextDeadline,
+			},
+		],
+		['Subject', snapshot.subject],
+	] as const) {
+		const section = createSection(document, title);
+		section.append(createCodeBlock(document, value));
+		container.append(section);
 	}
-	container.append(summary, policy);
+	const presentation = getPresentation?.();
+	const resolved = createSection(
+		document,
+		'Presentation resolution',
+		presentation
+			? 'Resolved from supplied host options. This does not verify the rendered controls.'
+			: 'Resolved defaults only. Host presentation was not supplied; rendered controls are not verified.'
+	);
+	resolved.append(
+		createCodeBlock(document, {
+			preferences: resolveConsentPresentation({
+				policy: snapshot.policyRule,
+				presentation,
+				surface: 'preferences',
+			}),
+			prompt: resolveConsentPresentation({
+				policy: snapshot.policyRule,
+				presentation,
+				surface: 'prompt',
+			}),
+			source: presentation ? 'host-options' : 'defaults',
+		})
+	);
+	container.append(resolved);
 }
-
-// oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 function renderEvents(
@@ -555,6 +642,7 @@ function renderActions(
 	document: Document,
 	container: HTMLElement,
 	kernel: ConsentKernel,
+	controller: DevToolsActions,
 	run: RunAction
 ): void {
 	const section = createSection(
@@ -586,6 +674,33 @@ function renderActions(
 			kernel.set.activeUI('none');
 		})
 	);
+	if (kernel.getSnapshot().promptRequirement.kind === 'notice') {
+		actions.append(
+			createButton(document, 'Dismiss local notice', () => {
+				run(
+					'Dismissing notice…',
+					controller.dismissNotice,
+					'Local notice dismissed.'
+				);
+			})
+		);
+	}
+	if (controller.clearRecords) {
+		actions.append(
+			createButton(
+				document,
+				'Clear stored records',
+				() => {
+					run(
+						'Clearing records…',
+						() => Promise.resolve(controller.clearRecords?.()),
+						'Stored records cleared.'
+					);
+				},
+				'danger'
+			)
+		);
+	}
 	section.append(actions);
 	container.append(section);
 }
@@ -599,6 +714,8 @@ function renderTab(
 	clearEvents: () => void,
 	viewState: ViewState,
 	getConsentCategories: ViewOptions['getConsentCategories'],
+	controller: DevToolsActions,
+	getPresentation: ViewOptions['getPresentation'],
 	run: RunAction
 ): void {
 	// oxlint-disable-next-line default-case -- DevToolsTab is handled exhaustively.
@@ -610,9 +727,10 @@ function renderTab(
 			renderConsents(
 				document,
 				container,
-				kernel,
-				state.snapshot,
+				state,
+				controller,
 				getConsentCategories,
+				getPresentation,
 				run
 			);
 			break;
@@ -620,7 +738,7 @@ function renderTab(
 			renderLocation(document, container, kernel, state.snapshot, run);
 			break;
 		case 'policy':
-			renderPolicy(document, container, state.snapshot);
+			renderPolicy(document, container, state.snapshot, getPresentation);
 			break;
 		case 'iab':
 			renderIABPanel(document, container, kernel, viewState.iab, run);
@@ -629,7 +747,7 @@ function renderTab(
 			renderEvents(document, container, state, clearEvents);
 			break;
 		case 'actions':
-			renderActions(document, container, kernel, run);
+			renderActions(document, container, kernel, controller, run);
 			break;
 	}
 }
@@ -876,6 +994,8 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 				options.stateManager.clearEvents,
 				viewState,
 				options.getConsentCategories,
+				options.actions,
+				options.getPresentation,
 				run
 			);
 			appendActionFeedback(document, panel, content, action);

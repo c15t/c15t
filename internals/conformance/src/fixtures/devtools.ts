@@ -1,6 +1,15 @@
 import { custom } from '@c15t/core';
-import type { KernelConfig, KernelTransport } from '@c15t/core';
+import type {
+	ConsentPresentation,
+	KernelConfig,
+	KernelTransport,
+} from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
+import {
+	readPolicyResolutionWire,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 
 export const devToolsCategories = [
 	'necessary',
@@ -12,19 +21,32 @@ export const getDevToolsCategories = () => devToolsCategories;
 export const devToolsPrefetch = {
 	initialLocation: { countryCode: 'CA', regionCode: 'QC' },
 	initialOverrides: { country: 'CA', language: 'en', region: 'QC' },
-	initialPolicy: {
-		consent: { categories: [...devToolsCategories] },
-		id: 'devtools-conformance',
-		model: 'opt-in',
-		ui: { mode: 'banner' },
-	},
+	initialPolicyResolution: readPolicyResolutionWire(
+		writePolicyResolutionWire(
+			resolvePolicyRules({
+				rules: [
+					{
+						categories: ['measurement', 'marketing'],
+						id: 'devtools-conformance',
+						match: { isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+						scopeMode: 'permissive',
+					},
+				],
+			})
+		)
+	),
+	now: Date.UTC(2026, 0, 1, 12),
 } satisfies KernelConfig;
 
 const transport: KernelTransport = {
 	init: () =>
 		Promise.resolve({
 			location: devToolsPrefetch.initialLocation,
-			policy: devToolsPrefetch.initialPolicy,
+			policyResolution: writePolicyResolutionWire(
+				devToolsPrefetch.initialPolicyResolution
+			),
 		}),
 	save: () => Promise.resolve({ ok: true }),
 };
@@ -46,12 +68,18 @@ export const devToolsScripts: Script[] = [
 	},
 ];
 
+/** The same explicit host presentation is supplied by every framework fixture. */
+export const devToolsPresentation = {
+	preferences: { uiProfile: 'balanced' },
+	prompt: { uiProfile: 'balanced' },
+} satisfies ConsentPresentation;
+
 /** No external requests or persisted consent in comparison stories. */
 export const devToolsProviderOptions = {
 	consentCategories: [...devToolsCategories],
 	mode: custom(transport),
 	persistence: false,
 	prefetch: devToolsPrefetch,
-	reloadOnConsentRevoked: false,
+	presentation: devToolsPresentation,
 	scripts: devToolsScripts,
 };

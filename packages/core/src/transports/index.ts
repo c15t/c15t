@@ -15,14 +15,21 @@ export type {
 	SavePayload,
 	SaveResult,
 } from './contract';
-export type { HostedTransportOptions } from './hosted';
+export type { HostedKernelTransport, HostedTransportOptions } from './hosted';
 export { createHostedTransport } from './hosted';
+export type {
+	MapInitOutputOptions,
+	TransportInitResponse,
+	TransportKernelConfig,
+} from './init-output';
 export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,
 	mapInitOutputToInitResponse,
+	mapPrivacySignals,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
+	resolveInitPolicyWire,
 } from './init-output';
 export type {
 	HostedModeOptions,
@@ -31,7 +38,26 @@ export type {
 	ProviderTransportKind,
 } from './mode';
 export { custom, hosted } from './mode';
-export type { OfflineTransportOptions } from './offline';
+export type {
+	OfflineKernelTransport,
+	OfflineTransportOptions,
+} from './offline';
 export { createOfflineTransport } from './offline';
-export { buildSubjectPostBody } from './subject-body';
-export { C15T_VERSION_HEADER, c15tVersionHeaders } from './version-header';
+export type { SubjectPostBody, SubjectSavePayload } from './subject-body';
+export { buildConfirmedChoiceWire, buildSubjectPostBody } from './subject-body';
+export type {
+	MapSubjectRecordOptions,
+	SubjectRecordWire,
+	TransportHydrationRecords,
+} from './subject-record';
+export {
+	mapSubjectRecordToHydrationRecords,
+	reviveSubjectRecord,
+} from './subject-record';
+export {
+	C15T_POLICY_CONTRACT_HEADER,
+	C15T_VERSION_HEADER,
+	c15tProtocolHeaders,
+	c15tVersionHeaders,
+	readProducerPolicyContract,
+} from './version-header';

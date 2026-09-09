@@ -1,5 +1,6 @@
 import { createConsentKernel, getIABControls } from '@c15t/core';
 import { createIAB } from '@c15t/iab';
+import { resolvePolicyRules } from '@c15t/schema/types';
 import { createRef } from 'react';
 import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
@@ -42,13 +43,206 @@ afterEach(() => {
 
 describe('v3 React DevTools adapter', () => {
 	test.each([false, true])(
+		'follows provider scope and presentation updates, embedded=%s',
+		async (embedded) => {
+			const storageKey = `react-devtools-scope-${embedded}`;
+			const tree = (measurement: boolean) => (
+				<ConsentProvider
+					options={{
+						consentCategories: [
+							'necessary',
+							measurement ? 'measurement' : 'marketing',
+						],
+						mode: offline(),
+						presentation: measurement
+							? { preferences: { primaryActions: ['accept'] } }
+							: undefined,
+						storageConfig: { storageKey },
+					}}
+				>
+					{embedded ? (
+						<C15tTanStackDevtoolsPanel />
+					) : (
+						<ConsentDevTools defaultOpen />
+					)}
+				</ConsentProvider>
+			);
+			const view = await render(tree(false));
+			try {
+				await vi.waitFor(() =>
+					expect(
+						getMountedDevTools()?.querySelector(
+							'[data-focus-key="consent:marketing"]'
+						)
+					).not.toBeNull()
+				);
+				const click = (label: string) => {
+					const button = [
+						...(getMountedDevTools()?.querySelectorAll('button') ?? []),
+					].find((element) => element.textContent === label);
+					expect(button).toBeDefined();
+					button?.click();
+				};
+				click('Accept all');
+				await vi.waitFor(() =>
+					expect(localStorage.getItem(storageKey)).not.toBeNull()
+				);
+				const previous = JSON.parse(localStorage.getItem(storageKey) ?? '{}')
+					.categories.marketing;
+				await view.rerender(tree(true));
+				await vi.waitFor(() =>
+					expect(
+						getMountedDevTools()?.querySelector(
+							'[data-focus-key="consent:measurement"]'
+						)
+					).not.toBeNull()
+				);
+				expect(
+					getMountedDevTools()?.querySelector(
+						'[data-focus-key="consent:marketing"]'
+					)
+				).toBeNull();
+				click('Reject optional');
+				await vi.waitFor(() => {
+					const { categories } = JSON.parse(
+						localStorage.getItem(storageKey) ?? '{}'
+					);
+					expect(categories.measurement?.value).toBe(false);
+					expect(categories.marketing).toEqual(previous);
+				});
+				getMountedDevTools()
+					?.querySelector<HTMLButtonElement>('[data-tab="policy"]')
+					?.click();
+				expect(getMountedDevTools()?.textContent).toContain(
+					'equivalent-prominence-overridden'
+				);
+			} finally {
+				await view.unmount();
+				localStorage.removeItem(storageKey);
+				document.cookie = `${storageKey}=; Max-Age=0; Path=/`;
+			}
+		}
+	);
+
+	test.each([ConsentDevTools, C15tTanStackDevtoolsPanel])(
+		'keeps explicit service callbacks live without remounting (%s)',
+		async (Component) => {
+			const firstClear = vi.fn();
+			const nextClear = vi.fn();
+			const tree = (clear: () => void) => (
+				<Provider>
+					{Component === ConsentDevTools ? (
+						<ConsentDevTools
+							clearRecords={() => clear()}
+							getPresentation={() => undefined}
+							defaultOpen
+							defaultTab="policy"
+						/>
+					) : (
+						<C15tTanStackDevtoolsPanel
+							clearRecords={() => clear()}
+							getPresentation={() => undefined}
+							defaultTab="policy"
+						/>
+					)}
+				</Provider>
+			);
+			const view = await render(tree(firstClear));
+			try {
+				await vi.waitFor(() => expect(getMountedDevTools()).not.toBeNull());
+				const root = getMountedDevTools();
+				expect(root?.textContent).toContain('Resolved defaults only');
+				await view.rerender(tree(nextClear));
+				expect(getMountedDevTools()).toBe(root);
+				root?.querySelector<HTMLButtonElement>('[data-tab="actions"]')?.click();
+				[...(root?.querySelectorAll('button') ?? [])]
+					.find((button) => button.textContent === 'Clear stored records')
+					?.click();
+				expect(firstClear).not.toHaveBeenCalled();
+				expect(nextClear).toHaveBeenCalledOnce();
+			} finally {
+				await view.unmount();
+			}
+		}
+	);
+
+	test.each([false, true])(
+		'uses provider presentation and clears its custom persistence key, embedded=%s',
+		async (embedded) => {
+			const storageKey = `react-devtools-clear-${embedded}`;
+			const view = await render(
+				<ConsentProvider
+					options={{
+						mode: offline(),
+						presentation: { preferences: { primaryActions: ['accept'] } },
+						storageConfig: { storageKey },
+					}}
+				>
+					{embedded ? (
+						<C15tTanStackDevtoolsPanel defaultTab="policy" />
+					) : (
+						<ConsentDevTools
+							defaultOpen
+							defaultTab="policy"
+						/>
+					)}
+				</ConsentProvider>
+			);
+			try {
+				await vi.waitFor(() =>
+					expect(getMountedDevTools()?.textContent).toContain('host-options')
+				);
+				expect(getMountedDevTools()?.textContent).toContain(
+					'equivalent-prominence-overridden'
+				);
+				const click = (label: string) => {
+					const button = [
+						...(getMountedDevTools()?.querySelectorAll('button') ?? []),
+					].find((element) => element.textContent === label);
+					expect(button).toBeDefined();
+					button?.click();
+				};
+				getMountedDevTools()
+					?.querySelector<HTMLButtonElement>('[data-tab="consents"]')
+					?.click();
+				click('Accept all');
+				await vi.waitFor(() =>
+					expect(localStorage.getItem(storageKey)).not.toBeNull()
+				);
+				await vi.waitFor(() =>
+					expect(
+						getMountedDevTools()?.querySelector('[role="status"]')?.textContent
+					).toContain('accepted')
+				);
+				getMountedDevTools()
+					?.querySelector<HTMLButtonElement>('[data-tab="actions"]')
+					?.click();
+				click('Clear stored records');
+				await vi.waitFor(() =>
+					expect(localStorage.getItem(storageKey)).toBeNull()
+				);
+				getMountedDevTools()
+					?.querySelector<HTMLButtonElement>('[data-tab="policy"]')
+					?.click();
+				expect(getMountedDevTools()?.textContent).toContain('Absent');
+			} finally {
+				await view.unmount();
+				localStorage.removeItem(storageKey);
+				document.cookie = `${storageKey}=; Max-Age=0; Path=/`;
+			}
+		}
+	);
+
+	test.each([false, true])(
 		'saves only displayed categories, embedded=%s',
 		async (embedded) => {
 			const save = vi.fn(() => Promise.resolve({ ok: true as const }));
 			const kernel = createConsentKernel({
-				initialConsents: { experience: true },
 				transport: { save },
 			});
+			await kernel.commands.save({ experience: true });
+			save.mockClear();
+			const hidden = kernel.getSnapshot().explicitChoice?.categories.experience;
 			const props = {
 				getConsentCategories: () => ['necessary', 'measurement'] as const,
 			};
@@ -77,9 +271,16 @@ describe('v3 React DevTools adapter', () => {
 					button?.click();
 					// oxlint-disable-next-line no-await-in-loop -- Reject runs after the preceding accept has completed.
 					await vi.waitFor(() =>
-						expect(kernel.getSnapshot().consents.measurement).toBe(accepted)
+						expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(
+							accepted
+						)
 					);
-					expect(kernel.getSnapshot().consents.experience).toBe(true);
+					expect(kernel.getSnapshot().effectivePermissions.experience).toBe(
+						true
+					);
+					expect(
+						kernel.getSnapshot().explicitChoice?.categories.experience
+					).toEqual(hidden);
 					// oxlint-disable-next-line no-await-in-loop -- Verify each sequential save before the next action.
 					await vi.waitFor(() =>
 						expect(save).toHaveBeenCalledWith(
@@ -101,7 +302,25 @@ describe('v3 React DevTools adapter', () => {
 	test.each([false, true])(
 		'edits and saves the existing IAB module, embedded=%s',
 		async (embedded) => {
-			const kernel = createConsentKernel({ initialPolicy: { model: 'iab' } });
+			const resolution = resolvePolicyRules({
+				countryCode: null,
+				iabEnabled: true,
+				regionCode: null,
+				rules: [
+					{
+						id: 'devtools-iab',
+						match: { isDefault: true },
+						model: 'iab',
+						prompt: 'choice',
+					},
+				],
+			});
+			if (resolution.status !== 'matched') {
+				throw new Error('Devtools fixture policy must resolve');
+			}
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolution,
+			});
 			const iab = createIAB({
 				cmpId: 28,
 				gvl: mockGVL,
@@ -191,7 +410,7 @@ describe('v3 React DevTools adapter', () => {
 				<ConsentDevTools
 					defaultOpen
 					getConsentCategories={() =>
-						kernel.getSnapshot().consents.measurement
+						kernel.getSnapshot().effectivePermissions.measurement
 							? ['necessary', 'measurement']
 							: ['necessary', 'marketing']
 					}
@@ -206,7 +425,7 @@ describe('v3 React DevTools adapter', () => {
 			).not.toBeNull()
 		);
 		const root = getMountedDevTools();
-		kernel.set.consent({ measurement: true });
+		await kernel.commands.save({ measurement: true });
 		await vi.waitFor(() => {
 			expect(
 				getMountedDevTools()?.querySelector(
@@ -256,9 +475,18 @@ describe('v3 React DevTools adapter', () => {
 					'[data-focus-key="consent:measurement"]'
 				)
 				?.click();
+			const saveButton = [...(root?.querySelectorAll('button') ?? [])].find(
+				(button) => button.textContent === 'Save changes'
+			);
+			saveButton?.click();
+			await vi.waitFor(() =>
+				expect(root?.querySelector('[role="status"]')?.textContent).toBe(
+					'Consent saved.'
+				)
+			);
 			root?.querySelector<HTMLButtonElement>('[data-tab="events"]')?.click();
 			const events = root?.querySelector('[role="tabpanel"]')?.textContent;
-			expect(events).toContain('consent:set');
+			expect(events).toContain('choice:recorded');
 			await view.rerender(tree(true));
 			await view.rerender(tree(true, true));
 			expect(getMountedDevTools()).toBe(root);

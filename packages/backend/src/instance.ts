@@ -30,6 +30,7 @@
  * instances in a loop does.
  */
 
+import { buildConsentManifestFromConfig } from '@c15t/schema';
 import type { Layer } from 'effect';
 import { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
@@ -116,8 +117,34 @@ const stripBasePath = (request: Request, basePath?: string): Request => {
 	return new Request(url, request);
 };
 
+/**
+ * Says so at startup when the configured policy rules do not validate.
+ *
+ * An invalid pack no longer throws: the manifest records `policyFailure`
+ * and every `/init` answers `failed`, which a v3 client turns into the safe
+ * opt-in fallback. That is the right runtime behavior and the wrong thing
+ * to discover from a banner that will not go away, so it is printed once
+ * here where the operator is looking.
+ */
+const warnOnPolicyFailure = async (options: C15TOptions): Promise<void> => {
+	if (!options.manifest) {
+		return;
+	}
+	try {
+		const manifest = await buildConsentManifestFromConfig(options.manifest);
+		if (manifest.policyFailure) {
+			console.warn(
+				`[c15t] Policy configuration is invalid (${manifest.policyFailure.reason}); every /init will resolve as failed and clients fall back to the safe opt-in choice prompt. ${manifest.policyFailure.errors.join(' ')}`
+			);
+		}
+	} catch (error) {
+		console.warn('[c15t] Policy configuration could not be built.', error);
+	}
+};
+
 export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const { database, ...app } = options;
+	void warnOnPolicyFailure(options);
 
 	const runtime = ManagedRuntime.make(
 		toLayer(database) as Layer.Layer<SqlClient.SqlClient, never>

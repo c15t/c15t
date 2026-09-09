@@ -33,6 +33,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import { syncCurrent } from './legal-document';
@@ -53,6 +54,7 @@ const GIVEN_AT = new Date(1_800_000_000_123);
 const setup = Effect.gen(function* setup() {
 	yield* resetDatabase;
 	yield* baseline;
+	yield* receipts;
 	// Included because the index migration is itself engine-divergent — MySQL
 	// has no `create index if not exists` and cannot index a bare TEXT column.
 	yield* indexes;
@@ -187,6 +189,7 @@ for (const engine of ENGINES) {
 					yield* setup;
 					yield* submit({ ...submission, externalId: 'ext_1' });
 					yield* linkExternalId({
+						authority: 'api',
 						externalId: 'ext_1',
 						identityProvider: 'auth0',
 						ipAddress: null,

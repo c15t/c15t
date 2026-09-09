@@ -4,10 +4,57 @@ description: HTTP endpoints exposed by the self-hosted backend.
 group: self-host
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Read a subject's choices
 
-## Endpoints
+`GET /subjects/:id` returns the subject's consent history, merged category choices, and standing privacy directives.
 
-TODO.
+```json
+{
+  "subject": { "id": "sub_receipts1" },
+  "consents": [],
+  "isValid": true,
+  "subjectChoice": null,
+  "privacyDirectives": []
+}
+```
+
+Read `subjectChoice` before examining individual consent rows:
+
+- An object contains the latest usable receipt for each category, with its original confirmation time and policy basis.
+- `null` means the backend found no usable category choice. Do not reconstruct grants from `consents` in this case.
+- An omitted field identifies an older backend that does not provide merged receipts.
+
+Individual rows use the same distinction for `choice`. An omitted `choice` means a legacy row; `choice: null` means the stored receipt is unreadable. A null receipt must never be treated as a legacy grant.
+
+Legacy rows store granted purpose codes. A newer legacy row supersedes older grants even when it contains no granted optional categories. Missing codes do not prove a refusal, but they do not preserve an earlier grant either. Existing explicit denials remain effective until a later explicit choice replaces them.
+
+## Save an explicit choice
+
+`POST /subjects` records category choices. The built-in transports send:
+
+- `subjectId`, `domain`, and `type: "cookie_banner"`.
+- `givenAt`, the action time in epoch milliseconds.
+- `choice`, receipts for only the categories this action confirmed.
+- `preferences`, the complete explicit values after the action, including historical values for categories the action did not confirm.
+
+The backend preserves each receipt's original timestamp. A partial save does not renew untouched categories. Under a strict policy, a historical out-of-scope grant in `preferences` is excluded from the submission's granted purposes. It does not prevent the current choice from being recorded. An action that explicitly grants an out-of-scope category is still rejected.
+
+## Save after no policy matches
+
+`GET /init` can return a successful `no-match` resolution. The client then uses the safe opt-in fallback and may collect an explicit choice. There is no matched policy to sign, so initialization does not issue a policy snapshot token for this outcome.
+
+The built-in transports send an explicit no-match assertion with the save. Custom clients must send `policyId: null` and the original resolution inputs:
+
+```json
+{
+  "policyId": null,
+  "country": "US",
+  "region": null,
+  "language": "en",
+  "gpc": false
+}
+```
+
+Include these fields alongside the choice submission. Omit `fingerprint` for a no-match assertion. The backend resolves the inputs against its current manifest and accepts the assertion only if the result is still `no-match`. A matching policy, insufficient inputs, or failed resolution returns `422 STALE_POLICY` instead.
+
+Matched policies retain their existing token or decision-assertion validation. No-match saves do not create a matched runtime policy decision. Queued retries keep the inputs captured when the visitor acted.

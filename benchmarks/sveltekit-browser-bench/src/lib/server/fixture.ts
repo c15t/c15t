@@ -11,6 +11,11 @@
  */
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import {
+	createConsentManifestPolicyPack,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import type { ConsentManifest } from '@c15t/schema/types';
 
 /** Fixture endpoints the runner counts executions for. */
@@ -125,41 +130,11 @@ export const benchConsentTranslations = {
 };
 
 const policy = {
-	consent: {
-		categories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		],
-		model: 'opt-in',
-		scopeMode: 'strict',
-	},
-	id: 'sveltekit-browser-bench',
+	id: 'browser-bench',
+	match: { fallback: true, isDefault: true },
 	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		mode: 'banner',
-	},
-};
-
-const resolvedPolicy = {
-	consent: policy.consent,
-	id: policy.id,
-	model: policy.model,
-	proof: {},
-	ui: policy.ui,
-};
+	prompt: 'choice',
+} as const;
 
 /** Pre-resolved `/init` payload, for the direct (non-manifest) arms. */
 export const benchConsentInitResponse = {
@@ -169,15 +144,9 @@ export const benchConsentInitResponse = {
 		countryCode: null,
 		regionCode: null,
 	},
-	policy: resolvedPolicy,
-	policyDecision: {
-		country: null,
-		fingerprint: 'fingerprint_sveltekit_browser_bench',
-		jurisdiction: 'NONE',
-		matchedBy: 'default',
-		policyId: policy.id,
-		region: null,
-	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({ countryCode: null, regionCode: null, rules: [policy] })
+	),
 	translations: {
 		language: 'en',
 		translations: benchConsentTranslations,
@@ -187,18 +156,9 @@ export const benchConsentInitResponse = {
 /** Static manifest, for the manifest arms. */
 export const benchConsentManifestResponse = {
 	branding: 'c15t',
-	policyPacks: [
-		{
-			fingerprint: 'fingerprint_sveltekit_browser_bench',
-			policy: {
-				...policy,
-				match: { isDefault: true },
-			},
-			resolvedPolicy,
-		},
-	],
+	policyPacks: [createConsentManifestPolicyPack(policy)],
 	revision: 'sveltekit-browser-bench-manifest',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',

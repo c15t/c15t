@@ -8,10 +8,7 @@
 export {
 	defaultTranslationConfig,
 	detectBrowserLanguage,
-	type EuropePolicyMode,
 	mergeTranslationConfigs,
-	type PolicyPackPresets,
-	policyPackPresets,
 	prepareTranslationConfig,
 } from '@c15t/core';
 export {

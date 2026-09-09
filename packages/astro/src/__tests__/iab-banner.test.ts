@@ -23,19 +23,18 @@ beforeAll(async () => {
 });
 
 const IAB_POLICY = {
-	consent: {
-		categories: ['necessary', 'marketing'],
-		model: 'iab',
-		scopeMode: 'permissive',
-	},
+	categories: ['marketing'],
 	id: 'astro_iab_test',
-	match: { isDefault: true },
+	match: { fallback: true },
+	model: 'iab',
+	prompt: 'choice',
+	scopeMode: 'permissive',
 } as const;
 
 const iabOptions: C15tAstroOptions = {
 	consentCategories: ['necessary', 'marketing'],
 	iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
-	mode: offlineMode({ policyPacks: [IAB_POLICY as never] }),
+	mode: offlineMode({ policyRules: [IAB_POLICY as never] }),
 };
 
 const buildLocals = async function buildLocals(
@@ -68,7 +67,6 @@ describe('<IABConsentBanner />', () => {
 		const html = await render(await buildLocals());
 
 		for (const testId of [
-			'iab-consent-banner-overlay',
 			'iab-consent-banner-root',
 			'iab-consent-banner-branding',
 			'iab-consent-banner-card',
@@ -112,10 +110,38 @@ describe('<IABConsentBanner />', () => {
 		expect(html).toContain('data-c15t-dialog="iab"');
 	});
 
-	it('renders a modal card with a backdrop', async () => {
-		const html = await render(await buildLocals());
+	it('renders a modal card with a backdrop when blocking is enabled', async () => {
+		const html = await render(
+			await buildLocals({
+				...iabOptions,
+				presentation: { prompt: { blocking: true } },
+			})
+		);
 		expect(html).toContain('aria-modal="true"');
 		expect(html).toContain('role="dialog"');
+	});
+
+	it.each([false, true])(
+		'honors blocking=%s over the legacy scrollLock prop',
+		async (blocking) => {
+			const html = await render(
+				await buildLocals({
+					...iabOptions,
+					presentation: { prompt: { blocking } },
+				}),
+				{ scrollLock: !blocking }
+			);
+			expect(html.includes('aria-modal="true"')).toBe(blocking);
+			expect(html.includes('data-blocking="true"')).toBe(blocking);
+			expect(html.includes('data-testid="iab-consent-banner-overlay"')).toBe(
+				blocking
+			);
+		}
+	);
+	it('defaults to a non-blocking IAB banner', async () => {
+		const html = await render(await buildLocals());
+		expect(html).not.toContain('aria-modal="true"');
+		expect(html).not.toContain('data-testid="iab-consent-banner-overlay"');
 	});
 
 	it('drops the backdrop when the host opts out of the scroll lock', async () => {
@@ -131,16 +157,27 @@ describe('<IABConsentBanner />', () => {
 		const locals = await buildLocals({
 			consentCategories: ['necessary', 'marketing'],
 			iab: { cmpId: 160 },
-			mode: offlineMode({ policyPacks: [IAB_POLICY as never] }),
+			mode: offlineMode({ policyRules: [IAB_POLICY as never] }),
 		});
 		const html = await render(locals);
 		expect(html).not.toContain('data-testid="iab-consent-banner-root"');
 	});
 
 	it('renders nothing for a policy that is not IAB', async () => {
+		// A bare offline() now resolves the recommended pack, which picks the
+		// IAB rule when a CMP is configured, so pin an opt-in rule instead.
 		const locals = await buildLocals({
 			iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
-			mode: offlineMode(),
+			mode: offlineMode({
+				policyRules: [
+					{
+						id: 'opt-in-only',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
 		});
 		const html = await render(locals);
 		expect(html).not.toContain('data-testid="iab-consent-banner-root"');

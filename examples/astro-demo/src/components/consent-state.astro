@@ -29,9 +29,9 @@
 		output.textContent = JSON.stringify(
 			{
 				activeUI: snapshot.activeUI,
-				consents: snapshot.consents,
+				consents: snapshot.effectivePermissions,
 				country: snapshot.location?.countryCode ?? null,
-				hasConsented: snapshot.hasConsented,
+				explicitChoice: snapshot.explicitChoice,
 				model: snapshot.model,
 			},
 			null,

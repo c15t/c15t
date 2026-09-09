@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { PresentationAction } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
-import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
@@ -14,22 +14,25 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
+import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentTag from './consent-tag.vue';
 
-const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
+const IAB_BANNER_LAYOUT: (PresentationAction | PresentationAction[])[] = [
 	['reject', 'accept'],
 	'customize',
 ];
 
 /** Canonical contract test-ids (parity with the React/Svelte IAB banners). */
-const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {
-	accept: 'iab-consent-banner-accept-button',
-	customize: 'iab-consent-banner-customize-button',
-	reject: 'iab-consent-banner-reject-button',
-};
+const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PresentationAction, string>> =
+	{
+		accept: 'iab-consent-banner-accept-button',
+		customize: 'iab-consent-banner-customize-button',
+		reject: 'iab-consent-banner-reject-button',
+	};
 
 const props = withDefaults(
 	defineProps<{
@@ -43,6 +46,7 @@ const props = withDefaults(
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
+const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
@@ -53,14 +57,19 @@ const textDirection = computed(() =>
 const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 
+const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
+	if (!hasConsentUi.value) {
+		return false;
+	}
 	const models = config.value.iabBannerModels;
-	const model = initValue.value?.policy?.model;
+	const { model } = snapshot.value.policyRule;
 	const matchesModel =
-		!models?.length || (model !== undefined && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'banner' &&
-		initValue.value?.policy?.model === 'iab' &&
+		snapshot.value.policyRule.model === 'iab' &&
 		Boolean(gvl.value) &&
 		matchesModel
 	);
@@ -115,7 +124,7 @@ const descriptionParts = computed(() => {
 	return { after: after ?? '', before: before ?? text };
 });
 
-const onAction = function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PresentationAction) {
 	if (action === 'customize') {
 		iabSelection.value.preferenceCenterTab = 'purposes';
 		activeUI.value = 'manager';
@@ -145,20 +154,19 @@ const footerAttrs = computed(() => ({
 		| undefined) ?? {}),
 }));
 
-const scrollLock = computed(
-	() => initValue.value?.policy?.ui?.banner?.scrollLock ?? true
-);
+const { presentation } = useConsentPolicyActions('prompt', () => ({
+	layout: IAB_BANNER_LAYOUT,
+	primaryActions: [props.primaryButton],
+}));
+const scrollLock = computed(() => presentation.value.scrollLock);
 
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
+	Boolean(isOpen.value && presentation.value.blocking)
 );
-// The trap goes on the root, not the card: `setupFocusTrap` stamps
-// `tabindex="-1"` on whatever it is given, and the root is the element
-// that declares one in every other adapter.
-const bannerRoot = ref<HTMLElement | null>(null);
-useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
+const bannerCard = ref<HTMLElement | null>(null);
+useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 </script>
 
 <template>
@@ -192,7 +200,6 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner"
 				v-bind="config.components?.['iab-banner']?.root"
-				ref="bannerRoot"
 				data-testid="iab-consent-banner-root"
 				:data-position="
 					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
@@ -211,9 +218,10 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 					/>
 					<div
 						v-bind="config.components?.['iab-banner']?.card"
+						ref="bannerCard"
 						data-testid="iab-consent-banner-card"
 						:class="bannerStyles.card"
-						role="dialog"
+						:role="shouldTrapFocus ? 'dialog' : 'region'"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"
 					>
@@ -278,8 +286,9 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 							</p>
 						</div>
 						<ConsentActions
-							:layout="IAB_BANNER_LAYOUT"
-							:primary-actions="[primaryButton]"
+							:action-groups="presentation.actionGroups"
+							:direction="presentation.direction"
+							:primary-actions="presentation.primaryActions"
 							:labels="labels"
 							:test-ids="IAB_BANNER_ACTION_TEST_IDS"
 							primary-mode="filled"

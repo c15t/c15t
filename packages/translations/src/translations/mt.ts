@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Aċċetta kollox',
+		acknowledge: 'OK',
 		close: 'Agħlaq',
 		customize: 'Personalizza',
+		dismiss: 'Agħlaq',
 		rejectAll: 'Irrifjuta kollox',
 		save: 'Issejvja s-settings',
 		securedBy: 'Protett minn',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Dan is-sit juża cookies biex itejjeb l-esperjenza tal-browsing tiegħek, janalizza t-traffiku tas-sit, u juri kontenut personalizzat.',
+		noticeDescription:
+			"Nużaw cookies u teknoloġiji simili biex inħaddmu dan is-sit, inkejlu t-traffiku, u nippersonalizzaw il-kontenut u r-reklami. Tista' tagħżel li toħroġ jew timmaniġġja l-preferenzi tiegħek fi kwalunkwe ħin.",
+		noticeTitle: 'Avviż dwar il-privatezza',
 		title: 'Napprezzaw il-privatezza tiegħek',
 	},
 	frame: {
@@ -138,6 +143,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Politika tal-Cookies',
 		privacyPolicy: 'Politika tal-Privatezza',
 		termsOfService: 'Termini tas-Servizz',
+	},
+	rights: {
+		optOut: 'Tbigħx u taqsamx id-data tiegħi',
+		preferences: 'Immaniġġja l-preferenzi',
 	},
 };
 export default translations;

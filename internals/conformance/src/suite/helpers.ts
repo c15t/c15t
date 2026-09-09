@@ -7,7 +7,6 @@
  * bun:test for the meta-suite). Both runners expose compatible APIs.
  */
 
-import { DriverNotImplementedError } from '../driver';
 import type { TestDriver } from '../driver';
 
 interface DeferredPromise<Value> {
@@ -37,7 +36,15 @@ export type TestFn = (name: string, body: () => void | Promise<void>) => void;
 
 export type DescribeFn = (name: string, body: () => void) => void;
 
-export type ExpectFn = (value: unknown) => {
+/**
+ * The assertion entry point every adapter shim provides. The optional
+ * `message` names the value under test in the failure output, matching the
+ * `expect(value, message)` form of vitest and bun:test.
+ */
+export type ExpectFn = (
+	value: unknown,
+	message?: string
+) => {
 	toBe: (value: unknown) => void;
 	toEqual: (value: unknown) => void;
 	toContain: (value: unknown) => void;
@@ -58,26 +65,14 @@ export interface SuiteApi {
 }
 
 /**
- * Register a conformance test. Runs the body; if the driver signals
- * "not implemented", the test is marked as todo (visible in output)
- * but does not fail the suite.
+ * Register a conformance test. Missing supported capabilities are failures.
  */
 export const conformanceTest = function conformanceTest(
 	api: SuiteApi,
 	name: string,
 	body: () => void | Promise<void>
 ): void {
-	api.test(name, async () => {
-		try {
-			await body();
-		} catch (err) {
-			if (err instanceof DriverNotImplementedError) {
-				console.warn(`  [todo] ${name}: ${err.message}`);
-				return;
-			}
-			throw err;
-		}
-	});
+	api.test(name, body);
 };
 
 export interface SuiteContext {

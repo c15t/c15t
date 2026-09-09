@@ -9,7 +9,7 @@ import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import DialogLinkFixture from '../../__tests__/fixtures/dialog-link-fixture.svelte';
-import { offline } from '../../lib/transports/offline';
+import { testOffline } from '../../__tests__/test-offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -23,7 +23,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: offline(),
+	mode: testOffline(),
 };
 
 describe('ConsentDialogLink', () => {
@@ -65,6 +65,10 @@ describe('ConsentDialogLink', () => {
 			expect(link).toHaveAttribute('data-variant', 'neutral');
 			expect(link).toHaveAttribute('data-mode', 'stroke');
 			expect(link).toHaveAttribute('data-size', 'small');
+			expect(link).toHaveAttribute(
+				'data-c15t-rights',
+				'disclosure preferences'
+			);
 		});
 	});
 
@@ -90,6 +94,12 @@ describe('ConsentDialogLink', () => {
 				'[data-testid="consent-dialog-root"]'
 			);
 			expect(dialog).toBeInTheDocument();
+			expect(
+				document.querySelector('[data-testid="consent-dialog-branding"]')
+			).toHaveAttribute(
+				'href',
+				`https://c15t.com?ref=${window.location.hostname}`
+			);
 		});
 	});
 });

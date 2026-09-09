@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: '全部同意',
+		acknowledge: '好的',
 		close: '关闭',
 		customize: '自定义设置',
+		dismiss: '关闭',
 		rejectAll: '全部拒绝',
 		save: '保存设置',
 		securedBy: '安全保障由',
@@ -39,6 +41,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'本网站使用cookies来提升您的浏览体验、分析网站流量并展示个性化内容。',
+		noticeDescription:
+			'我们使用 cookies 及类似技术来运行本网站、统计流量并个性化内容和广告。您可以随时选择退出或管理您的偏好设置。',
+		noticeTitle: '隐私声明',
 		title: '我们重视您的隐私',
 	},
 	frame: {
@@ -128,6 +133,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Cookie政策',
 		privacyPolicy: '隐私政策',
 		termsOfService: '服务条款',
+	},
+	rights: {
+		optOut: '请勿出售或共享我的数据',
+		preferences: '管理偏好设置',
 	},
 };
 export default translations;

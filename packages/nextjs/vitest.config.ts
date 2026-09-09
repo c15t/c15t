@@ -8,6 +8,16 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
+		optimizeDeps: {
+			include: [
+				'react',
+				'react-dom/client',
+				'react-dom/server',
+				'react/jsx-runtime',
+				'react/jsx-dev-runtime',
+				'vitest-browser-react',
+			],
+		},
 		plugins: [react()],
 		resolve: {
 			// oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
@@ -42,7 +52,13 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/transports/manifest.ts'
 				),
+				'@c15t/core/transports': resolve(
+					__dirname,
+					'../core/src/transports/index.ts'
+				),
 				'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
+				'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),
+				'@c15t/react/iab': resolve(__dirname, '../react/dist/iab.js'),
 				'@c15t/react/provider': resolve(__dirname, '../react/dist/provider.js'),
 				'@c15t/react/hooks': resolve(__dirname, '../react/dist/hooks.js'),
 				'@c15t/react/module-hooks': resolve(
@@ -78,6 +94,7 @@ export default mergeConfig(
 				provider: playwright(),
 			},
 			coverage: {
+				exclude: ['**/__tests__/**'],
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {

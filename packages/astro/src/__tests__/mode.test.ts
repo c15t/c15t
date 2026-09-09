@@ -7,6 +7,7 @@ import {
 	offlineMode,
 	resolveTransportFactory,
 } from '../mode';
+import { testRule } from './policy-fixture';
 
 const context: ProviderTransportContext = {
 	consentCategories: ['necessary', 'measurement'],
@@ -38,9 +39,14 @@ describe('resolveTransportFactory', () => {
 
 	it('resolves an offline policy with no network at all', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
-		const transport = resolveTransportFactory(offlineMode())(context);
+		const transport = resolveTransportFactory(
+			offlineMode({ policyRules: [testRule] })
+		)(context);
 		const response = await transport.init?.({ overrides: {}, user: null });
-		expect(response?.policy?.ui?.mode).toBe('banner');
+		expect(response?.policyResolution).toMatchObject({
+			policy: { prompt: 'choice' },
+			status: 'matched',
+		});
 		expect(fetchSpy).not.toHaveBeenCalled();
 		fetchSpy.mockRestore();
 	});

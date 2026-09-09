@@ -3,8 +3,14 @@
  * a provisional policy, children render immediately, and the first init is
  * answered from the resolved config instead of the network.
  */
-import type { InitContext, InitOutput, KernelConfig } from '@c15t/core';
+import type {
+	ConsentKernel,
+	InitContext,
+	InitOutput,
+	KernelConfig,
+} from '@c15t/core';
 import { mapInitOutputToInitResponse } from '@c15t/core';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { useContext, useEffect } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -12,12 +18,7 @@ import { render } from 'vitest-browser-react';
 import { KernelContext } from '../context';
 import { ConsentProvider, custom, hosted, useSnapshot } from '../index';
 import { createDeferredPromise } from './deferred-promise';
-
-const BANNER_POLICY = {
-	id: 'gdpr',
-	model: 'opt-in',
-	ui: { mode: 'banner' },
-} as const;
+import { policyFixture } from './policy-fixture';
 
 const hostedInitOutput = function hostedInitOutput(): InitOutput {
 	return {
@@ -25,7 +26,10 @@ const hostedInitOutput = function hostedInitOutput(): InitOutput {
 		gvl: null,
 		jurisdiction: 'GDPR',
 		location: { countryCode: 'DE', regionCode: null },
-		policy: BANNER_POLICY,
+		policyResolution: writePolicyResolutionWire(
+			policyFixture({}, { categories: ['marketing'], id: 'gdpr' })
+				.initialPolicyResolution
+		),
 		translations: { language: 'en', translations: {} },
 	} as InitOutput;
 };
@@ -35,7 +39,7 @@ const policyConfig = function policyConfig(): KernelConfig {
 		initialBranding: 'c15t',
 		initialLocation: { countryCode: 'DE', regionCode: null },
 		initialOverrides: { country: 'DE', language: 'en' },
-		initialPolicy: BANNER_POLICY as never,
+		...policyFixture({}, { categories: ['marketing'], id: 'gdpr' }),
 		initialTranslations: { language: 'en', translations: {} },
 	};
 };
@@ -60,10 +64,12 @@ const Probe = () => {
 	const snapshot = useSnapshot();
 	return (
 		<div data-testid="state">
-			{snapshot.activeUI}|{String(snapshot.policyProvisional)}|
-			{snapshot.policy?.id ?? 'none'}|{String(snapshot.hasConsented)}|
-			{snapshot.subjectId ?? 'none'}|{snapshot.overrides.country ?? 'none'}|
-			{String(snapshot.consents.marketing)}
+			{snapshot.activeUI}|{String(snapshot.policyPending)}|
+			{snapshot.policyPending ? 'none' : snapshot.policyRule.id}|
+			{String(!!snapshot.explicitChoice)}|
+			{snapshot.subject?.subjectId ?? 'none'}|
+			{snapshot.overrides.country ?? 'none'}|
+			{String(snapshot.effectivePermissions.marketing)}
 		</div>
 	);
 };
@@ -146,9 +152,13 @@ describe('ConsentProvider prefetch promise', () => {
 
 		prefetch.resolve({
 			...policyConfig(),
-			initialConsents: { marketing: true },
-			initialHasConsented: true,
-			initialSubjectId: 'sub_server',
+			initialRecords: {
+				...policyFixture(
+					{ marketing: true },
+					{ categories: ['marketing'], id: 'gdpr' }
+				).initialRecords,
+				subject: { subjectId: 'sub_server' },
+			},
 		});
 
 		await expect
@@ -183,10 +193,14 @@ describe('ConsentProvider prefetch promise', () => {
 		expect(init).not.toHaveBeenCalled();
 
 		prefetch.resolve({
-			initialConsents: { marketing: true },
-			initialHasConsented: true,
 			initialOverrides: { country: 'FR' },
-			initialSubjectId: 'sub_cookie',
+			initialRecords: {
+				...policyFixture(
+					{ marketing: true },
+					{ categories: ['marketing'], id: 'gdpr' }
+				).initialRecords,
+				subject: { subjectId: 'sub_cookie' },
+			},
 		});
 
 		// Policy comes from the transport; consent state from the cookie
@@ -274,5 +288,112 @@ describe('ConsentProvider prefetch promise', () => {
 		await expect
 			.element(getByTestId('state'))
 			.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
+	});
+});
+
+describe('prefetch record ownership', () => {
+	test.each([false, true])(
+		'does not restore cleared records when prefetch has policy: %s',
+		async (withPolicy) => {
+			const prefetch = deferred<KernelConfig>();
+			let kernel: ConsentKernel | null = null;
+			const Capture = () => {
+				const current = useContext(KernelContext);
+				useEffect(() => {
+					kernel = current;
+				}, [current]);
+				return <Probe />;
+			};
+			const counts = { completed: 0 };
+			const { getByTestId } = await render(
+				<ConsentProvider
+					options={{
+						mode: custom({
+							init: () =>
+								Promise.resolve(
+									mapInitOutputToInitResponse(hostedInitOutput(), {})
+								),
+						}),
+						persistence: false,
+						prefetch: prefetch.promise,
+					}}
+				>
+					<Capture />
+					<InitCounter counts={counts} />
+				</ConsentProvider>
+			);
+			if (!kernel) {
+				throw new Error('Expected mounted kernel');
+			}
+			(kernel as ConsentKernel).hydrate({ choice: null, subject: null });
+			const stored = policyFixture(
+				{ marketing: true },
+				{ categories: ['marketing'], id: 'gdpr' }
+			);
+			const config = withPolicy ? policyConfig() : {};
+			config.initialRecords = {
+				...stored.initialRecords,
+				subject: { subjectId: 'old-subject' },
+			};
+			prefetch.resolve(config);
+			await vi.waitFor(() => expect(counts.completed).toBe(1));
+			await expect
+				.element(getByTestId('state'))
+				.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
+		}
+	);
+
+	test('saves a streamed policy through an assertion transport without another init', async () => {
+		const prefetch = deferred<KernelConfig>();
+		const fetch = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: true, subjectId: 'subject' }))
+			);
+		let kernel: ConsentKernel | null = null;
+		const Capture = () => {
+			const current = useContext(KernelContext);
+			useEffect(() => {
+				kernel = current;
+			}, [current]);
+			return <Probe />;
+		};
+		const { getByTestId } = await render(
+			<ConsentProvider
+				options={{
+					mode: hosted({
+						assertDecisionInputs: true,
+						fetch,
+						initURL: '/api/consent/init',
+						url: '/api/c15t',
+					}),
+					persistence: false,
+					prefetch: prefetch.promise,
+				}}
+			>
+				<Capture />
+			</ConsentProvider>
+		);
+		const config = policyConfig();
+		prefetch.resolve(config);
+		await expect
+			.element(getByTestId('state'))
+			.toHaveTextContent('banner|false|gdpr');
+		if (!kernel) {
+			throw new Error('Expected mounted kernel');
+		}
+		const result = await (kernel as ConsentKernel).commands.save('none');
+		expect(result.ok).toBe(true);
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(fetch.mock.calls[0]?.[0]).toBe('/api/c15t/subjects');
+		expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toMatchObject({
+			country: 'DE',
+			fingerprint:
+				config.initialPolicyResolution?.status === 'matched'
+					? config.initialPolicyResolution.fingerprints.policy
+					: undefined,
+			language: 'en',
+			policyId: 'gdpr',
+		});
 	});
 });

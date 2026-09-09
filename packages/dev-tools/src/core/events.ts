@@ -4,9 +4,14 @@ import { serializeDiagnostic } from './serialization';
 import type { DevToolsEvent } from './state-manager';
 
 const EVENT_TYPES = [
-	'consent:set',
+	'records:cleared',
+	'choice:recorded',
+	'permissions:changed',
+	'notice:dismissed',
+	'privacy:opt-out',
 	'overrides:set',
 	'user:identified',
+	'subject:resolved',
 	'iab:set',
 	'init:applied',
 	'init:failed',
@@ -30,9 +35,16 @@ export const KERNEL_EVENT_TYPES: Exclude<
 function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 	return {
 		activeUI: snapshot.activeUI,
-		hasConsented: snapshot.hasConsented,
+		effectivePermissions: snapshot.effectivePermissions,
+		explicitChoice: snapshot.explicitChoice,
 		model: snapshot.model,
+		noticeDismissal: snapshot.noticeDismissal,
+		optOutDirectives: snapshot.optOutDirectives,
+		privacySignals: snapshot.privacySignals,
+		promptRequirement: snapshot.promptRequirement,
+		resolution: snapshot.resolution.status,
 		revision: snapshot.revision,
+		subject: snapshot.subject,
 	};
 }
 
@@ -65,6 +77,12 @@ function errorData(command: string, error: unknown): Record<string, unknown> {
 	};
 }
 
+const outcomeMessage = (
+	ok: boolean,
+	success: string,
+	failure: string
+): string => (ok ? success : failure);
+
 /**
  * Converts a kernel event into the stable log shape shown by DevTools.
  *
@@ -81,11 +99,54 @@ export function kernelEventToDevToolsEvent(
 ): DevToolsEvent {
 	// oxlint-disable-next-line default-case -- KernelEvent is a discriminated union handled exhaustively.
 	switch (event.type) {
-		case 'consent:set':
+		case 'records:cleared':
+			return {
+				id,
+				message: 'Stored records cleared',
+				timestamp,
+				type: event.type,
+			};
+		case 'choice:recorded':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					actionAt: event.actionAt,
+					confirmed: event.confirmed,
+				},
+				id,
+				message: 'Explicit choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'permissions:changed':
+			return {
+				data: { ...snapshotData(event.snapshot), previous: event.previous },
+				id,
+				message: 'Effective permissions changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'notice:dismissed':
+			return {
+				data: { ...snapshotData(event.snapshot), dismissal: event.dismissal },
+				id,
+				message: 'Local notice dismissed',
+				timestamp,
+				type: event.type,
+			};
+		case 'privacy:opt-out':
+			return {
+				data: { ...snapshotData(event.snapshot), directive: event.directive },
+				id,
+				message: 'Privacy opt-out recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'subject:resolved':
 			return {
 				data: snapshotData(event.snapshot),
 				id,
-				message: 'Consent state changed',
+				message: 'Canonical subject resolved',
 				timestamp,
 				type: event.type,
 			};
@@ -144,9 +205,11 @@ export function kernelEventToDevToolsEvent(
 			return {
 				data: { ok: event.ok, subjectId: event.subjectId },
 				id,
-				message: event.ok
-					? 'Queued consent saved'
-					: 'Queued consent save failed',
+				message: outcomeMessage(
+					event.ok,
+					'Queued consent saved',
+					'Queued consent save failed'
+				),
 				timestamp,
 				type: event.type,
 			};
@@ -154,9 +217,11 @@ export function kernelEventToDevToolsEvent(
 			return {
 				data: resultData(event.result),
 				id,
-				message: event.result.ok
-					? 'Initialization completed'
-					: 'Initialization failed',
+				message: outcomeMessage(
+					event.result.ok,
+					'Initialization completed',
+					'Initialization failed'
+				),
 				timestamp,
 				type: event.type,
 			};
@@ -171,9 +236,11 @@ export function kernelEventToDevToolsEvent(
 			return {
 				data: resultData(event.result),
 				id,
-				message: event.result.ok
-					? 'Consent save completed'
-					: 'Consent save failed',
+				message: outcomeMessage(
+					event.result.ok,
+					'Consent save completed',
+					'Consent save failed'
+				),
 				timestamp,
 				type: event.type,
 			};

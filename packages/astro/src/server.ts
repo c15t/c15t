@@ -8,6 +8,7 @@
  */
 
 import {
+	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
 	defaultTranslationConfig,
@@ -23,11 +24,12 @@ import type {
 } from '@c15t/core';
 import {
 	CONSENT_STORAGE_KEY,
-	readStoredConsentFromCookie,
+	readStoredRecordsFromCookieHeader,
 } from '@c15t/core/modules/persistence';
 import { isIABConfigured } from '@c15t/core/runtime';
 import { fetchCachedGvl } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
+import { readProducerPolicyContract } from '@c15t/core/transports';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
@@ -43,7 +45,6 @@ import { baseTranslations } from '@c15t/translations/all';
 
 import { loadConsentManifest, resolveManifestInit } from './api/manifest-init';
 import { filterCookieHeader } from './libs/cookies';
-import { buildInlineOfflinePolicy } from './mode';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
@@ -116,25 +117,28 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 	headers: Headers,
 	options: C15tResolvedOptions
 ): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
-	const persisted = readStoredConsentFromCookie(
+	const now = Date.now();
+	const initialRecords = readStoredRecordsFromCookieHeader(
 		headers.get('cookie') ?? undefined,
-		options.storageConfig
+		options.storageConfig,
+		now
 	);
 	// An explicit `i18n.locale` outranks Accept-Language negotiation.
 	const inputs = extractConsentRequestInputs(headers, {
 		language: options.i18n?.locale,
 	});
 
-	const config: KernelConfig = {};
-	if (persisted?.consents && persisted.consentInfo) {
-		config.initialConsents = persisted.consents;
-		config.initialHasConsented = true;
-		const { subjectId } = persisted.consentInfo as { subjectId?: unknown };
-		if (typeof subjectId === 'string') {
-			config.initialSubjectId = subjectId;
-		}
-	}
-	const overrides = consentInputsToOverrides(inputs) as KernelOverrides;
+	const config: KernelConfig = {
+		initialPolicyPending: true,
+		initialPrivacySignals: { gpc: inputs.gpc },
+		initialRecords,
+		now,
+	};
+	const overrides = consentInputsToOverrides({
+		country: inputs.country,
+		language: inputs.language,
+		region: inputs.region,
+	}) as KernelOverrides;
 	if (Object.keys(overrides).length > 0) {
 		config.initialOverrides = overrides;
 	}
@@ -254,7 +258,14 @@ const forwardHeaders = function forwardHeaders(
 	overrides: KernelOverrides,
 	options: { cookieName: string; allowCookie?: boolean }
 ): Record<string, string> {
-	const forward: Record<string, string> = { accept: 'application/json' };
+	const forward: Record<string, string> = {
+		...c15tProtocolHeaders,
+		accept: 'application/json',
+	};
+	const detectedGpc = headers.get('sec-gpc');
+	if (detectedGpc !== null) {
+		forward['sec-gpc'] = detectedGpc;
+	}
 	const cookie = headers.get('cookie');
 	const scoped =
 		cookie && options.allowCookie !== false
@@ -273,7 +284,7 @@ const forwardHeaders = function forwardHeaders(
 		forward['accept-language'] = overrides.language;
 	}
 	if (overrides.gpc !== undefined) {
-		forward['sec-gpc'] = overrides.gpc ? '1' : '0';
+		forward['x-c15t-gpc'] = overrides.gpc ? '1' : '0';
 	}
 	return forward;
 };
@@ -316,7 +327,14 @@ const prefetchHosted = async function prefetchHosted(input: {
 			return input.base;
 		}
 		const payload = (await response.json()) as InitOutput;
-		return mergeInitOutputIntoKernelConfig(input.base, payload);
+		return mergeInitOutputIntoKernelConfig(
+			input.base,
+			payload,
+			{},
+			{
+				producerContract: readProducerPolicyContract(response.headers),
+			}
+		);
 	} catch {
 		// Silent degradation: the browser retries on boot.
 		return input.base;
@@ -383,17 +401,13 @@ const prefetchOffline = async function prefetchOffline(
 	input: PrefetchLocalInput
 ): Promise<KernelConfig> {
 	const { options } = input;
-	// `createOfflineTransport` reads the length, not the presence: an empty
-	// array means "no pack applies", and passing it as configured would leave
-	// the wide opt-in policy in place while the transport narrows.
-	const policyPacks =
-		options.mode.type === 'offline' ? options.mode.policyPacks : undefined;
+	const policyRules =
+		options.mode.type === 'offline' ? options.mode.policyRules : undefined;
 	const transport = createOfflineTransport({
 		// Same reason as the client factory in `mode.ts`: a pack whose model
 		// is `iab` needs a configured CMP to be eligible.
 		iabEnabled: isIABConfigured(options.iab),
-		policyPacks:
-			policyPacks && policyPacks.length > 0 ? policyPacks : undefined,
+		policyRules,
 		translations: input.translations,
 	});
 	try {
@@ -404,19 +418,7 @@ const prefetchOffline = async function prefetchOffline(
 		if (!response) {
 			return input.base;
 		}
-		// Without policy packs the offline transport resolves a policy that
-		// allows every category. Narrow it to what the site configured: the
-		// React dialog reads its toggle list off the policy, so leaving it
-		// wide showed categories the site never asked for while the Svelte
-		// and Vue surfaces — which filter by option — did not.
-		const policy = policyPacks
-			? response.policy
-			: (buildInlineOfflinePolicy(options.consentCategories) ??
-				response.policy);
-		return mergeInitResponseIntoKernelConfig(input.base, {
-			...response,
-			policy,
-		});
+		return mergeInitResponseIntoKernelConfig(input.base, response);
 	} catch {
 		return input.base;
 	}
@@ -556,13 +558,19 @@ export const resolveConsentContext = async function resolveConsentContext(
 		options,
 	});
 
+	config.initialPolicyPending = config.initialPolicyResolution === undefined;
 	const snapshot = snapshotFromConfig(config);
 	return {
 		config,
-		decision: snapshot.policyDecision ?? null,
+		decision: snapshot.resolution,
+		hasConsentUi:
+			snapshot.resolution.status === 'matched' &&
+			(snapshot.policyRule.prompt !== 'none' ||
+				snapshot.policyRule.rights.length > 0),
+		hasPolicy: snapshot.resolution.status === 'matched',
 		inputs,
 		options,
-		shouldShowBanner: snapshot.activeUI === 'banner',
+		shouldShowBanner: !snapshot.policyPending && snapshot.activeUI === 'banner',
 		snapshot,
 	};
 };

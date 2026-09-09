@@ -52,7 +52,8 @@ beforeEach(() => {
 describe('readInitialConsentConfig: cookies', () => {
 	test('returns empty config when nothing is present', async () => {
 		const config = await readInitialConsentConfig();
-		expect(config).toEqual({});
+		expect(config.now).toEqual(expect.any(Number));
+		expect(config.initialRecords?.choice).toBeNull();
 	});
 
 	test('reads the compact persistence module cookie', async () => {
@@ -64,25 +65,24 @@ describe('readInitialConsentConfig: cookies', () => {
 			'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1234567890'
 		);
 		const config = await readInitialConsentConfig();
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents).toMatchObject({
-			marketing: true,
-			measurement: false,
-			necessary: true,
+		expect(config.initialRecords?.choice?.version).toBe(3);
+		expect(config.initialRecords?.choice?.categories).toMatchObject({
+			marketing: { confirmedAt: 1234567890, value: true },
+			measurement: { confirmedAt: 1234567890, value: false },
 		});
 	});
 
 	test('ignores malformed cookie values', async () => {
 		headerStore.set('cookie', 'c15t=not-a-consent-payload');
 		const config = await readInitialConsentConfig();
-		expect(config.initialConsents).toBeUndefined();
-		expect(config.initialHasConsented).toBeUndefined();
+		expect(config.initialRecords?.choice).toBeNull();
+		expect(Object.hasOwn(config, 'initialHasConsented')).toBe(false);
 	});
 
 	test('ignores unrelated cookies', async () => {
 		headerStore.set('cookie', 'session=abc; theme=dark');
 		const config = await readInitialConsentConfig();
-		expect(config.initialConsents).toBeUndefined();
+		expect(config.initialRecords?.choice).toBeNull();
 	});
 
 	test('respects a customized storage key', async () => {
@@ -91,8 +91,10 @@ describe('readInitialConsentConfig: cookies', () => {
 		const config = await readInitialConsentConfig({
 			cookieName: 'my-consent',
 		});
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialConsents).toMatchObject({ marketing: true });
+		expect(config.initialRecords?.choice?.version).toBe(3);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
 	});
 });
 

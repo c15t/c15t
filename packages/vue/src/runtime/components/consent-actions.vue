@@ -38,6 +38,7 @@ const props = withDefaults(
 		primaryMode?: 'stroke' | 'filled';
 		secondaryMode?: 'stroke' | 'filled';
 		fill?: boolean;
+		buttonSize?: 'small' | 'medium';
 	}>(),
 	{
 		direction: 'row',
@@ -139,6 +140,8 @@ const buttonMode = function buttonMode(action: T) {
 		:data-fill="shouldFill ? true : undefined"
 		:data-split="isSplitLayout && !shouldFill ? true : undefined"
 	>
+		<!-- Controls that precede the action groups, such as a notice's rights. -->
+		<slot name="leading" />
 		<div
 			v-for="(group, groupIndex) in actionGroups"
 			:key="`group-${group.join('-') || groupIndex}`"
@@ -153,7 +156,7 @@ const buttonMode = function buttonMode(action: T) {
 				:key="action"
 				:variant="isPrimary(action) ? 'primary' : 'neutral'"
 				:mode="buttonMode(action)"
-				:size="size"
+				:size="buttonSize ?? size"
 				:disabled="disabled"
 				:data-action="action"
 				:data-testid="actionTestId(action)"

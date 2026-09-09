@@ -3,8 +3,10 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Alle akzeptieren',
+		acknowledge: 'OK',
 		close: 'Schließen',
 		customize: 'Anpassen',
+		dismiss: 'Ausblenden',
 		rejectAll: 'Alle ablehnen',
 		save: 'Einstellungen speichern',
 		securedBy: 'Gesichert durch',
@@ -44,6 +46,9 @@ export const translations: CompleteTranslations = {
 	cookieBanner: {
 		description:
 			'Diese Website verwendet Cookies, um deine Surf-Erfahrung zu verbessern, den Seitenverkehr zu analysieren und persönliche Inhalte anzuzeigen.',
+		noticeDescription:
+			'Wir verwenden Cookies und ähnliche Technologien, um diese Website zu betreiben, den Traffic zu messen und Inhalte sowie Werbung zu personalisieren. Du kannst jederzeit widersprechen oder deine Einstellungen verwalten.',
+		noticeTitle: 'Datenschutzhinweis',
 		title: 'Wir respektieren deine Privatsphäre.',
 	},
 	frame: {
@@ -138,6 +143,10 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Cookie-Richtlinie',
 		privacyPolicy: 'Datenschutzerklärung',
 		termsOfService: 'Nutzungsbedingungen',
+	},
+	rights: {
+		optOut: 'Meine Daten nicht verkaufen oder weitergeben',
+		preferences: 'Einstellungen verwalten',
 	},
 };
 export default translations;

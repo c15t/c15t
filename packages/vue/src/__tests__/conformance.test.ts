@@ -1,11 +1,3 @@
-/**
- * Vue conformance entry point.
- *
- * The Vue package exposes a Nuxt plugin rather than a standalone provider
- * component, so the driver builds the same kernel context the plugin provides
- * and injects it into a small Vue app around the requested component.
- */
-
 import {
 	DriverNotImplementedError,
 	IAB_FIXTURE_CMP_ID,
@@ -19,14 +11,21 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import { createConsentKernel } from '@c15t/core';
-import type {
-	ConsentKernel,
-	ConsentSnapshot,
-	KernelConfig,
-	KernelTransport,
-} from '@c15t/core';
+/**
+ * Vue conformance entry point.
+ *
+ * The Vue package exposes a Nuxt plugin rather than a standalone provider
+ * component, so the driver builds the same kernel context the plugin provides
+ * and injects it into a small Vue app around the requested component.
+ */
+import { initOutputToKernelConfig } from '@c15t/core';
+import type { InitResponse, KernelConfig, KernelTransport } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
+import {
+	normalizePolicyRule,
+	createPolicyRuleFingerprints,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import type {
 	GlobalVendorList,
 	InitOutput,
@@ -34,14 +33,7 @@ import type {
 } from '@c15t/schema/types';
 import { flushPromises } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
-import {
-	computed,
-	createApp,
-	createSSRApp,
-	defineComponent,
-	h,
-	shallowRef,
-} from 'vue';
+import { createApp, createSSRApp, defineComponent, h } from 'vue';
 import type { App } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
@@ -62,6 +54,7 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createPolicySession, probePolicyContract } from './policy-driver';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -235,14 +228,23 @@ const buildInitOutput = function buildInitOutput(
 		options.consentCategories?.length === 0
 			? [...DEFAULT_CONSENT_CATEGORIES]
 			: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
-	const consent: NonNullable<NonNullable<InitOutput['policy']>['consent']> = {
-		categories: consentCategories,
+	const policy = normalizePolicyRule({
+		categories: consentCategories.filter(
+			(category) => category !== 'necessary'
+		),
+		id: 'vue_conformance_policy',
+		match: { fallback: true },
+		model: policyModelFor(opts),
+		prompt: 'choice',
 		scopeMode: 'permissive',
-	};
-	if (opts.policy?.respectGpc !== undefined) {
-		consent.gpc = opts.policy.respectGpc;
-	}
-
+	});
+	const policyResolution = writePolicyResolutionWire({
+		fingerprints: createPolicyRuleFingerprints(policy),
+		matchedBy: 'fallback',
+		policy,
+		policyId: policy.id,
+		status: 'matched',
+	});
 	return {
 		branding: 'c15t',
 		jurisdiction: 'GDPR',
@@ -250,30 +252,7 @@ const buildInitOutput = function buildInitOutput(
 			countryCode: 'DE',
 			regionCode: null,
 		},
-		policy: {
-			consent,
-			id: 'vue_conformance_policy',
-			model: policyModelFor(opts),
-			ui: {
-				banner: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					scrollLock: false,
-				},
-				dialog: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					scrollLock: false,
-				},
-				mode: 'banner',
-			},
-		},
-		policyDecision: {
-			country: 'DE',
-			fingerprint: 'vue_conformance_fingerprint',
-			jurisdiction: 'GDPR',
-			matchedBy: 'default',
-			policyId: 'vue_conformance_policy',
-			region: null,
-		},
+		policyResolution,
 		policySnapshotToken: 'vue_conformance_token',
 		translations: resolveTranslations(options, opts.locale),
 	};
@@ -292,8 +271,7 @@ const buildKernelConfig = function buildKernelConfig(
 		| undefined;
 	const initMode = opts.initMode ?? 'authoritative';
 	const base: KernelConfig = {
-		initialConsents: state?.consents,
-		initialHasConsented: state?.hasConsented,
+		initialDraft: state?.consents,
 		initialTranslations: resolveTranslations(options, opts.locale),
 		transport,
 	};
@@ -315,59 +293,15 @@ const buildKernelConfig = function buildKernelConfig(
 				countryCode: 'DE',
 				regionCode: null,
 			},
-			initialPolicy: buildInitOutput(opts, options).policy,
-			initialPolicyDecision: {
-				country: 'DE',
-				fingerprint: 'vue_conformance_fingerprint',
-				jurisdiction: 'GDPR',
-				matchedBy: 'default',
-				policyId: 'vue_conformance_policy',
-				region: null,
-			},
+			...initOutputToKernelConfig(buildInitOutput(opts, options)),
+			initialIab: base.initialIab,
 			initialPolicySnapshotToken: 'vue_conformance_token',
 		};
 	}
 	return {
 		...base,
-		initialPolicy: buildInitOutput(opts, options).policy,
-		initialPolicyProvisional: true,
+		initialPolicyPending: true,
 	};
-};
-
-const snapshotToInitOutputForTest = function snapshotToInitOutputForTest(
-	snapshot: ConsentSnapshot
-): InitOutput | undefined {
-	if (!(snapshot.translations || snapshot.policy || snapshot.location)) {
-		return undefined;
-	}
-	return {
-		branding: snapshot.branding ?? 'c15t',
-		cmpId: snapshot.iab?.cmpId ?? undefined,
-		customVendors: snapshot.iab?.customVendors,
-		gvl: snapshot.iab?.gvl ?? undefined,
-		jurisdiction: snapshot.policyDecision?.jurisdiction ?? 'NONE',
-		location: snapshot.location ?? {
-			countryCode: null,
-			regionCode: null,
-		},
-		policy: snapshot.policy ?? undefined,
-		policyDecision: snapshot.policyDecision ?? undefined,
-		policySnapshotToken: snapshot.policySnapshotToken ?? undefined,
-		translations:
-			snapshot.translations ?? resolveTranslations({} as ProviderOptions),
-	} as InitOutput;
-};
-
-const snapshotToStoredConsentForTest = function snapshotToStoredConsentForTest(
-	snapshot: ConsentSnapshot
-) {
-	const categories: Record<string, boolean> = {};
-	if (snapshot.hasConsented) {
-		for (const [category, enabled] of Object.entries(snapshot.consents)) {
-			categories[category] = enabled;
-		}
-	}
-	return { categories, policies: {} };
 };
 
 const mockFetch = function mockFetch(init: InitOutput): typeof fetch {
@@ -474,23 +408,6 @@ const createHarness = function createHarness(
 		}
 	}
 
-	if (opts.initialState && typeof opts.initialState === 'object') {
-		const state = opts.initialState as {
-			consents?: Record<string, boolean>;
-			hasConsented?: boolean;
-			activeUI?: 'none' | 'banner' | 'dialog';
-		};
-		if (state.consents) {
-			context.kernel.set.consent(state.consents);
-		}
-		if (state.hasConsented !== undefined) {
-			context.kernel.set.hasConsented(state.hasConsented);
-		}
-		if (state.activeUI) {
-			context.kernel.set.activeUI(state.activeUI);
-		}
-	}
-
 	return defineComponent({
 		name: 'VueConformanceHarness',
 		setup() {
@@ -529,10 +446,10 @@ const createContext = function createContext(opts: MountOptions) {
 	};
 };
 
-const createPendingInit = function createPendingInit() {
+const createPendingInit = function createPendingInit(response: InitResponse) {
 	let resolve!: () => void;
-	const promise = createDeferredPromise<Record<string, never>>((settle) => {
-		resolve = () => settle({});
+	const promise = createDeferredPromise<InitResponse>((settle) => {
+		resolve = () => settle(response);
 	});
 	return { promise, resolve };
 };
@@ -541,7 +458,12 @@ const createLifecycleTransport = function createLifecycleTransport(
 	opts: MountOptions
 ) {
 	if ((opts.initMode ?? 'authoritative') === 'pending') {
-		const deferred = createPendingInit();
+		const deferred = createPendingInit({
+			policyResolution: buildInitOutput(
+				opts,
+				(opts.providerOptions ?? {}) as ProviderOptions
+			).policyResolution,
+		});
 		return {
 			resolve: deferred.resolve,
 			transport: {
@@ -570,8 +492,7 @@ const createLifecycleTransport = function createLifecycleTransport(
 				return Promise.resolve({
 					branding: init.branding === 'none' ? undefined : init.branding,
 					location: init.location,
-					policy: init.policy,
-					policyDecision: init.policyDecision,
+					policyResolution: init.policyResolution,
 					policySnapshotToken: init.policySnapshotToken,
 					translations: init.translations,
 				});
@@ -586,53 +507,10 @@ const createControlledContext = function createControlledContext(
 	const options = (opts.providerOptions ?? {}) as ProviderOptions;
 	const lifecycle = createLifecycleTransport(opts);
 	const config = buildConfig(opts, buildInitOutput(opts, options));
-	const kernel: ConsentKernel = createConsentKernel(
-		buildKernelConfig(opts, options, lifecycle.transport)
-	);
-	const snapshot = shallowRef(kernel.getSnapshot());
-	const unsubscribe = kernel.subscribe((next) => {
-		snapshot.value = next;
+	const context = createVueConsentKernelContext({
+		config,
+		kernelConfig: buildKernelConfig(opts, options, lifecycle.transport),
 	});
-	const context: VueConsentKernelContext = {
-		activeUI: computed({
-			get: () => {
-				const { activeUI } = snapshot.value;
-				if (activeUI === 'dialog') {
-					return 'manager';
-				}
-				if (activeUI === 'none') {
-					return null;
-				}
-				return activeUI;
-			},
-			set: (value) => {
-				if (value === 'manager') {
-					kernel.set.activeUI('dialog');
-				} else if (value === null) {
-					kernel.set.activeUI('none');
-				} else {
-					kernel.set.activeUI(value);
-				}
-			},
-		}),
-		dispose() {
-			unsubscribe();
-			// This context owns the kernel, so it owns tearing it down —
-			// commands run under a controlled mount can leave retry timers
-			// and failed-save cleanup behind.
-			kernel.dispose();
-		},
-		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
-		kernel,
-		ownsKernel: true,
-		snapshot,
-		storedConsent: computed({
-			get: () => snapshotToStoredConsentForTest(snapshot.value),
-			set: (value) => {
-				kernel.set.consent(value.categories);
-			},
-		}),
-	};
 	return {
 		config,
 		context,
@@ -654,11 +532,14 @@ const projectStoreState = function projectStoreState(
 	context: VueConsentKernelContext
 ): StoreState {
 	const snapshot = context.kernel.getSnapshot();
-	const consents = { ...snapshot.consents } as Record<string, boolean>;
+	const consents = { ...snapshot.effectivePermissions } as Record<
+		string,
+		boolean
+	>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
 		activeUI: activeUIForStore(snapshot.activeUI),
-		consentCategories: [...snapshot.policyCategories],
+		consentCategories: [...snapshot.policyRule.scope],
 		consents,
 		selectedConsents: { ...consents },
 	};
@@ -673,6 +554,7 @@ const flushScheduler = async function flushScheduler() {
 let lastContext: VueConsentKernelContext | null = null;
 
 const driver: TestDriver = {
+	createPolicySession,
 	framework: 'vue',
 	getStore() {
 		if (!lastContext) {
@@ -738,6 +620,7 @@ const driver: TestDriver = {
 			},
 		};
 	},
+	probePolicyContract,
 	async serverRender(opts: MountOptions): Promise<string> {
 		const { context, config, options } =
 			(opts.initMode ?? 'authoritative') === 'authoritative'

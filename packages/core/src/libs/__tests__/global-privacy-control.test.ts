@@ -19,8 +19,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 	afterEach(() => {
 		// Restore the original window reference after each test
 		if (originalWindow === undefined) {
-			// @ts-expect-error - In some environments window might not exist
-			// and we want to clean up any window we created.
+			// Clean up a window created by the test.
 			delete (globalThis as typeof globalThis & { window?: unknown }).window;
 		} else {
 			globalThis.window = originalWindow;
@@ -29,7 +28,6 @@ describe('hasGlobalPrivacyControlSignal', () => {
 
 	it('returns false when window is undefined (server-side environment)', () => {
 		// Simulate a server-side environment where window is not available
-		// @ts-expect-error - We intentionally delete the global window
 		delete (globalThis as typeof globalThis & { window?: unknown }).window;
 
 		const result = hasGlobalPrivacyControlSignal();
@@ -53,7 +51,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		expect(result).toBe(true);
 	});
 
-	it('returns true when navigator.globalPrivacyControl is string "1"', () => {
+	it('returns false when navigator.globalPrivacyControl is string "1"', () => {
 		const mockNavigator = {
 			globalPrivacyControl: '1',
 		} as Navigator & { globalPrivacyControl?: boolean | string };
@@ -65,7 +63,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 
 		const result = hasGlobalPrivacyControlSignal();
 
-		expect(result).toBe(true);
+		expect(result).toBe(false);
 	});
 
 	it('returns false for other values or when the flag is missing', () => {

@@ -2,35 +2,26 @@
 
 import type {
 	AllConsentNames,
+	ConsentPresentation,
 	Callbacks,
 	ConsentKernel,
-	ConsentSnapshot,
 	I18nConfig,
-	IABConfig,
+	KernelTransport,
 	InitContext,
 	InitResponse,
 	KernelConfig,
 	KernelEvent,
 	KernelOverrides,
 	KernelTranslations,
-	KernelTransport,
 	KernelUser,
 	LegalLinks,
-	OfflinePolicyConfig,
-	PolicyConfig,
 	ProviderTransportContext,
 	ProviderTransportFactory,
-	SSRInitialData,
 	StorageConfig,
-	TranslationConfig,
 	TranslationsResponse,
 	User,
 } from '@c15t/core';
-import {
-	createConsentKernel,
-	kernelConfigToInitResponse,
-	mapInitOutputToInitResponse,
-} from '@c15t/core';
+import { createConsentKernel, kernelConfigToInitResponse } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
 	createWindowDebug,
@@ -38,7 +29,7 @@ import {
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
 import type { ConsentRuntime } from '@c15t/core/runtime';
-import type { InitOutput } from '@c15t/schema/types';
+import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
@@ -50,12 +41,10 @@ import {
 	useMemo,
 	useRef,
 	useState,
-	useSyncExternalStore,
 } from 'react';
 
-import { KernelContext } from './context';
+import { KernelContext, ProviderServicesContext } from './context';
 import { useColorScheme } from './hooks/use-color-scheme';
-import type { IABProviderProps } from './iab-context';
 import type {
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
@@ -74,14 +63,16 @@ const loadNetworkBlockerModule = () =>
 const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
 const loadThemeModule = () => import('@c15t/ui/theme');
 
-type ProviderIABOptions =
-	| (Partial<Omit<IABProviderProps, 'children'>> &
-			Partial<Pick<IABConfig, 'enabled' | 'cmpId' | 'cmpVersion' | 'vendors'>>)
-	| false;
-
-type NormalizedIABOptions = Omit<IABProviderProps, 'children' | 'cmpId'> & {
-	cmpId?: number;
-};
+/** Events emitted by the mounted provider without snapshot-derived consent aliases. */
+export type ConsentProviderCallbacks = Pick<
+	Callbacks,
+	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+>;
+/** Prepared policy and records; legacy consent projections are not provider inputs. */
+export type ConsentProviderPrefetch = Omit<
+	KernelConfig,
+	'initialDraft' | 'transport'
+>;
 
 export interface ConsentProviderOptions extends Pick<
 	ReactUIOptions,
@@ -93,6 +84,7 @@ export interface ConsentProviderOptions extends Pick<
 	| 'trapFocus'
 > {
 	enabled?: boolean;
+	presentation?: ConsentPresentation;
 	/**
 	 * Content Security Policy nonce applied to DOM nodes c15t injects.
 	 *
@@ -108,7 +100,7 @@ export interface ConsentProviderOptions extends Pick<
 	 *
 	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
 	 * policies locally with no network, or `custom()` to supply your own
-	 * kernel transport or v2 endpoint handlers. This is an initial-only
+	 * kernel transport. This is an initial-only
 	 * option: remount the provider to change it.
 	 *
 	 * @example
@@ -156,39 +148,17 @@ export interface ConsentProviderOptions extends Pick<
 	 * );
 	 * ```
 	 */
-	prefetch?: KernelConfig | Promise<KernelConfig>;
-	callbacks?: Callbacks;
-	reloadOnConsentRevoked?: boolean;
+	prefetch?: ConsentProviderPrefetch | Promise<ConsentProviderPrefetch>;
+	callbacks?: ConsentProviderCallbacks;
 	scripts?: Script[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
-	iab?: ProviderIABOptions;
 	persistence?: boolean | UsePersistenceOptions;
-	policies?: PolicyConfig[];
 	i18n?: Partial<I18nConfig>;
 	consentCategories?: AllConsentNames[];
 	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
 	components?: ReactComponentSlots;
 	legalLinks?: LegalLinks;
-	/**
-	 * @deprecated Use `prefetch` with v3 server helpers. Kept so v2-shaped
-	 * provider fixtures can be reused while migrating tests.
-	 */
-	ssrData?: Promise<SSRInitialData | undefined>;
-	/**
-	 * @deprecated Use `i18n` instead.
-	 */
-	translations?: Partial<TranslationConfig>;
-	/**
-	 * @deprecated Use `policies` for policy packs and `prefetch` for synthetic
-	 * policy/init data.
-	 */
-	offlinePolicy?: OfflinePolicyConfig;
-	/**
-	 * @deprecated v3 hosted transport does not implement retry/backoff yet.
-	 * Accepted for v2 fixture compatibility and ignored.
-	 */
-	retryConfig?: unknown;
 	/**
 	 * Adapter package name reported by `window.c15t`.
 	 * @internal
@@ -217,48 +187,36 @@ export interface OwnedRuntimeProviderProps {
 	runtime?: undefined;
 }
 
-/**
- * The provider renders an externally owned runtime.
- *
- * Astro islands and a SvelteKit root layout cannot share React context, so
- * the kernel has to be owned outside the tree. The provider borrows it and
- * leaves `start()`, `dispose()` and every side-effecting module to the
- * owner; it still owns rendering — theme, slots and the IAB bridge.
- */
 export interface ExternalRuntimeProviderProps {
 	options?: ExternalRuntimeProviderOptions;
 	children: ReactNode;
 	runtime: ConsentRuntime;
 }
-
 export type ConsentProviderProps =
 	| OwnedRuntimeProviderProps
 	| ExternalRuntimeProviderProps;
+const LazyExternalIABProvider = lazy(async () => {
+	const module = await import('./external-iab-context');
+	return { default: module.ExternalIABProvider };
+});
 
-const ALL_CONSENTS_ON = {
-	experience: true,
-	functionality: true,
-	marketing: true,
-	measurement: true,
-	necessary: true,
-} as const;
+const DISABLED_RESOLUTION = resolvePolicyRules({
+	countryCode: null,
+	regionCode: null,
+	rules: [
+		{
+			id: 'disabled',
+			match: { fallback: true },
+			model: 'opt-out',
+			prompt: 'none',
+		},
+	],
+});
 
 const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	language: 'en',
 	translations: defaultTranslationConfig.translations.en as never,
 };
-
-const LazyIABProvider = lazy(async () => {
-	const module = await import('./iab-context');
-	return { default: module.IABProvider };
-});
-
-// A separate chunk from `LazyIABProvider`: the external bridge republishes
-// a CMP the runtime already mounted, so it must not drag `@c15t/iab` in.
-const LazyExternalIABProvider = lazy(async () => {
-	const module = await import('./external-iab-context');
-	return { default: module.ExternalIABProvider };
-});
 
 const normalizeUser = function normalizeUser(
 	user: ConsentProviderOptions['user']
@@ -273,28 +231,6 @@ const normalizeUser = function normalizeUser(
 		externalId: user.id,
 		identityProvider: user.identityProvider,
 	};
-};
-
-const normalizeLegacyI18n = function normalizeLegacyI18n(
-	translations: Partial<TranslationConfig> | undefined
-): Partial<I18nConfig> | undefined {
-	if (!translations?.translations) {
-		return undefined;
-	}
-	return {
-		detectBrowserLanguage:
-			translations.disableAutoLanguageSwitch === undefined
-				? undefined
-				: !translations.disableAutoLanguageSwitch,
-		locale: translations.defaultLanguage,
-		messages: translations.translations,
-	};
-};
-
-const resolveProviderI18n = function resolveProviderI18n(
-	options: ConsentProviderOptions
-): Partial<I18nConfig> | undefined {
-	return options.i18n ?? normalizeLegacyI18n(options.translations);
 };
 
 const resolveI18nTranslations = function resolveI18nTranslations(
@@ -326,33 +262,6 @@ const getEnabled = function getEnabled(
 	options: ConsentProviderOptions
 ): boolean {
 	return options.enabled ?? true;
-};
-
-const buildNoBannerPolicy =
-	function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {
-		return {
-			id: 'no_banner',
-			model: 'none',
-			ui: {
-				mode: 'none',
-			},
-		};
-	};
-
-const mapSSRInitialData = function mapSSRInitialData(
-	data: SSRInitialData | undefined
-): InitResponse | null {
-	if (!data?.init) {
-		return null;
-	}
-	const init = data.init as Record<string, unknown>;
-	return mapInitOutputToInitResponse(
-		{
-			...init,
-			gvl: data.gvl ?? init.gvl,
-		} as InitOutput,
-		{}
-	);
 };
 
 /**
@@ -394,18 +303,6 @@ const withFirstInitSource = function withFirstInitSource(
 			return transport.init?.(resolution.context ?? ctx) ?? {};
 		},
 	};
-};
-
-const withSSRData = function withSSRData(
-	transport: KernelTransport,
-	ssrData: ConsentProviderOptions['ssrData']
-): KernelTransport {
-	if (!ssrData) {
-		return transport;
-	}
-	return withFirstInitSource(transport, async () => ({
-		response: mapSSRInitialData(await ssrData),
-	}));
 };
 
 const isPromiseLike = function isPromiseLike<Value>(
@@ -456,7 +353,8 @@ const warnPrefetchRejected = function warnPrefetchRejected(error: unknown) {
 const applyBaselinePrefetch = function applyBaselinePrefetch(
 	kernel: ConsentKernel,
 	config: KernelConfig,
-	providerOverrides: KernelOverrides | undefined
+	providerOverrides: KernelOverrides | undefined,
+	recordsGeneration: number | undefined
 ) {
 	const overrides = {
 		...(config.initialOverrides ?? {}),
@@ -465,14 +363,11 @@ const applyBaselinePrefetch = function applyBaselinePrefetch(
 	if (hasKeys(overrides)) {
 		kernel.set.overrides(overrides);
 	}
-	if (config.initialConsents) {
-		kernel.set.consent(config.initialConsents);
-	}
-	if (config.initialHasConsented !== undefined) {
-		kernel.set.hasConsented(config.initialHasConsented);
-	}
-	if (config.initialSubjectId) {
-		kernel.set.subjectId(config.initialSubjectId);
+	if (
+		config.initialRecords &&
+		kernel.getRecordsGeneration() === recordsGeneration
+	) {
+		kernel.hydrate(config.initialRecords);
 	}
 };
 
@@ -489,6 +384,7 @@ const createPrefetchSource = function createPrefetchSource(
 	getKernel: () => ConsentKernel | null
 ): FirstInitSource {
 	return async (ctx) => {
+		const recordsGeneration = getKernel()?.getRecordsGeneration();
 		let config: KernelConfig;
 		try {
 			config = (await prefetch) ?? {};
@@ -511,7 +407,12 @@ const createPrefetchSource = function createPrefetchSource(
 
 		const kernel = getKernel();
 		if (kernel) {
-			applyBaselinePrefetch(kernel, config, providerOverrides);
+			applyBaselinePrefetch(
+				kernel,
+				config,
+				providerOverrides,
+				recordsGeneration
+			);
 		}
 		return {
 			context: {
@@ -556,32 +457,26 @@ const getProviderMode = function getProviderMode(
 	return options.mode;
 };
 
-const resolveInitialPolicyProvisional =
-	function resolveInitialPolicyProvisional(
-		enabled: boolean,
-		prefetch: KernelConfig,
-		offlinePolicy: OfflinePolicyConfig | undefined
-	): boolean {
-		return (
-			prefetch.initialPolicyProvisional ??
-			(enabled && !prefetch.initialPolicy && !offlinePolicy?.policy)
-		);
-	};
+const resolveInitialPolicyPending = function resolveInitialPolicyPending(
+	enabled: boolean,
+	prefetch: KernelConfig
+): boolean {
+	return (
+		prefetch.initialPolicyPending ??
+		(enabled && !prefetch.initialPolicyResolution)
+	);
+};
 
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
 	const enabled = getEnabled(options);
 	const prefetch = resolveSyncPrefetch(options);
-	const { offlinePolicy } = options;
 	const i18nTranslations =
-		resolveI18nTranslations(resolveProviderI18n(options)) ??
-		DEFAULT_TRANSLATIONS;
+		resolveI18nTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
-		offlinePolicy,
-		policies: options.policies,
 		prefetch,
 		translations: i18nTranslations,
 	};
@@ -592,7 +487,7 @@ const createProviderKernel = function createProviderKernel(
 	// the kernel does. Late-bind it: init only runs once the kernel exists.
 	const kernelRef: { current: ConsentKernel | null } = { current: null };
 	const transport = withPrefetchPromise(
-		withSSRData(baseTransport, options.ssrData),
+		baseTransport,
 		options,
 		() => kernelRef.current
 	);
@@ -600,57 +495,32 @@ const createProviderKernel = function createProviderKernel(
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
+		// An empty shell has no expiring records to evaluate. A stable seed
+		// avoids reading the clock during Next.js static prerender; init
+		// takes the real clock after mount. Prepared records retain their clock.
+		now:
+			prefetch.now ??
+			prefetch.initialRecords?.now ??
+			(prefetch.initialRecords ? undefined : 0),
 		transport,
-		initialConsents: enabled
-			? (prefetch.initialConsents ?? undefined)
-			: ALL_CONSENTS_ON,
+		initialPolicyResolution: enabled
+			? prefetch.initialPolicyResolution
+			: DISABLED_RESOLUTION,
 		initialOverrides: {
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
 		},
 		initialUser: normalizeUser(options.user) ?? prefetch.initialUser,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
-		initialPolicy:
-			enabled === false
-				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
-				: (prefetch.initialPolicy ?? offlinePolicy?.policy),
 		// The synthetic categories fallback is a placeholder for whatever the
 		// transport's init resolves — mark it provisional so no surface renders
 		// copy/actions that init may replace (mid-read copy swap, CLS, consent
 		// recorded against a placeholder policy). Real initial policies
 		// (prefetch/SSR/offline config) stay authoritative and render at once.
-		initialPolicyProvisional: resolveInitialPolicyProvisional(
-			enabled,
-			prefetch,
-			offlinePolicy
-		),
-		initialPolicyDecision:
-			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-		initialPolicySnapshotToken:
-			prefetch.initialPolicySnapshotToken ?? offlinePolicy?.policySnapshotToken,
+		initialPolicyPending: resolveInitialPolicyPending(enabled, prefetch),
 	});
 	kernelRef.current = kernel;
 	return kernel;
-};
-
-const snapshotConsentsChanged = function snapshotConsentsChanged(
-	previous: ConsentSnapshot,
-	next: ConsentSnapshot
-): boolean {
-	return Object.keys(next.consents).some(
-		(key) =>
-			next.consents[key as AllConsentNames] !==
-			previous.consents[key as AllConsentNames]
-	);
-};
-
-const categoriesWithValue = function categoriesWithValue(
-	snapshot: ConsentSnapshot,
-	value: boolean
-) {
-	return Object.entries(snapshot.consents)
-		.filter(([, enabled]) => enabled === value)
-		.map(([category]) => category as AllConsentNames);
 };
 
 const stringifyError = function stringifyError(error: unknown): string {
@@ -667,113 +537,32 @@ const stringifyError = function stringifyError(error: unknown): string {
 	}
 };
 
-const hasRevokedConsent = function hasRevokedConsent(
-	previous: ConsentSnapshot,
-	next: ConsentSnapshot
-) {
-	if (!previous.hasConsented) {
-		return false;
-	}
-	return Object.keys(previous.consents).some((key) => {
-		const category = key as AllConsentNames;
-		if (category === 'necessary') {
-			return false;
-		}
-		return previous.consents[category] && !next.consents[category];
-	});
-};
-
 const useProviderCallbacks = function useProviderCallbacks(
 	kernel: ConsentKernel,
-	callbacks: Callbacks | undefined,
-	reloadOnConsentRevoked: boolean,
-	active: boolean
+	callbacks: ConsentProviderCallbacks | undefined
 ) {
 	const callbacksRef = useRef(callbacks);
-	const saveStartedSnapshotRef = useRef<ConsentSnapshot | null>(null);
-	const saveNotifiedRef = useRef(false);
 
 	useEffect(() => {
 		callbacksRef.current = callbacks;
 	}, [callbacks]);
 
 	useEffect(() => {
-		// An externally owned runtime already wired these through
-		// `wireRuntimeCallbacks`; subscribing again would double-fire them.
-		if (!active) {
-			return;
-		}
-		const notifyConsentSaved = (
-			previous: ConsentSnapshot | null,
-			next: ConsentSnapshot
-		) => {
-			callbacksRef.current?.onConsentSet?.({
-				preferences: next.consents as never,
-			});
-			if (previous && snapshotConsentsChanged(previous, next)) {
-				callbacksRef.current?.onConsentChanged?.({
-					allowedCategories: categoriesWithValue(next, true),
-					deniedCategories: categoriesWithValue(next, false),
-					preferences: next.consents as never,
-					previousAllowedCategories: categoriesWithValue(previous, true),
-					previousDeniedCategories: categoriesWithValue(previous, false),
-					previousPreferences: previous.consents as never,
-				});
-				if (reloadOnConsentRevoked && hasRevokedConsent(previous, next)) {
-					callbacksRef.current?.onBeforeConsentRevocationReload?.({
-						preferences: next.consents as never,
-					});
-					if (typeof window !== 'undefined') {
-						window.location.reload();
-					}
-				}
-			}
-		};
-
 		const subscriptions = [
-			kernel.subscribe((next) => {
-				const previous = saveStartedSnapshotRef.current;
-				if (!previous || saveNotifiedRef.current || previous === next) {
-					return;
+			kernel.events.on(
+				'choice:recorded',
+				({ snapshot, confirmed, actionAt }) => {
+					callbacksRef.current?.onChoiceRecorded?.({
+						actionAt,
+						confirmed,
+						snapshot,
+					});
 				}
-				saveNotifiedRef.current = true;
-				notifyConsentSaved(previous, next);
+			),
+			kernel.events.on('permissions:changed', ({ snapshot, previous }) => {
+				callbacksRef.current?.onPermissionsChanged?.({ previous, snapshot });
 			}),
-			kernel.events.on('init:applied', ({ snapshot }) => {
-				const decision = snapshot.policyDecision as {
-					jurisdiction?: unknown;
-				} | null;
-				callbacksRef.current?.onBannerFetched?.({
-					jurisdiction:
-						typeof decision?.jurisdiction === 'string'
-							? (decision.jurisdiction as never)
-							: ('NONE' as never),
-					location: {
-						countryCode: snapshot.location?.countryCode ?? null,
-						regionCode: snapshot.location?.regionCode ?? null,
-					},
-					translations: snapshot.translations ?? {
-						...DEFAULT_TRANSLATIONS,
-					},
-				});
-			}),
-			kernel.events.on('command:save:started', () => {
-				saveStartedSnapshotRef.current = kernel.getSnapshot();
-				saveNotifiedRef.current = false;
-			}),
-			kernel.events.on('command:save:completed', ({ result }) => {
-				if (!result.ok) {
-					return;
-				}
-				if (saveNotifiedRef.current) {
-					saveStartedSnapshotRef.current = null;
-					return;
-				}
-				const previous = saveStartedSnapshotRef.current;
-				const next = kernel.getSnapshot();
-				notifyConsentSaved(previous, next);
-				saveStartedSnapshotRef.current = null;
-			}),
+
 			kernel.events.on(
 				'command:error',
 				(event: Extract<KernelEvent, { type: 'command:error' }>) => {
@@ -789,7 +578,7 @@ const useProviderCallbacks = function useProviderCallbacks(
 				unsubscribe();
 			}
 		};
-	}, [active, kernel, reloadOnConsentRevoked]);
+	}, [kernel]);
 };
 
 const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
@@ -798,10 +587,6 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 	return JSON.stringify({
 		i18n: options.i18n,
 		mode: options.mode?.kind,
-		offlinePolicy: options.offlinePolicy,
-		policies: options.policies,
-		ssrData: Boolean(options.ssrData),
-		translations: options.translations,
 	});
 };
 
@@ -866,9 +651,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 		if (enabled) {
 			return;
 		}
-		kernel.set.consent(ALL_CONSENTS_ON);
 		kernel.set.activeUI('none');
-		kernel.set.hasConsented(true);
 	}, [enabled, kernel, owns]);
 
 	useEffect(() => {
@@ -886,35 +669,60 @@ const useProviderOptionSync = function useProviderOptionSync(
 		if (initialOnlyRef.current !== serialized) {
 			initialOnlyRef.current = serialized;
 			console.warn(
-				'c15t ConsentProvider: mode, policies, i18n/translations, offlinePolicy, and ssrData are initial-only options. Remount the provider to apply changes.'
+				'c15t ConsentProvider: mode and i18n are initial-only options. Remount the provider to apply changes.'
 			);
 		}
 	}, [options]);
 };
 
+const ProviderCallbacksMount = ({
+	kernel,
+	callbacks,
+}: {
+	kernel: ConsentKernel;
+	callbacks?: ConsentProviderCallbacks;
+}) => {
+	useProviderCallbacks(kernel, callbacks);
+	return null;
+};
+
 const InitMount = ({
 	enabled,
 	kernel,
-	eagerInit = false,
+	prepared,
 }: {
 	enabled: boolean;
 	kernel: ConsentKernel;
-	eagerInit?: boolean;
+	prepared: boolean;
 }) => {
-	const skippedEagerRef = useRef(false);
+	const initialized = useRef(false);
+	const hydrated = useRef(false);
 	useEffect(() => {
 		if (!enabled) {
+			initialized.current = false;
 			return;
 		}
-		// The provider may have dispatched init at kernel creation (eager,
-		// render-time) — skip this effect's first pass so init fires exactly
-		// once, while later `enabled` flips still re-init.
-		if (eagerInit && !skippedEagerRef.current) {
-			skippedEagerRef.current = true;
+		if (initialized.current) {
 			return;
 		}
-		void kernel.commands.init();
-	}, [enabled, kernel, eagerInit]);
+		initialized.current = true;
+		if (prepared) {
+			kernel.hydrate({
+				now: hydrated.current
+					? Date.now()
+					: kernel.getServerSnapshot().evaluatedAt,
+			});
+			hydrated.current = true;
+			const { gpc } = kernel.getSnapshot().privacySignals;
+			if (gpc.detected && gpc.active) {
+				// Hydration stays read-only; activate the detected signal through
+				// the public setter after the prepared snapshot has committed.
+				kernel.set.privacySignals({ gpc: true });
+			}
+		} else {
+			kernel.commands.init();
+		}
+	}, [enabled, kernel, prepared]);
 	return null;
 };
 
@@ -1031,8 +839,20 @@ const NetworkBlockerMount = ({
 	return null;
 };
 
-const PersistenceMount = ({ options }: { options?: UsePersistenceOptions }) => {
-	usePersistence(options);
+const PersistenceMount = ({
+	options,
+	clearRef,
+}: {
+	options?: UsePersistenceOptions;
+	clearRef: { current: (() => void) | null };
+}) => {
+	const handle = usePersistence(options);
+	useEffect(() => {
+		clearRef.current = handle.clear;
+		return () => {
+			clearRef.current = null;
+		};
+	}, [handle, clearRef]);
 	return null;
 };
 
@@ -1118,70 +938,6 @@ const ThemeStyleMount = ({
 	);
 };
 
-const IABGate = ({
-	enabled,
-	initialModel,
-	kernel,
-	options,
-	runtime,
-	children,
-}: {
-	enabled: boolean;
-	initialModel?: string | null;
-	kernel: ConsentKernel;
-	options: NormalizedIABOptions | null;
-	runtime?: ConsentRuntime;
-	children: ReactNode;
-}) => {
-	const snapshot = useSyncExternalStore(
-		(listener) => kernel.subscribe(listener),
-		() => kernel.getSnapshot(),
-		() => kernel.getServerSnapshot()
-	);
-	const { model } = snapshot;
-	const shouldLoadIAB =
-		model === 'iab' ||
-		model === null ||
-		(model === undefined && initialModel === 'iab');
-
-	// An external runtime already owns the CMP. Republish its handle rather
-	// than mounting a second one — two `__tcfapi` stubs on a page is a spec
-	// violation, not just wasted bytes.
-	if (runtime) {
-		if (!(enabled && shouldLoadIAB)) {
-			return children;
-		}
-		return (
-			<Suspense fallback={children}>
-				<LazyExternalIABProvider runtime={runtime}>
-					{children}
-				</LazyExternalIABProvider>
-			</Suspense>
-		);
-	}
-
-	const cmpId = options?.cmpId ?? snapshot.iab?.cmpId;
-
-	if (!enabled || !options || !shouldLoadIAB || typeof cmpId !== 'number') {
-		return children;
-	}
-	const gvl = options.gvl === undefined ? snapshot.iab?.gvl : options.gvl;
-	const customVendors = options.customVendors ?? snapshot.iab?.customVendors;
-
-	return (
-		<Suspense fallback={children}>
-			<LazyIABProvider
-				{...options}
-				cmpId={cmpId}
-				customVendors={customVendors}
-				gvl={gvl}
-			>
-				{children}
-			</LazyIABProvider>
-		</Suspense>
-	);
-};
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentProviderOptions
 ): UsePersistenceOptions | false {
@@ -1189,31 +945,16 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 		return false;
 	}
 	const { storageConfig } = options;
+	const prepared = !!resolveSyncPrefetch(options).initialRecords;
 	if (options.persistence === true || options.persistence === undefined) {
-		return { storageConfig };
+		return { skipHydration: prepared, storageConfig };
 	}
 	return {
-		skipHydration: options.persistence.skipHydration,
+		...options.persistence,
+		skipHydration: options.persistence.skipHydration ?? prepared,
 		storageConfig: options.persistence.storageConfig ?? storageConfig,
 	};
 };
-
-const normalizeIabOptions = function normalizeIabOptions(
-	iab: ProviderIABOptions | undefined
-): NormalizedIABOptions | null {
-	if (iab === false || !iab || iab.enabled === false) {
-		return null;
-	}
-	return {
-		...iab,
-		cmpVersion:
-			typeof iab.cmpVersion === 'string'
-				? Number(iab.cmpVersion)
-				: iab.cmpVersion,
-	};
-};
-
-const EMPTY_OPTIONS = {} as ConsentProviderOptions;
 
 /**
  * v3 ConsentProvider.
@@ -1242,39 +983,50 @@ const EMPTY_OPTIONS = {} as ConsentProviderOptions;
  */
 export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
-	const options = (props.options ?? EMPTY_OPTIONS) as ConsentProviderOptions;
-	// The runtime, like `mode`, is initial-only: swapping it under a mounted
-	// tree would leave every hook subscribed to the old kernel. Capturing it
-	// in the same lazy state as the kernel is what pins it.
-	const [providerKernelState, setProviderKernelState] = useState<{
-		eagerInit: boolean;
-		kernel: ConsentKernel;
-		external?: ConsentRuntime;
-	}>(() => {
-		const external = props.runtime;
-		if (external) {
-			return { eagerInit: false, external, kernel: external.kernel };
-		}
-		const created = createProviderKernel(options);
-		// Kick the init roundtrip off during first client render so its
-		// network latency overlaps hydration instead of following it — with
-		// the banner gated on init resolution (authoritative-only rendering),
-		// dispatching init from a post-hydration effect would serialize
-		// throttled hydration and the backend roundtrip back-to-back.
-		const shouldEagerInit =
-			typeof window !== 'undefined' && getEnabled(options);
-		if (shouldEagerInit) {
-			void created.commands.init();
-		}
-		return { eagerInit: shouldEagerInit, kernel: created };
-	});
-	void setProviderKernelState;
-	const { kernel, eagerInit, external: externalRuntime } = providerKernelState;
+	const options = (props.options ?? {}) as ConsentProviderOptions;
+	const [owned, setOwned] = useState(() => ({
+		external: props.runtime,
+		kernel: props.runtime?.kernel ?? createProviderKernel(options),
+	}));
+	void setOwned;
+	const { kernel, external: externalRuntime } = owned;
 	const ownsRuntime = externalRuntime === undefined;
+	const clearRef = useRef<(() => void) | null>(null);
+	const services = useMemo(
+		() => ({
+			clearRecords: () => {
+				if (externalRuntime) {
+					externalRuntime.clearRecords();
+					return;
+				}
+				if (clearRef.current) {
+					clearRef.current();
+				} else {
+					kernel.hydrate({
+						choice: null,
+						noticeDismissal: null,
+						optOutDirectives: [],
+						subject: null,
+					});
+					kernel.events.emit({ type: 'records:cleared' });
+				}
+			},
+			getConsentCategories: () => {
+				const { scope } = kernel.getSnapshot().policyRule;
+				const configured = options.consentCategories;
+				return [
+					'necessary' as const,
+					...scope.filter(
+						(name) => !configured?.length || configured.includes(name)
+					),
+				];
+			},
+			getPresentation: () => options.presentation,
+		}),
+		[kernel, options.consentCategories, options.presentation, externalRuntime]
+	);
 	const enabled = getEnabled(options);
-	const reloadOnConsentRevoked = options.reloadOnConsentRevoked !== false;
 	const persistenceOptions = normalizePersistenceOptions(options);
-	const iabOptions = normalizeIabOptions(options.iab);
 	const { scripts, networkBlocker } = options;
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
 	// `mode` is optional when a runtime is handed in — its owner picked the
@@ -1283,18 +1035,21 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		? resolveWindowDebugMode(options.mode)
 		: 'hosted';
 
-	useProviderCallbacks(
-		kernel,
-		options.callbacks,
-		reloadOnConsentRevoked,
-		ownsRuntime
-	);
 	useProviderOptionSync(kernel, options, enabled, ownsRuntime);
+	const lifecycle = useRef(0);
 	useEffect(() => {
 		if (!ownsRuntime) {
 			return;
 		}
-		return () => kernel.dispose();
+		lifecycle.current += 1;
+		const generation = lifecycle.current;
+		return () => {
+			queueMicrotask(() => {
+				if (lifecycle.current === generation) {
+					kernel.dispose();
+				}
+			});
+		};
 	}, [kernel, ownsRuntime]);
 
 	const userTheme = options.theme;
@@ -1306,7 +1061,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			noStyle: options.noStyle,
 			scrollLock: options.scrollLock,
 			theme: userTheme,
-			trapFocus: options.trapFocus ?? true,
+			trapFocus: options.trapFocus,
 		}),
 		[
 			userTheme,
@@ -1322,8 +1077,9 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		() => ({
 			components: options.components,
 			legalLinks: options.legalLinks,
+			presentation: options.presentation,
 		}),
-		[options.components, options.legalLinks]
+		[options.components, options.legalLinks, options.presentation]
 	);
 
 	useColorScheme(options.colorScheme);
@@ -1332,26 +1088,28 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	// runtime already mounts. A borrowed runtime renders none of it.
 	const providerChildren = (
 		<>
-			<WindowKernelMount kernel={kernel} />
 			{ownsRuntime ? (
 				<>
-					<InitMount
-						enabled={enabled}
+					<ProviderCallbacksMount
 						kernel={kernel}
-						eagerInit={eagerInit}
+						callbacks={options.callbacks}
 					/>
 					<WindowDebugMount
 						pkg={windowDebugPkg}
 						mode={windowDebugMode}
 					/>
+					<WindowKernelMount kernel={kernel} />
 					{enabled && persistenceOptions ? (
-						<PersistenceMount options={persistenceOptions} />
+						<PersistenceMount
+							options={persistenceOptions}
+							clearRef={clearRef}
+						/>
 					) : null}
-					{/*
-					 * Not gated on `enabled`: a disabled provider grants every
-					 * category, so consent-gated scripts load straight away rather
-					 * than silently never running.
-					 */}
+					<InitMount
+						enabled={enabled}
+						prepared={!!resolveSyncPrefetch(options).initialPolicyResolution}
+						kernel={kernel}
+					/>
 					{scripts && scripts.length > 0 ? (
 						<ScriptsMount
 							nonce={options.nonce}
@@ -1364,33 +1122,32 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					) : null}
 				</>
 			) : null}
-			{children}
+			{externalRuntime ? (
+				<Suspense fallback={children}>
+					<LazyExternalIABProvider runtime={externalRuntime}>
+						{children}
+					</LazyExternalIABProvider>
+				</Suspense>
+			) : (
+				children
+			)}
 		</>
 	);
 
 	return (
 		<KernelContext.Provider value={kernel}>
-			<V3ThemeProvider
-				themeConfig={themeContextValue}
-				uiConfig={uiConfigValue}
-			>
-				<ThemeStyleMount
-					nonce={options.nonce}
-					theme={userTheme}
-				/>
-				<IABGate
-					enabled={enabled}
-					initialModel={
-						resolveSyncPrefetch(options).initialPolicy?.model ??
-						options.offlinePolicy?.policy?.model
-					}
-					kernel={kernel}
-					options={iabOptions}
-					runtime={externalRuntime}
+			<ProviderServicesContext.Provider value={services}>
+				<V3ThemeProvider
+					themeConfig={themeContextValue}
+					uiConfig={uiConfigValue}
 				>
+					<ThemeStyleMount
+						nonce={options.nonce}
+						theme={userTheme}
+					/>
 					{providerChildren}
-				</IABGate>
-			</V3ThemeProvider>
+				</V3ThemeProvider>
+			</ProviderServicesContext.Provider>
 		</KernelContext.Provider>
 	);
 };
