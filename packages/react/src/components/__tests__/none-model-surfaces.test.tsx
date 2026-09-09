@@ -130,6 +130,7 @@ describe('consent surfaces under a none rule', () => {
 		// Other test files in this browser context may have left consent keys
 		// behind; start clean so the storage assertion below is about this save.
 		localStorage.clear();
+		document.cookie = 'c15t=; Max-Age=0; Path=/';
 		render(
 			<ComponentFixtureProvider
 				options={{
