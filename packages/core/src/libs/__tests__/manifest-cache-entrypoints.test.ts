@@ -97,3 +97,95 @@ test('the legacy entrypoint retains framework fetch options and partitions crede
 	});
 	legacy.clearManifestCache();
 });
+
+describe('manifest fetch protection', () => {
+	afterEach(() => {
+		transport.clearManifestCache();
+		vi.useRealTimers();
+	});
+
+	test.each(['authorization', 'x-api-key'])(
+		'rejects redirects when forwarding %s',
+		async (header) => {
+			const fetch = vi
+				.fn<typeof globalThis.fetch>()
+				.mockResolvedValue(response({}));
+			await transport.fetchCachedManifest({
+				fetch,
+				headers: { [header]: 'secret' },
+				init: { redirect: 'follow' },
+				sourceURL: url,
+			});
+			expect(fetch.mock.calls[0]?.[1]).toMatchObject({ redirect: 'error' });
+		}
+	);
+
+	test('preserves redirect handling for public requests', async () => {
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(response({}));
+		await transport.fetchCachedManifest({
+			fetch,
+			headers: { 'accept-language': 'en' },
+			init: { redirect: 'follow' },
+			sourceURL: url,
+		});
+		expect(fetch.mock.calls[0]?.[1]).toMatchObject({ redirect: 'follow' });
+	});
+
+	test('times out a stalled shared fetch and allows a later request to retry', async () => {
+		vi.useFakeTimers();
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementationOnce(
+				(_url, init) =>
+					new Promise((_resolve, reject) => {
+						init?.signal?.addEventListener(
+							'abort',
+							() => reject(init.signal?.reason),
+							{ once: true }
+						);
+					})
+			)
+			.mockResolvedValue(response({}));
+		const first = transport.fetchCachedManifest({ fetch, sourceURL: url });
+		const second = transport.fetchCachedManifest({ fetch, sourceURL: url });
+		const rejected = Promise.all([
+			expect(first).rejects.toThrow('timed out after 10 seconds'),
+			expect(second).rejects.toThrow('timed out after 10 seconds'),
+		]);
+		await vi.advanceTimersByTimeAsync(10_000);
+		await rejected;
+		expect(fetch).toHaveBeenCalledTimes(1);
+		await expect(
+			transport.fetchCachedManifest({ fetch, sourceURL: url })
+		).resolves.toMatchObject({ manifest: { revision: 1 } });
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
+
+	test('preserves caller cancellation and its deadline', async () => {
+		vi.useFakeTimers();
+		const controller = new AbortController();
+		const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(
+			(_url, init) =>
+				new Promise((_resolve, reject) => {
+					init?.signal?.addEventListener(
+						'abort',
+						() => reject(init.signal?.reason),
+						{ once: true }
+					);
+				})
+		);
+		const pending = transport.fetchCachedManifest({
+			fetch,
+			init: { signal: controller.signal },
+			sourceURL: url,
+		});
+		await vi.advanceTimersByTimeAsync(10_001);
+		expect(fetch.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
+		expect(controller.signal.aborted).toBe(false);
+		const rejected = expect(pending).rejects.toThrow('caller cancelled');
+		controller.abort(new Error('caller cancelled'));
+		await rejected;
+	});
+});

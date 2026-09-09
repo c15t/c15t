@@ -24,7 +24,7 @@ export const displayIntro = async function displayIntro(
 	// Default
 	let figletText = 'c15t';
 	try {
-		figletText = await new Promise((resolve) => {
+		figletText = await new Promise<string>((resolve) => {
 			figlet.text(
 				'c15t',
 				{

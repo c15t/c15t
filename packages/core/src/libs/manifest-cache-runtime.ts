@@ -381,12 +381,15 @@ export interface FetchCachedManifestOptions {
 	 * of these headers, so callers with different credentials never share a
 	 * cached manifest or an in-flight request, and the key holds no secret.
 	 * Credentials (`cookie`, `authorization`) are refused over plain `http:`
-	 * unless the host is a loopback address.
+	 * unless the host is a loopback address. Requests with identity headers
+	 * reject redirects so credentials cannot reach an unvalidated target.
 	 */
 	headers?: Record<string, string>;
-	/** Framework fetch options, such as Next.js cache hints. */
+	/** Framework fetch options. Without a signal, requests time out after 10 seconds. */
 	init?: Omit<RequestInit, 'headers' | 'method'>;
 }
+
+const MANIFEST_FETCH_TIMEOUT_MS = 10_000;
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 const CREDENTIAL_HEADERS = new Set([
@@ -531,6 +534,9 @@ const revalidateManifest = async function revalidateManifest(input: {
 		...input.init,
 		headers,
 		method: 'GET',
+		redirect: findIdentityHeader(input.headers)
+			? 'error'
+			: input.init?.redirect,
 	});
 
 	if (response.status === 304 && cached) {
@@ -641,6 +647,14 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	if (pending) {
 		return pending;
 	}
+	const controller = options.init?.signal ? undefined : new AbortController();
+	const timeout = controller
+		? setTimeout(() => {
+				controller.abort(
+					new Error('c15t manifest cache: fetch timed out after 10 seconds.')
+				);
+			}, MANIFEST_FETCH_TIMEOUT_MS)
+		: undefined;
 	const request = (async () => {
 		try {
 			return await revalidateManifest({
@@ -650,11 +664,14 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 				fetchImpl,
 				generation,
 				headers: options.headers,
-				init: options.init,
+				init: controller
+					? { ...options.init, signal: controller.signal }
+					: options.init,
 				now,
 				requestURL,
 			});
 		} finally {
+			clearTimeout(timeout);
 			// After a clear the map holds newer fills; leave those alone.
 			if (getGeneration(cache) === generation) {
 				inflight.delete(cacheKey);

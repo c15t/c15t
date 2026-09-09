@@ -28,7 +28,7 @@ export interface FetchCachedGvlOptions {
 	cache?: GvlCache;
 }
 
-const DEFAULT_TTL_SECONDS = 5;
+const DEFAULT_TTL_SECONDS = 86_400;
 
 const defaultGvlCache: GvlCache = new Map();
 const inflightByCache = new WeakMap<

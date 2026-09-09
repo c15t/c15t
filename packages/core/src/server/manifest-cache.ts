@@ -1,13 +1,14 @@
 /** Manifest cache for server route adapters. */
-import type { ConsentManifest } from '@c15t/schema/types';
-
 import {
 	clearManifestCache as clearCache,
 	createManifestCache,
 	fetchCachedManifest as fetchManifest,
 	resolveManifestSourceURL,
 } from '../libs/manifest-cache-runtime';
-import type { ManifestFetch } from '../libs/manifest-cache-runtime';
+import type {
+	CachedManifestResponse as RuntimeManifestResponse,
+	ManifestFetch,
+} from '../libs/manifest-cache-runtime';
 
 export type { ManifestFetch } from '../libs/manifest-cache-runtime';
 export {
@@ -20,12 +21,10 @@ export {
 } from '../libs/manifest-cache-runtime';
 
 /** A manifest and upstream metadata used by server routes. */
-export interface CachedManifestResponse {
-	manifest: ConsentManifest;
-	headers: Record<string, string>;
-	sMaxAge: number;
-	expiresAt: number;
-}
+export type CachedManifestResponse = Pick<
+	RuntimeManifestResponse,
+	'manifest' | 'headers' | 'sMaxAge' | 'expiresAt'
+>;
 
 /** Backend or explicit manifest URL. */
 export interface ManifestSourceConfig {

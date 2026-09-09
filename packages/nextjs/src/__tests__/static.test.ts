@@ -125,8 +125,8 @@ test('supports importing manifest types through the umbrella package', async () 
 		fetch: vi
 			.fn<typeof globalThis.fetch>()
 			.mockResolvedValue(Response.json(MANIFEST_FIXTURE)),
-		importSource: 'c15t/nextjs/static',
+		importSource: 'c15t/next/static',
 		manifestURL: 'https://api.test/manifest',
 	});
-	expect(source).toContain("from 'c15t/nextjs/static'");
+	expect(source).toContain("from 'c15t/next/static'");
 });

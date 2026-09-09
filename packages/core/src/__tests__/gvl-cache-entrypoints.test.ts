@@ -50,14 +50,14 @@ describe.each([
 		await cache.fetchCachedGvl({ fetch, language: 'en', now: 5000, url });
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
-	test('uses a five-second fallback without an upstream lifetime', async () => {
+	test('uses a one-day fallback without an upstream lifetime', async () => {
 		const fetch = vi
 			.fn<typeof globalThis.fetch>()
 			.mockImplementation(() => Promise.resolve(response({})));
 		await cache.fetchCachedGvl({ fetch, language: 'en', now: 0, url });
-		await cache.fetchCachedGvl({ fetch, language: 'en', now: 4999, url });
+		await cache.fetchCachedGvl({ fetch, language: 'en', now: 86_399_999, url });
 		expect(fetch).toHaveBeenCalledTimes(1);
-		await cache.fetchCachedGvl({ fetch, language: 'en', now: 5000, url });
+		await cache.fetchCachedGvl({ fetch, language: 'en', now: 86_400_000, url });
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 	test('a pending fill cannot repopulate a cleared cache', async () => {
