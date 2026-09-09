@@ -9,7 +9,6 @@ import { readStoredRecords } from '@c15t/core/modules/persistence';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
@@ -123,7 +122,7 @@ describe('Consent Flow E2E Tests', () => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
 				const consent = readStoredRecords(undefined, Date.now()).records.choice;
-				expect(consent?.categories).toBeTruthy();
+				expect(consent?.categories.marketing?.value).toBe(true);
 				expect(consent?.version).toBe(3);
 			});
 		});
@@ -173,7 +172,9 @@ describe('Consent Flow E2E Tests', () => {
 
 			render(BannerFixture, { options: defaultOptions });
 
-			await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 500);
+			});
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -265,15 +266,10 @@ describe('Consent Flow E2E Tests', () => {
 			});
 
 			// Step 4: Toggle a consent category
-			// Note: marketing switch may not render in jsdom due to scroll-lock/portal
-			// interactions. Toggle it if present; the flow test still validates the
-			// banner → dialog → save lifecycle regardless.
 			const marketingSwitch = document.querySelector(
 				'[data-testid="consent-widget-switch-marketing"]'
 			);
-			if (marketingSwitch) {
-				await fireEvent.click(marketingSwitch);
-			}
+			await fireEvent.click(getDefined(marketingSwitch));
 
 			// Step 5: Save preferences
 			const saveButton = getDefined(
@@ -288,7 +284,7 @@ describe('Consent Flow E2E Tests', () => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
 				const consent = readStoredRecords(undefined, Date.now()).records.choice;
-				expect(consent?.categories).toBeTruthy();
+				expect(consent?.categories.marketing?.value).toBe(true);
 			});
 		});
 	});

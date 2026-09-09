@@ -22,29 +22,6 @@ import { defineConsentConfig } from '../config';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 import { policyFixture } from './policy-fixture';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 type WindowWithC15t = Window & {
 	c15t?: {
 		version: string;
@@ -205,7 +182,9 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 			);
 
 			await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
-			await createDeferredPromise((r) => setTimeout(r, 10));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 10);
+			});
 			expect(fetchSpy).not.toHaveBeenCalled();
 		} finally {
 			globalThis.fetch = originalFetch;
@@ -217,17 +196,18 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 	test('prepared policy renders without a duplicate browser init', async () => {
 		// Fetch that resolves on demand — simulates a slow roundtrip.
 		let resolveInit: (value: unknown) => void = () => undefined;
-		const fetchSpy = vi.fn(() =>
-			createDeferredPromise<Response>((resolve) => {
-				resolveInit = (value: unknown) => {
-					resolve(
-						new Response(JSON.stringify(value), {
-							headers: { 'content-type': 'application/json' },
-							status: 200,
-						})
-					);
-				};
-			})
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					resolveInit = (value: unknown) => {
+						resolve(
+							new Response(JSON.stringify(value), {
+								headers: { 'content-type': 'application/json' },
+								status: 200,
+							})
+						);
+					};
+				})
 		);
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
@@ -261,7 +241,9 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 			// Now resolve the slow init. Snapshot should not regress.
 			expect(fetchSpy).not.toHaveBeenCalled();
 			resolveInit({ policyResolution: POLICY_RESOLUTION });
-			await createDeferredPromise((r) => setTimeout(r, 10));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 10);
+			});
 			await expect
 				.element(getByTestId('probe'))
 				.toHaveTextContent('gdpr|opt-in|banner');

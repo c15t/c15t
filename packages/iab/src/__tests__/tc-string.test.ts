@@ -49,16 +49,12 @@ describe('@c15t/iab TC string encode/decode', () => {
 				);
 				const stored = persistence === false ? 'existing' : tcString;
 				expect(localStorage.getItem('euconsent-v2')).toBe(stored);
-				if (persistence === false) {
-					expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(
-						'existing'
-					);
-				} else {
-					expect(
-						JSON.parse(localStorage.getItem('c15t-iab-authority-v1') ?? 'null')
-							.tcString
-					).toBe(tcString);
-				}
+				const authority = localStorage.getItem('c15t-iab-authority-v1');
+				const authorityString =
+					persistence === false
+						? authority
+						: JSON.parse(authority ?? 'null').tcString;
+				expect(authorityString).toBe(stored);
 				expect(document.cookie).toContain(`euconsent-v2=${stored}`);
 			} finally {
 				iab.dispose();

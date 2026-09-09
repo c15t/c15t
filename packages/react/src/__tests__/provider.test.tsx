@@ -10,7 +10,6 @@ import { KernelContext } from '../context';
 import { custom, offline } from '../index';
 import { ConsentProvider } from '../provider';
 import { useUIConfig } from '../ui-config-context';
-import { createDeferredPromise } from './deferred-promise';
 import { policyFixture } from './policy-fixture';
 
 let kernel: ConsentKernel;
@@ -228,10 +227,11 @@ test('late initialization cannot revoke disabled permissions', async () => {
 		),
 	};
 	let resolveInit!: (value: typeof response) => void;
-	const init = vi.fn(() =>
-		createDeferredPromise<typeof response>((resolve) => {
-			resolveInit = resolve;
-		})
+	const init = vi.fn(
+		() =>
+			new Promise<typeof response>((resolve) => {
+				resolveInit = resolve;
+			})
 	);
 	const mode = custom({ init });
 	const provider = (enabled: boolean) => (

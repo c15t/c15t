@@ -94,6 +94,7 @@ describe('detected React development environment', () => {
 					optionsText: 'mode: offline(),',
 				});
 				for (const source of [prebuilt, expanded]) {
+					/* oxlint-disable vitest/no-conditional-expect -- The declared bundler fixture determines which environment syntax is valid. */
 					if (environment === 'manual') {
 						expect(source).toContain('const DevTools = false');
 						expect(source).toContain(
@@ -103,6 +104,7 @@ describe('detected React development environment', () => {
 						expect(source).not.toContain('import.meta.env');
 						continue;
 					}
+					/* oxlint-enable vitest/no-conditional-expect */
 					expect(source).toContain(
 						environment === 'vite'
 							? 'const DevTools = import.meta.env.DEV'

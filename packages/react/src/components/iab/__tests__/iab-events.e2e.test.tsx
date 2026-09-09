@@ -9,7 +9,6 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
-import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
 
@@ -188,53 +187,35 @@ describe('IAB Events E2E Tests', () => {
 					<IABConsentDialog />
 				</ConsentProvider>
 			);
-
-			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
-
-			let callCount = 0;
-			let listenerId: number | undefined;
-
 			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
-			if (tcfapi) {
-				tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
-					callCount += 1;
-					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-					listenerId = data.listenerId;
-				});
+			if (!tcfapi) {
+				throw new Error('TCF API is missing');
 			}
-
-			// Wait for initial call
-			await vi.waitFor(
-				() => {
-					if (callCount === 0) {
-						throw new Error('Not called');
-					}
-				},
-				{ timeout: 100 }
-			);
-
-			expect(callCount).toBe(1);
-
-			// Remove listener
-			if (listenerId !== undefined) {
-				const removed = await removeCMPEventListener(listenerId);
-				expect(removed).toBe(true);
+			const removedListener = vi.fn();
+			let listenerId: number | undefined;
+			tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
+				({ listenerId } = data);
+				removedListener(data);
+			});
+			await vi.waitFor(() => expect(removedListener).toHaveBeenCalledTimes(1));
+			if (listenerId === undefined) {
+				throw new Error('Listener ID is missing');
 			}
-
-			// Click accept to trigger another event
-			const acceptButton = document.querySelector(
+			expect(await removeCMPEventListener(listenerId)).toBe(true);
+			const activeListener = vi.fn();
+			tcfapi('addEventListener', 2, activeListener);
+			const acceptButton = await waitForElement(
 				'[data-testid="iab-consent-banner-accept-button"]'
 			);
-			if (acceptButton) {
-				await userEvent.click(acceptButton);
-			}
-
-			// Wait a bit
-			await createVoidDeferredPromise((r) => setTimeout(r, 100));
-
-			// Call count should still be 1 (removed listener doesn't receive)
-			expect(callCount).toBe(1);
+			await userEvent.click(acceptButton);
+			await vi.waitFor(() =>
+				expect(activeListener).toHaveBeenCalledWith(
+					expect.objectContaining({ eventStatus: 'useractioncomplete' }),
+					true
+				)
+			);
+			expect(removedListener).toHaveBeenCalledTimes(1);
 		});
 
 		test('multiple listeners should all receive updates', async () => {

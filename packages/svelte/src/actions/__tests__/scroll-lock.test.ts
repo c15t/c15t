@@ -37,8 +37,10 @@ describe('scrollLock action', () => {
 
 			// Enable lock
 			result.update(true);
+			expect(document.body.style.overflow).toBe('hidden');
 			// Disable lock
 			result.update(false);
+			expect(document.body.style.overflow).not.toBe('hidden');
 
 			result.destroy();
 		});
@@ -57,23 +59,29 @@ describe('scrollLock action', () => {
 			const result = scrollLock(node, false);
 
 			result.update(true);
+			expect(document.body.style.overflow).toBe('hidden');
 			result.update(false);
+			expect(document.body.style.overflow).not.toBe('hidden');
 			result.update(true);
+			expect(document.body.style.overflow).toBe('hidden');
 			result.update(false);
+			expect(document.body.style.overflow).not.toBe('hidden');
 
 			result.destroy();
 		});
 
-		test('should handle multiple instances gracefully', () => {
+		test('restores scrolling after nested locks are destroyed in reverse order', () => {
 			const node1 = document.createElement('div');
 			const node2 = document.createElement('div');
 
 			const result1 = scrollLock(node1, true);
 			const result2 = scrollLock(node2, true);
 
-			// Destroy first, second should still be active
-			result1.destroy();
+			// Closing the inner lock leaves the outer lock active.
 			result2.destroy();
+			expect(document.body.style.overflow).toBe('hidden');
+			result1.destroy();
+			expect(document.body.style.overflow).not.toBe('hidden');
 		});
 	});
 });

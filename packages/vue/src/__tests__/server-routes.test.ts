@@ -86,7 +86,6 @@ const callRoute = function callRoute(path: string, handler: unknown) {
 };
 
 const routeDependencies = {
-	defineCachedEventHandler: (handler: unknown) => handler,
 	fetch: mocks.serverFetch,
 	useRuntimeConfig: mocks.useRuntimeConfig,
 };

@@ -39,29 +39,6 @@ import { validateInstanceName } from '~/utils/validation';
 
 import type { ExpandedTheme, UIStyle } from '../types';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 /**
  * Check if a value is a cancel symbol
  */
@@ -969,7 +946,7 @@ export const skillsInstallActor = fromPromise<
 				stdio: 'inherit',
 			});
 
-			const exitCode = await createDeferredPromise<number | null>((resolve) => {
+			const exitCode = await new Promise<number | null>((resolve) => {
 				child.on('exit', (code) => resolve(code));
 			});
 

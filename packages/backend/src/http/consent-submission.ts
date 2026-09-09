@@ -47,7 +47,6 @@ import type {
 	ConsentManifest,
 	ConsentManifestConfig,
 	ConsentManifestPolicyPack,
-	PolicyOptionalCategory,
 	PostSubjectInput,
 	ResolvedPolicyRule,
 	SubjectChoiceWire,
@@ -606,16 +605,6 @@ const proofFields = (
 				: null,
 	};
 };
-
-/** Categories a receipt covers, for logging and tests. */
-export const receiptCategories = (
-	choice: SubjectChoiceWire | undefined
-): PolicyOptionalCategory[] =>
-	choice
-		? (Object.keys(choice.categories).filter((category) =>
-				OPTIONAL.has(category)
-			) as PolicyOptionalCategory[])
-		: [];
 
 interface ResolvedCategories {
 	appliedPreferences: Record<string, boolean> | undefined;

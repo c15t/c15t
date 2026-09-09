@@ -1,382 +1,68 @@
-import { createServer } from 'node:http';
-import { gunzipSync } from 'node:zlib';
-
-import type { C15TOptions } from '@c15t/backend';
-import { c15tInstance } from '@c15t/backend';
-import {
-	afterAll,
-	beforeAll,
-	beforeEach,
-	describe,
-	expect,
-	it,
-	vi,
-} from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { C15TClient, c15tClient } from './index';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
+const fetchMock = vi.fn<typeof fetch>();
 
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
+beforeEach(() => {
+	vi.stubEnv('C15T_API_URL', '');
+	vi.stubEnv('C15T_API_TOKEN', '');
+	fetchMock.mockReset();
+	fetchMock.mockImplementation(() =>
+		Promise.resolve(Response.json({ version: 'test' }))
+	);
+	vi.stubGlobal('fetch', fetchMock);
+});
 
-const _createDeferredPromise = function _createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
+});
 
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
+test('the factory returns a client', () => {
+	expect(c15tClient({ baseUrl: 'https://api.test' })).toBeInstanceOf(
+		C15TClient
+	);
+});
 
-// An in-memory SQLite database, which is all these tests need: they exercise
-// the client against a real handler, not the storage layer. 3.0 replaced the
-// hand-rolled mock adapter this used to pass — there is no adapter interface
-// to mock any more, and a real database is simpler than faking one.
-const mockOptions: C15TOptions = {
-	basePath: '/',
-	database: { dialect: 'sqlite', filename: ':memory:' },
-	manifest: { appName: 'C15T Test Server' },
-	trustedOrigins: ['localhost', 'test.example.com'],
-};
-
-describe('C15T Node SDK', () => {
-	const PORT = 8787;
-	const mockBaseUrl = `http://localhost:${PORT}`;
-	let server: ReturnType<typeof c15tInstance>;
-	let httpServer: ReturnType<typeof createServer>;
-	let client: C15TClient;
-
-	beforeAll(async () => {
-		// Initialize the server for integration tests
-		server = c15tInstance(mockOptions);
-
-		// Create and start HTTP server
-		httpServer = createServer(async (req, res) => {
-			try {
-				// Read request body if present
-				let body: string | undefined;
-				if (req.method !== 'GET' && req.method !== 'HEAD') {
-					const chunks: Uint8Array[] = [];
-					for await (const chunk of req) {
-						chunks.push(chunk);
-					}
-					body = Buffer.concat(chunks).toString();
-				}
-
-				// Convert Node.js request to web standard Request
-				const request = new Request(`http://localhost:${PORT}${req.url}`, {
-					body,
-					duplex: 'half',
-					headers: req.headers as Record<string, string>,
-					method: req.method,
-				});
-
-				// Handle the request with c15tInstance
-				const response = await server.handler(request);
-
-				// Set response status and headers
-				res.statusCode = response.status;
-				// Normalize response body to JSON, handling potential gzip compression
-				const encoding = response.headers.get('content-encoding');
-				const arrayBuffer = await response.arrayBuffer();
-				const buffer = Buffer.from(arrayBuffer);
-
-				let decodedBody: string;
-
-				if (encoding === 'gzip') {
-					decodedBody = gunzipSync(buffer).toString('utf-8');
-				} else {
-					decodedBody = buffer.toString('utf-8');
-				}
-
-				let normalizedBody: string;
-
-				try {
-					// Try to parse as JSON first
-					const parsed = decodedBody ? JSON.parse(decodedBody) : null;
-					normalizedBody = JSON.stringify(parsed);
-				} catch {
-					// Fallback for non-JSON responses: wrap in a JSON envelope
-					normalizedBody = JSON.stringify({ message: decodedBody });
-				}
-
-				// Always respond with JSON to the client
-				res.setHeader('content-type', 'application/json');
-				res.end(normalizedBody);
-			} catch (error) {
-				console.error('Server error:', error);
-				res.statusCode = 500;
-				res.setHeader('content-type', 'application/json');
-				res.end(
-					JSON.stringify({
-						error: 'Internal Server Error',
-						message: 'An unexpected error occurred',
-					})
-				);
-			}
-		});
-
-		await createVoidDeferredPromise((resolve) => {
-			httpServer.listen(PORT, () => {
-				console.log(`Test server listening on port ${PORT}`);
-				resolve();
-			});
-		});
-
-		// Initialize the client for testing
-		client = c15tClient({
-			baseUrl: mockBaseUrl,
-			prefix: '/',
-		});
+test('sends authorization and custom headers', async () => {
+	const client = c15tClient({
+		baseUrl: 'https://api.test',
+		headers: { 'X-Custom-Header': 'test-value' },
+		token: 'test-token',
 	});
+	await client.status();
+	const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+	expect(headers.get('authorization')).toBe('Bearer test-token');
+	expect(headers.get('x-custom-header')).toBe('test-value');
+});
 
-	afterAll(async () => {
-		await createVoidDeferredPromise((resolve) => {
-			httpServer.close(() => resolve());
-		});
-		// The instance owns a connection pool; a process that leaves one open
-		// does not exit.
-		await server.dispose();
-	});
+test.each([
+	['https://api.test', undefined, 'https://api.test/status'],
+	['https://api.test/existing', undefined, 'https://api.test/existing/status'],
+	['https://api.test', '/api/v1', 'https://api.test/api/v1/status'],
+	['https://api.test/existing', '/api/v1', 'https://api.test/api/v1/status'],
+])(
+	'resolves requests from %s with prefix %s',
+	async (baseUrl, prefix, expected) => {
+		await c15tClient({ baseUrl, prefix }).status();
+		expect(fetchMock.mock.calls[0]?.[0]).toBe(expected);
+	}
+);
 
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
+test.each(['invalid-url', ''])('rejects invalid base URL %s', (baseUrl) => {
+	expect(() => c15tClient({ baseUrl })).toThrow(TypeError);
+});
 
-	describe('Unit Tests', () => {
-		describe('Client Creation', () => {
-			it('should create a client with basic configuration', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-
-				expect(testClient).toBeDefined();
-				expect(testClient).toBeInstanceOf(C15TClient);
-				expect(testClient.consent).toBeDefined();
-				expect(testClient.subjects).toBeDefined();
-				expect(testClient.meta).toBeDefined();
-			});
-
-			it('should create a client using the class directly', () => {
-				const testClient = new C15TClient({ baseUrl: mockBaseUrl });
-
-				expect(testClient).toBeDefined();
-				expect(testClient).toBeInstanceOf(C15TClient);
-			});
-
-			it('should include authorization header when token is provided', () => {
-				const testClient = c15tClient({
-					baseUrl: mockBaseUrl,
-					token: 'test-token',
-				});
-
-				expect(testClient).toBeDefined();
-			});
-
-			it('should include custom headers when provided', () => {
-				const testClient = c15tClient({
-					baseUrl: mockBaseUrl,
-					headers: { 'X-Custom-Header': 'test-value' },
-				});
-
-				expect(testClient).toBeDefined();
-			});
-
-			it('should apply prefix to base URL when provided', () => {
-				const prefix = '/api/v1';
-				const testClient = c15tClient({
-					baseUrl: mockBaseUrl,
-					prefix,
-				});
-
-				expect(testClient).toBeDefined();
-			});
-
-			it('should handle URL with existing path', () => {
-				const baseUrl = 'http://localhost:8787/existing';
-				const prefix = '/api/v1';
-				const testClient = c15tClient({
-					baseUrl,
-					prefix,
-				});
-
-				expect(testClient).toBeDefined();
-			});
-
-			it('should accept retry configuration', () => {
-				const testClient = c15tClient({
-					baseUrl: mockBaseUrl,
-					retryConfig: {
-						backoffFactor: 3,
-						initialDelayMs: 200,
-						maxRetries: 5,
-					},
-				});
-
-				expect(testClient).toBeDefined();
-			});
-		});
-
-		describe('Error Handling', () => {
-			it('should handle invalid base URL', () => {
-				expect(() => {
-					c15tClient({ baseUrl: 'invalid-url' });
-				}).toThrow();
-			});
-
-			it('should handle empty base URL', () => {
-				expect(() => {
-					c15tClient({ baseUrl: '' });
-				}).toThrow();
-			});
-		});
-
-		describe('Namespaced Methods', () => {
-			it('should have consent namespace with check method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-
-				expect(testClient.consent).toBeDefined();
-				expect(typeof testClient.consent.check).toBe('function');
-			});
-
-			it('should have subjects namespace with CRUD methods', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-
-				expect(testClient.subjects).toBeDefined();
-				expect(typeof testClient.subjects.create).toBe('function');
-				expect(typeof testClient.subjects.get).toBe('function');
-				expect(typeof testClient.subjects.patch).toBe('function');
-				expect(typeof testClient.subjects.list).toBe('function');
-			});
-
-			it('should have meta namespace with status and init methods', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-
-				expect(testClient.meta).toBeDefined();
-				expect(typeof testClient.meta.status).toBe('function');
-				expect(typeof testClient.meta.init).toBe('function');
-			});
-		});
-
-		describe('Direct Methods', () => {
-			it('should have status method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.status).toBe('function');
-			});
-
-			it('should have init method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.init).toBe('function');
-			});
-
-			it('should have createSubject method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.createSubject).toBe('function');
-			});
-
-			it('should have getSubject method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.getSubject).toBe('function');
-			});
-
-			it('should have patchSubject method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.patchSubject).toBe('function');
-			});
-
-			it('should have listSubjects method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.listSubjects).toBe('function');
-			});
-
-			it('should have checkConsent method', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.checkConsent).toBe('function');
-			});
-
-			it('should have $fetch method for custom requests', () => {
-				const testClient = c15tClient({ baseUrl: mockBaseUrl });
-				expect(typeof testClient.$fetch).toBe('function');
-			});
-		});
-	});
-
-	describe('Integration Tests', () => {
-		// Note: These integration tests require a fully working backend with a database.
-		// The test adapter does not provide a proper database, so the status endpoint
-		// fails with a database health check error. These tests are skipped until
-		// a proper test database adapter is set up.
-
-		it.skip('should connect to status endpoint via meta.status()', async () => {
-			const response = await client.meta.status();
-
-			expect(response.ok).toBe(true);
-			expect(response.data).toEqual({
-				client: {
-					acceptLanguage: null,
-					ip: expect.any(String),
-					region: {
-						countryCode: null,
-						regionCode: null,
-					},
-					userAgent: expect.any(String),
-				},
-				timestamp: expect.any(String),
-				version: expect.any(String),
-			});
-		});
-
-		it.skip('should connect to status endpoint via status()', async () => {
-			const response = await client.status();
-
-			expect(response.ok).toBe(true);
-			expect(response.data).toBeDefined();
-			expect(response.data?.version).toBeDefined();
-		});
-
-		it('should return response context with correct structure', async () => {
-			const response = await client.status();
-
-			// The response context should have the right structure regardless of success/failure
-			expect(response).toHaveProperty('ok');
-			expect(response).toHaveProperty('data');
-			expect(response).toHaveProperty('error');
-			expect(response).toHaveProperty('response');
-		});
-
-		it.skip('should handle onSuccess callback', async () => {
-			const onSuccess = vi.fn();
-
-			await client.status({ onSuccess });
-
-			expect(onSuccess).toHaveBeenCalledOnce();
-			expect(onSuccess).toHaveBeenCalledWith(
-				expect.objectContaining({
-					data: expect.any(Object),
-					ok: true,
-				})
-			);
-		});
-	});
+test('honors the configured retry limit', async () => {
+	fetchMock.mockImplementation(() =>
+		Promise.resolve(new Response(null, { status: 503 }))
+	);
+	const result = await c15tClient({
+		baseUrl: 'https://api.test',
+		retryConfig: { initialDelayMs: 0, maxRetries: 1 },
+	}).status();
+	expect(result.ok).toBe(false);
+	expect(result.error?.status).toBe(503);
+	expect(fetchMock).toHaveBeenCalledTimes(2);
 });

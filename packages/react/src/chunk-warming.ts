@@ -40,10 +40,3 @@ export const warmDialogChunk = function warmDialogChunk(): void {
 		warmer();
 	}
 };
-
-/** Test-only reset. */
-export const resetDialogChunkWarmers =
-	function resetDialogChunkWarmers(): void {
-		warmers.clear();
-		warmed = false;
-	};

@@ -45,11 +45,13 @@ describe('script inspection', () => {
 				],
 			});
 			disposers.push(loader.dispose);
+			/* oxlint-disable vitest/no-conditional-expect -- This declared scenario checks the retained state before replacing the script. */
 			if (scenario === 'replaced after revocation') {
 				kernel.commands.save({ marketing: false });
 				expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
 				document.getElementById(foreign.id)?.replaceWith(foreign);
 			}
+			/* oxlint-enable vitest/no-conditional-expect */
 			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('blocked');
 		}
 	);

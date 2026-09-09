@@ -475,18 +475,6 @@ export const encodeStoredConsentEnvelopeCompact =
 		return fields.join(FIELD_SEPARATOR);
 	};
 
-/**
- * Whether a raw cookie value starts with a version field (`v=`), whatever
- * follows it. Reserved before legacy parsing so an unknown, negative or
- * malformed version, or a v2-syntax record smuggled behind a version
- * marker, is rejected instead of being read as v2 data.
- */
-export const hasVersionedCompactPrefix = function hasVersionedCompactPrefix(
-	rawValue: string
-): boolean {
-	return rawValue.startsWith('v=');
-};
-
 /** Whether a raw cookie value is a compact v3 envelope. */
 export const isCompactStoredConsentEnvelope =
 	function isCompactStoredConsentEnvelope(rawValue: string): boolean {

@@ -40,11 +40,13 @@ describe('IAB policy presentation', () => {
 			expect(card('banner')?.getAttribute('aria-modal')).toBe(
 				blocking ? 'true' : null
 			);
+			/* oxlint-disable vitest/no-conditional-expect -- Only the blocking presentation fixture promises to move focus. */
 			if (blocking) {
 				await vi.waitFor(() =>
 					expect(card('banner')?.contains(document.activeElement)).toBe(true)
 				);
 			}
+			/* oxlint-enable vitest/no-conditional-expect */
 			expect(
 				Boolean(
 					document.querySelector('[data-testid="iab-consent-banner-overlay"]')
@@ -95,11 +97,13 @@ describe('IAB policy presentation', () => {
 			await vi.waitFor(() =>
 				expect(document.body.style.overflow === 'hidden').toBe(blocking)
 			);
+			/* oxlint-disable vitest/no-conditional-expect -- Only the blocking presentation fixture promises to move focus. */
 			if (blocking) {
 				await vi.waitFor(() =>
 					expect(card('dialog')?.contains(document.activeElement)).toBe(true)
 				);
 			}
+			/* oxlint-enable vitest/no-conditional-expect */
 			await screen.unmount();
 		}
 	);

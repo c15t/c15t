@@ -92,12 +92,13 @@ describe('live vendor probe configs', () => {
 			}
 
 			const script = config.createScript();
-			if (script.alwaysLoad === true) {
-				expect(
-					config.deniedConsentProbe,
-					`${config.vendor} loads for every visitor and must assert denied-consent egress`
-				).toBeDefined();
+			if (script.alwaysLoad !== true) {
+				continue;
 			}
+			expect(
+				config.deniedConsentProbe,
+				`${config.vendor} loads for every visitor and must assert denied-consent egress`
+			).toBeDefined();
 		}
 	});
 

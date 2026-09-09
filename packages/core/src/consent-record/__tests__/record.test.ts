@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import { evaluateConsentRecord } from '../evaluate';
 import { recordCategoryPatch } from '../record';
@@ -204,12 +204,10 @@ describe('recordCategoryPatch: validation', () => {
 			{ functionality: true, marketing: true },
 			{ actionAt: NOW + DAY, policy: narrow }
 		);
-		expect(result.ok).toBe(false);
-		if (result.ok === false) {
-			expect(result.issues).toEqual([
-				{ code: 'out-of-scope', path: 'marketing' },
-			]);
-		}
+		assert(!result.ok);
+		expect(result.issues).toEqual([
+			{ code: 'out-of-scope', path: 'marketing' },
+		]);
 		expect(previous.categories.marketing?.confirmedAt).toBe(NOW);
 	});
 

@@ -164,15 +164,12 @@ describe('umbrella facade parity', () => {
 			if (typeof value === 'string') {
 				continue;
 			}
-			if (subpath.includes('*')) {
-				const stem = subpath.slice(0, subpath.indexOf('*'));
-				expect(
-					rows.some((row) => row.subpath.startsWith(stem)),
-					`wildcard ${subpath} expanded to no probed entries`
-				).toBe(true);
-				continue;
-			}
-			expect(probed.has(subpath), `${subpath} was not probed`).toBe(true);
+			const covered = subpath.includes('*')
+				? rows.some((row) =>
+						row.subpath.startsWith(subpath.slice(0, subpath.indexOf('*')))
+					)
+				: probed.has(subpath);
+			expect(covered, `${subpath} was not probed`).toBe(true);
 		}
 	});
 

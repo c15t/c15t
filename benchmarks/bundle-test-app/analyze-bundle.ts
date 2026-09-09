@@ -18,29 +18,6 @@ import {
 	writeJson,
 } from '@c15t/benchmarking/utils';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const getDefined = <Value>(
 	value: Value,
 	message = 'Expected value to be defined'
@@ -272,11 +249,11 @@ const stopServer = async function stopServer(
 	logs: string
 ): Promise<void> {
 	const waitForExit = () =>
-		createDeferredPromise<{
+		new Promise<{
 			code: number | null;
 			signal: NodeJS.Signals | null;
-		}>((fulfill) => {
-			server.once('exit', (code, signal) => fulfill({ code, signal }));
+		}>((_resolve) => {
+			server.once('exit', (code, signal) => _resolve({ code, signal }));
 		});
 
 	let result =

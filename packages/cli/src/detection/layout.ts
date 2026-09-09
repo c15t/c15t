@@ -25,19 +25,6 @@ const getDefined = <Value>(
 };
 
 /**
- * Simple glob matcher for our layout patterns
- */
-const _matchPattern = function _matchPattern(
-	filepath: string,
-	pattern: string
-): boolean {
-	// Convert glob pattern to regex
-	const regexPattern = pattern.replace(/\./gu, '\\.').replace(/\*/gu, '[^/]+');
-	const regex = new RegExp(`^${regexPattern}$`, 'u');
-	return regex.test(filepath);
-};
-
-/**
  * Find files matching glob patterns
  */
 const findMatchingFiles = async function findMatchingFiles(
@@ -68,8 +55,7 @@ const findMatchingFiles = async function findMatchingFiles(
 				const entries = await fs.readdir(baseDir, { withFileTypes: true });
 
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				await Array.from(entries).reduce(async (previousIteration, entry) => {
-					await previousIteration;
+				for (const entry of entries) {
 					if (entry.isDirectory()) {
 						// Build the potential path
 						const remainingParts = parts.slice(baseParts.length + 1);
@@ -84,6 +70,7 @@ const findMatchingFiles = async function findMatchingFiles(
 						const patternWithDir = pattern.replace('*', entry.name);
 						if (relativePath === patternWithDir.replace(/\//gu, path.sep)) {
 							try {
+								// oxlint-disable-next-line no-await-in-loop -- Keep traversal order stable.
 								await fs.access(potentialPath);
 								logger?.debug(`Found layout: ${relativePath}`);
 								matches.push(relativePath);
@@ -92,7 +79,7 @@ const findMatchingFiles = async function findMatchingFiles(
 							}
 						}
 					}
-				}, Promise.resolve());
+				}
 			} catch {
 				// Directory doesn't exist
 			}

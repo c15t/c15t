@@ -16,29 +16,6 @@ import ConsentManagerProvider from '../../lib/components/consent-manager-provide
 import { custom, hosted } from '../../lib/index';
 import { offline } from '../../lib/transports/offline';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
@@ -205,7 +182,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 		});
 
-		await createDeferredPromise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
 
 		expect(mockFetch).not.toHaveBeenCalled();
 	});
@@ -220,7 +199,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 		});
 
-		await createDeferredPromise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
 
 		expect(mockFetch).not.toHaveBeenCalled();
 	});
@@ -235,7 +216,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 		});
 
-		await createDeferredPromise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
 
 		// No fetch in offline mode
 		expect(mockFetch).not.toHaveBeenCalled();
@@ -258,7 +241,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 		});
 
-		await createDeferredPromise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
 
 		expect(mockFetch).not.toHaveBeenCalled();
 		expect(getByTestId('model')).toHaveTextContent('opt-out');
@@ -282,7 +267,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 		});
 
-		await createDeferredPromise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
 
 		expect(init).toHaveBeenCalledTimes(1);
 	});

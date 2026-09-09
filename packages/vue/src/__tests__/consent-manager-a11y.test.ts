@@ -26,29 +26,6 @@ import {
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const translations: TranslationsResponse = {
 	common: {
 		acceptAll: 'Accept all',
@@ -170,7 +147,9 @@ const renderManager = async function renderManager(
 		},
 	});
 	await flushPromises();
-	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
 
 	return { context, wrapper };
 };
@@ -333,7 +312,7 @@ describe('ConsentManager widget composition', () => {
 			const { context, wrapper } = await renderManager();
 			try {
 				let complete: ((value: { ok: false }) => void) | undefined;
-				const pending = createDeferredPromise<{ ok: false }>((resolve) => {
+				const pending = new Promise<{ ok: false }>((resolve) => {
 					complete = resolve;
 				});
 				const save = vi
@@ -473,10 +452,11 @@ test('branding trigger renders the current brand mark instead of a menu icon', a
 describe('ConsentManager real transport completion', () => {
 	const deferredTransport = () => {
 		const replies: ((response: Response) => void)[] = [];
-		const customFetch = vi.fn(() =>
-			createDeferredPromise<Response>((resolve) => {
-				replies.push(resolve);
-			})
+		const customFetch = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					replies.push(resolve);
+				})
 		);
 		const finish = (index: number, ok: boolean) => {
 			const reply = replies[index];

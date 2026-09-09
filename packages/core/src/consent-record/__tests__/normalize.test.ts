@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import { normalizeLegacyConsentRecord } from '../normalize';
 import { validateExplicitChoice, validateNoticeDismissal } from '../validation';
@@ -70,10 +70,8 @@ describe('normalizeLegacyConsentRecord: valid records', () => {
 			legacy({ consents: { marketing: true, necessary: true } }),
 			{ encoding: 'json', now: NOW }
 		);
-		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(Object.keys(result.choice.categories)).toEqual(['marketing']);
-		}
+		assert(result.ok);
+		expect(Object.keys(result.choice.categories)).toEqual(['marketing']);
 	});
 
 	it('restores omitted false values for a compact record', () => {
@@ -81,23 +79,21 @@ describe('normalizeLegacyConsentRecord: valid records', () => {
 			legacy({ consents: { marketing: true, necessary: true } }),
 			{ encoding: 'compact', now: NOW }
 		);
-		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(
-				Object.fromEntries(
-					Object.entries(result.choice.categories).map(([key, value]) => [
-						key,
-						value.value,
-					])
-				)
-			).toEqual({
-				experience: false,
-				functionality: false,
-				marketing: true,
-				measurement: false,
-			});
-			expect(result.choice.categories.experience?.confirmedAt).toBe(NOW - DAY);
-		}
+		assert(result.ok);
+		expect(
+			Object.fromEntries(
+				Object.entries(result.choice.categories).map(([key, value]) => [
+					key,
+					value.value,
+				])
+			)
+		).toEqual({
+			experience: false,
+			functionality: false,
+			marketing: true,
+			measurement: false,
+		});
+		expect(result.choice.categories.experience?.confirmedAt).toBe(NOW - DAY);
 	});
 
 	it('accepts an anonymous record and a record without a material hash', () => {
@@ -105,13 +101,11 @@ describe('normalizeLegacyConsentRecord: valid records', () => {
 			legacy({ consentInfo: { time: NOW - DAY } }),
 			{ encoding: 'json', now: NOW }
 		);
-		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toBeNull();
-			expect(result.choice.categories.marketing?.basis).toEqual({
-				kind: 'legacy-v2',
-			});
-		}
+		assert(result.ok);
+		expect(result.subject).toBeNull();
+		expect(result.choice.categories.marketing?.basis).toEqual({
+			kind: 'legacy-v2',
+		});
 	});
 
 	it('keeps a semantically old record structurally valid', () => {
@@ -129,10 +123,8 @@ describe('normalizeLegacyConsentRecord: valid records', () => {
 			}),
 			{ encoding: 'json', now: NOW }
 		);
-		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(Object.keys(result.choice.categories)).toEqual(['marketing']);
-		}
+		assert(result.ok);
+		expect(Object.keys(result.choice.categories)).toEqual(['marketing']);
 	});
 });
 
@@ -263,9 +255,8 @@ describe('validateExplicitChoice', () => {
 	it('accepts a well-formed record and copies it', () => {
 		const result = validateExplicitChoice(valid, NOW);
 		expect(result).toEqual({ ok: true, record: valid });
-		if (result.ok) {
-			expect(result.record).not.toBe(valid);
-		}
+		assert(result.ok);
+		expect(result.record).not.toBe(valid);
 	});
 
 	it('rejects unknown versions, unknown keys and broken decisions', () => {

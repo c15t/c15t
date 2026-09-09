@@ -6,29 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { C15TClient, c15tClient } from '../index';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 describe('Timeout Configuration', () => {
 	let originalFetch: typeof globalThis.fetch;
 
@@ -53,10 +30,9 @@ describe('Timeout Configuration', () => {
 
 		it('should allow custom global timeout', async () => {
 			// Mock a slow response that exceeds the timeout
-			const mockFetch = vi
-				.fn()
-				.mockImplementation((url: string, options: RequestInit) =>
-					createDeferredPromise((resolve, reject) => {
+			const mockFetch = vi.fn().mockImplementation(
+				(url: string, options: RequestInit) =>
+					new Promise((resolve, reject) => {
 						// Simulate slow response
 						const timeoutId = setTimeout(() => {
 							resolve(
@@ -75,7 +51,7 @@ describe('Timeout Configuration', () => {
 							reject(error);
 						});
 					})
-				);
+			);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
@@ -116,10 +92,9 @@ describe('Timeout Configuration', () => {
 	describe('per-request timeout', () => {
 		it('should allow per-request timeout override', async () => {
 			// Mock a slow response
-			const mockFetch = vi
-				.fn()
-				.mockImplementation((url: string, options: RequestInit) =>
-					createDeferredPromise((resolve, reject) => {
+			const mockFetch = vi.fn().mockImplementation(
+				(url: string, options: RequestInit) =>
+					new Promise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ id: 'sub_123' }), {
@@ -136,7 +111,7 @@ describe('Timeout Configuration', () => {
 							reject(error);
 						});
 					})
-				);
+			);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
@@ -156,10 +131,9 @@ describe('Timeout Configuration', () => {
 		});
 
 		it('should use global timeout when per-request not specified', async () => {
-			const mockFetch = vi
-				.fn()
-				.mockImplementation((url: string, options: RequestInit) =>
-					createDeferredPromise((resolve, reject) => {
+			const mockFetch = vi.fn().mockImplementation(
+				(url: string, options: RequestInit) =>
+					new Promise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ id: 'sub_123' }), {
@@ -176,7 +150,7 @@ describe('Timeout Configuration', () => {
 							reject(error);
 						});
 					})
-				);
+			);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
@@ -196,10 +170,9 @@ describe('Timeout Configuration', () => {
 
 	describe('timeout error handling', () => {
 		it('should return TIMEOUT error code on abort', async () => {
-			const mockFetch = vi
-				.fn()
-				.mockImplementation((url: string, options: RequestInit) =>
-					createDeferredPromise((resolve, reject) => {
+			const mockFetch = vi.fn().mockImplementation(
+				(url: string, options: RequestInit) =>
+					new Promise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({}), {
@@ -216,7 +189,7 @@ describe('Timeout Configuration', () => {
 							reject(error);
 						});
 					})
-				);
+			);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
@@ -233,10 +206,9 @@ describe('Timeout Configuration', () => {
 		});
 
 		it('should include timeout duration in error message', async () => {
-			const mockFetch = vi
-				.fn()
-				.mockImplementation((url: string, options: RequestInit) =>
-					createDeferredPromise((resolve, reject) => {
+			const mockFetch = vi.fn().mockImplementation(
+				(url: string, options: RequestInit) =>
+					new Promise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({}), {
@@ -253,7 +225,7 @@ describe('Timeout Configuration', () => {
 							reject(error);
 						});
 					})
-				);
+			);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({

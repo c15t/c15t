@@ -164,18 +164,16 @@ describe('UI Source Tracking E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-widget-footer-accept-all-button"]'
 			);
-			if (acceptButton) {
-				await userEvent.click(acceptButton);
+			await userEvent.click(getDefined(acceptButton));
 
-				await vi.waitFor(
-					() => {
-						const stored = readStoredRecords(undefined, Date.now()).records
-							.choice;
-						expect(stored).toBeTruthy();
-					},
-					{ timeout: 3000 }
-				);
-			}
+			await vi.waitFor(
+				() => {
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
+					expect(stored?.categories.marketing?.value).toBe(true);
+				},
+				{ timeout: 3000 }
+			);
 		});
 
 		test('should render dialog with custom uiSource prop', async () => {

@@ -9,10 +9,6 @@ import { readStoredRecords } from '@c15t/core/modules/persistence';
  */
 import { vi } from 'vitest';
 
-import {
-	createDeferredPromise,
-	createVoidDeferredPromise,
-} from '~/__tests__/deferred-promise';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
@@ -87,7 +83,7 @@ export const waitForCMP = function waitForCMP(timeout = 5000): Promise<void> {
 			if (!(window as { __tcfapi?: unknown }).__tcfapi) {
 				throw new Error('CMP not ready');
 			}
-			return createVoidDeferredPromise((resolve, reject) => {
+			return new Promise<void>((resolve, reject) => {
 				(window as { __tcfapi: TcfApiTestFunction }).__tcfapi(
 					'ping',
 					2,
@@ -113,7 +109,7 @@ export const tcfApiPromise = function tcfApiPromise<T>(
 	version = 2,
 	param?: unknown
 ): Promise<T> {
-	return createDeferredPromise((resolve, reject) => {
+	return new Promise((resolve, reject) => {
 		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
@@ -194,7 +190,7 @@ export const addCMPEventListener = function addCMPEventListener(): Promise<{
 	eventStatus: string;
 	tcString: string;
 }> {
-	return createDeferredPromise((resolve, reject) => {
+	return new Promise((resolve, reject) => {
 		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));

@@ -22,42 +22,6 @@ import type * as PlaywrightTypes from 'playwright';
 import { allScenarioConfigs } from '../app/_bench/fixtures';
 import type { ScriptLifecycleScenarioConfig } from '../app/_bench/fixtures';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const _createDeferredPromise = function _createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
-
 const HOST = '127.0.0.1';
 const PORT = 4313;
 const BASE_URL = `http://${HOST}:${PORT}`;
@@ -105,7 +69,7 @@ const waitForServer = async function waitForServer() {
 };
 
 const runCommand = async function runCommand(args: string[], label: string) {
-	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
+	return await new Promise<void>((_resolve, reject) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -121,15 +85,15 @@ const runCommand = async function runCommand(args: string[], label: string) {
 
 		command.on('exit', (code) => {
 			if (code === 0) {
-				resolvePromise();
+				_resolve();
 				return;
 			}
 
-			rejectPromise(
+			reject(
 				new Error(logs || `bun ${args.join(' ')} failed while running ${label}`)
 			);
 		});
-		command.on('error', rejectPromise);
+		command.on('error', reject);
 	});
 };
 

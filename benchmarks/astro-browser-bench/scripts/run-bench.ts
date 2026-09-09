@@ -59,29 +59,6 @@ type AstroBenchScenario =
 
 type AstroBenchBuild = 'baseline' | 'hosted' | 'manifest';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
-
 const HOST = '127.0.0.1';
 // Baked into every build as `C15T_BENCH_ORIGIN`: the fixture URLs the
 // integration is configured with have to be absolute, because the shared
@@ -241,7 +218,7 @@ const waitForServer = async function waitForServer() {
 };
 
 const runBuild = async function runBuild(build: AstroBenchBuild) {
-	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
+	return await new Promise<void>((_resolve, reject) => {
 		const command = spawn('bun', ['run', 'build'], {
 			cwd: appDir,
 			env: {
@@ -263,12 +240,12 @@ const runBuild = async function runBuild(build: AstroBenchBuild) {
 
 		command.on('exit', (code) => {
 			if (code === 0) {
-				resolvePromise();
+				_resolve();
 				return;
 			}
-			rejectPromise(new Error(logs || `astro ${build} benchmark build failed`));
+			reject(new Error(logs || `astro ${build} benchmark build failed`));
 		});
-		command.on('error', rejectPromise);
+		command.on('error', reject);
 	});
 };
 

@@ -464,11 +464,13 @@ test.each(['invalid', 'pending', 'installed', 'unmounted'] as const)(
 		const addon = state === 'unmounted' ? null : createAddon(kernel);
 		const persistence = createPersistence({ kernel, skipHydration: true });
 		disposers.push(persistence.dispose);
+		/* oxlint-disable vitest/no-conditional-expect -- Only the installed fixture hydrates authority. */
 		if (state === 'installed') {
 			await vi.waitFor(() =>
 				expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
 			);
 		}
+		/* oxlint-enable vitest/no-conditional-expect */
 		persistence.clear();
 		await vi.advanceTimersByTimeAsync(1);
 		expect(localStorage.getItem('c15t-iab-authority-v1')).toBeNull();
@@ -508,12 +510,14 @@ test.each(['subject', 'identity', 'new-save'] as const)(
 		if (change === 'identity') {
 			await kernel.commands.identify({ externalId: 'other' });
 		}
+		/* oxlint-disable vitest/no-conditional-expect -- Only the new-save fixture sends a second request. */
 		if (change === 'new-save') {
 			addon.rejectAll();
 			const second = addon.save();
 			await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2));
 			await second;
 		}
+		/* oxlint-enable vitest/no-conditional-expect */
 		const before = kernel.getSnapshot();
 		finish({ ok: true, subjectId: 'stale' });
 		await first;

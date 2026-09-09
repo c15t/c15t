@@ -4,42 +4,6 @@ import type { ChildProcess } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const _createDeferredPromise = function _createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
-
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 interface Options {
@@ -180,7 +144,7 @@ const prefixOutput = function prefixOutput(
 };
 
 const runJob = function runJob(job: BenchJob, children: Set<ChildProcess>) {
-	return createVoidDeferredPromise((resolvePromise, rejectPromise) => {
+	return new Promise<void>((_resolve, reject) => {
 		const child = spawn('bun', job.args, {
 			cwd: job.cwd,
 			env: job.env,
@@ -193,16 +157,16 @@ const runJob = function runJob(job: BenchJob, children: Set<ChildProcess>) {
 
 		child.on('error', (error) => {
 			children.delete(child);
-			rejectPromise(error);
+			reject(error);
 		});
 
 		child.on('exit', (code, signal) => {
 			children.delete(child);
 			if (code === 0) {
-				resolvePromise();
+				_resolve();
 				return;
 			}
-			rejectPromise(
+			reject(
 				new Error(
 					`${job.name} benchmark failed${
 						signal

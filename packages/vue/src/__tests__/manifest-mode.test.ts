@@ -17,29 +17,6 @@ import {
 	resolveManifestInit,
 } from '../runtime/server/manifest-mode';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 type WindowWithC15t = Window & {
 	c15t?: {
 		version: string;
@@ -342,7 +319,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 				});
 			}
 			if (url === '/api/geo') {
-				return createDeferredPromise<Response>((resolve) => {
+				return new Promise<Response>((resolve) => {
 					resolveGeo = resolve;
 				});
 			}
@@ -372,7 +349,9 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			})
 		);
 		await flushPromises();
-		await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
 
 		expect(initSpy).toHaveBeenCalledTimes(1);
 		expect(context.snapshot.value.resolution.policy?.id).toBe('eu-opt-in');

@@ -93,14 +93,12 @@ describe('UI Source Tracking E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-widget-footer-accept-all-button"]'
 			);
-			if (acceptButton) {
-				await fireEvent.click(acceptButton);
+			await fireEvent.click(getDefined(acceptButton));
 
-				await waitFor(() => {
-					const stored = window.localStorage.getItem('c15t');
-					expect(stored).toBeTruthy();
-				});
-			}
+			await waitFor(() => {
+				const { choice } = readStoredRecords(undefined, Date.now()).records;
+				expect(choice?.categories.marketing?.value).toBe(true);
+			});
 		});
 
 		test('should render dialog without crashing', async () => {

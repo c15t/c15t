@@ -35,42 +35,6 @@ import {
 	createRepeatVisitorCookie,
 } from './repeat-visitor';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const _createDeferredPromise = function _createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
-
 type NuxtBenchScenario =
 	| 'baseline'
 	| 'baseline-client'
@@ -254,7 +218,7 @@ const runCommand = async function runCommand(
 	label: string,
 	baseline: boolean
 ) {
-	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
+	return await new Promise<void>((_resolve, reject) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			env: { ...process.env, C15T_BENCH_BASELINE: baseline ? '1' : '0' },
@@ -271,15 +235,15 @@ const runCommand = async function runCommand(
 
 		command.on('exit', (code) => {
 			if (code === 0) {
-				resolvePromise();
+				_resolve();
 				return;
 			}
 
-			rejectPromise(
+			reject(
 				new Error(logs || `bun ${args.join(' ')} failed while running ${label}`)
 			);
 		});
-		command.on('error', rejectPromise);
+		command.on('error', reject);
 	});
 };
 

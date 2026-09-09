@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import {
 	postSubjectInputSchema,
@@ -95,10 +95,8 @@ describe('postSubjectInputSchema variant routing', () => {
 			type: 'terms_and_conditions_b2b',
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.output.type).toBe('terms_and_conditions_b2b');
-		}
+		assert(result.success);
+		expect(result.output.type).toBe('terms_and_conditions_b2b');
 	});
 
 	it('still rejects an unknown consent type', () => {

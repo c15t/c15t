@@ -56,29 +56,6 @@ import {
 } from '../runtime/utils/symbols';
 import { createPolicySession, probePolicyContract } from './policy-driver';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 type ProviderOptions = Partial<ConsentConfig> & {
 	callbacks?: Record<string, (...args: unknown[]) => void>;
 	i18n?: {
@@ -448,8 +425,8 @@ const createContext = function createContext(opts: MountOptions) {
 
 const createPendingInit = function createPendingInit(response: InitResponse) {
 	let resolve!: () => void;
-	const promise = createDeferredPromise<InitResponse>((settle) => {
-		resolve = () => settle(response);
+	const promise = new Promise<InitResponse>((_resolve) => {
+		resolve = () => _resolve(response);
 	});
 	return { promise, resolve };
 };
@@ -547,8 +524,12 @@ const projectStoreState = function projectStoreState(
 
 const flushScheduler = async function flushScheduler() {
 	await flushPromises();
-	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
-	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
 };
 
 let lastContext: VueConsentKernelContext | null = null;

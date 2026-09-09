@@ -13,7 +13,6 @@ import { userEvent } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
-import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
@@ -247,7 +246,9 @@ describe('activeUI Transitions E2E Tests', () => {
 		);
 
 		// Wait long enough to confirm banner doesn't appear
-		await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 500);
+		});
 
 		const banner = document.querySelector(
 			'[data-testid="consent-banner-root"]'

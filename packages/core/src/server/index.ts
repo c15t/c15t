@@ -17,9 +17,16 @@ export {
 	clearManifestCache,
 	createManifestRequestURL,
 	fetchCachedManifest,
+	getManifestAge,
 	getManifestSMaxAge,
 	getManifestStaleWhileRevalidate,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 	MANIFEST_PASSTHROUGH_HEADERS,
 	resolveManifestSourceURL,
 } from './manifest-cache';
+
+export {
+	createStaticManifestModule,
+	loadStaticManifest,
+} from './static-manifest';
+export type { StaticManifestModuleOptions } from './static-manifest';

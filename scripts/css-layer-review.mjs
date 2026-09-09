@@ -3,12 +3,6 @@ import { rmSync } from 'node:fs';
 import net from 'node:net';
 import { resolve } from 'node:path';
 
-const createDeferredPromise = function createDeferredPromise(run) {
-	const deferred = Promise.withResolvers();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const routes = ['/matrix/banner', '/matrix/dialog', '/matrix/widget'];
 
 const apps = [
@@ -39,7 +33,7 @@ const apps = [
 ];
 
 const assertPortAvailable = function assertPortAvailable(port) {
-	return createDeferredPromise((fulfill, reject) => {
+	return new Promise((_resolve, reject) => {
 		const server = net.createServer();
 
 		server.once('error', (error) => {
@@ -47,7 +41,7 @@ const assertPortAvailable = function assertPortAvailable(port) {
 		});
 
 		server.listen(port, () => {
-			server.close(() => fulfill());
+			server.close(() => _resolve());
 		});
 	});
 };

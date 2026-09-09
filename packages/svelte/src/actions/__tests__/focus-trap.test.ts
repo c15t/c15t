@@ -4,7 +4,7 @@
  * Mirrors: packages/react/src/hooks/__tests__/use-focus-trap.test.tsx
  */
 
-import { describe, expect, test } from 'vitest';
+import { assert, describe, expect, test } from 'vitest';
 
 import { focusTrap } from '../../lib/actions/focus-trap';
 
@@ -83,11 +83,21 @@ describe('focusTrap action', () => {
 			document.body.appendChild(container);
 
 			const result = focusTrap(container, false);
+			const lastButton =
+				container.querySelector<HTMLButtonElement>('button:last-child');
+			assert(lastButton);
 
-			// Enable
-			result.update(true);
-			// Disable
-			result.update(false);
+			for (const enabled of [true, false]) {
+				result.update(enabled);
+				lastButton.focus();
+				const tab = new KeyboardEvent('keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Tab',
+				});
+				lastButton.dispatchEvent(tab);
+				expect(tab.defaultPrevented).toBe(enabled);
+			}
 
 			result.destroy();
 			document.body.removeChild(container);
@@ -113,12 +123,21 @@ describe('focusTrap action', () => {
 			document.body.appendChild(container);
 
 			const result = focusTrap(container, true);
+			const lastButton =
+				container.querySelector<HTMLButtonElement>('button:last-child');
+			assert(lastButton);
 
-			// Enable → Disable → Enable → Disable
-			result.update(false);
-			result.update(true);
-			result.update(false);
-			result.update(true);
+			for (const enabled of [false, true, false, true]) {
+				result.update(enabled);
+				lastButton.focus();
+				const tab = new KeyboardEvent('keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Tab',
+				});
+				lastButton.dispatchEvent(tab);
+				expect(tab.defaultPrevented).toBe(enabled);
+			}
 
 			result.destroy();
 			document.body.removeChild(container);

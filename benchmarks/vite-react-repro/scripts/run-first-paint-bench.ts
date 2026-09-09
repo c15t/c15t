@@ -18,42 +18,6 @@ import type { BenchmarkResult } from '@c15t/benchmarking';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
-
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -93,7 +57,7 @@ interface CollectedSample {
 // ---------------------------------------------------------------------------
 
 const pickFreePort = function pickFreePort(): Promise<number> {
-	return createDeferredPromise((fulfill, reject) => {
+	return new Promise((_resolve, reject) => {
 		const server = createServer();
 		server.listen(0, '127.0.0.1', () => {
 			const address = server.address();
@@ -102,7 +66,7 @@ const pickFreePort = function pickFreePort(): Promise<number> {
 				return;
 			}
 			const { port } = address;
-			server.close(() => fulfill(port));
+			server.close(() => _resolve(port));
 		});
 		server.on('error', reject);
 	});
@@ -135,7 +99,7 @@ const runCommand = async function runCommand(
 	args: string[],
 	label: string
 ): Promise<void> {
-	await createVoidDeferredPromise((fulfill, reject) => {
+	await new Promise<void>((_resolve, reject) => {
 		const child = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -151,7 +115,7 @@ const runCommand = async function runCommand(
 
 		child.on('exit', (code) => {
 			if (code === 0) {
-				fulfill();
+				_resolve();
 			} else {
 				reject(
 					new Error(

@@ -29,7 +29,11 @@
 		"./src/components/frame/index.ts",
 		"./src/context/index.ts",
 		"./src/types/index.ts",
-		"./src/utils/index.ts"
+		"./src/utils/index.ts",
+		"./styles*.css",
+		"./iab/styles*.css",
+		"./src/styles*.css",
+		"./src/iab/styles*.css"
 	],
 	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
 	"ignore": [
