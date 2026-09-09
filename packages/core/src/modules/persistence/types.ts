@@ -28,7 +28,11 @@ export interface PersistenceOptions {
 
 export interface PersistenceHandle {
 	dispose: () => void;
-	/** Re-run hydration from storage. Returns whether any record was found. */
+	/**
+	 * Re-run hydration from storage. Returns whether any record was found.
+	 * Unreadable records preserve their in-memory values; readable empty
+	 * storage clears them.
+	 */
 	hydrate: () => boolean;
 	/**
 	 * Cancel queued writes, clear every c15t record (choice, notice, privacy,

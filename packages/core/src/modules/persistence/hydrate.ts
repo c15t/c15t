@@ -23,6 +23,7 @@ import type { StorageConfig } from './types';
 
 /** Stored records plus the IAB transport metadata the next save preserves. */
 export interface StoredRecords {
+	/** Unreadable records are omitted so hydration preserves in-memory values. */
 	records: HydrationRecords;
 	iab: StoredIabMetadata | null;
 	/** Whether any valid record was found. */
@@ -60,12 +61,32 @@ export const readStoredRecords = function readStoredRecords(
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): StoredRecords {
-	return composeRecords(
-		readStoredConsentRecord(storageConfig, now),
-		readStoredNoticeDismissal(storageConfig, now),
-		readStoredPrivacyOptOuts(storageConfig, now),
-		now
-	);
+	let choiceUnavailable = false;
+	let noticeUnavailable = false;
+	let privacyUnavailable = false;
+	const selection = readStoredConsentRecord(storageConfig, now, () => {
+		choiceUnavailable = true;
+	});
+	const notice = readStoredNoticeDismissal(storageConfig, now, () => {
+		noticeUnavailable = true;
+	});
+	const privacy = readStoredPrivacyOptOuts(storageConfig, now, () => {
+		privacyUnavailable = true;
+	});
+	const stored = composeRecords(selection, notice, privacy, now);
+	// An absent value only clears memory when every candidate was readable.
+	// A valid record from an available source can still hydrate normally.
+	if (!selection.selected && choiceUnavailable) {
+		delete stored.records.choice;
+		delete stored.records.subject;
+	}
+	if (!notice?.ok && noticeUnavailable) {
+		delete stored.records.noticeDismissal;
+	}
+	if (!privacy?.ok && privacyUnavailable) {
+		delete stored.records.optOutDirectives;
+	}
+	return stored;
 };
 
 /**

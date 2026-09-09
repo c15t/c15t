@@ -14,7 +14,9 @@ Browser restrictions can make the `localStorage` getter or its methods throw.
 c15t reports storage failures through console warnings and continues running.
 It can still read, save, and clear consent cookies when localStorage is
 unavailable. If both storage mechanisms are blocked, choices remain in memory
-for the current page and cannot be restored after a reload.
+for the current page and cannot be restored after a reload. Rehydrating while
+storage is unreadable preserves those in-memory records. Readable empty storage
+still clears the corresponding records.
 
 ## Hosted initialization fails
 

@@ -108,7 +108,10 @@ test('hosted startup, save and clear survive blocked storage getters', async () 
 	expect(() => runtime.clearRecords()).not.toThrow();
 	expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
 	close(runtime);
-	expect(console.warn).toHaveBeenCalled();
+	expect(console.warn).toHaveBeenCalledWith(
+		'Failed to read consent from localStorage:',
+		expect.objectContaining({ name: 'SecurityError' })
+	);
 });
 
 test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(

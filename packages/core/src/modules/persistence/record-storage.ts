@@ -381,7 +381,8 @@ export const parseRawCookieCandidate = function parseRawCookieCandidate(
 };
 
 const readLocalStorageText = function readLocalStorageText(
-	key: string
+	key: string,
+	onUnavailable?: () => void
 ): string | null {
 	try {
 		if (typeof window !== 'undefined' && window.localStorage) {
@@ -390,14 +391,16 @@ const readLocalStorageText = function readLocalStorageText(
 	} catch (error) {
 		console.warn('Failed to read consent from localStorage:', error);
 	}
+	onUnavailable?.();
 	return null;
 };
 
 const parseLocalStorageCandidate = function parseLocalStorageCandidate(
 	source: StoredRecordSource,
-	key: string
+	key: string,
+	onUnavailable?: () => void
 ): RawStoredCandidate {
-	const text = readLocalStorageText(key);
+	const text = readLocalStorageText(key, onUnavailable);
 	if (text === null || text === '') {
 		return { key, source, status: 'absent' };
 	}
@@ -422,16 +425,24 @@ const parseLocalStorageCandidate = function parseLocalStorageCandidate(
  */
 export const readRawStoredConsentCandidates =
 	function readRawStoredConsentCandidates(
-		config?: StorageConfig
+		config?: StorageConfig,
+		onUnavailable?: () => void
 	): RawStoredCandidate[] {
 		const keys = resolveStorageKeys(config);
 		const candidates: RawStoredCandidate[] = [
-			parseRawCookieCandidate(getRawCookieValue(keys.consent), keys.consent),
-			parseLocalStorageCandidate('local-storage', keys.consent),
+			parseRawCookieCandidate(
+				getRawCookieValue(keys.consent, onUnavailable),
+				keys.consent
+			),
+			parseLocalStorageCandidate('local-storage', keys.consent, onUnavailable),
 		];
 		if (keys.legacyConsent) {
 			candidates.push(
-				parseLocalStorageCandidate('legacy-local-storage', keys.legacyConsent)
+				parseLocalStorageCandidate(
+					'legacy-local-storage',
+					keys.legacyConsent,
+					onUnavailable
+				)
 			);
 		}
 		return candidates;
@@ -589,9 +600,13 @@ export const selectStoredConsent = function selectStoredConsent(
  */
 export const readStoredConsentRecord = function readStoredConsentRecord(
 	config: StorageConfig | undefined,
-	now: number
+	now: number,
+	onUnavailable?: () => void
 ): StoredConsentSelection {
-	return selectStoredConsent(readRawStoredConsentCandidates(config), now);
+	return selectStoredConsent(
+		readRawStoredConsentCandidates(config, onUnavailable),
+		now
+	);
 };
 
 /**
@@ -725,9 +740,10 @@ export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 
 const readLocalJson = function readLocalJson<RecordType>(
 	key: string,
-	decode: (value: unknown) => DecodeResult<RecordType>
+	decode: (value: unknown) => DecodeResult<RecordType>,
+	onUnavailable?: () => void
 ): DecodeResult<RecordType> | null {
-	const text = readLocalStorageText(key);
+	const text = readLocalStorageText(key, onUnavailable);
 	if (text === null || text === '') {
 		return null;
 	}
@@ -779,18 +795,23 @@ export interface AuxiliaryWriteReport {
  */
 export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	config: StorageConfig | undefined,
-	now: number
+	now: number,
+	onUnavailable?: () => void
 ): DecodeResult<StoredNoticeDismissal> | null {
 	const keys = resolveStorageKeys(config);
-	const fromCookie = readCompactCookie(getRawCookieValue(keys.notice), (text) =>
-		decodeNoticeDismissalCompact(text, now)
+	const fromCookie = readCompactCookie(
+		getRawCookieValue(keys.notice, onUnavailable),
+		(text) => decodeNoticeDismissalCompact(text, now)
 	);
 	if (fromCookie?.ok) {
 		return fromCookie;
 	}
 	return (
-		readLocalJson(keys.notice, (value) => decodeNoticeDismissal(value, now)) ??
-		fromCookie
+		readLocalJson(
+			keys.notice,
+			(value) => decodeNoticeDismissal(value, now),
+			onUnavailable
+		) ?? fromCookie
 	);
 };
 
@@ -859,19 +880,23 @@ export const clearStoredNoticeDismissal = function clearStoredNoticeDismissal(
  */
 export const readStoredPrivacyOptOuts = function readStoredPrivacyOptOuts(
 	config: StorageConfig | undefined,
-	now: number
+	now: number,
+	onUnavailable?: () => void
 ): DecodeResult<StoredPrivacyOptOuts> | null {
 	const keys = resolveStorageKeys(config);
 	const fromCookie = readCompactCookie(
-		getRawCookieValue(keys.privacy),
+		getRawCookieValue(keys.privacy, onUnavailable),
 		(text) => decodePrivacyOptOutsCompact(text, now)
 	);
 	if (fromCookie?.ok) {
 		return fromCookie;
 	}
 	return (
-		readLocalJson(keys.privacy, (value) => decodePrivacyOptOuts(value, now)) ??
-		fromCookie
+		readLocalJson(
+			keys.privacy,
+			(value) => decodePrivacyOptOuts(value, now),
+			onUnavailable
+		) ?? fromCookie
 	);
 };
 

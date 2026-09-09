@@ -113,7 +113,9 @@ export const createPersistence = function createPersistence(
 		if (!stored) {
 			return false;
 		}
-		storedIab = stored.iab;
+		if (stored.records.choice !== undefined) {
+			storedIab = stored.iab;
+		}
 		return stored.found;
 	};
 
