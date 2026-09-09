@@ -5,6 +5,8 @@ export type PolicyScopeMode = 'strict' | 'permissive';
 export interface PolicyMatch {
 	regions?: { country: string; region: string }[];
 	countries?: string[];
+	/** Countries whose missing region uses this rule, after country matches. */
+	regionFallbacks?: string[];
 	isDefault?: boolean;
 	fallback?: boolean;
 }
@@ -134,6 +136,12 @@ const applyPolicyMatchFragment = function applyPolicyMatchFragment(
 	if (match.countries?.length) {
 		merged.countries = mergeCountries(merged.countries, match.countries);
 	}
+	if (match.regionFallbacks?.length) {
+		merged.regionFallbacks = mergeCountries(
+			merged.regionFallbacks,
+			match.regionFallbacks
+		);
+	}
 	if (match.regions?.length) {
 		merged.regions = mergeRegions(merged.regions, match.regions);
 	}
@@ -190,6 +198,19 @@ export const policyMatchers = {
 		}
 
 		return merged;
+	},
+
+	/**
+	 * Match a known country only when its region is missing.
+	 * @param countries - Country codes whose missing regions use this rule.
+	 * @returns A normalized matcher, evaluated after explicit country rules.
+	 * @example
+	 * ```ts
+	 * policyMatchers.regionFallback(['US']);
+	 * ```
+	 */
+	regionFallback(countries: string[]): PolicyMatch {
+		return { regionFallbacks: mergeCountries([], countries) };
 	},
 
 	regions(regions: { country: string; region: string }[]): PolicyMatch {

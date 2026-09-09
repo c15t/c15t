@@ -171,11 +171,41 @@ const findCountryMatch = function findCountryMatch(
 	);
 };
 
+const matchMissingRegion = function matchMissingRegion(
+	entries: readonly PolicyMatchEntry[],
+	countryCode: string
+): PolicyMatchOutcome | null {
+	const regionFallbackIndex = entries.findIndex((entry) =>
+		entry.match.regionFallbacks?.some(
+			(country) => normalizeCountryCode(country) === countryCode
+		)
+	);
+	if (regionFallbackIndex !== -1) {
+		return {
+			index: regionFallbackIndex,
+			matchedBy: 'fallback',
+			status: 'matched',
+		};
+	}
+	const hasRegionRules = entries.some((entry) =>
+		entry.match.regions?.some(
+			(region) => normalizeCountryCode(region.country) === countryCode
+		)
+	);
+	if (!hasRegionRules) {
+		return null;
+	}
+	const index = entries.findIndex((entry) => entry.match.fallback === true);
+	return index === -1
+		? { status: 'insufficient-inputs' }
+		: { index, matchedBy: 'fallback', status: 'matched' };
+};
+
 /**
  * Matches location inputs against ordered entries using the fixed precedence
- * region, country, fallback for unknown location, default. A missing region
- * uses an explicit country rule when present; otherwise it is unknown when
- * this country has configured region rules.
+ * region, country, country-specific missing-region fallback, global fallback
+ * for unknown location, default. Without a country rule or region fallback,
+ * a missing region is unknown when this country has configured region rules.
  *
  * @remarks
  * When the country is unknown and the pack has neither a fallback nor a
@@ -192,27 +222,6 @@ export const matchPolicyRules = function matchPolicyRules(params: {
 	const countryCode = normalizeCountryCode(params.countryCode);
 	const regionCode = normalizeRegionCode(params.regionCode);
 
-	// An explicit country rule is the author's answer for missing subdivisions.
-	// Without one, do not silently select the global allow-by-default rule.
-	const missingRegion =
-		countryCode &&
-		!regionCode &&
-		entries.some((entry) =>
-			entry.match.regions?.some(
-				(region) => normalizeCountryCode(region.country) === countryCode
-			)
-		);
-	if (missingRegion) {
-		const countryIndex = findCountryMatch(entries, countryCode);
-		if (countryIndex !== -1) {
-			return { index: countryIndex, matchedBy: 'country', status: 'matched' };
-		}
-		const index = entries.findIndex((entry) => entry.match.fallback === true);
-		return index === -1
-			? { status: 'insufficient-inputs' }
-			: { index, matchedBy: 'fallback', status: 'matched' };
-	}
-
 	if (countryCode && regionCode) {
 		const index = findRegionMatch(entries, countryCode, regionCode);
 		if (index !== -1) {
@@ -223,6 +232,12 @@ export const matchPolicyRules = function matchPolicyRules(params: {
 		const index = findCountryMatch(entries, countryCode);
 		if (index !== -1) {
 			return { index, matchedBy: 'country', status: 'matched' };
+		}
+		if (!regionCode) {
+			const outcome = matchMissingRegion(entries, countryCode);
+			if (outcome) {
+				return outcome;
+			}
 		}
 	}
 

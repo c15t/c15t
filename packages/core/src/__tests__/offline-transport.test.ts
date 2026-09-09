@@ -48,6 +48,25 @@ describe('createOfflineTransport: basic behavior', () => {
 		});
 	});
 
+	test('a missing US state uses opt-out with persistent preferences and GPC', async () => {
+		const response = await createOfflineTransport().init({
+			overrides: { country: 'US' },
+			user: null,
+		});
+		expect(response.policyResolution).toMatchObject({
+			matchedBy: 'fallback',
+			policy: {
+				model: 'opt-out',
+				privacySignals: {
+					gpc: { denyCategories: ['marketing', 'measurement'] },
+				},
+				prompt: 'none',
+				rights: ['disclosure', 'opt-out', 'preferences'],
+			},
+			policyId: 'us_privacy_states_opt_out',
+		});
+	});
+
 	test('empty rules report no-match', async () => {
 		const transport = createOfflineTransport({ policyRules: [] });
 		const response = await transport.init?.({

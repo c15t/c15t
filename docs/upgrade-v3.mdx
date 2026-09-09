@@ -56,8 +56,10 @@ or a list containing only `necessary` expands to the default optional categories
 `necessary` is always permitted.
 
 `offline()` without `policyRules` resolves `recommendedPolicyRules()`, whose
-Europe rule also matches a visitor with no location and whose last rule is
-`none` for every other unmatched location. Resolution exposes `matched`, `no-match`,
+Europe rule also matches a visitor with no country. A known US country with a
+missing state uses US opt-out with GPC and persistent preferences; a missing
+Canadian province stays strict opt-in. The last rule is `none` for other known
+unmatched locations. Resolution exposes `matched`, `no-match`,
 `unconfigured`, or `failed`; while nothing has matched, optional categories stay
 denied and no consent surface renders. A missing or malformed policy never grants
 optional permissions by itself.

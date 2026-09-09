@@ -770,8 +770,9 @@ export interface RecommendedPolicyRulesOptions {
 /**
  * The recommended global pack, in match order: Europe (EEA, UK, Gibraltar,
  * and the geo fallback for an unknown location) opt-in or IAB, Quebec
- * opt-in, the US privacy states opt-out with GPC, and `none` for every other
- * known location. `offline()` resolves this pack when the host passes no rules.
+ * opt-in, the US privacy states and missing US states opt-out with GPC, and
+ * `none` for every other known location. A missing Canadian province remains
+ * strict. `offline()` resolves this pack when the host passes no rules.
  *
  * @example
  * ```ts
@@ -783,12 +784,19 @@ export interface RecommendedPolicyRulesOptions {
 export const recommendedPolicyRules = function recommendedPolicyRules(
 	options: RecommendedPolicyRulesOptions = {}
 ): PolicyRule[] {
+	const us = policyRulePresets.usPrivacyStatesOptOut();
 	return [
 		options.iab
 			? policyRulePresets.europeIab()
 			: policyRulePresets.europeOptIn(),
 		policyRulePresets.quebecOptIn(),
-		policyRulePresets.usPrivacyStatesOptOut(),
+		{
+			...us,
+			match: policyMatchers.merge(
+				us.match,
+				policyMatchers.regionFallback(['US'])
+			),
+		},
 		policyRulePresets.worldNone(),
 	];
 };

@@ -285,7 +285,13 @@ const RULE_KEYS = [
 	'proof',
 	'review',
 ] as const;
-const MATCH_KEYS = ['countries', 'regions', 'isDefault', 'fallback'] as const;
+const MATCH_KEYS = [
+	'countries',
+	'regions',
+	'regionFallbacks',
+	'isDefault',
+	'fallback',
+] as const;
 const REGION_KEYS = ['country', 'region'] as const;
 const VALIDITY_KEYS = ['choiceDays', 'noticeDays'] as const;
 const PRIVACY_SIGNAL_KEYS = ['gpc'] as const;
@@ -787,9 +793,11 @@ const hasExplicitMatchers = function hasExplicitMatchers(
 ): boolean {
 	const countries = own(match, 'countries');
 	const regions = own(match, 'regions');
+	const regionFallbacks = own(match, 'regionFallbacks');
 	return (
 		(Array.isArray(countries) && countries.length > 0) ||
-		(Array.isArray(regions) && regions.length > 0)
+		(Array.isArray(regions) && regions.length > 0) ||
+		(Array.isArray(regionFallbacks) && regionFallbacks.length > 0)
 	);
 };
 
@@ -801,16 +809,15 @@ const collectMatchErrors = function collectMatchErrors(check: RuleCheck): void {
 		return;
 	}
 	pushUnknownKeyErrors(check, match, MATCH_KEYS, 'match');
-	const countries = own(match, 'countries');
-	if (countries !== undefined) {
+	for (const key of ['countries', 'regionFallbacks'] as const) {
+		const countries = own(match, key);
+		if (countries === undefined) {
+			continue;
+		}
 		if (!isStringArray(countries)) {
-			errors.push(
-				`Policy ${label} match.countries must be an array of strings.`
-			);
+			errors.push(`Policy ${label} match.${key} must be an array of strings.`);
 		} else if (countries.some((country) => !country.trim())) {
-			errors.push(
-				`Policy ${label} match.countries cannot contain empty codes.`
-			);
+			errors.push(`Policy ${label} match.${key} cannot contain empty codes.`);
 		}
 	}
 	collectRegionMatcherErrors(check, own(match, 'regions'));

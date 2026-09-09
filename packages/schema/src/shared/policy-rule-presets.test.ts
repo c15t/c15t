@@ -138,18 +138,46 @@ describe('policyRulePresets', () => {
 			['CA', 'QC', 'quebec_opt_in', 'region'],
 			['US', 'CA', 'us_privacy_states_opt_out', 'region'],
 			['US', 'SD', 'world_none', 'default'],
+			['US', 'NY', 'world_none', 'default'],
+			['CA', null, 'europe_opt_in', 'fallback'],
+			['CA', 'ON', 'world_none', 'default'],
 			['BR', null, 'world_none', 'default'],
 		] as const) {
 			expect(
 				resolvePolicyRules({ countryCode, regionCode, rules })
 			).toMatchObject({ matchedBy, policyId, status: 'matched' });
 		}
-		// A US visitor with no state cannot be placed; fall back to strict.
+		// A known US visitor keeps opt-out rights even when the state is missing.
 		expect(
 			resolvePolicyRules({ countryCode: 'US', regionCode: null, rules })
-		).toMatchObject({ matchedBy: 'fallback', policyId: 'europe_opt_in' });
+		).toMatchObject({
+			matchedBy: 'fallback',
+			policy: {
+				model: 'opt-out',
+				privacySignals: {
+					gpc: { denyCategories: ['marketing', 'measurement'] },
+				},
+				prompt: 'none',
+				rights: expect.arrayContaining(['preferences', 'opt-out']),
+			},
+			policyId: 'us_privacy_states_opt_out',
+		});
 		expect(recommendedPolicyRules({ iab: true })[0]?.id).toBe('europe_iab');
 	});
+
+	test.each([undefined, null, '', ' '])(
+		'the default pack uses US opt-out for missing state %j even with IAB enabled',
+		(regionCode) => {
+			expect(
+				resolvePolicyRules({
+					countryCode: 'US',
+					iabEnabled: true,
+					regionCode,
+					rules: recommendedPolicyRules({ iab: true }),
+				})
+			).toMatchObject({ policyId: 'us_privacy_states_opt_out' });
+		}
+	);
 
 	test.each(['AX', 'GF', 'GP', 'MQ', 'MF', 'RE', 'YT', 'GI'])(
 		'covers %s before the global allow-by-default rule',

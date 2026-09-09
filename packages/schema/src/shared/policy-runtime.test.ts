@@ -14,6 +14,34 @@ import { policyMatchers } from './policy-runtime';
 
 const originalCrypto = globalThis.crypto;
 
+it('normalizes and merges country-specific region fallbacks independently of countries', () => {
+	expect(
+		policyMatchers.merge(
+			policyMatchers.countries(['CA']),
+			policyMatchers.regionFallback(['us', ' US ']),
+			policyMatchers.regionFallback(['ca']),
+			policyMatchers.fallback()
+		)
+	).toEqual({
+		countries: ['CA'],
+		fallback: true,
+		regionFallbacks: ['US', 'CA'],
+	});
+});
+
+it.each(['US', [1], [' '], null])(
+	'rejects invalid regionFallbacks %j',
+	(regionFallbacks) => {
+		expect(
+			inspectPolicyRules([
+				{ id: 'invalid', match: { regionFallbacks }, model: 'opt-out' },
+			]).errors
+		).toEqual(
+			expect.arrayContaining([expect.stringContaining('match.regionFallbacks')])
+		);
+	}
+);
+
 const longPolicyLikeJson =
 	'{"consent":{"categories":["necessary","measurement"],"expiryDays":365,"scopeMode":"strict"},"id":"policy_runtime_us_ca","model":"opt-in","ui":{"banner":{"allowedActions":["accept","reject"],"direction":"row","layout":[["accept","reject"]],"primaryActions":["accept"],"scrollLock":true,"uiProfile":"balanced"},"mode":"banner"}}';
 

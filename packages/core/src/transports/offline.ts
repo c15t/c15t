@@ -48,7 +48,8 @@ export interface OfflineTransportOptions {
 	 * v3 policy rules to resolve at init time. Matched against the request
 	 * context's country/region. Omitted, the transport resolves
 	 * `recommendedPolicyRules()`: strict opt-in for Europe and unknown
-	 * locations, opt-out for US privacy states, and `none` everywhere else.
+	 * countries, opt-out for US privacy states and missing US states, and
+	 * `none` for other known locations. Missing Canadian provinces stay strict.
 	 * Passing rules replaces that pack entirely.
 	 */
 	policyRules?: PolicyRule[];

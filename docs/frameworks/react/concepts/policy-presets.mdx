@@ -13,8 +13,10 @@ export const policyRules = recommendedPolicyRules();
 `recommendedPolicyRules()` returns the pack `offline()` uses when you pass no
 `policyRules`, in this order: Europe opt-in (or IAB TCF 2.3 with
 `{ iab: true }`), Québec opt-in, the US privacy states opt-out, and `none` as
-the default for every other known location. The Europe preset also carries the
-fallback for a visitor with no location, so an unknown location gets the strict
+the default for every other known location. A visitor known to be in the US
+whose state is missing also gets US opt-out, with GPC and persistent preferences.
+The Europe preset also carries the fallback for a visitor with no country, so
+an unknown country gets the strict
 opt-in banner. Passing your own `policyRules` replaces the pack entirely.
 
 Compose your own from the catalog when the pack does not fit:
@@ -86,28 +88,39 @@ explicit alternative default that keeps opt-out rights and the preference
 controls for every unmatched location.
 
 The Europe preset supplies the fallback for an unknown country, so a visitor
-with no location gets the strict opt-in rule. When the state or province is
-missing, an explicit country rule wins. If none exists and the pack has subdivision rules for that
-country, c15t uses the fallback. Without one, resolution fails with
-`reason: 'insufficient-inputs'`: optional categories stay denied and no
-consent surface renders, including the dialog trigger. The global default does
-not silently replace a missing subdivision.
+with no country gets the strict opt-in rule. The recommended pack gives a
+visitor in the US whose state is missing the US opt-out rule. No automatic
+banner appears, GPC is honored, and preferences remain available. A missing Canadian province
+still uses strict opt-in. Known states and provinces keep their existing matches.
 
-To use US opt-out behavior when the state is unknown, add an explicit country
-rule alongside your state rules:
+For custom packs, an explicit country rule wins when the region is missing.
+Otherwise, `match.regionFallbacks` selects a fallback for that country only.
+If neither exists and the pack has subdivision rules for the country, c15t
+uses the global fallback. Without one, resolution fails with
+`reason: 'insufficient-inputs'`: optional categories stay denied and no consent
+UI renders. The global default does not replace a missing subdivision.
+
+Use `policyMatchers.regionFallback()` to add the same missing-state behavior
+to a custom US rule:
 
 ```ts
-const usCountry = {
-	...policyRulePresets.usPrivacyStatesOptOut(),
-	id: 'us_country',
-	match: { countries: ['US'] },
+import { policyMatchers, policyRulePresets } from 'c15t';
+
+const us = policyRulePresets.usPrivacyStatesOptOut();
+const usWithMissingState = {
+	...us,
+	match: policyMatchers.merge(us.match, policyMatchers.regionFallback(['US'])),
 };
 ```
 
-This also covers known US states without a more specific rule. It applies US
-opt-out controls and GPC without an automatic banner. Keep a Québec rule when
-using a Canada-wide override, and assess what your country rule should do for
-an unknown province.
+This adds `regionFallbacks: ['US']` to the matcher. It applies only when the
+country is US and the state is absent or blank. It does not change known states
+outside the preset's coverage. Resolution reports `matchedBy: 'fallback'`.
+When several region fallbacks cover the same country, the first rule wins.
+
+Use `match: { countries: ['US'] }` instead if you also want opt-out controls for
+every known US state without a more specific rule. Keep a Québec rule when
+using a Canada-wide override.
 
 Europe includes separately geocoded EU territories `AX`, `GF`, `GP`, `MQ`,
 `MF`, `RE` and `YT`. It also covers `GI` under Gibraltar's own cookie-consent
@@ -117,7 +130,8 @@ The global default remains an explicit deployment choice. Review any location
 outside the catalog before allowing optional processing there.
 
 A known region match wins over a country match. Array order breaks ties at
-the same specificity. A default applies after those matches; an unknown
+the same specificity. A country-specific region fallback applies only when
+the region is missing. A default applies after those matches; an unknown
 country can use an explicit default if the pack has no fallback. Avoid an
 allow-by-default configuration without a fallback when location is uncertain.
 
