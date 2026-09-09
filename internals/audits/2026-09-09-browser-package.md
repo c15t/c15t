@@ -2,7 +2,7 @@
 
 PR [#1086](https://github.com/c15t/c15t/pull/1086), rebased onto `origin/v3` at `7c2a028dd`.
 
-The implementation is a reasonable non-IAB adapter. It reuses the consent runtime, policy resolver, permission evaluator, translations, theme system, and component CSS. It does not yet have full React parity. IAB and a reusable public draft API need separate work.
+The implementation reuses the consent runtime, policy resolver, permission evaluator, translations, theme system, and component CSS. The optional IAB entry now provides the existing CMP and an imperative preference UI. Full React parity still needs a reusable public draft API and shared visual scenario coverage.
 
 ## Package name
 
@@ -47,7 +47,7 @@ The rebase also retained the new backend privacy-directive route and DevTools pr
 | Snapshot subscription and imperative actions | Supported; signatures are not a copy of `useConsentManager()` |
 | Reusable draft state with dirty/stale flags and reset/update helpers | Missing as a public API; the stock widget owns its draft locally |
 | React compound components and arbitrary composition | No equivalent stock component API; use the headless entry for custom HTML |
-| IAB CMP, `__tcfapi`, TC encoding, vendor/purpose UI | Missing |
+| IAB CMP, `__tcfapi`, TC encoding, vendor/purpose UI | Supported through the separate `@c15t/browser/iab` entry |
 | Shared cross-framework scenario and visual parity runner | Browser is not enrolled; it currently has its own Vitest tests and the HTML examples |
 
 Do not claim complete React parity based on shared classes or matching test IDs. The browser package should join the shared scenario runner before making that claim, especially for policy transitions, expired receipts, GPC, partial scopes, and asynchronous draft changes.
@@ -56,9 +56,13 @@ Do not claim complete React parity based on shared classes or matching test IDs.
 
 Do not import `@c15t/iab` from the normal browser entry. There is already a package for the CMP and TC codec; a new package named `@c15t/iab-js` would duplicate its purpose.
 
-Add a separately built `@c15t/browser/iab` entry and `c15t.iab.js` when IAB is implemented. An IAB site can load that entry in place of the normal script. It should construct one runtime with the existing IAB factory, then provide vendor, purpose, legitimate-interest, special-feature, and save controls. Keep the IAB stylesheet and codec inside that optional build. If an additional-tag design is chosen instead, register the addon against the existing runtime before initialization; do not create another kernel or another copy of a singleton registration map.
+The separate `@c15t/browser/iab` entry and `c15t.iab.js` reuse the existing IAB factory on one runtime. Load this script in place of the ordinary entry. It provides purpose, vendor, legitimate-interest, special-feature, and save controls, plus vendor search and incremental rendering. Non-IAB policies use the ordinary surfaces. The backend serves the optional build at `/c15t.iab.js`.
 
-Before advertising IAB support, test GVL loading and failure, early `__tcfapi` calls, TC authority, persistence, region changes, withdrawal, and vendor/purpose drafts. Add a bundle assertion that ordinary and headless entries exclude the IAB implementation and stylesheet. None of that support is implied by the current package's ability to read a policy with `model: 'iab'`.
+Tests cover GVL loading and failure, queued `__tcfapi` calls, disposal during loading, TC authority, persistence, region changes, withdrawal, individual drafts, and failed saves. IAB-required policies cannot silently save category choices after a vendor-list failure. CMP applicability and display state follow policy and UI changes.
+
+A build plugin checks the normal, headless, and DevTools dependency graphs and rejects imports of the IAB package, codec, or generated stylesheet. The optional script includes the codec without requiring a second script download. ESM consumers use `@c15t/browser/iab`; its dependencies remain shared through their bundler.
+
+This is not a claim of full React visual parity or certification. The DOM adapter uses native disclosures and a paginated vendor list. It needs the shared scenario runner before matching every React interaction and disclosure can be asserted.
 
 ## Styling and backend responsibilities
 
@@ -70,13 +74,13 @@ No new backend is needed to change colors or banner design.
 - `presentation.prompt` selects geometry and behavior without changing the policy fingerprint.
 - `c15t.headless.js` lets the host own the HTML and CSS completely.
 
-The runnable examples are [stock](../../examples/script-tag/index.html), [custom HTML](../../examples/script-tag/custom.html), and [styling](../../examples/script-tag/styled.html). The styling page demonstrates both shadow-root CSS and page CSS through `?shadow=false`.
+The runnable examples are [stock](../../examples/script-tag/index.html), [custom HTML](../../examples/script-tag/custom.html), [styling](../../examples/script-tag/styled.html), and [IAB](../../examples/script-tag/iab.html). The styling page demonstrates both shadow-root CSS and page CSS through `?shadow=false`.
 
 A future backend editor would store and distribute presentation settings. Rendering them is already a frontend responsibility. CSS isolation also means page selectors cannot directly cross the default shadow boundary; use `ui.css` or light DOM deliberately.
 
 ## Remaining limitations
 
-1. IAB is a release blocker for deployments that require IAB, not for an explicitly non-IAB package release.
+1. The IAB entry requires CMP configuration and a vendor list. Its example uses sample vendor data; deployments must supply their own configuration. Shared visual parity coverage remains outstanding.
 2. Custom preference centers own their draft state. They must not confuse effective permissions with an explicit choice. A reusable draft controller shared with React would reduce drift; it needs tests for policy changes and edits made while a save is pending.
 3. `consentCategories` filters displayed controls, not the policy scope. Hiding categories that still need a choice can leave the prompt incomplete. The examples now display the whole scope. Narrow the policy itself when only some categories apply.
 4. The backend script routes use Node filesystem APIs. `script.bundles` supplies file paths; it does not make the route portable to a filesystem-free runtime. An injected bundle loader or string source would be a separate capability.
@@ -90,6 +94,8 @@ A future backend editor would store and distribute presentation settings. Render
 - Browser regression tests, core, UI, DevTools, backend, React, Svelte, Vue, Astro, and root tooling tests.
 - Full repository typechecks, repository lint and formatting, documentation lint, and the browser package's dry-run pack and artifact verification.
 - Chromium against the built IIFEs: accept/save, persistence across reload, all displayed custom-HTML categories, computed styles in shadow and light DOM, mobile fit at 390px, forward/reverse keyboard focus wrapping, Escape, and duplicate script loading. No page errors in those flows.
-- The ordinary entry imports no IAB implementation; the built ordinary and headless files contain neither the checked codec markers nor the IAB banner marker. A formal bundle dependency assertion remains a follow-up.
+- The normal, headless, and DevTools builds pass the dependency assertion excluding the IAB implementation, codec, and stylesheet.
+- IAB browser regressions: 78 total browser tests pass. The package build/test run passes all 40 Turbo tasks with bounded concurrency; root tooling passes 132 tests.
+- Chromium against the optional built script: purpose/vendor selection, TC confirmation, reload persistence, and a 390px mobile dialog. No page errors in those flows.
 
-These checks establish the exercised behavior. They do not establish IAB support, full visual parity, or compatibility with every CMS theme and CSP.
+These checks establish the exercised behavior. They do not establish full visual parity or compatibility with every CMS theme and CSP.

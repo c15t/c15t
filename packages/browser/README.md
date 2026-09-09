@@ -85,6 +85,10 @@ For further information, guides, and examples visit the [reference documentation
 - **Manifest mode**: Inline or fetch the backend's cacheable `/manifest` and resolve the policy in the browser
 - **Offline mode**: Browser-only consent storage for portfolios, docs sites, previews, and demos
 
+## Optional IAB entry
+
+Load `c15t.iab.js` instead of `c15t.js`, or import `init` from `@c15t/browser/iab`. Configure `iab` with your registered CMP ID and vendor list. This entry includes the CMP, TC codec, purpose/vendor preferences, and IAB styles. The ordinary and headless entries exclude that implementation. Use `client.saveIAB()` to confirm individual IAB choices. See the [IAB script example](https://c15t.com/docs/frameworks/javascript/script-tag#optional-iab-entry).
+
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)

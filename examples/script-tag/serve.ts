@@ -26,6 +26,9 @@ const bundles: Record<string, string> = {
 	'/c15t.headless.js': fileURLToPath(
 		import.meta.resolve('@c15t/browser/c15t.headless.js')
 	),
+	'/c15t.iab.js': fileURLToPath(
+		import.meta.resolve('@c15t/browser/c15t.iab.js')
+	),
 	'/c15t.js': fileURLToPath(import.meta.resolve('@c15t/browser/c15t.js')),
 };
 
@@ -34,6 +37,8 @@ const pages: Record<string, string> = {
 	'/custom': here('./custom.html'),
 	'/embed/map.html': here('./embed/map.html'),
 	'/embed/video.html': here('./embed/video.html'),
+	'/iab': here('./iab.html'),
+	'/iab-gvl.json': here('./iab-gvl.json'),
 	'/styled': here('./styled.html'),
 	'/vendor/analytics.js': here('./vendor/analytics.js'),
 	'/vendor/chat-widget.js': here('./vendor/chat-widget.js'),
@@ -42,6 +47,7 @@ const pages: Record<string, string> = {
 const contentTypes: Record<string, string> = {
 	'.html': 'text/html; charset=utf-8',
 	'.js': 'text/javascript; charset=utf-8',
+	'.json': 'application/json; charset=utf-8',
 };
 
 let events = 0;

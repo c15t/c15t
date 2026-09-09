@@ -22,3 +22,5 @@ A second page, http://localhost:4173/custom, loads `c15t.headless.js` instead an
 `index.html` shows the three ways to configure the tag: `data-*` attributes, and `config` and `on` calls queued on `window.c15t` before the script loads.
 
 Open http://localhost:4173/styled for theme tokens and CSS inside a shadow root, or http://localhost:4173/styled?shadow=false for the same border applied by the page stylesheet. Both run offline. Banner styling and geometry need no backend.
+
+Open http://localhost:4173/iab for the separate `c15t.iab.js` entry. It uses a sample vendor list from `iab-gvl.json`, displays purposes and vendors, and saves a TC string. It runs offline; replace the example CMP ID and vendor data with your CMP configuration for a real site.

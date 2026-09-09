@@ -14,6 +14,7 @@ import type {
 	Unsubscribe,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
+import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
 
 import { createDeferred } from './deferred';
 import { activateGatedScripts } from './gated-scripts';
@@ -57,6 +58,10 @@ const PAGE_ACTIONS: ReadonlySet<string> = new Set<PageAction>([
 
 /** Extra wiring the entry points hand to the client. */
 export interface CreateConsentClientContext {
+	/** Install entry-specific globals before runtime initialization. */
+	onStart?: (options: ConsentClientOptions) => () => void;
+	/** Optional CMP factory supplied exclusively by the IAB entry. */
+	createIAB?: ConsentRuntimeIABFactory;
 	/** Mounts the prebuilt UI. Absent in the headless build. */
 	mountUI?: ConsentUIMounter;
 	/** Package name reported on `window.c15t`. */
@@ -209,13 +214,18 @@ export const createConsentClient = function createConsentClient(
 	options: ConsentClientOptions = {},
 	context: CreateConsentClientContext = {}
 ): ConsentClient {
+	if (options.iab && options.iab.enabled !== false && !context.createIAB) {
+		throw new Error('@c15t/browser: IAB requires the @c15t/browser/iab entry.');
+	}
 	const mode = resolveMode(options);
 	const configuredCategories = options.consentCategories ?? [];
 	const runtime = createConsentRuntime({
 		callbacks: options.callbacks,
 		consentCategories: options.consentCategories,
+		createIAB: context.createIAB,
 		enabled: options.enabled,
 		i18n: options.i18n,
+		iab: context.createIAB ? (options.iab ?? { enabled: true }) : undefined,
 		iframeBlocker: options.iframeBlocker,
 		mode: mode.factory,
 		networkBlocker: options.networkBlocker,
@@ -340,8 +350,55 @@ export const createConsentClient = function createConsentClient(
 		}
 		return result;
 	};
-	const acceptAll = (): Promise<SaveResult> => saveSelection('all');
-	const rejectAll = (): Promise<SaveResult> => saveSelection('none');
+	const saveIAB = async (blanket?: boolean): Promise<SaveResult> => {
+		const handle = runtime.iab;
+		if (
+			!handle ||
+			!kernel.getSnapshot().iab?.gvl ||
+			kernel.getSnapshot().policyRule.model !== 'iab'
+		) {
+			emit('error', new Error('IAB privacy settings are not ready.'));
+			return { ok: false };
+		}
+		navigation += 1;
+		const current = navigation;
+		const snapshot = kernel.getSnapshot();
+		try {
+			if (blanket === true) {
+				handle.acceptAll();
+			}
+			if (blanket === false) {
+				handle.rejectAll();
+			}
+			await handle.save();
+			const next = kernel.getSnapshot();
+			if (
+				!next.iab?.authority ||
+				next.evaluationPolicy.choice.fingerprint !==
+					snapshot.evaluationPolicy.choice.fingerprint
+			) {
+				return { ok: false };
+			}
+			if (current === navigation) {
+				kernel.set.activeUI('none');
+			}
+			return { ok: true };
+		} catch (error) {
+			if (current === navigation) {
+				kernel.set.activeUI(snapshot.activeUI);
+			}
+			emit('error', error instanceof Error ? error : new Error(String(error)));
+			return { ok: false };
+		}
+	};
+	const acceptAll = (): Promise<SaveResult> =>
+		kernel.getSnapshot().policyRule.model === 'iab'
+			? saveIAB(true)
+			: saveSelection('all');
+	const rejectAll = (): Promise<SaveResult> =>
+		kernel.getSnapshot().policyRule.model === 'iab'
+			? saveIAB(false)
+			: saveSelection('none');
 
 	const onPageClick = function onPageClick(event: MouseEvent): void {
 		const action = resolvePageAction(event.target);
@@ -455,6 +512,10 @@ export const createConsentClient = function createConsentClient(
 		rejectAll,
 		runtime,
 		save(consents: Partial<ConsentState>) {
+			if (kernel.getSnapshot().policyRule.model === 'iab') {
+				emit('error', new Error('Use saveIAB() to confirm IAB preferences.'));
+				return Promise.resolve({ ok: false });
+			}
 			const allowed = new Set<string>(categories());
 			return saveSelection(
 				Object.fromEntries(
@@ -462,6 +523,7 @@ export const createConsentClient = function createConsentClient(
 				)
 			);
 		},
+		saveIAB: () => saveIAB(),
 		setLanguage(code: string) {
 			kernel.set.language(code);
 			void kernel.commands.init();
@@ -475,6 +537,9 @@ export const createConsentClient = function createConsentClient(
 				return;
 			}
 			started = true;
+			if (context.onStart && options.enabled !== false) {
+				disposers.push(context.onStart(options));
+			}
 			runtime.start();
 			// Inert `<script type="text/plain" data-c15t-category>` tags a
 			// returning visitor already consented to run straight away.

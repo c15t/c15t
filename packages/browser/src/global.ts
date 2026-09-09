@@ -97,6 +97,7 @@ export interface C15tGlobal {
 	acceptAll: ConsentClient['acceptAll'];
 	rejectAll: ConsentClient['rejectAll'];
 	save: ConsentClient['save'];
+	saveIAB: ConsentClient['saveIAB'];
 	dismissNotice: ConsentClient['dismissNotice'];
 	showBanner: () => void;
 	openDialog: () => void;
@@ -272,6 +273,7 @@ export const createGlobal = function createGlobal(
 		},
 		rejectAll: () => require().rejectAll(),
 		save: (consents) => require().save(consents),
+		saveIAB: () => require().saveIAB(),
 		setLanguage: (code) => {
 			require().setLanguage(code);
 		},

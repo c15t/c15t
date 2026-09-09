@@ -99,6 +99,12 @@ export interface ConsentTriggerOptions {
 
 /** How and where the prebuilt UI mounts. */
 export interface ConsentUIOptions {
+	/** Copy for browser-specific IAB loading, saving, and pagination states. */
+	iab?: {
+		loadErrorText?: string;
+		saveErrorText?: string;
+		moreVendorsText?: string;
+	};
 	/**
 	 * Element (or selector) to append the UI host to. Defaults to
 	 * `document.body`.
@@ -138,6 +144,8 @@ export interface ConsentUIOptions {
  * factories, callbacks, and DOM containers through `c15t.push(['config', {...}])` on a no-code site.
  */
 export interface ConsentClientOptions {
+	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */
+	iab?: ConsentRuntimeOptions['iab'];
 	/**
 	 * Transport. A name picks one of the built-in modes; a factory from
 	 * `hosted()`, `offline()`, `manifest()` or `custom()` is used as is.
@@ -271,6 +279,8 @@ export interface ConsentClient {
 	 * @param consents - Categories to grant or deny.
 	 */
 	save: (consents: Partial<ConsentState>) => Promise<SaveResult>;
+	/** Confirm the current IAB vendor/purpose draft through the CMP. */
+	saveIAB: () => Promise<SaveResult>;
 	/** Acknowledge a notice without recording category choices. */
 	dismissNotice: () => Promise<NoticeDismissResult>;
 	/** Show the banner. */

@@ -244,7 +244,7 @@ export const createDialog = function createDialog(
 		},
 		sync(snapshot) {
 			const shouldShow =
-				snapshot.activeUI === 'dialog' && snapshot.model !== 'iab';
+				snapshot.activeUI === 'dialog' && snapshot.policyRule.model !== 'iab';
 			if (!shouldShow) {
 				close();
 				return;

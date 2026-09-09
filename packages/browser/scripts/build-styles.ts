@@ -87,6 +87,15 @@ const main = async function main(): Promise<void> {
 
 	await mkdir(outputDir, { recursive: true });
 	await writeFile(join(outputDir, 'styles.ts'), `${banner}\n${body}`);
+	const iabStylesheet = await readFile(join(uiDist, 'iab/styles.css'), 'utf8');
+	const iabClasses = {
+		banner: await readClassMap('iab-consent-banner'),
+		dialog: await readClassMap('iab-consent-dialog'),
+	};
+	await writeFile(
+		join(outputDir, 'iab-styles.ts'),
+		`${banner}\nexport const stylesheet: string = ${JSON.stringify(iabStylesheet)};\nexport const classes = ${JSON.stringify(iabClasses, null, '\t')} as const;\n`
+	);
 };
 
 await main();

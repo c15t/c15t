@@ -274,7 +274,7 @@ export const createBanner = function createBanner(
 		sync(snapshot) {
 			const shouldShow =
 				snapshot.activeUI === 'banner' &&
-				snapshot.model !== 'iab' &&
+				snapshot.policyRule.model !== 'iab' &&
 				snapshot.policyRule.prompt !== 'none';
 			if (!shouldShow) {
 				hide();

@@ -4,6 +4,7 @@ import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
 } from '../shared/rslib-utils';
+import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
 
 /**
  * Three outputs from one source tree:
@@ -34,6 +35,9 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 		// still receives security updates, independent of the host's
 		// browserslist.
 		syntax: 'es2020' as const,
+		tools: {
+			rspack: { plugins: name === 'c15t.iab' ? [] : [iabBundleBoundary()] },
+		},
 	};
 };
 
@@ -49,12 +53,14 @@ export default defineConfig({
 				entry: {
 					devtools: './src/devtools.ts',
 					headless: './src/headless.ts',
+					iab: './src/iab.ts',
 					index: './src/index.ts',
 				},
 			},
 		},
 		scriptTagLib('c15t', './src/entries/cdn.ts'),
 		scriptTagLib('c15t.headless', './src/entries/cdn-headless.ts'),
+		scriptTagLib('c15t.iab', './src/entries/cdn-iab.ts'),
 		scriptTagLib('c15t.devtools', './src/entries/cdn-devtools.ts'),
 	],
 	output: {

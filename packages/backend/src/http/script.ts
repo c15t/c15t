@@ -20,10 +20,11 @@ import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { createManifestCacheControl } from './manifest';
 import type { ManifestCacheOptions } from './manifest';
 
-/** The two builds `@c15t/browser` publishes. */
+/** Browser builds served by the backend. */
 export const SCRIPT_BUNDLES = {
 	full: 'c15t.js',
 	headless: 'c15t.headless.js',
+	iab: 'c15t.iab.js',
 } as const;
 
 /** Which build to serve. */
@@ -37,6 +38,8 @@ export interface ScriptOptions {
 	readonly path?: string;
 	/** Path of the headless build. Defaults to `/c15t.headless.js`. */
 	readonly headlessPath?: string;
+	/** Path of the optional IAB build. Defaults to `/c15t.iab.js`. */
+	readonly iabPath?: string;
 	/**
 	 * Origin the script should call for `/init` and `/subjects`. Derived
 	 * from the request URL when omitted, which is right unless a proxy

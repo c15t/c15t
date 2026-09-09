@@ -40,6 +40,7 @@
 	"type": "module",
 	"sideEffects": [
 		"./dist/c15t.js",
+		"./dist/c15t.iab.js",
 		"./dist/c15t.headless.js",
 		"./dist/c15t.devtools.js",
 		"**/*.css"
@@ -67,7 +68,14 @@
 		"./styles.css": "./dist/c15t.css",
 		"./c15t.js": "./dist/c15t.js",
 		"./c15t.headless.js": "./dist/c15t.headless.js",
-		"./c15t.devtools.js": "./dist/c15t.devtools.js"
+		"./c15t.devtools.js": "./dist/c15t.devtools.js",
+		"./iab": {
+			"types": "./dist-types/iab.d.ts",
+			"import": "./dist/iab.js",
+			"default": "./dist/iab.js"
+		},
+		"./c15t.iab.js": "./dist/c15t.iab.js",
+		"./iab/styles.css": "./dist/c15t.iab.css"
 	},
 	"publishConfig": {
 		"access": "public"
@@ -87,6 +95,7 @@
 	"dependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/dev-tools": "workspace:*",
+		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*"

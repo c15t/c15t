@@ -30,11 +30,13 @@ const resolveContainer = function resolveContainer(
 };
 
 const buildStyleText = function buildStyleText(
-	options: ConsentUIOptions
+	options: ConsentUIOptions,
+	extraStyles = ''
 ): string {
 	const parts: string[] = [];
 	if (options.styles !== false && !options.noStyle) {
 		parts.push(stylesheet);
+		parts.push(extraStyles);
 	}
 	if (options.theme) {
 		parts.push(generateThemeCSS(options.theme));
@@ -104,7 +106,11 @@ const applyColorScheme = function applyColorScheme(
  */
 export const mountConsentUI = function mountConsentUI(
 	client: ConsentClient,
-	options: ConsentUIOptions = {}
+	options: ConsentUIOptions = {},
+	extension?: {
+		stylesheet: string;
+		createSurfaces: (ctx: SurfaceContext) => Surface[];
+	}
 ): ConsentUIHandle {
 	const container = resolveContainer(options.container);
 	const useShadow = options.shadow ?? true;
@@ -113,7 +119,7 @@ export const mountConsentUI = function mountConsentUI(
 		? host.attachShadow({ mode: 'open' })
 		: host;
 
-	const styleText = buildStyleText(options);
+	const styleText = buildStyleText(options, extension?.stylesheet);
 	if (styleText) {
 		root.append(h('style', {}, styleText));
 	}
@@ -139,6 +145,7 @@ export const mountConsentUI = function mountConsentUI(
 	};
 
 	const surfaces: Surface[] = [];
+	surfaces.push(...(extension?.createSurfaces(ctx) ?? []));
 	if (options.banner !== false) {
 		surfaces.push(
 			createBanner(ctx, options.banner === true ? {} : (options.banner ?? {}))

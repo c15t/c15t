@@ -252,9 +252,67 @@ const c15t = init({
 
 `@c15t/browser/headless` exports the client without the UI, and `@c15t/browser/styles.css` is the stylesheet for `shadow: false`.
 
+## Optional IAB entry
+
+Load `c15t.iab.js` instead of `c15t.js` when your policy requires IAB TCF. This separate build includes the CMP, TC-string codec, banner, and vendor/purpose preference centre. The normal and headless builds exclude the IAB implementation and stylesheet.
+
+```html
+<script>
+  window.c15t = [['config', {
+    backendURL: 'https://your-instance.c15t.dev',
+    iab: {
+      cmpId: 28, // Replace with your registered CMP ID, or let the backend supply it.
+      vendors: [1, 2, 755],
+    },
+    ui: {
+      trigger: true,
+      theme: { colors: { primary: '#0a66ff' } },
+    },
+  }]];
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.iab.js" defer></script>
+<button type="button" data-c15t-action="customize">Privacy settings</button>
+```
+
+The self-hosted backend can serve the same entry at `/c15t.iab.js`. Set `script.config.iab` to supply CMP defaults and `script.iabPath` to change the route. Both script routes use the same manifest and backend settings, but only the IAB route serves the IAB bundle.
+
+Do not load both `c15t.js` and `c15t.iab.js`. The IAB entry owns one client and one CMP. It shows the ordinary banner when the resolved policy is non-IAB. If an IAB policy cannot load its vendor list, the UI shows an error and keeps confirmation disabled.
+
+Bundler applications import the optional entry:
+
+```ts
+import { init } from '@c15t/browser/iab';
+
+const client = init({
+  backendURL: 'https://your-instance.c15t.dev',
+  iab: { cmpId: 28, vendors: [1, 2, 755] },
+  ui: { trigger: true },
+});
+
+await client.ready();
+const cmp = client.runtime.iab;
+if (cmp) {
+  await cmp.whenReady?.();
+  cmp.setPurposeConsent(1, true);
+  cmp.setVendorConsent(755, true);
+  const result = await client.saveIAB();
+  if (!result.ok) client.openDialog();
+}
+```
+
+`ready()` resolves the policy. `runtime.iab.whenReady()` waits for the vendor list and CMP setup and rejects if setup fails. The CMP installs `window.__tcfapi`; `dispose()` removes it and its subscriptions.
+
+`acceptAll()` and `rejectAll()` confirm through the CMP in IAB mode. Use `saveIAB()` for individual changes. Category-only `save({ ... })` rejects an IAB policy because it cannot produce the required TC authority. The CMP also exposes `setPurposeLegitimateInterest`, `setVendorLegitimateInterest`, and `setSpecialFeatureOptIn`. These edit the IAB draft; call `saveIAB()` to confirm it.
+
+The IAB UI supports `ui.theme`, `ui.css`, and `ui.shadow` just like the ordinary banner. For external light-DOM styles, load both `@c15t/browser/styles.css` and `@c15t/browser/iab/styles.css`. Set `ui: false` to build custom HTML against the IAB client. This still downloads the IAB-capable entry; it is not the normal headless bundle.
+
+Override the adapter's loading error, save error, and pagination copy with `ui.iab.loadErrorText`, `ui.iab.saveErrorText`, and `ui.iab.moreVendorsText`. The remaining IAB copy comes from the resolved translations.
+
+Try `examples/script-tag/iab.html` at `/iab` in the example server. It uses a local sample vendor list and offline storage, so you can exercise TC-string saves without a backend.
+
 ## Limitations
 
-- IAB TCF is not supported in this package yet. Use `@c15t/react`, `@c15t/vue`, or `@c15t/svelte` for TCF sites.
+- IAB TCF requires the optional IAB entry. The browser adapter has not yet joined the shared framework visual parity runner.
 - The bundle carries English only. Other languages come from the backend, manifest, or `i18n` overrides.
 - The browser client exposes `getSnapshot()`, `subscribe()`, and imperative actions. It does not expose React's `useConsentDraft()` API or compound component composition. A custom preference center must own its draft, seed it from explicit choices and policy defaults, and discard stale drafts when the choice fingerprint changes.
 - `acceptAll()`, `rejectAll()`, and `save()` resolve to a `SaveResult`. Check `result.ok`; a transport failure keeps the local receipt and queues a retry. The prebuilt preferences remain open on failure.

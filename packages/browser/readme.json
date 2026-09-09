@@ -38,6 +38,7 @@
 	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/script-tag",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Deployment Modes": "- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control\n- **Manifest mode**: Inline or fetch the backend's cacheable `/manifest` and resolve the policy in the browser\n- **Offline mode**: Browser-only consent storage for portfolios, docs sites, previews, and demos"
+		"Deployment Modes": "- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control\n- **Manifest mode**: Inline or fetch the backend's cacheable `/manifest` and resolve the policy in the browser\n- **Offline mode**: Browser-only consent storage for portfolios, docs sites, previews, and demos",
+		"Optional IAB entry": "Load `c15t.iab.js` instead of `c15t.js`, or import `init` from `@c15t/browser/iab`. Configure `iab` with your registered CMP ID and vendor list. This entry includes the CMP, TC codec, purpose/vendor preferences, and IAB styles. The ordinary and headless entries exclude that implementation. Use `client.saveIAB()` to confirm individual IAB choices. See the [IAB script example](https://c15t.com/docs/frameworks/javascript/script-tag#optional-iab-entry)."
 	}
 }

@@ -157,6 +157,23 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		expect(body).not.toContain('consent-banner-root');
 	});
 
+	it('serves IAB only from its separate route and honors an override', async () => {
+		const app = makeApp({
+			script: { config: { iab: { cmpId: 28 } }, iabPath: '/privacy.iab.js' },
+		});
+		const response = await app.request('http://x.c15t.dev/privacy.iab.js');
+		expect(response.status).toBe(200);
+		const body = await response.text();
+		expect(body).toContain('iab-consent-banner-root');
+		expect(body).toContain('"cmpId":28');
+		expect(
+			await (await app.request('http://x.c15t.dev/c15t.js')).text()
+		).not.toContain('iab-consent-banner-root');
+		expect((await app.request('http://x.c15t.dev/c15t.iab.js')).status).toBe(
+			404
+		);
+	});
+
 	it('escapes a closing script tag in the config', async () => {
 		const response = await makeApp({
 			script: { config: { note: '</script><script>alert(1)' } },

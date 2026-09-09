@@ -25,6 +25,11 @@ export const register = function register({
 	}
 	const routes: [string, ScriptVariant, string][] = [
 		[
+			script.iabPath ?? '/c15t.iab.js',
+			'iab',
+			'The consent runtime and IAB preference UI, configured for this backend',
+		],
+		[
 			script.path ?? '/c15t.js',
 			'full',
 			'The consent banner as one script tag, configured for this backend',
@@ -43,8 +48,8 @@ export const register = function register({
 			try {
 				bundle = await loadScriptBundle(variant, script);
 			} catch (error) {
-				// The bundle ships in `@c15t/browser`; a runtime without a
-				// filesystem needs `script.bundles`. Say so rather than 500.
+				// The bundle ships in `@c15t/browser`; custom file paths can
+				// be supplied through `script.bundles`.
 				return c.json(
 					{
 						cause: { code: 'SCRIPT_UNAVAILABLE' },

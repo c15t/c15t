@@ -37,7 +37,12 @@ export interface CMPApiConfig {
  * Handle returned by the CMP API factory.
  */
 export interface CMPApi {
-	updateConsent: (tcString: string, consentData?: TCFConsentData) => void;
+	/** Update the confirmed TC data and, when supplied, regional applicability. */
+	updateConsent: (
+		tcString: string,
+		consentData?: TCFConsentData,
+		gdprApplies?: boolean
+	) => void;
 	setDisplayStatus: (status: 'visible' | 'hidden' | 'disabled') => void;
 	loadFromStorage: () => string | null;
 	saveToStorage: (tcString: string) => void;
