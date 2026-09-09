@@ -1,104 +1,105 @@
 import {
 	deleteConsentFromStorage,
 	deleteCookie,
-	getConsentFromStorage,
 	getCookie,
 	getRootDomain,
-	saveConsentToStorage,
 	setCookie,
 } from '@c15t/core';
 
+import type { StoredConsentEnvelope } from '../../packages/core/src/modules/persistence/record-codec';
+import {
+	readStoredConsentRecord,
+	writeStoredConsentEnvelope,
+} from '../../packages/core/src/modules/persistence/record-storage';
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
-// Mock localStorage for Node.js environment
-if (typeof globalThis.localStorage === 'undefined') {
-	const store: Record<string, string> = {};
-	globalThis.localStorage = {
-		clear: () => {
-			for (const key in store) {
-				if (Object.hasOwn(store, key)) {
-					Reflect.deleteProperty(store, key);
-				}
-			}
-		},
-		getItem: (key: string) => store[key] || null,
-		key: (index: number) => Object.keys(store)[index] || null,
-		length: Object.keys(store).length,
-		removeItem: (key: string) => {
-			Reflect.deleteProperty(store, key);
-		},
-		setItem: (key: string, value: string) => {
-			store[key] = value;
-		},
-	} as Storage;
-}
-
-// Mock document.cookie for Node.js environment
-if (typeof globalThis.document === 'undefined') {
-	let cookieStore = '';
-	globalThis.document = {
+// In-memory browser stores preserve separate cookie keys and deletion semantics.
+const storage = new Map<string, string>();
+const cookies = new Map<string, string>();
+const localStorage = {
+	clear: () => storage.clear(),
+	getItem: (key: string) => storage.get(key) ?? null,
+	key: (index: number) => [...storage.keys()][index] ?? null,
+	get length() {
+		return storage.size;
+	},
+	removeItem: (key: string) => storage.delete(key),
+	setItem: (key: string, value: string) => storage.set(key, value),
+};
+Object.defineProperty(globalThis, 'window', {
+	value: { localStorage, location: new URL('https://app.example.com') },
+});
+Object.defineProperty(globalThis, 'document', {
+	value: {
 		get cookie() {
-			return cookieStore;
+			return [...cookies].map(([key, value]) => `${key}=${value}`).join('; ');
 		},
 		set cookie(value: string) {
-			cookieStore = value;
+			const [pair = '', ...attributes] = value.split(';');
+			const separator = pair.indexOf('=');
+			const key = pair.slice(0, separator);
+			const expires = attributes.find((attribute) =>
+				attribute.trim().toLowerCase().startsWith('expires=')
+			);
+			if (expires && Date.parse(expires.trim().slice(8)) <= Date.now()) {
+				cookies.delete(key);
+			} else {
+				cookies.set(key, pair.slice(separator + 1));
+			}
 		},
-	} as Document;
-}
+	},
+});
 
-// Sample consent data (typical structure)
-const sampleConsents = {
-	experience: false,
-	functionality: false,
-	marketing: false,
-	measurement: true,
-	necessary: true,
+const now = Date.now();
+const basis = { fingerprint: 'benchmark-choice', kind: 'choice-v1' } as const;
+const sampleEnvelope: StoredConsentEnvelope = {
+	categories: {
+		experience: { basis, confirmedAt: now, value: false },
+		functionality: { basis, confirmedAt: now, value: false },
+		marketing: { basis, confirmedAt: now, value: false },
+		measurement: { basis, confirmedAt: now, value: true },
+	},
+	version: 3,
 };
-
-const sampleConsentInfo = {
-	identified: false,
-	time: 1704067200000,
-	type: 'custom' as const,
+const allGrantedEnvelope: StoredConsentEnvelope = {
+	...sampleEnvelope,
+	categories: Object.fromEntries(
+		Object.entries(sampleEnvelope.categories).map(([key, receipt]) => [
+			key,
+			{ ...receipt, value: true },
+		])
+	),
 };
-
-// All consents true (larger cookie)
-const allConsentsTrue = {
-	experience: true,
-	functionality: true,
-	marketing: true,
-	measurement: true,
-	necessary: true,
-};
-
-// Storage configuration options
-const _defaultStorageConfig = undefined;
 const customStorageConfig = {
 	crossSubdomain: true,
 	defaultExpiryDays: 365,
 	storageKey: 'custom-consent',
 };
 
-// High-level storage benchmarks
-bench('saveConsentToStorage - typical consents', () => {
-	saveConsentToStorage(sampleConsents, sampleConsentInfo);
-});
+// Seed read benchmarks independently of the order Mitata executes trials.
+const readConfig = { storageKey: 'benchmark-read' };
+writeStoredConsentEnvelope(sampleEnvelope, { config: readConfig, now });
+if (!readStoredConsentRecord(readConfig, now).selected) {
+	throw new Error(
+		'Cookie benchmark failed to round-trip its v3 consent record'
+	);
+}
 
-bench('saveConsentToStorage - all consents true', () => {
-	saveConsentToStorage(allConsentsTrue, sampleConsentInfo);
+bench('writeStoredConsentEnvelope - typical receipts', () => {
+	writeStoredConsentEnvelope(sampleEnvelope, { now });
 });
-
-bench('saveConsentToStorage - with custom config', () => {
-	saveConsentToStorage(sampleConsents, sampleConsentInfo, customStorageConfig);
+bench('writeStoredConsentEnvelope - all granted', () => {
+	writeStoredConsentEnvelope(allGrantedEnvelope, { now });
 });
-
-bench('getConsentFromStorage - after save', () => {
-	getConsentFromStorage();
+bench('writeStoredConsentEnvelope - with custom config', () => {
+	writeStoredConsentEnvelope(sampleEnvelope, {
+		config: customStorageConfig,
+		now,
+	});
 });
-
-bench('getConsentFromStorage - with custom config', () => {
-	getConsentFromStorage(customStorageConfig);
+bench('readStoredConsentRecord - saved receipts', () => {
+	readStoredConsentRecord(readConfig, now);
 });
-
 bench('deleteConsentFromStorage', () => {
 	deleteConsentFromStorage();
 });
@@ -110,7 +111,7 @@ bench('setCookie - simple value', () => {
 
 bench('setCookie - with options', () => {
 	setCookie('test-cookie', 'test-value', {
-		expires: 365,
+		expiryDays: 365,
 		path: '/',
 		sameSite: 'Lax',
 	});
@@ -135,8 +136,8 @@ bench('getRootDomain', () => {
 
 // Full round-trip benchmark
 bench('full round-trip: save -> get -> delete', () => {
-	saveConsentToStorage(sampleConsents, sampleConsentInfo);
-	getConsentFromStorage();
+	writeStoredConsentEnvelope(sampleEnvelope, { now });
+	readStoredConsentRecord(undefined, now);
 	deleteConsentFromStorage();
 });
 

@@ -22,6 +22,10 @@ Pass `mode` to `ConsentProvider`. For a backend integration, configure
 [JavaScript quickstart](/docs/frameworks/javascript/quickstart) for a complete
 integration.
 
+The CLI no longer offers `offline-add-policy-packs`, which generated v2
+configuration. For offline integrations, configure `offline({ policyRules })`
+as shown above.
+
 Replace legacy `policyPacks` and nested `consent` configuration with rules:
 
 ```ts
