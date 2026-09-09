@@ -7,7 +7,7 @@ import {
 import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
 
 /**
- * Three outputs from one source tree:
+ * ESM entries and standalone script builds from one source tree:
  *
  * - `dist/index.js` + `dist/headless.js` — ESM for bundler users, with the
  *   workspace packages left external so they dedupe against `@c15t/core`.
@@ -16,6 +16,7 @@ import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
  *   from the `<script>` tag's `data-*` attributes.
  * - `dist/c15t.headless.js` — the same without any UI or CSS, for sites
  *   that render their own banner against `window.c15t`.
+ * - `dist/c15t.iab.js` — an optional replacement with the CMP and IAB UI.
  * - `dist/c15t.devtools.js` — the DevTools panel as a second tag.
  */
 const scriptTagLib = function scriptTagLib(name: string, entry: string) {

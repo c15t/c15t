@@ -1,6 +1,6 @@
 # Browser package audit
 
-PR [#1086](https://github.com/c15t/c15t/pull/1086), rebased onto `origin/v3` at `7c2a028dd`.
+PR [#1086](https://github.com/c15t/c15t/pull/1086), rebased onto `origin/v3` at `9168d23d7`.
 
 The implementation reuses the consent runtime, policy resolver, permission evaluator, translations, theme system, and component CSS. The optional IAB entry now provides the existing CMP and an imperative preference UI. Full React parity still needs a reusable public draft API and shared visual scenario coverage.
 
@@ -87,7 +87,7 @@ A future backend editor would store and distribute presentation settings. Render
 5. The stock UI injects inline styles and has no nonce option. A strict style CSP needs a supported integration path before that environment is advertised.
 6. The HTML scanner can activate scripts but cannot undo their effects. Use vendor cleanup through the runtime's script lifecycle or reload after withdrawal. The old documentation's automatic-reload promise no longer matches v3.
 7. The manifest is cached for the lifetime of the transport. `ready()` waits for successful initialization and does not reject on an initialization failure. Applications should subscribe to errors and plan how to reload or recreate a failed or outdated client.
-8. The rebased full and headless builds are approximately 83.5 KB and 55.6 KB gzip. The old 51 KB and 28 KB figures no longer apply. Measure the policy preset and manifest resolver costs before optimizing; named presets currently retain the preset collection.
+8. The rebased full and headless builds are approximately 83.9 KB and 56.0 KB gzip; the optional IAB build is 116.3 KB gzip. The old 51 KB and 28 KB figures no longer apply. Measure the policy preset and manifest resolver costs before optimizing; named presets currently retain the preset collection.
 
 ## Validation
 
@@ -95,7 +95,7 @@ A future backend editor would store and distribute presentation settings. Render
 - Full repository typechecks, repository lint and formatting, documentation lint, and the browser package's dry-run pack and artifact verification.
 - Chromium against the built IIFEs: accept/save, persistence across reload, all displayed custom-HTML categories, computed styles in shadow and light DOM, mobile fit at 390px, forward/reverse keyboard focus wrapping, Escape, and duplicate script loading. No page errors in those flows.
 - The normal, headless, and DevTools builds pass the dependency assertion excluding the IAB implementation, codec, and stylesheet.
-- IAB browser regressions: 78 total browser tests pass. The package build/test run passes all 40 Turbo tasks with bounded concurrency; root tooling passes 132 tests.
-- Chromium against the optional built script: purpose/vendor selection, TC confirmation, reload persistence, and a 390px mobile dialog. No page errors in those flows.
+- IAB browser regressions: 78 total browser tests pass. The package build/test run passes all 40 Turbo tasks with bounded concurrency; root tooling passes 135 tests.
+- Chromium against the optional built script: purpose/vendor selection, TC confirmation, reload persistence, a 390px mobile dialog, forward/reverse focus wrapping, Escape focus restoration, and duplicate script loading. No page errors in those flows.
 
 These checks establish the exercised behavior. They do not establish full visual parity or compatibility with every CMS theme and CSP.
