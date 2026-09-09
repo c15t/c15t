@@ -437,7 +437,9 @@ export const createIAB = function createIAB(
 		if (!cmpApi) {
 			return;
 		}
-		const tcString = snapshot.iab?.authority?.tcString ?? null;
+		// Expiry can synchronously publish a newer snapshot while arming the
+		// timer. Never restore the expired receipt from this notification.
+		const tcString = kernel.getSnapshot().iab?.authority?.tcString ?? null;
 		cmpApi.updateConsent(tcString ?? '');
 	});
 

@@ -124,6 +124,25 @@ test('IAB draft changes do not grant; save records one category action and confi
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
 });
 
+test.each([0, 1000])(
+	'a snapshot update clears the CMP API %s ms after expiry without waiting for timers',
+	async (overdue) => {
+		const kernel = makeKernel();
+		const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		await addon.save();
+		expect(addon.cmpApi?.getTcString()).toBeTruthy();
+
+		// A suspended tab can resume after expiry before its timer runs.
+		vi.setSystemTime(NOW + DAY + overdue);
+		kernel.set.activeUI('dialog');
+
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(addon.cmpApi?.getTcString()).toBe('');
+	}
+);
+
 test('stored authority hydration preserves clocks and does not write or record choice', async () => {
 	const original = makeKernel();
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel: original });
