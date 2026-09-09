@@ -35,29 +35,6 @@ import type {
 } from './types';
 import { liveVendorProbeConfigs } from './vendors';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 2_000;
 const LOADER_TIMEOUT_MS = 20_000;
@@ -631,9 +608,9 @@ const probeVendor = async function probeVendor(
 		if (attempt > 1) {
 			// Retries exist to absorb transient third-party failures; give the
 			// vendor endpoint a moment before hitting it again.
-			await createDeferredPromise((resolve) =>
-				setTimeout(resolve, RETRY_DELAY_MS)
-			);
+			await new Promise((resolve) => {
+				setTimeout(resolve, RETRY_DELAY_MS);
+			});
 		}
 
 		try {

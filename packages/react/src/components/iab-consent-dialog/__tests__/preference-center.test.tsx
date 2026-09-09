@@ -511,11 +511,11 @@ describe('IAB Consent Dialog Unit Tests', () => {
 				</ConsentProvider>
 			);
 
-			// Trigger should eventually appear
 			await vi.waitFor(
 				() => {
-					// Component should render without error
-					expect(document.body).toBeTruthy();
+					expect(
+						document.querySelector('[data-testid="consent-dialog-trigger"]')
+					).toBeInTheDocument();
 				},
 				{ timeout: 1000 }
 			);

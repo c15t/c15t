@@ -26,29 +26,6 @@ import type { MachineExecutionResult } from '../types';
 import { generateMachine } from './machine';
 import type { GenerateMachineContext } from './types';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const getSetupTrigger = function getSetupTrigger(
 	modeArg: StorageMode | undefined,
 	resumed: boolean
@@ -237,7 +214,7 @@ export const runGenerateMachine = async function runGenerateMachine(
 	}
 
 	// Wait for completion
-	return createDeferredPromise((resolve) => {
+	return new Promise((resolve) => {
 		actor.subscribe({
 			complete: () => {
 				const finalSnapshot = actor.getSnapshot();

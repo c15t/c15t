@@ -8,32 +8,11 @@ import {
 	setupTextDirection,
 } from '../dom';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 /** Flushes the trap's deferred (setTimeout 0) focus operations. */
 const flushFocusTimers = function flushFocusTimers(): Promise<void> {
-	return createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	return new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
 };
 
 describe('getTextDirection', () => {

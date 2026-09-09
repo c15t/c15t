@@ -69,29 +69,6 @@ afterEach(() => {
 	}
 });
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const REALISTIC_INIT_OUTPUT = {
 	branding: 'c15t',
 	cmpId: 28,
@@ -412,7 +389,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		let resolveInit: (value: InitResponse) => void = () => {};
 		const transport: KernelTransport = {
 			init() {
-				return createDeferredPromise((resolve) => {
+				return new Promise((resolve) => {
 					resolveInit = resolve;
 				});
 			},
@@ -590,10 +567,11 @@ describe('kernel transport: init applies response to snapshot', () => {
 		let resolveFirst: (value: InitResponse) => void = () => {};
 		const initSpy = vi
 			.fn<NonNullable<KernelTransport['init']>>()
-			.mockImplementationOnce(() =>
-				createDeferredPromise<InitResponse>((resolve) => {
-					resolveFirst = resolve;
-				})
+			.mockImplementationOnce(
+				() =>
+					new Promise<InitResponse>((resolve) => {
+						resolveFirst = resolve;
+					})
 			)
 			.mockResolvedValueOnce({ resolvedOverrides: { language: 'fr' } });
 		const kernel = createConsentKernel({ transport: { init: initSpy } });
@@ -622,10 +600,11 @@ describe('kernel transport: init applies response to snapshot', () => {
 		let rejectFirst: (reason: unknown) => void = () => {};
 		const initSpy = vi
 			.fn<NonNullable<KernelTransport['init']>>()
-			.mockImplementationOnce(() =>
-				createDeferredPromise<InitResponse>((_resolve, reject) => {
-					rejectFirst = reject;
-				})
+			.mockImplementationOnce(
+				() =>
+					new Promise<InitResponse>((_resolve, reject) => {
+						rejectFirst = reject;
+					})
 			)
 			.mockResolvedValue({});
 		const kernel = createConsentKernel({
@@ -868,11 +847,12 @@ describe('kernel transport: failed save replay', () => {
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
-			.mockImplementationOnce(() =>
-				createDeferredPromise<SaveResult>((resolve) => {
-					lifecycle.push('replay started');
-					resolveReplay = resolve;
-				})
+			.mockImplementationOnce(
+				() =>
+					new Promise<SaveResult>((resolve) => {
+						lifecycle.push('replay started');
+						resolveReplay = resolve;
+					})
 			);
 		const kernel = createConsentKernel({
 			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
@@ -962,7 +942,7 @@ describe('kernel transport: failed save replay', () => {
 
 		// The stale 'all' must never reach the backend after 'none' did.
 		await kernel.commands.init();
-		await createDeferredPromise((resolve) => {
+		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
 		expect(replayed).toEqual([]);
@@ -1070,10 +1050,12 @@ describe('kernel transport: failed save replay', () => {
 		try {
 			// Another tab holds the queue lock.
 			let releaseLock: () => void = () => {};
-			void locks.request(PENDING_SAVES_STORAGE_KEY, () =>
-				createDeferredPromise<boolean>((resolve) => {
-					releaseLock = () => resolve(true);
-				})
+			void locks.request(
+				PENDING_SAVES_STORAGE_KEY,
+				() =>
+					new Promise<boolean>((resolve) => {
+						releaseLock = () => resolve(true);
+					})
 			);
 
 			const saveCompleted: boolean[] = [];
@@ -1081,7 +1063,7 @@ describe('kernel transport: failed save replay', () => {
 				saveCompleted.push(result.ok);
 			});
 			const pendingSave = kernel.commands.save('all');
-			await createDeferredPromise((resolve) => {
+			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
 
@@ -1399,7 +1381,7 @@ describe('kernel transport: failed save replay', () => {
 					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)
 				).toBeNull();
 			});
-			await createDeferredPromise((resolve) => {
+			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
 
@@ -1423,7 +1405,7 @@ describe('kernel transport: failed save replay', () => {
 				ok: true,
 			});
 			await expect(kernel.commands.init()).resolves.toEqual({ ok: true });
-			await createDeferredPromise((resolve) => {
+			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
 			expect(saveSpy).toHaveBeenCalledTimes(1);
@@ -2548,10 +2530,11 @@ describe('independent partial save transport', () => {
 			let finish: (result: SaveResult) => void = () => {};
 			const send = vi
 				.fn()
-				.mockImplementationOnce(() =>
-					createDeferredPromise<SaveResult>((resolve) => {
-						finish = resolve;
-					})
+				.mockImplementationOnce(
+					() =>
+						new Promise<SaveResult>((resolve) => {
+							finish = resolve;
+						})
 				)
 				.mockResolvedValue(
 					mapping === 'canonical-subject'
@@ -2584,10 +2567,11 @@ describe('independent partial save transport', () => {
 		let finish: (result: SaveResult) => void = () => {};
 		const send = vi
 			.fn()
-			.mockImplementationOnce(() =>
-				createDeferredPromise<SaveResult>((resolve) => {
-					finish = resolve;
-				})
+			.mockImplementationOnce(
+				() =>
+					new Promise<SaveResult>((resolve) => {
+						finish = resolve;
+					})
 			)
 			.mockResolvedValue({ ok: true, subjectId: 'latest' });
 		const kernel = createConsentKernel({ transport: { save: send } });
@@ -2605,10 +2589,11 @@ describe('independent partial save transport', () => {
 
 	test('an explicit subject switch cancels a pending retry even after switching back', async () => {
 		let finish: (result: SaveResult) => void = () => {};
-		const send = vi.fn().mockImplementationOnce(() =>
-			createDeferredPromise<SaveResult>((resolve) => {
-				finish = resolve;
-			})
+		const send = vi.fn().mockImplementationOnce(
+			() =>
+				new Promise<SaveResult>((resolve) => {
+					finish = resolve;
+				})
 		);
 		const kernel = createConsentKernel({
 			initialRecords: { subject: { subjectId: 'original' } },
@@ -2640,10 +2625,11 @@ describe('partially superseded confirmations', () => {
 			let finish: (result: SaveResult) => void = () => {};
 			const send = vi.fn().mockResolvedValue({ ok: true });
 			if (phase === 'in-flight') {
-				send.mockImplementationOnce(() =>
-					createDeferredPromise<SaveResult>((resolve) => {
-						finish = resolve;
-					})
+				send.mockImplementationOnce(
+					() =>
+						new Promise<SaveResult>((resolve) => {
+							finish = resolve;
+						})
 				);
 			}
 			if (phase.startsWith('queued')) {

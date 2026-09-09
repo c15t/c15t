@@ -177,13 +177,12 @@ describe('IAB Consent Flow E2E Tests', () => {
 					btn.textContent?.toLowerCase().includes('confirm')
 			);
 
-			if (saveButton) {
-				await userEvent.click(saveButton);
-				await waitForElementRemoved('[data-testid="iab-consent-dialog-root"]');
-
-				const consent = getStoredConsent();
-				expect(consent).toBeDefined();
+			if (!saveButton) {
+				throw new Error('Save preferences button is missing');
 			}
+			await userEvent.click(saveButton);
+			await waitForElementRemoved('[data-testid="iab-consent-dialog-root"]');
+			expect(getStoredConsent()).not.toBeNull();
 		});
 	});
 

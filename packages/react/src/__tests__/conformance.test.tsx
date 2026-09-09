@@ -42,42 +42,6 @@ import type { ConsentProviderOptions } from '~/index';
 import { createPolicySession, probePolicyContract } from './policy-driver';
 import { policyFixture } from './policy-fixture';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
-const createVoidDeferredPromise = function createVoidDeferredPromise(
-	run: (
-		resolve: () => void,
-		reject: DeferredPromise<undefined>['reject']
-	) => void
-): Promise<void> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<undefined>();
-	run(() => deferred.resolve(undefined), deferred.reject);
-	return deferred.promise;
-};
-
 type ProviderOptions = ConsentProviderOptions & {
 	i18n?: {
 		locale?: string;
@@ -277,19 +241,17 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 
 const createPendingInit = function createPendingInit() {
 	let resolve!: () => void;
-	const promise = createDeferredPromise<{ policyResolution: unknown }>(
-		(settle) => {
-			resolve = () =>
-				settle({
-					policyResolution: writePolicyResolutionWire(
-						policyFixture().initialPolicyResolution ?? {
-							policy: null,
-							status: 'unconfigured',
-						}
-					),
-				});
-		}
-	);
+	const promise = new Promise<{ policyResolution: unknown }>((_resolve) => {
+		resolve = () =>
+			_resolve({
+				policyResolution: writePolicyResolutionWire(
+					policyFixture().initialPolicyResolution ?? {
+						policy: null,
+						status: 'unconfigured',
+					}
+				),
+			});
+	});
 	return { promise, resolve };
 };
 
@@ -317,8 +279,12 @@ const lifecycleTransportFor = function lifecycleTransportFor(
 };
 
 const flushScheduler = async function flushScheduler() {
-	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
-	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
 };
 
 const KernelCapture = ({
@@ -477,7 +443,7 @@ const driver: TestDriver = {
 		}
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};
-		const settled = createVoidDeferredPromise((resolve) => {
+		const settled = new Promise<void>((resolve) => {
 			resolveSettled = resolve;
 		});
 

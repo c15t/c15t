@@ -15,29 +15,6 @@ import type {
 	TokenResponse,
 } from './types';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 /**
  * Device flow endpoints
  */
@@ -331,7 +308,9 @@ export const initiateDeviceFlow = async function initiateDeviceFlow(
  * Sleep for a specified duration
  */
 const sleep = function sleep(ms: number): Promise<void> {
-	return createDeferredPromise((resolve) => setTimeout(resolve, ms));
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
 };
 
 type TokenPollResult =

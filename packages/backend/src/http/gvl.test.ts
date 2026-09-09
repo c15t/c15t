@@ -11,29 +11,6 @@ import { assert, describe, it } from 'vitest';
 import { gvlCacheKey, resolveGvl } from './gvl';
 import type { CacheAdapter } from './gvl';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 /** Minimal document satisfying `globalVendorListSchema`. */
 const GVL = {
 	features: {},
@@ -147,7 +124,9 @@ describe('resolveGvl', () => {
 		let calls = 0;
 		const slow = (async () => {
 			calls += 1;
-			await createDeferredPromise((resolve) => setTimeout(resolve, 20));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 20);
+			});
 			return new Response(JSON.stringify(GVL));
 		}) as unknown as typeof globalThis.fetch;
 

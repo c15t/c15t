@@ -99,9 +99,34 @@ describe('@c15t/nextjs/static', () => {
 		});
 
 		expect(source).toContain(
-			"import type { ConsentManifest } from '@c15t/schema/types';"
+			"import type { ConsentManifest } from '@c15t/nextjs/static';"
 		);
 		expect(source).toContain('export const testManifest = {');
 		expect(source).toContain('satisfies ConsentManifest');
 	});
+});
+
+test.each(['bad-name', 'default', 'eval', 'arguments', 'a;throw 1'])(
+	'rejects invalid export name %s before fetching',
+	async (exportName) => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		await expect(
+			createStaticManifestModule({
+				exportName,
+				fetch,
+				manifestURL: 'https://api.test/manifest',
+			})
+		).rejects.toThrow(/exportName/u);
+		expect(fetch).not.toHaveBeenCalled();
+	}
+);
+test('supports importing manifest types through the umbrella package', async () => {
+	const source = await createStaticManifestModule({
+		fetch: vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(Response.json(MANIFEST_FIXTURE)),
+		importSource: 'c15t/nextjs/static',
+		manifestURL: 'https://api.test/manifest',
+	});
+	expect(source).toContain("from 'c15t/nextjs/static'");
 });

@@ -5,7 +5,12 @@
 		"./src/lib/headless.ts",
 		"./src/lib/types.ts",
 		"./src/lib/utils.ts",
-		"./src/lib/context.svelte.ts"
+		"./src/lib/context.svelte.ts",
+		"./src/lib/kit/index.ts",
+		"./styles.css",
+		"./iab/styles.css",
+		"./src/styles.css",
+		"./src/iab/styles.css"
 	],
 	"ignoreBinaries": [
 		"oxfmt",

@@ -23,29 +23,6 @@ import {
 } from '../index';
 import { policyFixture } from './policy-fixture';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 type Category =
 	| 'necessary'
 	| 'functionality'
@@ -61,7 +38,10 @@ const CATEGORIES: Category[] = [
 ];
 const CHILDREN = 10;
 
-const settle = () => createDeferredPromise((r) => setTimeout(r, 20));
+const settle = () =>
+	new Promise((resolve) => {
+		setTimeout(resolve, 20);
+	});
 
 interface Run {
 	mountRenders: number;

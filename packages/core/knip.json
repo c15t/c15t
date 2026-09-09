@@ -10,7 +10,11 @@
 		"./src/modules/network-blocker/index.ts",
 		"./src/modules/iframe-blocker/index.ts",
 		"./src/modules/persistence/index.ts",
-		"./src/modules/window-debug/index.ts"
+		"./src/modules/window-debug/index.ts",
+		"./src/server/index.ts",
+		"./src/runtime/index.ts",
+		"./src/libs/manifest-cache.ts",
+		"./src/transports/manifest-cache.ts"
 	],
 	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
 	"ignore": [

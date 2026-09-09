@@ -10,29 +10,6 @@ import type { MountResult, TestDriver } from '../driver';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const FOCUSABLE_SELECTOR = [
 	'a[href]:not([disabled]):not([tabindex="-1"])',
 	'button:not([disabled]):not([tabindex="-1"])',
@@ -109,7 +86,9 @@ const keydown = function keydown(
 };
 
 const wait = async function wait(ms = 20): Promise<void> {
-	await createDeferredPromise((resolve) => setTimeout(resolve, ms));
+	await new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
 };
 
 const waitForElement = async function waitForElement(

@@ -1,4 +1,6 @@
+import { clearGvlCache } from '@c15t/core';
 import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -12,6 +14,7 @@ import { MANIFEST_FIXTURE } from './manifest-fixture';
 describe('@c15t/nextjs/api', () => {
 	beforeEach(() => {
 		clearManifestCache();
+		clearGvlCache();
 	});
 
 	test('GET extracts geo, language, and GPC headers for local init', async () => {
@@ -232,4 +235,52 @@ describe('@c15t/nextjs/api', () => {
 		const body = await response.json();
 		expect(body.policyResolution).toMatchObject({ policyId: 'eu-opt-in' });
 	});
+});
+
+test.each([
+	['s-maxage=60junk', undefined],
+	['s-maxage=1e2', undefined],
+	['s-maxage=1.5', undefined],
+	['s-maxage=0', 0],
+	['s-maxage=60', 60],
+])('parses whole cache lifetimes: %s', (header, expected) => {
+	expect(getSMaxAge(header as string)).toBe(expected);
+});
+
+test('reuses the GVL between IAB init requests', async () => {
+	clearGvlCache();
+	clearManifestCache();
+	const gvlURL = 'https://gvl.test/next-list';
+	const manifest = {
+		...MANIFEST_FIXTURE,
+		iab: { enabled: true, gvl: { url: gvlURL } },
+		policyPacks: [
+			createConsentManifestPolicyPack({
+				id: 'iab',
+				match: { fallback: true },
+				model: 'iab',
+				prompt: 'choice',
+			}),
+		],
+	};
+	const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation((url) =>
+		Promise.resolve(
+			Response.json(url === gvlURL ? { vendorListVersion: 12 } : manifest, {
+				headers: { 'cache-control': 'public, max-age=3600, s-maxage=3600' },
+			})
+		)
+	);
+	const { GET } = createNextConsentRouteHandlers({
+		fetch,
+		manifestURL: 'https://api.test/next-manifest',
+	});
+	const request = new Request('https://app.test/api/c15t/init');
+	expect((await (await GET(request)).json()).gvl).toEqual({
+		vendorListVersion: 12,
+	});
+	expect((await (await GET(request)).json()).gvl).toEqual({
+		vendorListVersion: 12,
+	});
+	expect(fetch.mock.calls.filter(([url]) => url === gvlURL)).toHaveLength(1);
+	clearGvlCache();
 });

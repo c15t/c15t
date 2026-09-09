@@ -26,29 +26,6 @@ import {
 } from './index';
 import type { KVNamespace } from './index';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 afterEach(() => {
 	// Shared module state; without this each test inherits the last one's keys.
 	clearMemoryCache();
@@ -76,7 +53,9 @@ describe('memory adapter', () => {
 		const cache = createMemoryCacheAdapter();
 		await cache.set('k', 'v', 1);
 
-		await createDeferredPromise((resolve) => setTimeout(resolve, 5));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 5);
+		});
 
 		// Lazy expiry: the entry is still in the Map, and `get` has to notice.
 		assert.isNull(await cache.get('k'));

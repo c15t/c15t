@@ -12,7 +12,6 @@ import { userEvent } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
-import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
@@ -219,7 +218,7 @@ describe('Consent Flow E2E Tests', () => {
 						.choice;
 					expect(stored).toBeTruthy();
 					const consent = getDefined(stored);
-					expect(consent.categories).toBeTruthy();
+					expect(consent.categories.marketing?.value).toBe(true);
 					expect(consent.categories.necessary).toBeUndefined();
 				},
 				{ timeout: 3000 }
@@ -278,7 +277,9 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			// Wait a bit to ensure banner would have shown if it was going to
-			await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 500);
+			});
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -533,9 +534,7 @@ describe('Consent Flow E2E Tests', () => {
 			const marketingSwitch = document.querySelector(
 				'[data-testid="consent-widget-switch-marketing"]'
 			);
-			if (marketingSwitch) {
-				await userEvent.click(marketingSwitch);
-			}
+			await userEvent.click(getDefined(marketingSwitch));
 
 			// Step 5: Save preferences
 			const saveButton = document.querySelector(
@@ -550,7 +549,7 @@ describe('Consent Flow E2E Tests', () => {
 						.choice;
 					expect(stored).toBeTruthy();
 					const consent = getDefined(stored);
-					expect(consent.categories).toBeTruthy();
+					expect(consent.categories.marketing?.value).toBe(true);
 				},
 				{ timeout: 3000 }
 			);

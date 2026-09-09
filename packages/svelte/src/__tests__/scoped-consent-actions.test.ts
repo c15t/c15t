@@ -6,7 +6,6 @@ import { tick } from 'svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentManagerState } from '../lib/context.svelte';
-import { createVoidDeferredPromise } from './deferred-promise';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 import { policyFixture } from './policy-fixture';
 
@@ -78,7 +77,7 @@ describe('displayed consent actions', () => {
 				throw new Error('Save not started');
 			};
 			const save = vi.fn(async () => {
-				await createVoidDeferredPromise((_resolve, reject) => {
+				await new Promise<void>((_resolve, reject) => {
 					rejectSave = reject;
 				});
 				return { ok: true };
@@ -132,7 +131,7 @@ describe('displayed consent actions', () => {
 			const finish: (() => void)[] = [];
 			const fail: ((reason: unknown) => void)[] = [];
 			const save = vi.fn(async () => {
-				await createVoidDeferredPromise((resolve, reject) => {
+				await new Promise<void>((resolve, reject) => {
 					finish.push(resolve);
 					fail.push(reject);
 				});
@@ -191,7 +190,7 @@ describe('displayed consent actions', () => {
 				throw new Error('Save not started');
 			};
 			const save = vi.fn(async () => {
-				await createVoidDeferredPromise((resolve) => {
+				await new Promise<void>((resolve) => {
 					finish = resolve;
 				});
 				return { ok: true };

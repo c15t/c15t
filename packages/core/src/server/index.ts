@@ -23,3 +23,9 @@ export {
 	MANIFEST_PASSTHROUGH_HEADERS,
 	resolveManifestSourceURL,
 } from './manifest-cache';
+
+export {
+	createStaticManifestModule,
+	loadStaticManifest,
+} from './static-manifest';
+export type { StaticManifestModuleOptions } from './static-manifest';

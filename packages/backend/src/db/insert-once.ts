@@ -1,43 +1,7 @@
 /**
- * Inserting a row that might already be there.
- *
- * Three write paths need the same guarantee — consent, subject and runtime
- * policy decision. Each has a deterministic primary key, so a retry, a
- * double-click, or two requests racing from the same visitor all compute the
- * *same* id. The insert must therefore succeed quietly when the row exists,
- * and still report which caller actually created it, because the audit entry
- * is written exactly once on the strength of that answer.
- *
- * ## Why this is not one statement for all three engines
- *
- * Postgres and SQLite express it directly:
- *
- * ```sql
- * insert into … on conflict ("id") do nothing returning "id"
- * ```
- *
- * MySQL 8 supports **neither** clause. `on conflict` is Postgres/SQLite
- * syntax, and `returning` is MariaDB's, not MySQL's. Its equivalent is
- * `on duplicate key update`, which reports the outcome out-of-band as
- * `affectedRows` rather than as a result set.
- *
- * So the shape of the answer genuinely differs per engine and the branch is
- * real rather than incidental. It is confined to this one function, and the
- * three call sites just get a boolean.
- *
- * ## Why not catch the duplicate-key error instead
- *
- * Effect normalises duplicate keys into `UniqueViolation` on all three
- * engines, so `insert` + `catch` would need no branch at all. It is still the
- * wrong choice here: on Postgres a failed statement poisons the enclosing
- * transaction, and every one of these inserts runs inside one. Recovering
- * would mean a `SAVEPOINT` and a `RELEASE` around each write — a round trip
- * added to the hottest path in the service to avoid a branch in one file.
- *
- * The old `@c15t/backend` did read-then-write and then string-matched adapter
- * error codes (`23505`, `ER_DUP_ENTRY`, `SQLITE_CONSTRAINT…`) to decide
- * whether a failure was a duplicate. Both forms of that are gone: the database
- * decides, in one statement, and nothing parses an error message.
+ * Inserts once inside the caller's transaction. Postgres and SQLite use
+ * ON CONFLICT with RETURNING. MySQL recovers only duplicate-key failures;
+ * other database errors still fail the write.
  */
 
 import { Effect } from 'effect';
@@ -45,22 +9,6 @@ import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
 
 import { encodeRow, encoder } from './values';
-
-/**
- * How many rows MySQL actually wrote.
- *
- * The statement returns an OK packet rather than rows: 1 when it inserted, 0
- * when the duplicate's no-op update changed nothing. Read defensively — this
- * is driver-shaped data crossing into typed code, and a missing field must
- * read as "did not insert" rather than throw.
- */
-const _affectedRows = (result: unknown): number =>
-	typeof result === 'object' &&
-	result !== null &&
-	'affectedRows' in result &&
-	typeof result.affectedRows === 'number'
-		? result.affectedRows
-		: 0;
 
 export interface InsertOnceOptions {
 	/** Table to insert into. */

@@ -36,23 +36,9 @@ interface C15TNitroRuntimeConfig {
 
 type RuntimeConfigReader = (event?: H3Event<EventHandlerRequest>) => unknown;
 
-type CachedEventHandler = (
-	handler: (event: H3Event<EventHandlerRequest>) => Promise<unknown>,
-	options: {
-		maxAge: number;
-		name: string;
-		shouldBypassCache: () => boolean;
-		varies: string[];
-	}
-) => unknown;
-
 interface RouteDependencies {
 	fetch: ManifestFetch;
 	useRuntimeConfig: RuntimeConfigReader;
-}
-
-interface InitRouteDependencies extends RouteDependencies {
-	defineCachedEventHandler: CachedEventHandler;
 }
 
 const readConsentConfig = function readConsentConfig(
@@ -130,97 +116,36 @@ const negotiateInit = function negotiateInit(
 };
 
 export const createInitRoute = function createInitRoute(
-	dependencies: InitRouteDependencies
+	dependencies: RouteDependencies
 ) {
-	return dependencies.defineCachedEventHandler(
-		async (event) => {
-			const runtimeConfig = dependencies.useRuntimeConfig(event);
-			const config = readConsentConfig(runtimeConfig);
-			setResponseHeader(event, 'cache-control', 'private, no-store');
-			setResponseHeader(
-				event,
-				POLICY_CONTRACT_HEADER,
-				String(POLICY_CONTRACT_VERSION)
-			);
-			const headers = getRequestHeaders(event);
+	return defineEventHandler(async (event) => {
+		const runtimeConfig = dependencies.useRuntimeConfig(event);
+		const config = readConsentConfig(runtimeConfig);
+		setResponseHeader(event, 'cache-control', 'private, no-store');
+		setResponseHeader(
+			event,
+			POLICY_CONTRACT_HEADER,
+			String(POLICY_CONTRACT_VERSION)
+		);
+		const headers = getRequestHeaders(event);
 
-			try {
-				const manifest = await fetchCachedManifest({
-					config,
-					fetch: dependencies.fetch,
-				});
-				return negotiateInit(
-					resolveManifestInit({ headers, manifest: manifest.manifest }),
-					getRequestHeader(event, POLICY_CONTRACT_HEADER)
-				);
-			} catch (cause) {
-				// Older backends may not expose /manifest; fall back to GET /init
-				// through the same fetch adapter so relative backend URLs work.
-				if (!config.backendURL) {
-					throw cause;
-				}
-				const forward: Record<string, string> = { ...c15tProtocolHeaders };
-				for (const key of [
-					'accept-language',
-					'sec-gpc',
-					'x-c15t-gpc',
-					'x-c15t-country',
-					'x-c15t-region',
-					'cf-ipcountry',
-					'x-vercel-ip-country',
-					'x-vercel-ip-country-region',
-					'x-amz-cf-ipcountry',
-				]) {
-					const value = headers[key];
-					if (value) {
-						forward[key] = value;
-					}
-				}
-				const response = await dependencies.fetch(
-					joinURL(config.backendURL, '/init'),
-					{
-						headers: forward,
-					}
-				);
-				if (!response.ok) {
-					throw cause;
-				}
-				const payload = (await response.json()) as InitOutput;
-				const declaration = response.headers.get(POLICY_CONTRACT_HEADER);
-				const producerContract =
-					declaration === null
-						? undefined
-						: (parsePolicyContractHeader(declaration) ?? null);
-				const mapped = mapInitOutputToInitResponse(payload, forward, {
-					producerContract,
-				});
-				// Rebuild the canonical output. Unknown upstream fields must
-				// not keep stale policy evidence alongside the new outcome.
-				const output = {
-					branding: payload.branding,
-					cmpId: mapped.cmpId,
-					customVendors: mapped.customVendors,
-					gvl: mapped.gvl,
-					jurisdiction: payload.jurisdiction,
-					location: payload.location,
-					policyResolution: writePolicyResolutionWire(
-						readPolicyResolutionWire(mapped.policyResolution)
-					),
-					policySnapshotToken: mapped.policySnapshotToken,
-					subjectId: mapped.subjectId,
-					translations: payload.translations,
-				};
-				return negotiateInit(
-					output,
-					getRequestHeader(event, POLICY_CONTRACT_HEADER)
-				);
+		try {
+			const manifest = await fetchCachedManifest({
+				config,
+				fetch: dependencies.fetch,
+			});
+			return negotiateInit(
+				resolveManifestInit({ headers, manifest: manifest.manifest }),
+				getRequestHeader(event, POLICY_CONTRACT_HEADER)
+			);
+		} catch (cause) {
+			// Older backends may not expose /manifest; fall back to GET /init
+			// through the same fetch adapter so relative backend URLs work.
+			if (!config.backendURL) {
+				throw cause;
 			}
-		},
-		{
-			maxAge: 0,
-			name: 'c15t-nuxt-init',
-			shouldBypassCache: () => true,
-			varies: [
+			const forward: Record<string, string> = { ...c15tProtocolHeaders };
+			for (const key of [
 				'accept-language',
 				'sec-gpc',
 				'x-c15t-gpc',
@@ -230,9 +155,50 @@ export const createInitRoute = function createInitRoute(
 				'x-vercel-ip-country',
 				'x-vercel-ip-country-region',
 				'x-amz-cf-ipcountry',
-				'x-country-code',
-				'x-region-code',
-			],
+			]) {
+				const value = headers[key];
+				if (value) {
+					forward[key] = value;
+				}
+			}
+			const response = await dependencies.fetch(
+				joinURL(config.backendURL, '/init'),
+				{
+					headers: forward,
+				}
+			);
+			if (!response.ok) {
+				throw cause;
+			}
+			const payload = (await response.json()) as InitOutput;
+			const declaration = response.headers.get(POLICY_CONTRACT_HEADER);
+			const producerContract =
+				declaration === null
+					? undefined
+					: (parsePolicyContractHeader(declaration) ?? null);
+			const mapped = mapInitOutputToInitResponse(payload, forward, {
+				producerContract,
+			});
+			// Rebuild the canonical output. Unknown upstream fields must
+			// not keep stale policy evidence alongside the new outcome.
+			const output = {
+				branding: payload.branding,
+				cmpId: mapped.cmpId,
+				customVendors: mapped.customVendors,
+				gvl: mapped.gvl,
+				jurisdiction: payload.jurisdiction,
+				location: payload.location,
+				policyResolution: writePolicyResolutionWire(
+					readPolicyResolutionWire(mapped.policyResolution)
+				),
+				policySnapshotToken: mapped.policySnapshotToken,
+				subjectId: mapped.subjectId,
+				translations: payload.translations,
+			};
+			return negotiateInit(
+				output,
+				getRequestHeader(event, POLICY_CONTRACT_HEADER)
+			);
 		}
-	);
+	});
 };

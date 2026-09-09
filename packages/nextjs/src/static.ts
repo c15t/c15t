@@ -1,4 +1,7 @@
-import { c15tProtocolHeaders } from '@c15t/core';
+import {
+	createStaticManifestModule as createModule,
+	loadStaticManifest as loadManifest,
+} from '@c15t/core/server';
 import type {
 	ConsentManifest,
 	InitOutput,
@@ -7,10 +10,14 @@ import type {
 import { resolveInitFromManifest } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+export type { ConsentManifest } from '@c15t/schema/types';
+
 export interface StaticManifestModuleOptions {
 	manifestURL: string;
 	fetch?: typeof globalThis.fetch;
 	exportName?: string;
+	/** Package entry that supplies the generated ConsentManifest type. */
+	importSource?: string;
 }
 
 export interface StaticGeoResult {
@@ -146,45 +153,16 @@ export const createStaticConsentResolver = function createStaticConsentResolver(
 	};
 };
 
-export const loadStaticManifest = async function loadStaticManifest(
+/** Fetches the manifest used by static builds. */
+export const loadStaticManifest = (
 	options: Omit<StaticManifestModuleOptions, 'exportName'>
-): Promise<ConsentManifest> {
-	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('@c15t/nextjs/static: no fetch available.');
-	}
-	const response = await fetchImpl(options.manifestURL, {
-		headers: { accept: 'application/json', ...c15tProtocolHeaders },
-		method: 'GET',
-	});
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/nextjs/static: /manifest responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as ConsentManifest;
-};
+): Promise<ConsentManifest> => loadManifest(options, '@c15t/nextjs/static');
 
-/**
- * Build-time helper for `output: "export"` apps.
- *
- * Call this from a build script and write the returned TypeScript source to a
- * module imported by the client app.
- */
-export const createStaticManifestModule =
-	async function createStaticManifestModule(
-		options: StaticManifestModuleOptions
-	): Promise<string> {
-		const exportName = options.exportName ?? 'consentManifest';
-		const manifest = await loadStaticManifest(options);
-		return [
-			"import type { ConsentManifest } from '@c15t/schema/types';",
-			'',
-			`export const ${exportName} = ${JSON.stringify(
-				manifest,
-				null,
-				2
-			)} as const satisfies ConsentManifest;`,
-			'',
-		].join('\n');
-	};
+/** Generates a typed manifest module for a static build. */
+export const createStaticManifestModule = (
+	options: StaticManifestModuleOptions
+): Promise<string> =>
+	createModule(options, {
+		importSource: '@c15t/nextjs/static',
+		label: '@c15t/nextjs/static',
+	});

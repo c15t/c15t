@@ -159,19 +159,18 @@ export const findFiles = async function findFiles(
 
 		const entries = await fs.readdir(currentDir, { withFileTypes: true });
 
-		await Array.from(entries).reduce(async (previousIteration, entry) => {
-			await previousIteration;
+		for (const entry of entries) {
 			const fullPath = path.join(currentDir, entry.name);
-
 			if (entry.isDirectory()) {
 				// Skip node_modules and hidden directories
 				if (entry.name !== 'node_modules' && !entry.name.startsWith('.')) {
+					// oxlint-disable-next-line no-await-in-loop -- Keep traversal order stable.
 					await walk(fullPath, depth + 1);
 				}
 			} else if (entry.isFile() && pattern.test(entry.name)) {
 				results.push(fullPath);
 			}
-		}, Promise.resolve());
+		}
 	};
 
 	await walk(dir, 0);

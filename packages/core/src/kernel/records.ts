@@ -200,20 +200,6 @@ export const validateHydrationRecords = function validateHydrationRecords(
 	return { ok: true, records };
 };
 
-/** Whether two subjects carry the same identifiers. */
-export const sameSubject = function sameSubject(
-	left: ConsentSubject | null,
-	right: ConsentSubject | null
-): boolean {
-	if (left === right) {
-		return true;
-	}
-	if (!left || !right) {
-		return false;
-	}
-	return SUBJECT_KEYS.every((key) => left[key] === right[key]);
-};
-
 /**
  * Merge two choices keeping the newest receipt per category. Ties keep the
  * current receipt. Used for server-mapped records so a delayed read never

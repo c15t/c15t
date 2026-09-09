@@ -142,6 +142,9 @@ export default defineConfig({
 		},
 	],
 	rules: {
+		// Callback APIs need Promise executors. Banning the constructor led to
+		// copied wrappers that changed exception handling and runtime support.
+		'promise/avoid-new': 'off',
 		...Object.fromEntries(
 			[...deferredRules, ...deferredAntiSlopRules].map((rule) => [rule, 'off'])
 		),

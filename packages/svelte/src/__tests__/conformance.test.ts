@@ -51,29 +51,6 @@ import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 import { createPolicySession, probePolicyContract } from './policy-driver';
 import { closeSsrWorker, renderSsr, warmSsrWorker } from './server-render';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 type ProviderOptions = ConsentManagerOptions;
 
 type StoreState = Record<string, unknown> & {
@@ -223,7 +200,7 @@ const driver: TestDriver = {
 				...opts,
 				initMode: 'authoritative',
 			}).prefetch?.initialPolicyResolution;
-			const promise = createDeferredPromise<InitResponse>((resolve) => {
+			const promise = new Promise<InitResponse>((resolve) => {
 				resolveInit = () =>
 					resolve({
 						policyResolution: writePolicyResolutionWire(
@@ -261,7 +238,9 @@ const driver: TestDriver = {
 			// embedding app does before opening a TCF dialog.
 			await whenIABReady();
 		}
-		await createDeferredPromise((r) => setTimeout(r, 0));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
 
 		if (!mountedKernel) {
 			throw new Error('Svelte driver: mount completed without kernel');
@@ -271,7 +250,7 @@ const driver: TestDriver = {
 			resolveInit: resolveInit
 				? async () => {
 						resolveInit?.();
-						await createDeferredPromise((resolve) => {
+						await new Promise((resolve) => {
 							setTimeout(resolve, 0);
 						});
 					}

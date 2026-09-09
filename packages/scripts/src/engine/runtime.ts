@@ -9,29 +9,6 @@ import type {
 import { RUNTIME_VALUE_KIND } from '../types';
 import type { ManifestStep, ResolvedManifest, RuntimeValue } from '../types';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 type ManifestLifecycleCallback = Exclude<ScriptLifecycleCallback, 'onError'>;
 
 interface StepExecutionContext {
@@ -316,7 +293,7 @@ const executeStep = function executeStep(step: ManifestStep): void {
 						step.queueFormat === 'wrappedMethodCall' ||
 						step.queueFormat === 'voidMethodCall'
 					) {
-						const promise = createDeferredPromise<unknown>((resolve) => {
+						const promise = new Promise<unknown>((resolve) => {
 							queueTarget.push({
 								args,
 								name: methodName,

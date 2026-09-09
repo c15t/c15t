@@ -7,7 +7,7 @@ import { evaluateConsentRecord } from '../consent-record/evaluate';
 import type { AllConsentNames } from '../consent/consent-types';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
-import type { ConsentSnapshot, KernelIABState } from '../types';
+import type { ConsentSnapshot } from '../types';
 
 export type { HasCondition };
 export { extractConsentNamesFromCondition, has };
@@ -198,22 +198,4 @@ export const evaluateConsent = function evaluateConsent<
 	}
 
 	return has(target.category, effective.effectivePermissions);
-};
-
-/**
- * Convenience for modules that only need the IAB-specific read, given
- * the full kernel snapshot. Returns `false` when IAB isn't populated.
- */
-export const snapshotHasIABConsent = function snapshotHasIABConsent(
-	target: IABTarget,
-	iab: KernelIABState | null
-): boolean {
-	if (
-		!iab?.enabled ||
-		!iab.authority ||
-		Date.now() >= iab.authority.expiresAt
-	) {
-		return false;
-	}
-	return hasIABConsent(target, iab.authority);
 };

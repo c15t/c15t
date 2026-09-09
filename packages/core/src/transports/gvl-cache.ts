@@ -1,13 +1,10 @@
 /**
- * In-process cache for the IAB Global Vendor List.
- *
- * The list is ~1.5 MB and changes weekly. Without a cache every init that
- * resolves an IAB policy re-downloads it, which is slow and trips the
- * upstream host's rate limiting. Entries live for the upstream `max-age`
- * (one day when absent), concurrent misses share one fetch, and a stale
- * entry is served when a refresh fails.
+ * Shared in-process GVL cache. Honors upstream lifetime and reuse directives,
+ * coalesces concurrent requests, and invalidates pending fills when cleared.
  */
 import type { GlobalVendorList } from '@c15t/schema/types';
+
+import { parseCacheDirectiveSeconds } from '../libs/manifest-cache-runtime';
 
 export interface CachedGvl {
 	gvl: GlobalVendorList | null;
@@ -31,7 +28,7 @@ export interface FetchCachedGvlOptions {
 	cache?: GvlCache;
 }
 
-const DEFAULT_TTL_SECONDS = 86_400;
+const DEFAULT_TTL_SECONDS = 5;
 
 const defaultGvlCache: GvlCache = new Map();
 const inflightByCache = new WeakMap<
@@ -49,16 +46,24 @@ const getInflight = function getInflight(cache: GvlCache) {
 };
 
 const ttlFromHeaders = function ttlFromHeaders(headers: Headers): number {
-	const directive = (headers.get('cache-control') ?? '')
-		.split(',')
-		.map((part) => part.trim().toLowerCase())
-		.find((part) => part.startsWith('max-age='));
-	const seconds = directive
-		? Number(directive.slice('max-age='.length))
-		: Number.NaN;
-	return Number.isFinite(seconds) && seconds > 0
-		? seconds
-		: DEFAULT_TTL_SECONDS;
+	const cacheControl = headers.get('cache-control');
+	if (
+		cacheControl
+			?.split(',')
+			.some((part) =>
+				['no-store', 'no-cache', 'private'].includes(
+					part.trim().split('=')[0]?.toLowerCase() ?? ''
+				)
+			)
+	) {
+		return 0;
+	}
+	const ttl =
+		parseCacheDirectiveSeconds(cacheControl, 's-maxage') ??
+		parseCacheDirectiveSeconds(cacheControl, 'max-age') ??
+		DEFAULT_TTL_SECONDS;
+	const age = Number(headers.get('age') ?? 0);
+	return Math.max(0, ttl - (Number.isFinite(age) && age > 0 ? age : 0));
 };
 
 /** Drops every cached list; the next call fetches again. */
@@ -66,7 +71,7 @@ export const clearGvlCache = function clearGvlCache(
 	cache: GvlCache = defaultGvlCache
 ): void {
 	cache.clear();
-	inflightByCache.get(cache)?.clear();
+	inflightByCache.delete(cache);
 };
 
 /**
@@ -100,14 +105,7 @@ export const fetchCachedGvl = function fetchCachedGvl(
 				headers: { 'accept-language': options.language, ...options.headers },
 				method: 'GET',
 			});
-			if (response.status === 204) {
-				cache.set(key, {
-					expiresAt: now + DEFAULT_TTL_SECONDS * 1000,
-					gvl: null,
-				});
-				return null;
-			}
-			if (!response.ok) {
+			if (!response.ok && response.status !== 204) {
 				if (cached) {
 					// Keep serving the last good list while the upstream misbehaves.
 					return cached.gvl;
@@ -116,11 +114,19 @@ export const fetchCachedGvl = function fetchCachedGvl(
 					`${label}: GVL responded ${response.status} ${response.statusText}`
 				);
 			}
-			const gvl = (await response.json()) as GlobalVendorList;
-			cache.set(key, {
-				expiresAt: now + ttlFromHeaders(response.headers) * 1000,
-				gvl,
-			});
+			const gvl =
+				response.status === 204
+					? null
+					: ((await response.json()) as GlobalVendorList);
+			// A cleared cache belongs to newer requests; an old fill cannot repopulate it.
+			if (inflightByCache.get(cache) === inflight) {
+				const ttl = ttlFromHeaders(response.headers);
+				if (ttl > 0) {
+					cache.set(key, { expiresAt: now + ttl * 1000, gvl });
+				} else {
+					cache.delete(key);
+				}
+			}
 			return gvl;
 		} finally {
 			inflight.delete(key);

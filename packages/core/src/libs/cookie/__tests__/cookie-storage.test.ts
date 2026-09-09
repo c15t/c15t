@@ -18,6 +18,8 @@ describe('Cookie Storage', () => {
 
 	afterEach(() => {
 		// Clean up after each test
+		vi.restoreAllMocks();
+		vi.useRealTimers();
 		document.cookie = '';
 		window.localStorage.clear();
 	});
@@ -25,21 +27,27 @@ describe('Cookie Storage', () => {
 	describe('setCookie', () => {
 		it('should set a cookie with a string value', () => {
 			setCookie('test-cookie', 'test-value');
-			expect(document.cookie).toContain('test-cookie=');
+			expect(getCookie('test-cookie')).toBe('test-value');
 		});
 
 		it('should set a cookie with an object value', () => {
 			const testData = { key: 'value', number: 42 };
 			setCookie('test-cookie', testData);
-			expect(document.cookie).toContain('test-cookie=');
+			expect(getCookie('test-cookie')).toEqual(testData);
 		});
 
 		it('should set cookie with custom options', () => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
 			setCookie('test-cookie', 'value', {
 				expiryDays: 7,
 				path: '/custom',
 			});
-			expect(document.cookie).toContain('test-cookie=');
+			// The Node fixture captures the assignment, including cookie attributes.
+			expect(document.cookie).toContain('path=/custom');
+			expect(document.cookie).toContain(
+				'expires=Thu, 08 Jan 2026 00:00:00 GMT'
+			);
 		});
 
 		it('should handle errors gracefully', () => {
@@ -98,9 +106,7 @@ describe('Cookie Storage', () => {
 		});
 
 		it('should handle deleting non-existent cookie', () => {
-			deleteCookie('non-existent');
-			// Should not throw error
-			expect(true).toBe(true);
+			expect(() => deleteCookie('non-existent')).not.toThrow();
 		});
 	});
 	describe('deleteConsentFromStorage', () => {

@@ -17,7 +17,6 @@ import { render } from 'vitest-browser-react';
 
 import { KernelContext } from '../context';
 import { ConsentProvider, custom, hosted, useSnapshot } from '../index';
-import { createDeferredPromise } from './deferred-promise';
 import { policyFixture } from './policy-fixture';
 
 const hostedInitOutput = function hostedInitOutput(): InitOutput {
@@ -53,9 +52,9 @@ interface Deferred<Value> {
 const deferred = function deferred<Value>(): Deferred<Value> {
 	let resolve!: Deferred<Value>['resolve'];
 	let reject!: Deferred<Value>['reject'];
-	const promise = createDeferredPromise<Value>((res, rej) => {
-		resolve = res;
-		reject = rej;
+	const promise = new Promise<Value>((_resolve, _reject) => {
+		resolve = _resolve;
+		reject = _reject;
 	});
 	return { promise, reject, resolve };
 };

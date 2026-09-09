@@ -6,7 +6,8 @@
 		"src/index.ts",
 		"src/middleware.ts",
 		"src/server.ts",
-		"src/static.ts"
+		"src/static.ts",
+		"src/__tests__/*.type-test.ts"
 	],
 	"project": ["src/**/*.ts"],
 	"ignore": ["**/*.test.ts", "**/*.d.ts"],

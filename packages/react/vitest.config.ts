@@ -136,7 +136,6 @@ export default mergeConfig(
 			coverage: {
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
-				exclude: ['src/utils/test-helpers.tsx'],
 				thresholds: {
 					branches: 50,
 					functions: 60,

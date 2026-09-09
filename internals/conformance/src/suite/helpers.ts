@@ -9,29 +9,6 @@
 
 import type { TestDriver } from '../driver';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 export type TestFn = (name: string, body: () => void | Promise<void>) => void;
 
 export type DescribeFn = (name: string, body: () => void) => void;
@@ -114,7 +91,9 @@ export const waitForCondition = function waitForCondition(
 		if (Date.now() >= deadline) {
 			return predicate();
 		}
-		await createDeferredPromise((resolve) => setTimeout(resolve, intervalMs));
+		await new Promise((resolve) => {
+			setTimeout(resolve, intervalMs);
+		});
 		return poll();
 	};
 	return poll();

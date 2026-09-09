@@ -2,6 +2,10 @@ import {
 	createEvaluationPolicy,
 	evaluateConsentRecord,
 } from '@c15t/core/consent-record';
+import {
+	createStaticManifestModule as createModule,
+	loadStaticManifest as loadManifest,
+} from '@c15t/core/server';
 import type {
 	ConsentManifest,
 	ConsentManifestPolicyPack,
@@ -13,58 +17,6 @@ import { baseTranslations } from '@c15t/translations/all';
 
 /** The manifest shape generated static modules are typed against. */
 export type { ConsentManifest } from '@c15t/schema/types';
-
-/** Names that parse but cannot be bound with `export const`. */
-const RESERVED_EXPORT_NAMES = new Set([
-	'arguments',
-	'await',
-	'break',
-	'case',
-	'catch',
-	'class',
-	'const',
-	'continue',
-	'debugger',
-	'default',
-	'delete',
-	'do',
-	'else',
-	'enum',
-	'eval',
-	'export',
-	'extends',
-	'false',
-	'finally',
-	'for',
-	'function',
-	'if',
-	'implements',
-	'import',
-	'in',
-	'instanceof',
-	'interface',
-	'let',
-	'new',
-	'null',
-	'package',
-	'private',
-	'protected',
-	'public',
-	'return',
-	'static',
-	'super',
-	'switch',
-	'this',
-	'throw',
-	'true',
-	'try',
-	'typeof',
-	'var',
-	'void',
-	'while',
-	'with',
-	'yield',
-]);
 
 export interface StaticManifestModuleOptions {
 	manifestURL: string;
@@ -307,62 +259,17 @@ export const createStaticConsentResolver = function createStaticConsentResolver(
 	};
 };
 
-export const loadStaticManifest = async function loadStaticManifest(
+/** Fetches the manifest used by static builds. */
+export const loadStaticManifest = (
 	options: Omit<StaticManifestModuleOptions, 'exportName'>
-): Promise<ConsentManifest> {
-	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('@c15t/tanstack-start/static: no fetch available.');
-	}
-	const response = await fetchImpl(options.manifestURL, {
-		headers: { accept: 'application/json' },
-		method: 'GET',
-	});
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/tanstack-start/static: /manifest responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as ConsentManifest;
-};
+): Promise<ConsentManifest> =>
+	loadManifest(options, '@c15t/tanstack-start/static');
 
-/**
- * Build-time helper for prerendered and static builds.
- *
- * Call this from a build script and write the returned TypeScript source to a
- * module imported by the client app.
- */
-export const createStaticManifestModule =
-	async function createStaticManifestModule(
-		options: StaticManifestModuleOptions
-	): Promise<string> {
-		const exportName = options.exportName ?? 'consentManifest';
-		if (
-			!/^[A-Za-z_$][\w$]*$/u.test(exportName) ||
-			RESERVED_EXPORT_NAMES.has(exportName)
-		) {
-			throw new Error(
-				`@c15t/tanstack-start/static: exportName must be a valid identifier, received ${JSON.stringify(exportName)}.`
-			);
-		}
-		const importSource = options.importSource ?? '@c15t/tanstack-start/static';
-		if (!/^[A-Za-z0-9@_./+~-]+$/u.test(importSource)) {
-			throw new Error(
-				`@c15t/tanstack-start/static: importSource must be a module specifier, received ${JSON.stringify(importSource)}.`
-			);
-		}
-		const manifest = await loadStaticManifest(options);
-		return [
-			// Import from an entry the app declares itself so the generated file
-			// resolves under strict dependency layouts (pnpm) where the app does
-			// not depend on @c15t/schema directly.
-			`import type { ConsentManifest } from '${importSource}';`,
-			'',
-			`export const ${exportName} = ${JSON.stringify(
-				manifest,
-				null,
-				2
-			)} as const satisfies ConsentManifest;`,
-			'',
-		].join('\n');
-	};
+/** Generates a typed manifest module for a static build. */
+export const createStaticManifestModule = (
+	options: StaticManifestModuleOptions
+): Promise<string> =>
+	createModule(options, {
+		importSource: '@c15t/tanstack-start/static',
+		label: '@c15t/tanstack-start/static',
+	});

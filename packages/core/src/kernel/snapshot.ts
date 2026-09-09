@@ -16,7 +16,6 @@ import type {
 	ExplicitChoice,
 	OptionalConsentCategory,
 } from '../consent-record/types';
-import { allConsentNames } from '../consent/consent-types';
 import { deepFreeze } from '../libs/freeze-data';
 import {
 	buildEvaluationPolicy,
@@ -115,26 +114,6 @@ export const buildDraft = function buildDraft(
 		}
 	}
 	return any ? draft : null;
-};
-
-/**
- * Merge user-supplied booleans over the default state. Only used
- * to seed drafts; permissions are never built from it.
- */
-export const buildInitialConsents = function buildInitialConsents(
-	initial: Partial<ConsentState> | undefined
-): ConsentState {
-	const merged: ConsentState = { ...DEFAULT_CONSENTS };
-	if (!initial) {
-		return merged;
-	}
-	for (const name of allConsentNames) {
-		if (Object.hasOwn(initial, name) && typeof initial[name] === 'boolean') {
-			merged[name] = initial[name] as boolean;
-		}
-	}
-	merged.necessary = true;
-	return merged;
 };
 
 /**

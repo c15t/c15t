@@ -160,9 +160,9 @@ const main = async function main(): Promise<void> {
 	const plan = planMonitorIssueActions(report, existingIssues);
 	const failures: string[] = [];
 
-	await Array.from(plan.create).reduce(async (previousIteration, action) => {
-		await previousIteration;
+	for (const action of plan.create) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Keep issue updates ordered and avoid concurrent API writes.
 			const issue = await githubRequest<GitHubIssue>(
 				token,
 				'POST',
@@ -173,11 +173,11 @@ const main = async function main(): Promise<void> {
 		} catch (error) {
 			failures.push(`create ${action.vendor}: ${String(error)}`);
 		}
-	}, Promise.resolve());
+	}
 
-	await Array.from(plan.update).reduce(async (previousIteration, action) => {
-		await previousIteration;
+	for (const action of plan.update) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Keep issue updates ordered and avoid concurrent API writes.
 			await githubRequest(
 				token,
 				'PATCH',
@@ -190,17 +190,18 @@ const main = async function main(): Promise<void> {
 		} catch (error) {
 			failures.push(`update ${action.vendor}: ${String(error)}`);
 		}
-	}, Promise.resolve());
+	}
 
-	await Array.from(plan.close).reduce(async (previousIteration, action) => {
-		await previousIteration;
+	for (const action of plan.close) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Keep issue updates ordered and avoid concurrent API writes.
 			await githubRequest(
 				token,
 				'POST',
 				`/repos/${repository}/issues/${action.issueNumber}/comments`,
 				{ body: action.body }
 			);
+			// oxlint-disable-next-line no-await-in-loop -- Keep issue updates ordered and avoid concurrent API writes.
 			await githubRequest(
 				token,
 				'PATCH',
@@ -211,7 +212,7 @@ const main = async function main(): Promise<void> {
 		} catch (error) {
 			failures.push(`close ${action.vendor}: ${String(error)}`);
 		}
-	}, Promise.resolve());
+	}
 
 	console.log(
 		`Issue sync complete: ${plan.create.length} opened, ${plan.update.length} updated, ${plan.close.length} closed.`

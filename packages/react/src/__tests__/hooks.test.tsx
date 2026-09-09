@@ -24,29 +24,6 @@ import {
 } from '../index';
 import { policyFixture } from './policy-fixture';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider
@@ -263,14 +240,18 @@ describe('v3 react: zero unrelated re-renders', () => {
 		);
 
 		// Wait for initial mount to settle.
-		await createDeferredPromise((r) => setTimeout(r, 10));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 10);
+		});
 		const marketingAfterMount = marketingRenders.length;
 		const measurementAfterMount = measurementRenders.length;
 
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="toggle"]')
 			?.click();
-		await createDeferredPromise((r) => setTimeout(r, 10));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 10);
+		});
 
 		// Marketing hook's returned value changed → exactly one more commit.
 		expect(marketingRenders.length).toBeGreaterThan(marketingAfterMount);
@@ -311,7 +292,9 @@ describe('v3 react: zero unrelated re-renders', () => {
 			</Wrapper>
 		);
 
-		await createDeferredPromise((r) => setTimeout(r, 10));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 10);
+		});
 		const afterMount = renders.length;
 
 		// necessary is already true; this should be a no-op at the kernel
@@ -319,7 +302,9 @@ describe('v3 react: zero unrelated re-renders', () => {
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="noop"]')
 			?.click();
-		await createDeferredPromise((r) => setTimeout(r, 10));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 10);
+		});
 
 		expect(renders.length).toBe(afterMount);
 	});

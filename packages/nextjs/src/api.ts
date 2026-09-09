@@ -1,5 +1,8 @@
-import { c15tProtocolHeaders } from '@c15t/core';
-import { fetchCachedManifest as fetchManifestThroughCache } from '@c15t/core/libs/manifest-cache';
+import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
+import {
+	fetchCachedManifest as fetchManifestThroughCache,
+	parseCacheDirectiveSeconds,
+} from '@c15t/core/libs/manifest-cache';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
@@ -161,20 +164,7 @@ const withLanguage = function withLanguage(
 export const getSMaxAge = function getSMaxAge(
 	cacheControl: string | null
 ): number | undefined {
-	if (!cacheControl) {
-		return undefined;
-	}
-	for (const part of cacheControl.split(',')) {
-		const [key, value] = part.trim().split('=');
-		if (key?.toLowerCase() !== 's-maxage' || value === undefined) {
-			continue;
-		}
-		const parsed = Number.parseInt(value, 10);
-		if (Number.isFinite(parsed) && parsed >= 0) {
-			return parsed;
-		}
-	}
-	return undefined;
+	return parseCacheDirectiveSeconds(cacheControl, 's-maxage');
 };
 
 const getManifestRevalidate = function getManifestRevalidate(
@@ -247,27 +237,18 @@ const shouldFetchGvl = function shouldFetchGvl(
 	);
 };
 
-const defaultFetchGvl = async function defaultFetchGvl(input: {
+const defaultFetchGvl = function defaultFetchGvl(input: {
 	reference: ConsentManifestGVLReference;
 	language: string;
 	fetch: typeof globalThis.fetch;
 }): Promise<GlobalVendorList | null> {
-	const response = await input.fetch(input.reference.url, {
-		headers: {
-			'accept-language': input.language,
-			...c15tProtocolHeaders,
-		},
-		method: 'GET',
+	return fetchCachedGvl({
+		fetch: input.fetch,
+		headers: c15tProtocolHeaders,
+		label: '@c15t/nextjs/api',
+		language: input.language,
+		url: input.reference.url,
 	});
-	if (response.status === 204) {
-		return null;
-	}
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/nextjs/api: GVL responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as GlobalVendorList;
 };
 
 /**

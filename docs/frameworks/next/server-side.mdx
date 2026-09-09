@@ -15,3 +15,30 @@ TODO.
 ## Server components
 
 TODO.
+
+## Manifest caching
+
+Server manifest requests share an in-process cache. The cache subtracts the upstream `Age` from `s-maxage`, so a response with `Age: 55` and `s-maxage=60` stays fresh for another five seconds. An explicit `s-maxage=0`, `no-store`, `no-cache`, or `private` prevents reuse. When the backend sends no shared-cache lifetime, the cache uses a five-second lifetime to combine nearby requests.
+
+Clearing the cache also invalidates pending fills. A request already in flight can finish for its caller, but cannot repopulate the cleared cache.
+
+## Vendor-list caching
+
+IAB init requests reuse the Global Vendor List by URL and language. The shared GVL cache uses `s-maxage`, then `max-age`, and subtracts upstream `Age`. It uses a five-second fallback when neither lifetime is provided. An explicit zero lifetime or `no-store`, `no-cache`, or `private` prevents reuse, including when the backend returns `204` to indicate that IAB is disabled. Clearing the cache invalidates pending fills too.
+
+## Static manifest modules
+
+Generate a module during your build and import it into your static application:
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { createStaticManifestModule } from '@c15t/nextjs/static';
+
+const source = await createStaticManifestModule({
+  manifestURL: 'https://consent.example.com/manifest',
+  exportName: 'consentManifest',
+});
+await writeFile('./consent-manifest.ts', source);
+```
+
+The helper rejects invalid export names before fetching. The generated module imports `ConsentManifest` from `@c15t/nextjs/static`. If your application installs the umbrella `c15t` package, import the helper from `c15t/nextjs/static` and set `importSource: 'c15t/nextjs/static'` so the generated type import resolves through that dependency.

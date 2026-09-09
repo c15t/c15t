@@ -136,6 +136,7 @@
 	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && tcm src/styles/components -p \"*.module.css\" -o types/styles/components --camelCase && bun scripts/generate-style-artifacts.ts && bun scripts/generate-css-entrypoints.ts",
+		"check-types": "tsc --noEmit && tsc -p tsconfig.type-tests.json",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && tcm src/styles/components -p \"*.module.css\" -o types/styles/components --camelCase && bun scripts/generate-style-artifacts.ts && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",

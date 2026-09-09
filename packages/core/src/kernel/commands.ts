@@ -117,29 +117,6 @@ const warnInitFailure = function warnInitFailure(
 	);
 };
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 /**
  * Patch that clears every policy-derived field for a transport failure
  * before the safe fallback applies. A stale permissive policy must not
@@ -688,7 +665,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		try {
 			// Yield one macrotask before the network call so the UI commit
 			// from `commit()` above can paint first.
-			await createDeferredPromise((resolve) => {
+			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
 			const sending = currentPayload();

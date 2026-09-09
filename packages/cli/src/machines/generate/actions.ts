@@ -355,24 +355,24 @@ export const performRollback = async function performRollback(
 	const fs = await import('node:fs/promises');
 
 	// Delete created files
-	await Array.from(filesCreated).reduce(async (previousIteration, filePath) => {
-		await previousIteration;
+	for (const filePath of filesCreated) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Complete each rollback operation before the next.
 			await fs.unlink(filePath);
 		} catch {
 			// File may not exist, ignore
 		}
-	}, Promise.resolve());
+	}
 
 	// Restore modified files from backup
-	await Array.from(filesModified).reduce(async (previousIteration, mod) => {
-		await previousIteration;
+	for (const mod of filesModified) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Complete each rollback operation before the next.
 			await fs.writeFile(mod.path, mod.backup, 'utf-8');
 		} catch {
 			// Best effort restore
 		}
-	}, Promise.resolve());
+	}
 };
 
 /**
