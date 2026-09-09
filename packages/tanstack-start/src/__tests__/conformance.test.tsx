@@ -513,7 +513,13 @@ const driver: TestDriver = {
 		);
 		await settled;
 		await flushScheduler();
-		if (opts.component === 'consent-widget') {
+		// The widget renders only once a policy is resolved, so a pending or
+		// failing init has no widget root to wait for; the suite drives
+		// `resolveInit` and asserts the appearance itself.
+		if (
+			opts.component === 'consent-widget' &&
+			(opts.initMode ?? 'authoritative') === 'authoritative'
+		) {
 			await vi.waitFor(() =>
 				expect(
 					container.querySelector('[data-testid="consent-widget-root"]')

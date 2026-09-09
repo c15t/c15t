@@ -9,7 +9,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
-import { offline } from '../../lib/transports/offline';
+import { testOffline } from '../../__tests__/test-offline';
 
 describe('Translations', () => {
 	beforeEach(() => {
@@ -19,7 +19,7 @@ describe('Translations', () => {
 	test('returns English translations by default', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -83,7 +83,7 @@ describe('Translations', () => {
 						},
 					},
 				},
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -129,7 +129,7 @@ describe('Translations', () => {
 						} as Partial<Translations>,
 					},
 				},
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -170,7 +170,7 @@ describe('Translations', () => {
 					locale: 'fr',
 					messages: {},
 				},
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -217,7 +217,7 @@ describe('Translations', () => {
 						},
 					},
 				},
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -266,7 +266,7 @@ describe('Translations', () => {
 						},
 					},
 				},
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 

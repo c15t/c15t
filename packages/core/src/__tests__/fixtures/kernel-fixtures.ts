@@ -34,7 +34,7 @@ export const matchedResolution = function matchedResolution(
 	rule: PolicyRule,
 	matchedBy: PolicyMatchedBy = 'default'
 ): Extract<PolicyResolution, { status: 'matched' }> {
-	const policy = normalizePolicyRule(rule);
+	const policy = normalizePolicyRule({ scopeMode: 'permissive', ...rule });
 	return {
 		fingerprints: createPolicyRuleFingerprints(policy),
 		matchedBy,
@@ -64,6 +64,19 @@ export const optOutRule = function optOutRule(
 		match: { isDefault: true },
 		model: 'opt-out',
 		prompt: 'choice',
+		...overrides,
+	};
+};
+
+/** A `none` regime: processing permitted, no prompt, no rights. */
+export const noneRule = function noneRule(
+	overrides: Partial<PolicyRule> = {}
+): PolicyRule {
+	return {
+		id: 'test-none',
+		match: { isDefault: true },
+		model: 'none',
+		prompt: 'none',
 		...overrides,
 	};
 };

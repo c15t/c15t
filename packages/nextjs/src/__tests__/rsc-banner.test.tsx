@@ -1,6 +1,6 @@
 import type { ConsentPresentation } from '@c15t/core';
 import { custom } from '@c15t/react';
-import type { PolicyRule } from '@c15t/schema/types';
+import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -25,15 +25,12 @@ const noticeTranslations = {
 	},
 } as const;
 
-const renderShell = function renderShell(
-	rule: Partial<PolicyRule>,
-	presentation?: ConsentPresentation,
-	language = 'en'
+const renderConfig = function renderConfig(
+	config: ReturnType<typeof policyFixture> & {
+		initialPolicyResolution: PolicyResolution;
+	},
+	presentation?: ConsentPresentation
 ) {
-	const config = {
-		...policyFixture({}, rule),
-		initialTranslations: { ...noticeTranslations, language },
-	};
 	return renderToString(
 		<ConsentBoundary
 			config={JSON.parse(JSON.stringify(config))}
@@ -52,6 +49,20 @@ const renderShell = function renderShell(
 	);
 };
 
+const renderShell = function renderShell(
+	rule: Partial<PolicyRule>,
+	presentation?: ConsentPresentation,
+	language = 'en'
+) {
+	return renderConfig(
+		{
+			...policyFixture({}, rule),
+			initialTranslations: { ...noticeTranslations, language },
+		},
+		presentation
+	);
+};
+
 const readRoot = function readRoot(html: string) {
 	const root = /<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(html)?.[0];
 	expect(root).toBeDefined();
@@ -65,7 +76,7 @@ const readCard = function readCard(html: string) {
 };
 
 describe('RscConsentBanner server HTML', () => {
-	test('a notice renders the opt-out button before an Accept All dismiss', () => {
+	test('a notice renders the opt-out button before an acknowledgement', () => {
 		const html = renderShell({ model: 'opt-out', prompt: 'notice' });
 
 		const root = /<[^>]*data-testid="consent-banner-root"[^>]*>/u.exec(
@@ -84,9 +95,11 @@ describe('RscConsentBanner server HTML', () => {
 		);
 		const dismiss = html.indexOf('data-testid="consent-banner-dismiss-button"');
 		expect(optOut).toBeGreaterThan(-1);
+		expect(
+			html.match(/data-testid="consent-banner-right-link-opt-out"/gu)
+		).toHaveLength(1);
 		expect(dismiss).toBeGreaterThan(optOut);
-		// The opt-out control opens the preference center, so it also covers
-		// the preferences right and no second button renders.
+		// One button opens preferences.
 		expect(html).not.toContain('consent-banner-right-link-preferences');
 
 		expect(html).toContain('data-testid="consent-banner-rights"');
@@ -100,9 +113,9 @@ describe('RscConsentBanner server HTML', () => {
 		expect(optOutButton).not.toContain('data-variant=');
 		expect(html).toContain('Do not sell my info');
 		expect(html).toContain('data-action="dismiss"');
-		// The notice acknowledgement reads as Accept All, not Dismiss.
-		expect(html).toContain('>Accept All<');
-		expect(html).not.toContain('>Got it<');
+		// Older translations can still supply the dismiss label.
+		expect(html).toContain('>Got it<');
+		expect(html).not.toContain('>Accept All<');
 		expect(html).not.toContain('consent-banner-accept-button');
 	});
 
@@ -136,8 +149,20 @@ describe('RscConsentBanner surface shape', () => {
 		expect(root).toContain('data-variant="floating"');
 		expect(root).not.toContain('data-blocking');
 		expect(html).not.toContain('data-testid="consent-banner-overlay"');
-		// A choice prompt traps focus by default, so the card is a modal dialog
-		// even though it is not blocking.
+		// A choice prompt is non-blocking by default, so the card is a labelled
+		// region that never claims modal semantics.
+		const card = readCard(html);
+		expect(card).not.toContain('aria-modal');
+		expect(card).toContain('role="region"');
+		expect(card).toContain('aria-label=');
+	});
+
+	test('a blocking choice is a modal dialog', () => {
+		const html = renderShell(
+			{ model: 'opt-in', prompt: 'choice' },
+			{ prompt: { blocking: true } }
+		);
+		expect(readRoot(html)).toContain('data-blocking="true"');
 		const card = readCard(html);
 		expect(card).toContain('aria-modal="true"');
 		expect(card).toContain('role="dialog"');
@@ -221,5 +246,55 @@ describe('RscConsentBanner surface shape', () => {
 			)
 		);
 		expect(kept).toContain('data-position="top-left"');
+	});
+});
+
+describe('RscConsentBanner without a resolved policy', () => {
+	test('emits no consent markup when the server resolved no rule', () => {
+		const html = renderConfig({
+			...policyFixture(),
+			initialPolicyResolution: { policy: null, status: 'unconfigured' },
+			initialTranslations: noticeTranslations,
+		});
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+		expect(html).not.toContain('data-testid="consent-banner-accept-button"');
+	});
+
+	test('emits no consent markup when the server resolution failed', () => {
+		const html = renderConfig({
+			...policyFixture(),
+			initialPolicyResolution: {
+				policy: null,
+				reason: 'transport',
+				status: 'failed',
+			},
+			initialTranslations: noticeTranslations,
+		});
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+	});
+});
+
+describe('RscConsentBanner under a none rule', () => {
+	/** A regime with no consent law: permitted by default, nothing owed. */
+	const noneRule: Partial<PolicyRule> = {
+		id: 'next_world_none',
+		match: { isDefault: true },
+		model: 'none',
+		prompt: 'none',
+	};
+
+	test('emits no consent markup when no rights are owed', () => {
+		const html = renderShell(noneRule);
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+		expect(html).not.toContain('data-testid="consent-banner-rights"');
+	});
+
+	test('still emits no banner when the rule grants preferences, since there is no prompt', () => {
+		const html = renderShell({ ...noneRule, rights: ['preferences'] });
+		expect(html).not.toContain('data-testid="consent-banner-card"');
+		expect(html).not.toContain('data-testid="consent-banner-accept-button"');
 	});
 });

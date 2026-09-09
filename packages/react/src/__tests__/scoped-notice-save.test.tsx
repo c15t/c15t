@@ -10,7 +10,7 @@ import { ConsentProvider } from '../provider';
 
 for (const scenario of ['notice', 'scoped'] as const) {
 	for (const action of ['accept', 'reject', 'save'] as const) {
-		test(`${scenario} actual React ${action} saves displayed scope and returns required banner`, async () => {
+		test(`${scenario} actual React ${action} saves displayed scope and respects the remaining prompt`, async () => {
 			const pending = Promise.withResolvers<{ ok: boolean }>();
 			const save = vi.fn(() => pending.promise);
 			const resolution = resolvePolicyRules({
@@ -23,6 +23,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 						match: { isDefault: true },
 						model: scenario === 'notice' ? 'opt-out' : 'opt-in',
 						prompt: scenario === 'notice' ? 'notice' : 'choice',
+						scopeMode: 'permissive',
 					},
 				],
 			});
@@ -98,12 +99,25 @@ for (const scenario of ['notice', 'scoped'] as const) {
 					).toBe(action === 'accept');
 				}
 				pending.resolve({ ok: true });
+				let prompt = 'none';
+				if (scenario === 'notice') {
+					prompt = 'notice';
+				} else if (action === 'accept') {
+					prompt = 'choice';
+				}
 				await vi.waitFor(() =>
-					expect(kernel.getSnapshot().activeUI).toBe('banner')
+					expect(kernel.getSnapshot().activeUI).toBe(
+						prompt === 'none' ? 'none' : 'banner'
+					)
 				);
-				expect(kernel.getSnapshot().promptRequirement.kind).toBe(
-					scenario === 'notice' ? 'notice' : 'choice'
-				);
+				expect(kernel.getSnapshot().promptRequirement.kind).toBe(prompt);
+				if (scenario === 'scoped') {
+					// Missing marketing consent remains denied when a measurement
+					// refusal suppresses the automatic choice banner.
+					expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(
+						false
+					);
+				}
 				expect(
 					document.querySelector('[data-testid="consent-dialog-root"]')
 				).toBeNull();

@@ -155,6 +155,7 @@ describe('fingerprint domains', () => {
 			categories: ['measurement', 'marketing', 'marketing'],
 			privacySignals: { gpc: { denyCategories: ['measurement', 'marketing'] } },
 			rights: ['opt-out', 'disclosure'],
+			scopeMode: 'permissive',
 		});
 		const second = normalizePolicyRule({
 			...choiceRule,
@@ -162,6 +163,7 @@ describe('fingerprint domains', () => {
 			categories: ['marketing', 'measurement'],
 			privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
 			rights: ['opt-out'],
+			scopeMode: 'permissive',
 		});
 		expect(createPolicyRuleFingerprints(first)).toEqual(
 			createPolicyRuleFingerprints(second)

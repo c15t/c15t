@@ -33,6 +33,19 @@ const errorsFor = (rule: unknown, options?: { iabEnabled?: boolean }) =>
 	inspectPolicyRules([rule], options).errors;
 
 describe('normalizePolicyRule', () => {
+	test('requires an explicit decision about out-of-scope permissions', () => {
+		expect(() =>
+			normalizePolicyRule({ ...optInChoice, categories: ['measurement'] })
+		).toThrow(/must set scopeMode/u);
+		for (const scopeMode of ['strict', 'permissive'] as const) {
+			const rule = normalizePolicyRule({
+				...optInChoice,
+				categories: ['measurement'],
+				scopeMode,
+			});
+			expect(rule.scopeMode).toBe(scopeMode);
+		}
+	});
 	test('fills defaults and canonicalizes every set', () => {
 		const rule = normalizePolicyRule({
 			...optInChoice,
@@ -42,6 +55,7 @@ describe('normalizePolicyRule', () => {
 			preselectedCategories: ['measurement', 'measurement'],
 			privacySignals: { gpc: { denyCategories: ['measurement', 'marketing'] } },
 			rights: ['opt-out', 'disclosure'],
+			scopeMode: 'permissive',
 		});
 
 		expect(rule).toEqual({
@@ -171,6 +185,54 @@ describe('inspectPolicyRules model and prompt combinations', () => {
 	});
 });
 
+describe('the none model', () => {
+	const none: PolicyRule = {
+		id: 'none',
+		match: { isDefault: true },
+		model: 'none',
+		prompt: 'none',
+	};
+
+	test('normalizes with no actions and no rights', () => {
+		const rule = normalizePolicyRule(none);
+		expect(rule).toMatchObject({
+			actions: { allowed: [], equivalent: [], required: [] },
+			model: 'none',
+			prompt: 'none',
+			rights: [],
+		});
+	});
+
+	test('a host may still add rights', () => {
+		expect(
+			normalizePolicyRule({ ...none, rights: ['preferences'] }).rights
+		).toEqual(['preferences']);
+	});
+
+	test('rejects prompts, actions and preselected categories', () => {
+		expect(errorsFor({ ...none, prompt: 'choice' })).toHaveLength(1);
+		expect(errorsFor({ ...none, prompt: 'notice' })).toHaveLength(1);
+		expect(errorsFor({ ...none, actions: ['accept', 'reject'] })).toHaveLength(
+			1
+		);
+		expect(
+			errorsFor({ ...none, preselectedCategories: ['marketing'] })
+		).toHaveLength(1);
+	});
+
+	test('keeps scope and GPC configuration', () => {
+		const rule = normalizePolicyRule({
+			...none,
+			categories: ['marketing', 'measurement'],
+			privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			scopeMode: 'strict',
+		});
+		expect(rule.scope).toEqual(['marketing', 'measurement']);
+		expect(rule.scopeMode).toBe('strict');
+		expect(rule.privacySignals.gpc.denyCategories).toEqual(['marketing']);
+	});
+});
+
 describe('inspectPolicyRules field validation', () => {
 	test('required rule fields cannot come from a prototype', () => {
 		expect(errorsFor(Object.create(optOutNone)).length).toBeGreaterThan(0);
@@ -246,6 +308,7 @@ describe('inspectPolicyRules field validation', () => {
 				...optInChoice,
 				categories: ['marketing'],
 				preselectedCategories: ['measurement'],
+				scopeMode: 'strict',
 			})
 		).toHaveLength(1);
 		expect(

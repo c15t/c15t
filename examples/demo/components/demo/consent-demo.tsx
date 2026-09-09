@@ -195,7 +195,7 @@ const ScenarioGroup = ({
 									isActive ? 'text-background/70' : 'text-muted-foreground'
 								)}
 							>
-								{scenario.country}
+								{scenario.country || 'unknown'}
 								{scenario.region ? `-${scenario.region}` : ''}
 							</span>
 						</button>
@@ -487,16 +487,16 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 					<ConsentBanner />
 					<ConsentDialog />
-					{/* The IAB banner carries its own resurface control, so the
-					    toolbar only backs the standard prompts. */}
-					{scenario.policy.model === 'iab' ? null : (
+					{/* The IAB banner carries its own resurface control, and a none
+					    rule with no added rights owes no control at all. */}
+					{scenario.showsTriggerToolbar ? (
 						<ConsentDialogTriggerToolbar
 							ariaLabel="Privacy controls"
 							defaultPosition="bottom-right"
 							persistPosition={false}
 							showWhen="after-prompt"
 						/>
-					)}
+					) : null}
 					<IABProvider {...iabConfig}>
 						<IABConsentBanner
 							trapFocus={false}

@@ -28,8 +28,14 @@ import type {
 	PolicyValidationResult,
 } from './policy-runtime';
 
-/** Permission models. A notice is a prompt, never a model. */
-export type PolicyRuleModel = 'opt-in' | 'opt-out' | 'iab';
+/**
+ * Permission models. A notice is a prompt, never a model.
+ *
+ * `none` means processing is permitted by default, no first-layer prompt is
+ * required and no rights are owed: the regime grants the subject nothing to
+ * exercise. It renders no consent UI unless the host adds rights.
+ */
+export type PolicyRuleModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
 
 /** First-layer interaction a rule requires. */
 export type PolicyPrompt = 'choice' | 'notice' | 'none';
@@ -77,6 +83,7 @@ export const POLICY_RULE_MODELS = [
 	'opt-in',
 	'opt-out',
 	'iab',
+	'none',
 ] as const satisfies readonly PolicyRuleModel[];
 
 export const POLICY_PROMPTS = [
@@ -103,6 +110,7 @@ export const POLICY_MODEL_PROMPTS: Readonly<
 	Record<PolicyRuleModel, readonly PolicyPrompt[]>
 > = {
 	iab: ['choice'],
+	none: ['none'],
 	'opt-in': ['choice'],
 	'opt-out': ['choice', 'notice', 'none'],
 };
@@ -152,7 +160,7 @@ export interface PolicyRule {
 	 * rejected. Applies to every model, including `iab`.
 	 */
 	categories?: string[];
-	/** How categories outside `categories` behave. Defaults to `permissive`. */
+	/** How categories outside `categories` behave. Required for a partial scope. */
 	scopeMode?: PolicyScopeMode;
 	/** Categories a preference form pre-selects. Inside scope; never for `iab`. */
 	preselectedCategories?: string[];
@@ -183,6 +191,7 @@ export interface PolicyRule {
 	copyRevision?: string;
 	i18n?: {
 		language?: string;
+		/** `preferences` uses generic preference labels instead of US sale/sharing wording. */
 		messageProfile?: string;
 	};
 	proof?: {
@@ -220,7 +229,7 @@ export interface ResolvedPolicyRule {
 	/** Sorted. Always empty for `iab`. */
 	preselectedCategories: PolicyOptionalCategory[];
 	actions: PolicyActionConstraints;
-	/** Sorted. Always contains `disclosure` and `preferences`. */
+	/** Sorted. Contains `disclosure` and `preferences` for every model but `none`. */
 	rights: PolicyRight[];
 	/** Milliseconds. Finite, greater than zero, within the safe integer range. */
 	validity: {
@@ -236,6 +245,7 @@ export interface ResolvedPolicyRule {
 	copyRevision: string | null;
 	i18n?: {
 		language?: string;
+		/** `preferences` uses generic preference labels instead of US sale/sharing wording. */
 		messageProfile?: string;
 	};
 	proof: {
@@ -275,7 +285,13 @@ const RULE_KEYS = [
 	'proof',
 	'review',
 ] as const;
-const MATCH_KEYS = ['countries', 'regions', 'isDefault', 'fallback'] as const;
+const MATCH_KEYS = [
+	'countries',
+	'regions',
+	'regionFallbacks',
+	'isDefault',
+	'fallback',
+] as const;
 const REGION_KEYS = ['country', 'region'] as const;
 const VALIDITY_KEYS = ['choiceDays', 'noticeDays'] as const;
 const PRIVACY_SIGNAL_KEYS = ['gpc'] as const;
@@ -482,6 +498,15 @@ const collectScopeErrors = function collectScopeErrors(check: RuleCheck): void {
 	collectCategoryListErrors(check, 'categories', { allowWildcard: true });
 	const scopeMode = own(rule, 'scopeMode');
 	if (
+		scopeMode === undefined &&
+		resolveScope(own(rule, 'categories')).length <
+			POLICY_OPTIONAL_CATEGORIES.length
+	) {
+		errors.push(
+			`Policy ${label} must set scopeMode to "strict" or "permissive" when categories selects only part of the optional categories.`
+		);
+	}
+	if (
 		scopeMode !== undefined &&
 		scopeMode !== 'strict' &&
 		scopeMode !== 'permissive'
@@ -489,10 +514,11 @@ const collectScopeErrors = function collectScopeErrors(check: RuleCheck): void {
 		errors.push(`Policy ${label} scopeMode must be "strict" or "permissive".`);
 	}
 	const preselected = own(rule, 'preselectedCategories');
-	if (own(rule, 'model') === 'iab') {
+	const model = own(rule, 'model');
+	if (model === 'iab' || model === 'none') {
 		if (preselected !== undefined) {
 			errors.push(
-				`Policy ${label} uses model "iab" and cannot define preselectedCategories.`
+				`Policy ${label} uses model "${model}" and cannot define preselectedCategories.`
 			);
 		}
 		return;
@@ -767,9 +793,11 @@ const hasExplicitMatchers = function hasExplicitMatchers(
 ): boolean {
 	const countries = own(match, 'countries');
 	const regions = own(match, 'regions');
+	const regionFallbacks = own(match, 'regionFallbacks');
 	return (
 		(Array.isArray(countries) && countries.length > 0) ||
-		(Array.isArray(regions) && regions.length > 0)
+		(Array.isArray(regions) && regions.length > 0) ||
+		(Array.isArray(regionFallbacks) && regionFallbacks.length > 0)
 	);
 };
 
@@ -781,16 +809,15 @@ const collectMatchErrors = function collectMatchErrors(check: RuleCheck): void {
 		return;
 	}
 	pushUnknownKeyErrors(check, match, MATCH_KEYS, 'match');
-	const countries = own(match, 'countries');
-	if (countries !== undefined) {
+	for (const key of ['countries', 'regionFallbacks'] as const) {
+		const countries = own(match, key);
+		if (countries === undefined) {
+			continue;
+		}
 		if (!isStringArray(countries)) {
-			errors.push(
-				`Policy ${label} match.countries must be an array of strings.`
-			);
+			errors.push(`Policy ${label} match.${key} must be an array of strings.`);
 		} else if (countries.some((country) => !country.trim())) {
-			errors.push(
-				`Policy ${label} match.countries cannot contain empty codes.`
-			);
+			errors.push(`Policy ${label} match.${key} cannot contain empty codes.`);
 		}
 	}
 	collectRegionMatcherErrors(check, own(match, 'regions'));
@@ -1042,10 +1069,16 @@ export const expectedPolicyActions = function expectedPolicyActions(
 	return { allowed: [], equivalent: [], required: [] };
 };
 
-/** Rights every rule of a model must carry. */
+/**
+ * Rights every rule of a model must carry. `none` owes nothing; a host may
+ * still add `preferences` or `disclosure` through `rights`.
+ */
 export const requiredPolicyRights = function requiredPolicyRights(
 	model: PolicyRuleModel
 ): PolicyRight[] {
+	if (model === 'none') {
+		return [];
+	}
 	const required: PolicyRight[] = ['disclosure', 'preferences'];
 	if (model === 'opt-out') {
 		required.push('opt-out');
@@ -1063,7 +1096,11 @@ const resolveRights = function resolveRights(rule: PolicyRule): PolicyRight[] {
 const resolvePreselected = function resolvePreselected(
 	rule: PolicyRule
 ): PolicyOptionalCategory[] {
-	if (rule.model === 'iab' || !rule.preselectedCategories) {
+	if (
+		rule.model === 'iab' ||
+		rule.model === 'none' ||
+		!rule.preselectedCategories
+	) {
 		return [];
 	}
 	return canonicalizePolicySet(
@@ -1199,8 +1236,11 @@ export const collectResolvedPolicyRuleIssues =
 		if (hasDuplicates(rule.preselectedCategories)) {
 			issues.push('preselectedCategories must not repeat a category');
 		}
-		if (rule.model === 'iab' && rule.preselectedCategories.length > 0) {
-			issues.push('iab rules cannot preselect categories');
+		if (
+			(rule.model === 'iab' || rule.model === 'none') &&
+			rule.preselectedCategories.length > 0
+		) {
+			issues.push(`${rule.model} rules cannot preselect categories`);
 		}
 		if (
 			!rule.preselectedCategories.every((category) =>

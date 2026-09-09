@@ -16,10 +16,13 @@ import {
   ConsentProvider,
   offline,
 } from '@c15t/react';
+import { policyRulePresets } from '@c15t/schema';
+
+const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
 
 export function App() {
   return (
-    <ConsentProvider options={{ mode: offline() }}>
+    <ConsentProvider options={{ mode }}>
       <ConsentBanner />
       <ConsentDialog />
       <ConsentDialogTrigger showWhen="after-prompt" />
@@ -79,6 +82,8 @@ Each custom action needs a stable `id`, an accessible `label`, an `icon`, and an
 
 The toolbar does not depend on the consent policy. Your actions always render, so a theme toggle stays available while a banner is up. On the toolbar, `showWhen` applies only to the built-in preferences action: `after-prompt` hides that one item while a choice or notice is owed and shows it once the visitor has answered, and `never` leaves it out. The toolbar renders nothing only when it has no visible item. On the single `ConsentDialogTrigger`, `showWhen` applies to the whole control.
 
+No policy, no UI. When no rule has resolved, because resolution failed, no rule matched and you set no default, or init is still withheld, the built-in preferences action and the single `ConsentDialogTrigger` render nothing; app-owned toolbar actions still do. They appear as soon as a rule resolves, without a remount. A rule with `model: 'none'` owes no rights, so the built-in action and the single trigger hide under it too, unless the rule adds `rights: ['preferences']`. The policy chooses what the control says, you choose where and when it sits, and it disappears only when there is nothing to manage.
+
 The built-in action names the strongest right the active rule guarantees. Under a rule that carries the `opt-out` right, such as a US opt-out notice, its accessible name is the translated "Do not sell or share my data" and the button carries `data-right="opt-out"`. Under any other rule it reads "Manage preferences" with `data-right="preferences"`. Either way it opens the preference center, and a `preferences.label` you pass replaces the default. The button also carries `data-c15t-rights` with every right on the rule.
 
 Toolbars are horizontal by default. Set `orientation="vertical"` to stack the actions and switch arrow-key navigation to up and down:
@@ -108,7 +113,7 @@ The toolbar follows the standard precedence: bundled styles, then provider slots
 ```tsx
 <ConsentProvider
   options={{
-    mode: offline(),
+    mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }),
     components: {
       trigger: {
         toolbar: { className: 'my-toolbar' },

@@ -1039,7 +1039,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			noStyle: options.noStyle,
 			scrollLock: options.scrollLock,
 			theme: userTheme,
-			trapFocus: options.trapFocus ?? true,
+			trapFocus: options.trapFocus,
 		}),
 		[
 			userTheme,

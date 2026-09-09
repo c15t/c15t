@@ -28,6 +28,7 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 					match: { isDefault: true },
 					model: 'opt-in',
 					prompt: 'choice',
+					scopeMode: 'permissive',
 				},
 			],
 		});
@@ -169,6 +170,7 @@ const mountActions = async function mountActions() {
 								match: { isDefault: true },
 								model: 'opt-in',
 								prompt: 'choice',
+								scopeMode: 'permissive',
 							},
 						],
 					}),

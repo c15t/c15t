@@ -45,6 +45,7 @@ import {
 	fromPolicyRule,
 	getPlaygroundPreset,
 	inspectPlaygroundRule,
+	isRecommendedPreset,
 	playgroundPresets,
 	positionOptionsFor,
 	presentationForRule,
@@ -99,11 +100,16 @@ const MODEL_OPTIONS: { value: PolicyRuleModel; label: string; hint: string }[] =
 			label: 'iab',
 			value: 'iab',
 		},
+		{
+			hint: 'No consent law grants rights here. Everything is permitted, nothing is recorded, and no consent UI renders unless the rule adds a right.',
+			label: 'none',
+			value: 'none',
+		},
 	];
 
 const PROMPT_HINTS: Record<PolicyPrompt, string> = {
 	choice: 'First layer offers accept and reject (and optionally customize).',
-	none: 'No first layer. Preferences and disclosures stay reachable.',
+	none: 'No first layer. Under opt-out, preferences and disclosures stay reachable; under none, nothing renders.',
 	notice:
 		'Non-blocking notice with one acknowledgement, shown as Accept All, plus an opt-out text link. Acknowledging never creates a choice.',
 };
@@ -511,7 +517,7 @@ const RuleEditor = ({
 				<CategoryPicker
 					value={form.preselected}
 					allowed={scoped}
-					disabled={form.model === 'iab'}
+					disabled={form.model === 'iab' || form.model === 'none'}
 					onChange={(preselected) => update({ preselected })}
 				/>
 			</Field>
@@ -686,6 +692,9 @@ const describePromptPresentation = function describePromptPresentation(
 	if (rule.model === 'iab') {
 		return 'IAB surfaces';
 	}
+	if (rule.model === 'none') {
+		return 'no consent UI';
+	}
 	if (rule.prompt === 'none') {
 		return 'no prompt, toolbar only';
 	}
@@ -810,6 +819,10 @@ const RuntimeInspector = ({
 	const services = React.useContext(ProviderServicesContext);
 	const snapshot = useSnapshot();
 	const { banner } = useHeadlessConsentUI();
+	// A none rule with no added rights owes no prompt and no control at all.
+	const noConsentUi =
+		snapshot.policyRule.model === 'none' &&
+		snapshot.policyRule.rights.length === 0;
 	const [log, setLog] = React.useState<LogEntry[]>([]);
 
 	React.useEffect(() => {
@@ -993,9 +1006,11 @@ const RuntimeInspector = ({
 						data-position={banner.position}
 						data-position-source={banner.positionSource}
 						data-blocking={banner.blocking ? 'true' : 'false'}
+						data-consent-ui={noConsentUi ? 'none' : 'shown'}
 					>
-						{banner.variant} · {banner.position} ({banner.positionSource})
-						{banner.blocking ? ' · blocking' : ' · non-blocking'}
+						{noConsentUi
+							? 'no consent UI · none model with no rights'
+							: `${banner.variant} · ${banner.position} (${banner.positionSource})${banner.blocking ? ' · blocking' : ' · non-blocking'}`}
 					</p>
 					<p className="text-muted-foreground text-xs leading-5">
 						Shape and placement come from the host, never the rule. The resolver
@@ -1007,12 +1022,12 @@ const RuntimeInspector = ({
 					<SectionLabel>Prompt controls</SectionLabel>
 					<p className="font-mono text-xs">
 						{banner.orderedActions.join(', ') || 'none'}
-						{banner.uncoveredRights.length > 0
-							? ` · rights ${banner.uncoveredRights.join(', ')}`
+						{banner.preferenceControls.length > 0
+							? ` · preference controls ${banner.preferenceControls.join(', ')}`
 							: ''}
 					</p>
 					<p className="text-muted-foreground text-xs leading-5">
-						Actions the policy allows, plus links for rights no action covers.
+						Policy actions and additional buttons that open preferences.
 					</p>
 				</div>
 			</div>
@@ -1639,12 +1654,17 @@ export const PolicyPlayground = () => {
 						<TabsContent value="client">
 							<CodeBlock
 								value={buildProviderSnippet(rule, snippetPreset, presentation, {
+									recommended: isRecommendedPreset(snippetPreset),
 									toolbar: showToolbar && form.model !== 'iab',
 								})}
 							/>
 						</TabsContent>
 						<TabsContent value="backend">
-							<CodeBlock value={buildBackendSnippet(rule, snippetPreset)} />
+							<CodeBlock
+								value={buildBackendSnippet(rule, snippetPreset, {
+									recommended: isRecommendedPreset(snippetPreset),
+								})}
+							/>
 						</TabsContent>
 					</Tabs>
 				</section>

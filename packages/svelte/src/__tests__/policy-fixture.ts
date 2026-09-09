@@ -15,6 +15,7 @@ export const policyFixture = (
 		match: { fallback: true },
 		model: 'opt-in',
 		prompt: 'choice',
+		scopeMode: 'permissive',
 		...rule,
 	});
 	const fingerprints = createPolicyRuleFingerprints(policy);

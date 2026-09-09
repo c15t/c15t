@@ -51,13 +51,13 @@ const query = <Element extends HTMLElement>(selector: string) =>
 const notice = () => policyFixture({}, { model: 'opt-out', prompt: 'notice' });
 
 describe('notice banner', () => {
-	test('renders the dismiss as a primary "Accept All" that records nothing', () => {
+	test('renders the dismiss as a primary "OK" that records nothing', () => {
 		const { view } = renderFixture(notice());
 		const dismiss = required(
 			query<HTMLButtonElement>('[data-testid="consent-banner-dismiss-button"]')
 		);
 		expect(dismiss.dataset.action).toBe('dismiss');
-		expect(dismiss.textContent?.trim()).toBe('Accept All');
+		expect(dismiss.textContent?.trim()).toBe('OK');
 		expect(dismiss.dataset.variant).toBe('primary');
 		expect(
 			document.querySelectorAll('[data-action]:not([data-action="right"])')

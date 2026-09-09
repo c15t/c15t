@@ -243,6 +243,7 @@ describe('resolveStrictestDefaultInit: effective permissions', () => {
 			model: 'opt-in',
 			preselectedCategories: ['marketing'],
 			prompt: 'choice',
+			scopeMode: 'permissive',
 		});
 		expect(pick([preselected, pack('opt-out', ['marketing'])])).toMatchObject({
 			policyId: 'preselected',

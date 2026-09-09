@@ -23,6 +23,8 @@ export type ConsentBannerPolicyActionRenderProps =
 	PolicyActionRenderProps<HeadlessConsentBannerAction>;
 
 export interface ConsentBannerPolicyActionsProps {
+	/** Replaces the default preferences buttons before the policy actions. */
+	children?: ReactNode;
 	renderAction?: (
 		action: HeadlessConsentBannerAction,
 		props: ConsentBannerPolicyActionRenderProps
@@ -84,6 +86,7 @@ const renderDefaultAction = function renderDefaultAction(
 };
 
 export const ConsentBannerPolicyActions = ({
+	children,
 	renderAction,
 }: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
@@ -100,7 +103,13 @@ export const ConsentBannerPolicyActions = ({
 	return (
 		<PolicyActionsRenderer
 			state={state}
-			leading={<ConsentBannerRights rights={banner.uncoveredRights} />}
+			leading={
+				children === undefined ? (
+					<ConsentBannerRights rights={banner.preferenceControls} />
+				) : (
+					children
+				)
+			}
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
 			classNames={{}}

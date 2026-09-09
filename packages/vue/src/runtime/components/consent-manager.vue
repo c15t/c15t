@@ -11,6 +11,7 @@ import {
 	useConsentInit,
 	useConsentSave,
 	useConsentSnapshot,
+	useHasConsentUi,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
@@ -35,6 +36,8 @@ const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
 const snapshot = useConsentSnapshot();
+// No resolved policy means nothing to manage: render no surface at all.
+const hasConsentUi = useHasConsentUi();
 
 const { presentation: surface } = useConsentPolicyActions('preferences');
 let pendingActions = 0;
@@ -145,7 +148,7 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 
 <template>
 	<div
-		v-if="isStale"
+		v-if="hasConsentUi && isStale"
 		role="status"
 	>
 		Privacy choices have changed.
@@ -157,12 +160,14 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 		</button>
 	</div>
 	<DialogRoot
+		v-if="hasConsentUi"
 		:open="activeUI === 'manager'"
-		:modal="config.trapFocus"
+		:modal="surface.blocking"
 		@update:open="(open) => (activeUI = open ? 'manager' : null)"
 	>
 		<DialogPortal>
 			<DialogOverlay
+				v-if="surface.blocking"
 				:style="overlayFallbackStyle"
 				v-bind="config.components?.dialog?.overlay"
 				data-testid="consent-dialog-overlay"
@@ -190,6 +195,7 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 			>
 				<DialogContent
 					v-bind="config.components?.dialog?.container"
+					:data-blocking="surface.blocking ? 'true' : undefined"
 					data-testid="consent-dialog-root"
 					:dir="textDirection"
 					:class="[dialogStyles.container, dialogStyles.contentVisible]"

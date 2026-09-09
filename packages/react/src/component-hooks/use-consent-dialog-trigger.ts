@@ -2,7 +2,12 @@
 
 import { useCallback } from 'react';
 
-import { useActiveUI, usePromptRequirement, useSetActiveUI } from '../hooks';
+import {
+	useActiveUI,
+	useHasConsentUI,
+	usePromptRequirement,
+	useSetActiveUI,
+} from '../hooks';
 
 /**
  * When a trigger surface is visible.
@@ -34,6 +39,7 @@ export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	const setActiveUI = useSetActiveUI();
 	const activeUI = useActiveUI();
 	const promptRequirement = usePromptRequirement();
+	const hasConsentUI = useHasConsentUI();
 	const openDialog = useCallback(() => {
 		onClick?.();
 		setActiveUI('dialog');
@@ -41,7 +47,13 @@ export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	const promptSettled =
 		showWhen !== 'after-prompt' || promptRequirement.kind === 'none';
 	return {
-		isVisible: showWhen !== 'never' && activeUI !== 'dialog' && promptSettled,
+		// No resolved policy, or a `none` rule that keeps no right reachable,
+		// means no consent UI at all, whatever `showWhen` says.
+		isVisible:
+			hasConsentUI &&
+			showWhen !== 'never' &&
+			activeUI !== 'dialog' &&
+			promptSettled,
 		openDialog,
 	};
 };

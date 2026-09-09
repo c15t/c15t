@@ -3,6 +3,7 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Alles accepteren',
+		acknowledge: 'OK',
 		close: 'Sluiten',
 		customize: 'Aanpassen',
 		dismiss: 'Sluiten',

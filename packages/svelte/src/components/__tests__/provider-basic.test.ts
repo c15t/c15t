@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
+import { testOffline } from '../../__tests__/test-offline';
 import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
 import { custom, hosted } from '../../lib/index';
 import { offline } from '../../lib/transports/offline';
@@ -79,7 +80,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('should install window.c15t with Svelte offline identity', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -102,7 +103,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 				mountedKernel = kernel;
 			},
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -200,7 +201,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 			},
 		});
 
@@ -213,7 +214,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		render(ConsentManagerProvider, {
-			mode: offline(),
+			mode: testOffline(),
 			options: {
 				mode: hosted({ url: 'https://example.invalid' }),
 			},
@@ -229,7 +230,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: offline(),
+				mode: testOffline(),
 				theme: { slots: { bannerCard: 'light' } },
 			},
 		});

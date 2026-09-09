@@ -65,3 +65,29 @@ it('reports hidden ancestors in actual server and client prompt evidence', async
 		await session.dispose();
 	}
 });
+
+it('uses a newly mounted provider after repeated reloads', async () => {
+	const now = Date.now();
+	const session = await createPolicySession({
+		clock: { now: () => now },
+		gpc: false,
+		policy: POLICY_CHOICE,
+		probeGates: false,
+		storage: {},
+	});
+	try {
+		await session.execute({ kind: 'hydrate' });
+		await session.execute({ kind: 'accept' });
+		await session.execute({ kind: 'reload' });
+		expect(
+			(await session.observe()).snapshot.effectivePermissions.marketing
+		).toBe(true);
+		await session.execute({ kind: 'save', values: { marketing: false } });
+		await session.execute({ kind: 'reload' });
+		expect(
+			(await session.observe()).snapshot.effectivePermissions.marketing
+		).toBe(false);
+	} finally {
+		await session.dispose();
+	}
+});

@@ -539,7 +539,16 @@
 	{#key key}
 		<ConsentManagerProvider
 			options={{
-				mode: offline(),
+				mode: offline({
+					policyRules: [
+						{
+							id: 'demo-theme',
+							match: { fallback: true, isDefault: true },
+							model: 'opt-in',
+							prompt: 'choice',
+						},
+					],
+				}),
 				consentCategories: ['necessary', 'marketing', 'measurement'],
 				theme: activeTheme,
 			}}

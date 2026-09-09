@@ -11,7 +11,7 @@
 
 import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
-import { policyRulePresets } from 'c15t';
+import { policyRulePresets, recommendedPolicyRules } from 'c15t';
 import type { ConsentPresentation, PolicyRule } from 'c15t';
 
 import { presentationForRule } from './policy-playground';
@@ -169,6 +169,18 @@ export interface DemoScenario {
 	/** Host presentation the scenario sets explicitly, if any. */
 	presentation?: ConsentPresentation;
 	/**
+	 * Resolve through `recommendedPolicyRules()`, the pack a bare `offline()`
+	 * applies, instead of the scenario's policy plus the demo fallback. The
+	 * scenario's `policy` is then the rule the pack is expected to select.
+	 */
+	useRecommendedPack?: boolean;
+	/**
+	 * Whether the demo mounts the trigger toolbar: not for IAB, which has its
+	 * own resurface control, and not for a none rule with no added rights,
+	 * which owes no control at all. Computed once at module load.
+	 */
+	showsTriggerToolbar?: boolean;
+	/**
 	 * Presentation the runtime applies: `presentation` when set, otherwise
 	 * the demo's per-policy shape from `presentationForRule`. Filled in once
 	 * at module load so render only reads a property.
@@ -178,7 +190,10 @@ export interface DemoScenario {
 
 const worldFallbackPolicy = policyRulePresets.worldOptOutNoPrompt();
 
-const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
+const authoredScenarios: Omit<
+	DemoScenario,
+	'runtimePresentation' | 'showsTriggerToolbar'
+>[] = [
 	// ── Built-in presets ──────────────────────────────────────────────────
 	{
 		country: 'GB',
@@ -231,6 +246,255 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 		id: 'preset-world-no-banner',
 		label: 'World No Banner',
 		policy: worldFallbackPolicy,
+	},
+
+	{
+		country: 'AU',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-australiaOptOut',
+		label: 'Australia opt-out',
+		policy: policyRulePresets.australiaOptOut(),
+	},
+	{
+		country: 'JP',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-japanOptOut',
+		label: 'Japan opt-out',
+		policy: policyRulePresets.japanOptOut(),
+	},
+	{
+		country: 'CA',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-canadaOptIn',
+		label: 'Canada opt-in',
+		policy: policyRulePresets.canadaOptIn(),
+		region: 'ON',
+	},
+	{
+		country: 'CA',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-canadaOptOut',
+		label: 'Canada opt-out',
+		policy: policyRulePresets.canadaOptOut(),
+		region: 'ON',
+	},
+	{
+		country: 'GB',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-ukStatistics',
+		label: 'UK service statistics',
+		policy: policyRulePresets.ukStatistics(),
+	},
+	{
+		country: 'MY',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-malaysiaStatistics',
+		label: 'Malaysia statistics only',
+		policy: policyRulePresets.malaysiaStatistics(),
+	},
+	{
+		country: 'US',
+		description:
+			'Shipped US privacy states starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-us-privacy-states',
+		label: 'US privacy states opt-out',
+		policy: policyRulePresets.usPrivacyStatesOptOut(),
+		region: 'CO',
+	},
+	{
+		country: 'AU',
+		description:
+			'Shipped Australia opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-australia-opt-in',
+		label: 'Australia opt-in',
+		policy: policyRulePresets.australiaOptIn(),
+	},
+	{
+		country: 'SG',
+		description:
+			'Shipped Singapore opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-singapore-opt-in',
+		label: 'Singapore opt-in',
+		policy: policyRulePresets.singaporeOptIn(),
+	},
+	{
+		country: 'JP',
+		description:
+			'Shipped Japan opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-japan-opt-in',
+		label: 'Japan opt-in',
+		policy: policyRulePresets.japanOptIn(),
+	},
+	{
+		country: 'KR',
+		description:
+			'Shipped South Korea opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-south-korea-opt-in',
+		label: 'South Korea opt-in',
+		policy: policyRulePresets.southKoreaOptIn(),
+	},
+	{
+		country: 'IN',
+		description:
+			'Shipped India opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-india-opt-in',
+		label: 'India opt-in',
+		policy: policyRulePresets.indiaOptIn(),
+	},
+	{
+		country: 'AE',
+		description:
+			'Shipped UAE opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-uae-opt-in',
+		label: 'UAE opt-in',
+		policy: policyRulePresets.uaeOptIn(),
+	},
+	{
+		country: 'SA',
+		description:
+			'Shipped Saudi Arabia opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-saudi-arabia-opt-in',
+		label: 'Saudi Arabia opt-in',
+		policy: policyRulePresets.saudiArabiaOptIn(),
+	},
+
+	{
+		country: 'CN',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-china-opt-in',
+		label: 'China opt-in',
+		policy: policyRulePresets.chinaOptIn(),
+	},
+	{
+		country: 'MY',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-malaysia-opt-in',
+		label: 'Malaysia opt-in',
+		policy: policyRulePresets.malaysiaOptIn(),
+	},
+	{
+		country: 'TH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-thailand-opt-in',
+		label: 'Thailand opt-in',
+		policy: policyRulePresets.thailandOptIn(),
+	},
+	{
+		country: 'ID',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-indonesia-opt-in',
+		label: 'Indonesia opt-in',
+		policy: policyRulePresets.indonesiaOptIn(),
+	},
+	{
+		country: 'PH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-philippines-opt-in',
+		label: 'Philippines opt-in',
+		policy: policyRulePresets.philippinesOptIn(),
+	},
+	{
+		country: 'VN',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-vietnam-opt-in',
+		label: 'Vietnam opt-in',
+		policy: policyRulePresets.vietnamOptIn(),
+	},
+	{
+		country: 'BN',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-brunei-opt-in',
+		label: 'Brunei opt-in',
+		policy: policyRulePresets.bruneiOptIn(),
+	},
+	{
+		country: 'LA',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-laos-opt-in',
+		label: 'Laos opt-in',
+		policy: policyRulePresets.laosOptIn(),
+	},
+	{
+		country: 'BR',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-brazil-opt-in',
+		label: 'Brazil opt-in',
+		policy: policyRulePresets.brazilOptIn(),
+	},
+	{
+		country: 'CH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-switzerland-opt-in',
+		label: 'Switzerland opt-in',
+		policy: policyRulePresets.switzerlandOptIn(),
+	},
+	{
+		country: 'TR',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-turkey-opt-in',
+		label: 'Türkiye opt-in',
+		policy: policyRulePresets.turkeyOptIn(),
+	},
+	{
+		country: 'CH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-switzerland-opt-out-no-prompt',
+		label: 'Switzerland no prompt',
+		policy: policyRulePresets.switzerlandOptOutNoPrompt(),
+	},
+	{
+		country: 'US',
+		description:
+			'Optional categories wait for a choice. GPC still restricts marketing and measurement.',
+		group: 'preset',
+		id: 'preset-us-privacy-states-opt-in',
+		label: 'US privacy states opt-in',
+		policy: policyRulePresets.usPrivacyStatesOptIn(),
+		region: 'CO',
 	},
 
 	// ── Custom examples ───────────────────────────────────────────────────
@@ -312,6 +576,7 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 				storeLanguage: true,
 				storeUserAgent: true,
 			},
+			scopeMode: 'strict',
 			validity: { choiceDays: 180 },
 		},
 		presentation: {
@@ -409,7 +674,7 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 	{
 		country: 'US',
 		description:
-			'Opt-out notice prompt. The banner renders an Accept All button plus a "Do not sell or share my data" text link that opens the preference center, because a notice offers no choice actions and the opt-out right stays reachable.',
+			'Opt-out notice prompt. The banner renders an OK dismissal plus a "Do not sell or share my data" button styled as underlined text that opens the preference center, because a notice offers no choice actions and the opt-out right stays reachable.',
 		group: 'custom',
 		id: 'custom-us-notice',
 		label: 'US notice',
@@ -457,10 +722,40 @@ const authoredScenarios: Omit<DemoScenario, 'runtimePresentation'>[] = [
 			prompt: { variant: 'wall' },
 		},
 	},
+	{
+		country: 'US',
+		description:
+			'A visitor in a US state with no comprehensive privacy law. The recommended pack resolves the world `none` rule: every category is permitted, nothing is recorded, and no consent UI renders because no law grants rights to opt in or out.',
+		group: 'custom',
+		id: 'custom-us-sd-none',
+		label: 'South Dakota',
+		policy: policyRulePresets.worldNone(),
+		region: 'SD',
+		useRecommendedPack: true,
+	},
+	{
+		country: '',
+		description:
+			'A visitor whose location could not be determined. The Europe opt-in rule carries the unknown-location fallback, so the recommended pack shows the strict choice prompt and grants nothing until the visitor chooses.',
+		group: 'custom',
+		id: 'custom-unknown-location',
+		label: 'Unknown location',
+		policy: policyRulePresets.europeOptIn(),
+		useRecommendedPack: true,
+	},
 ];
 
+const showsTriggerToolbarFor = function showsTriggerToolbarFor(
+	policy: PolicyRule
+): boolean {
+	if (policy.model === 'iab') {
+		return false;
+	}
+	return policy.model !== 'none' || (policy.rights?.length ?? 0) > 0;
+};
+
 const runtimePresentationFor = function runtimePresentationFor(
-	scenario: Omit<DemoScenario, 'runtimePresentation'>
+	scenario: Omit<DemoScenario, 'runtimePresentation' | 'showsTriggerToolbar'>
 ): ConsentPresentation | undefined {
 	if (scenario.presentation) {
 		return scenario.presentation;
@@ -473,6 +768,7 @@ export const demoScenarios: DemoScenario[] = authoredScenarios.map(
 	(scenario) => ({
 		...scenario,
 		runtimePresentation: runtimePresentationFor(scenario),
+		showsTriggerToolbar: showsTriggerToolbarFor(scenario.policy),
 	})
 );
 
@@ -488,13 +784,18 @@ export const getScenarioById = function getScenarioById(
 };
 
 /**
- * Policy packs for one scenario: the scenario's policy plus the world
- * no-banner fallback (unless the scenario itself is the default fallback).
+ * Policy packs for one scenario: the recommended pack for scenarios that
+ * opt into it, otherwise the scenario's policy plus the world no-banner
+ * fallback (unless the scenario itself is the default fallback).
  */
 export const getScenarioPolicyRules = function getScenarioPolicyRules(
 	id: string
 ): PolicyRule[] {
 	const scenario = getScenarioById(id);
+
+	if (scenario.useRecommendedPack) {
+		return recommendedPolicyRules();
+	}
 
 	if (scenario.policy.match?.isDefault) {
 		return [scenario.policy];

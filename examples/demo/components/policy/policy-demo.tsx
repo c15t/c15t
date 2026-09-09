@@ -205,6 +205,21 @@ const locationPresetSections: LocationPresetSection[] = [
 				id: 'custom-eu-wall',
 				label: 'EU wall',
 			},
+			{
+				country: 'US',
+				description:
+					'No consent law grants rights: the none rule permits everything and renders no consent UI',
+				id: 'custom-us-sd-none',
+				label: 'South Dakota',
+				region: 'SD',
+			},
+			{
+				country: '',
+				description:
+					'Unknown location falls back to the Europe opt-in rule, which carries the fallback matcher',
+				id: 'custom-unknown-location',
+				label: 'Unknown location',
+			},
 		],
 	},
 ];

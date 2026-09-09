@@ -153,14 +153,12 @@ describe('evaluateConsentRecord: legacy records', () => {
 			policy: makePolicy({ legacyMaterialFingerprint: 'material-b' }),
 		});
 		expect(result.permissions).toEqual(allFalse);
+		expect(result.categories.marketing.authority).toBe('policy-changed');
 		expect(result.restrictions).toEqual({
 			experience: ['explicit-denial'],
 			measurement: ['explicit-denial'],
 		});
-		expect(result.promptRequirement).toEqual({
-			kind: 'choice',
-			reason: 'policy-changed',
-		});
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
 	});
 
 	it('never compares a legacy hash to the choice prompt fingerprint', () => {
@@ -172,10 +170,9 @@ describe('evaluateConsentRecord: legacy records', () => {
 			now: NOW,
 			policy: makePolicy({ legacyMaterialFingerprint: 'material-b' }),
 		});
-		expect(result.promptRequirement).toEqual({
-			kind: 'choice',
-			reason: 'policy-changed',
-		});
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.categories.marketing.authority).toBe('policy-changed');
+		expect(result.permissions.marketing).toBe(false);
 	});
 });
 
@@ -204,10 +201,7 @@ describe('evaluateConsentRecord: per-category grant expiry', () => {
 		expect(atDay30.permissions.marketing).toBe(false);
 		expect(atDay30.permissions.measurement).toBe(true);
 		expect(atDay30.categories.marketing.authority).toBe('expired');
-		expect(atDay30.promptRequirement).toEqual({
-			kind: 'choice',
-			reason: 'expired',
-		});
+		expect(atDay30.promptRequirement).toEqual({ kind: 'none' });
 		expect(atDay30.nextDeadline).toBe(NOW + 59 * DAY);
 
 		const atDay59 = evaluateConsentRecord({
@@ -312,7 +306,7 @@ describe('evaluateConsentRecord: denials', () => {
 		expect(Object.keys(result.restrictions)).toHaveLength(4);
 	});
 
-	it('re-prompts after a material change while denials stay effective', () => {
+	it('keeps a full rejection without re-prompting after a material change', () => {
 		const before = makePolicy();
 		const after = makePolicy({
 			choice: { fingerprint: 'choice-fp-2', maxAgeMs: null },
@@ -333,11 +327,81 @@ describe('evaluateConsentRecord: denials', () => {
 			now: NOW,
 			policy: after,
 		});
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.permissions).toEqual(allFalse);
+	});
+
+	it.each(['changed', 'expired', 'new-category'] as const)(
+		'does not use a %s grant to ask for reversal of another category refusal',
+		(change) => {
+			const before = makePolicy({ scope: ['marketing', 'measurement'] });
+			const choice = makeChoice(
+				{ marketing: false, measurement: true },
+				NOW,
+				currentBasis(before)
+			);
+			const policy = makePolicy({
+				choice: {
+					fingerprint: change === 'changed' ? 'new' : before.choice.fingerprint,
+					maxAgeMs: 30 * DAY,
+				},
+				scope:
+					change === 'new-category'
+						? ['marketing', 'measurement', 'functionality']
+						: before.scope,
+			});
+			const result = evaluateConsentRecord({
+				choice,
+				noticeDismissal: null,
+				now: change === 'expired' ? NOW + 31 * DAY : NOW,
+				policy,
+			});
+			expect(result.promptRequirement).toEqual({ kind: 'none' });
+			expect(result.permissions.marketing).toBe(false);
+			expect(result.permissions.measurement).toBe(change === 'new-category');
+			expect(result.permissions.functionality).toBe(change !== 'new-category');
+		}
+	);
+
+	it('still requests a fresh choice after all grants become incompatible', () => {
+		const before = makePolicy();
+		const result = evaluateConsentRecord({
+			choice: makeChoice(
+				{
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+				},
+				NOW,
+				currentBasis(before)
+			),
+			noticeDismissal: null,
+			now: NOW,
+			policy: makePolicy({
+				choice: { fingerprint: 'changed', maxAgeMs: null },
+			}),
+		});
 		expect(result.promptRequirement).toEqual({
 			kind: 'choice',
 			reason: 'policy-changed',
 		});
 		expect(result.permissions).toEqual(allFalse);
+	});
+
+	it('does not let a refusal outside the requested scope hide a new choice', () => {
+		const policy = makePolicy({ scope: ['measurement'] });
+		const result = evaluateConsentRecord({
+			choice: makeChoice({ marketing: false }, NOW, currentBasis(policy)),
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+		expect(result.permissions.marketing).toBe(false);
 	});
 
 	it('reports missing when the confirmed keys are fresh but incomplete', () => {
@@ -482,6 +546,29 @@ describe('evaluateConsentRecord: privacy signals', () => {
 });
 
 describe('evaluateConsentRecord: notices', () => {
+	it('acknowledging a notice preserves denials and never creates a choice', () => {
+		const policy = makePolicy({ model: 'opt-out', prompt: 'notice' });
+		const choice = makeChoice({ marketing: false }, NOW, currentBasis(policy));
+		for (const noticeDismissal of [
+			null,
+			{
+				dismissedAt: NOW,
+				fingerprint: policy.notice.fingerprint,
+				version: 1 as const,
+			},
+		]) {
+			const result = evaluateConsentRecord({
+				choice,
+				noticeDismissal,
+				now: NOW,
+				policy,
+			});
+			expect(result.permissions.marketing).toBe(false);
+			expect(result.promptRequirement.kind).toBe(
+				noticeDismissal ? 'none' : 'notice'
+			);
+		}
+	});
 	const policy = makePolicy({
 		choice: { fingerprint: 'choice-fp-1', maxAgeMs: 10 * DAY },
 		model: 'opt-out',
@@ -635,7 +722,7 @@ describe('evaluateConsentRecord: meaningful deadlines', () => {
 		}
 	);
 
-	it('schedules opt-out expiry when complete coverage will need a choice', () => {
+	it('does not schedule opt-out expiry that cannot change permissions or a refused prompt', () => {
 		const choice = makeChoice(
 			{ marketing: true, measurement: false },
 			NOW,
@@ -650,11 +737,8 @@ describe('evaluateConsentRecord: meaningful deadlines', () => {
 				policy,
 			});
 		expect(at(NOW).promptRequirement).toEqual({ kind: 'none' });
-		expect(at(NOW).nextDeadline).toBe(NOW + 30);
-		expect(at(NOW + 30).promptRequirement).toEqual({
-			kind: 'choice',
-			reason: 'expired',
-		});
+		expect(at(NOW).nextDeadline).toBeNull();
+		expect(at(NOW + 30).promptRequirement).toEqual({ kind: 'none' });
 	});
 
 	it.each(['opt-in', 'iab'] as const)(
@@ -692,10 +776,44 @@ describe('evaluateConsentRecord: meaningful deadlines', () => {
 			now: NOW + 10,
 			policy: scoped,
 		});
-		expect(evaluation.promptRequirement).toEqual({
-			kind: 'choice',
-			reason: 'missing',
-		});
+		expect(evaluation.promptRequirement).toEqual({ kind: 'none' });
 		expect(evaluation.nextDeadline).toBe(NOW + 40);
+	});
+});
+
+describe('evaluateConsentRecord: the none model', () => {
+	it('grants in-scope categories, owes no prompt and ignores GPC unless mapped', () => {
+		const policy = makePolicy({ model: 'none', prompt: 'none' });
+		const fresh = evaluateConsentRecord({ choice: null, now: NOW, policy });
+		expect(fresh.permissions).toEqual(allTrue);
+		expect(fresh.promptRequirement).toEqual({ kind: 'none' });
+		expect(fresh.nextDeadline).toBeNull();
+		const signalled = evaluateConsentRecord({
+			choice: null,
+			gpc: true,
+			now: NOW,
+			policy,
+		});
+		expect(signalled.permissions).toEqual(allTrue);
+		const mapped = evaluateConsentRecord({
+			choice: null,
+			gpc: true,
+			now: NOW,
+			policy: makePolicy({
+				gpcDenyCategories: ['marketing'],
+				model: 'none',
+				prompt: 'none',
+			}),
+		});
+		expect(mapped.permissions).toEqual({
+			...allTrue,
+			marketing: false,
+		});
+	});
+
+	it('requires the none prompt', () => {
+		expect(() => makePolicy({ model: 'none', prompt: 'choice' })).toThrow(
+			/requires prompt "none"/u
+		);
 	});
 });

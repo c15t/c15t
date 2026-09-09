@@ -18,6 +18,7 @@ import {
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
 import { ConsentDraftProvider } from '~/draft';
+import { useHasConsentUI } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 
 /**
@@ -130,6 +131,12 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		() => ({ uiSource: resolvedUiSource }),
 		[resolvedUiSource]
 	);
+	const hasConsentUI = useHasConsentUI();
+	if (!hasConsentUI) {
+		// No resolved policy, or a `none` rule with no right to exercise: there
+		// is nothing to manage, so render nothing.
+		return null;
+	}
 
 	const content = (
 		<Box

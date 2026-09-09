@@ -98,7 +98,8 @@ const defaultPermission = function defaultPermission(
 	if (!inScope) {
 		return policy.scopeMode === 'permissive';
 	}
-	return policy.model === 'opt-out';
+	// Opt-out and none both permit processing until something restricts it.
+	return policy.model === 'opt-out' || policy.model === 'none';
 };
 
 const collectRestrictions = function collectRestrictions(
@@ -160,18 +161,30 @@ const requirement = function requirement(
 	return { kind, reason };
 };
 
+/** An automatic Accept All prompt must not solicit reversal of a refusal. */
+const hasChoiceRefusal = function hasChoiceRefusal(
+	policy: EvaluationPolicy,
+	categories: Record<OptionalConsentCategory, CategoryEvaluation>
+): boolean {
+	return policy.scope.some(
+		(category) => categories[category].restrictions.length > 0
+	);
+};
+
 /**
- * Choice prompt aggregation, in this order: no usable record, then a
+ * Refusals suppress automatic choice prompts, including when another category
+ * is new or a grant expires. Permissions still expire and users can open
+ * preferences themselves. Otherwise aggregate: no usable record, then a
  * known material mismatch in the required scope, then any required
  * category without a decision, then any required positive decision past
- * its lifetime. A matching denial satisfies coverage regardless of age.
+ * its lifetime. Neither elapsed time nor a policy edit cancels a refusal.
  */
 const deriveChoiceRequirement = function deriveChoiceRequirement(
 	input: ConsentEvaluationInput,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
 ): PromptRequirement {
 	const { policy } = input;
-	if (policy.scope.length === 0) {
+	if (policy.scope.length === 0 || hasChoiceRefusal(policy, categories)) {
 		return { kind: 'none' };
 	}
 	const decisions = input.choice?.categories;
@@ -258,12 +271,16 @@ const deriveNextDeadline = function deriveNextDeadline(
 	// Expiry can only change a choice prompt from satisfied to expired.
 	// Missing coverage or a mismatch keeps precedence over later expiry.
 	const choicePromptCanChange =
-		policy.prompt === 'choice' && promptRequirement.kind === 'none';
+		policy.prompt === 'choice' &&
+		promptRequirement.kind === 'none' &&
+		!hasChoiceRefusal(policy, categories);
 	for (const category of policy.scope) {
 		const evaluation = categories[category];
 		const decision = input.choice?.categories[category];
 		const permissionCanChange =
-			policy.model !== 'opt-out' && evaluation.restrictions.length === 0;
+			policy.model !== 'opt-out' &&
+			policy.model !== 'none' &&
+			evaluation.restrictions.length === 0;
 		if (
 			decision?.value === true &&
 			evaluation.authority === 'valid' &&

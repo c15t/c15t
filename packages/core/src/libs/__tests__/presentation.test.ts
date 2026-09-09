@@ -120,7 +120,7 @@ describe('host presentation', () => {
 		expect(result.rights).toContain('preferences');
 		expect(result.rights).toContain('opt-out');
 	});
-	describe('uncovered rights', () => {
+	describe('additional preferences controls', () => {
 		it('lists only opt-out on a notice, since that control opens preferences', () => {
 			const result = resolveConsentPresentation({
 				policy: notice,
@@ -128,14 +128,14 @@ describe('host presentation', () => {
 			});
 			expect(result.rights).toContain('disclosure');
 			expect(result.rights).toContain('preferences');
-			expect(result.uncoveredRights).toEqual(['opt-out']);
+			expect(result.preferenceControls).toEqual(['opt-out']);
 		});
 		it('covers preferences with customize on a choice prompt', () => {
 			const result = resolveConsentPresentation({
 				policy: choice,
 				surface: 'prompt',
 			});
-			expect(result.uncoveredRights).toEqual([]);
+			expect(result.preferenceControls).toEqual([]);
 		});
 		it('leaves preferences uncovered when the rule omits customize', () => {
 			const result = resolveConsentPresentation({
@@ -148,7 +148,7 @@ describe('host presentation', () => {
 				}),
 				surface: 'prompt',
 			});
-			expect(result.uncoveredRights).toEqual(['preferences']);
+			expect(result.preferenceControls).toEqual(['preferences']);
 		});
 		it('covers opt-out with reject on an opt-out choice prompt', () => {
 			const result = resolveConsentPresentation({
@@ -162,19 +162,61 @@ describe('host presentation', () => {
 				surface: 'prompt',
 			});
 			expect(result.rights).toContain('opt-out');
-			expect(result.uncoveredRights).toEqual(['preferences']);
+			expect(result.preferenceControls).toEqual(['preferences']);
 		});
 		it('covers every right on the preferences surface', () => {
 			const result = resolveConsentPresentation({
 				policy: notice,
 				surface: 'preferences',
 			});
-			expect(result.uncoveredRights).toEqual([]);
+			expect(result.preferenceControls).toEqual([]);
 		});
 	});
 });
 
 describe('surface shape', () => {
+	it.each([undefined, false, true])(
+		'never blocks a notice wall with blocking=%s',
+		(blocking) => {
+			const result = resolveConsentPresentation({
+				override: { blocking, variant: 'wall' },
+				policy: notice,
+				surface: 'prompt',
+			});
+			expect(result.variant).toBe('floating');
+			expect(result.blocking).toBe(false);
+			expect(result.trapFocus).toBe(false);
+			expect(result.scrollLock).toBe(false);
+			expect(result.diagnostics).toContainEqual(
+				expect.objectContaining({ code: 'invalid-variant' })
+			);
+		}
+	);
+	it.each(['prompt', 'preferences'] as const)(
+		'explicit non-blocking overrides legacy controls on %s',
+		(surface) => {
+			const result = resolveConsentPresentation({
+				override: { blocking: false, scrollLock: true, trapFocus: true },
+				policy: choice,
+				surface,
+			});
+			expect(result.blocking).toBe(false);
+			expect(result.trapFocus).toBe(false);
+			expect(result.scrollLock).toBe(false);
+		}
+	);
+	it('rejects unsupported preference geometry at the runtime boundary', () => {
+		const result = resolveConsentPresentation({
+			override: { position: 'top', variant: 'bar' },
+			policy: choice,
+			surface: 'preferences',
+		});
+		expect(result.variant).toBe('wall');
+		expect(result.position).toBe('center');
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({ code: 'invalid-variant' })
+		);
+	});
 	it('defaults a choice prompt to a floating card at bottom-left', () => {
 		const result = resolveConsentPresentation({
 			policy: choice,
@@ -184,7 +226,7 @@ describe('surface shape', () => {
 		expect(result.position).toBe('bottom-left');
 		expect(result.positionSource).toBe('default');
 		expect(result.blocking).toBe(false);
-		expect(result.trapFocus).toBe(true);
+		expect(result.trapFocus).toBe(false);
 		expect(result.scrollLock).toBe(false);
 	});
 	it('defaults a notice prompt to a floating card that is never blocking', () => {
@@ -320,7 +362,7 @@ describe('surface shape', () => {
 		expect(result.variant).toBe('wall');
 		expect(result.blocking).toBe(false);
 		expect(result.scrollLock).toBe(false);
-		expect(result.trapFocus).toBe(true);
+		expect(result.trapFocus).toBe(false);
 		expect(result.diagnostics).toEqual([]);
 	});
 	it('keeps the preferences dialog non-blocking when the host turns off the focus trap', () => {
@@ -331,7 +373,7 @@ describe('surface shape', () => {
 		});
 		expect(result.blocking).toBe(false);
 		expect(result.trapFocus).toBe(false);
-		expect(result.scrollLock).toBe(true);
+		expect(result.scrollLock).toBe(false);
 		expect(result.diagnostics).toEqual([]);
 	});
 	it('honors an explicit non-blocking preferences dialog without a diagnostic', () => {
@@ -370,3 +412,34 @@ describe('surface shape', () => {
 		expect(result.diagnostics).toEqual([]);
 	});
 });
+
+it('uses generic preference copy for a non-US opt-out message profile', () => {
+	const policy = normalizePolicyRule({
+		i18n: { messageProfile: 'preferences' },
+		id: 'canada',
+		match: { countries: ['CA'] },
+		model: 'opt-out',
+		prompt: 'notice',
+	});
+	const presentation = resolveConsentPresentation({
+		policy,
+		surface: 'prompt',
+	});
+	expect(presentation.preferenceControls).toEqual(['preferences']);
+	expect(presentation.rights).toContain('opt-out');
+	expect(presentation.orderedActions).toEqual(['dismiss']);
+});
+
+it.each([{ scrollLock: true }, { trapFocus: true }])(
+	'maps a legacy prompt option %j to full blocking',
+	(prompt) => {
+		const result = resolveConsentPresentation({
+			policy: choice,
+			presentation: { prompt },
+			surface: 'prompt',
+		});
+		expect(result.blocking).toBe(true);
+		expect(result.scrollLock).toBe(true);
+		expect(result.trapFocus).toBe(true);
+	}
+);

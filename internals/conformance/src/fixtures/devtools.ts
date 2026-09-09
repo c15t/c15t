@@ -31,6 +31,7 @@ export const devToolsPrefetch = {
 						match: { isDefault: true },
 						model: 'opt-in',
 						prompt: 'choice',
+						scopeMode: 'permissive',
 					},
 				],
 			})

@@ -12,7 +12,7 @@ import {
 	useConsentInit,
 } from '#c15t/composables';
 
-import { usePolicyRule } from '../composables/kernel';
+import { useHasConsentUi, usePolicyRule } from '../composables/kernel';
 import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
@@ -124,8 +124,13 @@ watch(
 	{ flush: 'post', immediate: true }
 );
 
+const hasConsentUi = useHasConsentUi();
 const isVisible = computed(() => {
 	if (!mounted.value) {
+		return false;
+	}
+	// Nothing to manage without a resolved policy.
+	if (!hasConsentUi.value) {
 		return false;
 	}
 	// Keep persistent preferences accessible while a notice is open.

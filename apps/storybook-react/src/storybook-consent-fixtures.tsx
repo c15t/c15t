@@ -7,6 +7,7 @@ import { ConsentProvider, offline } from '../../../packages/react/src/index';
 import type { ConsentProviderOptions } from '../../../packages/react/src/index';
 import {
 	storybookPolicy,
+	storybookPolicyResolution,
 	storybookIABPolicy,
 	storybookIABPresentation,
 	storybookPresentation,
@@ -57,6 +58,18 @@ export const defaultConsentOptions: ConsentProviderOptions = {
 	presentation: storybookPresentation,
 };
 
+/**
+ * The default policy, already resolved, for stories that keep the default
+ * `mode`. Consent surfaces render only once a policy exists, so a story that
+ * waits on the async `offline()` init paints without its link, trigger, and
+ * widget for a tick, which a play function that tabs straight away notices.
+ * Stories that bring their own `mode` (a notice rule, IAB) must not receive
+ * it: it would override their rule with the default choice policy.
+ */
+const defaultPrefetch: ConsentProviderOptions['prefetch'] = {
+	initialPolicyResolution: storybookPolicyResolution,
+};
+
 export const editableConsentOptions: Partial<ConsentProviderOptions> = {
 	consentCategories: [
 		'necessary',
@@ -100,13 +113,13 @@ export const StorybookConsentProvider = ({
 	void initialized;
 	void setInitialized;
 
+	const merged = { ...defaultConsentOptions, ...options };
+	const prefetch =
+		merged.prefetch ??
+		(merged.mode === defaultConsentOptions.mode ? defaultPrefetch : undefined);
+
 	return (
-		<ConsentProvider
-			options={{
-				...defaultConsentOptions,
-				...options,
-			}}
-		>
+		<ConsentProvider options={{ ...merged, prefetch }}>
 			{children}
 		</ConsentProvider>
 	);

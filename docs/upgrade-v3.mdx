@@ -45,16 +45,23 @@ const policyRules = [
 
 `model` controls permission defaults. `prompt` controls whether the visitor must
 make a choice, dismiss a notice, or see no prompt. Opt-in and IAB models require
-`prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`.
+`prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`. The `none`
+model permits optional categories in scope, allows only `prompt: 'none'`, owes
+no rights, and renders no consent UI. v2's `none` model maps to it directly.
 
-A strict scope blocks categories outside the rule. A permissive scope allows
+When `categories` selects only some optional categories, you must set
+`scopeMode` explicitly. A strict scope blocks categories outside the rule. A permissive scope allows
 those categories unless another restriction applies. An omitted scope, `['*']`,
 or a list containing only `necessary` expands to the default optional categories.
 `necessary` is always permitted.
 
-Use an explicit fallback rule for unknown locations. Resolution exposes
-`matched`, `no-match`, `unconfigured`, or `failed`; non-matched outcomes use the
-engine's conservative fallback. A missing or malformed policy never grants
+`offline()` without `policyRules` resolves `recommendedPolicyRules()`, whose
+Europe rule also matches a visitor with no country. A known US country with a
+missing state uses US opt-out with GPC and persistent preferences; a missing
+Canadian province stays strict opt-in. The last rule is `none` for other known
+unmatched locations. Resolution exposes `matched`, `no-match`,
+`unconfigured`, or `failed`; while nothing has matched, optional categories stay
+denied and no consent surface renders. A missing or malformed policy never grants
 optional permissions by itself.
 
 ## Read the state you need
@@ -157,3 +164,53 @@ Runtime callbacks use `onChoiceRecorded`, `onPermissionsChanged` and
 Astro's serializable offline descriptor accepts `policyRules`, just like the
 other adapters' offline factories. Configure a preset or explicit rules;
 omitting them keeps the conservative fallback.
+
+## Presentation corrections
+
+Use `blocking` for backdrop, scroll locking and focus trapping together.
+Choice banners default to non-blocking, choice walls always block, and notices
+never block. A notice configured as a wall falls back to a floating card.
+Preferences remain centered; `variant` and `position` apply only to prompts.
+
+Replace reads of `uncoveredRights` with `preferenceControls`. The latter is a
+list of additional preferences buttons recommended for the stock UI. It does
+not verify disclosure or persistent access to policy rights.
+
+Notice acknowledgement uses `common.acknowledge`, falling back to
+`common.dismiss` for older translation bundles. It does not record a choice.
+
+## Astro notice acknowledgement
+
+```astro
+---
+import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+---
+
+<ConsentBanner dismissButtonText="Got it" />
+```
+
+Astro's `ConsentBanner` accepts `dismissButtonText` as an optional string. It
+labels the notice acknowledgement button, which defaults to
+`common.acknowledge` and falls back to `common.dismiss` in older translation
+bundles. Acknowledging a notice preserves the visitor's consent choices.
+
+## IAB blocking behavior
+
+IAB banners and dialogs use the same `presentation.prompt.blocking` and
+`presentation.preferences.blocking` settings as the other consent components.
+A blocking surface shows a backdrop, traps focus and locks page scrolling.
+Explicit `blocking` values take precedence over deprecated `scrollLock` and
+`trapFocus` options. IAB components stay hidden without a matched policy,
+including when a dialog receives `open={true}`.
+
+The React consent dialog still blocks pointer interaction with the page when
+`blocking` is true and you hide its backdrop with `overlay={false}`.
+
+Legacy prompt options now control the whole blocking behavior. For example,
+`scrollLock: true` alone enables a backdrop and focus trapping as well as
+scroll locking. Set `blocking: false` explicitly for a non-modal banner.
+
+Custom dialog backdrops follow the same rule. A dialog resolved as non-blocking
+omits both the default backdrop and a supplied `overlay`. To retain a custom
+backdrop when migrating from `trapFocus: false`, set
+`presentation.preferences.blocking: true` and keep your `overlay` prop.

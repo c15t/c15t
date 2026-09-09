@@ -49,11 +49,24 @@ const assertPromptForModel = function assertPromptForModel(
 	model: PolicyModel,
 	prompt: PolicyPrompt
 ): void {
-	if (model !== 'opt-in' && model !== 'opt-out' && model !== 'iab') {
+	if (
+		model !== 'opt-in' &&
+		model !== 'opt-out' &&
+		model !== 'iab' &&
+		model !== 'none'
+	) {
 		throw new TypeError(`Unknown policy model "${model}"`);
 	}
 	if (prompt !== 'choice' && prompt !== 'notice' && prompt !== 'none') {
 		throw new TypeError(`Unknown policy prompt "${prompt}"`);
+	}
+	if (model === 'none') {
+		if (prompt !== 'none') {
+			throw new TypeError(
+				`Policy model "none" requires prompt "none", received "${prompt}"`
+			);
+		}
+		return;
 	}
 	if (model !== 'opt-out' && prompt !== 'choice') {
 		throw new TypeError(

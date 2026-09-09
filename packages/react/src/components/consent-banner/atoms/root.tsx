@@ -16,6 +16,7 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import {
 	useActiveUI,
+	useHasConsentUI,
 	useTranslations as useKernelTranslations,
 	useModel,
 	usePolicyRule,
@@ -259,6 +260,7 @@ const ConsentBannerRootChildren = createForwardRef<
 	) => {
 		const activeUI = useActiveUI();
 		const { components } = useUIConfig();
+		const hasConsentUI = useHasConsentUI();
 		const model = useModel() ?? 'opt-in';
 		const policy = usePolicyRule();
 		const surface = useConsentBannerSurface();
@@ -272,17 +274,14 @@ const ConsentBannerRootChildren = createForwardRef<
 			surface.variant,
 			textDirection
 		);
-		const [isVisible, setIsVisible] = useState(
-			activeUI === 'banner' && models.includes(model)
-		);
-		const [hasAnimated, setHasAnimated] = useState(
-			activeUI === 'banner' && models.includes(model)
-		);
+		// ConsentBanner shows when a policy is resolved, activeUI is 'banner'
+		// and the current model matches. Without a policy nothing renders.
+		const shouldShowBanner =
+			hasConsentUI && activeUI === 'banner' && models.includes(model);
+		const [isVisible, setIsVisible] = useState(shouldShowBanner);
+		const [hasAnimated, setHasAnimated] = useState(shouldShowBanner);
 		// Default fallback for SSR
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
-
-		// ConsentBanner shows when activeUI is 'banner' and the current model matches
-		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 		const [hasInitializedVisibility, setHasInitializedVisibility] =
 			useState(true);
 
@@ -411,25 +410,10 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	...props
 }) => {
 	const { banner } = useHeadlessConsentUI({
-		prompt: { blocking, position, variant },
+		prompt: { blocking, position, scrollLock, trapFocus, variant },
 	});
-	const notice = usePolicyRule().prompt === 'notice';
-
-	/**
-	 * Combine the resolved prompt geometry with local overrides to create the
-	 * context value for child components. A blocking surface always locks
-	 * scroll and traps focus; a notice never does. Otherwise local props win
-	 * over the resolver.
-	 */
-	let resolvedScrollLock: boolean | undefined = scrollLock ?? banner.scrollLock;
-	let resolvedTrapFocus = trapFocus ?? banner.trapFocus;
-	if (banner.blocking) {
-		resolvedScrollLock = true;
-		resolvedTrapFocus = true;
-	} else if (notice) {
-		resolvedScrollLock = false;
-		resolvedTrapFocus = false;
-	}
+	const resolvedScrollLock = banner.scrollLock;
+	const resolvedTrapFocus = banner.trapFocus;
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,

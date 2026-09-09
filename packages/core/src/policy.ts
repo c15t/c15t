@@ -161,7 +161,7 @@ export const presentedSelection = function presentedSelection(
 			continue;
 		}
 		selection[category] =
-			rule.model === 'opt-out'
+			rule.model === 'opt-out' || rule.model === 'none'
 				? true
 				: rule.preselectedCategories.includes(category);
 	}

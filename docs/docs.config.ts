@@ -76,7 +76,10 @@ const generateDocsConfig = () =>
 					componentFramework: {
 						children: [
 							{
-								pages: ['concepts/consent-categories'],
+								pages: [
+									'concepts/consent-categories',
+									'concepts/policy-presets',
+								],
 
 								title: 'Concepts',
 							},
@@ -127,7 +130,10 @@ const generateDocsConfig = () =>
 					javascript: {
 						children: [
 							{
-								pages: ['concepts/consent-categories'],
+								pages: [
+									'concepts/consent-categories',
+									'concepts/policy-presets',
+								],
 
 								title: 'Concepts',
 							},

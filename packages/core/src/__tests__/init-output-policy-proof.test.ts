@@ -17,6 +17,7 @@ const rule = normalizePolicyRule({
 	match: { fallback: true },
 	model: 'opt-in',
 	prompt: 'choice',
+	scopeMode: 'permissive',
 });
 const matched: PolicyResolution = {
 	fingerprints: createPolicyRuleFingerprints(rule),

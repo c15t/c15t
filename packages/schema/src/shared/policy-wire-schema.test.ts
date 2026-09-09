@@ -21,6 +21,7 @@ const authored: PolicyRule = {
 	match: { isDefault: true },
 	model: 'opt-in',
 	prompt: 'choice',
+	scopeMode: 'permissive',
 };
 const policy = normalizePolicyRule(authored);
 const matched = {
@@ -168,10 +169,11 @@ describe('initOutputSchema', () => {
 		expect(output.policy).toBeUndefined();
 	});
 
-	test('keeps dismiss, notice copy and rights labels on the wire', () => {
+	test('keeps acknowledgement, dismiss, notice copy and rights labels on the wire', () => {
 		const translations = {
 			common: {
 				acceptAll: 'Accept All',
+				acknowledge: 'OK',
 				customize: 'Customize',
 				dismiss: 'Dismiss',
 				rejectAll: 'Reject All',
@@ -211,6 +213,7 @@ describe('initOutputSchema', () => {
 		});
 		const parsed = output.translations.translations;
 		expect(parsed.common.dismiss).toBe('Dismiss');
+		expect(parsed.common.acknowledge).toBe(translations.common.acknowledge);
 		expect(parsed.cookieBanner.noticeTitle).toBe('Privacy notice');
 		expect(parsed.cookieBanner.noticeDescription).toBe('notice d');
 		expect(parsed.rights).toEqual(translations.rights);

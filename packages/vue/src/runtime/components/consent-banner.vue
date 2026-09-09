@@ -17,6 +17,7 @@ import {
 	useConsentSave,
 	useConsentKernel,
 	useConsentSnapshot,
+	useHasConsentUi,
 } from '../composables';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
@@ -68,7 +69,7 @@ const {
 	positionSource,
 	primaryActions: resolvedPrimaryActions,
 	shouldFillActions,
-	uncoveredRights,
+	preferenceControls,
 	variant,
 } = useConsentPolicyActions('prompt', () => ({
 	blocking: props.blocking,
@@ -103,11 +104,16 @@ const primaryActions = computed(() => {
 	return ordered.length === 1 && ordered[0] === 'dismiss' ? ordered : [];
 });
 
+const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
+	if (!hasConsentUi.value) {
+		return false;
+	}
 	const { model } = snapshot.value.policyRule;
 	const models = config.value.bannerModels ?? config.value.models;
 	const matchesModel =
-		!models?.length || (model !== undefined && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'banner' &&
 		matchesModel &&
@@ -158,17 +164,14 @@ const resolvedPosition = computed(() => {
 });
 
 /**
- * A notice exists only under the opt-out model, where every category is
- * already permitted, so its one action reads "Accept All". It still
- * records a dismissal, never a choice. Hosts that prefer a neutral
- * acknowledgement can label it with `common.dismiss` instead.
+ * Notice acknowledgement leaves category choices and permissions unchanged.
  */
 const labels = computed(() => {
 	const common = bundle.value?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
 		customize: common?.customize ?? 'Customize',
-		dismiss: common?.acceptAll ?? 'Accept all',
+		dismiss: common?.acknowledge ?? common?.dismiss ?? 'OK',
 		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
@@ -182,11 +185,7 @@ const rightLabels = computed<Record<PolicyRight, string>>(() => {
 	};
 });
 
-/**
- * Every uncovered right opens the preference center, like customize. It
- * renders as underlined text next to the primary action so Accept All is
- * the only button and keeps the visual lead.
- */
+/** Additional buttons open preferences and use underlined text styling. */
 const onRight = function onRight() {
 	activeUI.value = 'manager';
 };
@@ -276,8 +275,8 @@ const onAction = function onAction(action: PresentationAction) {
 						v-bind="config.components?.banner?.card"
 						data-testid="consent-banner-card"
 						:class="bannerStyles.card"
-						:role="blocking || shouldTrapFocus ? 'dialog' : 'region'"
-						:aria-modal="blocking || shouldTrapFocus ? 'true' : undefined"
+						:role="blocking ? 'dialog' : 'region'"
+						:aria-modal="blocking ? 'true' : undefined"
 						:aria-label="bannerTitle"
 						tabindex="-1"
 					>
@@ -320,13 +319,13 @@ const onAction = function onAction(action: PresentationAction) {
 						>
 							<template #leading>
 								<div
-									v-if="uncoveredRights.length > 0"
+									v-if="preferenceControls.length > 0"
 									v-bind="config.components?.banner?.rights"
 									data-testid="consent-banner-rights"
 									:class="bannerStyles.rights"
 								>
 									<button
-										v-for="right in uncoveredRights"
+										v-for="right in preferenceControls"
 										:key="right"
 										v-bind="config.components?.banner?.rightLink"
 										type="button"

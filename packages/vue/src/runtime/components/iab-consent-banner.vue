@@ -14,7 +14,7 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
-import { useConsentSnapshot } from '../composables/kernel';
+import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
@@ -57,11 +57,16 @@ const textDirection = computed(() =>
 const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 
+const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
+	if (!hasConsentUi.value) {
+		return false;
+	}
 	const models = config.value.iabBannerModels;
 	const { model } = snapshot.value.policyRule;
 	const matchesModel =
-		!models?.length || (model !== undefined && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'banner' &&
 		snapshot.value.policyRule.model === 'iab' &&
@@ -158,13 +163,10 @@ const scrollLock = computed(() => presentation.value.scrollLock);
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
+	Boolean(isOpen.value && presentation.value.blocking)
 );
-// The trap goes on the root, not the card: `setupFocusTrap` stamps
-// `tabindex="-1"` on whatever it is given, and the root is the element
-// that declares one in every other adapter.
-const bannerRoot = ref<HTMLElement | null>(null);
-useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
+const bannerCard = ref<HTMLElement | null>(null);
+useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 </script>
 
 <template>
@@ -198,7 +200,6 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner"
 				v-bind="config.components?.['iab-banner']?.root"
-				ref="bannerRoot"
 				data-testid="iab-consent-banner-root"
 				:data-position="
 					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
@@ -217,9 +218,10 @@ useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 					/>
 					<div
 						v-bind="config.components?.['iab-banner']?.card"
+						ref="bannerCard"
 						data-testid="iab-consent-banner-card"
 						:class="bannerStyles.card"
-						role="dialog"
+						:role="shouldTrapFocus ? 'dialog' : 'region'"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"
 					>

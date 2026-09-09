@@ -25,6 +25,7 @@ const INIT_PAYLOAD = {
 					match: { fallback: true, isDefault: true },
 					model: 'opt-in',
 					prompt: 'choice',
+					scopeMode: 'permissive',
 				},
 			],
 		})

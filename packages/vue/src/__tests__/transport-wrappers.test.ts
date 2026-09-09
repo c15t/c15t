@@ -23,6 +23,7 @@ const policy = normalizePolicyRule({
 	model: 'opt-out',
 	privacySignals: { gpc: { denyCategories: ['marketing'] } },
 	prompt: 'notice',
+	scopeMode: 'permissive',
 });
 const fingerprints = createPolicyRuleFingerprints(policy);
 const prefetch = {

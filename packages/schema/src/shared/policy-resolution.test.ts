@@ -47,6 +47,7 @@ const authored: PolicyRule = {
 	match: { isDefault: true },
 	model: 'opt-in',
 	prompt: 'choice',
+	scopeMode: 'permissive',
 };
 const policy = normalizePolicyRule(authored);
 const matchedWire = {
@@ -152,6 +153,66 @@ describe('resolvePolicyRules', () => {
 				rules: [europe, world],
 			})
 		).toMatchObject({ matchedBy: 'country', policyId: 'europe' });
+	});
+
+	test.each([null, undefined, '  '])(
+		'uses the explicit country rule when the state is %s',
+		(regionCode) => {
+			const us: PolicyRule = {
+				...california,
+				id: 'us',
+				match: { countries: [' us '] },
+			};
+			const rules = [world, europe, us, california];
+			expect(
+				resolvePolicyRules({ countryCode: 'US', regionCode, rules })
+			).toMatchObject({
+				matchedBy: 'country',
+				policy: { model: 'opt-out', prompt: 'none' },
+				policyId: 'us',
+				status: 'matched',
+			});
+			expect(
+				resolvePolicyRules({ countryCode: 'US', regionCode: 'CA', rules })
+			).toMatchObject({
+				matchedBy: 'region',
+				policyId: 'california',
+			});
+		}
+	);
+
+	test('missing states need a country rule or fallback, never an implicit global default', () => {
+		expect(
+			resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: null,
+				rules: [california, world],
+			})
+		).toEqual({
+			policy: null,
+			reason: 'insufficient-inputs',
+			status: 'failed',
+		});
+		expect(
+			resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: null,
+				rules: [california, world, europe],
+			})
+		).toMatchObject({
+			matchedBy: 'fallback',
+			policyId: 'europe',
+		});
+		expect(
+			resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: 'NY',
+				rules: [california, world],
+			})
+		).toMatchObject({
+			matchedBy: 'default',
+			policyId: 'world',
+		});
 	});
 
 	test.each([
@@ -446,5 +507,112 @@ describe('safe fallback', () => {
 		expect(input.fingerprints).toEqual(SAFE_FALLBACK_POLICY_FINGERPRINTS);
 		expect(input.fingerprints).not.toBe(SAFE_FALLBACK_POLICY_FINGERPRINTS);
 		expect(input.policy).not.toBe(rule);
+	});
+});
+
+describe('missing regional inputs', () => {
+	const usFallback: PolicyRule = {
+		...california,
+		id: 'us_missing_region',
+		match: { regionFallbacks: [' us '] },
+	};
+
+	test.each([undefined, null, '', ' '])(
+		'uses the country-specific fallback for missing region %j',
+		(regionCode) => {
+			expect(
+				resolvePolicyRules({
+					countryCode: ' us ',
+					regionCode,
+					rules: [europe, usFallback, california, world],
+				})
+			).toMatchObject({ matchedBy: 'fallback', policyId: usFallback.id });
+		}
+	);
+
+	test('a region fallback works without state rules and preserves other locations', () => {
+		for (const [countryCode, regionCode, policyId] of [
+			['US', null, usFallback.id],
+			['US', 'SD', world.id],
+			['US', 'CA', world.id],
+			['CA', null, world.id],
+			[null, null, europe.id],
+			[null, 'CA', europe.id],
+		] as const) {
+			expect(
+				resolvePolicyRules({
+					countryCode,
+					regionCode,
+					rules: [usFallback, europe, world],
+				})
+			).toMatchObject({ policyId });
+		}
+	});
+
+	test('country and state rules win over region fallbacks regardless of order', () => {
+		const us = { ...world, id: 'us', match: { countries: ['US'] } };
+		for (const [regionCode, policyId, matchedBy] of [
+			[null, us.id, 'country'],
+			['CA', california.id, 'region'],
+		] as const) {
+			expect(
+				resolvePolicyRules({
+					countryCode: 'US',
+					regionCode,
+					rules: [usFallback, europe, us, california, world],
+				})
+			).toMatchObject({ matchedBy, policyId });
+		}
+	});
+
+	test('the first country-specific fallback wins a tie', () => {
+		expect(
+			resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: null,
+				rules: [usFallback, { ...usFallback, id: 'later' }],
+			})
+		).toMatchObject({ policyId: usFallback.id });
+	});
+
+	test.each([null, '', ' '])(
+		'uses the explicit fallback for a missing US region %j',
+		(regionCode) => {
+			expect(
+				resolvePolicyRules({
+					countryCode: 'US',
+					regionCode,
+					rules: [europe, california, world],
+				})
+			).toMatchObject({ matchedBy: 'fallback', policyId: 'europe' });
+		}
+	);
+	test('lets an explicit country rule handle an unknown region', () => {
+		const us = { ...world, id: 'us', match: { countries: ['US'] } };
+		expect(
+			resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: null,
+				rules: [california, us, world],
+			})
+		).toMatchObject({
+			matchedBy: 'country',
+			policyId: us.id,
+			status: 'matched',
+		});
+	});
+	test('still permits a known uncovered US state and country without regional rules', () => {
+		for (const [countryCode, regionCode] of [
+			['US', 'NY'],
+			['AU', null],
+		] as const) {
+			expect(
+				resolvePolicyRules({
+					countryCode,
+					regionCode,
+					rules: [europe, california, world],
+				})
+			).toMatchObject({ matchedBy: 'default', policyId: 'world' });
+		}
 	});
 });

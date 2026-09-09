@@ -9,7 +9,10 @@ import {
 } from './consent-manifest';
 import type { ConsentManifest } from './consent-manifest';
 import { readPolicyResolutionWire } from './policy-resolution';
-import { policyRulePresets } from './policy-rule-presets';
+import {
+	policyRulePresets,
+	recommendedPolicyRules,
+} from './policy-rule-presets';
 
 const manifest = {
 	branding: 'c15t',
@@ -54,6 +57,23 @@ describe('resolveInitFromManifest translations', () => {
 });
 
 describe('canonical manifest contract', () => {
+	test('serialized manifests preserve the US missing-state fallback', async () => {
+		const built = await buildConsentManifestFromConfig({
+			policyRules: recommendedPolicyRules(),
+		});
+		const restored: ConsentManifest = JSON.parse(JSON.stringify(built));
+		for (const [country, region, policyId] of [
+			['US', undefined, 'us_privacy_states_opt_out'],
+			['US', 'SD', 'world_none'],
+			['CA', undefined, 'europe_opt_in'],
+			[undefined, undefined, 'europe_opt_in'],
+		] as const) {
+			expect(
+				resolveInitFromManifest(restored, { country, region }).policyResolution
+			).toMatchObject({ policyId, status: 'matched' });
+		}
+	});
+
 	test('contains only canonical pack fields and required resolution', async () => {
 		const rule = policyRulePresets.europeOptIn();
 		const built = await buildConsentManifestFromConfig({ policyRules: [rule] });

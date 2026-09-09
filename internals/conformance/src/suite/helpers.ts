@@ -36,7 +36,15 @@ export type TestFn = (name: string, body: () => void | Promise<void>) => void;
 
 export type DescribeFn = (name: string, body: () => void) => void;
 
-export type ExpectFn = (value: unknown) => {
+/**
+ * The assertion entry point every adapter shim provides. The optional
+ * `message` names the value under test in the failure output, matching the
+ * `expect(value, message)` form of vitest and bun:test.
+ */
+export type ExpectFn = (
+	value: unknown,
+	message?: string
+) => {
 	toBe: (value: unknown) => void;
 	toEqual: (value: unknown) => void;
 	toContain: (value: unknown) => void;

@@ -365,10 +365,6 @@
 	}
 
 	.root[data-variant='widget']:not(:global(.headless)) .description {
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 3;
-		overflow: hidden;
 		font-size: 0.8125rem;
 		line-height: 1.125rem;
 	}
@@ -517,7 +513,7 @@
 	}
 
 	/* Persistent-right links (opt-out, preferences) rendered in the footer
-	   when no action on the surface already covers the right. */
+	   when the prompt recommends an additional preferences button. */
 	.rights:not(:global(.headless)) {
 		display: flex;
 		flex-direction: row;
@@ -679,13 +675,6 @@
 
 		.root[data-variant='bar']:not(:global(.headless)) .title {
 			line-height: 1.25rem;
-		}
-
-		.root[data-variant='bar']:not(:global(.headless)) .description {
-			display: -webkit-box;
-			-webkit-box-orient: vertical;
-			-webkit-line-clamp: 2;
-			overflow: hidden;
 		}
 
 		.root[data-variant='bar']:not(:global(.headless)) .footer {

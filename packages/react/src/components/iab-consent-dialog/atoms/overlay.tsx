@@ -4,7 +4,6 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { HTMLAttributes } from 'react';
 
-import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
@@ -67,9 +66,7 @@ const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 
 		const finalClassName = cn(theme.className, animationClass);
 
-		useScrollLock(!!(isOpen && scrollLock));
-
-		if (!isOpen) {
+		if (!isOpen || !scrollLock) {
 			return null;
 		}
 

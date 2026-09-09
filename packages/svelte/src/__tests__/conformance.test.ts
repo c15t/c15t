@@ -128,6 +128,7 @@ const buildProviderOptions = function buildProviderOptions(
 			},
 		},
 		prompt: 'choice',
+		scopeMode: 'permissive',
 	});
 	const resolution = {
 		fingerprints: createPolicyRuleFingerprints(rule),

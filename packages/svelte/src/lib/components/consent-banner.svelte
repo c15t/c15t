@@ -121,7 +121,8 @@
 
 	// Visibility logic
 	const shouldShowBanner = $derived(
-		consent.state.activeUI === 'banner' &&
+		consent.state.hasConsentUi &&
+			consent.state.activeUI === 'banner' &&
 			consent.snapshot.promptRequirement.kind !== 'none' &&
 			models.includes(consent.state.model)
 	);
@@ -250,19 +251,26 @@
 				layout,
 				position,
 				primaryActions: localPrimaryActions,
-				scrollLock: localScrollLock ?? theme.scrollLock,
-				trapFocus: localTrapFocus ?? theme.trapFocus,
+				scrollLock: localScrollLock,
+				trapFocus: localTrapFocus,
 				variant,
 			},
 			policy: consent.snapshot.policyRule,
-			presentation: consent.state.presentation,
+			presentation: {
+				...consent.state.presentation,
+				prompt: {
+					scrollLock: theme.scrollLock,
+					trapFocus: theme.trapFocus,
+					...consent.state.presentation?.prompt,
+				},
+			},
 			surface: 'prompt',
 		})
 	);
 	const actionGroups = $derived(presentation.actionGroups);
 	const primaryActions = $derived(presentation.primaryActions);
-	// Persistent rights no prompt action covers; rendered as underlined text links.
-	const uncoveredRights = $derived(presentation.uncoveredRights);
+	// Additional buttons that open preferences, styled as underlined text.
+	const preferenceControls = $derived(presentation.preferenceControls);
 	// A notice offers dismiss alone; with no primary resolved it takes the lead.
 	const dismissIsPrimary = $derived(
 		primaryActions.length === 0 &&
@@ -317,14 +325,12 @@
 					englishTranslations?.cookieBanner?.noticeDescription)
 				: translations.cookieBanner.description)
 	);
-	// A notice only exists under opt-out, where everything is already
-	// permitted, so the acknowledgement reads as "Accept All". The action is
-	// still a dismissal and records no choice; `common.dismiss` stays
-	// available through `dismissButtonText`.
+	// Acknowledgement records no category choice.
 	const resolvedDismissText = $derived(
 		dismissButtonText ??
-			translations.common.acceptAll ??
-			englishTranslations?.common?.acceptAll
+			translations.common.acknowledge ??
+			translations.common.dismiss ??
+			englishTranslations?.common?.acknowledge
 	);
 	const rightLabels = $derived<
 		Partial<Record<PolicyRight, string | undefined>>
@@ -375,9 +381,9 @@
 				<div
 					class={noStyle ? '' : cardStyle.className || ''}
 					data-testid="consent-banner-card"
-					tabindex={-1}
-					role={shouldTrapFocus ? 'dialog' : 'region'}
-					aria-modal={shouldTrapFocus ? 'true' : undefined}
+					tabindex="-1"
+					role={isBlocking ? 'dialog' : 'region'}
+					aria-modal={isBlocking ? 'true' : undefined}
 					aria-label={resolvedTitle}
 					use:focusTrap={shouldTrapFocus}
 				>
@@ -418,7 +424,7 @@
 						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
 						{#snippet leading()}
-							{#if uncoveredRights.length > 0}
+							{#if preferenceControls.length > 0}
 								<div
 									class={noStyle ? '' : rightsStyle.className || ''}
 									style={rightsStyle.style
@@ -428,7 +434,7 @@
 										: undefined}
 									data-testid="consent-banner-rights"
 								>
-									{#each uncoveredRights as right (right)}
+									{#each preferenceControls as right (right)}
 										<button
 											type="button"
 											class={noStyle ? '' : rightLinkStyle.className || ''}
@@ -438,10 +444,10 @@
 														.join(';')
 												: undefined}
 											data-action="right"
+											data-right={right}
 											data-c15t-rights={consent.snapshot.policyRule.rights.join(
 												' '
 											)}
-											data-right={right}
 											data-testid={`consent-banner-right-link-${right}`}
 											onclick={openPreferences}
 										>

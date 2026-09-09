@@ -3,7 +3,11 @@
  * the public kernel boundaries (config, hydrate, commands, events, refresh)
  * and the shared conformance fixtures.
  */
-import { normalizePolicyRule } from '@c15t/schema/types';
+import {
+	normalizePolicyRule,
+	policyRulePresets,
+	resolvePolicyRules,
+} from '@c15t/schema/types';
 import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -405,6 +409,57 @@ describe('explicit saves', () => {
 	});
 });
 
+describe('refusals across policy updates', () => {
+	test.each(['californiaOptIn', 'usPrivacyStatesOptIn'] as const)(
+		'%s preserves a refusal through init and allows user-initiated preferences',
+		async (preset) => {
+			const rule = policyRulePresets[preset]();
+			const resolve = (input: PolicyRule) =>
+				resolvePolicyRules({
+					countryCode: 'US',
+					regionCode: 'CA',
+					rules: [input],
+				});
+			const before = resolve({
+				...rule,
+				categories: ['marketing', 'measurement'],
+				scopeMode: 'strict',
+			});
+			const after = resolve({ ...rule, copyRevision: 'updated-purposes' });
+			const kernel = createConsentKernel({
+				initialPolicyResolution: before,
+				now: POLICY_NOW,
+				transport: {
+					init: () =>
+						Promise.resolve({ policyResolution: { ...after, version: 1 } }),
+				},
+			});
+			try {
+				await kernel.commands.save({ marketing: false, measurement: true });
+				await kernel.commands.init();
+				const snapshot = kernel.getSnapshot();
+				expect(snapshot.policyRule.copyRevision).toBe('updated-purposes');
+				expect(snapshot.promptRequirement).toEqual({ kind: 'none' });
+				expect(snapshot.activeUI).toBe('none');
+				expect(snapshot.effectivePermissions).toMatchObject({
+					functionality: false,
+					marketing: false,
+					measurement: false,
+				});
+				kernel.set.activeUI('dialog');
+				expect(kernel.getSnapshot().activeUI).toBe('dialog');
+				await kernel.commands.save({ marketing: false, measurement: true });
+				expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+					marketing: false,
+					measurement: true,
+				});
+			} finally {
+				kernel.dispose();
+			}
+		}
+	);
+});
+
 describe('notice prompts', () => {
 	test('dismissal is local, independent from saves, and expires on its own', async () => {
 		const kernel = createConsentKernel({
@@ -777,4 +832,46 @@ describe('server snapshot and reference stability', () => {
 		expect(client.activeUI).toBe(server.activeUI);
 		expect(client.evaluatedAt).toBe(server.evaluatedAt);
 	});
+});
+
+describe('statistics-only presets', () => {
+	test.each([
+		['ukStatistics', 'GB'],
+		['malaysiaStatistics', 'MY'],
+	] as const)(
+		'%s allows statistics, supports refusal and never grants advertising',
+		async (name, countryCode) => {
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolvePolicyRules({
+					countryCode,
+					regionCode: null,
+					rules: [policyRulePresets[name]()],
+				}),
+				now: POLICY_NOW,
+			});
+			try {
+				expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+				expect(kernel.getSnapshot().effectivePermissions).toEqual({
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: true,
+					necessary: true,
+				});
+				expect(kernel.getSnapshot().explicitChoice).toBeNull();
+				await kernel.commands.save({ measurement: false });
+				expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(
+					false
+				);
+				await kernel.commands.save({ measurement: true });
+				expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(
+					true
+				);
+				await kernel.commands.save('all');
+				expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+			} finally {
+				kernel.dispose();
+			}
+		}
+	);
 });

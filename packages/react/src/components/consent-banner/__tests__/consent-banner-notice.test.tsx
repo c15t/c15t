@@ -53,7 +53,7 @@ const query = function query<Element extends HTMLElement>(testId: string) {
 };
 
 describe('ConsentBanner notice prompt', () => {
-	test('renders a primary Accept All and one underlined opt-out control', async () => {
+	test('renders a primary OK and one underlined opt-out control', async () => {
 		await renderBanner({ model: 'opt-out', prompt: 'notice' });
 		await waitForBanner();
 
@@ -62,7 +62,7 @@ describe('ConsentBanner notice prompt', () => {
 		expect(root?.dataset.model).toBe('opt-out');
 
 		const dismiss = query<HTMLButtonElement>('consent-banner-dismiss-button');
-		expect(dismiss).toHaveTextContent('Accept All');
+		expect(dismiss).toHaveTextContent('OK');
 		expect(dismiss?.dataset.action).toBe('dismiss');
 		expect(dismiss?.dataset.variant).toBe('primary');
 		expect(query('consent-banner-accept-button')).toBeNull();

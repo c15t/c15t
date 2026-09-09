@@ -65,6 +65,23 @@ describe('banner variants', () => {
 		view.unmount();
 	});
 
+	test('prompt configuration overrides legacy provider focus settings', () => {
+		const view = render(Fixture, {
+			options: {
+				disableAnimation: true,
+				mode: custom({}),
+				persistence: false,
+				prefetch: choice(),
+				presentation: { prompt: { trapFocus: false } },
+				trapFocus: true,
+			},
+		});
+		expect(root().dataset.blocking).toBeUndefined();
+		expect(overlay()).toBeNull();
+		expect(card()).not.toHaveAttribute('aria-modal');
+		view.unmount();
+	});
+
 	test('a notice defaults to a floating card and is never blocking', () => {
 		const view = renderFixture(notice(), { blocking: true });
 		expect(root().dataset.variant).toBe('floating');

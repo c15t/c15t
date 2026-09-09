@@ -235,7 +235,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 	});
 
 	describe('Accessibility', () => {
-		test('should have dialog role', async () => {
+		test('should have region role by default', async () => {
 			render(
 				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
@@ -247,7 +247,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 					const banner = document.querySelector(
 						'[data-testid="iab-consent-banner-card"]'
 					);
-					expect(banner?.getAttribute('role')).toBe('dialog');
+					expect(banner?.getAttribute('role')).toBe('region');
 				},
 				{ timeout: 3000 }
 			);

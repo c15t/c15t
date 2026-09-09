@@ -13,12 +13,8 @@ import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
-import {
-	useActiveUI,
-	useModel,
-	usePromptPresentation,
-	useTranslations,
-} from '~/hooks';
+import { useActiveUI, useModel, useTranslations } from '~/hooks';
+import { useIABConsentManager } from '~/hooks/use-iab-consent-manager';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
@@ -77,7 +73,8 @@ const IABConsentBannerRootChildren = createForwardRef<
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// IAB banner shows when activeUI is 'banner' and the current model matches
-		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+		const shouldShowBanner =
+			model !== null && activeUI === 'banner' && models.includes(model);
 
 		useEffect(() => {
 			const duration = Number.parseInt(
@@ -170,22 +167,23 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	noStyle,
 	disableAnimation,
 	scrollLock,
-	trapFocus = true,
+	trapFocus,
 	models,
 	uiSource,
 	...props
 }) => {
-	const policyBanner = usePromptPresentation();
-	const resolvedScrollLock =
-		scrollLock ?? policyBanner?.scrollLock ?? undefined;
+	const { policyBanner } = useIABConsentManager({
+		prompt: { scrollLock, trapFocus },
+	});
+	const resolvedScrollLock = policyBanner.blocking;
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,
 			noStyle,
 			scrollLock: resolvedScrollLock,
-			trapFocus,
+			trapFocus: resolvedScrollLock,
 		}),
-		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+		[disableAnimation, noStyle, resolvedScrollLock]
 	);
 	const trackingContextValue = useMemo(
 		() => ({ uiSource: uiSource ?? 'iab_banner' }),

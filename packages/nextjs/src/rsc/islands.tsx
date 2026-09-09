@@ -77,7 +77,7 @@ export const RscBannerActions = ({
 	acceptLabel,
 	rejectLabel,
 	customizeLabel,
-	dismissLabel = 'Accept All',
+	dismissLabel = 'OK',
 	rightLabels,
 	classNames,
 }: RscBannerActionsProps) => {
@@ -96,29 +96,9 @@ export const RscBannerActions = ({
 		reject: classNames?.rejectButton,
 		save: undefined,
 	};
-	const rights = banner.uncoveredRights;
+	const rights = banner.preferenceControls;
 	return (
 		<div className={classNames?.footer}>
-			{rights.length > 0 ? (
-				<div
-					className={classNames?.rights}
-					data-testid="consent-banner-rights"
-				>
-					{rights.map((right) => (
-						<button
-							key={right}
-							type="button"
-							className={classNames?.rightLink}
-							data-action="right"
-							data-right={right}
-							data-testid={`consent-banner-right-link-${right}`}
-							onClick={openDialog}
-						>
-							{rightLabels?.[right] ?? right}
-						</button>
-					))}
-				</div>
-			) : null}
 			<ConsentBanner.PolicyActions
 				renderAction={(action, { key, isPrimary, style }) => (
 					<button
@@ -136,7 +116,28 @@ export const RscBannerActions = ({
 						{labels[action]}
 					</button>
 				)}
-			/>
+			>
+				{rights.length > 0 ? (
+					<div
+						className={classNames?.rights}
+						data-testid="consent-banner-rights"
+					>
+						{rights.map((right) => (
+							<button
+								key={right}
+								type="button"
+								className={classNames?.rightLink}
+								data-action="right"
+								data-right={right}
+								data-testid={`consent-banner-right-link-${right}`}
+								onClick={openDialog}
+							>
+								{rightLabels?.[right] ?? right}
+							</button>
+						))}
+					</div>
+				) : null}
+			</ConsentBanner.PolicyActions>
 		</div>
 	);
 };

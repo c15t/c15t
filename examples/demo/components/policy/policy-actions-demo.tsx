@@ -45,7 +45,7 @@ interface Snapshot {
 	orderedActions: string[];
 	actionGroups: string[][];
 	primaryActions: string[];
-	uncoveredRights: string[];
+	preferenceControls: string[];
 	direction: string;
 	uiProfile?: string;
 	shouldFillActions: boolean;
@@ -101,10 +101,10 @@ const buildSurfaceSnapshot = function buildSurfaceSnapshot(
 		orderedActions: surface.orderedActions,
 		position: surface.position,
 		positionSource: surface.positionSource,
+		preferenceControls: surface.preferenceControls,
 		primaryActions: surface.primaryActions,
 		shouldFillActions: surface.shouldFillActions,
 		uiProfile: surface.uiProfile,
-		uncoveredRights: surface.uncoveredRights,
 		variant: surface.variant,
 	};
 };
@@ -132,7 +132,7 @@ const CustomDialogAction = ({
 			{actionLabel(action, {
 				accept: common.acceptAll,
 				customize: common.customize,
-				dismiss: common.acceptAll,
+				dismiss: common.acknowledge ?? common.dismiss,
 				reject: common.rejectAll,
 				save: common.save,
 			})}
@@ -196,7 +196,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 												className={className}
 												onClick={() => performBannerAction('dismiss')}
 											>
-												{common.acceptAll}
+												{common.acknowledge ?? common.dismiss}
 											</Button>
 										);
 									default:
@@ -226,7 +226,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 									{actionLabel(action, {
 										accept: common.acceptAll,
 										customize: common.customize,
-										dismiss: common.acceptAll,
+										dismiss: common.acknowledge ?? common.dismiss,
 										reject: common.rejectAll,
 										save: common.save,
 									})}
@@ -421,10 +421,10 @@ const PolicyActionsDemoContent = ({
 				orderedActions: banner.orderedActions,
 				position: banner.position,
 				positionSource: banner.positionSource,
+				preferenceControls: banner.preferenceControls,
 				primaryActions: banner.primaryActions,
 				shouldFillActions: banner.shouldFillActions,
 				uiProfile: banner.uiProfile,
-				uncoveredRights: banner.uncoveredRights,
 				variant: banner.variant,
 			}),
 		[banner]
@@ -441,10 +441,10 @@ const PolicyActionsDemoContent = ({
 				orderedActions: dialog.orderedActions,
 				position: dialog.position,
 				positionSource: dialog.positionSource,
+				preferenceControls: dialog.preferenceControls,
 				primaryActions: dialog.primaryActions,
 				shouldFillActions: dialog.shouldFillActions,
 				uiProfile: dialog.uiProfile,
-				uncoveredRights: dialog.uncoveredRights,
 				variant: dialog.variant,
 			}),
 		[dialog]

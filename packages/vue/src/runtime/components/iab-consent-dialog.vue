@@ -21,7 +21,7 @@ import {
 } from '#c15t/composables';
 import type { ConsentIabSelection } from '#c15t/composables';
 
-import { useConsentSnapshot } from '../composables/kernel';
+import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
@@ -74,11 +74,16 @@ const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 const draftIab = ref<ConsentIabSelection>(createDefaultIabSelection());
 
+const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
+	if (!hasConsentUi.value) {
+		return false;
+	}
 	const models = config.value.iabDialogModels;
 	const { model } = snapshot.value.policyRule;
 	const matchesModel =
-		!models?.length || (model !== undefined && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'manager' &&
 		snapshot.value.policyRule.model === 'iab' &&
@@ -280,7 +285,7 @@ const scrollLock = computed(() => presentation.value.scrollLock);
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
+	Boolean(isOpen.value && presentation.value.blocking)
 );
 const card = ref<HTMLElement | null>(null);
 useFocusTrap(card, () => shouldTrapFocus.value);
@@ -337,7 +342,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						v-bind="config.components?.['iab-dialog']?.card"
 						data-testid="iab-consent-dialog-card"
 						:class="[dialogStyles.card, dialogStyles.contentVisible]"
-						:role="shouldTrapFocus ? 'dialog' : undefined"
+						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
 						tabindex="-1"

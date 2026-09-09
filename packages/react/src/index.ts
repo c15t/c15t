@@ -106,6 +106,8 @@ export {
 	useBranding,
 	useConsent,
 	useConsents,
+	useHasConsentPolicy,
+	useHasConsentUI,
 	useIABEnabled,
 	useIABSnapshot,
 	useIdentify,

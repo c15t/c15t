@@ -94,6 +94,20 @@ export interface ConsentManagerState extends Pick<
 	iab: SvelteIABState | null;
 	manager: null;
 	model: Model;
+	/**
+	 * Whether a policy rule is resolved for this visitor. Every c15t consent
+	 * surface renders nothing until one is: an unconfigured, failed, or
+	 * unmatched resolution leaves nothing to consent to, and the surfaces
+	 * appear on their own once a later init supplies a rule.
+	 */
+	hasPolicy: boolean;
+	/**
+	 * Whether the resolved rule owes any consent UI. A prompt owes a banner
+	 * and a preference center; rights owe a way back to preferences. A `none`
+	 * rule with no rights owes neither, so every surface stays hidden while
+	 * the permissions it grants apply. `false` until a rule is resolved.
+	 */
+	hasConsentUi: boolean;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
@@ -242,6 +256,17 @@ const createConsentState = function createConsentState(
 			return getSnapshotLocal().iab?.enabled
 				? 'iab'
 				: getSnapshotLocal().policyRule.model;
+		},
+		get hasPolicy() {
+			return getSnapshotLocal().resolution.status === 'matched';
+		},
+		get hasConsentUi() {
+			const snapshot = getSnapshotLocal();
+			return (
+				snapshot.resolution.status === 'matched' &&
+				(snapshot.policyRule.prompt !== 'none' ||
+					snapshot.policyRule.rights.length > 0)
+			);
 		},
 
 		// -- Snapshot passthrough (was previously served by a Proxy) -------------
@@ -541,8 +566,8 @@ export const getThemeContext = function getThemeContext(): ThemeContextValue {
 			colorScheme: 'system',
 			disableAnimation: false,
 			noStyle: false,
-			scrollLock: false,
-			trapFocus: true,
+			scrollLock: undefined,
+			trapFocus: undefined,
 		}
 	);
 };

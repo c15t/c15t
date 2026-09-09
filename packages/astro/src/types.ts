@@ -327,6 +327,22 @@ export interface C15tLocals {
 	/** Whether the server decided this request should see the banner. */
 	shouldShowBanner: boolean;
 
+	/**
+	 * Whether a policy rule is resolved for this request. Every c15t consent
+	 * surface renders nothing until one is: an unconfigured, failed, or
+	 * unmatched resolution leaves nothing to consent to, and the browser shows
+	 * the surfaces on its own once a later init supplies a rule.
+	 */
+	hasPolicy: boolean;
+
+	/**
+	 * Whether the resolved rule owes any consent UI. A prompt owes a banner
+	 * and a preference center; rights owe a way back to preferences. A `none`
+	 * rule with no rights owes neither, so no surface renders while the
+	 * permissions it grants apply. `false` until a rule is resolved.
+	 */
+	hasConsentUi: boolean;
+
 	/** Resolved policy decision, when the transport produced one. */
 	decision: PolicyResolution;
 

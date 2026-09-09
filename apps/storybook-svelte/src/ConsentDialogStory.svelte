@@ -7,9 +7,11 @@
 	} from './storybook-consent-fixtures';
 	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
 
+	// `trapFocus` stays undefined by default: a legacy `false` maps to a
+	// non-blocking dialog, while the resolver's default is blocking.
 	let {
 		open = undefined,
-		trapFocus = false,
+		trapFocus = undefined,
 		withBanner = false,
 		useStoredConsent = false,
 	}: {

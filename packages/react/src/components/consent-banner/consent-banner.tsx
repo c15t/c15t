@@ -117,16 +117,15 @@ export interface ConsentBannerProps {
 	dismissButtonText?: ReactNode;
 
 	/**
-	 * When true, the consent banner will lock the scroll of the page
-	 * @remarks Useful for implementing a consent banner that locks the scroll of the page
-	 * @default false
+	 * Legacy setting for a blocking banner.
+	 * @deprecated Use `blocking` to control focus, scroll and backdrop together.
 	 */
 	scrollLock?: boolean;
 
 	/**
 	 * When true, the consent banner will trap focus
 	 * @remarks Useful for implementing a consent banner that traps focus
-	 * @default true
+	 * @deprecated Use `blocking` to control focus, scroll and backdrop together.
 	 */
 	trapFocus?: boolean;
 
@@ -206,7 +205,7 @@ export interface ConsentBannerProps {
 	/**
 	 * Shape of the prompt: `floating` card, full-width `bar`, compact
 	 * `widget`, or centered `wall`. Overrides `presentation.prompt.variant`.
-	 * @remarks A notice defaults to `bar`; a choice prompt defaults to `floating`.
+	 * @remarks Every prompt defaults to `floating`. Notices cannot use `wall`.
 	 */
 	variant?: PromptVariant;
 
@@ -230,7 +229,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
+	trapFocus: localTrapFocus,
 	title,
 	description,
 	rejectButtonText,
@@ -257,20 +256,20 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			layout,
 			position,
 			primaryActions,
+			scrollLock: localScrollLock,
+			trapFocus: localTrapFocus,
 			variant,
 		},
 	});
 
-	const resolvedScrollLock = banner.trapFocus
-		? (localScrollLock ?? banner.scrollLock)
-		: false;
+	const resolvedScrollLock = banner.scrollLock;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		disableAnimation: localDisableAnimation,
 		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
-		trapFocus: banner.trapFocus && localTrapFocus,
+		trapFocus: banner.trapFocus,
 	});
 
 	const { orderedActions } = banner;
@@ -387,7 +386,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 									: undefined
 							}
 						>
-							<ConsentBannerRights rights={banner.uncoveredRights} />
+							<ConsentBannerRights rights={banner.preferenceControls} />
 							{resolvedLayout.map((item, index) => {
 								if (Array.isArray(item)) {
 									const filteredItems = item.filter((subItem) =>

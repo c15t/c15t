@@ -1,10 +1,12 @@
 import { dedupeDefinedValues } from './policy-utils';
 
-export type PolicyModel = 'opt-in' | 'opt-out' | 'iab';
+export type PolicyModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
 export type PolicyScopeMode = 'strict' | 'permissive';
 export interface PolicyMatch {
 	regions?: { country: string; region: string }[];
 	countries?: string[];
+	/** Countries whose missing region uses this rule, after country matches. */
+	regionFallbacks?: string[];
 	isDefault?: boolean;
 	fallback?: boolean;
 }
@@ -16,9 +18,17 @@ export interface PolicyValidationResult {
 
 // Manual matcher-data revision marker. Update this whenever the built-in
 // country or region matcher tables change.
-export const POLICY_MATCH_DATASET_VERSION = '2026-03-10';
+export const POLICY_MATCH_DATASET_VERSION = '2026-09-08';
 
 export const EU_COUNTRY_CODES = [
+	// EU territories that GeoIP providers can return separately from FI/FR.
+	'AX',
+	'GF',
+	'GP',
+	'MQ',
+	'MF',
+	'RE',
+	'YT',
 	'AT',
 	'BE',
 	'BG',
@@ -126,6 +136,12 @@ const applyPolicyMatchFragment = function applyPolicyMatchFragment(
 	if (match.countries?.length) {
 		merged.countries = mergeCountries(merged.countries, match.countries);
 	}
+	if (match.regionFallbacks?.length) {
+		merged.regionFallbacks = mergeCountries(
+			merged.regionFallbacks,
+			match.regionFallbacks
+		);
+	}
 	if (match.regions?.length) {
 		merged.regions = mergeRegions(merged.regions, match.regions);
 	}
@@ -182,6 +198,19 @@ export const policyMatchers = {
 		}
 
 		return merged;
+	},
+
+	/**
+	 * Match a known country only when its region is missing.
+	 * @param countries - Country codes whose missing regions use this rule.
+	 * @returns A normalized matcher, evaluated after explicit country rules.
+	 * @example
+	 * ```ts
+	 * policyMatchers.regionFallback(['US']);
+	 * ```
+	 */
+	regionFallback(countries: string[]): PolicyMatch {
+		return { regionFallbacks: mergeCountries([], countries) };
 	},
 
 	regions(regions: { country: string; region: string }[]): PolicyMatch {

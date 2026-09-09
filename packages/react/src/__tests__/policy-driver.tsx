@@ -42,6 +42,7 @@ import { createRoot, hydrateRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 
 import {
 	encodeStoredConsentEnvelopeJson,
@@ -196,7 +197,8 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 
 /** Execute raw shared scenarios against a mounted React provider and real controls. */
 export const createPolicySession: CreatePolicySession = async (setup) => {
-	await Promise.resolve();
+	// Compare action styling without a pointer left over a previous control.
+	await userEvent.hover(document.documentElement, { position: { x: 1, y: 1 } });
 	let resolution = prepare(setup.policy);
 	let response: InitResponse = {
 		cmpId: setup.policy.model === 'iab' ? 123 : undefined,
@@ -215,10 +217,10 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	 * hydration; under load that effect can land after the first settle, so
 	 * every mount path waits for it before touching the kernel.
 	 */
-	const waitForKernel = () =>
+	const waitForKernel = (previous: ConsentKernel | undefined) =>
 		vi.waitFor(
 			() => {
-				if (!kernel) {
+				if (!kernel || kernel === previous) {
 					throw new Error('Provider kernel is not ready after hydration');
 				}
 				return kernel;
@@ -454,7 +456,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			>
 				<Mount />
 				<ConsentBanner />
-				<ConsentDialog models={['opt-in', 'opt-out', 'iab']} />
+				<ConsentDialog models={['opt-in', 'opt-out', 'iab', 'none']} />
 				<ConsentDialogTrigger />
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 				{setup.probeGates ? (
@@ -476,6 +478,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		);
 	};
 	const mount = async (hydrate = false) => {
+		const previousKernel = kernel;
 		container = document.createElement('div');
 		document.body.append(container);
 		if (hydrate) {
@@ -516,7 +519,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				onRecoverableError: (error) => errors.push(String(error)),
 			});
 			await settle();
-			await waitForKernel();
+			await waitForKernel(previousKernel);
 			observer.disconnect();
 			const dom = getDom(kernel);
 			ssr = {
@@ -539,7 +542,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			root = createRoot(container);
 			root.render(tree());
 			await settle();
-			await waitForKernel();
+			await waitForKernel(previousKernel);
 			await kernel.commands.init();
 			await settle();
 		}

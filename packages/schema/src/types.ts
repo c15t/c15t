@@ -236,8 +236,12 @@ export {
 export type {
 	EuropePolicyRuleMode,
 	PolicyRulePresets,
+	RecommendedPolicyRulesOptions,
 } from './shared/policy-rule-presets';
-export { policyRulePresets } from './shared/policy-rule-presets';
+export {
+	policyRulePresets,
+	recommendedPolicyRules,
+} from './shared/policy-rule-presets';
 export type {
 	PolicyI18nMessageProfileLike,
 	PolicyI18nValidationOptions,

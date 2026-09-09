@@ -3,6 +3,7 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Glac le Gach Rud',
+		acknowledge: 'OK',
 		close: 'Dún',
 		customize: 'Saincheap',
 		dismiss: 'Dún',

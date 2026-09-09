@@ -5,7 +5,7 @@ import type { ReactNode, Ref } from 'react';
 
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
-import { usePolicyRule } from '~/hooks';
+import { useHasConsentUI, usePolicyRule } from '~/hooks';
 
 /**
  * Inline trigger for opening the consent dialog from places like site footers.
@@ -28,6 +28,12 @@ export const ConsentDialogLink = createForwardRef<
 	ConsentDialogLinkProps
 >(({ children, noStyle = true, ...props }, ref) => {
 	const policy = usePolicyRule();
+	const hasConsentUI = useHasConsentUI();
+	if (!hasConsentUI) {
+		// Nothing to open: without a policy, or under a `none` rule with no
+		// rights, the preference center renders nothing.
+		return null;
+	}
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}

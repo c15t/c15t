@@ -9,7 +9,7 @@ import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import DialogLinkFixture from '../../__tests__/fixtures/dialog-link-fixture.svelte';
-import { offline } from '../../lib/transports/offline';
+import { testOffline } from '../../__tests__/test-offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -23,7 +23,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: offline(),
+	mode: testOffline(),
 };
 
 describe('ConsentDialogLink', () => {

@@ -5,7 +5,7 @@
  */
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { userEvent } from 'vitest/browser';
+import { page } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
@@ -42,20 +42,17 @@ describe('consent widget restriction notice', () => {
 			</ConsentProvider>
 		);
 
-		const experience = await vi.waitFor(() => {
-			const element = document.querySelector<HTMLElement>(
-				'[data-testid="consent-widget-switch-experience"]'
-			);
-			expect(element).toBeInTheDocument();
-			return element as HTMLElement;
-		});
-		await userEvent.click(experience);
-		await vi.waitFor(() => {
-			expect(experience.getAttribute('aria-checked')).toBe('true');
-		});
+		// A locator re-resolves the switch on every step and waits for it to be
+		// visible, enabled and stable before clicking, so a click cannot land on
+		// a node that a later commit replaces or on a control that is not yet
+		// interactive on a slow runner.
+		const experience = page.getByTestId('consent-widget-switch-experience');
+		await expect.element(experience).toHaveAttribute('aria-checked', 'false');
+		await experience.click();
+		await expect.element(experience).toHaveAttribute('aria-checked', 'true');
 
 		expect(restriction('experience')).toBeNull();
-		expect(experience.getAttribute('aria-describedby')).toBeNull();
+		await expect.element(experience).not.toHaveAttribute('aria-describedby');
 	});
 
 	test('appears below the row for a saved grant that GPC overrides', async () => {

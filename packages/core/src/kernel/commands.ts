@@ -198,6 +198,30 @@ export const resolveSaveSelection = function resolveSaveSelection(
 	return { consentAction: 'custom', values: input };
 };
 
+/** A save's action time must be a past or present safe integer. */
+const isValidSaveActionAt = function isValidSaveActionAt(
+	actionAt: number,
+	currentTime: number
+): boolean {
+	return (
+		Number.isSafeInteger(actionAt) && actionAt >= 0 && actionAt <= currentTime
+	);
+};
+
+/**
+ * A `none` regime owes no choice: nothing is recorded, written, sent or
+ * announced, because permissions are already granted by default. Returns
+ * the completed result for that case, or `null` when the save proceeds.
+ */
+const saveUnderNoneRegime = function saveUnderNoneRegime(
+	snapshot: ConsentSnapshot
+): SaveResult | null {
+	if (snapshot.evaluationPolicy.model !== 'none') {
+		return null;
+	}
+	return { confirmed: [], ok: true, subjectId: snapshot.subject?.subjectId };
+};
+
 /** Subject written by a save: the stored identifiers plus the current user's. */
 const saveSubject = function saveSubject(
 	snapshot: ConsentSnapshot,
@@ -788,11 +812,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const currentTime = runtime.now();
 			const actionAt =
 				context?.actionAt === undefined ? currentTime : context.actionAt;
-			if (
-				!Number.isSafeInteger(actionAt) ||
-				actionAt < 0 ||
-				actionAt > currentTime
-			) {
+			if (!isValidSaveActionAt(actionAt, currentTime)) {
 				return {
 					issues: [{ code: 'invalid-timestamp', path: 'actionAt' }],
 					ok: false,
@@ -812,6 +832,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ type: 'command:save:started' });
 
 			const before = getSnapshot();
+			const owedNothing = saveUnderNoneRegime(before);
+			if (owedNothing) {
+				emit({ result: owedNothing, type: 'command:save:completed' });
+				return owedNothing;
+			}
 			// Captured once, before validation, yield, network or persistence.
 			const uiSource = before.activeUI;
 			const { values, consentAction } = resolveSaveSelection(

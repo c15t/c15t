@@ -10,19 +10,61 @@ import { describe, expect, test } from 'vitest';
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {
-	test('no rules report unconfigured', async () => {
+	test('no rules resolve the recommended pack', async () => {
 		const transport = createOfflineTransport();
-		const response = await transport.init?.({
-			overrides: {},
+		const unknown = await transport.init?.({ overrides: {}, user: null });
+		expect(unknown?.policyResolution).toMatchObject({
+			matchedBy: 'fallback',
+			policyId: 'europe_opt_in',
+			status: 'matched',
+		});
+		expect(unknown?.branding).toBe('c15t');
+		expect(unknown?.translations?.language).toBe('en');
+		const germany = await transport.init?.({
+			overrides: { country: 'DE' },
 			user: null,
 		});
-		expect(response?.policyResolution).toEqual({
-			policy: null,
-			status: 'unconfigured',
-			version: 1,
+		expect(germany?.policyResolution).toMatchObject({
+			policyId: 'europe_opt_in',
 		});
-		expect(response?.branding).toBe('c15t');
-		expect(response?.translations?.language).toBe('en');
+		const southDakota = await transport.init?.({
+			overrides: { country: 'US', region: 'SD' },
+			user: null,
+		});
+		expect(southDakota?.policyResolution).toMatchObject({
+			policy: { model: 'none', prompt: 'none', rights: [] },
+			policyId: 'world_none',
+		});
+	});
+
+	test('iabEnabled selects the IAB Europe rule in the recommended pack', async () => {
+		const transport = createOfflineTransport({ iabEnabled: true });
+		const response = await transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		expect(response?.policyResolution).toMatchObject({
+			policyId: 'europe_iab',
+		});
+	});
+
+	test('a missing US state uses opt-out with persistent preferences and GPC', async () => {
+		const response = await createOfflineTransport().init({
+			overrides: { country: 'US' },
+			user: null,
+		});
+		expect(response.policyResolution).toMatchObject({
+			matchedBy: 'fallback',
+			policy: {
+				model: 'opt-out',
+				privacySignals: {
+					gpc: { denyCategories: ['marketing', 'measurement'] },
+				},
+				prompt: 'none',
+				rights: ['disclosure', 'opt-out', 'preferences'],
+			},
+			policyId: 'us_privacy_states_opt_out',
+		});
 	});
 
 	test('empty rules report no-match', async () => {

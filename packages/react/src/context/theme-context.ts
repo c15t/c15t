@@ -71,9 +71,9 @@ export const GlobalThemeContext = createContext<ThemeContextValue>({
 	colorScheme: 'system',
 	disableAnimation: false,
 	noStyle: false,
-	scrollLock: false,
+	scrollLock: undefined,
 	theme: undefined,
-	trapFocus: true,
+	trapFocus: undefined,
 });
 
 /**

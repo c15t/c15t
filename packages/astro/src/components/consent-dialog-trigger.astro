@@ -22,13 +22,19 @@ interface Props {
 
 const { kind = 'preferences', class: className, as = 'button' } = Astro.props;
 const Tag = as;
+// Hidden until a resolved rule owes consent UI: nothing to manage before a
+// rule resolves, and nothing owed under a `none` rule with no rights. The
+// browser client toggles `hidden` as the snapshot changes.
+const hasConsentUi = Astro.locals.c15t?.hasConsentUi ?? true;
 ---
 
 <Tag
 	class={className}
 	data-c15t-action="customize"
 	data-c15t-dialog={kind}
+	data-c15t-surface="trigger"
 	data-testid="consent-dialog-trigger"
+	hidden={hasConsentUi ? undefined : true}
 	href={as === 'a' ? '#c15t-preferences' : undefined}
 	type={as === 'button' ? 'button' : undefined}
 >

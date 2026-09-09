@@ -159,6 +159,8 @@ export {
 	type EuropePolicyRuleMode,
 	type PolicyRulePresets,
 	policyRulePresets,
+	type RecommendedPolicyRulesOptions,
+	recommendedPolicyRules,
 } from './policy-rule-presets';
 export {
 	policyActionConstraintsSchema,

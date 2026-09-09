@@ -80,11 +80,23 @@ export interface SurfacePresentation {
 	 * @default 'compact'
 	 */
 	uiProfile?: 'balanced' | 'compact' | 'strict';
+	/** @deprecated Use `blocking` to control scroll, focus and backdrop together. */
 	scrollLock?: boolean;
+	/** @deprecated Use `blocking` to control scroll, focus and backdrop together. */
+	trapFocus?: boolean;
 	/**
-	 * Shape of the surface. Every prompt defaults to `floating`; the
-	 * preferences surface defaults to `wall`. `bar`, `widget`, and `wall`
-	 * are host choices.
+	 * Controls backdrop, scroll lock and focus trapping together. Explicit
+	 * `blocking` takes precedence over the deprecated scroll/focus options.
+	 * Notices never block. Choice walls always block. Preferences default to
+	 * blocking; other prompts default to non-blocking.
+	 */
+	blocking?: boolean;
+}
+
+/** Presentation of the first interaction required by a policy. */
+export interface PromptPresentation extends SurfacePresentation {
+	/**
+	 * Shape of the prompt. Defaults to `floating`. A notice cannot use `wall`.
 	 */
 	variant?: PromptVariant;
 	/**
@@ -92,19 +104,6 @@ export interface SurfacePresentation {
 	 * invalid pair falls back to the variant default with a diagnostic.
 	 */
 	position?: PromptPosition;
-	/**
-	 * Backdrop, scroll lock, focus trap, and no dismissal by clicking
-	 * outside, as one semantic value. On the prompt surface `wall` is always
-	 * blocking, a notice never is, and other variants default to `false`.
-	 * The preferences surface defaults to blocking unless the host turns off
-	 * `scrollLock` or `trapFocus`, and honors an explicit `false`.
-	 */
-	blocking?: boolean;
-}
-
-/** Presentation of the first interaction required by a policy. */
-export interface PromptPresentation extends SurfacePresentation {
-	trapFocus?: boolean;
 }
 
 /** Presentation of persistent category preferences. */
@@ -125,6 +124,7 @@ export interface PresentationDiagnostic {
 		| 'forbidden-action'
 		| 'required-action-restored'
 		| 'equivalent-prominence-overridden'
+		| 'invalid-variant'
 		| 'invalid-position'
 		| 'blocking-forbidden'
 		| 'blocking-required';
@@ -143,15 +143,12 @@ export interface ResolvedConsentPresentation {
 	diagnostics: PresentationDiagnostic[];
 	rights: readonly PolicyRight[];
 	/**
-	 * Rights no action on this surface satisfies, in canonical order. Hosts
-	 * keep these reachable with their own controls, such as a link to the
-	 * preference center. `disclosure` never appears because inline legal
-	 * links carry it; `opt-out` is covered by reject; `preferences` is
-	 * covered by customize, save, or the preferences surface itself. An
-	 * uncovered opt-out control opens the preference center, so it also
-	 * satisfies the preferences right and only `opt-out` is listed.
+	 * Additional buttons the stock UI renders to open preferences. The value
+	 * selects the label; every button opens the same preference center.
+	 * This is a rendering recommendation, not verification of policy rights.
+	 * Hosts remain responsible for disclosure and persistent access.
 	 */
-	uncoveredRights: PolicyRight[];
+	preferenceControls: Exclude<PolicyRight, 'disclosure'>[];
 	direction: 'row' | 'column';
 	uiProfile: 'balanced' | 'compact' | 'strict';
 	scrollLock: boolean;
@@ -234,35 +231,57 @@ const resolveRequiredGroups = function resolveRequiredGroups(
 };
 
 /**
- * Rights the resolved actions leave unsatisfied. `policy.rights` is already
- * canonical, so filtering keeps the order stable for memoized hosts.
+ * Choose an additional preferences button when the action row needs one.
+ * These labels do not establish that the host implements a policy right.
  */
-const resolveUncoveredRights = function resolveUncoveredRights(
+const resolvePreferenceControls = function resolvePreferenceControls(
 	rights: readonly PolicyRight[],
 	orderedActions: readonly PresentationAction[],
-	preferences: boolean
-): PolicyRight[] {
-	// Resolve opt-out first: the host control for an uncovered opt-out
-	// opens the preference center, so it keeps preferences reachable too.
-	const optOutUncovered =
-		rights.includes('opt-out') && !orderedActions.includes('reject');
-	return rights.filter((right) => {
-		switch (right) {
-			case 'disclosure':
-				return false;
-			case 'preferences':
-				return !(
-					preferences ||
-					optOutUncovered ||
-					orderedActions.includes('customize') ||
-					orderedActions.includes('save')
-				);
-			case 'opt-out':
-				return optOutUncovered;
-			default:
-				return true;
-		}
-	});
+	preferences: boolean,
+	messageProfile?: string
+): ResolvedConsentPresentation['preferenceControls'] {
+	if (preferences) {
+		return [];
+	}
+	if (rights.includes('opt-out') && !orderedActions.includes('reject')) {
+		return [messageProfile === 'preferences' ? 'preferences' : 'opt-out'];
+	}
+	return rights.includes('preferences') && !orderedActions.includes('customize')
+		? ['preferences']
+		: [];
+};
+
+/** Resolve focus, scrolling and backdrop as one mode. */
+const resolveBlocking = (
+	options: SurfacePresentation,
+	variant: PromptVariant,
+	notice: boolean,
+	preferences: boolean,
+	diagnostics: PresentationDiagnostic[]
+): boolean => {
+	// Legacy controls select one mode, never independent partial modes.
+	const legacyBlocking =
+		options.scrollLock === false || options.trapFocus === false
+			? false
+			: (options.scrollLock ?? options.trapFocus);
+	let blocking =
+		options.blocking ?? legacyBlocking ?? (preferences || variant === 'wall');
+	if (notice && blocking) {
+		blocking = false;
+		diagnostics.push({
+			actions: [],
+			code: 'blocking-forbidden',
+			message: 'A notice prompt is never blocking; blocking was disabled.',
+		});
+	} else if (!preferences && variant === 'wall' && !blocking) {
+		blocking = true;
+		diagnostics.push({
+			actions: [],
+			code: 'blocking-required',
+			message: 'The wall variant is always blocking; blocking was enabled.',
+		});
+	}
+	return blocking;
 };
 
 /** Whether a position is valid for a variant. */
@@ -290,11 +309,32 @@ const resolveSurfaceGeometry = function resolveSurfaceGeometry(
 	'variant' | 'position' | 'positionSource' | 'blocking'
 > {
 	const defaultVariant: PromptVariant = preferences ? 'wall' : 'floating';
-	const variant = options.variant ?? defaultVariant;
+	let variant = preferences
+		? defaultVariant
+		: (options.variant ?? defaultVariant);
+	if (notice && variant === 'wall') {
+		variant = 'floating';
+		diagnostics.push({
+			actions: [],
+			code: 'invalid-variant',
+			message: 'A notice cannot use a blocking wall; using floating.',
+		});
+	}
+	if (
+		preferences &&
+		(options.variant !== undefined || options.position !== undefined)
+	) {
+		diagnostics.push({
+			actions: [],
+			code: 'invalid-variant',
+			message:
+				'Preferences use a centered dialog; variant and position are prompt options.',
+		});
+	}
 	const defaultPosition = PROMPT_VARIANT_DEFAULT_POSITION[variant];
 	let position: PromptPosition = defaultPosition;
 	let positionSource: 'host' | 'default' = 'default';
-	if (options.position !== undefined) {
+	if (!preferences && options.position !== undefined) {
 		if (isValidPromptPosition(variant, options.position)) {
 			({ position } = options);
 			positionSource = 'host';
@@ -306,27 +346,13 @@ const resolveSurfaceGeometry = function resolveSurfaceGeometry(
 			});
 		}
 	}
-	// The preferences surface keeps its pre-variant behavior: turning off
-	// scroll lock or the focus trap makes the dialog non-blocking.
-	const defaultBlocking = preferences
-		? !(options.scrollLock === false || options.trapFocus === false)
-		: variant === 'wall';
-	let blocking = options.blocking ?? defaultBlocking;
-	if (notice && blocking) {
-		blocking = false;
-		diagnostics.push({
-			actions: [],
-			code: 'blocking-forbidden',
-			message: 'A notice prompt is never blocking; blocking was disabled.',
-		});
-	} else if (!preferences && variant === 'wall' && !blocking) {
-		blocking = true;
-		diagnostics.push({
-			actions: [],
-			code: 'blocking-required',
-			message: 'The wall variant is always blocking; blocking was enabled.',
-		});
-	}
+	const blocking = resolveBlocking(
+		options,
+		variant,
+		notice,
+		preferences,
+		diagnostics
+	);
 	return { blocking, position, positionSource, variant };
 };
 
@@ -420,12 +446,8 @@ export const resolveConsentPresentation =
 			preferences,
 			diagnostics
 		);
-		// Today's defaults stay for non-blocking surfaces; blocking forces both.
-		const scrollLock =
-			geometry.blocking ||
-			(notice ? false : (options.scrollLock ?? preferences));
-		const trapFocus =
-			geometry.blocking || (notice ? false : (options.trapFocus ?? true));
+		const scrollLock = geometry.blocking;
+		const trapFocus = geometry.blocking;
 		return {
 			...geometry,
 			actionGroups,
@@ -434,6 +456,12 @@ export const resolveConsentPresentation =
 			direction,
 			equivalentActions,
 			orderedActions,
+			preferenceControls: resolvePreferenceControls(
+				input.policy.rights,
+				orderedActions,
+				preferences,
+				input.policy.i18n?.messageProfile
+			),
 			primaryActions,
 			requiredActions,
 			rights: input.policy.rights,
@@ -441,10 +469,5 @@ export const resolveConsentPresentation =
 			shouldFillActions: uiProfile === 'strict' || uiProfile === 'balanced',
 			trapFocus,
 			uiProfile,
-			uncoveredRights: resolveUncoveredRights(
-				input.policy.rights,
-				orderedActions,
-				preferences
-			),
 		};
 	};

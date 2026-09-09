@@ -54,14 +54,15 @@ test('offline rules resolve after mount and expose canonical state', async () =>
 	expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
 });
 
-test('unconfigured offline mode retains safe opt-in permissions without inventing a choice', async () => {
+test('offline mode without rules resolves the recommended pack: strict opt-in for an unknown location', async () => {
 	await render(
 		<ConsentProvider options={{ mode: offline(), persistence: false }}>
 			<Capture />
 			<ConsentBanner />
 		</ConsentProvider>
 	);
-	expect(kernel.getSnapshot().resolution.status).toBe('unconfigured');
+	expect(kernel.getSnapshot().resolution.status).toBe('matched');
+	expect(kernel.getSnapshot().policyRule.id).toBe('europe_opt_in');
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 });
