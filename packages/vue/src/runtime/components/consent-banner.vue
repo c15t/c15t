@@ -112,7 +112,8 @@ const isOpen = computed(() => {
 	const { model } = snapshot.value.policyRule;
 	const models = config.value.bannerModels ?? config.value.models;
 	const matchesModel =
-		!models?.length || (model !== undefined && model !== 'none' && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'banner' &&
 		matchesModel &&

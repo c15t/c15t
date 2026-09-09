@@ -82,7 +82,8 @@ const isOpen = computed(() => {
 	const models = config.value.iabDialogModels;
 	const { model } = snapshot.value.policyRule;
 	const matchesModel =
-		!models?.length || (model !== undefined && model !== 'none' && models.includes(model));
+		!models?.length ||
+		(model !== undefined && model !== 'none' && models.includes(model));
 	return (
 		activeUI.value === 'manager' &&
 		snapshot.value.policyRule.model === 'iab' &&
