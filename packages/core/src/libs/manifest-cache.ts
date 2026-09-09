@@ -12,8 +12,6 @@
  * @packageDocumentation
  */
 
-import type { ConsentManifest } from '@c15t/schema/types';
-
 import type { CachedManifestResponse } from './manifest-cache-runtime';
 import {
 	clearManifestCache as clearCache,
@@ -34,15 +32,7 @@ export type ManifestFetch = (
 	init?: RequestInit
 ) => Promise<Response>;
 
-export interface CachedManifest {
-	manifest: ConsentManifest;
-	/** Lower-cased response headers from the backend. */
-	headers: Record<string, string>;
-	/** `s-maxage` the backend asked for, `0` when it sent none. */
-	sMaxAge: number;
-	/** Epoch milliseconds after which the entry revalidates. */
-	expiresAt: number;
-}
+export type { CachedManifestResponse as CachedManifest } from './manifest-cache-runtime';
 
 export interface FetchCachedManifestOptions {
 	/** Absolute manifest URL, including any query such as `?language=de`. */

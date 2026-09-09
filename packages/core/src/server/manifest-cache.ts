@@ -6,11 +6,14 @@ import {
 	resolveManifestSourceURL,
 } from '../libs/manifest-cache-runtime';
 import type {
-	CachedManifestResponse as RuntimeManifestResponse,
+	CachedManifestResponse,
 	ManifestFetch,
 } from '../libs/manifest-cache-runtime';
 
-export type { ManifestFetch } from '../libs/manifest-cache-runtime';
+export type {
+	CachedManifestResponse,
+	ManifestFetch,
+} from '../libs/manifest-cache-runtime';
 export {
 	createManifestRequestURL,
 	getManifestAge,
@@ -20,12 +23,6 @@ export {
 	MANIFEST_PASSTHROUGH_HEADERS,
 	resolveManifestSourceURL,
 } from '../libs/manifest-cache-runtime';
-
-/** A manifest and upstream metadata used by server routes. */
-export type CachedManifestResponse = Pick<
-	RuntimeManifestResponse,
-	'manifest' | 'headers' | 'sMaxAge' | 'expiresAt'
->;
 
 /** Backend or explicit manifest URL. */
 export interface ManifestSourceConfig {
@@ -48,7 +45,7 @@ const cache = createManifestCache({ maxEntries: 64 });
 // oxlint-disable-next-line require-await -- URL validation errors must reject the returned promise.
 export const fetchCachedManifest = async (
 	input: FetchCachedManifestOptions
-): Promise<RuntimeManifestResponse> =>
+): Promise<CachedManifestResponse> =>
 	fetchManifest({
 		cache,
 		fetch: input.fetch,
