@@ -39,6 +39,39 @@ afterEach(() => {
 });
 
 describe('mountScript', () => {
+	test('applies the loader nonce unless the script declares its own', () => {
+		const { deps } = makeDeps();
+		deps.nonce = 'loader-nonce';
+		const snapshot = createConsentKernel().getSnapshot();
+
+		mountScript(
+			deps,
+			{
+				category: 'necessary',
+				id: 'inherits',
+				src: 'https://example.com/a.js',
+			},
+			snapshot,
+			true,
+			null
+		);
+		mountScript(
+			deps,
+			{
+				category: 'necessary',
+				id: 'own',
+				nonce: 'script-nonce',
+				src: 'https://example.com/b.js',
+			},
+			snapshot,
+			true,
+			null
+		);
+
+		expect(deps.loadedElements.get('inherits')?.nonce).toBe('loader-nonce');
+		expect(deps.loadedElements.get('own')?.nonce).toBe('script-nonce');
+	});
+
 	test.each([false, true])(
 		'emits mounted lifecycle events without legacy debug listeners, batched=%s',
 		(batched) => {

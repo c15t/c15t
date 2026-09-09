@@ -28,6 +28,37 @@ describe('ConsentProvider theme tokens', () => {
 		unmount();
 	});
 
+	test('applies the CSP nonce to the injected style and loader scripts', async () => {
+		const { unmount } = await render(
+			<ConsentProvider
+				options={{
+					enabled: false,
+					mode: offline(),
+					nonce: 'csp-nonce',
+					persistence: false,
+					scripts: [
+						{
+							category: 'marketing',
+							id: 'nonce-script',
+							src: 'https://example.com/nonce.js',
+						},
+					],
+				}}
+			>
+				<div />
+			</ConsentProvider>
+		);
+		await vi.waitFor(() => {
+			expect(document.getElementById('c15t-theme')?.nonce).toBe('csp-nonce');
+			expect(
+				document.head.querySelector<HTMLScriptElement>(
+					'script[src="https://example.com/nonce.js"]'
+				)?.nonce
+			).toBe('csp-nonce');
+		});
+		unmount();
+	});
+
 	test('a user theme replaces the defaults', async () => {
 		const { unmount } = await render(
 			<ConsentProvider

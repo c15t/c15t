@@ -690,6 +690,22 @@ for (const engine of ENGINES) {
 			assert.match(body.consentId, /^cns_/u);
 			assert.strictEqual(body.subjectId, 'sub_visitor1');
 			assert.strictEqual(body.domain, 'example.com');
+			assert.strictEqual(
+				body.givenAt,
+				new Date(submission.givenAt).toISOString()
+			);
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					const encode = yield* encoder;
+					return yield* sql<{ total: string }>`
+						select count(*) as total from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+							and ${sql('givenAt')} = ${encode(new Date(submission.givenAt))}
+					`;
+				})
+			);
+			assert.strictEqual(Number(rows[0]?.total), 1);
 			// Granted codes only, as 2.x echoed them.
 			assert.deepStrictEqual(body.appliedPreferences, submission.preferences);
 			// `ok` so a v3 transport can tell success from a queued failure.
@@ -717,6 +733,11 @@ for (const engine of ENGINES) {
 			const second = await (await post(submission)).json();
 
 			assert.strictEqual(second.consentId, first.consentId);
+			assert.strictEqual(
+				first.givenAt,
+				new Date(submission.givenAt).toISOString()
+			);
+			assert.strictEqual(second.givenAt, first.givenAt);
 
 			// Scoped to this submission: seed() already inserted an unrelated
 			// consent, so a bare count would measure the fixture, not the replay.

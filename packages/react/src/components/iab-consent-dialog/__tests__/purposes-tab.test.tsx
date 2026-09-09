@@ -251,7 +251,7 @@ describe('IAB preference item interactions', () => {
 	});
 
 	test('should keep purpose details collapsed until expanded', async () => {
-		render(
+		await render(
 			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
 			</ConsentProvider>

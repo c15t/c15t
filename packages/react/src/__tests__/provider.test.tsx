@@ -151,22 +151,105 @@ test('disposes the kernel on unmount', async () => {
 	await vi.waitFor(() => expect(dispose).toHaveBeenCalledTimes(1));
 });
 
-test('disabled mode skips initialization and grants defaults without recording choice', async () => {
+test('disabled mode loads scripts without initializing or recording choice', async () => {
 	const init = vi.fn();
+	const onBeforeLoad = vi.fn();
 	await render(
 		<ConsentProvider
-			options={{ enabled: false, mode: custom({ init }), persistence: false }}
+			options={{
+				enabled: false,
+				mode: custom({ init }),
+				persistence: false,
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'marketing',
+						id: 'disabled-marketing',
+						onBeforeLoad,
+					},
+				],
+			}}
 		>
 			<Capture />
 			<ConsentBanner />
 		</ConsentProvider>
 	);
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
 	expect(init).not.toHaveBeenCalled();
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	expect(
 		document.querySelector('[data-testid="consent-banner-root"]')
 	).toBeNull();
+});
+
+test('toggling disabled mode grants scripts and restores the existing choice', async () => {
+	const onBeforeLoad = vi.fn();
+	const init = vi.fn();
+	const options = {
+		mode: custom({ init }),
+		persistence: false as const,
+		prefetch: policyFixture({ marketing: false }),
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'marketing' as const,
+				id: 'toggle-marketing',
+				onBeforeLoad,
+			},
+		],
+	};
+	const provider = (enabled: boolean) => (
+		<ConsentProvider options={{ ...options, enabled }}>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	const screen = await render(provider(true));
+	const choice = kernel.getSnapshot().explicitChoice;
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	expect(onBeforeLoad).not.toHaveBeenCalled();
+	await screen.rerender(provider(false));
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(kernel.getSnapshot().activeUI).toBe('none');
+	await screen.rerender(provider(true));
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	expect(kernel.getSnapshot().explicitChoice).toEqual(choice);
+	expect(init).not.toHaveBeenCalled();
+});
+
+test('late initialization cannot revoke disabled permissions', async () => {
+	const response = {
+		policyResolution: writePolicyResolutionWire(
+			policyFixture().initialPolicyResolution
+		),
+	};
+	let resolveInit!: (value: typeof response) => void;
+	const init = vi.fn(
+		() =>
+			new Promise<typeof response>((resolve) => {
+				resolveInit = resolve;
+			})
+	);
+	const mode = custom({ init });
+	const provider = (enabled: boolean) => (
+		<ConsentProvider options={{ enabled, mode, persistence: false }}>
+			<Capture />
+		</ConsentProvider>
+	);
+	const screen = await render(provider(true));
+	await vi.waitFor(() => expect(init).toHaveBeenCalledOnce());
+	const initializedKernel = kernel;
+	await screen.rerender(provider(false));
+	resolveInit(response);
+	await vi.waitFor(() =>
+		expect(initializedKernel.getSnapshot().policyRule.id).toBe('react-test')
+	);
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+	expect(kernel.getSnapshot().activeUI).toBe('none');
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
 });
 
 test('prepared receipts remain authoritative when persistence is disabled', async () => {

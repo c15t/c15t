@@ -17,6 +17,6 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"typescript": "7.0.2",
-		"vitest": "4.1.9"
+		"vitest": "4.1.10"
 	}
 }

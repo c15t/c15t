@@ -158,8 +158,10 @@ export type ConsentRuntimeIABFactory = (
  */
 export interface ConsentRuntimeOptions {
 	/**
-	 * Set `false` to grant every category, suppress all UI and skip every
-	 * side-effecting module. Defaults to `true`.
+	 * Set `false` to grant every category, suppress all UI and skip
+	 * initialization. Consent-gated scripts load immediately, as they would
+	 * for a visitor who accepted everything; persistence, IAB and the
+	 * blockers stay unmounted. Defaults to `true`.
 	 */
 	enabled?: boolean;
 	/**
@@ -188,6 +190,15 @@ export interface ConsentRuntimeOptions {
 	>;
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];
+	/**
+	 * Content Security Policy nonce applied to DOM nodes c15t injects.
+	 *
+	 * Set this when your CSP uses a nonce-based policy instead of
+	 * `'unsafe-inline'`. The script loader stamps it on every `<script>` it
+	 * creates, and framework providers apply it to the injected theme
+	 * `<style>` element. A per-script `nonce` takes precedence.
+	 */
+	nonce?: string;
 	/** Script-loader tuning. */
 	scriptLoader?: RuntimeScriptLoaderOptions;
 	/** Consent-gate outbound requests. Omitted or `false` disables it. */

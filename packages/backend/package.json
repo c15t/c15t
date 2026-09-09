@@ -80,7 +80,7 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/backend",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/backend",
-		"check-types": "tsc --noEmit",
+		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
@@ -93,7 +93,7 @@
 		"@c15t/translations": "workspace:*",
 		"effect": "4.0.0-beta.102",
 		"evlog": "2.22.4",
-		"hono": "4.12.27",
+		"hono": "^4.12.34",
 		"hono-openapi": "1.3.0",
 		"jose": "6.2.3",
 		"valibot": "1.4.2"

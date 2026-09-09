@@ -19,6 +19,7 @@ describe('extractRelevantHeaders', () => {
 		headers.set('sec-purpose', 'prefetch');
 		headers.set('next-router-prefetch', '1');
 		headers.set('x-middleware-prefetch', '1');
+		headers.set('x-c15t-version', '3.0.0');
 
 		const result = extractRelevantHeaders(headers);
 
@@ -32,6 +33,7 @@ describe('extractRelevantHeaders', () => {
 			'x-amz-cf-ipcountry': 'DE',
 			'x-c15t-country': 'US',
 			'x-c15t-region': 'CA-ON',
+			'x-c15t-version': '3.0.0',
 			'x-country-code': 'FR',
 			'x-forwarded-for': '127.0.0.1',
 			'x-forwarded-host': 'example.com',

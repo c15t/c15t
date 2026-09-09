@@ -23,7 +23,7 @@
 		"@vercel/ncc": "^0.38.4",
 		"tsx": "^4.23.0",
 		"typescript": "6.0.3",
-		"vitest": "^4.1.9"
+		"vitest": "^4.1.10"
 	},
 	"engines": {
 		"node": ">=18"

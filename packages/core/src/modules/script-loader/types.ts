@@ -57,6 +57,11 @@ export interface ScriptLoaderOptions {
 	/** Optional synchronous listener for debug events. */
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
 	/**
+	 * Content Security Policy nonce applied to every `<script>` element the
+	 * loader creates. A per-script `nonce` takes precedence.
+	 */
+	nonce?: string;
+	/**
 	 * When true, also dispatch debug events to any listeners registered
 	 * on `window.__c15tScriptDebugListeners` (v2 compat). Default: true
 	 * when running in a browser.

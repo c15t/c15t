@@ -4,10 +4,27 @@ description: Configuration options for the self-hosted backend.
 group: self-host
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Trusted origins
 
-## Options
+Set `trustedOrigins` to the origins your backend accepts for cross-origin requests.
+For a native WebView, include its custom scheme:
 
-TODO.
+```ts
+import { defineConfig } from '@c15t/backend';
+
+export default defineConfig({
+  database: { dialect: 'sqlite', filename: './consent.db' },
+  trustedOrigins: ['https://app.example.com', 'capacitor://localhost'],
+});
+```
+
+`capacitor://localhost` matches that scheme and host. It does not match
+`ionic://localhost`, `https://localhost`, or `capacitor://www.localhost`.
+List `ionic://localhost` separately if your app uses that origin. Custom-scheme
+entries do not treat `www.` as equivalent to the bare host.
+
+Web entries such as `https://app.example.com` and bare hosts such as `localhost`
+remain protocol-agnostic. They can match other schemes on the same host, including
+custom WebView schemes. Use `capacitor://localhost` when you want to restrict a
+localhost entry to that scheme. Matching is case-insensitive, and an explicit port
+must also match.

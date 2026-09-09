@@ -4,6 +4,7 @@ import {
 } from '@c15t/schema/types';
 
 const REACT_EXTRA_HEADERS = [
+	'x-c15t-version',
 	'user-agent',
 	'x-forwarded-host',
 	'x-forwarded-for',

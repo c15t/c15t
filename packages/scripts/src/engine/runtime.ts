@@ -250,6 +250,14 @@ const executeStep = function executeStep(step: ManifestStep): void {
 		}
 
 		case 'setGlobalPath': {
+			const [rootGlobal] = step.path;
+			if (
+				step.ifGlobalIsQueue &&
+				(!rootGlobal || !Array.isArray(win[rootGlobal]))
+			) {
+				break;
+			}
+
 			const pathTarget = getPathTarget(win, step.path);
 			if (!pathTarget) {
 				break;
@@ -390,6 +398,9 @@ const executeStep = function executeStep(step: ManifestStep): void {
 				target === null ||
 				(typeof target !== 'object' && typeof target !== 'function')
 			) {
+				break;
+			}
+			if (step.ifGlobalIsQueue && !Array.isArray(target)) {
 				break;
 			}
 

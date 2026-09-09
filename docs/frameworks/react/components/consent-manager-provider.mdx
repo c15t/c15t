@@ -76,3 +76,27 @@ export function RegionalBanner() {
 and `blocking`. It renders a centered dialog; `variant` and `position` are
 prompt-only options. Preferences default to blocking. Set `blocking: false`
 to remove the backdrop, scroll lock and focus trap together.
+
+## Disabled mode
+
+Set `options.enabled` to `false` to grant every category and hide consent UI.
+Configured consent-gated scripts load immediately. The provider skips
+initialization, persistence, IAB, and network blocking, and does not record a
+visitor choice.
+
+Consent-gated iframes are also allowed while disabled.
+
+You can change `enabled` after mounting. Setting it back to `true` restores
+the enabled consent state, including any previously recorded choice.
+
+## Content Security Policy nonce
+
+Pass your response's Content Security Policy nonce through `options.nonce`.
+The provider applies it to its injected theme style and the script loader
+applies it to each script it creates. A script's own `nonce` takes precedence.
+
+```tsx
+<ConsentProvider options={{ mode, nonce }}>
+	{children}
+</ConsentProvider>
+```

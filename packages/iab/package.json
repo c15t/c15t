@@ -49,7 +49,7 @@
 	},
 	"scripts": {
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
-		"check-types": "tsc --noEmit",
+		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",

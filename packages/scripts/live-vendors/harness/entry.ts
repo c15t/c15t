@@ -223,6 +223,16 @@ const harness: LiveVendorProbeHarness = {
 	},
 
 	vendors: liveVendorProbeConfigs.map((config) => config.vendor),
+
+	version(vendor: string): string | undefined {
+		try {
+			const runtimeVersion =
+				getLiveVendorProbeConfig(vendor)?.runtimeVersion?.();
+			return typeof runtimeVersion === 'string' ? runtimeVersion : undefined;
+		} catch {
+			return undefined;
+		}
+	},
 };
 
 window.__c15tLiveVendorProbe = harness;

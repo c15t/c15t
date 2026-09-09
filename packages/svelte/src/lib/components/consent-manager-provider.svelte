@@ -491,6 +491,10 @@
 				ownedStyleEl = true;
 			}
 		}
+		// A nonce-based CSP rejects the injected block without it.
+		if (options.nonce) {
+			themeStyleEl.nonce = options.nonce;
+		}
 		themeStyleEl.textContent = themeCSS;
 	});
 

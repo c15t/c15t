@@ -24,6 +24,6 @@
 		"@types/react-dom": "19.2.3",
 		"playwright": "1.61.1",
 		"typescript": "6.0.3",
-		"vitest": "4.1.9"
+		"vitest": "4.1.10"
 	}
 }

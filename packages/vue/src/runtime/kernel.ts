@@ -78,6 +78,11 @@ export interface UseNetworkBlockerOptions {
 
 export type RuntimeConsentConfig = ConsentConfig & {
 	scripts?: Script[];
+	/**
+	 * Content Security Policy nonce stamped on every `<script>` the script
+	 * loader creates. A per-script `nonce` takes precedence.
+	 */
+	nonce?: string;
 	storageConfig?: StorageConfig;
 	customFetch?: typeof fetch;
 	domain?: string;
@@ -675,6 +680,7 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	if (typeof document !== 'undefined' && config.scripts?.length) {
 		const scriptLoader = createScriptLoader({
 			kernel: context.kernel,
+			nonce: config.nonce,
 			scripts: config.scripts,
 		});
 		disposers.push(() => scriptLoader.dispose());

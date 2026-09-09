@@ -37,6 +37,8 @@ export interface MountDeps {
 	emit: (event: ScriptLoaderDebugEvent) => void;
 	/** Whether consumer or legacy debug listeners need callback metadata. */
 	hasDebugListener: boolean;
+	/** CSP nonce for created elements when the script declares none. */
+	nonce?: string;
 }
 
 /**
@@ -169,8 +171,9 @@ export const mountScript = function mountScript(
 	if (script.defer !== undefined) {
 		element.defer = script.defer;
 	}
-	if (script.nonce) {
-		element.nonce = script.nonce;
+	const nonce = script.nonce ?? deps.nonce;
+	if (nonce) {
+		element.nonce = nonce;
 	}
 	if (script.fetchPriority) {
 		// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
