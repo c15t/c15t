@@ -13,6 +13,7 @@ import type {
 export type { ManifestFetch } from '../libs/manifest-cache-runtime';
 export {
 	createManifestRequestURL,
+	getManifestAge,
 	getManifestSMaxAge,
 	getManifestStaleWhileRevalidate,
 	MANIFEST_DEDUPE_TTL_SECONDS,
@@ -47,7 +48,7 @@ const cache = createManifestCache({ maxEntries: 64 });
 // oxlint-disable-next-line require-await -- URL validation errors must reject the returned promise.
 export const fetchCachedManifest = async (
 	input: FetchCachedManifestOptions
-): Promise<CachedManifestResponse> =>
+): Promise<RuntimeManifestResponse> =>
 	fetchManifest({
 		cache,
 		fetch: input.fetch,

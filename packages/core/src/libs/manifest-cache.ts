@@ -14,6 +14,7 @@
 
 import type { ConsentManifest } from '@c15t/schema/types';
 
+import type { CachedManifestResponse } from './manifest-cache-runtime';
 import {
 	clearManifestCache as clearCache,
 	createManifestCache,
@@ -21,6 +22,7 @@ import {
 } from './manifest-cache-runtime';
 
 export {
+	getManifestAge,
 	getManifestSMaxAge,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 	parseCacheDirectiveSeconds,
@@ -62,7 +64,7 @@ const cache = createManifestCache();
 /** Fetches a manifest using the shared HTTP cache and framework fetch options. */
 export const fetchCachedManifest = (
 	options: FetchCachedManifestOptions
-): Promise<CachedManifest> =>
+): Promise<CachedManifestResponse> =>
 	fetchManifest({
 		cache,
 		fetch: options.fetch,

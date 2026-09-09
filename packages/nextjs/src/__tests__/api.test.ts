@@ -1,7 +1,7 @@
 import { clearGvlCache } from '@c15t/core';
 import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	createManifestFetchInit,
@@ -283,4 +283,30 @@ test('reuses the GVL between IAB init requests', async () => {
 	});
 	expect(fetch.mock.calls.filter(([url]) => url === gvlURL)).toHaveLength(1);
 	clearGvlCache();
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+test('manifestGET forwards upstream age and time spent in the local cache', async () => {
+	clearManifestCache();
+	const clock = vi.spyOn(Date, 'now').mockReturnValue(0);
+	const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
+		Promise.resolve(
+			Response.json(MANIFEST_FIXTURE, {
+				headers: { age: '55', 'cache-control': 's-maxage=60' },
+			})
+		)
+	);
+	const { manifestGET } = createNextConsentRouteHandlers({
+		fetch,
+		manifestURL: 'https://age.example/manifest',
+	});
+	const request = new Request('https://app.example/api/manifest');
+	const first = await manifestGET(request);
+	expect(first.headers.get('age')).toBe('55');
+	clock.mockReturnValue(2000);
+	const second = await manifestGET(request);
+	expect(second.headers.get('age')).toBe('57');
+	expect(second.headers.get('cache-control')).toBe('s-maxage=60');
+	expect(fetch).toHaveBeenCalledTimes(1);
 });

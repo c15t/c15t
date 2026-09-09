@@ -17,6 +17,7 @@ export {
 	clearManifestCache,
 	createManifestRequestURL,
 	fetchCachedManifest,
+	getManifestAge,
 	getManifestSMaxAge,
 	getManifestStaleWhileRevalidate,
 	MANIFEST_DEDUPE_TTL_SECONDS,

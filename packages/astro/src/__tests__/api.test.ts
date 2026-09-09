@@ -55,6 +55,7 @@ const options = function options(
 };
 
 afterEach(() => {
+	vi.restoreAllMocks();
 	clearManifestCache();
 	vi.useRealTimers();
 });
@@ -365,3 +366,28 @@ describe('route handlers', () => {
 		expect(initResponse.headers.get('cache-control')).toBe('private, no-store');
 	});
 });
+
+it.each([false, true])(
+	'forwards adjusted Age on manifest responses, conditional=%s',
+	async (conditional) => {
+		const clock = vi.spyOn(Date, 'now').mockReturnValue(0);
+		const fetch = vi.fn(() =>
+			jsonResponse(MANIFEST, {
+				age: '55',
+				'cache-control': 's-maxage=60',
+				etag: '"v1"',
+			})
+		);
+		const handlers = createConsentRouteHandlers({ fetch, options: options() });
+		const first = await handlers.manifest(makeManifestRequest());
+		expect(first.headers.get('age')).toBe('55');
+		clock.mockReturnValue(2000);
+		const second = await handlers.manifest(
+			makeManifestRequest(conditional ? { 'if-none-match': '"v1"' } : {})
+		);
+		expect(second.status).toBe(conditional ? 304 : 200);
+		expect(second.headers.get('age')).toBe('57');
+		expect(second.headers.get('cache-control')).toBe('s-maxage=60');
+		expect(fetch).toHaveBeenCalledTimes(1);
+	}
+);

@@ -17,6 +17,7 @@
 
 import {
 	fetchCachedManifest,
+	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
@@ -130,6 +131,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 			}
 		}
 
+		headers.set('age', String(getManifestAge(result)));
 		const { etag } = result.headers;
 		if (etag && request.headers.get('if-none-match') === etag) {
 			return new Response(null, { headers, status: 304 });

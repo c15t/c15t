@@ -1,6 +1,7 @@
 import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
 import {
 	fetchCachedManifest as fetchManifestThroughCache,
+	getManifestAge,
 	parseCacheDirectiveSeconds,
 } from '@c15t/core/libs/manifest-cache';
 import type {
@@ -192,7 +193,7 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	request: Request,
 	options: NextConsentManifestHandlersOptions = {},
 	language?: string | null
-): Promise<ManifestFetchResult> {
+): Promise<ManifestFetchResult & { age: number }> {
 	const manifestURL = withLanguage(
 		resolveManifestURL(request, options),
 		language ?? null
@@ -217,6 +218,7 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 		cached.headers['cache-control'] ?? DEFAULT_MANIFEST_CACHE_CONTROL;
 	const revalidate = getSMaxAge(cacheControl) ?? getManifestRevalidate(options);
 	return {
+		age: getManifestAge(cached),
 		cacheControl,
 		etag: cached.headers.etag,
 		manifest: cached.manifest,
@@ -343,6 +345,7 @@ export const createNextConsentRouteHandlers =
 					requestURL.searchParams.get('language')
 				);
 				const headers = new Headers({
+					age: String(result.age),
 					'cache-control': result.cacheControl,
 					'content-type': 'application/json',
 					[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),

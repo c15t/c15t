@@ -1,5 +1,5 @@
 import { clearManifestCache } from '@c15t/core/server';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createSvelteKitConsentRouteHandlers } from '../routes';
 import { createEvent } from './event';
@@ -228,3 +228,36 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		});
 	});
 });
+
+afterEach(() => vi.restoreAllMocks());
+
+test.each([false, true])(
+	'forwards adjusted Age on manifest responses, conditional=%s',
+	async (conditional) => {
+		clearManifestCache();
+		const clock = vi.spyOn(Date, 'now').mockReturnValue(0);
+		const fetch = vi.fn(() =>
+			Promise.resolve(
+				manifestResponse({
+					age: '55',
+					'cache-control': 's-maxage=60',
+					etag: '"v1"',
+				})
+			)
+		);
+		const { manifest } = createSvelteKitConsentRouteHandlers({
+			fetch,
+			manifestURL: 'https://age.example/manifest',
+		});
+		const first = await manifest(createEvent());
+		expect(first.headers.get('age')).toBe('55');
+		clock.mockReturnValue(2000);
+		const second = await manifest(
+			createEvent({ headers: conditional ? { 'if-none-match': '"v1"' } : {} })
+		);
+		expect(second.status).toBe(conditional ? 304 : 200);
+		expect(second.headers.get('age')).toBe('57');
+		expect(second.headers.get('cache-control')).toBe('s-maxage=60');
+		expect(fetch).toHaveBeenCalledTimes(1);
+	}
+);

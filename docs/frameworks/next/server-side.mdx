@@ -18,7 +18,7 @@ TODO.
 
 ## Manifest caching
 
-Server manifest requests share an in-process cache. The cache subtracts the upstream `Age` from `s-maxage`, so a response with `Age: 55` and `s-maxage=60` stays fresh for another five seconds. An explicit `s-maxage=0`, `no-store`, `no-cache`, or `private` prevents reuse. When the backend sends no shared-cache lifetime, the cache uses a five-second lifetime to combine nearby requests.
+Server manifest requests share an in-process cache. The cache subtracts the upstream `Age` from `s-maxage`, so a response with `Age: 55` and `s-maxage=60` stays fresh for another five seconds. Manifest proxy responses forward the upstream age plus time spent in the local cache, so downstream caches keep the same expiry. An explicit `s-maxage=0`, `no-store`, `no-cache`, or `private` prevents reuse. When the backend sends no shared-cache lifetime, the cache uses a five-second lifetime to combine nearby requests.
 
 Requests without a caller-provided abort signal time out after ten seconds. Requests that forward identity headers reject redirects to prevent credentials from reaching an unvalidated target.
 
