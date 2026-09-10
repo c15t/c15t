@@ -612,7 +612,13 @@ export const createIAB = function createIAB(
 				return;
 			}
 			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
-			const pendingSave = kernel.commands.save(consents, {
+			const scopedConsents = Object.fromEntries(
+				snapshot.policyRule.scope.map((category) => [
+					category,
+					consents[category],
+				])
+			);
+			const pendingSave = kernel.commands.save(scopedConsents, {
 				actionAt,
 				iabAuthority: authority,
 			});

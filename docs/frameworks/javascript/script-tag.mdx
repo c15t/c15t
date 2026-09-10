@@ -43,7 +43,7 @@ Every attribute is optional.
 | `data-country`, `data-region` | Known location, when your host injects it. |
 | `data-color-scheme` | `light`, `dark`, or `system` (default). |
 | `data-trigger` | Show a floating button that reopens the preference centre. |
-| `data-hide-branding` | Drop the "Secured by c15t" tag. |
+| `data-hide-branding` | Hide the "Secured by c15t" tag. The IAB first-layer banner always keeps its branding visible. |
 | `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Legal links the surfaces can render. |
 | `data-shadow="false"` | Render into the page instead of a shadow root, so your CSS applies. |
 | `data-no-ui` | Run the runtime with no banner. Same as loading `c15t.headless.js`. |
@@ -264,9 +264,15 @@ Load `c15t.iab.js` instead of `c15t.js` when your policy requires IAB TCF. This 
       cmpId: 28, // Replace with your registered CMP ID, or let the backend supply it.
       vendors: [1, 2, 755],
     },
+    legalLinks: {
+      privacyPolicy: { href: '/privacy' },
+      cookiePolicy: { href: '/cookies' },
+    },
     ui: {
       trigger: true,
       theme: { colors: { primary: '#0a66ff' } },
+      banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
+      dialog: { legalLinks: ['privacyPolicy'], hideBranding: true },
     },
   }]];
 </script>
@@ -304,7 +310,25 @@ if (cmp) {
 
 `acceptAll()` and `rejectAll()` confirm through the CMP in IAB mode. Use `saveIAB()` for individual changes. Category-only `save({ ... })` rejects an IAB policy because it cannot produce the required TC authority. The CMP also exposes `setPurposeLegitimateInterest`, `setVendorLegitimateInterest`, and `setSpecialFeatureOptIn`. These edit the IAB draft; call `saveIAB()` to confirm it.
 
-The IAB UI supports `ui.theme`, `ui.css`, and `ui.shadow` just like the ordinary banner. For external light-DOM styles, load both `@c15t/browser/styles.css` and `@c15t/browser/iab/styles.css`. Set `ui: false` to build custom HTML against the IAB client. This still downloads the IAB-capable entry; it is not the normal headless bundle.
+### Purpose and partner choices
+
+In the stock preference centre, changing a purpose's consent also changes consent for the partners that use that purpose on a consent basis. Its legitimate-interest control changes the purpose and its legitimate-interest partners separately. Turning that control off records an objection; it does not change consent-based choices.
+
+Each stack has a group control for its purposes and consent-based partners. The control exposes a mixed state when only some purposes are selected. Special-feature controls update the feature opt-in and its associated consent partners without changing the same-numbered purpose. Partners shared by several purposes have one vendor-wide consent value.
+
+The vendor tab provides individual consent and legitimate-interest controls, search, and incremental loading. Expand a vendor to see its declared purposes, features, data categories, privacy and legitimate-interest policy links, cookie lifetime and refresh information, and retention periods for individual purposes and special purposes. These disclosures depend on the vendor's data in the Global Vendor List, or GVL.
+
+These grouped actions belong to the stock UI. The low-level `runtime.iab` setters each edit their named choice, so custom HTML must set associated vendor choices explicitly when offering the same grouped behavior.
+
+### IAB configuration and styling
+
+Configure link destinations in `legalLinks`, then select which links each layer shows with `ui.banner.legalLinks` and `ui.dialog.legalLinks`, as in the script example above. An omitted or empty selection shows no links. The IAB banner always shows c15t branding, matching React. `ui.dialog.hideBranding` can hide it in the preference centre.
+
+Use `i18n` for translated copy. The ordinary `ui.banner.title`, `description`, `acceptButtonText`, `rejectButtonText`, and `customizeButtonText` overrides also apply to the IAB banner. A description can include `{partnerCount}`; the purpose summary and legitimate-interest disclosure remain visible below it.
+
+Use `presentation.prompt` and `presentation.preferences` to configure blocking and layout. The banner's `scrollLock` and `trapFocus` options also work; explicit presentation blocking takes precedence, and a wall remains blocking.
+
+The IAB UI supports `ui.theme`, `ui.css`, and `ui.shadow` just like the ordinary banner. For external light-DOM styles, load both `@c15t/browser/styles.css` and `@c15t/browser/iab/styles.css`. Set `ui: false` to build custom HTML against the IAB client. This still downloads the IAB-capable entry. Styling and custom markup need no backend changes or React component APIs.
 
 Override the adapter's loading error, save error, and pagination copy with `ui.iab.loadErrorText`, `ui.iab.saveErrorText`, and `ui.iab.moreVendorsText`. The remaining IAB copy comes from the resolved translations.
 

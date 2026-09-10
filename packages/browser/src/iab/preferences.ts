@@ -7,6 +7,7 @@ import { classes as shared } from '../generated/styles';
 import { resolveCopy } from '../ui/copy';
 import { h } from '../ui/dom';
 import type { SurfaceContext } from '../ui/surface';
+import { createVendorDisclosures } from './vendor-disclosures';
 
 /** Preference content preserves focused controls while the IAB draft changes. */
 export interface IABPreferences {
@@ -47,17 +48,19 @@ export const createIABPreferences = (
 		testId: string,
 		read: (value: ConsentSnapshot) => boolean,
 		write: (value: boolean) => void,
-		subject: string
+		subject: string,
+		isMixed?: (value: ConsentSnapshot) => boolean
 	): HTMLElement => {
 		const button = h(
 			'button',
 			{
 				'aria-label': `${subject}: ${label}`,
 				class: css(shared.switch.root),
+				'data-c15t-iab-toggle': '',
 				'data-testid': testId,
 				id: testId,
 				onclick: () => write(!read(client.getSnapshot())),
-				role: 'switch',
+				role: isMixed ? 'checkbox' : 'switch',
 				type: 'button',
 			},
 			h(
@@ -66,9 +69,19 @@ export const createIABPreferences = (
 				h('span', { class: css(shared.switch.thumb) })
 			)
 		);
+		const partial = h(
+			'span',
+			{
+				'aria-hidden': 'true',
+				class: css(styles.partialIndicator),
+			},
+			noStyle ? '−' : ''
+		);
 		const update = (current: ConsentSnapshot): void => {
 			const checked = read(current);
-			button.setAttribute('aria-checked', String(checked));
+			const mixed = isMixed?.(current) ?? false;
+			partial.hidden = !mixed;
+			button.setAttribute('aria-checked', mixed ? 'mixed' : String(checked));
 			button.setAttribute('data-state', checked ? 'checked' : 'unchecked');
 		};
 		updates.push(update);
@@ -77,8 +90,39 @@ export const createIABPreferences = (
 			'div',
 			{ class: css(styles.purposeHeader) },
 			h('label', { for: testId }, label),
+			...(isMixed ? [partial] : []),
 			button
 		);
+	};
+
+	const readConsent = (
+		row: HeadlessIABDisplayRow,
+		value: ConsentSnapshot
+	): boolean =>
+		Boolean(
+			row.toggle === 'special-feature'
+				? value.iab?.specialFeatureOptIns[row.id]
+				: value.iab?.purposeConsents[row.id]
+		);
+	const writeConsent = (row: HeadlessIABDisplayRow, value: boolean): void => {
+		const handle = client.runtime.iab;
+		if (row.locked || !handle) {
+			return;
+		}
+		if (row.toggle === 'special-feature') {
+			handle.setSpecialFeatureOptIn(row.id, value);
+		} else {
+			handle.setPurposeConsent(row.id, value);
+		}
+		for (const vendor of row.vendors) {
+			if (
+				!vendor.usesLegitimateInterest &&
+				Boolean(client.getSnapshot().iab?.vendorConsents[String(vendor.id)]) !==
+					value
+			) {
+				handle.setVendorConsent(vendor.id, value);
+			}
+		}
 	};
 
 	const renderPurpose = (row: HeadlessIABDisplayRow): HTMLElement => {
@@ -111,25 +155,14 @@ export const createIABPreferences = (
 				toggle(
 					t.preferenceCenter.purposeItem.withYourPermission,
 					`${row.testId}-consent`,
-					(value) =>
-						Boolean(
-							row.toggle === 'special-feature'
-								? value.iab?.specialFeatureOptIns[row.id]
-								: value.iab?.purposeConsents[row.id]
-						),
-					(value) => {
-						if (row.toggle === 'special-feature') {
-							client.runtime.iab?.setSpecialFeatureOptIn(row.id, value);
-						} else {
-							client.runtime.iab?.setPurposeConsent(row.id, value);
-						}
-					},
+					(value) => readConsent(row, value),
+					(value) => writeConsent(row, value),
 					row.name
 				)
 			);
 			if (
 				row.kind === 'purpose' &&
-				row.vendors.some((vendor) => vendor.legIntPurposes.includes(row.id))
+				row.vendors.some((vendor) => vendor.usesLegitimateInterest)
 			) {
 				body.append(
 					h('p', {}, t.preferenceCenter.purposeItem.rightToObject),
@@ -137,8 +170,15 @@ export const createIABPreferences = (
 						t.preferenceCenter.purposeItem.legitimateInterest,
 						`${row.testId}-li`,
 						(value) => Boolean(value.iab?.purposeLegitimateInterests[row.id]),
-						(value) =>
-							client.runtime.iab?.setPurposeLegitimateInterest(row.id, value),
+						(value) => {
+							const handle = client.runtime.iab;
+							handle?.setPurposeLegitimateInterest(row.id, value);
+							for (const vendor of row.vendors) {
+								if (vendor.usesLegitimateInterest) {
+									handle?.setVendorLegitimateInterest(vendor.id, value);
+								}
+							}
+						},
 						row.name
 					)
 				);
@@ -183,6 +223,21 @@ export const createIABPreferences = (
 						h('span', { class: css(styles.stackName) }, row.name)
 					),
 					h('p', {}, row.description),
+					toggle(
+						t.preferenceCenter.purposeItem.withYourPermission,
+						`${row.testId}-consent`,
+						(value) =>
+							row.purposes.every((purpose) => readConsent(purpose, value)),
+						(value) => {
+							for (const purpose of row.purposes) {
+								writeConsent(purpose, value);
+							}
+						},
+						row.name,
+						(value) =>
+							row.purposes.some((purpose) => readConsent(purpose, value)) &&
+							!row.purposes.every((purpose) => readConsent(purpose, value))
+					),
 					...row.purposes.map(renderPurpose)
 				)
 			);
@@ -231,7 +286,6 @@ export const createIABPreferences = (
 		},
 		moreVendorsText
 	);
-	// oxlint-disable-next-line complexity -- Vendor disclosures have independent optional fields.
 	const renderVendors = (): void => {
 		updates.splice(vendorUpdatesStart);
 		list.replaceChildren();
@@ -266,7 +320,10 @@ export const createIABPreferences = (
 					h('span', { class: css(styles.vendorListName) }, vendor.name)
 				)
 			);
-			const body = h('div', { class: css(styles.vendorDetails) });
+			const body = h('div', {
+				class: css(styles.vendorDetails),
+				'data-c15t-iab-vendor-details': '',
+			});
 			if (custom) {
 				body.append(h('p', {}, t.common.customPartner));
 			}
@@ -293,104 +350,7 @@ export const createIABPreferences = (
 					)
 				);
 			}
-			const link = (href: string | undefined, label: string): void => {
-				if (href && /^https?:\/\//iu.test(href)) {
-					body.append(
-						h(
-							'p',
-							{},
-							h('a', { href, rel: 'noreferrer', target: '_blank' }, label)
-						)
-					);
-				}
-			};
-			link(
-				'privacyPolicyUrl' in vendor
-					? vendor.privacyPolicyUrl
-					: (vendor.urls?.find((url) => url.langId === (copy.language ?? 'en'))
-							?.privacy ?? vendor.urls?.[0]?.privacy),
-				t.preferenceCenter.vendorList.privacyPolicy
-			);
-			if ('deviceStorageDisclosureUrl' in vendor) {
-				link(
-					vendor.deviceStorageDisclosureUrl,
-					t.preferenceCenter.vendorList.storageDisclosure
-				);
-			}
-			const groups = [
-				[
-					t.preferenceCenter.vendorList.purposes,
-					vendor.purposes,
-					snapshot.iab?.gvl?.purposes,
-				],
-				[
-					t.preferenceCenter.vendorList.legitimateInterest,
-					vendor.legIntPurposes ?? [],
-					snapshot.iab?.gvl?.purposes,
-				],
-				[
-					t.preferenceCenter.vendorList.specialPurposes,
-					'specialPurposes' in vendor ? vendor.specialPurposes : [],
-					snapshot.iab?.gvl?.specialPurposes,
-				],
-				[
-					t.preferenceCenter.vendorList.features,
-					vendor.features ?? [],
-					snapshot.iab?.gvl?.features,
-				],
-				[
-					t.preferenceCenter.vendorList.specialFeatures,
-					vendor.specialFeatures ?? [],
-					snapshot.iab?.gvl?.specialFeatures,
-				],
-			] as const;
-			for (const [title, ids, names] of groups) {
-				if (ids.length) {
-					body.append(
-						h('h4', {}, title),
-						h(
-							'ul',
-							{},
-							...ids.map((purpose) =>
-								h('li', {}, names?.[purpose]?.name ?? String(purpose))
-							)
-						)
-					);
-				}
-			}
-			if (
-				'cookieMaxAgeSeconds' in vendor &&
-				typeof vendor.cookieMaxAgeSeconds === 'number'
-			) {
-				body.append(
-					h(
-						'p',
-						{},
-						t.preferenceCenter.vendorList.maxAge.replace(
-							'{days}',
-							String(Math.ceil(vendor.cookieMaxAgeSeconds / 86400))
-						)
-					)
-				);
-			}
-			if ('usesNonCookieAccess' in vendor && vendor.usesNonCookieAccess) {
-				body.append(h('p', {}, t.preferenceCenter.vendorList.nonCookieAccess));
-			}
-			if (
-				'dataRetention' in vendor &&
-				typeof vendor.dataRetention?.stdRetention === 'number'
-			) {
-				body.append(
-					h(
-						'p',
-						{},
-						t.preferenceCenter.vendorList.retention.replace(
-							'{days}',
-							String(vendor.dataRetention.stdRetention)
-						)
-					)
-				);
-			}
+			body.append(createVendorDisclosures(snapshot, vendor, copy));
 			details.append(body);
 			list.append(details);
 		}

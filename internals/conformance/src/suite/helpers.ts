@@ -57,6 +57,25 @@ export interface SuiteContext {
 	api: SuiteApi;
 }
 
+/** Query rendered adapters, including their open shadow roots. */
+export const queryAllIncludingShadowRoots = (
+	root: ParentNode,
+	selector: string
+): HTMLElement[] => {
+	const results = [...root.querySelectorAll<HTMLElement>(selector)];
+	if (root instanceof Element && root.shadowRoot) {
+		results.push(...queryAllIncludingShadowRoots(root.shadowRoot, selector));
+	}
+	for (const element of root.querySelectorAll('*')) {
+		if (element.shadowRoot) {
+			results.push(
+				...queryAllIncludingShadowRoots(element.shadowRoot, selector)
+			);
+		}
+	}
+	return results;
+};
+
 /**
  * Query by test-id in the mounted root, falling back to the document body.
  * Several frameworks portal surfaces (banner/dialog) to `document.body`, so
@@ -68,8 +87,9 @@ export const queryByTestId = function queryByTestId(
 ): HTMLElement | null {
 	const selector = `[data-testid="${testId}"]`;
 	return (
-		root.querySelector<HTMLElement>(selector) ??
-		root.ownerDocument.body.querySelector<HTMLElement>(selector)
+		queryAllIncludingShadowRoots(root, selector)[0] ??
+		queryAllIncludingShadowRoots(root.ownerDocument.body, selector)[0] ??
+		null
 	);
 };
 

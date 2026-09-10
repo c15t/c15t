@@ -101,6 +101,7 @@
 		"@c15t/ui": "workspace:*"
 	},
 	"devDependencies": {
+		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",

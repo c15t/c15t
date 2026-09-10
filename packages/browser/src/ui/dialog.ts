@@ -145,6 +145,7 @@ export const createDialog = function createDialog(
 			class: noStyle ? '' : styles.overlay,
 			'data-state': 'open',
 			'data-testid': 'consent-dialog-overlay',
+			role: 'presentation',
 		});
 		renderedFrom = {
 			branding: snapshot.branding,

@@ -85,7 +85,7 @@ export const createBanner = function createBanner(
 				'aria-modal': trapFocus ? 'true' : undefined,
 				class: noStyle ? '' : styles.card,
 				'data-testid': 'consent-banner-card',
-				role: trapFocus ? 'dialog' : undefined,
+				role: trapFocus ? 'dialog' : 'region',
 				tabindex: trapFocus ? '-1' : undefined,
 			},
 			h(
@@ -218,12 +218,14 @@ export const createBanner = function createBanner(
 				'aria-hidden': 'true',
 				class: noStyle ? '' : styles.overlay,
 				'data-testid': 'consent-banner-overlay',
+				role: 'presentation',
 			});
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(element);
-		if (trapFocus) {
-			cleanups.push(setupFocusTrap(element));
+		const card = element.querySelector<HTMLElement>('[role="dialog"]');
+		if (trapFocus && card) {
+			cleanups.push(setupFocusTrap(card));
 		}
 		if (scrollLock) {
 			cleanups.push(setupScrollLock());
