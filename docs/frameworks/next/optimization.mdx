@@ -35,67 +35,17 @@ page.
 | Cold manifest cache | Fetch public policy from the backend, cache it and resolve consent locally. |
 | Warm manifest cache | Reuse cached policy and resolve consent locally; local route requests and rendering still take time. |
 
-### A controlled local comparison
+### How much faster is a warm manifest?
 
-The `ssr` and `manifest-ssr` benchmarks ran from the same production build.
-Both awaited consent before rendering the
-same UI and used the same policy fixture. The local backend added **150 ms of
-artificial delay** to both `/init` and uncached `/manifest` requests.
+In a local SSR benchmark with **150 ms of simulated backend latency**, a warm
+manifest reduced median time to first byte from **157.6 ms to 7.4 ms** across
+10 new-visitor samples per setup. Both setups waited for consent before rendering.
 
-| Path | TTFB, median / p95 | Hydrated banner probe, median / p95 |
-| --- | --- | --- |
-| Backend `/init`, 10 samples | 157.6 / 160.9 ms | 222.4 / 228.9 ms |
-| Warm manifest cache, 10 samples | 7.4 / 15.2 ms | 70.9 / 144.3 ms |
+The warm cache skipped the upstream policy fetch. A cold cache still needs that
+fetch, so the benefit depends on your backend latency and cache hit rate.
 
-The warm cache avoided roughly the injected backend delay in this test. It made
-one upstream manifest request across 11 page loads and no upstream `/init`
-requests. Both arms had zero browser init requests and no console or hydration
-errors. The banner probe runs after hydration, so its timing is not the first
-visible pixel.
-
-The first manifest load took 252.4 ms TTFB and 389.6 ms at the banner probe.
-That is one cold observation, including startup work, not a cold-cache median
-or percentile. Direct init had two warmup loads; the manifest run separated its
-first cold load from the following ten warm loads.
-
-This was a local fixture test on Apple M5 Pro, macOS 26.6.2, Node 24.19.0,
-Chromium 149.0.7827.55 and Next.js 16.2.10, using the workspace at `278fd8667`
-with no CPU or network throttling. It does not measure Inth latency or establish
-a production speedup. It also does not measure the streaming default from the
-App Router guide.
-
-The [recorded samples and environment](https://github.com/c15t/c15t/tree/ccfe906682ba06cef7b56a16cc8fd10728df77d3/benchmarks/reports/next-manifest-2026-09-10)
-include the separate cold load and returning-visitor results. The table compares
-new visitors only.
-
-To reproduce from the repository with built workspace dependencies and the
-benchmark's Playwright browser installed, use separate result directories:
-
-```sh
-cd benchmarks/nextjs-browser-bench
-bun run build
-BENCH_OUTPUT_DIR=/tmp/c15t-direct bunx tsx scripts/run-bench.ts --scenario ssr --iterations 10 --warmup 2 --profile none --init-latency-ms 150
-BENCH_OUTPUT_DIR=/tmp/c15t-manifest bunx tsx scripts/run-bench.ts --scenario manifest-ssr --iterations 11 --warmup 0 --cold-manifest true --profile none --init-latency-ms 150
-```
-
-Local resolver benchmarks measure CPU work in microseconds. They exclude HTTP,
-backend work and rendering; do not compare them directly with these browser
-measurements or use them to claim an end-to-end speedup.
-
-### Measure your deployment
-
-To compare the two paths in your deployment:
-
-1. Use the same c15t and Next.js versions, policy, visitor inputs and rendering
-   path. Compare awaited SSR with awaited SSR, or browser initialization with
-   browser initialization.
-2. Measure cold manifest fills separately from warm-cache requests. Include cache
-   refreshes and use enough independent cold starts to describe their variation.
-3. Record TTFB, time until the resolved consent prompt appears, and backend request
-   counts. A streaming page can return its first byte before consent is ready;
-   faster TTFB alone does not prove an earlier prompt.
-4. Keep CPU and network conditions consistent, report median and tail latency,
-   and identify any injected backend delay. Check rejection and persistence too.
+See the [benchmark results](https://github.com/c15t/c15t/tree/ccfe906682ba06cef7b56a16cc8fd10728df77d3/benchmarks/reports/next-manifest-2026-09-10)
+for the measurements and test conditions.
 
 ## Keep browser consent requests on your origin
 

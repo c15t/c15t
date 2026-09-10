@@ -87,6 +87,11 @@ State: "Not recommended for production environments."
 Keep backend configuration and policy authoring in `docs/self-host/`; framework
 policy pages should explain the state and controls the application consumes.
 
+Keep performance explanations focused on the user's setup and the measured
+benefit. Include conditions needed to interpret a number, such as simulated
+latency or a warm cache. Put machine specifications, commit hashes, raw samples
+and reproduction commands in a linked benchmark report, not the setup guide.
+
 ## Demonstrate customization
 
 Pick the API according to the change:
