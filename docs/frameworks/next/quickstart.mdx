@@ -6,15 +6,15 @@ group: frameworks
 
 ## Start with Inth and choose your rendering path
 
-For a Next.js server deployment, use Inth with cached manifests. Your application
-resolves policy from reusable public data. A Next.js rewrite keeps browser
-consent requests on your origin and forwards submissions to Inth. The App Router
-and Pages Router guides configure this path with a shared `c15t.config.ts`.
+For a Next.js server deployment, we recommend Inth with cached manifests. Your
+application resolves policy from reusable public data, and consent submissions
+go to Inth. The App Router and Pages Router guides use a shared `c15t.config.ts`.
+Rewrites are an optional optimization for browser requests to your backend.
 
-Inth manages the consent service for you. [Self-hosting](/docs/self-host/quickstart)
-uses the same transport and routing with your backend URL. [Offline mode](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately)
-resolves bundled policy and keeps choices in browser storage without backend
-requests or records. Choose that deliberately when local-only storage is enough.
+[Self-hosting](/docs/self-host/quickstart) uses the same hosted transport with your
+own backend. [Offline mode](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately)
+resolves bundled policy and keeps choices in browser storage, with no backend
+requests or records. Not recommended for production environments.
 
 For static export, start with browser initialization against the Inth backend.
 A static host cannot run the manifest and init routes used by the server guides.
@@ -29,6 +29,21 @@ A Next.js application can mix dynamic and prerendered routes. Choose per route
 whether you need visitor-specific consent in the initial HTML. Reading request
 cookies in a layout requires a request context; do not put request helpers in a
 layout that must remain fully static.
+
+## Choose server, streaming or browser initialization
+
+App Router can await server prefetch for a resolved prompt in the initial HTML,
+pass the prefetch promise to stream the page while consent resolves, or skip
+prefetch and initialize in the browser. Pages Router uses `getServerSideProps`
+for server resolution or initializes through its app boundary in the browser.
+Each router guide shows these choices before its setup. For the smallest hosted
+setup without prefetch or local API routes, use
+[client-side initialization](/docs/frameworks/next/client-side).
+
+Manifest mode currently requires explicit `manifestURL` and `initURL` in the
+recommended config. For a smaller setup, use only `backendURL` and regular
+backend `/init`, as shown in the router guides. `prefetchInitialConsent` remains
+the server helper for either fetching path.
 
 ## What every path needs
 

@@ -180,10 +180,17 @@ revocation and cleanup checks; Astro startup and navigation preserve one mount.
 The backend section contains 12 pages, including restored policy, caching,
 deployment, IAB, logging and legal-document workflows. Next.js server guides lead
 with cached manifests and a local init route while consent writes remain on
-Inth through a same-origin rewrite. The shared file is `c15t.config.ts`; router
+Inth directly, with a same-origin rewrite as an optional optimization. The
+shared file is `c15t.config.ts`; router
 guides explain Inth, self-hosting and offline before setup. The v3 optimization
 guide restores the old route without carrying over v2 benchmark figures.
-The data-fetching guides compare this with regular backend `/init`, browser
+The API audit confirmed that `prefetchInitialConsent` remains exported; the
+removed browser-prefetch APIs are `C15tPrefetch` and `buildPrefetchScript`.
+`defineConsentConfig({ backendURL })` currently selects regular `/init`, not
+automatic manifest defaults. The manifest compatibility fixtures use explicit
+URLs; the demo uses client-side hosted initialization. A dedicated client-side
+guide and rendering table distinguish this from SSR and streaming.
+The data-fetching guides compare manifests with regular backend `/init`, browser
 manifest resolution and offline operation. Frontend policy pages now explain
 observable behavior and link to backend policy authoring.
 

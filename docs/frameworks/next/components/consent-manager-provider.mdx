@@ -37,7 +37,9 @@ import {
   hosted,
 } from 'c15t/next';
 
-const mode = hosted({ url: '/api/c15t' });
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+const mode = hosted({ url: backendURL });
 
 export function Consent({ children }: { children: ReactNode }) {
   return (
@@ -51,11 +53,10 @@ export function Consent({ children }: { children: ReactNode }) {
 }
 ```
 
-Keep the recommended [backend rewrite](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
-and remove local manifest/init handlers for this regular backend `/init` variant.
-The rewrite forwards initialization and saves to your Inth or self-hosted backend.
-For a static export without a hosting proxy, use the absolute public backend URL
-instead. For local-only records, use
+Use the absolute public Inth or self-hosted endpoint. This regular `/init`
+variant needs no local manifest/init handlers. An optional
+[backend rewrite](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
+lets you use `/api/c15t` instead. For local-only records, use
 [offline mode](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
 
 ## Provider responsibilities

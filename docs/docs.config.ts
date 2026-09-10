@@ -133,6 +133,7 @@ export default defineDocsConfig({
 						'pages-router',
 						'static-export',
 						'server-side',
+						'client-side',
 					],
 					slug: 'next',
 					title: 'Next.js',

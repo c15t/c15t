@@ -66,9 +66,14 @@ Separate backend ownership, policy fetching and consent-record transport.
 At the start of router setup guides, explain Inth hosted, self-hosted and offline
 choices before giving the recommended Inth instructions. The backend endpoint
 is public configuration; do not describe it as a secret.
-For Next.js server deployments, lead with `c15t.config.ts`, cached manifests,
-local init and a same-origin rewrite. Use `/api/c15t` for browser backend traffic,
-with `/api/c15t/manifest` and `/api/c15t/init` as local handlers. Describe avoiding
+Explain SSR, streaming and browser initialization before choosing a Next.js
+recipe. Verify exports and actual examples; a removed browser-prefetch component
+does not imply the server prefetch helper was removed. Keep `c15t.config.ts`
+for shared configuration. The current API requires explicit manifest URLs;
+never document proposed automatic defaults before they exist in source.
+Same-origin rewrites are optional performance optimizations, never setup
+requirements. Use `/api/c15t` when a rewrite is chosen, with
+`/api/c15t/manifest` and `/api/c15t/init` for local manifest handlers. Describe avoiding
 a separate browser DNS/TLS connection to the backend, not eliminating all DNS
 or making vendor requests first-party. Static exports need hosting-level
 proxying or direct public URLs because Next.js rewrites need a server. Keep
@@ -78,6 +83,7 @@ precedence when combining local handlers with a backend proxy. Then explain
 regular backend `/init` and browser resolution
 as alternatives. Cache public manifests, never visitor-specific resolved state.
 Document browser-only mode by its current API and explain what "offline" means.
+State: "Not recommended for production environments."
 Keep backend configuration and policy authoring in `docs/self-host/`; framework
 policy pages should explain the state and controls the application consumes.
 

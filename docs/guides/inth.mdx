@@ -29,10 +29,10 @@ adapter's example rather than mixing configuration shapes.
 
 For Next.js with a server, use the recommended
 [manifest setup](/docs/frameworks/next/data-fetching). It shares public policy
-data while resolving each visitor's consent state separately. The recommended
-rewrite keeps browser c15t requests on your application origin and forwards
-consent writes to Inth. The backend URL is not a secret; the server environment
-variable supplies the upstream destination while the browser uses `/api/c15t`. See [data fetching](/docs/guides/data-fetching) for
+data while resolving each visitor's consent state separately. An
+optional rewrite can keep browser c15t requests on your application origin and
+forward consent writes to Inth. The backend URL is public configuration. A
+direct browser connection can use it without a rewrite. See [data fetching](/docs/guides/data-fetching) for
 manifest resolution, regular `/init` requests and custom transports.
 
 ## Static sites can use Inth too

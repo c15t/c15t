@@ -1,6 +1,6 @@
 ---
 title: Server rendering and hydration
-description: Choose request helpers for your Next.js router and preserve the prepared consent configuration.
+description: Choose resolved SSR, streamed consent or browser initialization and preserve the same consent state through hydration.
 group: frameworks
 ---
 
@@ -14,29 +14,107 @@ group: frameworks
 
 Follow [App Router](/docs/frameworks/next/app-router),
 [Pages Router](/docs/frameworks/next/pages-router) or
-[static export](/docs/frameworks/next/static-export) for complete files.
+[static export](/docs/frameworks/next/static-export) for installation and complete
+application files. A rewrite is an optional optimization for browser requests;
+it does not enable server rendering.
+
+## Choose when consent resolves
+
+| Rendering path | Configuration passed to the boundary | What the visitor receives |
+| --- | --- | --- |
+| Resolved SSR | Await `prefetchInitialConsent` and pass its result | HTML can include the resolved consent prompt; hydration starts from that same state. |
+| Streaming | Pass the pending `prefetchInitialConsent` promise | The page can render while consent is pending. Consent surfaces stay hidden until the result arrives. |
+| [Browser initialization](/docs/frameworks/next/client-side) | Pass `{}` with the hosted connection settings | The browser initializes consent after mount. No resolved consent prompt is included in the initial HTML. |
+
+Client Components can still be prerendered by Next.js. "Browser initialization"
+here describes where consent resolves, not whether the rest of the component
+produces HTML on the server. See the
+[client-side guide](/docs/frameworks/next/client-side) for the complete setup.
+
+SSR and streaming both read the visitor's request. Passing a promise does not
+make a static export able to read request cookies or run a server handler.
+Pages Router `getServerSideProps` must await its result before serializing props.
 
 ## Preserve the server result
 
-With the recommended `manifestURL` config, `prefetchInitialConsent` resolves
-policy locally from the cached manifest and restores records for a request. With
-only `backendURL`, it fetches `${backendURL}/init`; a rewrite or local handler
-determines what serves that URL. Forward
-its result to `ConsentBoundary` without deriving new saved choices from allowed
-categories. Keep server and browser backend configuration consistent.
+`prefetchInitialConsent` restores records and resolves policy for the request.
+With `manifestURL`, it resolves the configured manifest. With only `backendURL`,
+it calls `${backendURL}/init`. It does not infer manifest routes from a backend
+URL. The [App Router guide](/docs/frameworks/next/app-router) shows the explicit
+manifest configuration.
 
-Awaiting the helper allows resolved consent UI in the server HTML. Passing a
-pending promise lets the rest of the page render while the prompt waits. Neither
-path should emit a choice event just because hydration completed.
+This server wrapper illustrates resolved SSR with regular backend init. Use it
+inside your existing layout, pass the absolute backend endpoint, and import the
+consent stylesheet once as shown in your router guide:
+
+```tsx title="app/consent.tsx"
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from 'c15t/next';
+import { prefetchInitialConsent } from 'c15t/next/server';
+
+type ConsentProps = { children: ReactNode; backendURL: string };
+
+export async function Consent({ children, backendURL }: ConsentProps) {
+  const config = await prefetchInitialConsent({ backendURL });
+
+  return (
+    <ConsentBoundary config={config} backendURL={backendURL}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog />
+      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+    </ConsentBoundary>
+  );
+}
+```
+
+For streaming, remove `async` from `Consent` and remove `await` from the helper
+call. Keep the returned promise in the `config` prop. The boundary handles it;
+you do not need a prefetch script in `<head>`. When the promise contains a
+resolved policy, the provider uses it without repeating initialization over
+the network. If it fails or contains only baseline records, browser
+initialization can still run.
+
+For browser initialization, remove the server helper call and pass `config={{}}`
+to the same boundary. Keep `backendURL`, or the `consent` config that defines
+its transport. This path works without request prefetch, including prerendered
+pages. A full static export needs a reachable external backend or a proxy
+provided by its host.
+
+Forward prepared state intact. Do not turn allowed categories into new saved
+choices, change their confirmation times, or emit a choice event during
+hydration. Mount one consent owner; do not add this wrapper around a second
+provider.
+
+## Distinguish the two request helpers
+
+`readInitialConsentConfig()` only reads request cookies, location, language and
+privacy signals. It makes no backend request and does not resolve policy.
+Passing that baseline to the boundary preserves request context while the
+browser initializes consent. It cannot by itself render a resolved banner on
+the server.
+
+`prefetchInitialConsent()` starts with that baseline and adds resolved policy
+from `/init` or a manifest. Use it when server-rendered or streamed consent
+needs a policy decision.
+
+The removed v2 APIs were `C15tPrefetch` and `buildPrefetchScript`. Those started
+an early browser request through an injected script. `prefetchInitialConsent`
+is a current v3 server API with a different role.
 
 ## Cache policy data without sharing visitor state
 
 A manifest is cacheable policy configuration. Resolved init data and stored
 records belong to a visitor. Do not put personalized responses or HTML into a
-shared cache without an appropriate isolation design. Test request behavior
-under more than one visitor and location.
+shared cache without appropriate isolation. Test more than one visitor and
+location.
 
-The [data-fetching guide](/docs/frameworks/next/data-fetching) explains the
-manifest/init routes, default cache interval, required location headers and
-client retry behavior. Use the same `consentConfig` for prefetch and the
-boundary so server and browser choose the same policy source.
+The [data-fetching guide](/docs/frameworks/next/data-fetching) explains manifest
+routes, cache intervals, location headers and retries. Keep the same policy
+source in prefetch and the browser boundary. Offline mode does not provide a
+backend record service. Not recommended for production environments.

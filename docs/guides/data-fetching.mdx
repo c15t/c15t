@@ -8,9 +8,9 @@ group: guides
 
 Use Inth for managed policy and consent records. For a Next.js application with
 a server, use a cached manifest to resolve policy in your application. Route
-browser consent traffic through `/api/c15t` on your app's origin, and use a
-Next.js rewrite to forward record requests to Inth. Follow the
-[Next.js manifest and rewrite setup](/docs/frameworks/next/data-fetching).
+browser consent traffic directly to Inth, or optionally use a Next.js rewrite
+to keep those requests on your app's origin. Follow the
+[Next.js manifest setup](/docs/frameworks/next/data-fetching).
 
 Backend ownership and data fetching are separate decisions. Inth manages the
 backend for you. A [self-hosted backend](/docs/self-host/quickstart) uses the same
@@ -23,7 +23,7 @@ requests and stores choices locally.
 | Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Your host has a runtime server and you want to reuse policy data across requests |
 | Regular backend `/init` | The consent backend | The same backend | You want the fewest moving parts, need backend-owned request resolution, or have no application server |
 | Manifest in the browser | The browser, using supplied or unknown location | Inth or your c15t backend | You deliberately want client resolution and have planned geography, bundle size and policy refresh |
-| Offline | The browser or local runtime, using bundled rules | No backend submission | Demos, tests or an application that deliberately needs only local records |
+| Offline | The browser or local runtime, using bundled rules | No backend submission | Local development and tests. Not recommended for production environments. |
 | Custom transport | Your implementation | Your implementation | An existing service cannot use the c15t backend protocol |
 
 ## What is a consent manifest?
@@ -93,12 +93,13 @@ sets this option for you when `ConsentBoundary` receives a consent config with
 `initURL`.
 
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
-and other record endpoints. Configure both. The
-[Next.js router guides](/docs/frameworks/next/quickstart) use `consentConfig`
-from `c15t.config.ts` to select this transport, so their boundary does not need
-a separate `mode` override.
+and other record endpoints. Configure both if you choose this optional proxy
+variant. The
+[Next.js data-fetching guide](/docs/frameworks/next/data-fetching) explains how
+to select it through `c15t.config.ts`. A direct absolute backend URL works
+without a rewrite.
 
-Keeping c15t requests on the app's origin avoids a separate browser DNS lookup
+This optional optimization keeps c15t requests on the app's origin and avoids a separate browser DNS lookup
 and TLS connection to the consent backend. The app server still connects to
 the upstream backend for manifest refreshes and consent writes. Vendor scripts
 and vendor requests keep their own origins.
@@ -110,6 +111,9 @@ cannot serve a Next.js route or rewrite at runtime; use the absolute Inth URL or
 a proxy provided by the static host instead.
 
 ## When should I use offline mode?
+
+Not recommended for production environments. Use Inth or a self-hosted backend
+for production policy and consent records.
 
 `offline()` resolves bundled policy rules without an init request and acknowledges
 saves locally. The runtime's persistence module stores the choice in browser

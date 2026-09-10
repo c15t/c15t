@@ -113,6 +113,9 @@ Unknown geography does not make every regional rule applicable.
 
 ## Use offline mode for local-only records
 
+Not recommended for production environments. Use it for local development and
+tests; a static production site can still connect to Inth.
+
 If the site deliberately needs no consent backend, use the explicit
 [offline boundary example](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
 It resolves bundled rules and stores choices in the browser. Static hosting

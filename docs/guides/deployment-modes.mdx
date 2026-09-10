@@ -15,7 +15,7 @@ endpoint in your framework setup.
 | --- | --- | --- | --- |
 | Inth hosted service | Centrally managed policy through a manifest or `/init` | Browser records plus backend submissions | You want managed policy and consent records |
 | Self-hosted c15t | Your backend's manifest or `/init` | Browser records plus your database | You need to operate the service and its infrastructure |
-| Browser-only offline mode | Bundled `policyRules` | Browser persistence | You deliberately do not need backend submissions |
+| Browser-only offline mode | Bundled `policyRules` | Browser persistence | Local development and tests. Not recommended for production environments. |
 
 Hosted and self-hosted c15t use the same transport protocol. Switching who runs
 the backend does not require switching from manifests to `/init`.
