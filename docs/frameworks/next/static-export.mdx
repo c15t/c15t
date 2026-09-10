@@ -22,7 +22,7 @@ const config: NextConfig = { output: 'export' };
 export default config;
 ```
 
-```tsx title="app/consent.tsx"
+```tsx title="components/consent.tsx"
 'use client';
 
 import type { ReactNode } from 'react';
@@ -47,9 +47,11 @@ export function Consent({ children }: { children: ReactNode }) {
 }
 ```
 
+For App Router, mount the wrapper in the root layout:
+
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
-import { Consent } from './consent';
+import { Consent } from '../components/consent';
 import 'c15t/next/styles.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -57,9 +59,32 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 ```
 
+For Pages Router, mount the same wrapper in `_app.tsx`:
+
+```tsx title="pages/_app.tsx"
+import type { AppProps } from 'next/app';
+import { Consent } from '../components/consent';
+import 'c15t/next/styles.css';
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Consent><Component {...pageProps} /></Consent>;
+}
+```
+
+The imports assume `app/`, `pages/` and `components/` are at the project root.
+Adjust them if your project uses `src/`.
+
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` when building the site. Next.js embeds public
 environment values into the browser bundle, so changing this URL requires a new
 build. Configure the exported site's origin in the backend's trusted origins.
+
+## Test the exported files
+
+Run your production build and serve the generated `out/` directory with a
+static server. A Next.js development server can hide accidental dependencies on
+API routes. Inspect Network for failed same-origin `/api/c15t` calls, then test
+reject, reload, preference changes and an unavailable backend using
+[verification](/docs/guides/verify-consent).
 
 ## What happens before initialization?
 
@@ -76,7 +101,7 @@ the browser to resolve a manifest instead, change the existing client boundary
 to use a consent config. Set `NEXT_PUBLIC_C15T_MANIFEST_URL` to a reachable
 absolute manifest endpoint and keep the same backend URL for saves.
 
-This is a partial change to `app/consent.tsx`:
+This is a partial change to `components/consent.tsx`:
 
 ```tsx
 import { defineConsentConfig } from 'c15t/next';
@@ -120,11 +145,3 @@ If the site deliberately needs no consent backend, use the explicit
 [offline boundary example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
 It resolves bundled rules and stores choices in the browser. Static hosting
 alone is not a reason to give up Inth policy management and consent records.
-
-## Test the exported files
-
-Run your production build and serve the generated `out/` directory with a
-static server. A Next.js development server can hide accidental dependencies on
-API routes. Inspect Network for failed same-origin `/api/c15t` calls, then test
-reject, reload, preference changes and an unavailable backend using
-[verification](/docs/guides/verify-consent).

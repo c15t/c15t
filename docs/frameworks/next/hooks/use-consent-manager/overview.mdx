@@ -32,7 +32,11 @@ which can be true under an opt-out policy without a recorded grant.
 
 ## Save from a visitor action
 
-```tsx
+Place this Client Component inside your existing consent boundary.
+
+```tsx title="components/reject-button.tsx"
+'use client';
+
 import { useSaveConsents } from 'c15t/next';
 
 export function RejectButton() {

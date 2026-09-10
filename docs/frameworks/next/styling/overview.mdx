@@ -27,6 +27,11 @@ and `utilities` directives:
 
 ## Tokens
 
+The provider snippets below are partial configuration examples. Apply them in
+your existing Client Component wrapper, keeping its transport, prefetch,
+children and other options. `ConsentBoundary` also accepts `theme` and
+`components` through `options`.
+
 Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
 properties. Set them on the provider through `theme`, or override the
 variables directly in your CSS.
@@ -95,27 +100,35 @@ takes, so the contract is the same whether you write class strings or pass an
 object with `className` and `style`. Set slots on the provider under
 `components`, keyed by component and part.
 
-Tailwind, targeting the root's `data-prompt` attribute so a notice gets a
-full-width bar:
+For a full-width notice, use the supported `bar` variant. In a Client Component
+inside the existing boundary, replace the stock banner with:
 
-```tsx
-<ConsentProvider
-	options={{
-		mode,
-		components: {
-			banner: {
-				root: {
-					className:
-						'data-[prompt=notice]:inset-x-0 data-[prompt=notice]:bottom-0 data-[prompt=notice]:p-0',
-				},
-				card: { className: 'data-[prompt=notice]:rounded-none' },
-				rightLink: {
-					className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
-				},
-			},
-		},
-	}}
-/>
+```tsx title="components/regional-banner.tsx"
+'use client';
+
+import { ConsentBanner, usePolicyRule } from 'c15t/next';
+
+export function RegionalBanner() {
+  const policy = usePolicyRule();
+  return <ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />;
+}
+```
+
+To remove the notice card's radius, add these values to the existing
+`options.components.banner` slots. The root owns `data-prompt`, so the card
+uses Tailwind's `group` selector to read it:
+
+```ts
+const bannerSlots = {
+  root: { className: 'group' },
+  card: { className: 'group-data-[prompt=notice]:rounded-none' },
+  rightLink: {
+    className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
+  },
+};
+
+// In the existing options.components object:
+// banner: bannerSlots
 ```
 
 The root also carries `data-variant`, so you can restyle one shape without

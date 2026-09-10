@@ -1,68 +1,42 @@
 ---
 title: Quickstart
-description: Set up Next.js with Inth and cached manifests, with separate App Router, Pages Router and static export guides.
+description: Add c15t to Next.js with Inth. Choose your router or static export below.
 group: frameworks
 ---
 
-## Start with Inth and choose your rendering path
+## Choose your setup
 
-For a Next.js server deployment, we recommend Inth with cached manifests. Your
-application resolves policy from reusable public data, and consent submissions
-go to Inth. The App Router and Pages Router guides use a shared `c15t.config.ts`.
-Rewrites are an optional optimization for browser requests to your backend.
+We recommend [Inth](https://inth.com) for policy management and consent records.
+For Next.js server deployments, the guides use cached manifests: your server
+reuses public policy data and resolves consent for each visitor. Static exports
+initialize through Inth in the browser.
 
-[Self-hosting](/docs/self-host/quickstart) uses the same hosted transport with your
-own backend. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
+| Your deployment | Start here |
+| --- | --- |
+| App Router with a Next.js server | [App Router](/docs/frameworks/next/app-router) |
+| Pages Router with a Next.js server | [Pages Router](/docs/frameworks/next/pages-router) |
+| Either router with `output: 'export'` | [Static export](/docs/frameworks/next/static-export) |
+
+Each guide includes installation, backend prerequisites, application files and
+verification. Start with the guide for your deployment; you do not need to read
+the fetching reference first.
+
+[Self-hosting](/docs/self-host/quickstart) uses the same setup with your own
+backend. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
 resolves bundled policy and keeps choices in browser storage, with no backend
 requests or records. Not recommended for production environments.
 
-For static export, start with browser initialization against the Inth backend.
-A static host cannot run the manifest and init routes used by the server guides.
+## Other setup choices
 
-| Next.js deployment | Guide | Where consent initializes |
-| --- | --- | --- |
-| App Router with a server | [App Router](/docs/frameworks/next/app-router) | Cached manifest, request helper and client boundary |
-| Pages Router with a server | [Pages Router](/docs/frameworks/next/pages-router) | Cached manifest through `getServerSideProps` or a local init route |
-| `output: 'export'` | [Static export](/docs/frameworks/next/static-export) | Browser, using an external Inth backend |
+For a smaller hosted setup without server prefetch or local API routes, use
+[client-side initialization](/docs/frameworks/next/client-side). Consent resolves
+in the browser, so the initial HTML has no resolved consent prompt.
 
-A Next.js application can mix dynamic and prerendered routes. Choose per route
-whether you need visitor-specific consent in the initial HTML. Reading request
-cookies in a layout requires a request context; do not put request helpers in a
-layout that must remain fully static.
-
-## Choose server, streaming or browser initialization
-
-App Router can await server prefetch for a resolved prompt in the initial HTML,
-pass the prefetch promise to stream the page while consent resolves, or skip
-prefetch and initialize in the browser. Pages Router uses `getServerSideProps`
-for server resolution or initializes through its app boundary in the browser.
-Each router guide shows these choices before its setup. For the smallest hosted
-setup without prefetch or local API routes, use
-[client-side initialization](/docs/frameworks/next/client-side).
-
-Manifest mode currently requires explicit `manifestURL` and `initURL` in the
-recommended config. For a smaller setup, use only `backendURL` and regular
-backend `/init`, as shown in the router guides. `prefetchInitialConsent` remains
-the server helper for either fetching path.
-
-## What every path needs
-
-<CommandTabs command="c15t" mode="install" />
-
-Install a compatible v3 `c15t` package, import its stylesheet once, and
-mount the banner, dialog and persistent preferences link inside one consent
-boundary. Hosted examples require a reachable consent backend with policy rules
-and your application's origin configured.
-
-Import the Next.js integration from `c15t/next` and its stylesheet from
-`c15t/next/styles.css`. Follow the router guide for the complete setup.
+[Data fetching](/docs/frameworks/next/data-fetching) compares manifests and regular
+backend initialization. [Server rendering](/docs/frameworks/next/server-side)
+explains when to await consent or stream the page while it resolves. Same-origin
+[rewrites](/docs/frameworks/next/optimization) are optional optimizations.
 
 After setup, [register optional scripts](/docs/frameworks/next/script-loader)
 and [verify requests and persistence](/docs/guides/verify-consent). A visible
 banner alone does not establish that analytics wait for consent.
-
-## Compare data-fetching alternatives
-
-Use [data fetching](/docs/frameworks/next/data-fetching) to compare manifest
-resolution, regular backend `/init` and offline mode. Start there if you have not chosen how your application
-should fetch consent data.

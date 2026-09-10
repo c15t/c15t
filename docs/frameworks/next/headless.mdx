@@ -23,7 +23,12 @@ surfaces render nothing in that state.
 
 ## Minimal example
 
-```tsx
+Render this Client Component inside your existing consent boundary in place of
+the stock banner. Keep the dialog and persistent preferences control.
+
+```tsx title="components/consent-banner.tsx"
+'use client';
+
 import { useHeadlessConsentUI, useTranslations } from 'c15t/next/headless';
 
 const ACTION_LABELS = {

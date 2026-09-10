@@ -1,8 +1,23 @@
 ---
 title: Server rendering and hydration
-description: Choose resolved SSR, streamed consent or browser initialization and preserve the same consent state through hydration.
+description: Resolve consent on the server, choose what waits for the result, and preserve the same state through hydration.
 group: frameworks
 ---
+
+## Choose when consent resolves
+
+Fetching and rendering are separate choices. The examples here keep the shared
+`consentConfig` and manifest routes from the
+[App Router guide](/docs/frameworks/next/app-router).
+
+| Rendering path | Pass to `ConsentBoundary` | What the visitor receives |
+| --- | --- | --- |
+| Stream while consent resolves | The `prefetchInitialConsent` promise | The page can render while consent UI waits for the result. |
+| Await consent | The resolved `prefetchInitialConsent` result | The consent subtree renders after resolution. A surrounding Suspense fallback may stream first. |
+| [Browser initialization](/docs/frameworks/next/client-side) | `config={{}}` and the shared `consent` config | The browser initializes after mount; the initial HTML has no resolved consent prompt. |
+
+Client Components can still be prerendered by Next.js. Browser initialization
+describes where consent resolves, not whether the component produces server HTML.
 
 ## Use the helper for your router
 
@@ -12,42 +27,43 @@ group: frameworks
 | Pages Router | `c15t/next/pages` | `req` passed from `getServerSideProps` |
 | Static export | No request helper | Browser initialization |
 
-Follow [App Router](/docs/frameworks/next/app-router),
+For complete setup files, follow [App Router](/docs/frameworks/next/app-router),
 [Pages Router](/docs/frameworks/next/pages-router) or
-[static export](/docs/frameworks/next/static-export) for installation and complete
-application files. A rewrite is an optional optimization for browser requests;
-it does not enable server rendering.
+[static export](/docs/frameworks/next/static-export).
+Pages Router must await prefetch inside `getServerSideProps` before serializing
+props. The streaming examples on this page are for App Router.
 
-## Choose when consent resolves
+## Stream the page while consent resolves
 
-| Rendering path | Configuration passed to the boundary | What the visitor receives |
-| --- | --- | --- |
-| Resolved SSR | Await `prefetchInitialConsent` and pass its result | HTML can include the resolved consent prompt; hydration starts from that same state. |
-| Streaming | Pass the pending `prefetchInitialConsent` promise | The page can render while consent is pending. Consent surfaces stay hidden until the result arrives. |
-| [Browser initialization](/docs/frameworks/next/client-side) | Pass `{}` with the hosted connection settings | The browser initializes consent after mount. No resolved consent prompt is included in the initial HTML. |
+The App Router guide passes the promise from a synchronous layout:
 
-Client Components can still be prerendered by Next.js. "Browser initialization"
-here describes where consent resolves, not whether the rest of the component
-produces HTML on the server. See the
-[client-side guide](/docs/frameworks/next/client-side) for the complete setup.
+```tsx
+const initialConsent = prefetchInitialConsent({ config: consentConfig });
 
-SSR and streaming both read the visitor's request. Passing a promise does not
-make a static export able to read request cookies or run a server handler.
-Pages Router `getServerSideProps` must await its result before serializing props.
+// In the existing layout, keeping its imports, children and consent UI:
+<ConsentBoundary config={initialConsent} consent={consentConfig}>
+  {children}
+  <ConsentBanner />
+  <ConsentDialog />
+  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+</ConsentBoundary>
+```
 
-## Preserve the server result
+Keep the shared config and both API routes from that guide. This form also
+works with `cacheComponents: true`. Request helpers still need a visitor request;
+passing a promise does not make this a static-export setup.
 
-`prefetchInitialConsent` restores records and resolves policy for the request.
-With `manifestURL`, it resolves the configured manifest. With only `backendURL`,
-it calls `${backendURL}/init`. It does not infer manifest routes from a backend
-URL. The [App Router guide](/docs/frameworks/next/app-router) shows the explicit
-manifest configuration.
+## Await consent inside Suspense
 
-This server wrapper illustrates resolved SSR with regular backend init. Use it
-inside your existing layout, pass the absolute backend endpoint, and import the
-consent stylesheet once as shown in your router guide:
+If the consent subtree should wait for resolution, move it into an async Server
+Component under `Suspense`. With `cacheComponents: true`, awaiting request data
+directly in the root layout without this boundary causes a build error.
 
-```tsx title="app/consent.tsx"
+This replaces the root layout from the App Router guide. Keep its shared
+`c15t.config.ts` and API routes:
+
+```tsx title="app/layout.tsx"
+import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import {
   ConsentBanner,
@@ -56,14 +72,14 @@ import {
   ConsentDialogLink,
 } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import 'c15t/next/styles.css';
 
-type ConsentProps = { children: ReactNode; backendURL: string };
-
-export async function Consent({ children, backendURL }: ConsentProps) {
-  const config = await prefetchInitialConsent({ backendURL });
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
 
   return (
-    <ConsentBoundary config={config} backendURL={backendURL}>
+    <ConsentBoundary config={initialConsent} consent={consentConfig}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
@@ -71,52 +87,52 @@ export async function Consent({ children, backendURL }: ConsentProps) {
     </ConsentBoundary>
   );
 }
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Suspense fallback={null}>
+          <ResolvedConsent>{children}</ResolvedConsent>
+        </Suspense>
+      </body>
+    </html>
+  );
+}
 ```
 
-For streaming, remove `async` from `Consent` and remove `await` from the helper
-call. Keep the returned promise in the `config` prop. The boundary handles it;
-you do not need a prefetch script in `<head>`. When the promise contains a
-resolved policy, the provider uses it without repeating initialization over
-the network. If it fails or contains only baseline records, browser
-initialization can still run.
+This example waits to render the children inside `ResolvedConsent`. The outer
+shell and fallback can stream first, so awaiting does not guarantee a resolved
+prompt in the first HTML response. Use the promise form when the page should
+render while consent is pending.
 
-For browser initialization, remove the server helper call and pass `config={{}}`
-to the same boundary. Keep `backendURL`, or the `consent` config that defines
-its transport. This path works without request prefetch, including prerendered
-pages. A full static export needs a reachable external backend or a proxy
-provided by its host.
+## Preserve the server result
 
-Forward prepared state intact. Do not turn allowed categories into new saved
-choices, change their confirmation times, or emit a choice event during
-hydration. Mount one consent owner; do not add this wrapper around a second
-provider.
+`prefetchInitialConsent` restores records and resolves policy for the request.
+With `manifestURL`, it resolves the configured manifest. With only `backendURL`,
+it calls `${backendURL}/init`. Changing when you await the helper does not change
+which fetching path it uses.
 
-## Distinguish the two request helpers
+Pass the result intact to `config` and keep the same shared URLs in `consent`.
+Do not turn allowed categories into new saved choices or emit a choice event
+during hydration. Keep one boundary mounted across navigation.
+
+A resolved policy can satisfy browser initialization without another request.
+If prefetch fails or returns only baseline records, the browser can retry.
+Until resolution succeeds, optional permissions remain denied and consent UI
+stays hidden. See [Troubleshooting](/docs/frameworks/next/troubleshooting).
 
 `readInitialConsentConfig()` only reads request cookies, location, language and
-privacy signals. It makes no backend request and does not resolve policy.
-Passing that baseline to the boundary preserves request context while the
-browser initializes consent. It cannot by itself render a resolved banner on
-the server.
-
-`prefetchInitialConsent()` starts with that baseline and adds resolved policy
-from `/init` or a manifest. Use it when server-rendered or streamed consent
-needs a policy decision.
-
-The removed v2 APIs were `C15tPrefetch` and `buildPrefetchScript`. Those started
-an early browser request through an injected script. `prefetchInitialConsent`
-is a current v3 server API with a different role.
+privacy signals. It makes no backend request and does not resolve policy. Use
+`prefetchInitialConsent()` when rendering needs the resolved policy.
 
 ## Cache policy data without sharing visitor state
 
-A manifest is cacheable policy configuration. Resolved init data and stored
-records belong to a visitor. Do not put personalized responses or HTML into a
-shared cache without appropriate isolation. Test more than one visitor and
-location.
+A manifest is public policy configuration. Resolved init data, stored records
+and personalized HTML belong to a visitor. Keep them out of shared caches unless
+you provide appropriate isolation. Test more than one visitor and location.
 
-See [Optimization](/docs/frameworks/next/optimization) for cache intervals,
-the [fetching reference](/docs/frameworks/next/api-reference/data-fetching) for
-location headers, and [Troubleshooting](/docs/frameworks/next/troubleshooting)
-for failed initialization. Keep the same policy
-source in prefetch and the browser boundary. Offline mode does not provide a
-backend record service. Not recommended for production environments.
+See [Optimization](/docs/frameworks/next/optimization) for cache settings and the
+[fetching reference](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
+for trusted location headers. Same-origin rewrites are optional and do not enable
+server rendering.

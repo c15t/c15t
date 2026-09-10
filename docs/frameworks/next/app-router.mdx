@@ -1,38 +1,33 @@
 ---
 title: App Router
-description: Resolve Next.js consent from a cached Inth manifest and hydrate the same state in the browser.
+description: Set up App Router with cached Inth manifests and stream the page while consent resolves.
 group: frameworks
 ---
 
-## Choose how to manage consent
+## Before you start
 
-We recommend [Inth](https://inth.com) for managed policy and consent records.
-This guide uses cached manifests for policy resolution. Consent submissions
-go to your backend. A [rewrite](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
-is an optional optimization when you want browser backend traffic on your origin.
+This guide uses [Inth](https://inth.com) with cached manifests. Your Next.js
+server reuses public policy data and resolves consent for each visitor. The
+browser sends consent submissions to Inth.
 
-| Mode | What you manage |
-| --- | --- |
-| Inth hosted | Configure policy and allowed app origins; Inth runs the backend and stores submissions. |
-| [Self-hosted](/docs/self-host/quickstart) | Run the c15t backend and database. Use the same hosted transport with your backend endpoint. |
-| [Offline](/docs/frameworks/next/api-reference/data-fetching#offline-configuration) | Bundle policy rules and keep choices in browser storage. No consent backend requests or backend records. Not recommended for production environments. |
+You can use a [self-hosted backend](/docs/self-host/quickstart) with the same
+configuration and your own endpoint. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
+uses bundled policy and browser storage without backend records. Not recommended
+for production environments.
 
-This setup requires a Next.js server. For `output: 'export'`, use
-[static export](/docs/frameworks/next/static-export), which can still connect to
-Inth directly from the browser.
+This setup needs a Next.js server. For `output: 'export'`, follow
+[static export](/docs/frameworks/next/static-export). For a smaller setup with no
+local API routes, use [client-side initialization](/docs/frameworks/next/client-side).
+Same-origin [rewrites](/docs/frameworks/next/optimization) are optional.
 
-## Choose when consent resolves
+Location-based policies need trusted location headers from your host. Without
+them, c15t uses your unknown-location rule. Check the supported
+[geography headers](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
+before deploying.
 
-| Rendering path | Setup | Initial consent UI |
-| --- | --- | --- |
-| Server-rendered consent | Await `prefetchInitialConsent` in the layout, as below | The server can render the resolved prompt |
-| Stream the page while consent resolves | Pass the prefetch promise without awaiting it | The page renders while the prompt waits for resolution |
-| [Browser initialization](/docs/frameworks/next/client-side) | Skip prefetch and pass `config={{}}` | The browser initializes through the configured init URL |
-
-All three can use the manifest routes below. Server prefetch reads request
-cookies and location headers, so the first two need a request context. Browser
-initialization can be used on prerendered pages when the deployment still serves
-the API routes. Use the static export guide when there is no Next.js server.
+The default layout starts resolution on the server and streams the page while
+consent is pending. You can also [wait for the result](/docs/frameworks/next/server-side#await-consent-inside-suspense)
+or initialize in the browser.
 
 ## Install c15t and configure your backend
 
@@ -89,7 +84,7 @@ do not proxy consent submissions; the browser sends those to `backendURL`.
 The paths below assume `app/` is at the project root. Adjust imports if you use
 `src/app/`.
 
-## Resolve consent in the root layout
+## Start consent resolution in the root layout
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
@@ -103,13 +98,13 @@ import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import 'c15t/next/styles.css';
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const config = await prefetchInitialConsent({ config: consentConfig });
+export default function RootLayout({ children }: { children: ReactNode }) {
+  const initialConsent = prefetchInitialConsent({ config: consentConfig });
 
   return (
     <html lang="en">
       <body>
-        <ConsentBoundary config={config} consent={consentConfig}>
+        <ConsentBoundary config={initialConsent} consent={consentConfig}>
           {children}
           <ConsentBanner />
           <ConsentDialog />
@@ -124,31 +119,36 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 ```
 
 The helper reads request cookies and geographic headers, then resolves policy
-from the manifest. Awaiting it lets the server render the resolved prompt. The
-boundary receives the same prepared state so the first client render agrees.
-The `config` prop is the prepared visitor state; `consent` is the shared URL
-configuration. They serve different purposes.
+from the manifest. Passing its promise lets the page stream while consent
+resolves. The consent UI stays hidden until resolution completes; it is not
+guaranteed to appear in the first HTML response.
 
-## Stream the page while consent resolves
+`config` receives the prepared visitor state or its promise. `consent` contains
+the shared URLs. Keep this layout synchronous, including when Next.js
+`cacheComponents` is enabled. Request helpers need a request context even though
+the layout passes a promise.
 
-In the layout above, remove `async` and remove `await` from the prefetch call.
-Pass the resulting promise to the same boundary:
+## Verify the manifest path
 
-```tsx
-const config = prefetchInitialConsent({ config: consentConfig });
+Inspect server requests and confirm that consent resolution reads the manifest
+instead of calling Inth `/init`. Warm requests should reuse policy data according
+to its cache headers. Consent choices should post to `${backendURL}/subjects`.
 
-// Inside the layout's existing body:
-<ConsentBoundary config={config} consent={consentConfig}>
-  {children}
-  <ConsentBanner />
-  <ConsentDialog />
-  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-</ConsentBoundary>
-```
+Test a new visitor, a returning rejection and two locations. Missing geographic
+headers must follow your unknown-location rule. See
+[fetching reference](/docs/frameworks/next/api-reference/data-fetching) for
+location headers and [Optimization](/docs/frameworks/next/optimization) for cache
+settings. If resolution fails, use
+[Troubleshooting](/docs/frameworks/next/troubleshooting), then run
+[the consent checks](/docs/guides/verify-consent).
 
-This partial example keeps the layout's imports and children. The prompt stays
-hidden until resolution completes. Request helpers still require a request
-context; streaming does not turn the layout into a static export.
+## Wait for consent before rendering its subtree
+
+To await the result, put the async consent component inside React `Suspense`,
+as shown in [server rendering](/docs/frameworks/next/server-side#await-consent-inside-suspense).
+With `cacheComponents: true`, awaiting request data directly in the root layout
+without that boundary causes a build error. The fallback can stream before the
+resolved consent subtree.
 
 ## Initialize in the browser
 
@@ -164,20 +164,6 @@ helpers in server files. For vendor callbacks, put a client wrapper around this
 boundary and pass `scripts` as a top-level prop, following
 [script loading](/docs/frameworks/next/script-loader). Do not mount a second
 provider or also load the vendor through `next/script`.
-
-## Verify the manifest path
-
-Inspect server requests and confirm that consent resolution reads the manifest
-instead of calling Inth `/init`. Warm requests should reuse policy data according
-to its cache headers. Consent choices should post to `${backendURL}/subjects`.
-
-Test a new visitor, a returning rejection and two locations. Missing geographic
-headers must follow your unknown-location rule. See
-[fetching reference](/docs/frameworks/next/api-reference/data-fetching) for
-location headers and [Optimization](/docs/frameworks/next/optimization) for cache
-settings. If resolution fails, use
-[Troubleshooting](/docs/frameworks/next/troubleshooting), then run
-[the consent checks](/docs/guides/verify-consent).
 
 ## Use regular backend initialization instead
 

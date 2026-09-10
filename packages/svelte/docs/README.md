@@ -10,6 +10,8 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Start here
 
+- [Svelte quickstart](./frameworks/svelte/quickstart.md)
+- [SvelteKit quickstart](./frameworks/sveltekit/quickstart.md)
 - [Customize your consent interface](./customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 - [Upgrade to v3 policies](./upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.

@@ -4,33 +4,29 @@ description: Use cached Inth manifests with getServerSideProps and browser initi
 group: frameworks
 ---
 
-## Choose how to manage consent
+## Before you start
 
-We recommend [Inth](https://inth.com) for managed policy and consent records.
-This guide uses cached manifests for policy resolution. Consent submissions
-go to your backend. A [rewrite](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
-is an optional optimization when you want browser backend traffic on your origin.
+This guide uses [Inth](https://inth.com) with cached manifests. Your Next.js
+server reuses public policy data and resolves consent for each visitor. The
+browser sends consent submissions to Inth.
 
-| Mode | What you manage |
-| --- | --- |
-| Inth hosted | Configure policy and allowed app origins; Inth runs the backend and stores submissions. |
-| [Self-hosted](/docs/self-host/quickstart) | Run the c15t backend and database. Use the same hosted transport with your backend endpoint. |
-| [Offline](/docs/frameworks/next/api-reference/data-fetching#offline-configuration) | Bundle policy rules and keep choices in browser storage. No consent backend requests or backend records. Not recommended for production environments. |
+You can use a [self-hosted backend](/docs/self-host/quickstart) with the same
+configuration and your own endpoint. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
+uses bundled policy and browser storage without backend records. Not recommended
+for production environments.
 
-This setup requires a Next.js server for the API routes, including
-when individual pages use static generation. For a deployment without that
-server, use [static export](/docs/frameworks/next/static-export).
+This setup needs a Next.js server. For `output: 'export'`, follow
+[static export](/docs/frameworks/next/static-export). For a smaller setup with no
+local API routes, use [client-side initialization](/docs/frameworks/next/client-side).
+Same-origin [rewrites](/docs/frameworks/next/optimization) are optional.
 
-## Choose when consent resolves
+Location-based policies need trusted location headers from your host. Without
+them, c15t uses your unknown-location rule. Check the supported
+[geography headers](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
+before deploying.
 
-| Rendering path | Setup | Initial consent UI |
-| --- | --- | --- |
-| Server-rendered page | Call `prefetchInitialConsent` in `getServerSideProps` | The server can render the resolved prompt |
-| [Browser initialization](/docs/frameworks/next/client-side) | Omit page prefetch; `_app.tsx` passes `config={{}}` | The browser initializes through the configured init URL |
-
-The same app boundary supports both paths. A statically generated page can use
-browser initialization as long as the deployment serves the API routes. Do not
-use `getStaticProps` to read a visitor's cookies or location.
+The setup below uses `getServerSideProps` for request-specific consent. Pages
+without prefetch initialize in the browser through the same app boundary.
 
 ## Install c15t and configure your backend
 
@@ -105,12 +101,12 @@ import { consentConfig } from '../c15t.config';
 import 'c15t/next/styles.css';
 
 type ConsentPageProps = {
-  consentConfig?: ConsentBoundaryProps['config'];
+  initialConsent?: ConsentBoundaryProps['config'];
 };
 
 export default function App({ Component, pageProps }: AppProps<ConsentPageProps>) {
   return (
-    <ConsentBoundary config={pageProps.consentConfig ?? {}} consent={consentConfig}>
+    <ConsentBoundary config={pageProps.initialConsent ?? {}} consent={consentConfig}>
       <Component {...pageProps} />
       <ConsentBanner />
       <ConsentDialog />
@@ -120,7 +116,8 @@ export default function App({ Component, pageProps }: AppProps<ConsentPageProps>
 }
 ```
 
-Without page prefetch, the boundary initializes through `/api/c15t/init` in
+`initialConsent` is the prepared visitor state; `consentConfig` contains the
+shared URLs. Without page prefetch, the boundary initializes through `/api/c15t/init` in
 the browser. That route resolves the cached manifest using the visitor request.
 Consent submissions go to `${backendURL}/subjects` on the configured backend.
 
@@ -135,11 +132,11 @@ import type { ConsentBoundaryProps } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/pages';
 import { consentConfig } from '../c15t.config';
 
-type PageProps = { consentConfig: ConsentBoundaryProps['config'] };
+type PageProps = { initialConsent: ConsentBoundaryProps['config'] };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
-  const prepared = await prefetchInitialConsent({ config: consentConfig, req });
-  return { props: { consentConfig: prepared } };
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig, req });
+  return { props: { initialConsent } };
 };
 
 export default function Home() {

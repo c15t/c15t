@@ -6,7 +6,7 @@ group: frameworks
 
 ## Usage
 
-Keep the rewrite and local handlers from your
+Keep the boundary and URL configuration from your
 [App Router setup](/docs/frameworks/next/app-router). Render one banner inside
 its existing consent boundary:
 
@@ -102,8 +102,8 @@ read the active policy inside the provider:
 ```tsx
 'use client';
 
-import { ConsentBanner, usePolicyRule } from 'c15t/react';
-import type { ConsentBannerProps } from 'c15t/react';
+import { ConsentBanner, usePolicyRule } from 'c15t/next';
+import type { ConsentBannerProps } from 'c15t/next';
 
 const banners: Record<
 	string,
@@ -126,7 +126,8 @@ export function RegionalBanner() {
 }
 ```
 
-Render `RegionalBanner` inside `ConsentProvider`. The layout controls the
+Render `RegionalBanner` inside your existing consent boundary, replacing its
+stock banner. The layout controls the
 action groups; the opt-out preferences button still appears on a notice.
 Required actions omitted from a layout are restored. Accept and Reject
 keep equivalent default prominence.
@@ -219,9 +220,13 @@ and `blocking`.
 
 Every part is available as `ConsentBanner.<Part>` for custom layouts. The
 parts read the same policy state the pre-built banner does, so a custom layout
-still gets the right actions for the active rule.
+still gets the right actions for the active rule. Render this Client Component
+inside the existing boundary, replacing its stock banner. Keep the dialog and
+persistent preferences control.
 
-```tsx
+```tsx title="components/compact-banner.tsx"
+'use client';
+
 import { ConsentBanner } from 'c15t/next';
 
 export function CompactBanner() {
