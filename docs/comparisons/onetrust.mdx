@@ -1,0 +1,42 @@
+---
+title: c15t vs OneTrust
+description: Compare OneTrust cookie scanning and consent operations with c15t v3 framework integration and managed or self-hosted records.
+group: reference
+---
+
+## Separate cookie operations from application integration
+
+Evaluate OneTrust when the team needs its cookie inventory, scanning and consent
+administration workflow. Evaluate c15t when engineering needs to integrate
+policy decisions, UI and vendor loading into the application, using Inth for
+managed policy and records.
+
+OneTrust's Cookie Consent product describes scheduled scanning, cookie
+inventories and a consent transaction database. It also describes scanning
+behind logins and triggering hidden pages. Include those operations in your evaluation if your team depends on them.
+[OneTrust Cookie Consent](https://www.onetrust.com/products/cookie-consent/)
+
+## Compare the actual project scope
+
+| Requirement | c15t v3 evaluation | OneTrust evaluation |
+| --- | --- | --- |
+| Consent-aware application behavior | Connect framework state to components and registered scripts | Verify the integration API and tag controls for the application |
+| Cookie discovery | Maintain an inventory and test the deployed vendor requests | Exercise scans against authenticated and dynamic routes |
+| Consent records | Test Inth submissions and retrieval requirements | Confirm transaction database access and retention requirements |
+| Operating model | Inth hosting or a database and backend you operate | Confirm the required product scope and support contract |
+
+The product page does not establish a like-for-like price. Compare a current
+quote against the Inth service and engineering work you actually need. Do not
+compare an entire privacy program purchase with the cost of a frontend package.
+
+## Test a route the scanner cannot discover by a simple crawl
+
+Use a signed-in page that loads an optional vendor after an interaction. Record
+whether your chosen inventory process discovers it, then test consent gating
+separately. Discovery and enforcement are different tasks. With c15t, ensure
+that this loader is registered or explicitly gated even if a scan has already
+identified it.
+
+Build the c15t test with [Inth](https://inth.com) and the [framework setup](/docs/frameworks). Include the inventory and operational services your team would still need alongside it.
+
+Sources reviewed on 10 September 2026.

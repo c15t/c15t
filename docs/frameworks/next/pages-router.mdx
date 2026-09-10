@@ -64,6 +64,10 @@ export const consentConfig = defineConsentConfig({
 
 ## Add the Pages API routes
 
+The local init route is optional. We include it so browser initialization can
+resolve the cached manifest with request geography, without calling the
+backend's `/init`. See [when to omit it](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
+
 The Pages Router adapter reads `C15T_BACKEND_URL`, falling back to the
 `NEXT_PUBLIC_C15T_BACKEND_URL` configured above. If you set both, use the same
 absolute backend endpoint.

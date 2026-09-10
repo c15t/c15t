@@ -1,0 +1,43 @@
+---
+title: c15t vs Silktide Consent Manager
+description: Compare Silktide Consent Manager with c15t v3 for browser deployment, consent signals, framework state and managed records.
+group: reference
+---
+
+## Decide whether browser configuration covers the task
+
+Evaluate Silktide Consent Manager when a configurable browser banner fits the
+site and you want to assess its free offering. Evaluate c15t when consent must
+also be consumed by framework components and vendor loaders, with managed
+policy and records through Inth.
+
+Silktide describes Consent Manager as free and open source, without domain or
+user limits, and documents Google Consent Mode v2 and translation support.
+These are claims for Consent Manager; do not extend them to every Silktide
+product or infer a managed record service from a free banner.
+[Silktide Consent Manager](https://silktide.com/consent-manager/)
+
+## Compare the requirements beyond price
+
+| Requirement | c15t v3 evaluation | Silktide evaluation |
+| --- | --- | --- |
+| Browser banner | Test the adapter's policy-aware prompt and preferences | Test the generated configuration and banner |
+| Application state | Connect hooks to conditional UI and loaders | Verify callbacks and state access needed by your application |
+| Consent records | Configure Inth and check backend submissions | Establish whether you need a separate record workflow |
+| Next.js rendering | Choose browser initialization or server resolution | Verify the desired first-render and navigation behavior |
+
+## Test Consent Mode separately from blocking
+
+Use the same analytics configuration in each test. Inspect the initial consent
+signals, the requests made before a decision, and updates after acceptance and
+rejection. Consent Mode support alone does not establish a zero-request result.
+The behavior also depends on the vendor configuration and its loading mode.
+
+For c15t, follow the specific [Google Tag guide](/docs/integrations/google-tag)
+or [GTM guide](/docs/integrations/google-tag-manager) and inspect the tags inside
+the container. Include returning visitors and preference changes in the test;
+a first-visit banner screenshot cannot establish those behaviors.
+
+Use [Inth](https://inth.com) and the [framework setup](/docs/frameworks) to try c15t, then compare the observed signals and vendor requests with your Silktide configuration.
+
+Sources reviewed on 10 September 2026.

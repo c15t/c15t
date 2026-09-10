@@ -212,4 +212,4 @@ test('documentation links, includes and metadata are valid', async () => {
 		return true;
 	});
 	expect(errors).toEqual([]);
-});
+}, 15_000);

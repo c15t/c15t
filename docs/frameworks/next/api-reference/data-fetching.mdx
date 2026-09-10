@@ -21,6 +21,36 @@ and declaring URLs does not create routes. Values can be absolute HTTP or
 HTTPS URLs or paths beginning with `/`. Server helpers resolve relative paths
 against the incoming request's host.
 
+### Why are the URLs separate?
+
+`backendURL` usually points to Inth, while the manifest and local init routes
+belong to your Next.js application. Appending `/manifest` to the Inth URL would
+select Inth's endpoint, not create or select your app's cached manifest route.
+Using `/api/c15t` as the backend prefix through an optional rewrite does not
+change the config defaults.
+
+The manifest **handler** does derive its upstream `/manifest` URL from its
+backend URL. That server-side default is separate from `defineConsentConfig`,
+which keeps the URLs you pass to it and does not choose a fetching mode for you.
+
+### Do I need the local init route?
+
+No. The router guides include it so browser initialization can resolve the
+cached manifest with the hosting platform's location headers. The local
+`/api/c15t/init` handler computes that result in your app; it does not forward
+the request to the backend's `/init` endpoint.
+
+A successful server prefetch already supplies the initial policy, so the
+browser does not need to repeat initialization. The local route is useful when
+initialization happens in the browser, including entry without prefetch or
+recovery after a failed prefetch.
+
+To resolve the manifest in the browser instead, omit `initURL` and remove the
+unused local init handler. Keep `manifestURL`. Browser resolution has no
+automatic access to your host's geographic headers; provide location through
+your application if needed, or accept the unknown-location policy. See
+[geography and privacy signals](#geography-and-privacy-signals).
+
 ### Transport combinations
 
 | Consent config | Server prefetch | Browser initialization |

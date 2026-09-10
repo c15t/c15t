@@ -352,8 +352,25 @@ export default defineDocsConfig({
 			title: 'Backend',
 		},
 		{
+			base: 'comparisons',
 			pages: [
-				'comparisons/index',
+				'index',
+				'cookiebot',
+				'cookieconsent-v3',
+				'didomi',
+				'iubenda',
+				'klaro',
+				'onetrust',
+				'osano',
+				'react-cookie-consent',
+				'silktide-consent-manager',
+				'tarteaucitron',
+				'usercentrics',
+			],
+			title: 'Comparisons',
+		},
+		{
+			pages: [
 				'comparison',
 				'contributing/index',
 				'oss/why-open-source',

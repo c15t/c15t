@@ -11,7 +11,7 @@ but do not replace a versioned v2 reference. For the remaining routes, retain
 access to the v2 documentation or write the missing v3 task before retiring it.
 The private host owns version routing, canonical URLs and redirect status codes.
 
-107 old public MDX paths need a publication decision.
+96 old public MDX paths need a publication decision.
 
 | Old route | Publication decision |
 | --- | --- |
@@ -22,17 +22,6 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/cli/commands/self-host` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/cli/commands/skills` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/cli/telemetry` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/cookiebot` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/cookieconsent-v3` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/didomi` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/iubenda` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/klaro` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/onetrust` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/osano` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/react-cookie-consent` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/silktide-consent-manager` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/tarteaucitron` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/comparisons/usercentrics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/contributing/docs-preview-action` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/contributing/documentation-setup` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/javascript/api/checking-consent` | Compare with `/docs/frameworks/javascript/api/overview` before redirecting |

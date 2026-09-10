@@ -1,0 +1,44 @@
+---
+title: c15t vs Klaro
+description: Compare Klaro service configuration and script attributes with c15t v3 framework adapters, Inth hosting and consent-aware loaders.
+group: reference
+---
+
+## Choose the integration style
+
+Evaluate Klaro when a JavaScript configuration and annotated HTML resources fit
+the site. Evaluate c15t when your framework components and vendor registration
+should use the same consent runtime, with Inth handling managed policy and
+records.
+
+Klaro's open-source setup asks you to configure third-party services and change
+script attributes so the browser does not execute or fetch them before consent.
+Its documentation also links to a hosted version. Do not assume that Klaro is
+only available as a self-managed script.
+[Klaro getting started](https://klaro.org/docs/getting-started)
+
+## Compare integration work
+
+| Decision | c15t v3 | Klaro documented setup |
+| --- | --- | --- |
+| Register optional code | Configure vendor scripts or explicit feature gates | Configure services and annotate the corresponding HTML resources |
+| Application state | Consume adapter hooks or the headless runtime | Evaluate the JavaScript API against application requirements |
+| Presentation | Use tokens, slots or custom markup | Use the provided styles or the version without bundled CSS |
+| Backend ownership | Start with Inth or operate the c15t backend | Choose the open-source setup or investigate the hosted offering |
+
+## Check scripts inserted after navigation
+
+A static HTML example does not cover every resource in a client-rendered app.
+Test one script present in the initial page and one introduced after navigation.
+Confirm the selected integration controls both before consent and after a
+rejection. For c15t, remove unconditional vendor loaders and register their
+replacements once under the persistent consent owner.
+
+Before budgeting a migration, list which Klaro service identifiers map to c15t
+categories and integrations. A service choice is not automatically equivalent
+to a category-wide recorded grant. Preserve that distinction when deciding
+whether records can be migrated or a new choice is needed.
+
+Try [Inth](https://inth.com) with the [framework setup](/docs/frameworks) and [vendor guides](/docs/integrations/overview). Use your existing Klaro service inventory to choose the first integration.
+
+Sources reviewed on 10 September 2026.

@@ -65,6 +65,11 @@ export const consentConfig = defineConsentConfig({
 
 ## Serve the manifest and local init routes
 
+The init route is optional. This guide includes it so browser initialization
+can resolve the cached manifest with request geography, without calling the
+backend's `/init`. A successful server prefetch supplies the initial policy
+directly. See [when to omit the init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
+
 Use the built-in handlers. They read the absolute upstream URL from
 `C15T_BACKEND_URL`, falling back to `NEXT_PUBLIC_C15T_BACKEND_URL` from the setup
 above. If you set both, point them at the same backend.
