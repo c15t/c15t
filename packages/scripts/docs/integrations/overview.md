@@ -29,12 +29,14 @@ behavior before choosing either approach.
 
 ## Embeds
 
-| Integration                     | v3 implementation           | Loading behavior                                          |
-| ------------------------------- | --------------------------- | --------------------------------------------------------- |
-| [Google Maps](./google-maps.md) | `Frame` with a map iframe   | Iframe mounts only while the chosen permission is allowed |
-| [YouTube](./youtube.md)         | `Frame` with a video iframe | Iframe mounts only while the chosen permission is allowed |
+| Integration                     | v3 implementation                             | Loading behavior                                          |
+| ------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| [Google Maps](./google-maps.md) | Framework-specific consent-gated map iframe   | Iframe mounts only while the chosen permission is allowed |
+| [YouTube](./youtube.md)         | Framework-specific consent-gated video iframe | Iframe mounts only while the chosen permission is allowed |
 
-Embeds use the framework's UI adapter and do not require `@c15t/scripts`.
+Both guides include all nine framework examples. React and Svelte use `Frame`;
+Vue conditionally renders the iframe, and Astro and JavaScript use the existing
+kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 
 ## Tag managers
 

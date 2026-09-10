@@ -1,18 +1,54 @@
 ---
 title: Pages Router
-description: Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
+description: Use cached Inth manifests with getServerSideProps and browser initialization in Next.js Pages Router.
 group: frameworks
 ---
 
-[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
-this guide. Configure the project's policy rules and allowed app origins first.
+## Install and configure Inth
 
-## Install and add global styles
+[Create an Inth project](/docs/guides/inth), configure policy rules and allow your
+app's origin. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to its exact absolute backend
+endpoint. This setup requires a Next.js server for the API routes, including
+when individual pages use static generation.
 
 <CommandTabs command="c15t" mode="install" />
 
-Import global styles in `pages/_app.tsx`. Add the consent boundary here so it
-stays mounted across client navigation.
+## Share the URLs and add API routes
+
+```ts title="consent.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+export const consentConfig = defineConsentConfig({
+  backendURL,
+  manifestURL: '/api/consent/manifest',
+  initURL: '/api/consent/init',
+});
+```
+
+Use the Pages Router handler adapter. It serves the same cached manifest and
+request-specific init contracts as the App Router handlers.
+
+```ts title="pages/api/consent/manifest.ts"
+import { createPagesApiHandlers } from 'c15t/next/pages';
+import { consentConfig } from '../../../consent.config';
+
+export default createPagesApiHandlers(consentConfig).manifest;
+```
+
+```ts title="pages/api/consent/init.ts"
+import { createPagesApiHandlers } from 'c15t/next/pages';
+import { consentConfig } from '../../../consent.config';
+
+export default createPagesApiHandlers(consentConfig).init;
+```
+
+These imports assume `pages/` is at the project root. Adjust them if you use
+`src/pages/`.
+
+## Keep one boundary in the app
 
 ```tsx title="pages/_app.tsx"
 import type { AppProps } from 'next/app';
@@ -23,21 +59,16 @@ import {
   ConsentDialogLink,
 } from 'c15t/next';
 import type { ConsentBoundaryProps } from 'c15t/next';
+import { consentConfig } from '../consent.config';
 import 'c15t/next/styles.css';
 
 type ConsentPageProps = {
   consentConfig?: ConsentBoundaryProps['config'];
 };
 
-export default function App({
-  Component,
-  pageProps,
-}: AppProps<ConsentPageProps>) {
-  const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-  if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-
+export default function App({ Component, pageProps }: AppProps<ConsentPageProps>) {
   return (
-    <ConsentBoundary config={pageProps.consentConfig ?? {}} backendURL={backendURL}>
+    <ConsentBoundary config={pageProps.consentConfig ?? {}} consent={consentConfig}>
       <Component {...pageProps} />
       <ConsentBanner />
       <ConsentDialog />
@@ -47,9 +78,9 @@ export default function App({
 }
 ```
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your backend's absolute base URL and allow
-the app origin on the backend. Without a page prefetch, this boundary initializes
-in the browser. That path also works for statically generated Pages Router pages.
+Without page prefetch, the boundary initializes through `/api/consent/init` in
+the browser. That route resolves the cached manifest using the visitor request.
+Consent submissions still go directly to the Inth backend.
 
 ## Prefetch for a server-rendered page
 
@@ -60,14 +91,13 @@ helper reads a different request context and must not be used here.
 import type { GetServerSideProps } from 'next';
 import type { ConsentBoundaryProps } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/pages';
+import { consentConfig } from '../consent.config';
 
 type PageProps = { consentConfig: ConsentBoundaryProps['config'] };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
-  const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-  if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-  const consentConfig = await prefetchInitialConsent({ backendURL, req });
-  return { props: { consentConfig } };
+  const prepared = await prefetchInitialConsent({ config: consentConfig, req });
+  return { props: { consentConfig: prepared } };
 };
 
 export default function Home() {
@@ -75,17 +105,19 @@ export default function Home() {
 }
 ```
 
-Repeat the prefetch on pages that need request-specific initial HTML. Do not
-use `getStaticProps` to resolve visitor cookies or geography: it runs without the
-visitor's request. Keep the backend and policy configuration consistent across
-pages sharing the boundary.
+Repeat prefetch on pages that need request-specific initial HTML. Do not use
+`getStaticProps` to resolve visitor cookies or geography: it runs without the
+visitor's request. Keep the shared URL configuration consistent across pages.
 
-## Verify both entry and navigation
+## Verify entry and navigation
 
-Load a server-rendered page directly, reject, and reload. Then navigate to
-another page without a full reload and reopen preferences. The mounted boundary
-should retain the current choice. Also test a direct visit to any static page;
-it follows browser initialization instead of request prefetch.
+Load a server-rendered page directly, reject, and reload. Then navigate without
+a full reload and reopen preferences. The mounted boundary should retain the
+choice. Also test direct entry to a statically generated page; it uses browser
+initialization through the local init route.
 
-For a site with no Next.js server, follow
-[static export](/docs/frameworks/next/static-export) and remove server-only setup.
+Confirm the server reads `/manifest` instead of the backend `/init` and choices
+still reach Inth `/subjects`. See
+[data fetching](/docs/frameworks/next/data-fetching) for caching and transport
+alternatives. For a deployment with no Next.js server, use
+[static export](/docs/frameworks/next/static-export) and remove local API routes.

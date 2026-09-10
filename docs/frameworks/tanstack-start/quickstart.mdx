@@ -68,7 +68,7 @@ function Root() {
     <html lang="en">
       <head><HeadContent /></head>
       <body>
-        <ConsentBoundary config={config} backendURL={backendURL}>
+        <ConsentBoundary config={config} backendURL={backendURL} initRoute={false}>
           <Outlet />
           <ConsentBanner />
           <ConsentDialog />
@@ -84,14 +84,17 @@ function Root() {
 Merge the loader and head entries if the root route already has them. Keep
 `consentLoaderOptions` so consent loading follows the adapter's cache and reload
 settings. The server prepares the configuration; the boundary uses it for the
-first client render.
+first client render. `initRoute={false}` sends browser initialization to
+`${backendURL}/init`, matching this direct-backend setup.
 
 ## Add a same-origin proxy when needed
 
 If browser traffic should use `/api/c15t`, mount a real Start server route using
 `createConsentServerRoute` from `c15t/tanstack-start/api` with `proxy: true`.
 Give `createConsentConfigHandler` the upstream backend URL and the boundary the
-browser route URL. Do not make prefetch call its own proxy unnecessarily.
+browser route URL. Remove `initRoute={false}` to use the default
+`/api/c15t/init` route, or set `initRoute` to your custom route URL. Do not make
+prefetch call its own proxy unnecessarily.
 
 Only enable `trustForwardedHeaders` when your deployment overwrites and
 sanitizes those headers. Otherwise a caller can supply a false visitor IP.

@@ -4,37 +4,76 @@ description: Register vendor scripts once and let effective permissions control 
 group: frameworks
 ---
 
-## Register scripts on the provider
+## Add scripts to your existing boundary
 
-Install `@c15t/scripts` for vendor helpers. This React-compatible client component
-uses Inth as the backend. Set the URL to the endpoint supplied by your Inth
-project and keep the component mounted around your application.
+Keep the manifest setup from the [App Router](/docs/frameworks/next/app-router)
+or [Pages Router](/docs/frameworks/next/pages-router) guide. Put vendor callbacks
+in a client wrapper and pass `scripts` as a top-level boundary prop. Keep the
+shared `consentConfig`; passing only `backendURL` would switch initialization
+back to the backend `/init` path.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
 
 ```tsx title="components/consent.tsx"
 'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentProvider, ConsentBanner, ConsentDialog, ConsentDialogLink, hosted } from 'c15t/next';
+import {
+  ConsentBoundary,
+  ConsentBanner,
+  ConsentDialog,
+  ConsentDialogLink,
+} from 'c15t/next';
+import type { ConsentBoundaryProps } from 'c15t/next';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { consentConfig } from '../consent.config';
 
-const mode = hosted({ url: 'https://your-project.inth.app' });
 const scripts = [metaPixel({ pixelId: '123456789012345' })];
 
-export function Consent({ children }: { children: ReactNode }) {
+export function Consent({
+  children,
+  config,
+}: {
+  children: ReactNode;
+  config: ConsentBoundaryProps['config'];
+}) {
   return (
-    <ConsentProvider options={{ mode, scripts }}>
+    <ConsentBoundary config={config} consent={consentConfig} scripts={scripts}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
       <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentProvider>
+    </ConsentBoundary>
   );
 }
 ```
 
-Import your adapter's stylesheet globally, as in the framework quickstart. For
-an existing server-prefetched `ConsentBoundary`, keep that boundary and pass
-`scripts` as a top-level prop instead of mounting a second provider.
+Replace the pixel ID with your own. In the App Router layout, pass the prepared
+config to this wrapper:
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { Consent } from '../components/consent';
+import { consentConfig } from '../consent.config';
+import 'c15t/next/styles.css';
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const config = await prefetchInitialConsent({ config: consentConfig });
+  return (
+    <html lang="en">
+      <body><Consent config={config}>{children}</Consent></body>
+    </html>
+  );
+}
+```
+
+For Pages Router, use this wrapper in `_app.tsx` with
+`config={pageProps.consentConfig ?? {}}` and keep the Pages Router prefetch and
+API routes. For static export or offline mode, preserve that setup's existing
+transport instead of introducing server routes. A `ConsentProvider` receives
+`scripts` inside `options`; `ConsentBoundary` receives it as a top-level prop.
+Do not mount both providers around the same application.
 
 ## Understand loading and revocation
 

@@ -69,11 +69,54 @@ resolves, optional permissions remain denied and the consent UI stays hidden.
 Do not insert an unconditional analytics script into the exported HTML to work
 around that pending state.
 
-If you need no backend, configure `offline({ policyRules })` through a client
-`ConsentProvider`, as described in [deployment modes](/docs/guides/deployment-modes).
-A manifest is another way to resolve policy locally, but saved records and
-geography still need an explicit design. Never bake one build machine's location
-or cookies into a shared static page.
+## Use an external manifest when you need client resolution
+
+Regular Inth `/init` is the simpler hosted path for static export. If you want
+the browser to resolve a manifest instead, change the existing client boundary
+to use a consent config. Set `NEXT_PUBLIC_C15T_MANIFEST_URL` to a reachable
+absolute manifest endpoint and keep the same backend URL for saves.
+
+This is a partial change to `app/consent.tsx`:
+
+```tsx
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+const manifestURL = process.env.NEXT_PUBLIC_C15T_MANIFEST_URL;
+if (!backendURL || !manifestURL) throw new Error('Set the public consent URLs');
+
+const consentConfig = defineConsentConfig({ backendURL, manifestURL });
+
+// Keep the existing children, banner, dialog and preferences link.
+<ConsentBoundary config={{}} consent={consentConfig}>
+  {children}
+</ConsentBoundary>
+```
+
+Do not set `initURL` to a local Next.js API route in an export. The browser
+loads the manifest resolver lazily and resolves unknown geography unless your
+application supplies location through a separate design. It cannot read a
+server's geographic request headers. Ensure the manifest and record endpoints
+allow requests from the exported site's origin.
+
+For build-time policy snapshots, `c15t/next/static` exports
+`loadStaticManifest`, `createStaticManifestModule` and
+`createStaticConsentResolver`. A generated manifest contains public policy,
+not a visitor's resolved choice. `createStaticConsentResolver` returns a
+synchronous `initial` result and a `resolved` promise that can use `geo` or a
+`geoURL`. These helpers do not mount a provider, persist choices or configure
+consent writes for you. Plan that wiring and policy refresh before choosing a
+build-time snapshot; publishing new policy may require a rebuild.
+
+Never bake a build machine's location or cookies into a shared static page.
+Unknown geography does not make every regional rule applicable.
+
+## Use offline mode for local-only records
+
+If the site deliberately needs no consent backend, use the explicit
+[offline boundary example](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
+It resolves bundled rules and stores choices in the browser. Static hosting
+alone is not a reason to give up Inth policy management and consent records.
 
 ## Test the exported files
 

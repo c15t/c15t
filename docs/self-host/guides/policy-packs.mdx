@@ -1,0 +1,143 @@
+---
+title: Policy configuration
+description: Author and validate the policy rules published by a self-hosted backend manifest.
+group: self-host
+---
+
+## Choose where policy is managed
+
+For [Inth](/docs/guides/inth), manage the project's policy in the hosted service.
+Importing presets into a browser using `hosted()` does not change that policy.
+The examples on this page configure a self-hosted backend. Offline clients use
+their own `offline({ policyRules })` configuration instead.
+
+For an explanation of how an existing Next.js app follows a policy, read
+[policy presets](/docs/frameworks/next/concepts/policy-presets). A framework
+component does not need a database configuration to consume hosted policy.
+
+## Configure `manifest.policyRules`
+
+```ts title="c15t-backend.config.ts"
+import {
+  defineConfig,
+  inspectPolicyRules,
+  policyRulePresets,
+} from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+
+const policyRules = [
+  policyRulePresets.europeOptIn(),
+  policyRulePresets.quebecOptIn(),
+  policyRulePresets.usPrivacyStatesOptOut(),
+  policyRulePresets.worldOptOutNoPrompt(),
+];
+
+const { errors } = inspectPolicyRules(policyRules);
+if (errors.length) throw new Error(errors.join('\n'));
+
+export default defineConfig({
+  database: { dialect: 'postgres', url },
+  trustedOrigins: ['https://app.example.com'],
+  manifest: { policyRules },
+});
+```
+
+This example deliberately chooses opt-out behavior for unmatched known locations.
+Review whether that behavior fits your processing before adopting it. Presets
+encode consent behavior and geographic matches. They do not decide which laws
+apply to your business or establish a legal basis for a vendor's processing.
+
+The authored input is `policyRules`. The generated `/manifest` contains
+`policyPacks`; passing that generated field back as configuration is unsupported
+and yields `policyFailure`.
+
+## Understand rule selection
+
+A known region match takes precedence over a country match. Array order resolves
+ties at the same specificity. A rule with `match.isDefault` handles unmatched
+locations. A fallback handles missing inputs; do not assume the default handles
+every missing-country or missing-region case.
+
+The Europe preset includes an unknown-location fallback. For custom packs with
+subdivision rules, define the intended missing-region behavior. If no country
+rule, region fallback or global fallback can resolve a missing subdivision,
+resolution can fail with `insufficient-inputs`.
+
+```ts title="consent-policies.ts"
+import { policyMatchers, policyRulePresets } from '@c15t/backend';
+
+const us = policyRulePresets.usPrivacyStatesOptOut();
+export const usWithMissingState = {
+  ...us,
+  match: policyMatchers.merge(us.match, policyMatchers.regionFallback(['US'])),
+};
+```
+
+This partial policy adds a fallback for a known US country with a missing state.
+It does not expand coverage for known states. Put the resulting rule in your
+`manifest.policyRules` array.
+
+## Choose the consent behavior
+
+| Model | Initial optional permissions | UI and rights |
+| --- | --- | --- |
+| `opt-in` | Wait for a recorded choice. | A choice prompt can request permission. |
+| `opt-out` | In-scope processing may start under the rule, subject to privacy signals. | The rule defines notice, opt-out and preference rights. |
+| `none` | In-scope categories are allowed by policy. | No consent UI appears unless rights are explicitly configured. |
+| `iab` | Follow the IAB policy and client add-on. | Requires matching IAB configuration. |
+
+Effective permission is not an explicit consent receipt. A no-banner rule does
+not prove the user accepted anything. Keep any preference controls required by
+the selected rule available after the initial page view.
+
+## Available presets
+
+All presets return ordinary policy rule objects. Review their categories,
+prompt, rights and matchers in your editor or with `inspectPolicyRules()` before
+publishing changes. Prefer opt-in variants when an opt-out preset's processing
+assumptions do not fit your application.
+
+| Preset family | Configuration choices |
+| --- | --- |
+| Europe | `europeOptIn()`, `europeIab()` |
+| US privacy states | `usPrivacyStatesOptIn()`, `usPrivacyStatesOptOut()` |
+| California | `californiaOptIn()`, `californiaOptOut()` |
+| Québec | `quebecOptIn()` |
+| Canada outside Québec | `canadaOptIn()`, `canadaOptOut()` |
+| Australia | `australiaOptIn()`, `australiaOptOut()` |
+| Japan | `japanOptIn()`, `japanOptOut()` |
+| Switzerland | `switzerlandOptIn()`, `switzerlandOptOutNoPrompt()` |
+| Restricted statistics profiles | `ukStatistics()`, `malaysiaStatistics()` |
+| Other regional opt-in | Singapore, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Brunei, Laos, China, South Korea, India, Brazil, Turkey and more in `policyRulePresets`. |
+| Global defaults | `worldNone()`, `worldOptOutNoPrompt()` |
+
+Statistics profiles are scoped configurations, not permission to run arbitrary
+analytics or marketing vendors. Inspect their allowed categories and required
+rights. Do not substitute them for a full consent configuration based only on a
+vendor calling its product analytics.
+
+## Compose custom rules
+
+`policyBuilder.create()` accepts canonical rule fields with flat `countries`,
+`regions`, `isDefault` and `fallback` match inputs. `createPack()` preserves the
+supplied order. `createPackWithDefault()` appends the explicit default you supply
+if none exists. `composePacks()` preserves order and keeps the first occurrence
+of each rule ID.
+
+These helpers do not make invalid inputs valid. Validate the final composed
+array with `inspectPolicyRules()`. For IAB rules, pass `{ iabEnabled: true }` to
+the inspector and configure [IAB support](/docs/self-host/guides/iab-tcf).
+
+## Publish and verify a policy change
+
+Inspect `/manifest` after deployment. Its revision should change when the
+configuration changes. Allow for [manifest cache windows](/docs/self-host/guides/caching)
+or purge the old revision. Check `/init` for each supported region, an unknown
+country and a missing subdivision. Confirm the expected model, prompt and rights.
+
+Invalid rules create a `policyFailure` and a failed resolution, even when the
+HTTP response succeeds. Verify the browser's effective permissions, visible
+controls and saved receipts after the change. Do not rely only on a banner
+screenshot to establish policy behavior.

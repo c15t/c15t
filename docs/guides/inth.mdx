@@ -26,6 +26,12 @@ The `hosted({ url })` transport connects to Inth. Framework adapters may expose
 this through `backendURL` instead, as in Next.js, Vue and Nuxt. Follow the
 adapter's example rather than mixing configuration shapes.
 
+For Next.js with a server, use the recommended
+[manifest setup](/docs/frameworks/next/data-fetching). It shares public policy
+data while resolving each visitor's consent state separately. Inth still
+stores consent records. See [data fetching](/docs/guides/data-fetching) for
+manifest resolution, regular `/init` requests and custom transports.
+
 ## Static sites can use Inth too
 
 A static deployment initializes consent in the browser against Inth. It does

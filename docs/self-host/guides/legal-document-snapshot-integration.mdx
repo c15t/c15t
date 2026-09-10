@@ -1,0 +1,79 @@
+---
+title: Legal-document snapshots
+description: Publish legal-document versions and sign evidence of the exact document shown by your application.
+group: self-host
+---
+
+## Publish the current release
+
+The backend can store the current version and content hash of a legal document.
+Synchronize the release from trusted server or deployment code with a configured
+API key:
+
+```bash
+curl -X PUT 'http://localhost:3000/api/c15t/legal-documents/terms_and_conditions/current' \
+  -H "Authorization: Bearer $C15T_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"version":"3.0","hash":"YOUR_DOCUMENT_CONTENT_HASH","effectiveDate":"2026-09-10T00:00:00.000Z"}'
+```
+
+Compute the hash from the exact published document using your application's
+chosen content-hashing convention. Keep the same type, version, hash and
+effective date when rendering and recording acceptance. A conflicting release
+identity returns an error instead of silently changing the existing record.
+
+## Sign a document snapshot
+
+The package exports signing and verification helpers. Call them explicitly from
+your server application. Merely setting `legalDocumentSnapshot` on the backend
+does not add an HTTP endpoint that issues or consumes these tokens.
+
+```ts title="src/legal-document-snapshot.ts"
+import {
+  createLegalDocumentSnapshotToken,
+  verifyLegalDocumentSnapshotToken,
+} from '@c15t/backend';
+
+const signingKey = process.env.LEGAL_DOCUMENT_SIGNING_KEY;
+if (!signingKey) throw new Error('Set LEGAL_DOCUMENT_SIGNING_KEY');
+const options = { signingKey, ttlSeconds: 86400 };
+
+export async function signTermsSnapshot() {
+  return createLegalDocumentSnapshotToken(
+    {
+      type: 'terms_and_conditions',
+      version: '3.0',
+      hash: 'YOUR_DOCUMENT_CONTENT_HASH',
+      effectiveDate: '2026-09-10T00:00:00.000Z',
+      tenantId: 'your-tenant',
+    },
+    options,
+  );
+}
+
+export async function verifyTermsSnapshot(token: string) {
+  return verifyLegalDocumentSnapshotToken(token, options, 'your-tenant');
+}
+```
+
+Supply release metadata from your trusted document store, rather than accepting
+it unverified from a browser. Return the signed token alongside the displayed
+document. When the user submits acceptance, verify it on the server, check the
+expected document identity and record the accepted document through your
+application's consent flow. A valid signature does not establish a user action
+or authorize an identity by itself.
+
+## Handle verification failures
+
+Without a signing key, creation returns `undefined`. Verification returns either
+`{ valid: true, payload }` or `{ valid: false, reason }`. A missing token or key
+uses `reason: 'missing'`; signature, expiry and audience failures use `invalid`.
+Do not record verified-document evidence after either failure.
+
+The default issuer is `c15t`. The default audience is scoped by `tenantId`, and
+the default lifetime is one day. Use the same trusted tenant during signing and
+verification. These helpers use HS256 and need a server-only signing secret.
+
+Legal-document snapshots describe a version and hash. `/init` policy snapshot
+tokens describe the policy decision for a visitor. They use separate settings,
+audiences and lifetimes; do not interchange the tokens.

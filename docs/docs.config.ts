@@ -24,7 +24,7 @@ export default defineDocsConfig({
 		},
 		{
 			slug: 'self-host',
-			title: 'Self-hosting',
+			title: 'Backend',
 		},
 		{
 			slug: 'reference',
@@ -79,6 +79,7 @@ export default defineDocsConfig({
 			base: 'guides',
 			pages: [
 				'deployment-modes',
+				'data-fetching',
 				'consent-state',
 				'verify-consent',
 				'troubleshooting',
@@ -127,6 +128,7 @@ export default defineDocsConfig({
 					],
 					pages: [
 						'quickstart',
+						'data-fetching',
 						'app-router',
 						'pages-router',
 						'static-export',
@@ -134,6 +136,12 @@ export default defineDocsConfig({
 					],
 					slug: 'next',
 					title: 'Next.js',
+				},
+				{
+					base: 'tanstack-start',
+					pages: ['quickstart'],
+					slug: 'tanstack-start',
+					title: 'TanStack Start',
 				},
 				{
 					base: 'react',
@@ -177,16 +185,22 @@ export default defineDocsConfig({
 					title: 'React',
 				},
 				{
+					base: 'nuxt',
+					pages: ['quickstart'],
+					slug: 'nuxt',
+					title: 'Nuxt',
+				},
+				{
 					base: 'vue',
 					pages: ['quickstart'],
 					slug: 'vue',
 					title: 'Vue',
 				},
 				{
-					base: 'nuxt',
+					base: 'astro',
 					pages: ['quickstart'],
-					slug: 'nuxt',
-					title: 'Nuxt',
+					slug: 'astro',
+					title: 'Astro',
 				},
 				{
 					base: 'svelte',
@@ -199,18 +213,6 @@ export default defineDocsConfig({
 					pages: ['quickstart'],
 					slug: 'sveltekit',
 					title: 'SvelteKit',
-				},
-				{
-					base: 'astro',
-					pages: ['quickstart'],
-					slug: 'astro',
-					title: 'Astro',
-				},
-				{
-					base: 'tanstack-start',
-					pages: ['quickstart'],
-					slug: 'tanstack-start',
-					title: 'TanStack Start',
 				},
 				{
 					base: 'javascript',
@@ -324,13 +326,28 @@ export default defineDocsConfig({
 		},
 		{
 			base: 'self-host',
-			pages: [
-				'quickstart',
-				'guides/database-setup',
-				'api/configuration',
-				'api/endpoints',
+			children: [
+				{
+					pages: [
+						'guides/database-setup',
+						'guides/framework-integration',
+						'guides/policy-packs',
+						'guides/caching',
+						'guides/edge-deployment',
+						'guides/iab-tcf',
+						'guides/legal-document-snapshot-integration',
+						'guides/observability',
+					],
+					title: 'Guides',
+				},
+				{
+					pages: ['api/configuration', 'api/endpoints'],
+					title: 'API',
+				},
 			],
-			title: 'Self-hosting',
+			pages: ['overview', 'quickstart'],
+			slug: 'self-host',
+			title: 'Backend',
 		},
 		{
 			pages: [

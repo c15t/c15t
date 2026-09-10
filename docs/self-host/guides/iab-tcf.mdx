@@ -1,0 +1,61 @@
+---
+title: IAB backend configuration
+description: Publish IAB policy configuration and serve a cached Global Vendor List from a self-hosted c15t backend.
+group: self-host
+---
+
+## Configure an IAB policy
+
+IAB support needs both an IAB policy in the manifest and the client IAB add-on.
+The server options alone do not install a TCF UI or generate a TC String in the
+browser.
+
+```ts title="c15t-backend.config.ts"
+import { defineConfig, policyRulePresets } from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+
+export default defineConfig({
+  database: { dialect: 'postgres', url },
+  trustedOrigins: ['https://app.example.com'],
+  manifest: {
+    policyRules: [policyRulePresets.europeIab()],
+    iab: { enabled: true },
+  },
+  gvl: { enabled: true },
+});
+```
+
+Set your actual registered `cmpId` in `manifest.iab` where your deployment
+requires it. Do not copy a placeholder CMP identity into a production setup.
+Review the policy's location coverage and add other reviewed regional rules as
+needed.
+
+## Understand the two GVL paths
+
+`manifest.iab` publishes IAB metadata and a GVL endpoint reference for clients
+resolving a manifest locally. `gvl` configures the backend's own list loading
+when `/init` resolves a matched IAB policy. Enabling one does not configure the
+other's endpoint or cache automatically.
+
+Both endpoint defaults are `https://gvl.inth.app`. If you operate a different
+compatible endpoint, set `manifest.iab.endpoint` for manifest consumers and
+`gvl.endpoint` for server initialization. The backend fetches the language's
+primary subtag, for example `/de.json` for `de-DE`.
+
+Use a [cache adapter](/docs/self-host/guides/caching) to reuse fetched lists.
+`gvl.ttlMs` defaults to one day. A failed upstream fetch or invalid document
+produces a null GVL instead of failing the entire initialization request.
+Verify how the client handles that state before deployment.
+
+## Verify both initialization paths
+
+Inspect `/manifest` for IAB metadata and the selected rule. Call `/init` with a
+location covered by that rule and confirm the policy model is `iab`. When
+server-side GVL loading is enabled, confirm the list is available too. Test a
+location outside the IAB rule so that the ordinary consent flow still works.
+
+Connect the browser using the [IAB add-on guide](/docs/frameworks/react/iab/overview). Keep a
+persistent way to revisit vendor and purpose choices. A preset and a served GVL
+are technical configuration, not proof that an application satisfies TCF rules.

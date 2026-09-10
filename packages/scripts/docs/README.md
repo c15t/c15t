@@ -28,7 +28,8 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 ## Guides
 
 - [Understand consent state](./guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
-- [Choose a deployment mode](./guides/deployment-modes.md): Choose backend ownership and request or browser initialization independently.
+- [Data fetching and transports](./guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
+- [Choose a deployment mode](./guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
 - [Quickstart](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Troubleshoot consent](./guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
@@ -80,7 +81,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Umami Analytics](./integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [X Pixel](./integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
-- [YouTube](./integrations/youtube.md): Keep a YouTube iframe unmounted until permission with the v3 Frame component.
+- [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
 
 ## Reference
 

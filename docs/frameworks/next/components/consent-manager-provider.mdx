@@ -4,13 +4,42 @@ description: Configure the v3 consent runtime and share its state with child com
 group: frameworks
 ---
 
-## Mount one provider
+## Start with ConsentBoundary in Next.js
 
-```tsx
+Use `ConsentBoundary` for the recommended
+[manifest setup](/docs/frameworks/next/data-fetching). It wraps `ConsentProvider`
+and selects the transport from your shared `consentConfig`.
+
+| Boundary prop | Purpose |
+| --- | --- |
+| `config` | The prepared visitor state returned by `prefetchInitialConsent`, or `{}` for browser initialization |
+| `consent` | The `defineConsentConfig` value containing `backendURL`, `manifestURL` and `initURL` |
+| `scripts` | Top-level consent-managed script configurations |
+| `options` | Additional provider options, including an explicit `mode` override |
+
+Follow [App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) for full files. Keep the boundary
+mounted across navigation and import the stylesheet once at the app root.
+
+Use `ConsentProvider` directly when you need to own the transport configuration.
+This client wrapper deliberately uses regular backend `/init`. It is an
+alternative to the manifest boundary, not another provider to mount inside it:
+
+```tsx title="components/consent.tsx"
+'use client';
+
 import type { ReactNode } from 'react';
-import { ConsentProvider, ConsentBanner, ConsentDialog, ConsentDialogLink, hosted } from 'c15t/next';
+import {
+  ConsentProvider,
+  ConsentBanner,
+  ConsentDialog,
+  ConsentDialogLink,
+  hosted,
+} from 'c15t/next';
 
-const mode = hosted({ url: 'https://your-project.inth.app' });
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+const mode = hosted({ url: backendURL });
 
 export function Consent({ children }: { children: ReactNode }) {
   return (
@@ -24,9 +53,8 @@ export function Consent({ children }: { children: ReactNode }) {
 }
 ```
 
-Replace the URL with your Inth project endpoint. Import the adapter stylesheet
-once at the app root. In Next.js this component needs a client boundary; prefer
-the framework's `ConsentBoundary` when passing server-prefetched configuration.
+Set the public URL to your Inth project endpoint. For local-only records, use
+[offline mode](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
 
 ## Provider responsibilities
 

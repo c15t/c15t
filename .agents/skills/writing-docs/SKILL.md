@@ -62,6 +62,14 @@ Astro currently require their dedicated packages. Never invent an umbrella
 subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 
+Separate backend ownership, policy fetching and consent-record transport.
+For Next.js server deployments, lead with the shared manifest configuration
+and app init route, then explain regular backend `/init` and browser resolution
+as alternatives. Cache public manifests, never visitor-specific resolved state.
+Document browser-only mode by its current API and explain what "offline" means.
+Keep backend configuration and policy authoring in `docs/self-host/`; framework
+policy pages should explain the state and controls the application consumes.
+
 ## Demonstrate customization
 
 Pick the API according to the change:
@@ -107,7 +115,14 @@ Every exported vendor helper needs a discoverable guide. Preserve old vendor
 routes during rewrites and compare against the existing integration inventory.
 Vendor guides need configuration, registration, options, actual loading and
 revocation behavior, and verification. Reuse the shared registration include for
-React, Next.js and JavaScript tabs; keep adapter-specific differences explicit.
+all supported frameworks; keep adapter-specific differences explicit.
+Shared integration and embed tabs must match the framework selector order:
+Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, JavaScript.
+Keep `docs/docs.config.ts` and the framework index in that order too. Give each
+framework its own usable example, including server/browser ownership and
+cleanup where needed. Do not send Nuxt readers to a plain Vue snippet or
+TanStack Start readers to a generic React provider. Check that all tabs survive
+Markdown conversion so agents receive the same framework coverage.
 Do not infer a zero-request guarantee from a category or cookieless branding.
 Check `alwaysLoad`, consent callbacks and persistence after revocation in source.
 Preserve useful existing URLs. When a page moves, configure a redirect in the docs host and update internal

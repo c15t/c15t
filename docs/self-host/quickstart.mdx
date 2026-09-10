@@ -13,6 +13,8 @@ hosted transport, pointed at your service.
 
 ## Configure the backend
 
+<CommandTabs command="@c15t/backend" mode="install" />
+
 Install `@c15t/backend` and the SQL driver matching your backend release. For the
 SQLite recipe, use `@effect/sql-sqlite-node` at the version declared by the
 backend's peer dependencies.
@@ -55,6 +57,7 @@ export const runtime = 'nodejs';
 const instance = c15tInstance({ ...config, basePath: '/api/c15t' });
 export const GET = (request: Request) => instance.handler(request);
 export const POST = GET;
+export const PUT = GET;
 export const PATCH = GET;
 export const OPTIONS = GET;
 ```
@@ -66,3 +69,7 @@ finishes. A different framework can pass its web `Request` to the same handler.
 Set the client's backend URL to the mounted service. Request prefetch requires
 an absolute URL. Test origins, initialization, a saved choice and subsequent
 retrieval before routing production traffic to the backend.
+
+Continue with [configuration](/docs/self-host/api/configuration),
+[HTTP endpoints](/docs/self-host/api/endpoints) and
+[policy configuration](/docs/self-host/guides/policy-packs).

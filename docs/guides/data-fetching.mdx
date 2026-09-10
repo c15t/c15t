@@ -1,0 +1,141 @@
+---
+title: Data fetching and transports
+description: Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
+group: guides
+---
+
+## Start with Inth and a cached manifest
+
+Use Inth for managed policy and consent records. For a Next.js application with
+a server, use a cached manifest to resolve policy in your application and keep
+consent submissions going to Inth. Follow the
+[Next.js manifest setup](/docs/frameworks/next/data-fetching).
+
+Backend ownership and data fetching are separate decisions. A manifest works
+with Inth or a self-hosted c15t backend. A static site can still call Inth. Only
+`offline()` deliberately removes consent backend requests.
+
+| Fetching path | Where policy resolves | Where choices are submitted | Choose it when |
+| --- | --- | --- | --- |
+| Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Your host has a runtime server and you want to reuse policy data across requests |
+| Regular backend `/init` | The consent backend | The same backend | You want the fewest moving parts, need backend-owned request resolution, or have no application server |
+| Manifest in the browser | The browser, using supplied or unknown location | Inth or your c15t backend | You deliberately want client resolution and have planned geography, bundle size and policy refresh |
+| Offline | The browser or local runtime, using bundled rules | No backend submission | Demos, tests or an application that deliberately needs only local records |
+| Custom transport | Your implementation | Your implementation | An existing service cannot use the c15t backend protocol |
+
+## What is a consent manifest?
+
+A manifest is a versioned policy document served by `GET /manifest`. It contains
+policy rules, translation configuration and related consent configuration. It
+is public configuration, not a visitor's saved choices. A resolver combines the
+manifest with country, region, language and privacy signals to produce an init
+result for one visitor.
+
+Reusing the public document avoids asking the consent backend to resolve policy
+for every application request. Cache misses and revalidation still fetch the
+manifest, and consent writes still need the backend. Measure the deployed
+request path before promising a latency improvement.
+
+Do not put secrets, visitor identifiers or consent records into a manifest.
+Keep personalized init responses out of shared caches. Changing a policy also
+requires a refresh strategy for cached or build-time manifests.
+
+## What does regular `/init` do?
+
+`hosted({ url })` uses `${url}/init` for initialization and `${url}/subjects` for
+consent submissions. The name `hosted` describes the transport protocol; the URL
+can belong to Inth or your own c15t backend.
+
+```ts title="src/consent-mode.ts"
+import { hosted } from 'c15t';
+
+export function createConsentMode(backendURL: string) {
+  return hosted({ url: backendURL });
+}
+```
+
+Pass the factory to your adapter's `mode` option. For request rendering, use the
+adapter's server helper and forward its prepared result to the browser. For
+static output, initialize in the browser with a reachable external URL.
+
+A regular backend `/init` request lets the backend resolve the visitor context.
+A same-origin URL named `/api/consent/init` can instead resolve from a cached
+manifest in your application. The URL name alone does not tell you which path
+runs.
+
+## How do transports and proxies differ?
+
+A transport implements initialization, saving and optional record operations.
+A proxy changes where HTTP requests travel. It does not change the policy
+resolver or make personalized responses safe to cache.
+
+For a custom same-origin init route that resolves a manifest, the hosted
+transport can separate reads and writes:
+
+```ts title="src/consent-mode.ts"
+import { hosted } from 'c15t';
+
+export function createConsentMode(backendURL: string) {
+  return hosted({
+    url: backendURL,
+    initURL: '/api/consent/init',
+    assertDecisionInputs: true,
+  });
+}
+```
+
+The route must return the c15t init response contract. `assertDecisionInputs`
+binds saves to the resolved policy when init did not return a signed policy
+snapshot token. The backend can then reject a stale policy decision. Next.js
+sets this option for you when `ConsentBoundary` receives a consent config with
+`initURL`.
+
+The init route does not proxy consent writes. Either allow the browser origin
+at the backend, or configure an actual proxy for the backend URL, including the
+record endpoints. A static export cannot serve a Next.js route or rewrite at
+runtime.
+
+## When should I use offline mode?
+
+`offline()` resolves bundled policy rules without an init request and acknowledges
+saves locally. The runtime's persistence module stores the choice in browser
+storage. There is no backend audit history, cross-device record service or IP
+geolocation supplied by this transport.
+
+Use your adapter's offline factory so its translations and provider context are
+included. This React and Next.js example replaces the hosted mode in an existing
+client provider:
+
+```ts title="src/consent-mode.ts"
+import { offline } from 'c15t/react';
+
+export const mode = offline();
+```
+
+With no `policyRules`, the current offline transport uses the recommended rule
+pack. Supplying `policyRules` replaces that pack. Unknown country and region are
+real resolution inputs; offline mode does not discover a visitor's location.
+Use [policy rules](/docs/frameworks/next/concepts/policy-presets) to understand
+matching and defaults, and test the missing-location case.
+
+Offline mode is an explicit architecture choice, not an automatic fallback for
+a failed Inth request. If hosted initialization fails before a policy resolves,
+optional permissions remain denied and the stock prompt stays hidden. Observe
+initialization failures instead of silently changing policy sources.
+
+## Can I provide my own transport?
+
+`custom(transport)` accepts a `KernelTransport` with the v3 `init` and `save`
+contract. It does not accept v2 endpoint handlers such as `setConsent`. Keep
+policy resolution, record acknowledgments and failure behavior consistent with
+the kernel contract. Prefer a built-in transport when your backend supports it.
+
+## Verify the selected path
+
+Inspect browser and server requests separately. A server manifest fetch will
+not appear in the browser's Network panel. On a warm manifest path, check that
+page requests do not call the backend `/init`, a visitor's choice still posts to
+`/subjects`, and policy changes become visible after the configured refresh.
+
+Test different locations, missing location headers, GPC, returning choices and
+backend failure. See [verification](/docs/guides/verify-consent).

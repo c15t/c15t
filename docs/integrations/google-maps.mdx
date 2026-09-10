@@ -4,33 +4,22 @@ description: Prevent a map iframe from mounting before the required permission.
 group: integrations
 ---
 
-## Put the iframe inside Frame
+## Configure the map
 
-This React example uses `Frame` inside an existing consent provider. A Next.js
-Client Component can import the same component from `c15t/next`.
+Copy the map's iframe embed URL. Choose the category matching its use in your
+application; this example uses functionality permission.
 
-```tsx
-import { Frame } from 'c15t/react';
-
-export function Map({ embedURL }: { embedURL: string }) {
-  return (
-    <Frame category="functionality">
-      <iframe
-        src={embedURL}
-        title="Map showing our office location"
-        width="600"
-        height="450"
-        loading="lazy"
-        style={{ border: 0, width: '100%' }}
-      />
-    </Frame>
-  );
-}
+```ts title="src/embed-config.ts"
+export const embedCategory = 'functionality' as const;
+export const embedURL = 'https://www.google.com/maps/embed?pb=YOUR_EMBED_PARAMETERS';
+export const embedTitle = 'Map showing our office location';
+export const embedAspectRatio = '4 / 3';
 ```
 
-Supply the map's embed URL and choose the category that matches its use in your
-application. `Frame` does not mount children until permission allows them.
-`loading="lazy"` alone is a performance hint and does not provide consent gating.
+Replace the example URL with the complete embed URL for your map. Keep the
+address and a directions link outside the consent-gated embed.
+
+<include src="../shared/integrations/consent-embed.mdx" />
 
 ## Verify before and after permission
 

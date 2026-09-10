@@ -54,13 +54,13 @@ test('framework quickstarts resolve inside the host framework group', async () =
 	);
 	expect(frameworks?.children.map((group) => group.slug)).toEqual([
 		'next',
+		'tanstack-start',
 		'react',
-		'vue',
 		'nuxt',
+		'vue',
+		'astro',
 		'svelte',
 		'sveltekit',
-		'astro',
-		'tanstack-start',
 		'javascript',
 	]);
 	for (const framework of frameworks?.children ?? []) {
@@ -131,6 +131,62 @@ test('vendor registration tabs survive package Markdown conversion', async () =>
 	expect(markdown).toContain("loadMode: 'after-consent'");
 	expect(markdown).toContain("'always'");
 	expect(markdown).not.toMatch(/<(?:include|Tabs|Tab|CommandTabs)\b/u);
+});
+
+test('backend guides are discoverable in navigation', async () => {
+	const navigation = await resolveDocsNavigation({
+		groups: docsConfig.groups,
+		nav: docsConfig.navigation,
+		srcDir: resolve(docsRoot, '..'),
+	});
+	const backend = navigation.groups.find((group) => group.slug === 'self-host');
+	const files = await fg('self-host/**/*.mdx', { cwd: docsRoot });
+	const pages = [
+		...(backend?.pages ?? []),
+		...(backend?.children.flatMap((group) => group.pages) ?? []),
+	];
+	expect(pages.map((page) => page.urlPath).sort()).toEqual(
+		files.map((file) => `/docs/${file.slice(0, -4)}`).sort()
+	);
+});
+
+test('shared framework tabs match the selector and survive Markdown conversion', async () => {
+	const navigation = await resolveDocsNavigation({
+		groups: docsConfig.groups,
+		nav: docsConfig.navigation,
+		srcDir: resolve(docsRoot, '..'),
+	});
+	const frameworks = navigation.groups.find(
+		(group) => group.slug === 'frameworks'
+	);
+	const expected = frameworks?.children.map((group) => group.title);
+	await Promise.all(
+		['register-scripts', 'consent-embed'].map(async (file) => {
+			const filename = resolve(docsRoot, `shared/integrations/${file}.mdx`);
+			const content = readFileSync(filename, 'utf8');
+			const tabs = [
+				...content.matchAll(
+					/<Tab value="(?<framework>[^"]+)">(?<body>[\s\S]*?)<\/Tab>/gu
+				),
+			];
+			expect(tabs.map((tab) => tab.groups?.framework)).toEqual(expected);
+			const { markdown } = await convertMdxToMarkdown(filename, [
+				remarkInclude,
+				...defaultRemarkPlugins,
+			]);
+			const positions = tabs.map((tab) =>
+				markdown.indexOf(`**${tab.groups?.framework}**`)
+			);
+			expect(positions.every((position) => position >= 0)).toBe(true);
+			expect(positions).toEqual(
+				[...positions].sort((left, right) => left - right)
+			);
+			for (const tab of tabs) {
+				expect(tab.groups?.body).toContain('```');
+			}
+			expect(markdown).not.toMatch(/<(?:include|Tabs|Tab)\b/u);
+		})
+	);
 });
 
 test('documentation links, includes and metadata are valid', async () => {

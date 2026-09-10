@@ -35,16 +35,66 @@ The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
 initializer. Add it to your existing consent owner using the registration point
 below. These are partial edits to that owner, not additional providers.
 
-**React**
+**Next.js**
 
-Import `scripts` into your existing provider component:
+Import the configuration into the client boundary from your router guide:
 
 ```ts
+import { ConsentBoundary } from 'c15t/next';
 import { scripts } from './consent-scripts';
 ```
 
-Keep the existing options and add `scripts` to `ConsentProvider` from
-`c15t/react`:
+Keep the server-prefetched configuration and shared `consentConfig` from
+your router guide. Its manifest, init and save URLs stay in effect. Add
+`scripts` as a top-level prop on the existing boundary:
+
+```tsx
+<ConsentBoundary config={config} consent={consentConfig} scripts={scripts}>
+  {children}
+</ConsentBoundary>
+```
+
+For a Pages Router or static-export setup using `ConsentProvider`, add
+`scripts` to its existing `options` instead. Keep the router-specific setup
+from [Next.js script loading](../frameworks/next/script-loader.md).
+
+**TanStack Start**
+
+In your existing root route component, import the scripts alongside the
+boundary. Keep the server loader from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart).
+
+```tsx
+import { Outlet } from '@tanstack/react-router';
+import { ConsentBoundary } from 'c15t/tanstack-start';
+import { scripts } from '../consent-scripts';
+
+function Root() {
+  const config = Route.useLoaderData();
+  return (
+    <ConsentBoundary config={config} backendURL={backendURL} initRoute={false} scripts={scripts}>
+      <Outlet />
+      {/* Keep your consent banner, dialog and preferences link here. */}
+    </ConsentBoundary>
+  );
+}
+```
+
+This edits the existing route. `Route` and `backendURL` come from its setup;
+keep the document shell and head components if they are part of your root.
+`initRoute={false}` keeps the quickstart's direct-backend initialization.
+If your app mounts a consent server route, retain its existing `initRoute`
+instead. Do not return script callbacks from a server function or route loader.
+
+**React**
+
+Import the scripts into your existing provider component:
+
+```ts
+import { ConsentProvider } from 'c15t/react';
+import { scripts } from './consent-scripts';
+```
+
+Keep the existing options and add `scripts`:
 
 ```tsx
 <ConsentProvider options={{ ...consentOptions, scripts }}>
@@ -56,27 +106,148 @@ Here `consentOptions` is your existing configuration, including
 `mode: hosted({ url: backendURL })`. Keep the banner, dialog and preferences
 link inside the provider. See [React script loading](../frameworks/react/script-loader.md).
 
-**Next.js**
+**Nuxt**
 
-Import `scripts` into the client boundary from your router guide:
+Attach one loader from the root `app.vue`, after the Nuxt module has
+started its browser runtime. This keeps vendor callbacks in application code rather
+than serialized `nuxt.config.ts` runtime configuration.
+
+```vue title="app/app.vue"
+<script setup lang="ts">
+import { onUnmounted } from 'vue';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { scripts } from '../src/consent-scripts';
+
+const nuxtApp = useNuxtApp();
+const kernel = useConsentKernel();
+let loader: ReturnType<typeof createScriptLoader> | undefined;
+
+const removeMountedHook = nuxtApp.hook('app:mounted', () => {
+  loader = createScriptLoader({ kernel, scripts });
+});
+onUnmounted(() => {
+  removeMountedHook();
+  loader?.dispose();
+});
+</script>
+
+<template>
+  <ConsentRoot />
+  <NuxtPage />
+</template>
+```
+
+Merge the setup code into your root and retain its footer and preferences
+link. `useConsentKernel` is auto-imported by the c15t Nuxt module. Adjust the
+relative script import if your `app.vue` is at the project root. This loader
+waits until the module has applied browser persistence and privacy signals,
+then reads the current snapshot and observes future changes. Do not also register these scripts
+in another loader. See the [Nuxt quickstart](https://c15t.com/docs/frameworks/nuxt/quickstart).
+
+**Vue**
+
+Use the kernel already provided by the Vue plugin. Merge this setup into
+`App.vue`, whose lifetime covers the application:
+
+```vue title="src/App.vue"
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { useConsentKernel } from 'c15t/vue/vue-plugin';
+import ConsentRoot from 'c15t/vue/consent-root';
+import { scripts } from './consent-scripts';
+
+const kernel = useConsentKernel();
+let loader: ReturnType<typeof createScriptLoader> | undefined;
+
+onMounted(() => {
+  loader = createScriptLoader({ kernel, scripts });
+});
+onUnmounted(() => loader?.dispose());
+</script>
+
+<template>
+  <ConsentRoot />
+  <main>Your application</main>
+</template>
+```
+
+Keep your existing page content and preferences link. The plugin still owns
+the kernel and persistence; this component owns only the vendor loader.
+Do not register the same scripts in plugin configuration as well. See the
+[Vue quickstart](https://c15t.com/docs/frameworks/vue/quickstart).
+
+**Astro**
+
+Point the existing Astro integration at a client module. Keep its `mode`,
+`ui` and framework integration from the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart).
+Add this option to the existing `c15t({ ... })` call:
 
 ```ts
+clientEntrypoint: './src/c15t.client.ts'
+```
+
+Export the scripts from that module:
+
+```ts title="src/c15t.client.ts"
+import type { C15tClientOptionsExtension } from '@c15t/astro';
 import { scripts } from './consent-scripts';
+
+export default { scripts } satisfies C15tClientOptionsExtension;
 ```
 
-A server-prefetched `ConsentBoundary` from `c15t/next` takes `scripts` as a
-top-level prop. Keep its existing props, server wrapper and children.
+The integration passes this extension to its shared browser runtime. Vendor
+helpers contain callbacks, so do not put them in the serialized `scripts`
+option in `astro.config.mjs`. Keep one runtime across consent islands and
+`ClientRouter` navigation.
 
-```tsx
-<ConsentBoundary config={config} backendURL={backendURL} scripts={scripts}>
-  {children}
-</ConsentBoundary>
+**Svelte**
+
+Import the scripts in the component that owns your existing provider and
+pass them as a top-level prop:
+
+```svelte title="src/App.svelte"
+<script lang="ts">
+  import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+  import { scripts } from './consent-scripts';
+
+  const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+  const mode = hosted({ url: backendURL });
+</script>
+
+<ConsentManagerProvider {mode} {scripts}>
+  <!-- Keep your application, consent UI and preferences link here. -->
+</ConsentManagerProvider>
 ```
 
-If your Pages Router or static-export setup uses `ConsentProvider` instead,
-put `scripts` in its `options`, as in the React tab. Do not replace that
-setup with a request-time route on a static host. See
-[Next.js script loading](../frameworks/next/script-loader.md).
+Retain the styles and consent UI from the [Svelte quickstart](https://c15t.com/docs/frameworks/svelte/quickstart).
+The provider owns the loader and disposes it on unmount.
+
+**SvelteKit**
+
+Add the scripts to the existing root layout provider. Keep the server load
+and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart).
+
+```svelte title="src/routes/+layout.svelte"
+<script lang="ts">
+  import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+  import { scripts } from '../consent-scripts';
+
+  let { children, data } = $props();
+  const mode = hosted({ url: data.backendURL });
+</script>
+
+<ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
+  {@render children()}
+  <!-- Keep your consent UI and preferences link here. -->
+</ConsentManagerProvider>
+```
+
+Import vendor helpers in the layout component, not in `+layout.server.ts`.
+For static hosting, keep your browser-only `mode` setup and omit request
+prefetch; the `scripts` prop stays the same. If you pass an externally owned
+`runtime` to the provider, register scripts when creating that runtime instead.
 
 **JavaScript**
 
@@ -94,16 +265,6 @@ Call `loader.dispose()` when that application instance is destroyed.
 `kernel` is the hosted kernel from your quickstart. A provider-owned kernel
 already has a loader; do not attach a second one. See
 [JavaScript script loading](../frameworks/javascript/script-loader.md).
-
-For other adapters, use the registration location appropriate to that framework:
-
-| Adapter                                                                                                                             | Registration location                                                                                                                                |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Vue](https://c15t.com/docs/frameworks/vue/quickstart)                                                                              | Browser plugin configuration used by the existing consent runtime.                                                                                   |
-| [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart)                                                                            | `app.config.ts` under `c15t.scripts`. Keep helper callbacks out of serialized runtime config.                                                        |
-| [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart) and [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) | The existing `ConsentManagerProvider`'s `scripts` prop, or the shared runtime's options when it owns the provider.                                   |
-| [Astro](https://c15t.com/docs/frameworks/astro/quickstart)                                                                          | Export `{ scripts }` from the module selected by `clientEntrypoint`. Helpers contain callbacks that cannot be serialized through `astro.config.mjs`. |
-| [TanStack Start](https://c15t.com/docs/frameworks/tanstack-start/quickstart)                                                        | The existing `ConsentBoundary`'s top-level `scripts` prop, keeping its loader-prefetched configuration.                                              |
 
 ## Verify identity and lifecycle
 

@@ -1,63 +1,25 @@
 ---
 title: YouTube
-description: Keep a YouTube iframe unmounted until permission with the v3 Frame component.
+description: Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
 group: integrations
 ---
 
-## Put the player behind Frame
+## Configure the video
 
-Complete the [React quickstart](/docs/frameworks/react/quickstart) or your
-[Next.js router setup](/docs/frameworks/next/quickstart) first. Render this
-component inside that consent provider. The current v3 packages export `Frame`,
-not the v2 `YouTubeEmbed` convenience component.
+Use the ID of an embeddable video and the category matching its purpose in your
+policy. The current v3 adapters use consent-gated iframes rather than the v2
+`YouTubeEmbed` convenience component.
 
-<Tabs items={['React', 'Next.js']}>
-  <Tab value="React">
-    ```tsx title="src/product-video.tsx"
-    import { Frame } from 'c15t/react';
+```ts title="src/embed-config.ts"
+export const embedCategory = 'marketing' as const;
+export const embedURL = 'https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1';
+export const embedTitle = 'Product walkthrough';
+export const embedAspectRatio = '16 / 9';
+```
 
-    export function ProductVideo() {
-      return (
-        <Frame category="marketing" style={{ aspectRatio: '16 / 9', minHeight: 200 }}>
-          <iframe
-            src="https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1"
-            title="Product walkthrough"
-            loading="lazy"
-            allowFullScreen
-            style={{ width: '100%', height: '100%', minHeight: 200, border: 0 }}
-          />
-        </Frame>
-      );
-    }
-    ```
-  </Tab>
+Replace `VIDEO_ID` before running the example.
 
-  <Tab value="Next.js">
-    ```tsx title="src/components/product-video.tsx"
-    'use client';
-
-    import { Frame } from 'c15t/next';
-
-    export function ProductVideo() {
-      return (
-        <Frame category="marketing" style={{ aspectRatio: '16 / 9', minHeight: 200 }}>
-          <iframe
-            src="https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1"
-            title="Product walkthrough"
-            loading="lazy"
-            allowFullScreen
-            style={{ width: '100%', height: '100%', minHeight: 200, border: 0 }}
-          />
-        </Frame>
-      );
-    }
-    ```
-  </Tab>
-</Tabs>
-
-Replace `VIDEO_ID` with the ID of an embeddable video. Choose the category that
-matches the video's purpose and your configured policy. Keep a transcript or
-summary outside the frame so the content is useful when the player is blocked.
+<include src="../shared/integrations/consent-embed.mdx" />
 
 ## Customize the player and placeholder
 
@@ -66,18 +28,15 @@ Set playback options in the iframe URL. For example, append `start=36` to begin
 [YouTube player parameters](https://developers.google.com/youtube/player_parameters)
 and reserve at least a 200-by-200-pixel player area.
 
-`Frame` provides a blocked-state placeholder and consent action. Set its
-`placeholder` prop for custom content; keep a clear way to reopen preferences.
-Style the `Frame` wrapper and iframe separately. `loading="lazy"` delays an
+React and Svelte `Frame` components provide a blocked-state placeholder and
+consent action. Their `placeholder` APIs differ: React takes a node, Svelte
+takes a snippet. Keep a clear way to reopen preferences when customizing them.
+The Vue and browser examples show that action explicitly. `loading="lazy"` delays an
 allowed iframe for performance; it does not implement consent gating.
-
-For Vue, Svelte or another adapter, use that framework's conditional rendering
-and current consent API to keep the iframe entirely absent while permission
-is denied. Do not copy React's `Frame` import into another framework.
 
 ## Consent behavior
 
-Before the category is allowed, `Frame` does not mount its children. After
+Each example keeps the iframe absent until the category is allowed. After
 permission, the iframe can load. Revoking permission removes the iframe and its
 embedded document. Requests already sent cannot be recalled.
 

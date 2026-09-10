@@ -45,3 +45,51 @@ Old adapter import paths are not interchangeable with v3 SQL configuration.
 Inspect the installed backend and migration tooling before upgrading an existing
 store. Do not treat a successful process start as proof that writes and receipt
 reads work; test both.
+
+## Run migrations from a deployment script
+
+`createMigrator()` owns a connection pool. Plan before applying, stop when
+`blocked` is set, and dispose the pool when the script finishes:
+
+```ts title="scripts/migrate-consent.ts"
+import { createMigrator } from '@c15t/backend';
+import config from '../c15t-backend.config';
+
+const migrator = createMigrator(config.database);
+try {
+  const plan = await migrator.plan();
+  if (plan.blocked !== undefined) throw new Error(plan.blocked);
+  console.log(plan);
+  const result = await migrator.apply();
+  if (result.blocked !== undefined) throw new Error(result.blocked);
+  console.log(result);
+} finally {
+  await migrator.dispose();
+}
+```
+
+This script applies the reported migration immediately after planning. Run it as
+an intentional deployment step after reviewing a plan against a restored copy
+of an existing database. The CLI provides an interactive review instead.
+
+`plan()` is read-only. Reports include `adoption`, `pending`, `retained`,
+`blocked` and `applied`. Adoption recognizes supported older SQL schemas before
+applying numbered migrations. A blocked report is a refusal to migrate an
+unrecognized or unsafe state, not permission to delete the ledger and retry.
+The package's `c15t_migrations` ledger tracks applied migrations.
+
+MySQL DDL is not transactional, so migration steps use checkpoints rather than
+relying on rolling back the whole batch. Keep backups and inspect a failed run
+before retrying. PostgreSQL schema creation belongs to migration; the runtime
+and migration configuration must name the same schema.
+
+## Upgrade an existing backend
+
+Replace old `adapter` configuration with `database`. v2 ORM adapter imports for
+Drizzle, Prisma, TypeORM and Kysely are no longer public backend entry points.
+You can retain a supported SQL database and connect through the v3 SQL driver.
+MongoDB has no supported automatic migration path to this SQL backend.
+
+After migration, verify a consent write, a subject read and an authenticated
+external-identity lookup using the upgraded service. A successful `/status` or
+`/manifest` request does not exercise database persistence.

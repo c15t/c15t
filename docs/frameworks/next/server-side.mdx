@@ -18,7 +18,9 @@ Follow [App Router](/docs/frameworks/next/app-router),
 
 ## Preserve the server result
 
-`prefetchInitialConsent` prepares the policy and records for a request. Forward
+With the recommended `manifestURL` config, `prefetchInitialConsent` resolves
+policy locally from the cached manifest and restores records for a request. With
+only `backendURL`, it calls the backend `/init`. Forward
 its result to `ConsentBoundary` without deriving new saved choices from allowed
 categories. Keep server and browser backend configuration consistent.
 
@@ -32,3 +34,8 @@ A manifest is cacheable policy configuration. Resolved init data and stored
 records belong to a visitor. Do not put personalized responses or HTML into a
 shared cache without an appropriate isolation design. Test request behavior
 under more than one visitor and location.
+
+The [data-fetching guide](/docs/frameworks/next/data-fetching) explains the
+manifest/init routes, default cache interval, required location headers and
+client retry behavior. Use the same `consentConfig` for prefetch and the
+boundary so server and browser choose the same policy source.

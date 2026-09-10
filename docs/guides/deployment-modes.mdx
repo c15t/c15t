@@ -1,61 +1,61 @@
 ---
 title: Choose a deployment mode
-description: Choose backend ownership and request or browser initialization independently.
+description: Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
 group: guides
 ---
 
-## Choose who manages policy and records
+## Use Inth for managed policy and records
 
-| Mode | Policy resolution | Record storage | Use when |
+Start with [Inth](/docs/guides/inth) unless you need to operate the consent
+service yourself or deliberately need only local browser records. Configure
+policy rules and trusted origins in the project, then use its exact backend
+endpoint in your framework setup.
+
+| Backend ownership | Policy source | Record storage | Use when |
 | --- | --- | --- | --- |
-| Hosted backend | Backend init or a published manifest | Browser records plus backend submissions | You want centrally managed policy and records |
-| Self-hosted backend | Your c15t backend or its manifest | Browser records plus your database | You operate the consent service |
-| Browser-only | Local `policyRules` | Browser persistence | You deliberately do not need backend submissions |
+| Inth hosted service | Centrally managed policy through a manifest or `/init` | Browser records plus backend submissions | You want managed policy and consent records |
+| Self-hosted c15t | Your backend's manifest or `/init` | Browser records plus your database | You need to operate the service and its infrastructure |
+| Browser-only offline mode | Bundled `policyRules` | Browser persistence | You deliberately do not need backend submissions |
 
-Hosted and self-hosted use the same client transport factory, `hosted({ url })`.
-Browser-only uses `offline({ policyRules })`. Frameworks have different
-configuration entry points; use [your framework guide](/docs/frameworks)
-for the exact provider or module setup.
+Hosted and self-hosted c15t use the same transport protocol. Switching who runs
+the backend does not require switching from manifests to `/init`.
 
-```ts
-import { hosted, offline } from 'c15t';
-import { policyRulePresets } from '@c15t/schema';
+## Choose data fetching separately
 
-const backendMode = hosted({ url: 'https://consent.example.com' });
-const localMode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
-```
+For Next.js deployments with a runtime server, use the
+[manifest setup](/docs/frameworks/next/data-fetching). It reuses public policy data
+in your application while consent writes still go to Inth. Regular backend
+`/init` is available when you want backend-owned request resolution or a simpler
+browser setup. See [data fetching and transports](/docs/guides/data-fetching) for
+the comparison, including custom transports and offline mode.
 
-These are alternative factories, not two modes to mount together. Replace the
-backend URL with your service. Local policy configuration does not give you
-backend audit history or geographic detection by itself.
-
-## Choose when consent initializes
+## Match initialization to your application output
 
 | Application output | Initial state | Required setup |
 | --- | --- | --- |
-| Request SSR | Prepared for this request | Adapter request helper, matching client configuration |
-| Static HTML or SPA | Resolved in the browser | Reachable external URLs or local rules |
-| Manifest resolution | Policy evaluated from a manifest | Correct manifest URL, location inputs and save destination |
+| Request SSR | Prepared for this visitor | Adapter request helper and matching client configuration |
+| Static HTML or SPA | Resolved in the browser | Reachable external URLs or deliberately bundled local rules |
 
 Request SSR can include the visitor's prompt in the initial HTML. Pass the
 prepared records and policy resolution through to hydration. Do not convert
 effective permissions into new stored choices.
 
-Static HTML is shared across visitors. It cannot contain a policy resolved from
-each visitor's cookies or geography. Initialize in the browser instead. A
-same-origin `/api/c15t` URL only works if something actually serves that route.
-A development server is not evidence that a static deployment has one.
+Static HTML is shared across visitors. It cannot contain a choice resolved from
+each visitor's cookies or geography at build time. A static site can still use
+Inth through browser requests. A same-origin `/api/c15t` URL only works if a
+service actually serves it; a Next.js static export does not run API routes.
 
-A consent manifest contains policy data that can be cached. A visitor's resolved
-init response also contains visitor-specific inputs. Do not cache the two as if
-they were interchangeable, or share personalized consent HTML across users.
+A manifest contains reusable public policy data. A resolved init response and
+personalized consent HTML belong to a request. Do not give them the same shared
+cache treatment.
 
-## Decide what failure should look like
+## Handle initialization and storage failures
 
-While no policy resolves, optional permissions stay denied and stock consent UI
-stays hidden. No banner can therefore mean pending or failed initialization,
-not permission to load everything. Observe errors and resolution state before
-changing presentation.
+While no policy resolves, optional permissions stay denied and the stock
+consent UI stays hidden. No banner can mean pending or failed initialization.
+It does not mean permission to load analytics. Observe errors before changing
+presentation, and do not silently switch to offline policy after a hosted
+request fails.
 
 Browser storage can also be unavailable. A working in-memory interaction does
 not prove the choice survives reload. Use

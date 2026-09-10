@@ -1,7 +1,7 @@
 # V2 routes absent from the v3 tree
 
 Inventory from `origin/main`, 10 September 2026. Shared include files are excluded.
-These routes remain absent after restoring the v3 integration guides; this file
+These routes remain absent after restoring the v3 integration and backend guides; this file
 does not configure redirects. Existing routes retained by the rewrite are not listed.
 
 Do not redirect all missing topics to the homepage or a generic overview. For
@@ -11,7 +11,7 @@ but do not replace a versioned v2 reference. For the remaining routes, retain
 access to the v2 documentation or write the missing v3 task before retiring it.
 The private host owns version routing, canonical URLs and redirect status codes.
 
-114 old public MDX paths need a publication decision.
+108 old public MDX paths need a publication decision.
 
 | Old route | Publication decision |
 | --- | --- |
@@ -123,9 +123,3 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/styling/slots` | Compare with `/docs/customization/slots` before redirecting |
 | `/docs/frameworks/react/styling/tailwind` | Compare with `/docs/customization/tokens` before redirecting |
 | `/docs/frameworks/react/styling/tokens` | Compare with `/docs/customization/tokens` before redirecting |
-| `/docs/self-host/guides/caching` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/self-host/guides/edge-deployment` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/self-host/guides/framework-integration` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/self-host/guides/iab-tcf` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/self-host/guides/observability` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/self-host/guides/policy-packs` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |

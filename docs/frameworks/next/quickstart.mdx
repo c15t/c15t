@@ -1,16 +1,23 @@
 ---
 title: Quickstart
-description: Choose App Router, Pages Router or static export before adding c15t to Next.js.
+description: Set up Next.js with Inth and cached manifests, with separate App Router, Pages Router and static export guides.
 group: frameworks
 ---
 
-## Choose your rendering path
+## Start with Inth and choose your rendering path
+
+For a Next.js server deployment, use Inth with cached manifests. Your application
+resolves policy from reusable public data while consent submissions still go to
+Inth. The App Router and Pages Router guides configure this path.
+
+For static export, start with browser initialization against the Inth backend.
+A static host cannot run the manifest and init routes used by the server guides.
 
 | Next.js deployment | Guide | Where consent initializes |
 | --- | --- | --- |
-| App Router with a server | [App Router](/docs/frameworks/next/app-router) | Request helper and client boundary |
-| Pages Router with a server | [Pages Router](/docs/frameworks/next/pages-router) | `getServerSideProps` or browser initialization |
-| `output: 'export'` | [Static export](/docs/frameworks/next/static-export) | Browser, using an external backend or local policy |
+| App Router with a server | [App Router](/docs/frameworks/next/app-router) | Cached manifest, request helper and client boundary |
+| Pages Router with a server | [Pages Router](/docs/frameworks/next/pages-router) | Cached manifest through `getServerSideProps` or a local init route |
+| `output: 'export'` | [Static export](/docs/frameworks/next/static-export) | Browser, using an external Inth backend |
 
 A Next.js application can mix dynamic and prerendered routes. Choose per route
 whether you need visitor-specific consent in the initial HTML. Reading request
@@ -32,3 +39,10 @@ Import the Next.js integration from `c15t/next` and its stylesheet from
 After setup, [register optional scripts](/docs/frameworks/next/script-loader)
 and [verify requests and persistence](/docs/guides/verify-consent). A visible
 banner alone does not establish that analytics wait for consent.
+
+## Compare data-fetching alternatives
+
+Use [data fetching](/docs/frameworks/next/data-fetching) to compare manifest
+resolution, regular backend `/init` and offline mode. The guide explains cache
+settings, geography and why the same-origin init route is part of the recommended
+manifest setup.

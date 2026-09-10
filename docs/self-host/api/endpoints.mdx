@@ -1,60 +1,99 @@
 ---
-title: Endpoints
-description: HTTP endpoints exposed by the self-hosted backend.
+title: HTTP endpoints
+description: Use the v3 backend HTTP API for manifests, initialization, consent receipts, identity and legal-document releases.
 group: self-host
 ---
 
-## Read a subject's choices
+## Find your API base URL
 
-`GET /subjects/:id` returns the subject's consent history, merged category choices, and standing privacy directives.
+All paths are relative to the backend's mount point. With
+`basePath: '/api/c15t'`, `/manifest` is available at `/api/c15t/manifest`.
+The framework adapters call these endpoints for you. Prefer the adapter unless
+you are building a custom transport or server integration.
 
-```json
-{
-  "subject": { "id": "sub_receipts1" },
-  "consents": [],
-  "isValid": true,
-  "subjectChoice": null,
-  "privacyDirectives": []
-}
+| Method and path | Purpose | API key |
+| --- | --- | --- |
+| `GET /status` | Service status and configured version. | No |
+| `GET /manifest` | Geo-independent policy configuration, optionally sliced with `?language=en`. | No |
+| `GET /init` | Resolve configuration for this request's location, language and privacy signals. | No |
+| `POST /subjects` | Record a consent submission and its category receipts. | Optional, affects asserted identity authority |
+| `GET /subjects/:id` | Read this subject's consent status, merged choices and privacy directives. Optional `?type=a,b` filter. | No, the subject ID is the capability |
+| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | Optional, distinguishes browser and API authority |
+| `GET /subjects?externalId=...` | Retrieve subjects for an external identity. | Required |
+| `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type. | No |
+| `POST /subjects/:id/privacy-directives` | Record a privacy directive for one subject. | No, subject-scoped |
+| `GET /subjects/:id/privacy-directives` | Read directives applying to the subject. | No, subject-scoped |
+| `POST /privacy-directives` | Record an identity-level privacy directive. | Required |
+| `GET /privacy-directives?externalId=...&identityProvider=...` | Read identity-level privacy directives. | Required |
+| `PUT /legal-documents/:type/current` | Publish a legal document's current version, hash and effective date. | Required |
+| `GET /spec.json` | Discover the enabled OpenAPI routes. | No |
+
+Subject IDs allow public reads of that subject's state. Treat them as private
+capabilities. Do not expose administrative API keys to make browser requests.
+
+## Fetch reusable configuration
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/manifest?language=en'
 ```
 
-Read `subjectChoice` before examining individual consent rows:
+`/manifest` returns the policy configuration and a revision, with an `ETag` and
+public cache headers. It contains no visitor's consent choices. A matching
+`If-None-Match` returns `304`. See [caching](/docs/self-host/guides/caching) before
+putting a CDN in front of the backend.
 
-- An object contains the latest usable receipt for each category, with its original confirmation time and policy basis.
-- `null` means the backend found no usable category choice. Do not reconstruct grants from `consents` in this case.
-- An omitted field identifies an older backend that does not provide merged receipts.
+## Resolve a request with `/init`
 
-Individual rows use the same distinction for `choice`. An omitted `choice` means a legacy row; `choice: null` means the stored receipt is unreadable. A null receipt must never be treated as a legacy grant.
-
-Legacy rows store granted purpose codes. A newer legacy row supersedes older grants even when it contains no granted optional categories. Missing codes do not prove a refusal, but they do not preserve an earlier grant either. Existing explicit denials remain effective until a later explicit choice replaces them.
-
-## Save an explicit choice
-
-`POST /subjects` records category choices. The built-in transports send:
-
-- `subjectId`, `domain`, and `type: "cookie_banner"`.
-- `givenAt`, the action time in epoch milliseconds.
-- `choice`, receipts for only the categories this action confirmed.
-- `preferences`, the complete explicit values after the action, including historical values for categories the action did not confirm.
-
-The backend preserves each receipt's original timestamp. A partial save does not renew untouched categories. Under a strict policy, a historical out-of-scope grant in `preferences` is excluded from the submission's granted purposes. It does not prevent the current choice from being recorded. An action that explicitly grants an out-of-scope category is still rejected.
-
-## Save after no policy matches
-
-`GET /init` can return a successful `no-match` resolution. The client then uses the safe opt-in fallback and may collect an explicit choice. There is no matched policy to sign, so initialization does not issue a policy snapshot token for this outcome.
-
-The built-in transports send an explicit no-match assertion with the save. Custom clients must send `policyId: null` and the original resolution inputs:
-
-```json
-{
-  "policyId": null,
-  "country": "US",
-  "region": null,
-  "language": "en",
-  "gpc": false
-}
+```bash
+curl -i 'http://localhost:3000/api/c15t/init' \
+  -H 'x-c15t-country: DE' \
+  -H 'Accept-Language: en'
 ```
 
-Include these fields alongside the choice submission. Omit `fingerprint` for a no-match assertion. The backend resolves the inputs against its current manifest and accepts the assertion only if the result is still `no-match`. A matching policy, insufficient inputs, or failed resolution returns `422 STALE_POLICY` instead.
+This development request supplies a location explicitly. In production, use the
+framework adapter and trusted deployment headers. `/init` resolves location,
+language and GPC against the manifest. Its `policyResolution` distinguishes a
+matched rule from an unmatched or failed resolution. A `200` response alone does
+not establish that a rule matched.
 
-Matched policies retain their existing token or decision-assertion validation. No-match saves do not create a matched runtime policy decision. Queued retries keep the inputs captured when the visitor acted.
+`/init` uses `Cache-Control: no-store`. It can include a signed
+`policySnapshotToken` when signing is configured and a policy matched. For
+request-time framework rendering, prefer a cached manifest and local resolution
+when the adapter supports it. Do not cache one visitor's resolved `/init` result
+as shared configuration.
+
+## Save and read choices
+
+The v3 client sends `POST /subjects` with a domain, policy type, `preferences`,
+`givenAt` timestamp and the per-category receipts confirmed by the action. Let the
+client construct this payload so effective permissions are not mistaken for an
+explicit grant. Hydration, a dismissed notice and a GPC signal are not consent
+submissions.
+
+The response includes `subjectId`, `consentId`, `appliedPreferences` and `givenAt`.
+Read `GET /subjects/:id` to inspect merged category choices. A type filter changes
+which consent records are returned and how `isValid` is calculated; it does not
+filter away the subject's cookie-banner choice state.
+
+Privacy directives are stored separately from consent records. Saving consent
+does not delete an existing directive. An API-authenticated identity link has
+different authority from a browser-asserted link.
+
+## Make an administrative request
+
+Use a server environment variable containing a configured API key:
+
+```bash
+curl 'http://localhost:3000/api/c15t/subjects?externalId=customer-123' \
+  -H "Authorization: Bearer $C15T_API_KEY"
+```
+
+Missing or invalid keys return `401` on protected routes. Invalid input returns
+an error body containing `message` and `cause.code`; individual validation paths
+can return `400` or `422`. Inspect both the HTTP status and error code. Database
+errors return a generic failure to the client, with details available through
+[server logging](/docs/self-host/guides/observability).
+
+The OpenAPI document lists available routes and security declarations. Use the
+published `@c15t/schema` contracts and client adapters for complete payload types;
+the generated document does not describe every field accepted by each handler.

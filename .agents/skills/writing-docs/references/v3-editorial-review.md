@@ -151,12 +151,12 @@ CLI generation does not prove that the public Markdown route exists.
 All 38 v2 integration routes are retained in v3, including the overview and
 custom-integration guide. The navigation restores service-type groups instead
 of a flat shortlist. The scripts package currently exposes 34 named vendor
-helpers; each has a guide. Google Maps and YouTube use `Frame` because the old
-convenience embed components are not exported by the current v3 adapters.
+helpers; each has a guide. Google Maps and YouTube have framework-specific consent-gated embeds because
+the old convenience components are absent from the v3 adapters.
 
 Guides distinguish initial permission gating, vendor consent signals, and
-post-load cleanup. Shared registration instructions cover the v3 provider,
-Next.js boundary, and headless loader, with links to the remaining adapters.
+post-load cleanup. Shared registration and embed instructions cover all nine frameworks in the
+selector order. Each adapter uses its own runtime and cleanup API.
 The route inventory excludes the 31 restored integration URLs, which no longer
 need redirects.
 
@@ -170,13 +170,33 @@ Validation for the restored integrations:
   vendor configurations constructed against the current source. Root tooling
   passed 146 tests. These checks do not verify delivery into customer dashboards.
 
+## Framework coverage, backend and fetching follow-up
+
+Shared integration examples now follow the nine-framework selector order. The
+rendered PostHog, YouTube and Maps pages expose every example on desktop and at
+375 pixels without page overflow. The browser embed helper passed permission,
+revocation and cleanup checks; Astro startup and navigation preserve one mount.
+
+The backend section contains 12 pages, including restored policy, caching,
+deployment, IAB, logging and legal-document workflows. Next.js server guides lead
+with cached manifests and a local init route while consent writes remain on
+Inth. The data-fetching guides compare this with regular backend `/init`, browser
+manifest resolution and offline operation. Frontend policy pages now explain
+observable behavior and link to backend policy authoring.
+
+Validation: 148 root tooling tests passed. Twenty-two fetching examples, 12
+backend examples, three policy diagnostics and two TanStack examples type-check.
+Thirteen shared examples passed TypeScript or Vue/Svelte compiler checks. Backend
+runtime checks covered manifest caching/ETags, init and legal snapshot signing.
+These checks do not replace production deployments or customer-vendor testing.
+
 ## Release acceptance
 
 1. Every navigation route resolves; every removed old route has a reviewed
    redirect destination or an intentional removal decision. Inspect `origin/main`
    for the complete inventory, including shared pages and old framework routes.
-   The [v2 route inventory](v2-route-inventory.md) records 114 absent public MDX
-   paths, including vendor guides and older hooks. It lists comparison targets
+   The [v2 route inventory](v2-route-inventory.md) records 108 absent public MDX
+   paths, including older hooks and CLI commands. It lists comparison targets
    where available; it is not a blanket redirect map or a claim of v2 coverage.
 2. Installation examples compile against the v3 packages being published.
    Exercise request SSR and static output separately; a dev server masks missing
