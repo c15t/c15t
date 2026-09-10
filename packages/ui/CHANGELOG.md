@@ -106,7 +106,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 
@@ -314,7 +314,7 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ### Patch Changes
 
