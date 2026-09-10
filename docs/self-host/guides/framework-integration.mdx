@@ -6,6 +6,8 @@ group: self-host
 
 The c15t backend exposes a single handler with the signature `(request: Request) => Promise<Response>`. This is the standard Fetch API, so it works with any runtime that supports it — Node.js, Bun, Deno, and Cloudflare Workers.
 
+Netlify Functions send an `x-country` header, which c15t reads the same way as `cf-ipcountry` and `x-vercel-ip-country`.
+
 ## Bun
 
 ```ts title="server.ts"

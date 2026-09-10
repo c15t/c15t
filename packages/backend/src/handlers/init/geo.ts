@@ -22,6 +22,7 @@ function getGeoHeaders(headers: Headers) {
 		normalizeHeader(headers.get('cf-ipcountry')) ??
 		normalizeHeader(headers.get('x-vercel-ip-country')) ??
 		normalizeHeader(headers.get('x-amz-cf-ipcountry')) ??
+		normalizeHeader(headers.get('x-country')) ??
 		normalizeHeader(headers.get('x-country-code'));
 
 	const regionCode =

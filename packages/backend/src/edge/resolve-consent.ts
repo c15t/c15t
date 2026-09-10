@@ -62,6 +62,7 @@ function getLocationFromHeaders(headers: Headers): {
 		headers.get('cf-ipcountry') ??
 		headers.get('x-vercel-ip-country') ??
 		headers.get('x-amz-cf-ipcountry') ??
+		headers.get('x-country') ??
 		headers.get('x-country-code');
 
 	const regionCode =
