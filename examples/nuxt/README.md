@@ -48,3 +48,42 @@ of the self-hosted route.
 The `vite.ssr.noExternal` entry in `nuxt.config.ts` is a workaround for a
 `@c15t/vue` packaging issue, not part of the integration — see the comment
 there.
+
+## Consent example
+
+Open `/consent-example` for the shared integration scenario. The existing home
+and showcase routes remain available.
+
+For hosted operation, create an [Inth](https://inth.com) project, configure an
+opt-in policy covering `measurement` and `marketing`, and allow this app's
+origin. Set `NUXT_PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
+Then run from the repository root:
+
+```sh
+bun run --cwd examples/nuxt dev
+```
+
+Public vendor settings are optional:
+
+- `NUXT_PUBLIC_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
+  change `region` in `example-scripts.ts` for a US project.
+- `NUXT_PUBLIC_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+
+An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
+and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
+other initializers for these vendors before reusing the example.
+
+The YouTube nocookie iframe only mounts with measurement permission and is
+removed on revocation. The placeholder opens preferences. Use the footer's
+Privacy settings control to reopen the dialog. Default theme and Branded theme
+buttons demonstrate CSS token overrides without replacing the consent runtime.
+
+Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
+requests are absent before their respective permissions, and the iframe is
+absent before measurement permission. The example emits no custom conversion
+events. Script removal cannot undo SDK code that already ran; application event
+calls must also stop after withdrawal.
+
+The Nuxt module owns the shared runtime. One loader starts after `app:mounted`
+and is disposed with the app. The existing development DevTools remains mounted.
+Without the backend override, the existing self-hosted backend is used.

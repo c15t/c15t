@@ -79,3 +79,46 @@ that is why the flag exists rather than a per-page toggle.
 ships one: hosted and manifest mode fetch it through `/init`, and an
 offline site points `iab.gvlURL` at where the real list lives, which goes
 through the in-process cache in `@c15t/core/server`.
+
+## Consent example
+
+Open `/consent-example` for the shared integration scenario. The existing home
+and showcase routes remain available.
+
+For hosted operation, create an [Inth](https://inth.com) project, configure an
+opt-in policy covering `measurement` and `marketing`, and allow this app's
+origin. Set `C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
+Then run from the repository root:
+
+```sh
+bun run --cwd examples/astro-demo dev
+```
+
+Public vendor settings are optional:
+
+- `PUBLIC_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
+  change `region` in `example-scripts.ts` for a US project.
+- `PUBLIC_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+
+An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
+and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
+other initializers for these vendors before reusing the example.
+
+The YouTube nocookie iframe only mounts with measurement permission and is
+removed on revocation. The placeholder opens preferences. Use the footer's
+Privacy settings control to reopen the dialog. Default theme and Branded theme
+buttons demonstrate CSS token overrides without replacing the consent runtime.
+
+Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
+requests are absent before their respective permissions, and the iframe is
+absent before measurement permission. The example emits no custom conversion
+events. Script removal cannot undo SDK code that already ran; application event
+calls must also stop after withdrawal.
+
+Without a backend URL, the existing offline showcase remains active. Offline
+mode is not recommended for production environments. `C15T_IAB=1` continues
+to select the existing IAB showcase. Astro has no dedicated DevTools component
+export; use the existing consent state showcase and browser Network panel.
+
+The example stylesheet preserves Astro's `hidden` state after a choice, so the
+banner's shared display class cannot keep it over the page controls.

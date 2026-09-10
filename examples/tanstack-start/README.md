@@ -103,3 +103,42 @@ no listener, so `bun run start` hosts it with `scripts/serve.mjs`: srvx on
 `node:http` serving `dist/client` as static files in front of the handler,
 which is the Node hosting shape TanStack Start documents for that output.
 `PORT` and `HOST` override the defaults (`3010`, `127.0.0.1`).
+
+## Consent example
+
+Open `/consent-example` for the shared integration scenario. The existing home
+and showcase routes remain available.
+
+For hosted operation, create an [Inth](https://inth.com) project, configure an
+opt-in policy covering `measurement` and `marketing`, and allow this app's
+origin. Set `VITE_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
+Then run from the repository root:
+
+```sh
+bun run --cwd examples/tanstack-start dev
+```
+
+Public vendor settings are optional:
+
+- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
+  change `region` in `example-scripts.ts` for a US project.
+- `VITE_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+
+An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
+and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
+other initializers for these vendors before reusing the example.
+
+The YouTube nocookie iframe only mounts with measurement permission and is
+removed on revocation. The placeholder opens preferences. Use the footer's
+Privacy settings control to reopen the dialog. Default theme and Branded theme
+buttons demonstrate CSS token overrides without replacing the consent runtime.
+
+Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
+requests are absent before their respective permissions, and the iframe is
+absent before measurement permission. The example emits no custom conversion
+events. Script removal cannot undo SDK code that already ran; application event
+calls must also stop after withdrawal.
+
+The root route keeps its existing server prefetch, proxy and IAB components.
+Without the backend override, the existing self-hosted backend is used.
+Development DevTools uses the React adapter against that same runtime.

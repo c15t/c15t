@@ -11,11 +11,37 @@ allowed origin, and copy its backend endpoint. This guide uses a client-rendered
 React app with Vite. Applications with a framework server should use that
 framework's adapter for request prefetch.
 
-<CommandTabs command="c15t" mode="install" />
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
 
 Set `VITE_C15T_BACKEND_URL` to the endpoint from Inth. Vite embeds public values
 at build time, so rebuild when changing it. Keep management credentials out of
 public variables.
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+This setup uses Vite's public environment variables. Set the Inth endpoint and
+add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+
+```dotenv title=".env.local"
+VITE_C15T_BACKEND_URL=
+VITE_POSTHOG_KEY=
+VITE_POSTHOG_HOST=
+VITE_X_PIXEL_ID=
+```
+
+Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
+an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
+shown in your PostHog project. Restart Vite after editing these values and
+rebuild for deployment. Other bundlers need their own configuration mechanism.
+
+Create `src/scripts.ts`. PostHog waits for measurement permission with
+`loadMode: 'after-consent'` and disables cookieless capture with
+`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/react-scripts.mdx" />
 
 ## Mount the provider and UI
 
@@ -29,6 +55,7 @@ import {
   hosted,
 } from 'c15t/react';
 import 'c15t/react/styles.css';
+import { scripts } from './scripts';
 
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
@@ -36,7 +63,7 @@ const mode = hosted({ url: backendURL });
 
 export function Consent({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider options={{ mode }}>
+    <ConsentProvider options={{ mode, scripts }}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
@@ -83,3 +110,8 @@ Reject under an opt-in policy, reload and confirm optional requests stay blocked
 Reopen preferences, save a different choice and test navigation. Follow
 [verification](/docs/guides/verify-consent), then
 [customization](/docs/customization/overview) to apply your design.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

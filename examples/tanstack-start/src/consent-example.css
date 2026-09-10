@@ -1,0 +1,24 @@
+html[data-consent-example-theme='branded'] * {
+	--c15t-primary: #146b56 !important;
+	--c15t-primary-hover: #105442 !important;
+	--c15t-radius-lg: 1.25rem !important;
+}
+.consent-example {
+	max-width: 48rem;
+	margin: 3rem auto;
+	padding: 1.5rem;
+	font-family: system-ui, sans-serif;
+}
+.consent-example iframe {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border: 0;
+}
+.consent-example button {
+	padding: 0.75rem 1rem;
+	margin: 0.25rem;
+	cursor: pointer;
+}
+.consent-example footer {
+	margin-top: 2rem;
+}

@@ -22,7 +22,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 ## Frameworks
 
 - [JavaScript script loading](./frameworks/javascript/script-loader.md): Attach a script loader to the consent kernel and dispose it with the application.
-- [Load scripts with consent](./frameworks/next/script-loader.md): Register vendor scripts once and let effective permissions control loading.
+- [Load scripts with consent](./frameworks/next/script-loader.md): Register vendor scripts in your existing Next.js consent boundary and handle loading and revocation.
 - [Load scripts with consent](./frameworks/react/script-loader.md): Register vendor scripts once and let effective permissions control loading.
 
 ## Guides

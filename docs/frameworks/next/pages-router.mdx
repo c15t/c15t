@@ -1,6 +1,6 @@
 ---
 title: Pages Router
-description: Use cached Inth manifests with getServerSideProps and browser initialization in Next.js Pages Router.
+description: Set up Pages Router with Inth, cached manifests and consent-gated scripts.
 group: frameworks
 ---
 
@@ -39,6 +39,8 @@ the steps below. Offline setups do not need an endpoint; use the
 [offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
 
 <CommandTabs command="c15t" mode="install" />
+
+<CommandTabs command="@c15t/scripts" mode="install" />
 
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or
 your self-hosted backend, including any path prefix. This is a public endpoint,
@@ -79,18 +81,14 @@ using the visitor's request. Consent submissions go directly to `backendURL`.
 The following imports assume `pages/` is at the project root. Adjust them if you
 use `src/pages/`.
 
+<include src="../../shared/next-consent-wrapper.mdx" />
+
 ## Keep one boundary in the app
 
 ```tsx title="pages/_app.tsx"
 import type { AppProps } from 'next/app';
-import {
-  ConsentBanner,
-  ConsentBoundary,
-  ConsentDialog,
-  ConsentDialogLink,
-} from 'c15t/next';
 import type { ConsentBoundaryProps } from 'c15t/next';
-import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
 import 'c15t/next/styles.css';
 
 type ConsentPageProps = {
@@ -99,12 +97,9 @@ type ConsentPageProps = {
 
 export default function App({ Component, pageProps }: AppProps<ConsentPageProps>) {
   return (
-    <ConsentBoundary config={pageProps.initialConsent ?? {}} consent={consentConfig}>
+    <Consent config={pageProps.initialConsent ?? {}}>
       <Component {...pageProps} />
-      <ConsentBanner />
-      <ConsentDialog />
-      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentBoundary>
+    </Consent>
   );
 }
 ```
@@ -144,6 +139,12 @@ Repeat prefetch on pages that need request-specific initial HTML. Do not use
 visitor's request. Keep the shared URL configuration consistent across pages.
 
 ## Verify entry and navigation
+
+For an opt-in policy, reject and confirm neither configured vendor loads. Allow
+measurement only: PostHog can load, while X Pixel stays blocked. Revoke
+measurement from Privacy settings and check PostHog's capture is disabled.
+See [script loading](/docs/frameworks/next/script-loader) for vendor-specific
+loading and revocation behavior.
 
 Load a server-rendered page directly, reject, and reload. Then navigate without
 a full reload and reopen preferences. The mounted boundary should retain the

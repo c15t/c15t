@@ -27,6 +27,7 @@ const HomePage = () => {
 	return (
 		<main className="page">
 			<h1>c15t × TanStack Start</h1>
+			<a href="/consent-example">Consent example</a>
 			<p>
 				Consent management with the banner server-rendered into the first HTML
 				(zero CLS) and consent resolved from a CDN-cacheable manifest, with no

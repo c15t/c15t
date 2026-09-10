@@ -9,11 +9,12 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Register the Nuxt module
 
-<CommandTabs command="c15t" mode="install" />
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
 
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
   modules: ['c15t/vue'],
+  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
   c15t: {
     backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
     manifest: true,
@@ -28,10 +29,47 @@ server manifest path and registers same-origin init and manifest routes. Nuxt
 resolves the visitor's consent using the manifest and reuses the initial state
 for hydration.
 
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+NUXT_PUBLIC_POSTHOG_KEY=
+NUXT_PUBLIC_X_PIXEL_ID=
+```
+
+Nuxt reads these values through public runtime configuration.
+An empty ID disables that integration. Create `app/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/nuxt-scripts.mdx" />
+
 ## Mount the root once
 
 ```vue title="app/app.vue"
 <script setup lang="ts">
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { onUnmounted } from 'vue';
+import { createExampleScripts } from './example-scripts';
+
+const publicConfig = useRuntimeConfig().public;
+const kernel = useConsentKernel();
+let loader: ReturnType<typeof createScriptLoader> | undefined;
+const removeMountedHook = useNuxtApp().hook('app:mounted', () => {
+  loader = createScriptLoader({
+    kernel,
+    scripts: createExampleScripts(publicConfig.posthogKey, publicConfig.xPixelId),
+  });
+});
+onUnmounted(() => {
+  removeMountedHook();
+  loader?.dispose();
+});
 const activeUI = useConsentActiveUI();
 </script>
 
@@ -44,10 +82,12 @@ const activeUI = useConsentActiveUI();
 </template>
 ```
 
-Use `app.vue` at the project root if that is your Nuxt source layout. The module
+Use `app.vue` and `example-scripts.ts` at the project root if that is your
+Nuxt source layout. The module
 registers components and composables. A separate `app.use()` or React-style
 provider is not needed. Keep `ConsentRoot` outside route-specific pages so it
-survives navigation.
+survives navigation. The mounted hook registers scripts against the module's
+existing kernel after hydration; unmounting the app cleans up the loader.
 
 ## Configure SPA or static output
 
@@ -58,6 +98,7 @@ server and will not exist on static hosting.
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
   modules: ['c15t/vue'],
+  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
   c15t: {
     backendURL: 'https://consent.example.com',
     manifest: 'client',
@@ -80,3 +121,8 @@ then confirm hydration does not record a new choice. For static output, serve
 the generated files and check that all consent URLs exist on the deployed host.
 Reject, reload, navigate and reopen preferences. Use
 [verification](/docs/guides/verify-consent) for the network checks.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

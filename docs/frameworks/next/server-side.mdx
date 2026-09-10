@@ -7,7 +7,7 @@ group: frameworks
 ## Choose when consent resolves
 
 Fetching and rendering are separate choices. The examples here keep the shared
-`consentConfig` and manifest routes from the
+`consentConfig` and manifest route from the
 [App Router guide](/docs/frameworks/next/app-router).
 
 | Rendering path | Pass to `ConsentBoundary` | What the visitor receives |
@@ -35,18 +35,18 @@ props. The streaming examples on this page are for App Router.
 
 ## Stream the page while consent resolves
 
-The App Router guide passes the promise from a synchronous layout:
+The App Router guide passes the promise from a synchronous layout to its
+script-owning client wrapper. This partial example keeps that wrapper:
 
 ```tsx
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+
+// Inside the existing synchronous layout:
 const initialConsent = prefetchInitialConsent({ config: consentConfig });
 
-// In the existing layout, keeping its imports, children and consent UI:
-<ConsentBoundary config={initialConsent} consent={consentConfig}>
-  {children}
-  <ConsentBanner />
-  <ConsentDialog />
-  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-</ConsentBoundary>
+<Consent config={initialConsent}>{children}</Consent>
 ```
 
 Keep the shared config and manifest route from that guide. This form also
@@ -60,17 +60,12 @@ Component under `Suspense`. With `cacheComponents: true`, awaiting request data
 directly in the root layout without this boundary causes a build error.
 
 This replaces the root layout from the App Router guide. Keep its shared
-`c15t.config.ts` and API routes:
+`c15t.config.ts`, manifest route and script-owning `Consent` wrapper:
 
 ```tsx title="app/layout.tsx"
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentBoundary,
-  ConsentDialog,
-  ConsentDialogLink,
-} from 'c15t/next';
+import { Consent } from '../components/consent';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import 'c15t/next/styles.css';
@@ -79,12 +74,7 @@ async function ResolvedConsent({ children }: { children: ReactNode }) {
   const initialConsent = await prefetchInitialConsent({ config: consentConfig });
 
   return (
-    <ConsentBoundary config={initialConsent} consent={consentConfig}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog />
-      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentBoundary>
+    <Consent config={initialConsent}>{children}</Consent>
   );
 }
 

@@ -7,9 +7,37 @@ group: frameworks
 [Create an Inth project](https://inth.com) and use its backend endpoint in
 this guide. Configure the project's policy rules and allowed app origins first.
 
-## Install and configure the provider
+## Install
 
-<CommandTabs command="@c15t/svelte" mode="install" />
+<CommandTabs command="@c15t/svelte @c15t/scripts" mode="install" />
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+This setup uses Vite's public environment variables. Set the Inth endpoint and
+add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+
+```dotenv title=".env.local"
+VITE_C15T_BACKEND_URL=
+VITE_POSTHOG_KEY=
+VITE_POSTHOG_HOST=
+VITE_X_PIXEL_ID=
+```
+
+Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
+an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
+shown in your PostHog project. Restart Vite after editing these values and
+rebuild for deployment. Other bundlers need their own configuration mechanism.
+
+Create `src/scripts.ts`. PostHog waits for measurement permission with
+`loadMode: 'after-consent'` and disables cookieless capture with
+`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/svelte-scripts.mdx" />
+
+## Mount the provider and UI
 
 ```svelte title="src/App.svelte"
 <script lang="ts">
@@ -21,13 +49,14 @@ this guide. Configure the project's policy rules and allowed app origins first.
     hosted,
   } from '@c15t/svelte';
   import '@c15t/svelte/styles.css';
+  import { scripts } from './scripts';
 
   const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
   if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
   const mode = hosted({ url: backendURL });
 </script>
 
-<ConsentManagerProvider {mode}>
+<ConsentManagerProvider {mode} {scripts}>
   <main>Your application</main>
   <ConsentBanner />
   <ConsentDialog />
@@ -57,6 +86,8 @@ import { policyRulePresets } from '@c15t/schema';
 const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
 ```
 
+Not recommended for production environments.
+
 This resolves policy locally and stores choices in the browser. It does not
 provide a backend audit history. Review the preset's scope and fallback rather
 than treating it as a complete compliance configuration.
@@ -69,3 +100,8 @@ and save a different choice. Check vendor requests using
 resolved rule needs no prompt, so inspect policy resolution before changing CSS.
 
 For request-specific initial HTML, use the SvelteKit server integration.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

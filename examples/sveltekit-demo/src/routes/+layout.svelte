@@ -22,7 +22,10 @@
 
 	let { children, data } = $props();
 	const devTools = dev ? import('@c15t/svelte/devtools') : null;
-	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
+	const isBenchRoute = $derived(
+		page.url.pathname.startsWith('/bench') ||
+			page.url.pathname === '/consent-example'
+	);
 	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
 	const scripts = dev
 		? createDemoScripts({

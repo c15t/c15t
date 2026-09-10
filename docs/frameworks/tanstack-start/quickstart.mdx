@@ -9,7 +9,7 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Install
 
-<CommandTabs command="c15t" mode="install" />
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
 
 Set `VITE_C15T_BACKEND_URL` to your consent backend's absolute base URL and allow
 your application origin on that backend. This direct-backend recipe uses the
@@ -27,6 +27,27 @@ export const startInstance = createStart(() => ({
   requestMiddleware: [consentRequestMiddleware()],
 }));
 ```
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+VITE_POSTHOG_KEY=
+VITE_X_PIXEL_ID=
+```
+
+Vite embeds these public values at build time; restart development or rebuild
+for deployment after changing them.
+An empty ID disables that integration. Create `src/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/tanstack-start-scripts.mdx" />
 
 ## Resolve consent in the root loader
 
@@ -47,6 +68,12 @@ import {
   createConsentConfigHandler,
 } from 'c15t/tanstack-start/server';
 import consentCss from 'c15t/tanstack-start/styles.css?url';
+import { createExampleScripts } from '../example-scripts';
+
+const scripts = createExampleScripts(
+  import.meta.env.VITE_POSTHOG_KEY,
+  import.meta.env.VITE_X_PIXEL_ID,
+);
 
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
@@ -68,7 +95,7 @@ function Root() {
     <html lang="en">
       <head><HeadContent /></head>
       <body>
-        <ConsentBoundary config={config} backendURL={backendURL} initRoute={false}>
+        <ConsentBoundary config={config} backendURL={backendURL} initRoute={false} scripts={scripts}>
           <Outlet />
           <ConsentBanner />
           <ConsentDialog />
@@ -109,3 +136,8 @@ new choice callback. This recipe requires a Start server; if you publish only
 static HTML, use browser initialization with an external backend rather than
 expecting the server function to exist. Follow
 [verification](/docs/guides/verify-consent) for the full flow.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

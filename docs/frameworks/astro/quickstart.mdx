@@ -13,11 +13,48 @@ Astro renders the banner with native `.astro` components. Preference dialogs use
 an on-demand Svelte, React or Vue island. Choose the framework your site already
 uses; set `ui` explicitly. This example uses Svelte.
 
-<CommandTabs command="@c15t/astro @c15t/svelte @astrojs/svelte svelte" mode="install" />
+<CommandTabs command="@c15t/astro @c15t/svelte @astrojs/svelte svelte @c15t/scripts" mode="install" />
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+PUBLIC_POSTHOG_KEY=
+PUBLIC_X_PIXEL_ID=
+```
+
+Astro exposes these public values to the client through `import.meta.env`.
+Restart development or rebuild for deployment after changing them.
+An empty ID disables that integration. Create `src/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/astro-scripts.mdx" />
+
+Create the client extension so script callbacks stay out of serialized server
+configuration:
+
+```ts title="src/consent-client.ts"
+import type { C15tClientOptionsExtension } from '@c15t/astro';
+import { createExampleScripts } from './example-scripts';
+
+export default {
+  scripts: createExampleScripts(
+    import.meta.env.PUBLIC_POSTHOG_KEY,
+    import.meta.env.PUBLIC_X_PIXEL_ID,
+  ),
+} satisfies C15tClientOptionsExtension;
+```
 
 ## Configure the integration
 
 ```js title="astro.config.mjs"
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import svelte from '@astrojs/svelte';
 import c15t, { hosted } from '@c15t/astro';
@@ -28,7 +65,11 @@ if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
 export default defineConfig({
   integrations: [
     svelte(),
-    c15t({ mode: hosted({ url: backendURL }), ui: 'svelte' }),
+    c15t({
+      mode: hosted({ url: backendURL }),
+      ui: 'svelte',
+      clientEntrypoint: fileURLToPath(new URL('./src/consent-client.ts', import.meta.url)),
+    }),
   ],
 });
 ```
@@ -95,3 +136,8 @@ Astro's `ClientRouter`. Open preferences twice and check the runtime retains the
 current choice. The dialog should reuse the selected framework, not load a
 second adapter. Follow [verification](/docs/guides/verify-consent) for rejection,
 reload and script requests.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

@@ -69,7 +69,7 @@ export default defineDocsConfig({
 	},
 	navigation: [
 		{
-			pages: ['index'],
+			pages: ['index', 'examples'],
 			title: 'Getting started',
 		},
 		{

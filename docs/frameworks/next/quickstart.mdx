@@ -17,8 +17,8 @@ initialize through Inth in the browser.
 | Pages Router with a Next.js server | [Pages Router](/docs/frameworks/next/pages-router) |
 | Either router with `output: 'export'` | [Static export](/docs/frameworks/next/static-export) |
 
-Each guide includes installation, backend prerequisites, application files and
-verification. Start with the guide for your deployment; you do not need to read
+Each guide includes installation, backend prerequisites, consent-gated scripts
+and a persistent preferences link. Start with the guide for your deployment; you do not need to read
 the fetching reference first.
 
 [Self-hosting](/docs/self-host/quickstart) uses the same setup with your own
@@ -37,6 +37,7 @@ backend initialization. [Server rendering](/docs/frameworks/next/server-side)
 explains when to await consent or stream the page while it resolves. Same-origin
 [rewrites](/docs/frameworks/next/optimization) are optional optimizations.
 
-After setup, [register optional scripts](/docs/frameworks/next/script-loader)
-and [verify requests and persistence](/docs/guides/verify-consent). A visible
-banner alone does not establish that analytics wait for consent.
+Try the [runnable Next.js example](/docs/examples) with both routers, a gated
+YouTube video, PostHog, X Pixel and custom banner designs. The router guides use
+the same script configuration. After setup, [verify requests and persistence](/docs/guides/verify-consent);
+a visible banner alone does not establish that analytics wait for consent.

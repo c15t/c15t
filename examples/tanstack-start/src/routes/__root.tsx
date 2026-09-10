@@ -14,6 +14,7 @@ import {
 	ConsentBanner,
 	ConsentBoundary,
 	ConsentDialog,
+	useModel,
 } from 'c15t/tanstack-start';
 import {
 	consentLoaderOptions,
@@ -21,9 +22,16 @@ import {
 } from 'c15t/tanstack-start/server';
 
 import { backendURL, consentRoute } from '../consent';
+import { createExampleScripts } from '../example-scripts';
 
+import '../consent-example.css';
 import appCss from '../styles.css?url';
 import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
+
+const scripts = createExampleScripts(
+	import.meta.env.VITE_POSTHOG_KEY,
+	import.meta.env.VITE_X_PIXEL_ID
+);
 
 /**
  * Declared here, not in the package: the Start compiler splits server code
@@ -42,6 +50,19 @@ const getConsentConfig = createServerFn({ method: 'GET' }).handler(
 	createConsentConfigHandler({ backendURL })
 );
 
+const IabSurfaces = ({ cmpId }: { cmpId: number }) => {
+	const model = useModel();
+	if (model !== 'iab') {
+		return null;
+	}
+	return (
+		<IABProvider cmpId={cmpId}>
+			<IABConsentBanner />
+			<IABConsentDialog />
+		</IABProvider>
+	);
+};
+
 const RootComponent = () => {
 	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
 	const config = Route.useLoaderData();
@@ -55,13 +76,11 @@ const RootComponent = () => {
 				<ConsentBoundary
 					config={config}
 					backendURL={consentRoute}
+					scripts={scripts}
 				>
 					<ConsentBanner />
 					<ConsentDialog />
-					<IABProvider cmpId={config.initialIab?.cmpId ?? 10}>
-						<IABConsentBanner />
-						<IABConsentDialog />
-					</IABProvider>
+					<IabSurfaces cmpId={config.initialIab?.cmpId ?? 10} />
 					<Outlet />
 				</ConsentBoundary>
 				<Scripts />

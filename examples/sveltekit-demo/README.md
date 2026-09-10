@@ -35,3 +35,43 @@ This mode fetches the vendor list from inth.com and uses the example CMP ID.
 Save generates a TC string in memory without contacting the consent backend;
 reload resets the playground. It is not a production CMP configuration or a
 backend persistence test. Real SDKs still require the explicit test IDs above.
+
+## Consent example
+
+Open `/consent-example` for the shared integration scenario. The existing home
+and showcase routes remain available.
+
+For hosted operation, create an [Inth](https://inth.com) project, configure an
+opt-in policy covering `measurement` and `marketing`, and allow this app's
+origin. Set `PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
+Then run from the repository root:
+
+```sh
+bun run --cwd examples/sveltekit-demo dev
+```
+
+Public vendor settings are optional:
+
+- `PUBLIC_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
+  change `region` in `example-scripts.ts` for a US project.
+- `PUBLIC_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+
+An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
+and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
+other initializers for these vendors before reusing the example.
+
+The YouTube nocookie iframe only mounts with measurement permission and is
+removed on revocation. The placeholder opens preferences. Use the footer's
+Privacy settings control to reopen the dialog. Default theme and Branded theme
+buttons demonstrate CSS token overrides without replacing the consent runtime.
+
+Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
+requests are absent before their respective permissions, and the iframe is
+absent before measurement permission. The example emits no custom conversion
+events. Script removal cannot undo SDK code that already ran; application event
+calls must also stop after withdrawal.
+
+This route owns a separate standard provider and skips the root IAB showcase
+provider and its server load. Without the public backend URL it uses `/api/c15t`.
+The existing showcase and benchmark routes retain their original modes.
+DevTools is available during development.

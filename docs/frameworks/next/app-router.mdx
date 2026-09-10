@@ -1,6 +1,6 @@
 ---
 title: App Router
-description: Set up App Router with cached Inth manifests and stream the page while consent resolves.
+description: Set up App Router with Inth, cached manifests and consent-gated scripts.
 group: frameworks
 ---
 
@@ -41,6 +41,8 @@ the steps below. Offline setups do not need an endpoint; use the
 
 <CommandTabs command="c15t" mode="install" />
 
+<CommandTabs command="@c15t/scripts" mode="install" />
+
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or
 your self-hosted backend, including any path prefix. This is a public endpoint,
 not a secret. Configure the backend to allow your app's origin.
@@ -78,18 +80,15 @@ using the visitor's request. Consent submissions go directly to `backendURL`.
 The paths below assume `app/` is at the project root. Adjust imports if you use
 `src/app/`.
 
+<include src="../../shared/next-consent-wrapper.mdx" />
+
 ## Start consent resolution in the root layout
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentBoundary,
-  ConsentDialog,
-  ConsentDialogLink,
-} from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
 import 'c15t/next/styles.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -97,16 +96,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en">
-      <body>
-        <ConsentBoundary config={initialConsent} consent={consentConfig}>
-          {children}
-          <ConsentBanner />
-          <ConsentDialog />
-          <footer>
-            <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-          </footer>
-        </ConsentBoundary>
-      </body>
+      <body><Consent config={initialConsent}>{children}</Consent></body>
     </html>
   );
 }
@@ -123,6 +113,12 @@ the shared URLs. Keep this layout synchronous, including when Next.js
 the layout passes a promise.
 
 ## Verify the manifest path
+
+For an opt-in policy, reject and confirm neither configured vendor loads. Allow
+measurement only: PostHog can load, while X Pixel stays blocked. Revoke
+measurement from Privacy settings and check PostHog's capture is disabled.
+See [script loading](/docs/frameworks/next/script-loader) for vendor-specific
+loading and revocation behavior.
 
 Inspect server requests and confirm that consent resolution reads the manifest
 instead of calling Inth `/init`. Warm requests should reuse policy data according
@@ -147,18 +143,10 @@ resolved consent subtree.
 ## Initialize in the browser
 
 Keep the shared config and manifest route, remove the prefetch import and call,
-and pass `config={{}}` to the boundary. The browser loads the manifest and
+and pass `config={{}}` to the `Consent` wrapper. The browser loads the manifest and
 resolves policy locally. Without supplied location, geography is unknown.
 For browser initialization with request geography, see the
 [optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
-
-## Add client behavior inside the boundary
-
-Consent hooks and browser callbacks belong in Client Components. Keep request
-helpers in server files. For vendor callbacks, put a client wrapper around this
-boundary and pass `scripts` as a top-level prop, following
-[script loading](/docs/frameworks/next/script-loader). Do not mount a second
-provider or also load the vendor through `next/script`.
 
 ## Use regular backend initialization instead
 

@@ -33,7 +33,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [JavaScript script loading](./docs/frameworks/javascript/script-loader.md): Attach a script loader to the consent kernel and dispose it with the application.
 - [Troubleshoot JavaScript consent](./docs/frameworks/javascript/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
 - [Fetching reference](./docs/frameworks/next/api-reference/data-fetching.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
-- [App Router](./docs/frameworks/next/app-router.md): Set up App Router with cached Inth manifests and stream the page while consent resolves.
+- [App Router](./docs/frameworks/next/app-router.md): Set up App Router with Inth, cached manifests and consent-gated scripts.
 - [Client-side initialization](./docs/frameworks/next/client-side.md): Initialize Next.js consent in the browser with one backend URL, without server prefetch or local API handlers.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
@@ -46,9 +46,9 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
 - [IAB TCF](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
 - [Optimization](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
-- [Pages Router](./docs/frameworks/next/pages-router.md): Use cached Inth manifests with getServerSideProps and browser initialization in Next.js Pages Router.
+- [Pages Router](./docs/frameworks/next/pages-router.md): Set up Pages Router with Inth, cached manifests and consent-gated scripts.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t to Next.js with Inth. Choose your router or static export below.
-- [Load scripts with consent](./docs/frameworks/next/script-loader.md): Register vendor scripts once and let effective permissions control loading.
+- [Load scripts with consent](./docs/frameworks/next/script-loader.md): Register vendor scripts in your existing Next.js consent boundary and handle loading and revocation.
 - [Server rendering and hydration](./docs/frameworks/next/server-side.md): Resolve consent on the server, choose what waits for the result, and preserve the same state through hydration.
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
 - [Styling](./docs/frameworks/next/styling/overview.md): Theme c15t components with tokens, slots, and class names.
