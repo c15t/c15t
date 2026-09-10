@@ -15,7 +15,7 @@ import {
   ConsentDialogTrigger,
   ConsentProvider,
   offline,
-} from '@c15t/nextjs';
+} from 'c15t/next';
 import { policyRulePresets } from '@c15t/schema';
 
 const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
@@ -52,7 +52,7 @@ The button carries `data-c15t-rights` with the rights the active policy guarante
 Use `ConsentDialogTriggerToolbar` when you want app-owned controls beside the privacy trigger. It always renders exactly one built-in action that opens the preference center, so `actions` only holds controls your app owns.
 
 ```tsx
-import { ConsentDialogTriggerToolbar } from '@c15t/nextjs';
+import { ConsentDialogTriggerToolbar } from 'c15t/next';
 
 <ConsentDialogTriggerToolbar
   ariaLabel="Site controls"

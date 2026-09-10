@@ -12,7 +12,7 @@ stable ID, category and source URL, then pass the configuration to the existing
 provider or loader:
 
 ```ts
-import type { Script } from '@c15t/core/modules/script-loader';
+import type { Script } from 'c15t/modules/script-loader';
 
 export const analyticsScript = {
   id: 'example-analytics',

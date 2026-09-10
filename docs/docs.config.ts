@@ -45,11 +45,21 @@ export default defineDocsConfig({
 			{
 				heading: 'Start here',
 				links: [
-					{ urlPath: '/docs/guides/inth' },
-					{ urlPath: '/docs/frameworks' },
-					{ urlPath: '/docs/customization/overview' },
-					{ urlPath: '/docs/guides/verify-consent' },
-					{ urlPath: '/docs/upgrade-v3' },
+					{
+						urlPath: '/docs/guides/inth',
+					},
+					{
+						urlPath: '/docs/frameworks',
+					},
+					{
+						urlPath: '/docs/customization/overview',
+					},
+					{
+						urlPath: '/docs/guides/verify-consent',
+					},
+					{
+						urlPath: '/docs/upgrade-v3',
+					},
 				],
 				type: 'links',
 			},
@@ -62,8 +72,8 @@ export default defineDocsConfig({
 	},
 	navigation: [
 		{
-			pages: ['index', 'guides/inth', 'frameworks/index'],
-			title: 'Start here',
+			pages: ['index', 'guides/inth'],
+			title: 'Getting started',
 		},
 		{
 			base: 'guides',
@@ -76,125 +86,161 @@ export default defineDocsConfig({
 			title: 'Understand consent',
 		},
 		{
-			base: 'frameworks/next',
+			base: 'frameworks',
 			children: [
 				{
-					pages: ['concepts/consent-categories', 'concepts/policy-presets'],
-					title: 'Policies',
-				},
-				{
-					pages: ['script-loader', 'troubleshooting'],
-					title: 'Integration',
-				},
-				{
-					pages: [
-						'components/consent-manager-provider',
-						'components/consent-banner',
-						'components/consent-dialog-trigger',
-						'components/dev-tools',
+					base: 'next',
+					children: [
+						{
+							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
+							title: 'Policies',
+						},
+						{
+							pages: ['script-loader', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components/consent-manager-provider',
+								'components/consent-banner',
+								'components/consent-dialog-trigger',
+								'components/dev-tools',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['styling/overview'],
+							title: 'Styling',
+						},
+						{
+							pages: ['hooks/use-consent-manager/overview'],
+							title: 'Hooks',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab/overview'],
+							title: 'IAB TCF',
+						},
 					],
-					title: 'Components',
+					pages: [
+						'quickstart',
+						'app-router',
+						'pages-router',
+						'static-export',
+						'server-side',
+					],
+					slug: 'next',
+					title: 'Next.js',
 				},
 				{
-					pages: [
-						'styling/overview',
-						'hooks/use-consent-manager/overview',
-						'headless',
-						'iab/overview',
+					base: 'react',
+					children: [
+						{
+							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
+							title: 'Policies',
+						},
+						{
+							pages: ['script-loader', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components/consent-manager-provider',
+								'components/consent-banner',
+								'components/consent-dialog-trigger',
+								'components/dev-tools',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['styling/overview'],
+							title: 'Styling',
+						},
+						{
+							pages: ['hooks/use-consent-manager/overview'],
+							title: 'Hooks',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab/overview'],
+							title: 'IAB TCF',
+						},
 					],
-					title: 'Customization and state',
+					pages: ['quickstart'],
+					slug: 'react',
+					title: 'React',
+				},
+				{
+					base: 'vue',
+					pages: ['quickstart'],
+					slug: 'vue',
+					title: 'Vue',
+				},
+				{
+					base: 'nuxt',
+					pages: ['quickstart'],
+					slug: 'nuxt',
+					title: 'Nuxt',
+				},
+				{
+					base: 'svelte',
+					pages: ['quickstart'],
+					slug: 'svelte',
+					title: 'Svelte',
+				},
+				{
+					base: 'sveltekit',
+					pages: ['quickstart'],
+					slug: 'sveltekit',
+					title: 'SvelteKit',
+				},
+				{
+					base: 'astro',
+					pages: ['quickstart'],
+					slug: 'astro',
+					title: 'Astro',
+				},
+				{
+					base: 'tanstack-start',
+					pages: ['quickstart'],
+					slug: 'tanstack-start',
+					title: 'TanStack Start',
+				},
+				{
+					base: 'javascript',
+					children: [
+						{
+							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
+							title: 'Policies',
+						},
+						{
+							pages: ['script-loader', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'api/overview',
+								'building-ui',
+								'dev-tools',
+								'iab/overview',
+							],
+							title: 'API and UI',
+						},
+					],
+					pages: ['quickstart'],
+					slug: 'javascript',
+					title: 'JavaScript',
 				},
 			],
-			pages: [
-				'quickstart',
-				'app-router',
-				'pages-router',
-				'static-export',
-				'server-side',
-			],
-			title: 'Next.js',
-		},
-		{
-			base: 'frameworks/react',
-			children: [
-				{
-					pages: ['concepts/consent-categories', 'concepts/policy-presets'],
-					title: 'Policies',
-				},
-				{
-					pages: ['script-loader', 'troubleshooting'],
-					title: 'Integration',
-				},
-				{
-					pages: [
-						'components/consent-manager-provider',
-						'components/consent-banner',
-						'components/consent-dialog-trigger',
-						'components/dev-tools',
-					],
-					title: 'Components',
-				},
-				{
-					pages: [
-						'styling/overview',
-						'hooks/use-consent-manager/overview',
-						'headless',
-						'iab/overview',
-					],
-					title: 'Customization and state',
-				},
-			],
-			pages: ['quickstart'],
-			title: 'React',
-		},
-		{
-			base: 'frameworks/vue',
-			pages: ['quickstart'],
-			title: 'Vue',
-		},
-		{
-			base: 'frameworks/nuxt',
-			pages: ['quickstart'],
-			title: 'Nuxt',
-		},
-		{
-			base: 'frameworks/svelte',
-			pages: ['quickstart'],
-			title: 'Svelte',
-		},
-		{
-			base: 'frameworks/sveltekit',
-			pages: ['quickstart'],
-			title: 'SvelteKit',
-		},
-		{
-			base: 'frameworks/astro',
-			pages: ['quickstart'],
-			title: 'Astro',
-		},
-		{
-			base: 'frameworks/tanstack-start',
-			pages: ['quickstart'],
-			title: 'TanStack Start',
-		},
-		{
-			base: 'frameworks/javascript',
-			children: [
-				{
-					pages: ['concepts/consent-categories', 'concepts/policy-presets'],
-					title: 'Policies',
-				},
-				{
-					pages: ['script-loader', 'troubleshooting'],
-					title: 'Integration',
-				},
-				{
-					pages: ['api/overview', 'building-ui', 'dev-tools', 'iab/overview'],
-					title: 'API and UI',
-				},
-			],
-			pages: ['quickstart'],
-			title: 'JavaScript',
+			pages: ['index'],
+			slug: 'frameworks',
+			title: 'Frameworks',
 		},
 		{
 			base: 'customization',

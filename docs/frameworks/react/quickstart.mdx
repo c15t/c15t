@@ -1,5 +1,5 @@
 ---
-title: React consent setup
+title: Quickstart
 description: Connect a React application to Inth and add consent UI, persistence and a preferences link.
 group: frameworks
 ---
@@ -11,9 +11,7 @@ allowed origin, and copy its backend endpoint. This guide uses a client-rendered
 React app with Vite. Applications with a framework server should use that
 framework's adapter for request prefetch.
 
-```package-install
-@c15t/react
-```
+<CommandTabs command="c15t" mode="install" />
 
 Set `VITE_C15T_BACKEND_URL` to the endpoint from Inth. Vite embeds public values
 at build time, so rebuild when changing it. Keep management credentials out of
@@ -29,8 +27,8 @@ import {
   ConsentDialogLink,
   ConsentProvider,
   hosted,
-} from '@c15t/react';
-import '@c15t/react/styles.css';
+} from 'c15t/react';
+import 'c15t/react/styles.css';
 
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
@@ -65,7 +63,7 @@ The dialog link keeps preferences reachable after the prompt closes.
 ## Gate optional functionality
 
 ```tsx
-import { useConsent } from '@c15t/react';
+import { useConsent } from 'c15t/react';
 
 export function MarketingContent() {
   return useConsent('marketing') ? <div>Optional marketing content</div> : null;

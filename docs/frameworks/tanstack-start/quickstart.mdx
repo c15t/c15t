@@ -1,5 +1,5 @@
 ---
-title: TanStack Start consent setup
+title: Quickstart
 description: Resolve consent through a Start server function and hydrate it through the root route.
 group: frameworks
 ---
@@ -9,9 +9,7 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Install
 
-```package-install
-@c15t/tanstack-start
-```
+<CommandTabs command="c15t" mode="install" />
 
 Set `VITE_C15T_BACKEND_URL` to your consent backend's absolute base URL and allow
 your application origin on that backend. This direct-backend recipe uses the
@@ -23,7 +21,7 @@ Merge the middleware into your existing Start configuration:
 
 ```ts title="src/start.ts"
 import { createStart } from '@tanstack/react-start';
-import { consentRequestMiddleware } from '@c15t/tanstack-start/middleware';
+import { consentRequestMiddleware } from 'c15t/tanstack-start/middleware';
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [consentRequestMiddleware()],
@@ -43,12 +41,12 @@ import {
   ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
-} from '@c15t/tanstack-start';
+} from 'c15t/tanstack-start';
 import {
   consentLoaderOptions,
   createConsentConfigHandler,
-} from '@c15t/tanstack-start/server';
-import consentCss from '@c15t/tanstack-start/styles.css?url';
+} from 'c15t/tanstack-start/server';
+import consentCss from 'c15t/tanstack-start/styles.css?url';
 
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
@@ -91,7 +89,7 @@ first client render.
 ## Add a same-origin proxy when needed
 
 If browser traffic should use `/api/c15t`, mount a real Start server route using
-`createConsentServerRoute` from `@c15t/tanstack-start/api` with `proxy: true`.
+`createConsentServerRoute` from `c15t/tanstack-start/api` with `proxy: true`.
 Give `createConsentConfigHandler` the upstream backend URL and the boundary the
 browser route URL. Do not make prefetch call its own proxy unnecessarily.
 

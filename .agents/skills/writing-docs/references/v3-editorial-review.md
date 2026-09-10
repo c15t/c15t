@@ -3,6 +3,26 @@
 Reviewed 10 September 2026 against the current worktree, `origin/main` and the
 published site. This is an authoring reference, not a public product guide.
 
+## Preview follow-up
+
+The local c15t-docs preview exposed a navigation mismatch: the host expects one
+`frameworks` group with framework children. The source now retains that hierarchy
+and uses concise "Quickstart" page labels. Setup guides install `c15t` and use
+verified umbrella exports wherever available. Svelte, Astro and separate add-ons
+retain their own packages.
+
+Install blocks use Leadtype's `CommandTabs` component. The current docs host must
+alias it to its existing `PackageCommandTabs` renderer and include all nine
+frameworks in both `frameworkOrder` and the shared framework registry. The companion
+[host patch](docs-host-v3.patch) records these local host changes and their registry
+regression test. Apply it in
+the docs-site monorepo when updating the pinned content revision. Those runtime
+files are outside this package repository.
+
+The checks below record the original rewrite. Follow-up regression tests also
+check the resolved framework hierarchy, command-table Markdown, and umbrella
+imports against the package export map.
+
 ## What the old docs missed
 
 The old tree contains 260 files under `docs/`. Its Next.js quickstart starts
@@ -118,8 +138,9 @@ include dependencies; the generator reconverts affected pages from their origina
 source through leadtype and rejects remaining conversion errors. Keep the
 regression checks when upgrading leadtype.
 
-The private docs host was unavailable. Rendered navigation, public iframe
-embedding, old-route redirects and deployed SEO remain release acceptance work.
+The local docs host now renders the corrected framework navigation and install
+tabs. Public iframe embedding, old-route redirects and deployed SEO remain
+release acceptance work.
 Check index-page Markdown URLs specifically: leadtype emits a curated link to
 `/docs/frameworks.md`, while the generated file is `docs/frameworks/index.md`.
 The host must resolve that route or publish the appropriate alias. A successful

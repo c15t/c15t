@@ -7,7 +7,7 @@ group: frameworks
 ## Usage
 
 ```tsx
-import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from '@c15t/react';
+import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from 'c15t/react';
 import { policyRulePresets } from '@c15t/schema';
 
 const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
@@ -87,8 +87,8 @@ primary on a notice. To set button order and treatment for specific rules,
 read the active policy inside the provider:
 
 ```tsx
-import { ConsentBanner, usePolicyRule } from '@c15t/react';
-import type { ConsentBannerProps } from '@c15t/react';
+import { ConsentBanner, usePolicyRule } from 'c15t/react';
+import type { ConsentBannerProps } from 'c15t/react';
 
 const banners: Record<
 	string,
@@ -195,7 +195,7 @@ for a notice `wall` falls back to `floating` with an `invalid-variant`
 diagnostic. Blocking banners carry `role="dialog"` and `aria-modal="true"`.
 Non-blocking banners leave page controls usable by keyboard and pointer.
 
-`PromptVariant` and `PromptPosition` are exported from `@c15t/react`.
+`PromptVariant` and `PromptPosition` are exported from `c15t/react`.
 Compound parts can read the resolved shape with `useConsentBannerSurface()`,
 which returns `variant`, `position`, `positionSource` (`host` or `default`),
 and `blocking`.
@@ -207,7 +207,7 @@ parts read the same policy state the pre-built banner does, so a custom layout
 still gets the right actions for the active rule.
 
 ```tsx
-import { ConsentBanner } from '@c15t/react';
+import { ConsentBanner } from 'c15t/react';
 
 export function CompactBanner() {
 	return (

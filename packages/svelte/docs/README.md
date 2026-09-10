@@ -10,7 +10,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Start here
 
-- [Start with Inth](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Customize your consent interface](./customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 - [Upgrade to v3 policies](./upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
@@ -21,14 +21,14 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Frameworks
 
-- [Svelte consent setup](./frameworks/svelte/quickstart.md): Mount c15t components and a persistent preferences link in a Svelte 5 application.
-- [SvelteKit consent setup](./frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
+- [Quickstart](./frameworks/svelte/quickstart.md): Mount c15t components and a persistent preferences link in a Svelte 5 application.
+- [Quickstart](./frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
 
 ## Guides
 
 - [Understand consent state](./guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Choose a deployment mode](./guides/deployment-modes.md): Choose backend ownership and request or browser initialization independently.
-- [Start with Inth](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Troubleshoot consent](./guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 

@@ -7,10 +7,10 @@ group: integrations
 ## Put the iframe inside Frame
 
 This React example uses `Frame` inside an existing consent provider. A Next.js
-Client Component can import the same component from `@c15t/nextjs`.
+Client Component can import the same component from `c15t/next`.
 
 ```tsx
-import { Frame } from '@c15t/react';
+import { Frame } from 'c15t/react';
 
 export function Map({ embedURL }: { embedURL: string }) {
   return (

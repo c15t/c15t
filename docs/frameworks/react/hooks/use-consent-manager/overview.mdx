@@ -1,5 +1,5 @@
 ---
-title: Read and update consent
+title: Hooks
 description: Choose focused consent hooks for feature gates, explicit choices and preference actions.
 group: frameworks
 ---
@@ -8,7 +8,7 @@ group: frameworks
 
 ```tsx
 'use client';
-import { useConsent } from '@c15t/react';
+import { useConsent } from 'c15t/react';
 
 export function OptionalFeature() {
   const allowed = useConsent('marketing');
@@ -33,7 +33,7 @@ which can be true under an opt-out policy without a recorded grant.
 ## Save from a visitor action
 
 ```tsx
-import { useSaveConsents } from '@c15t/react';
+import { useSaveConsents } from 'c15t/react';
 
 export function RejectButton() {
   const save = useSaveConsents();

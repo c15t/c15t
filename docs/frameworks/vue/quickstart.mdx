@@ -1,5 +1,5 @@
 ---
-title: Vue consent setup
+title: Quickstart
 description: Install c15t in a plain Vue 3 application with the Vite plugin and consent root.
 group: frameworks
 ---
@@ -10,24 +10,22 @@ this guide. Configure the project's policy rules and allowed app origins first.
 ## Install both integrations
 
 Plain Vue uses two c15t entry points: a Vite plugin for module resolution and a
-Vue plugin for the runtime. The package root is the Nuxt module, so do not pass
-it to `app.use()`.
+Vue plugin for the runtime. `c15t/vue` is the Nuxt module, so do not pass that
+entry point to `app.use()`. Plain Vue uses `c15t/vue/vue-plugin`.
 
-```package-install
-@c15t/vue
-```
+<CommandTabs command="c15t" mode="install" />
 
 ```ts title="vite.config.ts"
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import c15tVue from '@c15t/vue/vite';
+import c15tVue from 'c15t/vue/vite';
 
 export default defineConfig({ plugins: [vue(), c15tVue()] });
 ```
 
 ```ts title="src/main.ts"
 import { createApp } from 'vue';
-import { c15tVue } from '@c15t/vue/vue-plugin';
+import { c15tVue } from 'c15t/vue/vue-plugin';
 import App from './App.vue';
 
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
@@ -43,8 +41,8 @@ app after changing Vite's public environment configuration.
 
 ```vue title="src/App.vue"
 <script setup lang="ts">
-import ConsentRoot from '@c15t/vue/consent-root';
-import { useConsentActiveUI } from '@c15t/vue/vue-plugin';
+import ConsentRoot from 'c15t/vue/consent-root';
+import { useConsentActiveUI } from 'c15t/vue/vue-plugin';
 
 const activeUI = useConsentActiveUI();
 </script>
@@ -65,7 +63,7 @@ trigger. The custom button above shows how to offer a footer entry point.
 
 ```vue title="src/OptionalContent.vue"
 <script setup lang="ts">
-import { useConsentSnapshot } from '@c15t/vue/vue-plugin';
+import { useConsentSnapshot } from 'c15t/vue/vue-plugin';
 const snapshot = useConsentSnapshot();
 </script>
 

@@ -1,5 +1,5 @@
 ---
-title: Nuxt consent setup
+title: Quickstart
 description: Configure the Nuxt module for server rendering, browser initialization or static hosting.
 group: frameworks
 ---
@@ -9,13 +9,11 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Register the Nuxt module
 
-```package-install
-@c15t/vue
-```
+<CommandTabs command="c15t" mode="install" />
 
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
-  modules: ['@c15t/vue'],
+  modules: ['c15t/vue'],
   c15t: {
     backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
     manifest: true,
@@ -59,7 +57,7 @@ server and will not exist on static hosting.
 
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
-  modules: ['@c15t/vue'],
+  modules: ['c15t/vue'],
   c15t: {
     backendURL: 'https://consent.example.com',
     manifest: 'client',

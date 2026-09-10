@@ -40,7 +40,7 @@ for permission, receipt and callback semantics.
 
 Persistence, script loading and request blocking are separate modules when you
 use the kernel directly. Dispose their handles before disposing the kernel.
-`createConsentRuntime` from `@c15t/core/runtime` assembles those responsibilities
+`createConsentRuntime` from `c15t/runtime` assembles those responsibilities
 when you need one owner shared by multiple UI roots. Constructing a runtime does
 not activate browser side effects; the owner calls `start()` after mount and
 `dispose()` at teardown.

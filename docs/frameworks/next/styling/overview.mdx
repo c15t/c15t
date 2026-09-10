@@ -9,7 +9,7 @@ group: frameworks
 Import the stylesheet once, next to your global CSS:
 
 ```tsx
-import '@c15t/nextjs/styles.css';
+import 'c15t/next/styles.css';
 ```
 
 Every rule lives in `@layer components`, so unlayered utilities from Tailwind
@@ -21,7 +21,7 @@ and `utilities` directives:
 ```css
 @tailwind base;
 @tailwind components;
-@import '@c15t/nextjs/styles.tw3.css';
+@import 'c15t/next/styles.tw3.css';
 @tailwind utilities;
 ```
 
@@ -32,7 +32,7 @@ properties. Set them on the provider through `theme`, or override the
 variables directly in your CSS.
 
 ```tsx
-import { ConsentProvider } from '@c15t/nextjs';
+import { ConsentProvider } from 'c15t/next';
 import { defineTheme } from '@c15t/ui/theme';
 
 const theme = defineTheme({

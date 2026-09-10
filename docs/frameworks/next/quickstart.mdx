@@ -1,5 +1,5 @@
 ---
-title: Next.js consent setup
+title: Quickstart
 description: Choose App Router, Pages Router or static export before adding c15t to Next.js.
 group: frameworks
 ---
@@ -19,10 +19,15 @@ layout that must remain fully static.
 
 ## What every path needs
 
-Install a compatible v3 `@c15t/nextjs` package, import its stylesheet once, and
+<CommandTabs command="c15t" mode="install" />
+
+Install a compatible v3 `c15t` package, import its stylesheet once, and
 mount the banner, dialog and persistent preferences link inside one consent
 boundary. Hosted examples require a reachable consent backend with policy rules
 and your application's origin configured.
+
+Import the Next.js integration from `c15t/next` and its stylesheet from
+`c15t/next/styles.css`. Follow the router guide for the complete setup.
 
 After setup, [register optional scripts](/docs/frameworks/next/script-loader)
 and [verify requests and persistence](/docs/guides/verify-consent). A visible

@@ -38,9 +38,10 @@ hosting; browser-only describes where consent is managed. Those are separate
 choices. Use [deployment modes](/docs/guides/deployment-modes) to choose between
 request-time resolution, browser initialization and local policies.
 
-The framework guides use scoped package imports so each dependency is explicit.
-The `c15t` umbrella package also exposes framework subpaths; check its export map
-for the version you install before changing imports.
+Install `c15t` for JavaScript, React, Next.js, Vue, Nuxt and TanStack Start.
+Use its framework entry points, such as `c15t/react` and `c15t/next`. Svelte and
+Astro currently use their dedicated packages because the umbrella package does
+not export those adapters. Add-ons such as `@c15t/scripts` are separate installs.
 
 ## Finish the integration
 

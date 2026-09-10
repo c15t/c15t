@@ -11,8 +11,8 @@ kernel, persistence and script loader. Create it once for the browser app, not
 once per consent component.
 
 ```ts
-import { hosted } from '@c15t/core';
-import { createConsentRuntime } from '@c15t/core/runtime';
+import { hosted } from 'c15t';
+import { createConsentRuntime } from 'c15t/runtime';
 
 const runtime = createConsentRuntime({
   mode: hosted({ url: 'https://your-project.inth.app' }),

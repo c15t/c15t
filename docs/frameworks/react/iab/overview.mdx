@@ -1,5 +1,5 @@
 ---
-title: IAB TCF integration
+title: IAB TCF
 description: Configure the IAB provider, policy and vendor data before rendering the TCF interface.
 group: frameworks
 ---
@@ -14,7 +14,7 @@ Install `@c15t/iab` alongside your framework adapter. Inside an existing consent
 provider connected to Inth, mount the IAB components:
 
 ```tsx
-import { IABProvider, IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+import { IABProvider, IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 
 export function IABConsent({ cmpId }: { cmpId: number }) {
   return (
@@ -26,7 +26,7 @@ export function IABConsent({ cmpId }: { cmpId: number }) {
 }
 ```
 
-Import `@c15t/react/iab/styles.css` at your global stylesheet entry. Supply the CMP ID
+Import `c15t/react/iab/styles.css` at your global stylesheet entry. Supply the CMP ID
 from your deployment's IAB configuration. Keep a persistent preferences entry
 point through the surrounding consent provider.
 

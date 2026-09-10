@@ -1,5 +1,5 @@
 ---
-title: CLI quickstart
+title: Quickstart
 description: Run the locally installed v3 CLI and review setup changes before deploying.
 group: cli
 ---

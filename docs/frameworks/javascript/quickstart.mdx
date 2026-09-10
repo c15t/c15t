@@ -1,5 +1,5 @@
 ---
-title: JavaScript consent setup
+title: Quickstart
 description: Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
 group: frameworks
 ---
@@ -12,15 +12,13 @@ a banner; choose a framework adapter if you want stock components.
 
 ## Install
 
-```package-install
-@c15t/core
-```
+<CommandTabs command="c15t" mode="install" />
 
 ## Create the consent engine
 
 ```ts
-import { createConsentKernel, createHostedTransport } from '@c15t/core';
-import { createPersistence } from '@c15t/core/modules/persistence';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createPersistence } from 'c15t/modules/persistence';
 
 const kernel = createConsentKernel({
 	transport: createHostedTransport({

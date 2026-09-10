@@ -1,5 +1,5 @@
 ---
-title: Next.js App Router
+title: App Router
 description: Resolve consent per request and hydrate the same state in a Next.js App Router layout.
 group: frameworks
 ---
@@ -12,9 +12,7 @@ this guide. Configure the project's policy rules and allowed app origins first.
 This path requires a Next.js server. For a prerendered deployment, use
 [static export](/docs/frameworks/next/static-export).
 
-```package-install
-@c15t/nextjs
-```
+<CommandTabs command="c15t" mode="install" />
 
 Set `C15T_BACKEND_URL` to the absolute base URL of your Inth
 project. Configure policy rules and allow your app's origin on that backend.
@@ -30,9 +28,9 @@ import {
   ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
-} from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
-import '@c15t/nextjs/styles.css';
+} from 'c15t/next';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import 'c15t/next/styles.css';
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const backendURL = process.env.C15T_BACKEND_URL;
@@ -69,7 +67,7 @@ the rest of the page should not wait for backend initialization.
 
 Components that use consent hooks or browser callbacks belong in Client
 Components. Keep request helpers in server files. Importing `next/headers` through
-`@c15t/nextjs/server` into a Client Component is not a browser setup.
+`c15t/next/server` into a Client Component is not a browser setup.
 
 Register scripts through the provider's options, following
 [script loading](/docs/frameworks/next/script-loader). Do not also load the same

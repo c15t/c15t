@@ -10,7 +10,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Start here
 
-- [Start with Inth](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 - [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
@@ -29,7 +29,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose backend ownership and request or browser initialization independently.
-- [Start with Inth](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Troubleshoot consent](./docs/guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 

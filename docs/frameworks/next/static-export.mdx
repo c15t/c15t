@@ -1,5 +1,5 @@
 ---
-title: Next.js static export
+title: Static export
 description: Add c15t to output export without request helpers or a local API server.
 group: frameworks
 ---
@@ -13,9 +13,7 @@ A Next.js static export has no runtime server for `/api/c15t`, rewrites or
 request cookies. Point the browser at an absolute consent backend URL. Static
 hosting does not require browser-only consent storage.
 
-```package-install
-@c15t/nextjs
-```
+<CommandTabs command="c15t" mode="install" />
 
 ```ts title="next.config.ts"
 import type { NextConfig } from 'next';
@@ -33,7 +31,7 @@ import {
   ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
-} from '@c15t/nextjs';
+} from 'c15t/next';
 
 export function Consent({ children }: { children: ReactNode }) {
   const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
@@ -52,7 +50,7 @@ export function Consent({ children }: { children: ReactNode }) {
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
 import { Consent } from './consent';
-import '@c15t/nextjs/styles.css';
+import 'c15t/next/styles.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return <html lang="en"><body><Consent>{children}</Consent></body></html>;

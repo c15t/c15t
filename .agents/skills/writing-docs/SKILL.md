@@ -24,8 +24,9 @@ read the `leadtype` skill before changing MDX components or generation.
 
 ## Write for people and agents
 
-Lead each page with the answer and its deployment constraints. Keep the title
-specific, such as "Next.js static export", rather than repeating "Quickstart".
+Lead each page with the answer and its deployment constraints. Use familiar
+navigation labels: "Quickstart" within each framework and for the general setup
+page. Put framework and deployment context in the description and opening text.
 Use required `title` and `description` frontmatter. The site renders both, so
 start the body at H2 and do not repeat the description as an intro.
 
@@ -53,8 +54,12 @@ Distinguish effective permissions, explicit choices, notice dismissal and privac
 signals. Never infer a recorded grant from `useConsent()` or turn hydration into
 a visitor action. Do not claim a banner automatically blocks existing scripts.
 
-Keep the package namespace consistent within a recipe. Scoped imports must match
-the package's exports. Never mechanically replace provider names across adapters.
+Lead installation with `c15t` and use its actual exports: `c15t/react`,
+`c15t/next`, `c15t/vue`, `c15t/tanstack-start`, and `c15t` for the headless engine.
+The installed package name is `c15t`, not the import subpath. Use separate
+packages only for adapters and add-ons absent from its export map. Svelte and
+Astro currently require their dedicated packages. Never invent an umbrella
+subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 
 ## Demonstrate customization
@@ -82,15 +87,21 @@ space. Test keyboard access, mobile layout and the reset action. Keep demo state
 separate from consent on the docs site.
 
 Leadtype owns conversion, not runtime UI. Check which components the docs host
-registers. Use supported tags or add an explicit flattener in the host. Browser
+registers. Use `<CommandTabs command="c15t" mode="install" />` for installation,
+with the host's CommandTabs alias registered. A `package-install` code fence
+does not render package-manager tabs. Use supported tags or add an explicit flattener in the host. Browser
 previews can use `Audience target="human"` only when the host supports it; retain
 all instructions and source in the shared content. Verify generated Markdown
 contains the useful information without raw preview JSX.
 
 ## Discovery and publication
 
-Update `docs/docs.config.ts` for every public page. Preserve useful existing URLs;
-when a page moves, configure a redirect in the docs host and update internal
+Update `docs/docs.config.ts` for every public page. Keep framework variants nested
+under the `frameworks` navigation group, because
+the docs host uses that group for its framework selector and sidebar. Confirm
+the host's framework list includes every variant. Do not flatten frameworks
+into separate root groups to shorten the config.
+Preserve useful existing URLs. When a page moves, configure a redirect in the docs host and update internal
 links. Record retired URLs and their replacements before deleting old routes.
 Avoid thin framework duplicates, keyword repetition and unsupported comparisons.
 Use factual titles, unique descriptions and descriptive link text.

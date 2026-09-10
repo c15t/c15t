@@ -1,6 +1,6 @@
 # c15t
 
-> c15t v3 framework integration and consent management. Examples use scoped imports; the umbrella export map provides corresponding framework subpaths.
+> c15t v3 framework integration and consent management. Install c15t and use its framework subpaths; adapters and add-ons absent from its exports use separate packages.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 
@@ -10,7 +10,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Start here
 
-- [Start with Inth](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Choose your c15t integration](./docs/frameworks/index.md): Find the c15t v3 setup for your framework, router and deployment.
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
@@ -23,17 +23,17 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 ## Frameworks
 
 - [Choose your c15t integration](./docs/frameworks/index.md): Find the c15t v3 setup for your framework, router and deployment.
-- [Astro consent setup](./docs/frameworks/astro/quickstart.md): Add c15t to static or server-rendered Astro pages and choose the framework used by preference dialogs.
+- [Quickstart](./docs/frameworks/astro/quickstart.md): Add c15t to static or server-rendered Astro pages and choose the framework used by preference dialogs.
 - [Consent kernel API](./docs/frameworks/javascript/api/overview.md): Use the kernel for policy resolution, state subscriptions and explicit consent commands.
 - [Build a framework integration](./docs/frameworks/javascript/building-ui.md): Connect c15t state to a custom framework without duplicating runtime ownership.
 - [Consent categories](./docs/frameworks/javascript/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/javascript/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [DevTools](./docs/frameworks/javascript/dev-tools.md): Inspect a JavaScript consent kernel with the imperative DevTools API.
 - [Headless IAB integration](./docs/frameworks/javascript/iab/overview.md): Attach the IAB module to a consent kernel and manage its lifetime and vendor configuration.
-- [JavaScript consent setup](./docs/frameworks/javascript/quickstart.md): Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
+- [Quickstart](./docs/frameworks/javascript/quickstart.md): Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
 - [JavaScript script loading](./docs/frameworks/javascript/script-loader.md): Attach a script loader to the consent kernel and dispose it with the application.
 - [Troubleshoot JavaScript consent](./docs/frameworks/javascript/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
-- [Next.js App Router](./docs/frameworks/next/app-router.md): Resolve consent per request and hydrate the same state in a Next.js App Router layout.
+- [App Router](./docs/frameworks/next/app-router.md): Resolve consent per request and hydrate the same state in a Next.js App Router layout.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentProvider](./docs/frameworks/next/components/consent-manager-provider.md): Configure the v3 consent runtime and share its state with child components.
@@ -41,16 +41,16 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Consent categories](./docs/frameworks/next/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [Headless](./docs/frameworks/next/headless.md): Build your own consent UI on top of the c15t hooks.
-- [Read and update consent](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
-- [IAB TCF integration](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
-- [Next.js Pages Router](./docs/frameworks/next/pages-router.md): Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
-- [Next.js consent setup](./docs/frameworks/next/quickstart.md): Choose App Router, Pages Router or static export before adding c15t to Next.js.
+- [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
+- [IAB TCF](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+- [Pages Router](./docs/frameworks/next/pages-router.md): Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
+- [Quickstart](./docs/frameworks/next/quickstart.md): Choose App Router, Pages Router or static export before adding c15t to Next.js.
 - [Load scripts with consent](./docs/frameworks/next/script-loader.md): Register vendor scripts once and let effective permissions control loading.
 - [Server rendering and hydration](./docs/frameworks/next/server-side.md): Choose request helpers for your Next.js router and preserve the prepared consent configuration.
-- [Next.js static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
+- [Static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
 - [Styling](./docs/frameworks/next/styling/overview.md): Theme c15t components with tokens, slots, and class names.
 - [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
-- [Nuxt consent setup](./docs/frameworks/nuxt/quickstart.md): Configure the Nuxt module for server rendering, browser initialization or static hosting.
+- [Quickstart](./docs/frameworks/nuxt/quickstart.md): Configure the Nuxt module for server rendering, browser initialization or static hosting.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialogTrigger](./docs/frameworks/react/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentProvider](./docs/frameworks/react/components/consent-manager-provider.md): Configure the v3 consent runtime and share its state with child components.
@@ -58,22 +58,22 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Consent categories](./docs/frameworks/react/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/react/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [Headless](./docs/frameworks/react/headless.md): Build your own consent UI on top of the c15t hooks.
-- [Read and update consent](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
-- [IAB TCF integration](./docs/frameworks/react/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
-- [React consent setup](./docs/frameworks/react/quickstart.md): Connect a React application to Inth and add consent UI, persistence and a preferences link.
+- [Hooks](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
+- [IAB TCF](./docs/frameworks/react/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+- [Quickstart](./docs/frameworks/react/quickstart.md): Connect a React application to Inth and add consent UI, persistence and a preferences link.
 - [Load scripts with consent](./docs/frameworks/react/script-loader.md): Register vendor scripts once and let effective permissions control loading.
 - [Styling](./docs/frameworks/react/styling/overview.md): Theme c15t components with tokens, slots, and class names.
 - [Troubleshoot React consent](./docs/frameworks/react/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
-- [Svelte consent setup](./docs/frameworks/svelte/quickstart.md): Mount c15t components and a persistent preferences link in a Svelte 5 application.
-- [SvelteKit consent setup](./docs/frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
-- [TanStack Start consent setup](./docs/frameworks/tanstack-start/quickstart.md): Resolve consent through a Start server function and hydrate it through the root route.
-- [Vue consent setup](./docs/frameworks/vue/quickstart.md): Install c15t in a plain Vue 3 application with the Vite plugin and consent root.
+- [Quickstart](./docs/frameworks/svelte/quickstart.md): Mount c15t components and a persistent preferences link in a Svelte 5 application.
+- [Quickstart](./docs/frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
+- [Quickstart](./docs/frameworks/tanstack-start/quickstart.md): Resolve consent through a Start server function and hydrate it through the root route.
+- [Quickstart](./docs/frameworks/vue/quickstart.md): Install c15t in a plain Vue 3 application with the Vite plugin and consent root.
 
 ## Guides
 
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose backend ownership and request or browser initialization independently.
-- [Start with Inth](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Troubleshoot consent](./docs/guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 

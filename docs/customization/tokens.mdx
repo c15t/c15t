@@ -11,7 +11,7 @@ at the app's global entry point. Vue includes styles in its components; Astro
 adds styles through its integration.
 
 ```tsx
-import '@c15t/react/styles.css';
+import 'c15t/react/styles.css';
 ```
 
 The standard stylesheet places rules in `@layer components`. For Tailwind 3,
@@ -21,7 +21,7 @@ components and utilities directives in your Tailwind entry:
 ```css
 @tailwind base;
 @tailwind components;
-@import '@c15t/react/styles.tw3.css';
+@import 'c15t/react/styles.tw3.css';
 @tailwind utilities;
 ```
 

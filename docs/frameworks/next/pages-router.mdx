@@ -1,5 +1,5 @@
 ---
-title: Next.js Pages Router
+title: Pages Router
 description: Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
 group: frameworks
 ---
@@ -9,9 +9,7 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Install and add global styles
 
-```package-install
-@c15t/nextjs
-```
+<CommandTabs command="c15t" mode="install" />
 
 Import global styles in `pages/_app.tsx`. Add the consent boundary here so it
 stays mounted across client navigation.
@@ -23,9 +21,9 @@ import {
   ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
-} from '@c15t/nextjs';
-import type { ConsentBoundaryProps } from '@c15t/nextjs';
-import '@c15t/nextjs/styles.css';
+} from 'c15t/next';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import 'c15t/next/styles.css';
 
 type ConsentPageProps = {
   consentConfig?: ConsentBoundaryProps['config'];
@@ -55,13 +53,13 @@ in the browser. That path also works for statically generated Pages Router pages
 
 ## Prefetch for a server-rendered page
 
-Use `@c15t/nextjs/pages` with the `req` from `getServerSideProps`. The App Router
+Use `c15t/next/pages` with the `req` from `getServerSideProps`. The App Router
 helper reads a different request context and must not be used here.
 
 ```tsx title="pages/index.tsx"
 import type { GetServerSideProps } from 'next';
-import type { ConsentBoundaryProps } from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/pages';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import { prefetchInitialConsent } from 'c15t/next/pages';
 
 type PageProps = { consentConfig: ConsentBoundaryProps['config'] };
 

@@ -137,7 +137,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: 'c15t',
 		outDir: 'packages/c15t',
 		summary:
-			'c15t v3 framework integration and consent management. Examples use scoped imports; the umbrella export map provides corresponding framework subpaths.',
+			'c15t v3 framework integration and consent management. Install c15t and use its framework subpaths; adapters and add-ons absent from its exports use separate packages.',
 	},
 	{
 		include: ['upgrade-v3.mdx', 'guides/**/*.mdx', 'self-host/**/*.mdx'],

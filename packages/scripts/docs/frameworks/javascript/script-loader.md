@@ -7,13 +7,13 @@ group: frameworks
 
 ## Attach the loader before initialization
 
-Install `@c15t/scripts` alongside `@c15t/core`. This browser example adds a
+Install `@c15t/scripts` alongside `c15t`. This browser example adds a
 marketing integration to a hosted kernel:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from '@c15t/core';
-import { createPersistence } from '@c15t/core/modules/persistence';
-import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createPersistence } from 'c15t/modules/persistence';
+import { createScriptLoader } from 'c15t/modules/script-loader';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 const kernel = createConsentKernel({

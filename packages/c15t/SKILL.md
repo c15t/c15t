@@ -6,7 +6,7 @@ metadata:
 ---
 # c15t documentation
 
-c15t v3 framework integration and consent management. Examples use scoped imports; the umbrella export map provides corresponding framework subpaths.
+c15t v3 framework integration and consent management. Install c15t and use its framework subpaths; adapters and add-ons absent from its exports use separate packages.
 
 To work with c15t, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

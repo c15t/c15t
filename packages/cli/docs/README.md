@@ -10,7 +10,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Start here
 
-- [Start with Inth](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 - [Upgrade to v3 policies](./upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
 
@@ -22,7 +22,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 - [Understand consent state](./guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Choose a deployment mode](./guides/deployment-modes.md): Choose backend ownership and request or browser initialization independently.
-- [Start with Inth](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Troubleshoot consent](./guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 
@@ -31,7 +31,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Set up c15t with the CLI](./cli/commands/setup.md): Run setup in the target application and review framework and deployment choices.
 - [CLI global flags](./cli/global-flags.md): Control help, configuration, logging and telemetry for the installed c15t CLI.
 - [c15t command-line tools](./cli/overview.md): Use the CLI for initial setup, migrations and project workflows, then verify the generated integration.
-- [CLI quickstart](./cli/quickstart.md): Run the locally installed v3 CLI and review setup changes before deploying.
+- [Quickstart](./cli/quickstart.md): Run the locally installed v3 CLI and review setup changes before deploying.
 
 ## Reference
 

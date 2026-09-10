@@ -10,7 +10,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Start here
 
-- [Start with Inth](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 - [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
@@ -21,7 +21,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Frameworks
 
-- [Next.js App Router](./docs/frameworks/next/app-router.md): Resolve consent per request and hydrate the same state in a Next.js App Router layout.
+- [App Router](./docs/frameworks/next/app-router.md): Resolve consent per request and hydrate the same state in a Next.js App Router layout.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentProvider](./docs/frameworks/next/components/consent-manager-provider.md): Configure the v3 consent runtime and share its state with child components.
@@ -29,13 +29,13 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Consent categories](./docs/frameworks/next/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Choose consent behavior for your processing, with regional rules and no-banner options.
 - [Headless](./docs/frameworks/next/headless.md): Build your own consent UI on top of the c15t hooks.
-- [Read and update consent](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
-- [IAB TCF integration](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
-- [Next.js Pages Router](./docs/frameworks/next/pages-router.md): Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
-- [Next.js consent setup](./docs/frameworks/next/quickstart.md): Choose App Router, Pages Router or static export before adding c15t to Next.js.
+- [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
+- [IAB TCF](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+- [Pages Router](./docs/frameworks/next/pages-router.md): Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
+- [Quickstart](./docs/frameworks/next/quickstart.md): Choose App Router, Pages Router or static export before adding c15t to Next.js.
 - [Load scripts with consent](./docs/frameworks/next/script-loader.md): Register vendor scripts once and let effective permissions control loading.
 - [Server rendering and hydration](./docs/frameworks/next/server-side.md): Choose request helpers for your Next.js router and preserve the prepared consent configuration.
-- [Next.js static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
+- [Static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
 - [Styling](./docs/frameworks/next/styling/overview.md): Theme c15t components with tokens, slots, and class names.
 - [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
 
@@ -43,7 +43,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose backend ownership and request or browser initialization independently.
-- [Start with Inth](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
+- [Quickstart](./docs/guides/inth.md): Connect your application to Inth hosted consent management before installing the framework adapter.
 - [Troubleshoot consent](./docs/guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 

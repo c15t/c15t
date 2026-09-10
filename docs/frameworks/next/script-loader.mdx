@@ -14,7 +14,7 @@ project and keep the component mounted around your application.
 'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentProvider, ConsentBanner, ConsentDialog, ConsentDialogLink, hosted } from '@c15t/nextjs';
+import { ConsentProvider, ConsentBanner, ConsentDialog, ConsentDialogLink, hosted } from 'c15t/next';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 const mode = hosted({ url: 'https://your-project.inth.app' });
