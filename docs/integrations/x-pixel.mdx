@@ -1,0 +1,39 @@
+---
+title: X Pixel
+description: Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure X Pixel
+
+Use your X Pixel ID. The helper configures `twq` and loads the pixel SDK. Event conversion IDs are separate from the pixel ID.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { xPixel } from '@c15t/scripts/x-pixel';
+
+export const scripts = [xPixel({ pixelId: 'YOUR_PIXEL_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `pixelId` | Required X Pixel ID. |
+| `scriptSrc` | Defaults to `https://static.ads-twitter.com/uwt.js`. |
+
+## Consent behavior
+
+Marketing permission gates the loader. The helper has no vendor revocation callback. `xPixelEvent` throws when `twq` is unavailable, but an available `twq` does not prove current consent.
+
+## Verify the integration
+
+Call conversion events only after both permission and SDK readiness. Confirm a fresh rejection prevents the loader and that future conversion calls stop after revocation.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

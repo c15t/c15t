@@ -1,0 +1,39 @@
+---
+title: Microsoft UET
+description: Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Microsoft UET
+
+Use your Microsoft Advertising UET tag ID. The helper owns the `uetq` queue and enables automatic SPA tracking when it constructs UET.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+
+export const scripts = [microsoftUet({ id: 'YOUR_UET_TAG_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `id` | Required UET tag ID. |
+| `scriptSrc` | Optional loader override. Defaults to `//bat.bing.com/bat.js`. |
+
+## Consent behavior
+
+UET loads even when marketing permission is denied. The helper queues an `ad_storage` consent default before loading, sends updates on permission changes, and retains UET after revocation. It queues `pageLoad` after initialization. This is consent signaling, not a zero-request gate.
+
+## Verify the integration
+
+Expect the script request before consent. Check default and update commands, page-load events, and SPA navigation. Do not install a second UET tag through a tag manager.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

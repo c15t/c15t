@@ -11,6 +11,7 @@ import { expect, test } from 'vitest';
 
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
+import scriptsPackage from '../packages/scripts/package.json';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -81,6 +82,55 @@ test('installation tabs flatten to usable umbrella-package commands', async () =
 	expect(markdown).toContain("from 'c15t/react'");
 	expect(markdown).not.toContain('CommandTabs');
 	expect(markdown).not.toContain('package-install');
+});
+
+test('integration navigation covers every vendor helper and both embeds', async () => {
+	const navigation = await resolveDocsNavigation({
+		groups: docsConfig.groups,
+		nav: docsConfig.navigation,
+		srcDir: resolve(docsRoot, '..'),
+	});
+	const integrations = navigation.groups.find(
+		(group) => group.slug === 'integrations'
+	);
+	expect(integrations?.children.map((group) => group.slug)).toEqual([
+		'embeds',
+		'tag-managers',
+		'analytics',
+		'functionality',
+		'ads-and-pixels',
+	]);
+	const vendors = Object.entries(scriptsPackage.exports)
+		.filter(([, entry]) => entry.types.includes('/vendors/'))
+		.map(([subpath]) => subpath.slice(2));
+	const expectedRoutes = [
+		...vendors,
+		'google-maps',
+		'youtube',
+		'overview',
+		'building-integrations',
+	].map((slug) => `/docs/integrations/${slug}`);
+	const pages = [
+		...(integrations?.pages ?? []),
+		...(integrations?.children.flatMap((group) => group.pages) ?? []),
+	];
+	expect(pages.map((page) => page.urlPath).sort()).toEqual(
+		expectedRoutes.sort()
+	);
+});
+
+test('vendor registration tabs survive package Markdown conversion', async () => {
+	const { markdown } = await convertMdxToMarkdown(
+		resolve(docsRoot, 'integrations/posthog.mdx'),
+		[remarkInclude, ...defaultRemarkPlugins]
+	);
+	expect(markdown).toContain('npm install @c15t/scripts');
+	expect(markdown).toContain('c15t/react');
+	expect(markdown).toContain('c15t/next');
+	expect(markdown).toContain('c15t/modules/script-loader');
+	expect(markdown).toContain("loadMode: 'after-consent'");
+	expect(markdown).toContain("'always'");
+	expect(markdown).not.toMatch(/<(?:include|Tabs|Tab|CommandTabs)\b/u);
 });
 
 test('documentation links, includes and metadata are valid', async () => {

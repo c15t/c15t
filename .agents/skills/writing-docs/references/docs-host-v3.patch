@@ -1,8 +1,8 @@
 diff --git a/apps/c15t-docs/src/lib/source.ts b/apps/c15t-docs/src/lib/source.ts
-index 80fef7b9ad..74894fc35a 100644
+index 80fef7b9ad..7919cafe39 100644
 --- a/apps/c15t-docs/src/lib/source.ts
 +++ b/apps/c15t-docs/src/lib/source.ts
-@@ -27,7 +27,18 @@ export const { source, getPages, getPagesSync, getDocsPageTree } =
+@@ -27,7 +27,22 @@ export const { source, getPages, getPagesSync, getDocsPageTree } =
  			mode: 'hierarchical',
  			excludeGroupSlugs: ['changelog'],
  			frameworkGroupSlug: 'frameworks',
@@ -21,6 +21,10 @@ index 80fef7b9ad..74894fc35a 100644
 +			],
  		},
  		async getExtraPageTreeFolders() {
++			// Leadtype regenerates navigation outside Next's module graph.
++			if (process.env.NODE_ENV === 'development') {
++				source.invalidatePageTree();
++			}
  			return [createChangelogTree(await getVisibleChangelogPages())];
 diff --git a/apps/c15t-docs/src/mdx-components.tsx b/apps/c15t-docs/src/mdx-components.tsx
 index 309f1c9072..57a24454c0 100644

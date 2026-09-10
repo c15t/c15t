@@ -101,6 +101,15 @@ under the `frameworks` navigation group, because
 the docs host uses that group for its framework selector and sidebar. Confirm
 the host's framework list includes every variant. Do not flatten frameworks
 into separate root groups to shorten the config.
+Keep integrations under one `integrations` navigation group with service-type
+children: embeds, tag managers, analytics, functionality, and ads and pixels.
+Every exported vendor helper needs a discoverable guide. Preserve old vendor
+routes during rewrites and compare against the existing integration inventory.
+Vendor guides need configuration, registration, options, actual loading and
+revocation behavior, and verification. Reuse the shared registration include for
+React, Next.js and JavaScript tabs; keep adapter-specific differences explicit.
+Do not infer a zero-request guarantee from a category or cookieless branding.
+Check `alwaysLoad`, consent callbacks and persistence after revocation in source.
 Preserve useful existing URLs. When a page moves, configure a redirect in the docs host and update internal
 links. Record retired URLs and their replacements before deleting old routes.
 Avoid thin framework duplicates, keyword repetition and unsupported comparisons.

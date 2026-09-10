@@ -1,0 +1,60 @@
+---
+title: Databuddy
+description: Configure Databuddy's initial and updated consent state with c15t v3.
+group: integrations
+---
+
+## Configure Databuddy
+
+Use the client ID for your Databuddy project. Supply both configuration objects
+so the initial script load has an explicit allowed and denied state.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { databuddy } from '@c15t/scripts/databuddy';
+
+export const scripts = [
+  databuddy({
+    clientId: 'YOUR_CLIENT_ID',
+    configWhenGranted: { disabled: false },
+    configWhenDenied: { disabled: true },
+  }),
+];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `clientId` | Required project client ID. |
+| `configWhenGranted` | Required configuration used when measurement is allowed. |
+| `configWhenDenied` | Required configuration used when measurement is denied. |
+| `apiUrl` | Defaults to `https://basket.databuddy.cc`. |
+| `scriptUrl` | Defaults to `https://cdn.databuddy.cc/databuddy.js`. |
+
+Use serializable configuration values. The helper seeds
+`window.databuddyConfig` before loading only if that global is absent. Remove a
+separate global initializer that could override your intended initial state.
+
+## Consent behavior
+
+Databuddy uses `alwaysLoad: true`. The script is requested regardless of
+measurement permission. On load and later changes, the helper sets
+`window.databuddy.options.disabled` from measurement permission. On consent
+changes it also replaces `window.databuddyConfig` with the matching object.
+
+This helper is not a no-request-before-consent integration. If your requirement
+is to prevent even the SDK request, use a
+[custom gated integration](/docs/integrations/building-integrations) and verify
+its complete lifecycle.
+
+## Verify the integration
+
+Expect the loader request while consent is denied. Check the initial global
+configuration and the SDK's `disabled` value, grant measurement, then revoke it.
+Confirm collection follows those transitions and that application event calls
+stop after revocation. Test with no pre-existing `databuddyConfig` as well as
+with persisted consent. See [consent verification](/docs/guides/verify-consent).

@@ -87,13 +87,44 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Integrations
 
-- [Build a custom script integration](./docs/integrations/building-integrations.md): Define loading, initialization and consent-change behavior for a vendor without a helper.
-- [Consent-gated Google Maps embeds](./docs/integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
-- [Google Tag for GA4 and Ads](./docs/integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
-- [Google Tag Manager and Consent Mode](./docs/integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
-- [Intercom messenger](./docs/integrations/intercom.md): Load the Intercom messenger with functionality permission and configure its region.
+- [Adobe Analytics](./docs/integrations/adobe-analytics.md): Configure Adobe Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Ahrefs Analytics](./docs/integrations/ahrefs-analytics.md): Configure Ahrefs Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Amplitude](./docs/integrations/amplitude.md): Configure Amplitude with c15t v3, understand measurement permission and verify loading and revocation.
+- [Custom integrations](./docs/integrations/building-integrations.md): Define loading, initialization and consent-change behavior for a vendor without a helper.
+- [Clearbit](./docs/integrations/clearbit.md): Configure Clearbit with c15t v3, understand marketing permission and verify loading and revocation.
+- [Cloudflare Web Analytics](./docs/integrations/cloudflare-web-analytics.md): Configure Cloudflare Web Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Crisp](./docs/integrations/crisp.md): Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
+- [Databuddy](./docs/integrations/databuddy.md): Configure Databuddy's initial and updated consent state with c15t v3.
+- [Fathom Analytics](./docs/integrations/fathom-analytics.md): Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Google Maps](./docs/integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
+- [Google Tag](./docs/integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
+- [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
+- [Heap](./docs/integrations/heap.md): Configure Heap with c15t v3, understand measurement permission and verify loading and revocation.
+- [Hightouch](./docs/integrations/hightouch.md): Configure Hightouch with c15t v3, understand measurement permission and verify loading and revocation.
+- [Hotjar](./docs/integrations/hotjar.md): Configure Hotjar with c15t v3, understand measurement permission and verify loading and revocation.
+- [Intercom](./docs/integrations/intercom.md): Load the Intercom messenger with functionality permission and configure its region.
+- [LinkedIn Insight Tag](./docs/integrations/linkedin-insights.md): Configure LinkedIn Insight Tag with c15t v3, understand marketing permission and verify loading and revocation.
+- [LogRocket](./docs/integrations/logrocket.md): Configure LogRocket with c15t v3, understand measurement permission and verify loading and revocation.
+- [Matomo Analytics](./docs/integrations/matomo-analytics.md): Choose gated loading or Matomo consent signaling and configure the correct tracker endpoints.
 - [Meta Pixel](./docs/integrations/meta-pixel.md): Register the Meta Pixel under marketing permission and verify event calls after revocation.
-- [Connect third-party services](./docs/integrations/overview.md): Choose a vendor helper, understand its consent behavior and remove duplicate loading.
+- [Microsoft Clarity](./docs/integrations/microsoft-clarity.md): Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
+- [Microsoft UET](./docs/integrations/microsoft-uet.md): Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
+- [Mixpanel](./docs/integrations/mixpanel-analytics.md): Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+- [Overview](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Pirsch](./docs/integrations/pirsch.md): Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
+- [Plausible Analytics](./docs/integrations/plausible-analytics.md): Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [PostHog](./docs/integrations/posthog.md): Choose PostHog loading and cookieless behavior, configure the region, and synchronize v3 permissions.
+- [Promptwatch](./docs/integrations/promptwatch.md): Configure Promptwatch with c15t v3, understand measurement permission and verify loading and revocation.
+- [Reddit Pixel](./docs/integrations/reddit-pixel.md): Configure Reddit Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+- [RudderStack](./docs/integrations/rudderstack.md): Gate the RudderStack browser SDK or map c15t categories to destination consent IDs.
+- [Rybbit Analytics](./docs/integrations/rybbit-analytics.md): Configure Rybbit Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Segment](./docs/integrations/segment.md): Configure Segment with c15t v3, understand measurement permission and verify loading and revocation.
+- [Snapchat Pixel](./docs/integrations/snapchat-pixel.md): Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+- [TikTok Pixel](./docs/integrations/tiktok-pixel.md): Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+- [Umami Analytics](./docs/integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Vercel Analytics](./docs/integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [X Pixel](./docs/integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+- [YouTube](./docs/integrations/youtube.md): Keep a YouTube iframe unmounted until permission with the v3 Frame component.
 
 ## Reference
 

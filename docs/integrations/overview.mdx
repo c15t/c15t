@@ -1,41 +1,102 @@
 ---
-title: Connect third-party services
-description: Choose a vendor helper, understand its consent behavior and remove duplicate loading.
+title: Overview
+description: Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
 group: integrations
 ---
 
-## Choose the integration by behavior
+## Choose an integration
 
-Install `@c15t/scripts` and pass the returned script configurations to your
-framework provider or core script loader. The helper's return value is a
-configuration; importing it alone does not register the vendor.
+Use the vendor helper from `@c15t/scripts` with your existing c15t provider or
+script loader. Every helper returns a script configuration; importing one does
+not install the vendor. Start with your [framework quickstart](/docs/frameworks)
+to connect Inth and render consent UI, then follow the vendor guide.
 
-| Service | Helper | Loading contract |
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+`@c15t/scripts` is a separate add-on. Keep the main `c15t` package for imports
+such as `c15t/react` and `c15t/next`.
+
+Browse integrations by service type below. The tables distinguish helpers that
+wait for permission from helpers
+that load immediately and send consent signals. Read the vendor's revocation
+behavior before choosing either approach.
+
+## Embeds
+
+| Integration | v3 implementation | Loading behavior |
 | --- | --- | --- |
-| [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | Marketing permission |
-| [Intercom](/docs/integrations/intercom) | `intercom` | Functionality permission |
-| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | Always loaded, sends Consent Mode signals |
-| [Google Tag](/docs/integrations/google-tag) | `gtag` | Always loaded, sends Consent Mode signals |
-| [Google Maps embed](/docs/integrations/google-maps) | Consent-gated `Frame` | Children mount after the chosen permission |
+| [Google Maps](/docs/integrations/google-maps) | `Frame` with a map iframe | Iframe mounts only while the chosen permission is allowed |
+| [YouTube](/docs/integrations/youtube) | `Frame` with a video iframe | Iframe mounts only while the chosen permission is allowed |
 
-The package also contains other vendor helpers. Check the installed package's
-exports for the exact subpath and options before writing a custom loader. Do
-not assume every helper blocks its SDK until consent; some load the SDK and
-control its behavior through a consent API.
+Embeds use the framework's UI adapter and do not require `@c15t/scripts`.
 
-## Remove the original vendor installation
+## Tag managers
 
-Find direct script tags, tag-manager entries, framework plugins and existing
-SDK initializers. Keep one owner. Installing a helper while leaving the old
-snippet in place can send requests before c15t is ready and initialize a vendor
-twice.
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary` | Always loads; signals Google consent |
 
-## Verify the entire vendor lifecycle
+## Analytics
 
-Test no choice, rejection, acceptance, revocation and navigation. Stop future
-event calls when permission becomes denied. Removing a script tag cannot undo
-requests or event listeners already created by the vendor.
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement or marketing` | Always loads; signals Google consent |
+| [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
+| [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
+| [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission |
+| [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics) | `cloudflareWebAnalytics` | `measurement` | Waits for effective permission |
+| [Clearbit](/docs/integrations/clearbit) | `clearbit` | `marketing` | Waits for effective permission |
+| [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; retains SDK and signals storage consent |
+| [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches SDK configuration |
+| [Fathom Analytics](/docs/integrations/fathom-analytics) | `fathomAnalytics` | `measurement` | Waits for effective permission |
+| [Heap](/docs/integrations/heap) | `heap` | `measurement` | Waits for effective permission |
+| [Matomo Analytics](/docs/integrations/matomo-analytics) | `matomoAnalytics` | `measurement` | Gated by default; optional consent mode |
+| [Mixpanel](/docs/integrations/mixpanel-analytics) | `mixpanelAnalytics` | `measurement` | Always loads; calls opt-in and opt-out APIs |
+| [Hotjar](/docs/integrations/hotjar) | `hotjar` | `measurement` | Waits for effective permission |
+| [Hightouch](/docs/integrations/hightouch) | `hightouch` | `measurement` | Waits for effective permission |
+| [LogRocket](/docs/integrations/logrocket) | `logRocket` | `measurement` | Waits for effective permission |
+| [Plausible Analytics](/docs/integrations/plausible-analytics) | `plausibleAnalytics` | `measurement` | Waits for effective permission |
+| [PostHog](/docs/integrations/posthog) | `posthog` | `measurement` | Configurable; default always loads |
+| [Promptwatch](/docs/integrations/promptwatch) | `promptwatch` | `measurement` | Waits for effective permission |
+| [Pirsch](/docs/integrations/pirsch) | `pirsch` | `measurement` | Waits for effective permission |
+| [RudderStack](/docs/integrations/rudderstack) | `rudderstack` | `measurement` | Gated by default; optional destination consent mode |
+| [Segment](/docs/integrations/segment) | `segment` | `measurement` | Waits for effective permission |
+| [Rybbit Analytics](/docs/integrations/rybbit-analytics) | `rybbitAnalytics` | `measurement` | Waits for effective permission |
+| [Umami Analytics](/docs/integrations/umami-analytics) | `umamiAnalytics` | `measurement` | Waits for effective permission |
+| [Vercel Analytics](/docs/integrations/vercel-analytics) | `vercelAnalytics` | `measurement` | Waits for effective permission |
 
-Use [custom integrations](/docs/integrations/building-integrations) for an
-unlisted service and [verification](/docs/guides/verify-consent) to establish
-what the browser actually sends.
+## Functionality
+
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Crisp](/docs/integrations/crisp) | `crisp` | `functionality` | Waits for effective permission |
+| [Intercom](/docs/integrations/intercom) | `intercom` | `functionality` | Waits for effective permission |
+
+## Ads and pixels
+
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | `marketing` | Waits for effective permission |
+| [Reddit Pixel](/docs/integrations/reddit-pixel) | `redditPixel` | `marketing` | Gated initially; retains SDK and switches cookies |
+| [TikTok Pixel](/docs/integrations/tiktok-pixel) | `tiktokPixel` | `marketing` | Gated initially; retains SDK and signals consent |
+| [LinkedIn Insight Tag](/docs/integrations/linkedin-insights) | `linkedinInsights` | `marketing` | Waits for effective permission |
+| [Microsoft UET](/docs/integrations/microsoft-uet) | `microsoftUet` | `marketing` | Always loads; signals ad storage consent |
+| [Snapchat Pixel](/docs/integrations/snapchat-pixel) | `snapchatPixel` | `marketing` | Waits for effective permission |
+| [X Pixel](/docs/integrations/x-pixel) | `xPixel` | `marketing` | Waits for effective permission |
+
+## Keep one owner per vendor
+
+Remove direct snippets, tracking images, framework plugins and duplicate
+SDK initializers before adding a helper. A vendor loaded outside c15t is not
+controlled by the configuration here. Tag managers and data pipelines can load
+other destinations, which need their own consent settings.
+
+Initial loading and later event calls are separate. Some helpers keep an SDK
+loaded to send consent updates. Others remove their script element without a
+vendor stop callback. Neither approach can reverse code or requests that already
+ran. Guard application events and verify automatic tracking after revocation.
+
+Use [custom integrations](/docs/integrations/building-integrations) for a service
+without a helper, or an SDK your application already owns. Follow
+[consent verification](/docs/guides/verify-consent) for fresh sessions, rejection,
+acceptance, revocation and navigation.

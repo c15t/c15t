@@ -1,12 +1,14 @@
 ---
-title: Intercom messenger
+title: Intercom
 description: Load the Intercom messenger with functionality permission and configure its region.
 group: integrations
 ---
 
 ## Register the messenger
 
-```ts
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
 import { intercom } from '@c15t/scripts/intercom';
 
 export const scripts = [intercom({ appId: 'your-app-id' })];
@@ -16,6 +18,8 @@ Pass `scripts` to the existing provider or loader. The helper uses the
 `functionality` category and defaults to Intercom's US API base. Set `apiBase`
 when your workspace uses another region. Optional serializable `settings` are
 merged into `window.intercomSettings`.
+
+<include src="../shared/integrations/register-scripts.mdx" />
 
 ## Verify identity and lifecycle
 

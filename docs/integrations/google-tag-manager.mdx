@@ -1,12 +1,14 @@
 ---
-title: Google Tag Manager and Consent Mode
+title: Google Tag Manager
 description: Load GTM with c15t consent signals and verify the tags inside your container.
 group: integrations
 ---
 
 ## Register the container
 
-```ts
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
 export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
@@ -16,6 +18,8 @@ Replace the container ID and pass `scripts` to your existing provider options.
 Remove the previous GTM snippet and any duplicate framework integration. The
 helper sends a `consent-update` event after consent changes; `updateEventName`
 customizes that event name.
+
+<include src="../shared/integrations/register-scripts.mdx" />
 
 ## Consent Mode is not a zero-request gate
 

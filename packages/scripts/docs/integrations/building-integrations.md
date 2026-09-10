@@ -1,5 +1,5 @@
 ---
-title: Build a custom script integration
+title: Custom integrations
 description: Define loading, initialization and consent-change behavior for a
   vendor without a helper.
 group: integrations

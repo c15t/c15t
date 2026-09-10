@@ -1,0 +1,39 @@
+---
+title: Clearbit
+description: Configure Clearbit with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Clearbit
+
+Use the publishable key from your Clearbit tag installation. The helper loads the account-specific `tags.js` URL. Do not put a secret enrichment API key in browser code.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { clearbit } from '@c15t/scripts/clearbit';
+
+export const scripts = [clearbit({ publishableKey: 'YOUR_PUBLISHABLE_KEY' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `publishableKey` | Required non-empty publishable key. |
+| `scriptUrl` | Optional full loader override; otherwise derived from the publishable key. |
+
+## Consent behavior
+
+Clearbit is listed under Analytics for discovery, but its helper uses marketing permission because it performs enrichment. The helper has no vendor revocation callback; do not assume removing the tag stops an enrichment SDK that already ran.
+
+## Verify the integration
+
+Check the account key in the requested loader URL and inspect enrichment requests. Confirm marketing rejection prevents the initial load, even when measurement is allowed.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

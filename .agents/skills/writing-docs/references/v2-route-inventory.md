@@ -1,8 +1,8 @@
 # V2 routes absent from the v3 tree
 
 Inventory from `origin/main`, 10 September 2026. Shared include files are excluded.
-These routes were absent before publication of this rewrite; this file does not
-configure redirects. Existing routes retained by the rewrite are not listed.
+These routes remain absent after restoring the v3 integration guides; this file
+does not configure redirects. Existing routes retained by the rewrite are not listed.
 
 Do not redirect all missing topics to the homepage or a generic overview. For
 routes with a comparison target, review the old task against the destination
@@ -11,7 +11,7 @@ but do not replace a versioned v2 reference. For the remaining routes, retain
 access to the v2 documentation or write the missing v3 task before retiring it.
 The private host owns version routing, canonical URLs and redirect status codes.
 
-145 old public MDX paths need a publication decision.
+114 old public MDX paths need a publication decision.
 
 | Old route | Publication decision |
 | --- | --- |
@@ -123,37 +123,6 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/styling/slots` | Compare with `/docs/customization/slots` before redirecting |
 | `/docs/frameworks/react/styling/tailwind` | Compare with `/docs/customization/tokens` before redirecting |
 | `/docs/frameworks/react/styling/tokens` | Compare with `/docs/customization/tokens` before redirecting |
-| `/docs/integrations/adobe-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/ahrefs-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/amplitude` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/clearbit` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/cloudflare-web-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/crisp` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/databuddy` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/fathom-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/heap` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/hightouch` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/hotjar` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/linkedin-insights` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/logrocket` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/matomo-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/microsoft-clarity` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/microsoft-uet` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/mixpanel-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/pirsch` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/plausible-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/posthog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/promptwatch` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/reddit-pixel` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/rudderstack` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/rybbit-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/segment` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/snapchat-pixel` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/tiktok-pixel` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/umami-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/vercel-analytics` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/x-pixel` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/integrations/youtube` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/self-host/guides/caching` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/self-host/guides/edge-deployment` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/self-host/guides/framework-integration` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |

@@ -1,12 +1,14 @@
 ---
-title: Google Tag for GA4 and Ads
+title: Google Tag
 description: Configure gtag with c15t Consent Mode signals and understand its loading behavior.
 group: integrations
 ---
 
 ## Register gtag
 
-```ts
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
 import { gtag } from '@c15t/scripts/google-tag';
 
 export const scripts = [gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })];
@@ -17,6 +19,8 @@ Choose `marketing` for a configuration whose purpose is advertising. The
 category describes the integration but does not override `alwaysLoad`.
 Remove a separately installed `gtag.js` snippet or a duplicate tag-manager
 configuration before testing.
+
+<include src="../shared/integrations/register-scripts.mdx" />
 
 ## Consent Mode is not a zero-request gate
 

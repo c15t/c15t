@@ -146,12 +146,36 @@ Check index-page Markdown URLs specifically: leadtype emits a curated link to
 The host must resolve that route or publish the appropriate alias. A successful
 CLI generation does not prove that the public Markdown route exists.
 
+## Integration coverage
+
+All 38 v2 integration routes are retained in v3, including the overview and
+custom-integration guide. The navigation restores service-type groups instead
+of a flat shortlist. The scripts package currently exposes 34 named vendor
+helpers; each has a guide. Google Maps and YouTube use `Frame` because the old
+convenience embed components are not exported by the current v3 adapters.
+
+Guides distinguish initial permission gating, vendor consent signals, and
+post-load cleanup. Shared registration instructions cover the v3 provider,
+Next.js boundary, and headless loader, with links to the remaining adapters.
+The route inventory excludes the 31 restored integration URLs, which no longer
+need redirects.
+
+Validation for the restored integrations:
+
+- All 38 original routes exist; every exported vendor helper appears in grouped
+  navigation. Browser requests returned HTTP 200 for all 38 routes.
+- The preview renders framework registration tabs and all five integration
+  sidebar groups. Development navigation now refreshes after leadtype generation.
+- Forty-one self-contained integration snippets compiled, and all 34 documented
+  vendor configurations constructed against the current source. Root tooling
+  passed 146 tests. These checks do not verify delivery into customer dashboards.
+
 ## Release acceptance
 
 1. Every navigation route resolves; every removed old route has a reviewed
    redirect destination or an intentional removal decision. Inspect `origin/main`
    for the complete inventory, including shared pages and old framework routes.
-   The [v2 route inventory](v2-route-inventory.md) records 145 absent public MDX
+   The [v2 route inventory](v2-route-inventory.md) records 114 absent public MDX
    paths, including vendor guides and older hooks. It lists comparison targets
    where available; it is not a blanket redirect map or a claim of v2 coverage.
 2. Installation examples compile against the v3 packages being published.

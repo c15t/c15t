@@ -1,5 +1,5 @@
 ---
-title: Consent-gated Google Maps embeds
+title: Google Maps
 description: Prevent a map iframe from mounting before the required permission.
 group: integrations
 ---
