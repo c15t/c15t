@@ -1,0 +1,315 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Banner readiness should not regress by more than 25ms and 15%.",
+			"metric": "bannerReadyMs",
+			"secondaryThreshold": 15,
+			"threshold": 25
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Final app-script response end budget.",
+			"metric": "lastAppScriptEndMs",
+			"secondaryThreshold": 10,
+			"threshold": 15
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Interaction latency budget.",
+			"metric": "interactionLatencyMs",
+			"secondaryThreshold": 20,
+			"threshold": 20
+		},
+		{
+			"comparator": "percent-lte",
+			"description": "Long-task total should not grow by more than 25%.",
+			"metric": "longTaskTotalMs",
+			"threshold": 25
+		},
+		{
+			"comparator": "count-eq",
+			"description": "SSR routes should not trigger browser-observed init requests.",
+			"metric": "initRequestsAfterLoad",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "No hydration warnings or console errors during SSR hydration.",
+			"metric": "consoleErrorCount",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "The active UI must not change between first client render and settle (no prompt flash).",
+			"metric": "promptTransitionCount",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "278fd8667edab3f5d392ae6dfecbea96c54fdfdc",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.19.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "manifest-ssr-cold:profile-none:latency-150ms",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "nextjs",
+	"metadata": {
+		"bannerInFirstHtml": true,
+		"bannerPaintMs": 304,
+		"cls": 0,
+		"coldManifestMode": true,
+		"consoleErrors": [],
+		"fixtureInitExecutions": 0,
+		"fixtureManifestExecutions": 1,
+		"fixtureSubjectExecutions": 0,
+		"gitDirty": true,
+		"initLatencyMs": 150,
+		"profile": "none"
+	},
+	"metrics": [
+		{
+			"avg": 389.5,
+			"median": 389.5,
+			"name": "bannerReadyMs",
+			"p95": 389.5,
+			"samples": [389.5],
+			"unit": "ms"
+		},
+		{
+			"avg": 389.6,
+			"median": 389.6,
+			"name": "bannerVisibleMs",
+			"p95": 389.6,
+			"samples": [389.60000002384186],
+			"unit": "ms"
+		},
+		{
+			"avg": 304,
+			"median": 304,
+			"name": "bannerPaintMs",
+			"p95": 304,
+			"samples": [304],
+			"unit": "ms"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "bannerInFirstHtml",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "cls",
+			"p95": 0,
+			"samples": [0],
+			"unit": "ratio"
+		},
+		{
+			"avg": 260.6,
+			"median": 260.6,
+			"name": "firstAppScriptStartMs",
+			"p95": 260.6,
+			"samples": [260.60000002384186],
+			"unit": "ms"
+		},
+		{
+			"avg": 405,
+			"median": 405,
+			"name": "lastAppScriptEndMs",
+			"p95": 405,
+			"samples": [405],
+			"unit": "ms"
+		},
+		{
+			"avg": 14,
+			"median": 14,
+			"name": "appScriptCount",
+			"p95": 14,
+			"samples": [14],
+			"unit": "count"
+		},
+		{
+			"avg": 277791,
+			"median": 277791,
+			"name": "jsBytes",
+			"p95": 277791,
+			"samples": [277791],
+			"unit": "bytes"
+		},
+		{
+			"avg": 252.4,
+			"median": 252.4,
+			"name": "ttfbMs",
+			"p95": 252.4,
+			"samples": [252.4],
+			"unit": "ms"
+		},
+		{
+			"avg": 298.6,
+			"median": 298.6,
+			"name": "htmlDoneMs",
+			"p95": 298.6,
+			"samples": [298.6],
+			"unit": "ms"
+		},
+		{
+			"avg": 298.6,
+			"median": 298.6,
+			"name": "domContentLoadedMs",
+			"p95": 298.6,
+			"samples": [298.6],
+			"unit": "ms"
+		},
+		{
+			"avg": 358.9,
+			"median": 358.9,
+			"name": "loadEventMs",
+			"p95": 358.9,
+			"samples": [358.9],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "mountCount",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "renderCount",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskTotalMs",
+			"p95": 0,
+			"samples": [0],
+			"unit": "ms"
+		},
+		{
+			"avg": 62,
+			"median": 62,
+			"name": "domNodeCount",
+			"p95": 62,
+			"samples": [62],
+			"unit": "count"
+		},
+		{
+			"avg": 68.336,
+			"median": 68.336,
+			"name": "interactionLatencyMs",
+			"p95": 68.336,
+			"samples": [68.33575000000019],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "consoleErrorCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "consoleWarningCount",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "hydrationWarningCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "promptTransitionCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "hydratedChoicePresent",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "promptShownCount",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 372.1,
+			"median": 372.1,
+			"name": "promptSettledMs",
+			"p95": 372.1,
+			"samples": [372.10000002384186],
+			"unit": "ms"
+		}
+	],
+	"notes": [
+		"Next.js browser bench covers client, manifest, SSR, RSC, repeat-visitor, and persisted ssr-repeat paths.",
+		"consoleErrorCount counts console errors and page errors captured until the prompt settled; consoleWarningCount counts warnings; hydrationWarningCount is the subset of either matching React hydration messages."
+	],
+	"package": "@c15t/nextjs-browser-bench",
+	"runtime": "playwright",
+	"scenario": "manifest-ssr-cold:profile-none:latency-150ms",
+	"schemaVersion": 1,
+	"suite": "browser-runtime",
+	"timestamp": "2026-09-10T13:45:41.851Z"
+}

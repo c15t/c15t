@@ -1,0 +1,359 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Banner readiness should not regress by more than 25ms and 15%.",
+			"metric": "bannerReadyMs",
+			"secondaryThreshold": 15,
+			"threshold": 25
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Final app-script response end budget.",
+			"metric": "lastAppScriptEndMs",
+			"secondaryThreshold": 10,
+			"threshold": 15
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Interaction latency budget.",
+			"metric": "interactionLatencyMs",
+			"secondaryThreshold": 20,
+			"threshold": 20
+		},
+		{
+			"comparator": "percent-lte",
+			"description": "Long-task total should not grow by more than 25%.",
+			"metric": "longTaskTotalMs",
+			"threshold": 25
+		},
+		{
+			"comparator": "count-eq",
+			"description": "SSR routes should not trigger browser-observed init requests.",
+			"metric": "initRequestsAfterLoad",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "No hydration warnings or console errors during SSR hydration.",
+			"metric": "consoleErrorCount",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "The active UI must not change between first client render and settle (no prompt flash).",
+			"metric": "promptTransitionCount",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "SSR repeat visitor applies the real stored choice before the settled client observation.",
+			"metric": "hydratedChoicePresent",
+			"threshold": 1
+		},
+		{
+			"comparator": "count-eq",
+			"description": "A persisted repeat visitor over SSR gets no banner in the first HTML.",
+			"metric": "bannerInFirstHtml",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "A persisted repeat visitor over SSR sees no first-layer prompt after hydration.",
+			"metric": "promptShownCount",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "278fd8667edab3f5d392ae6dfecbea96c54fdfdc",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.19.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "ssr-repeat:profile-none:latency-150ms",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "nextjs",
+	"metadata": {
+		"bannerInFirstHtml": false,
+		"bannerPaintMs": null,
+		"cls": 0,
+		"coldManifestMode": false,
+		"consoleErrors": [],
+		"fixtureInitExecutions": 22,
+		"fixtureManifestExecutions": 0,
+		"fixtureSubjectExecutions": 0,
+		"gitDirty": true,
+		"initLatencyMs": 150,
+		"profile": "none"
+	},
+	"metrics": [
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "bannerReadyMs",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "bannerVisibleMs",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "ms"
+		},
+		{
+			"avg": null,
+			"median": null,
+			"name": "bannerPaintMs",
+			"p95": null,
+			"samples": [null, null, null, null, null, null, null, null, null, null],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "bannerInFirstHtml",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "cls",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "ratio"
+		},
+		{
+			"avg": 160.1,
+			"median": 160,
+			"name": "firstAppScriptStartMs",
+			"p95": 164.1,
+			"samples": [
+				164.10000002384186, 160, 160.89999997615814, 159.70000004768372, 159.5,
+				160, 160.39999997615814, 157.69999992847443, 160.20000004768372, 158.5
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 183.63,
+			"median": 183.05,
+			"name": "lastAppScriptEndMs",
+			"p95": 190,
+			"samples": [
+				190, 181.80000007152557, 183.39999997615814, 183.10000002384186, 183,
+				184.60000002384186, 182.70000004768372, 182, 182, 183.70000004768372
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 14,
+			"median": 14,
+			"name": "appScriptCount",
+			"p95": 14,
+			"samples": [14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
+			"unit": "count"
+		},
+		{
+			"avg": 273591,
+			"median": 273591,
+			"name": "jsBytes",
+			"p95": 273591,
+			"samples": [
+				273591, 273591, 273591, 273591, 273591, 273591, 273591, 273591, 273591,
+				273591
+			],
+			"unit": "bytes"
+		},
+		{
+			"avg": 157.96,
+			"median": 157.85,
+			"name": "ttfbMs",
+			"p95": 161.9,
+			"samples": [
+				161.9, 158, 158.8, 157.6, 157.5, 157.7, 158.3, 155.7, 158, 156.1
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 171.29,
+			"median": 171,
+			"name": "htmlDoneMs",
+			"p95": 175.9,
+			"samples": [
+				175.9, 170.9, 171, 171, 171.2, 170.8, 171.7, 168.8, 171.3, 170.3
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 171.29,
+			"median": 171,
+			"name": "domContentLoadedMs",
+			"p95": 175.9,
+			"samples": [
+				175.9, 170.9, 171, 171, 171.2, 170.8, 171.7, 168.8, 171.3, 170.3
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 171.34,
+			"median": 171.15,
+			"name": "loadEventMs",
+			"p95": 175.9,
+			"samples": [
+				175.9, 170.9, 171.3, 171.1, 171.2, 170.9, 171.7, 168.8, 171.3, 170.3
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "mountCount",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "renderCount",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskTotalMs",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "ms"
+		},
+		{
+			"avg": 40,
+			"median": 40,
+			"name": "domNodeCount",
+			"p95": 40,
+			"samples": [40, 40, 40, 40, 40, 40, 40, 40, 40, 40],
+			"unit": "count"
+		},
+		{
+			"avg": 23.571,
+			"median": 24.177,
+			"name": "interactionLatencyMs",
+			"p95": 29.027,
+			"samples": [
+				27.435459000000264, 19.345417000000452, 25.134125000000495,
+				17.965916000001016, 17.924541000000318, 29.026582999998936,
+				23.22087499999907, 22.0379580000008, 25.311334000001807,
+				28.307041000000027
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "consoleErrorCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "consoleWarningCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "hydrationWarningCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "promptTransitionCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "hydratedChoicePresent",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "promptShownCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 175.53,
+			"median": 175.3,
+			"name": "promptSettledMs",
+			"p95": 180.1,
+			"samples": [
+				180.10000002384186, 175, 175.79999995231628, 175.30000007152557,
+				175.30000007152557, 174.69999992847443, 176.30000007152557,
+				172.79999995231628, 175.39999997615814, 174.60000002384186
+			],
+			"unit": "ms"
+		}
+	],
+	"notes": [
+		"Next.js browser bench covers client, manifest, SSR, RSC, repeat-visitor, and persisted ssr-repeat paths.",
+		"consoleErrorCount counts console errors and page errors captured until the prompt settled; consoleWarningCount counts warnings; hydrationWarningCount is the subset of either matching React hydration messages."
+	],
+	"package": "@c15t/nextjs-browser-bench",
+	"runtime": "playwright",
+	"scenario": "ssr-repeat:profile-none:latency-150ms",
+	"schemaVersion": 1,
+	"suite": "browser-runtime",
+	"timestamp": "2026-09-10T13:45:20.639Z"
+}
