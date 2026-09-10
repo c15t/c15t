@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 2.2.0-canary-20260910103958
+
+### Patch Changes
+
+- d651989: Recognize Netlify's `x-country` geolocation header.
+
 ## 2.2.0-canary-20260814121231
 
 ### Patch Changes
