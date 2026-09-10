@@ -190,7 +190,7 @@
 
   Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
 
-- 57eef9f: feat(cli): consent.io integration
+- 57eef9f: feat(cli): inth.com integration
   feat(cli): remove redundent preflight checks
 - 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
   Add CLI migration codemods to update existing projects to the new naming.

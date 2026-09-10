@@ -31,7 +31,7 @@ use the local IAB playground. Open DevTools → IAB to edit vendor and purpose
 consent, legitimate interest, and special-feature opt-ins. Search by name or ID;
 the vendor list is paginated. The two IAB script fixtures respond to your edits.
 
-This mode fetches the vendor list from consent.io and uses the example CMP ID.
+This mode fetches the vendor list from inth.com and uses the example CMP ID.
 Save generates a TC string in memory without contacting the consent backend;
 reload resets the playground. It is not a production CMP configuration or a
 backend persistence test. Real SDKs still require the explicit test IDs above.

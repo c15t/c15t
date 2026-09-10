@@ -75,7 +75,7 @@ export interface CreateIABOptions {
 	 */
 	gvl?: GlobalVendorList | null;
 	/**
-	 * Override the GVL endpoint. Default: IAB's `gvl.consent.io`.
+	 * Override the GVL endpoint. Default: `gvl.inth.com`.
 	 */
 	gvlURL?: string;
 }

@@ -113,7 +113,7 @@
 
 ### Patch Changes
 
-- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+- 408df0e: feat: CMP ID now comes from backend, either inth.com when hosted or BYO CMP ID
   feat: Center the IAB Banner for better policy compliance
   feat: Improve doc comments around IAB
 

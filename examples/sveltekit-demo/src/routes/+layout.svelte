@@ -137,7 +137,7 @@
 		{#if isIabPlayground}
 			<p role="status">
 				IAB playground: saves stay in memory and reset on reload. The vendor
-				list loads from consent.io. This is not a production CMP configuration.
+				list loads from inth.com. This is not a production CMP configuration.
 			</p>
 		{/if}
 		{@render children()}
