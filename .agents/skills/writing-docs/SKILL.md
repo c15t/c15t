@@ -64,7 +64,11 @@ Migration pages may show old APIs only in clearly labelled before examples.
 
 Separate backend ownership, policy fetching and consent-record transport.
 For Next.js server deployments, lead with the shared manifest configuration
-and app init route, then explain regular backend `/init` and browser resolution
+and app init route, using `/api/c15t/manifest` and `/api/c15t/init`. Keep
+manifest handler upstream URLs absolute when a browser backend URL uses the
+same local prefix, otherwise the handler can fetch itself. Explain rewrite
+precedence when combining local handlers with a backend proxy. Then explain
+regular backend `/init` and browser resolution
 as alternatives. Cache public manifests, never visitor-specific resolved state.
 Document browser-only mode by its current API and explain what "offline" means.
 Keep backend configuration and policy authoring in `docs/self-host/`; framework

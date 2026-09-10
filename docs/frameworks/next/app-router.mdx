@@ -29,8 +29,8 @@ if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
 
 export const consentConfig = defineConsentConfig({
   backendURL,
-  manifestURL: '/api/consent/manifest',
-  initURL: '/api/consent/init',
+  manifestURL: '/api/c15t/manifest',
+  initURL: '/api/c15t/init',
 });
 ```
 
@@ -40,7 +40,7 @@ The manifest route reuses public policy data from Inth. The init route resolves
 that data using the current request's location, language and privacy signals.
 Neither route proxies consent submissions; those still go to Inth.
 
-```ts title="app/api/consent/manifest/route.ts"
+```ts title="app/api/c15t/manifest/route.ts"
 import { createNextConsentRouteHandlers } from 'c15t/next/api';
 import { consentConfig } from '../../../../consent.config';
 
@@ -48,7 +48,7 @@ export const { manifestGET: GET } =
   createNextConsentRouteHandlers(consentConfig);
 ```
 
-```ts title="app/api/consent/init/route.ts"
+```ts title="app/api/c15t/init/route.ts"
 import { createNextConsentRouteHandlers } from 'c15t/next/api';
 import { consentConfig } from '../../../../consent.config';
 
@@ -57,6 +57,10 @@ export const { GET } = createNextConsentRouteHandlers(consentConfig);
 
 These paths assume `app/` is at the project root. If you use `src/app/`, adjust
 the config imports to its location.
+
+Using an existing `/api/c15t` rewrite? Read
+[rewrite routing and upstream URLs](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
+before pointing the shared backend URL at that prefix.
 
 ## Resolve consent in the root layout
 

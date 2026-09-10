@@ -23,22 +23,22 @@ if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
 
 export const consentConfig = defineConsentConfig({
   backendURL,
-  manifestURL: '/api/consent/manifest',
-  initURL: '/api/consent/init',
+  manifestURL: '/api/c15t/manifest',
+  initURL: '/api/c15t/init',
 });
 ```
 
 Use the Pages Router handler adapter. It serves the same cached manifest and
 request-specific init contracts as the App Router handlers.
 
-```ts title="pages/api/consent/manifest.ts"
+```ts title="pages/api/c15t/manifest.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
 import { consentConfig } from '../../../consent.config';
 
 export default createPagesApiHandlers(consentConfig).manifest;
 ```
 
-```ts title="pages/api/consent/init.ts"
+```ts title="pages/api/c15t/init.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
 import { consentConfig } from '../../../consent.config';
 
@@ -47,6 +47,10 @@ export default createPagesApiHandlers(consentConfig).init;
 
 These imports assume `pages/` is at the project root. Adjust them if you use
 `src/pages/`.
+
+Using an existing `/api/c15t` rewrite? Read
+[rewrite routing and upstream URLs](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
+before pointing the shared backend URL at that prefix.
 
 ## Keep one boundary in the app
 
@@ -78,7 +82,7 @@ export default function App({ Component, pageProps }: AppProps<ConsentPageProps>
 }
 ```
 
-Without page prefetch, the boundary initializes through `/api/consent/init` in
+Without page prefetch, the boundary initializes through `/api/c15t/init` in
 the browser. That route resolves the cached manifest using the visitor request.
 Consent submissions still go directly to the Inth backend.
 

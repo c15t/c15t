@@ -35,7 +35,7 @@ including pages without prefetch and recovery after a prefetch failure.
    consent cookies.
 3. `ConsentBoundary` receives that result as `config` and the URL configuration
    as `consent`. Hydration preserves the prepared state.
-4. Browser initialization uses `/api/consent/init` when needed. This is your
+4. Browser initialization uses `/api/c15t/init` when needed. This is your
    app's manifest resolver, not the Inth `/init` endpoint.
 5. Choices still go to the Inth backend's `/subjects` endpoint.
 
@@ -84,6 +84,69 @@ Pass the actual `defineConsentConfig` result to the handlers. A plain options
 object's `manifestURL` means the upstream manifest URL; a defined config's
 `manifestURL` names the local route the handler serves. Confusing them can make a
 manifest route fetch itself.
+
+## Use the same prefix as a backend rewrite
+
+The local `/api/c15t/manifest` and `/api/c15t/init` routes can share a prefix
+with a backend rewrite. An array-form rewrite or `afterFiles` runs after those
+concrete routes; `fallback` runs after all application routes. A matching
+`beforeFiles` rewrite or middleware/proxy rewrite can intercept them instead.
+See [Next.js rewrite order](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
+
+The quickstarts keep `backendURL` pointed directly at Inth and need no rewrite.
+If you want same-origin consent writes too, add this fallback to your existing
+Next.js configuration:
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const upstreamURL = process.env.C15T_BACKEND_URL?.replace(/\/$/, '');
+if (!upstreamURL) throw new Error('Set C15T_BACKEND_URL to the absolute Inth endpoint');
+
+export default {
+  async rewrites() {
+    return {
+      fallback: [{
+        source: '/api/c15t/:path*',
+        destination: `${upstreamURL}/:path*`,
+      }],
+    };
+  },
+} satisfies NextConfig;
+```
+
+Set `C15T_BACKEND_URL` to your absolute Inth endpoint. In the shared
+`consent.config.ts`, use `backendURL: '/api/c15t'` and keep
+`manifestURL: '/api/c15t/manifest'` and `initURL: '/api/c15t/init'`. Requests such
+as `/api/c15t/subjects` now reach Inth through the rewrite; the two local handlers
+still resolve from the cached manifest.
+
+**Give both route handlers the absolute upstream URL.** With a local
+`backendURL`, passing `consentConfig` into the handler factory would make its
+upstream manifest request hit `/api/c15t/manifest` again. In each App Router
+handler, replace `createNextConsentRouteHandlers(consentConfig)` with this
+server-only upstream options. For example, the manifest route becomes:
+
+```ts title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+
+const backendURL = process.env.C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set C15T_BACKEND_URL to the absolute Inth endpoint');
+
+export const { manifestGET: GET } = createNextConsentRouteHandlers({ backendURL });
+```
+
+The init route uses the same factory options but exports `{ GET }`. Pages Router uses
+`createPagesApiHandlers({ backendURL })` with the same absolute upstream URL,
+exporting `.manifest` and `.init` from their respective files. Keep the shared
+`consentConfig` for prefetch and the boundary, where calling the local manifest
+route is intentional. If you set `C15T_MANIFEST_URL`, it must also point upstream.
+
+A bare rewrite source `/api/c15t` does not match nested endpoint paths. Use
+`/api/c15t/:path*` for the backend prefix. If you mount a self-hosted backend
+catch-all at that prefix, it handles the remaining endpoints instead of a
+fallback rewrite; keep the manifest resolver's upstream URL separate to avoid
+the same loop.
 
 ## Use regular backend init when it fits your deployment
 

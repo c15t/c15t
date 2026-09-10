@@ -59,7 +59,7 @@ adapter's server helper and forward its prepared result to the browser. For
 static output, initialize in the browser with a reachable external URL.
 
 A regular backend `/init` request lets the backend resolve the visitor context.
-A same-origin URL named `/api/consent/init` can instead resolve from a cached
+A same-origin URL named `/api/c15t/init` can instead resolve from a cached
 manifest in your application. The URL name alone does not tell you which path
 runs.
 
@@ -78,7 +78,7 @@ import { hosted } from 'c15t';
 export function createConsentMode(backendURL: string) {
   return hosted({
     url: backendURL,
-    initURL: '/api/consent/init',
+    initURL: '/api/c15t/init',
     assertDecisionInputs: true,
   });
 }
