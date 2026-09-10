@@ -13,7 +13,7 @@ import {
 import type { ConsentStoreState } from '../../store/type';
 import { allConsentNames, type ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
-import { deleteConsentFromStorage, saveConsentToStorage } from '../cookie';
+import { saveConsentToStorage } from '../cookie';
 import { determineModel } from '../determine-model';
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
 import {
@@ -163,7 +163,7 @@ function buildStoreUpdate(
 	};
 
 	// Show banner if no existing consent and regulation applies
-	if (consentInfo === null) {
+	if (consentInfo === null || consentInfo.requiresReconsent) {
 		if (data.policy?.ui?.mode) {
 			update.activeUI = data.policy.ui.mode;
 		} else {
@@ -305,7 +305,7 @@ function getDefaultConsents(
 	consentTypes: ConsentStoreState['consentTypes']
 ): ConsentState {
 	return consentTypes.reduce((acc, consent) => {
-		acc[consent.name] = consent.defaultValue;
+		acc[consent.name] = consent.name === 'necessary';
 		return acc;
 	}, {} as ConsentState);
 }
@@ -337,9 +337,12 @@ export async function updateStore(
 ): Promise<void> {
 	const { set, get } = config;
 	const initialState = get();
-	const currentPolicyFingerprint = data.policy
-		? await createMaterialPolicyFingerprint(data.policy)
-		: undefined;
+	const isTransportFallback =
+		initSourceMetadata?.initDataSource === 'offline-fallback';
+	const currentPolicyFingerprint =
+		!isTransportFallback && data.policy
+			? await createMaterialPolicyFingerprint(data.policy)
+			: undefined;
 
 	if (initialState.consentInfo && currentPolicyFingerprint) {
 		const storedPolicyFingerprint =
@@ -350,13 +353,26 @@ export async function updateStore(
 			storedPolicyFingerprint !== currentPolicyFingerprint
 		) {
 			const resetConsents = getDefaultConsents(initialState.consentTypes);
-			deleteConsentFromStorage(undefined, initialState.storageConfig);
+			// Keep the choice and identity so opt-out/no-banner defaults cannot
+			// turn a rejection into a grant. Old grants need fresh confirmation.
+			const consentInfo = {
+				...initialState.consentInfo,
+				requiresReconsent: true,
+			};
+			saveConsentToStorage(
+				{ consents: resetConsents, consentInfo },
+				undefined,
+				initialState.storageConfig
+			);
 			set({
 				consents: resetConsents,
 				selectedConsents: resetConsents,
-				consentInfo: null,
+				consentInfo,
 			});
-		} else if (!storedPolicyFingerprint) {
+		} else if (
+			!storedPolicyFingerprint &&
+			!initialState.consentInfo.requiresReconsent
+		) {
 			const updatedConsentInfo = {
 				...initialState.consentInfo,
 				materialPolicyFingerprint: currentPolicyFingerprint,
@@ -371,6 +387,13 @@ export async function updateStore(
 			);
 			set({ consentInfo: updatedConsentInfo });
 		}
+	}
+
+	if (isTransportFallback || get().consentInfo?.requiresReconsent) {
+		// A transport failure changes effective permissions only. Leave the
+		// durable choice and its authoritative fingerprint untouched.
+		const consents = getDefaultConsents(initialState.consentTypes);
+		set({ consents, selectedConsents: consents });
 	}
 
 	const { consentInfo } = get();

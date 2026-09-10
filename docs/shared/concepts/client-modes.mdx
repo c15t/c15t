@@ -33,7 +33,9 @@ group: reference
 
   1. On page load, the client calls `/init` to fetch geolocation, jurisdiction, localized translation strings
   2. When the user grants or changes consent, it is saved locally before being synced to the backend.
-  3. If the backend is unreachable, it falls back to Offline mode and re-syncs with the backend when it's available
+  3. If `/init` fails after retries, c15t uses a temporary opt-in fallback. Optional categories are denied during fallback, while the saved choice and its hosted policy fingerprint remain in browser storage.
+
+  A saved rejection survives an outage and recovery, including recovery to an opt-out or no-banner policy. A rejection saved during fallback also survives recovery. Grants saved during fallback need fresh confirmation under the hosted policy. Previously valid grants can resume on a later load if the original hosted policy returns and the user has not changed their choice.
 
   **Configuration:**
 
