@@ -1,0 +1,73 @@
+---
+title: Svelte consent setup
+description: Mount c15t components and a persistent preferences link in a Svelte 5 application.
+group: frameworks
+---
+
+[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install and configure the provider
+
+```package-install
+@c15t/svelte
+```
+
+```svelte title="src/App.svelte"
+<script lang="ts">
+  import {
+    ConsentBanner,
+    ConsentDialog,
+    ConsentDialogLink,
+    ConsentManagerProvider,
+    hosted,
+  } from '@c15t/svelte';
+  import '@c15t/svelte/styles.css';
+
+  const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+  const mode = hosted({ url: backendURL });
+</script>
+
+<ConsentManagerProvider {mode}>
+  <main>Your application</main>
+  <ConsentBanner />
+  <ConsentDialog />
+  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+</ConsentManagerProvider>
+```
+
+This example uses Svelte 5 and Vite. Set `VITE_C15T_BACKEND_URL` to your backend's
+absolute URL. Configure the backend's policy rules and allowed app origin.
+Svelte's provider is `ConsentManagerProvider` and accepts `mode` as a top-level
+prop. Do not copy React's `ConsentProvider` name into a Svelte component.
+
+The provider owns initialization and cleanup. Keep it mounted around the app
+rather than creating a new provider for each page. The stylesheet supplies the
+stock appearance. Use [customization](/docs/customization/overview) before
+rebuilding the UI with headless APIs.
+
+## Use local policies when no backend is needed
+
+Install `@c15t/schema` and replace the hosted mode in the example with this
+configuration:
+
+```ts
+import { offline } from '@c15t/svelte';
+import { policyRulePresets } from '@c15t/schema';
+
+const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+```
+
+This resolves policy locally and stores choices in the browser. It does not
+provide a backend audit history. Review the preset's scope and fallback rather
+than treating it as a complete compliance configuration.
+
+## Verify the lifecycle
+
+Under a choice policy, reject optional categories and reload. Reopen preferences
+and save a different choice. Check vendor requests using
+[verification](/docs/guides/verify-consent). A missing banner can also mean the
+resolved rule needs no prompt, so inspect policy resolution before changing CSS.
+
+For request-specific initial HTML, use the SvelteKit server integration.

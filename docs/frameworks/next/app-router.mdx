@@ -1,0 +1,84 @@
+---
+title: Next.js App Router
+description: Resolve consent per request and hydrate the same state in a Next.js App Router layout.
+group: frameworks
+---
+
+[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install
+
+This path requires a Next.js server. For a prerendered deployment, use
+[static export](/docs/frameworks/next/static-export).
+
+```package-install
+@c15t/nextjs
+```
+
+Set `C15T_BACKEND_URL` to the absolute base URL of your Inth
+project. Configure policy rules and allow your app's origin on that backend.
+The URL passed to the boundary is visible to the browser; do not put credentials
+in it.
+
+## Resolve consent in the root layout
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
+import '@c15t/nextjs/styles.css';
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const backendURL = process.env.C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+  const config = await prefetchInitialConsent({ backendURL });
+
+  return (
+    <html lang="en">
+      <body>
+        <ConsentBoundary config={config} backendURL={backendURL}>
+          {children}
+          <ConsentBanner />
+          <ConsentDialog />
+          <footer>
+            <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+          </footer>
+        </ConsentBoundary>
+      </body>
+    </html>
+  );
+}
+```
+
+The helper reads request cookies and geographic headers. Awaiting it lets the
+server render the resolved prompt. The boundary receives the same prepared
+configuration so the first client render agrees with the server.
+
+To let the page render while resolution is pending, remove `async` and pass the
+promise returned by `prefetchInitialConsent` without awaiting it. The consent
+prompt stays hidden until resolution completes. Choose this deliberately when
+the rest of the page should not wait for backend initialization.
+
+## Add client behavior inside the boundary
+
+Components that use consent hooks or browser callbacks belong in Client
+Components. Keep request helpers in server files. Importing `next/headers` through
+`@c15t/nextjs/server` into a Client Component is not a browser setup.
+
+Register scripts through the provider's options, following
+[script loading](/docs/frameworks/next/script-loader). Do not also load the same
+vendor in `next/script`, a tag manager or a separate plugin.
+
+## Verify request and browser state
+
+With a policy that asks for a choice, a new visitor should see the prompt in
+server-rendered HTML. Reject optional categories, reload and confirm they remain
+blocked. A valid returning choice must not trigger a new choice callback just
+because the page hydrated. Test navigation and backend failure using
+[the verification guide](/docs/guides/verify-consent).

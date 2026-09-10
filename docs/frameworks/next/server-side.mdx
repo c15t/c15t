@@ -1,46 +1,34 @@
 ---
-title: Server-Side
-description: Read and set consent on the server in Next.js.
+title: Server rendering and hydration
+description: Choose request helpers for your Next.js router and preserve the prepared consent configuration.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Use the helper for your router
 
-## Reading consent
+| Router | Server helper import | Request context |
+| --- | --- | --- |
+| App Router | `@c15t/nextjs/server` | Next.js request cookies and headers |
+| Pages Router | `@c15t/nextjs/pages` | `req` passed from `getServerSideProps` |
+| Static export | No request helper | Browser initialization |
 
-TODO.
+Follow [App Router](/docs/frameworks/next/app-router),
+[Pages Router](/docs/frameworks/next/pages-router) or
+[static export](/docs/frameworks/next/static-export) for complete files.
 
-## Server components
+## Preserve the server result
 
-TODO.
+`prefetchInitialConsent` prepares the policy and records for a request. Forward
+its result to `ConsentBoundary` without deriving new saved choices from allowed
+categories. Keep server and browser backend configuration consistent.
 
-## Manifest caching
+Awaiting the helper allows resolved consent UI in the server HTML. Passing a
+pending promise lets the rest of the page render while the prompt waits. Neither
+path should emit a choice event just because hydration completed.
 
-Server manifest requests share an in-process cache. The cache subtracts the upstream `Age` from `s-maxage`, so a response with `Age: 55` and `s-maxage=60` stays fresh for another five seconds. Manifest proxy responses forward the upstream age plus time spent in the local cache, so downstream caches keep the same expiry. An explicit `s-maxage=0`, `no-store`, `no-cache`, or `private` prevents reuse. When the backend sends no shared-cache lifetime, the cache uses a five-second lifetime to combine nearby requests.
+## Cache policy data without sharing visitor state
 
-Requests without a caller-provided abort signal time out after ten seconds. Requests that forward identity headers reject redirects to prevent credentials from reaching an unvalidated target.
-
-Clearing the cache also invalidates pending fills. A request already in flight can finish for its caller, but cannot repopulate the cleared cache.
-
-## Vendor-list caching
-
-IAB init requests reuse the Global Vendor List by URL and language. The shared GVL cache uses `s-maxage`, then `max-age`, and subtracts upstream `Age`. It uses a one-day fallback when neither lifetime is provided, matching the backend vendor-list cache. An explicit zero lifetime or `no-store`, `no-cache`, or `private` prevents reuse, including when the backend returns `204` to indicate that IAB is disabled. Clearing the cache invalidates pending fills too.
-
-## Static manifest modules
-
-Generate a module during your build and import it into your static application:
-
-```ts
-import { writeFile } from 'node:fs/promises';
-import { createStaticManifestModule } from '@c15t/nextjs/static';
-
-const source = await createStaticManifestModule({
-  manifestURL: 'https://consent.example.com/manifest',
-  exportName: 'consentManifest',
-});
-await writeFile('./consent-manifest.ts', source);
-```
-
-The helper rejects invalid export names before fetching. The generated module imports `ConsentManifest` from `@c15t/nextjs/static`. If your application installs the umbrella `c15t` package, import the helper from `c15t/next/static` and set `importSource: 'c15t/next/static'` so the generated type import resolves through that dependency.
+A manifest is cacheable policy configuration. Resolved init data and stored
+records belong to a visitor. Do not put personalized responses or HTML into a
+shared cache without an appropriate isolation design. Test request behavior
+under more than one visitor and location.

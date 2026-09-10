@@ -1,15 +1,30 @@
 ---
-title: setup
-description: Install c15t and generate the initial configuration.
+title: Set up c15t with the CLI
+description: Run setup in the target application and review framework and
+  deployment choices.
 group: cli
 ---
-> ℹ️ **Info:**
-> This page is a placeholder for the v3 docs rewrite.
 
-## Usage
+## Run setup in the application directory
 
-TODO.
+```bash
+bun run cli setup
+```
 
-## Flags
+This command assumes a locally installed compatible v3 CLI. The public command
+is `setup`; do not copy a historical `generate` command from old docs.
 
-TODO.
+Use setup for a first installation. Select your Inth project endpoint and review
+the generated files. In a monorepo, running at the workspace root can detect the
+wrong app or package manager, so start in the application you intend to modify.
+
+## Keep deployment decisions explicit
+
+Review whether the app uses request SSR or static output, and whether its router
+has a server request helper. Do not assume all Next.js apps use App Router or
+that every Vue app is Nuxt. Use [framework guides](https://c15t.com/docs/frameworks) when
+an automatically generated path does not match your app.
+
+`--yes` skips confirmation prompts. It does not supply missing configuration or
+make a generated integration correct. Use it only in a workflow where the input
+and intended file changes are already controlled.

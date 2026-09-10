@@ -1,17 +1,52 @@
 ---
-title: useConsentManager
-description: Read and update consent state from any component.
+title: Read and update consent
+description: Choose focused consent hooks for feature gates, explicit choices and preference actions.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Read only the state you need
 
-## Usage
+```tsx
+'use client';
+import { useConsent } from '@c15t/nextjs';
 
-TODO.
+export function OptionalFeature() {
+  const allowed = useConsent('marketing');
+  return allowed ? <div>Optional marketing content</div> : null;
+}
+```
 
-## Return value
+Call hooks inside the consent provider. `useConsent` reads effective permission,
+which can be true under an opt-out policy without a recorded grant.
 
-TODO.
+| Need | Hook |
+| --- | --- |
+| One category's current permission | `useConsent(category)` |
+| All current permissions | `useConsents()` |
+| Recorded per-category choices | `useExplicitChoice()` |
+| Whether a prompt is required | `usePromptRequirement()` |
+| Active policy and resolution | `usePolicyRule()`, `usePolicyResolution()` |
+| Save an explicit choice | `useSaveConsents()` |
+| Open or close a consent surface | `useSetActiveUI()` |
+| Acknowledge a notice | `useDismissNotice()` |
+
+## Save from a visitor action
+
+```tsx
+import { useSaveConsents } from '@c15t/nextjs';
+
+export function RejectButton() {
+  const save = useSaveConsents();
+  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+}
+```
+
+This is an isolated action example, not a complete policy-aware banner. Use the
+stock UI or headless surface actions for a complete prompt. Do not call save on
+mount to persist a state derived from permissions.
+
+`useConsentManager` remains available for the combined UI API, including draft
+management. Prefer focused hooks for simple feature gates and use the headless
+UI hook when implementing a complete custom prompt. Read
+[consent state](/docs/guides/consent-state) before treating a callback as evidence
+of a choice.

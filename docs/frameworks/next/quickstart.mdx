@@ -1,80 +1,29 @@
 ---
-title: Quickstart
-description: Add consent management to your Next.js app.
-variants:
-  - value: "javascript"
-    href: "/docs/frameworks/javascript/quickstart"
-    label: "JavaScript"
-  - value: "react"
-    href: "/docs/frameworks/react/quickstart"
-    label: "React"
-  - value: "next"
-    href: "/docs/frameworks/next/quickstart"
-    label: "Next.js"
+title: Next.js consent setup
+description: Choose App Router, Pages Router or static export before adding c15t to Next.js.
 group: frameworks
 ---
 
-## Install
+## Choose your rendering path
 
-```package-install
-@c15t/nextjs
-```
+| Next.js deployment | Guide | Where consent initializes |
+| --- | --- | --- |
+| App Router with a server | [App Router](/docs/frameworks/next/app-router) | Request helper and client boundary |
+| Pages Router with a server | [Pages Router](/docs/frameworks/next/pages-router) | `getServerSideProps` or browser initialization |
+| `output: 'export'` | [Static export](/docs/frameworks/next/static-export) | Browser, using an external backend or local policy |
 
-## Configure the App Router
+A Next.js application can mix dynamic and prerendered routes. Choose per route
+whether you need visitor-specific consent in the initial HTML. Reading request
+cookies in a layout requires a request context; do not put request helpers in a
+layout that must remain fully static.
 
-Resolve consent on the server and pass the same configuration to the client
-boundary. Set `C15T_BACKEND_URL` to your backend's absolute URL.
+## What every path needs
 
-```tsx
-// app/layout.tsx
-import type { ReactNode } from 'react';
-import {
-	ConsentBanner,
-	ConsentBoundary,
-	ConsentDialog,
-	ConsentDialogLink,
-} from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+Install a compatible v3 `@c15t/nextjs` package, import its stylesheet once, and
+mount the banner, dialog and persistent preferences link inside one consent
+boundary. Hosted examples require a reachable consent backend with policy rules
+and your application's origin configured.
 
-export default function Layout({ children }: { children: ReactNode }) {
-	const backendURL = process.env.C15T_BACKEND_URL;
-	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
-	const config = prefetchInitialConsent({ backendURL });
-
-	return (
-		<html lang="en">
-			<body>
-				<ConsentBoundary config={config} backendURL={backendURL}>
-					{children}
-					<ConsentBanner />
-					<ConsentDialog />
-					<ConsentDialogLink>Privacy settings</ConsentDialogLink>
-				</ConsentBoundary>
-			</body>
-		</html>
-	);
-}
-```
-
-Passing the pending promise lets the page render while consent loads. The
-consent prompt stays hidden until resolution finishes. To include the resolved
-prompt in the server HTML, make the layout async and await
-`prefetchInitialConsent` before passing `config` to the boundary.
-
-The helper reads the request's cookies and geographic headers. Server-side init
-also forwards the client IP and user agent. Configure the backend's trusted
-origins for your app.
-
-For the Pages Router, use the request helpers from `@c15t/nextjs/pages` inside
-`getServerSideProps`, and pass their returned configuration to the same boundary.
-
-## Verify persistence and hydration
-
-Reject optional categories, reload, and check that they stay blocked. Open
-Privacy settings to change the choice. Returning visitors should keep their
-valid choices without a startup storage write or a new choice callback.
-
-Use `useConsent('marketing')` inside a Client Component to read effective
-permission. Use `useExplicitChoice` to inspect the recorded choice. See the
-[v3 migration guide](/docs/upgrade-v3) for that distinction and custom transport
-migration.
+After setup, [register optional scripts](/docs/frameworks/next/script-loader)
+and [verify requests and persistence](/docs/guides/verify-consent). A visible
+banner alone does not establish that analytics wait for consent.

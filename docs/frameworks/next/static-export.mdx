@@ -1,0 +1,86 @@
+---
+title: Next.js static export
+description: Add c15t to output export without request helpers or a local API server.
+group: frameworks
+---
+
+[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Use a browser boundary
+
+A Next.js static export has no runtime server for `/api/c15t`, rewrites or
+request cookies. Point the browser at an absolute consent backend URL. Static
+hosting does not require browser-only consent storage.
+
+```package-install
+@c15t/nextjs
+```
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const config: NextConfig = { output: 'export' };
+export default config;
+```
+
+```tsx title="app/consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from '@c15t/nextjs';
+
+export function Consent({ children }: { children: ReactNode }) {
+  const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+  return (
+    <ConsentBoundary config={{}} backendURL={backendURL}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog />
+      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+    </ConsentBoundary>
+  );
+}
+```
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import { Consent } from './consent';
+import '@c15t/nextjs/styles.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return <html lang="en"><body><Consent>{children}</Consent></body></html>;
+}
+```
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` when building the site. Next.js embeds public
+environment values into the browser bundle, so changing this URL requires a new
+build. Configure the exported site's origin in the backend's trusted origins.
+
+## What happens before initialization?
+
+The exported HTML cannot contain a choice resolved for an individual visitor.
+The browser restores valid records and resolves the policy. Until a policy
+resolves, optional permissions remain denied and the consent UI stays hidden.
+Do not insert an unconditional analytics script into the exported HTML to work
+around that pending state.
+
+If you need no backend, configure `offline({ policyRules })` through a client
+`ConsentProvider`, as described in [deployment modes](/docs/guides/deployment-modes).
+A manifest is another way to resolve policy locally, but saved records and
+geography still need an explicit design. Never bake one build machine's location
+or cookies into a shared static page.
+
+## Test the exported files
+
+Run your production build and serve the generated `out/` directory with a
+static server. A Next.js development server can hide accidental dependencies on
+API routes. Inspect Network for failed same-origin `/api/c15t` calls, then test
+reject, reload, preference changes and an unavailable backend using
+[verification](/docs/guides/verify-consent).

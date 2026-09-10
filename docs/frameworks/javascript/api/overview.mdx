@@ -1,21 +1,46 @@
 ---
-title: Store API
-description: The consent store API for reading and setting consent.
+title: Consent kernel API
+description: Use the kernel for policy resolution, state subscriptions and explicit consent commands.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Create and initialize the kernel
 
-## Reading consent
+Follow the [JavaScript quickstart](/docs/frameworks/javascript/quickstart) to
+create a kernel and attach browser persistence. The kernel alone supplies state
+and commands, not a rendered interface or automatic script scanning.
 
-TODO.
+```ts
+const unsubscribe = kernel.subscribe((snapshot) => {
+  console.log(snapshot.resolution, snapshot.effectivePermissions);
+});
+await kernel.commands.init();
+```
 
-## Setting consent
+This fragment assumes the initialized kernel setup from the quickstart. Retain
+`unsubscribe` and call it during teardown.
 
-TODO.
+## Choose commands by intent
 
-## Subscribing to changes
+| Command | Effect |
+| --- | --- |
+| `commands.init()` | Resolve the current policy and initialization data |
+| `commands.save('all')` | Record acceptance for the applicable categories |
+| `commands.save('none')` | Record rejection of optional categories |
+| `commands.save({ marketing: false })` | Confirm only the supplied category |
+| `commands.dismissNotice()` | Record notice acknowledgement without a grant |
+| `hydrate(...)` | Apply validated records without a visitor action |
+| `dispose()` | Release kernel resources |
 
-TODO.
+Use `set` operations for runtime inputs and UI state according to their types.
+They do not replace explicit save actions. Read [consent state](/docs/guides/consent-state)
+for permission, receipt and callback semantics.
+
+## Own optional modules explicitly
+
+Persistence, script loading and request blocking are separate modules when you
+use the kernel directly. Dispose their handles before disposing the kernel.
+`createConsentRuntime` from `@c15t/core/runtime` assembles those responsibilities
+when you need one owner shared by multiple UI roots. Constructing a runtime does
+not activate browser side effects; the owner calls `start()` after mount and
+`dispose()` at teardown.

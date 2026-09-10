@@ -1,35 +1,30 @@
 ---
-title: Quickstart
-description: Add consent management to a vanilla JavaScript app.
-variants:
-  - value: "javascript"
-    href: "/docs/frameworks/javascript/quickstart"
-    label: "JavaScript"
-  - value: "react"
-    href: "/docs/frameworks/react/quickstart"
-    label: "React"
-  - value: "next"
-    href: "/docs/frameworks/next/quickstart"
-    label: "Next.js"
+title: JavaScript consent setup
+description: Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
 group: frameworks
 ---
+
+## Connect Inth
+
+[Create an Inth project](/docs/guides/inth), configure policy rules and your
+application origin, and copy its endpoint. The headless engine does not render
+a banner; choose a framework adapter if you want stock components.
 
 ## Install
 
 ```package-install
-@c15t/core @c15t/schema
+@c15t/core
 ```
 
 ## Create the consent engine
 
 ```ts
-import { createConsentKernel, createOfflineTransport } from '@c15t/core';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
-import { policyRulePresets } from '@c15t/schema';
 
 const kernel = createConsentKernel({
-	transport: createOfflineTransport({
-		policyRules: [policyRulePresets.europeOptIn()],
+	transport: createHostedTransport({
+		backendURL: 'https://your-project.inth.app',
 	}),
 });
 const persistence = createPersistence({ kernel });
@@ -57,9 +52,9 @@ Connect your UI to `snapshot.promptRequirement` and expose persistent privacy
 settings. Use `save('all')` for accept, `save('none')` for reject, or
 `save({ marketing: false })` to confirm only that category.
 
-The offline transport keeps choices local. For a backend, use
-`createHostedTransport({ backendURL: 'https://consent.example.com' })` and
-configure rules there.
+Replace the example URL with the exact endpoint supplied by Inth. Browser-only
+policy resolution is an alternative described in
+[deployment modes](/docs/guides/deployment-modes).
 
 ## Read permissions and choices
 

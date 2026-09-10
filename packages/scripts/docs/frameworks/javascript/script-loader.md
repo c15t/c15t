@@ -1,15 +1,47 @@
 ---
-title: Script Loader
-description: Load third-party scripts only after the required consent.
+title: JavaScript script loading
+description: Attach a script loader to the consent kernel and dispose it with
+  the application.
 group: frameworks
 ---
-> ℹ️ **Info:**
-> This page is a placeholder for the v3 docs rewrite.
 
-## Usage
+## Attach the loader before initialization
 
-TODO.
+Install `@c15t/scripts` alongside `@c15t/core`. This browser example adds a
+marketing integration to a hosted kernel:
 
-## Options
+```ts
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-TODO.
+const kernel = createConsentKernel({
+  transport: createHostedTransport({ backendURL: 'https://your-project.inth.app' }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({ kernel, scripts: [metaPixel({ pixelId: '123456789012345' })] });
+await kernel.commands.init();
+
+function dispose() {
+  loader.dispose();
+  persistence.dispose();
+  kernel.dispose();
+}
+```
+
+Replace the URL and pixel ID. Call `dispose()` when your application tears down.
+The headless kernel does not render a banner; connect a policy-aware UI before
+shipping this integration. A framework provider already manages these modules,
+so do not attach a second loader to a provider-owned kernel.
+
+## Keep one owner per vendor
+
+Use stable script IDs and remove the vendor's original snippet. Ordinary scripts
+wait for effective permission. Helpers with `alwaysLoad` instead load and signal
+permission through the vendor API. Read the individual integration guide before
+assuming all helpers have the same network behavior.
+
+The loader exposes `updateScripts`, `getLoadedScriptIds` and `dispose`.
+Unloading an element cannot reverse requests or code that already ran. Test
+revocation and vendor cleanup with [verification](../../guides/verify-consent.md).

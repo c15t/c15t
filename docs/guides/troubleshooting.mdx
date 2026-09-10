@@ -1,0 +1,54 @@
+---
+title: Troubleshoot consent
+description: Diagnose missing banners, early vendor requests, lost choices and hydration differences.
+group: guides
+---
+
+## Why is there no banner?
+
+Inspect `resolution` and `promptRequirement` before changing styles. Pending or
+failed initialization, no matching rule, a valid stored choice and a rule that
+requires no prompt can all produce no banner for different reasons. A missing
+stylesheet can also make rendered controls appear incorrectly.
+
+Check the backend URL and Network response, then confirm the active policy for
+the visitor's location. Do not solve missing UI by granting every category or
+setting `enabled: false`: disabling the runtime permits optional loading.
+
+## Why does analytics run before a choice?
+
+Check effective permission under the selected policy, then find every loader
+for that vendor. Remove unconditional script tags, framework analytics plugins
+and duplicate tag-manager entries. c15t's script registration only controls the
+scripts registered with it.
+
+Google helpers intentionally load with Consent Mode defaults. A Google request
+is not by itself proof that its storage consent was granted. If your requirement
+is no request at all, do not use an always-loaded helper unchanged.
+
+## Why does a choice disappear on reload?
+
+Check whether persistence is disabled, browser storage is blocked, the origin
+changed, or the receipt expired or no longer matches the current policy.
+A development example with `persistence: false` deliberately resets on reload.
+Do not "repair" persistence by saving permissions automatically on mount.
+
+## Why does hydration differ from server HTML?
+
+Use the adapter's request helper and pass the returned configuration unchanged
+to its boundary. Check that server and browser use the same backend and policy
+inputs. A module-level mutable runtime on a server can share one visitor's state
+with another request; create request-owned state instead.
+
+## Why does static hosting fail when development works?
+
+A static host has no app server for init routes, proxies or server functions.
+Use absolute external consent URLs or an explicitly local policy. Test the
+production output with a static file server, not the framework dev server.
+
+## Why does customization do nothing?
+
+Check the imported stylesheet, the correct token or slot, and which element
+carries the state attribute. `data-variant` on a banner root is not a matching
+attribute on its child card. Check cascade layers and the Tailwind version
+before adding specificity. See [customization](/docs/customization/overview).

@@ -1,91 +1,87 @@
 ---
-title: Quickstart
-description: Add consent management to your React app.
-variants:
-  - value: "javascript"
-    href: "/docs/frameworks/javascript/quickstart"
-    label: "JavaScript"
-  - value: "react"
-    href: "/docs/frameworks/react/quickstart"
-    label: "React"
-  - value: "next"
-    href: "/docs/frameworks/next/quickstart"
-    label: "Next.js"
+title: React consent setup
+description: Connect a React application to Inth and add consent UI, persistence and a preferences link.
 group: frameworks
 ---
 
-## Install
+## Connect Inth
+
+[Create an Inth project](/docs/guides/inth), configure policy rules and the app's
+allowed origin, and copy its backend endpoint. This guide uses a client-rendered
+React app with Vite. Applications with a framework server should use that
+framework's adapter for request prefetch.
 
 ```package-install
-@c15t/react @c15t/schema
+@c15t/react
 ```
 
-## Configure policies and UI
+Set `VITE_C15T_BACKEND_URL` to the endpoint from Inth. Vite embeds public values
+at build time, so rebuild when changing it. Keep management credentials out of
+public variables.
 
-```tsx
+## Mount the provider and UI
+
+```tsx title="src/consent.tsx"
 import type { ReactNode } from 'react';
 import {
-	ConsentBanner,
-	ConsentDialog,
-	ConsentDialogLink,
-	ConsentProvider,
-	offline,
+  ConsentBanner,
+  ConsentDialog,
+  ConsentDialogLink,
+  ConsentProvider,
+  hosted,
 } from '@c15t/react';
-import { policyRulePresets } from '@c15t/schema';
+import '@c15t/react/styles.css';
 
-const mode = offline({
-	policyRules: [policyRulePresets.europeOptIn()],
-});
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+const mode = hosted({ url: backendURL });
 
 export function Consent({ children }: { children: ReactNode }) {
-	return (
-		<ConsentProvider options={{ mode }}>
-			{children}
-			<ConsentBanner />
-			<ConsentDialog />
-			<footer>
-				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
-			</footer>
-		</ConsentProvider>
-	);
+  return (
+    <ConsentProvider options={{ mode }}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog />
+      <footer><ConsentDialogLink>Privacy settings</ConsentDialogLink></footer>
+    </ConsentProvider>
+  );
 }
 ```
 
-Wrap your app in `Consent`. On a fresh browser, the banner asks for a choice.
-Rejecting keeps optional categories blocked; accepting permits the categories in
-scope. The footer link lets visitors change their choices later.
+```tsx title="src/main.tsx"
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import { Consent } from './consent';
 
-This example stores choices in the browser. The Europe preset also handles
-unknown locations through its fallback. Presets are starter configurations;
-review their categories and regional behavior for your application.
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing #root element');
+createRoot(root).render(<Consent><App /></Consent>);
+```
 
-For a hosted or self-hosted backend, replace `offline(...)` with
-`hosted({ url: 'https://consent.example.com' })`, imported from `@c15t/react`.
-Configure policy rules on that backend. Keep the provider mounted across page
-navigation. Its mode and prefetch configuration apply when it mounts.
+Keep `Consent` mounted across navigation. The banner appears when the resolved
+policy requires a prompt; not every region or returning visitor needs one.
+The dialog link keeps preferences reachable after the prompt closes.
 
 ## Gate optional functionality
 
 ```tsx
 import { useConsent } from '@c15t/react';
 
-export function MarketingWidget() {
-	const allowed = useConsent('marketing');
-	return allowed ? <div>Marketing content</div> : null;
+export function MarketingContent() {
+  return useConsent('marketing') ? <div>Optional marketing content</div> : null;
 }
 ```
 
-`useConsent` returns effective permission. Under an opt-out policy, permission
-can be true before the visitor makes a choice. Use `useExplicitChoice` when you
-need recorded choices, and `usePromptRequirement` when building a custom prompt.
-Use c15t's script loader for third-party scripts so their loading follows the
-same permission state.
+This controls the rendered component. Move vendor SDKs into the
+[script loader](/docs/frameworks/react/script-loader) too. An independently
+loaded analytics script does not wait merely because a consent provider exists.
 
-## Verify the integration
+`useConsent` returns effective permission, not proof of an explicit grant.
+Read [consent state](/docs/guides/consent-state) when recording choice events.
 
-In a fresh browser session, reject optional categories and reload. They should
-remain blocked. Open Privacy settings, change a category, save, and reload again.
-A notice dismissal or browser GPC signal must not produce a choice callback.
+## Verify and customize
 
-See the [v3 migration guide](/docs/upgrade-v3) for the policy contracts and
-callback changes.
+Reject under an opt-in policy, reload and confirm optional requests stay blocked.
+Reopen preferences, save a different choice and test navigation. Follow
+[verification](/docs/guides/verify-consent), then
+[customization](/docs/customization/overview) to apply your design.

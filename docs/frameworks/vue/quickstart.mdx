@@ -1,0 +1,87 @@
+---
+title: Vue consent setup
+description: Install c15t in a plain Vue 3 application with the Vite plugin and consent root.
+group: frameworks
+---
+
+[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install both integrations
+
+Plain Vue uses two c15t entry points: a Vite plugin for module resolution and a
+Vue plugin for the runtime. The package root is the Nuxt module, so do not pass
+it to `app.use()`.
+
+```package-install
+@c15t/vue
+```
+
+```ts title="vite.config.ts"
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import c15tVue from '@c15t/vue/vite';
+
+export default defineConfig({ plugins: [vue(), c15tVue()] });
+```
+
+```ts title="src/main.ts"
+import { createApp } from 'vue';
+import { c15tVue } from '@c15t/vue/vue-plugin';
+import App from './App.vue';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+createApp(App).use(c15tVue, { backendURL, showTrigger: true }).mount('#app');
+```
+
+Set `VITE_C15T_BACKEND_URL` to the absolute base URL of a c15t backend with
+policy rules and your app's origin configured. The URL is public. Rebuild the
+app after changing Vite's public environment configuration.
+
+## Mount the consent UI
+
+```vue title="src/App.vue"
+<script setup lang="ts">
+import ConsentRoot from '@c15t/vue/consent-root';
+import { useConsentActiveUI } from '@c15t/vue/vue-plugin';
+
+const activeUI = useConsentActiveUI();
+</script>
+
+<template>
+  <ConsentRoot />
+  <main>Your application</main>
+  <button type="button" @click="activeUI = 'manager'">Privacy settings</button>
+</template>
+```
+
+`ConsentRoot` renders the prompt and lazily loads the preference manager. Vue's
+components include their styles; do not copy a React stylesheet import to a
+nonexistent Vue export. `showTrigger` also enables the built-in persistent
+trigger. The custom button above shows how to offer a footer entry point.
+
+## Read reactive permissions
+
+```vue title="src/OptionalContent.vue"
+<script setup lang="ts">
+import { useConsentSnapshot } from '@c15t/vue/vue-plugin';
+const snapshot = useConsentSnapshot();
+</script>
+
+<template>
+  <div v-if="snapshot.effectivePermissions.marketing">Optional marketing content</div>
+</template>
+```
+
+Effective permission can be true under an opt-out rule before a visitor acts.
+Use the snapshot's `explicitChoice` when you need recorded choices. Register
+vendor scripts with the consent runtime rather than assuming `v-if` on unrelated
+content blocks existing scripts.
+
+## Verify and troubleshoot
+
+Test the built app using [verification](/docs/guides/verify-consent). An unresolved
+`#imports` or `#c15t/composables` import usually means the c15t Vite plugin is
+missing. A missing injection context means a composable is outside the app that
+installed `c15tVue`. Nuxt applications should use the module integration instead.

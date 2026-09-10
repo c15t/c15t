@@ -1,0 +1,85 @@
+---
+title: SvelteKit consent setup
+description: Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
+group: frameworks
+---
+
+[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install
+
+```package-install
+@c15t/svelte
+```
+
+Set `PUBLIC_C15T_BACKEND_URL` to an absolute consent backend URL. Configure
+policy rules and the app origin on the backend. The URL is public because the
+browser also uses it to save choices.
+
+## Resolve consent on each request
+
+```ts title="src/routes/+layout.server.ts"
+import { env } from '$env/dynamic/public';
+import { loadConsent } from '@c15t/svelte/kit';
+import type { LayoutServerLoad } from './$types';
+
+export const load: LayoutServerLoad = async (event) => {
+  const backendURL = env.PUBLIC_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set PUBLIC_C15T_BACKEND_URL');
+  return { prefetch: await loadConsent(event, { backendURL }), backendURL };
+};
+```
+
+```svelte title="src/routes/+layout.svelte"
+<script lang="ts">
+  import {
+    ConsentBanner,
+    ConsentDialog,
+    ConsentDialogLink,
+    ConsentManagerProvider,
+    hosted,
+  } from '@c15t/svelte';
+  import '@c15t/svelte/styles.css';
+
+  let { children, data } = $props();
+  const mode = hosted({ url: data.backendURL });
+</script>
+
+<ConsentManagerProvider {mode} prefetch={data.prefetch}>
+  {@render children()}
+  <ConsentBanner />
+  <ConsentDialog />
+  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+</ConsentManagerProvider>
+```
+
+`loadConsent` reads the request and returns serializable prefetch data. Pass
+that data through intact; reconstructing permissions as saved booleans loses
+receipt and policy information. The provider's `mode` and `prefetch` are
+top-level props.
+
+For manifest-backed resolution, the package also exports
+`createSvelteKitConsentRouteHandlers` from `@c15t/svelte/kit`. Once those routes
+are mounted, `loadConsent(event, { initRoute: '/api/c15t' })` uses the app's own
+init route through `event.fetch`. Merely changing the URL does not create it.
+
+## Use static hosting
+
+A prerendered page cannot resolve a visitor's cookies at build time. For static
+output, omit the request-specific server load and `prefetch`. Configure
+`hosted({ url })` in the layout with an absolute external backend URL, using a
+public build-time value from `$env/static/public`. Keep the provider and UI from
+the example. Do not point at a same-origin server route that the static host
+cannot run.
+
+The browser initializes consent after mount. Optional permissions remain denied
+while no policy has resolved. Follow your SvelteKit adapter's static deployment
+configuration independently of consent setup.
+
+## Verify hydration and navigation
+
+For SSR, a valid stored choice should survive the first client render without a
+new choice event. For static output, serve the actual generated site. On both,
+reject, navigate between routes, reload and reopen preferences. Check requests
+and failed initialization with [verification](/docs/guides/verify-consent).

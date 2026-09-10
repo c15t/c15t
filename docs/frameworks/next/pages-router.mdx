@@ -1,0 +1,93 @@
+---
+title: Next.js Pages Router
+description: Use request prefetch in getServerSideProps or initialize consent in the browser for Pages Router apps.
+group: frameworks
+---
+
+[Create an Inth project](/docs/guides/inth) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install and add global styles
+
+```package-install
+@c15t/nextjs
+```
+
+Import global styles in `pages/_app.tsx`. Add the consent boundary here so it
+stays mounted across client navigation.
+
+```tsx title="pages/_app.tsx"
+import type { AppProps } from 'next/app';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from '@c15t/nextjs';
+import type { ConsentBoundaryProps } from '@c15t/nextjs';
+import '@c15t/nextjs/styles.css';
+
+type ConsentPageProps = {
+  consentConfig?: ConsentBoundaryProps['config'];
+};
+
+export default function App({
+  Component,
+  pageProps,
+}: AppProps<ConsentPageProps>) {
+  const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+  return (
+    <ConsentBoundary config={pageProps.consentConfig ?? {}} backendURL={backendURL}>
+      <Component {...pageProps} />
+      <ConsentBanner />
+      <ConsentDialog />
+      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+    </ConsentBoundary>
+  );
+}
+```
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your backend's absolute base URL and allow
+the app origin on the backend. Without a page prefetch, this boundary initializes
+in the browser. That path also works for statically generated Pages Router pages.
+
+## Prefetch for a server-rendered page
+
+Use `@c15t/nextjs/pages` with the `req` from `getServerSideProps`. The App Router
+helper reads a different request context and must not be used here.
+
+```tsx title="pages/index.tsx"
+import type { GetServerSideProps } from 'next';
+import type { ConsentBoundaryProps } from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/pages';
+
+type PageProps = { consentConfig: ConsentBoundaryProps['config'] };
+
+export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
+  const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+  const consentConfig = await prefetchInitialConsent({ backendURL, req });
+  return { props: { consentConfig } };
+};
+
+export default function Home() {
+  return <main>Your page</main>;
+}
+```
+
+Repeat the prefetch on pages that need request-specific initial HTML. Do not
+use `getStaticProps` to resolve visitor cookies or geography: it runs without the
+visitor's request. Keep the backend and policy configuration consistent across
+pages sharing the boundary.
+
+## Verify both entry and navigation
+
+Load a server-rendered page directly, reject, and reload. Then navigate to
+another page without a full reload and reopen preferences. The mounted boundary
+should retain the current choice. Also test a direct visit to any static page;
+it follows browser initialization instead of request prefetch.
+
+For a site with no Next.js server, follow
+[static export](/docs/frameworks/next/static-export) and remove server-only setup.

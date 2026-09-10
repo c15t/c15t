@@ -6,7 +6,7 @@ metadata:
 ---
 # @c15t/scripts documentation
 
-Consent-aware script integration docs for analytics, advertising pixels, tag managers, widgets, and custom loaders.
+Consent-aware vendor integrations and Consent Mode loading contracts.
 
 To work with @c15t/scripts, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

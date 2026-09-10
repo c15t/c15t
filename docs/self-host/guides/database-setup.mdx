@@ -1,17 +1,47 @@
 ---
-title: Database Setup
-description: Connect the backend to a supported database.
+title: Backend database setup
+description: Choose a supported SQL connection and apply migrations with the same configuration as the backend.
 group: self-host
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Choose a supported connection
 
-## Supported databases
+| Database | Configuration | Optional driver |
+| --- | --- | --- |
+| PostgreSQL | `{ dialect: 'postgres', url }` | `@effect/sql-pg` |
+| MySQL | `{ dialect: 'mysql', url }` | `@effect/sql-mysql2` |
+| SQLite | `{ dialect: 'sqlite', filename }` | `@effect/sql-sqlite-node` |
 
-TODO.
+Install the driver version listed in your backend release's peer dependencies.
+The v3 backend takes `database`, not the old ORM `adapter` configuration.
+Applications already using Effect can supply a compatible SQL client layer.
 
-## Migrations
+## Keep credentials on the server
 
-TODO.
+```ts
+import { defineConfig } from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+export default defineConfig({ database: { dialect: 'postgres', url } });
+```
+
+This fragment only configures storage. Add origins and policy rules as shown in
+[backend setup](/docs/self-host/quickstart). Never expose the database URL through
+public environment variables or client provider props.
+
+PostgreSQL also supports `schema` for isolating c15t tables. For MySQL, choose the
+database through the connection URL. For SQLite, choose a dedicated durable file.
+An in-memory database is suitable for disposable tests, not retained history.
+
+## Apply and verify migrations
+
+Use the compatible CLI's `self-host migrate` command with the server's config
+file. Review the report and back up existing data first. Use the same database,
+schema and credentials when running the app, or the server may connect to a
+different unmigrated database.
+
+Old adapter import paths are not interchangeable with v3 SQL configuration.
+Inspect the installed backend and migration tooling before upgrading an existing
+store. Do not treat a successful process start as proof that writes and receipt
+reads work; test both.

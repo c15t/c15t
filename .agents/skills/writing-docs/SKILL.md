@@ -1,56 +1,131 @@
 ---
 name: writing-docs
-description: |
-  Author or edit c15t documentation in docs/**/*.mdx — the source for both the
-  c15t.com site and the docs bundled into published packages. Use when writing
-  guides, integration pages, reference docs, changing package-bundled docs
-  (packages/*/docs, packages/*/AGENTS.md), or fixing docs lint failures.
+description: Write and review c15t v3 documentation, framework guides, styling recipes, demos, and package-bundled Markdown from docs/**/*.mdx using leadtype.
 ---
 
-# Writing c15t Docs
+# Write c15t docs
 
-`docs/` is the single source of truth for two outputs:
+Use this skill for c15t documentation changes. Apply `unslop` to the prose and
+read the `leadtype` skill before changing MDX components or generation.
 
-1. **c15t.com** — the docs site app is private and maintainer-only. External contributors only edit MDX and preview via the PR docs-preview action.
-2. **Package-bundled docs** — `scripts/generate-package-docs.ts` compiles subsets of `docs/` into a `docs/` folder and `AGENTS.md` for six packages (`c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/backend`, `@c15t/scripts`, `@c15t/cli`), which ship in their npm tarballs.
+## Establish the contract before writing
 
-Never edit `packages/*/docs/**` or `packages/*/AGENTS.md` directly — they are generated. Edit the MDX source, then regenerate with `bun run generate:package-docs` (or `bun run --cwd packages/<pkg> build:docs`).
+1. Identify the reader's task, framework, router and deployment. Next.js App
+   Router, Pages Router and static export need different instructions. Vue and
+   Nuxt, and Svelte and SvelteKit, also need distinct setup paths.
+2. Check the current package exports, implementation and relevant tests. Use
+   `origin/main` and c15t.com to find omitted topics, never to establish v3 APIs.
+   Examples can lag behind source too. Verify their imports before reusing them.
+3. Write down the result, prerequisites, defaults and failure cases. A page
+   should let someone implement and verify a task without guessing missing files.
+4. Choose an existing canonical page or create one for a distinct task. Put
+   shared explanations in `docs/` and reuse them through leadtype includes or
+   links. Do not clone a React guide and replace its framework name.
 
-The docs pipeline (generation, `docs/docs.config.ts`, MDX components, lint schema) is built on **leadtype** — use the `leadtype` skill for its components, config, conversion, and lint APIs rather than guessing.
+## Write for people and agents
 
-## Where content lives
+Lead each page with the answer and its deployment constraints. Keep the title
+specific, such as "Next.js static export", rather than repeating "Quickstart".
+Use required `title` and `description` frontmatter. The site renders both, so
+start the body at H2 and do not repeat the description as an intro.
 
-| Directory | Feeds |
-| --- | --- |
-| `docs/frameworks/{javascript,react,next,...}/` | Framework quickstarts and guides; javascript→`c15t`, react→`@c15t/react`, next→`@c15t/nextjs` bundled docs |
-| `docs/integrations/` | GTM, GA4, PostHog, Meta Pixel, etc.; bundled into core/react/nextjs/scripts |
-| `docs/self-host/` | Bundled into `@c15t/backend` |
-| `docs/cli/` | Bundled into `@c15t/cli` |
-| `docs/oss/`, `docs/contributing/`, `docs/legals/`, `docs/comparisons/` | Site only |
+Use task headings readers would search for. Question headings help when the
+section answers a question; do not force every heading into a question. Include
+imports, file paths and setup in copyable examples. Label partial examples and
+name where they belong. Separate server and browser files. Explain what the
+reader should observe after running the code.
 
-Navigation, groups, and page ordering are defined in `docs/docs.config.ts`. New pages usually need an entry there (see the `leadtype` skill for the config schema).
+Keep each explanation understandable when retrieved alone. Name the API,
+framework and condition rather than referring to "the above". Document ordering,
+side effects and failure behavior that types cannot explain. Keep concise API
+reference tables where humans need discovery; do not delete useful reference
+because an agent could inspect a declaration file.
 
-## MDX rules
+Lead quickstarts with Inth hosted consent management, including static sites.
+Keep self-hosting and browser-only modes as deliberate alternatives. Use the
+exact endpoint supplied by the Inth project; never invent a project URL.
+Prefer one working path followed by links to alternatives. For hosted examples,
+name the required backend URL, policy configuration and trusted origin. For
+browser-only examples, state where choices persist and what backend services are
+absent. Do not present a regional preset as a compliance guarantee.
 
-- Frontmatter is required: `title` and `description`. The description doubles as the intro paragraph.
-- **Never start with an H1** — the frontmatter title renders as the page H1. Begin content at `##` and nest properly (H2 → H3 → H4).
-- Use `<Callout>` for warnings/notes and `<PackageCommandTabs command="..." />` / `package-install` code blocks for install commands so all package managers render.
-- Fenced code blocks always carry a language identifier.
-- Lists use `-` bullets (remark enforces consistency).
+Distinguish effective permissions, explicit choices, notice dismissal and privacy
+signals. Never infer a recorded grant from `useConsent()` or turn hydration into
+a visitor action. Do not claim a banner automatically blocks existing scripts.
 
-## Style
+Keep the package namespace consistent within a recipe. Scoped imports must match
+the package's exports. Never mechanically replace provider names across adapters.
+Migration pages may show old APIs only in clearly labelled before examples.
 
-- Simple, direct, active voice; second person ("you"). Define jargon and acronyms on first use, then stay consistent (don't mix "endpoint" and "route").
-- Show working code before explaining it. Every key concept gets a runnable snippet.
-- Match the document type: tutorials are sequential and confirm success at each step ("You should now see…"); how-to guides are numbered steps that assume the basics; reference pages are exhaustive, scannable, and neutral; explanations discuss trade-offs and may be opinionated ("We recommend X because…").
-- Be honest about limitations ("works well for small datasets, but…").
+## Demonstrate customization
 
-## Verify
+Pick the API according to the change:
 
-```bash
-bun run lint:docs   # remark lint (MDX + frontmatter + consistency)
-bun run fmt:docs    # remark autoformat
-bun run generate:package-docs   # refresh packages/*/docs and AGENTS.md if your pages are bundled
-```
+- Copy or locale: i18n configuration.
+- Shape, position, action layout or blocking: presentation and component props.
+- Brand colors, type, radius, spacing or motion: theme tokens.
+- A specific component part: the adapter's current slot API.
+- Different markup: compound components where the adapter exports them.
+- Entirely custom UI and behavior: headless APIs.
 
-CI's autofix workflow also runs `fmt:docs` and commits fixes to your branch.
+Check each adapter's contract. React's `components.banner.card`, Vue's config
+and Svelte's theme slots must not be assumed interchangeable.
+
+Pair a visual recipe with its exact configuration and a description of the
+visible result. Screenshots must show real components from the documented
+revision. Never use generated artwork as evidence of component behavior.
+
+For interactive demos, use an isolated, resettable instance with no production
+analytics. Show the source, a direct demo link and the expected behavior outside
+the iframe. Give the iframe a descriptive title, lazy loading and reserved
+space. Test keyboard access, mobile layout and the reset action. Keep demo state
+separate from consent on the docs site.
+
+Leadtype owns conversion, not runtime UI. Check which components the docs host
+registers. Use supported tags or add an explicit flattener in the host. Browser
+previews can use `Audience target="human"` only when the host supports it; retain
+all instructions and source in the shared content. Verify generated Markdown
+contains the useful information without raw preview JSX.
+
+## Discovery and publication
+
+Update `docs/docs.config.ts` for every public page. Preserve useful existing URLs;
+when a page moves, configure a redirect in the docs host and update internal
+links. Record retired URLs and their replacements before deleting old routes.
+Avoid thin framework duplicates, keyword repetition and unsupported comparisons.
+Use factual titles, unique descriptions and descriptive link text.
+
+`llms.txt`, page Markdown and package bundles serve agents. They do not promise
+search rankings or citations. The docs host must also verify HTML indexing,
+canonical URLs, redirects, sitemap entries, robots rules and matching structured
+data. Content work alone cannot prove those deployed behaviors.
+
+For a broad rewrite or publication review, read
+[the v3 editorial review](references/v3-editorial-review.md) for the historical
+gaps, source evaluation, demo rollout and acceptance tasks.
+
+## Verify the actual outputs
+
+- Run `bun run lint:docs` and `bun run fmt:docs`. Both currently rewrite files;
+  inspect the diff for unrelated edits.
+- Run the installed `leadtype lint --src docs` to check links, metadata and
+  Markdown conversion. Inspect the installed CLI help before adding flags.
+  Run `bun run test:scripts scripts/docs-validation.test.ts` for the repository
+  check: it narrowly handles leadtype 0.2.1 misidentifying the framework picker
+  as an adapter, while still checking that each destination exists. Do not
+  suppress cross-framework errors in actual framework guides.
+- Regenerate bundled content with `bun run generate:package-docs`. Bundle
+  membership is controlled by `scripts/generate-package-docs.ts` and package
+  build scripts. Never edit generated `packages/*/docs`, `AGENTS.md` or `SKILL.md`.
+- Read a generated quickstart, styling recipe and page with visual content.
+  Check that imports, prerequisites, links and demo explanations survived.
+- Run copyable recipes against the target adapter where practical. Record which
+  examples were compiled, exercised in a browser, or only checked against source.
+- For a docs-site release, inspect rendered pages and generated artifacts. If the
+  private host is unavailable, report that limit rather than claiming the site
+  or embedded previews were verified.
+
+Evaluate usefulness with concrete tasks: set up Pages Router SSR, export a
+static Next.js site, install plain Vue without Nuxt, preserve SvelteKit hydration,
+change a banner's radius without going headless, and stop a vendor request before
+consent. A lint score does not establish that an agent can complete those tasks.

@@ -1,16 +1,30 @@
 ---
 title: Meta Pixel
-description: Load the Meta Pixel behind consent.
-icon: meta
+description: Register the Meta Pixel under marketing permission and verify event
+  calls after revocation.
 group: integrations
 ---
-> ℹ️ **Info:**
-> This page is a placeholder for the v3 docs rewrite.
 
-## Usage
+## Register the pixel
 
-TODO.
+```ts
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-## Options
+export const scripts = [metaPixel({ pixelId: '123456789012345' })];
+```
 
-TODO.
+Replace the pixel ID and pass `scripts` to your existing provider or core script
+loader. The helper uses the `marketing` category. Remove the original pixel
+snippet, including a separately installed tracking image or tag-manager entry.
+
+## Keep event calls behind permission
+
+Initialization and later application events are separate responsibilities. If
+application code calls `fbq` directly, check effective marketing permission
+before each optional event and ensure the API is available. Do not assume a
+function still present on `window` means the visitor still permits tracking.
+
+For an opt-in policy, verify no pixel script or collection request occurs before
+permission or after rejection. Grant permission, send a test event, revoke and
+confirm future application events stop. Check navigation for duplicate page
+views. See [verification](../guides/verify-consent.md).

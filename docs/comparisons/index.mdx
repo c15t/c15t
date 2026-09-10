@@ -1,13 +1,27 @@
 ---
-title: Comparisons
-description: How c15t compares with other consent management tools.
+title: Evaluate c15t for your application
+description: Compare consent tools using your rendering, customization and operational requirements.
 group: reference
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Compare the integration you will deploy
 
-## Comparisons
+Evaluate each tool against the same application and policy requirements. A
+feature list alone cannot establish whether a static export, a Pages Router app
+or a multi-framework site will work.
 
-TODO.
+| Requirement | What to verify with c15t |
+| --- | --- |
+| Framework support | Use the actual adapter and router guide, not a generic React example |
+| Hosted operations | Connect to Inth and verify policy and saved records |
+| Static hosting | Build and serve static output against the external consent endpoint |
+| Custom appearance | Reproduce the design with tokens and slots before judging headless effort |
+| Consent enforcement | Inspect vendor requests before choice, after rejection and after revocation |
+| Agent usability | Read version-matched package docs and try a real integration task |
+| Infrastructure ownership | Compare Inth with the database and upgrade work of self-hosting |
+
+Use [framework guides](/docs/frameworks),
+[customization recipes](/docs/customization/recipes) and
+[verification](/docs/guides/verify-consent) to run that evaluation. Check another
+tool's current documentation directly before making claims about its pricing,
+features or limitations.

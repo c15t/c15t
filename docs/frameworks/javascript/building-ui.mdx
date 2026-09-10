@@ -1,17 +1,48 @@
 ---
-title: Building Framework Libraries
-description: Build a framework adapter on top of the core consent store.
+title: Build a framework integration
+description: Connect c15t state to a custom framework without duplicating runtime ownership.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Separate runtime ownership from rendering
 
-## Store lifecycle
+Use `createConsentRuntime` when several components or islands need the same
+kernel, persistence and script loader. Create it once for the browser app, not
+once per consent component.
 
-TODO.
+```ts
+import { hosted } from '@c15t/core';
+import { createConsentRuntime } from '@c15t/core/runtime';
 
-## Rendering consent state
+const runtime = createConsentRuntime({
+  mode: hosted({ url: 'https://your-project.inth.app' }),
+});
+const unsubscribe = runtime.kernel.subscribe((snapshot) => {
+  // Update your framework's reactive state here.
+  console.log(snapshot.promptRequirement);
+});
+runtime.start();
 
-TODO.
+function dispose() {
+  unsubscribe();
+  runtime.dispose();
+}
+```
+
+Replace the URL with your Inth endpoint. Run `start()` after browser mount and
+`dispose()` on teardown. On a server, keep request state isolated and do not
+start browser modules. Framework providers borrowing a runtime render from it
+without taking over its lifecycle.
+
+## Render the policy's required actions
+
+A complete UI handles choice, notice, no-prompt and unresolved states. Render the
+required action groups and keep policy rights reachable after the banner closes.
+Do not assume every prompt is accept/reject, or every missing prompt means
+consent was granted.
+
+A custom UI owns focus management, keyboard interaction, labels, error states and
+responsive layout. Prefer the adapter's headless surface API where one exists.
+Use `save` only after a visitor action and preserve server records during
+hydration. Follow [verification](/docs/guides/verify-consent) for the lifecycle
+and network cases a new adapter must support.

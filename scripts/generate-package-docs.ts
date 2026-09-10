@@ -1,8 +1,27 @@
 #!/usr/bin/env bun
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import fg from 'fast-glob';
+import type { Root } from 'mdast';
+import { remark } from 'remark';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
+import { visit } from 'unist-util-visit';
+
+import {
+	packageDocLink,
+	restorePackageDocIncludes,
+} from './rewrite-package-doc-links';
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -17,63 +36,137 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
 			'frameworks/javascript/**/*.mdx',
+			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
 		name: '@c15t/core',
 		outDir: 'packages/core',
 		summary:
-			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/core for root c15t imports, @c15t/react for c15t/react, and @c15t/nextjs for c15t/next.',
+			'Headless v3 consent, Inth setup, runtime ownership and script loading.',
 	},
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
 			'frameworks/react/**/*.mdx',
+			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
-			'shared/react/components/dev-tools.mdx',
 		],
 		name: '@c15t/react',
 		outDir: 'packages/react',
 		summary:
-			'React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/react for c15t/react, @c15t/core for root c15t imports, and @c15t/nextjs for c15t/next.',
+			'React v3 consent components, hooks, Inth setup and customization.',
 	},
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
 			'frameworks/next/**/*.mdx',
+			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
-			'shared/react/components/dev-tools.mdx',
 		],
 		name: '@c15t/nextjs',
 		outDir: 'packages/nextjs',
 		summary:
-			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/nextjs for c15t/next, @c15t/core for root c15t imports, and @c15t/react for c15t/react.',
-	},
-	{
-		include: ['upgrade-v3.mdx', 'self-host/**/*.mdx', 'self-host/**/*.md'],
-		name: '@c15t/backend',
-		outDir: 'packages/backend',
-		summary:
-			'Self-hosted c15t backend docs for configuration, APIs, storage, policy packs, and operations.',
+			'Next.js v3 App Router, Pages Router, static export and hydration with Inth.',
 	},
 	{
 		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
+			'frameworks/vue/**/*.mdx',
+			'frameworks/nuxt/**/*.mdx',
+			'customization/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: '@c15t/vue',
+		outDir: 'packages/vue',
+		summary:
+			'Vue and Nuxt v3 integration, Vite setup, SSR and static hosting with Inth.',
+	},
+	{
+		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
+			'frameworks/svelte/**/*.mdx',
+			'frameworks/sveltekit/**/*.mdx',
+			'customization/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: '@c15t/svelte',
+		outDir: 'packages/svelte',
+		summary:
+			'Svelte and SvelteKit v3 providers, request loading and static hosting with Inth.',
+	},
+	{
+		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
+			'frameworks/astro/**/*.mdx',
+			'customization/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: '@c15t/astro',
+		outDir: 'packages/astro',
+		summary:
+			'Astro v3 static and server integration, dialog adapters and runtime ownership.',
+	},
+	{
+		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
+			'frameworks/tanstack-start/**/*.mdx',
+			'customization/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: '@c15t/tanstack-start',
+		outDir: 'packages/tanstack-start',
+		summary:
+			'TanStack Start v3 server functions, request middleware and consent boundaries.',
+	},
+	{
+		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
+			'frameworks/**/*.mdx',
+			'customization/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: 'c15t',
+		outDir: 'packages/c15t',
+		summary:
+			'c15t v3 framework integration and consent management. Examples use scoped imports; the umbrella export map provides corresponding framework subpaths.',
+	},
+	{
+		include: ['upgrade-v3.mdx', 'guides/**/*.mdx', 'self-host/**/*.mdx'],
+		name: '@c15t/backend',
+		outDir: 'packages/backend',
+		summary:
+			'Self-hosted v3 backend configuration, SQL storage, migrations and HTTP contracts.',
+	},
+	{
+		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
 			'frameworks/javascript/script-loader.mdx',
 			'frameworks/react/script-loader.mdx',
 			'frameworks/next/script-loader.mdx',
+			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
 		name: '@c15t/scripts',
 		outDir: 'packages/scripts',
 		summary:
-			'Consent-aware script integration docs for analytics, advertising pixels, tag managers, widgets, and custom loaders.',
+			'Consent-aware vendor integrations and Consent Mode loading contracts.',
 	},
 	{
-		include: ['cli/**/*.mdx'],
+		include: ['upgrade-v3.mdx', 'guides/**/*.mdx', 'cli/**/*.mdx'],
 		name: '@c15t/cli',
 		outDir: 'packages/cli',
 		summary:
-			'c15t CLI docs for setup, generation, codemods, authentication, telemetry, and self-host workflows.',
+			'c15t v3 setup, codemods, project commands and self-hosted migrations.',
 	},
 ];
 
@@ -136,6 +229,36 @@ const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 	const exitCode = await proc.exited;
 	if (exitCode !== 0) {
 		throw new Error(`leadtype package docs failed for ${config.name}`);
+	}
+
+	const docsDir = join(outDir, 'docs');
+	const files = await fg('**/*.md', { cwd: docsDir });
+	const bundledFiles = new Set(files);
+	await Promise.all(
+		files.map(async (file) => {
+			const processor = remark()
+				.use(remarkFrontmatter)
+				.use(remarkGfm)
+				.use(() => (tree: Root) => {
+					visit(tree, (node) => {
+						if (node.type === 'link' || node.type === 'definition') {
+							node.url = packageDocLink(node.url, file, bundledFiles);
+						}
+					});
+				});
+			const path = join(docsDir, file);
+			const content = await restorePackageDocIncludes(
+				readFileSync(path, 'utf8'),
+				join(ROOT_DIR, 'docs', file.replace(/\.md$/u, '.mdx'))
+			);
+			writeFileSync(path, String(await processor.process(content)));
+		})
+	);
+	// Recipes retain their real screenshots when read from an installed package.
+	if (existsSync(join(docsDir, 'customization/recipes.md'))) {
+		cpSync(join(ROOT_DIR, 'docs/assets/v3'), join(docsDir, 'assets/v3'), {
+			recursive: true,
+		});
 	}
 
 	const agentsPath = join(outDir, 'AGENTS.md');
