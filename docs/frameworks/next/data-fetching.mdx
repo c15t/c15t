@@ -1,19 +1,22 @@
 ---
 title: Data fetching
-description: Use cached manifests for Next.js consent resolution, with regular init and offline alternatives.
+description: Resolve Next.js consent from cached manifests and route browser requests through your app, with backend init and offline alternatives.
 group: frameworks
 ---
 
-## Use manifests with Inth for server deployments
+## Use Inth with manifests and same-origin requests
 
 For App Router and Pages Router applications with a runtime server, start with
-Inth and a cached manifest. Your application reuses public policy data and
-resolves each visitor's policy locally. Inth continues to manage policy and
-store consent submissions.
+Inth, a cached manifest and a `/api/c15t` rewrite. Your application reuses public
+policy data and resolves each visitor's policy locally. Browser consent requests
+go to your app's origin; the Next.js server forwards consent submissions to
+Inth. Inth continues to manage policy and store records.
 
 Follow [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) for complete files. Both guides
-use one `defineConsentConfig` value for route handlers, prefetch and hydration.
+use `c15t.config.ts` for the browser URLs, prefetch and hydration. The route
+handlers and rewrite use the absolute upstream `C15T_BACKEND_URL`. This URL is
+public connection information, not a credential.
 
 | Consent config | Server prefetch | Browser initialization | Consent saves |
 | --- | --- | --- | --- |
@@ -28,8 +31,8 @@ including pages without prefetch and recovery after a prefetch failure.
 
 ## Understand the recommended request path
 
-1. The app's manifest handler fetches `${backendURL}/manifest` and caches public
-   policy data.
+1. The app's manifest handler fetches `${C15T_BACKEND_URL}/manifest` and caches
+   public policy data.
 2. `prefetchInitialConsent({ config: consentConfig })` reads the manifest route,
    resolves the policy with the current request's inputs and restores valid
    consent cookies.
@@ -37,7 +40,14 @@ including pages without prefetch and recovery after a prefetch failure.
    as `consent`. Hydration preserves the prepared state.
 4. Browser initialization uses `/api/c15t/init` when needed. This is your
    app's manifest resolver, not the Inth `/init` endpoint.
-5. Choices still go to the Inth backend's `/subjects` endpoint.
+5. Browser choices post to `/api/c15t/subjects`. The fallback rewrite forwards
+   them to Inth's `/subjects` endpoint. Other consent record requests use the
+   same prefix.
+
+Using the app origin avoids a separate browser DNS lookup and TLS connection
+to the consent backend. Your app server still makes upstream requests for cold
+manifests and consent writes. The rewrite applies to c15t HTTP requests; vendor
+scripts and their own traffic keep their configured origins.
 
 A warm policy cache removes the backend `/init` call from request resolution.
 It does not remove every request: your application may read its manifest route,
@@ -80,22 +90,18 @@ The local init handler returns `Cache-Control: private, no-store`. Its result
 contains a decision for a specific request. Do not replace that header with a
 public cache policy or cache personalized consent HTML across visitors.
 
-Pass the actual `defineConsentConfig` result to the handlers. A plain options
-object's `manifestURL` means the upstream manifest URL; a defined config's
-`manifestURL` names the local route the handler serves. Confusing them can make a
-manifest route fetch itself.
-
 ## Use the same prefix as a backend rewrite
 
-The local `/api/c15t/manifest` and `/api/c15t/init` routes can share a prefix
-with a backend rewrite. An array-form rewrite or `afterFiles` runs after those
-concrete routes; `fallback` runs after all application routes. A matching
+The recommended setup gives `backendURL` the local value `/api/c15t`, with
+`manifestURL: '/api/c15t/manifest'` and `initURL: '/api/c15t/init'` in
+`c15t.config.ts`. The two local routes share their prefix with a backend rewrite.
+An array-form rewrite or `afterFiles` runs after those concrete routes; `fallback` runs after all application routes. A matching
 `beforeFiles` rewrite or middleware/proxy rewrite can intercept them instead.
 See [Next.js rewrite order](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
 
-The quickstarts keep `backendURL` pointed directly at Inth and need no rewrite.
-If you want same-origin consent writes too, add this fallback to your existing
-Next.js configuration:
+Merge this fallback into your existing Next.js configuration. It forwards
+consent record requests while leaving the local manifest and init handlers in
+place:
 
 ```ts title="next.config.ts"
 import type { NextConfig } from 'next';
@@ -115,17 +121,14 @@ export default {
 } satisfies NextConfig;
 ```
 
-Set `C15T_BACKEND_URL` to your absolute Inth endpoint. In the shared
-`consent.config.ts`, use `backendURL: '/api/c15t'` and keep
-`manifestURL: '/api/c15t/manifest'` and `initURL: '/api/c15t/init'`. Requests such
-as `/api/c15t/subjects` now reach Inth through the rewrite; the two local handlers
+Set `C15T_BACKEND_URL` to your absolute Inth endpoint. Requests such as
+`/api/c15t/subjects` reach Inth through the rewrite; the two local handlers
 still resolve from the cached manifest.
 
-**Give both route handlers the absolute upstream URL.** With a local
-`backendURL`, passing `consentConfig` into the handler factory would make its
-upstream manifest request hit `/api/c15t/manifest` again. In each App Router
-handler, replace `createNextConsentRouteHandlers(consentConfig)` with this
-server-only upstream options. For example, the manifest route becomes:
+Give both route handlers the absolute upstream URL. Passing the local
+`consentConfig` into the handler factory would make its upstream manifest
+request hit `/api/c15t/manifest` again. The manifest handler uses these upstream
+options:
 
 ```ts title="app/api/c15t/manifest/route.ts"
 import { createNextConsentRouteHandlers } from 'c15t/next/api';
@@ -140,7 +143,9 @@ The init route uses the same factory options but exports `{ GET }`. Pages Router
 `createPagesApiHandlers({ backendURL })` with the same absolute upstream URL,
 exporting `.manifest` and `.init` from their respective files. Keep the shared
 `consentConfig` for prefetch and the boundary, where calling the local manifest
-route is intentional. If you set `C15T_MANIFEST_URL`, it must also point upstream.
+route is intentional. Omit a separate boundary `backendURL` prop: it overrides
+`consentConfig.backendURL` and an absolute upstream URL would send browser saves
+directly to that origin. If you set `C15T_MANIFEST_URL`, it must also point upstream.
 
 A bare rewrite source `/api/c15t` does not match nested endpoint paths. Use
 `/api/c15t/:path*` for the backend prefix. If you mount a self-hosted backend
@@ -153,25 +158,33 @@ the same loop.
 If you prefer backend-owned initialization, remove `manifestURL` and `initURL`
 from the shared config:
 
-```ts title="consent.config.ts"
+```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-
-export const consentConfig = defineConsentConfig({ backendURL });
+export const consentConfig = defineConsentConfig({
+  backendURL: '/api/c15t',
+});
 ```
 
 Use the same prefetch and boundary wiring from your router guide. Prefetch now
-calls `${backendURL}/init` per request, and the browser uses that endpoint when
-it needs initialization. Remove the unused local manifest/init routes.
+calls `/api/c15t/init` per request, and the browser uses that endpoint when it
+needs initialization. Remove the local manifest/init handlers so the fallback
+rewrite forwards initialization to Inth. Keep `C15T_BACKEND_URL` as the rewrite
+destination.
 
-This is also the simpler hosted path for
-[static export](/docs/frameworks/next/static-export), where Next.js cannot run
-those route handlers. Set an absolute Inth endpoint and allow the site origin.
+For [static export](/docs/frameworks/next/static-export), Next.js cannot serve
+runtime routes or rewrites. Use regular init with an absolute Inth endpoint,
+or a proxy provided by your static host, and allow the site origin on Inth.
 
 Setting only `initURL` does not enable server manifest resolution. Without
 `manifestURL`, server prefetch still calls the backend `/init`.
+
+## Use a self-hosted backend
+
+A [self-hosted c15t backend](/docs/self-host/quickstart) can use the same manifest
+and rewrite path. Point `C15T_BACKEND_URL` at that backend. You then operate its
+database, policy configuration and availability; Inth manages those services
+for hosted projects.
 
 ## Use offline mode deliberately
 
@@ -210,6 +223,8 @@ Pass `onError` to report failures in production; the default warning is only
 shown outside production. Until policy resolution succeeds, optional permissions
 remain denied and the stock prompt stays hidden.
 
-Verify server requests as well as browser Network requests. Confirm a warm
-manifest setup avoids Inth `/init`, still submits choices to Inth, handles two
-locations correctly, and refreshes after a policy change.
+Verify server requests as well as browser Network requests. Browser consent
+requests should stay under `/api/c15t`, including consent submissions. Confirm
+that a warm manifest setup avoids upstream `/init`, the rewrite still submits
+choices to Inth, two locations resolve correctly, and a policy change appears
+after cache refresh.

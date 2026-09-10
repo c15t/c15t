@@ -40,10 +40,11 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent categories](./docs/frameworks/next/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Understand how policy rules affect Next.js prompts, permissions and persistent privacy controls.
-- [Data fetching](./docs/frameworks/next/data-fetching.md): Use cached manifests for Next.js consent resolution, with regular init and offline alternatives.
+- [Data fetching](./docs/frameworks/next/data-fetching.md): Resolve Next.js consent from cached manifests and route browser requests through your app, with backend init and offline alternatives.
 - [Headless](./docs/frameworks/next/headless.md): Build your own consent UI on top of the c15t hooks.
 - [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
 - [IAB TCF](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+- [Optimization](./docs/frameworks/next/optimization.md): Reduce browser connection overhead and reuse cached policy data with the recommended Next.js rewrite and manifest setup.
 - [Pages Router](./docs/frameworks/next/pages-router.md): Use cached Inth manifests with getServerSideProps and browser initialization in Next.js Pages Router.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Set up Next.js with Inth and cached manifests, with separate App Router, Pages Router and static export guides.
 - [Load scripts with consent](./docs/frameworks/next/script-loader.md): Register vendor scripts once and let effective permissions control loading.

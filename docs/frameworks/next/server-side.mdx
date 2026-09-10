@@ -20,7 +20,8 @@ Follow [App Router](/docs/frameworks/next/app-router),
 
 With the recommended `manifestURL` config, `prefetchInitialConsent` resolves
 policy locally from the cached manifest and restores records for a request. With
-only `backendURL`, it calls the backend `/init`. Forward
+only `backendURL`, it fetches `${backendURL}/init`; a rewrite or local handler
+determines what serves that URL. Forward
 its result to `ConsentBoundary` without deriving new saved choices from allowed
 categories. Keep server and browser backend configuration consistent.
 

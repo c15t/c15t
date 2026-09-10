@@ -63,8 +63,15 @@ subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 
 Separate backend ownership, policy fetching and consent-record transport.
-For Next.js server deployments, lead with the shared manifest configuration
-and app init route, using `/api/c15t/manifest` and `/api/c15t/init`. Keep
+At the start of router setup guides, explain Inth hosted, self-hosted and offline
+choices before giving the recommended Inth instructions. The backend endpoint
+is public configuration; do not describe it as a secret.
+For Next.js server deployments, lead with `c15t.config.ts`, cached manifests,
+local init and a same-origin rewrite. Use `/api/c15t` for browser backend traffic,
+with `/api/c15t/manifest` and `/api/c15t/init` as local handlers. Describe avoiding
+a separate browser DNS/TLS connection to the backend, not eliminating all DNS
+or making vendor requests first-party. Static exports need hosting-level
+proxying or direct public URLs because Next.js rewrites need a server. Keep
 manifest handler upstream URLs absolute when a browser backend URL uses the
 same local prefix, otherwise the handler can fetch itself. Explain rewrite
 precedence when combining local handlers with a backend proxy. Then explain

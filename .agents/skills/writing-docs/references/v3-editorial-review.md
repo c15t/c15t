@@ -180,7 +180,10 @@ revocation and cleanup checks; Astro startup and navigation preserve one mount.
 The backend section contains 12 pages, including restored policy, caching,
 deployment, IAB, logging and legal-document workflows. Next.js server guides lead
 with cached manifests and a local init route while consent writes remain on
-Inth. The data-fetching guides compare this with regular backend `/init`, browser
+Inth through a same-origin rewrite. The shared file is `c15t.config.ts`; router
+guides explain Inth, self-hosting and offline before setup. The v3 optimization
+guide restores the old route without carrying over v2 benchmark figures.
+The data-fetching guides compare this with regular backend `/init`, browser
 manifest resolution and offline operation. Frontend policy pages now explain
 observable behavior and link to backend policy authoring.
 
@@ -195,7 +198,7 @@ These checks do not replace production deployments or customer-vendor testing.
 1. Every navigation route resolves; every removed old route has a reviewed
    redirect destination or an intentional removal decision. Inspect `origin/main`
    for the complete inventory, including shared pages and old framework routes.
-   The [v2 route inventory](v2-route-inventory.md) records 108 absent public MDX
+   The [v2 route inventory](v2-route-inventory.md) records 107 absent public MDX
    paths, including older hooks and CLI commands. It lists comparison targets
    where available; it is not a blanket redirect map or a claim of v2 coverage.
 2. Installation examples compile against the v3 packages being published.

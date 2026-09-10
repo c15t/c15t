@@ -7,13 +7,16 @@ group: guides
 ## Start with Inth and a cached manifest
 
 Use Inth for managed policy and consent records. For a Next.js application with
-a server, use a cached manifest to resolve policy in your application and keep
-consent submissions going to Inth. Follow the
-[Next.js manifest setup](/docs/frameworks/next/data-fetching).
+a server, use a cached manifest to resolve policy in your application. Route
+browser consent traffic through `/api/c15t` on your app's origin, and use a
+Next.js rewrite to forward record requests to Inth. Follow the
+[Next.js manifest and rewrite setup](/docs/frameworks/next/data-fetching).
 
-Backend ownership and data fetching are separate decisions. A manifest works
-with Inth or a self-hosted c15t backend. A static site can still call Inth. Only
-`offline()` deliberately removes consent backend requests.
+Backend ownership and data fetching are separate decisions. Inth manages the
+backend for you. A [self-hosted backend](/docs/self-host/quickstart) uses the same
+protocol while you operate its database, policies and availability. A static
+site can still call Inth. Only `offline()` deliberately removes consent backend
+requests and stores choices locally.
 
 | Fetching path | Where policy resolves | Where choices are submitted | Choose it when |
 | --- | --- | --- | --- |
@@ -69,19 +72,18 @@ A transport implements initialization, saving and optional record operations.
 A proxy changes where HTTP requests travel. It does not change the policy
 resolver or make personalized responses safe to cache.
 
-For a custom same-origin init route that resolves a manifest, the hosted
-transport can separate reads and writes:
+For a same-origin init route that resolves a manifest, the hosted transport can
+separate policy reads and record writes. With a backend rewrite mounted at
+`/api/c15t`, a client mode can use:
 
 ```ts title="src/consent-mode.ts"
 import { hosted } from 'c15t';
 
-export function createConsentMode(backendURL: string) {
-  return hosted({
-    url: backendURL,
-    initURL: '/api/c15t/init',
-    assertDecisionInputs: true,
-  });
-}
+export const mode = hosted({
+  url: '/api/c15t',
+  initURL: '/api/c15t/init',
+  assertDecisionInputs: true,
+});
 ```
 
 The route must return the c15t init response contract. `assertDecisionInputs`
@@ -90,10 +92,22 @@ snapshot token. The backend can then reject a stale policy decision. Next.js
 sets this option for you when `ConsentBoundary` receives a consent config with
 `initURL`.
 
-The init route does not proxy consent writes. Either allow the browser origin
-at the backend, or configure an actual proxy for the backend URL, including the
-record endpoints. A static export cannot serve a Next.js route or rewrite at
-runtime.
+The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
+and other record endpoints. Configure both. The
+[Next.js router guides](/docs/frameworks/next/quickstart) use `consentConfig`
+from `c15t.config.ts` to select this transport, so their boundary does not need
+a separate `mode` override.
+
+Keeping c15t requests on the app's origin avoids a separate browser DNS lookup
+and TLS connection to the consent backend. The app server still connects to
+the upstream backend for manifest refreshes and consent writes. Vendor scripts
+and vendor requests keep their own origins.
+
+Set the absolute upstream endpoint through `C15T_BACKEND_URL` in Next.js server
+configuration. The endpoint URL is public connection information, not a secret.
+The browser uses `/api/c15t` without needing the upstream URL. A static export
+cannot serve a Next.js route or rewrite at runtime; use the absolute Inth URL or
+a proxy provided by the static host instead.
 
 ## When should I use offline mode?
 
@@ -134,8 +148,11 @@ the kernel contract. Prefer a built-in transport when your backend supports it.
 
 Inspect browser and server requests separately. A server manifest fetch will
 not appear in the browser's Network panel. On a warm manifest path, check that
-page requests do not call the backend `/init`, a visitor's choice still posts to
-`/subjects`, and policy changes become visible after the configured refresh.
+page requests do not call the backend `/init`, a visitor's choice still reaches
+the backend's `/subjects`, and policy changes become visible after the configured
+refresh. In the recommended Next.js setup, the browser should call only
+`/api/c15t` paths for consent HTTP traffic; inspect server logs to verify their
+upstream destinations.
 
 Test different locations, missing location headers, GPC, returning choices and
 backend failure. See [verification](/docs/guides/verify-consent).

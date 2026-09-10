@@ -9,8 +9,8 @@ group: frameworks
 Keep the manifest setup from the [App Router](https://c15t.com/docs/frameworks/next/app-router)
 or [Pages Router](https://c15t.com/docs/frameworks/next/pages-router) guide. Put vendor callbacks
 in a client wrapper and pass `scripts` as a top-level boundary prop. Keep the
-shared `consentConfig`; passing only `backendURL` would switch initialization
-back to the backend `/init` path.
+shared `consentConfig` from `c15t.config.ts` so initialization and consent saves
+remain configured for the manifest setup.
 
 | Package manager | Command                     |
 | :-------------- | :-------------------------- |
@@ -31,7 +31,7 @@ import {
 } from 'c15t/next';
 import type { ConsentBoundaryProps } from 'c15t/next';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
-import { consentConfig } from '../consent.config';
+import { consentConfig } from '../c15t.config';
 
 const scripts = [metaPixel({ pixelId: '123456789012345' })];
 
@@ -60,7 +60,7 @@ config to this wrapper:
 import type { ReactNode } from 'react';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { Consent } from '../components/consent';
-import { consentConfig } from '../consent.config';
+import { consentConfig } from '../c15t.config';
 import 'c15t/next/styles.css';
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

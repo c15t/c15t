@@ -11,7 +11,7 @@ but do not replace a versioned v2 reference. For the remaining routes, retain
 access to the v2 documentation or write the missing v3 task before retiring it.
 The private host owns version routing, canonical URLs and redirect status codes.
 
-108 old public MDX paths need a publication decision.
+107 old public MDX paths need a publication decision.
 
 | Old route | Publication decision |
 | --- | --- |
@@ -78,7 +78,6 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/next/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/internationalization` | Compare with `/docs/customization/translations` before redirecting |
 | `/docs/frameworks/next/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/next/optimization` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/styling/classnames` | Compare with `/docs/customization/slots` before redirecting |
 | `/docs/frameworks/next/styling/color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |

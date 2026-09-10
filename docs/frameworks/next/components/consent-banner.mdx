@@ -6,20 +6,24 @@ group: frameworks
 
 ## Usage
 
+Keep the rewrite and local handlers from your
+[App Router setup](/docs/frameworks/next/app-router). Render one banner inside
+its existing consent boundary:
+
 ```tsx
 // app/layout.tsx
 import { ConsentBanner, ConsentBoundary, ConsentDialog } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import 'c15t/next/styles.css';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-	const backendURL = process.env.C15T_BACKEND_URL;
-	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
-	const config = prefetchInitialConsent({ backendURL });
+	const config = prefetchInitialConsent({ config: consentConfig });
 
 	return (
 		<html lang="en">
 			<body>
-				<ConsentBoundary config={config} backendURL={backendURL}>
+				<ConsentBoundary config={config} consent={consentConfig}>
 					{children}
 					<ConsentBanner />
 					<ConsentDialog />
@@ -30,8 +34,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 ```
 
-The banner renders whatever the active policy rule requires. The server shell
-resolves the rule before the first paint and the client reads the same rule, so the same component serves every region:
+The banner renders what the resolved policy rule requires. This example lets
+the page render while the prompt waits for the prefetch promise. Await the
+helper when you need resolved consent UI in the initial HTML. The server and
+client use the same prepared state:
 
 - A `choice` prompt shows the actions the rule allows: reject and accept at
   equal prominence, plus customize when the rule offers it.

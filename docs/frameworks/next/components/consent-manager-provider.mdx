@@ -8,7 +8,7 @@ group: frameworks
 
 Use `ConsentBoundary` for the recommended
 [manifest setup](/docs/frameworks/next/data-fetching). It wraps `ConsentProvider`
-and selects the transport from your shared `consentConfig`.
+and selects the transport from `consentConfig` in `c15t.config.ts`.
 
 | Boundary prop | Purpose |
 | --- | --- |
@@ -37,9 +37,7 @@ import {
   hosted,
 } from 'c15t/next';
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-const mode = hosted({ url: backendURL });
+const mode = hosted({ url: '/api/c15t' });
 
 export function Consent({ children }: { children: ReactNode }) {
   return (
@@ -53,7 +51,11 @@ export function Consent({ children }: { children: ReactNode }) {
 }
 ```
 
-Set the public URL to your Inth project endpoint. For local-only records, use
+Keep the recommended [backend rewrite](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
+and remove local manifest/init handlers for this regular backend `/init` variant.
+The rewrite forwards initialization and saves to your Inth or self-hosted backend.
+For a static export without a hosting proxy, use the absolute public backend URL
+instead. For local-only records, use
 [offline mode](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
 
 ## Provider responsibilities

@@ -1,0 +1,77 @@
+---
+title: Optimization
+description: Reduce browser connection overhead and reuse cached policy data with the recommended Next.js rewrite and manifest setup.
+group: frameworks
+---
+
+## Start with same-origin requests and cached manifests
+
+Follow [App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router). Both use `c15t.config.ts`,
+local manifest/init handlers and a backend rewrite. Inth is the recommended
+upstream; the same setup works with a self-hosted c15t backend.
+
+| Setting | What it changes |
+| --- | --- |
+| `backendURL: '/api/c15t'` and a backend rewrite | The browser submits consent to the application's origin. Next.js forwards those requests upstream. |
+| `manifestURL: '/api/c15t/manifest'` | Public policy configuration can be cached and reused across requests. |
+| `initURL: '/api/c15t/init'` | The app server resolves the manifest with request inputs when browser initialization is needed. |
+| Server prefetch | The request can prepare consent before the client runtime initializes. |
+
+## Avoid a separate browser connection to the backend
+
+Same-origin requests use the application's origin, so c15t does not require the
+browser to resolve and establish a separate connection to the backend domain.
+This avoids that additional DNS/TLS setup when a separate connection would be
+needed. It also keeps browser consent requests first-party.
+
+The app server still connects to Inth for writes, manifest cache misses and
+revalidation. A rewrite adds a server proxy hop; measure your deployment instead
+of assuming a fixed latency saving. It does not proxy analytics, pixels or
+iframes registered with c15t, which still use their own vendor URLs.
+
+Use a fallback rewrite so the concrete local manifest/init handlers run first.
+Give those handlers the absolute upstream URL to avoid fetching their own
+manifest route. See
+[rewrite configuration](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite).
+
+## Reuse policy data without sharing visitor decisions
+
+A warm manifest cache avoids repeated backend policy resolution. Cache the
+manifest, then resolve each request using its location, language, privacy
+signals and saved records. Keep personalized init responses out of shared
+caches. Configure policy refresh intervals according to how quickly changes
+must reach visitors.
+
+Keep `initURL` in the recommended setup. Resolving a manifest in the browser
+instead loads the resolver and its translations there, and does not supply the
+hosting platform's geographic request headers. See
+[data fetching](/docs/frameworks/next/data-fetching) for cache defaults and
+alternative transports.
+
+## Match prefetch to the page's rendering mode
+
+On a request-rendered page, `prefetchInitialConsent` prepares consent using the
+visitor's request. Await it when resolved consent UI should be part of the
+initial HTML, or pass its promise to `ConsentBoundary` when the page should
+render while the prompt waits. Follow
+[server rendering](/docs/frameworks/next/server-side) for the router-specific
+helper.
+
+A page that must remain prerendered can initialize through the local init route
+in the browser if the deployment has a Next.js server. A full static export has
+no Next.js rewrites or API handlers. Use a hosting-level proxy or direct public
+Inth endpoint as described in [static export](/docs/frameworks/next/static-export).
+Offline mode changes where policy and choices live; it is not a faster route
+to the hosted service.
+
+## Keep the consent runtime mounted
+
+Keep one boundary in the App Router root layout or Pages Router `_app.tsx`.
+Remounting it during navigation creates another runtime and repeats startup
+work. Keep the stylesheet and consent UI in that shared root too.
+
+Measure cold entry, a warm manifest cache and client navigation separately.
+Check server requests as well as the browser Network panel. Confirm that browser
+requests to the consent backend use your origin, consent saves reach the upstream backend, and
+policy updates appear after the configured refresh window.

@@ -19,8 +19,9 @@ your project name.
 
 Choose [your framework guide](/docs/frameworks), install a compatible v3
 adapter and set the backend URL specified there. Public environment variables
-contain the endpoint, never a management API key. Request helpers need an
-absolute URL when they fetch from the server.
+contain the endpoint, which is public configuration. API keys are separate.
+Server route handlers need an absolute upstream URL; the browser can use a
+same-origin path through a rewrite.
 
 The `hosted({ url })` transport connects to Inth. Framework adapters may expose
 this through `backendURL` instead, as in Next.js, Vue and Nuxt. Follow the
@@ -28,8 +29,10 @@ adapter's example rather than mixing configuration shapes.
 
 For Next.js with a server, use the recommended
 [manifest setup](/docs/frameworks/next/data-fetching). It shares public policy
-data while resolving each visitor's consent state separately. Inth still
-stores consent records. See [data fetching](/docs/guides/data-fetching) for
+data while resolving each visitor's consent state separately. The recommended
+rewrite keeps browser c15t requests on your application origin and forwards
+consent writes to Inth. The backend URL is not a secret; the server environment
+variable supplies the upstream destination while the browser uses `/api/c15t`. See [data fetching](/docs/guides/data-fetching) for
 manifest resolution, regular `/init` requests and custom transports.
 
 ## Static sites can use Inth too

@@ -4,53 +4,116 @@ description: Use cached Inth manifests with getServerSideProps and browser initi
 group: frameworks
 ---
 
-## Install and configure Inth
+## Choose how to manage consent
 
-[Create an Inth project](/docs/guides/inth), configure policy rules and allow your
-app's origin. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to its exact absolute backend
-endpoint. This setup requires a Next.js server for the API routes, including
-when individual pages use static generation.
+We recommend [Inth](/docs/guides/inth) for managed policy and consent records.
+This guide uses cached manifests for request-time resolution and a Next.js
+rewrite so browser consent requests stay on your origin.
+
+| Mode | What you manage |
+| --- | --- |
+| Inth hosted | Configure policy and allowed app origins; Inth runs the backend and stores submissions. |
+| [Self-hosted](/docs/self-host/quickstart) | Run the c15t backend and database. Use the same hosted transport and rewrite setup with your backend endpoint. |
+| [Offline](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately) | Bundle policy rules and keep choices in browser storage. No consent backend requests or backend records. |
+
+This setup requires a Next.js server for the API routes and rewrite, including
+when individual pages use static generation. For a deployment without that
+server, use [static export](/docs/frameworks/next/static-export).
+
+## Install c15t and configure your backend
+
+[Create an Inth project](/docs/guides/inth), configure its policy rules and allow
+your app's origin. Copy its backend endpoint for the upstream configuration.
+
+If you chose self-hosting, complete the
+[backend quickstart](/docs/self-host/quickstart) and use its public endpoint in
+the steps below. Offline setups do not need an endpoint or rewrite; use the
+[offline example](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
 
 <CommandTabs command="c15t" mode="install" />
 
-## Share the URLs and add API routes
+## Keep browser requests on your origin
 
-```ts title="consent.config.ts"
+Set `C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or your
+self-hosted backend, including any path prefix. Add this fallback rewrite to your existing Next.js configuration:
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const backendURL = process.env.C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+const upstreamURL = backendURL.replace(/\/$/, '');
+
+const config: NextConfig = {
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: '/api/c15t/:path*',
+          destination: `${upstreamURL}/:path*`,
+        },
+      ],
+    };
+  },
+};
+
+export default config;
+```
+
+The local manifest and init routes below take precedence. Other requests,
+including `POST /api/c15t/subjects`, pass through the rewrite to Inth. The browser
+uses your site's origin for consent traffic. The backend URL is a public service
+endpoint. This server environment variable configures the upstream destination;
+the browser only needs the relative `/api/c15t` URLs.
+
+Restart Next.js after changing the rewrite. Keep this catch-all in `fallback`,
+not `beforeFiles`, so it cannot bypass the local route handlers.
+
+## Share the consent URLs
+
+Create this file at the project root. Server prefetch and the client boundary
+share these first-party URLs:
+
+```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-
 export const consentConfig = defineConsentConfig({
-  backendURL,
+  backendURL: '/api/c15t',
   manifestURL: '/api/c15t/manifest',
   initURL: '/api/c15t/init',
 });
 ```
 
-Use the Pages Router handler adapter. It serves the same cached manifest and
-request-specific init contracts as the App Router handlers.
+## Add the Pages API routes
+
+Use the Pages Router adapter with the absolute upstream backend URL. Do not pass
+the browser's `backendURL: '/api/c15t'` to these handlers: its derived manifest
+URL would call the local manifest handler again.
 
 ```ts title="pages/api/c15t/manifest.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
-import { consentConfig } from '../../../consent.config';
 
-export default createPagesApiHandlers(consentConfig).manifest;
+const backendURL = process.env.C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+
+export default createPagesApiHandlers({ backendURL }).manifest;
 ```
 
 ```ts title="pages/api/c15t/init.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
-import { consentConfig } from '../../../consent.config';
 
-export default createPagesApiHandlers(consentConfig).init;
+const backendURL = process.env.C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+
+export default createPagesApiHandlers({ backendURL }).init;
 ```
 
-These imports assume `pages/` is at the project root. Adjust them if you use
-`src/pages/`.
+The manifest route caches Inth policy data. The init route resolves that data
+with the visitor's request inputs. The fallback rewrite handles the remaining
+backend endpoints.
 
-Using an existing `/api/c15t` rewrite? Read
-[rewrite routing and upstream URLs](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
-before pointing the shared backend URL at that prefix.
+The following app and page imports assume `pages/` is at the project root.
+Adjust them if you use `src/pages/`.
 
 ## Keep one boundary in the app
 
@@ -63,7 +126,7 @@ import {
   ConsentDialogLink,
 } from 'c15t/next';
 import type { ConsentBoundaryProps } from 'c15t/next';
-import { consentConfig } from '../consent.config';
+import { consentConfig } from '../c15t.config';
 import 'c15t/next/styles.css';
 
 type ConsentPageProps = {
@@ -84,7 +147,7 @@ export default function App({ Component, pageProps }: AppProps<ConsentPageProps>
 
 Without page prefetch, the boundary initializes through `/api/c15t/init` in
 the browser. That route resolves the cached manifest using the visitor request.
-Consent submissions still go directly to the Inth backend.
+Consent submissions use `/api/c15t/subjects`, which the rewrite forwards to Inth.
 
 ## Prefetch for a server-rendered page
 
@@ -95,7 +158,7 @@ helper reads a different request context and must not be used here.
 import type { GetServerSideProps } from 'next';
 import type { ConsentBoundaryProps } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/pages';
-import { consentConfig } from '../consent.config';
+import { consentConfig } from '../c15t.config';
 
 type PageProps = { consentConfig: ConsentBoundaryProps['config'] };
 
@@ -121,7 +184,7 @@ choice. Also test direct entry to a statically generated page; it uses browser
 initialization through the local init route.
 
 Confirm the server reads `/manifest` instead of the backend `/init` and choices
-still reach Inth `/subjects`. See
+use `/api/c15t/subjects` and reach Inth through the rewrite. See
 [data fetching](/docs/frameworks/next/data-fetching) for caching and transport
 alternatives. For a deployment with no Next.js server, use
 [static export](/docs/frameworks/next/static-export) and remove local API routes.
