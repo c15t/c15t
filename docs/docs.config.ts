@@ -46,9 +46,6 @@ export default defineDocsConfig({
 				heading: 'Start here',
 				links: [
 					{
-						urlPath: '/docs/guides/inth',
-					},
-					{
 						urlPath: '/docs/frameworks',
 					},
 					{
@@ -72,7 +69,7 @@ export default defineDocsConfig({
 	},
 	navigation: [
 		{
-			pages: ['index', 'guides/inth'],
+			pages: ['index'],
 			title: 'Getting started',
 		},
 		{

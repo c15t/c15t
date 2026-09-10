@@ -12,7 +12,7 @@ and `changelog`. Run the installed version's `--help` for its exact command list
 Use [manual framework setup](https://c15t.com/docs/frameworks) when you want to control
 each file explicitly.
 
-Start new integrations with [Inth](../guides/inth.md). The CLI can help create the
+Start new integrations with [Inth](https://inth.com). The CLI can help create the
 initial files, but generated configuration still needs review for your router,
 rendering mode and deployment.
 

@@ -29,37 +29,41 @@ test('unresolved conversion errors stop publication', async () => {
 	).rejects.toThrow('Incomplete documentation conversion');
 });
 
-const files = new Set(['guides/inth.md', 'frameworks/index.md']);
+const files = new Set(['guides/data-fetching.md', 'frameworks/index.md']);
 
 test('bundled links work offline and retain anchors', () => {
 	expect(
 		packageDocLink(
-			'/docs/guides/inth#connect-your-framework',
+			'/docs/guides/data-fetching#what-is-a-consent-manifest',
 			'frameworks/react/quickstart.md',
 			files
 		)
-	).toBe('../../guides/inth.md#connect-your-framework');
-	expect(packageDocLink('/docs/frameworks', 'guides/inth.md', files)).toBe(
-		'../frameworks/index.md'
-	);
+	).toBe('../../guides/data-fetching.md#what-is-a-consent-manifest');
+	expect(
+		packageDocLink('/docs/frameworks', 'guides/data-fetching.md', files)
+	).toBe('../frameworks/index.md');
 });
 
 test('topics outside the bundle link to the website', () => {
 	expect(
-		packageDocLink('/docs/self-host/quickstart', 'guides/inth.md', files)
+		packageDocLink(
+			'/docs/self-host/quickstart',
+			'guides/data-fetching.md',
+			files
+		)
 	).toBe('https://c15t.com/docs/self-host/quickstart');
-	expect(packageDocLink('https://inth.com', 'guides/inth.md', files)).toBe(
-		'https://inth.com'
-	);
+	expect(
+		packageDocLink('https://inth.com', 'guides/data-fetching.md', files)
+	).toBe('https://inth.com');
 });
 
 test('relative website routes become local Markdown links', () => {
 	expect(
-		packageDocLink('../inth#setup', 'guides/nested/example.md', files)
-	).toBe('../inth.md#setup');
-	expect(packageDocLink('../inth.mdx', 'guides/nested/example.md', files)).toBe(
-		'../inth.md'
-	);
+		packageDocLink('../data-fetching#setup', 'guides/nested/example.md', files)
+	).toBe('../data-fetching.md#setup');
+	expect(
+		packageDocLink('../data-fetching.mdx', 'guides/nested/example.md', files)
+	).toBe('../data-fetching.md');
 	expect(
 		packageDocLink('../assets/example.png', 'guides/example.md', files)
 	).toBe('../assets/example.png');

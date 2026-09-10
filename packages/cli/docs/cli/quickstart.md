@@ -17,7 +17,7 @@ bun run cli setup
 ```
 
 Run setup from the application directory, especially in a monorepo. Connect the
-result to your [Inth project](../guides/inth.md). Review the detected framework,
+result to your [Inth project](https://inth.com). Review the detected framework,
 package manager, router, files and backend URL before applying generated changes.
 
 The package exports the executable as `cli`. `bun run cli` selects that local
