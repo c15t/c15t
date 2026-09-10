@@ -47,8 +47,8 @@ not a secret. Configure the backend to allow your app's origin.
 
 ## Share the consent URLs
 
-Create this file at the project root. The current API needs explicit
-`manifestURL` and `initURL` to select this manifest setup.
+Create this file at the project root. Set `manifestURL` explicitly to select
+manifest resolution.
 
 ```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
@@ -59,32 +59,21 @@ if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
 export const consentConfig = defineConsentConfig({
   backendURL,
   manifestURL: '/api/c15t/manifest',
-  initURL: '/api/c15t/init',
 });
 ```
 
-## Serve the manifest and local init routes
+## Serve the manifest route
 
-The init route is optional. This guide includes it so browser initialization
-can resolve the cached manifest with request geography, without calling the
-backend's `/init`. A successful server prefetch supplies the initial policy
-directly. See [when to omit the init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
-
-Use the built-in handlers. They read the absolute upstream URL from
-`C15T_BACKEND_URL`, falling back to `NEXT_PUBLIC_C15T_BACKEND_URL` from the setup
-above. If you set both, point them at the same backend.
+The built-in handler reads the absolute upstream URL from `C15T_BACKEND_URL`,
+falling back to `NEXT_PUBLIC_C15T_BACKEND_URL` from the setup above. If you set
+both, point them at the same backend.
 
 ```ts title="app/api/c15t/manifest/route.ts"
 export { manifestGET as GET } from 'c15t/next/api';
 ```
 
-```ts title="app/api/c15t/init/route.ts"
-export { GET } from 'c15t/next/api';
-```
-
-The manifest handler caches public policy data. The init handler resolves that
-data using each request's location, language and privacy signals. These routes
-do not proxy consent submissions; the browser sends those to `backendURL`.
+The manifest handler caches public policy data. Server prefetch resolves it
+using the visitor's request. Consent submissions go directly to `backendURL`.
 
 The paths below assume `app/` is at the project root. Adjust imports if you use
 `src/app/`.
@@ -157,10 +146,11 @@ resolved consent subtree.
 
 ## Initialize in the browser
 
-Keep the shared config and both API routes, remove the prefetch import and call,
-and pass `config={{}}` to the boundary in the layout. The browser requests the
-local `/api/c15t/init` route, which resolves the cached manifest with the visitor's
-request inputs. No visitor-specific prompt is rendered at build time.
+Keep the shared config and manifest route, remove the prefetch import and call,
+and pass `config={{}}` to the boundary. The browser loads the manifest and
+resolves policy locally. Without supplied location, geography is unknown.
+For browser initialization with request geography, see the
+[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
 
 ## Add client behavior inside the boundary
 
@@ -189,7 +179,7 @@ export const consentConfig = defineConsentConfig({ backendURL });
 ```
 
 This is an alternative to the manifest configuration. Remove the unused local
-manifest/init route files. The existing prefetch and boundary now initialize
+manifest route. The existing prefetch and boundary now initialize
 through `${backendURL}/init`; consent saves still use `${backendURL}/subjects`.
 A backend-only config does not enable manifest mode automatically.
 

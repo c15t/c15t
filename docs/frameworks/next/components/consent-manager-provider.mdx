@@ -1,75 +1,45 @@
 ---
-title: ConsentBoundary and ConsentProvider
-description: Configure the v3 consent runtime and share its state with child components.
+title: ConsentBoundary
+description: Pass server-prefetched consent and shared configuration to the Next.js consent boundary.
 group: frameworks
 ---
 
-## Start with ConsentBoundary in Next.js
+## Mount one boundary
 
-Use `ConsentBoundary` for the recommended
-[manifest setup](/docs/frameworks/next/data-fetching). It wraps `ConsentProvider`
-and selects the transport from `consentConfig` in `c15t.config.ts`.
-
-| Boundary prop | Purpose |
-| --- | --- |
-| `config` | The prepared visitor state returned by `prefetchInitialConsent`, or `{}` for browser initialization |
-| `consent` | The `defineConsentConfig` value containing `backendURL`, `manifestURL` and `initURL` |
-| `scripts` | Top-level consent-managed script configurations |
-| `options` | Additional provider options, including an explicit `mode` override |
+`ConsentBoundary` wraps the React `ConsentProvider` and connects it to your
+Next.js configuration and server-prefetched state. Mount the boundary once;
+it already supplies the provider used by consent components and hooks.
 
 Follow [App Router](/docs/frameworks/next/app-router) or
-[Pages Router](/docs/frameworks/next/pages-router) for full files. Keep the boundary
-mounted across navigation and import the stylesheet once at the app root.
+[Pages Router](/docs/frameworks/next/pages-router) for the complete setup.
+Keep the boundary mounted across navigation and import the stylesheet once
+at the app root.
 
-Use `ConsentProvider` directly when you need to own the transport configuration.
-This client wrapper deliberately uses regular backend `/init`. It is an
-alternative to the manifest boundary, not another provider to mount inside it:
+## Props
 
-```tsx title="components/consent.tsx"
-'use client';
+| Prop | Purpose |
+| --- | --- |
+| `config` | Visitor state or its promise from `prefetchInitialConsent`; use `{}` for browser initialization |
+| `consent` | Shared configuration from `defineConsentConfig` in `c15t.config.ts` |
+| `backendURL` | Overrides `consent.backendURL` |
+| `scripts` | Consent-managed script configurations |
+| `scriptLoader` | Script-loader options |
+| `networkBlocker` | Network-blocker options, or `false` to disable it |
+| `persistence` | Browser persistence options; defaults to `true` |
+| `options` | Provider options such as styling, callbacks and an explicit `mode` override |
 
-import type { ReactNode } from 'react';
-import {
-  ConsentProvider,
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  hosted,
-} from 'c15t/next';
+## Provider options
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-const mode = hosted({ url: backendURL });
+The boundary passes `options` to its provider. Keep scripts, persistence and
+network-blocker configuration in their top-level boundary props.
 
-export function Consent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider options={{ mode }}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog />
-      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentProvider>
-  );
-}
-```
-
-Use the absolute public Inth or self-hosted endpoint. This regular `/init`
-variant needs no local manifest/init handlers. An optional
-[backend rewrite](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
-lets you use `/api/c15t` instead. For local-only records, use
-[offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
-
-## Provider responsibilities
-
-The provider owns initialization, persistence, configured script loading and
-subscriptions. Keep it mounted across client navigation. Its initial mode and
-prefetch configuration belong to the runtime's creation, not a per-render
-mechanism for switching visitors or backends.
+The provider owns initialization, persistence, script loading and subscriptions.
+Changing its initial mode or prefetch configuration is not a supported way to
+switch visitors or backends after mounting.
 
 | Option | Purpose |
 | --- | --- |
 | `mode` | Hosted, offline or custom transport factory |
-| `scripts` | Consent-managed script configurations |
 | `callbacks` | Choice, permission and error events |
 | `theme`, `components` | Theme tokens and component slot attributes |
 | `presentation` | Prompt and preferences layout behavior |
@@ -81,13 +51,18 @@ mechanism for switching visitors or backends.
 consent UI. It is not a way to fix failed initialization or hide a banner in
 production.
 
-## Observe changes without inventing choices
+## Listen for consent changes
 
 `onChoiceRecorded` reports explicit accept, reject and save actions.
 `onPermissionsChanged` also covers changes caused by policy, expiry or privacy
 signals. Hydration and notice dismissal do not become explicit choices.
 
-An externally owned runtime can be passed through `runtime`. Its owner must
-start and dispose it. A provider borrowing that runtime must not initialize or
-dispose a second copy. See [consent state](/docs/guides/consent-state) and
-[deployment modes](/docs/guides/deployment-modes).
+## When would I use ConsentProvider directly?
+
+Use `ConsentProvider` from `c15t/next` when you need to manage the runtime and
+transport yourself. For example, it accepts an externally owned `runtime`.
+Its owner must start and dispose that runtime.
+
+For standard Next.js setups, keep `ConsentBoundary`. It supports
+[browser initialization](/docs/frameworks/next/client-side) as well as
+[server prefetch](/docs/frameworks/next/server-side).

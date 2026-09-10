@@ -71,6 +71,11 @@ recipe. Verify exports and actual examples; a removed browser-prefetch component
 does not imply the server prefetch helper was removed. Keep `c15t.config.ts`
 for shared configuration. The current API requires explicit manifest URLs;
 never document proposed automatic defaults before they exist in source.
+Default server-prefetched manifest recipes need only the manifest route.
+Keep the local init route as an optional reference for browser initialization
+that needs server request geography or server-side resolution. Use
+`ConsentBoundary` as the Next.js component page title; explain that it already
+wraps `ConsentProvider`, so users do not mount both.
 Same-origin rewrites are optional performance optimizations, never setup
 requirements. Use `/api/c15t` when a rewrite is chosen, with
 `/api/c15t/manifest` and `/api/c15t/init` for local manifest handlers. Describe avoiding

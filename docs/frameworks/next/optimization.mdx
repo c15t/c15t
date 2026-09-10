@@ -16,11 +16,9 @@ all requests. Your app may read its local manifest route, cold caches fetch
 upstream data, and consent choices still reach Inth. IAB policies can also need
 a Global Vendor List fetch.
 
-Keep the local init route from your router guide so browser initialization can
-use the same server resolver. Resolving the manifest in the browser instead
-loads resolver code and its translations there, and does not supply your host's
-geographic request headers. See the [data fetching guide](/docs/frameworks/next/data-fetching)
-if you are still choosing a setup.
+Server prefetch supplies the initial policy to the browser. For browser
+initialization that needs request geography, you can add an
+[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
 
 ## Compare manifests with backend initialization
 
@@ -82,8 +80,9 @@ export default {
 } satisfies NextConfig;
 ```
 
-Next.js serves the local manifest and init handlers first. Other consent
-requests, such as `/api/c15t/subjects`, reach Inth through the rewrite.
+Next.js serves the local manifest handler first. Other consent requests, such
+as `/api/c15t/subjects`, reach Inth through the rewrite. An optional local init
+handler also takes precedence over this fallback.
 
 ### Use the local prefix in browser configuration
 
@@ -96,7 +95,6 @@ import { defineConsentConfig } from 'c15t/next';
 export const consentConfig = defineConsentConfig({
   backendURL: '/api/c15t',
   manifestURL: '/api/c15t/manifest',
-  initURL: '/api/c15t/init',
 });
 ```
 

@@ -46,8 +46,8 @@ not a secret. Configure the backend to allow your app's origin.
 
 ## Share the consent URLs
 
-Create this file at the project root. The current API needs explicit
-`manifestURL` and `initURL` to select this manifest setup.
+Create this file at the project root. Set `manifestURL` explicitly to select
+manifest resolution.
 
 ```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
@@ -58,15 +58,10 @@ if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
 export const consentConfig = defineConsentConfig({
   backendURL,
   manifestURL: '/api/c15t/manifest',
-  initURL: '/api/c15t/init',
 });
 ```
 
-## Add the Pages API routes
-
-The local init route is optional. We include it so browser initialization can
-resolve the cached manifest with request geography, without calling the
-backend's `/init`. See [when to omit it](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
+## Add the manifest API route
 
 The Pages Router adapter reads `C15T_BACKEND_URL`, falling back to the
 `NEXT_PUBLIC_C15T_BACKEND_URL` configured above. If you set both, use the same
@@ -78,14 +73,8 @@ import { createPagesApiHandlers } from 'c15t/next/pages';
 export default createPagesApiHandlers().manifest;
 ```
 
-```ts title="pages/api/c15t/init.ts"
-import { createPagesApiHandlers } from 'c15t/next/pages';
-
-export default createPagesApiHandlers().init;
-```
-
-The manifest route caches public policy data. The init route resolves it using
-the visitor request. Consent submissions go to the absolute `backendURL`.
+The manifest route caches public policy data. Server prefetch resolves it
+using the visitor's request. Consent submissions go directly to `backendURL`.
 
 The following imports assume `pages/` is at the project root. Adjust them if you
 use `src/pages/`.
@@ -121,8 +110,10 @@ export default function App({ Component, pageProps }: AppProps<ConsentPageProps>
 ```
 
 `initialConsent` is the prepared visitor state; `consentConfig` contains the
-shared URLs. Without page prefetch, the boundary initializes through `/api/c15t/init` in
-the browser. That route resolves the cached manifest using the visitor request.
+shared URLs. Without page prefetch, the browser loads the manifest and resolves
+policy locally. Without supplied location, geography is unknown. For browser
+initialization with request geography, see the
+[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
 Consent submissions go to `${backendURL}/subjects` on the configured backend.
 
 ## Prefetch for a server-rendered page
@@ -157,7 +148,7 @@ visitor's request. Keep the shared URL configuration consistent across pages.
 Load a server-rendered page directly, reject, and reload. Then navigate without
 a full reload and reopen preferences. The mounted boundary should retain the
 choice. Also test direct entry to a statically generated page; it uses browser
-initialization through the local init route.
+manifest resolution, so verify your unknown-location rule.
 
 Confirm the server reads `/manifest` instead of the backend `/init` and choices
 reach `${backendURL}/subjects`. See
@@ -184,7 +175,7 @@ export const consentConfig = defineConsentConfig({ backendURL });
 ```
 
 This is an alternative to the manifest configuration. Remove the unused local
-manifest/init route files. The existing prefetch and boundary now initialize
+manifest route. The existing prefetch and boundary now initialize
 through `${backendURL}/init`; consent saves still use `${backendURL}/subjects`.
 A backend-only config does not enable manifest mode automatically.
 

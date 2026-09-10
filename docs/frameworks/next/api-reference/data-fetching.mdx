@@ -35,21 +35,33 @@ which keeps the URLs you pass to it and does not choose a fetching mode for you.
 
 ### Do I need the local init route?
 
-No. The router guides include it so browser initialization can resolve the
-cached manifest with the hosting platform's location headers. The local
-`/api/c15t/init` handler computes that result in your app; it does not forward
-the request to the backend's `/init` endpoint.
+No. The router guides use server prefetch and one manifest route. Successful
+prefetch supplies the initial policy directly to the browser.
 
-A successful server prefetch already supplies the initial policy, so the
-browser does not need to repeat initialization. The local route is useful when
-initialization happens in the browser, including entry without prefetch or
-recovery after a failed prefetch.
+Add a local init route when browser initialization needs your host's location
+headers or you want to keep manifest resolution on the server. It resolves the
+cached manifest in your app instead of calling the backend's `/init`.
 
-To resolve the manifest in the browser instead, omit `initURL` and remove the
-unused local init handler. Keep `manifestURL`. Browser resolution has no
-automatic access to your host's geographic headers; provide location through
-your application if needed, or accept the unknown-location policy. See
-[geography and privacy signals](#geography-and-privacy-signals).
+Add `initURL: '/api/c15t/init'` to your existing `defineConsentConfig` value,
+keeping `backendURL` and `manifestURL`. Then add the handler for your router.
+It reads the same absolute upstream backend environment variable as your
+manifest handler.
+
+```ts title="app/api/c15t/init/route.ts"
+export { GET } from 'c15t/next/api';
+```
+
+For Pages Router, use this file instead:
+
+```ts title="pages/api/c15t/init.ts"
+import { createPagesApiHandlers } from 'c15t/next/pages';
+
+export default createPagesApiHandlers().init;
+```
+
+Without `initURL`, browser initialization resolves the manifest locally. It
+uses location supplied by prefetch or your application, but cannot read your
+host's geographic headers itself. See [geography and privacy signals](#geography-and-privacy-signals).
 
 ### Transport combinations
 
@@ -95,8 +107,8 @@ The [App Router](/docs/frameworks/next/app-router) and
    cookies.
 3. `ConsentBoundary` receives that result as `config` and the URL configuration
    as `consent`. Hydration preserves the prepared state.
-4. Browser initialization calls `/api/c15t/init` when needed. This local handler
-   resolves the cached manifest; it is separate from the backend `/init` endpoint.
+4. If browser initialization is needed, it resolves the manifest locally. An
+   optional `initURL` moves this resolution to the app server.
 5. Browser choices post to `${backendURL}/subjects`.
 
 A warm policy cache avoids backend `/init` during request resolution. The app
@@ -119,11 +131,11 @@ Request helpers also read language and GPC. Missing location stays unknown;
 the resolver does not infer country from the Next.js server's IP. Test unknown
 country and region against your configured policy rules.
 
-Keep `initURL` when browser initialization needs request-derived geography.
-Without it, the browser resolves the manifest itself. That path lacks the
-host's geographic request headers and lazily downloads resolver code that
-imports all translation languages. A local init handler keeps this work on
-the server.
+Browser manifest resolution uses location overrides from prefetch or your
+application. A browser-only entry without those inputs uses unknown location.
+The [optional init route](#do-i-need-the-local-init-route) reads geographic
+headers on the server and keeps resolver code and translations out of browser
+initialization.
 
 ## Offline configuration
 
