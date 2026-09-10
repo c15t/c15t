@@ -125,6 +125,10 @@ export default defineDocsConfig({
 							pages: ['iab/overview'],
 							title: 'IAB TCF',
 						},
+						{
+							pages: ['api-reference/data-fetching'],
+							title: 'Reference',
+						},
 					],
 					pages: [
 						'quickstart',

@@ -95,8 +95,8 @@ sets this option for you when `ConsentBoundary` receives a consent config with
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
 and other record endpoints. Configure both if you choose this optional proxy
 variant. The
-[Next.js data-fetching guide](/docs/frameworks/next/data-fetching) explains how
-to select it through `c15t.config.ts`. A direct absolute backend URL works
+[Next.js rewrite recipe](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+shows the configuration. A direct absolute backend URL works
 without a rewrite.
 
 This optional optimization keeps c15t requests on the app's origin and avoids a separate browser DNS lookup

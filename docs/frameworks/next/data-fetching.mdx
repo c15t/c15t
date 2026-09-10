@@ -1,237 +1,73 @@
 ---
 title: Data fetching
-description: Choose manifest resolution or regular backend init, with optional same-origin rewrites and local-only offline mode.
+description: Choose cached manifests for a Next.js server, backend initialization for a simpler setup, or offline mode for local development.
 group: frameworks
 ---
 
-## Choose how consent data is fetched
+## Cached manifests
 
-Use Inth for managed policy and consent records. For a Next.js server,
-[App Router](/docs/frameworks/next/app-router) and
-[Pages Router](/docs/frameworks/next/pages-router) show cached manifests with
-explicit `manifestURL` and `initURL` settings. Policy data can then be reused
-across requests while Inth stores consent submissions.
+Recommended for Next.js deployments with a server.
 
-Those guides connect browser saves directly to the absolute backend endpoint.
-A same-origin rewrite is an optional performance optimization, described below.
-It is not required for manifests, server rendering or hosted consent.
+A manifest contains public policy configuration, such as the rules used to
+decide which consent permissions apply. Your Next.js server caches this data
+and resolves consent separately for each visitor. Reusing the manifest avoids
+asking the backend to resolve policy on every request.
 
-The current API does not enable manifests automatically. A config with only
-`backendURL` uses regular backend `/init`. Add the manifest and init URLs when
-you want the manifest path:
+```text
+          Inth policy
+               ↓
+    Next.js manifest cache
+               ↓
+Request → Consent decision
 
-| Consent config | Server prefetch | Browser initialization | Consent saves |
-| --- | --- | --- | --- |
-| `backendURL`, `manifestURL`, `initURL` | Resolves manifest with request inputs | Calls your `initURL`, whose handler resolves the cached manifest with request inputs | `${backendURL}/subjects` |
-| `backendURL`, `manifestURL` | Resolves manifest with request inputs | Loads the manifest resolver lazily in the browser | `${backendURL}/subjects` |
-| `backendURL` only | Calls backend `/init` | Calls backend `/init` | `${backendURL}/subjects` |
-| Explicit `options.mode: offline()` | No hosted prefetch | Resolves bundled local rules | Browser persistence only |
-
-A prepared server result can satisfy the first browser initialization. The
-browser column describes the transport available when initialization is needed,
-including pages without prefetch and recovery after a prefetch failure.
-
-## Understand the recommended request path
-
-1. The app's manifest handler fetches the absolute backend's `/manifest`
-   endpoint and caches public policy data.
-2. `prefetchInitialConsent({ config: consentConfig })` reads the manifest route,
-   resolves the policy with the current request's inputs and restores valid
-   consent cookies.
-3. `ConsentBoundary` receives that result as `config` and the URL configuration
-   as `consent`. Hydration preserves the prepared state.
-4. Browser initialization uses `/api/c15t/init` when needed. This is your
-   app's manifest resolver, not the Inth `/init` endpoint.
-5. Browser choices post to `${backendURL}/subjects` on Inth. If you add the
-   optional rewrite, they go through `/api/c15t/subjects` on your app's origin
-   before reaching Inth.
-
-A warm policy cache removes the backend `/init` call from request resolution.
-It does not remove every request: your application may read its manifest route,
-cold caches fetch upstream data, and consent writes use the backend. IAB policies
-can also need a Global Vendor List fetch.
-
-## Preserve geography and privacy signals
-
-The app server needs location headers from its hosting platform. The resolver
-recognizes country headers such as `cf-ipcountry` and `x-vercel-ip-country`, and
-region headers such as `cf-region-code` and `x-vercel-ip-country-region`.
-Application overrides `x-c15t-country` and `x-c15t-region` take precedence. Only
-let trusted infrastructure supply location overrides in production.
-
-The request helpers also read language and GPC. Missing location stays unknown;
-the resolver does not infer country from the Next.js server's IP. Test unknown
-country and region against your configured policy rules.
-
-Keep `initURL` when browser initialization needs request-derived geography.
-Removing it makes the browser resolve the manifest itself. That path does not
-have the host's geographic request headers and lazily downloads resolver code
-that imports all translation languages. A server resolver keeps that work on
-the server.
-
-## Cache the manifest, not the visitor's init result
-
-`createNextConsentRouteHandlers` uses the Next.js Data Cache plus an in-process
-manifest cache. The in-process cache also covers Pages Router runtimes without
-the Data Cache. It supports ETag revalidation and respects upstream cache
-headers, including responses marked private.
-
-The manifest fetch's Next.js revalidation interval defaults to 300 seconds.
-Configure it with `C15T_MANIFEST_REVALIDATE_SECONDS` or the handler's
-`manifestRevalidateSeconds` option. The upstream manifest's cache policy also
-controls reuse; changing the Next.js interval alone does not override every
-cache layer. Choose refresh settings that fit how quickly policy changes need
-to reach visitors.
-
-The local init handler returns `Cache-Control: private, no-store`. Its result
-contains a decision for a specific request. Do not replace that header with a
-public cache policy or cache personalized consent HTML across visitors.
-
-## Use the same prefix as a backend rewrite
-
-To keep browser consent requests on your app's origin, optionally change
-`backendURL` in `c15t.config.ts` to `/api/c15t`. Keep the existing
-`manifestURL: '/api/c15t/manifest'` and `initURL: '/api/c15t/init'`. The two local routes share their prefix with a backend rewrite.
-An array-form rewrite or `afterFiles` runs after those concrete routes; `fallback` runs after all application routes. A matching
-`beforeFiles` rewrite or middleware/proxy rewrite can intercept them instead.
-See [Next.js rewrite order](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
-
-Using the app origin avoids a separate browser DNS lookup and TLS connection
-to the consent backend when that connection would otherwise be needed. Your
-app server still makes upstream requests for cold manifests and consent writes.
-The rewrite applies to c15t HTTP requests; vendor scripts and their own traffic
-keep their configured origins.
-
-Merge this fallback into your existing Next.js configuration. It forwards
-consent record requests while leaving the local manifest and init handlers in
-place:
-
-```ts title="next.config.ts"
-import type { NextConfig } from 'next';
-
-const upstreamURL = process.env.C15T_BACKEND_URL?.replace(/\/$/, '');
-if (!upstreamURL) throw new Error('Set C15T_BACKEND_URL to the absolute Inth endpoint');
-
-export default {
-  async rewrites() {
-    return {
-      fallback: [{
-        source: '/api/c15t/:path*',
-        destination: `${upstreamURL}/:path*`,
-      }],
-    };
-  },
-} satisfies NextConfig;
+Choices → Inth records
 ```
 
-Set `C15T_BACKEND_URL` to your absolute Inth endpoint. Requests such as
-`/api/c15t/subjects` reach Inth through the rewrite; the two local handlers
-still resolve from the cached manifest.
+Policy data is shared through the cache. Each visitor's decision uses their
+location, privacy signals and saved choices. Consent submissions still go to
+Inth.
 
-Give both route handlers the absolute upstream URL. Passing the local
-`consentConfig` into the handler factory would make its upstream manifest
-request hit `/api/c15t/manifest` again. The ready-made App Router handlers
-read the upstream URL from `C15T_BACKEND_URL`:
+Follow the [App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup. Both configure the
+manifest and local initialization routes explicitly. A `backendURL` alone does
+not enable manifests.
 
-```ts title="app/api/c15t/manifest/route.ts"
-export { manifestGET as GET } from 'c15t/next/api';
-```
+You can prepare consent during server rendering or initialize it in the browser.
+See [rendering choices](/docs/frameworks/next/server-side).
 
-The init route re-exports `GET` from `c15t/next/api`. Use the factory
-`createNextConsentRouteHandlers({ backendURL })` only when you need explicit
-handler options. Pages Router uses `createPagesApiHandlers()` with the same
-upstream environment configuration,
-exporting `.manifest` and `.init` from their respective files. Keep the shared
-`consentConfig` for prefetch and the boundary, where calling the local manifest
-route is intentional. When using the rewrite, omit a separate boundary `backendURL` prop: it overrides
-`consentConfig.backendURL` and an absolute upstream URL would send browser saves
-directly to that origin. If you set `C15T_MANIFEST_URL`, it must also point upstream.
+## Backend initialization
 
-A bare rewrite source `/api/c15t` does not match nested endpoint paths. Use
-`/api/c15t/:path*` for the backend prefix. If you mount a self-hosted backend
-catch-all at that prefix, it handles the remaining endpoints instead of a
-fallback rewrite; keep the manifest resolver's upstream URL separate to avoid
-the same loop.
+Use regular backend `/init` when you want fewer configuration steps, or when
+[exporting a static site](/docs/frameworks/next/static-export) that cannot run
+Next.js API routes.
 
-## Use regular backend init when it fits your deployment
+c15t asks the backend to resolve consent when initialization is needed. This
+requires only `backendURL` in your consent configuration, with no local manifest
+or init handlers. Inth still manages policy and stores consent records.
 
-If you prefer backend-owned initialization, remove `manifestURL` and `initURL`
-from the shared config:
+Start with [client-side initialization](/docs/frameworks/next/client-side) for
+a complete setup. You can also use backend initialization with server prefetch,
+as shown in the router guides.
 
-```ts title="c15t.config.ts"
-import { defineConsentConfig } from 'c15t/next';
+## Offline mode
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+Not recommended for production environments.
 
-export const consentConfig = defineConsentConfig({ backendURL });
-```
+Use offline mode for local development, tests or demos that do not need backend
+records. It resolves bundled policy rules and keeps choices in browser storage.
+It makes no consent backend requests and does not look up the visitor's location.
 
-Use the same prefetch and boundary wiring from your router guide. Prefetch now
-calls `${backendURL}/init` per request, and the browser uses that endpoint when
-it needs initialization. Set the environment variable to the absolute public
-backend endpoint. Remove the unused local manifest/init handlers.
+See the [offline configuration example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
 
-If you already use the optional backend rewrite, keep `backendURL: '/api/c15t'`
-instead. Removing the local init handler lets the rewrite forward that request
-to the backend too.
+## Hosting and further configuration
 
-For [static export](/docs/frameworks/next/static-export), Next.js cannot serve
-runtime routes or rewrites. Use regular init with an absolute Inth endpoint,
-or a proxy provided by your static host, and allow the site origin on Inth.
+We recommend Inth to manage your backend. A
+[self-hosted backend](/docs/self-host/quickstart) supports both manifests and
+regular initialization, but you operate its database, policies and availability.
+Hosting is a separate choice from how your application fetches consent data.
 
-Setting only `initURL` does not enable server manifest resolution. Without
-`manifestURL`, server prefetch still calls the backend `/init`.
-
-## Use a self-hosted backend
-
-A [self-hosted c15t backend](/docs/self-host/quickstart) can use the same manifest
-and rewrite path. Point `C15T_BACKEND_URL` at that backend. You then operate its
-database, policy configuration and availability; Inth manages those services
-for hosted projects.
-
-## Use offline mode deliberately
-
-Not recommended for production environments. Use offline mode for local
-development, tests or demos that do not need backend records.
-
-For local-only consent, omit hosted prefetch and select the offline factory in
-a Client Component. Keep your existing banner, dialog and preferences link as
-children of this boundary:
-
-```tsx title="app/offline-consent.tsx"
-'use client';
-
-import type { ReactNode } from 'react';
-import { ConsentBoundary, offline } from 'c15t/next';
-
-const mode = offline();
-
-export function OfflineConsent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentBoundary config={{}} options={{ mode }}>
-      {children}
-    </ConsentBoundary>
-  );
-}
-```
-
-The default local policy pack handles missing geography; offline mode does not
-perform IP lookup. Supply `policyRules` to replace that pack when your local
-policy needs different behavior. Browser persistence stores choices, but this
-setup has no backend record service. See
-[transport choices](/docs/guides/data-fetching) for the tradeoffs.
-
-## Diagnose failed prefetch
-
-`prefetchInitialConsent` returns its baseline configuration on a manifest or
-backend failure so the page can still render. The client can retry initialization.
-Pass `onError` to report failures in production; the default warning is only
-shown outside production. Until policy resolution succeeds, optional permissions
-remain denied and the stock prompt stays hidden.
-
-Verify server requests as well as browser Network requests. Confirm a warm
-manifest setup avoids upstream `/init`, consent choices reach Inth, two locations
-resolve correctly, and a policy change appears after cache refresh. If you add a
-rewrite, also check that browser consent requests use `/api/c15t`, including
-submissions.
+For optional same-origin rewrites and cache settings, see
+[Optimization](/docs/frameworks/next/optimization). Use the
+[fetching reference](/docs/frameworks/next/api-reference/data-fetching) for exact
+URL behavior and location headers, or
+[Troubleshooting](/docs/frameworks/next/troubleshooting) if consent fails to initialize.

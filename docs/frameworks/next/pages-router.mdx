@@ -8,14 +8,14 @@ group: frameworks
 
 We recommend [Inth](/docs/guides/inth) for managed policy and consent records.
 This guide uses cached manifests for policy resolution. Consent submissions
-go to your backend. A [rewrite](/docs/frameworks/next/data-fetching#use-the-same-prefix-as-a-backend-rewrite)
+go to your backend. A [rewrite](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
 is an optional optimization when you want browser backend traffic on your origin.
 
 | Mode | What you manage |
 | --- | --- |
 | Inth hosted | Configure policy and allowed app origins; Inth runs the backend and stores submissions. |
 | [Self-hosted](/docs/self-host/quickstart) | Run the c15t backend and database. Use the same hosted transport with your backend endpoint. |
-| [Offline](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately) | Bundle policy rules and keep choices in browser storage. No consent backend requests or backend records. Not recommended for production environments. |
+| [Offline](/docs/frameworks/next/api-reference/data-fetching#offline-configuration) | Bundle policy rules and keep choices in browser storage. No consent backend requests or backend records. Not recommended for production environments. |
 
 This setup requires a Next.js server for the API routes, including
 when individual pages use static generation. For a deployment without that
@@ -40,7 +40,7 @@ your app's origin. Copy its backend endpoint for the upstream configuration.
 If you chose self-hosting, complete the
 [backend quickstart](/docs/self-host/quickstart) and use its public endpoint in
 the steps below. Offline setups do not need an endpoint; use the
-[offline example](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately).
+[offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
 
 <CommandTabs command="c15t" mode="install" />
 
@@ -160,8 +160,8 @@ initialization through the local init route.
 
 Confirm the server reads `/manifest` instead of the backend `/init` and choices
 reach `${backendURL}/subjects`. See
-[data fetching](/docs/frameworks/next/data-fetching) for caching and transport
-alternatives. For a deployment with no Next.js server, use
+[Optimization](/docs/frameworks/next/optimization) for caching, or compare
+alternatives in [data fetching](/docs/frameworks/next/data-fetching). For a deployment with no Next.js server, use
 [static export](/docs/frameworks/next/static-export) and remove local API routes.
 
 ## Use regular backend initialization instead
@@ -187,5 +187,6 @@ manifest/init route files. The existing prefetch and boundary now initialize
 through `${backendURL}/init`; consent saves still use `${backendURL}/subjects`.
 A backend-only config does not enable manifest mode automatically.
 
-See [data fetching](/docs/frameworks/next/data-fetching) for cache settings,
-transport tradeoffs and the optional rewrite setup.
+Compare the choices in [data fetching](/docs/frameworks/next/data-fetching), or
+configure cache settings and optional rewrites in
+[Optimization](/docs/frameworks/next/optimization).

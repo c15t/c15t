@@ -1,0 +1,128 @@
+---
+title: Fetching reference
+description: Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
+group: frameworks
+---
+
+## URL configuration
+
+`defineConsentConfig` from `c15t/next` declares the URLs shared by server
+prefetch and `ConsentBoundary`. For help choosing a setup, start with
+[data fetching](/docs/frameworks/next/data-fetching).
+
+| Property | Behavior |
+| --- | --- |
+| `backendURL` | Required backend base URL. Consent submissions go to `/subjects` under this URL. Without `manifestURL`, server prefetch calls its `/init` endpoint. |
+| `manifestURL` | Optional URL that serves the policy manifest. Setting it enables manifest resolution. |
+| `initURL` | Optional browser initialization endpoint. With the local manifest handler, this resolves policy using the browser request's geography. |
+
+The current API does not derive `manifestURL` or `initURL` from `backendURL`,
+and declaring URLs does not create routes. Values can be absolute HTTP or
+HTTPS URLs or paths beginning with `/`. Server helpers resolve relative paths
+against the incoming request's host.
+
+### Transport combinations
+
+| Consent config | Server prefetch | Browser initialization |
+| --- | --- | --- |
+| `backendURL`, `manifestURL`, `initURL` | Resolves the manifest with request inputs | Calls `initURL`, whose local handler resolves the manifest with request inputs |
+| `backendURL`, `manifestURL` | Resolves the manifest with request inputs | Loads the manifest resolver lazily in the browser |
+| `backendURL` only | Calls backend `/init` | Calls backend `/init` |
+| `backendURL`, `initURL` | Calls backend `/init` | Calls `initURL` |
+| Explicit `options.mode: offline()` | No hosted prefetch | Resolves bundled local rules |
+
+Hosted combinations submit choices to `${backendURL}/subjects`. Offline mode
+uses browser persistence only. A prepared server result can satisfy the first
+browser initialization; the browser column describes what happens when
+initialization is needed, including recovery after prefetch fails.
+
+Setting only `initURL` does not enable server manifest resolution. Keep
+`manifestURL` when both server and browser requests should resolve the cached
+manifest.
+
+### Switch to regular backend init
+
+Remove `manifestURL` and `initURL` from `c15t.config.ts`. The
+[browser initialization guide](/docs/frameworks/next/client-side#configure-one-backend-url)
+has a complete backend-only configuration. For server rendering, keep the
+prefetch and boundary wiring from your router guide. Prefetch will call backend
+`/init` per request.
+
+Remove unused local manifest and init handlers. If you use an optional backend
+rewrite, removing the local init handler lets that request reach the backend
+through the rewrite. See [optimization](/docs/frameworks/next/optimization)
+for rewrite configuration.
+
+## Manifest request resolution
+
+The [App Router](/docs/frameworks/next/app-router) and
+[Pages Router](/docs/frameworks/next/pages-router) manifest setups use this flow:
+
+1. The app's manifest handler fetches the absolute backend's `/manifest`
+   endpoint and caches public policy data.
+2. `prefetchInitialConsent({ config: consentConfig })` reads the manifest route,
+   resolves policy with the current request's inputs and restores valid consent
+   cookies.
+3. `ConsentBoundary` receives that result as `config` and the URL configuration
+   as `consent`. Hydration preserves the prepared state.
+4. Browser initialization calls `/api/c15t/init` when needed. This local handler
+   resolves the cached manifest; it is separate from the backend `/init` endpoint.
+5. Browser choices post to `${backendURL}/subjects`.
+
+A warm policy cache avoids backend `/init` during request resolution. The app
+may still read its manifest route, cold caches fetch upstream data, and choices
+still reach the backend. IAB policies can also require a Global Vendor List
+fetch. See [manifest caching](/docs/frameworks/next/optimization) for cache
+settings, and [server rendering](/docs/frameworks/next/server-side) for awaiting
+or streaming prefetch results.
+
+## Geography and privacy signals
+
+Server manifest resolution reads location headers from the hosting platform.
+It recognizes country headers such as `cf-ipcountry` and
+`x-vercel-ip-country`, and region headers such as `cf-region-code` and
+`x-vercel-ip-country-region`. The application overrides `x-c15t-country` and
+`x-c15t-region` take precedence. Only trusted infrastructure should supply
+location overrides in production.
+
+Request helpers also read language and GPC. Missing location stays unknown;
+the resolver does not infer country from the Next.js server's IP. Test unknown
+country and region against your configured policy rules.
+
+Keep `initURL` when browser initialization needs request-derived geography.
+Without it, the browser resolves the manifest itself. That path lacks the
+host's geographic request headers and lazily downloads resolver code that
+imports all translation languages. A local init handler keeps this work on
+the server.
+
+## Offline configuration
+
+Not recommended for production environments. Use offline mode for local
+development, tests or demos that do not need backend records.
+
+Omit hosted prefetch and select the offline factory in a Client Component.
+Keep your existing banner, dialog and preferences link as children of this
+boundary:
+
+```tsx title="app/offline-consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentBoundary, offline } from 'c15t/next';
+
+const mode = offline();
+
+export function OfflineConsent({ children }: { children: ReactNode }) {
+  return (
+    <ConsentBoundary config={{}} options={{ mode }}>
+      {children}
+    </ConsentBoundary>
+  );
+}
+```
+
+The default local policy pack handles missing geography; offline mode does not
+perform IP lookup. Supply `policyRules` to replace that pack when your local
+policy needs different behavior. Browser persistence stores choices, but this
+setup has no backend record service. See
+[transport choices](/docs/guides/data-fetching) for the tradeoffs.

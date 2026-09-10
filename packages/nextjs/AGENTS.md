@@ -21,6 +21,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Frameworks
 
+- [Fetching reference](./docs/frameworks/next/api-reference/data-fetching.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
 - [App Router](./docs/frameworks/next/app-router.md): Resolve Next.js consent from a cached Inth manifest and hydrate the same state in the browser.
 - [Client-side initialization](./docs/frameworks/next/client-side.md): Initialize Next.js consent in the browser with one backend URL, without server prefetch or local API handlers.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
@@ -29,7 +30,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent categories](./docs/frameworks/next/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Understand how policy rules affect Next.js prompts, permissions and persistent privacy controls.
-- [Data fetching](./docs/frameworks/next/data-fetching.md): Choose manifest resolution or regular backend init, with optional same-origin rewrites and local-only offline mode.
+- [Data fetching](./docs/frameworks/next/data-fetching.md): Choose cached manifests for a Next.js server, backend initialization for a simpler setup, or offline mode for local development.
 - [Headless](./docs/frameworks/next/headless.md): Build your own consent UI on top of the c15t hooks.
 - [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
 - [IAB TCF](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
@@ -40,7 +41,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Server rendering and hydration](./docs/frameworks/next/server-side.md): Choose resolved SSR, streamed consent or browser initialization and preserve the same consent state through hydration.
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
 - [Styling](./docs/frameworks/next/styling/overview.md): Theme c15t components with tokens, slots, and class names.
-- [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
+- [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 
 ## Guides
 

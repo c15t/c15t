@@ -12,7 +12,7 @@ go to Inth. The App Router and Pages Router guides use a shared `c15t.config.ts`
 Rewrites are an optional optimization for browser requests to your backend.
 
 [Self-hosting](/docs/self-host/quickstart) uses the same hosted transport with your
-own backend. [Offline mode](/docs/frameworks/next/data-fetching#use-offline-mode-deliberately)
+own backend. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
 resolves bundled policy and keeps choices in browser storage, with no backend
 requests or records. Not recommended for production environments.
 
@@ -64,6 +64,5 @@ banner alone does not establish that analytics wait for consent.
 ## Compare data-fetching alternatives
 
 Use [data fetching](/docs/frameworks/next/data-fetching) to compare manifest
-resolution, regular backend `/init` and offline mode. The guide explains cache
-settings, geography and why the same-origin init route is part of the recommended
-manifest setup.
+resolution, regular backend `/init` and offline mode. Start there if you have not chosen how your application
+should fetch consent data.
