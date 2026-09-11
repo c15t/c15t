@@ -60,7 +60,7 @@ export const recoverGeneration = async function recoverGeneration(
 	if (!resume) {
 		throw new CliError('CONFIG_INVALID', {
 			details:
-				'An interrupted generation has pending file edits. Repeat the original generation command with --resume --apply, keeping its mode, framework, output and package-source flags, to restore them before continuing.',
+				'An interrupted generation has pending file edits. Repeat your original command with --resume --apply, preserving its existing options, to restore them before continuing.',
 		});
 	}
 	const journal: unknown = JSON.parse(content);
