@@ -91,7 +91,6 @@ const allScenarios = [
 	{ name: 'manifest-client', path: '/manifest-client' },
 	{ name: 'ssr', path: '/ssr' },
 	{ name: 'manifest-ssr', path: '/manifest-ssr' },
-	{ name: 'rsc-ssr', path: '/rsc-ssr' },
 ] as const;
 
 const allBenchmarkScenarios = allScenarios;

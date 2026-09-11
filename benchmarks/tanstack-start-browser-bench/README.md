@@ -20,8 +20,8 @@ provider" below.
 | `repeat-visitor` | derived | After each measured `client` iteration a second browser context loads `/client` and the runner measures the Open Preferences click, exactly as the Next runner does. Note that neither runner preseeds the consent cookie for this arm. |
 | `manifest-ssr-root` | `/manifest-ssr` in the `dist-root/` build | `--root-provider` only. Same route and metrics as `manifest-ssr`, but the provider and the manifest prefetch loader live in `__root.tsx` and the route renders only the page shell. Built with `C15T_BENCH_ROOT_PROVIDER=1` (`bun run build:root`). |
 
-There is no `rsc-ssr` arm: TanStack Start has no server components, so the
-Next `rsc-ssr` scenario has no equivalent and is reported as Next-only.
+The Next runner no longer has an `rsc-ssr` arm; older result tables in this
+file that list it are historical.
 
 Fixture routes live under `src/routes/api/bench-consent/` and are a copy of
 the Next arm's `fixture.ts` (policy id, fingerprint, revision, and

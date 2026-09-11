@@ -98,7 +98,6 @@ export const nextjsBrowserScenarios = [
 	'manifest-client',
 	'ssr',
 	'manifest-ssr',
-	'rsc-ssr',
 	'repeat-visitor',
 	'ssr-repeat',
 ] as const;

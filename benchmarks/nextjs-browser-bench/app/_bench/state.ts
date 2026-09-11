@@ -8,7 +8,6 @@ export type NextjsBenchScenario =
 	| 'manifest-client'
 	| 'manifest-ssr'
 	| 'repeat-visitor'
-	| 'rsc-ssr'
 	| 'ssr';
 
 export interface NextjsBenchState {

@@ -668,7 +668,7 @@ export const sharedBrowserBudgets: MetricBudget[] = browserBudgets.filter(
 	(budget) => sharedBrowserBudgetMetrics.includes(budget.metric)
 );
 
-const SSR_SCENARIOS = new Set(['ssr', 'manifest-ssr', 'rsc-ssr', 'ssr-repeat']);
+const SSR_SCENARIOS = new Set(['ssr', 'manifest-ssr', 'ssr-repeat']);
 
 const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 	scenario: string
