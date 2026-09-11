@@ -13,6 +13,17 @@ import { setupCancelHandler } from '../runner';
 import { runPackageManagerInstall } from './dependencies';
 
 const directories: string[] = [];
+const stopFixtureProcesses = (pid: number) => {
+	try {
+		process.kill(-pid, 'SIGKILL');
+	} catch (error) {
+		if (
+			!(error instanceof Error && 'code' in error && error.code === 'ESRCH')
+		) {
+			throw error;
+		}
+	}
+};
 afterEach(async () => {
 	vi.restoreAllMocks();
 	vi.unstubAllEnvs();
@@ -31,7 +42,9 @@ it('rejects an already cancelled install before spawning a package manager', asy
 	).rejects.toThrow('cancelled');
 });
 
-it.skipIf(process.platform === 'win32').each(['SIGINT', 'SIGTERM'] as const)(
+it
+	.skipIf(process.platform === 'win32')
+	.each(['SIGINT', 'SIGTERM', 'failure'] as const)(
 	'waits for the installer and stops lifecycle writes before rollback on %s',
 	async (signal) => {
 		const directory = await mkdtemp(join(tmpdir(), 'c15t-installer-cancel-'));
@@ -43,6 +56,7 @@ it.skipIf(process.platform === 'win32').each(['SIGINT', 'SIGTERM'] as const)(
 			`#!${process.execPath}
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
+fs.writeFileSync('installer-pid', String(process.pid));
 spawn(process.execPath, ['-e', \`
  const fs = require('node:fs');
  process.on('SIGTERM', () => {});
@@ -56,7 +70,12 @@ process.on('SIGTERM', () => {
   process.exit(0);
  }, 80);
 });
-setInterval(() => {}, 1000);
+setInterval(() => {
+ if (fs.existsSync('fail')) {
+  fs.writeFileSync('installer-closed', 'yes');
+  process.exit(1);
+ }
+}, 5);
 `
 		);
 		await chmod(npm, 0o755);
@@ -122,7 +141,11 @@ setInterval(() => {}, 1000);
 				)
 			);
 			const finished = toPromise(actor);
-			process.emit(signal);
+			if (signal === 'failure') {
+				await writeFile(join(directory, 'fail'), 'yes');
+			} else {
+				process.emit(signal);
+			}
 			expect(rollback).not.toHaveBeenCalled();
 			await finished;
 			expect(rollback).toHaveBeenCalledOnce();
@@ -132,8 +155,14 @@ setInterval(() => {}, 1000);
 				'restored'
 			);
 		} finally {
-			actor.send({ type: 'CANCEL' });
+			if (actor.getSnapshot().status === 'active') {
+				actor.send({ type: 'CANCEL' });
+			}
 			actor.stop();
+			const pid = Number(
+				await readFile(join(directory, 'installer-pid'), 'utf8')
+			);
+			stopFixtureProcesses(pid);
 		}
 	},
 	10_000

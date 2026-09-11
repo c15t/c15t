@@ -88,14 +88,16 @@ const waitForInstaller = async (child: ChildProcess, signal?: AbortSignal) => {
 	try {
 		const exitCode = await closed;
 		await termination;
-		if (signal?.aborted) {
+		if (
+			signal &&
+			process.platform !== 'win32' &&
+			(signal.aborted || failure || exitCode !== 0)
+		) {
 			// A package manager may exit before its lifecycle scripts. Stop the
-			// remaining group before allowing rollback to restore generated files.
-			if (process.platform !== 'win32') {
-				signalProcessGroup(child, 'SIGKILL');
-			}
-			signal.throwIfAborted();
+			// isolated group on cancellation or failure before rollback can start.
+			signalProcessGroup(child, 'SIGKILL');
 		}
+		signal?.throwIfAborted();
 		if (failure) {
 			throw failure;
 		}
