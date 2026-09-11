@@ -133,6 +133,14 @@ page still renders, and the browser resolves policy after hydration, so on that
 request a new visitor sees the prompt appear late. Pass `onError` to report
 these failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
 
+The page content waits with the consent subtree. Because `{children}` sits
+inside `ResolvedConsent` and the fallback is `null`, a slow manifest response
+leaves the whole page blank until the helper returns or its 10 second fetch
+timeout fires and the baseline renders. A warm manifest cache makes this a few
+milliseconds; a cold cache pays the backend round trip. If the site cannot
+accept that, use the [streaming form](#stream-the-page-while-consent-resolves),
+which renders the shell immediately.
+
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without
 `cacheComponents`, the boundary is still safe to keep.
