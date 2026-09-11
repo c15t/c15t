@@ -55,9 +55,11 @@ export function Consent({
 }
 ```
 
-Then read the header in the layout and pass it through:
+Then read the header in the async consent component from the App Router guide
+and pass it through:
 
 ```tsx title="app/layout.tsx"
+import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { prefetchInitialConsent } from 'c15t/next/server';
@@ -65,24 +67,33 @@ import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 import 'c15t/next/styles.css';
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+async function ResolvedConsent({ children }: { children: ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const initialConsent = prefetchInitialConsent({ config: consentConfig });
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
 
+  return (
+    <Consent config={initialConsent} nonce={nonce}>
+      {children}
+    </Consent>
+  );
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Consent config={initialConsent} nonce={nonce}>{children}</Consent>
+        <Suspense fallback={null}>
+          <ResolvedConsent>{children}</ResolvedConsent>
+        </Suspense>
       </body>
     </html>
   );
 }
 ```
 
-Reading `headers()` makes the layout async and dynamic, which a per-request
-nonce requires anyway. With `cacheComponents: true`, move the `headers()` call
-and the `Consent` wrapper into the Suspense-wrapped async component described in
-[server rendering](/docs/frameworks/next/server-side#await-consent-inside-suspense).
+Reading `headers()` keeps the route dynamic, which a per-request nonce requires
+anyway. The `Suspense` boundary is required with `cacheComponents: true`; see
+[what server prefetch costs](/docs/frameworks/next/app-router#what-server-prefetch-costs).
 
 `options.nonce` is read when the boundary mounts. The provider keeps the latest
 value in a ref, but the script loader is created once per runtime, so a nonce
