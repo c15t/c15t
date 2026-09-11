@@ -76,6 +76,9 @@ export interface ConsentBoundaryProps {
 	 */
 	scripts?: Script[];
 
+	/** Browser data to remove when its consent permission is revoked. */
+	clearOnRevocation?: ConsentProviderOptions['clearOnRevocation'];
+
 	/**
 	 * Script-loader options.
 	 */
@@ -97,6 +100,7 @@ export interface ConsentBoundaryProps {
 	options?: Omit<
 		ConsentProviderOptions,
 		| 'mode'
+		| 'clearOnRevocation'
 		| 'networkBlocker'
 		| 'persistence'
 		| 'prefetch'
@@ -161,6 +165,7 @@ export const ConsentBoundary = ({
 	initRoute,
 	scripts,
 	scriptLoader,
+	clearOnRevocation,
 	networkBlocker,
 	persistence,
 	options,
@@ -194,6 +199,7 @@ export const ConsentBoundary = ({
 			options={{
 				...options,
 				__debugPkg: '@c15t/tanstack-start',
+				clearOnRevocation,
 				mode,
 				networkBlocker,
 				persistence,

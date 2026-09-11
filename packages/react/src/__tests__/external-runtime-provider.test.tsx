@@ -52,9 +52,17 @@ describe('ConsentProvider with an external runtime', () => {
 	test('leaves init and every side-effecting module to the owner', async () => {
 		const runtime = createRuntime();
 		const init = vi.spyOn(runtime.kernel.commands, 'init');
+		localStorage.setItem('analytics:visitor', 'owner');
 
 		await render(
-			<ConsentProvider runtime={runtime}>
+			<ConsentProvider
+				runtime={runtime}
+				options={{
+					clearOnRevocation: {
+						measurement: { localStorage: ['analytics:visitor'] },
+					},
+				}}
+			>
 				<div data-testid="child">borrowed</div>
 			</ConsentProvider>
 		);
@@ -63,6 +71,8 @@ describe('ConsentProvider with an external runtime', () => {
 		await Promise.resolve();
 
 		expect(init).not.toHaveBeenCalled();
+		expect(localStorage.getItem('analytics:visitor')).toBe('owner');
+		localStorage.removeItem('analytics:visitor');
 		expect(
 			(window as Window & { c15t?: { pkg: string } }).c15t
 		).toBeUndefined();

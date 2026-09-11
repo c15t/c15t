@@ -217,7 +217,7 @@ const generateDocsConfig = () =>
 					},
 				],
 
-				pages: ['overview', 'building-integrations'],
+				pages: ['overview', 'building-integrations', 'clear-on-revocation'],
 				title: 'Integrations',
 			},
 			{

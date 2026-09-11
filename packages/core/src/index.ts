@@ -37,6 +37,11 @@ export {
 	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
+export type {
+	ClearOnRevocationConfig,
+	ClearOnRevocationCookie,
+	ClearOnRevocationTargets,
+} from './modules/clear-on-revocation';
 export type { KernelIABControls } from './modules/iab-controls';
 export {
 	getIABControls,

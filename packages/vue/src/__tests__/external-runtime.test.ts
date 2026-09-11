@@ -63,7 +63,14 @@ describe('startVueConsentRuntime with an external runtime', () => {
 		const init = vi.spyOn(runtime.kernel.commands, 'init');
 		const context = createVueConsentKernelContext({ config: {}, runtime });
 
-		const stop = startVueConsentRuntime(context, {});
+		localStorage.setItem('analytics:visitor', 'owner');
+		const stop = startVueConsentRuntime(context, {
+			clearOnRevocation: {
+				measurement: { localStorage: ['analytics:visitor'] },
+			},
+		});
+		expect(localStorage.getItem('analytics:visitor')).toBe('owner');
+		localStorage.removeItem('analytics:visitor');
 
 		expect(init).not.toHaveBeenCalled();
 		expect(

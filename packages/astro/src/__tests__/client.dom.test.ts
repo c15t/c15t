@@ -481,3 +481,14 @@ describe('dialog lifecycle', () => {
 		client = null;
 	});
 });
+
+it('forwards cleanup targets to its shared runtime', async () => {
+	const booted = start({
+		...OPTIONS,
+		clearOnRevocation: { measurement: { localStorage: ['analytics:visitor'] } },
+	});
+	await booted.acceptAll();
+	localStorage.setItem('analytics:visitor', 'visitor');
+	await booted.rejectAll();
+	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+});

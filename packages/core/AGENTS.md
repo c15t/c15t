@@ -23,6 +23,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 Connect analytics, advertising, maps, media, and other third-party tools behind consent.
 
 - [Building Integrations](./docs/integrations/building-integrations.md): Write a consent-aware loader for a tool c15t does not ship yet.
+- [Clear on revocation](./docs/integrations/clear-on-revocation.md): Remove configured first-party cookies and Web Storage keys when their consent category is denied.
 - [Google Maps](./docs/integrations/google-maps.md): Render Google Maps embeds only after consent.
 - [Google Tag](./docs/integrations/google-tag.md): Load gtag.js for GA4 and Google Ads behind consent.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load GTM with Google Consent Mode v2 defaults.

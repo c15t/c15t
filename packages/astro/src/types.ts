@@ -10,6 +10,7 @@
 
 import type {
 	AllConsentNames,
+	ClearOnRevocationConfig,
 	ConsentSnapshot,
 	ConsentPresentation,
 	KernelConfig,
@@ -141,6 +142,9 @@ export interface C15tAstroOptions {
 
 	/** Consent-gated scripts handed to the core script loader. */
 	scripts?: Script[];
+
+	/** Browser data to remove when its consent permission is revoked. */
+	clearOnRevocation?: ClearOnRevocationConfig;
 
 	/**
 	 * IAB TCF configuration. `false` disables it.
@@ -285,6 +289,8 @@ export interface C15tI18nOptions {
  */
 export interface C15tClientOptionsExtension {
 	scripts?: Script[];
+	/** Overrides cleanup targets from the integration options. */
+	clearOnRevocation?: ClearOnRevocationConfig;
 	callbacks?: Record<string, unknown>;
 	/** Merged over the serialized theme. */
 	theme?: Theme;

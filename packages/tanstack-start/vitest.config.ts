@@ -8,6 +8,10 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 // oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
 const alias = {
 	'~': resolve(__dirname, './src'),
+	'@c15t/core/modules/clear-on-revocation': resolve(
+		__dirname,
+		'../core/src/modules/clear-on-revocation/index.ts'
+	),
 	'@c15t/core/modules/script-loader': resolve(
 		__dirname,
 		'../core/src/modules/script-loader/index.ts'
