@@ -145,6 +145,15 @@ This is the `ResolvedConsent` component from the
 `region` override in the current API, so the region cookie is available only to
 your own code.
 
+The cookie comes back in the client-controlled `Cookie` header. `HttpOnly`
+stops page scripts from reading it; it does not stop a visitor from sending
+`c15t-country=<value>` and, through the `country` override, choosing a less
+restrictive rule for themselves. Use this fallback only when the edge that
+terminates all traffic strips incoming `c15t-country` and `c15t-region`
+cookies before `c15tProxy` sets them, exactly as it must strip the `x-c15t-*`
+override headers. Where you cannot enforce that, do not pass the cookie as
+`country`; keep it for non-policy code such as display defaults.
+
 ## Which headers are read?
 
 `c15tProxy` and the server helpers use the same extraction from
@@ -164,12 +173,14 @@ let scripts set `Sec-*` request headers, which is why the `x-c15t-gpc` override
 exists for the browser's own init request.
 
 Only trusted infrastructure may set `x-c15t-country`, `x-c15t-region` or
-`x-c15t-gpc` in production, because they always win. A client that can reach
-your origin directly can send them and choose its own policy rule, so one of
-these controls is required, not optional: strip incoming `x-c15t-*` headers at
-the edge that terminates all traffic before anything sets them, or block direct
-origin access with a firewall or platform origin protection so every request
-passes through that edge. `c15tProxy` does not strip them itself.
+`x-c15t-gpc` in production, because they always win. A client that sends them
+chooses its own policy rule, and `c15tProxy` forwards a client-supplied value
+over the platform header rather than stripping it. The edge that terminates all
+traffic must therefore delete incoming `x-c15t-*` headers before anything sets
+them, in every deployment. Blocking direct origin access with a firewall or
+platform origin protection is an additional control that keeps requests on that
+edge; it does not replace the stripping, because a forwarded client header
+still passes through the protected path.
 
 ## Verify
 
