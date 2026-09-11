@@ -251,6 +251,9 @@ export function generateScriptsArrayValue(
 	selectedScripts: string[],
 	indentation = '\t\t\t\t'
 ): string {
+	if (!selectedScripts.length) {
+		return '[]';
+	}
 	const scriptConfigs = selectedScripts.map(
 		(script) => getSnippet(script).example
 	);

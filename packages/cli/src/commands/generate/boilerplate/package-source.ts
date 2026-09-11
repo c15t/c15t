@@ -415,7 +415,7 @@ export const planBoilerplateDependencies = async (options: {
 		],
 		edits: before === after ? [] : [{ after, before, path: file }],
 		instructions: [
-			`Using an unpublished local snapshot prepared at ${prepared.preparedAt}. Versions retain their checkout values; these are not registry releases.`,
+			'Using an unpublished local snapshot. Versions retain their checkout values; these are not registry releases.',
 			'The package.json edit includes the complete local workspace dependency closure. Apply it, then run bun install.',
 			'Keep the checkout cache available. Re-run preparation after rebuilding local packages.',
 			...externalInstructions,

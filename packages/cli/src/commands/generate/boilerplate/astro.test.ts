@@ -23,14 +23,19 @@ const compiler: {
 } = compilerRequire('@astrojs/compiler');
 
 describe('Astro boilerplate', () => {
-	it.each(['offline', 'hosted'] as const)(
-		'typechecks the %s integration against local v3 source',
-		(mode) => {
+	it.each(
+		(['offline', 'hosted'] as const).flatMap((mode) => [
+			{ mode, scripts: [] },
+			{ mode, scripts: ['google-tag-manager'] },
+		])
+	)(
+		'typechecks the $mode integration with scripts $scripts against local v3 source',
+		({ mode, scripts }) => {
 			const template = generateAstroBoilerplate({
 				backendURL: 'https://consent.example.com',
 				framework: 'astro',
 				mode,
-				scripts: ['google-tag-manager'],
+				scripts,
 			});
 			const project = new Project({
 				compilerOptions: {
@@ -65,7 +70,8 @@ describe('Astro boilerplate', () => {
 					item.getSourceFile()?.getFilePath().includes('/.boilerplate-test/')
 				);
 			expect(project.formatDiagnosticsWithColorAndContext(errors)).toBe('');
-		}
+		},
+		30_000
 	);
 	it('compiles native Astro layout fragments and preserves script callbacks in the browser entrypoint', async () => {
 		const template = generateAstroBoilerplate({

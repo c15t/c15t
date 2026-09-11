@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { runCli } from '../../../index';
 import { applyFileEdits } from '../templates/shared/file-plan';
 import {
 	planBoilerplateDependencies,
@@ -198,6 +199,64 @@ describe('local unpublished package sources', () => {
 			specifier: null,
 		});
 	});
+	it('refreshes generated app dependencies after preparing a new local snapshot', async () => {
+		await writePackage(
+			'@c15t/react',
+			{ [rootName]: 'workspace:*' },
+			'export {};'
+		);
+		await fs.writeFile(path.join(app, 'package.json'), '{"private":true}');
+		const args = [
+			'generate',
+			'offline',
+			'--framework',
+			'react',
+			'--package-source',
+			checkout,
+			'--apply',
+			'--json',
+		];
+		const first = await prepareBoilerplatePackages({
+			dependencies: ['@c15t/react'],
+			packageSource: checkout,
+		});
+		expect(await runCli(args, { cwd: app })).toMatchObject({ success: true });
+		const readmePath = path.join(app, 'src/consent/README.md');
+		const readme = await fs.readFile(readmePath, 'utf8');
+		await writePackage(
+			'@c15t/react',
+			{ [rootName]: 'workspace:*' },
+			'export const updated = true;'
+		);
+		const second = await prepareBoilerplatePackages({
+			dependencies: ['@c15t/react'],
+			packageSource: checkout,
+		});
+		expect(second.preparedAt).not.toBe(first.preparedAt);
+		expect(second.packages['@c15t/react']?.tarball).not.toBe(
+			first.packages['@c15t/react']?.tarball
+		);
+		const refreshed = await runCli(args, { cwd: app });
+		expect(refreshed, JSON.stringify(refreshed)).toMatchObject({
+			data: {
+				applied: true,
+				edits: [{ path: path.join(app, 'package.json') }],
+				source: { preparedAt: second.preparedAt },
+			},
+			success: true,
+		});
+		const manifest = JSON.parse(
+			await fs.readFile(path.join(app, 'package.json'), 'utf8')
+		);
+		for (const [name, archive] of Object.entries(second.packages)) {
+			expect(manifest.dependencies[name]).toBe(`file:${archive.tarball}`);
+		}
+		expect(await fs.readFile(readmePath, 'utf8')).toBe(readme);
+		expect(await runCli(args, { cwd: app })).toMatchObject({
+			data: { edits: [] },
+			success: true,
+		});
+	}, 30_000);
 	it('rejects altered local archives before planning installation', async () => {
 		const prepared = await prepareBoilerplatePackages({
 			dependencies: [rootName],

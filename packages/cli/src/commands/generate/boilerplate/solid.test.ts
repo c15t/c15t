@@ -9,14 +9,19 @@ import { generateSolidBoilerplate } from './solid';
 const packages = fileURLToPath(new URL('../../../../../', import.meta.url));
 
 describe('Solid boilerplate', () => {
-	it.each(['offline', 'hosted'] as const)(
-		'typechecks %s controls against the local v3 source',
-		(mode) => {
+	it.each(
+		(['offline', 'hosted'] as const).flatMap((mode) => [
+			{ mode, scripts: [] },
+			{ mode, scripts: ['google-tag-manager'] },
+		])
+	)(
+		'typechecks $mode controls with scripts $scripts against the local v3 source',
+		({ mode, scripts }) => {
 			const template = generateSolidBoilerplate({
 				backendURL: 'https://consent.example.com',
 				framework: 'solid',
 				mode,
-				scripts: ['google-tag-manager'],
+				scripts,
 			});
 			const project = new Project({
 				compilerOptions: {
@@ -54,7 +59,8 @@ describe('Solid boilerplate', () => {
 					item.getSourceFile()?.getFilePath().includes('/.boilerplate-test/')
 				);
 			expect(project.formatDiagnosticsWithColorAndContext(errors)).toBe('');
-		}
+		},
+		30_000
 	);
 	it('mounts browser behavior within Solid ownership and guards unsupported IAB', () => {
 		const template = generateSolidBoilerplate({

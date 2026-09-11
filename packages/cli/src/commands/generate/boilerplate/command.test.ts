@@ -34,6 +34,32 @@ afterEach(async () => {
 });
 
 describe('boilerplate command', () => {
+	it.each(['svelte', 'vue'])(
+		'detects Astro when %s is installed for islands',
+		async (renderer) => {
+			const cwd = await fixture();
+			await writeFile(
+				join(cwd, 'package.json'),
+				JSON.stringify({ dependencies: { astro: '6', [renderer]: '5' } })
+			);
+			const result = await runCli(
+				['generate', 'offline', '--boilerplate', '--plan', '--json'],
+				{ cwd }
+			);
+			expect(result, JSON.stringify(result)).toMatchObject({
+				data: {
+					edits: expect.arrayContaining([
+						expect.objectContaining({
+							path: join(cwd, 'src/consent/Consent.astro'),
+						}),
+					]),
+					framework: 'astro',
+				},
+				success: true,
+			});
+			expect(await readdir(cwd)).toEqual(['package.json']);
+		}
+	);
 	it.each(boilerplateFrameworks)(
 		'previews %s without writing files or package.json',
 		async (framework) => {

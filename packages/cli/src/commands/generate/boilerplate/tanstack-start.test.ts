@@ -9,14 +9,19 @@ import { generateTanStackStartBoilerplate } from './tanstack-start';
 const packages = fileURLToPath(new URL('../../../../../', import.meta.url));
 
 describe('TanStack Start boilerplate', () => {
-	it.each(['offline', 'hosted'] as const)(
-		'typechecks the %s boundary and server function against local v3 source',
-		(mode) => {
+	it.each(
+		(['offline', 'hosted'] as const).flatMap((mode) => [
+			{ mode, scripts: [] },
+			{ mode, scripts: ['google-tag-manager'] },
+		])
+	)(
+		'typechecks the $mode boundary with scripts $scripts against local v3 source',
+		({ mode, scripts }) => {
 			const template = generateTanStackStartBoilerplate({
 				backendURL: 'https://consent.example.com',
 				framework: 'tanstack-start',
 				mode,
-				scripts: ['google-tag-manager'],
+				scripts,
 			});
 			const project = new Project({
 				compilerOptions: {
@@ -55,7 +60,8 @@ describe('TanStack Start boilerplate', () => {
 					item.getSourceFile()?.getFilePath().includes('/.boilerplate-test/')
 				);
 			expect(project.formatDiagnosticsWithColorAndContext(errors)).toBe('');
-		}
+		},
+		30_000
 	);
 	it('does not assume that the app mounts the optional init proxy', () => {
 		const template = generateTanStackStartBoilerplate({

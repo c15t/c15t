@@ -96,6 +96,8 @@ export const detectFramework = async function detectFramework(
 		let pkg: AvailablePackages = hasReact ? 'c15t/react' : 'c15t';
 
 		const unsupported = [
+			// Astro owns the app even when islands use another framework.
+			['astro', 'Astro', 'javascript'],
 			['@tanstack/react-start', 'TanStack Start', 'tanstack-start'],
 			['@sveltejs/kit', 'SvelteKit', 'svelte'],
 			['svelte', 'Svelte', 'svelte'],
@@ -104,7 +106,6 @@ export const detectFramework = async function detectFramework(
 			['solid-js', 'Solid', 'solid'],
 			['@remix-run/react', 'Remix', 'react'],
 			['gatsby', 'Gatsby', 'react'],
-			['astro', 'Astro', 'javascript'],
 		].find(([dependency]) => dependency && dependency in deps);
 		if (unsupported) {
 			return {

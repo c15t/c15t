@@ -88,8 +88,17 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@c15t/astro": "workspace:*",
+		"@c15t/core": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/solid": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"@c15t/tanstack-start": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"@c15t/vue": "workspace:*",
 		"@types/fs-extra": "11.0.4",
 		"@types/prettier": "^3.0.0",
 		"prettier": "^3.9.4",

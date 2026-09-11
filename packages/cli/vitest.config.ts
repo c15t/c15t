@@ -22,6 +22,9 @@ export default mergeConfig(
 					statements: 30,
 				},
 			},
+			// Compiler fixtures create full TypeScript programs. Bound concurrency
+			// so they do not starve command tests of CPU and memory.
+			maxWorkers: 2,
 		},
 	})
 );
