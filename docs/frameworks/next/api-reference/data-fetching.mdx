@@ -159,9 +159,13 @@ Forwarded headers differ by path. The backend `/init` call carries the
 request cookies, `x-forwarded-for`, `user-agent`, any `forwardHeaders`, and
 derived `x-c15t-country`, `x-c15t-region`, `accept-language` and `sec-gpc`
 headers; it is sent with `cache: 'no-store'` and `credentials: 'include'`.
-The manifest request carries only the headers named in `forwardHeaders`: no
-cookies, client IP or user agent, because the manifest is public policy data.
-Cookies are still read locally on both paths to restore records.
+The manifest request carries only the headers named in `forwardHeaders`.
+Cookies, the client IP and the user agent are not added automatically, because
+the manifest is public policy data, but an explicit entry is forwarded
+verbatim: a `forwardHeaders` list that names `cookie`, `x-forwarded-for` or
+`user-agent` sends them to the manifest host too, so do not reuse a list meant
+for the backend path. Cookies are still read locally on both paths to restore
+records.
 
 An inline `manifest` is never refreshed. The manifest transport returns the
 object as given instead of fetching it, so the snapshot is the source of truth
@@ -206,7 +210,11 @@ the `request` adapter. `prefetchInitialConsent({ req, ...options })` accepts
 every option in the App Router table except `request`; `req` is the request
 from `getServerSideProps` or an API route. `readInitialConsentConfig(req,
 options)` takes `req` as its first argument and the remaining options as its
-second. Both return plain JSON, so the result can be returned as a prop.
+second. Both return JSON-compatible data, but fields that were not detected
+are `undefined` (for example `initialPrivacySignals.gpc` without a `sec-gpc`
+header), and `getServerSideProps` rejects `undefined` values in development.
+Round-trip the result through `JSON.parse(JSON.stringify(result))` before
+returning it as a prop, as `examples/nextjs/pages/pages-router.tsx` does.
 
 `createPagesRequestContext(req)` builds the `request` adapter itself. Headers
 are converted to Web `Headers`, and cookies are read from the `cookie` header.
