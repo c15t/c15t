@@ -27,7 +27,8 @@ group: reference
   in server rendering, and does not touch the active surface, so it suits a
   privacy page or an account settings screen.
 
-  The rows are `necessary` plus every category in the active policy's scope.
+  The rows are `necessary` plus the categories in the active policy's scope,
+  narrowed to the provider `options.consentCategories` when that list is set.
   The `necessary` switch is on and disabled. Row titles and descriptions come
   from `consentTypes.<category>.title` and `.description`; the action labels
   from `common.rejectAll`, `common.acceptAll` and `common.save`. One row is

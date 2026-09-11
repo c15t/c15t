@@ -83,11 +83,13 @@ group: reference
   and `aria-describedby="consent-dialog-description"`, plus `aria-modal="true"`
   while it is blocking. Its `dir` attribute follows the active language.
 
-  On open, focus moves to the panel itself rather than to a button, so a
-  screen reader announces the title and description first; Tab then enters
-  the legal links and category switches. While blocking, Tab and Shift+Tab
-  wrap inside the panel. On close, focus returns to the element that opened
-  the dialog. The backdrop is `aria-hidden` and is not focusable.
+  While blocking, focus moves on open to the panel itself rather than to a
+  button, so a screen reader announces the title and description first; Tab
+  then enters the legal links and category switches, Tab and Shift+Tab wrap
+  inside the panel, and on close focus returns to the element that opened the
+  dialog. A non-blocking dialog manages no focus: nothing moves focus into the
+  panel or back to the opener. The backdrop is `aria-hidden` and is not
+  focusable.
 
   Each category switch has the category title as its accessible name. The
   `necessary` switch is disabled and always on. A saved grant that the current
