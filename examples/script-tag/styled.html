@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>Style the c15t banner</title>
+		<style>
+			body {
+				font-family: system-ui, sans-serif;
+				line-height: 1.5;
+				margin: 3rem auto;
+				max-width: 48rem;
+				padding: 1rem;
+			}
+			a,
+			button {
+				font: inherit;
+			}
+			/* This selector reaches the widget only in light DOM mode. */
+			[data-c15t-ui] [data-testid='consent-banner-card'] {
+				border: 3px solid #0a66ff;
+			}
+		</style>
+		<script>
+			const shadow =
+				new URLSearchParams(location.search).get('shadow') !== 'false';
+			window.c15t = [
+				[
+					'config',
+					{
+						mode: 'offline',
+						overrides: { country: 'DE' },
+						storageConfig: { storageKey: 'c15t-styling-example' },
+						presentation: {
+							prompt: { variant: 'floating', position: 'bottom-right' },
+						},
+						ui: {
+							shadow,
+							colorScheme: 'light',
+							trigger: true,
+							theme: {
+								colors: { primary: '#0a66ff' },
+								radius: { lg: '1rem' },
+								typography: { fontFamily: 'system-ui, sans-serif' },
+							},
+							css: shadow
+								? '[data-testid="consent-banner-card"] { border: 3px solid #0a66ff; }'
+								: '',
+						},
+					},
+				],
+			];
+		</script>
+		<script
+			src="/c15t.js"
+			defer
+		></script>
+	</head>
+	<body>
+		<h1>Style the banner in your frontend</h1>
+		<p>
+			The banner uses a custom accent, radius, font, position, and border. This
+			example runs without a backend.
+		</p>
+		<p>
+			<a href="/styled">Shadow root with injected CSS</a> ·
+			<a href="/styled?shadow=false">Light DOM with page CSS</a> ·
+			<a href="/custom">Custom HTML example</a>
+		</p>
+		<p>
+			Both modes use <code>ui.theme</code> for tokens and
+			<code>presentation.prompt</code> for geometry. Shadow mode adds the border
+			through <code>ui.css</code>. Light DOM mode gets it from the page's
+			stylesheet.
+		</p>
+		<button
+			type="button"
+			data-c15t-action="banner"
+		>
+			Show banner
+		</button>
+		<button
+			type="button"
+			data-c15t-action="customize"
+		>
+			Cookie preferences
+		</button>
+	</body>
+</html>

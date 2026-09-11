@@ -450,12 +450,15 @@ export const generateThemeCSS = function generateThemeCSS(
 		.map(([key, value]) => `${key}: ${value};`)
 		.join('\n');
 
+	// `:host` is the shadow-DOM counterpart of `:root`: custom properties set
+	// there inherit into a shadow tree, which `:root` never reaches. Outside
+	// a shadow root it matches nothing, so light-DOM hosts are unaffected.
 	return `
-:root, .c15t-theme-root {
+:root, :host, .c15t-theme-root {
 ${lightCSS}
 }
 
-:root.dark, .dark .c15t-theme-root, :root.c15t-dark, .c15t-dark .c15t-theme-root {
+:root.dark, :host(.dark), .dark .c15t-theme-root, :root.c15t-dark, :host(.c15t-dark), .c15t-dark .c15t-theme-root {
 ${darkCSS}
 }
 

@@ -16,6 +16,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [IAB TCF](./docs/frameworks/javascript/iab/overview.md): Enable IAB TCF 2.3 with the core store.
 - [Quickstart](./docs/frameworks/javascript/quickstart.md): Add consent management to a vanilla JavaScript app.
 - [Script Loader](./docs/frameworks/javascript/script-loader.md): Load third-party scripts only after the required consent.
+- [Script tag](./docs/frameworks/javascript/script-tag.md): Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
 - [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Common problems and fixes for c15t in JavaScript.
 
 ## Integrations

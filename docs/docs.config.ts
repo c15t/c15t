@@ -138,7 +138,7 @@ const generateDocsConfig = () =>
 								title: 'Concepts',
 							},
 							{
-								pages: ['script-loader', 'dev-tools'],
+								pages: ['script-tag', 'script-loader', 'dev-tools'],
 
 								title: 'Guides',
 							},

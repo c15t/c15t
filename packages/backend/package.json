@@ -89,6 +89,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@c15t/browser": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"effect": "4.0.0-beta.102",

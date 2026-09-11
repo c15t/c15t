@@ -202,6 +202,25 @@ const splitTopLevelStatements = function splitTopLevelStatements(
 	return statements.filter(Boolean);
 };
 
+/**
+ * Add `:host` to every `:root` selector in a block of unlayered statements.
+ *
+ * Component stylesheets declare their variables on `:root`, which nothing
+ * inside a shadow root matches; a script-tag host that renders the banner
+ * in a shadow root would otherwise resolve `var(--consent-dialog-max-width)`
+ * and friends against nothing. `:host` matches nothing in the light DOM, so
+ * framework hosts see no change.
+ */
+const scopeRootToHost = function scopeRootToHost(css: string): string {
+	return css.replace(
+		/(?<before>^|[\s,}{;]):root(?<className>\.[A-Za-z0-9_-]+)?(?=[\s,{])/gu,
+		(_match, before: string, className: string | undefined) =>
+			className
+				? `${before}:root${className}, :host(${className})`
+				: `${before}:root, :host`
+	);
+};
+
 const collectCssParts = function collectCssParts(
 	primitives: string[],
 	components: string[]
@@ -216,15 +235,15 @@ const collectCssParts = function collectCssParts(
 		const { unlayered, componentRules } = splitStylesheet(
 			readFileSync(filePath, 'utf-8')
 		);
-		const uniqueUnlayered = splitTopLevelStatements(unlayered).filter(
-			(statement) => {
-				if (seenUnlayered.has(statement)) {
-					return false;
-				}
-				seenUnlayered.add(statement);
-				return true;
+		const uniqueUnlayered = splitTopLevelStatements(
+			scopeRootToHost(unlayered)
+		).filter((statement) => {
+			if (seenUnlayered.has(statement)) {
+				return false;
 			}
-		);
+			seenUnlayered.add(statement);
+			return true;
+		});
 		if (uniqueUnlayered.length > 0) {
 			rootParts.push(`/* ${label} vars */\n${uniqueUnlayered.join('\n')}`);
 		}

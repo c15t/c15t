@@ -1,0 +1,322 @@
+import { custom, hosted } from '@c15t/core';
+import type {
+	AllConsentNames,
+	ConsentSnapshot,
+	HasCondition,
+	KernelUser,
+	Unsubscribe,
+} from '@c15t/core';
+import type { DevToolsInstance } from '@c15t/dev-tools';
+
+import {
+	mergeClientOptions,
+	readPageOptions,
+	readScriptOptions,
+} from './auto-init';
+import { createConsentClient } from './client';
+import type { CreateConsentClientContext } from './client';
+import { createDeferred } from './deferred';
+import { manifest } from './transports/manifest';
+import { offline } from './transports/offline';
+import type {
+	ConsentClient,
+	ConsentClientEventMap,
+	ConsentClientOptions,
+	ConsentUIHandle,
+	ConsentUIOptions,
+} from './types';
+import { version } from './version';
+
+/** The name the script-tag build installs itself under. */
+export const GLOBAL_NAME = 'c15t';
+
+/** A call queued before the script loaded: `[method, ...args]`. */
+export type QueuedCall = [method: string, ...args: unknown[]];
+
+/**
+ * `window.c15t`, the one global the script-tag builds use.
+ *
+ * Before the tag loads it is a plain array of queued calls:
+ *
+ * ```html
+ * <script>
+ *   window.c15t = window.c15t || [];
+ *   c15t.push(['config', { consentCategories: ['measurement'] }]);
+ *   c15t.push(['on', 'consent', (snapshot) => console.log(snapshot)]);
+ * </script>
+ * ```
+ *
+ * The tag replaces it with this object and replays the queue in order.
+ * Before `init()` the read methods throw and `on()`/`ready()` wait; after
+ * it everything proxies to the page's client. `version`, `pkg` and `mode`
+ * keep the shape `@c15t/core` installs for devtools.
+ */
+export interface C15tGlobal {
+	/** Package version. */
+	readonly version: string;
+	/** Package name. */
+	readonly pkg: string;
+	/** Transport kind, once initialised. */
+	readonly mode: string | null;
+	/** The page's client, once initialised. */
+	readonly client: ConsentClient | null;
+	/**
+	 * Add options before `init()`. Later calls win over earlier ones, and
+	 * all of them win over the tag's `data-*` attributes. After `init()`
+	 * it warns and does nothing.
+	 *
+	 * @param options - Client options to layer on.
+	 */
+	config: (options: ConsentClientOptions) => void;
+	/**
+	 * Create and start the page's client. A second call returns the
+	 * existing one.
+	 *
+	 * @param options - Client options layered over the tag's attributes and
+	 * every queued `config`.
+	 * @returns The page's client.
+	 */
+	init: (options?: ConsentClientOptions) => ConsentClient;
+	/**
+	 * Run once the client exists, immediately if it already does. Safe to
+	 * call before `init()`; `c15t.devtools.js` mounts through this.
+	 *
+	 * @param listener - Called with the client.
+	 * @returns A function that cancels the call if it has not run yet.
+	 */
+	onInit: (listener: (client: ConsentClient) => void) => Unsubscribe;
+	/** The DevTools panel, once `c15t.devtools.js` has mounted it. */
+	devtools: DevToolsInstance | null;
+	/** Resolves once the policy is resolved. Safe to call before `init()`. */
+	ready: () => Promise<ConsentSnapshot>;
+	/** Listen for a client event. Safe to call before `init()`. */
+	on: <EventName extends keyof ConsentClientEventMap>(
+		event: EventName,
+		listener: (payload: ConsentClientEventMap[EventName]) => void
+	) => Unsubscribe;
+	getSnapshot: () => ConsentSnapshot;
+	subscribe: (listener: (snapshot: ConsentSnapshot) => void) => Unsubscribe;
+	has: (condition: HasCondition<AllConsentNames>) => boolean;
+	hasConsented: () => boolean;
+	acceptAll: ConsentClient['acceptAll'];
+	rejectAll: ConsentClient['rejectAll'];
+	save: ConsentClient['save'];
+	saveIAB: ConsentClient['saveIAB'];
+	dismissNotice: ConsentClient['dismissNotice'];
+	showBanner: () => void;
+	openDialog: () => void;
+	closeDialog: () => void;
+	setLanguage: (code: string) => void;
+	identify: (user: KernelUser) => Promise<void>;
+	mountUI: (options?: ConsentUIOptions) => ConsentUIHandle;
+	dispose: () => void;
+	/** Transport factories, for `init({ mode: c15t.hosted({ url }) })`. */
+	hosted: typeof hosted;
+	offline: typeof offline;
+	custom: typeof custom;
+	manifest: typeof manifest;
+}
+
+type GlobalWindow = Window & {
+	[GLOBAL_NAME]?: C15tGlobal | QueuedCall[] | unknown;
+};
+
+/**
+ * Put the API on `window.c15t`, replaying in order any calls a page queued
+ * on the array that was there before the script loaded.
+ *
+ * @param api - The API object.
+ */
+export const installGlobal = function installGlobal(
+	api: C15tGlobal
+): C15tGlobal {
+	if (typeof window === 'undefined') {
+		return api;
+	}
+	const target = window as GlobalWindow;
+	const existing = target[GLOBAL_NAME];
+	if (
+		existing !== null &&
+		typeof existing === 'object' &&
+		'pkg' in existing &&
+		typeof existing.pkg === 'string' &&
+		existing.pkg.startsWith('@c15t/browser') &&
+		'init' in existing &&
+		typeof existing.init === 'function' &&
+		'client' in existing
+	) {
+		return existing as C15tGlobal;
+	}
+	target[GLOBAL_NAME] = api;
+	if (!Array.isArray(existing)) {
+		return api;
+	}
+	for (const call of existing as QueuedCall[]) {
+		const [method, ...args] = call;
+		const fn = (api as unknown as Record<string, unknown>)[method];
+		if (typeof fn === 'function') {
+			(fn as (...params: unknown[]) => unknown)(...args);
+		}
+	}
+	return api;
+};
+
+/**
+ * Build the global API object.
+ *
+ * @param context - Entry-point wiring (UI mounter, package name).
+ * @returns The API, not yet installed on `window`.
+ */
+// oxlint-disable-next-line max-lines-per-function -- The API surface is one object.
+export const createGlobal = function createGlobal(
+	context: CreateConsentClientContext
+): C15tGlobal {
+	// `currentScript` points at this bundle only while it is executing.
+	// Manual init may run in another script or an event callback later.
+	const scriptOptions = readScriptOptions(
+		typeof document === 'undefined' ? null : document.currentScript
+	);
+	let client: ConsentClient | null = null;
+	// Replaced on dispose, so `ready()` and `on()` after a re-init wait for
+	// the new client instead of answering from the disposed one.
+	let clientReady = createDeferred<ConsentClient>();
+	const pendingListeners = new Set<(created: ConsentClient) => void>();
+	const queuedConfig: ConsentClientOptions[] = [];
+
+	const require = function require(): ConsentClient {
+		if (!client) {
+			throw new Error(
+				'@c15t/browser: call c15t.init() first, or wait for c15t.ready().'
+			);
+		}
+		return client;
+	};
+
+	const api: C15tGlobal = {
+		acceptAll: () => require().acceptAll(),
+		get client() {
+			return client;
+		},
+		closeDialog: () => {
+			require().closeDialog();
+		},
+		config(options) {
+			if (client) {
+				// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+				console.warn(
+					'@c15t/browser: c15t.config() after init() has no effect; queue it before the tag or pass it to init().'
+				);
+				return;
+			}
+			queuedConfig.push(options);
+		},
+		custom,
+		devtools: null,
+		dismissNotice: () => require().dismissNotice(),
+		dispose: () => {
+			api.devtools?.destroy();
+			api.devtools = null;
+			client?.dispose();
+			// Keep queued defaults for re-init, including backend-injected
+			// manifests and URLs that are not present on the script tag.
+			client = null;
+			clientReady = createDeferred<ConsentClient>();
+			pendingListeners.clear();
+		},
+		getSnapshot: () => require().getSnapshot(),
+		has: (condition) => require().has(condition),
+		hasConsented: () => require().hasConsented(),
+		hosted,
+		identify: (user) => require().identify(user),
+		init(options) {
+			if (client) {
+				return client;
+			}
+			const configs = options ? [...queuedConfig, options] : queuedConfig;
+			const resolved = configs.reduce(mergeClientOptions, scriptOptions);
+			const created = createConsentClient(resolved, context);
+			// A synchronous ready listener can dispose and replace the deferred.
+			const initializingClientReady = clientReady;
+			client = created;
+			for (const attach of pendingListeners) {
+				attach(created);
+			}
+			pendingListeners.clear();
+			created.start();
+			initializingClientReady.resolve(created);
+			return created;
+		},
+		manifest,
+		get mode() {
+			return client?.mode ?? null;
+		},
+		mountUI: (options) => require().mountUI(options),
+		offline,
+		on(event, listener) {
+			if (client) {
+				return client.on(event, listener);
+			}
+			let unsubscribe: Unsubscribe | null = null;
+			const attach = function attach(created: ConsentClient): void {
+				unsubscribe = created.on(event, listener);
+			};
+			pendingListeners.add(attach);
+			return function off() {
+				pendingListeners.delete(attach);
+				unsubscribe?.();
+			};
+		},
+		onInit(listener) {
+			let cancelled = false;
+			const attach = async function attach(): Promise<void> {
+				const resolvedClient = await clientReady.promise;
+				if (!cancelled) {
+					listener(resolvedClient);
+				}
+			};
+			void attach();
+			return function off() {
+				cancelled = true;
+			};
+		},
+		openDialog: () => {
+			require().openDialog();
+		},
+		pkg: context.pkg ?? '@c15t/browser',
+		async ready() {
+			const resolvedClient = await clientReady.promise;
+			return resolvedClient.ready();
+		},
+		rejectAll: () => require().rejectAll(),
+		save: (consents) => require().save(consents),
+		saveIAB: () => require().saveIAB(),
+		setLanguage: (code) => {
+			require().setLanguage(code);
+		},
+		showBanner: () => {
+			require().showBanner();
+		},
+		subscribe: (listener) => require().subscribe(listener),
+		version,
+	};
+	return api;
+};
+
+/**
+ * Initialise from the script tag unless the page opted out.
+ *
+ * @param api - The installed API.
+ * @returns The client, or `null` when the page asked to init itself.
+ */
+export const autoInit = function autoInit(
+	api: C15tGlobal
+): ConsentClient | null {
+	if (typeof document === 'undefined') {
+		return null;
+	}
+	const { manual } = readPageOptions(document.currentScript);
+	if (manual || api.client) {
+		return api.client;
+	}
+	return api.init();
+};

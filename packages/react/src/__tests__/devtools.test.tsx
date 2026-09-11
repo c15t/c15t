@@ -32,11 +32,21 @@ const Provider = ({ children }: { children: ReactNode }) => (
 	</ConsentProvider>
 );
 
+/** The panel roots, which live inside each host's shadow root. */
+const mountedDevTools = (): HTMLElement[] =>
+	[...document.querySelectorAll<HTMLElement>('[data-c15t-dev-tools-host]')]
+		.map((host) =>
+			host.shadowRoot?.querySelector<HTMLElement>('[data-c15t-dev-tools]')
+		)
+		.filter((root): root is HTMLElement => root !== null && root !== undefined);
+
 const getMountedDevTools = (): HTMLElement | null =>
-	document.querySelector('[data-c15t-dev-tools]');
+	mountedDevTools()[0] ?? null;
 
 afterEach(() => {
-	for (const element of document.querySelectorAll('[data-c15t-dev-tools]')) {
+	for (const element of document.querySelectorAll(
+		'[data-c15t-dev-tools-host]'
+	)) {
 		element.remove();
 	}
 });
@@ -638,7 +648,9 @@ describe('v3 TanStack Devtools adapter', () => {
 			'[data-testid="c15t-tanstack-panel"]'
 		);
 		const devTools = getMountedDevTools();
-		expect(container?.contains(devTools)).toBe(true);
+		// The panel sits in a shadow root; `contains` stops at the host.
+		const host = (devTools?.getRootNode() as ShadowRoot | undefined)?.host;
+		expect(container?.contains(host ?? null)).toBe(true);
 		expect(devTools?.classList.contains('c15t-dev-tools--embedded')).toBe(true);
 		expect(plugin.render.type).toBe(C15tTanStackDevtoolsPanel);
 

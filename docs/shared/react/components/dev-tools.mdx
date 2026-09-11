@@ -183,6 +183,7 @@ group: reference
   ```
 
   Both adapters accept `position`, `defaultOpen`, `defaultTab`, `maxEvents`,
+  `shadow` (`false` renders into the page instead of a shadow root),
   and `getConsentCategories`. Changing these presentation options recreates
   the panel and clears its event history. They do not accept React's `disabled`
   prop; conditionally render them instead. Unmounting removes the panel and
