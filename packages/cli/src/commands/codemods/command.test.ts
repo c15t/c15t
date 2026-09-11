@@ -7,13 +7,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../../index';
 
 const directories: string[] = [];
-const fixture = async () => {
+const fixture = async (declaredVersion = '3.0.0') => {
 	const cwd = await mkdtemp(join(tmpdir(), 'c15t-legacy-command-'));
 	directories.push(cwd);
 	await writeFile(
 		join(cwd, 'package.json'),
 		JSON.stringify({
-			dependencies: { '@c15t/scripts': '^1.0.0', c15t: '^3.0.0' },
+			dependencies: { '@c15t/scripts': '^1.0.0', c15t: declaredVersion },
 			name: 'fixture',
 			version: '9.9.9',
 		})
@@ -39,6 +39,39 @@ afterEach(async () => {
 });
 
 describe('legacy migration command', () => {
+	it.each(['2.0.0-rc.4', '2.0.0-canary-20260731105620', '2.0.0-alpha.1'])(
+		'does not automatically apply legacy transforms to %s',
+		async (declaredVersion) => {
+			const { cwd, filePath, source } = await fixture(declaredVersion);
+			const result = await runCli(['codemods', '--all', '--json'], { cwd });
+			expect(result, JSON.stringify(result)).toMatchObject({
+				data: { declaredVersion, results: [], sourceVersion: declaredVersion },
+				success: true,
+			});
+			expect(await readFile(filePath, 'utf8')).toBe(source);
+			expect(await readFile(join(cwd, 'src/index.css'), 'utf8')).toBe('');
+		},
+		20_000
+	);
+	it.each([
+		{ args: [], declaredVersion: '1.9.0' },
+		{ args: ['--from', '1.9.0'], declaredVersion: '2.0.0-rc.4' },
+	])(
+		'applies legacy transforms from v1 with declared $declaredVersion and $args',
+		async ({ declaredVersion, args }) => {
+			const { cwd, filePath } = await fixture(declaredVersion);
+			const result = await runCli(['codemods', '--all', '--json', ...args], {
+				cwd,
+			});
+			expect(result, JSON.stringify(result)).toMatchObject({
+				data: { declaredVersion, sourceVersion: '1.9.0' },
+				success: true,
+			});
+			expect(await readFile(filePath, 'utf8')).toContain('<ConsentBanner />');
+			expect(await readFile(filePath, 'utf8')).not.toContain('CookieBanner');
+		},
+		20_000
+	);
 	it('lists transforms with the application version rather than an integration version', async () => {
 		const { cwd } = await fixture();
 		const result = await runCli(['codemods', '--list', '--json'], { cwd });

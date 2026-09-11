@@ -44,6 +44,8 @@ if (!result.success) {
 
 Importing the package does not execute a command. `runCli` returns a result without changing process arguments, the working directory, or the exit status. Prompts and telemetry are disabled by default for library callers. Supply a `logger` to route diagnostics into the host CLI. The executable adapter owns JSON serialization and process exit status.
 
+CommonJS callers on Node versions that support `require(esm)` can use `const { runCli } = require('@c15t/cli')`.
+
 For Inth or another host, use explicit project inputs and inspect the returned result. Hosted credentials still use the c15t credential store. Embedding the runner does not merge that store with another CLI's authentication system.
 
 ## Agent setup and v3 migration workflow

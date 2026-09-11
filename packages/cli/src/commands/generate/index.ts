@@ -20,6 +20,10 @@ import type { CliCommand, CliContext } from '~/context/types';
 
 import { STORAGE_MODES } from '../../constants';
 import type { StorageMode } from '../../constants';
+import {
+	isBoilerplateSetup,
+	usesExplicitSetup,
+} from '../../context/setup-routing';
 import { CliError } from '../../core/errors';
 
 const normalizeModeArg = function normalizeModeArg(
@@ -47,11 +51,7 @@ const generateAction = async function generateAction(
 			details: 'Expected one setup mode: hosted, offline, or custom.',
 		});
 	}
-	if (
-		['boilerplate', 'framework', 'output', 'package-source'].some(
-			(flag) => flags[flag]
-		)
-	) {
+	if (isBoilerplateSetup(flags)) {
 		return (await import('./boilerplate')).generateBoilerplate(context);
 	}
 
@@ -68,14 +68,7 @@ const generateAction = async function generateAction(
 	logger.debug(`Mode arg: ${modeArg}`);
 	logger.debug(`Resume: ${resume}`);
 
-	if (
-		flags['non-interactive'] ||
-		flags.plan ||
-		flags['dry-run'] ||
-		flags.apply ||
-		flags.mode ||
-		(flags.yes && modeArg)
-	) {
+	if (usesExplicitSetup(flags, modeArg)) {
 		const { generateWithoutPrompts } = await import('./non-interactive');
 		return generateWithoutPrompts(context);
 	}

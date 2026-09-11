@@ -11,6 +11,8 @@ c15t setup hosted --backend-url https://your-project.inth.app --plan --json
 c15t setup hosted --backend-url https://your-project.inth.app --apply --skip-install
 ```
 
+Explicit configuration flags select a read-only plan even in an interactive terminal. Add `--apply` or `--yes` to write files.
+
 ## Mode and backend
 
 Use a positional mode or `--mode`: `hosted`, `offline`, or `custom`. The legacy `c15t` and `self-hosted` mode names map to hosted transport. Hosted setup requires `--backend-url` or an authenticated project selected through `--project`. Without either flag, it can use the account default from `projects select`.

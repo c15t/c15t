@@ -85,6 +85,8 @@ const logCodemodResult = function logCodemodResult(
 	}
 };
 
+// V2 prereleases already use the v2 API. Include them in the target range
+// so automatic selection never treats an RC or canary as a v1 application.
 const codemods: CodemodDefinition[] = [
 	{
 		hint: 'Migrates showPopup/isPrivacyDialogOpen and setter usage to activeUI.',
@@ -92,8 +94,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'showPopup API -> activeUI API',
 		run: runActiveUiApiCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -102,8 +104,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'legacy component names -> v2 names',
 		run: runComponentRenamesCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -112,8 +114,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'gdprTypes -> consentCategories',
 		run: runGdprTypesToConsentCategoriesCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -122,8 +124,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'ignoreGeoLocation -> overrides',
 		run: runIgnoreGeoLocationToOverridesCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -132,8 +134,8 @@ const codemods: CodemodDefinition[] = [
 		label: "mode: 'c15t' -> 'hosted'",
 		run: runC15tModeToHostedCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 
@@ -143,8 +145,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'react options -> top-level options',
 		run: runReactOptionsToTopLevelCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -153,8 +155,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'trackingBlockerConfig -> networkBlocker',
 		run: runTrackingBlockerToNetworkBlockerCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -163,8 +165,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'translations -> i18n',
 		run: runTranslationsToI18nCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
@@ -173,8 +175,8 @@ const codemods: CodemodDefinition[] = [
 		label: 'configure global CSS for prebuilt UI',
 		run: runAddStylesheetImportsCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 ];

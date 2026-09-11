@@ -12,6 +12,7 @@ import { createFileSystem } from './file-system';
 import { detectFramework, detectProjectRoot } from './framework-detection';
 import { detectPackageManager } from './package-manager-detection';
 import { parseCliArgs } from './parser';
+import { runsSetupWithoutPrompts } from './setup-routing';
 import type { CliCommand, CliContext, ParsedArgs } from './types';
 import { createUserInteraction } from './user-interaction';
 
@@ -77,8 +78,11 @@ export const createCliContext = async (
 				reactVersion: null,
 				tailwindVersion: null,
 			};
+	const promptForPackageManager =
+		interactive &&
+		!runsSetupWithoutPrompts(parsed.commandName, flags, parsed.commandArgs[0]);
 	const packageManager = needsProject
-		? await detectPackageManager(projectRoot, logger, interactive)
+		? await detectPackageManager(projectRoot, logger, promptForPackageManager)
 		: {
 				name: 'npm' as const,
 				version: null,

@@ -22,6 +22,8 @@ c15t codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 
 Review the proposed changes before repeating the command without `--dry-run`. Without `--from`, automatic selection uses the declared core/framework versions. Independently versioned integrations such as `@c15t/scripts` do not determine the application version.
 
+V2 prereleases, including `2.0.0-rc.4` and `2.0.0-canary-*`, count as v2 for automatic selection and skip the legacy v1 transforms. If you upgraded dependencies while the source still uses v1, pass its original version with `--from 1.9.0` or select a named transform explicitly.
+
 ## What changes
 
 The collection covers component names, `activeUI`, consent categories, location overrides, hosted mode naming, React options, network blocking, translations, and stylesheet imports.
