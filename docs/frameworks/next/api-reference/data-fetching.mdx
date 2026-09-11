@@ -124,7 +124,7 @@ replaces only the `request` adapter.
 | `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. `initURL` is not read. |
 | `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. |
 | `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
-| `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Use it to wrap the call in Next.js fetch caching. |
+| `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
 | `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
 | `onError` | none | Receives the failure from the backend or manifest request. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
 | `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
@@ -136,12 +136,16 @@ replaces only the `request` adapter.
 `prefetchInitialConsent` throws when neither `backendURL` nor `config` is
 given, when the request adapter's `headers()` or `cookies()` rejects (the
 default adapter rejects outside a request scope), and when your `onError`
-callback throws. URL resolution, network and policy resolution failures are
-handled: they return the baseline config that `readInitialConsentConfig`
+callback throws. Thrown URL resolution, network and policy resolution errors
+are handled: they return the baseline config that `readInitialConsentConfig`
 produces, with stored records, geography, language and GPC from the request
 but no resolved policy. The page still renders and the browser initializes
 consent on mount. Non-2xx responses from backend `/init` are failures too, so
-a `500` renders the baseline rather than throwing.
+a `500` renders the baseline rather than throwing. A successful response whose
+body reports `policyResolution.status: 'failed'`, for example an unsupported
+policy contract, is different: that failed resolution is kept as the prepared
+state, the browser does not re-initialize on mount, and the consent UI stays
+hidden until the cause is fixed.
 
 Absolute `http(s)` URLs are used as given. A `/`-relative `backendURL` or
 `manifestURL` is resolved from the request: the scheme comes from
@@ -179,9 +183,11 @@ back to the baseline. `backendURL` is still required because choices post to
 
 `onError` replaces the default logging entirely. Without it, production
 deployments render the baseline silently; pass `onError` to report failures to
-your monitoring. With a mismatched `cookieName`, server prefetch restores no
-records, so first paint cannot reflect stored choices even though the browser
-later reads them from its own storage key.
+your monitoring. `cookieName` must match the client `storageKey` for stored
+choices to be restored at all: with a mismatch the server supplies empty
+records, the provider treats them as prepared and skips browser hydration, so
+the visitor's existing choice stays ignored for the whole mount, not only at
+first paint.
 
 ### readInitialConsentConfig options
 
@@ -248,7 +254,7 @@ with no options, so they read only environment variables.
 | --- | --- | --- |
 | `backendURL` | `C15T_BACKEND_URL`, then `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. The manifest route fetches `${backendURL}/manifest`. Not read when `manifestURL` is set. |
 | `manifestURL` | `C15T_MANIFEST_URL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
-| `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it, and non-numeric or negative env values are ignored. |
+| `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it. The env value is read with `parseInt`, so `60seconds` becomes `60` and `1e2` becomes `1`; values without a leading number or below `0` fall back to the default. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
 | `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies. Called only under the conditions described in this section. |
 
