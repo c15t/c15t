@@ -228,7 +228,14 @@ the same `ConsentBoundary`, importing it from `c15t/next` when you use the
 umbrella package or from `@c15t/nextjs` when you depend on the scoped package
 directly. With an awaited `prefetchInitialConsent` result, the server renders
 the banner into the response, which is what the RSC variant was for. Move
-`presentation` to `options.presentation` on the boundary. `ConsentBanner` has
-no `classNames` prop: put per-slot class names in
-`options.components.banner.<slot>.className`, or compose the banner from its
-compound parts when you need different markup.
+`presentation` to `options.presentation` on the boundary.
+
+`ConsentBanner` has no `classNames` prop. Move each legacy key to the boundary
+`options.components` slots, which take `{ className }`:
+
+| `classNames` key | Replacement |
+| --- | --- |
+| `root`, `card`, `title`, `footer` | `components.banner.root`, `.card`, `.title`, `.footer` |
+| `description` | `components.description.banner` |
+| `rights`, `rightLink` | `components.banner.rights`, `components.banner.rightLink` |
+| `acceptButton`, `rejectButton`, `customizeButton`, `dismissButton` | No per-button slot. Use `components.button.primary` / `.secondary` for shared styles, or target `[data-action="accept"]`, `"reject"`, `"customize"`, `"dismiss"` in CSS. For different markup, compose `ConsentBanner` from its compound parts. |
