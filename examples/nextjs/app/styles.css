@@ -199,38 +199,6 @@ p {
 	padding: 5px 9px;
 	border-radius: 30px;
 }
-.video-placeholder {
-	min-height: 320px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-direction: column;
-	text-align: center;
-	padding: 30px;
-	background: #e9eee7;
-	border: 1px solid #dce4d8;
-	border-radius: 16px;
-}
-.play-mark {
-	display: grid;
-	place-content: center;
-	border: 1px solid #becfc0;
-	color: var(--accent);
-	border-radius: 50%;
-	width: 48px;
-	height: 48px;
-	margin-bottom: 22px;
-	font-size: 17px;
-}
-.video-placeholder p {
-	max-width: 37ch;
-	font-size: 13px;
-	color: var(--muted);
-	margin-block: 10px 18px;
-}
-.preferences-button {
-	font-size: 13px;
-}
 .video-frame {
 	display: block;
 	width: 100%;
@@ -322,9 +290,5 @@ p {
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 4px;
-	}
-	.video-placeholder {
-		min-height: 280px;
-		padding: 24px;
 	}
 }

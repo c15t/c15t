@@ -17,8 +17,9 @@ bun run dev
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the exact endpoint from your Inth project.
 Configure its policy with measurement and marketing categories, an
 unknown-location rule, and trusted origins for `http://localhost:3011` and your
-production host. Location-specific policies need trusted geography headers from
-your deployment platform; this example does not fake a visitor's country.
+production host. This demo overrides the visitor location to the United Kingdom
+using `country: 'GB'` in `demoLocation`. Remove that override to use trusted
+geography headers from your deployment platform.
 
 Open `http://localhost:3011/app-router`. For a production build:
 
@@ -38,12 +39,12 @@ integration is disabled and labelled "Not configured".
   local init route or backend rewrite.
 - `app/api/c15t/manifest/route.ts` serves the cached public manifest for both
   routers. The handler uses the backend environment variable configured above.
-- `app/app-router/layout.tsx` passes the server-prefetch promise to a client
-  boundary, letting the page stream while consent resolves.
+- `app/app-router/layout.tsx` awaits server prefetch before rendering
+  the boundary, so consent UI is included in the initial HTML.
 - `pages/pages-router.tsx` awaits the Pages Router helper in `getServerSideProps`.
   `pages/_app.tsx` passes `initialConsent` to the same client wrapper.
 - `app/client-init/page.tsx` skips prefetch. The browser resolves the manifest,
-  with unknown location when none is supplied.
+  using the same UK location override.
 - `components/consent.tsx` registers scripts, consent UI and DevTools once.
 - `components/demo.tsx` shows the iframe, permission indicators and footer link.
 - `lib/theme.ts` and `components/custom-banner.tsx` contain the branded theme

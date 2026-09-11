@@ -1,11 +1,14 @@
 import { prefetchInitialConsent } from 'c15t/next/server';
 import type { ReactNode } from 'react';
 
-import { consentConfig } from '../../c15t.config';
+import { consentConfig, demoLocation } from '../../c15t.config';
 import { Consent } from '../../components/consent';
 
-const Layout = ({ children }: { children: ReactNode }) => {
-	const initialConsent = prefetchInitialConsent({ config: consentConfig });
+const Layout = async ({ children }: { children: ReactNode }) => {
+	const initialConsent = await prefetchInitialConsent({
+		config: consentConfig,
+		...demoLocation,
+	});
 	return <Consent config={initialConsent}>{children}</Consent>;
 };
 

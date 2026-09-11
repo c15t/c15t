@@ -104,8 +104,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 The helper reads request cookies and geographic headers, then resolves policy
 from the manifest. Passing its promise lets the page stream while consent
-resolves. The consent UI stays hidden until resolution completes; it is not
-guaranteed to appear in the first HTML response.
+resolves. The current promise form initializes consent in the browser when the server
+result arrives. It does not render the banner in the initial HTML. Use the
+[awaited setup below](#wait-for-consent-before-rendering-its-subtree) to render
+consent UI on the server, as the runnable example does.
 
 `config` receives the prepared visitor state or its promise. `consent` contains
 the shared URLs. Keep this layout synchronous, including when Next.js

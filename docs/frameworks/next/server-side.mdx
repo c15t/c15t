@@ -12,7 +12,7 @@ Fetching and rendering are separate choices. The examples here keep the shared
 
 | Rendering path | Pass to `ConsentBoundary` | What the visitor receives |
 | --- | --- | --- |
-| Stream while consent resolves | The `prefetchInitialConsent` promise | The page can render while consent UI waits for the result. |
+| Stream while consent resolves | The `prefetchInitialConsent` promise | The page renders immediately; the browser initializes consent when the result arrives. |
 | Await consent | The resolved `prefetchInitialConsent` result | The consent subtree renders after resolution. A surrounding Suspense fallback may stream first. |
 | [Browser initialization](/docs/frameworks/next/client-side) | `config={{}}` and the shared `consent` config | The browser initializes after mount; the initial HTML has no resolved consent prompt. |
 
@@ -48,6 +48,9 @@ const initialConsent = prefetchInitialConsent({ config: consentConfig });
 
 <Consent config={initialConsent}>{children}</Consent>
 ```
+
+This promise form does not render consent UI on the server. For server-rendered
+consent UI, await the result as shown below.
 
 Keep the shared config and manifest route from that guide. This form also
 works with `cacheComponents: true`. Request helpers still need a visitor request;
@@ -106,6 +109,11 @@ which fetching path it uses.
 Pass the result intact to `config` and keep the same shared URLs in `consent`.
 Do not turn allowed categories into new saved choices or emit a choice event
 during hydration. Keep one boundary mounted across navigation.
+
+With resolved server state, `Frame` renders its placeholder or permitted content
+in the server HTML and reuses that state during hydration. It does not need to
+wait for the browser to mount before showing the placeholder. The default
+placeholder is visible immediately, without a fade-in animation.
 
 A resolved policy can satisfy browser initialization without another request.
 If prefetch fails or returns only baseline records, the browser can retry.

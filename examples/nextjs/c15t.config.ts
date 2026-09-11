@@ -11,3 +11,6 @@ export const consentConfig = defineConsentConfig({
 	backendURL,
 	manifestURL: '/api/c15t/manifest',
 });
+
+// Demo location override. GB is the ISO country code for the United Kingdom.
+export const demoLocation = { country: 'GB' } as const;

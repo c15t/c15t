@@ -1,3 +1,4 @@
+// oxlint-disable vitest/no-conditional-expect -- Only the Next adapter promises cookie-backed server HTML; all selected Next routes run these assertions.
 // oxlint-disable no-loop-func -- Each sequential suite owns its browser context and mutable request counters.
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -77,14 +78,99 @@ for (const target of selectedTargets()) {
 				.toBe(true);
 		};
 
+		if (target.id === 'nextjs') {
+			test('manifest initialization reuses the cache without init requests', async () => {
+				const readRequests = async () => {
+					const response = await fetch(
+						`${server.backendURL}/__compat/requests`
+					);
+					return (await response.json()) as {
+						initRequests: unknown[];
+						manifestRequests: unknown[];
+					};
+				};
+				// Readiness has already rendered App Router and warmed its manifest.
+				const before = await readRequests();
+				expect(before.manifestRequests.length).toBeGreaterThan(0);
+				expect(before.initRequests).toHaveLength(0);
+				await visit('/app-router');
+				let browserInitRequests = 0;
+				page.on('request', (request) => {
+					if (new URL(request.url()).pathname.endsWith('/init')) {
+						browserInitRequests += 1;
+					}
+				});
+				await page.reload();
+				await page.goto('/pages-router');
+				await page.goto('/client-init');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				const after = await readRequests();
+				expect(after.initRequests).toHaveLength(0);
+				expect(after.manifestRequests).toHaveLength(
+					before.manifestRequests.length
+				);
+				expect(browserInitRequests).toBe(0);
+			});
+
+			test('Frame is visible without completing an entrance animation', async () => {
+				({ context, page, requests } = await openBrowserContext(
+					browser,
+					server.baseURL,
+					server.backendURL
+				));
+				await page.addInitScript(() => {
+					const style = document.createElement('style');
+					style.textContent =
+						'[data-testid="frame-placeholder"] { animation-play-state: paused !important; }';
+					document.documentElement.append(style);
+				});
+				await page.goto('/app-router');
+				const placeholder = page.getByTestId('frame-placeholder');
+				await placeholder.waitFor();
+				expect(
+					await placeholder.evaluate(
+						(element) => getComputedStyle(element).opacity
+					)
+				).toBe('1');
+				await expectNoTracking(page, requests);
+			});
+		}
+
 		for (const route of target.routes) {
+			if (target.id === 'nextjs') {
+				test(`${route}: initial HTML contains consent UI before hydration`, async () => {
+					const response = await fetch(`${server.baseURL}${route}`);
+					expect(response.ok).toBe(true);
+					const html = await response.text();
+					expect(html).toContain('data-testid="consent-banner-root"');
+					expect(html).toContain('data-testid="frame-placeholder"');
+					expect(html).not.toContain('<iframe');
+				});
+			}
 			test(`${route}: rejection survives reload and preferences reopen`, async () => {
 				await visit(route);
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
 				await expectNoTracking(page, requests);
 				await rejectButton(page).click();
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
-				await page.reload();
+				if (target.id === 'nextjs') {
+					// Receipt writes are deferred. Wait for the saved choice before
+					// testing how the server renders that choice on the next request.
+					await expect
+						.poll(async () =>
+							(await page.context().cookies()).some(
+								(cookie) => cookie.name === 'c15t'
+							)
+						)
+						.toBe(true);
+				}
+				const reloaded = await page.reload();
+				if (target.id === 'nextjs') {
+					expect(reloaded).not.toBeNull();
+					expect(await reloaded?.text()).not.toContain(
+						'data-testid="consent-banner-root"'
+					);
+				}
 				await expectNoTracking(page, requests);
 				expect(await rejectButton(page).isVisible()).toBe(false);
 				await openPreferences(page);

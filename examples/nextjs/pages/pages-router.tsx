@@ -2,7 +2,7 @@ import type { ConsentBoundaryProps } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/pages';
 import type { GetServerSideProps } from 'next';
 
-import { consentConfig } from '../c15t.config';
+import { consentConfig, demoLocation } from '../c15t.config';
 
 interface PageProps {
 	initialConsent: ConsentBoundaryProps['config'];
@@ -13,9 +13,17 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
 }) => {
 	const initialConsent = await prefetchInitialConsent({
 		config: consentConfig,
+		...demoLocation,
 		req,
 	});
-	return { props: { initialConsent } };
+	// Pages Router props must omit undefined values, including absent privacy signals.
+	return {
+		props: {
+			initialConsent: JSON.parse(
+				JSON.stringify(initialConsent)
+			) as PageProps['initialConsent'],
+		},
+	};
 };
 
 const Page = () => (

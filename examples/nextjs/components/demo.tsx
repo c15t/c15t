@@ -142,31 +142,7 @@ export const Demo = ({
 							<h2 id="video-heading">A video, when you allow it</h2>
 							<span className="category">Measurement</span>
 						</div>
-						<Frame
-							category="measurement"
-							noStyle
-							placeholder={
-								<div
-									className="video-placeholder"
-									data-testid="youtube-placeholder"
-								>
-									<span
-										className="play-mark"
-										aria-hidden="true"
-									>
-										▶
-									</span>
-									<h3>YouTube is waiting for your permission</h3>
-									<p>
-										Allow measurement in your preferences to load the video.
-										Until then, no YouTube iframe is mounted.
-									</p>
-									<ConsentDialogLink className="preferences-button">
-										Review preferences
-									</ConsentDialogLink>
-								</div>
-							}
-						>
+						<Frame category="measurement">
 							{/* oxlint-disable react/iframe-missing-sandbox -- This fixed cross-origin YouTube player needs its own origin for storage and playback. */}
 							<iframe
 								className="video-frame"
