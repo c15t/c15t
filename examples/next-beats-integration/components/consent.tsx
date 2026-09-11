@@ -23,11 +23,12 @@ const theme = {
 	radius: { lg: '12px', md: '8px', sm: '6px' },
 } as const;
 
-// Slot classes: lift the floating card above the NowPlayingBar so the two
-// never overlap, and drop the card shadow to sit flat like the app's cards.
+// Slot classes: lift the floating card above the MobileTabBar (mobile) and
+// the NowPlayingBar (sm and up) so they never overlap, and drop the card
+// shadow to sit flat like the app's cards.
 const bannerSlots = {
 	card: { className: 'shadow-none' },
-	root: { className: 'group sm:mb-[5.5rem]' },
+	root: { className: 'group mb-[3.75rem] sm:mb-[5.5rem]' },
 };
 
 // Without a backend URL the app runs in offline mode: bundled policy and
