@@ -216,6 +216,8 @@ export const createGlobal = function createGlobal(
 			api.devtools?.destroy();
 			api.devtools = null;
 			client?.dispose();
+			// Keep queued defaults for re-init, including backend-injected
+			// manifests and URLs that are not present on the script tag.
 			client = null;
 			clientReady = createDeferred<ConsentClient>();
 		},
@@ -231,9 +233,11 @@ export const createGlobal = function createGlobal(
 			const configs = options ? [...queuedConfig, options] : queuedConfig;
 			const resolved = configs.reduce(mergeClientOptions, scriptOptions);
 			const created = createConsentClient(resolved, context);
+			// A synchronous ready listener can dispose and replace the deferred.
+			const initializingClientReady = clientReady;
 			client = created;
 			created.start();
-			clientReady.resolve(created);
+			initializingClientReady.resolve(created);
 			return created;
 		},
 		manifest,

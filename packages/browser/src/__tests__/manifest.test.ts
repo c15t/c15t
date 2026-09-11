@@ -135,6 +135,92 @@ describe('manifest()', () => {
 		expect(() => manifest({})).toThrow(/manifest/u);
 	});
 
+	it.each([
+		'https://cdn.example.test/consent.json',
+		'/consent.json',
+		'https://cdn.example.test/manifest.json?revision=1',
+		'https://manifest',
+		'//manifest',
+	])('requires a backend for non-endpoint manifest URL %s', (manifestURL) => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		expect(() => manifest({ fetch: fetchSpy, manifestURL })).toThrow(
+			/backendURL/u
+		);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it.each([everywhereManifest, geoManifest])(
+		'requires a backend for an inline-only manifest',
+		(inlineManifest) => {
+			expect(() => manifest({ manifest: inlineManifest })).toThrow(
+				/backendURL/u
+			);
+		}
+	);
+
+	it('rejects an inferred manifest client before starting a runtime', () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch');
+		expect(() => createConsentClient({ manifest: everywhereManifest })).toThrow(
+			/backendURL/u
+		);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it.each(['', 'https://api.example.test/c15t/'])(
+		'uses the explicit backend %j for CDN manifest geo and saves',
+		async (backendURL) => {
+			const manifestURL = 'https://cdn.example.test/consent.json';
+			const expectedBackend = backendURL.replace(/\/$/u, '');
+			const fetchSpy = vi.fn<typeof fetch>((input) => {
+				const url = String(input);
+				if (url === manifestURL) {
+					return Promise.resolve(new Response(JSON.stringify(geoManifest)));
+				}
+				if (url.endsWith('/init')) {
+					return Promise.resolve(initResponse());
+				}
+				return Promise.resolve(
+					new Response(JSON.stringify({ subjectId: 'sub_browser1' }))
+				);
+			});
+			const client = createConsentClient({
+				mode: manifest({ backendURL, fetch: fetchSpy, manifestURL }),
+			});
+			clients.push(client);
+			client.start();
+			await client.ready();
+			await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
+			expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+				manifestURL,
+				`${expectedBackend}/init`,
+				`${expectedBackend}/subjects`,
+			]);
+		}
+	);
+
+	it('honours an explicit same-origin backend with an inline manifest', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(
+				new Response(JSON.stringify({ subjectId: 'sub_browser1' }))
+			)
+		);
+		const client = createConsentClient({
+			mode: manifest({
+				backendURL: '',
+				fetch: fetchSpy,
+				manifest: everywhereManifest,
+			}),
+		});
+		clients.push(client);
+		client.start();
+		await client.ready();
+		expect(fetchSpy).not.toHaveBeenCalled();
+		await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
+		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+			'/subjects',
+		]);
+	});
+
 	it('resolves an inline manifest with no request at all', async () => {
 		const fetchSpy = vi.fn<typeof fetch>();
 		const client = createConsentClient(
@@ -206,50 +292,39 @@ describe('manifest()', () => {
 		expect(snapshot.location?.countryCode).toBe('FR');
 	});
 
-	it('keeps a root-relative manifest URL on this origin for /init and saves', async () => {
-		const fetchSpy = vi.fn<typeof fetch>((input) =>
-			Promise.resolve(
-				String(input).includes('/init')
-					? initResponse()
-					: new Response(JSON.stringify(geoManifest), {
-							headers: { 'content-type': 'application/json' },
-							status: 200,
-						})
-			)
-		);
-		const client = createConsentClient(
-			{ mode: manifest({ fetch: fetchSpy, manifestURL: '/manifest' }) },
-			{ pkg: 'test' }
-		);
+	it.each([
+		['/manifest', ''],
+		['/consent/manifest/?language=en#policy', '/consent'],
+		['./api/manifest', './api'],
+		[
+			'https://api.example.test/c15t/manifest?revision=1',
+			'https://api.example.test/c15t',
+		],
+	])('derives the API endpoints from %s', async (manifestURL, backendURL) => {
+		const fetchSpy = vi.fn<typeof fetch>((input) => {
+			if (String(input) === manifestURL) {
+				return Promise.resolve(new Response(JSON.stringify(geoManifest)));
+			}
+			if (String(input).endsWith('/init')) {
+				return Promise.resolve(initResponse());
+			}
+			return Promise.resolve(
+				new Response(JSON.stringify({ subjectId: 'sub_browser1' }))
+			);
+		});
+		const client = createConsentClient({
+			mode: manifest({ fetch: fetchSpy, manifestURL }),
+		});
 		clients.push(client);
 		client.start();
-
 		const snapshot = await client.ready();
-
-		// No country and a country-keyed pack: the fallback must reach
-		// `/init` on this origin rather than resolve blind.
-		expect(fetchSpy.mock.calls.map((call) => String(call[0]))).toEqual([
-			'/manifest',
-			'/init',
+		await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
+		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+			manifestURL,
+			`${backendURL}/init`,
+			`${backendURL}/subjects`,
 		]);
 		expect(snapshot.location?.countryCode).toBe('DE');
-	});
-
-	it('refuses to resolve a location-dependent manifest with no backend and no country', async () => {
-		const client = createConsentClient(
-			{ mode: manifest({ manifest: geoManifest }) },
-			{ pkg: 'test' }
-		);
-		clients.push(client);
-		const onError = vi.fn();
-		client.on('error', onError);
-		client.start();
-
-		await vi.waitFor(() => {
-			expect(onError).toHaveBeenCalled();
-		});
-		expect(String(onError.mock.calls[0]?.[0])).toMatch(/depends on location/u);
-		expect(client.getSnapshot().activeUI).toBe('none');
 	});
 
 	it('fetches a manifest URL once and derives the backend from it', async () => {

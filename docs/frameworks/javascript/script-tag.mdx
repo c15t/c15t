@@ -14,7 +14,7 @@ Paste this before `</head>` (Framer: Site Settings → Custom Code; Webflow: Pro
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
   data-backend-url="https://your-instance.c15t.dev"
   defer
 ></script>
@@ -36,7 +36,7 @@ Every attribute is optional.
 | --- | --- |
 | `data-backend-url` | Backend origin. Selects hosted mode. |
 | `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
-| `data-manifest-url` | The backend's `/manifest` URL, for manifest mode. |
+| `data-manifest-url` | URL to fetch a consent manifest. Include `data-backend-url` when this is not the backend's `/manifest` endpoint. |
 | `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the entire policy scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
 | `data-policy-rules` | Comma-separated policy presets for offline mode: `europeOptIn`, `usPrivacyStatesOptOut`, `quebecOptIn`, `worldNone`. Resolved by the visitor's country. |
 | `data-language` | Force a language instead of reading the browser's. |
@@ -71,10 +71,10 @@ For anything the attributes cannot express, queue a `config` call on `window.c15
     },
   }]);
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js" defer></script>
 ```
 
-With `data-manual`, a later `c15t.init()` retains the original tag's attributes. Queued `config` calls override those attributes, and options passed directly to `init()` win over both. Changing or removing the tag after it loads does not change the captured configuration.
+With `data-manual`, a later `c15t.init()` retains the original tag's attributes. Queued `config` calls override those attributes, and options passed directly to `init()` win over both. Changing or removing the tag after it loads does not change the captured configuration. After `dispose()`, a new `init()` reuses the captured attributes and queued defaults, including backend-injected settings. Pass new options to `init()` to override them.
 
 Legal-link URL attributes select their links for both stock surfaces, including IAB. Override the selection with `ui.banner.legalLinks` or `ui.dialog.legalLinks`; `[]` or `null` hides links on that surface. Other banner or dialog options, such as `hideBranding`, preserve the selection.
 
@@ -145,7 +145,7 @@ Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still re
   <button data-c15t-action="reject">Reject</button>
   <button data-c15t-action="accept">Accept</button>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
 <script>
   window.c15t = [['on', 'ui', (surface) => { document.getElementById('banner').hidden = surface !== 'banner'; }]];
 </script>
@@ -209,7 +209,20 @@ Hosted mode asks the backend for `/init` on every fresh visit before the banner 
 </script>
 ```
 
-Or point at the URL with `data-manifest-url` and it is fetched once, honouring the backend's cache headers. When the policy depends on location and the browser does not know the country or region needed by a rule, the client falls back to `/init`, to resolve the missing location. Saves go to the backend either way.
+Or fetch a cached manifest with `data-manifest-url`. When you host the manifest on a separate CDN, also specify the backend that receives consent saves:
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
+  data-manifest-url="https://cdn.example.com/consent-policy.json"
+  data-backend-url="https://your-instance.c15t.dev"
+  defer
+></script>
+```
+
+Only a URL ending in `/manifest` can supply the backend base URL automatically. Other manifest URLs and inline manifests require `backendURL`, or `data-backend-url` on the tag. An explicit `backendURL: ''` uses the page's origin. Missing backend configuration raises an error during initialization. Use offline mode for browser-only persistence.
+
+The client fetches the manifest once, honouring its cache headers. When the policy depends on location and the browser does not know the country or region needed by a rule, the client falls back to the backend's `/init`. Consent saves go to that backend, even when the manifest comes from another CDN.
 
 Only English ships in the bundle; a manifest carries its own translations for the languages the site serves.
 
@@ -244,7 +257,7 @@ Anything the page queues with `c15t.push(['config', ...])` before the tag still 
 Add a second tag and the c15t DevTools panel attaches to the page's client. It shows consents, gated scripts, the resolved policy and every kernel event, and its Location tab changes country, region, language and GPC and re-runs init, so you can watch a geo-keyed policy switch without spoofing headers or a VPN.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
 ```
 
 Tag order does not matter; the panel waits for the client. It is also on `window.c15t.devtools`, so `c15t.devtools.actions.setOverrides({ country: 'US' })` followed by `c15t.devtools.actions.init()` does the same from the console. Leave the tag out of production pages; it shows internal state. Bundler users import `mountDevTools` from `@c15t/browser/devtools`.
@@ -291,7 +304,7 @@ Load `c15t.iab.js` instead of `c15t.js` when your policy requires IAB TCF. This 
     },
   }]];
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.iab.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.iab.js" defer></script>
 <button type="button" data-c15t-action="customize">Privacy settings</button>
 ```
 

@@ -134,4 +134,62 @@ describe('manual initialization', () => {
 		);
 		expect(duplicate.init()).toBe(api.client);
 	});
+
+	it('retains queued defaults after dispose while init overrides stay per-client', () => {
+		testWindow.c15t = [
+			[
+				'config',
+				{
+					backendURL: 'https://queued.c15t.dev',
+					mode: 'hosted',
+					ui: false,
+				},
+			],
+		];
+		const { api, currentScript } = installManual();
+		currentScript.mockReturnValue(null);
+		api.init({ backendURL: 'https://first.c15t.dev' });
+		api.dispose();
+
+		const restored = api.init();
+		expect(restored.options).toMatchObject({
+			backendURL: 'https://queued.c15t.dev',
+			mode: 'hosted',
+			ui: false,
+		});
+		api.dispose();
+
+		const overridden = api.init({ backendURL: 'https://explicit.c15t.dev' });
+		expect(overridden.options).toMatchObject({
+			backendURL: 'https://explicit.c15t.dev',
+			mode: 'hosted',
+			ui: false,
+		});
+	});
+
+	it('keeps the next initialization pending when a ready listener disposes', async () => {
+		const { api, currentScript } = installManual();
+		currentScript.mockReturnValue(null);
+		document.addEventListener('c15t:ready', () => api.dispose(), {
+			once: true,
+		});
+
+		const first = api.init();
+		expect(api.client).toBeNull();
+		expect(first.started).toBe(false);
+		const onNextInit = vi.fn();
+		api.onInit(onNextInit);
+		const onNextReady = vi.fn();
+		const nextReady = api.ready().then(onNextReady);
+		await Promise.resolve();
+
+		expect(onNextInit).not.toHaveBeenCalled();
+		expect(onNextReady).not.toHaveBeenCalled();
+		const second = api.init();
+		await nextReady;
+		expect(second).not.toBe(first);
+		expect(api.client).toBe(second);
+		expect(onNextInit).toHaveBeenCalledExactlyOnceWith(second);
+		expect(onNextReady).toHaveBeenCalledExactlyOnceWith(second.getSnapshot());
+	});
 });

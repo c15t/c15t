@@ -265,8 +265,16 @@ export const createConsentClient = function createConsentClient(
 
 	const ready = createDeferred<ConsentSnapshot>();
 	let readySnapshot: ConsentSnapshot | null = null;
+	let startingRuntime = false;
+	let pendingReadySnapshot: ConsentSnapshot | null = null;
 	const markReady = function markReady(snapshot: ConsentSnapshot): void {
 		if (readySnapshot) {
+			return;
+		}
+		if (startingRuntime) {
+			// A ready listener may dispose the client. Let the runtime finish
+			// registering its own resources before notifying browser listeners.
+			pendingReadySnapshot ??= snapshot;
 			return;
 		}
 		readySnapshot = snapshot;
@@ -542,10 +550,26 @@ export const createConsentClient = function createConsentClient(
 			if (context.onStart && options.enabled !== false) {
 				disposers.push(context.onStart(options));
 			}
-			runtime.start();
+			startingRuntime = true;
+			try {
+				runtime.start();
+			} finally {
+				startingRuntime = false;
+			}
+			const pendingReady = pendingReadySnapshot;
+			pendingReadySnapshot = null;
+			if (pendingReady && !disposed) {
+				markReady(pendingReady);
+			}
+			if (disposed) {
+				return;
+			}
 			// Inert `<script type="text/plain" data-c15t-category>` tags a
 			// returning visitor already consented to run straight away.
 			gatedScripts.scan();
+			if (disposed) {
+				return;
+			}
 			const observer = new MutationObserver(() => gatedScripts.scan());
 			observer.observe(document.documentElement, {
 				childList: true,
@@ -556,6 +580,9 @@ export const createConsentClient = function createConsentClient(
 				// Nothing will ever resolve a policy; do not leave `ready()`
 				// hanging for callers that gate analytics on it.
 				markReady(kernel.getSnapshot());
+				if (disposed) {
+					return;
+				}
 			}
 			document.addEventListener('click', onPageClick);
 			detachPageActions = () => {

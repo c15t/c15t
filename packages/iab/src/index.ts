@@ -612,13 +612,14 @@ export const createIAB = function createIAB(
 				return;
 			}
 			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
-			const scopedConsents = Object.fromEntries(
-				snapshot.policyRule.scope.map((category) => [
-					category,
-					consents[category],
-				])
+			const scope = new Set<string>(snapshot.policyRule.scope);
+			// Refusals must replace old grants even after a category leaves scope.
+			const consentPatch = Object.fromEntries(
+				Object.entries(consents).filter(
+					([category, granted]) => !granted || scope.has(category)
+				)
 			);
-			const pendingSave = kernel.commands.save(scopedConsents, {
+			const pendingSave = kernel.commands.save(consentPatch, {
 				actionAt,
 				iabAuthority: authority,
 			});

@@ -29,8 +29,9 @@ export interface ManifestModeOptions {
 	manifestURL?: string;
 	/**
 	 * Backend origin for `POST /subjects`, and for `GET /init` when the
-	 * policy depends on a location the browser does not know. Derived from
-	 * `manifestURL` when omitted.
+	 * policy depends on a location the browser does not know. Derived only
+	 * from a `manifestURL` ending in `/manifest`. Required for other URLs
+	 * and inline-only manifests. Use `''` for this origin.
 	 */
 	backendURL?: string;
 	/**
@@ -49,7 +50,7 @@ const trimSlash = function trimSlash(url: string): string {
 const deriveBackendURL = function deriveBackendURL(
 	options: ManifestModeOptions
 ): string | undefined {
-	if (options.backendURL) {
+	if (options.backendURL !== undefined) {
 		return trimSlash(options.backendURL);
 	}
 	if (!options.manifestURL) {
@@ -58,9 +59,23 @@ const deriveBackendURL = function deriveBackendURL(
 	const withoutQuery =
 		options.manifestURL.split(/[?#]/u)[0] ?? options.manifestURL;
 	const trimmed = trimSlash(withoutQuery);
-	return trimmed.endsWith('/manifest')
-		? trimmed.slice(0, -'/manifest'.length)
-		: trimmed;
+	if (!trimmed.endsWith('/manifest')) {
+		return undefined;
+	}
+	try {
+		// Parse relative URLs too, without mistaking a host named "manifest"
+		// for the endpoint. The base is only used to inspect the pathname.
+		const parsed = new URL(trimmed, 'https://c15t.invalid');
+		if (
+			!['http:', 'https:'].includes(parsed.protocol) ||
+			!parsed.pathname.endsWith('/manifest')
+		) {
+			return undefined;
+		}
+	} catch {
+		return undefined;
+	}
+	return trimmed.slice(0, -'/manifest'.length);
 };
 
 /**
@@ -137,7 +152,8 @@ const browserBaseTranslations = {
  *
  * @param options - Manifest source and backend.
  * @returns A transport factory for `mode`.
- * @throws {Error} When neither `manifest` nor `manifestURL` is given.
+ * @throws {Error} When neither `manifest` nor `manifestURL` is given,
+ * or a backend cannot be derived and `backendURL` is omitted.
  *
  * @example
  * ```ts
@@ -155,12 +171,14 @@ export const manifest = function manifest(
 		);
 	}
 	const backendURL = deriveBackendURL(options);
+	if (backendURL === undefined) {
+		throw new Error(
+			'@c15t/browser: manifest() needs `backendURL` unless `manifestURL` ends in `/manifest`. Pass the consent API URL, or an empty string for this origin.'
+		);
+	}
 	// `''` is a real answer: a root-relative `manifestURL` such as
-	// `/manifest` means the backend is this origin.
-	const hosted =
-		backendURL === undefined
-			? undefined
-			: createHostedTransport({ backendURL, fetch: options.fetch });
+	// `/manifest` or an explicit empty backend means this origin.
+	const hosted = createHostedTransport({ backendURL, fetch: options.fetch });
 	let cached: Promise<ConsentManifest> | undefined;
 
 	const fetchManifest =
@@ -192,7 +210,7 @@ export const manifest = function manifest(
 	};
 
 	const transport: KernelTransport = {
-		identify: hosted?.identify,
+		identify: hosted.identify,
 		async init(ctx: InitContext): Promise<InitResponse> {
 			const resolved = await loadManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
@@ -204,23 +222,16 @@ export const manifest = function manifest(
 							(pack) => (pack.match.regions?.length ?? 0) > 0
 						)))
 			) {
-				if (hosted?.init) {
-					return hosted.init(ctx);
-				}
-				// Resolving without a country would silently hand a visitor the
-				// wrong policy; the caller has to supply one or a backend.
-				throw new Error(
-					'@c15t/browser: this manifest depends on location. Pass `backendURL` so /init can resolve it, or `overrides.country`.'
-				);
+				return hosted.init(ctx);
 			}
 			const output = resolveInitFromManifest(resolved, inputs, {
 				baseTranslations: browserBaseTranslations,
 			});
 			return mapInitOutputToInitResponse(output, {});
 		},
-		loadSubjectRecord: hosted?.loadSubjectRecord,
-		recordPrivacyOptOut: hosted?.recordPrivacyOptOut,
-		save: hosted?.save,
+		loadSubjectRecord: hosted.loadSubjectRecord,
+		recordPrivacyOptOut: hosted.recordPrivacyOptOut,
+		save: hosted.save,
 	};
 
 	return Object.assign(() => transport, { kind: 'custom' as const });

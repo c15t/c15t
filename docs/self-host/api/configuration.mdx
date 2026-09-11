@@ -28,3 +28,39 @@ remain protocol-agnostic. They can match other schemes on the same host, includi
 custom WebView schemes. Use `capacitor://localhost` when you want to restrict a
 localhost entry to that scheme. Matching is case-insensitive, and an explicit port
 must also match.
+
+## Browser script routes
+
+Disable the script routes when your deployment does not serve browser bundles:
+
+```ts
+createApp(runtime, {
+  script: { enabled: false },
+});
+```
+
+`createApp` enables `/c15t.js`, `/c15t.headless.js`, and `/c15t.iab.js` by default
+so a self-hosted instance can serve a configured script tag without a separate
+bundle deployment. The routes expose the public manifest and browser configuration.
+Keep secrets out of `script.config`.
+
+`@c15t/backend` installs `@c15t/browser` as a runtime dependency, including its
+core, UI, IAB, and DevTools dependencies. Disabling the routes removes the HTTP
+endpoints; it does not remove those packages from the installation. Bundle files
+load when requested. A missing bundle returns `503`.
+
+Pass these options under `script` in the second argument to `createApp`:
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `enabled` | `true` | Register all three script routes. Set to `false` to remove them. |
+| `path` | `/c15t.js` | Path for the ordinary banner and preference UI. |
+| `headlessPath` | `/c15t.headless.js` | Path for the runtime without UI. |
+| `iabPath` | `/c15t.iab.js` | Path for the optional IAB CMP and preference UI. |
+| `backendURL` | Derived from the request URL | Backend base URL embedded in the bundle. Set it explicitly when a proxy rewrites the public path or origin. |
+| `config` | `{}` | Browser defaults embedded in the response. Page-queued configuration overrides these defaults. |
+| `bundles` | Files resolved from `@c15t/browser` | Override filesystem paths by `full`, `headless`, or `iab` key. Requires a runtime with Node filesystem APIs. |
+
+The routes share the `/manifest` cache policy through `manifestCache` and return
+ETags for conditional requests. See the [endpoint reference](/docs/self-host/api/endpoints)
+and [script-tag guide](/docs/frameworks/javascript/script-tag) for usage.

@@ -1064,7 +1064,7 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		parent.append(host);
 	} else {
 		// Light-DOM mount: the sheet goes in <head>, once, and stays for the
-		// life of the document like the old injected stylesheet did.
+		// life of the document so other instances can reuse it.
 		if (!document.getElementById(LIGHT_DOM_STYLE_ID)) {
 			const style = createElement(document, 'style', undefined, devToolsStyles);
 			style.id = LIGHT_DOM_STYLE_ID;
@@ -1081,6 +1081,7 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			unsubscribe();
 			root.remove();
 			host?.remove();
+			// Keep the shared light-DOM stylesheet for other or future instances.
 		},
 		element: root,
 	};

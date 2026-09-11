@@ -157,7 +157,10 @@ export interface ConsentClientOptions {
 	backendURL?: string;
 	/** Inline consent manifest for `manifest` mode. */
 	manifest?: ConsentManifest;
-	/** URL of the backend's `GET /manifest` for `manifest` mode. */
+	/**
+	 * Manifest URL for `manifest` mode. URLs other than the backend's
+	 * `/manifest` endpoint require an explicit `backendURL`.
+	 */
 	manifestURL?: string;
 	/**
 	 * Policy rules for `offline` mode. A preset name such as
