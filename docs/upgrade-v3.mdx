@@ -214,3 +214,17 @@ Custom dialog backdrops follow the same rule. A dialog resolved as non-blocking
 omits both the default backdrop and a supplied `overlay`. To retain a custom
 backdrop when migrating from `trapFocus: false`, set
 `presentation.preferences.blocking: true` and keep your `overlay` prop.
+
+## Next.js RSC banner removal
+
+The `@c15t/nextjs/rsc` entry (`c15t/next/rsc`) and its `RscConsentBanner`,
+`RscBannerGate` and `RscBannerActions` exports are gone. The Server Component
+banner shell was an experiment that measured no gain over `ConsentBanner`:
+equal JavaScript bytes, equal time to a visible banner, slower interaction.
+Imports of that entry now fail to resolve.
+
+Replace `<RscConsentBanner config={config} />` with `<ConsentBanner />` from
+`c15t/next` inside the same `ConsentBoundary`. With an awaited
+`prefetchInitialConsent` result, the banner is already part of the first HTML
+response, which is what the RSC variant was for. Props such as `classNames`
+and `presentation` move to `ConsentBanner` props and `options.presentation`.
