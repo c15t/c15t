@@ -1,0 +1,39 @@
+---
+title: "IAB TCF"
+description: "Shared IAB TCF setup guidance for the React and Next.js adapters."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="prepare">
+Use the IAB integration when your application needs the Transparency and Consent
+Framework. Configure an IAB policy, the correct CMP identity and vendor data for
+your deployment. A demo CMP ID is not a production configuration.
+
+Install `@c15t/iab` alongside your framework adapter, then mount the IAB
+components inside an existing consent provider connected to Inth.
+</section>
+
+<section id="configure">
+Supply the CMP ID from your deployment's IAB configuration. Keep a persistent
+preferences entry point through the surrounding consent provider.
+
+## Resolve the policy before rendering
+
+IAB components remain hidden until an applicable policy resolves. Forcing a
+dialog open does not create a policy or vendor list. Inspect resolution and the
+Global Vendor List response before changing rendering conditions.
+
+IAB presentation follows `presentation.prompt.blocking` and
+`presentation.preferences.blocking`. A blocking dialog needs focus management,
+scroll locking and a backdrop together. See [migration](/docs/upgrade-v3) for
+legacy option behavior.
+
+## Verify vendor and purpose choices
+
+Test category choices alongside vendor, purpose, legitimate-interest and special
+feature controls used by your integration. Confirm the TC String and `__tcfapi`
+reflect the saved state, and verify the vendor's actual requests. A category-only
+banner test does not establish that the IAB flow works.
+</section>
