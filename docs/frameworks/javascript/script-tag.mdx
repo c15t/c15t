@@ -44,10 +44,10 @@ Every attribute is optional.
 | `data-color-scheme` | `light`, `dark`, or `system` (default). |
 | `data-trigger` | Show a floating button that reopens the preference centre. |
 | `data-hide-branding` | Hide the "Secured by c15t" tag. The IAB first-layer banner always keeps its branding visible. |
-| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Legal links the surfaces can render. |
+| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Show the configured legal links in the stock banner and preference centre. |
 | `data-shadow="false"` | Render into the page instead of a shadow root, so your CSS applies. |
 | `data-no-ui` | Run the runtime with no banner. Same as loading `c15t.headless.js`. |
-| `data-manual` | Do not initialise. The page calls `c15t.init()` itself. |
+| `data-manual` | Capture the tag's configuration without initialising. The page calls `c15t.init()` itself after the script loads. |
 
 For anything the attributes cannot express, queue a `config` call on `window.c15t` before the tag. There is only one global: before the script loads it is an array of calls, after it loads it is the API, and the queue is replayed in order. `config` accepts every option of [`init()`](#the-window-api) and wins over the attributes.
 
@@ -63,11 +63,20 @@ For anything the attributes cannot express, queue a `config` call on `window.c15
         category: 'measurement',
       },
     ],
-    ui: { colorScheme: 'dark', trigger: true },
+    ui: {
+      colorScheme: 'dark',
+      trigger: true,
+      banner: { legalLinks: ['privacyPolicy'] },
+      dialog: { legalLinks: ['privacyPolicy'] },
+    },
   }]);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.1.0/dist/c15t.js" defer></script>
 ```
+
+With `data-manual`, a later `c15t.init()` retains the original tag's attributes. Queued `config` calls override those attributes, and options passed directly to `init()` win over both. Changing or removing the tag after it loads does not change the captured configuration.
+
+Legal-link URL attributes select their links for both stock surfaces, including IAB. Override the selection with `ui.banner.legalLinks` or `ui.dialog.legalLinks`; `[]` or `null` hides links on that surface. Other banner or dialog options, such as `hideBranding`, preserve the selection.
 
 ## Gate your own scripts
 
@@ -76,6 +85,8 @@ List scripts under `scripts` for the core loader lifecycle, including cleanup ca
 ```html
 <script type="text/plain" data-c15t-category="marketing" src="https://pixel.example/tag.js"></script>
 ```
+
+External scripts without `async` finish loading before the next permitted non-async script runs, including inline code that uses the library. Explicit `async` scripts load independently. The scanner preserves each script's `nonce` for pages that authorize scripts through Content Security Policy.
 
 An activated inline or external script cannot be undone. Supply cleanup through the `scripts` API when a vendor supports it; otherwise reload after withdrawal. The HTML scanner activates only `type="text/plain"` scripts and also watches newly inserted tags.
 
@@ -217,6 +228,10 @@ createApp(runtime, {
   script: {
     config: {
       legalLinks: { privacyPolicy: { href: 'https://example.com/privacy' } },
+      ui: {
+        banner: { legalLinks: ['privacyPolicy'] },
+        dialog: { legalLinks: ['privacyPolicy'] },
+      },
     },
   },
 });
@@ -322,7 +337,7 @@ These grouped actions belong to the stock UI. The low-level `runtime.iab` setter
 
 ### IAB configuration and styling
 
-Configure link destinations in `legalLinks`, then select which links each layer shows with `ui.banner.legalLinks` and `ui.dialog.legalLinks`, as in the script example above. An omitted or empty selection shows no links. The IAB banner always shows c15t branding, matching React. `ui.dialog.hideBranding` can hide it in the preference centre.
+Configure link destinations in `legalLinks`, then select which links each layer shows with `ui.banner.legalLinks` and `ui.dialog.legalLinks`, as in the script example above. With JavaScript configuration alone, an omitted or empty selection shows no links. URL attributes select their links for both surfaces by default. The IAB banner always shows c15t branding, matching React. `ui.dialog.hideBranding` can hide it in the preference centre.
 
 Use `i18n` for translated copy. The ordinary `ui.banner.title`, `description`, `acceptButtonText`, `rejectButtonText`, and `customizeButtonText` overrides also apply to the IAB banner. A description can include `{partnerCount}`; the purpose summary and legitimate-interest disclosure remain visible below it.
 

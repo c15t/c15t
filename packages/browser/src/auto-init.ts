@@ -2,6 +2,7 @@ import type { AllConsentNames, KernelOverrides, LegalLinks } from '@c15t/core';
 
 import type {
 	ConsentClientOptions,
+	ConsentDialogOptions,
 	ConsentModeName,
 	ConsentUIOptions,
 } from './types';
@@ -128,6 +129,10 @@ export const readScriptOptions = function readScriptOptions(
 		return options;
 	}
 	const ui: ConsentUIOptions = {};
+	const surfaceOptions: ConsentDialogOptions = {};
+	if (legalLinks) {
+		surfaceOptions.legalLinks = Object.keys(legalLinks) as (keyof LegalLinks)[];
+	}
 	const scheme = element.getAttribute('data-color-scheme');
 	if (scheme && SCHEMES.has(scheme)) {
 		ui.colorScheme = scheme as ConsentUIOptions['colorScheme'];
@@ -139,8 +144,11 @@ export const readScriptOptions = function readScriptOptions(
 		ui.trigger = true;
 	}
 	if (readFlag(element, 'data-hide-branding')) {
-		ui.banner = { hideBranding: true };
-		ui.dialog = { hideBranding: true };
+		surfaceOptions.hideBranding = true;
+	}
+	if (Object.keys(surfaceOptions).length > 0) {
+		ui.banner = { ...surfaceOptions };
+		ui.dialog = { ...surfaceOptions };
 	}
 	if (Object.keys(ui).length > 0) {
 		options.ui = ui;
@@ -158,13 +166,21 @@ const mergeUI = function mergeUI(
 	if (!(base && override)) {
 		return override ?? base;
 	}
-	return { ...base, ...override };
+	const merged = { ...base, ...override };
+	if (typeof base.banner === 'object' && typeof override.banner === 'object') {
+		merged.banner = { ...base.banner, ...override.banner };
+	}
+	if (typeof base.dialog === 'object' && typeof override.dialog === 'object') {
+		merged.dialog = { ...base.dialog, ...override.dialog };
+	}
+	return merged;
 };
 
 /**
- * Layer one options object over another. `ui` merges rather than
- * replaces, so `data-color-scheme` on the tag survives a queued
- * `config` that only turns the trigger on.
+ * Layer one options object over another. `ui` and its banner/dialog
+ * option objects merge, so a queued `config` can change the branding
+ * without discarding the script tag's legal links. Booleans replace
+ * the corresponding UI or surface configuration.
  *
  * @param base - The options underneath.
  * @param override - The options on top.

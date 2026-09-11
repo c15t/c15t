@@ -59,18 +59,52 @@ describe('readScriptOptions', () => {
 			overrides: { country: 'DE' },
 			policyRules: ['europeOptIn', 'worldNone'],
 			ui: {
-				banner: { hideBranding: true },
+				banner: { hideBranding: true, legalLinks: ['privacyPolicy'] },
 				colorScheme: 'dark',
-				dialog: { hideBranding: true },
+				dialog: { hideBranding: true, legalLinks: ['privacyPolicy'] },
 				trigger: true,
 			},
 		});
 	});
 
 	it('turns the UI off with data-no-ui', () => {
-		expect(readScriptOptions(scriptWith({ 'data-no-ui': '' }))).toEqual({
+		expect(
+			readScriptOptions(
+				scriptWith({
+					'data-no-ui': '',
+					'data-privacy-policy-url': '/privacy',
+				})
+			)
+		).toEqual({
+			legalLinks: { privacyPolicy: { href: '/privacy' } },
 			ui: false,
 		});
+	});
+
+	it.each([
+		['data-privacy-policy-url', 'privacyPolicy'],
+		['data-cookie-policy-url', 'cookiePolicy'],
+		['data-terms-url', 'termsOfService'],
+	])('selects %s in both surfaces', (attribute, key) => {
+		expect(readScriptOptions(scriptWith({ [attribute]: '/legal' }))).toEqual({
+			legalLinks: { [key]: { href: '/legal' } },
+			ui: {
+				banner: { legalLinks: [key] },
+				dialog: { legalLinks: [key] },
+			},
+		});
+	});
+
+	it('ignores empty legal-link URLs', () => {
+		expect(
+			readScriptOptions(
+				scriptWith({
+					'data-cookie-policy-url': '',
+					'data-privacy-policy-url': '',
+					'data-terms-url': '',
+				})
+			)
+		).toEqual({});
 	});
 
 	it('ignores unknown modes and schemes', () => {
@@ -112,6 +146,65 @@ describe('readPageOptions', () => {
 			true
 		);
 		expect(readPageOptions(null).manual).toBe(false);
+	});
+
+	it('keeps attribute legal links when queued config changes branding', () => {
+		const { options } = readPageOptions(
+			scriptWith({ 'data-privacy-policy-url': '/privacy' }),
+			[
+				{
+					ui: {
+						banner: { hideBranding: true },
+						dialog: { hideBranding: true },
+					},
+				},
+			]
+		);
+
+		expect(options.ui).toEqual({
+			banner: { hideBranding: true, legalLinks: ['privacyPolicy'] },
+			dialog: { hideBranding: true, legalLinks: ['privacyPolicy'] },
+		});
+	});
+
+	it.each([null, []])(
+		'preserves explicit legal-link suppression with %j',
+		(legalLinks) => {
+			const { options } = readPageOptions(
+				scriptWith({ 'data-privacy-policy-url': '/privacy' }),
+				[
+					{ ui: { banner: { legalLinks }, dialog: { legalLinks } } },
+					{
+						ui: {
+							banner: { hideBranding: true },
+							dialog: { hideBranding: true },
+						},
+					},
+				]
+			);
+
+			expect(options.ui).toEqual({
+				banner: { hideBranding: true, legalLinks },
+				dialog: { hideBranding: true, legalLinks },
+			});
+		}
+	);
+
+	it.each([false, true])(
+		'lets surface booleans replace attribute defaults with %s',
+		(enabled) => {
+			const { options } = readPageOptions(
+				scriptWith({ 'data-privacy-policy-url': '/privacy' }),
+				[{ ui: { banner: enabled, dialog: enabled } }]
+			);
+
+			expect(options.ui).toEqual({ banner: enabled, dialog: enabled });
+		}
+	);
+
+	it('does not select links supplied only through programmatic config', () => {
+		const config = { legalLinks: { privacyPolicy: { href: '/privacy' } } };
+		expect(readPageOptions(null, [config]).options).toEqual(config);
 	});
 });
 

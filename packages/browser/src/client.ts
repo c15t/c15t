@@ -17,7 +17,7 @@ import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
 
 import { createDeferred } from './deferred';
-import { activateGatedScripts } from './gated-scripts';
+import { createGatedScriptActivator } from './gated-scripts';
 import { manifest } from './transports/manifest';
 import { offline } from './transports/offline';
 import type {
@@ -241,6 +241,7 @@ export const createConsentClient = function createConsentClient(
 		windowDebug: false,
 	});
 	const { kernel } = runtime;
+	const gatedScripts = createGatedScriptActivator(() => kernel.getSnapshot());
 
 	const listeners: {
 		[EventName in keyof ConsentClientEventMap]: Set<
@@ -283,6 +284,7 @@ export const createConsentClient = function createConsentClient(
 	let lastConsents = initial.effectivePermissions;
 	let lastHasConsented = initial.explicitChoice;
 	const disposers: (() => void)[] = [
+		gatedScripts.dispose,
 		kernel.events.on('init:applied', ({ snapshot }) => {
 			markReady(snapshot);
 		}),
@@ -299,7 +301,7 @@ export const createConsentClient = function createConsentClient(
 				lastConsents = snapshot.effectivePermissions;
 				lastHasConsented = snapshot.explicitChoice;
 				if (started) {
-					activateGatedScripts(snapshot);
+					gatedScripts.scan();
 				}
 				emit('consent', snapshot);
 			}
@@ -543,10 +545,8 @@ export const createConsentClient = function createConsentClient(
 			runtime.start();
 			// Inert `<script type="text/plain" data-c15t-category>` tags a
 			// returning visitor already consented to run straight away.
-			activateGatedScripts(kernel.getSnapshot());
-			const observer = new MutationObserver(() =>
-				activateGatedScripts(kernel.getSnapshot())
-			);
+			gatedScripts.scan();
+			const observer = new MutationObserver(() => gatedScripts.scan());
 			observer.observe(document.documentElement, {
 				childList: true,
 				subtree: true,

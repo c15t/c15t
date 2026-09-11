@@ -8,7 +8,11 @@ import type {
 } from '@c15t/core';
 import type { DevToolsInstance } from '@c15t/dev-tools';
 
-import { readPageOptions } from './auto-init';
+import {
+	mergeClientOptions,
+	readPageOptions,
+	readScriptOptions,
+} from './auto-init';
 import { createConsentClient } from './client';
 import type { CreateConsentClientContext } from './client';
 import { createDeferred } from './deferred';
@@ -167,6 +171,11 @@ export const installGlobal = function installGlobal(
 export const createGlobal = function createGlobal(
 	context: CreateConsentClientContext
 ): C15tGlobal {
+	// `currentScript` points at this bundle only while it is executing.
+	// Manual init may run in another script or an event callback later.
+	const scriptOptions = readScriptOptions(
+		typeof document === 'undefined' ? null : document.currentScript
+	);
 	let client: ConsentClient | null = null;
 	// Replaced on dispose, so `ready()` and `on()` after a re-init wait for
 	// the new client instead of answering from the disposed one.
@@ -219,10 +228,8 @@ export const createGlobal = function createGlobal(
 			if (client) {
 				return client;
 			}
-			const resolved = readPageOptions(
-				typeof document === 'undefined' ? null : document.currentScript,
-				options ? [...queuedConfig, options] : queuedConfig
-			).options;
+			const configs = options ? [...queuedConfig, options] : queuedConfig;
+			const resolved = configs.reduce(mergeClientOptions, scriptOptions);
 			const created = createConsentClient(resolved, context);
 			client = created;
 			created.start();

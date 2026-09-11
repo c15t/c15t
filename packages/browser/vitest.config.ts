@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +11,32 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
+		plugins: [
+			{
+				configureServer(server) {
+					server.middlewares.use((request, response, next) => {
+						if (request.url !== '/__c15t-test__/gated-script-csp') {
+							next();
+							return;
+						}
+						response.setHeader('Content-Type', 'text/html');
+						response.setHeader(
+							'Content-Security-Policy',
+							"script-src 'nonce-c15t-test-nonce'"
+						);
+						response.end(
+							readFileSync(
+								resolve(
+									__dirname,
+									'src/__tests__/fixtures/gated-scripts-csp.html'
+								)
+							)
+						);
+					});
+				},
+				name: 'gated-script-csp-fixture',
+			},
+		],
 		resolve: {
 			alias: [{ find: '~', replacement: resolve(__dirname, './src') }],
 		},
