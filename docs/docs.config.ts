@@ -94,7 +94,13 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['optimization', 'script-loader', 'troubleshooting'],
+							pages: [
+								'optimization',
+								'script-loader',
+								'geography-headers',
+								'content-security-policy',
+								'troubleshooting',
+							],
 							title: 'Integration',
 						},
 						{

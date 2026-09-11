@@ -42,4 +42,18 @@ Check the Next.js server and browser requests after following the
    including submissions. Direct requests to the backend are expected when you
    have not configured a rewrite.
 
+## Why is the visitor's location unknown on the server?
+
+`prefetchInitialConsent` and the local init handler read the visitor's country
+and region from hosting platform headers such as `cf-ipcountry` and
+`x-vercel-ip-country`; c15t never derives location from an IP address itself.
+Some platforms expose those headers to Next.js middleware or proxy but strip
+them before Server Components and Route Handlers run, so every visitor falls
+back to your unknown-location rule. Confirm it by logging
+`(await headers()).get('x-vercel-ip-country')`, or your host's equivalent, in a
+Server Component. If the header is missing there, add `c15tProxy` as described in
+[Forward geography headers](/docs/frameworks/next/geography-headers); it
+forwards the resolved values as `x-c15t-country` and `x-c15t-region`, which take
+precedence everywhere c15t reads location.
+
 <include src="../../guides/troubleshooting.mdx" />
