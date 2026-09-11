@@ -26,7 +26,8 @@ them, c15t uses your unknown-location rule. Check the supported
 before deploying.
 
 The default layout awaits consent on the server inside a `Suspense` boundary,
-so the first HTML response already contains the resolved banner. You can also
+so the server renders the resolved banner into the response instead of
+deciding in the browser. You can also
 [stream the page while consent resolves](#stream-the-page-while-consent-resolves)
 or initialize in the browser. Awaiting has a cost; see
 [what server prefetch costs](#what-server-prefetch-costs) before deploying.
@@ -118,11 +119,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 ```
 
-With this layout, the resolved banner is part of the first HTML response, and
-the prompt does not appear late or change after hydration. A returning visitor
-whose stored choices arrive in the request cookie sees no banner. Location rules
-apply at first paint when your host supplies trusted geography headers. The
-[runnable Next.js example](/docs/examples) uses this awaited form.
+With this layout, the server renders the consent subtree only after policy has
+resolved, so the banner arrives already decided and does not change after
+hydration. Because the boundary uses `fallback={null}`, Next.js may stream the
+shell first and the consent subtree a moment later in the same response. A
+returning visitor whose stored choices arrive in the request cookie sees no
+banner. Location rules apply when your host supplies trusted geography
+headers. The [runnable Next.js example](/docs/examples) uses this awaited form.
+
+If the manifest request fails, `prefetchInitialConsent` returns a baseline
+config without a resolved policy and logs the failure outside production. The
+page still renders, and the browser resolves policy after hydration, so on that
+request a new visitor sees the prompt appear late. Pass `onError` to report
+these failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
 
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without
@@ -145,8 +154,11 @@ first byte. A build-time manifest seed to remove this cold start is planned in
 
 With a warm manifest cache in the same local benchmark (awaited SSR, new
 visitors, 150 ms simulated backend latency), time to first byte was 7.4 ms
-median and 15.2 ms at p95 across 10 samples, with the banner painted at 28 ms
-and present in the first HTML. See the
+median and 15.2 ms at p95 across 10 samples, and the banner markup was present
+in the first HTML. The benchmark layout awaits the helper without a `Suspense`
+boundary, so it does not measure the streaming behavior of the recipe on this
+page, and its 28 ms banner metric is a post-hydration visibility probe, not
+first paint. See the
 [benchmark results](https://github.com/c15t/c15t/tree/ccfe906682ba06cef7b56a16cc8fd10728df77d3/benchmarks/reports/next-manifest-2026-09-10)
 for conditions.
 
@@ -214,9 +226,28 @@ settings. If resolution fails, use
 
 ## Initialize in the browser
 
-Keep the shared config and manifest route, remove the prefetch import and the
-`ResolvedConsent` component, and pass `config={{}}` to the `Consent` wrapper. The browser loads the manifest and
-resolves policy locally. Without supplied location, geography is unknown.
+Keep the shared config and manifest route. Remove the `prefetchInitialConsent`
+and `Suspense` imports and the `ResolvedConsent` component, and render the
+wrapper directly with an empty config:
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import { Consent } from '../components/consent';
+import 'c15t/next/styles.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Consent config={{}}>{children}</Consent>
+      </body>
+    </html>
+  );
+}
+```
+
+The browser loads the manifest and resolves policy locally, so the initial
+HTML has no resolved prompt. Without supplied location, geography is unknown.
 For browser initialization with request geography, see the
 [optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
 
