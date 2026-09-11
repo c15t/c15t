@@ -7,29 +7,29 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="read-state">
-Call hooks inside the consent provider. `useConsent` reads effective permission,
-which can be true under an opt-out policy without a recorded grant.
+  Call hooks inside the consent provider. `useConsent` reads effective permission,
+  which can be true under an opt-out policy without a recorded grant.
 
-| Need | Hook |
-| --- | --- |
-| One category's current permission | `useConsent(category)` |
-| All current permissions | `useConsents()` |
-| Recorded per-category choices | `useExplicitChoice()` |
-| Whether a prompt is required | `usePromptRequirement()` |
-| Active policy and resolution | `usePolicyRule()`, `usePolicyResolution()` |
-| Save an explicit choice | `useSaveConsents()` |
-| Open or close a consent surface | `useSetActiveUI()` |
-| Acknowledge a notice | `useDismissNotice()` |
+  | Need | Hook |
+  | --- | --- |
+  | One category's current permission | `useConsent(category)` |
+  | All current permissions | `useConsents()` |
+  | Recorded per-category choices | `useExplicitChoice()` |
+  | Whether a prompt is required | `usePromptRequirement()` |
+  | Active policy and resolution | `usePolicyRule()`, `usePolicyResolution()` |
+  | Save an explicit choice | `useSaveConsents()` |
+  | Open or close a consent surface | `useSetActiveUI()` |
+  | Acknowledge a notice | `useDismissNotice()` |
 </section>
 
 <section id="save-guidance">
-This is an isolated action example, not a complete policy-aware banner. Use the
-stock UI or headless surface actions for a complete prompt. Do not call save on
-mount to persist a state derived from permissions.
+  This is an isolated action example, not a complete policy-aware banner. Use the
+  stock UI or headless surface actions for a complete prompt. Do not call save on
+  mount to persist a state derived from permissions.
 
-`useConsentManager` remains available for the combined UI API, including draft
-management. Prefer focused hooks for simple feature gates and use the headless
-UI hook when implementing a complete custom prompt. Read
-[consent state](/docs/guides/consent-state) before treating a callback as evidence
-of a choice.
+  `useConsentManager` remains available for the combined UI API, including draft
+  management. Prefer focused hooks for simple feature gates and use the headless
+  UI hook when implementing a complete custom prompt. Read
+  [consent state](/docs/guides/consent-state) before treating a callback as evidence
+  of a choice.
 </section>

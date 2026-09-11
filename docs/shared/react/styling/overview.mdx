@@ -7,144 +7,144 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="tailwind-layers">
-Every rule lives in `@layer components`, so unlayered utilities from Tailwind
-v4 and atomic classes from StyleX override it without specificity tricks.
-Tailwind v3 treats `@layer components` as its own directive, so import the
-Tailwind 3 build from your Tailwind entry instead, between the `components`
-and `utilities` directives:
+  Every rule lives in `@layer components`, so unlayered utilities from Tailwind
+  v4 and atomic classes from StyleX override it without specificity tricks.
+  Tailwind v3 treats `@layer components` as its own directive, so import the
+  Tailwind 3 build from your Tailwind entry instead, between the `components`
+  and `utilities` directives:
 </section>
 
 <section id="tokens-intro">
-Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
-properties. Set them on the provider through `theme`, or override the
-variables directly in your CSS.
+  Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
+  properties. Set them on the provider through `theme`, or override the
+  variables directly in your CSS.
 </section>
 
 <section id="token-roles">
-`consentActions` decides how each action role looks: `default` applies to
-every button, `primary` to whichever actions the policy or your props mark
-primary, and `accept`, `reject`, `customize`, and `dismiss` to one role each.
-Per-action keys win over `primary`, which wins over `default`.
+  `consentActions` decides how each action role looks: `default` applies to
+  every button, `primary` to whichever actions the policy or your props mark
+  primary, and `accept`, `reject`, `customize`, and `dismiss` to one role each.
+  Per-action keys win over `primary`, which wins over `default`.
 
-Banner sizing has its own variables. Override them in CSS when a variant
-needs a different footprint:
+  Banner sizing has its own variables. Override them in CSS when a variant
+  needs a different footprint:
 
-| Variable | Default | Applies to |
-| --- | --- | --- |
-| `--consent-banner-max-width` | `440px` | `floating` cards |
-| `--consent-banner-widget-max-width` | `20rem` | `widget` chips |
-| `--consent-banner-wall-max-width` | `30rem` | `wall` cards |
+  | Variable | Default | Applies to |
+  | --- | --- | --- |
+  | `--consent-banner-max-width` | `440px` | `floating` cards |
+  | `--consent-banner-widget-max-width` | `20rem` | `widget` chips |
+  | `--consent-banner-wall-max-width` | `30rem` | `wall` cards |
 
-## Colors by consent model
+  ## Colors by consent model
 
-The primary action can change while the brand color stays the same. Set
-`consentActions.primary` once, then select `primaryButton` per policy as
-shown in [ConsentBanner](../components/consent-banner#per-policy-buttons).
+  The primary action can change while the brand color stays the same. Set
+  `consentActions.primary` once, then select `primaryButton` per policy as
+  shown in [ConsentBanner](../components/consent-banner#per-policy-buttons).
 
-To give opt-in and opt-out banners different colors, scope the tokens to
-the root's attributes. Include hover and foreground colors when overriding
-CSS tokens directly:
+  To give opt-in and opt-out banners different colors, scope the tokens to
+  the root's attributes. Include hover and foreground colors when overriding
+  CSS tokens directly:
 
-```css
-[data-prompt][data-model='opt-in'] {
-	--c15t-primary: #2f6f4e;
-	--c15t-primary-hover: #24563c;
-	--c15t-text-on-primary: #fff;
-}
+  ```css
+  [data-prompt][data-model='opt-in'] {
+  	--c15t-primary: #2f6f4e;
+  	--c15t-primary-hover: #24563c;
+  	--c15t-text-on-primary: #fff;
+  }
 
-[data-prompt][data-model='opt-out'] {
-	--c15t-primary: #6b3fa0;
-	--c15t-primary-hover: #55327f;
-	--c15t-text-on-primary: #fff;
-}
-```
+  [data-prompt][data-model='opt-out'] {
+  	--c15t-primary: #6b3fa0;
+  	--c15t-primary-hover: #55327f;
+  	--c15t-text-on-primary: #fff;
+  }
+  ```
 
-These colors apply to the action marked primary. Button layout and color
-changes do not change the policy or expire a saved choice.
+  These colors apply to the action marked primary. Button layout and color
+  changes do not change the policy or expire a saved choice.
 
-## Slots
+  ## Slots
 
-Each component part is a slot. A slot accepts any attributes the element
-takes, so the contract is the same whether you write class strings or pass an
-object with `className` and `style`. Set slots on the provider under
-`components`, keyed by component and part.
+  Each component part is a slot. A slot accepts any attributes the element
+  takes, so the contract is the same whether you write class strings or pass an
+  object with `className` and `style`. Set slots on the provider under
+  `components`, keyed by component and part.
 </section>
 
 <section id="slot-recipes">
-The root also carries `data-variant`, so you can restyle one shape without
-touching the others. Tailwind, giving a `bar` a brand-colored top edge and
-tighter text:
+  The root also carries `data-variant`, so you can restyle one shape without
+  touching the others. Tailwind, giving a `bar` a brand-colored top edge and
+  tighter text:
 
-```tsx
-<ConsentProvider
-	options={{
-		mode,
-		presentation: { prompt: { variant: 'bar' } },
-		components: {
-			banner: {
-				root: { className: 'group' },
-				card: {
-					className:
-						'group-data-[variant=bar]:border-t-4 group-data-[variant=bar]:border-t-emerald-600',
-				},
-			},
-			description: {
-				banner: { className: 'group-data-[variant=bar]:text-xs' },
-			},
-		},
-	}}
-/>
-```
+  ```tsx
+  <ConsentProvider
+  	options={{
+  		mode,
+  		presentation: { prompt: { variant: 'bar' } },
+  		components: {
+  			banner: {
+  				root: { className: 'group' },
+  				card: {
+  					className:
+  						'group-data-[variant=bar]:border-t-4 group-data-[variant=bar]:border-t-emerald-600',
+  				},
+  			},
+  			description: {
+  				banner: { className: 'group-data-[variant=bar]:text-xs' },
+  			},
+  		},
+  	}}
+  />
+  ```
 
-`data-variant` sits on the root, so child slots use Tailwind's `group`
-prefix to read it.
+  `data-variant` sits on the root, so child slots use Tailwind's `group`
+  prefix to read it.
 
-StyleX, spreading the result of `stylex.props()` into a slot:
+  StyleX, spreading the result of `stylex.props()` into a slot:
 
-```tsx
-import * as stylex from '@stylexjs/stylex';
+  ```tsx
+  import * as stylex from '@stylexjs/stylex';
 
-const styles = stylex.create({
-	card: { borderRadius: 0, boxShadow: 'none' },
-	rightLink: { textUnderlineOffset: 4, color: 'rgb(185 28 28)' },
-});
+  const styles = stylex.create({
+  	card: { borderRadius: 0, boxShadow: 'none' },
+  	rightLink: { textUnderlineOffset: 4, color: 'rgb(185 28 28)' },
+  });
 
-<ConsentProvider
-	options={{
-		mode,
-		components: {
-			banner: {
-				card: stylex.props(styles.card),
-				rightLink: stylex.props(styles.rightLink),
-			},
-		},
-	}}
-/>;
-```
+  <ConsentProvider
+  	options={{
+  		mode,
+  		components: {
+  			banner: {
+  				card: stylex.props(styles.card),
+  				rightLink: stylex.props(styles.rightLink),
+  			},
+  		},
+  	}}
+  />;
+  ```
 
-Set `noStyle` on a component to drop the built-in classes from every part and
-keep only what your slots pass. Set `noStyle` in the provider options to do it
-for every component.
+  Set `noStyle` on a component to drop the built-in classes from every part and
+  keep only what your slots pass. Set `noStyle` in the provider options to do it
+  for every component.
 
-Banner slot keys under `components.banner`:
+  Banner slot keys under `components.banner`:
 
-| Key | Element |
-| --- | --- |
-| `root` | Fixed-position wrapper carrying `data-prompt`, `data-model`, `data-variant`, `data-position`, and `data-blocking` |
-| `cardShell` | Sizes the card and holds the branding tag |
-| `card` | The visible card, carrying `data-state` |
-| `header` | Title and description container |
-| `title` | Heading |
-| `footer` | Action area |
-| `actions` | Group of action groups |
-| `actionGroup` | One group of equally prominent actions |
-| `rights` | Group of right links, rendered before the actions |
-| `rightLink` | One right link, carrying `data-action="right"` and `data-right` |
-| `overlay` | Backdrop shown when the banner blocks the page |
+  | Key | Element |
+  | --- | --- |
+  | `root` | Fixed-position wrapper carrying `data-prompt`, `data-model`, `data-variant`, `data-position`, and `data-blocking` |
+  | `cardShell` | Sizes the card and holds the branding tag |
+  | `card` | The visible card, carrying `data-state` |
+  | `header` | Title and description container |
+  | `title` | Heading |
+  | `footer` | Action area |
+  | `actions` | Group of action groups |
+  | `actionGroup` | One group of equally prominent actions |
+  | `rights` | Group of right links, rendered before the actions |
+  | `rightLink` | One right link, carrying `data-action="right"` and `data-right` |
+  | `overlay` | Backdrop shown when the banner blocks the page |
 
-Action buttons carry `data-action` and `data-variant`, and right links carry
-`data-action="right"`, so a single rule such as `[data-action='dismiss']` or
-`[data-action='right']` styles one role across every surface. Right links are
-underlined text by default, so the only button on a notice is the primary
-action.
+  Action buttons carry `data-action` and `data-variant`, and right links carry
+  `data-action="right"`, so a single rule such as `[data-action='dismiss']` or
+  `[data-action='right']` styles one role across every surface. Right links are
+  underlined text by default, so the only button on a notice is the primary
+  action.
 </section>
