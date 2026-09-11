@@ -37,8 +37,11 @@ pnpm dev
 ```
 
 Without `NEXT_PUBLIC_C15T_BACKEND_URL` the app runs in offline mode: bundled
-policy, browser storage, no consent records. Set the variable to an Inth or
-self-hosted endpoint to use the hosted path from the guide.
+policy, browser storage, no consent records. That fallback exists so the
+example runs without an account; it is not for production, where a missing
+variable would silently stop consent records from being written.
+`c15t.config.ts` logs a warning when the variable is absent. Set it to an Inth
+or self-hosted endpoint in every deployed environment.
 
 ## Unreleased packages
 
@@ -51,9 +54,14 @@ for p in c15t core dev-tools iab nextjs react schema scripts tanstack-start tran
 done
 ```
 
-Then point `c15t` and `@c15t/scripts` at the tarballs in `package.json` and add
-a `pnpm.overrides` entry for every `@c15t/*` package so nothing resolves from
-npm.
+Then point `c15t` and `@c15t/scripts` at the tarballs in `package.json`, add a
+`pnpm.overrides` entry for every `@c15t/*` package so nothing resolves from
+npm, and install and start again:
+
+```bash
+pnpm install
+pnpm dev
+```
 
 ## What the walkthrough found
 

@@ -31,7 +31,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
 	description:
-		'A Next.js 16.3 music player demonstrating Instant Navigations with Cache Components, App Shells, and Partial Prefetching.',
+		'A Next.js 16.3 music player demonstrating Instant Navigations with ' +
+		'Cache Components, App Shells, and Partial Prefetching.',
 	title: {
 		default: 'NextBeats',
 		template: '%s · NextBeats',
@@ -58,14 +59,24 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
 		className={`${GeistSans.variable} ${GeistMono.variable}`}
 		suppressHydrationWarning
 	>
-		<body className="bg-surface dark:bg-surface-dark flex h-[100dvh] flex-col text-black antialiased dark:text-white">
+		<body
+			className={[
+				'bg-surface dark:bg-surface-dark flex h-[100dvh] flex-col',
+				'text-black antialiased dark:text-white',
+			].join(' ')}
+		>
 			<ThemeProvider>
 				<BoundaryProvider>
 					<Suspense fallback={null}>
 						<ResolvedConsent>
 							<OfflineIndicator />
 							{children}
-							<div className="demo-toggles fixed top-3 right-3 z-50 hidden items-end gap-2 sm:flex">
+							<div
+								className={[
+									'demo-toggles fixed top-3 right-3 z-50 hidden',
+									'items-end gap-2 sm:flex',
+								].join(' ')}
+							>
 								<Suspense>
 									<DemoToolbar />
 								</Suspense>

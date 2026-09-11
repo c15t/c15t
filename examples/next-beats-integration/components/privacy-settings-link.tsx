@@ -8,7 +8,11 @@ import { ShieldCheck } from 'lucide-react';
 export const PrivacySettingsLink = () => (
 	<ConsentDialogLink
 		aria-label="Privacy settings"
-		className="text-gray inline-flex items-center gap-2 rounded-md p-1.5 text-xs font-medium tracking-wide transition-colors hover:text-black dark:hover:text-white"
+		className={[
+			'text-gray inline-flex items-center gap-2 rounded-md p-1.5 text-xs',
+			'font-medium tracking-wide transition-colors',
+			'hover:text-black dark:hover:text-white',
+		].join(' ')}
 	>
 		<ShieldCheck className="size-4" />
 		<span className="hidden lg:inline">Privacy settings</span>
