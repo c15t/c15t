@@ -34,9 +34,10 @@ group: reference
   stylesheet or a `::after` label can adapt the wording by region.
 
   Without a resolved policy rule the link renders nothing and appears as soon
-  as a rule resolves, without a remount. A rule with `model: 'none'` owes no
-  rights, so the link hides under it unless the rule lists
-  `rights: ['preferences']`.
+  as a rule resolves, without a remount. A rule with `model: 'none'` and an
+  empty `rights` list owes no consent UI, so the link hides under it; a `none`
+  rule that lists any right, such as `['disclosure']`, shows the link and the
+  dialog opens as a settings route.
 
   Mount exactly one `ConsentDialog` inside the same provider. If none is
   mounted, the click still switches the active surface: nothing opens, and a

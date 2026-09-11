@@ -39,7 +39,7 @@ export function Consent({
     <ConsentBoundary config={config} consent={consentConfig}>
       {children}
       <ConsentBanner />
-      <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
+      <ConsentDialog hideBranding />
       <footer>
         <ConsentDialogLink>Privacy settings</ConsentDialogLink>
       </footer>
@@ -51,8 +51,10 @@ export function Consent({
 The root layout renders `Consent` with the `config` from
 `prefetchInitialConsent`, as in the router guides. The dialog itself renders
 nothing on the server: it mounts through a portal after hydration, so the
-server HTML and the streamed shell are unaffected by it, and the banner in
-the first HTML is what a new visitor sees.
+server HTML and the streamed shell are unaffected by it. On routes that await
+`prefetchInitialConsent`, the server-rendered banner is what a new visitor
+sees first; on Pages Router pages without `getServerSideProps`, the banner
+appears after the browser resolves policy.
 
 To open it from another Client Component inside the boundary, set the active
 surface:

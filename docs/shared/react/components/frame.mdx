@@ -51,8 +51,8 @@ group: reference
   "This content is unavailable under your region's consent policy.", without
   the button, and a stored grant for that category stays blocked.
 
-  When the provider starts from a server-prefetched snapshot, as in the Next.js
-  awaited layout, the server renders either the children or the placeholder
+  When the provider starts from a snapshot prefetched on the server, the
+  server renders either the children or the placeholder
   and hydration keeps that markup; a visitor whose grant arrives in the request
   cookie gets the embed in the server HTML. In a browser-only setup the
   provider has no permission until it resolves policy on the client, so
@@ -107,8 +107,10 @@ group: reference
   ## Verify
 
   Load the page with the category denied. The placeholder text names the
-  category, the network panel shows no request to the embed's host, and the
-  server HTML already contains the placeholder. Activate the placeholder
+  category and the network panel shows no request to the embed's host. When
+  the provider is server-rendered from a prefetched snapshot, the server HTML
+  already contains the placeholder; a browser-only setup renders it after
+  policy resolves. Activate the placeholder
   button: the preference center opens. Turn the category on and Save: the
   placeholder is replaced by the embed and its requests start. Reject the
   category again from the preference center: the embed disappears.

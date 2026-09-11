@@ -1,6 +1,6 @@
 ---
 title: Frame
-description: Consent-gate an iframe in Next.js with Frame inside ConsentBoundary, so the first HTML holds the placeholder or the embed and hydrates without a flash.
+description: Consent-gate an iframe in Next.js with Frame inside ConsentBoundary; with server prefetch the placeholder or embed is decided in the server HTML.
 group: frameworks
 ---
 
@@ -42,9 +42,11 @@ placeholder names it using the category title from your translations. Set
 does not shift when the placeholder is replaced.
 
 With the awaited `prefetchInitialConsent` from the App Router guide, the
-server decides between placeholder and embed from the request cookie, so a
-returning visitor who allowed `marketing` gets the iframe in the first HTML
-and a new visitor gets the placeholder, with no swap after hydration.
+server decides between placeholder and embed from the resolved rule and the
+request cookie, with no swap after hydration. Under an opt-in rule a new
+visitor gets the placeholder and a returning visitor who allowed `marketing`
+gets the iframe; under an opt-out rule a new visitor already has effective
+permission, so the iframe renders until they opt out.
 
 <import src="../../../shared/react/components/frame.mdx#props" />
 

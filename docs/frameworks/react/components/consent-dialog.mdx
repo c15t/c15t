@@ -32,7 +32,7 @@ export function Consent({ children }: { children: ReactNode }) {
     <ConsentProvider options={{ mode }}>
       {children}
       <ConsentBanner />
-      <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
+      <ConsentDialog hideBranding />
       <footer>
         <ConsentDialogLink>Privacy settings</ConsentDialogLink>
       </footer>

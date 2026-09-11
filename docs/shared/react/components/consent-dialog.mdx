@@ -14,7 +14,7 @@ group: reference
   | `open` | `boolean` | follows the active surface | Controls the open state. When set, Escape and the dialog's own Save, Accept all and Reject all buttons no longer close it; change the prop instead. A missing policy or an unlisted model still keeps it closed. |
   | `showTrigger` | `boolean \| ConsentDialogTriggerProps` | `false` | Renders a floating `ConsentDialogTrigger` next to the dialog. Pass an object to configure that trigger. |
   | `models` | `Model[]` | `['opt-in', 'opt-out', 'none']` | Policy models the dialog responds to. Under a model that is not listed, such as `iab`, it stays closed. |
-  | `legalLinks` | `(keyof LegalLinks)[] \| null` | all configured links | Which legal links from the provider options render after the description. `null` hides them. |
+  | `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which of the links configured in the provider `options.legalLinks` render after the description. Omitting the prop renders none. `null` hides them. |
   | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag in the card. |
   | `uiSource` | `string` | `'dialog'` | Source identifier recorded with saves made from this dialog. |
   | `scrollLock`, `trapFocus` | `boolean` | from `blocking` | Deprecated. Either one set to `false` makes the dialog non-blocking. Prefer `presentation.preferences.blocking` in the provider options. |
@@ -64,10 +64,11 @@ group: reference
 
   The dialog never opens without a resolved policy rule, even when the
   active surface is already `dialog`; it appears as soon as a rule resolves,
-  without a remount. A rule with `model: 'none'` owes nothing, so the dialog
-  stays closed unless the rule lists `rights: ['preferences']`. Under that
-  rule the dialog opens as a settings route and Save completes without
-  writing a consent record.
+  without a remount. A rule with `model: 'none'` and no rights owes no consent
+  UI, so the dialog stays closed under it. When such a rule lists any right,
+  for example `rights: ['disclosure']` or `rights: ['preferences']`, the dialog
+  can open as a settings route and Save completes without writing a consent
+  record.
 
   Copy comes from these translation keys: `consentManagerDialog.title`,
   `consentManagerDialog.description`, `common.acceptAll`, `common.rejectAll`,

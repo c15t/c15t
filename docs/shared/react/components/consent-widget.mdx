@@ -67,9 +67,10 @@ group: reference
   ### When consent is not owed
 
   Without a resolved policy rule the widget renders nothing and appears as
-  soon as a rule resolves, without a remount. A rule with `model: 'none'`
-  renders nothing unless it lists `rights: ['preferences']`; under that rule
-  the widget renders and Save completes without writing a consent record.
+  soon as a rule resolves, without a remount. A rule with `model: 'none'` and
+  an empty `rights` list renders nothing; a `none` rule that lists any right,
+  such as `['disclosure']`, renders the widget and Save completes without
+  writing a consent record.
   Under an opt-out rule the switches start on and Save records the visitor's
   choice.
 
@@ -101,9 +102,18 @@ group: reference
   to replace one button; `AcceptAllButton`, `RejectButton`, `SaveButton` and
   `CustomizeButton` are the individual buttons.
 
+  `Accordion` is controlled: pass `value` and `onValueChange`, or no
+  category description ever opens. The stock `ConsentWidget` holds that state
+  for you.
+
   ```tsx
+  const [open, setOpen] = useState<string[]>([]);
+
   <ConsentWidget.Root>
-    <ConsentWidget.Accordion>
+    <ConsentWidget.Accordion
+      value={open}
+      onValueChange={(next) => setOpen(Array.isArray(next) ? next : [next])}
+    >
       <ConsentWidget.AccordionItems />
     </ConsentWidget.Accordion>
     <ConsentWidget.PolicyActions />

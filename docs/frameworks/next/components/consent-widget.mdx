@@ -1,6 +1,6 @@
 ---
 title: ConsentWidget
-description: Render ConsentWidget on a Next.js privacy page inside ConsentBoundary as an inline preference center whose switches are part of the server HTML.
+description: Render ConsentWidget on a Next.js privacy page inside ConsentBoundary as an inline preference center, server-rendered when the route prefetches consent.
 group: frameworks
 ---
 
@@ -50,9 +50,9 @@ state from an awaited `prefetchInitialConsent` (the App Router layout, or a
 Pages Router page with `getServerSideProps`), the widget is part of the server
 HTML with the visitor's recorded choices applied, unlike `ConsentDialog`,
 which mounts after hydration. On a static or otherwise non-prefetched route the
-widget renders after the browser resolves policy. The widget uses the boundary's policy, translations and
-transport; it does not need a second provider, and it does not open or close
-the banner or dialog by itself.
+widget renders after the browser resolves policy. The widget uses the
+boundary's policy, translations and transport; it does not need a second
+provider, and it does not open or close the banner or dialog by itself.
 
 <import src="../../../shared/react/components/consent-widget.mdx#props" />
 
