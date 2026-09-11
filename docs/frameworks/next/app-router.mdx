@@ -123,8 +123,10 @@ With this layout, the server renders the consent subtree only after policy has
 resolved, so the banner arrives already decided and does not change after
 hydration. Because the boundary uses `fallback={null}`, Next.js may stream the
 shell first and the consent subtree a moment later in the same response. A
-returning visitor whose stored choices arrive in the request cookie sees no
-banner. Location rules apply when your host supplies trusted geography
+returning visitor whose request cookie carries a valid stored choice sees no
+banner; an expired choice, a choice recorded under a different policy
+fingerprint, or one that no longer covers every required category prompts
+again. Location rules apply when your host supplies trusted geography
 headers. The [runnable Next.js example](/docs/examples) uses this awaited form.
 
 If the manifest request fails, `prefetchInitialConsent` returns a baseline
