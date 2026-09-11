@@ -1,0 +1,61 @@
+---
+title: Frame
+description: Consent-gate an iframe in Next.js with Frame inside ConsentBoundary, so the first HTML holds the placeholder or the embed and hydrates without a flash.
+group: frameworks
+---
+
+## Gate an embed behind consent
+
+`Frame` mounts its children only while the effective permission for one
+consent category is granted, and shows a placeholder otherwise. Wrap any
+iframe or third-party widget that would set cookies or contact a vendor on
+load. It is a Client Component; render it from any route under the layout
+that mounts the `ConsentBoundary` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup, which also mounts
+the `ConsentDialog` the placeholder button opens.
+
+```tsx title="components/product-video.tsx"
+'use client';
+
+import { Frame } from 'c15t/next';
+
+export function ProductVideo() {
+  return (
+    <Frame category="marketing" className="video-frame">
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+        title="Product tour"
+        loading="lazy"
+        allowFullScreen
+        style={{ width: '100%', aspectRatio: '16 / 9', border: 0 }}
+      />
+    </Frame>
+  );
+}
+```
+
+Import `ProductVideo` into any page or Server Component; only this file needs
+`'use client'`. `marketing` must be a category in your policy; the
+placeholder names it using the category title from your translations. Set
+`className` or `style` on `Frame` to reserve the embed's space, so the page
+does not shift when the placeholder is replaced.
+
+With the awaited `prefetchInitialConsent` from the App Router guide, the
+server decides between placeholder and embed from the request cookie, so a
+returning visitor who allowed `marketing` gets the iframe in the first HTML
+and a new visitor gets the placeholder, with no swap after hydration.
+
+<import src="../../../shared/react/components/frame.mdx#props" />
+
+<import src="../../../shared/react/components/frame.mdx#behavior" />
+
+To read the same permission in your own Client Components, use `useConsent`
+from `c15t/next`; the `useIframeBlocker` and `useNetworkBlocker` module
+hooks also import from there.
+
+<import src="../../../shared/react/components/frame.mdx#composition" />
+
+<import src="../../../shared/react/components/frame.mdx#accessibility" />
+
+<import src="../../../shared/react/components/frame.mdx#verify" />

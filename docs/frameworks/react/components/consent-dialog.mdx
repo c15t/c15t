@@ -1,0 +1,77 @@
+---
+title: ConsentDialog
+description: Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
+group: frameworks
+---
+
+## Open the preference center
+
+`ConsentDialog` is the modal preference center. Mount it once inside
+`ConsentProvider`, next to the banner, and it opens whenever something makes
+`dialog` the active surface: the banner's Customize button, a
+`ConsentDialogLink` in your footer, a `ConsentDialogTrigger`, or your own
+code.
+
+```tsx title="src/consent.tsx"
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentDialogLink,
+  ConsentProvider,
+  hosted,
+} from 'c15t/react';
+import 'c15t/react/styles.css';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+const mode = hosted({ url: backendURL });
+
+export function Consent({ children }: { children: ReactNode }) {
+  return (
+    <ConsentProvider options={{ mode }}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
+      <footer>
+        <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+      </footer>
+    </ConsentProvider>
+  );
+}
+```
+
+To open it from your own component, set the active surface:
+
+```tsx
+import { useSetActiveUI } from 'c15t/react';
+
+export function PrivacyMenuItem() {
+  const setActiveUI = useSetActiveUI();
+  return (
+    <button type="button" onClick={() => setActiveUI('dialog')}>
+      Cookie preferences
+    </button>
+  );
+}
+```
+
+`ConsentDialogLink` does the same with the policy's rights exposed for
+styling; see [ConsentDialogLink](./consent-dialog-link). For a floating
+button, see [ConsentDialogTrigger](./consent-dialog-trigger). Under an IAB
+policy, mount `IABConsentDialog` from the [IAB guide](../iab/overview)
+instead; this dialog stays closed for the `iab` model.
+
+<import src="../../../shared/react/components/consent-dialog.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#composition" />
+
+The compound parts import from `c15t/react` as properties of `ConsentDialog`,
+and `ConsentWidget` from the same module. See
+[Styling](../styling/overview) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-dialog.mdx#verify" />

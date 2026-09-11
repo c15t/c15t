@@ -1,0 +1,129 @@
+---
+title: "ConsentWidget"
+description: "Shared ConsentWidget reference for the React and Next.js adapters."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Description |
+  | --- | --- | --- | --- |
+  | `hideBranding` | `boolean` | `true` | A standalone widget hides the "Secured by" tag. Pass `false` to show it. |
+  | `uiSource` | `string` | `'widget'` | Source identifier recorded with saves made from this widget. Inside `ConsentDialog` it inherits `'dialog'`. |
+  | `disableAnimation` | `boolean` | `false` | Skips animations in the widget's parts. |
+  | `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
+</section>
+
+<section id="behavior">
+  ## Behavior
+
+  The widget is the preference center without the modal around it: an
+  accordion with one row per category, each with a switch, followed by the
+  Reject all, Accept all and Save actions. `ConsentDialog` renders this same
+  widget inside its card. Standalone, the widget renders in place, takes part
+  in server rendering, and does not touch the active surface, so it suits a
+  privacy page or an account settings screen.
+
+  The rows are `necessary` plus every category in the active policy's scope.
+  The `necessary` switch is on and disabled. Row titles and descriptions come
+  from `consentTypes.<category>.title` and `.description`; the action labels
+  from `common.rejectAll`, `common.acceptAll` and `common.save`. One row is
+  expanded at a time.
+
+  ### Draft and save
+
+  Switches edit a draft, not the visitor's permissions. Nothing is recorded
+  until Save. The draft seeds each category from the recorded choice; without
+  one it uses `presentation.preferences.defaults` from the provider options,
+  and without that it is on under an opt-out rule and on only for the rule's
+  preselected categories under an opt-in rule. Save records the displayed
+  categories, then reseeds the draft from the new record. Accept all and
+  Reject all record immediately without a separate Save. A save answers the
+  prompt, so a banner that is still open closes. Unsaved toggles are lost
+  when the widget unmounts.
+
+  When the policy changes in a way that affects the choice while the draft has
+  unsaved toggles, the widget shows an alert, "The privacy policy changed.
+  Review the current choices before saving.", with a Review choices button
+  that resets the draft. Save is refused until then. A draft without unsaved
+  toggles reseeds silently.
+
+  A saved grant that the current policy or a privacy signal such as Global
+  Privacy Control overrides shows a note under its row: "Your saved choice is
+  restricted by the current privacy settings." The switch still reflects the
+  saved value; the effective permission is off.
+
+  ### Actions
+
+  The preference center always renders Reject all, Accept all and Save, with
+  Save as the primary action. `presentation.preferences.layout`,
+  `primaryActions`, `direction` and `uiProfile` in the provider options
+  reorder and restyle them; a layout that omits one of the three has it
+  restored. Customize and dismiss actions never render here.
+
+  ### When consent is not owed
+
+  Without a resolved policy rule the widget renders nothing and appears as
+  soon as a rule resolves, without a remount. A rule with `model: 'none'`
+  renders nothing unless it lists `rights: ['preferences']`; under that rule
+  the widget renders and Save completes without writing a consent record.
+  Under an opt-out rule the switches start on and Save records the visitor's
+  choice.
+
+  For a fully custom preference center, `useConsentDraft()` returns the same
+  draft: `values`, `displayedCategories`, `isDirty`, `isStale`, `set`,
+  `update`, `acceptAll`, `rejectAll`, `save` and `reset`.
+</section>
+
+<section id="accessibility">
+  ## Accessibility
+
+  Each row is a disclosure: a button that expands the category description
+  and a switch beside it, so a visitor can read the description without
+  changing the choice. Each switch has the category title as its accessible
+  name. The policy-change alert uses `role="alert"`, and a restriction note is
+  an `output` element linked to its switch through `aria-describedby`. The
+  root's `dir` attribute follows the active language.
+</section>
+
+<section id="composition">
+  ## Composition
+
+  Every part is available as `ConsentWidget.<Part>`. `Root` provides the
+  draft and accepts `noStyle`, `disableAnimation` and `uiSource`. `Accordion`
+  and `AccordionItems` render the stock rows; `AccordionItem`,
+  `AccordionTrigger`, `AccordionTriggerInner`, `AccordionContent`,
+  `AccordionArrow` and `Switch` build your own. `PolicyActions` renders the
+  resolved actions in `Footer` and `FooterSubGroup` and accepts `renderAction`
+  to replace one button; `AcceptAllButton`, `RejectButton`, `SaveButton` and
+  `CustomizeButton` are the individual buttons.
+
+  ```tsx
+  <ConsentWidget.Root>
+    <ConsentWidget.Accordion>
+      <ConsentWidget.AccordionItems />
+    </ConsentWidget.Accordion>
+    <ConsentWidget.PolicyActions />
+  </ConsentWidget.Root>
+  ```
+
+  Provider component slots for the stock structure are `manager.root`,
+  `manager.footer`, `manager.actionGroup`, `accordion.root`,
+  `accordion.triggerRow`, `accordion.title`, `accordion.control`,
+  `accordion-item.root`, `accordion-item.trigger`, `accordion-item.content`
+  and `tag.manager`.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Visit the page with the widget. One row per policy category appears, with
+  `necessary` on and disabled. Turn a category on: `useConsent('<category>')`
+  elsewhere on the page still reports the old value. Choose Save: it now
+  reports `true`, and a banner that was open closes. Reload the page: the
+  switch keeps the saved value. Under an opt-out rule the switches start on
+  before any save.
+</section>

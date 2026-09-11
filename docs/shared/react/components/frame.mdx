@@ -1,0 +1,109 @@
+---
+title: "Frame"
+description: "Shared Frame reference for the React and Next.js adapters."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Description |
+  | --- | --- | --- | --- |
+  | `category` | `AllConsentNames` | required | The consent category whose effective permission gates the children, for example `'marketing'` or `'functionality'`. |
+  | `children` | `ReactNode` | required | The embed. It is not mounted until the category is allowed, so it makes no requests before permission. |
+  | `placeholder` | `ReactNode` | built-in placeholder | Rendered instead of the children while the category is not allowed. Replaces the built-in title and button entirely. |
+
+  Other `div` attributes such as `className`, `style` and `ref` apply to the
+  wrapper element that stays in the page in both states.
+</section>
+
+<section id="behavior">
+  ## Behavior
+
+  `Frame` renders a `div` wrapper. Inside it, when the effective permission for
+  `category` is granted, it renders the children; otherwise it renders the
+  placeholder. Permission is the same value `useConsent(category)` returns,
+  so it can be granted under an opt-out rule before the visitor records a
+  choice, and a recorded grant can be overridden by a privacy signal.
+
+  The children are absent from the DOM while permission is denied, so an
+  iframe or a third-party widget inside `Frame` sends no requests until the
+  visitor allows the category. When the visitor later revokes it, the
+  children unmount and the embed disappears. `Frame` does not depend on the
+  network blocker or the iframe blocker modules; use those for markup you
+  cannot wrap in a component.
+
+  The built-in placeholder shows the title `frame.title`, "Accept {category}
+  consent to view this content.", with `{category}` replaced by
+  `consentTypes.<category>.title`, and a button labelled `frame.actionButton`,
+  "Enable {category} consent". The button opens the preference center; it
+  does not grant the category by itself, because the visitor still has to
+  save. Mount a `ConsentDialog` in the same provider so the button has
+  something to open.
+
+  Under a policy with `scopeMode: 'strict'`, a category outside the rule's
+  scope cannot be granted. The placeholder then shows `frame.policyBlocked`,
+  "This content is unavailable under your region's consent policy.", without
+  the button, and a stored grant for that category stays blocked.
+
+  Server rendering uses the same permission snapshot as the browser: the first
+  HTML contains either the children or the placeholder, and hydration keeps
+  that markup without replacing it. A visitor whose grant arrives in the
+  request cookie sees the embed in the first HTML.
+
+  `Frame` is one component on this page; the per-vendor embed guides for
+  [YouTube](/docs/integrations/youtube) and
+  [Google Maps](/docs/integrations/google-maps) show a complete embed
+  configuration with sizing, titles and the same `Frame` usage across
+  frameworks.
+</section>
+
+<section id="composition">
+  ## Composition
+
+  The placeholder parts are available as `Frame.Root`, `Frame.Title` and
+  `Frame.Button` for a custom placeholder that keeps the built-in copy and
+  behavior. `Frame.Title` and `Frame.Button` accept `category` and fill in the
+  translated text; pass children to either to replace it.
+
+  ```tsx
+  <Frame
+    category="marketing"
+    placeholder={
+      <Frame.Root>
+        <Frame.Title category="marketing" />
+        <p>The video is also available on our channel.</p>
+        <Frame.Button category="marketing">Choose cookies</Frame.Button>
+      </Frame.Root>
+    }
+  >
+    <iframe src="https://www.youtube-nocookie.com/embed/..." title="Product tour" />
+  </Frame>
+  ```
+
+  The built-in placeholder carries `data-testid="frame-placeholder"` and its
+  button `data-testid="frame-open-dialog"`.
+</section>
+
+<section id="accessibility">
+  ## Accessibility
+
+  The placeholder is plain text and a `button`, so it is readable and
+  operable without the embed. Give the iframe a descriptive `title`, and keep a
+  transcript, address or link outside the `Frame` for visitors who decline
+  the category. A denied category may be fixed by policy, so opening the
+  preference center does not guarantee that the visitor can grant it.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Load the page with the category denied. The placeholder text names the
+  category, the network panel shows no request to the embed's host, and the
+  server HTML already contains the placeholder. Activate the placeholder
+  button: the preference center opens. Turn the category on and Save: the
+  placeholder is replaced by the embed and its requests start. Reject the
+  category again from the preference center: the embed disappears.
+</section>

@@ -1,0 +1,94 @@
+---
+title: ConsentDialog
+description: Mount ConsentDialog as a Client Component inside a Next.js ConsentBoundary to open the preference center from the banner, links and triggers.
+group: frameworks
+---
+
+## Open the preference center
+
+`ConsentDialog` is the modal preference center. It is a Client Component, so
+it lives in the `components/consent.tsx` wrapper from the
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup, inside the
+`ConsentBoundary` that already provides the consent runtime. Mount it once,
+next to the banner; it opens whenever something makes `dialog` the active
+surface: the banner's Customize button, a `ConsentDialogLink` in your footer,
+a `ConsentDialogTrigger`, or your own code.
+
+```tsx title="components/consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from 'c15t/next';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import { consentConfig } from '../c15t.config';
+
+export function Consent({
+  children,
+  config,
+}: {
+  children: ReactNode;
+  config: ConsentBoundaryProps['config'];
+}) {
+  return (
+    <ConsentBoundary config={config} consent={consentConfig}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
+      <footer>
+        <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+      </footer>
+    </ConsentBoundary>
+  );
+}
+```
+
+The root layout renders `Consent` with the `config` from
+`prefetchInitialConsent`, as in the router guides. The dialog itself renders
+nothing on the server: it mounts through a portal after hydration, so the
+server HTML and the streamed shell are unaffected by it, and the banner in
+the first HTML is what a new visitor sees.
+
+To open it from another Client Component inside the boundary, set the active
+surface:
+
+```tsx title="components/privacy-menu-item.tsx"
+'use client';
+
+import { useSetActiveUI } from 'c15t/next';
+
+export function PrivacyMenuItem() {
+  const setActiveUI = useSetActiveUI();
+  return (
+    <button type="button" onClick={() => setActiveUI('dialog')}>
+      Cookie preferences
+    </button>
+  );
+}
+```
+
+`ConsentDialogLink` does the same with the policy's rights exposed for
+styling; see [ConsentDialogLink](./consent-dialog-link). For a floating
+button, see [ConsentDialogTrigger](./consent-dialog-trigger). Under an IAB
+policy, mount `IABConsentDialog` from the [IAB guide](../iab/overview)
+instead; this dialog stays closed for the `iab` model.
+
+<import src="../../../shared/react/components/consent-dialog.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#composition" />
+
+The compound parts import from `c15t/next` as properties of `ConsentDialog`,
+and `ConsentWidget` from the same module. Server Components cannot render
+them: keep the composition in a file with `'use client'`. See
+[Styling](../styling/overview) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-dialog.mdx#verify" />

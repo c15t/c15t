@@ -1,0 +1,70 @@
+---
+title: ConsentWidget
+description: Render ConsentWidget on a Next.js privacy page inside ConsentBoundary as an inline preference center whose switches are part of the server HTML.
+group: frameworks
+---
+
+## Embed the preference center inline
+
+`ConsentWidget` renders the preference center in the page flow instead of in
+a modal: the category switches and the Reject all, Accept all and Save
+actions, without a title, backdrop or portal. Use it on a privacy or
+settings route where the visitor expects the controls to be part of the
+content. It is a Client Component; render it from any route under the
+layout that mounts the `ConsentBoundary` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup. Keep
+`ConsentDialog` mounted in that boundary as well so the banner's Customize
+button and preference links still have a dialog to open.
+
+```tsx title="app/privacy/page.tsx"
+import { CookiePreferences } from '../../components/cookie-preferences';
+
+export default function PrivacyPage() {
+  return (
+    <main>
+      <h1>Privacy</h1>
+      <p>Choose which optional categories this site may use.</p>
+      <section aria-labelledby="cookie-preferences">
+        <h2 id="cookie-preferences">Cookie preferences</h2>
+        <CookiePreferences />
+      </section>
+    </main>
+  );
+}
+```
+
+```tsx title="components/cookie-preferences.tsx"
+'use client';
+
+import { ConsentWidget } from 'c15t/next';
+
+export function CookiePreferences() {
+  return <ConsentWidget />;
+}
+```
+
+The page stays a Server Component; only the widget file needs
+`'use client'`. Because the boundary receives the visitor's prepared state
+from `prefetchInitialConsent`, the widget is part of the server HTML with
+the visitor's recorded choices applied, unlike `ConsentDialog`, which mounts
+after hydration. The widget uses the boundary's policy, translations and
+transport; it does not need a second provider, and it does not open or close
+the banner or dialog by itself.
+
+<import src="../../../shared/react/components/consent-widget.mdx#props" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#behavior" />
+
+`useConsentDraft` and `ConsentDraftProvider` import from `c15t/next` and are
+Client Component hooks.
+
+<import src="../../../shared/react/components/consent-widget.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#composition" />
+
+The compound parts import from `c15t/next` as properties of `ConsentWidget`.
+Server Components cannot render them: keep the composition in a file with
+`'use client'`. See [Styling](../styling/overview) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-widget.mdx#verify" />
