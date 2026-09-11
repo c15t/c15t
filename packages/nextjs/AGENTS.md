@@ -27,23 +27,25 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Fetching reference](./docs/frameworks/next/api-reference/data-fetching.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
 - [App Router](./docs/frameworks/next/app-router.md): Set up App Router with Inth, cached manifests and consent-gated scripts.
 - [Client-side initialization](./docs/frameworks/next/client-side.md): Initialize Next.js consent in the browser with one backend URL, without server prefetch or local API handlers.
-- [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Pre-built consent banner shown when consent is required.
-- [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
+- [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Render the pre-built ConsentBanner inside a Next.js ConsentBoundary and configure its variants, per-policy buttons and compound parts.
+- [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentBoundary so visitors can reopen the preference center.
 - [ConsentBoundary](./docs/frameworks/next/components/consent-manager-provider.md): Pass server-prefetched consent and shared configuration to the Next.js consent boundary.
-- [DevTools](./docs/frameworks/next/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+- [DevTools](./docs/frameworks/next/components/dev-tools.md): Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentBoundary.
 - [Consent categories](./docs/frameworks/next/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Understand how policy rules affect Next.js prompts, permissions and persistent privacy controls.
+- [Content Security Policy](./docs/frameworks/next/content-security-policy.md): Pass a per-request CSP nonce to ConsentBoundary in Next.js and allow the consent backend in connect-src.
 - [Data fetching](./docs/frameworks/next/data-fetching.md): Choose cached manifests for a Next.js server, backend initialization for a simpler setup, or offline mode for local development.
-- [Headless](./docs/frameworks/next/headless.md): Build your own consent UI on top of the c15t hooks.
-- [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
-- [IAB TCF](./docs/frameworks/next/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+- [Forward geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
+- [Headless](./docs/frameworks/next/headless.md): Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentBoundary.
+- [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
+- [IAB TCF](./docs/frameworks/next/iab/overview.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentBoundary and configure the CMP ID, policy and vendor data.
 - [Optimization](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
 - [Pages Router](./docs/frameworks/next/pages-router.md): Set up Pages Router with Inth, cached manifests and consent-gated scripts.
-- [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t to Next.js with Inth. Choose your router or static export below.
+- [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t consent management to Next.js with Inth, with setup guides for the App Router, the Pages Router and static export.
 - [Load scripts with consent](./docs/frameworks/next/script-loader.md): Register vendor scripts in your existing Next.js consent boundary and handle loading and revocation.
 - [Server rendering and hydration](./docs/frameworks/next/server-side.md): Resolve consent on the server, choose what waits for the result, and preserve the same state through hydration.
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to output export without request helpers or a local API server.
-- [Styling](./docs/frameworks/next/styling/overview.md): Theme c15t components with tokens, slots, and class names.
+- [Styling](./docs/frameworks/next/styling/overview.md): Import the Next.js stylesheet and theme c15t components with tokens, slots, and class names through ConsentBoundary options.
 - [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 
 ## Guides
