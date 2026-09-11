@@ -7,6 +7,35 @@ import { CliError } from '../../core/errors';
 
 const journalPath = (root: string) => path.join(root, '.c15t-generation.json');
 
+/** Reject symlinks in existing recovery targets and their project ancestors. */
+const validateRecoveryPath = async (
+	root: string,
+	filePath: string
+): Promise<void> => {
+	let current = path.resolve(root);
+	for (const segment of path.relative(current, filePath).split(path.sep)) {
+		current = path.join(current, segment);
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- Inspect ancestors before following their children.
+			if ((await fs.lstat(current)).isSymbolicLink()) {
+				throw new CliError('CONFIG_INVALID', {
+					details: `Recovery cannot pass through a symlink: ${current}`,
+				});
+			}
+		} catch (error) {
+			if (
+				error instanceof Error &&
+				'code' in error &&
+				error.code === 'ENOENT'
+			) {
+				// Interrupted generation may not have created this directory yet.
+				return;
+			}
+			throw error;
+		}
+	}
+};
+
 /** Saves original contents before applying generation edits. */
 export const saveGenerationJournal = async function saveGenerationJournal(
 	root: string,
@@ -76,8 +105,14 @@ export const recoverGeneration = async function recoverGeneration(
 				details: 'Invalid file entry in generation recovery journal.',
 			});
 		}
-		return { after: edit.after, before: edit.before, path: edit.path };
+		return {
+			after: edit.after,
+			before: edit.before,
+			path: path.resolve(edit.path),
+		};
 	});
+	// Validate the entire journal before restoring any file.
+	await Promise.all(edits.map((edit) => validateRecoveryPath(root, edit.path)));
 	await rollbackFileEdits(edits);
 	await clearGenerationJournal(root);
 	return true;

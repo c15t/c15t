@@ -15,6 +15,7 @@ import {
 	checkDependenciesActor,
 	dependencyInstallActor,
 	getManualInstallCommand,
+	settleDependencyInstallActor,
 } from './actors/dependencies';
 import { fileGenerationActor, rollbackActor } from './actors/file-generation';
 import {
@@ -87,6 +88,7 @@ export const generateMachine = setup({
 		preflight: preflightActor,
 		rollback: rollbackActor,
 		scriptsOption: scriptsOptionActor,
+		settleDependencyInstall: settleDependencyInstallActor,
 		skillsInstall: skillsInstallActor,
 	},
 	guards,
@@ -141,21 +143,26 @@ export const generateMachine = setup({
 		 * Cancellation handling
 		 */
 		cancelling: {
-			always: [
-				// Auto-rollback if there are files to restore
-				{
-					guard: 'hasFilesToRollback',
-					target: 'rollback',
-				},
-				{
-					target: 'exited',
-				},
-			],
 			entry: ({ context }) => {
 				context.cliContext?.logger.info(
 					context.cancelReason ?? 'Configuration cancelled.'
 				);
 			},
+			invoke: {
+				input: ({ context }) => getDefined(context.cliContext),
+				onDone: [
+					// Auto-rollback if there are files to restore
+					{
+						guard: 'hasFilesToRollback',
+						target: 'rollback',
+					},
+					{
+						target: 'exited',
+					},
+				],
+				src: 'settleDependencyInstall',
+			},
+			on: { CANCEL: {} },
 		},
 
 		/**

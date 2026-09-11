@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -65,9 +65,11 @@ describe('Vue v3 boilerplate', () => {
 	] as const)(
 		'compiles and renders $framework $mode UI against local Vue source',
 		async ({ framework, mode }) => {
-			const directory = await mkdtemp(
-				resolve(packageRoot, '.cli-boilerplate-')
-			);
+			// Keep generated sources outside the framework's coverage file scan
+			// while retaining resolution through its installed dependencies.
+			const cache = resolve(packageRoot, 'node_modules/.cache');
+			await mkdir(cache, { recursive: true });
+			const directory = await mkdtemp(resolve(cache, 'c15t-cli-boilerplate-'));
 			try {
 				const template = generateVueBoilerplate({
 					backendURL: 'https://consent.example',
@@ -89,7 +91,7 @@ import { createServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import c15tVue from '../src/vite.ts';
+import c15tVue from ${JSON.stringify(resolve(packageRoot, 'src/vite.ts'))};
 const generatedFiles = ${JSON.stringify(['consent-runtime.ts', 'install-consent.ts', ...(framework === 'nuxt' ? ['consent-plugin.client.ts'] : [])])}.map(name => ${JSON.stringify(directory)} + '/' + name);
 const program = ts.createProgram(generatedFiles, {
  strict: true, skipLibCheck: true, noEmit: true, types: ['vite/client'],

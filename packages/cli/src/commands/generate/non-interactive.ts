@@ -26,6 +26,7 @@ import {
 	applyFileEdits,
 	rollbackFileEdits,
 } from './templates/shared/file-plan';
+import type { FileEdit } from './templates/shared/file-plan';
 import { SCRIPT_SNIPPETS } from './templates/shared/scripts';
 
 const stringFlag = (context: CliContext, key: string): string | undefined => {
@@ -211,6 +212,18 @@ const validateFrameworkOptions = async (
 	}
 };
 
+// Keep rollback contents private while exposing reviewable edit metadata.
+const describeEdits = (edits: FileEdit[]) =>
+	edits.map((edit) =>
+		/^\.env(?:\.|$)/u.test(path.basename(edit.path))
+			? {
+					operation: edit.before === null ? 'create' : 'update',
+					path: edit.path,
+					redacted: true,
+				}
+			: edit
+	);
+
 const applySetup = async (
 	context: CliContext,
 	edits: Awaited<ReturnType<typeof planGenerateFiles>>['edits'],
@@ -228,18 +241,28 @@ const applySetup = async (
 		throw error;
 	}
 	if (!flags['skip-install']) {
+		const cancellation = new AbortController();
+		const cancel = () => cancellation.abort(new CliError('CANCELLED'));
+		process.on('SIGINT', cancel);
+		process.on('SIGTERM', cancel);
 		try {
 			await install(
 				context.projectRoot,
 				dependencies,
-				context.packageManager.name
+				context.packageManager.name,
+				cancellation.signal
 			);
+			cancellation.signal.throwIfAborted();
 		} catch (error) {
 			await rollbackFileEdits(edits);
 			await clearGenerationJournal(context.projectRoot);
+			cancellation.signal.throwIfAborted();
 			throw new CliError('CONFIG_INVALID', {
 				details: `Dependency installation failed. Generated files were restored. Package-manager changes to manifests, lockfiles or node_modules may remain. ${error instanceof Error ? error.message : String(error)}`,
 			});
+		} finally {
+			process.off('SIGINT', cancel);
+			process.off('SIGTERM', cancel);
 		}
 	}
 	await clearGenerationJournal(context.projectRoot);
@@ -307,7 +330,7 @@ export const generateWithoutPrompts = async (
 	return {
 		applied: apply,
 		dependencies: missingDependencies,
-		edits: plan.edits,
+		edits: describeEdits(plan.edits),
 		framework: framework.framework,
 		installSkipped: !apply || flags['skip-install'] === true,
 		mode,
