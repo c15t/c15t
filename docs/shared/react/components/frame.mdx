@@ -14,6 +14,8 @@ group: reference
   | `category` | `AllConsentNames` | required | The consent category whose effective permission gates the children, for example `'marketing'` or `'functionality'`. |
   | `children` | `ReactNode` | required | The embed. It is not mounted until the category is allowed, so it makes no requests before permission. |
   | `placeholder` | `ReactNode` | built-in placeholder | Rendered instead of the children while the category is not allowed. Replaces the built-in title and button entirely. |
+  | `noStyle` | `boolean` | `false` | Removes the built-in styling from the wrapper and the built-in placeholder parts. |
+  | `theme` | `Theme` | provider theme | Theme overrides scoped to this frame, with the same shape as the provider `theme` option. |
 
   Other `div` attributes such as `className`, `style` and `ref` apply to the
   wrapper element that stays in the page in both states.
