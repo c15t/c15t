@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 	},
 };
 
-async function ResolvedConsent({ children }: { children: ReactNode }) {
+const ResolvedConsent = async ({ children }: { children: ReactNode }) => {
 	// Hosted (Inth / self-hosted) path from app-router.mdx. Offline mode has no
 	// server prefetch; the docs' offline example passes `config={{}}`.
 	// With `cacheComponents: true`, Next 16 flags the helper's internal
@@ -50,35 +50,35 @@ async function ResolvedConsent({ children }: { children: ReactNode }) {
 		: await readInitialConsentConfig();
 
 	return <Consent config={initialConsent}>{children}</Consent>;
-}
+};
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-	return (
-		<html
-			lang="en"
-			className={`${GeistSans.variable} ${GeistMono.variable}`}
-			suppressHydrationWarning
-		>
-			<body className="bg-surface dark:bg-surface-dark flex h-[100dvh] flex-col text-black antialiased dark:text-white">
-				<ThemeProvider>
-					<BoundaryProvider>
-						<Suspense fallback={null}>
-							<ResolvedConsent>
-								<OfflineIndicator />
-								{children}
-								<div className="demo-toggles fixed top-3 right-3 z-50 hidden items-end gap-2 sm:flex">
-									<Suspense>
-										<DemoToolbar />
-									</Suspense>
-								</div>
-								<Toaster />
-							</ResolvedConsent>
-						</Suspense>
-					</BoundaryProvider>
-				</ThemeProvider>
-				<Analytics />
-				<SpeedInsights />
-			</body>
-		</html>
-	);
-}
+const RootLayout = ({ children }: { children: ReactNode }) => (
+	<html
+		lang="en"
+		className={`${GeistSans.variable} ${GeistMono.variable}`}
+		suppressHydrationWarning
+	>
+		<body className="bg-surface dark:bg-surface-dark flex h-[100dvh] flex-col text-black antialiased dark:text-white">
+			<ThemeProvider>
+				<BoundaryProvider>
+					<Suspense fallback={null}>
+						<ResolvedConsent>
+							<OfflineIndicator />
+							{children}
+							<div className="demo-toggles fixed top-3 right-3 z-50 hidden items-end gap-2 sm:flex">
+								<Suspense>
+									<DemoToolbar />
+								</Suspense>
+							</div>
+							<Toaster />
+						</ResolvedConsent>
+					</Suspense>
+				</BoundaryProvider>
+			</ThemeProvider>
+			<Analytics />
+			<SpeedInsights />
+		</body>
+	</html>
+);
+
+export default RootLayout;
