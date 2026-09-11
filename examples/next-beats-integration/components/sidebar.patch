@@ -1,0 +1,24 @@
+diff --git i/components/sidebar.tsx w/components/sidebar.tsx
+index 2780447..1de517d 100644
+--- i/components/sidebar.tsx
++++ w/components/sidebar.tsx
+@@ -5,6 +5,7 @@ import ErrorBoundary from '@/components/ui/error-boundary';
+ import { FastLink } from '@/components/ui/fast-link';
+ import { GitHubIcon } from '@/components/ui/github-icon';
+ import { IconButtonLink, IconButtonLinkSkeleton } from '@/components/ui/icon-button-link';
++import { PrivacySettingsLink } from '@/components/privacy-settings-link';
+ import { MusicNote } from '@/components/ui/music-note';
+ import { NavLink } from '@/components/ui/nav-link';
+ import { Skeleton } from '@/components/ui/skeleton';
+@@ -89,7 +90,10 @@ export function Sidebar() {
+               <LogOutButton />
+             </form>
+           </div>
+-          <ThemeToggle variant="inline" />
++          <div className="flex items-center gap-1">
++            <PrivacySettingsLink />
++            <ThemeToggle variant="inline" />
++          </div>
+         </div>
+       </div>
+     </aside>

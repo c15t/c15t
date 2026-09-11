@@ -56,4 +56,26 @@ Server Component. If the header is missing there, add `c15tProxy` as described i
 forwards the resolved values as `x-c15t-country` and `x-c15t-region`, which take
 precedence everywhere c15t reads location.
 
+## Why does Next.js report an unstable `Date.now()` during prerendering?
+
+With `cacheComponents: true`, Next.js 16 can fail the route with
+`Next.js encountered the unstable value Date.now() while prerendering`, pointing
+at the `await prefetchInitialConsent(...)` line. The helper reads the current
+time to validate stored records, and the prerender pass treats that read as
+dynamic data it cannot cache. Opt the consent component into request time
+before calling the helper:
+
+```tsx title="app/layout.tsx (partial)"
+import { connection } from 'next/server';
+
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  await connection();
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+  return <Consent config={initialConsent}>{children}</Consent>;
+}
+```
+
+`connection()` only marks the component as request-time; the rest of the page
+outside the `Suspense` boundary still prerenders.
+
 <include src="../../guides/troubleshooting.mdx" />

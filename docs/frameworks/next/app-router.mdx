@@ -158,6 +158,12 @@ milliseconds; a cold cache pays the backend round trip. If the site cannot
 accept that, use the [streaming form](#stream-the-page-while-consent-resolves),
 which renders the shell immediately.
 
+If the layout already imports a global stylesheet, keep that import before
+`c15t/next/styles.css`. Tailwind CSS 4 declares its cascade layers in the
+global stylesheet; when the c15t stylesheet loads first, Tailwind's preflight
+lands above the c15t component layer and strips the banner's padding, borders
+and button styles.
+
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without
 `cacheComponents`, the boundary is still safe to keep.
