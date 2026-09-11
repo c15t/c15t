@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { runCli } from '../../../index';
+import { saveGenerationJournal } from '../../../machines/generate/journal';
 import { boilerplateFrameworks } from './index';
 
 const directories: string[] = [];
@@ -25,6 +26,30 @@ const fixture = async () => {
 	);
 	return root;
 };
+const interruptedFixture = async (manifest?: string) => {
+	const cwd = await fixture();
+	const manifestPath = join(cwd, 'package.json');
+	const originalManifest = manifest ?? (await readFile(manifestPath, 'utf8'));
+	const interruptedManifest = '{"name":"interrupted","private":true}';
+	const componentPath = join(cwd, 'src/privacy/consent-manager.tsx');
+	await mkdir(join(cwd, 'src/privacy'), { recursive: true });
+	await saveGenerationJournal(cwd, [
+		{ after: '// complete component', before: null, path: componentPath },
+		{
+			after: '# integration instructions',
+			before: null,
+			path: join(cwd, 'src/privacy/README.md'),
+		},
+		{
+			after: interruptedManifest,
+			before: originalManifest,
+			path: manifestPath,
+		},
+	]);
+	await writeFile(componentPath, '// complete component');
+	await writeFile(manifestPath, interruptedManifest);
+	return { componentPath, cwd, manifestPath, originalManifest };
+};
 afterEach(async () => {
 	await Promise.all(
 		directories
@@ -34,6 +59,123 @@ afterEach(async () => {
 });
 
 describe('boilerplate command', () => {
+	it('detects the framework again from the restored package manifest', async () => {
+		const { cwd } = await interruptedFixture(
+			'{"dependencies":{"astro":"6","vue":"3"}}'
+		);
+		const result = await runCli(
+			['generate', 'offline', '--boilerplate', '--resume', '--apply', '--json'],
+			{ cwd }
+		);
+		expect(result, JSON.stringify(result)).toMatchObject({
+			data: { applied: true, framework: 'astro' },
+			success: true,
+		});
+		expect(
+			await readFile(join(cwd, 'src/consent/Consent.astro'), 'utf8')
+		).toContain('@c15t/astro');
+	});
+	it('preserves changed content and the journal when recovery fails', async () => {
+		const { componentPath, cwd } = await interruptedFixture();
+		const journalPath = join(cwd, '.c15t-generation.json');
+		const journal = await readFile(journalPath, 'utf8');
+		await writeFile(componentPath, '// user changed this after interruption');
+		expect(
+			await runCli(
+				[
+					'generate',
+					'offline',
+					'--framework',
+					'react',
+					'--resume',
+					'--apply',
+					'--json',
+				],
+				{ cwd }
+			)
+		).toMatchObject({ success: false });
+		expect(await readFile(componentPath, 'utf8')).toBe(
+			'// user changed this after interruption'
+		);
+		expect(await readFile(journalPath, 'utf8')).toBe(journal);
+		expect(await readdir(join(cwd, 'src'))).toEqual(['privacy']);
+	});
+	it.each(['--apply', '--yes'])(
+		'resumes an interrupted boilerplate transaction with %s and can repeat',
+		async (applyFlag) => {
+			const { componentPath, cwd, manifestPath, originalManifest } =
+				await interruptedFixture();
+			const args = [
+				'generate',
+				'offline',
+				'--framework',
+				'react',
+				'--output',
+				'src/privacy',
+				applyFlag,
+				'--json',
+			];
+			const journalPath = join(cwd, '.c15t-generation.json');
+			const journal = await readFile(journalPath, 'utf8');
+			expect(await runCli(args, { cwd })).toMatchObject({ success: false });
+			expect(await readFile(journalPath, 'utf8')).toBe(journal);
+			const result = await runCli([...args, '--resume'], { cwd });
+			expect(result, JSON.stringify(result)).toMatchObject({
+				data: { applied: true, framework: 'react' },
+				success: true,
+			});
+			expect(await readFile(componentPath, 'utf8')).toContain(
+				'<ConsentProvider'
+			);
+			expect(
+				await readFile(join(cwd, 'src/privacy/README.md'), 'utf8')
+			).toContain('# c15t react integration');
+			expect(await readFile(manifestPath, 'utf8')).toBe(originalManifest);
+			expect(await readdir(cwd)).not.toContain('.c15t-generation.json');
+			expect(await runCli([...args, '--resume'], { cwd })).toMatchObject({
+				data: { edits: [] },
+				success: true,
+			});
+		}
+	);
+	it.each(
+		[
+			[],
+			['--plan'],
+			['--dry-run'],
+			['--yes', '--plan'],
+			['--yes', '--dry-run'],
+			['--apply', '--plan'],
+			['--apply', '--dry-run'],
+		].map((flags) => ({ flags }))
+	)(
+		'rejects recovery without writable mode for %j before changing interrupted files',
+		async ({ flags }) => {
+			const { componentPath, cwd, manifestPath } = await interruptedFixture();
+			const journalPath = join(cwd, '.c15t-generation.json');
+			const paths = [componentPath, manifestPath, journalPath];
+			const before = await Promise.all(
+				paths.map((file) => readFile(file, 'utf8'))
+			);
+			expect(
+				await runCli(
+					[
+						'generate',
+						'offline',
+						'--framework',
+						'react',
+						'--resume',
+						'--json',
+						...flags,
+					],
+					{ cwd }
+				)
+			).toMatchObject({ error: { code: 'FLAG_INVALID' }, success: false });
+			expect(
+				await Promise.all(paths.map((file) => readFile(file, 'utf8')))
+			).toEqual(before);
+		}
+	);
 	it.each(['svelte', 'vue'])(
 		'detects Astro when %s is installed for islands',
 		async (renderer) => {

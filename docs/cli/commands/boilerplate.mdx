@@ -56,6 +56,14 @@ These are development snapshots of unpublished code. Their package metadata can 
 
 `--plan` and `--dry-run` are read-only. `--apply` or `--yes` writes the plan. Generation never starts a dependency installer, even when `--package-source` is supplied. `--json` returns the plan and wiring instructions as structured data.
 
+If an apply is interrupted, repeat the original command with `--resume --apply`. Keep the same mode, framework, output and package source. The CLI restores the interrupted transaction, then plans and applies the boilerplate again:
+
+```bash
+node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --package-source "$PWD" --resume --apply
+```
+
+Recovery requires `--apply` or `--yes` and cannot run with `--plan` or `--dry-run`. If a file changed after the interruption, recovery preserves that file and the journal for inspection.
+
 Standalone boilerplate supports `--framework`, `--output`, `--package-source`, `--scripts`, and an explicit storage mode/backend URL. Existing setup flags for theme, expanded UI, environment files, devtools, proxy, and SSR do not apply to this path. Configure those in the generated source using the local adapter documentation.
 
 JavaScript output is headless. Solid output provides a basic custom interface, not the IAB or modal UI. Next.js boilerplate initializes in the browser without server prefetch. Astro's native components require the deployment and on-demand rendering configuration described in the generated instructions. Nuxt instructions use a client plugin and composables alias instead of combining two runtime owners.

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { detectFramework } from '../../../context/framework-detection';
 import type { CliContext } from '../../../context/types';
 import { CliError } from '../../../core/errors';
 import { findLayoutFile } from '../../../detection/layout';
@@ -120,9 +121,26 @@ const readBackendURL = (
 	return backendURL;
 };
 
-const readOptions = async (
+const validateWriteFlags = (flags: CliContext['flags']): void => {
+	if ((flags.plan || flags['dry-run']) && flags.apply) {
+		throw new CliError('FLAG_INVALID', {
+			details: '--apply cannot be combined with --plan or --dry-run.',
+		});
+	}
+	if (
+		flags.resume &&
+		(flags.plan || flags['dry-run'] || !(flags.apply || flags.yes))
+	) {
+		throw new CliError('FLAG_INVALID', {
+			details:
+				'--resume restores interrupted files and requires --apply or --yes without --plan or --dry-run.',
+		});
+	}
+};
+
+const readOptions = (
 	context: CliContext
-): Promise<BoilerplateOptions> => {
+): Omit<BoilerplateOptions, 'framework'> => {
 	const { flags, commandArgs } = context;
 	const mode = flags.mode ?? commandArgs[0];
 	if (mode !== 'offline' && mode !== 'hosted') {
@@ -136,11 +154,7 @@ const readOptions = async (
 			details: 'The positional mode conflicts with --mode.',
 		});
 	}
-	if ((flags.plan || flags['dry-run']) && flags.apply) {
-		throw new CliError('FLAG_INVALID', {
-			details: '--apply cannot be combined with --plan or --dry-run.',
-		});
-	}
+	validateWriteFlags(flags);
 	for (const flag of [
 		'env',
 		'proxy',
@@ -149,7 +163,6 @@ const readOptions = async (
 		'ui-style',
 		'theme',
 		'project',
-		'resume',
 		'debug',
 	]) {
 		if (flags[flag]) {
@@ -175,9 +188,13 @@ const readOptions = async (
 			details: `Unknown script. Choose: ${Object.keys(SCRIPT_SNIPPETS).join(', ')}.`,
 		});
 	}
+	if (typeof flags.framework === 'string' && !isFramework(flags.framework)) {
+		throw new CliError('FLAG_INVALID', {
+			details: `Unknown framework "${flags.framework}". Choose: ${boilerplateFrameworks.join(', ')}.`,
+		});
+	}
 	return {
 		backendURL,
-		framework: await resolveFramework(context),
 		mode,
 		scripts,
 	};
@@ -252,13 +269,12 @@ const checkOutputPath = async (root: string, target: string): Promise<void> => {
 
 /** Plans or creates standalone integration files; never installs registry packages. */
 export const generateBoilerplate = async (context: CliContext) => {
-	const options = await readOptions(context);
+	const inputOptions = readOptions(context);
 	await checkOutputPath(
 		context.projectRoot,
 		path.join(context.projectRoot, 'package.json')
 	);
 	await fs.access(path.join(context.projectRoot, 'package.json'));
-	await recoverGeneration(context.projectRoot, false);
 	const output = path.resolve(
 		context.projectRoot,
 		typeof context.flags.output === 'string'
@@ -266,6 +282,18 @@ export const generateBoilerplate = async (context: CliContext) => {
 			: 'src/consent'
 	);
 	await checkOutputPath(context.projectRoot, output);
+	const recovered = await recoverGeneration(
+		context.projectRoot,
+		context.flags.resume === true
+	);
+	const options: BoilerplateOptions = {
+		...inputOptions,
+		framework: await resolveFramework(
+			recovered
+				? { ...context, framework: await detectFramework(context.projectRoot) }
+				: context
+		),
+	};
 	const template = await generateBoilerplateTemplate(options);
 	const dependencyPlan = await planBoilerplateDependencies({
 		dependencies: template.dependencies,
