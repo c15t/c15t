@@ -121,16 +121,21 @@ const toInlineJson = function toInlineJson(value: unknown): string {
  *
  * @param requestURL - The absolute request URL.
  * @param routePath - The path the route is registered on.
+ * @param basePath - Configured public mount path, before router dispatch strips it.
  * @returns The origin plus any mount prefix, without a trailing slash.
  */
 export const deriveBackendURL = function deriveBackendURL(
 	requestURL: string,
-	routePath: string
+	routePath: string,
+	basePath?: string
 ): string {
 	const url = new URL(requestURL);
-	const pathname = url.pathname.endsWith(routePath)
-		? url.pathname.slice(0, -routePath.length)
-		: url.pathname;
+	// c15tInstance strips this prefix before the request reaches Hono.
+	const pathname =
+		basePath ||
+		(url.pathname.endsWith(routePath)
+			? url.pathname.slice(0, -routePath.length)
+			: url.pathname);
 	return `${url.origin}${pathname}`.replace(/\/+$/u, '');
 };
 

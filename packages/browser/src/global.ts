@@ -180,6 +180,7 @@ export const createGlobal = function createGlobal(
 	// Replaced on dispose, so `ready()` and `on()` after a re-init wait for
 	// the new client instead of answering from the disposed one.
 	let clientReady = createDeferred<ConsentClient>();
+	const pendingListeners = new Set<(created: ConsentClient) => void>();
 	const queuedConfig: ConsentClientOptions[] = [];
 
 	const require = function require(): ConsentClient {
@@ -220,6 +221,7 @@ export const createGlobal = function createGlobal(
 			// manifests and URLs that are not present on the script tag.
 			client = null;
 			clientReady = createDeferred<ConsentClient>();
+			pendingListeners.clear();
 		},
 		getSnapshot: () => require().getSnapshot(),
 		has: (condition) => require().has(condition),
@@ -236,6 +238,10 @@ export const createGlobal = function createGlobal(
 			// A synchronous ready listener can dispose and replace the deferred.
 			const initializingClientReady = clientReady;
 			client = created;
+			for (const attach of pendingListeners) {
+				attach(created);
+			}
+			pendingListeners.clear();
 			created.start();
 			initializingClientReady.resolve(created);
 			return created;
@@ -247,17 +253,16 @@ export const createGlobal = function createGlobal(
 		mountUI: (options) => require().mountUI(options),
 		offline,
 		on(event, listener) {
+			if (client) {
+				return client.on(event, listener);
+			}
 			let unsubscribe: Unsubscribe | null = null;
-			let cancelled = false;
-			const attach = async function attach(): Promise<void> {
-				const resolvedClient = await clientReady.promise;
-				if (!cancelled) {
-					unsubscribe = resolvedClient.on(event, listener);
-				}
+			const attach = function attach(created: ConsentClient): void {
+				unsubscribe = created.on(event, listener);
 			};
-			void attach();
+			pendingListeners.add(attach);
 			return function off() {
-				cancelled = true;
+				pendingListeners.delete(attach);
 				unsubscribe?.();
 			};
 		},

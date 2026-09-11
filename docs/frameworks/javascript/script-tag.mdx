@@ -133,6 +133,8 @@ Queue `config` and `on` before the tag loads. Call action methods after initiali
 </script>
 ```
 
+Queued event listeners attach before the client starts, so consent listeners receive startup events when the client restores saved choices. `on()` returns an unsubscribe function that also works before initialization. Disposal removes the current client's listeners; register new listeners after `dispose()` to observe the next client.
+
 The same events fire on `document` as `c15t:ready`, `c15t:consent`, `c15t:ui`, and `c15t:error`, with the payload in `event.detail`.
 
 ## Headless

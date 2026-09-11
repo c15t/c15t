@@ -49,6 +49,10 @@ core, UI, IAB, and DevTools dependencies. Disabling the routes removes the HTTP
 endpoints; it does not remove those packages from the installation. Bundle files
 load when requested. A missing bundle returns `503`.
 
+With `c15tInstance({ basePath: '/api/c15t', ... })`, a script loaded from
+`/api/c15t/c15t.js` calls `/api/c15t/init` and `/api/c15t/subjects`. You do not
+need to repeat the mount path in `script.backendURL`.
+
 Pass these options under `script` in the second argument to `createApp`:
 
 | Option | Default | Behavior |
@@ -57,7 +61,7 @@ Pass these options under `script` in the second argument to `createApp`:
 | `path` | `/c15t.js` | Path for the ordinary banner and preference UI. |
 | `headlessPath` | `/c15t.headless.js` | Path for the runtime without UI. |
 | `iabPath` | `/c15t.iab.js` | Path for the optional IAB CMP and preference UI. |
-| `backendURL` | Derived from the request URL | Backend base URL embedded in the bundle. Set it explicitly when a proxy rewrites the public path or origin. |
+| `backendURL` | Derived from the request origin and configured `basePath`, or the request path when `basePath` is omitted | Backend base URL embedded in the bundle. Set it explicitly when a proxy rewrites the public path or origin. |
 | `config` | `{}` | Browser defaults embedded in the response. Page-queued configuration overrides these defaults. |
 | `bundles` | Files resolved from `@c15t/browser` | Override filesystem paths by `full`, `headless`, or `iab` key. Requires a runtime with Node filesystem APIs. |
 

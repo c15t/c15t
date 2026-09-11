@@ -242,6 +242,9 @@ export const createConsentClient = function createConsentClient(
 	});
 	const { kernel } = runtime;
 	const gatedScripts = createGatedScriptActivator(() => kernel.getSnapshot());
+	let startingRuntime = false;
+	let drainingRuntimeEvents = false;
+	const pendingRuntimeEvents: (() => void)[] = [];
 
 	const listeners: {
 		[EventName in keyof ConsentClientEventMap]: Set<
@@ -253,33 +256,45 @@ export const createConsentClient = function createConsentClient(
 		ready: new Set(),
 		ui: new Set(),
 	};
-	const emit = function emit<EventName extends keyof ConsentClientEventMap>(
-		event: EventName,
-		payload: ConsentClientEventMap[EventName]
-	): void {
+	const dispatch = function dispatch<
+		EventName extends keyof ConsentClientEventMap,
+	>(event: EventName, payload: ConsentClientEventMap[EventName]): void {
 		for (const listener of listeners[event]) {
 			listener(payload);
 		}
 		dispatchDocumentEvent(event, payload);
 	};
+	const emit = function emit<EventName extends keyof ConsentClientEventMap>(
+		event: EventName,
+		payload: ConsentClientEventMap[EventName]
+	): void {
+		if (startingRuntime || drainingRuntimeEvents) {
+			pendingRuntimeEvents.push(() => dispatch(event, payload));
+			return;
+		}
+		dispatch(event, payload);
+	};
 
 	const ready = createDeferred<ConsentSnapshot>();
 	let readySnapshot: ConsentSnapshot | null = null;
-	let startingRuntime = false;
-	let pendingReadySnapshot: ConsentSnapshot | null = null;
-	const markReady = function markReady(snapshot: ConsentSnapshot): void {
+	const completeReady = function completeReady(
+		snapshot: ConsentSnapshot
+	): void {
 		if (readySnapshot) {
-			return;
-		}
-		if (startingRuntime) {
-			// A ready listener may dispose the client. Let the runtime finish
-			// registering its own resources before notifying browser listeners.
-			pendingReadySnapshot ??= snapshot;
 			return;
 		}
 		readySnapshot = snapshot;
 		ready.resolve(snapshot);
-		emit('ready', snapshot);
+		dispatch('ready', snapshot);
+	};
+	const markReady = function markReady(snapshot: ConsentSnapshot): void {
+		if (startingRuntime || drainingRuntimeEvents) {
+			// A ready listener may dispose the client. Let the runtime finish
+			// registering its own resources before notifying browser listeners.
+			pendingRuntimeEvents.push(() => completeReady(snapshot));
+			return;
+		}
+		completeReady(snapshot);
 	};
 
 	let ui: ConsentUIHandle | null = null;
@@ -308,7 +323,7 @@ export const createConsentClient = function createConsentClient(
 			) {
 				lastConsents = snapshot.effectivePermissions;
 				lastHasConsented = snapshot.explicitChoice;
-				if (started) {
+				if (started && !startingRuntime) {
 					gatedScripts.scan();
 				}
 				emit('consent', snapshot);
@@ -556,10 +571,18 @@ export const createConsentClient = function createConsentClient(
 			} finally {
 				startingRuntime = false;
 			}
-			const pendingReady = pendingReadySnapshot;
-			pendingReadySnapshot = null;
-			if (pendingReady && !disposed) {
-				markReady(pendingReady);
+			drainingRuntimeEvents = true;
+			try {
+				// Listener-triggered events follow notifications already queued.
+				for (const notify of pendingRuntimeEvents) {
+					if (disposed) {
+						break;
+					}
+					notify();
+				}
+			} finally {
+				drainingRuntimeEvents = false;
+				pendingRuntimeEvents.length = 0;
 			}
 			if (disposed) {
 				return;

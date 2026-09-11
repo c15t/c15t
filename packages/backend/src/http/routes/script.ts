@@ -61,7 +61,9 @@ export const register = function register({
 				);
 			}
 			const result = await buildScriptResponse({
-				backendURL: script.backendURL ?? deriveBackendURL(c.req.url, path),
+				backendURL:
+					script.backendURL ??
+					deriveBackendURL(c.req.url, path, options.basePath),
 				bundle,
 				cache: options.manifestCache,
 				language: c.req.query('language') ?? null,

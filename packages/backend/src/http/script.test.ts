@@ -8,9 +8,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
+import { c15tInstance } from '../instance';
 import { createApp } from './app';
 import type { AppOptions } from './context';
 import { buildScriptResponse, deriveBackendURL } from './script';
+import type { ScriptOptions } from './script';
 
 const [engine] = ENGINES;
 
@@ -49,6 +51,86 @@ describe('deriveBackendURL', () => {
 			)
 		).toBe('https://x.c15t.dev/api/c15t');
 	});
+});
+
+const mountedRoutes: [string, ScriptOptions][] = [
+	['/c15t.js', {}],
+	['/c15t.headless.js', {}],
+	['/c15t.iab.js', {}],
+	['/assets/privacy.js', { path: '/assets/privacy.js' }],
+	['/assets/runtime.js', { headlessPath: '/assets/runtime.js' }],
+	['/assets/advertising.js', { iabPath: '/assets/advertising.js' }],
+];
+
+describe('mounted script routes through c15tInstance', () => {
+	it.each(mountedRoutes)(
+		'preserves the backend mount for %s',
+		async (path, script) => {
+			const instance = c15tInstance({
+				basePath: '/api/c15t',
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				script,
+			});
+			try {
+				const response = await instance.handler(
+					new Request(
+						`https://consent.example.test/api/c15t${path}?language=en`
+					)
+				);
+				expect(response.status).toBe(200);
+				const [prelude] = (await response.text()).split('\n', 1);
+				expect(prelude).toContain(
+					'"backendURL":"https://consent.example.test/api/c15t"'
+				);
+			} finally {
+				await instance.dispose();
+			}
+		}
+	);
+
+	it.each([
+		['/api/c15t/', '/api/c15t'],
+		['/', ''],
+		['', ''],
+	])('normalizes the configured mount %j', async (basePath, prefix) => {
+		const instance = c15tInstance({
+			basePath,
+			database: { dialect: 'sqlite', filename: ':memory:' },
+		});
+		try {
+			const response = await instance.handler(
+				new Request(`https://consent.example.test${prefix}/c15t.js`)
+			);
+			expect(response.status).toBe(200);
+			const [prelude] = (await response.text()).split('\n', 1);
+			expect(prelude).toContain(
+				`"backendURL":"https://consent.example.test${prefix}"`
+			);
+		} finally {
+			await instance.dispose();
+		}
+	});
+
+	it.each(['https://api.example.test/consent', ''])(
+		'preserves an explicit backend URL %j instead of inferring the mount',
+		async (backendURL) => {
+			const instance = c15tInstance({
+				basePath: '/api/c15t',
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				script: { backendURL },
+			});
+			try {
+				const response = await instance.handler(
+					new Request('https://consent.example.test/api/c15t/c15t.js')
+				);
+				expect(response.status).toBe(200);
+				const [prelude] = (await response.text()).split('\n', 1);
+				expect(prelude).toContain(`"backendURL":${JSON.stringify(backendURL)}`);
+			} finally {
+				await instance.dispose();
+			}
+		}
+	);
 });
 
 describe(`GET /c15t.js (${engine.name})`, () => {
