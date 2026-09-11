@@ -18,7 +18,7 @@ import type { ExpandedTheme, UIStyle } from '../prompts';
 import { updateNextLayout } from './next';
 import { createConsentManagerComponent } from './shared/create-component-files';
 import { getSourceDirectory } from './shared/directory';
-import { writeFile } from './shared/file-plan';
+import { resolvePlannedPath, writeFile } from './shared/file-plan';
 import { getLayoutExpressions } from './shared/layout-target';
 import {
 	addConsentManagerImport,
@@ -129,6 +129,8 @@ async function updateGenericReactLayout({
 	let layoutFile: SourceFile | undefined;
 
 	for (const pattern of layoutPatterns) {
+		// oxlint-disable-next-line no-await-in-loop -- Validate each candidate before the parser reads it.
+		await resolvePlannedPath(`${projectRoot}/${pattern}`);
 		try {
 			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
 			if (files.length > 0) {

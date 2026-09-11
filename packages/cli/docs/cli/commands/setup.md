@@ -41,7 +41,7 @@ Explicit-input setup uses prebuilt UI, no theme preset, no scripts, and no optio
 
 The generation plan contains each file's original and proposed text. Application checks that the original text still matches before writing. If applying the file plan fails, it restores applied edits and reports any recovery failure. Recovery refuses to overwrite edits made by another process after generation.
 
-Setup and recovery allow symlinks whose targets stay inside the project. Dangling links and links outside the project are rejected before saving the recovery record or applying changes.
+Setup and recovery allow symlinks whose targets stay inside the project. Planning rejects dangling links and links outside the project before reading file contents. Apply and recovery validate paths again before writing.
 
 Dependency installation is a separate operation. Review the result and any package-manager error before retrying. The file plan is not a transaction over your package manager's cache, lockfile, or install scripts.
 

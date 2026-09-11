@@ -1,8 +1,11 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 
-import { writeFile } from '../generate/templates/shared/file-plan';
+import {
+	readFile,
+	resolvePlannedPath,
+	writeFile,
+} from '../generate/templates/shared/file-plan';
 
 const CSS_ENTRYPOINT_CANDIDATES = [
 	'app/globals.css',
@@ -327,6 +330,7 @@ const resolveCssEntrypoint = async function resolveCssEntrypoint({
 
 	if (entrypointPath) {
 		const resolvedEntrypointPath = normalizePath(projectRoot, entrypointPath);
+		await resolvePlannedPath(resolvedEntrypointPath);
 		if (existsSync(resolvedEntrypointPath)) {
 			const entrypointContent = await readFile(resolvedEntrypointPath, 'utf-8');
 			for (const match of entrypointContent.matchAll(LOCAL_CSS_IMPORT_RE)) {
@@ -341,6 +345,8 @@ const resolveCssEntrypoint = async function resolveCssEntrypoint({
 					moduleSpecifier
 				);
 				searchedPaths.push(candidatePath);
+				// oxlint-disable-next-line no-await-in-loop -- Check each candidate before following it.
+				await resolvePlannedPath(candidatePath);
 				if (existsSync(candidatePath)) {
 					return {
 						filePath: candidatePath,
@@ -354,6 +360,8 @@ const resolveCssEntrypoint = async function resolveCssEntrypoint({
 	for (const candidate of CSS_ENTRYPOINT_CANDIDATES) {
 		const candidatePath = join(projectRoot, candidate);
 		searchedPaths.push(candidatePath);
+		// oxlint-disable-next-line no-await-in-loop -- Check each candidate before following it.
+		await resolvePlannedPath(candidatePath);
 		if (existsSync(candidatePath)) {
 			return {
 				filePath: candidatePath,

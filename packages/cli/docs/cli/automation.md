@@ -70,4 +70,4 @@ For v3, source code and installed documentation determine the migration work. Th
 
 `skills` delegates to an external interactive installer and does not support JSON output. Use installed bundled docs directly when building unattended automation.
 
-Environment-file edits in setup results contain only `path`, `operation` (`create` or `update`), and `redacted: true`. Their original and proposed contents stay out of JSON output. Setup keeps the full contents internally to apply edits and restore files if generation fails.
+Environment-file edits in setup results contain only `path`, `operation` (`create` or `update`), and `redacted: true`. This also applies when either a symlink's name or its target is an environment file. Their original and proposed contents stay out of JSON output. Setup keeps the full contents internally to apply edits and restore files if generation fails.

@@ -1,4 +1,12 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	readdir,
+	rm,
+	symlink,
+	writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -159,6 +167,54 @@ describe('noninteractive setup', () => {
 			redacted: true,
 		});
 		expect(await readdir(context.projectRoot)).toEqual(['package.json']);
+	});
+	it('redacts an internal stylesheet alias to an environment file', async () => {
+		const context = await fixture({ json: true, plan: true });
+		await writeFile(
+			join(context.projectRoot, 'package.json'),
+			'{"dependencies":{"react":"19.2.0"}}'
+		);
+		context.framework = await detectFramework(context.projectRoot);
+		await mkdir(join(context.projectRoot, 'src'));
+		await writeFile(
+			join(context.projectRoot, 'src/App.tsx'),
+			'export default function App() { return <main>Hello</main>; }'
+		);
+		const envPath = join(context.projectRoot, '.env.local');
+		const stylesheetPath = join(context.projectRoot, 'src/index.css');
+		const secret = 'PRIVATE_KEY=aliased-environment-secret\n';
+		await writeFile(envPath, secret);
+		await symlink('../.env.local', stylesheetPath);
+		const result = await run(context);
+		expect(JSON.stringify(result)).not.toContain('aliased-environment-secret');
+		expect(result.edits).toContainEqual({
+			operation: 'update',
+			path: stylesheetPath,
+			redacted: true,
+		});
+		expect(await readFile(envPath, 'utf8')).toBe(secret);
+	});
+	it('redacts an environment file even when its link target has another name', async () => {
+		const context = await fixture({
+			'backend-url': 'https://consent.example.com',
+			env: true,
+			json: true,
+			plan: true,
+		});
+		context.commandArgs = ['hosted'];
+		const target = join(context.projectRoot, 'local-settings');
+		const envPath = join(context.projectRoot, '.env.local');
+		const secret = 'PRIVATE_KEY=environment-target-secret\n';
+		await writeFile(target, secret);
+		await symlink('local-settings', envPath);
+		const result = await run(context);
+		expect(JSON.stringify(result)).not.toContain('environment-target-secret');
+		expect(result.edits).toContainEqual({
+			operation: 'update',
+			path: envPath,
+			redacted: true,
+		});
+		expect(await readFile(target, 'utf8')).toBe(secret);
 	});
 	it('restores generated files when dependency installation fails', async () => {
 		install.mockRejectedValueOnce(new Error('installation failed'));

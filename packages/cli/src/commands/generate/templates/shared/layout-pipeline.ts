@@ -8,7 +8,7 @@ import { Project } from 'ts-morph';
 import type { SourceFile } from 'ts-morph';
 
 import { getFrameworkDirectory } from './directory';
-import { writeFile } from './file-plan';
+import { resolvePlannedPath, writeFile } from './file-plan';
 import { getLayoutExpressions } from './layout-target';
 import {
 	addConsentManagerImport,
@@ -79,6 +79,7 @@ export const runLayoutUpdatePipeline = async function runLayoutUpdatePipeline(
 
 	if (knownFilePath) {
 		// Use exact path — avoids glob interpretation of brackets like [locale]
+		await resolvePlannedPath(knownFilePath);
 		try {
 			layoutFile = project.addSourceFileAtPath(knownFilePath);
 		} catch {
@@ -86,6 +87,8 @@ export const runLayoutUpdatePipeline = async function runLayoutUpdatePipeline(
 		}
 	} else {
 		for (const pattern of filePatterns) {
+			// oxlint-disable-next-line no-await-in-loop -- Validate each candidate before the parser reads it.
+			await resolvePlannedPath(`${projectRoot}/${pattern}`);
 			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
 			if (files.length > 0) {
 				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.

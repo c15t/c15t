@@ -213,15 +213,23 @@ const validateFrameworkOptions = async (
 };
 
 // Keep rollback contents private while exposing reviewable edit metadata.
-const describeEdits = (edits: FileEdit[]) =>
-	edits.map((edit) =>
-		/^\.env(?:\.|$)/u.test(path.basename(edit.path))
-			? {
-					operation: edit.before === null ? 'create' : 'update',
-					path: edit.path,
-					redacted: true,
-				}
-			: edit
+const describeEdits = async (edits: FileEdit[]) =>
+	await Promise.all(
+		edits.map(async (edit) => {
+			const isEnvironmentFile = (filePath: string) =>
+				/^\.env(?:\.|$)/u.test(path.basename(filePath));
+			let sensitive = isEnvironmentFile(edit.path);
+			if (!sensitive && edit.before !== null) {
+				sensitive = isEnvironmentFile(await fs.realpath(edit.path));
+			}
+			return sensitive
+				? {
+						operation: edit.before === null ? 'create' : 'update',
+						path: edit.path,
+						redacted: true,
+					}
+				: edit;
+		})
 	);
 
 const applySetup = async (
@@ -330,7 +338,7 @@ export const generateWithoutPrompts = async (
 	return {
 		applied: apply,
 		dependencies: missingDependencies,
-		edits: describeEdits(plan.edits),
+		edits: await describeEdits(plan.edits),
 		framework: framework.framework,
 		installSkipped: !apply || flags['skip-install'] === true,
 		mode,

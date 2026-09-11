@@ -20,11 +20,13 @@ import { updateReactLayout } from '../../templates/layout';
 import { updateNextConfig } from '../../templates/next-config';
 import fs, {
 	createFile,
+	readFile,
 	writeFile,
 	collectFileEdits,
 	applyFileEdits,
 } from '../../templates/shared/file-plan';
 import type { FileEdit } from '../../templates/shared/file-plan';
+import { createProjectPathResolver } from '../../templates/shared/project-paths';
 import type { BaseOptions } from '../types';
 
 export type GenerateMode =
@@ -290,7 +292,7 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 		]);
 
 		if (envExists) {
-			const currentEnvContent = await fs.readFile(envPath, 'utf-8');
+			const currentEnvContent = await readFile(envPath, 'utf-8');
 			if (!currentEnvContent.includes(envVarName)) {
 				await fs.appendFile(envPath, envContent);
 			}
@@ -299,7 +301,7 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 		}
 
 		if (envExampleExists) {
-			const currentExampleContent = await fs.readFile(envExamplePath, 'utf-8');
+			const currentExampleContent = await readFile(envExamplePath, 'utf-8');
 			if (!currentExampleContent.includes(envVarName)) {
 				await fs.appendFile(envExamplePath, envExampleContent);
 			}
@@ -472,14 +474,18 @@ const generateFilesContent = async function generateFilesContent({
 export const planGenerateFiles = async function planGenerateFiles(
 	options: GenerateFilesOptions
 ): Promise<GenerateFilesResult & { edits: FileEdit[] }> {
-	const { result, edits } = await collectFileEdits(() =>
-		generateFilesContent(options)
+	const resolvePath = await createProjectPathResolver(
+		options.context.projectRoot
 	);
 	const manifest = JSON.parse(
-		await fs.readFile(
-			path.join(options.context.projectRoot, 'package.json'),
+		await readFile(
+			await resolvePath(path.join(options.context.projectRoot, 'package.json')),
 			'utf-8'
 		)
+	);
+	const { result, edits } = await collectFileEdits(
+		() => generateFilesContent(options),
+		{ projectRoot: options.context.projectRoot }
 	);
 	const dependencies = {
 		...manifest.dependencies,

@@ -3,6 +3,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { createProjectPathResolver } from './project-paths';
+
 /** A proposed UTF-8 file edit, including the original contents for rollback. */
 export interface FileEdit {
 	path: string;
@@ -11,12 +13,23 @@ export interface FileEdit {
 }
 
 const currentPlan = new AsyncLocalStorage<Map<string, FileEdit>>();
+const plannedPaths = new AsyncLocalStorage<(file: string) => Promise<string>>();
+
+/** Validate a setup input before an external parser opens its contents. */
+export const resolvePlannedPath = (file: string): Promise<string> =>
+	plannedPaths.getStore()?.(file) ?? Promise.resolve(path.resolve(file));
+
+/** Read only a project-contained file while collecting a setup plan. */
+export const readFile = async (
+	file: string,
+	encoding: 'utf8' | 'utf-8'
+): Promise<string> => fs.readFile(await resolvePlannedPath(file), encoding);
 
 const readExisting = async function readExisting(
 	filePath: string
 ): Promise<string | null> {
 	try {
-		return await fs.readFile(filePath, 'utf-8');
+		return await readFile(filePath, 'utf-8');
 	} catch (error) {
 		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
 			return null;
@@ -77,10 +90,17 @@ const mkdir = async function mkdir(
 
 /** Collects all file writes without changing the project. */
 export const collectFileEdits = async function collectFileEdits<Result>(
-	generate: () => Promise<Result>
+	generate: () => Promise<Result>,
+	options: { projectRoot?: string } = {}
 ): Promise<{ result: Result; edits: FileEdit[] }> {
 	const edits = new Map<string, FileEdit>();
-	const result = await currentPlan.run(edits, generate);
+	const collect = () => currentPlan.run(edits, generate);
+	const result = options.projectRoot
+		? await plannedPaths.run(
+				await createProjectPathResolver(options.projectRoot),
+				collect
+			)
+		: await collect();
 	return {
 		edits: [...edits.values()].filter((edit) => edit.before !== edit.after),
 		result,
@@ -160,4 +180,4 @@ export const applyFileEdits = async function applyFileEdits(
 	}
 };
 
-export default { ...fs, appendFile, createFile, mkdir, writeFile };
+export default { ...fs, appendFile, createFile, mkdir, readFile, writeFile };
