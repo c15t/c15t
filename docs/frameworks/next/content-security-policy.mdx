@@ -16,9 +16,13 @@ same value on the request as `x-nonce`. See the
 for the header-generating proxy.
 
 If you also run [`c15tProxy`](/docs/frameworks/next/geography-headers), set
-`x-nonce` on `request.headers` before calling it. `c15tProxy` copies the
-incoming request headers into the forwarded request, so the nonce travels with
-the geography headers.
+both `x-nonce` and the generated `Content-Security-Policy` header on
+`request.headers` before calling it, and set the policy on the returned
+response as well. Next.js reads the nonce for its own bootstrap and page
+scripts from the request-side policy header, so forwarding only `x-nonce`
+leaves the framework scripts without a nonce and the browser blocks hydration.
+`c15tProxy` copies the incoming request headers into the forwarded request, so
+both headers travel with the geography headers.
 
 Add a `nonce` prop to the `Consent` wrapper from the
 [App Router guide](/docs/frameworks/next/app-router):
@@ -92,8 +96,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 ```
 
 Reading `headers()` keeps the route dynamic, which a per-request nonce requires
-anyway. The `Suspense` boundary is required with `cacheComponents: true`; see
-[what server prefetch costs](/docs/frameworks/next/app-router#what-server-prefetch-costs).
+anyway. Do not combine a nonce-based policy with `cacheComponents: true`
+(Partial Prerendering): the static shell is rendered once at build time, so its
+scripts cannot carry a per-request nonce and the browser blocks them. Next.js
+documents this limitation in its CSP guide. Use a hash-based or host-based
+`script-src` for the shell, or keep the route fully dynamic.
 
 `options.nonce` is read when the boundary mounts. The provider keeps the latest
 value in a ref, but the script loader is created once per runtime, so a nonce
@@ -119,9 +126,13 @@ It does not apply to anything else:
 - The prebuilt stylesheet `c15t/next/styles.css` is a regular stylesheet from
   your own origin. It is covered by `style-src 'self'`, not by the nonce.
 - Inline `style` attributes on rendered components. A nonce cannot authorize
-  style attributes; only `'unsafe-inline'` or `'unsafe-hashes'` in `style-src`
-  can. The IAB TCF dialog, the consent dialog trigger toolbar and the animated
-  collapse used inside the dialogs render inline `style` attributes. Check the
+  style attributes, and browsers ignore `'unsafe-inline'` in a `style-src` list
+  that also contains a nonce or hash. Allow them with a separate
+  `style-src-attr 'unsafe-inline'` directive, or with `'unsafe-hashes'` plus
+  the matching `'sha256-...'` values; hashes only work for static values, not
+  for the animated collapse heights. The IAB TCF dialog, the consent dialog
+  trigger toolbar and the animated collapse used inside the dialogs render
+  inline `style` attributes. Check the
   browser console with your policy enforced to see whether your setup triggers
   a `style-src` violation.
 - Iframes, images or requests made by vendor scripts. Allow those hosts in

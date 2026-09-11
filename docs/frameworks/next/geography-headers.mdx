@@ -87,8 +87,10 @@ exported as `C15tMiddlewareOptions` and `C15tProxyOptions` respectively.
 
 Pass `cookie: true` to also write the resolved location into cookies. Use this
 on runtimes where the forwarded request headers do not reach React Server
-Components, so that your own server code can still read the location on the
-same and later requests:
+Components, so that your own server code can read the location on later
+requests. The proxy writes the cookie on the response, and `cookies()` reads
+the incoming request, so the first visit still resolves as unknown and the
+first request after a location change still sees the previous value:
 
 ```ts title="proxy.ts"
 import { c15tProxy } from 'c15t/next/proxy';
@@ -123,18 +125,21 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+async function ResolvedConsent({ children }: { children: ReactNode }) {
   const country = (await cookies()).get('c15t-country')?.value;
-  const initialConsent = prefetchInitialConsent({ config: consentConfig, country });
-  // render <Consent config={initialConsent}> as in the App Router guide
+  const initialConsent = await prefetchInitialConsent({
+    config: consentConfig,
+    country,
+  });
+  return <Consent config={initialConsent}>{children}</Consent>;
 }
 ```
 
-Awaiting `cookies()` makes the layout async. With `cacheComponents: true`,
-move this into the Suspense-wrapped async component from
-[server rendering](/docs/frameworks/next/server-side#await-consent-inside-suspense)
-instead of the root layout.
+This is the `ResolvedConsent` component from the
+[App Router guide](/docs/frameworks/next/app-router); keep it inside the
+`Suspense` boundary shown there.
 
 `prefetchInitialConsent` accepts `country` and `language` overrides. It has no
 `region` override in the current API, so the region cookie is available only to
@@ -158,9 +163,13 @@ absent. The proxy writes the normalized result to `sec-gpc`, so an incoming
 let scripts set `Sec-*` request headers, which is why the `x-c15t-gpc` override
 exists for the browser's own init request.
 
-Only trusted infrastructure should set `x-c15t-country`, `x-c15t-region` or
-`x-c15t-gpc` in production: because they always win, a client that can reach
-your origin directly could otherwise choose its own policy.
+Only trusted infrastructure may set `x-c15t-country`, `x-c15t-region` or
+`x-c15t-gpc` in production, because they always win. A client that can reach
+your origin directly can send them and choose its own policy rule, so one of
+these controls is required, not optional: strip incoming `x-c15t-*` headers at
+the edge that terminates all traffic before anything sets them, or block direct
+origin access with a firewall or platform origin protection so every request
+passes through that edge. `c15tProxy` does not strip them itself.
 
 ## Verify
 
