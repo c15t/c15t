@@ -144,7 +144,9 @@ test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 		close(outage);
 		const outageChoice = outage.kernel.getSnapshot().explicitChoice;
 		expect(outageChoice?.categories.measurement?.value).toBe(false);
-		/* oxlint-disable vitest/no-conditional-expect -- Only the variants that saved before the outage have stored records to compare against. */
+		// Only the variants that saved before the outage have stored records to
+		// compare against.
+		/* oxlint-disable vitest/no-conditional-expect */
 		if (recovery !== 'offline-rejection') {
 			expect(outageChoice).toEqual(savedChoice);
 			expect(localStorage.getItem('c15t')).toBe(savedLocal);
@@ -160,7 +162,8 @@ test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 			policy = matchedResolution(
 				optOutRule({ categories: ['measurement'], scopeMode: 'strict' })
 			);
-			/* oxlint-disable-next-line vitest/no-conditional-expect -- The changed-policy variant must actually change the choice fingerprint. */
+			// The changed-policy variant must actually change the choice fingerprint.
+			/* oxlint-disable-next-line vitest/no-conditional-expect */
 			expect(policy.fingerprints.choice).not.toBe(
 				originalPolicy.fingerprints.choice
 			);
