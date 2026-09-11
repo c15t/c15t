@@ -45,10 +45,12 @@ export function CookiePreferences() {
 ```
 
 The page stays a Server Component; only the widget file needs
-`'use client'`. Because the boundary receives the visitor's prepared state
-from `prefetchInitialConsent`, the widget is part of the server HTML with
-the visitor's recorded choices applied, unlike `ConsentDialog`, which mounts
-after hydration. The widget uses the boundary's policy, translations and
+`'use client'`. On routes where the boundary receives the visitor's prepared
+state from an awaited `prefetchInitialConsent` (the App Router layout, or a
+Pages Router page with `getServerSideProps`), the widget is part of the server
+HTML with the visitor's recorded choices applied, unlike `ConsentDialog`,
+which mounts after hydration. On a static or otherwise non-prefetched route the
+widget renders after the browser resolves policy. The widget uses the boundary's policy, translations and
 transport; it does not need a second provider, and it does not open or close
 the banner or dialog by itself.
 
