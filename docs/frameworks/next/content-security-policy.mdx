@@ -99,8 +99,11 @@ Reading `headers()` keeps the route dynamic, which a per-request nonce requires
 anyway. Do not combine a nonce-based policy with `cacheComponents: true`
 (Partial Prerendering): the static shell is rendered once at build time, so its
 scripts cannot carry a per-request nonce and the browser blocks them. Next.js
-documents this limitation in its CSP guide. Use a hash-based or host-based
-`script-src` for the shell, or keep the route fully dynamic.
+documents this limitation in its CSP guide. For a prerendered shell use the
+hash-based policy that guide describes; a host-only `script-src` such as
+`'self'` does not authorize Next.js's inline bootstrap scripts and would need
+`'unsafe-inline'`, which defeats the policy. Otherwise keep the route fully
+dynamic and use the nonce.
 
 `options.nonce` is read when the boundary mounts. The provider keeps the latest
 value in a ref, but the script loader is created once per runtime, so a nonce

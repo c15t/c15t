@@ -148,11 +148,14 @@ your own code.
 The cookie comes back in the client-controlled `Cookie` header. `HttpOnly`
 stops page scripts from reading it; it does not stop a visitor from sending
 `c15t-country=<value>` and, through the `country` override, choosing a less
-restrictive rule for themselves. Use this fallback only when the edge that
-terminates all traffic strips incoming `c15t-country` and `c15t-region`
-cookies before `c15tProxy` sets them, exactly as it must strip the `x-c15t-*`
-override headers. Where you cannot enforce that, do not pass the cookie as
-`country`; keep it for non-policy code such as display defaults.
+restrictive rule for themselves. Deleting the incoming cookie is not an
+option here, because `cookies()` reads that same request and `c15tProxy` only
+sets the cookie on the response. Use this fallback only when the edge that
+terminates all traffic overwrites the incoming `c15t-country` and
+`c15t-region` cookies with its own trusted geography on every request, or
+when your code signs the value and verifies the signature before passing it
+as `country`. Where you can do neither, keep the cookie out of policy
+resolution and use it only for non-policy code such as display defaults.
 
 ## Which headers are read?
 
