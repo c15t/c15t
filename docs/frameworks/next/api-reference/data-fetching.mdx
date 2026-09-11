@@ -123,9 +123,9 @@ replaces only the `request` adapter.
 | `backendURL` | `config.backendURL` | Backend base URL. Required unless `config` supplies it; an explicit value overrides `config.backendURL`. Without a manifest source, server prefetch calls `${backendURL}/init`. |
 | `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. `initURL` is not read. |
 | `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. |
-| `manifest` | none | Inline manifest object. Takes precedence over `manifestURL`; the request makes no manifest or backend call. |
+| `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Use it to wrap the call in Next.js fetch caching. |
-| `forwardHeaders` | `[]` | Request header names copied onto the outgoing call in addition to `x-forwarded-for` and `user-agent`. Headers absent from the request are skipped. |
+| `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
 | `onError` | none | Receives the failure from the backend or manifest request. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
 | `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
 | `cookieName` | `c15t` | Cookie holding persisted consent. Must match the client `storageConfig.storageKey`. |
@@ -133,19 +133,27 @@ replaces only the `request` adapter.
 | `language` | header detection | Overrides the language read from `accept-language`. |
 | `request` | `next/headers` | Request context adapter with `cookies()` and `headers()`. The default only works in the App Router. |
 
-`prefetchInitialConsent` throws only when neither `backendURL` nor `config` is
-given. Every other failure returns the baseline config that
-`readInitialConsentConfig` produces: stored records, geography, language and
-GPC from the request, without resolved policy. The page still renders and the
-browser initializes consent on mount. Non-2xx responses from backend `/init`
-are failures too, so a `500` renders the baseline rather than throwing.
+`prefetchInitialConsent` throws when neither `backendURL` nor `config` is
+given, when the request adapter's `headers()` or `cookies()` rejects (the
+default adapter rejects outside a request scope), and when your `onError`
+callback throws. URL resolution, network and policy resolution failures are
+handled: they return the baseline config that `readInitialConsentConfig`
+produces, with stored records, geography, language and GPC from the request
+but no resolved policy. The page still renders and the browser initializes
+consent on mount. Non-2xx responses from backend `/init` are failures too, so
+a `500` renders the baseline rather than throwing.
 
 Absolute `http(s)` URLs are used as given. A `/`-relative `backendURL` or
 `manifestURL` is resolved from the request: the scheme comes from
 `x-forwarded-proto` and defaults to `https`; the host comes from
 `x-forwarded-host`, then `host`, then the `referer` host. When no host is available, server prefetch reports the error
-and returns the baseline config. Make sure those headers reach the Next.js
-server behind a proxy, or pass absolute URLs.
+and returns the baseline config. Those headers decide where the server sends
+the request, so behind a proxy the edge must overwrite `x-forwarded-host` and
+`x-forwarded-proto` rather than pass client values through; otherwise a client
+can point server prefetch at a host of its choosing. When you cannot guarantee
+that, use absolute URLs. Use `https` for any production `backendURL`: the
+`/init` call forwards the visitor's cookies, which plain HTTP exposes on the
+path; keep `http` for local development only.
 
 Forwarded headers differ by path. The backend `/init` call carries the
 request cookies, `x-forwarded-for`, `user-agent`, any `forwardHeaders`, and
@@ -156,10 +164,14 @@ cookies, client IP or user agent, because the manifest is public policy data.
 Cookies are still read locally on both paths to restore records.
 
 An inline `manifest` is never refreshed. The manifest transport returns the
-object as given and does not fetch, so the snapshot is the source of truth for
-that request rather than a cache seed. A stale snapshot resolves stale policy
-until the application ships a new one. `backendURL` is still required because
-choices post to `${backendURL}/subjects`.
+object as given instead of fetching it, so the snapshot is the source of truth
+for that request rather than a cache seed. A stale snapshot resolves stale
+policy until the application ships a new one. One request can still happen:
+when the inline manifest has `iab.enabled: true` with an `iab.gvl` reference
+and the matched rule uses the `iab` model, the transport fetches the Global
+Vendor List with the `fetch` option, and a blocked network there also falls
+back to the baseline. `backendURL` is still required because choices post to
+`${backendURL}/subjects`.
 
 `onError` replaces the default logging entirely. Without it, production
 deployments render the baseline silently; pass `onError` to report failures to
@@ -236,10 +248,11 @@ An explicit option wins over its environment variable, and a manifest URL from
 either source wins over `backendURL`. URLs are resolved per request, so a
 missing or invalid value fails the request rather than the build: with neither
 `backendURL` nor `manifestURL` configured the handler throws
-`configure C15T_BACKEND_URL or C15T_MANIFEST_URL`. A `/`-relative value is
-resolved against the incoming request's host and forwarded headers, which
-points the handler at your own app. Keep upstream URLs absolute so the
-manifest route does not fetch itself.
+`@c15t/nextjs/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.`. A
+`/`-relative value is resolved against the incoming request's host and
+forwarded headers, which points the handler at your own app and lets a client
+that controls `x-forwarded-host` choose the upstream. Keep upstream URLs
+absolute so the manifest route neither fetches itself nor an attacker's host.
 
 Passing a `defineConsentConfig` result uses only its `backendURL`. Its
 `manifestURL` and `initURL` name the routes these handlers serve, so
@@ -260,8 +273,10 @@ with `reason: 'unsupported-contract'` and removes `policySnapshotToken` and
 `public, s-maxage=300, stale-while-revalidate=86400` when the upstream omits
 it, plus `etag` when present and an `age` computed from the in-process cache.
 It adds `content-type: application/json`, `x-c15t-policy-contract: 1` and
-`x-c15t-next-revalidate`, whose value is the upstream `s-maxage` when present
-and otherwise the configured revalidation interval. A `language` query
+`x-c15t-next-revalidate`, whose value is the upstream `s-maxage` when present,
+`300` when the upstream sends no `cache-control` at all (the default header is
+substituted before `s-maxage` is read), and otherwise the configured
+revalidation interval. A `language` query
 parameter on the manifest route is passed to the upstream manifest request.
 
 `fetchGvl` runs inside `GET` only when the manifest has `iab.enabled: true`,
