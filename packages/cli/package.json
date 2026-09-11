@@ -36,7 +36,8 @@
 		"directory": "packages/cli"
 	},
 	"bin": {
-		"cli": "dist/index.mjs"
+		"c15t": "dist/bin.mjs",
+		"cli": "dist/bin.mjs"
 	},
 	"files": [
 		"dist",
@@ -47,11 +48,17 @@
 	"type": "module",
 	"main": "./dist/index.mjs",
 	"types": "./dist-types/index.d.ts",
-	"exports": "./dist/index.mjs",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
 	"publishConfig": {
 		"access": "public",
 		"executableFiles": [
-			"./dist/index.mjs"
+			"./dist/bin.mjs"
 		]
 	},
 	"scripts": {
@@ -62,20 +69,16 @@
 		"fmt": "bun oxfmt .",
 		"knip": "knip",
 		"lint": "bun oxlint ./src",
-		"start": "node ./dist/index.mjs",
+		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@c15t/logger": "workspace:*",
 		"@c15t/scripts": "workspace:*",
 		"@clack/prompts": "1.7.0",
-		"@modelcontextprotocol/sdk": "^1.29.0",
 		"c12": "3.3.3",
-		"dotenv": "17.4.2",
 		"evlog": "^2.19.2",
-		"figlet": "1.11.0",
 		"fs-extra": "11.3.6",
 		"open": "11.0.0",
 		"package-manager-detector": "1.7.0",
@@ -87,7 +90,6 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@types/figlet": "1.7.0",
 		"@types/fs-extra": "11.0.4",
 		"@types/prettier": "^3.0.0",
 		"prettier": "^3.9.4",

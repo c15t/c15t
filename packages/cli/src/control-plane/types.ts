@@ -10,36 +10,10 @@ export interface ControlPlaneClientConfig {
 	baseUrl: string;
 	/** Access token for authentication */
 	accessToken: string;
-	/** Client name */
-	clientName?: string;
-	/** Client version */
-	clientVersion?: string;
 	/** Request timeout in ms */
 	timeout?: number;
-}
-
-/**
- * Control-plane connection state
- */
-export interface ControlPlaneConnectionState {
-	/** Whether connected to the service */
-	connected: boolean;
-	/** Server capabilities */
-	capabilities?: ControlPlaneCapabilities;
-	/** Error if connection failed */
-	error?: string;
-}
-
-/**
- * Control-plane capabilities
- */
-export interface ControlPlaneCapabilities {
-	/** Supported resources */
-	resources?: string[];
-	/** Supported tools */
-	tools?: string[];
-	/** Server version */
-	version?: string;
+	/** Optional caller cancellation. */
+	signal?: AbortSignal;
 }
 
 /**

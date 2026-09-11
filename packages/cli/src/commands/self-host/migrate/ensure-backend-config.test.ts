@@ -131,4 +131,36 @@ describe('ensureBackendConfig', () => {
 		expect(context.error.handleCancel).toHaveBeenCalled();
 		await expect(readGenerated(cwd)).rejects.toThrow();
 	});
+	it('respects an explicit config path', async () => {
+		const cwd = await makeTmpDir('c15t-custom-config');
+		try {
+			const target = path.join(cwd, 'custom.ts');
+			await fs.writeFile(target, 'export default {};');
+			const context = {
+				...createMockContext(cwd),
+				flags: { config: 'custom.ts', plan: true },
+			} as unknown as Parameters<typeof ensureBackendConfig>[0];
+			expect(await ensureBackendConfig(context, prompts)).toEqual({
+				dependencies: [],
+				path: target,
+			});
+			expect(prompts.select).not.toHaveBeenCalled();
+		} finally {
+			await fs.rm(cwd, { force: true, recursive: true });
+		}
+	});
+	it('does not create configuration during a migration plan', async () => {
+		const cwd = await makeTmpDir('c15t-plan-config');
+		try {
+			const context = {
+				...createMockContext(cwd),
+				flags: { plan: true },
+			} as unknown as Parameters<typeof ensureBackendConfig>[0];
+			await expect(ensureBackendConfig(context, prompts)).rejects.toThrow();
+			expect(await fs.readdir(cwd)).toEqual([]);
+			expect(prompts.select).not.toHaveBeenCalled();
+		} finally {
+			await fs.rm(cwd, { force: true, recursive: true });
+		}
+	});
 });

@@ -1,4 +1,3 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import type * as p from '@clack/prompts';
@@ -19,6 +18,13 @@ import {
 } from '../../templates/env';
 import { updateReactLayout } from '../../templates/layout';
 import { updateNextConfig } from '../../templates/next-config';
+import fs, {
+	createFile,
+	writeFile,
+	collectFileEdits,
+	applyFileEdits,
+} from '../../templates/shared/file-plan';
+import type { FileEdit } from '../../templates/shared/file-plan';
 import type { BaseOptions } from '../types';
 
 export type GenerateMode =
@@ -30,6 +36,7 @@ export type GenerateMode =
 
 export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
+	signal?: AbortSignal;
 	mode: GenerateMode;
 	proxyNextjs?: boolean;
 	backendURL?: string;
@@ -42,6 +49,7 @@ export interface GenerateFilesOptions extends BaseOptions {
 }
 
 export interface GenerateFilesResult {
+	edits?: FileEdit[];
 	configContent?: string;
 	configPath?: string | null;
 	layoutUpdated: boolean;
@@ -245,6 +253,7 @@ const handleNextConfig = async function handleNextConfig(options: {
  * @param options - Configuration options for environment file handling
  */
 const handleEnvFiles = async function handleEnvFiles(options: {
+	developmentEnvironment?: CliContext['framework']['developmentEnvironment'];
 	projectRoot: string;
 	backendURL: string;
 	pkg: AvailablePackages;
@@ -257,9 +266,16 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 
 	spinner.start('Creating/updating environment files...');
 
-	const envContent = generateEnvFileContent(backendURL, pkg);
-	const envExampleContent = generateEnvExampleContent(pkg);
-	const envVarName = getEnvVarName(pkg);
+	const envContent = generateEnvFileContent(
+		backendURL,
+		pkg,
+		options.developmentEnvironment
+	);
+	const envExampleContent = generateEnvExampleContent(
+		pkg,
+		options.developmentEnvironment
+	);
+	const envVarName = getEnvVarName(pkg, options.developmentEnvironment);
 
 	try {
 		const [envExists, envExampleExists] = await Promise.all([
@@ -279,7 +295,7 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 				await fs.appendFile(envPath, envContent);
 			}
 		} else {
-			await fs.writeFile(envPath, envContent);
+			await writeFile(envPath, envContent);
 		}
 
 		if (envExampleExists) {
@@ -288,7 +304,7 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 				await fs.appendFile(envExamplePath, envExampleContent);
 			}
 		} else {
-			await fs.writeFile(envExamplePath, envExampleContent);
+			await writeFile(envExamplePath, envExampleContent);
 		}
 
 		spinner.stop(
@@ -314,7 +330,7 @@ const handleEnvFiles = async function handleEnvFiles(options: {
  * @param options - Configuration options for file generation
  * @returns Information about generated/updated files
  */
-export const generateFiles = async function generateFiles({
+const generateFilesContent = async function generateFilesContent({
 	context,
 	mode,
 	spinner,
@@ -327,6 +343,11 @@ export const generateFiles = async function generateFiles({
 	expandedTheme,
 	selectedScripts,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
+	if (context.framework.manualSetupUrl) {
+		throw new Error(
+			`${context.framework.framework} requires manual integration: ${context.framework.manualSetupUrl}`
+		);
+	}
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
 	};
@@ -353,6 +374,11 @@ export const generateFiles = async function generateFiles({
 			uiStyle,
 			useEnvFile,
 		});
+		if (!layoutResult.layoutPath) {
+			throw new Error(
+				`Could not find the application entrypoint. Follow https://c15t.com/docs/frameworks/${pkg === 'c15t/next' ? 'next' : 'react'}/quickstart`
+			);
+		}
 		result.layoutUpdated = layoutResult.layoutUpdated;
 		result.layoutPath = layoutResult.layoutPath;
 	}
@@ -380,13 +406,16 @@ export const generateFiles = async function generateFiles({
 			mode,
 			backendURL,
 			useEnvFile,
-			enableDevTools
+			enableDevTools,
+			context.framework.developmentEnvironment,
+			selectedScripts
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
+		await createFile(result.configPath, result.configContent, 'utf-8');
 		spinner.stop(
 			formatLogMessage(
 				'info',
-				`Client configuration file generated: ${result.configContent}`
+				`Client configuration file generated: ${result.configPath}`
 			)
 		);
 	}
@@ -395,6 +424,7 @@ export const generateFiles = async function generateFiles({
 		await handleEnvFiles({
 			backendURL,
 			cwd: context.cwd,
+			developmentEnvironment: context.framework.developmentEnvironment,
 			pkg,
 			projectRoot,
 			spinner,
@@ -436,4 +466,48 @@ export const generateFiles = async function generateFiles({
 	}
 
 	return result;
+};
+
+/** Produces reviewable file edits without mutating the project. */
+export const planGenerateFiles = async function planGenerateFiles(
+	options: GenerateFilesOptions
+): Promise<GenerateFilesResult & { edits: FileEdit[] }> {
+	const { result, edits } = await collectFileEdits(() =>
+		generateFilesContent(options)
+	);
+	const manifest = JSON.parse(
+		await fs.readFile(
+			path.join(options.context.projectRoot, 'package.json'),
+			'utf-8'
+		)
+	);
+	const dependencies = {
+		...manifest.dependencies,
+		...manifest.devDependencies,
+	};
+	if (!dependencies.c15t) {
+		for (const [umbrella, scoped] of [
+			['c15t/react', '@c15t/react'],
+			['c15t/next', '@c15t/nextjs'],
+		]) {
+			if (!umbrella || !scoped || !dependencies[scoped]) {
+				continue;
+			}
+			for (const edit of edits) {
+				edit.after = edit.after
+					.replaceAll(`'${umbrella}`, `'${scoped}`)
+					.replaceAll(`"${umbrella}`, `"${scoped}`);
+			}
+		}
+	}
+	return { ...result, edits };
+};
+
+/** Generates the files as one transaction, with complete rollback on failure. */
+export const generateFiles = async function generateFiles(
+	options: GenerateFilesOptions
+): Promise<GenerateFilesResult & { edits: FileEdit[] }> {
+	const plan = await planGenerateFiles(options);
+	await applyFileEdits(plan.edits, { signal: options.signal });
+	return plan;
 };

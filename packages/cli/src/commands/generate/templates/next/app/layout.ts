@@ -5,7 +5,6 @@
  * and creates separate consent-manager component files
  */
 
-import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import type { AvailablePackages } from '~/context/framework-detection';
@@ -19,6 +18,7 @@ import {
 	generateExpandedProviderTemplate,
 	generateExpandedThemeTemplate,
 } from '../../shared/expanded-components';
+import fs, { createFile } from '../../shared/file-plan';
 import { NEXTJS_CONFIG } from '../../shared/framework-config';
 import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
 import { generateOptionsText, getBackendURLValue } from '../../shared/options';
@@ -147,6 +147,7 @@ async function createExpandedConsentManagerComponents(
 		enableSSR: boolean;
 		enableDevTools?: boolean;
 		expandedTheme: ExpandedTheme;
+		selectedScripts?: string[];
 	}
 ): Promise<ComponentFilePaths> {
 	const {
@@ -157,6 +158,7 @@ async function createExpandedConsentManagerComponents(
 		enableSSR,
 		enableDevTools,
 		expandedTheme,
+		selectedScripts,
 	} = options;
 
 	// Detect or create components directory
@@ -196,6 +198,7 @@ async function createExpandedConsentManagerComponents(
 		enableSSR,
 		framework: NEXTJS_CONFIG,
 		optionsText,
+		selectedScripts,
 	});
 	const consentBannerContent =
 		generateExpandedConsentBannerTemplate(NEXTJS_CONFIG);
@@ -222,11 +225,11 @@ async function createExpandedConsentManagerComponents(
 	// Create directory and write files
 	await fs.mkdir(consentManagerDirPath, { recursive: true });
 	await Promise.all([
-		fs.writeFile(indexPath, serverComponentContent, 'utf-8'),
-		fs.writeFile(providerPath, providerContent, 'utf-8'),
-		fs.writeFile(consentBannerPath, consentBannerContent, 'utf-8'),
-		fs.writeFile(consentDialogPath, consentDialogContent, 'utf-8'),
-		fs.writeFile(themePath, themeContent, 'utf-8'),
+		createFile(indexPath, serverComponentContent, 'utf-8'),
+		createFile(providerPath, providerContent, 'utf-8'),
+		createFile(consentBannerPath, consentBannerContent, 'utf-8'),
+		createFile(consentDialogPath, consentDialogContent, 'utf-8'),
+		createFile(themePath, themeContent, 'utf-8'),
 	]);
 
 	return {
@@ -331,8 +334,8 @@ async function createPrebuiltConsentManagerComponents(
 	// Create directory and write files
 	await fs.mkdir(consentManagerDirPath, { recursive: true });
 	const writePromises: Promise<void>[] = [
-		fs.writeFile(indexPath, consentManagerContent, 'utf-8'),
-		fs.writeFile(providerPath, consentManagerClientContent, 'utf-8'),
+		createFile(indexPath, consentManagerContent, 'utf-8'),
+		createFile(providerPath, consentManagerClientContent, 'utf-8'),
 	];
 
 	// Generate theme file when a theme is selected
@@ -342,7 +345,7 @@ async function createPrebuiltConsentManagerComponents(
 			NEXTJS_CONFIG
 		);
 		const themePath = path.join(consentManagerDirPath, 'theme.ts');
-		writePromises.push(fs.writeFile(themePath, themeContent, 'utf-8'));
+		writePromises.push(createFile(themePath, themeContent, 'utf-8'));
 	}
 
 	await Promise.all(writePromises);
@@ -404,6 +407,7 @@ export function updateAppLayout({
 					expandedTheme,
 					mode,
 					proxyNextjs,
+					selectedScripts,
 					useEnvFile,
 				});
 			}

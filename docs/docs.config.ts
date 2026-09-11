@@ -173,12 +173,18 @@ const generateDocsConfig = () =>
 				base: 'cli',
 				children: [
 					{
-						pages: ['commands/setup'],
+						pages: [
+							'commands/setup',
+							'commands/boilerplate',
+							'commands/hosted',
+							'commands/self-host',
+							'commands/codemods',
+						],
 
 						title: 'Commands',
 					},
 					{
-						pages: ['global-flags'],
+						pages: ['global-flags', 'automation'],
 
 						title: 'Reference',
 					},

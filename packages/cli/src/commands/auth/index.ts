@@ -1,242 +1,76 @@
-/**
- * Authentication commands (login/logout)
- */
-
-import * as p from '@clack/prompts';
-import open from 'open';
-
-import {
-	clearConfig,
-	formatUserCode,
-	getAuthState,
-	getControlPlaneBaseUrl,
-	getVerificationUrl,
-	initiateDeviceFlow,
-	isLoggedIn,
-	pollForToken,
-	storeTokens,
-} from '../../auth';
-import { color } from '../../core/logger';
+import { clearConfig, getAuthState, getControlPlaneBaseUrl } from '../../auth';
+import { login } from '../../auth/login';
+import type { CliCommand, CliContext } from '../../context/types';
+import { CliError } from '../../core/errors';
 import { TelemetryEventName } from '../../core/telemetry';
-import type { CliCommand, CliContext } from '../../types';
-import { createTaskSpinner } from '../../utils/spinner';
 
-/**
- * Login command
- */
-const loginAction = async function loginAction(
-	context: CliContext
-): Promise<void> {
-	const { logger, telemetry } = context;
-	const baseUrl = getControlPlaneBaseUrl();
-
-	// Check if already logged in
-	const authState = await getAuthState();
-	if (authState.isLoggedIn && !authState.isExpired) {
-		logger.info('You are already logged in');
-		if (authState.config?.email) {
-			logger.message(`Logged in as: ${color.cyan(authState.config.email)}`);
-		}
-
-		const shouldRelogin = await p.confirm({
-			initialValue: false,
-			message: 'Would you like to log in with a different account?',
+const requireNoArguments = (context: CliContext) => {
+	if (context.commandArgs.length) {
+		throw new CliError('FLAG_INVALID', {
+			details: `Unexpected argument: ${context.commandArgs.join(' ')}`,
 		});
-
-		if (p.isCancel(shouldRelogin) || !shouldRelogin) {
-			return;
-		}
 	}
+};
 
-	telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_STARTED);
-
-	logger.message('');
-	logger.message('Starting login flow...');
-
-	const spinner = createTaskSpinner('Requesting device code...');
-	spinner.start();
-
+const loginAction = async (context: CliContext) => {
+	requireNoArguments(context);
+	context.telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_STARTED);
 	try {
-		// Step 1: Get device code
-		const deviceCode = await initiateDeviceFlow(baseUrl);
-		spinner.stop('Device code received');
-
-		const userCode = formatUserCode(deviceCode.user_code);
-		const verificationUrl = getVerificationUrl(deviceCode);
-
-		// Display instructions
-		logger.message('');
-		logger.note(
-			`Your code: ${color.bold(color.cyan(userCode))}\n\n` +
-				`This code will expire in ${Math.floor(deviceCode.expires_in / 60)} minutes.`,
-			'Verification Code'
-		);
-
-		logger.message('');
-		logger.message(
-			`Open this URL to continue: ${color.underline(verificationUrl)}`
-		);
-		logger.message('');
-
-		// Try to open the browser
-		const shouldOpen = await p.confirm({
-			initialValue: true,
-			message: 'Open the verification page in your browser?',
-		});
-
-		if (shouldOpen && !p.isCancel(shouldOpen)) {
-			await open(verificationUrl);
-			logger.info('Browser opened');
-		}
-
-		// Step 2: Poll for token
-		logger.message('');
-		const pollSpinner = createTaskSpinner('Waiting for authorization...');
-		pollSpinner.start();
-
-		const token = await pollForToken(
-			baseUrl,
-			deviceCode.device_code,
-			deviceCode.interval,
-			deviceCode.expires_in
-		);
-
-		pollSpinner.success('Authorization received');
-
-		// Step 3: Store tokens
-		await storeTokens(token.access_token, {
-			expiresIn: token.expires_in,
-			refreshToken: token.refresh_token,
-		});
-
-		telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_SUCCEEDED);
-
-		logger.message('');
-		logger.success('Successfully logged in!');
-		logger.message('');
-		logger.message('You can now:');
-		logger.message(
-			`  ${color.dim('•')} Run ${color.cyan('c15t projects')} to manage your projects`
-		);
-		logger.message(
-			`  ${color.dim('•')} Run ${color.cyan('c15t generate')} to set up c15t in your project`
-		);
+		const result = await login(context);
+		context.telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_SUCCEEDED);
+		context.logger.success('Logged in');
+		return result;
 	} catch (error) {
-		spinner.stop();
-
-		telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_FAILED, {
-			error: error instanceof Error ? error.message : String(error),
-		});
-
+		context.telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_FAILED);
 		throw error;
 	}
 };
 
-/**
- * Logout command
- */
-const logoutAction = async function logoutAction(
-	context: CliContext
-): Promise<void> {
-	const { logger, telemetry } = context;
-
-	const isAuthenticated = await isLoggedIn();
-	if (!isAuthenticated) {
-		logger.info('You are not logged in');
-		return;
-	}
-
-	const shouldLogout = await context.confirm(
-		'Are you sure you want to log out?'
-	);
-	if (!shouldLogout) {
-		logger.info('Logout cancelled');
-		return;
-	}
-
+const logoutAction = async (context: CliContext) => {
+	requireNoArguments(context);
+	// Local credential removal must work even after token expiry or corruption.
 	await clearConfig();
-
-	telemetry.trackEvent(TelemetryEventName.AUTH_LOGOUT);
-
-	logger.success('Successfully logged out');
+	context.telemetry.trackEvent(TelemetryEventName.AUTH_LOGOUT);
+	context.logger.success('Logged out');
+	return { authenticated: false };
 };
 
-/**
- * Auth status command
- */
-const statusAction = async function statusAction(
-	context: CliContext
-): Promise<void> {
-	const { logger } = context;
-
-	const authState = await getAuthState();
-
-	if (!authState.isLoggedIn) {
-		logger.message(`Status: ${color.yellow('Not logged in')}`);
-		logger.message('');
-		logger.message(`Run ${color.cyan('c15t login')} to authenticate`);
-		return;
+const statusAction = async (context: CliContext) => {
+	requireNoArguments(context);
+	const state = await getAuthState();
+	let status = 'logged-out';
+	if (state.isLoggedIn) {
+		status = state.isExpired ? 'expired' : 'logged-in';
 	}
-
-	if (authState.isExpired) {
-		logger.message(`Status: ${color.yellow('Session expired')}`);
-		logger.message('');
-		logger.message(`Run ${color.cyan('c15t login')} to refresh your session`);
-		return;
-	}
-
-	logger.message(`Status: ${color.green('Logged in')}`);
-
-	if (authState.config?.email) {
-		logger.message(`Account: ${authState.config.email}`);
-	}
-
-	if (authState.config?.lastLogin) {
-		const lastLogin = new Date(authState.config.lastLogin).toLocaleString();
-		logger.message(`Last login: ${lastLogin}`);
-	}
-
-	if (authState.config?.selectedInstanceId) {
-		logger.message(`Selected project: ${authState.config.selectedInstanceId}`);
-	}
+	context.logger.message(`Authentication: ${status}`);
+	return {
+		authenticated: state.isLoggedIn && !state.isExpired,
+		expiresAt: state.config?.expiresAt,
+		origin: getControlPlaneBaseUrl(),
+		selectedProject: state.config?.selectedInstanceId,
+		status,
+	};
 };
 
-/**
- * Login command definition
- */
 export const loginCommand: CliCommand = {
 	action: loginAction,
-	description:
-		'Log in to your inth.com account using device flow authentication',
-	hint: 'Authenticate with inth.com',
+	description: 'Authenticate with Inth using a device code',
+	hint: 'Authenticate with Inth',
 	label: 'Login',
 	name: 'login',
 };
-
-/**
- * Logout command definition
- */
 export const logoutCommand: CliCommand = {
 	action: logoutAction,
-	description: 'Log out of your inth.com account',
-	hint: 'Sign out of inth.com',
+	description: 'Remove locally stored authentication credentials',
+	hint: 'Sign out of Inth',
 	label: 'Logout',
 	name: 'logout',
 };
-
-/**
- * Auth status command definition (hidden, used as subcommand)
- */
 export const authStatusCommand: CliCommand = {
 	action: statusAction,
-	description: 'Check your current authentication status',
-	hidden: true,
+	description: 'Check locally stored authentication status',
 	hint: 'Check authentication status',
 	label: 'Status',
 	name: 'status',
 };
-
-/**
- * All auth commands
- */
 export const authCommands = [loginCommand, logoutCommand, authStatusCommand];

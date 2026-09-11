@@ -33,7 +33,7 @@ export interface DependencyInstallOutput {
 /**
  * Execute package manager command to install dependencies
  */
-const runPackageManagerInstall = async function runPackageManagerInstall(
+export const runPackageManagerInstall = async function runPackageManagerInstall(
 	projectRoot: string,
 	dependencies: string[],
 	packageManager: PackageManager
@@ -68,7 +68,7 @@ const runPackageManagerInstall = async function runPackageManagerInstall(
 
 	const child = spawn(command, args, {
 		cwd: projectRoot,
-		stdio: 'inherit',
+		stdio: ['ignore', process.stderr, process.stderr],
 	});
 
 	const [exitCode] = await once(child, 'exit');

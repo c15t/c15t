@@ -4,10 +4,12 @@
  * creating component files, adding imports, wrapping JSX, and saving.
  */
 
-import { Project, SyntaxKind } from 'ts-morph';
+import { Project } from 'ts-morph';
 import type { SourceFile } from 'ts-morph';
 
 import { getFrameworkDirectory } from './directory';
+import { writeFile } from './file-plan';
+import { getLayoutExpressions } from './layout-target';
 import {
 	addConsentManagerImport,
 	hasConsentManagerImport,
@@ -111,6 +113,8 @@ export const runLayoutUpdatePipeline = async function runLayoutUpdatePipeline(
 		};
 	}
 
+	const expressions = getLayoutExpressions(layoutFile);
+
 	// Step 4: Create component files
 	const componentFiles = await createComponents(layoutFilePath, frameworkDir);
 
@@ -122,34 +126,11 @@ export const runLayoutUpdatePipeline = async function runLayoutUpdatePipeline(
 		afterImport(layoutFile);
 	}
 
-	// Step 7: Find return statement and wrap JSX
-	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-	const returnStatement = layoutFile.getDescendantsOfKind(
-		SyntaxKind.ReturnStatement
-	)[0];
-	if (!returnStatement) {
-		return {
-			alreadyModified: false,
-			filePath: layoutFilePath,
-			updated: false,
-		};
+	for (const expression of expressions.reverse()) {
+		expression.replaceWithText(`(${wrapJsx(expression.getText())})`);
 	}
+	await writeFile(layoutFilePath, layoutFile.getFullText(), 'utf-8');
 
-	const expression = returnStatement.getExpression();
-	if (!expression) {
-		return {
-			alreadyModified: false,
-			filePath: layoutFilePath,
-			updated: false,
-		};
-	}
-
-	const originalJsx = expression.getText();
-	const newJsx = wrapJsx(originalJsx);
-	returnStatement.replaceWithText(`return ${newJsx}`);
-
-	// Step 8: Save
-	await layoutFile.save();
 	return {
 		alreadyModified: false,
 		componentFiles,

@@ -4,7 +4,7 @@ exports[`JavaScript client config > matches the hosted kernel config snapshot 1`
 "import { createConsentKernel, createHostedTransport } from 'c15t';
 
 export const kernel = createConsentKernel({
-	transport: createHostedTransport({ backendURL: 'https://consent.example.com' }),
+	transport: createHostedTransport({ backendURL: "https://consent.example.com" }),
 });
 
 void kernel.commands.init();

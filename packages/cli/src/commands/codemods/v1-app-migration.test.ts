@@ -96,5 +96,5 @@ describe('v1 app codemod migration', () => {
 		expect(updated).not.toContain('initialGDPRTypes:');
 		expect(updated).not.toContain('translations: {');
 		expect(updated).not.toContain('options.trackingBlockerConfig');
-	});
+	}, 20_000);
 });

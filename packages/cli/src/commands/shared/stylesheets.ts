@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
+
+import { writeFile } from '../generate/templates/shared/file-plan';
 
 const CSS_ENTRYPOINT_CANDIDATES = [
 	'app/globals.css',

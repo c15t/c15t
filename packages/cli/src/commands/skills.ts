@@ -1,75 +1,56 @@
-/**
- * Install Skills command
- *
- * Installs c15t agent skills for AI-assisted development (Claude, Cursor, etc.)
- */
-
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 
-import type { CliContext } from '~/context/types';
-import { TelemetryEventName } from '~/utils/telemetry';
+import type { CliContext } from '../context/types';
+import { CliError } from '../core/errors';
 
-const getDefined = <Value>(
-	value: Value,
-	message = 'Expected value to be defined'
-): NonNullable<Value> => {
-	if (value === null || value === undefined) {
-		throw new Error(message);
+/** Install the maintained c15t skills using the user's package manager. */
+export const installSkills = async (
+	context: CliContext,
+	dependencies = { spawn }
+): Promise<{ installed: true }> => {
+	if (context.flags.json === true) {
+		throw new CliError('FLAG_INVALID', {
+			details:
+				'The skills installer has its own terminal output and does not support --json. Run c15t skills --yes instead.',
+		});
 	}
-	return value;
-};
-
-/**
- * Install c15t agent skills for AI coding assistants
- */
-export const installSkills = async function installSkills(context: CliContext) {
-	const { logger, packageManager, telemetry } = context;
-
-	logger.info(
-		'c15t agent skills give AI coding assistants deep knowledge of c15t APIs, components, and configuration.'
-	);
-	logger.info(
-		'Supported tools: Claude Code, Cursor, GitHub Copilot, and any agent that supports the skills format.'
-	);
-
-	const execCommands: Record<string, string> = {
-		bun: 'bunx',
-		npm: 'npx',
-		pnpm: 'pnpm dlx',
-		yarn: 'yarn dlx',
-	};
-	const execCommand = execCommands[packageManager.name] ?? 'npx';
-	const [cmd, ...baseArgs] = execCommand.split(' ');
-
-	logger.info(`Running: ${execCommand} skills add c15t/skills`);
-
+	const yes = context.flags.yes === true || context.flags.y === true;
+	if (context.flags['non-interactive'] === true && !yes) {
+		throw new CliError('INPUT_REQUIRED', {
+			details: 'Run c15t skills --yes to install without prompts.',
+		});
+	}
+	const runners = {
+		bun: ['bunx'],
+		npm: ['npx'],
+		pnpm: ['pnpm', 'dlx'],
+		yarn: ['yarn', 'dlx'],
+	} as const;
+	const [command, ...prefix] = runners[context.packageManager.name];
+	const args = [
+		...prefix,
+		'skills',
+		'add',
+		'c15t/skills',
+		...(yes ? ['--yes'] : []),
+	];
+	context.logger.info(`Running: ${command} ${args.join(' ')}`);
 	try {
-		const child = spawn(
-			getDefined(cmd),
-			[...baseArgs, 'skills', 'add', 'c15t/skills'],
-			{
-				cwd: context.projectRoot,
-				stdio: 'inherit',
-			}
-		);
-
-		const [exitCode] = await once(child, 'exit');
-
-		if (exitCode === 0) {
-			logger.success('Agent skills installed successfully!');
-			telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
-				action: 'skills_installed',
-			});
-		} else {
-			logger.error(
-				`Skills installation failed (exit code ${exitCode}). Please try again or install manually with: npx skills add c15t/skills`
+		const child = dependencies.spawn(command, args, {
+			cwd: context.projectRoot,
+			stdio: 'inherit',
+		});
+		const [code, signal] = await once(child, 'close');
+		if (code !== 0) {
+			throw new Error(
+				`Installer exited with ${signal ? `signal ${signal}` : `code ${code}`}`
 			);
 		}
+		return { installed: true };
 	} catch (error) {
-		logger.error(
-			`Skills installation failed: ${error instanceof Error ? error.message : String(error)}`
-		);
-		logger.info('You can install manually with: npx skills add c15t/skills');
+		throw new CliError('INSTALL_FAILED', {
+			details: error instanceof Error ? error.message : String(error),
+		});
 	}
 };

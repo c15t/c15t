@@ -1,0 +1,71 @@
+---
+title: Agents and automation
+description: Use structured CLI results and version-matched documentation from agents, scripts, and other CLIs.
+group: cli
+---
+
+```bash
+c15t setup offline --plan --json --no-telemetry
+```
+
+## Structured results
+
+`--json` writes one JSON document to stdout. Human diagnostics go to stderr. Check `success` before consuming `data`; a completed process alone does not mean the command succeeded.
+
+```json
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "setup",
+  "exitCode": 1,
+  "error": {
+    "code": "INPUT_REQUIRED",
+    "message": "Required command input is missing"
+  }
+}
+```
+
+Commands return their own data under `data`, such as generated edits, hosted projects, or a migration report. Do not parse terminal messages for those values.
+
+## Embed the CLI
+
+```ts
+import { runCli } from '@c15t/cli';
+
+const result = await runCli(
+  ['setup', 'offline', '--plan', '--json'],
+  { cwd: projectDirectory }
+);
+
+if (!result.success) {
+  throw new Error(result.error?.message);
+}
+```
+
+Importing the package does not execute a command. `runCli` returns a result without changing process arguments, the working directory, or the exit status. Prompts and telemetry are disabled by default for library callers. Supply a `logger` to route diagnostics into the host CLI. The executable adapter owns JSON serialization and process exit status.
+
+For Inth or another host, use explicit project inputs and inspect the returned result. Hosted credentials still use the c15t credential store. Embedding the runner does not merge that store with another CLI's authentication system.
+
+## Agent setup and v3 migration workflow
+
+Give your coding agent this task, replacing the version and mode with your intended choices:
+
+```text
+Integrate or migrate c15t in this application using its installed version.
+
+1. Read package.json and the lockfile. Identify the framework, router, c15t
+   version, entry point, existing providers, and consent integrations.
+2. Read the installed framework package's AGENTS.md and bundled quickstart,
+   migration, styling, and script docs. If docs are incomplete, inspect the
+   installed types and report the missing guidance. Do not invent APIs.
+3. Confirm the intended storage mode and backend URL from the task. Preserve
+   existing routing, providers, consent choices, styles, and unrelated code.
+4. Show a setup plan or proposed diff. Apply narrow legacy transforms only
+   when their source version and imported symbols match the application.
+5. Run the application's typecheck and build. Check consent persistence,
+   banner/dialog behavior, and script gating. Report any unverified behavior.
+```
+
+For v3, source code and installed documentation determine the migration work. The legacy codemod collection only targets v2. It does not update dependencies, convert a v2 backend configuration to v3, or migrate a database.
+
+`skills` delegates to an external interactive installer and does not support JSON output. Use installed bundled docs directly when building unattended automation.

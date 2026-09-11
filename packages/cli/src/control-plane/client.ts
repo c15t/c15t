@@ -1,241 +1,164 @@
-/**
- * Control-plane client for c15t hosted projects.
- */
+import { z } from 'zod';
 
-import { CLI_INFO, TIMEOUTS, URLS } from '../constants';
+import {
+	getControlPlaneBaseUrl,
+	getControlPlaneOrigin,
+} from '../auth/base-url';
+import { fetchWithDeadline } from '../auth/http';
+import { TIMEOUTS } from '../constants';
 import { CliError } from '../core/errors';
 import type { Instance } from '../types';
 import type {
 	ControlPlaneClientConfig,
-	ControlPlaneConnectionState,
 	ControlPlaneOrganization,
 	ControlPlaneRegion,
 	CreateInstanceRequest,
 } from './types';
 
-interface ControlPlaneApiErrorPayload {
-	success: false;
-	error?: {
-		code?: string;
-		message?: string;
-		details?: unknown;
-	};
-}
+const organizationSchema = z.object({
+	organizationId: z.string(),
+	organizationName: z.string(),
+	organizationSlug: z.string(),
+	role: z.string(),
+});
+const regionSchema = z.object({
+	family: z.string(),
+	id: z.string(),
+	label: z.string(),
+});
+const instanceSchema = z.object({
+	backendURL: z.string().url().nullish(),
+	createdAt: z.string().optional(),
+	instanceId: z.string().min(1),
+	instanceName: z.string(),
+	organizationSlug: z.string().optional(),
+	region: z
+		.union([
+			z.string(),
+			z.object({
+				code: z.string().optional(),
+				id: z.string().optional(),
+				slug: z.string().optional(),
+			}),
+		])
+		.nullish(),
+	regionId: z.string().optional(),
+	regionSlug: z.string().optional(),
+});
 
-interface ControlPlaneApiSuccessPayload<T> {
-	success: true;
-	data: T;
-}
-
-interface ControlPlaneInstance {
-	instanceId: string;
-	instanceSlug?: string;
-	instanceName: string;
-	organizationId?: string;
-	organizationSlug?: string;
-	region?:
-		| string
-		| {
-				id?: string;
-				slug?: string;
-				code?: string;
-		  };
-	regionId?: string;
-	regionSlug?: string;
-	backendURL: string | null;
-	dashboardURL?: string;
-	backendVersion?: string;
-}
-
-const extractAwsRegion = function extractAwsRegion(
-	value: string | null | undefined
-): string | undefined {
-	if (!value) {
-		return undefined;
-	}
-	const match = value.match(/[a-z]{2}-[a-z]+-\d/u);
-	return match?.[0];
-};
-
-const isApiSuccessPayload = function isApiSuccessPayload<T>(
-	payload: unknown
-): payload is ControlPlaneApiSuccessPayload<T> {
-	return (
-		typeof payload === 'object' &&
-		payload !== null &&
-		'success' in payload &&
-		(payload as { success?: unknown }).success === true &&
-		'data' in payload
-	);
-};
-
-const parseJsonSafe = async function parseJsonSafe(
-	response: Response
-): Promise<unknown> {
-	try {
-		return await response.json();
-	} catch {
-		return null;
-	}
-};
-
-const mapControlPlaneInstance = function mapControlPlaneInstance(
-	raw: ControlPlaneInstance
-): Instance {
-	const regionFromObject =
-		typeof raw.region === 'string'
+const mapInstance = (raw: z.infer<typeof instanceSchema>): Instance => ({
+	createdAt: raw.createdAt,
+	id: raw.instanceId,
+	name: raw.instanceName,
+	organizationSlug: raw.organizationSlug,
+	region:
+		(typeof raw.region === 'string'
 			? raw.region
-			: (raw.region?.id ?? raw.region?.slug ?? raw.region?.code);
-	const region =
-		regionFromObject ??
+			: (raw.region?.id ?? raw.region?.slug ?? raw.region?.code)) ??
 		raw.regionId ??
-		raw.regionSlug ??
-		extractAwsRegion(raw.backendURL) ??
-		extractAwsRegion(raw.dashboardURL);
+		raw.regionSlug,
+	status: raw.backendURL ? 'active' : 'pending',
+	url: raw.backendURL ?? '',
+});
 
-	return {
-		createdAt: new Date(0).toISOString(),
-		id: raw.instanceId,
-		name: raw.instanceName,
-		organizationSlug: raw.organizationSlug,
-		region,
-		status: raw.backendURL ? 'active' : 'pending',
-		url: raw.backendURL ?? raw.dashboardURL ?? '',
-	};
-};
-
-/**
- * Client for c15t hosted projects.
- *
- * Uses direct control-plane HTTP endpoints under /api/v1.
- */
+/** Validated HTTP operations for hosted projects. No terminal or credential storage access. */
 export class ControlPlaneClient {
-	private config: ControlPlaneClientConfig;
-	private connected = false;
+	private readonly config: ControlPlaneClientConfig;
 
 	constructor(config: ControlPlaneClientConfig) {
+		getControlPlaneOrigin(config.baseUrl);
 		this.config = {
-			clientName: CLI_INFO.CONTROL_PLANE_CLIENT_NAME,
-			clientVersion: CLI_INFO.VERSION,
-			timeout: TIMEOUTS.CONTROL_PLANE_CONNECTION,
 			...config,
+			baseUrl: config.baseUrl.replace(/\/+$/u, ''),
+			timeout: config.timeout ?? TIMEOUTS.CONTROL_PLANE_CONNECTION,
 		};
 	}
 
-	/**
-	 * Connect the client.
-	 */
-	connect(): Promise<ControlPlaneConnectionState> {
-		this.connected = true;
-
-		return Promise.resolve({
-			capabilities: {
-				tools: ['listInstances', 'createInstance', 'getInstance'],
-			},
-			connected: true,
-		});
-	}
-
-	/**
-	 * Disconnect the client.
-	 */
-	close(): Promise<void> {
-		this.connected = false;
-		return Promise.resolve();
-	}
-
-	/**
-	 * Check if connected.
-	 */
-	isConnected(): boolean {
-		return this.connected;
-	}
-
-	private ensureConnected(): void {
-		if (!this.connected) {
-			throw new CliError('CONTROL_PLANE_CONNECTION_FAILED', {
-				details: 'Not connected to control plane',
-			});
-		}
-	}
-
-	private buildUrl(path: string): string {
-		return `${this.config.baseUrl}/api/v1${path}`;
-	}
-
-	private async request<T>(
+	private async request<Output>(
 		path: string,
-		init?: {
-			method?: 'GET' | 'POST' | 'DELETE' | 'PATCH';
-			body?: unknown;
-		}
-	): Promise<T> {
-		this.ensureConnected();
-
-		const response = await fetch(this.buildUrl(path), {
-			body: init?.body === undefined ? undefined : JSON.stringify(init.body),
-			headers: {
-				Authorization: `Bearer ${this.config.accessToken}`,
-				'Content-Type': 'application/json',
-			},
-			method: init?.method ?? 'GET',
-		});
-
-		const payload = await parseJsonSafe(response);
-		if (response.ok && isApiSuccessPayload<T>(payload)) {
-			return payload.data;
-		}
-
-		const apiError = payload as ControlPlaneApiErrorPayload;
-		const errorCode = apiError?.error?.code;
-		const errorMessage = apiError?.error?.message ?? 'Request failed';
-
-		if (response.status === 401) {
-			throw new CliError('AUTH_TOKEN_INVALID', {
-				details: `${response.status} ${errorMessage}`,
+		schema: z.ZodType<Output>,
+		init?: { method?: string; body?: unknown }
+	): Promise<Output> {
+		let response: Response;
+		try {
+			response = await fetchWithDeadline(
+				`${this.config.baseUrl}/api/v1${path}`,
+				{
+					body:
+						init?.body === undefined ? undefined : JSON.stringify(init.body),
+					headers: {
+						Authorization: `Bearer ${this.config.accessToken}`,
+						'Content-Type': 'application/json',
+					},
+					method: init?.method ?? 'GET',
+					signal: this.config.signal,
+				},
+				this.config.timeout
+			);
+		} catch (error) {
+			if (this.config.signal?.aborted) {
+				throw new CliError('CANCELLED');
+			}
+			throw new CliError('API_ERROR', {
+				details:
+					error instanceof Error && error.name === 'TimeoutError'
+						? 'Control-plane request timed out'
+						: 'Could not reach the control plane',
 			});
 		}
-
-		throw new CliError('API_ERROR', {
-			details: `${response.status} ${errorCode ? `${errorCode}: ` : ''}${errorMessage}`,
-		});
+		const payload: unknown = await response.json().catch(() => null);
+		const envelope = z
+			.object({ data: schema, success: z.literal(true) })
+			.safeParse(payload);
+		if (response.ok && envelope.success) {
+			return envelope.data.data;
+		}
+		const failure = z
+			.object({
+				error: z
+					.object({
+						code: z.string().optional(),
+						message: z.string().optional(),
+					})
+					.optional(),
+			})
+			.safeParse(payload);
+		const message = failure.success ? failure.data.error?.message : undefined;
+		throw new CliError(
+			response.status === 401 ? 'AUTH_TOKEN_INVALID' : 'API_ERROR',
+			{
+				details: `${response.status} ${message ?? (response.ok ? 'Invalid control-plane response' : 'Request failed')}`,
+			}
+		);
 	}
 
+	/** List organizations available to the authenticated user. */
 	listOrganizations(): Promise<ControlPlaneOrganization[]> {
-		return this.request<ControlPlaneOrganization[]>('/consent/organizations');
+		return this.request('/consent/organizations', z.array(organizationSchema));
 	}
-
+	/** List available provisioning regions. */
 	listRegions(): Promise<ControlPlaneRegion[]> {
-		return this.request<ControlPlaneRegion[]>('/consent/regions');
+		return this.request('/consent/regions', z.array(regionSchema));
 	}
-
-	/**
-	 * List all hosted projects for the authenticated user.
-	 */
+	/** List hosted projects. Pending projects have no backend URL. */
 	async listInstances(): Promise<Instance[]> {
-		const raw =
-			await this.request<ControlPlaneInstance[]>('/consent/instances');
-		return raw.map(mapControlPlaneInstance);
+		return (
+			await this.request('/consent/instances', z.array(instanceSchema))
+		).map(mapInstance);
 	}
-
-	/**
-	 * Get a specific hosted project by ID.
-	 */
+	/** Find a hosted project by ID. */
 	async getInstance(id: string): Promise<Instance> {
-		const instances = await this.listInstances();
-		const instance = instances.find((item) => item.id === id);
+		const instance = (await this.listInstances()).find(
+			(item) => item.id === id
+		);
 		if (!instance) {
 			throw new CliError('INSTANCE_NOT_FOUND', {
 				details: `Project not found: ${id}`,
 			});
 		}
-
 		return instance;
 	}
-
-	/**
-	 * Create a new hosted project.
-	 */
+	/** Create a development project in the selected organization and region. */
 	async createInstance(request: CreateInstanceRequest): Promise<Instance> {
 		const { organizationSlug, region, trustedOrigins } = request.config;
 		if (!organizationSlug || !region) {
@@ -243,10 +166,8 @@ export class ControlPlaneClient {
 				details: 'organizationSlug and region are required',
 			});
 		}
-
-		const instance = await this.request<ControlPlaneInstance>(
-			'/consent/instances',
-			{
+		return mapInstance(
+			await this.request('/consent/instances', instanceSchema, {
 				body: {
 					name: request.name,
 					organizationSlug,
@@ -256,60 +177,30 @@ export class ControlPlaneClient {
 					useV2: true,
 				},
 				method: 'POST',
-			}
+			})
 		);
-
-		return mapControlPlaneInstance(instance);
 	}
-
-	/**
-	 * Delete a hosted project.
-	 */
+	/** Delete a hosted project by ID. */
 	async deleteInstance(id: string): Promise<void> {
-		await this.request<unknown>(
+		await this.request(
 			`/consent/instances/${encodeURIComponent(id)}`,
-			{
-				method: 'DELETE',
-			}
+			z.unknown(),
+			{ method: 'DELETE' }
 		);
 	}
 }
 
-/**
- * Create and connect a client.
- */
-export const createControlPlaneClient = async function createControlPlaneClient(
+/** Create an HTTP client with explicit credentials. */
+export const createControlPlaneClient = (
 	accessToken: string,
-	baseUrl: string = URLS.CONSENT_IO
-): Promise<ControlPlaneClient> {
-	const client = new ControlPlaneClient({
-		accessToken,
-		baseUrl,
-	});
-
-	const state = await client.connect();
-	if (!state.connected) {
-		throw new CliError('CONTROL_PLANE_CONNECTION_FAILED', {
-			details: state.error,
-		});
-	}
-
-	return client;
+	baseUrl = getControlPlaneBaseUrl()
+): Promise<ControlPlaneClient> =>
+	Promise.resolve(new ControlPlaneClient({ accessToken, baseUrl }));
+/** Create a client using credentials belonging to this control-plane origin. */
+export const createControlPlaneClientFromConfig = async (
+	baseUrl = getControlPlaneBaseUrl()
+): Promise<ControlPlaneClient | null> => {
+	const { getAccessToken } = await import('../auth/config-store');
+	const accessToken = await getAccessToken(baseUrl);
+	return accessToken ? createControlPlaneClient(accessToken, baseUrl) : null;
 };
-
-/**
- * Create a client from stored config.
- */
-export const createControlPlaneClientFromConfig =
-	async function createControlPlaneClientFromConfig(
-		baseUrl: string = URLS.CONSENT_IO
-	): Promise<ControlPlaneClient | null> {
-		const { getAccessToken } = await import('../auth/config-store');
-
-		const accessToken = await getAccessToken();
-		if (!accessToken) {
-			return null;
-		}
-
-		return createControlPlaneClient(accessToken, baseUrl);
-	};

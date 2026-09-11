@@ -1,15 +1,42 @@
 ---
 title: Quickstart
-description: Set up c15t in an existing project with one command.
+description: Review the proposed integration before applying it to your application.
 group: cli
 ---
-> ℹ️ **Info:**
-> This page is a placeholder for the v3 docs rewrite.
+For unpublished v3 development, start with [local boilerplate generation](./commands/boilerplate). It creates framework files without fetching a published package version. The automatic setup commands below require compatible application dependencies; use `--skip-install` when working with local packages.
 
-## Run setup
+```bash
+c15t setup hosted --backend-url https://your-project.inth.app --plan --json
+```
 
-TODO.
+Run this from the application directory, or pass `--cwd path/to/app`. Replace the example URL with your provisioned consent backend URL.
 
-## What gets generated
+## Apply setup
 
-TODO.
+Review the returned `data.edits`. Each edit includes its path, original contents, and proposed contents. Planning does not install dependencies or write application files.
+
+```bash
+c15t setup hosted --backend-url https://your-project.inth.app --apply
+```
+
+Use `--skip-install` when your workspace tooling owns dependency installation. The result lists the required dependencies.
+
+For local-only consent storage, explicitly select `offline`:
+
+```bash
+c15t setup offline --plan --json
+```
+
+## Interactive setup
+
+```bash
+c15t setup
+```
+
+With a terminal, setup asks for the storage mode and supported integration choices. Without a terminal, provide the mode and required inputs. The CLI does not open an interactive prompt to guess missing values.
+
+## Verify the application
+
+Review the generated provider or client configuration, app stylesheet, and any environment or Next.js configuration edits. Replace integration ID placeholders before deploying. Run your application's typecheck and build, then check the banner and consent-gated scripts in the browser.
+
+Setup refuses to replace an existing generated component with different contents. Edit an existing integration using its installed documentation instead of rerunning setup to overwrite customizations.

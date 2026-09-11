@@ -5,6 +5,8 @@
  * to maintain consistency and make updates easier.
  */
 
+import { packageInfo } from './package-info';
+
 // --- URLs ---
 export const URLS = {
 	/** API documentation */
@@ -68,7 +70,7 @@ export const CLI_INFO = {
 	/** CLI name */
 	NAME: 'c15t',
 	/** Current version (updated during build) */
-	VERSION: '2.0.0',
+	VERSION: packageInfo.version,
 } as const;
 
 // --- Timeouts ---

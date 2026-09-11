@@ -8,6 +8,8 @@ import type {
 	SourceFile,
 } from 'ts-morph';
 
+import { writeFile } from './shared/file-plan';
+
 interface UpdateNextConfigOptions {
 	projectRoot: string;
 	backendURL?: string;
@@ -421,7 +423,7 @@ export const updateNextConfig = async function updateNextConfig({
 		const newConfig = createNewNextConfig(backendURL, useEnvFile);
 
 		const newConfigFile = project.createSourceFile(newConfigPath, newConfig);
-		await newConfigFile.save();
+		await writeFile(newConfigPath, newConfigFile.getFullText(), 'utf-8');
 
 		return {
 			alreadyModified: false,
@@ -448,7 +450,11 @@ export const updateNextConfig = async function updateNextConfig({
 	);
 
 	if (updated) {
-		await configFile.save();
+		await writeFile(
+			configFile.getFilePath(),
+			configFile.getFullText(),
+			'utf-8'
+		);
 	}
 
 	return {
