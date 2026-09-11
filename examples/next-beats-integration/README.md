@@ -22,6 +22,7 @@ repository.
 | `components/sidebar.patch` | Six-line change to the upstream sidebar that mounts the link. |
 | `lib/scripts.ts` | Consent-gated PostHog and X Pixel from `@c15t/scripts`, enabled by env. |
 | `app/layout.tsx` | Root layout with the awaited `ResolvedConsent` Server Component inside `Suspense`. |
+| `app/globals.css.patch` | One-line change: `@import 'c15t/next/styles.css'` after the Tailwind import, the stylesheet contract from the package README. |
 
 ## Apply on a fresh clone
 
@@ -30,7 +31,8 @@ git clone https://github.com/vercel-labs/next-beats app && cd app
 git checkout c062a3421d03b336334254d15e1d28fa5ef5601f
 pnpm add c15t @c15t/scripts   # v3 once published; see "Unreleased packages"
 cp -r ../examples/next-beats-integration/{app,components,lib,c15t.config.ts} .
-git apply ../examples/next-beats-integration/components/sidebar.patch
+git apply ../examples/next-beats-integration/components/sidebar.patch \
+  ../examples/next-beats-integration/app/globals.css.patch
 pnpm dev
 ```
 
@@ -58,19 +60,20 @@ npm.
 Each item is a docs or package follow-up; the issue or PR is linked where one
 exists.
 
-1. `app/globals.css` must be imported before `c15t/next/styles.css`. Tailwind 4
-   declares its cascade layers in that file; when the c15t stylesheet loads
-   first, Tailwind's preflight lands above c15t's `@layer components` and the
-   banner loses its padding, borders and button styles. The guide's snippet
-   shows only the c15t import.
+1. Importing `c15t/next/styles.css` from `layout.tsx`, as the guide showed,
+   broke the banner styles under Tailwind 4: whichever stylesheet the bundler
+   emitted first won, and Tailwind's preflight landed above c15t's
+   `@layer components`. The package README's contract, `@import
+   'c15t/next/styles.css'` in `app/globals.css` after `@import 'tailwindcss'`,
+   fixes the order; the guide now says so.
 2. With `cacheComponents: true`, Next.js 16 reported `Route "/": Next.js
    encountered the unstable value Date.now() while prerendering` from
    `prefetchInitialConsent`, even though the helper awaits `headers()` first.
    `await connection()` before the call is the workaround used here.
-3. `docs/frameworks/next/styling/overview.mdx` imports `defineTheme` from
+3. `docs/frameworks/next/styling/overview.mdx` imported `defineTheme` from
    `@c15t/ui/theme`. `@c15t/ui` is a transitive dependency, so pnpm refuses
-   the import (`Module not found`). The plain-object form works; the docs need
-   an install line or `c15t/next` needs to re-export `defineTheme`.
+   the import (`Module not found`). The umbrella already exposes it as
+   `c15t/react/types`; the docs now import from there.
 4. The umbrella `c15t` package installs `@c15t/vue` and `@c15t/tanstack-start`
    into a Next.js app as regular dependencies.
 5. The floating banner overlapped the app's fixed `NowPlayingBar`. The

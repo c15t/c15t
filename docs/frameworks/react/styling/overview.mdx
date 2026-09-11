@@ -30,15 +30,9 @@ and other options.
 
 <import src="../../../shared/react/styling/overview.mdx#tokens-intro" />
 
-`defineTheme` lives in `@c15t/ui`, which `c15t` depends on but does not
-re-export. Add it as a direct dependency (`npm install @c15t/ui`) before
-importing it; package managers with strict resolution such as pnpm reject the
-import otherwise. A plain object typed by the `theme` option works without the
-extra dependency.
-
 ```tsx
 import { ConsentProvider } from 'c15t/react';
-import { defineTheme } from '@c15t/ui/theme';
+import { defineTheme } from 'c15t/react/types';
 
 const theme = defineTheme({
 	colors: { primary: '#2f6f4e' },

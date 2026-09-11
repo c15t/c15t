@@ -1,8 +1,3 @@
-// globals.css must be the first import so Tailwind's cascade layers
-// (theme, base, components, utilities) are declared before any c15t CSS.
-// `@c15t/ui` components import their own `@layer components` CSS, so if
-// `components/consent` is bundled first, Tailwind's `base` preflight ends up
-// above c15t's layer and strips the banner's padding, borders and buttons.
 import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -17,15 +12,14 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
-import { consentConfig } from '@/c15t.config';
-import { Consent } from '@/components/consent';
 import { BoundaryProvider } from '@/components/demo/boundary';
 import { DemoToolbar } from '@/components/demo/demo-toolbar';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { Toaster } from '@/components/toaster';
 
-import 'c15t/next/styles.css';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
 
 export const viewport: Viewport = {
 	themeColor: [

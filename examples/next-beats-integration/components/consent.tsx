@@ -16,10 +16,9 @@ import { scripts } from '../lib/scripts';
 // Docs: /docs/frameworks/next/api-reference/data-fetching#offline-configuration
 const mode = offline();
 
-// Brand tokens from app/globals.css (`--color-accent`, `--radius-*`).
-// The styling docs import `defineTheme` from '@c15t/ui/theme', but that
-// package is not a direct dependency (pnpm: "Module not found"), so this uses
-// the plain-object form shown in components/consent-banner.mdx instead.
+// Brand tokens from app/globals.css (`--color-accent`, `--radius-*`). The
+// plain-object form from components/consent-banner.mdx; `defineTheme` from
+// 'c15t/react/types' gives the same shape with autocomplete.
 const theme = {
 	colors: { primary: '#4f6ef7', primaryHover: '#3d5bd9' },
 	radius: { lg: '12px', md: '8px', sm: '6px' },
