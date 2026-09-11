@@ -223,8 +223,12 @@ banner shell was an experiment that measured no gain over `ConsentBanner`:
 equal JavaScript bytes, equal time to a visible banner, slower interaction.
 Imports of that entry now fail to resolve.
 
-Replace `<RscConsentBanner config={config} />` with `<ConsentBanner />` from
-`c15t/next` inside the same `ConsentBoundary`. With an awaited
-`prefetchInitialConsent` result, the banner is already part of the first HTML
-response, which is what the RSC variant was for. Props such as `classNames`
-and `presentation` move to `ConsentBanner` props and `options.presentation`.
+Replace `<RscConsentBanner config={config} />` with `<ConsentBanner />` inside
+the same `ConsentBoundary`, importing it from `c15t/next` when you use the
+umbrella package or from `@c15t/nextjs` when you depend on the scoped package
+directly. With an awaited `prefetchInitialConsent` result, the server renders
+the banner into the response, which is what the RSC variant was for. Move
+`presentation` to `options.presentation` on the boundary. `ConsentBanner` has
+no `classNames` prop: put per-slot class names in
+`options.components.banner.<slot>.className`, or compose the banner from its
+compound parts when you need different markup.
