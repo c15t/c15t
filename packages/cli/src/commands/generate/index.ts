@@ -17,12 +17,10 @@
  */
 
 import type { CliCommand, CliContext } from '~/context/types';
-import { runGenerateMachine } from '~/machines/generate/runner';
 
 import { STORAGE_MODES } from '../../constants';
 import type { StorageMode } from '../../constants';
 import { CliError } from '../../core/errors';
-import { generateWithoutPrompts } from './non-interactive';
 
 const normalizeModeArg = function normalizeModeArg(
 	mode?: StorageMode
@@ -78,8 +76,10 @@ const generateAction = async function generateAction(
 		flags.mode ||
 		(flags.yes && modeArg)
 	) {
+		const { generateWithoutPrompts } = await import('./non-interactive');
 		return generateWithoutPrompts(context);
 	}
+	const { runGenerateMachine } = await import('~/machines/generate/runner');
 	const result = await runGenerateMachine({
 		context,
 		debug,
