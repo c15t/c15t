@@ -17,7 +17,7 @@ group: reference
   | `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which of the links configured in the provider `options.legalLinks` render after the description. Omitting the prop renders none. `null` hides them. |
   | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag in the card. |
   | `uiSource` | `string` | `'dialog'` | Source identifier recorded with saves made from this dialog. |
-  | `scrollLock`, `trapFocus` | `boolean` | from `blocking` | Deprecated. Either one set to `false` makes the dialog non-blocking. Prefer `presentation.preferences.blocking` in the provider options. |
+  | `scrollLock`, `trapFocus` | `boolean` | from `blocking` | Deprecated. Either one set to `false` makes the dialog non-blocking, unless the provider sets `presentation.preferences.blocking` explicitly, which wins. Prefer the provider option. |
   | `disableAnimation` | `boolean` | `false` | Skips the enter and exit animation of the backdrop and the card. |
   | `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
 </section>
@@ -141,7 +141,8 @@ group: reference
   A centered card appears over a dimmed backdrop, the page behind it stops
   scrolling, and Tab stays inside the card. Press Escape: the card closes and
   focus returns to the button you used. Open it again, turn a category on and
-  choose Save. The dialog closes, the banner does not return, and
-  `useConsent('<category>')` reports `true` in your components. Reload the
+  choose Save. The dialog closes and `useConsent('<category>')` reports
+  `true` in your components; under a choice prompt the banner does not return,
+  while a `notice` prompt keeps its banner until it is acknowledged. Reload the
   page and reopen the dialog: the switch reflects the saved choice.
 </section>

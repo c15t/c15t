@@ -111,17 +111,21 @@ group: reference
   ```tsx
   import { useState } from 'react';
 
-  const [open, setOpen] = useState<string[]>([]);
+  export function PreferenceCenter() {
+    const [open, setOpen] = useState<string[]>([]);
 
-  <ConsentWidget.Root>
-    <ConsentWidget.Accordion
-      value={open}
-      onValueChange={(next) => setOpen(Array.isArray(next) ? next : [next])}
-    >
-      <ConsentWidget.AccordionItems />
-    </ConsentWidget.Accordion>
-    <ConsentWidget.PolicyActions />
-  </ConsentWidget.Root>
+    return (
+      <ConsentWidget.Root>
+        <ConsentWidget.Accordion
+          value={open}
+          onValueChange={(next) => setOpen(Array.isArray(next) ? next : [next])}
+        >
+          <ConsentWidget.AccordionItems />
+        </ConsentWidget.Accordion>
+        <ConsentWidget.PolicyActions />
+      </ConsentWidget.Root>
+    );
+  }
   ```
 
   Provider component slots for the stock structure are `manager.root`,
