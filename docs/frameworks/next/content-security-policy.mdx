@@ -1,0 +1,188 @@
+---
+title: Content Security Policy
+description: Pass a per-request CSP nonce to ConsentBoundary in Next.js and allow the consent backend in connect-src.
+group: frameworks
+---
+
+## Pass the request nonce to the boundary
+
+Read the nonce from the `x-nonce` request header in the root layout and pass it
+as `options={{ nonce }}` on `ConsentBoundary`. This is the standard Next.js
+nonce pattern: your `proxy.ts` (Next.js 16) or `middleware.ts` (Next.js 15)
+generates a nonce per request, sets the `Content-Security-Policy` response
+header with `'nonce-<value>'` in `script-src` and `style-src`, and forwards the
+same value on the request as `x-nonce`. See the
+[Next.js CSP guide](https://nextjs.org/docs/app/guides/content-security-policy)
+for the header-generating proxy.
+
+If you also run [`c15tProxy`](/docs/frameworks/next/geography-headers), set
+both `x-nonce` and the generated `Content-Security-Policy` header on
+`request.headers` before calling it, and set the policy on the returned
+response as well. Next.js reads the nonce for its own bootstrap and page
+scripts from the request-side policy header, so forwarding only `x-nonce`
+leaves the framework scripts without a nonce and the browser blocks hydration.
+`c15tProxy` copies the incoming request headers into the forwarded request, so
+both headers travel with the geography headers.
+
+Add a `nonce` prop to the `Consent` wrapper from the
+[App Router guide](/docs/frameworks/next/app-router):
+
+```tsx title="components/consent.tsx (partial)"
+'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentBoundary } from 'c15t/next';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import { consentConfig } from '../c15t.config';
+import { scripts } from '../lib/scripts';
+
+export function Consent({
+  children,
+  config,
+  nonce,
+}: {
+  children: ReactNode;
+  config: ConsentBoundaryProps['config'];
+  nonce?: string;
+}) {
+  return (
+    <ConsentBoundary
+      config={config}
+      consent={consentConfig}
+      options={{ nonce }}
+      scripts={scripts}
+    >
+      {children}
+      {/* banner, dialog and footer as in the App Router guide */}
+    </ConsentBoundary>
+  );
+}
+```
+
+Then read the header in the async consent component from the App Router guide
+and pass it through:
+
+```tsx title="app/layout.tsx"
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+import 'c15t/next/styles.css';
+
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+
+  return (
+    <Consent config={initialConsent} nonce={nonce}>
+      {children}
+    </Consent>
+  );
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Suspense fallback={null}>
+          <ResolvedConsent>{children}</ResolvedConsent>
+        </Suspense>
+      </body>
+    </html>
+  );
+}
+```
+
+Reading `headers()` keeps the route dynamic, which a per-request nonce requires
+anyway. Do not combine a nonce-based policy with `cacheComponents: true`
+(Partial Prerendering): the static shell is rendered once at build time, so its
+scripts cannot carry a per-request nonce and the browser blocks them. Next.js
+documents this limitation in its CSP guide. For a prerendered shell use the
+hash-based policy that guide describes; a host-only `script-src` such as
+`'self'` does not authorize Next.js's inline bootstrap scripts and would need
+`'unsafe-inline'`, which defeats the policy. Otherwise keep the route fully
+dynamic and use the nonce.
+
+`options.nonce` is read when the boundary mounts. The provider keeps the latest
+value in a ref, but the script loader is created once per runtime, so a nonce
+that changes during client-side navigation is not applied to scripts already
+created. Each full page load gets the fresh nonce from its own request.
+
+## What the nonce applies to
+
+c15t stamps `options.nonce` on two kinds of DOM nodes:
+
+- Every `<script>` element the script loader creates for a `scripts` entry,
+  both `src` and inline `textContent` scripts. A `nonce` set on an individual
+  `scripts` entry takes precedence over `options.nonce` for that element.
+- The `<style id="c15t-theme">` element the provider injects with the theme's
+  `--c15t-*` custom properties.
+
+It does not apply to anything else:
+
+- Scripts that a vendor script loads itself, such as a tag manager injecting
+  its tags, do not receive the nonce. Add `'strict-dynamic'` to `script-src` so
+  scripts loaded by a nonced script are allowed, or list those vendor hosts
+  explicitly.
+- The prebuilt stylesheet `c15t/next/styles.css` is a regular stylesheet from
+  your own origin. It is covered by `style-src 'self'`, not by the nonce.
+- Inline `style` attributes on rendered components. A nonce cannot authorize
+  style attributes, and browsers ignore `'unsafe-inline'` in a `style-src` list
+  that also contains a nonce or hash. Allow them with a separate
+  `style-src-attr 'unsafe-inline'` directive, or with `'unsafe-hashes'` plus
+  the matching `'sha256-...'` values; hashes only work for static values, not
+  for the animated collapse heights. The IAB TCF dialog, the consent dialog
+  trigger toolbar and the animated collapse used inside the dialogs render
+  inline `style` attributes. Check the
+  browser console with your policy enforced to see whether your setup triggers
+  a `style-src` violation.
+- Iframes, images or requests made by vendor scripts. Allow those hosts in
+  `frame-src`, `img-src` and `connect-src` according to each vendor.
+
+## Allow the consent backend in connect-src
+
+The browser sends consent submissions to `${backendURL}/subjects`, and, when
+the browser initializes or retries after a failed server prefetch, requests to
+`${backendURL}/init` or the manifest URL. Add the backend origin to
+`connect-src`, and the manifest origin too when `manifestURL` is an absolute
+URL on a different host such as a CDN:
+
+```txt title="Content-Security-Policy (partial)"
+connect-src 'self' https://<your-backend-host> https://<your-manifest-host>;
+```
+
+Use the endpoint host supplied by your Inth project or your self-hosted backend.
+When you use the same-origin rewrite from
+[Optimization](/docs/frameworks/next/optimization), `backendURL` is `/api/c15t`
+and `'self'` already covers the browser requests; the Next.js server connects to
+the backend outside the browser's CSP. A local manifest route at
+`/api/c15t/manifest` is also same-origin.
+
+IAB TCF policies can fetch the Global Vendor List from the URL the policy
+provides; allow that host in `connect-src` if you use the
+[IAB TCF add-on](/docs/frameworks/next/iab/overview). Server-side prefetch runs
+in Next.js and is not subject to the browser's CSP.
+
+## Verify
+
+Load a page with the policy enforced, not in report-only mode, and open the
+browser console. The banner should render with its theme colors and no CSP
+violation should mention `c15t-theme`. Grant a category that gates one of your
+`scripts` entries, then check:
+
+- The injected `<script>` element carries the request's nonce. Browsers hide
+  the value from `getAttribute('nonce')`; read the element's `nonce` property
+  in the console or inspect it in the Elements panel.
+- The `<style id="c15t-theme">` element carries the same nonce and the
+  `--c15t-*` variables are applied to the banner.
+- No `Refused to load the script` or `Refused to apply inline style` errors
+  mention a c15t element. A refused vendor dependency points to a missing
+  `'strict-dynamic'` or vendor host.
+- The consent submission to `/subjects` succeeds. A `connect-src` violation
+  here means the backend origin is missing.
+
+Reload with a different nonce and confirm the elements update. A stale nonce
+after a full page load usually means a cached HTML response; nonce-based pages
+must not be served from a shared cache.

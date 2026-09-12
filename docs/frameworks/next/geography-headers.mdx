@@ -1,0 +1,250 @@
+---
+title: Forward geography headers
+description: Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
+group: frameworks
+---
+
+## When do I need the proxy?
+
+Add `c15tProxy` when your hosting platform exposes the visitor's location to
+Next.js middleware or proxy but strips those headers before Server Components
+and Route Handlers run. Without them, `prefetchInitialConsent`, the awaited
+server helpers and the optional local `/api/c15t/init` handler see an unknown
+location and apply your unknown-location policy rule for every visitor.
+
+c15t reads location from the platform headers listed in
+[Which headers are read?](#which-headers-are-read): Cloudflare (`cf-ipcountry`,
+`cf-region-code`), Vercel (`x-vercel-ip-country`,
+`x-vercel-ip-country-region`), the `x-amz-cf-ipcountry` header some
+CloudFront setups add, and generic
+proxy headers (`x-country-code`, `x-country`, `x-region-code`). c15t does not
+keep a list of which hosts strip them. Check your deployment: log
+`(await headers()).get('x-vercel-ip-country')` or the equivalent for your host
+inside a Server Component. If the value is present, you do not need the proxy.
+If it is missing while the same header is present in `proxy.ts`, add the proxy.
+
+The proxy copies the incoming request headers, resolves country, region and
+Global Privacy Control from them, and forwards the result on the request as
+`x-c15t-country`, `x-c15t-region` and `sec-gpc`. Those application override
+headers have the highest precedence, so Server Components and Route Handlers
+read the same values the proxy saw. When no location header is present, the
+proxy sets nothing and the location stays unknown.
+
+The proxy runs on Next.js `^15.0.0 || ^16.0.0`. It does not apply to a
+[static export](/docs/frameworks/next/static-export), which has no server.
+
+## Add the proxy (Next.js 16)
+
+Create `proxy.ts` at the project root, or in `src/` if your app lives there:
+
+```ts title="proxy.ts"
+import { c15tProxy } from 'c15t/next/proxy';
+import type { NextRequest } from 'next/server';
+
+export function proxy(request: NextRequest) {
+  return c15tProxy(request);
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+`c15tProxy` returns `NextResponse.next()` with the forwarded request headers.
+If you already have a proxy, call `c15tProxy(request)` where you would
+otherwise return `NextResponse.next()`, and set any response headers or
+cookies on the returned response.
+
+`config.matcher` must cover every page that renders the consent boundary,
+because `prefetchInitialConsent` and the awaited helpers run during those page
+requests. It must also cover `/api/c15t/:path*` if you serve the optional local
+init route and want it to resolve policy with the visitor's location. The
+manifest route serves public policy data and does not need location.
+
+## Add the middleware (Next.js 15)
+
+On Next.js 15 the file is `middleware.ts` and the export is `middleware`:
+
+```ts title="middleware.ts"
+import { c15tMiddleware } from 'c15t/next/middleware';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  return c15tMiddleware(request);
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+`c15tMiddleware` is the same function as `c15tProxy` under the Next.js 15
+name. Both imports stay supported on both Next.js versions. When you upgrade to
+Next.js 16 and rename `middleware.ts` to `proxy.ts`, switch the import to
+`c15tProxy` from `c15t/next/proxy` at the same time. The options type is
+exported as `C15tMiddlewareOptions` and `C15tProxyOptions` respectively.
+
+## Persist geography in cookies
+
+Pass `cookie: true` to also write the resolved location into cookies. Use this
+on runtimes where the forwarded request headers do not reach React Server
+Components, so that your own server code can read the location on later
+requests. The proxy writes the cookie on the response, and `cookies()` reads
+the incoming request, so the first visit still resolves as unknown and the
+first request after a location change still sees the previous value:
+
+```ts title="proxy.ts"
+import { c15tProxy } from 'c15t/next/proxy';
+import type { NextRequest } from 'next/server';
+
+export function proxy(request: NextRequest) {
+  return c15tProxy(request, { cookie: true });
+}
+```
+
+The default cookie names are `c15t-country` and `c15t-region`. Both are set
+with `httpOnly: true`, `sameSite: 'lax'` and `path: '/'`, so browser scripts
+cannot read them. Pass an object to rename them:
+
+```ts title="proxy.ts (partial)"
+c15tProxy(request, {
+  cookie: { countryName: 'geo-country', regionName: 'geo-region' },
+});
+```
+
+A cookie is written only when the matching header resolved a value. The
+proxy never clears a stale cookie, so a visitor whose location header
+disappears keeps the previous cookie until it is cleared or the session cookie
+expires.
+
+The c15t server helpers read request headers, not these cookies. To use the
+cookie, read it where you call `prefetchInitialConsent` and pass it as the
+`country` override:
+
+```tsx title="app/layout.tsx (partial)"
+import type { ReactNode } from 'react';
+import { cookies } from 'next/headers';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  const country = (await cookies()).get('c15t-country')?.value;
+  const initialConsent = await prefetchInitialConsent({
+    config: consentConfig,
+    country,
+  });
+  return <Consent config={initialConsent}>{children}</Consent>;
+}
+```
+
+This is the `ResolvedConsent` component from the
+[App Router guide](/docs/frameworks/next/app-router); keep it inside the
+`Suspense` boundary shown there.
+
+`prefetchInitialConsent` accepts `country` and `language` overrides. It has no
+`region` override in the current API, so the region cookie is available only to
+your own code.
+
+The cookie comes back in the client-controlled `Cookie` header. `HttpOnly`
+stops page scripts from reading it; it does not stop a visitor from sending
+`c15t-country=<value>` and, through the `country` override, choosing a less
+restrictive rule for themselves. Deleting the incoming cookie is not an
+option here, because `cookies()` reads that same request and `c15tProxy` only
+sets the cookie on the response. Use this fallback only when the edge that
+terminates all traffic overwrites the incoming `c15t-country` and
+`c15t-region` cookies with its own trusted geography on every request, or
+when your code signs the value and verifies the signature before passing it
+as `country`. Where you can do neither, keep the cookie out of policy
+resolution and use it only for non-policy code such as display defaults.
+
+## Which headers are read?
+
+`c15tProxy` and the server helpers use the same extraction from
+`@c15t/schema`. Within each group, the first header with a value wins:
+
+| Input | Headers, highest precedence first | Source |
+| --- | --- | --- |
+| Country | `x-c15t-country`, `cf-ipcountry`, `x-vercel-ip-country`, `x-amz-cf-ipcountry`, `x-country-code`, `x-country` | c15t override, Cloudflare, Vercel, CloudFront, generic |
+| Region | `x-c15t-region`, `cf-region-code`, `x-vercel-ip-country-region`, `x-region-code` | c15t override, Cloudflare, Vercel, generic |
+| Global Privacy Control | `x-c15t-gpc`, `sec-gpc` | c15t override, browser signal |
+| Language | `accept-language` | browser |
+
+CloudFront's own geolocation headers, `CloudFront-Viewer-Country` and
+`CloudFront-Viewer-Country-Region`, are not in this list. Forward them to the
+origin with an origin request policy, then map them in `proxy.ts` before
+calling `c15tProxy`. An origin request policy forwards headers but cannot
+rename them. A CloudFront Function can also read geography headers when a
+cache policy or origin request policy exposes them to the function, as shown
+in [AWS's viewer-request example](https://github.com/aws-samples/amazon-cloudfront-functions/tree/main/redirect-based-on-country).
+
+Clear every country and region input c15t recognizes before mapping the
+trusted CloudFront values:
+
+```ts title="proxy.ts"
+import { c15tProxy } from 'c15t/next/proxy';
+import { NextRequest } from 'next/server';
+
+export function proxy(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  for (const name of [
+    'x-c15t-country',
+    'cf-ipcountry',
+    'x-vercel-ip-country',
+    'x-amz-cf-ipcountry',
+    'x-country-code',
+    'x-country',
+    'x-c15t-region',
+    'cf-region-code',
+    'x-vercel-ip-country-region',
+    'x-region-code',
+  ]) {
+    headers.delete(name);
+  }
+  const country = headers.get('cloudfront-viewer-country');
+  const region = headers.get('cloudfront-viewer-country-region');
+  if (country) headers.set('x-c15t-country', country);
+  if (region) headers.set('x-c15t-region', region);
+  return c15tProxy(new NextRequest(request, { headers }));
+}
+```
+
+The `delete` calls drop client-supplied overrides and fallback geography
+headers. When CloudFront omits a country or region, that value stays unknown
+instead of falling through to a header supplied by the visitor.
+
+GPC values are meaningful only as `1` or `0`; any other value is treated as
+absent. The proxy writes the normalized result to `sec-gpc`, so an incoming
+`x-c15t-gpc: 1` reaches Server Components as `sec-gpc: 1`. Browsers refuse to
+let scripts set `Sec-*` request headers, which is why the `x-c15t-gpc` override
+exists for the browser's own init request.
+
+Only trusted infrastructure may set `x-c15t-country`, `x-c15t-region` or
+`x-c15t-gpc` in production, because they always win. A client that sends them
+chooses its own policy rule, and `c15tProxy` forwards a client-supplied value
+over the platform header rather than stripping it. The edge that terminates all
+traffic must therefore delete incoming `x-c15t-*` headers before anything sets
+them, in every deployment. Blocking direct origin access with a firewall or
+platform origin protection is an additional control that keeps requests on that
+edge; it does not replace the stripping, because a forwarded client header
+still passes through the protected path.
+
+## Verify
+
+Deploy with the proxy and load the site from two locations with different
+configured policy rules, for example through a VPN or your host's geo testing
+tools. After server prefetch resolves, the rendered consent policy must match
+each location: an opt-in region shows the banner with optional categories denied, while a region
+configured for notice-only or no notice renders accordingly. Confirm the values
+by logging `(await headers()).get('x-c15t-country')` in a Server Component;
+it should equal the platform header seen in the proxy.
+
+Remove the proxy temporarily and reload. If both locations now resolve the
+unknown-location rule, your platform strips location headers before Server
+Components and the proxy is required. If they still resolve correctly, your
+platform already passes the headers through and the proxy is optional.
+
+With the local init route in the matcher, request `/api/c15t/init` from each
+location and confirm its `policyResolution` reflects the location. If you use
+`cookie: true`, check the response for `Set-Cookie: c15t-country=...` with
+`HttpOnly` and `SameSite=Lax`.
