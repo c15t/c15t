@@ -15,6 +15,7 @@ const RELATIVE_COMPARATORS = new Set<MetricBudget['comparator']>([
 	'delta-bytes-lte',
 	'percent-lte',
 	'absolute-and-percent-lte',
+	'absolute-or-percent-lte',
 ]);
 
 export const budgetNeedsBase = function budgetNeedsBase(
@@ -120,18 +121,23 @@ const evaluatePercent = function evaluatePercent(
 	);
 };
 
-const evaluateAbsoluteAndPercent = function evaluateAbsoluteAndPercent(
-	context: BudgetContext
+const evaluateCombinedLimits = function evaluateCombinedLimits(
+	context: BudgetContext,
+	eitherLimit = false
 ): MetricBudgetResult {
 	const { budget, delta, deltaPercent } = context;
-	const percentLimit = budget.secondaryThreshold ?? Number.POSITIVE_INFINITY;
+	const percentLimit =
+		budget.secondaryThreshold ??
+		(eitherLimit ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY);
 	let percentPass = false;
 	if (deltaPercent === null) {
 		percentPass = delta <= 0 || percentLimit === Number.POSITIVE_INFINITY;
 	} else {
 		percentPass = deltaPercent <= percentLimit;
 	}
-	const pass = delta <= budget.threshold && percentPass;
+	const pass = eitherLimit
+		? delta <= budget.threshold || percentPass
+		: delta <= budget.threshold && percentPass;
 	const percentLabel =
 		deltaPercent === null ? 'n/a%' : `${deltaPercent.toFixed(2)}%`;
 	return budgetResult(
@@ -178,8 +184,9 @@ const COMPARATORS: Record<
 	MetricBudget['comparator'],
 	(context: BudgetContext) => MetricBudgetResult
 > = {
-	'absolute-and-percent-lte': evaluateAbsoluteAndPercent,
+	'absolute-and-percent-lte': (context) => evaluateCombinedLimits(context),
 	'absolute-lte': evaluateAbsolute,
+	'absolute-or-percent-lte': (context) => evaluateCombinedLimits(context, true),
 	'count-eq': evaluateEquality,
 	'delta-bytes-lte': evaluateDeltaBytes,
 	'percent-lte': evaluatePercent,

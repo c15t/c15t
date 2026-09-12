@@ -120,25 +120,31 @@ export const artifactV3Budgets: MetricBudget[] = [
 	},
 ];
 
+/** Empty-kernel operations run in microseconds; hosted jitter below 1µs is reported but not gated. */
 export const coreRuntimeBudgets: MetricBudget[] = [
 	{
-		comparator: 'percent-lte',
+		comparator: 'absolute-or-percent-lte',
 		description:
-			'Tiny runtime operations may regress slightly, but should stay within 30%.',
+			'Kernel construction must not regress by both more than 1µs and 30%.',
 		metric: 'createConsentKernel',
-		threshold: 30,
+		secondaryThreshold: 30,
+		threshold: 1,
 	},
 	{
-		comparator: 'percent-lte',
-		description: 'Snapshot reads should remain within 20% of the baseline.',
+		comparator: 'absolute-or-percent-lte',
+		description:
+			'Snapshot reads must not regress by both more than 1µs and 20%.',
 		metric: 'getSnapshot',
-		threshold: 20,
+		secondaryThreshold: 20,
+		threshold: 1,
 	},
 	{
-		comparator: 'percent-lte',
-		description: 'Full init cost should remain within 15% of the baseline.',
+		comparator: 'absolute-or-percent-lte',
+		description:
+			'Empty-kernel init must not regress by both more than 1µs and 15%.',
 		metric: 'initConsentManager',
-		threshold: 15,
+		secondaryThreshold: 15,
+		threshold: 1,
 	},
 ];
 

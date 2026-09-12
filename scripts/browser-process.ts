@@ -32,22 +32,44 @@ export const startProcess = function startProcess(
 	return { child, logs: () => log };
 };
 
+const processGroupAlive = async (pid: number): Promise<boolean> => {
+	try {
+		process.kill(-pid, 0);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ESRCH') {
+			return false;
+		}
+		throw error;
+	}
+	// Zombies retain a process-group ID but have already released their resources.
+	const { stdout } = await execFileAsync('ps', ['-A', '-o', 'pgid=,stat=']);
+	return stdout.split('\n').some((line) => {
+		const [group, state] = line.trim().split(/\s+/u);
+		return (
+			Number(group) === pid && state !== undefined && !state.startsWith('Z')
+		);
+	});
+};
+
 export const stopProcess = async function stopProcess(
 	child: ChildProcess
 ): Promise<void> {
-	const exited = child.exitCode !== null || child.signalCode !== null;
-	const streamsClosed = [child.stdout, child.stderr].every(
-		(stream) => !stream || stream.destroyed
-	);
-	if (!child.pid || (exited && streamsClosed)) {
+	if (!child.pid) {
 		return;
 	}
 	const { pid } = child;
-	let stopped = false;
-	const closed = (async () => {
-		await once(child, 'close');
+	let stopped =
+		(child.exitCode !== null || child.signalCode !== null) &&
+		[child.stdout, child.stderr].every((stream) => !stream || stream.destroyed);
+	child.once('close', () => {
 		stopped = true;
-	})();
+	});
+	const done = async () =>
+		stopped &&
+		(process.platform === 'win32' || !(await processGroupAlive(pid)));
+	if (await done()) {
+		return;
+	}
 	const kill = async (signal: NodeJS.Signals) => {
 		try {
 			if (process.platform === 'win32') {
@@ -57,19 +79,32 @@ export const stopProcess = async function stopProcess(
 			}
 		} catch (error) {
 			if (
-				child.exitCode === null &&
-				child.signalCode === null &&
-				(error as NodeJS.ErrnoException).code !== 'ESRCH'
+				(error as NodeJS.ErrnoException).code !== 'ESRCH' &&
+				!(await done())
 			) {
 				throw error;
 			}
 		}
 	};
+	const wait = async () => {
+		const deadline = Date.now() + 5000;
+		while (Date.now() < deadline) {
+			// oxlint-disable-next-line no-await-in-loop -- Wait for the complete group to release resources.
+			if (await done()) {
+				return true;
+			}
+			// oxlint-disable-next-line no-await-in-loop -- Bound process-table polling.
+			await delay(50);
+		}
+		return false;
+	};
 	await kill('SIGTERM');
-	await Promise.race([closed, delay(5000, undefined, { ref: false })]);
-	if (!stopped) {
-		await kill('SIGKILL');
-		await closed;
+	if (await wait()) {
+		return;
+	}
+	await kill('SIGKILL');
+	if (!(await wait())) {
+		throw new Error(`Process group ${pid} did not stop after SIGKILL`);
 	}
 };
 

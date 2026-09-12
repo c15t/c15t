@@ -15,9 +15,7 @@ export const validateBuildOutputs = function validateBuildOutputs(
 	const workspaces = readWorkspaces(root);
 	const targets = (value: unknown): string[] => {
 		if (typeof value === 'string') {
-			return /^(?:\.\/)?dist(?:-types)?\//u.test(value) && !value.includes('*')
-				? [value]
-				: [];
+			return /^(?:\.\/)?dist(?:-types)?\//u.test(value) ? [value] : [];
 		}
 		if (value && typeof value === 'object') {
 			return Object.values(value).flatMap(targets);
@@ -42,9 +40,30 @@ export const validateBuildOutputs = function validateBuildOutputs(
 				manifest.bin,
 			]),
 		];
-		for (const pattern of new Set(required)) {
-			if (!fg.sync(pattern, { cwd, onlyFiles: true }).length) {
-				throw new Error(`Missing build output for ${name}: ${pattern}`);
+		const roots = new Set(
+			required.map((target) => target.replace(/^\.\//u, '').split('/')[0])
+		);
+		for (const outputRoot of roots) {
+			const group = required.filter((target) =>
+				target.replace(/^\.\//u, '').startsWith(`${outputRoot}/`)
+			);
+			const concrete = group.filter((target) => !target.includes('*'));
+			const wildcards = group.filter((target) => target.includes('*'));
+			// Wildcard keys need not name a file for every possible subpath. Each
+			// declared output tree must nevertheless contain a matching artifact.
+			if (
+				!concrete.length &&
+				wildcards.length &&
+				!fg.sync(wildcards, { cwd, onlyFiles: true }).length
+			) {
+				throw new Error(
+					`Missing wildcard build outputs for ${name}: ${wildcards.join(', ')}`
+				);
+			}
+			for (const pattern of new Set(concrete)) {
+				if (!fg.sync(pattern, { cwd, onlyFiles: true }).length) {
+					throw new Error(`Missing build output for ${name}: ${pattern}`);
+				}
 			}
 		}
 	}

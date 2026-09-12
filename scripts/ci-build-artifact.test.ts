@@ -42,6 +42,34 @@ it('requires every selected package and its exported types, even when another pa
 		expect(() => validateBuildOutputs(['second'], root)).toThrow(
 			'dist-types/index.d.ts'
 		);
+		writeFileSync(
+			join(root, 'packages/second/package.json'),
+			JSON.stringify({ exports: { './*': './dist/*.js' }, name: 'second' })
+		);
+		rmSync(join(root, 'packages/second/dist/index.js'));
+		expect(() => validateBuildOutputs(['second'], root)).toThrow(
+			'Missing wildcard build outputs'
+		);
+		writeFileSync(join(root, 'packages/second/dist/index.js'), 'export {};');
+		expect(() => validateBuildOutputs(['second'], root)).not.toThrow();
+		writeFileSync(
+			join(root, 'packages/second/package.json'),
+			JSON.stringify({
+				exports: {
+					'./*': { import: './dist/*.js', types: './dist-types/*.d.ts' },
+				},
+				name: 'second',
+			})
+		);
+		expect(() => validateBuildOutputs(['second'], root)).toThrow(
+			'dist-types/*.d.ts'
+		);
+		mkdirSync(join(root, 'packages/second/dist-types'));
+		writeFileSync(
+			join(root, 'packages/second/dist-types/index.d.ts'),
+			'export {};'
+		);
+		expect(() => validateBuildOutputs(['second'], root)).not.toThrow();
 	} finally {
 		rmSync(root, { force: true, recursive: true });
 	}

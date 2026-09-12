@@ -86,7 +86,10 @@ comparison when runtime benchmark consumers are affected. Full CI runs the
 browser comparison on publishing branches and nightly. Results and failures
 appear in Actions summaries and artifacts, without PR comments. Script-lifecycle
 durations use the browser clock from action start through confirmed completion;
-Playwright click transport and polling time are excluded.
+Playwright click transport and polling time are excluded. The three tiny
+empty-kernel percentage budgets also require more than 1µs of growth before
+failing, so sub-microsecond hosted-runner jitter stays visible in the report
+without blocking a PR. Other budget semantics remain unchanged.
 
 `BENCHMARK_PROFILE=regression` enforces same-revision-key regression budgets
 and invariants. `BENCHMARK_PROFILE=release`, the default for `bench:compare`,

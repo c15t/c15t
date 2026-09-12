@@ -240,7 +240,7 @@ describe('run-compare gate', () => {
 			coreScenarios.length
 		);
 		expect(summaryOf(run).budgets.definitionMismatches[0]).toContain(
-			'threshold expected 15 but saw 50'
+			'threshold expected 1 but saw 50'
 		);
 	});
 
@@ -262,7 +262,7 @@ describe('run-compare gate', () => {
 		});
 		expect(run.code).not.toBe(0);
 		expect(summaryOf(run).budgets.definitionMismatches[0]).toContain(
-			'comparator expected percent-lte but saw absolute-lte'
+			'comparator expected absolute-or-percent-lte but saw absolute-lte'
 		);
 	});
 
@@ -384,7 +384,7 @@ describe('run-compare gate', () => {
 
 	it('fails an evaluated regression under enforcement', () => {
 		const base = fullCore();
-		const head = fullCore({ ...coreMedians, getSnapshot: 2 });
+		const head = fullCore({ ...coreMedians, getSnapshot: 3 });
 		const run = runCompare({
 			BENCHMARK_ARM_BASE_DIRS: `v2=${writeResults(v2Arm())}`,
 			BENCHMARK_ARM_MAP: emptyArmMap(),

@@ -224,3 +224,37 @@ describe('hasFailingBudgets', () => {
 		).toBe(true);
 	});
 });
+
+describe('absolute noise floors', () => {
+	const budget = {
+		comparator: 'absolute-or-percent-lte' as const,
+		description: 'tiny operation',
+		metric: 'operation',
+		secondaryThreshold: 30,
+		threshold: 1,
+	};
+	it('reports sub-microsecond percentage changes without failing', () => {
+		expect(
+			evaluateBudget(
+				budget,
+				metric('operation', 0.521),
+				metric('operation', 0.391)
+			).pass
+		).toBe(true);
+	});
+	it('fails an increase exceeding both limits', () => {
+		expect(
+			evaluateBudget(budget, metric('operation', 2), metric('operation', 0.4))
+				.pass
+		).toBe(false);
+	});
+	it('allows changes within the percentage limit on larger operations', () => {
+		expect(
+			evaluateBudget(budget, metric('operation', 110), metric('operation', 100))
+				.pass
+		).toBe(true);
+	});
+	it('still requires a measured base', () => {
+		expect(evaluateBudget(budget, metric('operation', 0.1)).pass).toBe(false);
+	});
+});

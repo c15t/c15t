@@ -77,6 +77,8 @@ export interface MetricBudget {
 		| 'delta-bytes-lte'
 		| 'percent-lte'
 		| 'absolute-and-percent-lte'
+		/** Fail only when both the absolute noise floor and percentage limit are exceeded. */
+		| 'absolute-or-percent-lte'
 		| 'count-eq'
 		| 'truthy-eq'
 		/**

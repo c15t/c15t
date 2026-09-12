@@ -59,7 +59,7 @@ it('terminates descendants and releases their listening port', async () => {
 	const server = startProcess([
 		'node',
 		'-e',
-		`require('node:child_process').spawn(process.execPath, ['-e', ${JSON.stringify(child)}], { stdio: 'inherit' }); setInterval(() => {}, 1000);`,
+		`require('node:child_process').spawn(process.execPath, ['-e', ${JSON.stringify(child)}], { stdio: 'ignore' }); setInterval(() => {}, 1000);`,
 	]);
 	try {
 		await waitForServer(`http://127.0.0.1:${port}`, server);
