@@ -1,19 +1,18 @@
 ---
 title: IAB TCF
-description: Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+description: Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
 group: frameworks
 ---
 
 ## Prepare the IAB configuration
 
-Use the IAB integration when your application needs the Transparency and Consent
-Framework. Configure an IAB policy, the correct CMP identity and vendor data for
-your deployment. A demo CMP ID is not a production configuration.
+<import src="../../../shared/react/iab/overview.mdx#prepare" />
 
-Install `@c15t/iab` alongside your framework adapter. Inside an existing consent
-provider connected to Inth, mount the IAB components:
+Import the components from `c15t/react/iab` and render them inside your
+existing `ConsentProvider` from `c15t/react`. Import `c15t/react/iab/styles.css`
+at your global stylesheet entry.
 
-```tsx
+```tsx title="src/iab-consent.tsx"
 import { IABProvider, IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 
 export function IABConsent({ cmpId }: { cmpId: number }) {
@@ -26,24 +25,4 @@ export function IABConsent({ cmpId }: { cmpId: number }) {
 }
 ```
 
-Import `c15t/react/iab/styles.css` at your global stylesheet entry. Supply the CMP ID
-from your deployment's IAB configuration. Keep a persistent preferences entry
-point through the surrounding consent provider.
-
-## Resolve the policy before rendering
-
-IAB components remain hidden until an applicable policy resolves. Forcing a
-dialog open does not create a policy or vendor list. Inspect resolution and the
-Global Vendor List response before changing rendering conditions.
-
-IAB presentation follows `presentation.prompt.blocking` and
-`presentation.preferences.blocking`. A blocking dialog needs focus management,
-scroll locking and a backdrop together. See [migration](/docs/upgrade-v3) for
-legacy option behavior.
-
-## Verify vendor and purpose choices
-
-Test category choices alongside vendor, purpose, legitimate-interest and special
-feature controls used by your integration. Confirm the TC String and `__tcfapi`
-reflect the saved state, and verify the vendor's actual requests. A category-only
-banner test does not establish that the IAB flow works.
+<import src="../../../shared/react/iab/overview.mdx#configure" />

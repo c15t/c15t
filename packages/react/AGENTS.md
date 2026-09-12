@@ -27,12 +27,12 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent categories](./docs/frameworks/react/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/react/concepts/policy-presets.md): Understand how policy rules affect React prompts, permissions and persistent privacy controls.
-- [Headless](./docs/frameworks/react/headless.md): Build your own consent UI on top of the c15t hooks.
-- [Hooks](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Choose focused consent hooks for feature gates, explicit choices and preference actions.
-- [IAB TCF](./docs/frameworks/react/iab/overview.md): Configure the IAB provider, policy and vendor data before rendering the TCF interface.
+- [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
+- [Hooks](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
+- [IAB TCF](./docs/frameworks/react/iab/overview.md): Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Connect a React application to Inth and add consent UI, persistence and a preferences link.
 - [Load scripts with consent](./docs/frameworks/react/script-loader.md): Register vendor scripts once and let effective permissions control loading.
-- [Styling](./docs/frameworks/react/styling/overview.md): Theme c15t components with tokens, slots, and class names.
+- [Styling](./docs/frameworks/react/styling/overview.md): Import the React stylesheet and theme c15t components with tokens, slots, and class names on ConsentProvider.
 - [Troubleshoot React consent](./docs/frameworks/react/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
 
 ## Guides
