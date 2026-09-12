@@ -233,8 +233,8 @@ still passes through the protected path.
 
 Deploy with the proxy and load the site from two locations with different
 configured policy rules, for example through a VPN or your host's geo testing
-tools. The resolved policy in the initial HTML must match each location: an
-opt-in region shows the banner with optional categories denied, while a region
+tools. After server prefetch resolves, the rendered consent policy must match
+each location: an opt-in region shows the banner with optional categories denied, while a region
 configured for notice-only or no notice renders accordingly. Confirm the values
 by logging `(await headers()).get('x-c15t-country')` in a Server Component;
 it should equal the platform header seen in the proxy.
