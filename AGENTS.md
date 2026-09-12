@@ -112,8 +112,8 @@ When adding or changing user-facing package behavior:
 ## Branches and releases
 
 - **`canary`** is the default branch and PR target; merges auto-publish `--tag canary` snapshots.
-- **`main`** is stable; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
-- User-facing package changes need a changeset (`bun run changeset`). `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked** — they version together.
+- **`main`** is stable; **`v3`** publishes alpha prereleases; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
+- User-facing package changes need a changeset (`bun run changeset`). Read `.changeset/config.json` for the linked group. Linked packages share a version when released together; they do not all release automatically when one changes. See `.changeset/README.md` for the v3 alpha flow.
 - See the `releasing` skill for the full flow.
 
 ## CI on pull requests

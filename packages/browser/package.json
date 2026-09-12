@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/browser",
-	"version": "0.1.0",
+	"version": "2.0.0",
 	"description": "Drop-in consent banner and headless consent runtime for sites without a build step: Framer, Webflow, WordPress, Squarespace, and plain HTML.",
 	"keywords": [
 		"c15t",
