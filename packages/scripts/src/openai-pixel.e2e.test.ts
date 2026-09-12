@@ -73,7 +73,10 @@ describe('openaiPixel loader contract', () => {
 		const scripts = [openaiPixel({ pixelId })];
 		loadScripts(scripts, grantedMarketingConsents);
 		updateScripts(scripts, deniedConsents);
-		scriptElement?.dispatchEvent(new Event('load'));
+		if (scriptElement === undefined) {
+			throw new Error('Expected the OpenAI Pixel SDK script to be appended');
+		}
+		scriptElement.dispatchEvent(new Event('load'));
 
 		const stub = getOaiq();
 		expect(typeof stub).toBe('function');
