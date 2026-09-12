@@ -84,12 +84,8 @@ const getCookie = function getCookie(name: string): string | null {
 export const createCMPApi = function createCMPApi(
 	config: CMPApiConfig
 ): CMPApi {
-	const {
-		cmpId = CMP_ID,
-		cmpVersion = CMP_VERSION,
-		gvl,
-		gdprApplies = true,
-	} = config;
+	const { cmpId = CMP_ID, cmpVersion = CMP_VERSION, gvl } = config;
+	let gdprApplies = config.gdprApplies ?? true;
 
 	let tcString = '';
 	let cmpStatus: CMPStatus = 'loading';
@@ -409,7 +405,12 @@ export const createCMPApi = function createCMPApi(
 			}
 		},
 
-		updateConsent: (newTcString: string, consentData?: TCFConsentData) => {
+		updateConsent: (
+			newTcString: string,
+			consentData?: TCFConsentData,
+			applies?: boolean
+		) => {
+			gdprApplies = applies ?? gdprApplies;
 			tcString = newTcString;
 			currentConsentData = newTcString ? (consentData ?? null) : null;
 			// Invalidate cache

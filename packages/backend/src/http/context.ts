@@ -39,6 +39,7 @@ import type { GvlOptions } from './gvl';
 import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
+import type { ScriptOptions } from './script';
 
 export interface AppLayers {
 	readonly sql: SqlClient.SqlClient;
@@ -95,6 +96,11 @@ export interface AppOptions {
 	/** Per-tenant configuration the manifest and /init are built from. */
 	readonly manifest?: ConsentManifestConfig;
 	readonly manifestCache?: ManifestCacheOptions;
+	/**
+	 * The script-tag builds served at `/c15t.js` and `/c15t.headless.js`,
+	 * pre-configured with this backend's manifest. On by default.
+	 */
+	readonly script?: ScriptOptions;
 	readonly policySnapshot?: PolicySnapshotOptions;
 	/**
 	 * Signing for legal-document snapshots.

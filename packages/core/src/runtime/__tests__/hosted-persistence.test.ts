@@ -114,18 +114,20 @@ test('hosted startup, save and clear survive blocked storage getters', async () 
 	);
 });
 
-test.each(['opt-out', 'none', 'changed-policy'] as const)(
+test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 	'preserves a rejection across hosted init failure and %s recovery',
 	async (recovery) => {
 		const initial = await start();
 		expect(initial.kernel.getSnapshot().effectivePermissions.measurement).toBe(
 			true
 		);
-		await initial.kernel.commands.save('none');
+		if (recovery !== 'offline-rejection') {
+			await initial.kernel.commands.save('none');
+		}
 		close(initial);
-		const savedChoice = initial.kernel.getSnapshot().explicitChoice;
-		const savedLocal = localStorage.getItem('c15t');
-		const savedCookie = document.cookie;
+		let savedChoice = initial.kernel.getSnapshot().explicitChoice;
+		let savedLocal = localStorage.getItem('c15t');
+		let savedCookie = document.cookie;
 
 		unavailable = true;
 		const outage = await start();
@@ -136,6 +138,12 @@ test.each(['opt-out', 'none', 'changed-policy'] as const)(
 		expect(outage.kernel.getSnapshot().effectivePermissions.measurement).toBe(
 			false
 		);
+		if (recovery === 'offline-rejection') {
+			await outage.kernel.commands.save('none');
+			savedChoice = outage.kernel.getSnapshot().explicitChoice;
+			savedLocal = localStorage.getItem('c15t');
+			savedCookie = document.cookie;
+		}
 		close(outage);
 		const outageChoice = outage.kernel.getSnapshot().explicitChoice;
 		expect(outageChoice?.categories.measurement?.value).toBe(false);
@@ -147,15 +155,14 @@ test.each(['opt-out', 'none', 'changed-policy'] as const)(
 		if (recovery === 'none') {
 			policy = matchedResolution(noneRule());
 		}
-		const changedPolicy = matchedResolution(
-			optOutRule({ categories: ['measurement'], scopeMode: 'strict' })
-		);
-		expect(changedPolicy.fingerprints.choice).not.toBe(
-			originalPolicy.fingerprints.choice
-		);
 		if (recovery === 'changed-policy') {
-			policy = changedPolicy;
+			policy = matchedResolution(
+				optOutRule({ categories: ['measurement'], scopeMode: 'strict' })
+			);
 		}
+		expect(
+			policy.fingerprints.choice === originalPolicy.fingerprints.choice
+		).toBe(recovery !== 'changed-policy' && recovery !== 'none');
 		const recovered = await start();
 		expect(recovered.kernel.getSnapshot().resolution.status).toBe('matched');
 		expect(recovered.kernel.getSnapshot().explicitChoice).toEqual(outageChoice);
@@ -175,44 +182,3 @@ test.each(['opt-out', 'none', 'changed-policy'] as const)(
 		);
 	}
 );
-
-test('preserves a rejection made during an outage across repeated recovery', async () => {
-	const initial = await start();
-	expect(initial.kernel.getSnapshot().effectivePermissions.measurement).toBe(
-		true
-	);
-	close(initial);
-
-	unavailable = true;
-	const outage = await start();
-	expect(outage.kernel.getSnapshot().resolution).toMatchObject({
-		reason: 'transport',
-		status: 'failed',
-	});
-	expect(outage.kernel.getSnapshot().effectivePermissions.measurement).toBe(
-		false
-	);
-	await outage.kernel.commands.save('none');
-	close(outage);
-	const outageChoice = outage.kernel.getSnapshot().explicitChoice;
-	expect(outageChoice?.categories.measurement?.value).toBe(false);
-
-	unavailable = false;
-	const recovered = await start();
-	expect(recovered.kernel.getSnapshot().resolution.status).toBe('matched');
-	expect(recovered.kernel.getSnapshot().explicitChoice).toEqual(outageChoice);
-	expect(recovered.kernel.getSnapshot().effectivePermissions.measurement).toBe(
-		false
-	);
-	close(recovered);
-
-	unavailable = true;
-	const repeated = await start();
-	close(repeated);
-	unavailable = false;
-	const final = await start();
-	expect(final.kernel.getSnapshot().explicitChoice).toEqual(outageChoice);
-	expect(final.kernel.getSnapshot().effectivePermissions.measurement).toBe(
-		false
-	);
-});

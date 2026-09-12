@@ -9,6 +9,9 @@ export default defineConfig({
 		},
 	},
 	test: {
+		// Vitest blanks CSS modules by default, `?raw` imports included; the
+		// panel carries its stylesheet as a string, so keep this one real.
+		css: { include: [/dev-tools\.css/u] },
 		environment: 'jsdom',
 		include: ['**/__tests__/**/*.test.ts'],
 		mockReset: true,
