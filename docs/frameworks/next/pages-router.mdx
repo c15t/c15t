@@ -126,13 +126,22 @@ type PageProps = { initialConsent: ConsentBoundaryProps['config'] };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
   const initialConsent = await prefetchInitialConsent({ config: consentConfig, req });
-  return { props: { initialConsent } };
+  return {
+    props: {
+      initialConsent: JSON.parse(
+        JSON.stringify(initialConsent)
+      ) as PageProps['initialConsent'],
+    },
+  };
 };
 
 export default function Home() {
   return <main>Your page</main>;
 }
 ```
+
+The JSON round-trip removes `undefined` fields, such as an absent GPC signal,
+because Next.js rejects them in `getServerSideProps` props.
 
 Repeat prefetch on pages that need request-specific initial HTML. Do not use
 `getStaticProps` to resolve visitor cookies or geography: it runs without the

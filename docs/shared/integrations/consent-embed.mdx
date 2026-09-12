@@ -292,12 +292,18 @@ when permission allows it, keeps an existing player mounted across unrelated
 snapshot updates, and removes it on revocation.
 
 ```ts title="src/consent-embed.ts"
-import type { ConsentKernel } from 'c15t';
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+
+type EmbedKernel = {
+  getSnapshot: () => {
+    effectivePermissions: Record<typeof embedCategory, boolean>;
+  };
+  subscribe: (listener: () => void) => () => void;
+};
 
 export function mountConsentEmbed(
   container: HTMLElement,
-  kernel: ConsentKernel,
+  kernel: EmbedKernel,
   openPreferences: () => void,
 ) {
   const render = () => {

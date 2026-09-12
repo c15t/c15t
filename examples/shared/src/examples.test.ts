@@ -153,6 +153,11 @@ for (const target of selectedTargets()) {
 				await expectNoTracking(page, requests);
 				await rejectButton(page).click();
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
+				// Hiding the banner precedes the deferred persistence effect.
+				// Let every adapter finish saving before destroying its runtime.
+				await expect
+					.poll(() => page.evaluate(() => localStorage.getItem('c15t')))
+					.not.toBeNull();
 				if (target.id === 'nextjs') {
 					// Receipt writes are deferred. Wait for the saved choice before
 					// testing how the server renders that choice on the next request.

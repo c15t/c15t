@@ -182,10 +182,17 @@ Do not register the same scripts in plugin configuration as well. See the
 
 Point the existing Astro integration at a client module. Keep its `mode`,
 `ui` and framework integration from the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart).
-Add this option to the existing `c15t({ ... })` call:
+Import `fileURLToPath` in your Astro configuration:
 
-```ts
-clientEntrypoint: './src/c15t.client.ts'
+```js title="astro.config.mjs"
+import { fileURLToPath } from 'node:url';
+```
+
+Add this option to the existing `c15t({ ... })` call. Resolve the path from
+the configuration file because Astro injects the import into a virtual module:
+
+```js
+clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)),
 ```
 
 Export the scripts from that module:

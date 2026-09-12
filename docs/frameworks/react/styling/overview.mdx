@@ -95,27 +95,33 @@ takes, so the contract is the same whether you write class strings or pass an
 object with `className` and `style`. Set slots on the provider under
 `components`, keyed by component and part.
 
-Tailwind, targeting the root's `data-prompt` attribute so a notice gets a
-full-width bar:
+For a full-width notice, use the supported `bar` variant. Inside your existing
+provider, replace the stock banner with:
 
-```tsx
-<ConsentProvider
-	options={{
-		mode,
-		components: {
-			banner: {
-				root: {
-					className:
-						'data-[prompt=notice]:inset-x-0 data-[prompt=notice]:bottom-0 data-[prompt=notice]:p-0',
-				},
-				card: { className: 'data-[prompt=notice]:rounded-none' },
-				rightLink: {
-					className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
-				},
-			},
-		},
-	}}
-/>
+```tsx title="src/regional-banner.tsx"
+import { ConsentBanner, usePolicyRule } from 'c15t/react';
+
+export function RegionalBanner() {
+  const policy = usePolicyRule();
+  return <ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />;
+}
+```
+
+To remove the notice card's radius, add these values to the existing
+`options.components.banner` slots. The root owns `data-prompt`, so the card
+uses Tailwind's `group` selector to read it:
+
+```ts
+const bannerSlots = {
+  root: { className: 'group' },
+  card: { className: 'group-data-[prompt=notice]:rounded-none' },
+  rightLink: {
+    className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
+  },
+};
+
+// In the existing options.components object:
+// banner: bannerSlots
 ```
 
 The root also carries `data-variant`, so you can restyle one shape without
@@ -134,7 +140,9 @@ tighter text:
 					className:
 						'group-data-[variant=bar]:border-t-4 group-data-[variant=bar]:border-t-emerald-600',
 				},
-				description: { className: 'group-data-[variant=bar]:text-xs' },
+			},
+			description: {
+				banner: { className: 'group-data-[variant=bar]:text-xs' },
 			},
 		},
 	}}
