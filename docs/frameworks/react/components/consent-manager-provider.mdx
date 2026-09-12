@@ -77,6 +77,15 @@ and `blocking`. It renders a centered dialog; `variant` and `position` are
 prompt-only options. Preferences default to blocking. Set `blocking: false`
 to remove the backdrop, scroll lock and focus trap together.
 
+## Clear data when consent is denied
+
+Set `options.clearOnRevocation` to declare cookies, localStorage keys, and
+sessionStorage keys by optional consent category. Cleanup waits for policy
+resolution, then clears denied categories and later allowed-to-denied
+transitions. This option is initial-only. See
+[clear on revocation](/docs/integrations/clear-on-revocation) for examples,
+cookie scopes, and browser limits.
+
 ## Disabled mode
 
 Set `options.enabled` to `false` to grant every category and hide consent UI.

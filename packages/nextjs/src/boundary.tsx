@@ -57,6 +57,9 @@ export interface ConsentBoundaryProps {
 	 */
 	scripts?: Script[];
 
+	/** Browser data to remove when its consent permission is revoked. */
+	clearOnRevocation?: ConsentProviderOptions['clearOnRevocation'];
+
 	/**
 	 * Script-loader options.
 	 */
@@ -78,6 +81,7 @@ export interface ConsentBoundaryProps {
 	options?: Omit<
 		ConsentProviderOptions,
 		| 'mode'
+		| 'clearOnRevocation'
 		| 'networkBlocker'
 		| 'persistence'
 		| 'prefetch'
@@ -182,6 +186,7 @@ export const ConsentBoundary = ({
 	consent,
 	scripts,
 	scriptLoader,
+	clearOnRevocation,
 	networkBlocker,
 	persistence,
 	options,
@@ -212,6 +217,7 @@ export const ConsentBoundary = ({
 			options={{
 				...options,
 				__debugPkg: '@c15t/nextjs',
+				clearOnRevocation,
 				mode,
 				networkBlocker,
 				persistence,

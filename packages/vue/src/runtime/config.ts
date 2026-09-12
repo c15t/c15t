@@ -1,5 +1,6 @@
 import type {
 	ConsentPresentation,
+	ClearOnRevocationConfig,
 	KernelEvent,
 	HydrationRecords,
 } from '@c15t/core';
@@ -45,6 +46,8 @@ export interface ConsentManifestNuxtConfig {
 
 export interface ConsentConfig
 	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {
+	/** Remove configured browser data when its consent permission is revoked. */
+	clearOnRevocation?: ClearOnRevocationConfig;
 	/** Resolved server init data, reused for the first client render. */
 	prefetch?: InitOutput;
 	/** Raw server records with their request evaluation clock. */

@@ -485,3 +485,189 @@ test('an empty provider can prerender without reading the clock', async () => {
 		now.mockRestore();
 	}
 });
+
+test('clears configured storage on revocation after stopping scripts', async () => {
+	localStorage.setItem('cleanup:ready', 'pending');
+	const onBeforeLoad = vi.fn();
+	const onConsentChange = vi.fn(({ hasConsent }: { hasConsent: boolean }) => {
+		if (!hasConsent) {
+			localStorage.setItem('analytics:visitor', 'stopped');
+		}
+	});
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				clearOnRevocation: {
+					marketing: { localStorage: ['cleanup:ready'] },
+					measurement: { localStorage: ['analytics:visitor'] },
+				},
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture({ measurement: true }),
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'measurement',
+						id: 'cleanup-order',
+						onBeforeLoad,
+						onConsentChange,
+					},
+				],
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalled());
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('cleanup:ready')).toBeNull()
+	);
+	localStorage.setItem('analytics:visitor', 'visitor');
+	localStorage.setItem('application:setting', 'keep');
+	await kernel.commands.save('none');
+	expect(onConsentChange).toHaveBeenCalledWith(
+		expect.objectContaining({ hasConsent: false })
+	);
+	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+	expect(localStorage.getItem('application:setting')).toBe('keep');
+	screen.unmount();
+	localStorage.removeItem('application:setting');
+});
+
+test('disabled providers leave configured browser data alone', async () => {
+	localStorage.setItem('analytics:visitor', 'keep');
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				clearOnRevocation: {
+					measurement: { localStorage: ['analytics:visitor'] },
+				},
+				enabled: false,
+				mode: offline(),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(localStorage.getItem('analytics:visitor')).toBe('keep');
+	screen.unmount();
+	localStorage.removeItem('analytics:visitor');
+});
+
+test('protects consent records after the persistence storage key changes', async () => {
+	const firstKey = 'cleanup-first';
+	const nextKey = 'cleanup-next';
+	const prefetch = policyFixture({ measurement: true });
+	const mode = offline();
+	const clearOnRevocation = {
+		marketing: { localStorage: ['cleanup:ready'] },
+		measurement: { localStorage: ['cleanup-*'] },
+	};
+	localStorage.setItem('cleanup:ready', 'pending');
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				clearOnRevocation,
+				mode,
+				persistence: {
+					skipHydration: true,
+					storageConfig: { storageKey: firstKey },
+				},
+				prefetch,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('cleanup:ready')).toBeNull()
+	);
+	localStorage.setItem('cleanup:ready', 'repopulated');
+	await screen.rerender(
+		<ConsentProvider
+			options={{
+				clearOnRevocation,
+				mode,
+				persistence: {
+					skipHydration: true,
+					storageConfig: { storageKey: firstKey },
+				},
+				prefetch,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(localStorage.getItem('cleanup:ready')).toBe('repopulated');
+
+	await screen.rerender(
+		<ConsentProvider
+			options={{
+				clearOnRevocation,
+				mode,
+				persistence: {
+					skipHydration: true,
+					storageConfig: { storageKey: nextKey },
+				},
+				prefetch,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await kernel.commands.save('all');
+	expect(localStorage.getItem(nextKey)).not.toBeNull();
+	localStorage.setItem('cleanup-visitor', 'visitor');
+	const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
+	await kernel.commands.save('none');
+	// Deleting then rewriting the record would still notify other tabs.
+	expect(removeItem).not.toHaveBeenCalledWith(nextKey);
+	expect(localStorage.getItem('cleanup-visitor')).toBeNull();
+	expect(localStorage.getItem(nextKey)).not.toBeNull();
+	await screen.unmount();
+	for (const key of [firstKey, nextKey]) {
+		localStorage.removeItem(key);
+		document.cookie = `${key}=; Max-Age=0; Path=/`;
+	}
+});
+
+test('starts cleanup when an initially disabled provider with scripts is enabled', async () => {
+	const onBeforeLoad = vi.fn();
+	const options = {
+		clearOnRevocation: {
+			marketing: { localStorage: ['cleanup:ready'] },
+			measurement: { localStorage: ['analytics:visitor'] },
+		},
+		mode: offline(),
+		persistence: false as const,
+		prefetch: policyFixture({ measurement: true }),
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'measurement' as const,
+				id: 'initially-disabled-cleanup',
+				onBeforeLoad,
+			},
+		],
+	};
+	const provider = (enabled: boolean) => (
+		<ConsentProvider options={{ ...options, enabled }}>
+			<Capture />
+		</ConsentProvider>
+	);
+	localStorage.setItem('cleanup:ready', 'pending');
+	localStorage.setItem('analytics:visitor', 'visitor');
+	const screen = await render(provider(false));
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
+	expect(localStorage.getItem('cleanup:ready')).toBe('pending');
+	expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
+	await screen.rerender(provider(true));
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledTimes(2));
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('cleanup:ready')).toBeNull()
+	);
+	await kernel.commands.save({ measurement: false });
+	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+	await screen.unmount();
+});

@@ -2,6 +2,7 @@
 
 import type {
 	AllConsentNames,
+	ClearOnRevocationConfig,
 	ConsentPresentation,
 	Callbacks,
 	ConsentKernel,
@@ -22,6 +23,7 @@ import type {
 	User,
 } from '@c15t/core';
 import { createConsentKernel, kernelConfigToInitResponse } from '@c15t/core';
+import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
 	createWindowDebug,
@@ -61,6 +63,8 @@ import { defaultTranslationConfig } from './utils/default-translation-config';
 const loadNetworkBlockerModule = () =>
 	import('@c15t/core/modules/network-blocker');
 const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
+const loadClearOnRevocationModule = () =>
+	import('@c15t/core/modules/clear-on-revocation');
 const loadThemeModule = () => import('@c15t/ui/theme');
 
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
@@ -150,6 +154,11 @@ export interface ConsentProviderOptions extends Pick<
 	 */
 	prefetch?: ConsentProviderPrefetch | Promise<ConsentProviderPrefetch>;
 	callbacks?: ConsentProviderCallbacks;
+	/**
+	 * Remove configured browser data when its consent permission is revoked.
+	 * Initial-only: remount the provider to replace its cleanup configuration.
+	 */
+	clearOnRevocation?: ClearOnRevocationConfig;
 	scripts?: Script[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
@@ -728,54 +737,106 @@ const InitMount = ({
 	return null;
 };
 
-const ScriptsMount = ({
+const EMPTY_SCRIPTS: Script[] = [];
+
+const ScriptsAndCleanupMount = ({
+	clearOnRevocation,
+	storageConfig,
 	nonce,
 	options,
-	scripts,
+	scripts = EMPTY_SCRIPTS,
 }: {
+	clearOnRevocation?: ClearOnRevocationConfig;
+	storageConfig?: StorageConfig;
 	nonce?: string;
 	options?: UseScriptLoaderOptions;
-	scripts: Script[];
+	scripts?: Script[];
 }) => {
 	const kernel = useContext(KernelContext);
 	const handleRef = useRef<{
 		dispose: () => void;
 		updateScripts: (scripts: Script[]) => void;
 	} | null>(null);
+	const cleanupRef = useRef<{ dispose: () => void } | null>(null);
+	const cleanupFactoryRef = useRef<{
+		config: ClearOnRevocationConfig;
+		create: typeof createClearOnRevocation;
+	} | null>(null);
+	const latestCleanupRef = useRef({ config: clearOnRevocation, storageConfig });
+	const [needsScriptLoader, setNeedsScriptLoader] = useState(
+		scripts.length > 0
+	);
 	const latestScriptsRef = useRef(scripts);
 	const latestOptionsRef = useRef(options);
 	const latestNonceRef = useRef(nonce);
+	if (scripts.length > 0 && !needsScriptLoader) {
+		setNeedsScriptLoader(true);
+	}
 
 	useEffect(() => {
+		latestCleanupRef.current = { config: clearOnRevocation, storageConfig };
 		latestScriptsRef.current = scripts;
 		latestOptionsRef.current = options;
 		latestNonceRef.current = nonce;
-	}, [nonce, options, scripts]);
+	}, [clearOnRevocation, storageConfig, nonce, options, scripts]);
 
+	// When scripts first appear, reattach cleanup after their loader so
+	// revocation callbacks finish before browser data is removed.
 	useEffect(() => {
 		if (!kernel) {
 			return;
 		}
 		let disposed = false;
 		void (async () => {
-			const { createScriptLoader } = await loadScriptLoaderModule();
-			if (disposed) {
-				return;
+			if (needsScriptLoader) {
+				const { createScriptLoader } = await loadScriptLoaderModule();
+				if (disposed) {
+					return;
+				}
+				handleRef.current = createScriptLoader({
+					kernel,
+					nonce: latestNonceRef.current,
+					onDebug: latestOptionsRef.current?.onDebug,
+					scripts: latestScriptsRef.current,
+				});
 			}
-			const created = createScriptLoader({
-				kernel,
-				nonce: latestNonceRef.current,
-				onDebug: latestOptionsRef.current?.onDebug,
-				scripts: latestScriptsRef.current,
-			});
-			handleRef.current = created;
+			const { config } = latestCleanupRef.current;
+			if (config) {
+				const { createClearOnRevocation } = await loadClearOnRevocationModule();
+				if (disposed) {
+					return;
+				}
+				cleanupFactoryRef.current = { config, create: createClearOnRevocation };
+				cleanupRef.current = createClearOnRevocation({
+					config,
+					kernel,
+					storageConfig: latestCleanupRef.current.storageConfig,
+				});
+			}
 		})();
 		return () => {
 			disposed = true;
+			cleanupRef.current?.dispose();
+			cleanupRef.current = null;
+			cleanupFactoryRef.current = null;
 			handleRef.current?.dispose();
 			handleRef.current = null;
 		};
-	}, [kernel]);
+	}, [kernel, needsScriptLoader]);
+
+	const protectedStorageKey = storageConfig?.storageKey;
+	useEffect(() => {
+		const factory = cleanupFactoryRef.current;
+		if (!kernel || !factory) {
+			return;
+		}
+		cleanupRef.current?.dispose();
+		cleanupRef.current = factory.create({
+			config: factory.config,
+			kernel,
+			storageConfig: { storageKey: protectedStorageKey },
+		});
+	}, [kernel, protectedStorageKey]);
 
 	useEffect(() => {
 		handleRef.current?.updateScripts(scripts);
@@ -990,6 +1051,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const options = (props.options ?? {}) as ConsentProviderOptions;
 	const enabled = getEnabled(options);
 	const [owned, setOwned] = useState(() => ({
+		clearOnRevocation: options.clearOnRevocation,
 		disabledKernel: props.runtime
 			? undefined
 			: createProviderKernel({ ...options, enabled: false }),
@@ -999,7 +1061,10 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			createProviderKernel({ ...options, enabled: true }),
 	}));
 	void setOwned;
-	const { external: externalRuntime } = owned;
+	const {
+		clearOnRevocation: initialClearOnRevocation,
+		external: externalRuntime,
+	} = owned;
 	const kernel = enabled
 		? owned.kernel
 		: (owned.disabledKernel ?? owned.kernel);
@@ -1123,8 +1188,15 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						prepared={!!resolveSyncPrefetch(options).initialPolicyResolution}
 						kernel={kernel}
 					/>
-					{scripts && scripts.length > 0 ? (
-						<ScriptsMount
+					{(scripts && scripts.length > 0) ||
+					(enabled && initialClearOnRevocation) ? (
+						<ScriptsAndCleanupMount
+							clearOnRevocation={enabled ? initialClearOnRevocation : undefined}
+							storageConfig={
+								persistenceOptions
+									? persistenceOptions.storageConfig
+									: options.storageConfig
+							}
 							nonce={options.nonce}
 							options={options.scriptLoader}
 							scripts={scripts}

@@ -92,6 +92,30 @@ An activated inline or external script cannot be undone. Supply cleanup through 
 
 See [script gating](/docs/frameworks/javascript/script-loader) for the full `scripts` option, and the [integrations](/docs/integrations) for ready-made GTM, GA4, and pixel loaders.
 
+## Clear data when consent is withdrawn
+
+Queue `clearOnRevocation` before the bundle loads, or pass it to `c15t.init()`:
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    clearOnRevocation: {
+      measurement: {
+        cookies: ['_ga', '_ga_*'],
+        localStorage: ['analytics:*'],
+        sessionStorage: ['analytics:session'],
+      },
+    },
+  }]);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js" defer></script>
+```
+
+The client removes these entries when measurement permission becomes denied. It also clears them at startup after the policy resolves if measurement is already denied. Other categories and c15t's own consent records stay intact.
+
+Cleanup is disabled unless configured. The configuration is initial-only; call `dispose()` and `init()` to replace it. Deleting data does not stop an already running tracker, so use the vendor's consent or shutdown API too. See [clear on revocation](/docs/integrations/clear-on-revocation) for prefix matching, cookie scopes, and browser limits.
+
 ## Buttons and links
 
 Any element on the page can drive the banner. Add `data-c15t-action` and the client wires it:

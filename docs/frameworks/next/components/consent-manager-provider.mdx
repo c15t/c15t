@@ -81,3 +81,11 @@ export function RegionalBanner() {
 and `blocking`. It renders a centered dialog; `variant` and `position` are
 prompt-only options. Preferences default to blocking. Set `blocking: false`
 to remove the backdrop, scroll lock and focus trap together.
+
+## Clear data when consent is denied
+
+Pass `clearOnRevocation` to `ConsentBoundary`, or through the client provider's
+`options`, to declare cookies and Web Storage keys by optional consent category.
+Cleanup runs in the browser after policy resolution. The provider option is
+initial-only. See [clear on revocation](/docs/integrations/clear-on-revocation)
+for examples, cookie scopes, and browser limits.

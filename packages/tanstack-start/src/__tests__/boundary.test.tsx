@@ -157,3 +157,22 @@ describe('ConsentBoundary: transport selection', () => {
 		}
 	});
 });
+
+test('forwards clearOnRevocation and removes denied category storage', async () => {
+	localStorage.setItem('analytics:visitor', 'visitor');
+	const screen = await render(
+		<ConsentBoundary
+			config={policyFixture({ measurement: false })}
+			persistence={false}
+			clearOnRevocation={{
+				measurement: { localStorage: ['analytics:visitor'] },
+			}}
+		>
+			<div>cleanup configured</div>
+		</ConsentBoundary>
+	);
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('analytics:visitor')).toBeNull()
+	);
+	screen.unmount();
+});

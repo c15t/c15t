@@ -32,6 +32,7 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
+import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
 import { createPersistence } from '../modules/persistence';
@@ -392,6 +393,20 @@ export const createConsentRuntime = function createConsentRuntime(
 		});
 	};
 
+	const startCleanup = function startCleanup() {
+		if (!(enabled && options.clearOnRevocation)) {
+			return;
+		}
+		const cleanup = createClearOnRevocation({
+			config: options.clearOnRevocation,
+			kernel,
+			storageConfig: persistenceOptions
+				? persistenceOptions.storageConfig
+				: options.storageConfig,
+		});
+		disposers.push(() => cleanup.dispose());
+	};
+
 	const startIAB = function startIAB() {
 		const { createIAB } = options;
 		if (!(enabled && createIAB && options.iab)) {
@@ -552,6 +567,7 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 
 			startIAB();
+			startCleanup();
 		},
 		get started() {
 			return started;

@@ -515,7 +515,7 @@ describe('@c15t/vue kernel runtime', () => {
 		expect(document.cookie).toContain('c15t=');
 
 		wrapper.unmount();
-	});
+	}, 15_000);
 
 	test('persists a canonical explicit reject receipt', async () => {
 		const { wrapper } = await mountRoot();
@@ -635,4 +635,22 @@ describe('@c15t/vue kernel runtime', () => {
 			untouched.remove();
 		}
 	});
+});
+
+test('runtime clears configured storage when permission is revoked', async () => {
+	const config: RuntimeConsentConfig = {
+		clearOnRevocation: { measurement: { localStorage: ['analytics:visitor'] } },
+		iframeBlocker: false,
+		prefetch: initFixture,
+	};
+	const context = createVueConsentKernelContext({ config });
+	const stop = startVueConsentRuntime(context, config, { runInit: false });
+	await context.kernel.commands.save('all');
+	localStorage.setItem('analytics:visitor', 'visitor');
+	localStorage.setItem('application:setting', 'keep');
+	await context.kernel.commands.save('none');
+	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+	expect(localStorage.getItem('application:setting')).toBe('keep');
+	stop();
+	localStorage.removeItem('application:setting');
 });

@@ -97,6 +97,11 @@
 			"import": "./shims/libs/manifest-cache.js",
 			"default": "./shims/libs/manifest-cache.js"
 		},
+		"./modules/clear-on-revocation": {
+			"types": "./shims/modules/clear-on-revocation.d.ts",
+			"import": "./shims/modules/clear-on-revocation.js",
+			"default": "./shims/modules/clear-on-revocation.js"
+		},
 		"./modules/script-loader": {
 			"types": "./shims/modules/script-loader.d.ts",
 			"import": "./shims/modules/script-loader.js",

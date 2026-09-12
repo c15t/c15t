@@ -13,6 +13,7 @@ import type {
 	KernelConfig,
 	KernelTransport,
 } from '@c15t/core';
+import { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
 import type { IframeBlockerOptions } from '@c15t/core/modules/iframe-blocker';
 import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
@@ -617,6 +618,22 @@ const refreshClientGeo = async function refreshClientGeo(
 	}
 };
 
+const mountClearOnRevocation = (
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (!config.clearOnRevocation) {
+		return () => {
+			// No cleanup subscription was configured.
+		};
+	}
+	return createClearOnRevocation({
+		config: config.clearOnRevocation,
+		kernel: context.kernel,
+		storageConfig: config.storageConfig,
+	}).dispose;
+};
+
 /**
  * Mount the browser-side modules a Vue consent app needs.
  *
@@ -685,6 +702,8 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		});
 		disposers.push(() => scriptLoader.dispose());
 	}
+
+	disposers.push(mountClearOnRevocation(context, config));
 
 	if (typeof document !== 'undefined' && config.networkBlocker) {
 		const networkBlocker = createNetworkBlocker({
