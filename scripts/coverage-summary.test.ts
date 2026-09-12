@@ -1,6 +1,14 @@
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { changedLines, coverageSummary } from './coverage-summary';
+import {
+	changedLines,
+	collectCoverage,
+	coverageSummary,
+} from './coverage-summary';
 
 describe('coverage summary', () => {
 	const report = {
@@ -34,4 +42,25 @@ describe('coverage summary', () => {
 			'| packages'
 		);
 	});
+});
+
+it('fails missing or empty required reports but permits non-instrumented selections', () => {
+	const root = mkdtempSync(join(tmpdir(), 'c15t-coverage-'));
+	try {
+		expect(collectCoverage([], root)).toEqual({});
+		expect(coverageSummary({})).toBe('');
+		expect(() => collectCoverage(['packages/core'], root)).toThrow(
+			'Missing required coverage'
+		);
+		mkdirSync(join(root, 'packages/core/coverage'), { recursive: true });
+		writeFileSync(
+			join(root, 'packages/core/coverage/coverage-final.json'),
+			'{}'
+		);
+		expect(() => collectCoverage(['packages/core'], root)).toThrow(
+			'Empty required coverage'
+		);
+	} finally {
+		rmSync(root, { force: true, recursive: true });
+	}
 });

@@ -42,7 +42,14 @@ describe('CI selection', () => {
 	});
 	it('follows Next through the umbrella package used by examples', () => {
 		const result = plan(['packages/nextjs/src/index.ts']);
-		expect(result.compat).toHaveLength(6);
+		expect([...result.compat].sort()).toEqual([
+			'15-app',
+			'15-pages',
+			'16-app',
+			'16-cache-components',
+			'16-pages',
+			'16-static-export',
+		]);
 		expect(result.examples).toContain('nextjs');
 		expect(result.examples).toContain('vue');
 		expect(result.tests).not.toContain('@c15t/node-sdk');

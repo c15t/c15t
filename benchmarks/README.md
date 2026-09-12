@@ -66,7 +66,9 @@ BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts full
 The runner creates an isolated checkout at the exact base revision and installs
 its frozen lockfile. It overlays the current benchmark fixtures onto that base,
 then measures base and head sequentially. Product source and dependency
-versions stay specific to each revision. `.ci-reports/<mode>/provenance.json`
+versions stay specific to each revision. Fixture scripts and exports can change,
+but dependency declarations stay at the base revision. A fixture requiring a
+dependency absent from the base manifest fails before measurement. `.ci-reports/<mode>/provenance.json`
 records both SHAs and the fixture overlay; base, head and comparison evidence
 sit alongside it. A failed measurement cannot reuse a previous report.
 
@@ -82,7 +84,9 @@ or empty assets fail the run.
 SvelteKit, Astro and TanStack Start browser scenarios. PRs run the quick
 comparison when runtime benchmark consumers are affected. Full CI runs the
 browser comparison on publishing branches and nightly. Results and failures
-appear in Actions summaries and artifacts, without PR comments.
+appear in Actions summaries and artifacts, without PR comments. Script-lifecycle
+durations use the browser clock from action start through confirmed completion;
+Playwright click transport and polling time are excluded.
 
 `BENCHMARK_PROFILE=regression` enforces same-revision-key regression budgets
 and invariants. `BENCHMARK_PROFILE=release`, the default for `bench:compare`,

@@ -53,7 +53,9 @@ one table per group. Newer PR commits cancel older runs.
 
 Coverage is evidence, not a percentage target. The summary lists changed
 instrumented statement-start lines and branches plus uncovered lines; full
-coverage remains an artifact. Add tests for missing behavior, especially
+coverage remains an artifact. Missing or empty reports fail for selected suites
+that use the shared coverage configuration; non-instrumented facade/type checks
+can legitimately produce no report. Add tests for missing behavior, especially
 persistence, denial/revocation, server/client consistency and transport failure.
 Do not add tests that merely repeat an implementation to raise a number.
 

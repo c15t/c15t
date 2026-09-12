@@ -395,3 +395,29 @@ describe('run-compare gate', () => {
 		expect(summaryOf(run).budgets.failed).toBe(coreScenarios.length);
 	});
 });
+
+it('reports unselected packages as unexpected without evaluating their failures', () => {
+	const unselected = {
+		...makeResult('unselected', { time: 100 }, [
+			{
+				comparator: 'absolute-lte',
+				description: 'fixture',
+				metric: 'time',
+				threshold: 0,
+			},
+		]),
+		package: '@fixture/unselected',
+	};
+	const run = runCompare({
+		BENCHMARK_ARM_MAP: emptyArmMap(),
+		BENCHMARK_BASE_DIR: writeResults(fullCore()),
+		BENCHMARK_EXPECTED_PACKAGES: '@c15t/core-benchmarks',
+		BENCHMARK_HEAD_DIR: writeResults([...fullCore(), unselected]),
+		BENCHMARK_PROFILE: 'regression',
+	});
+	expect(run.code).toBe(0);
+	expect(summaryOf(run).results.unexpected).toContain(
+		'@fixture/unselected:unselected:core-runtime'
+	);
+	expect(summaryOf(run).results.compared).toBe(coreScenarios.length);
+});

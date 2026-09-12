@@ -74,7 +74,7 @@ export const coverageSummary = function coverageSummary(
 		}
 	}
 	if (!rows.length) {
-		return 'Coverage: no measured executable lines in this selection.\n';
+		return '';
 	}
 	return [
 		`## ${changed ? 'Changed-code coverage' : 'Coverage'}`,
@@ -88,16 +88,59 @@ export const coverageSummary = function coverageSummary(
 	].join('\n');
 };
 
-if (import.meta.main) {
+export const collectCoverage = function collectCoverage(
+	required: string[],
+	rootDirectory = '.'
+) {
 	const reports: Record<string, FileCoverage> = {};
+	for (const directory of required) {
+		const path = join(rootDirectory, directory, 'coverage/coverage-final.json');
+		if (!existsSync(path)) {
+			throw new Error(`Missing required coverage report: ${path}`);
+		}
+		const report = JSON.parse(readFileSync(path, 'utf8'));
+		if (!Object.keys(report).length) {
+			throw new Error(`Empty required coverage report: ${path}`);
+		}
+	}
 	for (const root of ['packages', 'apps', 'internals', 'benchmarks']) {
-		for (const entry of readdirSync(root, { withFileTypes: true })) {
-			const path = join(root, entry.name, 'coverage/coverage-final.json');
+		if (!existsSync(join(rootDirectory, root))) {
+			continue;
+		}
+		for (const entry of readdirSync(join(rootDirectory, root), {
+			withFileTypes: true,
+		})) {
+			const path = join(
+				rootDirectory,
+				root,
+				entry.name,
+				'coverage/coverage-final.json'
+			);
 			if (entry.isDirectory() && existsSync(path)) {
 				Object.assign(reports, JSON.parse(readFileSync(path, 'utf8')));
 			}
 		}
 	}
+	return reports;
+};
+
+if (import.meta.main) {
+	const planPath = process.argv[process.argv.indexOf('--plan') + 1];
+	let required: string[] = [];
+	if (process.argv.includes('--require')) {
+		const directory = process.argv[process.argv.indexOf('--require') + 1];
+		if (!directory) {
+			throw new Error('--require needs a package directory');
+		}
+		required = [directory];
+	} else if (process.argv.includes('--plan')) {
+		if (!planPath) {
+			throw new Error('--plan needs a plan path');
+		}
+		required = JSON.parse(readFileSync(planPath, 'utf8')).coverage;
+	}
+
+	const reports = collectCoverage(required);
 	const base = process.env.CI_DIFF_BASE;
 	const changed = base
 		? changedLines(

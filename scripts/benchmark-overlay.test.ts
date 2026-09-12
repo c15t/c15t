@@ -22,6 +22,13 @@ it('removes retired routes, includes new fixtures, and preserves base product co
 			mkdirSync(join(cwd, 'benchmarks/app'), { recursive: true });
 			execFileSync('git', ['init', '--quiet'], { cwd });
 			writeFileSync(join(cwd, 'product.ts'), arm);
+			writeFileSync(
+				join(cwd, 'benchmarks/app/package.json'),
+				JSON.stringify({
+					dependencies: { dependency: arm },
+					scripts: { bench: arm },
+				})
+			);
 			writeFileSync(join(cwd, 'benchmarks/app/route.ts'), arm);
 			execFileSync('git', ['add', '.'], { cwd });
 		}
@@ -35,6 +42,18 @@ it('removes retired routes, includes new fixtures, and preserves base product co
 			'new fixture'
 		);
 		expect(readFileSync(join(base, 'product.ts'), 'utf8')).toBe('base');
+		const manifest = JSON.parse(
+			readFileSync(join(base, 'benchmarks/app/package.json'), 'utf8')
+		);
+		expect(manifest.dependencies).toEqual({ dependency: 'base' });
+		expect(manifest.scripts).toEqual({ bench: 'head' });
+		writeFileSync(
+			join(head, 'benchmarks/app/package.json'),
+			JSON.stringify({ dependencies: { missing: '1.0.0' } })
+		);
+		expect(() => replaceBenchmarkFixtures(head, base)).toThrow(
+			'absent from the base manifest'
+		);
 	} finally {
 		rmSync(root, { force: true, recursive: true });
 	}

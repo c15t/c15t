@@ -1,3 +1,6 @@
+import { once } from 'node:events';
+import { createServer } from 'node:net';
+
 import { expect, it } from 'vitest';
 
 import {
@@ -29,5 +32,46 @@ it('fails promptly when a server exits and allows repeated cleanup', async () =>
 it('terminates a running server', async () => {
 	const server = startProcess(['node', '-e', 'setInterval(() => {}, 1000)']);
 	await stopProcess(server.child);
-	expect(server.child.signalCode).toBe('SIGTERM');
+	expect(
+		server.child.exitCode !== null || server.child.signalCode !== null
+	).toBe(true);
+});
+
+it('rejects a missing executable instead of waiting indefinitely', async () => {
+	await expect(
+		runCommand(['c15t-nonexistent-executable-fixture'])
+	).rejects.toThrow();
+});
+
+it('terminates descendants and releases their listening port', async () => {
+	const reservation = createServer();
+	reservation.listen(0, '127.0.0.1');
+	await once(reservation, 'listening');
+	const address = reservation.address();
+	if (!address || typeof address === 'string') {
+		throw new Error('Expected a TCP port');
+	}
+	const { port } = address;
+	const closed = once(reservation, 'close');
+	reservation.close();
+	await closed;
+	const child = `require('node:http').createServer((request, response) => response.end('ok')).listen(${port}, '127.0.0.1');`;
+	const server = startProcess([
+		'node',
+		'-e',
+		`require('node:child_process').spawn(process.execPath, ['-e', ${JSON.stringify(child)}], { stdio: 'inherit' }); setInterval(() => {}, 1000);`,
+	]);
+	try {
+		await waitForServer(`http://127.0.0.1:${port}`, server);
+	} finally {
+		await stopProcess(server.child);
+	}
+	const rebound = createServer();
+	try {
+		rebound.listen(port, '127.0.0.1');
+		await once(rebound, 'listening');
+		expect(rebound.listening).toBe(true);
+	} finally {
+		rebound.close();
+	}
 });

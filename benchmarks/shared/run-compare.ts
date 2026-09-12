@@ -445,7 +445,11 @@ const main = async function main() {
 		schemaVersion: BENCHMARK_SCHEMA_VERSION,
 	};
 
+	const expectedKeys = new Set(expected.map((entry) => entry.key));
 	for (const [key, headResult] of headResults) {
+		if (!expectedKeys.has(key)) {
+			continue;
+		}
 		const comparisonBaseKeys = armMap.get(key) ?? [key];
 
 		for (const baseKey of comparisonBaseKeys) {

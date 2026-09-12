@@ -1,7 +1,10 @@
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import type { ChildProcess, SpawnOptions } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 export const startProcess = function startProcess(
 	command: string[],
@@ -37,21 +40,27 @@ export const stopProcess = async function stopProcess(
 	}
 	const { pid } = child;
 	const exited = once(child, 'exit');
-	const kill = (signal: NodeJS.Signals) => {
+	const kill = async (signal: NodeJS.Signals) => {
 		try {
 			if (process.platform === 'win32') {
-				child.kill(signal);
+				await execFileAsync('taskkill', ['/PID', String(pid), '/T', '/F']);
 			} else {
 				process.kill(-pid, signal);
 			}
-		} catch {
-			/* The process may already have exited. */
+		} catch (error) {
+			if (
+				child.exitCode === null &&
+				child.signalCode === null &&
+				(error as NodeJS.ErrnoException).code !== 'ESRCH'
+			) {
+				throw error;
+			}
 		}
 	};
-	kill('SIGTERM');
+	await kill('SIGTERM');
 	await Promise.race([exited, delay(5000, undefined, { ref: false })]);
 	if (child.exitCode === null && child.signalCode === null) {
-		kill('SIGKILL');
+		await kill('SIGKILL');
 		await exited;
 	}
 };
@@ -63,7 +72,7 @@ export const runCommand = async function runCommand(
 	const running = startProcess(command, options);
 	running.child.stdout?.pipe(process.stdout, { end: false });
 	running.child.stderr?.pipe(process.stderr, { end: false });
-	const [code, signal] = await once(running.child, 'exit');
+	const [code, signal] = await once(running.child, 'close');
 	if (code !== 0) {
 		throw new Error(
 			`${command.join(' ')} failed (${code ?? signal})\n${running.logs()}`

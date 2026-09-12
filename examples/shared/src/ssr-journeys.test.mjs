@@ -173,96 +173,72 @@ const readProbe = async function readProbe(page, app) {
 
 const verifyFreshVisit = async function verifyFreshVisit(browser, app) {
 	const { context, page, url } = await newPage(browser, app);
-	try {
-		const html = await fetchHtml(context, url);
-		assert(
-			countBannerRoots(html) > 0,
-			`${app.label}: response HTML did not contain ${bannerSelector}`
-		);
-		await gotoSettled(page, url);
-		await page.locator(bannerSelector).first().waitFor({ state: 'visible' });
-		const cls = await page.evaluate(() => window.__c15tLayoutShiftScore ?? 0);
-		assertEqual(cls, 0, `${app.label}: layout shift score`);
-		console.log(`✓ ${app.label}: fresh visit renders the banner server-side`);
-	} finally {
-		await context.close();
-	}
+	const html = await fetchHtml(context, url);
+	assert(
+		countBannerRoots(html) > 0,
+		`${app.label}: response HTML did not contain ${bannerSelector}`
+	);
+	await gotoSettled(page, url);
+	await page.locator(bannerSelector).first().waitFor({ state: 'visible' });
+	const cls = await page.evaluate(() => window.__c15tLayoutShiftScore ?? 0);
+	assertEqual(cls, 0, `${app.label}: layout shift score`);
+	console.log(`✓ ${app.label}: fresh visit renders the banner server-side`);
 };
 
 const verifyOverrideHeaders = async function verifyOverrideHeaders(
 	browser,
 	app
 ) {
-	const { context, page, url } = await newPage(browser, app, {
+	const { page, url } = await newPage(browser, app, {
 		'cf-ipcountry': 'US',
 		'cf-region-code': 'TX',
 		'x-c15t-country': 'FR',
 		'x-c15t-region': 'BRE',
 		'x-vercel-ip-country': 'US',
 	});
-	try {
-		await gotoSettled(page, url);
-		const probe = await readProbe(page, app);
-		assertEqual(
-			probe.overrides?.country,
-			'FR',
-			`${app.label}: override country`
-		);
-		assertEqual(
-			probe.overrides?.region,
-			'BRE',
-			`${app.label}: override region`
-		);
-		console.log(`✓ ${app.label}: x-c15t override beats infra headers`);
-	} finally {
-		await context.close();
-	}
+	await gotoSettled(page, url);
+	const probe = await readProbe(page, app);
+	assertEqual(probe.overrides?.country, 'FR', `${app.label}: override country`);
+	assertEqual(probe.overrides?.region, 'BRE', `${app.label}: override region`);
+	console.log(`✓ ${app.label}: x-c15t override beats infra headers`);
 };
 
 const verifyGpc = async function verifyGpc(browser, app) {
-	const { context, page, url } = await newPage(browser, app, {
+	const { page, url } = await newPage(browser, app, {
 		'sec-gpc': '1',
 	});
-	try {
-		await gotoSettled(page, url);
-		const probe = await readProbe(page, app);
-		assertEqual(
-			probe.privacySignals?.gpc?.detected,
-			true,
-			`${app.label}: detected GPC`
-		);
-		assertEqual(
-			probe.privacySignals?.gpc?.active,
-			true,
-			`${app.label}: active GPC`
-		);
-		assertEqual(
-			probe.privacySignals?.gpc?.override,
-			undefined,
-			`${app.label}: GPC remains a detected signal`
-		);
-		console.log(`✓ ${app.label}: GPC header reaches the kernel`);
-	} finally {
-		await context.close();
-	}
+	await gotoSettled(page, url);
+	const probe = await readProbe(page, app);
+	assertEqual(
+		probe.privacySignals?.gpc?.detected,
+		true,
+		`${app.label}: detected GPC`
+	);
+	assertEqual(
+		probe.privacySignals?.gpc?.active,
+		true,
+		`${app.label}: active GPC`
+	);
+	assertEqual(
+		probe.privacySignals?.gpc?.override,
+		undefined,
+		`${app.label}: GPC remains a detected signal`
+	);
+	console.log(`✓ ${app.label}: GPC header reaches the kernel`);
 };
 
 const verifyLanguage = async function verifyLanguage(browser, app) {
-	const { context, page, url } = await newPage(browser, app, {
+	const { page, url } = await newPage(browser, app, {
 		'accept-language': 'en;q=0.2, de-DE;q=0.9',
 	});
-	try {
-		await gotoSettled(page, url);
-		const probe = await readProbe(page, app);
-		assertEqual(
-			probe.overrides?.language,
-			'de',
-			`${app.label}: negotiated language`
-		);
-		console.log(`✓ ${app.label}: language negotiation is q-aware`);
-	} finally {
-		await context.close();
-	}
+	await gotoSettled(page, url);
+	const probe = await readProbe(page, app);
+	assertEqual(
+		probe.overrides?.language,
+		'de',
+		`${app.label}: negotiated language`
+	);
+	console.log(`✓ ${app.label}: language negotiation is q-aware`);
 };
 
 const cookieHeader = function cookieHeader(cookies) {
@@ -271,44 +247,40 @@ const cookieHeader = function cookieHeader(cookies) {
 
 const verifyNoZombie = async function verifyNoZombie(browser, app) {
 	const { context, page, url } = await newPage(browser, app);
-	try {
-		await gotoSettled(page, url);
-		await page.locator(acceptSelector).first().waitFor({ state: 'visible' });
-		await page.locator(acceptSelector).first().click();
-		await page.waitForFunction(() => document.cookie.includes('c15t='));
+	await gotoSettled(page, url);
+	await page.locator(acceptSelector).first().waitFor({ state: 'visible' });
+	await page.locator(acceptSelector).first().click();
+	await page.waitForFunction(() => document.cookie.includes('c15t='));
 
-		const cookies = await context.cookies(url);
-		assert(
-			cookies.some((cookie) => cookie.name === 'c15t'),
-			`${app.label}: c15t cookie was not set`
-		);
+	const cookies = await context.cookies(url);
+	assert(
+		cookies.some((cookie) => cookie.name === 'c15t'),
+		`${app.label}: c15t cookie was not set`
+	);
 
-		const html = await fetchHtml(context, url, {
-			cookie: cookieHeader(cookies),
-		});
-		assertEqual(
-			countBannerRoots(html),
-			0,
-			`${app.label}: stored-consent response banner count`
-		);
+	const html = await fetchHtml(context, url, {
+		cookie: cookieHeader(cookies),
+	});
+	assertEqual(
+		countBannerRoots(html),
+		0,
+		`${app.label}: stored-consent response banner count`
+	);
 
-		await gotoSettled(page, url);
-		await page.waitForLoadState('networkidle');
-		assertEqual(
-			await page.locator(bannerSelector).count(),
-			0,
-			`${app.label}: stored-consent DOM banner count`
-		);
-		const probe = await readProbe(page, app);
-		assertEqual(
-			probe.hasStoredChoice,
-			true,
-			`${app.label}: probe hasStoredChoice`
-		);
-		console.log(`✓ ${app.label}: no re-prompt / no zombie`);
-	} finally {
-		await context.close();
-	}
+	await gotoSettled(page, url);
+	await page.waitForLoadState('networkidle');
+	assertEqual(
+		await page.locator(bannerSelector).count(),
+		0,
+		`${app.label}: stored-consent DOM banner count`
+	);
+	const probe = await readProbe(page, app);
+	assertEqual(
+		probe.hasStoredChoice,
+		true,
+		`${app.label}: probe hasStoredChoice`
+	);
+	console.log(`✓ ${app.label}: no re-prompt / no zombie`);
 };
 
 const readC15tVersion = function readC15tVersion() {

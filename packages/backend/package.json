@@ -85,6 +85,7 @@
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
+		"prepack": "bun run build:docs",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},

@@ -325,10 +325,9 @@ const main = async function main() {
 		logs += String(chunk);
 	});
 
-	await waitForServer();
-	const { routes } = await analyzeRouteSizes();
-
 	try {
+		await waitForServer();
+		const { routes } = await analyzeRouteSizes();
 		const frameworkForRoute = (
 			route: RouteSize
 		): BenchmarkResult['framework'] => {

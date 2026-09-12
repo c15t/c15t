@@ -33,6 +33,7 @@ import type { PolicyBenchFixture } from '@c15t/benchmarking/policy-fixtures';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
+	benchmarkCount,
 	getEnvironment,
 	measureAsyncLoop,
 	measureLoop,
@@ -54,15 +55,14 @@ import type {
 } from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
 
-const ITERATIONS = Number(
-	process.env.C15T_CORE_BENCH_ITERATIONS ??
-		process.env.BENCH_ITERATIONS ??
-		'500'
+const ITERATIONS = benchmarkCount(
+	process.env.C15T_CORE_BENCH_ITERATIONS ?? process.env.BENCH_ITERATIONS,
+	500
 );
-const WARMUP = Number(
+const WARMUP = benchmarkCount(
 	process.env.C15T_CORE_BENCH_WARMUP_ITERATIONS ??
-		process.env.BENCH_WARMUP_ITERATIONS ??
-		'50'
+		process.env.BENCH_WARMUP_ITERATIONS,
+	50
 );
 const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/policy-runtime';
 

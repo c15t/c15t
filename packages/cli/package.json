@@ -70,6 +70,7 @@
 		"fmt": "bun oxfmt .",
 		"knip": "knip",
 		"lint": "bun oxlint ./src",
+		"prepack": "bun run build:docs",
 		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest"

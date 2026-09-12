@@ -234,6 +234,13 @@ export const createCiPlan = function createCiPlan(
 		build,
 		bundle: affected.has('@c15t/next-bundle-bench'),
 		compat,
+		coverage: selected
+			.filter(
+				(workspace) =>
+					tests.includes(workspace.name) &&
+					workspace.dependencies.includes('@c15t/vitest-config')
+			)
+			.map((workspace) => workspace.directory),
 		docs: full || files.some(isDocumentation),
 		examples,
 		full,
