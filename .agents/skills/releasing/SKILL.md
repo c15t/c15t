@@ -3,7 +3,7 @@ name: releasing
 description: |
   Version and release c15t packages with Changesets. Use when adding a
   changeset to a PR, deciding bump types for the linked package group,
-  publishing canary/RC/stable releases, or debugging release CI failures
+  publishing alpha/canary/RC/stable releases, or debugging release CI failures
   (publish artifacts check, workspace dependency resolution).
 ---
 
@@ -20,8 +20,8 @@ bun run changeset
 Pick the affected packages and a bump. Rules:
 
 - Any user-facing change to a published package needs a changeset; internal-only changes (tests, benchmarks, `internals/`, docs-site-only) do not.
-- These packages are **linked** and always version together — bumping one bumps all: `c15t`, `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/iab`, `@c15t/nextjs`, `@c15t/node-sdk`, `@c15t/react`, `@c15t/translations`. Choose the bump for the *most significant* change in the group.
-- `@c15t/scripts`, `@c15t/ui`, `@c15t/schema`, `@c15t/logger`, and `@c15t/vue` version independently. `@c15t/svelte` and `@c15t/solid` are currently private and unversioned.
+- Check `.changeset/config.json` for the current linked group. Linked packages share a version when released together, but bumping one does not release every member. Explicitly select every intended package for an all-package release.
+- Read each package's `private` field to determine whether it publishes. Vue and Svelte are public on v3; Solid remains private. Packages outside the linked group version independently.
 - Write the changeset summary like a changelog entry (it becomes one): imperative, user-facing, mentions migration steps for breaking changes.
 
 ## Release channels
@@ -29,10 +29,17 @@ Pick the affected packages and a bump. Rules:
 | Branch | Channel | How it publishes |
 | --- | --- | --- |
 | `canary` (default, PR target) | `--tag canary` snapshots | Automatically on every merge (`version:canary` + `release:canary`) |
+| `v3` | Alpha pre-release | Version PR via `version:alpha`; merging it publishes via `release:alpha` with npm tag `alpha` |
 | `2.0.0` | RC pre-release | Release workflow versions with `bun run version` and publishes via `release:rc`; `version:rc`/`version:rc:exit` toggle changeset pre mode manually when needed |
 | `main` | stable | Changesets opens a "Version Packages" PR; merging it publishes |
 
 `sync-canary.yml` keeps canary in sync with main.
+
+For v3 alpha preparation and subsequent releases, follow
+[the alpha release instructions](../../../.changeset/README.md). Keep alpha mode
+active and retain consumed changesets so Changesets can track subsequent
+prereleases. The alpha scripts reject versions from other channels. Keep alpha
+changeset entries short; benchmark results belong in the release post.
 
 ## What the release scripts do
 

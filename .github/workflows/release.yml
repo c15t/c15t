@@ -3,7 +3,7 @@ name: Release
 
 on:
   push:
-    branches: ['main', 'canary', '2.0.0']
+    branches: ['main', 'canary', '2.0.0', 'v3']
 
 permissions: {}
 
@@ -28,7 +28,7 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
   publish:
-    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
+    name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
     runs-on: ubuntu-latest
     permissions:
@@ -97,9 +97,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
 
+      # Alpha releases stay in prerelease mode on v3.
+      - name: Publish alpha pre-release
+        if: github.ref == 'refs/heads/v3'
+        id: changesets-alpha
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
+        with:
+          version: bun run version:alpha
+          publish: bun run release:alpha
+          commit: 'chore: version alpha packages'
+          title: 'chore: version alpha packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+
       # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
-        if: github.ref != 'refs/heads/canary' && github.ref != 'refs/heads/2.0.0'
+        if: github.ref == 'refs/heads/main'
         id: changesets-production
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:

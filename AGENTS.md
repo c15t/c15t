@@ -112,13 +112,13 @@ When adding or changing user-facing package behavior:
 ## Branches and releases
 
 - **`canary`** is the default branch and PR target; merges auto-publish `--tag canary` snapshots.
-- **`main`** is stable; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
-- User-facing package changes need a changeset (`bun run changeset`). `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked** — they version together.
+- **`main`** is stable; **`v3`** publishes alpha prereleases; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
+- User-facing package changes need a changeset (`bun run changeset`). Read `.changeset/config.json` for the linked group. Linked packages share a version when released together; they do not all release automatically when one changes. See `.changeset/README.md` for the v3 alpha flow.
 - See the `releasing` skill for the full flow.
 
 ## CI on pull requests
 
-- **CI** (`ci.yml`): `turbo run check-types`, repo-wide Oxlint, Oxfmt checks, root script tests, `turbo run build --filter="./packages/*"`, and `turbo run test --filter="./packages/*"`; a separate coverage workflow posts per-package coverage comments afterward. Build and package tests are `--affected` on pull requests and run in full on pushes to `canary`, `main`, and `2.0.0`; `check-types` and root script tests always run in full as cross-package backstops. **Release** (`release.yml`) calls the same CI checks in full on pushes to `canary`, `main`, and `2.0.0`, then publishes only after every check passes. Keeping `release.yml` as the top-level publishing workflow also preserves its npm trusted-publisher identity. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
+- **CI** (`ci.yml`): `turbo run check-types`, repo-wide Oxlint, Oxfmt checks, root script tests, `turbo run build --filter="./packages/*"`, and `turbo run test --filter="./packages/*"`; a separate coverage workflow posts per-package coverage comments afterward. Build and package tests are `--affected` on pull requests and run in full on pushes to `canary`, `main`, `v3`, and `2.0.0`; `check-types` and root script tests always run in full as cross-package backstops. **Release** (`release.yml`) calls the same CI checks in full on pushes to `canary`, `main`, `v3`, and `2.0.0`, then publishes only after every check passes. Keeping `release.yml` as the top-level publishing workflow also preserves its npm trusted-publisher identity. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
 - **autofix.ci**: runs `bun fmt` + `bun fmt:docs` and pushes fixes to your branch — pull before adding commits after CI runs.
 - **Bundle Analysis** (every PR) and **Benchmark Regression** (path-filtered: core/react/nextjs/translations/ui/benchmarks/lockfile/turbo.json) post bundle-size and perf comparisons. For perf work, include before/after benchmark numbers (`bun run bench`).
 - **PR Preview**: publishes preview packages to pkg.pr.new for package-path changes, but only for org members or PRs labeled `deploy:preview`.

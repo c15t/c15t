@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "2.2.0-canary-20260731105620",
+	"version": "2.2.0",
 	"description": "Kernel-first developer tools for inspecting and debugging c15t consent state.",
 	"keywords": [
 		"c15t",
