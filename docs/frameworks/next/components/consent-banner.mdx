@@ -8,14 +8,15 @@ group: frameworks
 
 Keep the boundary and URL configuration from your
 [App Router setup](/docs/frameworks/next/app-router). Render one banner inside
-its existing consent boundary:
+its existing consent boundary. Keep the global stylesheet from that setup,
+with the c15t import after Tailwind CSS 4's import:
 
 ```tsx
 // app/layout.tsx
 import { ConsentBanner, ConsentBoundary, ConsentDialog } from 'c15t/next';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
-import 'c15t/next/styles.css';
+import './globals.css';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
 	const config = prefetchInitialConsent({ config: consentConfig });

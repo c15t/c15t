@@ -47,12 +47,24 @@ export function Consent({ children }: { children: ReactNode }) {
 }
 ```
 
+Add c15t to the global stylesheet shared by your app. With Tailwind CSS 4,
+keep its import first:
+
+```css title="styles/globals.css"
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+```
+
+Without Tailwind, omit its import. For Tailwind CSS 3, use the
+[separate stylesheet recipe](/docs/frameworks/next/styling/overview#stylesheet).
+Keep any existing app styles and adjust the imports below to their location.
+
 For App Router, mount the wrapper in the root layout:
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import '../styles/globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return <html lang="en"><body><Consent>{children}</Consent></body></html>;
@@ -64,7 +76,7 @@ For Pages Router, mount the same wrapper in `_app.tsx`:
 ```tsx title="pages/_app.tsx"
 import type { AppProps } from 'next/app';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   return <Consent><Component {...pageProps} /></Consent>;

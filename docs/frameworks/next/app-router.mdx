@@ -158,9 +158,17 @@ milliseconds; a cold cache pays the backend round trip. If the site cannot
 accept that, use the [streaming form](#stream-the-page-while-consent-resolves),
 which renders the shell immediately.
 
+Keep the c15t stylesheet in `globals.css` rather than importing
+`c15t/next/styles.css` from a layout or component. Tailwind CSS 4 declares its
+cascade layers in that file; when the c15t stylesheet is bundled separately
+and lands first, Tailwind's preflight sits above the c15t component layer and
+strips the banner's padding, borders and button styles.
+
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without
-`cacheComponents`, the boundary is still safe to keep.
+`cacheComponents`, the boundary is still safe to keep. If `next dev` reports an
+unstable `Date.now()` during prerendering, see
+[troubleshooting](/docs/frameworks/next/troubleshooting#why-does-nextjs-report-an-unstable-datenow-during-prerendering).
 
 ## What server prefetch costs
 

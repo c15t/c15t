@@ -56,4 +56,32 @@ Server Component. If the header is missing there, add `c15tProxy` as described i
 forwards the resolved values as `x-c15t-country` and `x-c15t-region`, which take
 precedence everywhere c15t reads location.
 
+## Why does Next.js report an unstable `Date.now()` during prerendering?
+
+The awaited recipe inside `Suspense` builds and runs under
+`cacheComponents: true` without extra calls; the repository's Next 16
+compatibility suite covers that path. The error
+`Next.js encountered the unstable value Date.now() while prerendering`,
+pointing at the `await prefetchInitialConsent(...)` line, has been observed in
+`next dev` when the manifest request fails, for example with an unreachable
+`backendURL`: the failure path reads the clock before the request headers
+have marked the component as dynamic. Fix the backend URL first. If the error
+persists in your setup, opt the component into request time before the
+helper runs and report the case on
+[c15t/c15t#1107](https://github.com/c15t/c15t/issues/1107):
+
+```tsx title="app/layout.tsx (partial)"
+import { connection } from 'next/server';
+
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  await connection();
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+  return <Consent config={initialConsent}>{children}</Consent>;
+}
+```
+
+`connection()` only marks the component as request-time; the rest of the page
+outside the `Suspense` boundary still prerenders. It is not part of the
+default recipe because the default recipe does not need it.
+
 <include src="../../guides/troubleshooting.mdx" />

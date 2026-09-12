@@ -69,7 +69,7 @@ import { headers } from 'next/headers';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import './globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
