@@ -460,3 +460,35 @@ describe('createConsentRuntime', () => {
 		expect(transport.init).toHaveBeenCalledTimes(callsBeforeDispose);
 	});
 });
+
+describe('windowDebug', () => {
+	type DebugWindow = Window & { c15t?: unknown };
+
+	afterEach(() => {
+		(window as DebugWindow).c15t = undefined;
+	});
+
+	test('installs the debug object on start by default', () => {
+		const runtime = createConsentRuntime({ mode: custom(createTransport()) });
+
+		runtime.start();
+
+		expect((window as DebugWindow).c15t).toMatchObject({ mode: 'custom' });
+		runtime.dispose();
+	});
+
+	test('leaves window.c15t alone when turned off', () => {
+		const owned = { mine: true };
+		(window as DebugWindow).c15t = owned;
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			windowDebug: false,
+		});
+
+		runtime.start();
+		expect((window as DebugWindow).c15t).toBe(owned);
+
+		runtime.dispose();
+		expect((window as DebugWindow).c15t).toBe(owned);
+	});
+});

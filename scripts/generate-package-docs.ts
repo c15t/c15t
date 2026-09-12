@@ -69,6 +69,17 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'Consent-aware script integration docs for analytics, advertising pixels, tag managers, widgets, and custom loaders.',
 	},
 	{
+		include: [
+			'frameworks/javascript/script-tag.mdx',
+			'frameworks/javascript/script-loader.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: '@c15t/browser',
+		outDir: 'packages/browser',
+		summary:
+			'Script-tag consent docs for c15t on Framer, Webflow, WordPress, and plain HTML: the data attributes, the window.c15t API, headless use, styling, manifest mode, and integrations.',
+	},
+	{
 		include: ['cli/**/*.mdx'],
 		name: '@c15t/cli',
 		outDir: 'packages/cli',

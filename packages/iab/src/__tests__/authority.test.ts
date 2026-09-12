@@ -31,13 +31,16 @@ afterEach(() => {
 });
 
 const makeKernel = function makeKernel(
-	transport?: KernelTransport
+	transport?: KernelTransport,
+	categories?: string[]
 ): ConsentKernel {
 	const policy = normalizePolicyRule({
+		categories,
 		id: 'iab-test',
 		match: { isDefault: true },
 		model: 'iab',
 		prompt: 'choice',
+		scopeMode: categories === undefined ? undefined : 'permissive',
 		validity: { choiceDays: 1 },
 	});
 	const kernel = createConsentKernel({
@@ -122,6 +125,51 @@ test('IAB draft changes do not grant; save records one category action and confi
 	expect(kernel.getSnapshot().iab?.authority).toBe(authority);
 	await vi.advanceTimersByTimeAsync(DAY);
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+});
+
+test('IAB rejection clears grants retained after category scope narrows', async () => {
+	const original = makeKernel();
+	const firstAddon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel: original,
+	});
+	disposers.push(firstAddon.dispose);
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	const { explicitChoice } = original.getSnapshot();
+	expect(explicitChoice?.categories.measurement?.value).toBe(true);
+	firstAddon.dispose();
+	original.dispose();
+
+	const kernel = makeKernel(undefined, ['marketing']);
+	kernel.hydrate({ choice: explicitChoice });
+	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+	disposers.push(addon.dispose);
+	expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
+	addon.rejectAll();
+	await addon.save();
+
+	const snapshot = kernel.getSnapshot();
+	const decoded = await decodeTCString(snapshot.iab?.authority?.tcString ?? '');
+	expect(decoded.purposeConsents).toEqual({});
+	expect(snapshot.explicitChoice?.categories.measurement?.value).toBe(false);
+	expect(snapshot.effectivePermissions.measurement).toBe(false);
+});
+
+test('IAB acceptance does not record grants outside category scope', async () => {
+	const kernel = makeKernel(undefined, ['marketing']);
+	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+	disposers.push(addon.dispose);
+	addon.acceptAll();
+	await addon.save();
+
+	const snapshot = kernel.getSnapshot();
+	expect(snapshot.iab?.authority).not.toBeNull();
+	expect(snapshot.explicitChoice?.categories.marketing?.value).toBe(true);
+	expect(Object.keys(snapshot.explicitChoice?.categories ?? {})).toEqual([
+		'marketing',
+	]);
 });
 
 test.each([0, 1000])(

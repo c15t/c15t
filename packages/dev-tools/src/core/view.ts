@@ -33,6 +33,8 @@ import type {
 	StateManager,
 } from './state-manager';
 
+import devToolsStyles from '../styles/dev-tools.css?raw';
+
 const TABS: readonly { id: DevToolsTab; label: string }[] = [
 	{ id: 'consents', label: 'Consents' },
 	{ id: 'scripts', label: 'Scripts' },
@@ -44,6 +46,7 @@ const TABS: readonly { id: DevToolsTab; label: string }[] = [
 ];
 
 let nextViewId = 0;
+const LIGHT_DOM_STYLE_ID = 'c15t-dev-tools-styles';
 
 /** DOM view owned by a DevTools instance. */
 export interface DevToolsView {
@@ -56,6 +59,8 @@ export interface DevToolsView {
 interface ViewOptions {
 	actions: DevToolsActions;
 	getPresentation?: () => ConsentPresentation | undefined;
+	/** Wrap the panel in a shadow root carrying its stylesheet. */
+	shadow?: boolean;
 	kernel: ConsentKernel;
 	getConsentCategories: () => readonly (keyof ConsentState)[];
 	stateManager: StateManager;
@@ -899,7 +904,9 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 				}
 			}
 		}
-		const { activeElement } = document;
+		// Inside a shadow root `document.activeElement` is the host; the
+		// root node of the panel knows the real one.
+		const { activeElement } = root.getRootNode() as Document | ShadowRoot;
 		const focusKey =
 			activeElement && root.contains(activeElement)
 				? activeElement.getAttribute('data-focus-key')
@@ -1039,7 +1046,32 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 
 	const unsubscribe = options.stateManager.subscribe(render);
 	const unsubscribeIAB = subscribeIABControls(options.kernel, render);
-	(options.container ?? document.body).append(root);
+	const parent = options.container ?? document.body;
+	// A shadow root keeps the host page's `button {}` rules off the panel
+	// and the panel's rules off the page. The stylesheet travels with it,
+	// so nothing is injected into `<head>`.
+	const host =
+		options.shadow === false || typeof parent.attachShadow !== 'function'
+			? null
+			: createElement(document, 'div', 'c15t-dev-tools-host');
+	if (host) {
+		host.dataset.c15tDevToolsHost = viewId;
+		const shadowRoot = host.attachShadow({ mode: 'open' });
+		shadowRoot.append(
+			createElement(document, 'style', undefined, devToolsStyles)
+		);
+		shadowRoot.append(root);
+		parent.append(host);
+	} else {
+		// Light-DOM mount: the sheet goes in <head>, once, and stays for the
+		// life of the document so other instances can reuse it.
+		if (!document.getElementById(LIGHT_DOM_STYLE_ID)) {
+			const style = createElement(document, 'style', undefined, devToolsStyles);
+			style.id = LIGHT_DOM_STYLE_ID;
+			document.head.append(style);
+		}
+		parent.append(root);
+	}
 	render();
 
 	return {
@@ -1048,6 +1080,8 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			unsubscribeIAB();
 			unsubscribe();
 			root.remove();
+			host?.remove();
+			// Keep the shared light-DOM stylesheet for other or future instances.
 		},
 		element: root,
 	};

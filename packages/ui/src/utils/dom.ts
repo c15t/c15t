@@ -163,27 +163,44 @@ export const getFocusableElements = function getFocusableElements(
 	);
 };
 
+let scrollLockCount = 0;
+let scrollLockOriginal: { overflow: string; paddingRight: string } | null =
+	null;
+
 /**
  * Locks document scrolling.
  * @returns Cleanup function to restore scroll
  */
 export const setupScrollLock = function setupScrollLock() {
-	const originalStyles = {
-		overflow: document.body.style.overflow,
-		paddingRight: document.body.style.paddingRight,
-	};
-
-	const scrollbarWidth =
-		window.innerWidth - document.documentElement.clientWidth;
-
-	document.body.style.overflow = 'hidden';
-	if (scrollbarWidth > 0) {
-		document.body.style.paddingRight = `${scrollbarWidth}px`;
+	// Reference counted: a banner and a dialog can both hold the lock (the
+	// banner's exit animation overlaps the dialog opening), and the page
+	// must only get its original overflow back when the last one lets go.
+	if (scrollLockCount === 0) {
+		scrollLockOriginal = {
+			overflow: document.body.style.overflow,
+			paddingRight: document.body.style.paddingRight,
+		};
+		const scrollbarWidth =
+			window.innerWidth - document.documentElement.clientWidth;
+		document.body.style.overflow = 'hidden';
+		if (scrollbarWidth > 0) {
+			document.body.style.paddingRight = `${scrollbarWidth}px`;
+		}
 	}
+	scrollLockCount += 1;
 
+	let released = false;
 	return () => {
-		document.body.style.overflow = originalStyles.overflow;
-		document.body.style.paddingRight = originalStyles.paddingRight;
+		if (released) {
+			return;
+		}
+		released = true;
+		scrollLockCount -= 1;
+		if (scrollLockCount === 0 && scrollLockOriginal) {
+			document.body.style.overflow = scrollLockOriginal.overflow;
+			document.body.style.paddingRight = scrollLockOriginal.paddingRight;
+			scrollLockOriginal = null;
+		}
 	};
 };
 
@@ -217,12 +234,21 @@ const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
 	return null;
 };
 
+/** Read focus inside nested shadow roots as well as the document. */
+const readActiveElement = (): Element | null => {
+	let active = document.activeElement;
+	while (active?.shadowRoot?.activeElement) {
+		active = active.shadowRoot.activeElement;
+	}
+	return active;
+};
+
 /**
  * Traps focus within a container.
  * @returns Cleanup function to remove listeners and restore focus
  */
 export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
-	const activeElement = document.activeElement as HTMLElement | null;
+	const activeElement = readActiveElement() as HTMLElement | null;
 	const previousFocus =
 		activeElement &&
 		activeElement !== document.body &&
@@ -236,9 +262,9 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 	if (container.tabIndex < 0) {
 		container.tabIndex = -1;
 	}
-	setTimeout(() => {
+	const focusTimer = setTimeout(() => {
 		try {
-			const activeElementLocal = document.activeElement;
+			const activeElementLocal = readActiveElement();
 			if (
 				activeElementLocal instanceof HTMLElement &&
 				activeElementLocal !== document.body &&
@@ -266,7 +292,7 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const firstElement = elements[0];
 		const lastElement = elements[elements.length - 1];
-		const active = document.activeElement as HTMLElement | null;
+		const active = readActiveElement() as HTMLElement | null;
 		const inside = active
 			? active === container || container.contains(active)
 			: false;
@@ -294,6 +320,7 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 	document.addEventListener('keydown', handleKeyDown);
 
 	return () => {
+		clearTimeout(focusTimer);
 		document.removeEventListener('keydown', handleKeyDown);
 
 		// Restore focus when trap is disabled. If the previously-focused

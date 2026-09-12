@@ -28,7 +28,7 @@ export {
 	waitForCondition,
 } from './helpers';
 export { runI18nConformance } from './i18n';
-export { runIabConformance } from './iab';
+export { runIabConformance, runIabUiConformance } from './iab';
 export { runPersistenceConformance } from './persistence';
 export { runPoliciesConformance } from './policies';
 export { runPolicyProducerConformance } from './policy-producers';

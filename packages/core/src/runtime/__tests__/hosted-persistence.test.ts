@@ -125,9 +125,9 @@ test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 			await initial.kernel.commands.save('none');
 		}
 		close(initial);
-		const savedChoice = initial.kernel.getSnapshot().explicitChoice;
-		const savedLocal = localStorage.getItem('c15t');
-		const savedCookie = document.cookie;
+		let savedChoice = initial.kernel.getSnapshot().explicitChoice;
+		let savedLocal = localStorage.getItem('c15t');
+		let savedCookie = document.cookie;
 
 		unavailable = true;
 		const outage = await start();
@@ -140,15 +140,16 @@ test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 		);
 		if (recovery === 'offline-rejection') {
 			await outage.kernel.commands.save('none');
+			savedChoice = outage.kernel.getSnapshot().explicitChoice;
+			savedLocal = localStorage.getItem('c15t');
+			savedCookie = document.cookie;
 		}
 		close(outage);
 		const outageChoice = outage.kernel.getSnapshot().explicitChoice;
 		expect(outageChoice?.categories.measurement?.value).toBe(false);
-		if (recovery !== 'offline-rejection') {
-			expect(outageChoice).toEqual(savedChoice);
-			expect(localStorage.getItem('c15t')).toBe(savedLocal);
-			expect(document.cookie).toBe(savedCookie);
-		}
+		expect(outageChoice).toEqual(savedChoice);
+		expect(localStorage.getItem('c15t')).toBe(savedLocal);
+		expect(document.cookie).toBe(savedCookie);
 
 		unavailable = false;
 		if (recovery === 'none') {
@@ -158,10 +159,10 @@ test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 			policy = matchedResolution(
 				optOutRule({ categories: ['measurement'], scopeMode: 'strict' })
 			);
-			expect(policy.fingerprints.choice).not.toBe(
-				originalPolicy.fingerprints.choice
-			);
 		}
+		expect(
+			policy.fingerprints.choice === originalPolicy.fingerprints.choice
+		).toBe(recovery !== 'changed-policy' && recovery !== 'none');
 		const recovered = await start();
 		expect(recovered.kernel.getSnapshot().resolution.status).toBe('matched');
 		expect(recovered.kernel.getSnapshot().explicitChoice).toEqual(outageChoice);

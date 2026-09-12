@@ -33,6 +33,7 @@ import type {
  * tests, one per dialog adapter.
  */
 export type SupportedFramework =
+	| 'browser'
 	| 'react'
 	| 'nextjs'
 	| 'tanstack-start'

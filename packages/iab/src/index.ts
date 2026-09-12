@@ -128,12 +128,15 @@ const createIABProviderConfig = function createIABProviderConfig(
 };
 
 export { createIABProviderConfig as iab };
+export { initializeIABStub, destroyIABStub } from './tcf/stub';
 
 /**
  * Handle returned by `createIAB`. Provides imperative control over the
  * CMP state and a `dispose` method for teardown.
  */
 export interface IABHandle {
+	/** Wait for GVL loading and CMP setup. Rejects if setup could not complete. */
+	whenReady: () => Promise<void>;
 	/** Tear down the CMP API + stub and disconnect kernel subscriptions. */
 	dispose: () => void;
 	/** The underlying CMP API instance (for advanced consumers). */
@@ -281,6 +284,12 @@ const changedIABDraft = function changedIABDraft(
 	);
 };
 
+const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
+	snapshot.policyRule.model === 'iab' &&
+	(snapshot.activeUI === 'banner' || snapshot.activeUI === 'dialog')
+		? 'visible'
+		: 'hidden';
+
 export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
@@ -390,7 +399,7 @@ export const createIAB = function createIAB(
 		clearAuthorityReceipt();
 	});
 	const initializationSnapshot = kernel.getSnapshot();
-	void (async () => {
+	const initialization = (async () => {
 		const gvl = await gvlPromise;
 		if (disposed) {
 			return;
@@ -403,7 +412,13 @@ export const createIAB = function createIAB(
 		const mayHydrate = kernel.getSnapshot().iab === initializationSnapshot.iab;
 		kernel.set.iab({ enabled: true, gvl });
 		try {
-			cmpApi = createCMPApi({ cmpId, cmpVersion, gvl });
+			cmpApi = createCMPApi({
+				cmpId,
+				cmpVersion,
+				gdprApplies: kernel.getSnapshot().policyRule.model === 'iab',
+				gvl,
+			});
+			cmpApi.setDisplayStatus(cmpDisplayStatus(kernel.getSnapshot()));
 			if (mayHydrate) {
 				void restoreAuthority();
 			}
@@ -417,6 +432,7 @@ export const createIAB = function createIAB(
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
+	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
 	let previousSnapshot = kernel.getSnapshot();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
 		const policyChanged = snapshot.resolution !== previousSnapshot.resolution;
@@ -440,7 +456,16 @@ export const createIAB = function createIAB(
 		// Expiry can synchronously publish a newer snapshot while arming the
 		// timer. Never restore the expired receipt from this notification.
 		const tcString = kernel.getSnapshot().iab?.authority?.tcString ?? null;
-		cmpApi.updateConsent(tcString ?? '');
+		cmpApi.updateConsent(
+			tcString ?? '',
+			undefined,
+			snapshot.policyRule.model === 'iab'
+		);
+		const nextDisplay = cmpDisplayStatus(snapshot);
+		if (nextDisplay !== previousDisplay) {
+			previousDisplay = nextDisplay;
+			cmpApi.setDisplayStatus(nextDisplay);
+		}
 	});
 
 	const buildTCFConsentData = function buildTCFConsentData() {
@@ -587,7 +612,14 @@ export const createIAB = function createIAB(
 				return;
 			}
 			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
-			const pendingSave = kernel.commands.save(consents, {
+			const scope = new Set<string>(snapshot.policyRule.scope);
+			// Refusals must replace old grants even after a category leaves scope.
+			const consentPatch = Object.fromEntries(
+				Object.entries(consents).filter(
+					([category, granted]) => !granted || scope.has(category)
+				)
+			);
+			const pendingSave = kernel.commands.save(consentPatch, {
 				actionAt,
 				iabAuthority: authority,
 			});
@@ -656,6 +688,12 @@ export const createIAB = function createIAB(
 			kernel.set.iab({
 				vendorLegitimateInterests: { ...current, [key]: value },
 			});
+		},
+		async whenReady() {
+			await initialization;
+			if (!disposed && options.gvl !== null && !cmpApi) {
+				throw new Error('Unable to load IAB privacy settings.');
+			}
 		},
 	};
 	unregisterControls = registerIABControls(kernel, handle);

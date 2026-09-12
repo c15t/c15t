@@ -71,11 +71,13 @@ const readBlock = function readBlock(
 	return null;
 };
 
-const LIGHT_SELECTOR = ':root, .c15t-theme-root';
+const LIGHT_SELECTOR = ':root, :host, .c15t-theme-root';
 const DARK_SELECTOR = [
 	':root.dark',
+	':host(.dark)',
 	'.dark .c15t-theme-root',
 	':root.c15t-dark',
+	':host(.c15t-dark)',
 	'.c15t-dark .c15t-theme-root',
 ].join(', ');
 
@@ -102,6 +104,15 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		)) {
 			expect(block).toContain(`${name}: ${value};`);
 		}
+	});
+
+	test('scopes every :root block to :host too, for shadow-root hosts', () => {
+		// A bare `:root{` (component variables) or `:root.x{` without a
+		// `:host` twin would leave a shadow-root banner unstyled.
+		const bare =
+			css.match(/(?:^|[\s,}{;]):root(?:\.[A-Za-z0-9_-]+)?\s*\{/gu) ?? [];
+		expect(bare).toEqual([]);
+		expect(css).toContain(':root, :host');
 	});
 
 	test('emits the tokens first, so they read as the file preamble', () => {

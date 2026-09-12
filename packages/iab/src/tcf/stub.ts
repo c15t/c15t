@@ -14,6 +14,8 @@ import type { PingData, TCFApi, TCFApiCallback } from './iab-tcf-types';
 
 /** Whether the stub has been initialized */
 let stubInitialized = false;
+/** The stub this module installed, distinct from a replacement CMP API. */
+let ownedStub: TCFApi | null = null;
 
 /** Iframe element for cross-frame communication */
 let locatorIframe: HTMLIFrameElement | null = null;
@@ -190,7 +192,8 @@ export const initializeIABStub = function initializeIABStub(): void {
 
 	// Create stub API if not already present
 	if (!window.__tcfapi) {
-		window.__tcfapi = createStubApi();
+		ownedStub = createStubApi();
+		window.__tcfapi = ownedStub;
 	}
 
 	// Create locator iframe
@@ -263,7 +266,11 @@ export const destroyIABStub = function destroyIABStub(): void {
 		locatorIframe = null;
 	}
 
-	// Don't remove __tcfapi as the real CMP might be using it
+	// Remove only our unfulfilled stub; a real CMP may have replaced it.
+	if (ownedStub && window.__tcfapi === ownedStub) {
+		delete window.__tcfapi;
+	}
+	ownedStub = null;
 	stubInitialized = false;
 };
 

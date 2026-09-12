@@ -17,6 +17,11 @@ function createInstance(
 	return instance;
 }
 
+/** The focused element in the panel's tree, which is a shadow root by default. */
+const activeElementOf = (instance: DevToolsInstance): Element | null =>
+	(instance.element?.getRootNode() as Document | ShadowRoot | undefined)
+		?.activeElement ?? null;
+
 afterEach(() => {
 	for (const instance of instances.splice(0)) {
 		instance.destroy();
@@ -41,7 +46,7 @@ describe('createDevTools', () => {
 			expect(tools.getState().events).toHaveLength(
 				Number.isFinite(maxEvents) ? 1 : 100
 			);
-			expect(document.activeElement).toBe(launcher);
+			expect(activeElementOf(tools)).toBe(launcher);
 			expect(
 				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
 			).toBe(0);
@@ -191,12 +196,24 @@ describe('createDevTools', () => {
 
 			expect(devTools.getState().isOpen).toBe(false);
 			await vi.waitFor(() => {
-				expect(document.activeElement?.getAttribute('aria-label')).toBe(
+				expect(activeElementOf(devTools)?.getAttribute('aria-label')).toBe(
 					'Open c15t DevTools'
 				);
 			});
 		}
 	);
+	it('renders into the page with its stylesheet when shadow is off', () => {
+		const kernel = createConsentKernel();
+		const tools = createDevTools({ kernel, shadow: false });
+		instances.push(tools);
+
+		expect(document.querySelector('[data-c15t-dev-tools-host]')).toBeNull();
+		expect(document.body.contains(tools.element)).toBe(true);
+		expect(
+			document.head.querySelector('#c15t-dev-tools-styles')?.textContent
+		).toContain('.c15t-dev-tools');
+	});
+
 	it('keeps the embedded panel open on Escape', () => {
 		const devTools = createInstance(undefined, document.body);
 		devTools.element?.classList.add('c15t-dev-tools--embedded');

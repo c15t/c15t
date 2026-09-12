@@ -504,11 +504,13 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 			started = true;
 
-			const windowDebug = createWindowDebug({
-				mode: resolveWindowDebugMode(requireTransportFactory(options)),
-				pkg: options.pkg ?? '@c15t/core',
-			});
-			disposers.push(() => windowDebug.dispose());
+			if (options.windowDebug !== false) {
+				const windowDebug = createWindowDebug({
+					mode: resolveWindowDebugMode(requireTransportFactory(options)),
+					pkg: options.pkg ?? '@c15t/core',
+				});
+				disposers.push(() => windowDebug.dispose());
+			}
 
 			startPersistence();
 
