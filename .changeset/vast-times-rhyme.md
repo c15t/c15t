@@ -7,6 +7,7 @@
 "@c15t/vue": minor
 "@c15t/svelte": minor
 "@c15t/astro": minor
+"@c15t/browser": minor
 "@c15t/scripts": patch
 ---
 

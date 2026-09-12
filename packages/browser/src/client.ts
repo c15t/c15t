@@ -221,6 +221,7 @@ export const createConsentClient = function createConsentClient(
 	const configuredCategories = options.consentCategories ?? [];
 	const runtime = createConsentRuntime({
 		callbacks: options.callbacks,
+		clearOnRevocation: options.clearOnRevocation,
 		consentCategories: options.consentCategories,
 		createIAB: context.createIAB,
 		enabled: options.enabled,

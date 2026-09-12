@@ -1,6 +1,7 @@
 import type {
 	AllConsentNames,
 	Callbacks,
+	ClearOnRevocationConfig,
 	ConsentPresentation,
 	SaveResult,
 	NoticeDismissResult,
@@ -172,6 +173,8 @@ export interface ConsentClientOptions {
 	consentCategories?: AllConsentNames[];
 	/** Third-party scripts to load once their category is granted. */
 	scripts?: Script[];
+	/** Browser data to remove when its consent category is denied. Initial-only. */
+	clearOnRevocation?: ClearOnRevocationConfig;
 	/** Lifecycle callbacks. */
 	callbacks?: Callbacks;
 	/** Cookie and storage settings. */
