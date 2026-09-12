@@ -173,9 +173,13 @@ resolution and use it only for non-policy code such as display defaults.
 CloudFront's own geolocation headers, `CloudFront-Viewer-Country` and
 `CloudFront-Viewer-Country-Region`, are not in this list. Forward them to the
 origin with an origin request policy, then map them in `proxy.ts` before
-calling `c15tProxy`; CloudFront Functions cannot do it because the viewer
-location headers are added after the viewer-request stage, and an origin
-request policy forwards but cannot rename:
+calling `c15tProxy`. An origin request policy forwards headers but cannot
+rename them. A CloudFront Function can also read geography headers when a
+cache policy or origin request policy exposes them to the function, as shown
+in [AWS's viewer-request example](https://github.com/aws-samples/amazon-cloudfront-functions/tree/main/redirect-based-on-country).
+
+Clear every country and region input c15t recognizes before mapping the
+trusted CloudFront values:
 
 ```ts title="proxy.ts"
 import { c15tProxy } from 'c15t/next/proxy';
@@ -183,8 +187,20 @@ import { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
-  headers.delete('x-c15t-country');
-  headers.delete('x-c15t-region');
+  for (const name of [
+    'x-c15t-country',
+    'cf-ipcountry',
+    'x-vercel-ip-country',
+    'x-amz-cf-ipcountry',
+    'x-country-code',
+    'x-country',
+    'x-c15t-region',
+    'cf-region-code',
+    'x-vercel-ip-country-region',
+    'x-region-code',
+  ]) {
+    headers.delete(name);
+  }
   const country = headers.get('cloudfront-viewer-country');
   const region = headers.get('cloudfront-viewer-country-region');
   if (country) headers.set('x-c15t-country', country);
@@ -193,8 +209,9 @@ export function proxy(request: NextRequest) {
 }
 ```
 
-The `delete` calls drop client-supplied overrides so only the CloudFront value
-can win.
+The `delete` calls drop client-supplied overrides and fallback geography
+headers. When CloudFront omits a country or region, that value stays unknown
+instead of falling through to a header supplied by the visitor.
 
 GPC values are meaningful only as `1` or `0`; any other value is treated as
 absent. The proxy writes the normalized result to `sec-gpc`, so an incoming
