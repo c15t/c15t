@@ -198,6 +198,11 @@
 			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
 			"default": "./dist/vendors/ads-and-pixels/meta-pixel.js"
 		},
+		"./openai-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/openai-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/openai-pixel.js",
+			"default": "./dist/vendors/ads-and-pixels/openai-pixel.js"
+		},
 		"./reddit-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/reddit-pixel.js",

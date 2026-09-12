@@ -22,4 +22,5 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Google Tag Manager](./integrations/google-tag-manager.md): Load GTM with Google Consent Mode v2 defaults.
 - [Intercom](./integrations/intercom.md): Load the Intercom messenger behind consent.
 - [Meta Pixel](./integrations/meta-pixel.md): Load the Meta Pixel behind consent.
+- [OpenAI Pixel](./integrations/openai-pixel.md): Measure ChatGPT Ads conversions after marketing consent with the OpenAI Measurement Pixel.
 - [Integrations](./integrations/overview.md): Load analytics, pixels, tag managers, and widgets behind consent.

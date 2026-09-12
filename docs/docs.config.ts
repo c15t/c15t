@@ -217,7 +217,7 @@ const generateDocsConfig = () =>
 						title: 'Functional',
 					},
 					{
-						pages: ['meta-pixel'],
+						pages: ['meta-pixel', 'openai-pixel'],
 
 						title: 'Ads & Pixels',
 					},
