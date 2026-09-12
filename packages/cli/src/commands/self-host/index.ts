@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 
 import type { CliContext } from '~/context/types';
+import { CliError } from '~/core/errors';
 import { formatLogMessage } from '~/utils/logger';
 import { TelemetryEventName } from '~/utils/telemetry';
 
@@ -41,25 +42,29 @@ export const selfHost = async function selfHost(
 	// Track self-host command start
 	telemetry.trackEvent(TelemetryEventName.SELF_HOST_STARTED, {});
 
-	const [subcommand] = commandArgs;
+	const [subcommand, ...remainingArgs] = commandArgs;
+	if (remainingArgs.length) {
+		throw new CliError('FLAG_INVALID', {
+			details: `Unexpected self-host argument: ${remainingArgs.join(' ')}`,
+		});
+	}
 
 	if (subcommand) {
 		// If subcommand is provided, execute it directly
 		switch (subcommand) {
 			case 'migrate':
-				await dependencies.migrate(context);
-				break;
+				return dependencies.migrate(context);
 			default:
-				logger.error(`Unknown self-host subcommand: ${subcommand}`);
-				logger.info('Available subcommands: migrate');
-				logger.info('Usage: c15t self-host <migrate>');
-				telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-					reason: 'unknown_subcommand',
-					success: false,
+				throw new CliError('COMMAND_NOT_FOUND', {
+					details: `Unknown self-host subcommand: ${subcommand}`,
 				});
-				return;
 		}
-		return;
+	}
+
+	if (context.flags?.['non-interactive']) {
+		throw new CliError('CONFIG_INVALID', {
+			details: 'Supply self-host migrate --plan or --apply.',
+		});
 	}
 
 	// If no subcommand is provided, show interactive menu
@@ -117,17 +122,9 @@ export const selfHost = async function selfHost(
 
 	if (selectedSubcommand) {
 		logger.debug(`User selected subcommand: ${selectedSubcommand.name}`);
-		await dependencies.migrate(context);
-	} else {
-		logger.error(`Unknown subcommand: ${selectedSubcommandName}`);
-		telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-			reason: 'invalid_selection',
-			success: false,
-		});
-		return;
+		return dependencies.migrate(context);
 	}
-
-	telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-		success: true,
+	throw new CliError('COMMAND_NOT_FOUND', {
+		details: `Unknown self-host subcommand: ${selectedSubcommandName}`,
 	});
 };

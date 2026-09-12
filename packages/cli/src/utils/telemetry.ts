@@ -167,7 +167,7 @@ export class Telemetry {
 			process.env[ENV_VARS.TELEMETRY_DISABLED] === '1' ||
 			process.env[ENV_VARS.TELEMETRY_DISABLED]?.toLowerCase() === 'true';
 
-		this.disabled = options?.disabled ?? envDisabled ?? false;
+		this.disabled = options?.disabled === true || envDisabled;
 		this.debug = options?.debug ?? false;
 		this.logger = options?.logger;
 		this.defaultProperties = this.sanitizeProperties(
@@ -184,7 +184,9 @@ export class Telemetry {
 		this.queuePath = path.join(this.storageDir, PATHS.TELEMETRY_QUEUE_FILE);
 		this.headers = this.buildHeaders(options?.headers);
 
-		const identity = this.loadOrCreateInstallIdentity();
+		const identity = this.disabled
+			? { installId: crypto.randomUUID(), isFirstRun: false }
+			: this.loadOrCreateInstallIdentity();
 		this.installId = identity.installId;
 		this.isFirstRun = identity.isFirstRun;
 
@@ -213,7 +215,9 @@ export class Telemetry {
 			await this.sendBatch(batch.map((item) => item.event));
 		});
 
-		this.applyLoggerConfig();
+		if (!this.disabled) {
+			this.applyLoggerConfig();
+		}
 		this.queueReplayPromise = this.flushQueuedEvents();
 	}
 
@@ -253,19 +257,16 @@ export class Telemetry {
 		this.activeCommandName = command;
 		this.activeCommandRunId = crypto.randomUUID();
 
-		const safeFlags = this.sanitizeProperties(flags);
-		const safeArgs = this.sanitizeValue(args) as TelemetryValue[];
+		const flagNames = Object.keys(flags)
+			.filter((key) => flags[key] !== undefined && flags[key] !== false)
+			.sort();
 
 		this.trackEvent(TelemetryEventName.COMMAND_EXECUTED, {
-			args: safeArgs,
 			argsCount: args.length,
 			command,
 			commandRunId: this.activeCommandRunId,
-			flagCount: Object.keys(safeFlags).length,
-			flagNames: Object.keys(safeFlags).sort(),
-			flags: safeFlags,
-			subcommand:
-				typeof safeArgs[0] === 'string' ? (safeArgs[0] as string) : undefined,
+			flagCount: flagNames.length,
+			flagNames,
 		});
 	}
 
@@ -328,7 +329,9 @@ export class Telemetry {
 
 	enable(): void {
 		this.disabled = false;
-		this.applyLoggerConfig();
+		if (!this.disabled) {
+			this.applyLoggerConfig();
+		}
 		this.queueReplayPromise = this.flushQueuedEvents();
 	}
 

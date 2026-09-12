@@ -323,7 +323,17 @@ export default defineDocsConfig({
 		},
 		{
 			base: 'cli',
-			pages: ['overview', 'quickstart', 'commands/setup', 'global-flags'],
+			pages: [
+				'overview',
+				'quickstart',
+				'commands/setup',
+				'commands/boilerplate',
+				'commands/hosted',
+				'commands/self-host',
+				'commands/codemods',
+				'global-flags',
+				'automation',
+			],
 			title: 'CLI',
 		},
 		{

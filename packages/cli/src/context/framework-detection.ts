@@ -49,6 +49,8 @@ const detectDevelopmentEnvironment = (
  */
 export interface FrameworkDetectionResult {
 	developmentEnvironment?: DevelopmentEnvironment;
+	/** Documentation for frameworks that require manual integration. */
+	manualSetupUrl?: string;
 	framework: string | null;
 	frameworkVersion: string | null;
 	pkg: AvailablePackages;
@@ -93,6 +95,33 @@ export const detectFramework = async function detectFramework(
 		let frameworkVersion: string | null = null;
 		let pkg: AvailablePackages = hasReact ? 'c15t/react' : 'c15t';
 
+		const unsupported = [
+			// Astro owns the app even when islands use another framework.
+			['astro', 'Astro', 'javascript'],
+			['@tanstack/react-start', 'TanStack Start', 'tanstack-start'],
+			['@sveltejs/kit', 'SvelteKit', 'svelte'],
+			['svelte', 'Svelte', 'svelte'],
+			['nuxt', 'Nuxt', 'vue'],
+			['vue', 'Vue', 'vue'],
+			['solid-js', 'Solid', 'solid'],
+			['@remix-run/react', 'Remix', 'react'],
+			['gatsby', 'Gatsby', 'react'],
+		].find(([dependency]) => dependency && dependency in deps);
+		if (unsupported) {
+			return {
+				developmentEnvironment: detectDevelopmentEnvironment(
+					deps,
+					packageJson.scripts ?? {}
+				),
+				framework: unsupported[1] ?? null,
+				frameworkVersion: deps[unsupported[0] ?? ''] ?? null,
+				hasReact,
+				manualSetupUrl: `https://c15t.com/docs/frameworks/${unsupported[2]}/quickstart`,
+				pkg,
+				reactVersion,
+				tailwindVersion,
+			};
+		}
 		if ('next' in deps) {
 			framework = 'Next.js';
 			frameworkVersion = deps.next;

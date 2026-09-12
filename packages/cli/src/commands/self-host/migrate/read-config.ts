@@ -53,7 +53,9 @@ export const readDatabaseConfig = async function readDatabaseConfig(
 
 	try {
 		const { config } = await dependencies.loadConfig<BackendConfig>({
-			configFile: absoluteConfigPath,
+			configFile: resolvedPath,
+			cwd: path.dirname(resolvedPath),
+			dotenv: true,
 			jitiOptions: {
 				extensions: [
 					'.ts',

@@ -28,10 +28,15 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## CLI
 
-- [Set up c15t with the CLI](./docs/cli/commands/setup.md): Run setup in the target application and review framework and deployment choices.
-- [CLI global flags](./docs/cli/global-flags.md): Control help, configuration, logging and telemetry for the installed c15t CLI.
-- [c15t command-line tools](./docs/cli/overview.md): Use the CLI for initial setup, migrations and project workflows, then verify the generated integration.
-- [Quickstart](./docs/cli/quickstart.md): Run the locally installed v3 CLI and review setup changes before deploying.
+- [Agents and automation](./docs/cli/automation.md): Use structured CLI results and version-matched documentation from agents, scripts, and other CLIs.
+- [V3 boilerplate](./docs/cli/commands/boilerplate.md): Generate framework integration files using unpublished local v3 packages.
+- [Legacy codemods](./docs/cli/commands/codemods.md): Preview and run explicit v1 to v2 source transforms.
+- [Hosted projects and authentication](./docs/cli/commands/hosted.md): Authenticate with Inth and select or create a hosted consent project.
+- [Self-hosted migrations](./docs/cli/commands/self-host.md): Plan and apply the database migrations for an existing backend configuration.
+- [setup](./docs/cli/commands/setup.md): Plan and apply c15t integration files from terminal prompts or explicit inputs.
+- [Global flags](./docs/cli/global-flags.md): Control CLI output, project location, prompts, and telemetry.
+- [Overview](./docs/cli/overview.md): Inspect and configure c15t projects, manage hosted access, and migrate self-hosted databases.
+- [Quickstart](./docs/cli/quickstart.md): Review the proposed integration before applying it to your application.
 
 ## Reference
 

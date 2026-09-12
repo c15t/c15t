@@ -1,26 +1,33 @@
 ---
-title: CLI global flags
-description: Control help, configuration, logging and telemetry for the installed c15t CLI.
+title: Global flags
+description: Control CLI output, project location, prompts, and telemetry.
 group: cli
 ---
 
-## Supported flags
-
-| Flag | Effect |
-| --- | --- |
-| `--help`, `-h` | Show help |
-| `--version`, `-v` | Show the CLI version |
-| `--config PATH` | Read the specified configuration file |
-| `--logger LEVEL` | Set fatal, error, warn, info or debug logging |
-| `--yes`, `-y` | Skip confirmation prompts |
-| `--no-telemetry` | Disable telemetry collection |
-| `--telemetry-debug` | Show detailed telemetry logs |
-
 ```bash
-bun run cli --no-telemetry --help
+c15t projects list --json --no-telemetry
 ```
 
-`C15T_TELEMETRY_DISABLED=1` also disables telemetry. Check the installed release's
-help before depending on flags in automation. Supply a value after `--config`
-and `--logger`; an omitted value is not the same as selecting a default path or
-log level.
+| Flag | Behavior |
+| --- | --- |
+| `--help`, `-h` | Show help and the options supported by a command. |
+| `--version`, `-v` | Report the installed CLI version. |
+| `--cwd <directory>` | Resolve the command's project directory without changing the caller's working directory. |
+| `--logger <level>` | Choose the diagnostic log level. |
+| `--yes`, `-y` | Accept confirmation prompts. Does not supply missing names, modes, or URLs. |
+| `--non-interactive` | Fail when required input would need a prompt. |
+| `--json` | Return one versioned JSON result on stdout and disable prompts. |
+| `--no-telemetry` | Disable telemetry. |
+| `--telemetry-debug` | Enable telemetry diagnostics. |
+
+String options accept both `--name value` and `--name=value`. Unknown commands, unknown flags, missing flag values, and flags used with the wrong command return a failure.
+
+`--json` controls presentation. It does not grant permission to apply a setup plan or database migration. Use the command's explicit application option.
+
+## Telemetry
+
+Set `C15T_TELEMETRY_DISABLED=1` or `C15T_TELEMETRY_DISABLED=true` to disable telemetry for executable invocations. `--no-telemetry` also disables it. Telemetry is off by default when calling the JavaScript library.
+
+## Exit status
+
+Successful commands return `0`. Failed commands return `1`. Command cancellation returns `130`. JSON results include the corresponding `exitCode`, `success`, and error details.

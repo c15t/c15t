@@ -6,6 +6,8 @@
  * Stored configuration in ~/.c15t/config.json
  */
 export interface C15tConfig {
+	/** Control-plane origin that issued these credentials. */
+	origin?: string;
 	/** OAuth access token */
 	accessToken: string;
 	/** OAuth refresh token */

@@ -48,10 +48,12 @@ export const getBackendURLValue = function getBackendURLValue(
 	}
 
 	if (useEnvFile) {
-		return `process.env.${envVarPrefix}_C15T_URL!`;
+		return envVarPrefix === 'VITE'
+			? 'import.meta.env.VITE_C15T_URL'
+			: `process.env.${envVarPrefix}_C15T_URL!`;
 	}
 
-	return `'${backendURL || 'https://your-project.inth.app'}'`;
+	return JSON.stringify(backendURL || 'https://your-project.inth.app');
 };
 
 /**
@@ -96,9 +98,14 @@ export const generateOptionsText = function generateOptionsText(
 			return `mode: hosted({ url: ${backendURLValue} }),`;
 		}
 		case 'custom': {
-			const url = useEnvFile
-				? `process.env.${envVarPrefix}_CONSENT_API_URL`
-				: `'${backendURL || '/api/consent'}'`;
+			let url = JSON.stringify(backendURL || '/api/consent');
+			if (useEnvFile) {
+				url =
+					envVarPrefix === 'VITE'
+						? 'import.meta.env.VITE_CONSENT_API_URL'
+						: `process.env.${envVarPrefix}_CONSENT_API_URL`;
+			}
+
 			return `mode: custom({
 				async init() {
 					const res = await fetch(${url}, {

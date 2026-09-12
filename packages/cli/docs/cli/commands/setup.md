@@ -1,30 +1,51 @@
 ---
-title: Set up c15t with the CLI
-description: Run setup in the target application and review framework and
-  deployment choices.
+title: setup
+description: Plan and apply c15t integration files from terminal prompts or explicit inputs.
 group: cli
 ---
 
-## Run setup in the application directory
+Use `generate offline --framework <target>` for standalone v3 boilerplate. See [boilerplate generation](./boilerplate.md) for supported frameworks, local unpublished packages, and file wiring instructions. The options below describe the existing automatic setup workflow.
 
 ```bash
-bun run cli setup
+c15t setup hosted --backend-url https://your-project.inth.app --plan --json
+c15t setup hosted --backend-url https://your-project.inth.app --apply --skip-install
 ```
 
-This command assumes a locally installed compatible v3 CLI. The public command
-is `setup`; do not copy a historical `generate` command from old docs.
+Explicit configuration flags select a read-only plan even in an interactive terminal. Add `--apply` or `--yes` to write files.
 
-Use setup for a first installation. Select your Inth project endpoint and review
-the generated files. In a monorepo, running at the workspace root can detect the
-wrong app or package manager, so start in the application you intend to modify.
+## Mode and backend
 
-## Keep deployment decisions explicit
+Use a positional mode or `--mode`: `hosted`, `offline`, or `custom`. The legacy `c15t` and `self-hosted` mode names map to hosted transport. Hosted setup requires `--backend-url` or an authenticated project selected through `--project`. Without either flag, it can use the account default from `projects select`.
 
-Review whether the app uses request SSR or static output, and whether its router
-has a server request helper. Do not assume all Next.js apps use App Router or
-that every Vue app is Nuxt. Use [framework guides](https://c15t.com/docs/frameworks) when
-an automatically generated path does not match your app.
+Pending projects do not have a usable backend. Wait for provisioning before generating their integration. A dashboard URL is never substituted for a backend URL.
 
-`--yes` skips confirmation prompts. It does not supply missing configuration or
-make a generated integration correct. Use it only in a workflow where the input
-and intended file changes are already controlled.
+## Options
+
+| Option                                     | Purpose                                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `--plan`, `--dry-run`                      | Return proposed file edits without writing them or installing dependencies.           |
+| `--apply`                                  | Apply the generated file edits and install required dependencies.                     |
+| `--skip-install`                           | Apply files without running a package manager.                                        |
+| `--backend-url <url>`                      | Use an explicit HTTP or HTTPS consent endpoint.                                       |
+| `--project <id or organization/name>`      | Resolve an authenticated hosted project's backend.                                    |
+| `--env`                                    | Put the backend URL in an environment file using supported bundler conventions.       |
+| `--proxy`                                  | Configure a Next.js rewrite for a hosted backend.                                     |
+| `--ssr`                                    | Enable server-rendered consent state for hosted Next.js App Router applications.      |
+| `--devtools`                               | Include development tools.                                                            |
+| `--ui-style prebuilt or expanded`          | Choose prebuilt or compound React components.                                         |
+| `--theme none, minimal, dark, or tailwind` | Select a UI theme.                                                                    |
+| `--scripts <comma-separated IDs>`          | Include consent-aware integration snippets. Unknown IDs report the available choices. |
+| `--resume`                                 | Recover an interrupted interactive setup.                                             |
+| `--debug`                                  | Show setup state transitions.                                                         |
+
+Explicit-input setup uses prebuilt UI, no theme preset, no scripts, and no optional environment/proxy/SSR/devtools configuration unless requested. Review script option placeholders before use.
+
+## File handling
+
+The generation plan contains each file's original and proposed text. Application checks that the original text still matches before writing. If applying the file plan fails, it restores applied edits and reports any recovery failure. Recovery refuses to overwrite edits made by another process after generation.
+
+Setup and recovery allow symlinks whose targets stay inside the project. Planning rejects dangling links and links outside the project before reading file contents. Apply and recovery validate paths again before writing.
+
+Dependency installation is a separate operation. Review the result and any package-manager error before retrying. The file plan is not a transaction over your package manager's cache, lockfile, or install scripts.
+
+Interrupted file application leaves a private `.c15t-generation.json` recovery record. `--resume` restores those edits before restarting setup, so it can generate a fresh plan. If a file has changed since the interruption, recovery stops for manual review. Noninteractive resume requires `--apply` or `--yes` and cannot be combined with `--plan` or `--dry-run`.

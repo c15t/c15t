@@ -1,38 +1,25 @@
 import * as p from '@clack/prompts';
 
+import { CliError } from '../core/errors';
 import type { CliContext } from './types';
 
-/**
- * Creates user interaction utilities for the CLI context
- */
-export const createUserInteraction = function createUserInteraction(
-	context: CliContext
-) {
-	const { logger, error } = context;
-
-	return {
-		/**
-		 * Confirm an action with the user
-		 * @param message The message to display
-		 * @param initialValue The initial value (true/false)
-		 * @returns Whether the user confirmed
-		 */
-		confirm: async (
-			message: string,
-			initialValue: boolean
-		): Promise<boolean> => {
-			logger.debug(`Confirm action: "${message}", Initial: ${initialValue}`);
-
-			const confirmed = await p.confirm({ initialValue, message });
-
-			if (p.isCancel(confirmed)) {
-				error.handleCancel();
-				// Unreachable, but TypeScript doesn't know that
-				return false;
-			}
-
-			logger.debug(`Confirmation result: ${confirmed}`);
-			return confirmed;
-		},
-	};
-};
+export const createUserInteraction = (
+	context: Pick<CliContext, 'flags' | 'error'>,
+	interaction = { confirm: p.confirm, isCancel: p.isCancel }
+) => ({
+	confirm: async (message: string, initialValue = false): Promise<boolean> => {
+		if (context.flags.yes === true || context.flags.y === true) {
+			return true;
+		}
+		if (context.flags['non-interactive'] === true) {
+			throw new CliError('INPUT_REQUIRED', {
+				details: `${message} Pass --yes to confirm.`,
+			});
+		}
+		const result = await interaction.confirm({ initialValue, message });
+		if (interaction.isCancel(result)) {
+			return context.error.handleCancel();
+		}
+		return result;
+	},
+});

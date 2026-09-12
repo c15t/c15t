@@ -12,30 +12,25 @@ import * as p from '@clack/prompts';
 import { fromPromise } from 'xstate';
 
 import {
-	formatUserCode,
-	getAuthState,
 	getControlPlaneBaseUrl,
-	getVerificationUrl,
-	initiateDeviceFlow,
-	pollForToken,
+	getSelectedInstanceId,
 	setSelectedInstanceId,
-	storeTokens,
 } from '~/auth';
+import { login } from '~/auth/login';
 import { getDevToolsOption } from '~/commands/generate/options/shared/dev-tools';
 import { getSSROption } from '~/commands/generate/options/shared/ssr';
-import { ENV_VARS } from '~/constants';
+import { createAction } from '~/commands/instances';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
-import { createControlPlaneClientFromConfig } from '~/control-plane';
-import type {
-	ControlPlaneOrganization,
-	ControlPlaneRegion,
+import {
+	createControlPlaneClientFromConfig,
+	resolveInstance,
+	requireInstanceBackendUrl,
 } from '~/control-plane';
 import { CliError } from '~/core/errors';
 import { color } from '~/core/logger';
 import type { Instance } from '~/types';
 import { createTaskSpinner } from '~/utils/spinner';
-import { validateInstanceName } from '~/utils/validation';
 
 import type { ExpandedTheme, UIStyle } from '../types';
 
@@ -69,10 +64,6 @@ const formatInstanceRegion = function formatInstanceRegion(
 	instance: Instance
 ): string {
 	return `(${instance.region ?? 'unknown'})`;
-};
-
-const isV2ModeEnabled = function isV2ModeEnabled(): boolean {
-	return process.env[ENV_VARS.V2] === '1';
 };
 
 // --- Mode Selection Prompt ---
@@ -177,202 +168,13 @@ const promptBackendURL = async function promptBackendURL(input: {
 	return result as string;
 };
 
-const runConsentLogin = async function runConsentLogin(
-	cliContext: CliContext
-): Promise<void> {
-	const baseUrl = getControlPlaneBaseUrl();
-	const authState = await getAuthState();
-	let useExistingSession = false;
+const runConsentLogin = login;
 
-	if (authState.isLoggedIn && !authState.isExpired) {
-		const keepCurrentSession = await p.confirm({
-			initialValue: true,
-			message: 'You are already signed in. Use your existing session?',
-		});
-
-		if (isCancel(keepCurrentSession)) {
-			throw new PromptCancelledError('consent_existing_session');
-		}
-
-		if (keepCurrentSession) {
-			useExistingSession = true;
-		}
-	}
-
-	if (useExistingSession) {
-		return;
-	}
-
-	const deviceSpinner = createTaskSpinner('Requesting device code...');
-	deviceSpinner.start();
-
-	try {
-		const deviceCode = await initiateDeviceFlow(baseUrl);
-		deviceSpinner.success('Device code received');
-
-		const userCode = formatUserCode(deviceCode.user_code);
-		const verificationUrl = getVerificationUrl(deviceCode);
-
-		cliContext.logger.message('');
-		cliContext.logger.note(
-			`Your code: ${color.bold(color.cyan(userCode))}\n\n` +
-				`This code will expire in ${Math.floor(deviceCode.expires_in / 60)} minutes.`,
-			'Verification Code'
-		);
-		cliContext.logger.message('');
-		cliContext.logger.message(
-			`Open this URL to continue: ${color.underline(verificationUrl)}`
-		);
-		cliContext.logger.message('');
-
-		const shouldOpen = await p.confirm({
-			initialValue: true,
-			message: 'Open the verification page in your browser?',
-		});
-
-		if (isCancel(shouldOpen)) {
-			throw new PromptCancelledError('consent_open_verification');
-		}
-
-		if (shouldOpen) {
-			try {
-				const open = (await import('open')).default;
-				await open(verificationUrl);
-			} catch {
-				cliContext.logger.warn(
-					`Could not open browser automatically. Visit ${verificationUrl} manually.`
-				);
-			}
-		}
-
-		const authSpinner = createTaskSpinner('Waiting for authorization...');
-		authSpinner.start();
-
-		try {
-			const token = await pollForToken(
-				baseUrl,
-				deviceCode.device_code,
-				deviceCode.interval,
-				deviceCode.expires_in
-			);
-			authSpinner.success('Authorization received');
-
-			await storeTokens(token.access_token, {
-				expiresIn: token.expires_in,
-				refreshToken: token.refresh_token,
-			});
-		} catch (error) {
-			authSpinner.error('Authorization failed');
-			throw error;
-		}
-	} catch (error) {
-		deviceSpinner.stop();
-		throw error;
-	}
-};
-
-const createInstanceInteractively = async function createInstanceInteractively(
-	client: NonNullable<
-		Awaited<ReturnType<typeof createControlPlaneClientFromConfig>>
-	>,
-	cliContext: CliContext
-): Promise<Instance> {
-	const preloadSpinner = createTaskSpinner(
-		'Loading organizations and regions...'
-	);
-	preloadSpinner.start();
-
-	let organizations: ControlPlaneOrganization[];
-	let regions: ControlPlaneRegion[];
-	try {
-		[organizations, regions] = await Promise.all([
-			client.listOrganizations(),
-			client.listRegions(),
-		]);
-	} finally {
-		preloadSpinner.stop();
-	}
-
-	if (organizations.length === 0) {
-		throw new CliError('API_ERROR', {
-			details: 'No organizations available for this account',
-		});
-	}
-
-	if (regions.length === 0) {
-		throw new CliError('API_ERROR', {
-			details: 'No provisioning regions available',
-		});
-	}
-
-	const orgSelection = await p.select<string | symbol>({
-		initialValue: organizations[0]?.organizationSlug,
-		message: 'Select organization:',
-		options: organizations.map((org: ControlPlaneOrganization) => ({
-			hint: `${org.organizationSlug} • ${org.role}`,
-			label: org.organizationName,
-			value: org.organizationSlug,
-		})),
-	});
-
-	if (isCancel(orgSelection)) {
-		throw new PromptCancelledError('project_create_org_slug');
-	}
-
-	const v2Regions = regions.filter(
-		(region: ControlPlaneRegion) => region.family === 'v2'
-	);
-	if (v2Regions.length === 0) {
-		throw new CliError('API_ERROR', {
-			details: 'No v2 provisioning regions available',
-		});
-	}
-
-	const regionSelection = await p.select<string | symbol>({
-		initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
-		message: 'Select V2 region:',
-		options: v2Regions.map((region: ControlPlaneRegion) => ({
-			hint: region.label,
-			label: region.id,
-			value: region.id,
-		})),
-	});
-
-	if (isCancel(regionSelection)) {
-		throw new PromptCancelledError('project_create_region');
-	}
-
-	const slugInput = await p.text({
-		message: 'New project slug:',
-		placeholder: 'my-app',
-		validate: (value) => validateInstanceName(value?.trim() ?? ''),
-	});
-
-	if (isCancel(slugInput)) {
-		throw new PromptCancelledError('project_create_name');
-	}
-
-	const slug = slugInput.trim();
-	const createSpinner = createTaskSpinner(`Creating project "${slug}"...`);
-	createSpinner.start();
-
-	try {
-		const instance = await client.createInstance({
-			config: {
-				organizationSlug: orgSelection,
-				region: regionSelection,
-			},
-			name: slug,
-		});
-		createSpinner.success('Project created');
-		cliContext.logger.info(
-			'Created as a v2 development project. Enable production mode in the dashboard when you are ready.'
-		);
-		return instance;
-	} catch (error) {
-		createSpinner.error('Failed to create project');
-		throw error;
-	}
+const createInstanceInteractively = async (
+	context: CliContext
+): Promise<Instance> => {
+	const result = await createAction({ ...context, commandArgs: [] });
+	return result.project;
 };
 
 const selectOrCreateInstance = async function selectOrCreateInstance(
@@ -391,12 +193,25 @@ const selectOrCreateInstance = async function selectOrCreateInstance(
 	try {
 		const instances = await client.listInstances();
 		listSpinner.stop();
+		const explicitProject = cliContext.flags.project;
+		const selectedProject =
+			typeof explicitProject === 'string'
+				? explicitProject
+				: await getSelectedInstanceId(baseUrl);
+		if (selectedProject) {
+			return resolveInstance(selectedProject, instances);
+		}
+		if (cliContext.flags['non-interactive']) {
+			throw new CliError('CONFIG_INVALID', {
+				details: 'Supply --project or select a default project before setup.',
+			});
+		}
 
 		if (instances.length === 0) {
 			cliContext.logger.info(
 				'No projects found. Creating a new project for this local project.'
 			);
-			return await createInstanceInteractively(client, cliContext);
+			return await createInstanceInteractively(cliContext);
 		}
 
 		const selectedId = await p.select<string | symbol>({
@@ -420,7 +235,7 @@ const selectOrCreateInstance = async function selectOrCreateInstance(
 		}
 
 		if (selectedId === '__create__') {
-			return await createInstanceInteractively(client, cliContext);
+			return await createInstanceInteractively(cliContext);
 		}
 
 		const selected = instances.find((instance) => instance.id === selectedId);
@@ -432,8 +247,6 @@ const selectOrCreateInstance = async function selectOrCreateInstance(
 	} catch (error) {
 		listSpinner.stop();
 		throw error;
-	} finally {
-		await client.close();
 	}
 };
 
@@ -441,6 +254,19 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 	async ({ input }) => {
 		const { cliContext, initialURL, preselectedProvider } = input;
 		let provider = preselectedProvider ?? null;
+		if (cliContext.flags['non-interactive']) {
+			if (initialURL) {
+				const url = new URL(initialURL);
+				if (!['http:', 'https:'].includes(url.protocol)) {
+					throw new CliError('CONFIG_INVALID', {
+						details: 'Backend URL must use HTTP or HTTPS.',
+					});
+				}
+				return { provider: provider ?? 'inth.com', url: initialURL };
+			}
+			const instance = await selectOrCreateInstance(cliContext);
+			return { provider: 'inth.com', url: requireInstanceBackendUrl(instance) };
+		}
 
 		if (!provider) {
 			const providerSelection = await p.select<HostedProvider | symbol>({
@@ -448,7 +274,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 				message: 'Choose your hosted backend option:',
 				options: [
 					{
-						hint: 'Managed infrastucture',
+						hint: 'Managed infrastructure',
 						label: 'inth.com (Recommended)',
 						value: 'inth.com',
 					},
@@ -476,16 +302,6 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 			});
 
 			return { provider, url };
-		}
-
-		if (!isV2ModeEnabled()) {
-			const url = await promptBackendURL({
-				initialURL,
-				message: 'Enter your inth.com project URL:',
-				placeholder: 'https://your-project.inth.app',
-				stage: 'consent_manual_url',
-			});
-			return { provider: 'inth.com', url };
 		}
 
 		const setupMethod = await p.select<ConsentSetupMethod | symbol>({
@@ -529,7 +345,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		return {
 			provider: 'inth.com',
-			url: instance.url,
+			url: requireInstanceBackendUrl(instance),
 		};
 	}
 );
@@ -553,11 +369,14 @@ export const backendOptionsActor = fromPromise<
 	const { cliContext } = input;
 
 	// Env file prompt
-	const useEnvFile = await p.confirm({
-		initialValue: true,
-		message:
-			'Store the backendURL in a .env file? (Recommended, URL is public)',
-	});
+	const useEnvFile =
+		cliContext.flags?.yes === true
+			? true
+			: await p.confirm({
+					initialValue: true,
+					message:
+						'Store the backendURL in a .env file? (Recommended, URL is public)',
+				});
 
 	if (isCancel(useEnvFile)) {
 		throw new PromptCancelledError('env_file');
@@ -570,11 +389,14 @@ export const backendOptionsActor = fromPromise<
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);
 
-		const proxyResult = await p.confirm({
-			initialValue: true,
-			message:
-				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
-		});
+		const proxyResult =
+			cliContext.flags?.yes === true
+				? true
+				: await p.confirm({
+						initialValue: true,
+						message:
+							'Proxy requests to your project with Next.js Rewrites? (Recommended)',
+					});
 
 		if (isCancel(proxyResult)) {
 			throw new PromptCancelledError('proxy_nextjs');
@@ -828,10 +650,13 @@ export const scriptsOptionActor = fromPromise<
 		'The @c15t/scripts package provides pre-configured third-party scripts with consent management.'
 	);
 
-	const addScripts = await p.confirm({
-		initialValue: true,
-		message: 'Add @c15t/scripts for third-party script management?',
-	});
+	const addScripts =
+		input.cliContext.flags?.yes === true
+			? true
+			: await p.confirm({
+					initialValue: true,
+					message: 'Add @c15t/scripts for third-party script management?',
+				});
 
 	if (isCancel(addScripts)) {
 		throw new PromptCancelledError('scripts_option');
@@ -869,6 +694,8 @@ export const scriptsOptionActor = fromPromise<
 // --- Install Confirmation Prompt ---
 
 export interface InstallConfirmInput {
+	yes?: boolean;
+	skipInstall?: boolean;
 	dependencies: string[];
 	packageManager: string;
 }
@@ -882,6 +709,12 @@ export const installConfirmActor = fromPromise<
 	InstallConfirmInput
 >(async ({ input }) => {
 	const { dependencies, packageManager } = input;
+	if (input.skipInstall) {
+		return { confirmed: false };
+	}
+	if (input.yes) {
+		return { confirmed: true };
+	}
 
 	const depList = dependencies.join(', ');
 	const result = await p.confirm({
@@ -912,11 +745,14 @@ export const skillsInstallActor = fromPromise<
 >(async ({ input }) => {
 	const { cliContext } = input;
 
-	const result = await p.confirm({
-		initialValue: true,
-		message:
-			'Install c15t agent skills for AI-assisted development? (Claude, Cursor, etc.)',
-	});
+	const result =
+		cliContext.flags?.yes === true
+			? true
+			: await p.confirm({
+					initialValue: true,
+					message:
+						'Install c15t agent skills for AI-assisted development? (Claude, Cursor, etc.)',
+				});
 
 	if (isCancel(result)) {
 		return { installed: false };
@@ -984,10 +820,13 @@ export const githubStarActor = fromPromise<GitHubStarOutput, GitHubStarInput>(
 	async ({ input }) => {
 		const { cliContext } = input;
 
-		const result = await p.confirm({
-			initialValue: true,
-			message: 'Would you like to star c15t on GitHub now?',
-		});
+		const result =
+			cliContext.flags?.yes === true
+				? true
+				: await p.confirm({
+						initialValue: true,
+						message: 'Would you like to star c15t on GitHub now?',
+					});
 
 		if (isCancel(result)) {
 			// Don't throw for this optional prompt, just return false

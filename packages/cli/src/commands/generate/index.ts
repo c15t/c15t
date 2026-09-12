@@ -17,10 +17,14 @@
  */
 
 import type { CliCommand, CliContext } from '~/context/types';
-import { runGenerateMachine } from '~/machines/generate/runner';
 
 import { STORAGE_MODES } from '../../constants';
 import type { StorageMode } from '../../constants';
+import {
+	isBoilerplateSetup,
+	usesExplicitSetup,
+} from '../../context/setup-routing';
+import { CliError } from '../../core/errors';
 
 const normalizeModeArg = function normalizeModeArg(
 	mode?: StorageMode
@@ -37,8 +41,19 @@ const normalizeModeArg = function normalizeModeArg(
  */
 const generateAction = async function generateAction(
 	context: CliContext
-): Promise<void> {
+): Promise<unknown> {
 	const { logger, commandArgs, flags } = context;
+	if (
+		commandArgs.length > 1 ||
+		(commandArgs[0] && !normalizeModeArg(commandArgs[0] as StorageMode))
+	) {
+		throw new CliError('FLAG_INVALID', {
+			details: 'Expected one setup mode: hosted, offline, or custom.',
+		});
+	}
+	if (isBoilerplateSetup(flags)) {
+		return (await import('./boilerplate')).generateBoilerplate(context);
+	}
 
 	// Check if mode was passed as argument
 	const modeArg = normalizeModeArg(commandArgs[0] as StorageMode | undefined);
@@ -53,27 +68,28 @@ const generateAction = async function generateAction(
 	logger.debug(`Mode arg: ${modeArg}`);
 	logger.debug(`Resume: ${resume}`);
 
-	try {
-		const result = await runGenerateMachine({
-			context,
-			debug,
-			modeArg,
-			persist: true,
-			resume,
-		});
-
-		if (!result.success) {
-			// Machine handles its own error/cancel logging
-			// Just exit with error code
-			if (result.errors.length > 0) {
-				process.exitCode = 1;
+	if (usesExplicitSetup(flags, modeArg)) {
+		const { generateWithoutPrompts } = await import('./non-interactive');
+		return generateWithoutPrompts(context);
+	}
+	const { runGenerateMachine } = await import('~/machines/generate/runner');
+	const result = await runGenerateMachine({
+		context,
+		debug,
+		modeArg,
+		persist: true,
+		resume,
+	});
+	if (!result.success) {
+		throw new CliError(
+			result.context.cancelReason ? 'CANCELLED' : 'CONFIG_INVALID',
+			{
+				details:
+					result.errors.at(-1)?.error.message ??
+					result.context.cancelReason ??
+					'Setup did not complete. Review the preflight results.',
 			}
-		}
-	} catch (error) {
-		logger.error(
-			`Generate command failed: ${error instanceof Error ? error.message : String(error)}`
 		);
-		process.exitCode = 1;
 	}
 };
 

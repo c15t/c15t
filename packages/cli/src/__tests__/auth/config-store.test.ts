@@ -9,6 +9,8 @@ import {
 	getConfigDir,
 	getConfigPath,
 	isTokenExpired,
+	getAccessToken,
+	storeTokens,
 	loadConfig,
 	saveConfig,
 } from '../../auth/config-store';
@@ -27,6 +29,7 @@ describe('config-store', () => {
 
 	afterEach(async () => {
 		vi.restoreAllMocks();
+		vi.unstubAllEnvs();
 		await fs.rm(mockHomeDir, { force: true, recursive: true });
 	});
 
@@ -120,5 +123,36 @@ describe('config-store', () => {
 			};
 			expect(isTokenExpired(config)).toBe(true);
 		});
+	});
+	test('does not forward credentials to another control-plane origin', async () => {
+		await storeTokens('hosted-token', { baseUrl: 'https://inth.com' });
+		expect(await getAccessToken('https://elsewhere.example')).toBeNull();
+		expect(await getAccessToken('https://inth.com')).toBe('hosted-token');
+	});
+	test('accepts legacy credentials only for the default hosted origin', async () => {
+		await fs.mkdir(mockConfigDir, { recursive: true });
+		await fs.writeFile(
+			mockConfigPath,
+			JSON.stringify({ accessToken: 'legacy-token' })
+		);
+		expect(await getAccessToken('https://inth.com')).toBe('legacy-token');
+		expect(await getAccessToken('http://localhost:3000')).toBeNull();
+	});
+	test('restores private permissions when replacing an existing file', async () => {
+		await fs.mkdir(mockConfigDir, { recursive: true });
+		await fs.writeFile(mockConfigPath, '{}', { mode: 0o644 });
+		await saveConfig({ accessToken: 'test-token' });
+		expect((await fs.stat(mockConfigPath)).mode % 0o1000).toBe(0o600);
+	});
+	test('does not retain a selected project when credentials change', async () => {
+		await saveConfig({ accessToken: 'one', selectedInstanceId: 'old-project' });
+		await storeTokens('two');
+		expect((await loadConfig())?.selectedInstanceId).toBeUndefined();
+	});
+	test('does not hide credential deletion failures', async () => {
+		vi.spyOn(fs, 'unlink').mockRejectedValueOnce(
+			Object.assign(new Error('permission denied'), { code: 'EACCES' })
+		);
+		await expect(clearConfig()).rejects.toThrow('permission denied');
 	});
 });

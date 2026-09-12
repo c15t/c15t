@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
+import manifest from '../../package.json';
 import {
 	CLI_INFO,
 	LAYOUT_PATTERNS,
@@ -50,7 +51,7 @@ describe('constants', () => {
 	describe('CLI_INFO', () => {
 		test('should have CLI metadata', () => {
 			expect(CLI_INFO.NAME).toBe('c15t');
-			expect(CLI_INFO.VERSION).toMatch(/^\d+\.\d+\.\d+/u);
+			expect(CLI_INFO.VERSION).toBe(manifest.version);
 		});
 	});
 

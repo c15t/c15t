@@ -59,6 +59,7 @@ const report = (over: Record<string, unknown> = {}) =>
 const createMockContext = function createMockContext() {
 	return {
 		cwd: '/tmp/project',
+		flags: {},
 		logger: {
 			debug: vi.fn(),
 			error: vi.fn(),
@@ -83,17 +84,13 @@ describe('migrate command', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('returns early when there is no backend config', async () => {
+	it('fails when there is no backend config', async () => {
 		(
 			dependencies.ensureBackendConfig as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(null);
 		const context = createMockContext();
 
-		await migrate(context, dependencies);
-
-		expect(context.logger.error).toHaveBeenCalledWith(
-			'No backend config found.'
-		);
+		await expect(migrate(context, dependencies)).rejects.toThrow();
 		expect(dependencies.readDatabaseConfig).not.toHaveBeenCalled();
 	});
 
@@ -116,7 +113,7 @@ describe('migrate command', () => {
 		);
 		const context = createMockContext();
 
-		await migrate(context, dependencies);
+		await expect(migrate(context, dependencies)).rejects.toThrow();
 
 		expect(apply).not.toHaveBeenCalled();
 		expect(context.logger.error).toHaveBeenCalledWith(
@@ -156,5 +153,44 @@ describe('migrate command', () => {
 
 		// A CLI process holding a pool open does not exit.
 		expect(dispose).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('explicit migration modes', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		plan.mockResolvedValue(report());
+		apply.mockResolvedValue(report({ applied: true }));
+	});
+	it('returns a plan without applying or prompting', async () => {
+		const context = createMockContext();
+		context.flags = { 'non-interactive': true, plan: true };
+		expect(await migrate(context, dependencies)).toMatchObject({
+			status: 'planned',
+		});
+		expect(apply).not.toHaveBeenCalled();
+		expect(confirmApply).not.toHaveBeenCalled();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+	it('applies an explicitly requested plan without prompting', async () => {
+		const context = createMockContext();
+		context.flags = { apply: true, 'non-interactive': true };
+		expect(await migrate(context, dependencies)).toMatchObject({
+			status: 'applied',
+		});
+		expect(apply).toHaveBeenCalledOnce();
+		expect(confirmApply).not.toHaveBeenCalled();
+	});
+	it('requires an explicit operation without a terminal', async () => {
+		const context = createMockContext();
+		context.flags = { 'non-interactive': true };
+		await expect(migrate(context, dependencies)).rejects.toThrow();
+		expect(plan).not.toHaveBeenCalled();
+	});
+	it('rejects conflicting modes before connecting', async () => {
+		const context = createMockContext();
+		context.flags = { apply: true, plan: true };
+		await expect(migrate(context, dependencies)).rejects.toThrow();
+		expect(plan).not.toHaveBeenCalled();
 	});
 });

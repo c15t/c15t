@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { UMBRELLA_PACKAGE } from '~/constants';
@@ -8,6 +7,7 @@ import type {
 	EnsureGlobalCssStylesheetImportsResult,
 	StyledPackageName,
 } from '../../shared/stylesheets';
+import { readFile } from './shared/file-plan';
 
 export interface UpdateAppStylesheetImportsOptions {
 	projectRoot: string;

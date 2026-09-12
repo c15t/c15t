@@ -6,6 +6,7 @@ exports[`expanded component templates > generates a Next.js v3 SSR boundary with
 import type { ReactNode } from 'react';
 import { ConsentProvider, hosted } from 'c15t/next';
 import type { KernelConfig } from 'c15t/next';
+
 import { lazy, Suspense } from 'react';
 
 const DevTools = process.env.NODE_ENV !== 'production'
@@ -33,6 +34,7 @@ export default function ConsentManagerClient({ children, config }: Props) {
 				theme,
 				components,
 				// Add your scripts here:
+				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
 				// ],
@@ -53,6 +55,7 @@ exports[`expanded component templates > generates a React v3 provider with its D
 
 import type { ReactNode } from 'react';
 import { ConsentProvider, offline } from 'c15t/react';
+
 
 import { lazy, Suspense } from 'react';
 
@@ -79,11 +82,10 @@ export default function ConsentManagerClient({ children }: Props) {
 				theme,
 				components,
 				// Add your scripts here:
+				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
 				// ],
-				// Shows banner during development. Remove for production.
-				overrides: { country: 'DE' },
 			}}
 		>
 			<ConsentBanner />

@@ -1,34 +1,43 @@
 ---
 title: Quickstart
-description: Run the locally installed v3 CLI and review setup changes before deploying.
+description: Review the proposed integration before applying it to your application.
 group: cli
 ---
 
-## Install a compatible CLI version
-
-Select the exact `@c15t/cli` v3 release that matches your package rollout and
-install it as a development dependency. The commands below use the locally
-installed executable, so they do not silently select a different release.
+For unpublished v3 development, start with [local boilerplate generation](./commands/boilerplate.md). It creates framework files without fetching a published package version. The automatic setup commands below require compatible application dependencies; use `--skip-install` when working with local packages.
 
 ```bash
-bun run cli --version
-bun run cli --help
-bun run cli setup
+c15t setup hosted --backend-url https://your-project.inth.app --plan --json
 ```
 
-Run setup from the application directory, especially in a monorepo. Connect the
-result to your [Inth project](https://inth.com). Review the detected framework,
-package manager, router, files and backend URL before applying generated changes.
+Run this from the application directory, or pass `--cwd path/to/app`. Replace the example URL with your provisioned consent backend URL.
 
-The package exports the executable as `cli`. `bun run cli` selects that local
-binary; it does not fetch a new CLI release.
+## Apply setup
 
-## Review the result
+Review the returned `data.edits`. Each edit includes its path, original contents, and proposed contents. Planning does not install dependencies or write application files.
 
-Check the diff, import the correct stylesheet and confirm a persistent
-preferences entry point. A setup command cannot discover every vendor installed
-through your CMS, tag manager or hosting platform. Inventory those separately.
+```bash
+c15t setup hosted --backend-url https://your-project.inth.app --apply
+```
 
-For static deployments, verify that generated configuration uses reachable
-external URLs rather than a nonexistent local API route. Follow
-[verification](../guides/verify-consent.md) before shipping.
+Use `--skip-install` when your workspace tooling owns dependency installation. The result lists the required dependencies.
+
+For local-only consent storage, explicitly select `offline`:
+
+```bash
+c15t setup offline --plan --json
+```
+
+## Interactive setup
+
+```bash
+c15t setup
+```
+
+With a terminal, setup asks for the storage mode and supported integration choices. Without a terminal, provide the mode and required inputs. The CLI does not open an interactive prompt to guess missing values.
+
+## Verify the application
+
+Review the generated provider or client configuration, app stylesheet, and any environment or Next.js configuration edits. Replace integration ID placeholders before deploying. Run your application's typecheck and build, then check the banner and consent-gated scripts in the browser.
+
+Setup refuses to replace an existing generated component with different contents. Edit an existing integration using its installed documentation instead of rerunning setup to overwrite customizations.

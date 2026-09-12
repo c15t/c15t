@@ -3,11 +3,7 @@
  */
 
 // Context
-export {
-	type CreateContextOptions,
-	createCliContext,
-	createTestContext,
-} from './context';
+export { type CreateContextOptions, createCliContext } from './context';
 // Errors
 export {
 	CliError,
