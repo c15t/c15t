@@ -1,0 +1,51 @@
+---
+title: ConsentDialogLink
+description: Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
+group: frameworks
+---
+
+## Reopen the preference center from your footer
+
+`ConsentDialogLink` is an unstyled button that opens the consent dialog.
+Put it where your site already keeps its legal links, so preferences stay
+reachable after the banner closes. It needs a mounted `ConsentDialog` in the
+same `ConsentProvider`; the [quickstart](../quickstart) mounts both.
+
+```tsx title="src/site-footer.tsx"
+import { ConsentDialogLink } from 'c15t/react';
+
+export function SiteFooter() {
+  return (
+    <footer>
+      <nav aria-label="Legal">
+        <a href="/privacy">Privacy policy</a>
+        <a href="/terms">Terms</a>
+        <ConsentDialogLink className="footer-link">Privacy settings</ConsentDialogLink>
+      </nav>
+    </footer>
+  );
+}
+```
+
+Render `SiteFooter` inside the `Consent` wrapper from your quickstart so the
+link can reach the provider. It renders a `button`, so the CSS for
+`.footer-link` should reset button chrome if your footer styles target
+anchors only.
+
+To reuse an existing link component, pass `asChild`:
+
+```tsx
+<ConsentDialogLink asChild>
+  <a href="#cookie-preferences">Manage cookies</a>
+</ConsentDialogLink>
+```
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#behavior" />
+
+`ConsentDialogTrigger` has its own page: [ConsentDialogTrigger](./consent-dialog-trigger).
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#verify" />

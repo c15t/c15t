@@ -37,9 +37,13 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [App Router](./docs/frameworks/next/app-router.md): Set up App Router with Inth, cached manifests and consent-gated scripts.
 - [Client-side initialization](./docs/frameworks/next/client-side.md): Initialize Next.js consent in the browser with one backend URL, without server prefetch or local API handlers.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Render the pre-built ConsentBanner inside a Next.js ConsentBoundary and configure its variants, per-policy buttons and compound parts.
+- [ConsentDialog](./docs/frameworks/next/components/consent-dialog.md): Mount ConsentDialog as a Client Component inside a Next.js ConsentBoundary to open the preference center from the banner, links and triggers.
+- [ConsentDialogLink](./docs/frameworks/next/components/consent-dialog-link.md): Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentBoundary.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentBoundary so visitors can reopen the preference center.
 - [ConsentBoundary](./docs/frameworks/next/components/consent-manager-provider.md): Pass server-prefetched consent and shared configuration to the Next.js consent boundary.
+- [ConsentWidget](./docs/frameworks/next/components/consent-widget.md): Render ConsentWidget on a Next.js privacy page inside ConsentBoundary as an inline preference center, server-rendered when the route prefetches consent.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentBoundary.
+- [Frame](./docs/frameworks/next/components/frame.md): Consent-gate an iframe in Next.js with Frame inside ConsentBoundary; with server prefetch the placeholder or embed is decided in the server HTML.
 - [Consent categories](./docs/frameworks/next/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/next/concepts/policy-presets.md): Understand how policy rules affect Next.js prompts, permissions and persistent privacy controls.
 - [Content Security Policy](./docs/frameworks/next/content-security-policy.md): Pass a per-request CSP nonce to ConsentBoundary in Next.js and allow the consent backend in connect-src.
@@ -58,9 +62,13 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 - [Quickstart](./docs/frameworks/nuxt/quickstart.md): Configure the Nuxt module for server rendering, browser initialization or static hosting.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Pre-built consent banner shown when consent is required.
+- [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
+- [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
 - [ConsentDialogTrigger](./docs/frameworks/react/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentProvider](./docs/frameworks/react/components/consent-manager-provider.md): Configure the v3 consent runtime and share its state with child components.
+- [ConsentWidget](./docs/frameworks/react/components/consent-widget.md): Embed the c15t preference center inline with ConsentWidget on a React privacy page, with draft toggles that record a choice only on Save.
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+- [Frame](./docs/frameworks/react/components/frame.md): Gate a YouTube or map iframe behind consent with Frame in React, showing a placeholder that opens the preference center until the category is allowed.
 - [Consent categories](./docs/frameworks/react/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/react/concepts/policy-presets.md): Understand how policy rules affect React prompts, permissions and persistent privacy controls.
 - [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.

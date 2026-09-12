@@ -107,7 +107,11 @@ export default defineDocsConfig({
 							pages: [
 								'components/consent-manager-provider',
 								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
 								'components/consent-dialog-trigger',
+								'components/frame',
 								'components/dev-tools',
 							],
 							title: 'Components',
@@ -166,7 +170,11 @@ export default defineDocsConfig({
 							pages: [
 								'components/consent-manager-provider',
 								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
 								'components/consent-dialog-trigger',
+								'components/frame',
 								'components/dev-tools',
 							],
 							title: 'Components',

@@ -1,0 +1,51 @@
+---
+title: ConsentWidget
+description: Embed the c15t preference center inline with ConsentWidget on a React privacy page, with draft toggles that record a choice only on Save.
+group: frameworks
+---
+
+## Embed the preference center inline
+
+`ConsentWidget` renders the preference center in the page flow instead of in
+a modal: the category switches and the Reject all, Accept all and Save
+actions, without a title, backdrop or portal. Use it on a privacy or
+settings page where the visitor expects the controls to be part of the
+content. Render it anywhere inside the `ConsentProvider` from your
+[quickstart](../quickstart); keep `ConsentDialog` mounted as well so the
+banner's Customize button and preference links still have a dialog to open.
+
+```tsx title="src/pages/privacy.tsx"
+import { ConsentWidget } from 'c15t/react';
+
+export function PrivacyPage() {
+  return (
+    <main>
+      <h1>Privacy</h1>
+      <p>Choose which optional categories this site may use.</p>
+      <section aria-labelledby="cookie-preferences">
+        <h2 id="cookie-preferences">Cookie preferences</h2>
+        <ConsentWidget />
+      </section>
+    </main>
+  );
+}
+```
+
+The widget uses the provider's policy, translations and transport. It does
+not need a second `ConsentProvider`, and it does not open or close the banner
+or dialog by itself.
+
+<import src="../../../shared/react/components/consent-widget.mdx#props" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#behavior" />
+
+`useConsentDraft` and `ConsentDraftProvider` import from `c15t/react`.
+
+<import src="../../../shared/react/components/consent-widget.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#composition" />
+
+The compound parts import from `c15t/react` as properties of `ConsentWidget`.
+See [Styling](../styling/overview) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-widget.mdx#verify" />

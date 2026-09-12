@@ -1,0 +1,58 @@
+---
+title: ConsentDialogLink
+description: Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentBoundary.
+group: frameworks
+---
+
+## Reopen the preference center from your footer
+
+`ConsentDialogLink` is an unstyled button that opens the consent dialog.
+Put it where your site already keeps its legal links, so preferences stay
+reachable after the banner closes. It is a Client Component and must render
+inside the `ConsentBoundary` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup, which also mounts
+the `ConsentDialog` it opens.
+
+```tsx title="components/site-footer.tsx"
+'use client';
+
+import Link from 'next/link';
+import { ConsentDialogLink } from 'c15t/next';
+
+export function SiteFooter() {
+  return (
+    <footer>
+      <nav aria-label="Legal">
+        <Link href="/privacy">Privacy policy</Link>
+        <Link href="/terms">Terms</Link>
+        <ConsentDialogLink className="footer-link">Privacy settings</ConsentDialogLink>
+      </nav>
+    </footer>
+  );
+}
+```
+
+Render `SiteFooter` from the root layout as a child of the `Consent`
+wrapper, in place of the inline footer the router guides show. The layout
+stays a Server Component; only this file needs `'use client'`. The link
+renders a `button`, so the CSS for `.footer-link` should reset button chrome
+if your footer styles target anchors only.
+
+To reuse an existing link component, pass `asChild`:
+
+```tsx
+<ConsentDialogLink asChild>
+  <a href="#cookie-preferences">Manage cookies</a>
+</ConsentDialogLink>
+```
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#behavior" />
+
+`ConsentDialogTrigger` has its own page: [ConsentDialogTrigger](./consent-dialog-trigger).
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#verify" />

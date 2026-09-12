@@ -108,20 +108,26 @@ do not add a second provider. Keep your site's content and footer inside it.
 
 ## Pass prepared consent through your router
 
-App Router passes the prefetch promise from its synchronous layout. This partial
-example replaces the boundary in your existing layout, keeping its `html`,
-`body` and stylesheet:
+App Router awaits the prefetch in the `ResolvedConsent` Server Component from
+the [App Router guide](https://c15t.com/docs/frameworks/next/app-router) and renders the
+wrapper inside it. This partial example is that component; keep the
+`Suspense` boundary, `html`, `body` and stylesheet from your existing layout:
 
 ```tsx
+import type { ReactNode } from 'react';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 
-// Inside the layout:
-const initialConsent = prefetchInitialConsent({ config: consentConfig });
-
-<Consent config={initialConsent}>{children}</Consent>
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+  return <Consent config={initialConsent}>{children}</Consent>;
+}
 ```
+
+To stream the page shell before consent resolves instead, pass the unawaited
+promise from a synchronous layout as described in
+[stream the page while consent resolves](https://c15t.com/docs/frameworks/next/app-router#stream-the-page-while-consent-resolves).
 
 Pages Router passes `config={pageProps.initialConsent ?? {}}` to this wrapper
 in `_app.tsx`. Keep `getServerSideProps` and its `c15t/next/pages` helper.
