@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	changedLines,
+	changedLinesFromGit,
 	collectCoverage,
 	coverageSummary,
 } from './coverage-summary';
@@ -59,6 +61,32 @@ it('fails missing or empty required reports but permits non-instrumented selecti
 		);
 		expect(() => collectCoverage(['packages/core'], root)).toThrow(
 			'Empty required coverage'
+		);
+	} finally {
+		rmSync(root, { force: true, recursive: true });
+	}
+});
+
+it('reads changed lines from a diff larger than the default process buffer', async () => {
+	const root = mkdtempSync(join(tmpdir(), 'c15t-large-diff-'));
+	const git = (...args: string[]) =>
+		execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+	try {
+		git('init');
+		git('config', 'user.name', 'Test');
+		git('config', 'user.email', 'test@example.com');
+		writeFileSync(join(root, 'large.ts'), 'old\n');
+		git('add', '.');
+		git('-c', 'commit.gpgsign=false', 'commit', '-m', 'base');
+		const base = git('rev-parse', 'HEAD').toString().trim();
+		writeFileSync(join(root, 'large.ts'), `${'x'.repeat(2 * 1024 * 1024)}\n`);
+		git('add', '.');
+		git('-c', 'commit.gpgsign=false', 'commit', '-m', 'head');
+		expect(await changedLinesFromGit(base, root)).toEqual(
+			new Map([['large.ts', new Set([1])]])
+		);
+		await expect(changedLinesFromGit('missing-revision', root)).rejects.toThrow(
+			'git diff exited'
 		);
 	} finally {
 		rmSync(root, { force: true, recursive: true });

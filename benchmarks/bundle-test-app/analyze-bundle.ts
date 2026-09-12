@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from 'node:child_process';
-import { unlinkSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { artifactBudgets, bundleBudgets } from '@c15t/benchmarking/budgets';
@@ -17,6 +16,7 @@ import {
 } from '@c15t/benchmarking/utils';
 
 import { measureAsset } from './measure-assets';
+import { runTarballSize } from './measure-tarball';
 
 const getDefined = <Value>(
 	value: Value,
@@ -182,44 +182,6 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 
 	routes.sort((a, b) => a.route.localeCompare(b.route));
 	return { routes };
-};
-
-const runTarballSize = function runTarballSize(packageDir: string): {
-	size: number | null;
-	notes: string[];
-} {
-	const resolvedDir = resolve(process.cwd(), packageDir);
-	const result = spawnSync('npm', ['pack', '--json', '--ignore-scripts'], {
-		cwd: resolvedDir,
-		encoding: 'utf8',
-	});
-
-	if (result.status !== 0 || !result.stdout) {
-		return { notes: [], size: null };
-	}
-
-	try {
-		const parsed = JSON.parse(result.stdout) as {
-			filename?: string;
-			size?: number;
-		}[];
-		const [artifact] = parsed;
-		const notes: string[] = [];
-
-		if (artifact?.filename) {
-			try {
-				unlinkSync(join(resolvedDir, artifact.filename));
-			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : 'Unknown cleanup failure';
-				notes.push(`Failed to remove tarball ${artifact.filename}: ${message}`);
-			}
-		}
-
-		return { notes, size: artifact?.size ?? null };
-	} catch {
-		return { notes: [], size: null };
-	}
 };
 
 const routeFixture = function routeFixture(route: RouteSize) {
@@ -390,12 +352,12 @@ const main = async function main() {
 			framework: 'core',
 			metadata: { gitDirty: safeGitDirty() },
 			metrics: [
-				summarizeMetric('c15t', 'bytes', [coreTarball.size ?? 0]),
-				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size ?? 0]),
-				summarizeMetric('@c15t/nextjs', 'bytes', [nextjsTarball.size ?? 0]),
+				summarizeMetric('c15t', 'bytes', [coreTarball.size]),
+				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size]),
+				summarizeMetric('@c15t/nextjs', 'bytes', [nextjsTarball.size]),
 			],
 			notes: [
-				'Tarball sizes are captured with npm pack --json when npm is available.',
+				'Tarball sizes are captured with npm pack --json; failed or invalid packs fail the run.',
 				...coreTarball.notes,
 				...reactTarball.notes,
 				...nextjsTarball.notes,

@@ -1,6 +1,8 @@
-import { execFileSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { createInterface } from 'node:readline';
 
 interface FileCoverage {
 	statementMap: Record<string, { start: { line: number } }>;
@@ -33,6 +35,35 @@ export const changedLines = function changedLines(
 		}
 	}
 	return files;
+};
+
+/** Stream diff bodies so large PRs cannot exceed child_process's output buffer. */
+export const changedLinesFromGit = async (base: string, cwd = '.') => {
+	const child = spawn(
+		'git',
+		[
+			'-c',
+			'core.quotePath=false',
+			'diff',
+			'--no-renames',
+			'--unified=0',
+			`${base}...HEAD`,
+		],
+		{ cwd, stdio: ['ignore', 'pipe', 'inherit'] }
+	);
+	const headers: string[] = [];
+	const readHeaders = async () => {
+		for await (const line of createInterface({ input: child.stdout })) {
+			if (line.startsWith('+++ ') || line.startsWith('@@ ')) {
+				headers.push(line);
+			}
+		}
+	};
+	const [[code]] = await Promise.all([once(child, 'close'), readHeaders()]);
+	if (code !== 0) {
+		throw new Error(`git diff exited with code ${code}`);
+	}
+	return changedLines(headers.join('\n'));
 };
 
 export const coverageSummary = function coverageSummary(
@@ -142,22 +173,7 @@ if (import.meta.main) {
 
 	const reports = collectCoverage(required);
 	const base = process.env.CI_DIFF_BASE;
-	const changed = base
-		? changedLines(
-				execFileSync(
-					'git',
-					[
-						'-c',
-						'core.quotePath=false',
-						'diff',
-						'--no-renames',
-						'--unified=0',
-						`${base}...HEAD`,
-					],
-					{ encoding: 'utf8' }
-				)
-			)
-		: undefined;
+	const changed = base ? await changedLinesFromGit(base) : undefined;
 	const summary = coverageSummary(reports, changed);
 	if (process.env.GITHUB_STEP_SUMMARY) {
 		appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
