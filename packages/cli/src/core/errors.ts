@@ -106,6 +106,12 @@ export const ERROR_CATALOG = {
 		hint: 'Check file permissions and disk space',
 		message: 'Could not write file',
 	},
+	FLAG_INVALID: { code: 'FLAG_INVALID', message: 'Invalid flag value' },
+	FLAG_UNKNOWN: {
+		code: 'FLAG_UNKNOWN',
+		hint: 'Run the command with --help to see supported flags',
+		message: 'Unknown flag',
+	},
 	FLAG_VALUE_REQUIRED: {
 		code: 'FLAG_VALUE_REQUIRED',
 		message: 'Flag requires a value',
@@ -118,6 +124,11 @@ export const ERROR_CATALOG = {
 	},
 
 	// --- Install Errors ---
+	INPUT_REQUIRED: {
+		code: 'INPUT_REQUIRED',
+		hint: 'Provide the required arguments or run in an interactive terminal',
+		message: 'Interactive input required',
+	},
 	INSTALL_FAILED: {
 		code: 'INSTALL_FAILED',
 		hint: 'Try running the install command manually',
@@ -291,7 +302,7 @@ export const createErrorHandlers = function createErrorHandlers(
 				logger.info(`Command: ${context.command}`);
 			}
 
-			process.exit(0);
+			throw new CliError('CANCELLED', { details: cancelMessage });
 		},
 
 		handleError: (error: unknown, message: string): never => {
@@ -305,7 +316,7 @@ export const createErrorHandlers = function createErrorHandlers(
 			// Display the error
 			cliError.display(logger);
 
-			process.exit(1);
+			throw cliError;
 		},
 	};
 };
@@ -325,7 +336,7 @@ export const withErrorHandling = function withErrorHandling<
 			if (context?.command) {
 				logger.info(`Command: ${context.command}`);
 			}
-			process.exit(1);
+			throw cliError;
 		}
 	}) as T;
 };

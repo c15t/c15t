@@ -9,11 +9,17 @@ import path from 'node:path';
 import type * as ClackPromptsTypes from '@clack/prompts';
 import { fromPromise } from 'xstate';
 
+import { applyFileEdits } from '~/commands/generate/templates/shared/file-plan';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { forEachSequential } from '~/utils/for-each-sequential';
 
 import type { FileModification } from '../../types';
+import {
+	saveGenerationJournal,
+	clearGenerationJournal,
+	recoverGeneration,
+} from '../journal';
 import type { ExpandedTheme, UIStyle } from '../types';
 /**
  * Input for the file generation actor
@@ -44,90 +50,6 @@ export interface FileGenerationOutput {
 }
 
 /**
- * Read file contents for backup
- */
-const readFileForBackup = async function readFileForBackup(
-	filePath: string
-): Promise<string | null> {
-	const fs = await import('node:fs/promises');
-	try {
-		return await fs.readFile(filePath, 'utf-8');
-	} catch {
-		return null;
-	}
-};
-
-/**
- * Check if file exists
- */
-const fileExists = async function fileExists(
-	filePath: string
-): Promise<boolean> {
-	const fs = await import('node:fs/promises');
-	try {
-		await fs.access(filePath);
-		return true;
-	} catch {
-		return false;
-	}
-};
-
-/**
- * Try to format generated files using the project's formatter (prettier or biome).
- * Silently skips if no formatter is found.
- */
-const formatGeneratedFiles = async function formatGeneratedFiles(
-	projectRoot: string,
-	files: string[],
-	logger: { debug: (msg: string) => void }
-): Promise<void> {
-	const fs = await import('node:fs/promises');
-	const { execFile } = await import('node:child_process');
-	const { promisify } = await import('node:util');
-	const execFileAsync = promisify(execFile);
-
-	const codeFiles = files.filter(
-		(f) =>
-			f.endsWith('.ts') ||
-			f.endsWith('.tsx') ||
-			f.endsWith('.js') ||
-			f.endsWith('.jsx')
-	);
-	if (codeFiles.length === 0) {
-		return;
-	}
-
-	// Check for formatters in node_modules/.bin
-	const formatters = [
-		{
-			args: ['--write'],
-			bin: path.join(projectRoot, 'node_modules', '.bin', 'prettier'),
-		},
-		{
-			args: ['format', '--write'],
-			bin: path.join(projectRoot, 'node_modules', '.bin', 'biome'),
-		},
-	];
-
-	for (const { bin, args } of formatters) {
-		try {
-			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			await fs.access(bin);
-			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			await execFileAsync(bin, [...args, ...codeFiles], { cwd: projectRoot });
-			logger.debug(
-				`Formatted ${codeFiles.length} files with ${path.basename(bin)}`
-			);
-			return;
-		} catch {
-			// Formatter not found or failed, try next
-		}
-	}
-
-	logger.debug('No formatter found, skipping formatting');
-};
-
-/**
  * File generation actor
  *
  * Creates and modifies files for the hosted setup with backup support.
@@ -135,7 +57,7 @@ const formatGeneratedFiles = async function formatGeneratedFiles(
 export const fileGenerationActor = fromPromise<
 	FileGenerationOutput,
 	FileGenerationInput
->(async ({ input }) => {
+>(async ({ input, signal }) => {
 	const {
 		cliContext,
 		mode,
@@ -164,7 +86,7 @@ export const fileGenerationActor = fromPromise<
 
 	// Import the existing generate-files utility
 	// We delegate to the existing implementation but track files
-	const { generateFiles } =
+	const { planGenerateFiles } =
 		await import('~/commands/generate/options/utils/generate-files');
 
 	// Create a spinner mock that doesn't do anything (we handle UI separately)
@@ -174,115 +96,57 @@ export const fileGenerationActor = fromPromise<
 		stop: (msg: string) => logger.debug(`[spinner] ${msg}`),
 	};
 
+	const generateResult = await planGenerateFiles({
+		backendURL: backendURL ?? undefined,
+		context: cliContext,
+		enableDevTools,
+		enableSSR,
+		expandedTheme: expandedTheme ?? undefined,
+		mode,
+		proxyNextjs,
+		selectedScripts,
+		signal,
+		spinner: spinnerMock as ReturnType<typeof ClackPromptsTypes.spinner>,
+		uiStyle,
+		useEnvFile,
+	});
+	await saveGenerationJournal(projectRoot, generateResult.edits);
 	try {
-		// Track files before generation for backup
-		const potentialFiles = [
-			path.join(projectRoot, 'c15t.config.ts'),
-			path.join(projectRoot, '.env.local'),
-			path.join(projectRoot, '.env.example'),
-			path.join(projectRoot, 'next.config.ts'),
-			path.join(projectRoot, 'next.config.js'),
-			path.join(projectRoot, 'next.config.mjs'),
-		];
-
-		// Backup existing files
-		await forEachSequential(potentialFiles, {
-			run: async (filePath) => {
-				const exists = await fileExists(filePath);
-				if (exists) {
-					const backup = await readFileForBackup(filePath);
-					if (backup !== null) {
-						filesModified.push({
-							backup,
-							path: filePath,
-							type: 'modified',
-						});
-					}
-				}
-			},
-		});
-
-		// Generate files using existing utility
-		const generateResult = await generateFiles({
-			backendURL: backendURL ?? undefined,
-			context: cliContext,
-			enableDevTools,
-			enableSSR,
-			expandedTheme: expandedTheme ?? undefined,
-			mode,
-			proxyNextjs,
-			selectedScripts,
-			spinner: spinnerMock as ReturnType<typeof ClackPromptsTypes.spinner>,
-			uiStyle,
-			useEnvFile,
-		});
-
-		// Record paths
-		if (generateResult.configPath) {
-			result.configPath = generateResult.configPath;
-			if (!filesModified.some((f) => f.path === generateResult.configPath)) {
-				filesCreated.push(generateResult.configPath);
-			}
-		}
-
-		if (generateResult.layoutPath) {
-			result.layoutPath = generateResult.layoutPath;
-		}
-
-		if (generateResult.nextConfigPath) {
-			result.nextConfigPath = generateResult.nextConfigPath;
-			if (generateResult.nextConfigCreated) {
-				filesCreated.push(generateResult.nextConfigPath);
-			}
-		}
-
-		// Track env files
-		if (useEnvFile && backendURL) {
-			const envPath = path.join(projectRoot, '.env.local');
-			const envExamplePath = path.join(projectRoot, '.env.example');
-
-			if (
-				!filesModified.some((f) => f.path === envPath) &&
-				(await fileExists(envPath))
-			) {
-				// File was created
-				filesCreated.push(envPath);
-			}
-			result.envPath = envPath;
-
-			if (
-				!filesModified.some((f) => f.path === envExamplePath) &&
-				(await fileExists(envExamplePath))
-			) {
-				filesCreated.push(envExamplePath);
-			}
-		}
-
-		result.filesCreated = filesCreated;
-		result.filesModified = filesModified;
-
-		// Format generated files using the project's formatter
-		const allFiles = [
-			...filesCreated,
-			...filesModified.map((f) => f.path),
-			generateResult.layoutPath,
-		].filter((f): f is string => !!f);
-
-		await formatGeneratedFiles(projectRoot, allFiles, logger);
-
-		return result;
+		await applyFileEdits(generateResult.edits, { signal });
 	} catch (error) {
-		// Return partial results with error info
-		result.filesCreated = filesCreated;
-		result.filesModified = filesModified;
+		if (!(error instanceof AggregateError)) {
+			await clearGenerationJournal(projectRoot);
+		}
 		throw error;
 	}
+	for (const edit of generateResult.edits) {
+		if (edit.before === null) {
+			filesCreated.push(edit.path);
+		} else {
+			filesModified.push({
+				backup: edit.before,
+				path: edit.path,
+				type: 'modified',
+			});
+		}
+	}
+	return {
+		...result,
+		configPath: generateResult.configPath ?? null,
+		envPath:
+			useEnvFile && backendURL ? path.join(projectRoot, '.env.local') : null,
+		filesCreated,
+		filesModified,
+		layoutPath: generateResult.layoutPath ?? null,
+		nextConfigPath: generateResult.nextConfigPath ?? null,
+	};
 });
 
 /**
  * Rollback actor - restores files to their previous state
  */
 export interface RollbackInput {
+	projectRoot?: string;
 	filesCreated: string[];
 	filesModified: FileModification[];
 }
@@ -294,6 +158,17 @@ export interface RollbackOutput {
 
 export const rollbackActor = fromPromise<RollbackOutput, RollbackInput>(
 	async ({ input }) => {
+		if (input.projectRoot) {
+			try {
+				await recoverGeneration(input.projectRoot, true);
+				return { errors: [], success: true };
+			} catch (error) {
+				return {
+					errors: [error instanceof Error ? error.message : String(error)],
+					success: false,
+				};
+			}
+		}
 		const { filesCreated, filesModified } = input;
 		const fs = await import('node:fs/promises');
 		const errors: string[] = [];

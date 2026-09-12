@@ -1,22 +1,8 @@
-import { readdir } from 'node:fs/promises';
-import { extname, join } from 'node:path';
-
-import { Node, Project, SyntaxKind } from 'ts-morph';
+import { Node } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
-import { forEachSequential } from '../../utils/for-each-sequential';
-
-const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
-const IGNORED_DIRS = new Set([
-	'.git',
-	'.next',
-	'.turbo',
-	'coverage',
-	'dist',
-	'build',
-	'node_modules',
-	'out',
-]);
+import { runTransform } from './runner';
+import type { CodemodRunOptions, CodemodRunResult } from './runner';
 
 const C15T_REACT_PACKAGES = new Set(['@c15t/react', '@c15t/nextjs']);
 
@@ -35,157 +21,47 @@ interface ComponentRenamesResult {
 	summaries: string[];
 }
 
-export interface CodemodRunOptions {
-	/**
-	 * Absolute or relative project root to scan for source files.
-	 */
-	projectRoot: string;
-	/**
-	 * Whether to skip saving transformed files.
-	 */
-	dryRun: boolean;
-}
-
-/**
- * Result summary for a codemod run.
- */
-export interface CodemodRunResult {
-	/**
-	 * Number of source files scanned.
-	 */
-	totalFiles: number;
-	/**
-	 * Per-file transformation summaries.
-	 */
-	changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[];
-	/**
-	 * Non-fatal per-file transform errors.
-	 */
-	errors: { filePath: string; error: string }[];
-}
-
-const hasLegacyC15tComponentImport = function hasLegacyC15tComponentImport(
+const transformSourceFile = (
 	sourceFile: TsMorphTypes.SourceFile
-): boolean {
-	for (const importDeclaration of sourceFile.getImportDeclarations()) {
-		const specifier = importDeclaration.getModuleSpecifierValue();
-		if (!C15T_REACT_PACKAGES.has(specifier)) {
-			continue;
-		}
-
-		for (const namedImport of importDeclaration.getNamedImports()) {
-			const importedName = namedImport.getNameNode().getText();
-			if (importedName in RENAME_MAP) {
-				return true;
-			}
-		}
-	}
-
-	return false;
-};
-
-const transformSourceFile = function transformSourceFile(
-	sourceFile: TsMorphTypes.SourceFile
-): ComponentRenamesResult {
-	if (!hasLegacyC15tComponentImport(sourceFile)) {
-		return { changed: false, operations: 0, summaries: [] };
-	}
-
+): ComponentRenamesResult => {
 	let operations = 0;
 	const summaries: string[] = [];
-
-	const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
-	for (const identifier of identifiers) {
-		const identifierText = identifier.getText();
-		if (!(identifierText in RENAME_MAP)) {
+	for (const declaration of sourceFile.getImportDeclarations()) {
+		if (!C15T_REACT_PACKAGES.has(declaration.getModuleSpecifierValue())) {
 			continue;
 		}
-
-		const replacement = RENAME_MAP[identifierText as keyof typeof RENAME_MAP];
-		const parent = identifier.getParent();
-
-		if (
-			Node.isPropertyAssignment(parent) &&
-			parent.getNameNode() === identifier
-		) {
-			continue;
-		}
-
-		if (
-			Node.isPropertyAccessExpression(parent) &&
-			parent.getNameNode() === identifier
-		) {
-			continue;
-		}
-
-		if (
-			Node.isImportSpecifier(parent) &&
-			parent.getAliasNode() === identifier
-		) {
-			continue;
-		}
-
-		if (
-			Node.isShorthandPropertyAssignment(parent) &&
-			parent.getNameNode() === identifier
-		) {
-			continue;
-		}
-
-		identifier.replaceWithText(replacement);
-		operations += 1;
-		summaries.push(`${identifierText} -> ${replacement}`);
-	}
-
-	return {
-		changed: operations > 0,
-		operations,
-		summaries: [...new Set(summaries)],
-	};
-};
-
-const collectSourceFiles = async function collectSourceFiles(
-	rootDir: string
-): Promise<string[]> {
-	const files: string[] = [];
-
-	const walk = async function walk(currentDir: string): Promise<void> {
-		const entries = await readdir(currentDir, { withFileTypes: true });
-
-		await forEachSequential(entries, {
-			run: async (entry) => {
-				if (entry.isSymbolicLink()) {
-					return;
-				}
-
-				if (entry.isDirectory()) {
-					if (IGNORED_DIRS.has(entry.name)) {
-						return;
+		for (const namedImport of declaration.getNamedImports()) {
+			const oldName = namedImport.getName();
+			const replacement = Object.entries(RENAME_MAP).find(
+				([name]) => name === oldName
+			)?.[1];
+			if (!replacement) {
+				continue;
+			}
+			if (namedImport.getAliasNode()) {
+				namedImport.setName(replacement);
+			} else {
+				const collisions = sourceFile
+					.getLocals()
+					.some((symbol) => symbol.getName() === replacement);
+				if (collisions) {
+					namedImport.setAlias(oldName);
+					namedImport.setName(replacement);
+				} else {
+					const nameNode = namedImport.getNameNode();
+					if (!Node.isIdentifier(nameNode)) {
+						continue;
 					}
-					await walk(join(currentDir, entry.name));
-					return;
+					nameNode.rename(replacement, { usePrefixAndSuffixText: true });
+					namedImport.setName(replacement);
+					namedImport.removeAlias();
 				}
-
-				if (!entry.isFile()) {
-					return;
-				}
-
-				const extension = extname(entry.name).toLowerCase();
-				if (!SUPPORTED_EXTENSIONS.has(extension)) {
-					return;
-				}
-
-				files.push(join(currentDir, entry.name));
-			},
-		});
-	};
-
-	await walk(rootDir);
-	return files;
+			}
+			operations += 1;
+			summaries.push(`${oldName} -> ${replacement}`);
+		}
+	}
+	return { changed: operations > 0, operations, summaries };
 };
 
 /**
@@ -194,59 +70,10 @@ const collectSourceFiles = async function collectSourceFiles(
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export const runComponentRenamesCodemod =
-	async function runComponentRenamesCodemod(
-		options: CodemodRunOptions
-	): Promise<CodemodRunResult> {
-		const project = new Project({
-			compilerOptions: {
-				allowJs: true,
-			},
-			skipAddingFilesFromTsConfig: true,
-		});
-		const filePaths = await collectSourceFiles(options.projectRoot);
+export const runComponentRenamesCodemod = function runComponentRenamesCodemod(
+	options: CodemodRunOptions
+): Promise<CodemodRunResult> {
+	return runTransform(options, transformSourceFile);
+};
 
-		const changedFiles: {
-			filePath: string;
-			operations: number;
-			summaries: string[];
-		}[] = [];
-		const errors: { filePath: string; error: string }[] = [];
-
-		await forEachSequential(filePaths, {
-			run: async (filePath) => {
-				try {
-					const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-					if (!sourceFile) {
-						return;
-					}
-
-					const result = transformSourceFile(sourceFile);
-					if (!result.changed) {
-						return;
-					}
-
-					changedFiles.push({
-						filePath,
-						operations: result.operations,
-						summaries: result.summaries,
-					});
-
-					if (!options.dryRun) {
-						await sourceFile.save();
-					}
-				} catch (error) {
-					errors.push({
-						error: error instanceof Error ? error.message : String(error),
-						filePath,
-					});
-				}
-			},
-		});
-
-		return {
-			changedFiles,
-			errors,
-			totalFiles: filePaths.length,
-		};
-	};
+export type { CodemodRunOptions, CodemodRunResult } from './runner';

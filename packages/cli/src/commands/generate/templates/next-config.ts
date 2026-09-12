@@ -8,6 +8,8 @@ import type {
 	SourceFile,
 } from 'ts-morph';
 
+import { resolvePlannedPath, writeFile } from './shared/file-plan';
+
 interface UpdateNextConfigOptions {
 	projectRoot: string;
 	backendURL?: string;
@@ -22,10 +24,10 @@ interface UpdateNextConfigOptions {
  * @param projectRoot - Root directory of the project
  * @returns The config file if found, undefined otherwise
  */
-const findNextConfigFile = function findNextConfigFile(
+const findNextConfigFile = async function findNextConfigFile(
 	project: Project,
 	projectRoot: string
-): SourceFile | undefined {
+): Promise<SourceFile | undefined> {
 	const configPatterns = [
 		'next.config.ts',
 		'next.config.js',
@@ -34,6 +36,8 @@ const findNextConfigFile = function findNextConfigFile(
 
 	for (const pattern of configPatterns) {
 		const configPath = `${projectRoot}/${pattern}`;
+		// oxlint-disable-next-line no-await-in-loop -- Validate each candidate before the parser reads it.
+		await resolvePlannedPath(configPath);
 		try {
 			const files = project.addSourceFilesAtPaths(configPath);
 			if (files.length > 0) {
@@ -413,7 +417,7 @@ export const updateNextConfig = async function updateNextConfig({
 	created: boolean;
 }> {
 	const project = new Project();
-	const configFile = findNextConfigFile(project, projectRoot);
+	const configFile = await findNextConfigFile(project, projectRoot);
 
 	if (!configFile) {
 		// Create a new config file if none exists
@@ -421,7 +425,7 @@ export const updateNextConfig = async function updateNextConfig({
 		const newConfig = createNewNextConfig(backendURL, useEnvFile);
 
 		const newConfigFile = project.createSourceFile(newConfigPath, newConfig);
-		await newConfigFile.save();
+		await writeFile(newConfigPath, newConfigFile.getFullText(), 'utf-8');
 
 		return {
 			alreadyModified: false,
@@ -448,7 +452,11 @@ export const updateNextConfig = async function updateNextConfig({
 	);
 
 	if (updated) {
-		await configFile.save();
+		await writeFile(
+			configFile.getFilePath(),
+			configFile.getFullText(),
+			'utf-8'
+		);
 	}
 
 	return {

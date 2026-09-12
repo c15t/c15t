@@ -15,6 +15,7 @@ import {
 	checkDependenciesActor,
 	dependencyInstallActor,
 	getManualInstallCommand,
+	settleDependencyInstallActor,
 } from './actors/dependencies';
 import { fileGenerationActor, rollbackActor } from './actors/file-generation';
 import {
@@ -87,6 +88,7 @@ export const generateMachine = setup({
 		preflight: preflightActor,
 		rollback: rollbackActor,
 		scriptsOption: scriptsOptionActor,
+		settleDependencyInstall: settleDependencyInstallActor,
 		skillsInstall: skillsInstallActor,
 	},
 	guards,
@@ -141,21 +143,26 @@ export const generateMachine = setup({
 		 * Cancellation handling
 		 */
 		cancelling: {
-			always: [
-				// Auto-rollback if there are files to restore
-				{
-					guard: 'hasFilesToRollback',
-					target: 'rollback',
-				},
-				{
-					target: 'exited',
-				},
-			],
 			entry: ({ context }) => {
 				context.cliContext?.logger.info(
 					context.cancelReason ?? 'Configuration cancelled.'
 				);
 			},
+			invoke: {
+				input: ({ context }) => getDefined(context.cliContext),
+				onDone: [
+					// Auto-rollback if there are files to restore
+					{
+						guard: 'hasFilesToRollback',
+						target: 'rollback',
+					},
+					{
+						target: 'exited',
+					},
+				],
+				src: 'settleDependencyInstall',
+			},
+			on: { CANCEL: {} },
 		},
 
 		/**
@@ -212,6 +219,8 @@ export const generateMachine = setup({
 				input: ({ context }) => ({
 					dependencies: context.dependenciesToAdd,
 					packageManager: context.packageManager?.name ?? 'npm',
+					skipInstall: context.cliContext?.flags['skip-install'] === true,
+					yes: context.cliContext?.flags.yes === true,
 				}),
 				onDone: [
 					{
@@ -253,17 +262,38 @@ export const generateMachine = setup({
 						installAttempted: true,
 						installSucceeded: ({ event }) => event.output.success,
 					}),
-					target: 'summary',
+					target: 'dependencyResult',
 				},
 				onError: {
 					actions: assign({
 						installAttempted: true,
 						installSucceeded: false,
 					}),
-					target: 'summary',
+					target: 'dependencyResult',
 				},
 				src: 'dependencyInstall',
 			},
+		},
+
+		dependencyResult: {
+			always: [
+				{ guard: ({ context }) => context.installSucceeded, target: 'summary' },
+				{
+					actions: assign({
+						errors: ({ context }) => [
+							...context.errors,
+							{
+								error: new Error(
+									'Dependency installation failed. Generated files will be restored; package-manager changes to manifests, lockfiles or node_modules may remain.'
+								),
+								state: 'dependencyInstall',
+								timestamp: Date.now(),
+							},
+						],
+					}),
+					target: 'error',
+				},
+			],
 		},
 
 		/**
@@ -324,7 +354,7 @@ export const generateMachine = setup({
 						filesCreated: ({ event }) => event.output.filesCreated,
 						filesModified: ({ event }) => event.output.filesModified,
 					}),
-					target: 'dependencyCheck',
+					target: 'generationResult',
 				},
 				onError: {
 					actions: assign({
@@ -340,6 +370,14 @@ export const generateMachine = setup({
 					target: 'error',
 				},
 				src: 'fileGeneration',
+			},
+			// Wait for the transaction to finish before rolling back its complete inventory.
+			on: {
+				CANCEL: {
+					actions: assign({
+						cancelReason: ({ event }) => event.reason ?? 'User cancelled',
+					}),
+				},
 			},
 		},
 
@@ -371,6 +409,16 @@ export const generateMachine = setup({
 				},
 				src: 'frontendOptions',
 			},
+		},
+
+		generationResult: {
+			always: [
+				{
+					guard: ({ context }) => context.cancelReason !== null,
+					target: 'cancelling',
+				},
+				{ target: 'dependencyCheck' },
+			],
 		},
 
 		/**
@@ -572,18 +620,32 @@ export const generateMachine = setup({
 				input: ({ context }) => ({
 					filesCreated: context.filesCreated,
 					filesModified: context.filesModified,
+					projectRoot: context.projectRoot,
 				}),
 				onDone: {
 					actions: assign({
-						cleanupDone: true,
-						filesCreated: [],
-						filesModified: [],
+						cleanupDone: ({ event }) => event.output.success,
+						errors: ({ context, event }) =>
+							event.output.success
+								? context.errors
+								: [
+										...context.errors,
+										{
+											error: new Error(event.output.errors.join('; ')),
+											state: 'rollback',
+											timestamp: Date.now(),
+										},
+									],
+						filesCreated: ({ context, event }) =>
+							event.output.success ? [] : context.filesCreated,
+						filesModified: ({ context, event }) =>
+							event.output.success ? [] : context.filesModified,
 					}),
 					target: 'exited',
 				},
 				onError: {
 					actions: assign({
-						cleanupDone: true,
+						cleanupDone: false,
 					}),
 					target: 'exited',
 				},
