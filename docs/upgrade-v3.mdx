@@ -230,11 +230,15 @@ directly. With an awaited `prefetchInitialConsent` result, the server renders
 the banner into the response, which is what the RSC variant was for. Move
 `presentation` to `options.presentation` on the boundary.
 
-Two defaults differ from the removed shell. It rendered no branding link and
-applied no base classes; `ConsentBanner` shows the "Secured by c15t" link
-unless you pass `hideBranding`, and merges the stock styles into every slot
-unless you pass `noStyle`. For visual parity start from
-`<ConsentBanner hideBranding noStyle />` and remove the props you want.
+Two defaults differ from the removed shell. It rendered no branding link, so
+pass `hideBranding` to keep that. It also styled only its root and action row
+(through the stock `ConsentBanner.Root` and `PolicyActions`) and left the
+card, title, description, footer and buttons without base classes, whereas
+`ConsentBanner` merges the stock styles into every part. If that changes a
+custom layout, do not reach for `noStyle` on the whole banner, which also
+drops the root positioning and action-row layout the old shell kept; compose
+the compound parts instead and pass `noStyle` only to the parts you styled
+yourself.
 
 `ConsentBanner` has no `classNames` or `children` props. Move each legacy
 `classNames` key to the boundary `options.components` slots, which take
