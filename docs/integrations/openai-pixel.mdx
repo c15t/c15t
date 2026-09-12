@@ -6,10 +6,12 @@ group: integrations
 
 ## Usage
 
-```ts
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
 import { openaiPixel } from '@c15t/scripts/openai-pixel';
 
-const scripts = [
+export const scripts = [
   openaiPixel({
     pixelId: 'YOUR_PIXEL_ID',
     debug: true,
@@ -17,12 +19,13 @@ const scripts = [
 ];
 ```
 
-Pass this array to your c15t script loader or framework provider's `scripts`
-option. Copy your Pixel ID from the conversions tab in OpenAI Ads Manager.
+Copy your Pixel ID from the conversions tab in OpenAI Ads Manager.
 Turn off `debug` after testing.
 
 Remove the standalone OpenAI installation snippet when using this integration.
 c15t creates the `oaiq` queue, initializes the pixel, and loads the SDK.
+
+<include src="../shared/integrations/register-scripts.mdx" />
 
 ## Consent behavior
 
