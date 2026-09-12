@@ -13,7 +13,7 @@ group: reference
   | --- | --- | --- | --- |
   | `category` | `AllConsentNames` | required | The consent category whose effective permission gates the children, for example `'marketing'` or `'functionality'`. |
   | `children` | `ReactNode` | required | The embed. It is not mounted until the category is allowed, so it makes no requests before permission. |
-  | `placeholder` | `ReactNode` | built-in placeholder | Rendered instead of the children while the category is not allowed. Replaces the built-in title and button entirely. |
+  | `placeholder` | `ReactNode` | built-in placeholder | Replaces the built-in title and button while the category is not allowed. Falsy values such as `null`, `false`, `0` and an empty string use the built-in placeholder. Pass an empty fragment, `<></>`, to render no placeholder content. |
 
   Other `div` attributes such as `className`, `style` and `ref` apply to the
   wrapper element that stays in the page in both states. `FrameProps` also

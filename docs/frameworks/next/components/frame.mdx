@@ -36,8 +36,12 @@ export function ProductVideo() {
 ```
 
 Import `ProductVideo` into any page or Server Component; only this file needs
-`'use client'`. `marketing` must be a category in your policy; the
-placeholder names it using the category title from your translations. Set
+`'use client'`. `marketing` must be in your policy scope. If you set a
+non-empty `options.consentCategories` list on `ConsentBoundary`, include
+`marketing` there too so the preference center can display and save it.
+`Frame` does not add categories to that list.
+
+The placeholder names the category using its title from your translations. Set
 `className` or `style` on `Frame` to reserve the embed's space, so the page
 does not shift when the placeholder is replaced.
 
