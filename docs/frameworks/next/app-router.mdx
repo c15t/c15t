@@ -165,11 +165,10 @@ request data directly in the root layout without it fails the build. Without
 ## What server prefetch costs
 
 `prefetchInitialConsent` reads request cookies and headers through
-`next/headers`, so every route under this layout renders dynamically on each
-request. Next.js cannot statically generate or CDN-cache that HTML. With
-`cacheComponents` (Partial Prerendering) enabled, the static shell outside the
-`Suspense` boundary still prerenders and the consent subtree streams per
-request.
+`next/headers`. Without `cacheComponents`, this makes routes under the layout
+dynamically rendered. With `cacheComponents` enabled, Next.js can prerender
+and cache the static shell outside `Suspense`, while the visitor-specific
+consent subtree resolves and streams per request.
 
 The first request on a new server instance has an empty manifest cache and
 waits for the upstream `/manifest` fetch. In the local benchmark with 150 ms of
@@ -187,8 +186,9 @@ first paint. See the
 [benchmark results](https://github.com/c15t/c15t/tree/ccfe906682ba06cef7b56a16cc8fd10728df77d3/benchmarks/reports/next-manifest-2026-09-10)
 for conditions.
 
-The rendered HTML contains one visitor's resolved consent state. Do not place it
-in a shared cache; only the public manifest is cacheable. See
+The resolved consent subtree contains one visitor's state. Do not put that
+subtree, or the complete response containing it, in a shared cache. Public
+manifests and the prerendered static shell can be cached separately. See
 [cache policy data without sharing visitor state](/docs/frameworks/next/server-side#cache-policy-data-without-sharing-visitor-state).
 
 When the page shell must not wait for consent, use the

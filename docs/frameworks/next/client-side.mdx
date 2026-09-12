@@ -10,9 +10,9 @@ Use browser initialization when consent does not need to be resolved in the
 initial HTML. This works with prerendered pages and client navigation. No
 `prefetchInitialConsent`, manifest route or rewrite is required for this setup.
 
-Use [server rendering](/docs/frameworks/next/server-side) when the first HTML
-response should contain the resolved consent UI, or when resolution should
-start on the server while the page streams.
+Use [server rendering](/docs/frameworks/next/server-side) when consent UI should
+render on the server after policy resolution, or when resolution should start
+on the server while the page streams.
 
 "Client-side initialization" describes where consent resolves. Next.js can
 still prerender a Client Component's initial markup. Optional permissions stay
