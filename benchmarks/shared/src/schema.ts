@@ -188,6 +188,7 @@ export interface BenchmarkComparisonEntry {
  * gate cannot succeed by measuring nothing.
  */
 export interface BenchmarkComparisonSummary {
+	profile?: 'regression' | 'release';
 	enforce: boolean;
 	ok: boolean;
 	results: {

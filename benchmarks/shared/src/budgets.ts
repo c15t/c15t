@@ -453,11 +453,11 @@ export const policyBrowserBudgets: MetricBudget[] = [
 		threshold: 0,
 	},
 	{
-		comparator: 'absolute-lte',
+		comparator: 'percent-lte',
 		description:
-			'Probe commits until the prompt settles: measured base is 2 on every policy fixture (mount + init apply); no unrelated re-renders (measured).',
+			'Probe commits until the prompt settles must not grow from the matching base scenario.',
 		metric: 'renderCount',
-		threshold: 2,
+		threshold: 0,
 	},
 	{
 		comparator: 'count-eq',
@@ -855,3 +855,202 @@ export const scriptLifecycleBudgetsForMetric =
 			[metric, 'errorCount'].includes(budget.metric)
 		);
 	};
+
+export const astroBrowserBudgetsForScenario =
+	function astroBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
+		const shared = browserBudgets.filter((budget) =>
+			[
+				'bannerReadyMs',
+				'lastAppScriptEndMs',
+				'interactionLatencyMs',
+				'longTaskTotalMs',
+			].includes(budget.metric)
+		);
+
+		if (scenario === 'baseline') {
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description:
+						'The zero-consent baseline must not touch a consent endpoint.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		// Every Astro arm is server-rendered and boots from the inlined config,
+		// so none of them should ever put an init request on the browser.
+		return [
+			...shared,
+			{
+				comparator: 'count-eq',
+				description:
+					'Astro pages inline the resolved config, so the browser never calls init.',
+				metric: 'initRequestsAfterLoad',
+				threshold: 0,
+			},
+		];
+	};
+
+export const sveltekitBrowserBudgetsForScenario =
+	function sveltekitBrowserBudgetsForScenario(
+		scenario: string
+	): MetricBudget[] {
+		const shared = browserBudgets.filter((budget) =>
+			[
+				'bannerReadyMs',
+				'lastAppScriptEndMs',
+				'interactionLatencyMs',
+				'longTaskTotalMs',
+			].includes(budget.metric)
+		);
+
+		if (scenario === 'baseline' || scenario === 'baseline-client') {
+			// Zero-consent floors: no consent traffic is the whole point.
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description:
+						'The zero-consent baseline must not touch a consent endpoint.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		if (
+			scenario === 'ssr' ||
+			scenario === 'ssr-manifest' ||
+			scenario === 'repeat-visitor'
+		) {
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description:
+						'SSR and repeat-visitor routes should not trigger browser-observed init requests.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		if (scenario === 'client-manifest') {
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description:
+						'Browser-resolved manifest mode boots without any init request.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		return [
+			...shared,
+			{
+				comparator: 'count-eq',
+				description:
+					'Client SPA flow should make exactly one init request on cold load.',
+				metric: 'initRequestsAfterLoad',
+				threshold: 1,
+			},
+		];
+	};
+
+export const tanstackBrowserBudgetsForScenario =
+	function tanstackBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
+		const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
+		const shared = browserBudgets.filter((budget) =>
+			[
+				'bannerReadyMs',
+				'lastAppScriptEndMs',
+				'interactionLatencyMs',
+				'longTaskTotalMs',
+			].includes(budget.metric)
+		);
+
+		if (baseScenario === 'baseline') {
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description: 'The zero-consent baseline must not call init.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		if (
+			baseScenario === 'ssr' ||
+			baseScenario === 'manifest-ssr' ||
+			baseScenario === 'manifest-ssr-proxy' ||
+			baseScenario === 'manifest-ssr-root'
+		) {
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description:
+						'Authoritative SSR prefetch must avoid a second init request in the browser.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		if (baseScenario === 'repeat-visitor') {
+			return shared;
+		}
+
+		if (baseScenario === 'manifest-client') {
+			return [
+				...shared,
+				{
+					comparator: 'count-eq',
+					description:
+						'Client manifest flow should resolve init from /manifest without a browser /init request.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
+
+		return [
+			...shared,
+			{
+				comparator: 'count-eq',
+				description: 'Client flow should make one init request on cold load.',
+				metric: 'initRequestsAfterLoad',
+				threshold: 1,
+			},
+		];
+	};
+
+export const bundleEntryBudgets = function bundleEntryBudgets(
+	scenario: string
+): MetricBudget[] {
+	return [
+		{
+			comparator: 'delta-bytes-lte',
+			description:
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip.',
+			metric: 'initialGzip',
+			threshold: 2048,
+		},
+		{
+			comparator: 'delta-bytes-lte',
+			description:
+				'Deferred consumer JavaScript may grow by at most 3 KiB gzip.',
+			metric: 'lazyGzip',
+			threshold: 3072,
+		},
+		...(scenario === 'ordinary-react' ? importBoundaryBudgets : []),
+	];
+};

@@ -31,16 +31,31 @@ describe('evaluateBudget', () => {
 		).toBe(false);
 	});
 
-	it('rejects a third notice render under the measured two-commit budget', () => {
-		const budget = reactBrowserBudgetsForScenario('policy-notice').find(
-			(candidate) => candidate.metric === 'renderCount'
-		);
-		if (!budget) {
-			throw new Error('Missing notice render budget');
+	it.each([2, 3])(
+		'rejects added notice renders against a base of %i commits',
+		(base) => {
+			const budget = reactBrowserBudgetsForScenario('policy-notice').find(
+				(candidate) => candidate.metric === 'renderCount'
+			);
+			if (!budget) {
+				throw new Error('Missing notice render budget');
+			}
+			expect(
+				evaluateBudget(
+					budget,
+					metric('renderCount', base),
+					metric('renderCount', base)
+				).pass
+			).toBe(true);
+			expect(
+				evaluateBudget(
+					budget,
+					metric('renderCount', base + 1),
+					metric('renderCount', base)
+				).pass
+			).toBe(false);
 		}
-		expect(evaluateBudget(budget, metric('renderCount', 2)).pass).toBe(true);
-		expect(evaluateBudget(budget, metric('renderCount', 3)).pass).toBe(false);
-	});
+	);
 
 	it('fails a relative budget when the base metric is missing', () => {
 		const result = evaluateBudget(

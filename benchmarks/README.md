@@ -1,13 +1,13 @@
-# c15t Benchmarks
+# c15t benchmarks
 
 This directory contains the internal benchmark platform for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 
-## Performance Suites
+## Performance suites
 
 - `core-benchmarks`
   Measures framework-agnostic runtime work such as store creation, `has()`, cookie round-trips, init, repeat-visitor init, and script updates.
 - `micro`
-  Runs mitata microbenchmarks and emits shared-schema JSON for the regression pipeline.
+  Runs diagnostic mitata microbenchmarks with `bun run bench:micro`. These are excluded from routine CI because the public-operation runtime suite already covers the release gates.
 - `bundle-test-app`
   Builds a dedicated Next app and records route-level client script size plus publish tarball sizes for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 - `react-browser-bench`
@@ -44,7 +44,7 @@ gives the consent tax — the part of the number that is the library rather than
 the host framework — the way the July gate report's "desktop-real" addendum
 did it.
 
-## Compatibility Suites
+## Compatibility suites
 
 - `css-layer-preview`
   Manual review shell for the shared CSS matrix.
@@ -54,6 +54,39 @@ did it.
   Tailwind 4 compatibility harness.
 - `no-tw-test`
   Plain CSS compatibility harness.
+
+## CI comparisons
+
+```sh
+BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts bundle
+BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts quick
+BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts full
+```
+
+The runner creates an isolated checkout at the exact base revision and installs
+its frozen lockfile. It overlays the current benchmark fixtures onto that base,
+then measures base and head sequentially. Product source and dependency
+versions stay specific to each revision. `.ci-reports/<mode>/provenance.json`
+records both SHAs and the fixture overlay; base, head and comparison evidence
+sit alongside it. A failed measurement cannot reuse a previous report.
+
+`bundle` measures real Next route assets, publish tarballs and consumer import
+entries. Entry reports separate initial and deferred JavaScript with gzip and
+Brotli sizes. Route reports also measure CSS. The ordinary React entry checks
+that IAB, devtools and all locales have not entered its module graph. Missing
+or empty assets fail the run.
+
+`quick` covers core operations, policy resolution and script lifecycle with
+15 samples after 3 warmups. `full` uses 30 samples and adds React, Next, Nuxt,
+SvelteKit, Astro and TanStack Start browser scenarios. PRs run the quick
+comparison when runtime benchmark consumers are affected. Full CI runs the
+browser comparison on publishing branches and nightly. Results and failures
+appear in Actions summaries and artifacts, without PR comments.
+
+`BENCHMARK_PROFILE=regression` enforces same-revision-key regression budgets
+and invariants. `BENCHMARK_PROFILE=release`, the default for `bench:compare`,
+also requires historical v2 improvement targets and their real v2 artifacts.
+An ordinary v3 PR does not claim to revalidate the v2 targets.
 
 ## Outputs
 
@@ -95,8 +128,9 @@ The gate fails, with `BENCHMARK_ENFORCE=true`, on anything that would otherwise 
 Environment:
 
 - `BENCHMARK_BASE_DIR`, `BENCHMARK_HEAD_DIR`, `BENCHMARK_COMPARE_DIR`
+- `BENCHMARK_EXPECTED_PACKAGES=@c15t/core-benchmarks` restricts the expected package set. Unknown or empty selections fail.
 - `BENCHMARK_EXPECTED_SUITES=core-runtime,policy-runtime` restricts the expectation to the suites a partial local run produced. Omit it for a full gate.
-- `BENCHMARK_ARM_BASE_DIRS=v2=/path/to/v2-artifacts` supplies artifacts for a named base arm. A required arm that is missing fails an enforced run; there is no allow-list.
+- `BENCHMARK_ARM_BASE_DIRS=v2=/path/to/v2-artifacts` supplies artifacts for a named base arm. A required arm that is missing fails an enforced release-profile run.
 
 ### Base arms
 
@@ -198,7 +232,7 @@ The current platform still leaves a few areas intentionally out of scope:
 - IAB-gated script lifecycle scenarios
 - Remote CDN latency and real third-party network variance
 - Memory and retained-heap behavior after repeated mount/unmount cycles
-- Artifact file-count and brotli-size reporting
+- Artifact file-count reporting
 - Per-framework script lifecycle hosts for Vue, Svelte, and Solid
 
 ## Framework Adapter Contract
@@ -223,15 +257,3 @@ Normalized benchmark state should include:
 - interaction timings
 - request counts
 - error count if the framework-specific harness exposes it
-
-## CI
-
-- `benchmark-regression.yml`
-  Runs on performance-sensitive PRs and on pushes to `main` and `canary`.
-- `benchmark-comment.yml`
-  Posts a sticky PR comment from regression artifacts.
-
-The current rollout is report-first. Hard failures can be enabled by setting the repository variable `C15T_BENCHMARK_ENFORCE=true`.
-
-Bundle benchmarks protect route-level client JavaScript size. Artifact benchmarks protect publish-size growth for the shipped packages.
-IAB-gated script lifecycle coverage is intentionally not included in v1 of the script lifecycle suite.

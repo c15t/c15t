@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
 import { unlinkSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { gzipSync } from 'node:zlib';
 
 import { artifactBudgets, bundleBudgets } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
@@ -17,6 +15,8 @@ import {
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
+
+import { measureAsset } from './measure-assets';
 
 const getDefined = <Value>(
 	value: Value,
@@ -32,6 +32,8 @@ interface RouteSize {
 	route: string;
 	jsGzip: number;
 	cssGzip: number;
+	jsBrotli: number;
+	cssBrotli: number;
 	totalGzip: number;
 	c15tAddition: number;
 }
@@ -89,18 +91,13 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 			return getDefined(chunkSizes.get(chunkPath));
 		}
 
-		try {
-			const content = await readFile(
-				join('.next', chunkPath.replace(/^\/_next\//u, '')),
-				'utf8'
-			);
-			const gzip = gzipSync(Buffer.from(content)).length;
-			chunkSizes.set(chunkPath, gzip);
-
-			return gzip;
-		} catch {
-			return 0;
-		}
+		const path = join(
+			'.next',
+			chunkPath.replace(/^\/_next\//u, '').split('?')[0] ?? ''
+		);
+		const size = await measureAsset(path);
+		chunkSizes.set(chunkPath, size.gzip);
+		return size.gzip;
 	};
 
 	const routes: RouteSize[] = [];
@@ -110,6 +107,11 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 		async (previousRoute, routeName) => {
 			await previousRoute;
 			const response = await fetch(`${BASE_URL}${routeName}`);
+			if (!response.ok) {
+				throw new Error(
+					`Bundle route ${routeName} returned ${response.status}`
+				);
+			}
 			const html = await response.text();
 			const scripts = Array.from(
 				html.matchAll(/<script[^>]+src="[^"]+"/gu),
@@ -125,6 +127,9 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 				Boolean(stylePath?.startsWith('/_next/'))
 			);
 
+			if (!scripts.length) {
+				throw new Error(`No client scripts found for ${routeName}`);
+			}
 			let jsTotal = 0;
 			await Array.from(new Set(scripts)).reduce<Promise<void>>(
 				async (previousScript, scriptPath) => {
@@ -147,9 +152,21 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 				baselineGzip = jsTotal + cssTotal;
 			}
 
+			const brotliTotal = async (paths: string[]) => {
+				const sizes = await Promise.all(
+					[...new Set(paths)].map((path) =>
+						measureAsset(
+							join('.next', path.replace(/^\/_next\//u, '').split('?')[0] ?? '')
+						)
+					)
+				);
+				return sizes.reduce((sum, size) => sum + size.brotli, 0);
+			};
 			routes.push({
 				c15tAddition: 0,
+				cssBrotli: await brotliTotal(styles),
 				cssGzip: cssTotal,
+				jsBrotli: await brotliTotal(scripts),
 				jsGzip: jsTotal,
 				route: routeName,
 				totalGzip: jsTotal + cssTotal,
@@ -335,6 +352,8 @@ const main = async function main() {
 				summarizeMetric('gzipSize', 'bytes', [route.totalGzip]),
 				summarizeMetric('jsGzipSize', 'bytes', [route.jsGzip]),
 				summarizeMetric('cssGzipSize', 'bytes', [route.cssGzip]),
+				summarizeMetric('jsBrotliSize', 'bytes', [route.jsBrotli]),
+				summarizeMetric('cssBrotliSize', 'bytes', [route.cssBrotli]),
 				summarizeMetric(routeFixture(route).name, 'bytes', [
 					route.c15tAddition,
 				]),

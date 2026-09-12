@@ -313,6 +313,26 @@ describe('run-compare gate', () => {
 		expect(summaryOf(attemptedWaiver).ok).toBe(false);
 	});
 
+	it('compares v3 regressions without claiming to evaluate historical v2 targets', () => {
+		const results = fullCore();
+		const run = runCompare({
+			BENCHMARK_ARM_MAP: emptyArmMap(),
+			BENCHMARK_BASE_DIR: writeResults(results),
+			BENCHMARK_HEAD_DIR: writeResults(results),
+			BENCHMARK_PROFILE: 'regression',
+		});
+		expect(run.code).toBe(0);
+		expect(summaryOf(run).budgets.unevaluatedArm).toBe(0);
+		expect(summaryOf(run).budgets.expected).toBe(
+			coreScenarios.length * (coreBudgets.length - coreRuntimeV3Budgets.length)
+		);
+	});
+
+	it('rejects an empty suite selection instead of passing without results', () => {
+		const run = runCompare({ BENCHMARK_EXPECTED_SUITES: 'misspelled-suite' });
+		expect(run.code).not.toBe(0);
+	});
+
 	it('rejects an arm directory that holds no artifacts', () => {
 		const results = fullCore();
 		const run = runCompare({

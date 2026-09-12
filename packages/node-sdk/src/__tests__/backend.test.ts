@@ -41,8 +41,10 @@ test.each(['direct', 'namespaced'] as const)(
 	'reads backend status through the %s method',
 	async (method) => {
 		// Exercise the real request/response handler without opening a TCP port.
-		vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
-			backend.handler(new Request(input, init))
+		vi.stubGlobal(
+			'fetch',
+			(input: string | Request | URL, init?: RequestInit) =>
+				backend.handler(new Request(input, init))
 		);
 		const client = c15tClient({
 			baseUrl: 'https://api.test',

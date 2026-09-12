@@ -241,7 +241,7 @@ const summaryLines = function summaryLines(
 	}
 	const lines = ['## Summary', ''];
 	lines.push(
-		`- Enforcement: ${summary.enforce ? 'on' : 'off'} | Result: ${summary.ok ? 'pass' : 'fail'}`
+		`- Profile: ${summary.profile ?? 'release'} | Enforcement: ${summary.enforce ? 'on' : 'off'} | Result: ${summary.ok ? 'pass' : 'fail'}`
 	);
 	lines.push(
 		`- Results: ${summary.results.compared}/${summary.results.expected} expected results compared; missing head ${summary.results.missingHead.length}; missing base ${summary.results.missingBase.length}; unexpected ${summary.results.unexpected.length}`

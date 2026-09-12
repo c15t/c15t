@@ -1,12 +1,14 @@
 // oxlint-disable no-await-in-loop -- Readiness polling must wait between connection attempts.
-import { spawn } from 'node:child_process';
-import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import {
+	startProcess,
+	stopProcess as stop,
+	waitForServer,
+} from '../../../scripts/browser-process';
 import { startExampleFixture } from './fixture';
 import type { ExampleTarget } from './targets';
 import { exampleEnvironment } from './targets';
@@ -27,84 +29,14 @@ const availablePort = async function availablePort(): Promise<number> {
 	return port;
 };
 
-const launch = function launch(
-	args: string[],
-	cwd: string,
-	env: NodeJS.ProcessEnv
-) {
-	const child = spawn('bun', args, {
-		cwd,
-		detached: process.platform !== 'win32',
-		env,
-		stdio: ['ignore', 'pipe', 'pipe'],
-	});
-	let log = '';
-	const capture = (chunk: Buffer) => {
-		log = `${log}${String(chunk)}`.slice(-30_000);
-	};
-	child.stdout.on('data', capture);
-	child.stderr.on('data', capture);
-	return { child, logs: () => log };
-};
+const launch = (args: string[], cwd: string, env: NodeJS.ProcessEnv) =>
+	startProcess(['bun', ...args], { cwd, env });
 
-const stop = async function stop(child: ChildProcess): Promise<void> {
-	if (child.exitCode !== null || !child.pid) {
-		return;
-	}
-	const exited = once(child, 'exit');
-	try {
-		if (process.platform === 'win32') {
-			child.kill('SIGTERM');
-		} else {
-			process.kill(-child.pid, 'SIGTERM');
-		}
-	} catch {
-		return;
-	}
-	await Promise.race([exited, delay(5000)]);
-	if (child.exitCode === null) {
-		try {
-			if (process.platform === 'win32') {
-				child.kill('SIGKILL');
-			} else {
-				process.kill(-child.pid, 'SIGKILL');
-			}
-		} catch {
-			/* Process already exited. */
-		}
-	}
-};
-
-const waitUntilReady = async function waitUntilReady(
+const waitUntilReady = (
 	server: ReturnType<typeof launch>,
 	baseURL: string,
 	target: ExampleTarget
-): Promise<void> {
-	const deadline = Date.now() + 60_000;
-	let ready = false;
-	while (Date.now() < deadline) {
-		if (server.child.exitCode !== null) {
-			throw new Error(`${target.id} server exited\n${server.logs()}`);
-		}
-		try {
-			const response = await fetch(`${baseURL}${target.routes[0]}`, {
-				signal: AbortSignal.timeout(2000),
-			});
-			if (response.ok) {
-				ready = true;
-				break;
-			}
-		} catch {
-			/* Wait for the production server to listen. */
-		}
-		await delay(200);
-	}
-	if (!ready) {
-		throw new Error(
-			`${target.id} server did not become ready\n${server.logs()}`
-		);
-	}
-};
+) => waitForServer(`${baseURL}${target.routes[0]}`, server);
 
 export const startExample = async function startExample(target: ExampleTarget) {
 	const fixture = await startExampleFixture();

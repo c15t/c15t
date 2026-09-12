@@ -109,8 +109,10 @@ describe('Fetcher', () => {
 		it('should make a successful GET request', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -130,8 +132,10 @@ describe('Fetcher', () => {
 		it('should make a POST request with body', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -154,8 +158,10 @@ describe('Fetcher', () => {
 		it('should add query parameters to URL', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -172,6 +178,7 @@ describe('Fetcher', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('foo=bar');
 			expect(fetchCall[0]).toContain('baz=123');
 		});
@@ -179,8 +186,10 @@ describe('Fetcher', () => {
 		it('should handle 404 error without retry', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: { maxRetries: 3 },
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValue(
@@ -202,12 +211,14 @@ describe('Fetcher', () => {
 		it('should retry on 500 error', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {
 					backoffFactor: 2,
 					initialDelayMs: 10,
 					maxRetries: 2,
 				},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi
@@ -241,8 +252,10 @@ describe('Fetcher', () => {
 		it('should call onSuccess callback on success', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -269,8 +282,10 @@ describe('Fetcher', () => {
 		it('should call onError callback on error', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -297,8 +312,10 @@ describe('Fetcher', () => {
 		it('should throw error when throw option is true', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: {},
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -317,8 +334,10 @@ describe('Fetcher', () => {
 		it('should include custom headers in request', async () => {
 			const context: FetcherContext = {
 				baseUrl: 'https://api.example.com',
+				debug: false,
 				headers: { Authorization: 'Bearer token123' },
 				retryConfig: {},
+				timeout: 5000,
 			};
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -335,6 +354,7 @@ describe('Fetcher', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			const requestInit = fetchCall[1] as RequestInit;
 			const headers = requestInit.headers as Record<string, string>;
 

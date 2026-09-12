@@ -42,7 +42,7 @@ import type { HydrationRecords, InitResponse, KernelConfig } from '../../types';
  */
 const fixtureResolution = function fixtureResolution(
 	overrides: Partial<PolicyRule> = {}
-): PolicyResolution {
+): Extract<PolicyResolution, { status: 'matched' }> {
 	const policy = normalizePolicyRule({
 		categories: [...POLICY_SCOPE],
 		id: 'fixture-policy',
