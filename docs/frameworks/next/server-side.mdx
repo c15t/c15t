@@ -12,8 +12,8 @@ Fetching and rendering are separate choices. The examples here keep the shared
 
 | Rendering path | Pass to `ConsentBoundary` | What the visitor receives |
 | --- | --- | --- |
-| Stream while consent resolves | The `prefetchInitialConsent` promise | The page renders immediately; the browser initializes consent when the result arrives. |
 | Await consent | The resolved `prefetchInitialConsent` result | The consent subtree renders after resolution. A surrounding Suspense fallback may stream first. |
+| Stream while consent resolves | The `prefetchInitialConsent` promise | The page renders immediately; the browser initializes consent when the result arrives. |
 | [Browser initialization](/docs/frameworks/next/client-side) | `config={{}}` and the shared `consent` config | The browser initializes after mount; the initial HTML has no resolved consent prompt. |
 
 Client Components can still be prerendered by Next.js. Browser initialization
@@ -35,8 +35,10 @@ props. The streaming examples on this page are for App Router.
 
 ## Stream the page while consent resolves
 
-The App Router guide passes the promise from a synchronous layout to its
-script-owning client wrapper. This partial example keeps that wrapper:
+The App Router guide awaits `prefetchInitialConsent` inside `Suspense` by
+default and offers this promise form as the streaming alternative. Pass the
+promise from a synchronous layout to the script-owning client wrapper. This
+partial example keeps that wrapper:
 
 ```tsx
 import { prefetchInitialConsent } from 'c15t/next/server';
@@ -62,7 +64,7 @@ If the consent subtree should wait for resolution, move it into an async Server
 Component under `Suspense`. With `cacheComponents: true`, awaiting request data
 directly in the root layout without this boundary causes a build error.
 
-This replaces the root layout from the App Router guide. Keep its shared
+This is the default root layout from the App Router guide. Keep its shared
 `c15t.config.ts`, manifest route and script-owning `Consent` wrapper:
 
 ```tsx title="app/layout.tsx"
