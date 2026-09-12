@@ -104,7 +104,7 @@ If not using the CLI, ASK the user which mode they want:
 
 | Mode | Description |
 |------|-------------|
-| `hosted` with **consent.io** (recommended) | Managed hosting, no infrastructure to maintain |
+| `hosted` with **inth.com** (recommended) | Managed hosting, no infrastructure to maintain |
 | `hosted` with **self-hosted** backend | For users who need full control |
 | `offline` | Local storage only, for prototyping or local dev |
 

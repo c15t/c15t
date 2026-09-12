@@ -6,7 +6,7 @@ metadata:
 ---
 # @c15t/cli documentation
 
-c15t CLI docs for setup, generation, codemods, authentication, telemetry, and self-host workflows.
+c15t v3 setup, codemods, project commands and self-hosted migrations.
 
 To work with @c15t/cli, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

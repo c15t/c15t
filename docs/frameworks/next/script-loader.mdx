@@ -1,17 +1,75 @@
 ---
-title: Script Loader
-description: Load third-party scripts only after the required consent.
+title: Load scripts with consent
+description: Register vendor scripts in your existing Next.js consent boundary and handle loading and revocation.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Keep one owner for vendor scripts
 
-## Usage
+The [App Router](/docs/frameworks/next/app-router) and
+[Pages Router](/docs/frameworks/next/pages-router) setups already register scripts
+in a client wrapper. Keep that wrapper and add vendors to `lib/scripts.ts`.
+If you are adding scripts to an existing c15t setup, install the helpers and
+use the same registration pattern below.
 
-TODO.
+<CommandTabs command="@c15t/scripts" mode="install" />
 
-## Options
+Keep `c15t.config.ts` and the manifest route from your router setup. These shared
+URLs connect initialization and consent submissions to the same backend.
 
-TODO.
+<include src="../../shared/next-consent-wrapper.mdx" />
+
+## Pass prepared consent through your router
+
+App Router passes the prefetch promise from its synchronous layout. This partial
+example replaces the boundary in your existing layout, keeping its `html`,
+`body` and stylesheet:
+
+```tsx
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+
+// Inside the layout:
+const initialConsent = prefetchInitialConsent({ config: consentConfig });
+
+<Consent config={initialConsent}>{children}</Consent>
+```
+
+Pages Router passes `config={pageProps.initialConsent ?? {}}` to this wrapper
+in `_app.tsx`. Keep `getServerSideProps` and its `c15t/next/pages` helper.
+The router guides contain complete layout and `_app.tsx` files.
+
+For static export or browser-only initialization, pass `config={{}}` and keep
+that setup's existing transport. Register scripts on its existing boundary;
+do not introduce server prefetch or local routes just to add a vendor.
+
+## Check each vendor's loading behavior
+
+The example explicitly configures PostHog to load after consent and disables
+cookieless capture. Those settings are deliberate; its default helper can load
+before consent and use the SDK's consent controls. Read the
+[PostHog guide](/docs/integrations/posthog) before changing them.
+
+Ordinary scripts wait for their category's effective permission. Give each
+script a stable unique `id` and remove any other loader for the same vendor.
+Helpers with `alwaysLoad` may load an SDK before permission is granted; a
+category field alone does not guarantee no requests. See the
+[vendor guides](/docs/integrations/overview) for their exact contracts.
+
+Removing a script element cannot undo executed JavaScript or requests already
+sent. PostHog exposes capture controls; X Pixel has no consent-update API.
+Stop future event calls after revocation and test a change from allowed to
+denied, as well as initial denial.
+
+## Verify the integration
+
+With an opt-in policy and no saved choice, neither configured example vendor
+should load. Allow measurement only: PostHog loads and X Pixel remains blocked.
+Reject, reload, and reopen Privacy settings to confirm the choice persists.
+
+Use the [runnable example](/docs/examples) to inspect the same script definitions
+with DevTools, or follow [verification](/docs/guides/verify-consent) in your app.
+Use [custom integrations](/docs/integrations/building-integrations) for an
+unlisted vendor. Google helpers have a separate
+[Consent Mode contract](/docs/integrations/google-tag-manager).

@@ -1,0 +1,40 @@
+---
+title: Cloudflare Web Analytics
+description: Configure Cloudflare Web Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Cloudflare Web Analytics
+
+Copy the beacon token from the Web Analytics installation snippet. Disable any Cloudflare automatic beacon injection for this site before letting c15t own the script.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { cloudflareWebAnalytics } from '@c15t/scripts/cloudflare-web-analytics';
+
+export const scripts = [cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN', spa: true })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `token` | Required non-empty beacon token. |
+| `spa` | Defaults to `true`, included in the `data-cf-beacon` configuration. |
+| `scriptUrl` | Optional loader override. Defaults to `https://static.cloudflareinsights.com/beacon.min.js`. |
+
+## Consent behavior
+
+The helper gates the beacon on measurement permission. A cookieless vendor configuration does not bypass that gate. There is no helper-provided shutdown callback for a beacon that has already executed.
+
+## Verify the integration
+
+Inspect `data-cf-beacon` and confirm one beacon installation. Navigate between client routes to check SPA tracking and repeat after revocation.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

@@ -6,20 +6,24 @@ group: frameworks
 
 ## Usage
 
+Keep the boundary and URL configuration from your
+[App Router setup](/docs/frameworks/next/app-router). Render one banner inside
+its existing consent boundary:
+
 ```tsx
 // app/layout.tsx
-import { ConsentBanner, ConsentBoundary, ConsentDialog } from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+import { ConsentBanner, ConsentBoundary, ConsentDialog } from 'c15t/next';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import 'c15t/next/styles.css';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-	const backendURL = process.env.C15T_BACKEND_URL;
-	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
-	const config = prefetchInitialConsent({ backendURL });
+	const config = prefetchInitialConsent({ config: consentConfig });
 
 	return (
 		<html lang="en">
 			<body>
-				<ConsentBoundary config={config} backendURL={backendURL}>
+				<ConsentBoundary config={config} consent={consentConfig}>
 					{children}
 					<ConsentBanner />
 					<ConsentDialog />
@@ -30,8 +34,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 ```
 
-The banner renders whatever the active policy rule requires. The server shell
-resolves the rule before the first paint and the client reads the same rule, so the same component serves every region:
+The banner renders what the resolved policy rule requires. This example lets
+the page render while the prompt waits for the prefetch promise. Await the
+helper when you need resolved consent UI in the initial HTML. The server and
+client use the same prepared state:
 
 - A `choice` prompt shows the actions the rule allows: reject and accept at
   equal prominence, plus customize when the rule offers it.
@@ -96,8 +102,8 @@ read the active policy inside the provider:
 ```tsx
 'use client';
 
-import { ConsentBanner, usePolicyRule } from '@c15t/react';
-import type { ConsentBannerProps } from '@c15t/react';
+import { ConsentBanner, usePolicyRule } from 'c15t/next';
+import type { ConsentBannerProps } from 'c15t/next';
 
 const banners: Record<
 	string,
@@ -120,7 +126,8 @@ export function RegionalBanner() {
 }
 ```
 
-Render `RegionalBanner` inside `ConsentProvider`. The layout controls the
+Render `RegionalBanner` inside your existing consent boundary, replacing its
+stock banner. The layout controls the
 action groups; the opt-out preferences button still appears on a notice.
 Required actions omitted from a layout are restored. Accept and Reject
 keep equivalent default prominence.
@@ -204,7 +211,7 @@ for a notice `wall` falls back to `floating` with an `invalid-variant`
 diagnostic. Blocking banners carry `role="dialog"` and `aria-modal="true"`.
 Non-blocking banners leave page controls usable by keyboard and pointer.
 
-`PromptVariant` and `PromptPosition` are exported from `@c15t/nextjs`.
+`PromptVariant` and `PromptPosition` are exported from `c15t/next`.
 Compound parts can read the resolved shape with `useConsentBannerSurface()`,
 which returns `variant`, `position`, `positionSource` (`host` or `default`),
 and `blocking`.
@@ -213,10 +220,14 @@ and `blocking`.
 
 Every part is available as `ConsentBanner.<Part>` for custom layouts. The
 parts read the same policy state the pre-built banner does, so a custom layout
-still gets the right actions for the active rule.
+still gets the right actions for the active rule. Render this Client Component
+inside the existing boundary, replacing its stock banner. Keep the dialog and
+persistent preferences control.
 
-```tsx
-import { ConsentBanner } from '@c15t/nextjs';
+```tsx title="components/compact-banner.tsx"
+'use client';
+
+import { ConsentBanner } from 'c15t/next';
 
 export function CompactBanner() {
 	return (

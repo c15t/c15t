@@ -1,0 +1,40 @@
+---
+title: Segment
+description: Configure Segment with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Segment
+
+Copy the browser source write key. The helper prepares the Analytics.js queue and requests the loader for that source.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { segment } from '@c15t/scripts/segment';
+
+export const scripts = [segment({ writeKey: 'YOUR_SOURCE_WRITE_KEY' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `writeKey` | Required non-empty source write key. |
+| `trackPageView` | Defaults to `true`; queues one initial `analytics.page()` call. |
+| `scriptUrl` | Optional full loader override. |
+
+## Consent behavior
+
+Measurement permission gates Analytics.js. Destinations configured in Segment can have different purposes. A measurement grant does not establish marketing permission for every destination; configure destination consent or use separately gated helpers. There is no Segment shutdown callback in this helper.
+
+## Verify the integration
+
+Check the source and every enabled browser destination. Avoid duplicate page calls from router code, and stop application `track`, `identify` and `page` calls after revocation.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

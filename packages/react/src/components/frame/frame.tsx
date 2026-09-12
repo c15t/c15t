@@ -1,11 +1,10 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect } from 'react';
 
 import { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
-import { useIsHydrated } from '~/hooks/use-is-hydrated';
 
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
@@ -50,8 +49,6 @@ const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 			policyScopeMode,
 		} = useConsentManager();
 		const { frame } = useTranslations();
-		const isMounted = useIsHydrated();
-		const [isReady, setIsReady] = useState(false);
 
 		const hasConsent = has(category);
 		const hasPolicyScope =
@@ -69,22 +66,8 @@ const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 			}
 		}, [category, consentCategories, updateConsentCategories]);
 
-		// Wait for next frame to ensure styles are loaded
-		useEffect(() => {
-			if (isMounted) {
-				requestAnimationFrame(() => {
-					setIsReady(true);
-				});
-			}
-		}, [isMounted]);
-
 		const renderContent = () => {
-			// Before ready, show nothing to prevent FOUC
-			if (!isMounted || !isReady) {
-				return null;
-			}
-
-			// After ready, show children if consent is granted
+			// The kernel supplies the same permission snapshot for SSR and hydration.
 			if (hasConsent) {
 				return children;
 			}

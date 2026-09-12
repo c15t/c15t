@@ -1,298 +1,409 @@
-import { defineDocsConfig, defineFrameworkNavigation } from 'leadtype';
+import { defineDocsConfig } from 'leadtype';
 
-const generateDocsConfig = () =>
-	defineDocsConfig({
-		groups: [
-			{
-				description:
-					'Install and configure c15t in JavaScript, React, and Next.js applications.',
-
-				slug: 'frameworks',
-				title: 'Frameworks',
-			},
-			{
-				description:
-					'Run the c15t backend, configure storage, and operate consent infrastructure.',
-
-				slug: 'self-host',
-				title: 'Self Host',
-			},
-			{
-				description:
-					'Connect analytics, advertising, maps, media, and other third-party tools behind consent.',
-
-				slug: 'integrations',
-				title: 'Integrations',
-			},
-			{
-				description:
-					'Scaffold, migrate, and configure c15t projects from the command line.',
-
-				slug: 'cli',
-				title: 'CLI',
-			},
-			{
-				description:
-					'Concepts, legal templates, open-source policies, and contributor documentation.',
-
-				slug: 'reference',
-				title: 'Reference',
-			},
-			{
-				description:
-					'Release notes and migration context for c15t package versions.',
-
-				slug: 'changelog',
-				title: 'Changelog',
-			},
-		],
-		navigation: [
-			{ pages: ['upgrade-v3'], title: 'Migration' },
-			defineFrameworkNavigation({
-				base: 'frameworks',
-				frameworks: [
-					{
-						base: 'react',
-						template: 'componentFramework',
-
-						title: 'React',
-					},
-					{
-						base: 'javascript',
-						template: 'javascript',
-
-						title: 'JavaScript',
-					},
-					{
-						base: 'next',
-						template: 'componentFramework',
-
-						title: 'Next.js',
-					},
-				],
-
-				pages: ['index'],
-				templates: {
-					componentFramework: {
-						children: [
-							{
-								pages: [
-									'concepts/consent-categories',
-									'concepts/policy-presets',
-								],
-
-								title: 'Concepts',
-							},
-							{
-								pages: ['script-loader', 'server-side'],
-
-								title: 'Guides',
-							},
-							{
-								pages: [
-									'components/consent-manager-provider',
-									'components/consent-banner',
-									'components/consent-dialog-trigger',
-									'components/dev-tools',
-								],
-
-								title: 'Components',
-							},
-							{
-								pages: ['styling/overview'],
-
-								title: 'Styling',
-							},
-							{
-								pages: ['hooks/use-consent-manager/overview'],
-
-								title: 'Hooks',
-							},
-							{
-								pages: ['troubleshooting'],
-
-								title: 'Troubleshooting',
-							},
-							{
-								pages: ['headless'],
-
-								title: 'Headless',
-							},
-							{
-								pages: ['iab/overview'],
-
-								title: 'IAB TCF',
-							},
-						],
-
-						pages: ['quickstart'],
-					},
-					javascript: {
-						children: [
-							{
-								pages: [
-									'concepts/consent-categories',
-									'concepts/policy-presets',
-								],
-
-								title: 'Concepts',
-							},
-							{
-								pages: ['script-tag', 'script-loader', 'dev-tools'],
-
-								title: 'Guides',
-							},
-							{
-								pages: ['api/overview'],
-
-								title: 'Store API',
-							},
-							{
-								pages: ['building-ui'],
-
-								title: 'Building Framework Libraries',
-							},
-							{
-								pages: ['troubleshooting'],
-
-								title: 'Troubleshooting',
-							},
-							{
-								pages: ['iab/overview'],
-
-								title: 'IAB TCF',
-							},
-						],
-
-						pages: ['quickstart'],
-					},
-				},
-				title: 'Frameworks',
-			}),
-			{
-				base: 'cli',
-				children: [
-					{
-						pages: [
-							'commands/setup',
-							'commands/boilerplate',
-							'commands/hosted',
-							'commands/self-host',
-							'commands/codemods',
-						],
-
-						title: 'Commands',
-					},
-					{
-						pages: ['global-flags', 'automation'],
-
-						title: 'Reference',
-					},
-				],
-
-				pages: ['overview', 'quickstart'],
-				title: 'CLI',
-			},
-			{
-				base: 'integrations',
-				children: [
-					{
-						pages: ['google-maps'],
-
-						title: 'Renderable',
-					},
-					{
-						pages: ['google-tag-manager'],
-
-						title: 'Tag Managers',
-					},
-					{
-						pages: ['google-tag'],
-
-						title: 'Analytics',
-					},
-					{
-						pages: ['intercom'],
-
-						title: 'Functional',
-					},
-					{
-						pages: ['meta-pixel'],
-
-						title: 'Ads & Pixels',
-					},
-				],
-
-				pages: ['overview', 'building-integrations'],
-				title: 'Integrations',
-			},
-			{
-				base: 'self-host',
-				children: [
-					{
-						pages: ['guides/database-setup'],
-
-						title: 'Guides',
-					},
-					{
-						pages: ['api/endpoints', 'api/configuration'],
-
-						title: 'API Reference',
-					},
-				],
-
-				pages: ['quickstart'],
-				title: 'Self Host',
-			},
-			{
-				base: 'contributing',
-				pages: ['index'],
-
-				title: 'Contributing',
-			},
-			{
-				base: 'oss',
-				pages: [
-					'why-open-source',
-					'contributing',
-					'code-of-conduct',
-					'license',
-				],
-
-				title: 'Open Source',
-			},
-			{
-				base: 'legals',
-				optional: true,
-
-				pages: ['cookie-policy', 'privacy-policy'],
-				title: 'Legal',
-			},
-		],
-		product: {
-			agentGuidance:
-				'Start with the framework-specific quickstart for the target app. Use /docs/llms.txt for routing and /llms-full.txt when page-level context is not enough.',
-
-			bestStartingPoints: [
-				{ urlPath: '/docs/frameworks/next/quickstart' },
-				{ urlPath: '/docs/frameworks/react/quickstart' },
-				{ urlPath: '/docs/frameworks/javascript/quickstart' },
-				{ urlPath: '/docs/self-host/quickstart' },
-				{ urlPath: '/docs/cli/quickstart' },
-				{ urlPath: '/changelog' },
-			],
-			bullets: [
-				'Add GDPR-ready cookie banners, consent dialogs, and preference flows.',
-				'Use framework-specific guides for JavaScript, React, and Next.js.',
-				'Load scripts, iframes, and analytics only after the required consent.',
-				'Self-host the consent backend when managed hosting is not the right fit.',
-			],
-			name: 'c15t',
-			summary:
-				'Developer-first consent management for JavaScript, React, Next.js, and self-hosted deployments.',
-			tagline:
-				'Developer-first consent management for JavaScript, React, Next.js, and self-hosted deployments.',
+export default defineDocsConfig({
+	groups: [
+		{
+			slug: 'frameworks',
+			title: 'Frameworks',
 		},
-	});
-
-export default generateDocsConfig();
+		{
+			slug: 'guides',
+			title: 'Guides',
+		},
+		{
+			slug: 'customization',
+			title: 'Customization',
+		},
+		{
+			slug: 'integrations',
+			title: 'Integrations',
+		},
+		{
+			slug: 'cli',
+			title: 'CLI',
+		},
+		{
+			slug: 'self-host',
+			title: 'Backend',
+		},
+		{
+			slug: 'reference',
+			title: 'Reference',
+		},
+		{
+			slug: 'changelog',
+			title: 'Changelog',
+		},
+	],
+	llms: {
+		sections: [
+			{
+				body: 'These docs describe v3. Start with Inth hosted setup, identify the framework, router and deployment, then read its quickstart. Static sites can use Inth directly. Use page Markdown and package-bundled docs for targeted context. Verify scripts, rejection, reload and preferences; banner visibility alone is insufficient.',
+				heading: 'Using these docs',
+				type: 'markdown',
+			},
+			{
+				heading: 'Start here',
+				links: [
+					{
+						urlPath: '/docs/frameworks',
+					},
+					{
+						urlPath: '/docs/customization/overview',
+					},
+					{
+						urlPath: '/docs/guides/verify-consent',
+					},
+					{
+						urlPath: '/docs/upgrade-v3',
+					},
+				],
+				type: 'links',
+			},
+			{
+				body: '[Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.',
+				heading: 'More documentation',
+				type: 'markdown',
+			},
+		],
+	},
+	navigation: [
+		{
+			pages: ['index', 'examples'],
+			title: 'Getting started',
+		},
+		{
+			base: 'guides',
+			pages: [
+				'deployment-modes',
+				'data-fetching',
+				'consent-state',
+				'verify-consent',
+				'troubleshooting',
+			],
+			title: 'Understand consent',
+		},
+		{
+			base: 'frameworks',
+			children: [
+				{
+					base: 'next',
+					children: [
+						{
+							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
+							title: 'Policies',
+						},
+						{
+							pages: ['optimization', 'script-loader', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components/consent-manager-provider',
+								'components/consent-banner',
+								'components/consent-dialog-trigger',
+								'components/dev-tools',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['styling/overview'],
+							title: 'Styling',
+						},
+						{
+							pages: ['hooks/use-consent-manager/overview'],
+							title: 'Hooks',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab/overview'],
+							title: 'IAB TCF',
+						},
+						{
+							pages: ['api-reference/data-fetching'],
+							title: 'Reference',
+						},
+					],
+					pages: [
+						'quickstart',
+						'data-fetching',
+						'app-router',
+						'pages-router',
+						'static-export',
+						'server-side',
+						'client-side',
+					],
+					slug: 'next',
+					title: 'Next.js',
+				},
+				{
+					base: 'tanstack-start',
+					pages: ['quickstart'],
+					slug: 'tanstack-start',
+					title: 'TanStack Start',
+				},
+				{
+					base: 'react',
+					children: [
+						{
+							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
+							title: 'Policies',
+						},
+						{
+							pages: ['script-loader', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components/consent-manager-provider',
+								'components/consent-banner',
+								'components/consent-dialog-trigger',
+								'components/dev-tools',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['styling/overview'],
+							title: 'Styling',
+						},
+						{
+							pages: ['hooks/use-consent-manager/overview'],
+							title: 'Hooks',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab/overview'],
+							title: 'IAB TCF',
+						},
+					],
+					pages: ['quickstart'],
+					slug: 'react',
+					title: 'React',
+				},
+				{
+					base: 'nuxt',
+					pages: ['quickstart'],
+					slug: 'nuxt',
+					title: 'Nuxt',
+				},
+				{
+					base: 'vue',
+					pages: ['quickstart'],
+					slug: 'vue',
+					title: 'Vue',
+				},
+				{
+					base: 'astro',
+					pages: ['quickstart'],
+					slug: 'astro',
+					title: 'Astro',
+				},
+				{
+					base: 'svelte',
+					pages: ['quickstart'],
+					slug: 'svelte',
+					title: 'Svelte',
+				},
+				{
+					base: 'sveltekit',
+					pages: ['quickstart'],
+					slug: 'sveltekit',
+					title: 'SvelteKit',
+				},
+				{
+					base: 'javascript',
+					children: [
+						{
+							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
+							title: 'Policies',
+						},
+						{
+							pages: ['script-tag', 'script-loader', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'api/overview',
+								'building-ui',
+								'dev-tools',
+								'iab/overview',
+							],
+							title: 'API and UI',
+						},
+					],
+					pages: ['quickstart'],
+					slug: 'javascript',
+					title: 'JavaScript',
+				},
+			],
+			pages: ['index'],
+			slug: 'frameworks',
+			title: 'Frameworks',
+		},
+		{
+			base: 'customization',
+			pages: ['overview', 'recipes', 'tokens', 'slots', 'translations'],
+			title: 'Customize',
+		},
+		{
+			base: 'integrations',
+			children: [
+				{
+					pages: ['google-maps', 'youtube'],
+					slug: 'embeds',
+					title: 'Embeds',
+				},
+				{
+					pages: ['google-tag-manager'],
+					slug: 'tag-managers',
+					title: 'Tag managers',
+				},
+				{
+					pages: [
+						'google-tag',
+						'ahrefs-analytics',
+						'adobe-analytics',
+						'amplitude',
+						'cloudflare-web-analytics',
+						'clearbit',
+						'microsoft-clarity',
+						'databuddy',
+						'fathom-analytics',
+						'heap',
+						'matomo-analytics',
+						'mixpanel-analytics',
+						'hotjar',
+						'hightouch',
+						'logrocket',
+						'plausible-analytics',
+						'posthog',
+						'promptwatch',
+						'pirsch',
+						'rudderstack',
+						'segment',
+						'rybbit-analytics',
+						'umami-analytics',
+						'vercel-analytics',
+					],
+					slug: 'analytics',
+					title: 'Analytics',
+				},
+				{
+					pages: ['crisp', 'intercom'],
+					slug: 'functionality',
+					title: 'Functionality',
+				},
+				{
+					pages: [
+						'meta-pixel',
+						'reddit-pixel',
+						'tiktok-pixel',
+						'linkedin-insights',
+						'microsoft-uet',
+						'snapchat-pixel',
+						'x-pixel',
+					],
+					slug: 'ads-and-pixels',
+					title: 'Ads and pixels',
+				},
+			],
+			pages: ['overview', 'building-integrations'],
+			slug: 'integrations',
+			title: 'Integrations',
+		},
+		{
+			pages: ['upgrade-v3'],
+			title: 'Migrate to v3',
+		},
+		{
+			base: 'cli',
+			pages: [
+				'overview',
+				'quickstart',
+				'commands/setup',
+				'commands/boilerplate',
+				'commands/hosted',
+				'commands/self-host',
+				'commands/codemods',
+				'global-flags',
+				'automation',
+			],
+			title: 'CLI',
+		},
+		{
+			base: 'self-host',
+			children: [
+				{
+					pages: [
+						'guides/database-setup',
+						'guides/framework-integration',
+						'guides/policy-packs',
+						'guides/caching',
+						'guides/edge-deployment',
+						'guides/iab-tcf',
+						'guides/legal-document-snapshot-integration',
+						'guides/observability',
+					],
+					title: 'Guides',
+				},
+				{
+					pages: ['api/configuration', 'api/endpoints'],
+					title: 'API',
+				},
+			],
+			pages: ['overview', 'quickstart'],
+			slug: 'self-host',
+			title: 'Backend',
+		},
+		{
+			base: 'comparisons',
+			pages: [
+				'index',
+				'cookiebot',
+				'cookieconsent-v3',
+				'didomi',
+				'iubenda',
+				'klaro',
+				'onetrust',
+				'osano',
+				'react-cookie-consent',
+				'silktide-consent-manager',
+				'tarteaucitron',
+				'usercentrics',
+			],
+			title: 'Comparisons',
+		},
+		{
+			pages: [
+				'comparison',
+				'contributing/index',
+				'oss/why-open-source',
+				'oss/contributing',
+				'oss/code-of-conduct',
+				'oss/license',
+			],
+			title: 'Project',
+		},
+		{
+			base: 'legals',
+			optional: true,
+			pages: ['cookie-policy', 'privacy-policy'],
+			title: 'Legal',
+		},
+	],
+	product: {
+		docs: 'https://c15t.com/docs',
+		homepage: 'https://c15t.com',
+		kind: 'library',
+		name: 'c15t',
+		repository: 'https://github.com/c15t/c15t',
+		tagline:
+			'Consent management for React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro, TanStack Start and JavaScript.',
+	},
+});

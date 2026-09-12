@@ -1,0 +1,77 @@
+---
+title: Caching
+description: Cache public manifests and vendor lists while keeping request-specific initialization and subject state private.
+group: self-host
+---
+
+## Cache the manifest
+
+`GET /manifest` is the reusable configuration endpoint. It does not query consent
+records or depend on the visitor's location. The backend generates its revision
+from the configuration and returns it as an `ETag`.
+
+Add these options to the [backend configuration](/docs/self-host/api/configuration):
+
+```ts
+manifestCache: {
+  sMaxAge: 300,
+  staleWhileRevalidate: 86400,
+},
+```
+
+These are the defaults, in seconds. The resulting header is
+`public, s-maxage=300, stale-while-revalidate=86400`. A policy change alters the
+revision, but a shared cache can continue serving the previous response within
+its cache window. Purge the relevant cache or choose shorter durations when your
+rollout requires it. A revision is an identity, not a remote cache invalidation
+command.
+
+Keep the tenant, backend URL and language query in the cache key. Preserve
+`Vary: Origin` when CORS emits it. Do not combine manifests from different
+projects just because their endpoint paths match.
+
+## Keep visitor state out of shared caches
+
+`GET /init`, `GET /subjects/:id` and privacy-directive reads return `no-store`.
+Do not override that header with a CDN rule. `/init` contains a resolved policy
+for request inputs; subject endpoints contain private state.
+
+A server framework can reuse `/manifest` and resolve it locally for each incoming
+request. That removes the backend initialization round trip on a manifest cache
+hit while preserving per-request policy selection. It does not remove later
+consent writes or make request cookies shareable.
+
+## Cache the Global Vendor List
+
+GVL caching is separate from manifest HTTP caching. Supply a cache adapter when
+you enable server-side GVL loading. Concurrent misses share an in-flight fetch,
+but persistent reuse requires the configured cache.
+
+```ts title="src/consent-backend.ts"
+import { c15tInstance } from '@c15t/backend';
+import { createMemoryCacheAdapter } from '@c15t/backend/cache';
+import config from '../c15t-backend.config';
+
+export const backend = c15tInstance({
+  ...config,
+  gvl: { enabled: true, cache: createMemoryCacheAdapter(), ttlMs: 86400000 },
+});
+```
+
+The backend loads a GVL only for a matched IAB rule. The GVL TTL uses
+milliseconds, unlike `manifestCache`.
+
+| Adapter | Use it when |
+| --- | --- |
+| `createMemoryCacheAdapter()` | One long-lived process can keep its own cache. Memory is not shared between instances. |
+| `createUpstashRedisAdapter({ url, token })` | Serverless or multiple instances need a shared cache. Install the optional `@upstash/redis` peer. |
+| `createUpstashRedisAdapterFromClient(client)` | Your application already owns an Upstash client. |
+| `createCloudflareKVAdapter(namespace)` | A compatible runtime supplies a KV namespace. This does not supply a database driver. |
+
+Custom `CacheAdapter` implementations provide `get`, `set`, `delete` and `has`.
+`set` receives its optional TTL in milliseconds. Cache operations should fit the
+request latency budget. A failed GVL fetch returns no usable list; verify that
+behavior with your IAB client rather than assuming a warm cache on every request.
+
+Choose the adapter path in [data fetching](/docs/guides/data-fetching) or
+[Next.js data fetching](/docs/frameworks/next/data-fetching).

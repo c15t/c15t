@@ -1,17 +1,34 @@
 ---
-title: IAB TCF
-description: Enable IAB TCF 2.3 with the core store.
+title: Headless IAB integration
+description: Attach the IAB module to a consent kernel and manage its lifetime and vendor configuration.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Attach the module to your kernel
 
-## Setup
+Install `@c15t/iab` with `c15t`. The following fragment assumes an existing
+kernel connected to Inth and an applicable IAB policy:
 
-TODO.
+```ts
+import { createIAB } from '@c15t/iab';
 
-## TC String
+function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
+  return createIAB({ kernel, cmpId });
+}
+```
 
-TODO.
+Supply your deployment's CMP ID and vendor configuration. Do not copy a demo ID
+into production. The module installs the CMP API, manages vendor data and can
+encode the TC String. It does not render your banner or preferences UI.
+
+## Own the lifecycle
+
+Dispose the IAB handle before disposing its kernel. When using a shared runtime,
+provide the IAB factory through that runtime's configuration instead of creating
+a second module for each UI root. Await lazy readiness before calling a lazily
+loaded handle's actions.
+
+A complete implementation needs policy-aware actions, vendor and purpose
+controls, persistent preferences access and keyboard interaction. Test the
+resulting TC String, `__tcfapi` and actual vendor requests. Keep backend, schema,
+core and IAB packages on compatible v3 versions.

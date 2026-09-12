@@ -1,0 +1,43 @@
+---
+title: c15t vs react-cookie-consent
+description: Compare the react-cookie-consent banner component with c15t v3 policy state, preferences, consent records and script gating.
+group: reference
+---
+
+## Choose a banner component or an integrated consent runtime
+
+Evaluate react-cookie-consent when you want a React consent bar and intend to
+own the surrounding behavior. Evaluate c15t when the application needs policy
+resolution, category permissions, a preference interface and consent-aware
+vendor loading, with Inth handling the managed backend.
+
+The react-cookie-consent README documents a customizable bar, an acceptance
+callback, an optional decline button and helpers for reading or resetting its
+cookie. Those primitives can be integrated into a larger system; a callback
+alone does not establish how that system blocks vendors or stores remote
+records. [react-cookie-consent README](https://github.com/Mastermindzh/react-cookie-consent)
+
+## Compare what your code must own
+
+| Task | c15t v3 | react-cookie-consent |
+| --- | --- | --- |
+| Render a banner | Policy-aware adapter components | Configurable React bar |
+| Store a managed consent record | Configure Inth transport and policy | Design the surrounding backend integration |
+| Decide whether a feature may run | Read effective permissions and use registered loaders | Connect the component's callbacks and cookie state to application behavior |
+| Reopen settings | Mount persistent preferences access | Use its visibility and reset controls as part of your own flow |
+
+## Audit existing onAccept code before migrating
+
+Find code that starts analytics from `onAccept`. Determine whether rejection,
+reload and later withdrawal have matching behavior. Move the loader to the
+appropriate c15t integration and remove the original callback-based startup.
+
+Do not translate a single boolean cookie into grants for every c15t category
+without reviewing what the visitor actually chose. c15t distinguishes effective
+permissions from explicit recorded choices. Use the
+[consent-state guide](/docs/guides/consent-state) to design that mapping, then
+verify a returning visitor with a previous rejection as well as a fresh visitor.
+
+Install `c15t` and follow the [React quickstart](/docs/frameworks/react/quickstart) with [Inth](https://inth.com). For a Next.js app, use its [router guide](/docs/frameworks/next/quickstart) instead.
+
+Sources reviewed on 10 September 2026.

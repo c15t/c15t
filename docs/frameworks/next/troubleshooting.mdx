@@ -1,17 +1,45 @@
 ---
-title: Troubleshooting
-description: Common problems and fixes for c15t in Next.js.
+title: Troubleshoot Next.js consent
+description: Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Why does the page render when consent prefetch fails?
 
-## Banner does not appear
+`prefetchInitialConsent` returns its baseline configuration when a manifest or
+backend request fails. The page can still render, and the client retries
+initialization. Until policy resolution succeeds, optional categories stay
+denied and the stock banner stays hidden.
 
-TODO.
+Pass `onError` to `prefetchInitialConsent` to report failures in production.
+Without it, the helper logs a warning only outside production. Check the failed
+URL and response in your server logs, as browser Network tools cannot show a
+server-side fetch.
 
-## Scripts load without consent
+If the local manifest handler repeatedly calls itself, check its upstream URL.
+`C15T_BACKEND_URL` must be the absolute Inth or self-hosted backend endpoint.
+The browser can use `/api/c15t` with an optional rewrite, but that local prefix
+must not become the handler's upstream backend. See
+[Next.js optimization](/docs/frameworks/next/optimization) for the rewrite setup.
 
-TODO.
+## How do I verify manifest fetching?
+
+Check the Next.js server and browser requests after following the
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) guide:
+
+1. Load the page twice. A warm manifest setup resolves policy without calling
+   the upstream backend `/init`. A browser request to your local
+   `/api/c15t/init` is expected when client initialization is needed.
+2. Make a consent choice. Confirm the submission reaches the backend
+   `/subjects` endpoint and reload to check that the choice persists.
+3. Test two locations with different configured policies. Confirm the resolved
+   policy matches each location and that your host passes trusted geography
+   headers to Next.js.
+4. Change a policy, then check it after the manifest caches refresh. Cache the
+   public manifest, never the visitor-specific init response.
+5. If you added a rewrite, confirm browser consent requests use `/api/c15t`,
+   including submissions. Direct requests to the backend are expected when you
+   have not configured a rewrite.
+
+<include src="../../guides/troubleshooting.mdx" />

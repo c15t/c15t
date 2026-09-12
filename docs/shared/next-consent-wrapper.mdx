@@ -1,0 +1,64 @@
+---
+title: Next.js consent and scripts
+description: Register scripts inside the shared client boundary used by the Next.js router guides.
+group: frameworks
+---
+
+## Register scripts in a client wrapper
+
+The [runnable Next.js example](/docs/examples) uses PostHog for measurement and
+X Pixel for marketing. Set `NEXT_PUBLIC_POSTHOG_KEY` and
+`NEXT_PUBLIC_X_PIXEL_ID` to your own project identifiers before building.
+`NEXT_PUBLIC_POSTHOG_HOST` optionally selects your PostHog region's API host.
+Omit a vendor's ID to leave that integration disabled, or replace its helper
+with the [integration](/docs/integrations/overview) your application uses. Include the
+measurement and marketing categories in your policy for these two vendors.
+
+Create `lib/scripts.ts` with the example's script configuration:
+
+<include src="./examples/nextjs-scripts.mdx" />
+
+PostHog waits for measurement consent here. `cookieless_mode: 'never'` disables
+cookieless capture after rejection. X Pixel waits for marketing consent. Remove
+any existing loader for these vendors, including `next/script` and tag-manager
+entries, so each integration loads once.
+
+Create this client wrapper. It keeps scripts and browser callbacks in the client
+while the router supplies prepared consent through `config`:
+
+```tsx title="components/consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from 'c15t/next';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import { consentConfig } from '../c15t.config';
+import { scripts } from '../lib/scripts';
+
+export function Consent({
+  children,
+  config,
+}: {
+  children: ReactNode;
+  config: ConsentBoundaryProps['config'];
+}) {
+  return (
+    <ConsentBoundary config={config} consent={consentConfig} scripts={scripts}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog />
+      <footer>
+        <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+      </footer>
+    </ConsentBoundary>
+  );
+}
+```
+
+`ConsentBoundary` already provides the consent runtime. Mount this wrapper once;
+do not add a second provider. Keep your site's content and footer inside it.

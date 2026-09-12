@@ -1,0 +1,43 @@
+---
+title: Umami Analytics
+description: Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Umami Analytics
+
+Use your Umami website ID. For a self-hosted Umami instance, supply its script URL and, if needed, its event host.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
+
+export const scripts = [umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `websiteId` | Required non-empty website ID. |
+| `scriptUrl` | Defaults to `https://cloud.umami.is/script.js`. |
+| `hostUrl` | Optional host receiving analytics events. |
+| `autoTrack` | Set `false` to disable automatic tracking. |
+| `domains / tag` | Domain restriction and event tag. |
+| `beforeSend` | Name of a global hook function, not a JavaScript function value. |
+
+## Consent behavior
+
+Measurement permission gates the script. The helper has no vendor stop callback. A configured `beforeSend` hook can transform events but is not a replacement for consent checks.
+
+## Verify the integration
+
+Confirm the website ID and destination host, then test domain restrictions and navigation. If using `beforeSend`, define that named global before the SDK executes.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

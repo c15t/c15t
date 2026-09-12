@@ -3,6 +3,7 @@ title: V3 boilerplate
 description: Generate framework integration files using unpublished local v3 packages.
 group: cli
 ---
+
 ```bash
 node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --plan --json
 node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --apply
@@ -16,16 +17,16 @@ Run these commands from the c15t checkout after building the CLI. The applicatio
 
 Choose `offline` for browser storage or `hosted --backend-url https://your-backend.example.com` for a provisioned v3-compatible backend. The command does not select a storage mode for you.
 
-|Target|Generated integration|
-|--|--|
-|`next-app`, `next-pages`|Client provider with stock consent UI and privacy settings access.|
-|`react`|Provider component with stock consent UI and privacy settings access.|
-|`javascript`|Headless browser runtime with explicit start and disposal.|
-|`tanstack-start`|Request-scoped server function, loader guidance, and consent boundary.|
-|`vue`, `nuxt`|App-owned runtime, Vue consent UI, and plugin wiring.|
-|`svelte`, `sveltekit`|Svelte 5 provider wrapper and application/layout wiring.|
-|`solid`|App-owned runtime and a basic custom consent interface.|
-|`astro`|Native integration, head/body components, and client script configuration.|
+| Target                   | Generated integration                                                      |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `next-app`, `next-pages` | Client provider with stock consent UI and privacy settings access.         |
+| `react`                  | Provider component with stock consent UI and privacy settings access.      |
+| `javascript`             | Headless browser runtime with explicit start and disposal.                 |
+| `tanstack-start`         | Request-scoped server function, loader guidance, and consent boundary.     |
+| `vue`, `nuxt`            | App-owned runtime, Vue consent UI, and plugin wiring.                      |
+| `svelte`, `sveltekit`    | Svelte 5 provider wrapper and application/layout wiring.                   |
+| `solid`                  | App-owned runtime and a basic custom consent interface.                    |
+| `astro`                  | Native integration, head/body components, and client script configuration. |
 
 The default output directory is `src/consent`. Change it with `--output src/privacy`. Files stay inside the application directory. Existing files with different contents cause an error; matching files are left alone.
 

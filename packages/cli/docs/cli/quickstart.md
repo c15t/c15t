@@ -3,7 +3,8 @@ title: Quickstart
 description: Review the proposed integration before applying it to your application.
 group: cli
 ---
-For unpublished v3 development, start with [local boilerplate generation](./commands/boilerplate). It creates framework files without fetching a published package version. The automatic setup commands below require compatible application dependencies; use `--skip-install` when working with local packages.
+
+For unpublished v3 development, start with [local boilerplate generation](./commands/boilerplate.md). It creates framework files without fetching a published package version. The automatic setup commands below require compatible application dependencies; use `--skip-install` when working with local packages.
 
 ```bash
 c15t setup hosted --backend-url https://your-project.inth.app --plan --json

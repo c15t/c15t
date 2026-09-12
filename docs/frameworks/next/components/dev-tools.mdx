@@ -8,12 +8,14 @@ group: frameworks
 
 ## Usage
 
-```tsx
+Keep the consent boundary from your router setup. Add this client component as
+one of its children, alongside the banner and dialog. It uses the existing
+runtime, including its prefetch result and configured transport.
+
+```tsx title="components/consent-dev-tools.tsx"
 'use client';
 
 import dynamic from 'next/dynamic';
-import { type ReactNode } from 'react';
-import { ConsentProvider, hosted } from 'c15t/next';
 
 const DevTools =
   process.env.NODE_ENV === 'development'
@@ -22,17 +24,18 @@ const DevTools =
       })
     : () => null;
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
-      {children}
-      <DevTools />
-    </ConsentProvider>
-  );
+export function ConsentDevTools() {
+  return <DevTools />;
 }
 ```
 
-For an App Router setup with server prefetching, put `DevTools` inside `ConsentProvider` and pass the server config through `options.prefetch`. Import the adapter from `c15t/next/devtools`, or `@c15t/nextjs/devtools` when you install the Next.js package directly.
+Import `ConsentDevTools` into your existing consent wrapper or App Router layout
+and render `<ConsentDevTools />` inside `ConsentBoundary`. Keep its `config`,
+`consent` and other props unchanged. A setup that uses `ConsentProvider`
+directly can place the same component inside that provider.
+
+The umbrella import is `c15t/next/devtools`. When installing the dedicated
+Next.js package, use `@c15t/nextjs/devtools`.
 
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 

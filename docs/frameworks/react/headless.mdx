@@ -18,13 +18,13 @@ those lists rather than from a fixed set of buttons, and a site that later adds
 a notice region keeps working without a code change.
 
 Check for a policy before rendering your own surfaces. `useModel()` from
-`@c15t/react` returns `null` while no rule has resolved and `'none'` under a rule that owes no consent UI, and the pre-built
+`c15t/react` returns `null` while no rule has resolved and `'none'` under a rule that owes no consent UI, and the pre-built
 surfaces render nothing in that state.
 
 ## Minimal example
 
 ```tsx
-import { useHeadlessConsentUI, useTranslations } from '@c15t/react/headless';
+import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
 
 const ACTION_LABELS = {
 	accept: 'acceptAll',

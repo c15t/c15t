@@ -78,6 +78,7 @@ describe('generated project outcomes', () => {
 		expect(content).toContain('createScriptLoader({ kernel, scripts:');
 	});
 
+	// Layout fixtures initialize TypeScript's semantic program and edit real files.
 	it.each([
 		{
 			dependencies: { react: '19', vite: '7' },
@@ -154,7 +155,8 @@ describe('generated project outcomes', () => {
 			await expect(
 				readFile(join(root, fixture.provider), 'utf8')
 			).rejects.toThrow();
-		}
+		},
+		30_000
 	);
 
 	it('leaves metadata helper returns untouched', async () => {
@@ -172,7 +174,7 @@ describe('generated project outcomes', () => {
 		);
 		expect(updated).toContain('return { title: "Original" };');
 		expect(updated).toMatch(/<body>\s*<ConsentManager>/u);
-	});
+	}, 30_000);
 
 	it('does not write anything when generation cannot identify the exported layout', async () => {
 		const options = await project(

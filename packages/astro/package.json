@@ -36,7 +36,10 @@
 	"files": [
 		"dist",
 		"dist-types",
-		"src/components"
+		"src/components",
+		"docs",
+		"AGENTS.md",
+		"SKILL.md"
 	],
 	"type": "module",
 	"sideEffects": [
@@ -107,7 +110,8 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun run build:docs",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/astro",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",

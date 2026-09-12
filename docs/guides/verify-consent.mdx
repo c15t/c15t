@@ -1,0 +1,61 @@
+---
+title: Verify consent before shipping
+description: Test requests, policy resolution, persistence, navigation and preference changes in a production build.
+group: guides
+---
+
+## Establish the policy under test
+
+Use a fresh browser profile and a known policy. For an opt-in choice policy,
+optional requests should be absent before a choice. Opt-out and notice policies
+have different defaults; inspect the resolved rule rather than expecting every
+region to show the same banner. Keep test geography overrides out of production.
+
+Inventory scripts in your HTML, application code, tag manager, plugins and
+embeds. A c15t provider cannot make an independently loaded vendor wait for a
+choice. Remove duplicate loaders before interpreting the result.
+
+## Run the visitor flow
+
+| Action | Check |
+| --- | --- |
+| Load without a stored choice | Correct policy and prompt; category-gated vendors stay blocked when permission is denied |
+| Reject optional categories | Prompt closes; denied vendors remain blocked |
+| Reload | Valid rejection persists; no new choice event is emitted by hydration |
+| Reopen preferences | Settings remain reachable after the banner closes |
+| Save one category | Only that category gets a new confirmation time |
+| Navigate without reloading | One runtime remains active; no duplicate vendor initialization |
+| Revoke a grant | Future gated work stops and configured cleanup runs |
+| Load with an expired or incompatible grant | It does not silently restore optional permissions |
+| Block the consent backend | Failed resolution is observable; absence of a banner does not grant permission |
+| Block browser storage | Interaction still works where supported; verify whether the choice survives reload |
+
+Inspect Network before the page starts loading, with cache disabled for the test.
+Filter by the vendor's script and collection domains. Hiding an iframe after it
+loads is too late to prevent the initial request.
+
+Google Consent Mode integrations intentionally load their scripts and send
+consent signals. Test their default and update commands separately from a
+zero-request gate. See [Google Tag Manager](/docs/integrations/google-tag-manager)
+and [Google Tag](/docs/integrations/google-tag).
+
+## Test the production hosting shape
+
+For static sites, serve the generated files. Confirm no request depends on an
+API route or rewrite that only exists in development. For SSR, inspect the
+initial HTML and check that hydration does not change a valid stored choice.
+Test a direct visit as well as client navigation.
+
+For a cross-origin backend, check allowed origins, protocol and reachable URLs.
+A public backend URL is not an API secret. Keep credentials out of client props
+and public environment variables.
+
+## Check the interface
+
+Use a narrow viewport, long translated labels and keyboard-only navigation.
+Check that blocking dialogs trap focus, return it to the trigger when closed,
+and do not leave scrolling locked. Non-blocking notices should allow interaction
+with the page. Test contrast and focus indicators after applying a theme.
+
+Record the policy, framework, deployment and observed request behavior with the
+test result. "The banner appears" is only one assertion.

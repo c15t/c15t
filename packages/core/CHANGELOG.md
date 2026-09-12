@@ -91,7 +91,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 
@@ -263,7 +263,7 @@
 
 ### Patch Changes
 
-- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+- 408df0e: feat: CMP ID now comes from backend, either inth.com when hosted or BYO CMP ID
   feat: Center the IAB Banner for better policy compliance
   feat: Improve doc comments around IAB
 - Updated dependencies [408df0e]
@@ -284,7 +284,7 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ### Patch Changes
 
@@ -316,7 +316,7 @@
 
 ### Patch Changes
 
-- 6c28663: Full Changelog: https://c15t.com/changelog/2026-01-19-v1.8.3
+- 6c28663: Full Changelog: https://c15t.com/changelog/1.8.3
 
 ## 1.8.3-canary-20260109181827
 
@@ -346,7 +346,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://c15t.com/changelog/1.8.2
 
 ## 1.8.2-canary-20251212163241
 
@@ -370,7 +370,7 @@
 
 ### Minor Changes
 
-- 68a7324: Full Changelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+- 68a7324: Full Changelog: https://c15t.com/changelog/1.8.0
 
 ### Patch Changes
 
@@ -417,7 +417,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/1.7.0
 
 ### Patch Changes
 
@@ -447,7 +447,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/1.6.0).
 
 ### Patch Changes
 

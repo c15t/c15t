@@ -1,0 +1,40 @@
+---
+title: c15t vs Cookiebot
+description: Compare Cookiebot hosted scanning and domain pricing with c15t v3 framework integration, Inth records and script registration.
+group: reference
+---
+
+## Choose by who configures consent
+
+Evaluate Cookiebot when your main task is managing a website through a hosted
+banner configuration and scanning workflow. Evaluate c15t when application code
+needs to consume policy permissions, render consent through a framework adapter,
+and register vendor loaders with that state.
+
+Cookiebot's [pricing page](https://www.cookiebot.com/us/pricing/) describes
+hosted banner setup, cookie scanning and plans tied to domains and subpage
+counts. It states that domains and subdomains are evaluated separately. Use the
+current regional pricing page for a quote; a domain count alone is not enough
+to compare subscriptions.
+
+## Compare the implementation
+
+| Decision | c15t v3 | Cookiebot |
+| --- | --- | --- |
+| Where setup lives | Framework code and an Inth policy configuration | Hosted configuration and an installed banner script |
+| Consent in Next.js HTML | Choose server resolution, streaming or browser initialization | Validate the required rendering behavior against the installed integration |
+| Existing vendor tags | Move optional loaders into registered integrations or consent gates | Evaluate its scanning and blocking workflow against your actual tags |
+| Budget inputs | Request Inth terms, or cost operating a self-hosted backend | Check domains, subdomains and scanned subpages against the selected plan |
+
+## Test the migration before replacing Cookiebot
+
+Inventory tags that Cookiebot currently controls, including those installed by
+a CMS or tag manager. A c15t banner does not take control of those tags merely
+by appearing. Move one vendor at a time in a test deployment, remove its old
+loader, and verify rejection, reload and later revocation in the network panel.
+Do not treat an old consent cookie as a c15t record without an explicit mapping
+of purposes, policy revision and recorded choices.
+
+For a c15t trial, use [Inth](https://inth.com) and the [framework setup](/docs/frameworks), then verify the vendor inventory you currently control through Cookiebot.
+
+Sources reviewed on 10 September 2026.

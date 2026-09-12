@@ -3,6 +3,7 @@ title: Self-hosted migrations
 description: Plan and apply the database migrations for an existing backend configuration.
 group: cli
 ---
+
 ```bash
 c15t self-host migrate --config ./c15t-backend.config.ts --plan --json
 ```

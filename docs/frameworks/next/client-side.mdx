@@ -1,0 +1,111 @@
+---
+title: Client-side initialization
+description: Initialize Next.js consent in the browser with one backend URL, without server prefetch or local API handlers.
+group: frameworks
+---
+
+## Choose when consent resolves
+
+Use browser initialization when consent does not need to be resolved in the
+initial HTML. This works with prerendered pages and client navigation. No
+`prefetchInitialConsent`, manifest route or rewrite is required for this setup.
+
+Use [server rendering](/docs/frameworks/next/server-side) when the first HTML
+response should contain the resolved consent UI, or when resolution should
+start on the server while the page streams.
+
+"Client-side initialization" describes where consent resolves. Next.js can
+still prerender a Client Component's initial markup. Optional permissions stay
+denied and consent UI stays hidden until policy resolution succeeds.
+
+## Configure one backend URL
+
+[Inth](https://inth.com) is recommended for production. A self-hosted c15t
+backend uses the same configuration with its own public endpoint.
+
+<CommandTabs command="c15t" mode="install" />
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute public backend endpoint and
+configure your app's allowed origin there. Create this shared file at the
+project root:
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+export const consentConfig = defineConsentConfig({ backendURL });
+```
+
+With the current API, a config containing only `backendURL` initializes through
+`${backendURL}/init` and submits choices to `${backendURL}/subjects`. It does
+not enable manifest resolution or generate API routes. Use
+[data fetching](/docs/frameworks/next/data-fetching) to choose manifest mode.
+
+## Mount one browser consent boundary
+
+```tsx title="components/consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from 'c15t/next';
+import { consentConfig } from '../c15t.config';
+
+export function Consent({ children }: { children: ReactNode }) {
+  return (
+    <ConsentBoundary config={{}} consent={consentConfig}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog />
+      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+    </ConsentBoundary>
+  );
+}
+```
+
+`config={{}}` supplies no server-prefetched policy. The boundary starts hosted
+initialization in the browser. Keep it mounted across client navigation.
+
+For App Router, mount the wrapper in the root layout:
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import { Consent } from '../components/consent';
+import 'c15t/next/styles.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body><Consent>{children}</Consent></body>
+    </html>
+  );
+}
+```
+
+For Pages Router, put the same `Consent` wrapper around
+`<Component {...pageProps} />` in `pages/_app.tsx` and import the stylesheet
+there. No `getServerSideProps` is needed for consent in this variant.
+
+## Optional optimizations and local development
+
+A [same-origin rewrite](/docs/frameworks/next/optimization) can avoid an
+additional browser connection to the backend domain. It is optional and needs
+a Next.js server or equivalent hosting proxy. A full static export can keep
+the direct public URL shown here.
+
+Offline mode is not recommended for production environments. For local
+development and tests without a backend, use the
+[offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+
+## Verify browser initialization
+
+In a fresh session, confirm the browser calls `/init`, displays the resolved
+prompt, and sends no denied vendor requests. Save a rejection, reload, and
+reopen preferences. The choice should persist. Test a failed backend request
+too; hidden consent UI must not be interpreted as permission.

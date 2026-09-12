@@ -1,0 +1,143 @@
+---
+title: Quickstart
+description: Add c15t to static or server-rendered Astro pages and choose the framework used by preference dialogs.
+group: frameworks
+---
+
+[Create an Inth project](https://inth.com) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Choose the dialog framework
+
+Astro renders the banner with native `.astro` components. Preference dialogs use
+an on-demand Svelte, React or Vue island. Choose the framework your site already
+uses; set `ui` explicitly. This example uses Svelte.
+
+<CommandTabs command="@c15t/astro @c15t/svelte @astrojs/svelte svelte @c15t/scripts" mode="install" />
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+PUBLIC_POSTHOG_KEY=
+PUBLIC_X_PIXEL_ID=
+```
+
+Astro exposes these public values to the client through `import.meta.env`.
+Restart development or rebuild for deployment after changing them.
+An empty ID disables that integration. Create `src/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/astro-scripts.mdx" />
+
+Create the client extension so script callbacks stay out of serialized server
+configuration:
+
+```ts title="src/consent-client.ts"
+import type { C15tClientOptionsExtension } from '@c15t/astro';
+import { createExampleScripts } from './example-scripts';
+
+export default {
+  scripts: createExampleScripts(
+    import.meta.env.PUBLIC_POSTHOG_KEY,
+    import.meta.env.PUBLIC_X_PIXEL_ID,
+  ),
+} satisfies C15tClientOptionsExtension;
+```
+
+## Configure the integration
+
+```js title="astro.config.mjs"
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'astro/config';
+import svelte from '@astrojs/svelte';
+import c15t, { hosted } from '@c15t/astro';
+
+const backendURL = process.env.C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+
+export default defineConfig({
+  integrations: [
+    svelte(),
+    c15t({
+      mode: hosted({ url: backendURL }),
+      ui: 'svelte',
+      clientEntrypoint: fileURLToPath(new URL('./src/consent-client.ts', import.meta.url)),
+    }),
+  ],
+});
+```
+
+Set `C15T_BACKEND_URL` to your backend's absolute URL, with policy rules and the
+app origin configured. The integration serializes its options into browser
+configuration. Keep secrets and callbacks out of this configuration.
+
+The framework integration must appear before `c15t()`. For React or Vue, install
+that framework's Astro integration and c15t adapter, register the matching
+integration, and set `ui: 'react'` or `ui: 'vue'`.
+
+## Add the shared layout
+
+```astro title="src/layouts/Base.astro"
+---
+import ConsentScript from '@c15t/astro/components/consent-script.astro';
+import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
+import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My site</title>
+    <ConsentScript />
+  </head>
+  <body>
+    <slot />
+    <ConsentBanner />
+    <ConsentDialog />
+    <footer>
+      <ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger>
+    </footer>
+  </body>
+</html>
+```
+
+Use this layout around each page. The integration supplies styles and the
+shared browser runtime. `ConsentScript` prepares the client configuration and
+color scheme. Do not create separate runtimes for each consent island.
+
+## Static pages and request SSR
+
+For prerendered pages, the middleware skips request prefetch. The browser
+resolves consent against the external backend. This avoids treating the build
+machine's cookies or geography as visitor state.
+
+For server-rendered pages, keep your Astro server adapter and output settings.
+The middleware can resolve request-specific state into `Astro.locals.c15t`.
+Pass the prepared state through the supplied components instead of constructing
+records from permission booleans.
+
+`manifest()` mode can inject init and manifest endpoints and therefore needs a
+server for those endpoints. Do not choose that setup for a purely static host
+without providing the routes elsewhere. Nonserializable extensions belong in
+the module selected by `clientEntrypoint`, not in `astro.config.mjs`.
+
+## Verify navigation and loading
+
+Test the built output, including a full page load and any navigation through
+Astro's `ClientRouter`. Open preferences twice and check the runtime retains the
+current choice. The dialog should reuse the selected framework, not load a
+second adapter. Follow [verification](/docs/guides/verify-consent) for rejection,
+reload and script requests.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
