@@ -20,8 +20,8 @@ provider" below.
 | `repeat-visitor` | derived | After each measured `client` iteration a second browser context loads `/client` and the runner measures the Open Preferences click, exactly as the Next runner does. Note that neither runner preseeds the consent cookie for this arm. |
 | `manifest-ssr-root` | `/manifest-ssr` in the `dist-root/` build | `--root-provider` only. Same route and metrics as `manifest-ssr`, but the provider and the manifest prefetch loader live in `__root.tsx` and the route renders only the page shell. Built with `C15T_BENCH_ROOT_PROVIDER=1` (`bun run build:root`). |
 
-There is no `rsc-ssr` arm: TanStack Start has no server components, so the
-Next `rsc-ssr` scenario has no equivalent and is reported as Next-only.
+The Next runner no longer has an `rsc-ssr` arm; older result tables in this
+file that list it are historical.
 
 Fixture routes live under `src/routes/api/bench-consent/` and are a copy of
 the Next arm's `fixture.ts` (policy id, fingerprint, revision, and
@@ -86,9 +86,9 @@ which writes `.benchmarks/compare/frameworks.md` and `frameworks.json`.
 - **`initRequestsAfterLoad` on SSR arms.** The React provider dispatches init
   eagerly on the client whenever the transport is hosted, even with an
   authoritative prefetch, so every hosted SSR arm shows one browser init
-  request in both frameworks. Only Next's offline-mode `manifest-ssr` and
-  `rsc-ssr` arms show zero. The `count-eq 0` budget copied from the Next
-  runner therefore fails on the hosted arms of both frameworks.
+  request in both frameworks. Only Next's offline-mode `manifest-ssr` arm
+  shows zero. The `count-eq 0` budget copied from the Next runner therefore
+  fails on the hosted arms of both frameworks.
 - **Cache warmth.** Manifest arms warm the server cache during warmup
   iterations; the first cold fill is only visible with `--cold-manifest true`.
 
@@ -172,13 +172,13 @@ Start does less main-thread work once the code arrives (`longTaskTotalMs`
 - Start's `ssr` arm needs a hand-written loader to match Next's per-request
   `/init` fetch; the package helper would have gone through the manifest
   cache and looked like `manifest-ssr`.
-- Next's `manifest-ssr` and `rsc-ssr` boundaries run in offline mode, so
-  their accept click never posts to the fixture; Start's `manifest-ssr`
-  posts. Compare their `interactionLatencyMs` with that in mind.
-- `rsc-ssr` has no Start counterpart. It is Next's fastest arm under the
-  mobile profile (912 ms to a visible banner) because only two islands
-  hydrate; Start has no server components, so this is reported as Next-only
-  rather than approximated.
+- Next's `manifest-ssr` boundary runs in offline mode, so its accept click
+  never posts to the fixture; Start's `manifest-ssr` posts. Compare their
+  `interactionLatencyMs` with that in mind.
+- The `rsc-ssr` rows in the result tables come from a Next arm that no longer
+  exists. They are kept as historical data and have no Start counterpart.
+  Those runs measured slightly faster banner visibility and interaction for
+  the RSC arm than `manifest-ssr`; the removal is not a performance improvement.
 - Every hosted SSR arm shows `initRequestsAfterLoad` of 1 on both frameworks
   because the React provider dispatches init eagerly on the client even with
   an authoritative prefetch. The `count-eq 0` budget copied from the Next

@@ -214,3 +214,84 @@ Custom dialog backdrops follow the same rule. A dialog resolved as non-blocking
 omits both the default backdrop and a supplied `overlay`. To retain a custom
 backdrop when migrating from `trapFocus: false`, set
 `presentation.preferences.blocking: true` and keep your `overlay` prop.
+
+## Next.js RSC banner removal
+
+The `@c15t/nextjs/rsc` entry (`c15t/next/rsc`) and its `RscConsentBanner`,
+`RscBannerGate` and `RscBannerActions` exports are gone. Imports of that
+entry now fail to resolve. Use the regular banner for server rendering.
+The retained benchmark results showed slightly faster banner visibility and
+interaction for the experimental shell, so this removal should not be read
+as a performance improvement.
+
+Replace `<RscConsentBanner config={config} />` with `<ConsentBanner />` inside
+the same `ConsentBoundary`, importing it from `c15t/next` when you use the
+umbrella package or from `@c15t/nextjs` when you depend on the scoped package
+directly. With an awaited `prefetchInitialConsent` result, the server renders
+the banner into the response, which is what the RSC variant was for. Move
+`presentation` to `options.presentation` on the boundary.
+
+Two defaults differ from the removed shell. It rendered no branding link, so
+pass `hideBranding` to keep that. It also styled only its root and action row
+(through the stock `ConsentBanner.Root` and `PolicyActions`) and left the
+card, title, description, footer and buttons without base classes, whereas
+`ConsentBanner` merges the stock styles into every part. If that changes a
+custom layout, do not reach for `noStyle` on the whole banner, which also
+drops the root positioning and action-row layout the old shell kept; compose
+the compound parts instead and pass `noStyle` only to the parts you styled
+yourself.
+
+`ConsentBanner` has no `classNames` or `children` props. Move each legacy
+`classNames` key to the boundary `options.components` slots, which take
+`{ className }`:
+
+| `classNames` key | Replacement |
+| --- | --- |
+| `root`, `card`, `title`, `footer` | `components.banner.root`, `.card`, `.title`, `.footer` |
+| `description` | `components.description.banner` |
+| `rights`, `rightLink` | `components.banner.rights`, `components.banner.rightLink` |
+| `acceptButton`, `rejectButton`, `customizeButton`, `dismissButton` | No per-button slot. Use `components.button.primary` / `.secondary` for shared styles, or target `[data-action="accept"]`, `[data-action="reject"]`, `[data-action="customize"]` and `[data-action="dismiss"]` in CSS. |
+
+Custom `children`, and any direct use of `RscBannerGate` or
+`RscBannerActions`, map to the compound parts of `ConsentBanner` in a Client
+Component. `RscBannerGate` becomes `ConsentBanner.Root`, which mounts only
+while the policy owes a prompt and reopens on expiry. Remove the gate
+`prompt` and `model` props; the root derives `data-prompt` and `data-model`
+from the boundary policy. Rename `title` to `aria-label` to preserve its
+accessible label. Keep `children`, `className`, `variant`, `position` and
+`blocking` on the root. Add `disableAnimation` and `trapFocus={false}` to
+retain the old gate defaults.
+
+`RscBannerActions`
+becomes `ConsentBanner.PolicyActions`, which renders the rights links and the
+action row the policy requires; `ConsentBanner.Rights`, `RightLink`, `Footer`,
+`FooterSubGroup` and the four buttons are available for finer control.
+`PolicyActions` takes none of the old `acceptLabel`, `rejectLabel`,
+`customizeLabel`, `dismissLabel`, `rightLabels` or `classNames` props: set
+labels through the provider `i18n` translation overrides (`common.acceptAll`,
+`common.rejectAll`, `common.customize`, `common.acknowledge`, `rights.*`), or
+render `ConsentBanner.AcceptButton` and the other buttons with your own
+children; `renderAction` on `PolicyActions` replaces one button; classes move
+to the `components` slots listed in the table. Place the former `children`
+inside `ConsentBanner.Card`:
+
+```tsx title="components/banner.tsx"
+'use client';
+
+import { ConsentBanner } from 'c15t/next';
+
+export function Banner() {
+  return (
+    <ConsentBanner.Root>
+      <ConsentBanner.Card>
+        <ConsentBanner.Header>
+          <ConsentBanner.Title />
+          <ConsentBanner.Description />
+        </ConsentBanner.Header>
+        <a href="/privacy">Privacy policy</a>
+        <ConsentBanner.PolicyActions />
+      </ConsentBanner.Card>
+    </ConsentBanner.Root>
+  );
+}
+```

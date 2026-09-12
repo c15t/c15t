@@ -7,7 +7,6 @@
 		"src/middleware.ts",
 		"src/pages.ts",
 		"src/proxy.ts",
-		"src/rsc/index.ts",
 		"src/server.ts",
 		"src/static.ts"
 	],

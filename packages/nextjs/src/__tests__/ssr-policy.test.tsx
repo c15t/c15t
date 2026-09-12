@@ -2,6 +2,7 @@ import { buildPrefetchScript, createConsentKernel } from '@c15t/core';
 import type { ConsentSnapshot, KernelConfig } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import {
+	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogTrigger,
 	custom,
@@ -16,7 +17,6 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/record-codec';
 import { ConsentBoundary } from '../boundary';
-import { RscConsentBanner } from '../rsc/banner';
 import { prefetchInitialConsent, readInitialConsentConfig } from '../server';
 import { policyFixture } from './policy-fixture';
 
@@ -91,7 +91,7 @@ const hydrate = async (config: KernelConfig) => {
 			persistence={{ storageConfig: { storageKey } }}
 			options={{ disableAnimation: true, mode: custom({ init }) }}
 		>
-			<RscConsentBanner config={config} />
+			<ConsentBanner />
 			<ConsentDialog />
 			<ConsentDialogTrigger />
 			<Probe />
@@ -289,7 +289,7 @@ describe('Next.js request policy and RSC hydration', () => {
 		expect(document.cookie).toBe(cookie);
 	});
 
-	test('the RSC gate reopens an expired receipt after an initially hidden prompt', async () => {
+	test('the consent banner reopens an expired receipt after an initially hidden prompt', async () => {
 		const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
 		const config = policyFixture(
 			{ marketing: true },
