@@ -15,7 +15,8 @@ location and apply your unknown-location policy rule for every visitor.
 c15t reads location from the platform headers listed in
 [Which headers are read?](#which-headers-are-read): Cloudflare (`cf-ipcountry`,
 `cf-region-code`), Vercel (`x-vercel-ip-country`,
-`x-vercel-ip-country-region`), CloudFront (`x-amz-cf-ipcountry`) and generic
+`x-vercel-ip-country-region`), the `x-amz-cf-ipcountry` header some
+CloudFront setups add, and generic
 proxy headers (`x-country-code`, `x-country`, `x-region-code`). c15t does not
 keep a list of which hosts strip them. Check your deployment: log
 `(await headers()).get('x-vercel-ip-country')` or the equivalent for your host
@@ -168,6 +169,12 @@ resolution and use it only for non-policy code such as display defaults.
 | Region | `x-c15t-region`, `cf-region-code`, `x-vercel-ip-country-region`, `x-region-code` | c15t override, Cloudflare, Vercel, generic |
 | Global Privacy Control | `x-c15t-gpc`, `sec-gpc` | c15t override, browser signal |
 | Language | `accept-language` | browser |
+
+CloudFront's own geolocation headers, `CloudFront-Viewer-Country` and
+`CloudFront-Viewer-Country-Region`, are not in this list. On CloudFront, add a
+CloudFront Function or origin request policy that copies them to
+`x-c15t-country` and `x-c15t-region` before the request reaches Next.js, and
+strip any client-supplied `x-c15t-*` headers in the same step.
 
 GPC values are meaningful only as `1` or `0`; any other value is treated as
 absent. The proxy writes the normalized result to `sec-gpc`, so an incoming

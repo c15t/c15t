@@ -144,11 +144,13 @@ It does not apply to anything else:
 ## Allow the consent backend in connect-src
 
 The browser sends consent submissions to `${backendURL}/subjects`, and, when
-the browser initializes, requests to `${backendURL}/init` or the manifest URL.
-Add the backend origin to `connect-src`:
+the browser initializes or retries after a failed server prefetch, requests to
+`${backendURL}/init` or the manifest URL. Add the backend origin to
+`connect-src`, and the manifest origin too when `manifestURL` is an absolute
+URL on a different host such as a CDN:
 
 ```txt title="Content-Security-Policy (partial)"
-connect-src 'self' https://<your-backend-host>;
+connect-src 'self' https://<your-backend-host> https://<your-manifest-host>;
 ```
 
 Use the endpoint host supplied by your Inth project or your self-hosted backend.
