@@ -158,19 +158,11 @@ milliseconds; a cold cache pays the backend round trip. If the site cannot
 accept that, use the [streaming form](#stream-the-page-while-consent-resolves),
 which renders the shell immediately.
 
-If the app already has a global stylesheet, import the c15t stylesheet from
-there instead of from the layout, after any Tailwind import, and drop the
-`import 'c15t/next/styles.css'` line from `layout.tsx`:
-
-```css title="app/globals.css"
-@import 'tailwindcss';
-@import 'c15t/next/styles.css';
-```
-
-Tailwind CSS 4 declares its cascade layers in that file. When the c15t
-stylesheet is bundled separately and lands first, Tailwind's preflight sits
-above the c15t component layer and strips the banner's padding, borders and
-button styles.
+Keep the c15t stylesheet in `globals.css` rather than importing
+`c15t/next/styles.css` from a layout or component. Tailwind CSS 4 declares its
+cascade layers in that file; when the c15t stylesheet is bundled separately
+and lands first, Tailwind's preflight sits above the c15t component layer and
+strips the banner's padding, borders and button styles.
 
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without
