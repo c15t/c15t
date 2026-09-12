@@ -55,7 +55,7 @@ it('terminates descendants and releases their listening port', async () => {
 	const closed = once(reservation, 'close');
 	reservation.close();
 	await closed;
-	const child = `require('node:http').createServer((request, response) => response.end('ok')).listen(${port}, '127.0.0.1');`;
+	const child = `const server = require('node:http').createServer((request, response) => response.end('ok')).listen(${port}, '127.0.0.1'); process.on('SIGTERM', () => setTimeout(() => { server.close(); process.exit(0); }, 250));`;
 	const server = startProcess([
 		'node',
 		'-e',

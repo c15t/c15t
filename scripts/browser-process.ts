@@ -35,11 +35,19 @@ export const startProcess = function startProcess(
 export const stopProcess = async function stopProcess(
 	child: ChildProcess
 ): Promise<void> {
-	if (child.exitCode !== null || child.signalCode !== null || !child.pid) {
+	const exited = child.exitCode !== null || child.signalCode !== null;
+	const streamsClosed = [child.stdout, child.stderr].every(
+		(stream) => !stream || stream.destroyed
+	);
+	if (!child.pid || (exited && streamsClosed)) {
 		return;
 	}
 	const { pid } = child;
-	const exited = once(child, 'exit');
+	let stopped = false;
+	const closed = (async () => {
+		await once(child, 'close');
+		stopped = true;
+	})();
 	const kill = async (signal: NodeJS.Signals) => {
 		try {
 			if (process.platform === 'win32') {
@@ -58,10 +66,10 @@ export const stopProcess = async function stopProcess(
 		}
 	};
 	await kill('SIGTERM');
-	await Promise.race([exited, delay(5000, undefined, { ref: false })]);
-	if (child.exitCode === null && child.signalCode === null) {
+	await Promise.race([closed, delay(5000, undefined, { ref: false })]);
+	if (!stopped) {
 		await kill('SIGKILL');
-		await exited;
+		await closed;
 	}
 };
 
