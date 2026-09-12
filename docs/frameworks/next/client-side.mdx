@@ -72,12 +72,13 @@ export function Consent({ children }: { children: ReactNode }) {
 `config={{}}` supplies no server-prefetched policy. The boundary starts hosted
 initialization in the browser. Keep it mounted across client navigation.
 
-For App Router, mount the wrapper in the root layout:
+For App Router, load the [stylesheet for your Tailwind version](/docs/frameworks/next/styling/overview#stylesheet)
+from `app/globals.css`, then mount the wrapper in the root layout:
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

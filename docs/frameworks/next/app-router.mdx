@@ -46,13 +46,17 @@ the steps below. Offline setups do not need an endpoint; use the
 
 <CommandTabs command="@c15t/scripts" mode="install" />
 
-Add the prebuilt stylesheet to your global CSS, after any Tailwind import, so
-its component layer follows Tailwind's:
+With Tailwind CSS 4, add the prebuilt stylesheet to your global CSS after
+Tailwind so its component layer follows Tailwind's:
 
 ```css title="app/globals.css"
 @import 'tailwindcss';
 @import 'c15t/next/styles.css';
 ```
+
+For Tailwind CSS 3, use the [Tailwind 3 stylesheet recipe](/docs/frameworks/next/styling/overview#stylesheet)
+instead. It loads `c15t/next/styles.tw3.css` between the `components` and
+`utilities` directives to prevent Tailwind from purging c15t selectors.
 
 The layouts on this page import `./globals.css`; without Tailwind the same
 `@import` line goes at the top of whatever global stylesheet the layout loads.
