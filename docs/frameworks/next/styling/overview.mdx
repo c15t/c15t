@@ -6,12 +6,17 @@ group: frameworks
 
 ## Stylesheet
 
-Import the stylesheet once, next to your global CSS. In the App Router that is
-`app/layout.tsx`; in the Pages Router it is `pages/_app.tsx`:
+Import c15t once from the global stylesheet loaded by `app/layout.tsx` in the
+App Router or `pages/_app.tsx` in the Pages Router. With Tailwind CSS 4, place
+it after the Tailwind import so the component layers keep their order:
 
-```tsx
-import 'c15t/next/styles.css';
+```css
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
 ```
+
+Without Tailwind, omit its import. Keep the existing global CSS import in the
+layout or `_app.tsx`. Tailwind CSS 3 uses the separate build shown below.
 
 <import src="../../../shared/react/styling/overview.mdx#tailwind-layers" />
 
