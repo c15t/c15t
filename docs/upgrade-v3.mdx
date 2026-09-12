@@ -218,10 +218,11 @@ backdrop when migrating from `trapFocus: false`, set
 ## Next.js RSC banner removal
 
 The `@c15t/nextjs/rsc` entry (`c15t/next/rsc`) and its `RscConsentBanner`,
-`RscBannerGate` and `RscBannerActions` exports are gone. The Server Component
-banner shell was an experiment that measured no gain over `ConsentBanner`:
-equal JavaScript bytes, equal time to a visible banner, slower interaction.
-Imports of that entry now fail to resolve.
+`RscBannerGate` and `RscBannerActions` exports are gone. Imports of that
+entry now fail to resolve. Use the regular banner for server rendering.
+The retained benchmark results showed slightly faster banner visibility and
+interaction for the experimental shell, so this removal should not be read
+as a performance improvement.
 
 Replace `<RscConsentBanner config={config} />` with `<ConsentBanner />` inside
 the same `ConsentBoundary`, importing it from `c15t/next` when you use the
@@ -254,7 +255,14 @@ yourself.
 Custom `children`, and any direct use of `RscBannerGate` or
 `RscBannerActions`, map to the compound parts of `ConsentBanner` in a Client
 Component. `RscBannerGate` becomes `ConsentBanner.Root`, which mounts only
-while the policy owes a prompt and reopens on expiry. `RscBannerActions`
+while the policy owes a prompt and reopens on expiry. Remove the gate
+`prompt` and `model` props; the root derives `data-prompt` and `data-model`
+from the boundary policy. Rename `title` to `aria-label` to preserve its
+accessible label. Keep `children`, `className`, `variant`, `position` and
+`blocking` on the root. Add `disableAnimation` and `trapFocus={false}` to
+retain the old gate defaults.
+
+`RscBannerActions`
 becomes `ConsentBanner.PolicyActions`, which renders the rights links and the
 action row the policy requires; `ConsentBanner.Rights`, `RightLink`, `Footer`,
 `FooterSubGroup` and the four buttons are available for finer control.

@@ -157,8 +157,7 @@ export const NextjsManifestBenchmarkProvider = ({
 	scenario: NextjsBenchScenario;
 	/**
 	 * 'client' renders the client ConsentBanner/Dialog; 'none' renders no
-	 * client surfaces (the RSC arm supplies the banner as a Server
-	 * Component child instead).
+	 * client surfaces, keeping only the benchmark probe and children.
 	 */
 	surfaces?: 'client' | 'none';
 }) => (

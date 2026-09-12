@@ -176,8 +176,9 @@ Start does less main-thread work once the code arrives (`longTaskTotalMs`
   never posts to the fixture; Start's `manifest-ssr` posts. Compare their
   `interactionLatencyMs` with that in mind.
 - The `rsc-ssr` rows in the result tables come from a Next arm that no longer
-  exists (the RSC banner was removed after it measured no gain over the client
-  banner). They are kept as historical data and have no Start counterpart.
+  exists. They are kept as historical data and have no Start counterpart.
+  Those runs measured slightly faster banner visibility and interaction for
+  the RSC arm than `manifest-ssr`; the removal is not a performance improvement.
 - Every hosted SSR arm shows `initRequestsAfterLoad` of 1 on both frameworks
   because the React provider dispatches init eagerly on the client even with
   an authoritative prefetch. The `count-eq 0` budget copied from the Next

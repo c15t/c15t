@@ -289,7 +289,7 @@ describe('Next.js request policy and RSC hydration', () => {
 		expect(document.cookie).toBe(cookie);
 	});
 
-	test('the RSC gate reopens an expired receipt after an initially hidden prompt', async () => {
+	test('the consent banner reopens an expired receipt after an initially hidden prompt', async () => {
 		const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
 		const config = policyFixture(
 			{ marketing: true },
