@@ -1,0 +1,382 @@
+---
+title: Fetching reference
+description: Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
+group: frameworks
+---
+
+## URL configuration
+
+`defineConsentConfig` from `c15t/next` declares the URLs shared by server
+prefetch and `ConsentBoundary`. For help choosing a setup, start with
+[data fetching](/docs/frameworks/next/data-fetching).
+Requires Next.js 15 or 16 (`next ^15.0.0 || ^16.0.0`).
+
+| Property | Behavior |
+| --- | --- |
+| `backendURL` | Required backend base URL. Consent submissions go to `/subjects` under this URL. Without `manifestURL`, server prefetch calls its `/init` endpoint. |
+| `manifestURL` | Optional URL that serves the policy manifest. Setting it enables manifest resolution. |
+| `initURL` | Optional browser initialization endpoint. With the local manifest handler, this resolves policy using the browser request's geography. |
+
+The current API does not derive `manifestURL` or `initURL` from `backendURL`,
+and declaring URLs does not create routes. Values can be absolute HTTP or
+HTTPS URLs or paths beginning with `/`. Server helpers resolve relative paths
+against the incoming request's host.
+
+`defineConsentConfig` validates at call time and throws a `TypeError` when the
+argument is not an object, when `backendURL` is missing, or when any URL is
+neither an absolute `http(s)` URL nor a `/`-relative path. Protocol-relative
+`//consent.example.com` and bare `api/c15t` are rejected because the server
+helpers would resolve them against the request host and reach an unintended
+origin. The returned object is frozen. When `initURL` is set without
+`manifestURL` and `NODE_ENV` is not `production`, it logs a `console.warn`:
+browser initialization would use the init route, but server prefetch would
+still call backend `/init` on every request. Set `manifestURL` so both sides
+resolve the cached manifest.
+
+### Why are the URLs separate?
+
+`backendURL` usually points to Inth, while the manifest and local init routes
+belong to your Next.js application. Appending `/manifest` to the Inth URL would
+select Inth's endpoint, not create or select your app's cached manifest route.
+Using `/api/c15t` as the backend prefix through an optional rewrite does not
+change the config defaults.
+
+The manifest **handler** does derive its upstream `/manifest` URL from its
+backend URL. That server-side default is separate from `defineConsentConfig`,
+which keeps the URLs you pass to it and does not choose a fetching mode for you.
+
+### Do I need the local init route?
+
+No. The router guides use server prefetch and one manifest route. Successful
+prefetch supplies the initial policy directly to the browser.
+
+Add a local init route when browser initialization needs your host's location
+headers or you want to keep manifest resolution on the server. It resolves the
+cached manifest in your app instead of calling the backend's `/init`.
+
+Add `initURL: '/api/c15t/init'` to your existing `defineConsentConfig` value,
+keeping `backendURL` and `manifestURL`. Then add the handler for your router.
+It reads the same absolute upstream backend environment variable as your
+manifest handler.
+
+```ts title="app/api/c15t/init/route.ts"
+export { GET } from 'c15t/next/api';
+```
+
+For Pages Router, use this file instead:
+
+```ts title="pages/api/c15t/init.ts"
+import { createPagesApiHandlers } from 'c15t/next/pages';
+
+export default createPagesApiHandlers().init;
+```
+
+Without `initURL`, browser initialization resolves the manifest locally. It
+uses location supplied by prefetch or your application, but cannot read your
+host's geographic headers itself. See [geography and privacy signals](#geography-and-privacy-signals).
+
+### Transport combinations
+
+| Consent config | Server prefetch | Browser initialization |
+| --- | --- | --- |
+| `backendURL`, `manifestURL`, `initURL` | Resolves the manifest with request inputs | Calls `initURL`, whose local handler resolves the manifest with request inputs |
+| `backendURL`, `manifestURL` | Resolves the manifest with request inputs | Loads the manifest resolver lazily in the browser |
+| `backendURL` only | Calls backend `/init` | Calls backend `/init` |
+| `backendURL`, `initURL` | Calls backend `/init` | Calls `initURL` |
+| Explicit `options.mode: offline()` | No hosted prefetch | Resolves bundled local rules |
+
+Hosted combinations submit choices to `${backendURL}/subjects`. Offline mode
+uses browser persistence only. A prepared server result can satisfy the first
+browser initialization; the browser column describes what happens when
+initialization is needed, including recovery after prefetch fails.
+
+Setting only `initURL` does not enable server manifest resolution. Keep
+`manifestURL` when both server and browser requests should resolve the cached
+manifest.
+
+### Switch to regular backend init
+
+Remove `manifestURL` and `initURL` from `c15t.config.ts`. The
+[browser initialization guide](/docs/frameworks/next/client-side#configure-one-backend-url)
+has a complete backend-only configuration. For server rendering, keep the
+prefetch and boundary wiring from your router guide. Prefetch will call backend
+`/init` per request.
+
+Remove unused local manifest and init handlers. If you use an optional backend
+rewrite, removing the local init handler lets that request reach the backend
+through the rewrite. See [optimization](/docs/frameworks/next/optimization)
+for rewrite configuration.
+
+## Server helper options
+
+Server prefetch has three entry points. `c15t/next/server` exports
+`prefetchInitialConsent` and `readInitialConsentConfig` for the App Router,
+where the default request context reads `next/headers`. `c15t/next/pages`
+exports the same helpers for the Pages Router, taking the Node `req` instead.
+Both entries accept the options in this section; the Pages Router entry
+replaces only the `request` adapter.
+
+### prefetchInitialConsent options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `backendURL` | `config.backendURL` | Backend base URL. Required unless `config` supplies it; an explicit value overrides `config.backendURL`. Without a manifest source, server prefetch calls `${backendURL}/init`. |
+| `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. `initURL` is not read. |
+| `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. |
+| `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
+| `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
+| `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
+| `onError` | none | Receives the failure from the backend or manifest request. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
+| `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
+| `cookieName` | `c15t` | Cookie holding persisted consent. Must match the client `storageConfig.storageKey`. |
+| `country` | header detection | Overrides the country read from request headers. |
+| `language` | header detection | Overrides the language read from `accept-language`. |
+| `request` | `next/headers` | Request context adapter with `cookies()` and `headers()`. The default only works in the App Router. |
+
+`prefetchInitialConsent` throws when neither `backendURL` nor `config` is
+given, when the request adapter's `headers()` or `cookies()` rejects (the
+default adapter rejects outside a request scope), and when your `onError`
+callback throws. Thrown URL resolution, network and policy resolution errors
+are handled: they return the baseline config that `readInitialConsentConfig`
+produces, with stored records, geography, language and GPC from the request
+but no resolved policy. The page still renders and the browser initializes
+consent on mount. Non-2xx responses from backend `/init` are failures too, so
+a `500` renders the baseline rather than throwing. A successful response whose
+body reports `policyResolution.status: 'failed'`, for example an unsupported
+policy contract, is different: that failed resolution is kept as the prepared
+state, the browser does not re-initialize on mount, and the consent UI stays
+hidden until the cause is fixed.
+
+Absolute `http(s)` URLs are used as given. A `/`-relative `backendURL` or
+`manifestURL` is resolved from the request: the scheme comes from
+`x-forwarded-proto` and defaults to `https`; the host comes from
+`x-forwarded-host`, then `host`, then the `referer` host. When no host is available, server prefetch reports the error
+and returns the baseline config. Those headers decide where the server sends
+the request, so behind a proxy the edge must overwrite `x-forwarded-host` and
+`x-forwarded-proto` rather than pass client values through; otherwise a client
+can point server prefetch at a host of its choosing. When you cannot guarantee
+that, use absolute URLs. Use `https` for any production `backendURL`: the
+`/init` call forwards the visitor's cookies, which plain HTTP exposes on the
+path; keep `http` for local development only.
+
+Forwarded headers differ by path. The backend `/init` call carries the
+request cookies, `x-forwarded-for`, `user-agent`, any `forwardHeaders`, and
+derived `x-c15t-country`, `x-c15t-region`, `accept-language` and `sec-gpc`
+headers; it is sent with `cache: 'no-store'` and `credentials: 'include'`.
+The manifest request carries only the headers named in `forwardHeaders`.
+Cookies, the client IP and the user agent are not added automatically, because
+the manifest is public policy data, but an explicit entry is forwarded
+verbatim: a `forwardHeaders` list that names `cookie`, `x-forwarded-for` or
+`user-agent` sends them to the manifest host too, so do not reuse a list meant
+for the backend path. Cookies are still read locally on both paths to restore
+records.
+
+An inline `manifest` is never refreshed. The manifest transport returns the
+object as given instead of fetching it, so the snapshot is the source of truth
+for that request rather than a cache seed. A stale snapshot resolves stale
+policy until the application ships a new one. One request can still happen:
+when the inline manifest has `iab.enabled: true` with an `iab.gvl` reference
+and the matched rule uses the `iab` model, the transport fetches the Global
+Vendor List with the `fetch` option, and a blocked network there also falls
+back to the baseline. `backendURL` is still required because choices post to
+`${backendURL}/subjects`.
+
+`onError` replaces the default logging entirely. Without it, production
+deployments render the baseline silently; pass `onError` to report failures to
+your monitoring. `cookieName` must match the client `storageKey` for stored
+choices to be restored at all: with a mismatch the server supplies empty
+records, the provider treats them as prepared and skips browser hydration, so
+the visitor's existing choice stays ignored for the whole mount, not only at
+first paint.
+
+### readInitialConsentConfig options
+
+`readInitialConsentConfig` makes no network request and does not resolve
+policy. It reads the request and returns a JSON-serializable config with
+`initialRecords`, `initialPrivacySignals.gpc`, `now` and, when any value was
+detected, `initialOverrides` with `country`, `region` and `language`. It does
+not set cookies and does not cache across requests.
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
+| `cookieName` | `c15t` | Cookie holding persisted consent. Must match the client `storageConfig.storageKey`. |
+| `country` | header detection | Overrides the country read from request headers. |
+| `language` | header detection | Overrides the language read from `accept-language`. |
+| `request` | `next/headers` | Request context adapter with `cookies()` and `headers()`. The default only works in the App Router. |
+
+The cookie header is read from `headers().get('cookie')` first and from
+`request.cookies()` only when that header is absent. Country and region come
+from the headers listed in [geography and privacy signals](#geography-and-privacy-signals).
+
+### Pages Router differences
+
+`c15t/next/pages` exports the same helpers with the Node request in place of
+the `request` adapter. `prefetchInitialConsent({ req, ...options })` accepts
+every option in the App Router table except `request`; `req` is the request
+from `getServerSideProps` or an API route. `readInitialConsentConfig(req,
+options)` takes `req` as its first argument and the remaining options as its
+second. Both return JSON-compatible data, but fields that were not detected
+are `undefined` (for example `initialPrivacySignals.gpc` without a `sec-gpc`
+header), and `getServerSideProps` rejects `undefined` values in development.
+Round-trip the result through `JSON.parse(JSON.stringify(result))` before
+returning it as a prop, as `examples/nextjs/pages/pages-router.tsx` does.
+
+`createPagesRequestContext(req)` builds the `request` adapter itself. Headers
+are converted to Web `Headers`, and cookies are read from the `cookie` header.
+Use it when calling the `c15t/next/server` helpers from a custom server or
+test harness where `next/headers` is unavailable:
+
+```ts title="server/consent.ts"
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { createPagesRequestContext } from 'c15t/next/pages';
+import { consentConfig } from '../c15t.config';
+import type { IncomingMessage } from 'node:http';
+
+export function prefetchConsent(req: IncomingMessage) {
+  return prefetchInitialConsent({
+    config: consentConfig,
+    request: createPagesRequestContext(req),
+  });
+}
+```
+
+## Route handler options
+
+### createNextConsentRouteHandlers options
+
+`createNextConsentRouteHandlers(optionsOrConfig)` from `c15t/next/api` returns
+`GET` for the init route and `manifestGET` for the manifest route. The
+ready-made `GET` and `manifestGET` exports from the same module are created
+with no options, so they read only environment variables.
+
+| Option | Default / env | Behavior |
+| --- | --- | --- |
+| `backendURL` | `C15T_BACKEND_URL`, then `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. The manifest route fetches `${backendURL}/manifest`. Not read when `manifestURL` is set. |
+| `manifestURL` | `C15T_MANIFEST_URL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
+| `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it. The env value is read with `parseInt`, so `60seconds` becomes `60` and `1e2` becomes `1`; values without a leading number or below `0` fall back to the default. |
+| `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
+| `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies. Called only under the conditions described in this section. |
+
+An explicit option wins over its environment variable, and a manifest URL from
+either source wins over `backendURL`. URLs are resolved per request, so a
+missing or invalid value fails the request rather than the build: with neither
+`backendURL` nor `manifestURL` configured the handler throws
+`@c15t/nextjs/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.`. A
+`/`-relative value is resolved against the incoming request's host and
+forwarded headers, which points the handler at your own app and lets a client
+that controls `x-forwarded-host` choose the upstream. Keep upstream URLs
+absolute so the manifest route neither fetches itself nor an attacker's host.
+
+Passing a `defineConsentConfig` result uses only its `backendURL`. Its
+`manifestURL` and `initURL` name the routes these handlers serve, so
+forwarding them would make the manifest route fetch itself. The same rule
+applies when the config's `backendURL` is a same-origin rewrite prefix: pass
+the absolute upstream URL instead, as described in
+[optimization](/docs/frameworks/next/optimization).
+
+`GET` resolves the cached manifest with the request's geography, language and
+GPC headers and responds with `cache-control: private, no-store` and
+`x-c15t-policy-contract: 1`. When the request carries an
+`x-c15t-policy-contract` header with a different value, the response keeps the
+translations and UI data but sets `policyResolution` to `status: 'failed'`
+with `reason: 'unsupported-contract'` and removes `policySnapshotToken` and
+`gvl`. Requests without the header are treated as compatible.
+
+`manifestGET` forwards the upstream `cache-control` header, or
+`public, s-maxage=300, stale-while-revalidate=86400` when the upstream omits
+it, plus `etag` when present and an `age` computed from the in-process cache.
+It adds `content-type: application/json`, `x-c15t-policy-contract: 1` and
+`x-c15t-next-revalidate`, whose value is the upstream `s-maxage` when present,
+`300` when the upstream sends no `cache-control` at all (the default header is
+substituted before `s-maxage` is read), and otherwise the configured
+revalidation interval. A `language` query
+parameter on the manifest route is passed to the upstream manifest request.
+
+`fetchGvl` runs inside `GET` only when the manifest has `iab.enabled: true`,
+the manifest includes an `iab.gvl` reference, and the resolved policy matched
+with `model: 'iab'`. It receives the reference, the `fetch` option, and the
+language taken from the first segment of the resolved translations language
+(`en` when empty). Its result, including `null`, becomes the payload's `gvl`.
+The default fetcher caches the vendor list in process.
+
+`createPagesApiHandlers(options)` from `c15t/next/pages` accepts the same
+options or a `defineConsentConfig` result and returns `{ init, manifest }`:
+`init` wraps `GET` and `manifest` wraps `manifestGET`, each taking the Node
+`req` and `res` of a `pages/api` route. Because a `pages/api` default export
+receives every method, requests other than `GET` and `HEAD` are answered with
+`405` and an `allow: GET` header before the wrapped handler runs.
+
+## Manifest request resolution
+
+The [App Router](/docs/frameworks/next/app-router) and
+[Pages Router](/docs/frameworks/next/pages-router) manifest setups use this flow:
+
+1. The app's manifest handler fetches the absolute backend's `/manifest`
+   endpoint and caches public policy data.
+2. `prefetchInitialConsent({ config: consentConfig })` reads the manifest route,
+   resolves policy with the current request's inputs and restores valid consent
+   cookies.
+3. `ConsentBoundary` receives that result as `config` and the URL configuration
+   as `consent`. Hydration preserves the prepared state.
+4. If browser initialization is needed, it resolves the manifest locally. An
+   optional `initURL` moves this resolution to the app server.
+5. Browser choices post to `${backendURL}/subjects`.
+
+A warm policy cache avoids backend `/init` during request resolution. The app
+may still read its manifest route, cold caches fetch upstream data, and choices
+still reach the backend. IAB policies can also require a Global Vendor List
+fetch. See [manifest caching](/docs/frameworks/next/optimization) for cache
+settings, and [server rendering](/docs/frameworks/next/server-side) for awaiting
+or streaming prefetch results.
+
+## Geography and privacy signals
+
+Server manifest resolution reads location headers from the hosting platform.
+It recognizes country headers such as `cf-ipcountry` and
+`x-vercel-ip-country`, and region headers such as `cf-region-code` and
+`x-vercel-ip-country-region`. The application overrides `x-c15t-country` and
+`x-c15t-region` take precedence. Only trusted infrastructure should supply
+location overrides in production.
+
+Request helpers also read language and GPC. Missing location stays unknown;
+the resolver does not infer country from the Next.js server's IP. Test unknown
+country and region against your configured policy rules.
+
+Browser manifest resolution uses location overrides from prefetch or your
+application. A browser-only entry without those inputs uses unknown location.
+The [optional init route](#do-i-need-the-local-init-route) reads geographic
+headers on the server and keeps resolver code and translations out of browser
+initialization.
+
+## Offline configuration
+
+Not recommended for production environments. Use offline mode for local
+development, tests or demos that do not need backend records.
+
+Omit hosted prefetch and select the offline factory in a Client Component.
+Keep your existing banner, dialog and preferences link as children of this
+boundary:
+
+```tsx title="app/offline-consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentBoundary, offline } from 'c15t/next';
+
+const mode = offline();
+
+export function OfflineConsent({ children }: { children: ReactNode }) {
+  return (
+    <ConsentBoundary config={{}} options={{ mode }}>
+      {children}
+    </ConsentBoundary>
+  );
+}
+```
+
+The default local policy pack handles missing geography; offline mode does not
+perform IP lookup. Supply `policyRules` to replace that pack when your local
+policy needs different behavior. Browser persistence stores choices, but this
+setup has no backend record service. See
+[transport choices](/docs/guides/data-fetching) for the tradeoffs.

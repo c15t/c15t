@@ -1,17 +1,28 @@
 ---
 title: IAB TCF
-description: Enable IAB TCF 2.3 in your React app.
+description: Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Prepare the IAB configuration
 
-## Setup
+<import src="../../../shared/react/iab/overview.mdx#prepare" />
 
-TODO.
+Import the components from `c15t/react/iab` and render them inside your
+existing `ConsentProvider` from `c15t/react`. Import `c15t/react/iab/styles.css`
+at your global stylesheet entry.
 
-## Components
+```tsx title="src/iab-consent.tsx"
+import { IABProvider, IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 
-TODO.
+export function IABConsent({ cmpId }: { cmpId: number }) {
+  return (
+    <IABProvider cmpId={cmpId}>
+      <IABConsentBanner />
+      <IABConsentDialog />
+    </IABProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/overview.mdx#configure" />

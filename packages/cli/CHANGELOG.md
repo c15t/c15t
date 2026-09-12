@@ -102,7 +102,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 
@@ -190,7 +190,7 @@
 
   Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
 
-- 57eef9f: feat(cli): consent.io integration
+- 57eef9f: feat(cli): inth.com integration
   feat(cli): remove redundent preflight checks
 - 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
   Add CLI migration codemods to update existing projects to the new naming.
@@ -253,7 +253,7 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ### Patch Changes
 
@@ -296,7 +296,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://c15t.com/changelog/1.8.2
 
 - Updated dependencies [2ce4d5a]
   - @c15t/react@1.8.2
@@ -379,7 +379,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/1.7.0
 
 ### Patch Changes
 
@@ -421,7 +421,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/1.6.0).
 
 ### Patch Changes
 

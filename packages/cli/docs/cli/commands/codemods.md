@@ -3,12 +3,13 @@ title: Legacy codemods
 description: Preview and run explicit v1 to v2 source transforms.
 group: cli
 ---
+
 ```bash
 c15t codemods --list --json
 c15t codemods component-renames --dry-run --json
 ```
 
-These transforms target c15t v2. They are available from the command line and help output, but are omitted from the main onboarding menu. For v3, use the [agent migration workflow](../automation).
+These transforms target c15t v2. They are available from the command line and help output, but are omitted from the main onboarding menu. For v3, use the [agent migration workflow](../automation.md).
 
 ## Choose transforms
 

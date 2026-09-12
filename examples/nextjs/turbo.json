@@ -1,0 +1,17 @@
+{
+	"$schema": "https://turborepo.dev/schema.v2.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"env": [
+				"NEXT_PUBLIC_C15T_BACKEND_URL",
+				"NEXT_PUBLIC_POSTHOG_KEY",
+				"NEXT_PUBLIC_POSTHOG_HOST",
+				"NEXT_PUBLIC_X_PIXEL_ID"
+			]
+		},
+		"check-types": {
+			"dependsOn": ["^build"]
+		}
+	}
+}

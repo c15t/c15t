@@ -1,46 +1,138 @@
 ---
-title: Server-Side
-description: Read and set consent on the server in Next.js.
+title: Server rendering and hydration
+description: Resolve consent on the server, choose what waits for the result, and preserve the same state through hydration.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Choose when consent resolves
 
-## Reading consent
+Fetching and rendering are separate choices. The examples here keep the shared
+`consentConfig` and manifest route from the
+[App Router guide](/docs/frameworks/next/app-router).
 
-TODO.
+| Rendering path | Pass to `ConsentBoundary` | What the visitor receives |
+| --- | --- | --- |
+| Await consent | The resolved `prefetchInitialConsent` result | The consent subtree renders after resolution. A surrounding Suspense fallback may stream first. |
+| Stream while consent resolves | The `prefetchInitialConsent` promise | The page renders immediately; the browser initializes consent when the result arrives. |
+| [Browser initialization](/docs/frameworks/next/client-side) | `config={{}}` and the shared `consent` config | The browser initializes after mount; the initial HTML has no resolved consent prompt. |
 
-## Server components
+Client Components can still be prerendered by Next.js. Browser initialization
+describes where consent resolves, not whether the component produces server HTML.
 
-TODO.
+## Use the helper for your router
 
-## Manifest caching
+| Router | Server helper import | Request context |
+| --- | --- | --- |
+| App Router | `c15t/next/server` | Next.js request cookies and headers |
+| Pages Router | `c15t/next/pages` | `req` passed from `getServerSideProps` |
+| Static export | No request helper | Browser initialization |
 
-Server manifest requests share an in-process cache. The cache subtracts the upstream `Age` from `s-maxage`, so a response with `Age: 55` and `s-maxage=60` stays fresh for another five seconds. Manifest proxy responses forward the upstream age plus time spent in the local cache, so downstream caches keep the same expiry. An explicit `s-maxage=0`, `no-store`, `no-cache`, or `private` prevents reuse. When the backend sends no shared-cache lifetime, the cache uses a five-second lifetime to combine nearby requests.
+For complete setup files, follow [App Router](/docs/frameworks/next/app-router),
+[Pages Router](/docs/frameworks/next/pages-router) or
+[static export](/docs/frameworks/next/static-export).
+Pages Router must await prefetch inside `getServerSideProps` before serializing
+props. The streaming examples on this page are for App Router.
 
-Requests without a caller-provided abort signal time out after ten seconds. Requests that forward identity headers reject redirects to prevent credentials from reaching an unvalidated target.
+## Stream the page while consent resolves
 
-Clearing the cache also invalidates pending fills. A request already in flight can finish for its caller, but cannot repopulate the cleared cache.
+The App Router guide awaits `prefetchInitialConsent` inside `Suspense` by
+default and offers this promise form as the streaming alternative. Pass the
+promise from a synchronous layout to the script-owning client wrapper. This
+partial example keeps that wrapper:
 
-## Vendor-list caching
+```tsx
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
 
-IAB init requests reuse the Global Vendor List by URL and language. The shared GVL cache uses `s-maxage`, then `max-age`, and subtracts upstream `Age`. It uses a one-day fallback when neither lifetime is provided, matching the backend vendor-list cache. An explicit zero lifetime or `no-store`, `no-cache`, or `private` prevents reuse, including when the backend returns `204` to indicate that IAB is disabled. Clearing the cache invalidates pending fills too.
+// Inside the existing synchronous layout:
+const initialConsent = prefetchInitialConsent({ config: consentConfig });
 
-## Static manifest modules
-
-Generate a module during your build and import it into your static application:
-
-```ts
-import { writeFile } from 'node:fs/promises';
-import { createStaticManifestModule } from '@c15t/nextjs/static';
-
-const source = await createStaticManifestModule({
-  manifestURL: 'https://consent.example.com/manifest',
-  exportName: 'consentManifest',
-});
-await writeFile('./consent-manifest.ts', source);
+<Consent config={initialConsent}>{children}</Consent>
 ```
 
-The helper rejects invalid export names before fetching. The generated module imports `ConsentManifest` from `@c15t/nextjs/static`. If your application installs the umbrella `c15t` package, import the helper from `c15t/next/static` and set `importSource: 'c15t/next/static'` so the generated type import resolves through that dependency.
+This promise form does not render consent UI on the server. For server-rendered
+consent UI, await the result as shown below.
+
+Keep the shared config and manifest route from that guide. This form also
+works with `cacheComponents: true`. Request helpers still need a visitor request;
+passing a promise does not make this a static-export setup.
+
+## Await consent inside Suspense
+
+If the consent subtree should wait for resolution, move it into an async Server
+Component under `Suspense`. With `cacheComponents: true`, awaiting request data
+directly in the root layout without this boundary causes a build error.
+
+This is the default root layout from the App Router guide. Keep its shared
+`c15t.config.ts`, manifest route and script-owning `Consent` wrapper:
+
+```tsx title="app/layout.tsx"
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+import { Consent } from '../components/consent';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import './globals.css';
+
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+
+  return (
+    <Consent config={initialConsent}>{children}</Consent>
+  );
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Suspense fallback={null}>
+          <ResolvedConsent>{children}</ResolvedConsent>
+        </Suspense>
+      </body>
+    </html>
+  );
+}
+```
+
+This example waits to render the children inside `ResolvedConsent`. The outer
+shell and fallback can stream first, so awaiting does not guarantee a resolved
+prompt in the first HTML response. Use the promise form when the page should
+render while consent is pending.
+
+## Preserve the server result
+
+`prefetchInitialConsent` restores records and resolves policy for the request.
+With `manifestURL`, it resolves the configured manifest. With only `backendURL`,
+it calls `${backendURL}/init`. Changing when you await the helper does not change
+which fetching path it uses.
+
+Pass the result intact to `config` and keep the same shared URLs in `consent`.
+Do not turn allowed categories into new saved choices or emit a choice event
+during hydration. Keep one boundary mounted across navigation.
+
+With resolved server state, `Frame` renders its placeholder or permitted content
+in the server HTML and reuses that state during hydration. It does not need to
+wait for the browser to mount before showing the placeholder. The default
+placeholder is visible immediately, without a fade-in animation.
+
+A resolved policy can satisfy browser initialization without another request.
+If prefetch fails or returns only baseline records, the browser can retry.
+Until resolution succeeds, optional permissions remain denied and consent UI
+stays hidden. See [Troubleshooting](/docs/frameworks/next/troubleshooting).
+
+`readInitialConsentConfig()` only reads request cookies, location, language and
+privacy signals. It makes no backend request and does not resolve policy. Use
+`prefetchInitialConsent()` when rendering needs the resolved policy.
+
+## Cache policy data without sharing visitor state
+
+A manifest is public policy configuration. Resolved init data, stored records
+and personalized HTML belong to a visitor. Keep them out of shared caches unless
+you provide appropriate isolation. Test more than one visitor and location.
+
+See [Optimization](/docs/frameworks/next/optimization) for cache settings and the
+[fetching reference](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
+for trusted location headers. Same-origin rewrites are optional and do not enable
+server rendering.

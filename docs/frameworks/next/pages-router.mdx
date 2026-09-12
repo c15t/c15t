@@ -1,0 +1,205 @@
+---
+title: Pages Router
+description: Set up Pages Router with Inth, cached manifests and consent-gated scripts.
+group: frameworks
+---
+
+## Before you start
+
+This guide uses [Inth](https://inth.com) with cached manifests. Your Next.js
+server reuses public policy data and resolves consent for each visitor. The
+browser sends consent submissions to Inth.
+
+You can use a [self-hosted backend](/docs/self-host/quickstart) with the same
+configuration and your own endpoint. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
+uses bundled policy and browser storage without backend records. Not recommended
+for production environments.
+
+This setup needs a Next.js server. For `output: 'export'`, follow
+[static export](/docs/frameworks/next/static-export). For a smaller setup with no
+local API routes, use [client-side initialization](/docs/frameworks/next/client-side).
+Same-origin [rewrites](/docs/frameworks/next/optimization) are optional.
+
+Location-based policies need trusted location headers from your host. Without
+them, c15t uses your unknown-location rule. Check the supported
+[geography headers](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
+before deploying.
+
+The setup below uses `getServerSideProps` for request-specific consent. Pages
+without prefetch initialize in the browser through the same app boundary.
+
+## Install c15t and configure your backend
+
+[Create an Inth project](https://inth.com), configure its policy rules and allow
+your app's origin. Copy its backend endpoint for the upstream configuration.
+
+If you chose self-hosting, complete the
+[backend quickstart](/docs/self-host/quickstart) and use its public endpoint in
+the steps below. Offline setups do not need an endpoint; use the
+[offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+
+<CommandTabs command="c15t" mode="install" />
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or
+your self-hosted backend, including any path prefix. This is a public endpoint,
+not a secret. Configure the backend to allow your app's origin.
+
+## Share the consent URLs
+
+Create this file at the project root. Set `manifestURL` explicitly to select
+manifest resolution.
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+export const consentConfig = defineConsentConfig({
+  backendURL,
+  manifestURL: '/api/c15t/manifest',
+});
+```
+
+## Add the manifest API route
+
+The Pages Router adapter reads `C15T_BACKEND_URL`, falling back to the
+`NEXT_PUBLIC_C15T_BACKEND_URL` configured above. If you set both, use the same
+absolute backend endpoint.
+
+```ts title="pages/api/c15t/manifest.ts"
+import { createPagesApiHandlers } from 'c15t/next/pages';
+
+export default createPagesApiHandlers().manifest;
+```
+
+The manifest route caches public policy data. Server prefetch resolves it
+using the visitor's request. Consent submissions go directly to `backendURL`.
+
+The following imports assume `pages/` is at the project root. Adjust them if you
+use `src/pages/`.
+
+<include src="../../shared/next-consent-wrapper.mdx" />
+
+## Keep one boundary in the app
+
+Add c15t to your global stylesheet. With Tailwind CSS 4, keep its import first:
+
+```css title="styles/globals.css"
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+```
+
+Without Tailwind, omit its import. For Tailwind CSS 3, use the
+[separate stylesheet recipe](/docs/frameworks/next/styling/overview#stylesheet).
+Keep any existing app styles and adjust the import below to their location.
+
+```tsx title="pages/_app.tsx"
+import type { AppProps } from 'next/app';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import { Consent } from '../components/consent';
+import '../styles/globals.css';
+
+type ConsentPageProps = {
+  initialConsent?: ConsentBoundaryProps['config'];
+};
+
+export default function App({ Component, pageProps }: AppProps<ConsentPageProps>) {
+  return (
+    <Consent config={pageProps.initialConsent ?? {}}>
+      <Component {...pageProps} />
+    </Consent>
+  );
+}
+```
+
+`initialConsent` is the prepared visitor state; `consentConfig` contains the
+shared URLs. Without page prefetch, the browser loads the manifest and resolves
+policy locally. Without supplied location, geography is unknown. For browser
+initialization with request geography, see the
+[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
+Consent submissions go to `${backendURL}/subjects` on the configured backend.
+
+## Prefetch for a server-rendered page
+
+Use `c15t/next/pages` with the `req` from `getServerSideProps`. The App Router
+helper reads a different request context and must not be used here.
+
+```tsx title="pages/index.tsx"
+import type { GetServerSideProps } from 'next';
+import type { ConsentBoundaryProps } from 'c15t/next';
+import { prefetchInitialConsent } from 'c15t/next/pages';
+import { consentConfig } from '../c15t.config';
+
+type PageProps = { initialConsent: ConsentBoundaryProps['config'] };
+
+export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig, req });
+  return {
+    props: {
+      initialConsent: JSON.parse(
+        JSON.stringify(initialConsent)
+      ) as PageProps['initialConsent'],
+    },
+  };
+};
+
+export default function Home() {
+  return <main>Your page</main>;
+}
+```
+
+The JSON round-trip removes `undefined` fields, such as an absent GPC signal,
+because Next.js rejects them in `getServerSideProps` props.
+
+Repeat prefetch on pages that need request-specific initial HTML. Do not use
+`getStaticProps` to resolve visitor cookies or geography: it runs without the
+visitor's request. Keep the shared URL configuration consistent across pages.
+
+## Verify entry and navigation
+
+For an opt-in policy, reject and confirm neither configured vendor loads. Allow
+measurement only: PostHog can load, while X Pixel stays blocked. Revoke
+measurement from Privacy settings and check PostHog's capture is disabled.
+See [script loading](/docs/frameworks/next/script-loader) for vendor-specific
+loading and revocation behavior.
+
+Load a server-rendered page directly, reject, and reload. Then navigate without
+a full reload and reopen preferences. The mounted boundary should retain the
+choice. Also test direct entry to a statically generated page; it uses browser
+manifest resolution, so verify your unknown-location rule.
+
+Confirm the server reads `/manifest` instead of the backend `/init` and choices
+reach `${backendURL}/subjects`. See
+[Optimization](/docs/frameworks/next/optimization) for caching, or compare
+alternatives in [data fetching](/docs/frameworks/next/data-fetching). For a deployment with no Next.js server, use
+[static export](/docs/frameworks/next/static-export) and remove local API routes.
+
+## Use regular backend initialization instead
+
+For a complete browser-only setup with hosted records, follow
+[client-side initialization](/docs/frameworks/next/client-side). It needs no
+local route handlers or server prefetch.
+
+For the smallest hosted configuration, keep only `backendURL` in
+`defineConsentConfig`:
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+export const consentConfig = defineConsentConfig({ backendURL });
+```
+
+This is an alternative to the manifest configuration. Remove the unused local
+manifest route. The existing prefetch and boundary now initialize
+through `${backendURL}/init`; consent saves still use `${backendURL}/subjects`.
+A backend-only config does not enable manifest mode automatically.
+
+Compare the choices in [data fetching](/docs/frameworks/next/data-fetching), or
+configure cache settings and optional rewrites in
+[Optimization](/docs/frameworks/next/optimization).

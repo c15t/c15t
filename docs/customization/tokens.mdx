@@ -1,0 +1,75 @@
+---
+title: Theme tokens and CSS
+description: Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
+group: customization
+---
+
+## Load the stock stylesheet once
+
+React, Next.js and Svelte provide `styles.css`. Import the adapter's stylesheet
+at the app's global entry point. Vue includes styles in its components; Astro
+adds styles through its integration.
+
+```tsx
+import 'c15t/react/styles.css';
+```
+
+The standard stylesheet places rules in `@layer components`. For Tailwind 3,
+use the `styles.tw3.css` entry instead of the standard stylesheet, between the
+components and utilities directives in your Tailwind entry:
+
+```css
+@tailwind base;
+@tailwind components;
+@import 'c15t/react/styles.tw3.css';
+@tailwind utilities;
+```
+
+Do not load both c15t stylesheet variants. For Tailwind 4 or unlayered CSS,
+inspect layer order before reaching for `!important`.
+
+## Set semantic values together
+
+This React theme changes the brand color and large corner radius. Include
+hover and foreground colors when overriding raw variables so the button remains
+readable in each state.
+
+```ts
+import { defineTheme } from '@c15t/ui/theme';
+
+export const theme = defineTheme({
+  colors: { primary: '#2f6f4e' },
+  radius: { lg: '4px' },
+  consentActions: {
+    primary: { variant: 'primary', mode: 'filled' },
+    dismiss: { variant: 'neutral', mode: 'stroke' },
+  },
+});
+```
+
+Install `@c15t/ui` if importing its theme helper directly. Pass `theme` in your
+provider options. `consentActions` selects styling by action role. A per-action
+entry overrides `primary`, which overrides `default`.
+
+## Target a prompt with CSS
+
+```css
+[data-prompt][data-model='opt-in'] {
+  --c15t-primary: #2f6f4e;
+  --c15t-primary-hover: #24563c;
+  --c15t-text-on-primary: #fff;
+}
+```
+
+Use attributes exposed by the rendered component, not guessed class names.
+Test the prompt and the preferences dialog separately because tokens scoped to
+one prompt do not automatically reach a portaled dialog.
+
+| Size variable | Default | Target |
+| --- | --- | --- |
+| `--consent-banner-max-width` | `440px` | Floating card |
+| `--consent-banner-widget-max-width` | `20rem` | Widget |
+| `--consent-banner-wall-max-width` | `30rem` | Choice wall |
+
+Test long translations and small screens after changing width or typography.
+A compact banner must still fit the required actions.

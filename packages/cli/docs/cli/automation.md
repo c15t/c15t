@@ -4,6 +4,7 @@ description: Use structured CLI results and version-matched documentation from
   agents, scripts, and other CLIs.
 group: cli
 ---
+
 ```bash
 c15t setup offline --plan --json --no-telemetry
 ```

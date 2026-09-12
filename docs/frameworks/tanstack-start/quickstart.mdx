@@ -1,0 +1,143 @@
+---
+title: Quickstart
+description: Resolve consent through a Start server function and hydrate it through the root route.
+group: frameworks
+---
+
+[Create an Inth project](https://inth.com) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install
+
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
+
+Set `VITE_C15T_BACKEND_URL` to your consent backend's absolute base URL and allow
+your application origin on that backend. This direct-backend recipe uses the
+same public URL for prefetch and browser saves.
+
+## Normalize request inputs
+
+Merge the middleware into your existing Start configuration:
+
+```ts title="src/start.ts"
+import { createStart } from '@tanstack/react-start';
+import { consentRequestMiddleware } from 'c15t/tanstack-start/middleware';
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [consentRequestMiddleware()],
+}));
+```
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+VITE_POSTHOG_KEY=
+VITE_X_PIXEL_ID=
+```
+
+Vite embeds these public values at build time; restart development or rebuild
+for deployment after changing them.
+An empty ID disables that integration. Create `src/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/tanstack-start-scripts.mdx" />
+
+## Resolve consent in the root loader
+
+Declare `createServerFn` in your app. Start's compiler uses that call site to
+separate the server handler from the browser bundle.
+
+```tsx title="src/routes/__root.tsx"
+import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router';
+import { createServerFn } from '@tanstack/react-start';
+import {
+  ConsentBanner,
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogLink,
+} from 'c15t/tanstack-start';
+import {
+  consentLoaderOptions,
+  createConsentConfigHandler,
+} from 'c15t/tanstack-start/server';
+import consentCss from 'c15t/tanstack-start/styles.css?url';
+import { createExampleScripts } from '../example-scripts';
+
+const scripts = createExampleScripts(
+  import.meta.env.VITE_POSTHOG_KEY,
+  import.meta.env.VITE_X_PIXEL_ID,
+);
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+
+const getConsentConfig = createServerFn({ method: 'GET' }).handler(
+  createConsentConfigHandler({ backendURL }),
+);
+
+export const Route = createRootRoute({
+  ...consentLoaderOptions,
+  loader: () => getConsentConfig(),
+  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
+  component: Root,
+});
+
+function Root() {
+  const config = Route.useLoaderData();
+  return (
+    <html lang="en">
+      <head><HeadContent /></head>
+      <body>
+        <ConsentBoundary config={config} backendURL={backendURL} initRoute={false} scripts={scripts}>
+          <Outlet />
+          <ConsentBanner />
+          <ConsentDialog />
+          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+        </ConsentBoundary>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+Merge the loader and head entries if the root route already has them. Keep
+`consentLoaderOptions` so consent loading follows the adapter's cache and reload
+settings. The server prepares the configuration; the boundary uses it for the
+first client render. `initRoute={false}` sends browser initialization to
+`${backendURL}/init`, matching this direct-backend setup.
+
+## Add a same-origin proxy when needed
+
+If browser traffic should use `/api/c15t`, mount a real Start server route using
+`createConsentServerRoute` from `c15t/tanstack-start/api` with `proxy: true`.
+Give `createConsentConfigHandler` the upstream backend URL and the boundary the
+browser route URL. Remove `initRoute={false}` to use the default
+`/api/c15t/init` route, or set `initRoute` to your custom route URL. Do not make
+prefetch call its own proxy unnecessarily.
+
+Only enable `trustForwardedHeaders` when your deployment overwrites and
+sanitizes those headers. Otherwise a caller can supply a false visitor IP.
+The complete route example lives in `examples/tanstack-start` in the source
+repository.
+
+## Verify the server path
+
+Load the page directly and inspect the initial HTML under a choice policy.
+Reject, navigate, reload and reopen preferences. Hydration must not produce a
+new choice callback. This recipe requires a Start server; if you publish only
+static HTML, use browser initialization with an external backend rather than
+expecting the server function to exist. Follow
+[verification](/docs/guides/verify-consent) for the full flow.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

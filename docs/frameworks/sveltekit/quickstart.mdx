@@ -1,0 +1,112 @@
+---
+title: Quickstart
+description: Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
+group: frameworks
+---
+
+[Create an Inth project](https://inth.com) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install
+
+<CommandTabs command="@c15t/svelte @c15t/scripts" mode="install" />
+
+Set `PUBLIC_C15T_BACKEND_URL` to an absolute consent backend URL. Configure
+policy rules and the app origin on the backend. The URL is public because the
+browser also uses it to save choices.
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+PUBLIC_POSTHOG_KEY=
+PUBLIC_X_PIXEL_ID=
+```
+
+The layout reads these public values through SvelteKit's `$env/dynamic/public`.
+An empty ID disables that integration. Create `src/lib/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/sveltekit-scripts.mdx" />
+
+## Resolve consent on each request
+
+```ts title="src/routes/+layout.server.ts"
+import { env } from '$env/dynamic/public';
+import { loadConsent } from '@c15t/svelte/kit';
+import type { LayoutServerLoad } from './$types';
+
+export const load: LayoutServerLoad = async (event) => {
+  const backendURL = env.PUBLIC_C15T_BACKEND_URL;
+  if (!backendURL) throw new Error('Set PUBLIC_C15T_BACKEND_URL');
+  return { prefetch: await loadConsent(event, { backendURL }), backendURL };
+};
+```
+
+```svelte title="src/routes/+layout.svelte"
+<script lang="ts">
+  import { env } from '$env/dynamic/public';
+  import { createExampleScripts } from '$lib/example-scripts';
+  import {
+    ConsentBanner,
+    ConsentDialog,
+    ConsentDialogLink,
+    ConsentManagerProvider,
+    hosted,
+  } from '@c15t/svelte';
+  import '@c15t/svelte/styles.css';
+
+  let { children, data } = $props();
+  const mode = hosted({ url: data.backendURL });
+  const scripts = createExampleScripts(env.PUBLIC_POSTHOG_KEY, env.PUBLIC_X_PIXEL_ID);
+</script>
+
+<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts}>
+  {@render children()}
+  <ConsentBanner />
+  <ConsentDialog />
+  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+</ConsentManagerProvider>
+```
+
+`loadConsent` reads the request and returns serializable prefetch data. Pass
+that data through intact; reconstructing permissions as saved booleans loses
+receipt and policy information. The provider's `mode` and `prefetch` are
+top-level props.
+
+For manifest-backed resolution, the package also exports
+`createSvelteKitConsentRouteHandlers` from `@c15t/svelte/kit`. Once those routes
+are mounted, `loadConsent(event, { initRoute: '/api/c15t' })` uses the app's own
+init route through `event.fetch`. Merely changing the URL does not create it.
+
+## Use static hosting
+
+A prerendered page cannot resolve a visitor's cookies at build time. For static
+output, omit the request-specific server load and `prefetch`. Configure
+`hosted({ url })` in the layout with an absolute external backend URL, using a
+public build-time value from `$env/static/public`. Read vendor IDs from
+`$env/static/public` too for prerendering. Keep the provider and UI from
+the example. Do not point at a same-origin server route that the static host
+cannot run.
+
+The browser initializes consent after mount. Optional permissions remain denied
+while no policy has resolved. Follow your SvelteKit adapter's static deployment
+configuration independently of consent setup.
+
+## Verify hydration and navigation
+
+For SSR, a valid stored choice should survive the first client render without a
+new choice event. For static output, serve the actual generated site. On both,
+reject, navigate between routes, reload and reopen preferences. Check requests
+and failed initialization with [verification](/docs/guides/verify-consent).
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

@@ -3,21 +3,22 @@ title: Global flags
 description: Control CLI output, project location, prompts, and telemetry.
 group: cli
 ---
+
 ```bash
 c15t projects list --json --no-telemetry
 ```
 
-|Flag|Behavior|
-|--|--|
-|`--help`, `-h`|Show help and the options supported by a command.|
-|`--version`, `-v`|Report the installed CLI version.|
-|`--cwd <directory>`|Resolve the command's project directory without changing the caller's working directory.|
-|`--logger <level>`|Choose the diagnostic log level.|
-|`--yes`, `-y`|Accept confirmation prompts. Does not supply missing names, modes, or URLs.|
-|`--non-interactive`|Fail when required input would need a prompt.|
-|`--json`|Return one versioned JSON result on stdout and disable prompts.|
-|`--no-telemetry`|Disable telemetry.|
-|`--telemetry-debug`|Enable telemetry diagnostics.|
+| Flag                | Behavior                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `--help`, `-h`      | Show help and the options supported by a command.                                        |
+| `--version`, `-v`   | Report the installed CLI version.                                                        |
+| `--cwd <directory>` | Resolve the command's project directory without changing the caller's working directory. |
+| `--logger <level>`  | Choose the diagnostic log level.                                                         |
+| `--yes`, `-y`       | Accept confirmation prompts. Does not supply missing names, modes, or URLs.              |
+| `--non-interactive` | Fail when required input would need a prompt.                                            |
+| `--json`            | Return one versioned JSON result on stdout and disable prompts.                          |
+| `--no-telemetry`    | Disable telemetry.                                                                       |
+| `--telemetry-debug` | Enable telemetry diagnostics.                                                            |
 
 String options accept both `--name value` and `--name=value`. Unknown commands, unknown flags, missing flag values, and flags used with the wrong command return a failure.
 

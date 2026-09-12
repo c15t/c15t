@@ -33,7 +33,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ## 1.0.2-rc.1
 
@@ -67,13 +67,13 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ## 1.0.1
 
 ### Patch Changes
 
-- 68a7324: Full Changelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+- 68a7324: Full Changelog: https://c15t.com/changelog/1.8.0
 
 ## 1.0.1-canary-20251112105612
 
@@ -85,7 +85,7 @@
 
 ### Major Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/1.7.0
 
 ## 1.0.0-canary-20251012181938
 

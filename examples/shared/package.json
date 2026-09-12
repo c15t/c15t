@@ -1,0 +1,20 @@
+{
+	"name": "@c15t/example-conformance",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"fmt": "oxfmt .",
+		"lint": "oxlint src",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
+		"@types/node": "25.5.0",
+		"playwright": "1.61.1",
+		"typescript": "6.0.3",
+		"vitest": "4.1.10"
+	}
+}

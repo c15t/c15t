@@ -1,17 +1,33 @@
 ---
 title: IAB TCF
-description: Enable IAB TCF 2.3 in your Next.js app.
+description: Mount the IAB TCF banner and dialog inside a Next.js ConsentBoundary and configure the CMP ID, policy and vendor data.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Prepare the IAB configuration
 
-## Setup
+<import src="../../../shared/react/iab/overview.mdx#prepare" />
 
-TODO.
+Next.js uses the React IAB components. There is no `c15t/next/iab` JavaScript
+entry point, so import the components from `c15t/react/iab` and render this
+Client Component inside the `ConsentBoundary` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup. Import
+`c15t/next/iab/styles.css` at your global stylesheet entry.
 
-## Components
+```tsx title="components/iab-consent.tsx"
+'use client';
 
-TODO.
+import { IABProvider, IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
+
+export function IABConsent({ cmpId }: { cmpId: number }) {
+  return (
+    <IABProvider cmpId={cmpId}>
+      <IABConsentBanner />
+      <IABConsentDialog />
+    </IABProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/overview.mdx#configure" />

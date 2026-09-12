@@ -1,6 +1,6 @@
 ---
 title: ConsentDialogTrigger
-description: Floating button and toolbar that reopen the preference center after the first prompt.
+description: Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentBoundary so visitors can reopen the preference center.
 group: frameworks
 ---
 
@@ -8,26 +8,17 @@ group: frameworks
 
 `ConsentDialogTrigger` is a draggable floating button that opens the preference center. Place it once, next to the banner and dialog, so visitors can revisit their choices without a footer link.
 
-```tsx
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogTrigger,
-  ConsentProvider,
-  offline,
-} from '@c15t/nextjs';
-import { policyRulePresets } from '@c15t/schema';
+Keep the boundary, stylesheet and transport from your
+[router setup](/docs/frameworks/next/quickstart). Add this component as a child
+of the existing boundary, alongside its banner and dialog:
 
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+```tsx title="components/privacy-trigger.tsx"
+'use client';
 
-export function App() {
-  return (
-    <ConsentProvider options={{ mode }}>
-      <ConsentBanner />
-      <ConsentDialog />
-      <ConsentDialogTrigger showWhen="after-prompt" />
-    </ConsentProvider>
-  );
+import { ConsentDialogTrigger } from 'c15t/next';
+
+export function PrivacyTrigger() {
+  return <ConsentDialogTrigger showWhen="after-prompt" />;
 }
 ```
 
@@ -37,22 +28,17 @@ The button carries `data-c15t-rights` with the rights the active policy guarante
 
 ## Props
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `icon` | `'branding' \| 'fingerprint' \| 'settings' \| ReactNode` | `'branding'` | Icon rendered inside the button. |
-| `defaultPosition` | `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` | `'bottom-right'` | Corner the button starts in. |
-| `persistPosition` | `boolean` | `true` | Remember the corner the visitor dragged it to. |
-| `showWhen` | `'always' \| 'after-prompt' \| 'never'` | `'always'` | When the button is visible. `after-prompt` waits until no choice or notice is owed. |
-| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Button size. |
-| `ariaLabel` | `string` | `'Open privacy settings'` | Accessible name. |
-| `noStyle` | `boolean` | `false` | Remove the default styling. |
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#props" />
 
 ## Configurable toolbar
 
 Use `ConsentDialogTriggerToolbar` when you want app-owned controls beside the privacy trigger. It always renders exactly one built-in action that opens the preference center, so `actions` only holds controls your app owns.
 
+This partial example belongs in a Client Component inside the existing boundary.
+Define the theme state, icons and callbacks in that component.
+
 ```tsx
-import { ConsentDialogTriggerToolbar } from '@c15t/nextjs';
+import { ConsentDialogTriggerToolbar } from 'c15t/next';
 
 <ConsentDialogTriggerToolbar
   ariaLabel="Site controls"
@@ -94,48 +80,29 @@ Toolbars are horizontal by default. Set `orientation="vertical"` to stack the ac
 
 ### Toolbar props
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `actions` | `ConsentDialogTriggerToolbarAction[]` | `[]` | App-owned actions rendered beside the preferences action. |
-| `preferences` | `ConsentDialogTriggerToolbarPreferences` | `{}` | Overrides for the built-in action: `icon`, `label`, `onSelect`, `className`, `style`. The label defaults to the opt-out or preferences right on the active rule. |
-| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Layout direction. |
-| `defaultPosition` | `CornerPosition` | `'bottom-right'` | Corner the toolbar starts in. |
-| `persistPosition` | `boolean` | `true` | Remember the dragged corner. |
-| `showWhen` | `'always' \| 'after-prompt' \| 'never'` | `'always'` | When the built-in preferences action is visible. App-owned actions always render. `after-prompt` waits until no choice or notice is owed. |
-| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size of each action. |
-| `ariaLabel` | `string` | `'Privacy controls'` | Accessible name for the toolbar group. |
-| `noStyle` | `boolean` | `false` | Remove the default styling. |
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#toolbar-props" />
 
 ### Toolbar styling
 
 The toolbar follows the standard precedence: bundled styles, then provider slots, then direct `className` and `style` on the toolbar or on one action. Use `noStyle` for a fully custom implementation.
 
-```tsx
-<ConsentProvider
-  options={{
-    mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }),
-    components: {
-      trigger: {
-        toolbar: { className: 'my-toolbar' },
-        toolbarItem: { className: 'my-toolbar-item' },
-        toolbarIcon: { className: 'my-toolbar-icon' },
-      },
-    },
-  }}
->
-  <ConsentDialogTriggerToolbar
-    className="fixed-toolbar"
-    actions={[
-      {
-        id: 'support',
-        label: 'Open support chat',
-        icon: <ChatIcon />,
-        onSelect: openSupportChat,
-        className: 'support-action',
-      },
-    ]}
-  />
-</ConsentProvider>
+Add these slot values to `options.components` on your existing
+`ConsentBoundary` or `ConsentProvider`. Merge them with any existing component
+slots and retain the configured transport:
+
+```ts
+const triggerSlots = {
+  toolbar: { className: 'my-toolbar' },
+  toolbarItem: { className: 'my-toolbar-item' },
+  toolbarIcon: { className: 'my-toolbar-icon' },
+};
+
+// In the existing options.components object:
+// trigger: triggerSlots
 ```
+
+For one toolbar, pass `className="fixed-toolbar"` directly. Each app-owned
+item also accepts `className`, such as `className: 'support-action'` on your
+support action. Keep its icon and callback in the Client Component.
 
 The toolbar slot keys are `trigger.toolbar`, `trigger.toolbarItem`, and `trigger.toolbarIcon`. With `noStyle`, style the current position and interaction state through `data-corner`, `data-dragging`, and `data-snapping` on the toolbar element.

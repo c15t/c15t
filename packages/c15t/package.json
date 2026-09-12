@@ -51,7 +51,9 @@
 		"shims",
 		"AGENTS.md",
 		"README.md",
-		"CHANGELOG.md"
+		"CHANGELOG.md",
+		"docs",
+		"SKILL.md"
 	],
 	"type": "module",
 	"sideEffects": [
@@ -421,7 +423,8 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun scripts/copy-distribution-css.ts",
+		"build": "bun scripts/copy-distribution-css.ts && bun run build:docs",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts c15t",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./scripts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",

@@ -1,17 +1,43 @@
 ---
-title: useConsentManager
-description: Read and update consent state from any component.
+title: Hooks
+description: Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Read only the state you need
 
-## Usage
+Every hook reads the runtime from the `ConsentBoundary` set up in your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) guide, so call them from a
+Client Component rendered inside that boundary and import them from
+`c15t/next`.
 
-TODO.
+```tsx title="components/optional-feature.tsx"
+'use client';
 
-## Return value
+import { useConsent } from 'c15t/next';
 
-TODO.
+export function OptionalFeature() {
+  const allowed = useConsent('marketing');
+  return allowed ? <div>Optional marketing content</div> : null;
+}
+```
+
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#read-state" />
+
+## Save from a visitor action
+
+Place this Client Component inside your existing consent boundary.
+
+```tsx title="components/reject-button.tsx"
+'use client';
+
+import { useSaveConsents } from 'c15t/next';
+
+export function RejectButton() {
+  const save = useSaveConsents();
+  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+}
+```
+
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#save-guidance" />

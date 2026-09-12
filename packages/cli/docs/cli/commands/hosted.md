@@ -3,6 +3,7 @@ title: Hosted projects and authentication
 description: Authenticate with Inth and select or create a hosted consent project.
 group: cli
 ---
+
 ```bash
 c15t login
 c15t projects list --json

@@ -1,0 +1,77 @@
+---
+title: Runnable examples
+description: Run c15t with PostHog, X Pixel, a YouTube embed and persistent preferences in your framework.
+---
+
+## Choose your framework
+
+Each example registers PostHog and X Pixel with c15t, gates a YouTube embed,
+and keeps preferences reachable after the banner closes. Open the default and
+branded designs to compare the same consent behavior with different styling.
+
+The source lives in the [c15t examples directory](https://github.com/c15t/c15t/tree/v3/examples).
+Clone the repository, install its dependencies and build the packages:
+
+```sh
+bun install
+bun run build:libs
+```
+
+| Framework | Directory | Run from the repository root |
+| --- | --- | --- |
+| Next.js, App and Pages Router | `examples/nextjs` | `bun run --cwd examples/nextjs dev` |
+| TanStack Start | `examples/tanstack-start` | `bun run --cwd examples/tanstack-start dev` |
+| React | `examples/react` | `bun run --cwd examples/react dev` |
+| Nuxt | `examples/nuxt` | `bun run --cwd examples/nuxt dev` |
+| Vue | `examples/vue` | `bun run --cwd examples/vue dev` |
+| Astro | `examples/astro-demo` | `bun run --cwd examples/astro-demo dev` |
+| Svelte | `examples/svelte` | `bun run --cwd examples/svelte dev` |
+| SvelteKit | `examples/sveltekit-demo` | `bun run --cwd examples/sveltekit-demo dev` |
+| JavaScript | `examples/javascript` | `bun run --cwd examples/javascript dev` |
+
+Follow the selected directory's README and environment example. Use your Inth
+endpoint and configure its allowed origin. Supply your PostHog project key and
+X Pixel ID to enable the vendor scripts. Some existing showcases also offer a
+self-hosted backend or offline experiments; their README explains the hosted
+configuration for this example.
+
+In Next.js, visit `/app-router` and `/pages-router`. In TanStack Start, Nuxt,
+Astro and SvelteKit, visit `/consent-example`. The plain-framework examples
+open directly at `/`.
+
+## What to try
+
+1. Reject optional categories and reload. The YouTube iframe and configured
+   vendor scripts should remain blocked under an opt-in policy.
+2. Open **Privacy settings** in the footer and allow measurement only. PostHog
+   and YouTube can load; X Pixel still waits for marketing permission.
+3. Allow marketing, then revoke the optional categories. The iframe is removed
+   and PostHog receives an opt-out. Removing a script cannot undo JavaScript
+   that has already executed.
+4. Switch designs, navigate and reload. The appearance can change without
+   recording a new choice.
+
+PostHog uses `loadMode: 'after-consent'` and disables cookieless capture in
+these examples. Its default helper behavior is different; see
+[PostHog configuration](/docs/integrations/posthog).
+
+The JavaScript example owns its HTML controls because the package is headless.
+The framework adapters provide their stock UI. DevTools is included where the
+adapter supports it; the Astro example exposes consent state through its page.
+
+## Use the tested source in your app
+
+Keep your framework's provider, script registration and cleanup together.
+Read its [quickstart](/docs/frameworks) for the production setup, then use the
+example files for scripts, embeds and styling. Script snippets in the
+quickstarts are generated from these runnable examples.
+
+The shared browser suite builds the examples and checks consent behavior with
+a fixture backend and intercepted vendor requests. For example:
+
+```sh
+EXAMPLE_TARGET=nextjs bun run --cwd examples/shared test
+```
+
+See [verification](/docs/guides/verify-consent) for the checks to run against your
+own backend and live vendor accounts before shipping.

@@ -4,6 +4,7 @@ description: Measure ChatGPT Ads conversions after marketing consent with the
   OpenAI Measurement Pixel.
 group: integrations
 ---
+
 ## Usage
 
 ```ts
@@ -49,12 +50,12 @@ measurement consent is denied.
 
 ## Options
 
-|Option|Type|Default|Description|
-|--|--|--|--|
-|`pixelId`|`string`|Required|Your OpenAI Ads Manager Pixel ID.|
-|`debug`|`boolean`|`false`|Log SDK activity to the browser console.|
-|`user`|`OpenAIPixelUser`|Omitted|User matching fields passed to SDK initialization.|
-|`scriptSrc`|`string`|`https://bzrcdn.openai.com/sdk/oaiq.min.js`|Override the SDK URL.|
+| Option      | Type              | Default                                     | Description                                        |
+| ----------- | ----------------- | ------------------------------------------- | -------------------------------------------------- |
+| `pixelId`   | `string`          | Required                                    | Your OpenAI Ads Manager Pixel ID.                  |
+| `debug`     | `boolean`         | `false`                                     | Log SDK activity to the browser console.           |
+| `user`      | `OpenAIPixelUser` | Omitted                                     | User matching fields passed to SDK initialization. |
+| `scriptSrc` | `string`          | `https://bzrcdn.openai.com/sdk/oaiq.min.js` | Override the SDK URL.                              |
 
 ## User matching
 
@@ -157,10 +158,10 @@ measurement requests, so monitor runs do not populate your Ads Manager events.
 If your site uses a Content Security Policy, allow these sources in the
 corresponding directives:
 
-|Directive|Sources|
-|--|--|
-|`script-src`|`https://bzrcdn.openai.com`|
-|`connect-src`|`https://bzr.openai.com` and `https://bzrcdn.openai.com`|
-|`img-src`|`https://bzr.openai.com`|
+| Directive     | Sources                                                  |
+| ------------- | -------------------------------------------------------- |
+| `script-src`  | `https://bzrcdn.openai.com`                              |
+| `connect-src` | `https://bzr.openai.com` and `https://bzrcdn.openai.com` |
+| `img-src`     | `https://bzr.openai.com`                                 |
 
 Also allow the CDN in `script-src-elem` if your policy defines that directive.

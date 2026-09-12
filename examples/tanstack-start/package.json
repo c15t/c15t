@@ -11,6 +11,7 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
+		"@c15t/scripts": "workspace:*",
 		"@effect/sql-pglite": "4.0.0-beta.102",
 		"@electric-sql/pglite": "0.4.2",
 		"@tanstack/react-router": "1.170.32",

@@ -1,0 +1,312 @@
+---
+title: App Router
+description: Set up App Router with Inth, cached manifests and consent-gated scripts.
+group: frameworks
+---
+
+## Before you start
+
+This guide uses [Inth](https://inth.com) with cached manifests. Your Next.js
+server reuses public policy data and resolves consent for each visitor. The
+browser sends consent submissions to Inth.
+
+You can use a [self-hosted backend](/docs/self-host/quickstart) with the same
+configuration and your own endpoint. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
+uses bundled policy and browser storage without backend records. Not recommended
+for production environments.
+
+This setup needs a Next.js server. For `output: 'export'`, follow
+[static export](/docs/frameworks/next/static-export). For a smaller setup with no
+local API routes, use [client-side initialization](/docs/frameworks/next/client-side).
+Same-origin [rewrites](/docs/frameworks/next/optimization) are optional.
+
+Location-based policies need trusted location headers from your host. Without
+them, c15t uses your unknown-location rule. Check the supported
+[geography headers](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
+before deploying.
+
+The default layout awaits consent on the server inside a `Suspense` boundary,
+so the server renders the resolved banner into the response instead of
+deciding in the browser. You can also
+[stream the page while consent resolves](#stream-the-page-while-consent-resolves)
+or initialize in the browser. Awaiting has a cost; see
+[what server prefetch costs](#what-server-prefetch-costs) before deploying.
+
+## Install c15t and configure your backend
+
+[Create an Inth project](https://inth.com), configure its policy rules and allow
+your app's origin. Copy its backend endpoint for the upstream configuration.
+
+If you chose self-hosting, complete the
+[backend quickstart](/docs/self-host/quickstart) and use its public endpoint in
+the steps below. Offline setups do not need an endpoint; use the
+[offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+
+<CommandTabs command="c15t" mode="install" />
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+With Tailwind CSS 4, add the prebuilt stylesheet to your global CSS after
+Tailwind so its component layer follows Tailwind's:
+
+```css title="app/globals.css"
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+```
+
+For Tailwind CSS 3, use the [Tailwind 3 stylesheet recipe](/docs/frameworks/next/styling/overview#stylesheet)
+instead. It loads `c15t/next/styles.tw3.css` between the `components` and
+`utilities` directives to prevent Tailwind from purging c15t selectors.
+
+The layouts on this page import `./globals.css`; without Tailwind the same
+`@import` line goes at the top of whatever global stylesheet the layout loads.
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or
+your self-hosted backend, including any path prefix. This is a public endpoint,
+not a secret. Configure the backend to allow your app's origin.
+
+## Share the consent URLs
+
+Create this file at the project root. Set `manifestURL` explicitly to select
+manifest resolution.
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+export const consentConfig = defineConsentConfig({
+  backendURL,
+  manifestURL: '/api/c15t/manifest',
+});
+```
+
+## Serve the manifest route
+
+The built-in handler reads the absolute upstream URL from `C15T_BACKEND_URL`,
+falling back to `NEXT_PUBLIC_C15T_BACKEND_URL` from the setup above. If you set
+both, point them at the same backend.
+
+```ts title="app/api/c15t/manifest/route.ts"
+export { manifestGET as GET } from 'c15t/next/api';
+```
+
+The manifest handler caches public policy data. Server prefetch resolves it
+using the visitor's request. Consent submissions go directly to `backendURL`.
+
+The paths below assume `app/` is at the project root. Adjust imports if you use
+`src/app/`.
+
+<include src="../../shared/next-consent-wrapper.mdx" />
+
+## Start consent resolution in the root layout
+
+Await `prefetchInitialConsent` in an async Server Component and mount that
+component inside `Suspense`. The helper reads request cookies and geographic
+headers, resolves policy from the manifest and returns the visitor's prepared
+state, which the `Consent` wrapper passes to `ConsentBoundary` as `config`.
+
+```tsx title="app/layout.tsx"
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+import './globals.css';
+
+async function ResolvedConsent({ children }: { children: ReactNode }) {
+  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+
+  return <Consent config={initialConsent}>{children}</Consent>;
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Suspense fallback={null}>
+          <ResolvedConsent>{children}</ResolvedConsent>
+        </Suspense>
+      </body>
+    </html>
+  );
+}
+```
+
+With this layout, the server renders the consent subtree only after policy has
+resolved, so the banner arrives already decided and does not change after
+hydration. Because the boundary uses `fallback={null}`, Next.js may stream the
+shell first and the consent subtree a moment later in the same response. A
+returning visitor whose request cookie carries a valid stored choice sees no
+banner; an expired choice, a choice recorded under a different policy
+fingerprint, or one that no longer covers every required category prompts
+again. Location rules apply when your host supplies trusted geography
+headers. The [runnable Next.js example](/docs/examples) uses this awaited form.
+
+If the manifest request fails, `prefetchInitialConsent` returns a baseline
+config without a resolved policy and logs the failure outside production. The
+page still renders, and the browser resolves policy after hydration, so on that
+request a new visitor sees the prompt appear late. Pass `onError` to report
+these failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
+
+The page content waits with the consent subtree. Because `{children}` sits
+inside `ResolvedConsent` and the fallback is `null`, a slow manifest response
+leaves the whole page blank until the helper returns or its 10 second fetch
+timeout fires and the baseline renders. A warm manifest cache makes this a few
+milliseconds; a cold cache pays the backend round trip. If the site cannot
+accept that, use the [streaming form](#stream-the-page-while-consent-resolves),
+which renders the shell immediately.
+
+Keep the c15t stylesheet in `globals.css` rather than importing
+`c15t/next/styles.css` from a layout or component. Tailwind CSS 4 declares its
+cascade layers in that file; when the c15t stylesheet is bundled separately
+and lands first, Tailwind's preflight sits above the c15t component layer and
+strips the banner's padding, borders and button styles.
+
+The `Suspense` boundary is required with `cacheComponents: true`: awaiting
+request data directly in the root layout without it fails the build. Without
+`cacheComponents`, the boundary is still safe to keep. If `next dev` reports an
+unstable `Date.now()` during prerendering, see
+[troubleshooting](/docs/frameworks/next/troubleshooting#why-does-nextjs-report-an-unstable-datenow-during-prerendering).
+
+## What server prefetch costs
+
+`prefetchInitialConsent` reads request cookies and headers through
+`next/headers`. Without `cacheComponents`, this makes routes under the layout
+dynamically rendered. With `cacheComponents` enabled, Next.js can prerender
+and cache the static shell outside `Suspense`, while the visitor-specific
+consent subtree resolves and streams per request.
+
+The first request on a new server instance has an empty manifest cache and
+waits for the upstream `/manifest` fetch. In the local benchmark with 150 ms of
+simulated backend latency, the single cold sample measured a 252 ms time to
+first byte. A build-time manifest seed to remove this cold start is planned in
+[c15t/c15t#1096](https://github.com/c15t/c15t/issues/1096).
+
+With a warm manifest cache in the same local benchmark (awaited SSR, new
+visitors, 150 ms simulated backend latency), time to first byte was 7.4 ms
+median and 15.2 ms at p95 across 10 samples, and the banner markup was present
+in the first HTML. The benchmark layout awaits the helper without a `Suspense`
+boundary, so it does not measure the streaming behavior of the recipe on this
+page, and its 28 ms banner metric is a post-hydration visibility probe, not
+first paint. See the
+[benchmark results](https://github.com/c15t/c15t/tree/ccfe906682ba06cef7b56a16cc8fd10728df77d3/benchmarks/reports/next-manifest-2026-09-10)
+for conditions.
+
+The resolved consent subtree contains one visitor's state. Do not put that
+subtree, or the complete response containing it, in a shared cache. Public
+manifests and the prerendered static shell can be cached separately. See
+[cache policy data without sharing visitor state](/docs/frameworks/next/server-side#cache-policy-data-without-sharing-visitor-state).
+
+When the page shell must not wait for consent, use the
+[streaming form](#stream-the-page-while-consent-resolves); it still reads the
+request, so the route stays dynamic. When the site must stay fully static, use
+[client-side initialization](/docs/frameworks/next/client-side).
+
+## Stream the page while consent resolves
+
+To render the page shell before consent resolves, keep the root layout
+synchronous and pass the pending promise from `prefetchInitialConsent` to
+`config`. `ConsentBoundary` accepts either the resolved result or its promise.
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import { prefetchInitialConsent } from 'c15t/next/server';
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+import './globals.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  const initialConsent = prefetchInitialConsent({ config: consentConfig });
+
+  return (
+    <html lang="en">
+      <body><Consent config={initialConsent}>{children}</Consent></body>
+    </html>
+  );
+}
+```
+
+This promise form does not render the banner in the initial HTML. The provider
+mounts with a provisional policy, consent surfaces stay hidden until the
+promise resolves, and the browser then applies the server result. Keep this
+layout synchronous, including when Next.js `cacheComponents` is enabled; the
+form works with `cacheComponents: true`. Request helpers still need a request
+context even though the layout passes a promise. See
+[server rendering](/docs/frameworks/next/server-side) for the comparison of
+rendering paths.
+
+## Verify the manifest path
+
+For an opt-in policy, reject and confirm neither configured vendor loads. Allow
+measurement only: PostHog can load, while X Pixel stays blocked. Revoke
+measurement from Privacy settings and check PostHog's capture is disabled.
+See [script loading](/docs/frameworks/next/script-loader) for vendor-specific
+loading and revocation behavior.
+
+Inspect server requests and confirm that consent resolution reads the manifest
+instead of calling Inth `/init`. Warm requests should reuse policy data according
+to its cache headers. Consent choices should post to `${backendURL}/subjects`.
+
+Test a new visitor, a returning rejection and two locations. Missing geographic
+headers must follow your unknown-location rule. See
+[fetching reference](/docs/frameworks/next/api-reference/data-fetching) for
+location headers and [Optimization](/docs/frameworks/next/optimization) for cache
+settings. If resolution fails, use
+[Troubleshooting](/docs/frameworks/next/troubleshooting), then run
+[the consent checks](/docs/guides/verify-consent).
+
+## Initialize in the browser
+
+Keep the shared config and manifest route. Remove the `prefetchInitialConsent`
+and `Suspense` imports and the `ResolvedConsent` component, and render the
+wrapper directly with an empty config:
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from 'react';
+import { Consent } from '../components/consent';
+import './globals.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Consent config={{}}>{children}</Consent>
+      </body>
+    </html>
+  );
+}
+```
+
+The browser loads the manifest and resolves policy locally, so the initial
+HTML has no resolved prompt. Without supplied location, geography is unknown.
+For browser initialization with request geography, see the
+[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
+
+## Use regular backend initialization instead
+
+For a complete browser-only setup with hosted records, follow
+[client-side initialization](/docs/frameworks/next/client-side). It needs no
+local route handlers or server prefetch.
+
+For the smallest hosted configuration, keep only `backendURL` in
+`defineConsentConfig`:
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+export const consentConfig = defineConsentConfig({ backendURL });
+```
+
+This is an alternative to the manifest configuration. Remove the unused local
+manifest route. The existing prefetch and boundary now initialize
+through `${backendURL}/init`; consent saves still use `${backendURL}/subjects`.
+A backend-only config does not enable manifest mode automatically.
+
+Compare the choices in [data fetching](/docs/frameworks/next/data-fetching), or
+configure cache settings and optional rewrites in
+[Optimization](/docs/frameworks/next/optimization).

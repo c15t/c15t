@@ -1,0 +1,55 @@
+---
+title: Frame
+description: Gate a YouTube or map iframe behind consent with Frame in React, showing a placeholder that opens the preference center until the category is allowed.
+group: frameworks
+---
+
+## Gate an embed behind consent
+
+`Frame` mounts its children only while the effective permission for one
+consent category is granted, and shows a placeholder otherwise. Wrap any
+iframe or third-party widget that would set cookies or contact a vendor on
+load. Render it anywhere inside the `ConsentProvider` from your
+[quickstart](../quickstart), which also mounts the `ConsentDialog` the
+placeholder button opens.
+
+```tsx title="src/product-video.tsx"
+import { Frame } from 'c15t/react';
+
+export function ProductVideo() {
+  return (
+    <Frame category="marketing" className="video-frame">
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+        title="Product tour"
+        loading="lazy"
+        allowFullScreen
+        style={{ width: '100%', aspectRatio: '16 / 9', border: 0 }}
+      />
+    </Frame>
+  );
+}
+```
+
+`marketing` must be in your policy scope. If you set a non-empty
+`options.consentCategories` list on `ConsentProvider`, include `marketing`
+there too so the preference center can display and save it. `Frame` does
+not add categories to that list.
+
+The placeholder names the category using its title from your translations. Set `className` or `style`
+on `Frame` to reserve the embed's space, so the page does not shift when the
+placeholder is replaced.
+
+<import src="../../../shared/react/components/frame.mdx#props" />
+
+<import src="../../../shared/react/components/frame.mdx#behavior" />
+
+To read the same permission in your own components, use `useConsent` from
+`c15t/react`; the `useIframeBlocker` and `useNetworkBlocker` module hooks
+also import from there.
+
+<import src="../../../shared/react/components/frame.mdx#composition" />
+
+<import src="../../../shared/react/components/frame.mdx#accessibility" />
+
+<import src="../../../shared/react/components/frame.mdx#verify" />

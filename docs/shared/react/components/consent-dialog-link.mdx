@@ -1,0 +1,86 @@
+---
+title: "ConsentDialogLink"
+description: "Shared ConsentDialogLink reference for the React and Next.js adapters."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Description |
+  | --- | --- | --- | --- |
+  | `children` | `ReactNode` | required | The visible label, such as "Privacy settings" or "Manage preferences". It is also the accessible name. |
+  | `asChild` | `boolean` | `false` | Renders your own element, such as an anchor, instead of a `button`, and attaches the click handler to it. |
+  | `noStyle` | `boolean` | `true` | Omits c15t button classes. Native browser styles remain unless your CSS resets them. Pass `false` to render it as a consent button with `variant` and `mode`. |
+  | `onClick` | `(event) => void` | none | Runs before the dialog opens. Call `event.preventDefault()` to keep it closed. |
+
+  Other `button` attributes such as `className`, `style`, `id` and `aria-*`
+  pass through to the rendered element.
+</section>
+
+<section id="behavior">
+  ## Behavior
+
+  `ConsentDialogLink` renders a `button` with `type="button"` and no c15t
+  styling by default. Clicking it makes `dialog` the active surface, which opens a
+  mounted `ConsentDialog`. It performs no save and does not change any
+  permission.
+
+  The element carries `data-c15t-rights` listing the rights of the active
+  policy rule, for example `disclosure opt-out preferences` under a US
+  opt-out rule and `disclosure preferences` under an opt-in rule, so a
+  stylesheet or a `::after` label can adapt the wording by region.
+
+  Without a resolved policy rule the link renders nothing and appears as soon
+  as a rule resolves, without a remount. A rule with `model: 'none'` and an
+  empty `rights` list owes no consent UI, so the link hides under it; a `none`
+  rule that lists any right, such as `['disclosure']`, shows the link and the
+  dialog opens as a settings route.
+
+  Mount exactly one `ConsentDialog` inside the same provider. If none is
+  mounted, the click still switches the active surface: nothing opens, and a
+  banner that was showing closes because the surface is no longer `banner`.
+
+  With `asChild`, the child's own `onClick` runs first; if it calls
+  `event.preventDefault()` the dialog stays closed. c15t does not prevent the
+  child's native behavior, so an anchor still follows its `href`. Use a
+  fragment or the current page as the destination, or render a `button`.
+
+  ### ConsentDialogLink or ConsentDialogTrigger
+
+  Both open the same dialog and carry `data-c15t-rights`. Use
+  `ConsentDialogLink` where the control belongs in your own layout: a footer,
+  a privacy page, a settings menu. It has no position, icon or visibility
+  rule of its own. Use `ConsentDialogTrigger` when you want a floating,
+  draggable button that positions itself in a corner and can wait until the
+  prompt is answered.
+</section>
+
+<section id="accessibility">
+  ## Accessibility
+
+  The rendered `button` is keyboard-focusable and activates with Enter and
+  Space; its accessible name is the text you pass as `children`, so give it
+  words that describe the destination rather than "click here". Because the
+  dialog it opens is labelled by its own title and, while blocking, returns
+  focus to the link on close, no additional `aria-haspopup` or
+  `aria-controls` is added; a non-blocking dialog manages no focus, so the
+  link does not regain it. With `asChild`,
+  focusability comes from your element: use a `button` or an anchor with an
+  `href`.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Scroll to the footer. With the footer button reset applied, the link uses
+  your footer's text styles and has no button chrome. Activate it with a click or with Enter: the preference
+  center opens as a centered dialog. Close it with Escape: with the default
+  blocking dialog, focus returns to the link. In your browser's element
+  inspector the link has
+  `data-c15t-rights`; change the visitor's region to a US opt-out rule and
+  the value includes `opt-out`. Under a rule with `model: 'none'` and no
+  rights, the link is absent.
+</section>

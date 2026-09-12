@@ -1,0 +1,69 @@
+---
+title: Policy behavior
+description: Read the active policy and keep consent controls consistent with it.
+---
+
+## What the policy controls
+
+A policy rule selects the permission model, categories, prompt and persistent
+privacy controls for a visitor. Your app reads the resolved rule and effective
+permissions. It should not choose a different rule just to hide a banner.
+
+| Policy setting | What your app should expect |
+| --- | --- |
+| `model: 'opt-in'` | Optional categories in scope wait for consent. |
+| `model: 'opt-out'` | Categories in scope can be allowed before a choice. Saved refusals and privacy signals can restrict them. |
+| `model: 'none'` | Categories in scope are allowed without an initial prompt. Stock consent controls stay hidden unless the rule grants privacy rights. |
+| `prompt: 'choice'` | The banner asks for a choice when the current state requires one. |
+| `prompt: 'notice'` | Dismissing the notice records an acknowledgement, not a consent grant. |
+| `prompt: 'none'` | No automatic prompt. The rule can still require a way to open preferences. |
+| `scopeMode: 'strict'` | Optional categories outside the rule's scope stay denied. |
+
+Keep a persistent preferences entry point wherever the policy provides that
+right. A visitor who dismissed a notice or rejected tracking still needs a way
+to revisit their choice. Stock components read the rule's rights; custom UI
+must do the same.
+
+Use `effectivePermissions` to gate a script or embed. A `true` value under an
+opt-out rule does not mean the visitor clicked Accept. Read `explicitChoice`
+when you need the visitor's recorded decision. See
+[consent state](/docs/guides/consent-state) for these distinctions.
+
+## Where to change the rules
+
+For Inth, configure policy rules on your hosted project. The app receives those
+rules through the configured [data-fetching path](/docs/guides/data-fetching). Importing
+`recommendedPolicyRules()` or changing browser styling does not override the
+hosted policy.
+
+For a backend you operate, use the
+[policy packs guide](/docs/self-host/guides/policy-packs). It covers
+`manifest.policyRules`, preset selection and custom matchers. Browser-only
+setups own their rules locally; see
+[deployment modes](/docs/guides/deployment-modes).
+
+Presets are starting configurations. Select them for your actual processing,
+and review their assumptions before allowing optional categories by default.
+A country match does not establish a legal basis for a vendor's data use.
+
+## Why the banner may be absent
+
+A missing banner can be an expected policy outcome or an initialization problem.
+Check `resolution.status` before interpreting the active model.
+
+| State | What to check |
+| --- | --- |
+| A policy matched and `promptRequirement.kind` is `none` | The rule does not ask for an initial prompt, or the stored records already satisfy it. Check persistent preferences separately. |
+| A policy matched but a category is denied | Inspect `effectivePermissions`, `explicitChoice`, `privacySignals` and `restrictions`. A saved refusal or GPC can keep it denied. |
+| No policy has matched | Check backend connectivity, location inputs and policy configuration. Optional categories stay denied while resolution is unresolved. |
+
+Do not treat `policyRule` alone as proof that a policy resolved. The snapshot
+also carries a safe rule for evaluation while resolution is pending or failed.
+Use `resolution.policy` only after checking for `status: 'matched'`.
+
+The local `recommendedPolicyRules()` pack uses opt-in rules for Europe and
+Québec, opt-out for its supported US privacy states, and a no-prompt `none`
+default for other known locations. An unknown country uses its strict opt-in
+fallback. A US country with a missing state gets the US opt-out fallback.
+These are the local pack's defaults, not a promise about your Inth project.
+Browser-only mode does not discover a visitor's country from their IP address.

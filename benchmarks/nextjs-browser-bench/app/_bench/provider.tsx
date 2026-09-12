@@ -139,6 +139,7 @@ export const NextjsPrefetchedBenchmarkProvider = ({
 	// policy, which authoritative-only rendering correctly suppresses.
 	// The prefetched arm consumes server init without a second browser init.
 	<ConsentBoundary
+		backendURL="/api/bench-consent"
 		config={config}
 		options={createBoundaryOptions(scenario)}
 	>
@@ -163,6 +164,10 @@ export const NextjsManifestBenchmarkProvider = ({
 	surfaces?: 'client' | 'none';
 }) => (
 	<ConsentBoundary
+		consent={{
+			backendURL: '/api/bench-consent',
+			manifestURL: '/api/c15t/manifest',
+		}}
 		config={config}
 		options={createBoundaryOptions(scenario)}
 	>

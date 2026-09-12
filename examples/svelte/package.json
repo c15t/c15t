@@ -1,0 +1,24 @@
+{
+	"name": "@c15t/example-svelte",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"check-types": "svelte-check --tsconfig ./tsconfig.json",
+		"dev": "vite --host 127.0.0.1",
+		"start": "vite preview --host 127.0.0.1"
+	},
+	"dependencies": {
+		"@c15t/dev-tools": "workspace:*",
+		"@c15t/scripts": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"c15t": "workspace:*",
+		"svelte": "^5.56.4"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"svelte-check": "^4.4.5",
+		"typescript": "6.0.3",
+		"vite": "7.3.2"
+	}
+}

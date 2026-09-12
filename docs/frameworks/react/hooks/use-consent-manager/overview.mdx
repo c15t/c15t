@@ -1,17 +1,37 @@
 ---
-title: useConsentManager
-description: Read and update consent state from any component.
+title: Hooks
+description: Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Read only the state you need
 
-## Usage
+Every hook reads the runtime from the nearest `ConsentProvider`, so call them
+from components rendered inside that provider and import them from
+`c15t/react`.
 
-TODO.
+```tsx title="src/optional-feature.tsx"
+import { useConsent } from 'c15t/react';
 
-## Return value
+export function OptionalFeature() {
+  const allowed = useConsent('marketing');
+  return allowed ? <div>Optional marketing content</div> : null;
+}
+```
 
-TODO.
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#read-state" />
+
+## Save from a visitor action
+
+Render this component inside your existing `ConsentProvider`.
+
+```tsx title="src/reject-button.tsx"
+import { useSaveConsents } from 'c15t/react';
+
+export function RejectButton() {
+  const save = useSaveConsents();
+  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+}
+```
+
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#save-guidance" />

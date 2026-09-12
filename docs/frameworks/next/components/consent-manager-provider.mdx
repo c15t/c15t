@@ -1,83 +1,68 @@
 ---
-title: ConsentManagerProvider
-description: Root provider that initializes the consent manager for your Next.js app.
+title: ConsentBoundary
+description: Pass server-prefetched consent and shared configuration to the Next.js consent boundary.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Mount one boundary
 
-## Usage
+`ConsentBoundary` wraps the React `ConsentProvider` and connects it to your
+Next.js configuration and server-prefetched state. Mount the boundary once;
+it already supplies the provider used by consent components and hooks.
 
-TODO.
+Follow [App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) for the complete setup.
+Keep the boundary mounted across navigation and import the stylesheet once
+at the app root.
 
 ## Props
 
-TODO.
+| Prop | Purpose |
+| --- | --- |
+| `config` | Visitor state or its promise from `prefetchInitialConsent`; use `{}` for browser initialization |
+| `consent` | Shared configuration from `defineConsentConfig` in `c15t.config.ts` |
+| `backendURL` | Overrides `consent.backendURL` |
+| `scripts` | Consent-managed script configurations |
+| `scriptLoader` | Script-loader options |
+| `networkBlocker` | Network-blocker options, or `false` to disable it |
+| `persistence` | Browser persistence options; defaults to `true` |
+| `options` | Provider options such as styling, callbacks and an explicit `mode` override |
 
-## Presentation
+## Provider options
 
-Policies decide behavior. `options.presentation` decides how the prompt and
-the preference center look, and it never changes a policy fingerprint, so
-changing it never re-prompts a returning visitor.
+The boundary passes `options` to its provider. Keep scripts, persistence and
+network-blocker configuration in their top-level boundary props.
 
-`presentation.prompt` takes `variant`, `position`, and `blocking` alongside
-`layout` and `primaryActions`. Every prompt defaults to a `floating` card at the
-bottom left, a notice included, and a `wall` is always blocking. `bar`,
-`widget`, and `wall` are host choices. The server shell resolves the same values before the first
-paint, so the first HTML already carries the variant. Props on
-`ConsentBanner` override these for one banner.
+The provider owns initialization, persistence, script loading and subscriptions.
+Changing its initial mode or prefetch configuration is not a supported way to
+switch visitors or backends after mounting.
 
-```tsx
-// app/layout.tsx
-import { ConsentBanner, ConsentBoundary, ConsentDialog } from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+| Option | Purpose |
+| --- | --- |
+| `mode` | Hosted, offline or custom transport factory |
+| `callbacks` | Choice, permission and error events |
+| `theme`, `components` | Theme tokens and component slot attributes |
+| `presentation` | Prompt and preferences layout behavior |
+| `i18n` | Languages and message overrides |
+| `storageConfig` | Browser record storage configuration |
+| `enabled` | Set false only when intentionally bypassing consent enforcement |
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-	const backendURL = process.env.C15T_BACKEND_URL;
-	if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
-	const config = prefetchInitialConsent({ backendURL });
+`enabled: false` grants categories and allows gated loading while suppressing
+consent UI. It is not a way to fix failed initialization or hide a banner in
+production.
 
-	return (
-		<html lang="en">
-			<body>
-				<ConsentBoundary
-					config={config}
-					backendURL={backendURL}
-					options={{
-						presentation: {
-							prompt: { variant: 'bar', position: 'top' },
-							preferences: { blocking: true },
-						},
-					}}
-				>
-					{children}
-					<ConsentBanner />
-					<ConsentDialog />
-				</ConsentBoundary>
-			</body>
-		</html>
-	);
-}
-```
+## Listen for consent changes
 
-Presentation is global. To give one region a different shape, render the
-banner with props chosen from the active rule:
+`onChoiceRecorded` reports explicit accept, reject and save actions.
+`onPermissionsChanged` also covers changes caused by policy, expiry or privacy
+signals. Hydration and notice dismissal do not become explicit choices.
 
-```tsx
-'use client';
+## When would I use ConsentProvider directly?
 
-import { ConsentBanner, usePolicyRule } from '@c15t/nextjs';
+Use `ConsentProvider` from `c15t/next` when you need to manage the runtime and
+transport yourself. For example, it accepts an externally owned `runtime`.
+Its owner must start and dispose that runtime.
 
-export function RegionalBanner() {
-	const rule = usePolicyRule();
-	const wall = rule.model === 'opt-in';
-	return <ConsentBanner variant={wall ? 'wall' : 'bar'} />;
-}
-```
-
-`presentation.preferences` accepts action layout, primary actions, defaults,
-and `blocking`. It renders a centered dialog; `variant` and `position` are
-prompt-only options. Preferences default to blocking. Set `blocking: false`
-to remove the backdrop, scroll lock and focus trap together.
+For standard Next.js setups, keep `ConsentBoundary`. It supports
+[browser initialization](/docs/frameworks/next/client-side) as well as
+[server prefetch](/docs/frameworks/next/server-side).

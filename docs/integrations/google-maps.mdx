@@ -1,18 +1,33 @@
 ---
 title: Google Maps
-description: Render Google Maps embeds only after consent.
-icon: google-maps
+description: Prevent a map iframe from mounting before the required permission.
 group: integrations
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Configure the map
 
-## Usage
+Copy the map's iframe embed URL. Choose the category matching its use in your
+application; this example uses functionality permission.
 
-TODO.
+```ts title="src/embed-config.ts"
+export const embedCategory = 'functionality' as const;
+export const embedURL = 'https://www.google.com/maps/embed?pb=YOUR_EMBED_PARAMETERS';
+export const embedTitle = 'Map showing our office location';
+export const embedAspectRatio = '4 / 3';
+```
 
-## Options
+Replace the example URL with the complete embed URL for your map. Keep the
+address and a directions link outside the consent-gated embed.
 
-TODO.
+<include src="../shared/integrations/consent-embed.mdx" />
+
+## Verify before and after permission
+
+On a fresh opt-in session, inspect Network and confirm the iframe has not
+requested the map. Grant the category and confirm the map mounts. Revoke it and
+check the frame returns to its blocked state. Keep useful fallback information,
+such as the address and directions link, available outside the map.
+
+For a JavaScript Maps SDK instead of an iframe, register a category-gated script
+and manage the widget's cleanup. Do not use this iframe recipe as evidence that
+an independently loaded Maps SDK is blocked.

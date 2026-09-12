@@ -1,0 +1,73 @@
+---
+title: Frame
+description: Consent-gate an iframe in Next.js with Frame inside ConsentBoundary; with server prefetch the placeholder or embed is decided in the server HTML.
+group: frameworks
+---
+
+## Gate an embed behind consent
+
+`Frame` mounts its children only while the effective permission for one
+consent category is granted, and shows a placeholder otherwise. Wrap any
+iframe or third-party widget that would set cookies or contact a vendor on
+load. It is a Client Component; render it from any route under the layout
+that mounts the `ConsentBoundary` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup, which also mounts
+the `ConsentDialog` the placeholder button opens.
+
+```tsx title="components/product-video.tsx"
+'use client';
+
+import { Frame } from 'c15t/next';
+
+export function ProductVideo() {
+  return (
+    <Frame category="marketing" className="video-frame">
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+        title="Product tour"
+        loading="lazy"
+        allowFullScreen
+        style={{ width: '100%', aspectRatio: '16 / 9', border: 0 }}
+      />
+    </Frame>
+  );
+}
+```
+
+Import `ProductVideo` into any page or Server Component; only this file needs
+`'use client'`. `marketing` must be in your policy scope. If you set a
+non-empty `options.consentCategories` list on `ConsentBoundary`, include
+`marketing` there too so the preference center can display and save it.
+`Frame` does not add categories to that list.
+
+The placeholder names the category using its title from your translations. Set
+`className` or `style` on `Frame` to reserve the embed's space, so the page
+does not shift when the placeholder is replaced.
+
+With the awaited `prefetchInitialConsent` from the App Router guide, the
+server decides between placeholder and embed from the resolved rule and the
+request cookie. Pages Router works the same way when `getServerSideProps`
+awaits `prefetchInitialConsent` from `c15t/next/pages` and passes the result
+through `config` to `ConsentBoundary`, as in the
+[Pages Router guide](../pages-router). Hydration keeps that choice as long as
+the browser's privacy signals agree with the request: a `navigator.globalPrivacyControl`
+that the request did not carry as `Sec-GPC` is re-detected on hydration and
+can withdraw a category. Under an opt-in rule a new
+visitor gets the placeholder and a returning visitor who allowed `marketing`
+gets the iframe; under an opt-out rule a new visitor already has effective
+permission, so the iframe renders until they opt out.
+
+<import src="../../../shared/react/components/frame.mdx#props" />
+
+<import src="../../../shared/react/components/frame.mdx#behavior" />
+
+To read the same permission in your own Client Components, use `useConsent`
+from `c15t/next`; the `useIframeBlocker` and `useNetworkBlocker` module
+hooks also import from there.
+
+<import src="../../../shared/react/components/frame.mdx#composition" />
+
+<import src="../../../shared/react/components/frame.mdx#accessibility" />
+
+<import src="../../../shared/react/components/frame.mdx#verify" />

@@ -51,7 +51,10 @@
 		"src/styles.css",
 		"src/styles.tw3.css",
 		"src/iab/styles.css",
-		"src/iab/styles.tw3.css"
+		"src/iab/styles.tw3.css",
+		"docs",
+		"AGENTS.md",
+		"SKILL.md"
 	],
 	"type": "module",
 	"sideEffects": [
@@ -104,7 +107,8 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist && bun run build:docs",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/tanstack-start",
 		"check-types": "bun prebuild && tsc --noEmit && tsc -p tsconfig.type-tests.json",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",

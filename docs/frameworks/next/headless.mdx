@@ -1,30 +1,30 @@
 ---
 title: Headless
-description: Build your own consent UI on top of the c15t hooks.
+description: Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentBoundary.
 group: frameworks
 ---
 
 ## When to go headless
 
-The pre-built banner and dialog cover most designs through props, slots, and
-the stylesheet. Go headless when your markup has to be something else
-entirely: a design system component, a native sheet, or a layout the compound
-parts cannot express.
-
-Headless code owns the rendered controls, so it also owns the compliance
-outcome. The hooks hand you the actions a policy requires, the rights it must
-keep reachable, and diagnostics when your presentation drops one. Render from
-those lists rather than from a fixed set of buttons, and a site that later adds
-a notice region keeps working without a code change.
+<import src="../../shared/react/headless.mdx#when-to-go-headless" />
 
 Check for a policy before rendering your own surfaces. `useModel()` from
-`@c15t/nextjs` returns `null` while no rule has resolved and `'none'` under a rule that owes no consent UI, and the pre-built
-surfaces render nothing in that state.
+`c15t/next` returns `null` while no rule has resolved and `'none'` under a rule
+that owes no consent UI, and the pre-built surfaces render nothing in that
+state.
 
 ## Minimal example
 
-```tsx
-import { useHeadlessConsentUI, useTranslations } from '@c15t/nextjs/headless';
+The headless hooks read the runtime from the `ConsentBoundary` set up in your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) guide, so they only run in a
+Client Component. Render this component inside that existing boundary in place
+of the stock banner. Keep the dialog and persistent preferences control.
+
+```tsx title="components/consent-banner.tsx"
+'use client';
+
+import { useHeadlessConsentUI, useTranslations } from 'c15t/next/headless';
 
 const ACTION_LABELS = {
 	accept: 'acceptAll',
@@ -68,25 +68,4 @@ export function Banner() {
 }
 ```
 
-`banner.actionGroups` is the resolved layout: reject and accept share a group
-at equal prominence, and the rest follow. `banner.orderedActions` is the same
-list flattened. Under a notice the only action is `dismiss`, and
-`banner.preferenceControls` recommends additional buttons for opening
-preferences. Under a notice it contains `opt-out`, which selects the
-"Do not sell or share my data" label. The example renders that button and
-an "OK" button. Both controls keep their own command: opening
-preferences and dismissing the notice.
-
-The list is a rendering helper. It does not establish that your UI implements
-all policy rights. Provide disclosure and persistent preferences access.
-
-`performAction` saves all categories for `accept`, none for `reject`, the
-current draft for `save`, records a dismissal for `dismiss`, and opens the
-preference center for `customize`. `banner.diagnostics` reports when a host
-layout drops a required action or gives equivalent actions different
-prominence. Review each diagnostic when configuring custom presentation.
-
-`banner.variant`, `banner.position`, and `banner.blocking` carry the resolved
-shape from `presentation.prompt`, so a headless surface can follow the same
-bar, widget, or wall choice the pre-built banner would make, and can trap
-focus and lock scroll exactly when `blocking` is true.
+<import src="../../shared/react/headless.mdx#banner-api" />

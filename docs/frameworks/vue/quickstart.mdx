@@ -1,0 +1,129 @@
+---
+title: Quickstart
+description: Install c15t in a plain Vue 3 application with the Vite plugin and consent root.
+group: frameworks
+---
+
+[Create an Inth project](https://inth.com) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Install both integrations
+
+Plain Vue uses two c15t entry points: a Vite plugin for module resolution and a
+Vue plugin for the runtime. `c15t/vue` is the Nuxt module, so do not pass that
+entry point to `app.use()`. Plain Vue uses `c15t/vue/vue-plugin`.
+
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
+
+```ts title="vite.config.ts"
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import c15tVue from 'c15t/vue/vite';
+
+export default defineConfig({ plugins: [vue(), c15tVue()] });
+```
+
+```ts title="src/main.ts"
+import { createApp } from 'vue';
+import { c15tVue } from 'c15t/vue/vue-plugin';
+import App from './App.vue';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+createApp(App).use(c15tVue, { backendURL, showTrigger: true }).mount('#app');
+```
+
+Set `VITE_C15T_BACKEND_URL` to the absolute base URL of a c15t backend with
+policy rules and your app's origin configured. The URL is public. Rebuild the
+app after changing Vite's public environment configuration.
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+This setup uses Vite's public environment variables. Set the Inth endpoint and
+add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+
+```dotenv title=".env.local"
+VITE_C15T_BACKEND_URL=
+VITE_POSTHOG_KEY=
+VITE_POSTHOG_HOST=
+VITE_X_PIXEL_ID=
+```
+
+Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
+an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
+shown in your PostHog project. Restart Vite after editing these values and
+rebuild for deployment. Other bundlers need their own configuration mechanism.
+
+Create `src/scripts.ts`. PostHog waits for measurement permission with
+`loadMode: 'after-consent'` and disables cookieless capture with
+`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/vue-scripts.mdx" />
+
+## Mount the consent UI
+
+```vue title="src/App.vue"
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import ConsentRoot from 'c15t/vue/consent-root';
+import { useConsentActiveUI, useConsentKernel } from 'c15t/vue/vue-plugin';
+import { scripts } from './scripts';
+
+const kernel = useConsentKernel();
+let loader: ReturnType<typeof createScriptLoader> | undefined;
+onMounted(() => {
+  loader = createScriptLoader({ kernel, scripts });
+});
+onUnmounted(() => loader?.dispose());
+
+const activeUI = useConsentActiveUI();
+</script>
+
+<template>
+  <ConsentRoot />
+  <main>Your application</main>
+  <button type="button" @click="activeUI = 'manager'">Privacy settings</button>
+</template>
+```
+
+The app component registers scripts with the plugin's existing kernel on mount
+and disposes the loader on unmount. Keep this component mounted across navigation.
+
+`ConsentRoot` renders the prompt and lazily loads the preference manager. Vue's
+components include their styles; do not copy a React stylesheet import to a
+nonexistent Vue export. `showTrigger` also enables the built-in persistent
+trigger. The custom button above shows how to offer a footer entry point.
+
+## Read reactive permissions
+
+```vue title="src/OptionalContent.vue"
+<script setup lang="ts">
+import { useConsentSnapshot } from 'c15t/vue/vue-plugin';
+const snapshot = useConsentSnapshot();
+</script>
+
+<template>
+  <div v-if="snapshot.effectivePermissions.marketing">Optional marketing content</div>
+</template>
+```
+
+Effective permission can be true under an opt-out rule before a visitor acts.
+Use the snapshot's `explicitChoice` when you need recorded choices. Register
+vendor scripts with the consent runtime rather than assuming `v-if` on unrelated
+content blocks existing scripts.
+
+## Verify and troubleshoot
+
+Test the built app using [verification](/docs/guides/verify-consent). An unresolved
+`#imports` or `#c15t/composables` import usually means the c15t Vite plugin is
+missing. A missing injection context means a composable is outside the app that
+installed `c15tVue`. Nuxt applications should use the module integration instead.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

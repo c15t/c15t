@@ -106,7 +106,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 
@@ -293,7 +293,7 @@
 
 ### Patch Changes
 
-- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+- 408df0e: feat: CMP ID now comes from backend, either inth.com when hosted or BYO CMP ID
   feat: Center the IAB Banner for better policy compliance
   feat: Improve doc comments around IAB
 - e6bc5db: fix: update import paths from .css to .js for component styles
@@ -314,7 +314,7 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ### Patch Changes
 

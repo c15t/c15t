@@ -1,0 +1,53 @@
+---
+title: YouTube
+description: Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
+group: integrations
+---
+
+## Configure the video
+
+Use the ID of an embeddable video and the category matching its purpose in your
+policy. The current v3 adapters use consent-gated iframes rather than the v2
+`YouTubeEmbed` convenience component.
+
+```ts title="src/embed-config.ts"
+export const embedCategory = 'marketing' as const;
+export const embedURL = 'https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1';
+export const embedTitle = 'Product walkthrough';
+export const embedAspectRatio = '16 / 9';
+```
+
+Replace `VIDEO_ID` before running the example.
+
+<include src="../shared/integrations/consent-embed.mdx" />
+
+## Customize the player and placeholder
+
+Set playback options in the iframe URL. For example, append `start=36` to begin
+36 seconds into the video. Use supported
+[YouTube player parameters](https://developers.google.com/youtube/player_parameters)
+and reserve at least a 200-by-200-pixel player area.
+
+React and Svelte `Frame` components provide a blocked-state placeholder and
+consent action. Their `placeholder` APIs differ: React takes a node, Svelte
+takes a snippet. Keep a clear way to reopen preferences when customizing them.
+The Vue and browser examples show that action explicitly. `loading="lazy"` delays an
+allowed iframe for performance; it does not implement consent gating.
+
+## Consent behavior
+
+Each example keeps the iframe absent until the category is allowed. After
+permission, the iframe can load. Revoking permission removes the iframe and its
+embedded document. Requests already sent cannot be recalled.
+
+The `youtube-nocookie.com` hostname does not replace the consent boundary. Avoid
+loading a remote thumbnail, preconnecting to YouTube, or installing the IFrame
+Player API separately if you require no YouTube request before permission.
+This recipe embeds a video; it does not load the JavaScript Player API.
+
+## Verify the integration
+
+In a fresh opt-in session, confirm no iframe or YouTube request exists. Grant
+marketing permission and play the video, then revoke it and confirm the iframe
+is removed. Test a narrow viewport and keyboard access to the placeholder and
+player. See [consent verification](/docs/guides/verify-consent).

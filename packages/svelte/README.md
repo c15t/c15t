@@ -35,7 +35,7 @@ Developer-first CMP for Svelte: cookie banner, consent manager, preferences cent
 
 - Svelte 5 or later
 - Node.js 20.19 or later
-- A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
 
 ## Quick Start
 

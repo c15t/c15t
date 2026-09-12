@@ -1,0 +1,42 @@
+---
+title: Crisp
+description: Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Crisp
+
+Use the Crisp website ID. The helper prepares `$crisp` and the runtime configuration before loading the chat widget.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { crisp } from '@c15t/scripts/crisp';
+
+export const scripts = [crisp({ websiteId: 'YOUR_WEBSITE_ID', locale: 'en' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `websiteId` | Required Crisp website ID. |
+| `locale / safeMode` | Optional widget locale and queue safe mode. |
+| `cookieDomain / cookieExpiry` | Optional cookie domain and expiry in seconds. |
+| `tokenId / sessionMerge` | Optional session continuity token and anonymous-session merging. |
+| `scriptSrc` | Defaults to `https://client.crisp.chat/l.js`. |
+
+## Consent behavior
+
+The widget waits for functionality permission. The helper does not call a Crisp shutdown API on revocation. Manage any existing chat session and logged-in identity when consent or the application user changes.
+
+## Verify the integration
+
+Reject functionality permission and confirm the widget is absent. Grant it and test chat, logout and a later denial. Keep another support contact available while chat is blocked.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`functionality`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

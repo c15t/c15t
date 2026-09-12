@@ -99,3 +99,8 @@ live-vendors-report.json
 
 # Vendored Effect source (effect-ts skill prerequisite)
 .repos/effect
+
+# Generated package documentation and agent indexes
+packages/*/docs/
+packages/*/AGENTS.md
+packages/*/SKILL.md

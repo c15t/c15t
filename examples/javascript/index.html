@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>c15t JavaScript example</title>
+	</head>
+	<body>
+		<main>
+			<p>c15t / JavaScript</p>
+			<h1>Consent example</h1>
+			<p>
+				A headless consent engine with your own HTML controls, analytics and
+				video embeds.
+			</p>
+			<nav aria-label="Banner design">
+				<a href="/">Default</a><a href="/?design=branded">Branded</a>
+			</nav>
+			<section class="card">
+				<h2>Scripts follow your choices</h2>
+				<ul class="statuses">
+					<li>
+						PostHog: <span id="posthog-status">waiting for measurement</span>
+					</li>
+					<li>X Pixel: <span id="x-status">waiting for marketing</span></li>
+				</ul>
+				<p>
+					Set your project IDs in .env.local to enable vendor scripts. DevTools
+					shows their loading status.
+				</p>
+				<p
+					id="consent-status"
+					role="status"
+				></p>
+			</section>
+			<section class="card">
+				<h2>YouTube embed</h2>
+				<div id="video"></div>
+				<div
+					id="video-placeholder"
+					class="placeholder"
+				>
+					<p>Allow measurement to load this YouTube video.</p>
+					<button
+						type="button"
+						data-open-preferences
+					>
+						Choose video permissions
+					</button>
+				</div>
+			</section>
+			<footer>
+				<button
+					type="button"
+					data-open-preferences
+				>
+					Privacy settings
+				</button>
+			</footer>
+		</main>
+		<section
+			id="consent-prompt"
+			aria-labelledby="prompt-title"
+			hidden
+		>
+			<h2 id="prompt-title">Choose your cookies</h2>
+			<p>
+				This example uses PostHog for measurement, X Pixel for marketing and a
+				YouTube video. Choose which optional services may load.
+			</p>
+			<div
+				id="prompt-actions"
+				class="actions"
+			></div>
+		</section>
+		<dialog
+			id="preferences"
+			aria-labelledby="preferences-title"
+		>
+			<h2 id="preferences-title">Privacy settings</h2>
+			<p>
+				Necessary storage keeps your preferences. Choose optional services
+				below.
+			</p>
+			<div id="categories"></div>
+			<div
+				id="preferences-actions"
+				class="actions"
+			></div>
+			<button
+				id="close-preferences"
+				type="button"
+			>
+				Close preferences
+			</button>
+		</dialog>
+		<script
+			type="module"
+			src="/src/main.ts"
+		></script>
+	</body>
+</html>

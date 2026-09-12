@@ -1,0 +1,39 @@
+---
+title: Ahrefs Analytics
+description: Configure Ahrefs Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Ahrefs Analytics
+
+Copy the project key from the Ahrefs installation snippet. The helper passes it as `data-key` to the analytics script.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+
+export const scripts = [ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `key` | Required project key. Empty or whitespace-only values throw. |
+| `scriptUrl` | Optional loader override. Defaults to `https://analytics.ahrefs.com/analytics.js`. |
+
+## Consent behavior
+
+The loader waits for measurement permission. The helper does not call a vendor stop API on revocation. Removing its script element does not remove event listeners the SDK already installed.
+
+## Verify the integration
+
+After granting permission, check the loaded script has the expected `data-key`. Check a page view and any application calls to `window.AhrefsAnalytics.sendEvent` separately.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

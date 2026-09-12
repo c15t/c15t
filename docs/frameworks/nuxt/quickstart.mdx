@@ -1,0 +1,128 @@
+---
+title: Quickstart
+description: Configure the Nuxt module for server rendering, browser initialization or static hosting.
+group: frameworks
+---
+
+[Create an Inth project](https://inth.com) and use its backend endpoint in
+this guide. Configure the project's policy rules and allowed app origins first.
+
+## Register the Nuxt module
+
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  modules: ['c15t/vue'],
+  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
+  c15t: {
+    backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
+    manifest: true,
+    showTrigger: true,
+  },
+});
+```
+
+Set `NUXT_PUBLIC_C15T_BACKEND_URL` to your consent backend's absolute base URL.
+Configure its policy rules and trusted origins. `manifest: true` enables the
+server manifest path and registers same-origin init and manifest routes. Nuxt
+resolves the visitor's consent using the manifest and reuses the initial state
+for hydration.
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+Add your PostHog project key and X Pixel ID to `.env`:
+
+```dotenv title=".env"
+NUXT_PUBLIC_POSTHOG_KEY=
+NUXT_PUBLIC_X_PIXEL_ID=
+```
+
+Nuxt reads these values through public runtime configuration.
+An empty ID disables that integration. Create `app/example-scripts.ts`
+using the helper below. It selects PostHog's EU region; change `region` to `'us'`
+for a US project. PostHog waits for measurement permission and disables
+cookieless capture. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/nuxt-scripts.mdx" />
+
+## Mount the root once
+
+```vue title="app/app.vue"
+<script setup lang="ts">
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { onUnmounted } from 'vue';
+import { createExampleScripts } from './example-scripts';
+
+const publicConfig = useRuntimeConfig().public;
+const kernel = useConsentKernel();
+let loader: ReturnType<typeof createScriptLoader> | undefined;
+const removeMountedHook = useNuxtApp().hook('app:mounted', () => {
+  loader = createScriptLoader({
+    kernel,
+    scripts: createExampleScripts(publicConfig.posthogKey, publicConfig.xPixelId),
+  });
+});
+onUnmounted(() => {
+  removeMountedHook();
+  loader?.dispose();
+});
+const activeUI = useConsentActiveUI();
+</script>
+
+<template>
+  <ConsentRoot />
+  <NuxtPage />
+  <footer>
+    <button type="button" @click="activeUI = 'manager'">Privacy settings</button>
+  </footer>
+</template>
+```
+
+Use `app.vue` and `example-scripts.ts` at the project root if that is your
+Nuxt source layout. The module
+registers components and composables. A separate `app.use()` or React-style
+provider is not needed. Keep `ConsentRoot` outside route-specific pages so it
+survives navigation. The mounted hook registers scripts against the module's
+existing kernel after hydration; unmounting the app cleans up the loader.
+
+## Configure SPA or static output
+
+For a deployment without a Nuxt server, resolve the manifest in the browser and
+set an absolute manifest URL. The default same-origin manifest route needs a
+server and will not exist on static hosting.
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  modules: ['c15t/vue'],
+  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
+  c15t: {
+    backendURL: 'https://consent.example.com',
+    manifest: 'client',
+    manifestURL: 'https://consent.example.com/manifest',
+    showTrigger: true,
+  },
+});
+```
+
+Replace the example domain with your backend. Use this configuration with your
+existing SPA or prerendering setup. Client manifest mode does not fetch an init
+route. Without a configured `geoURL`, the browser has no request geography and
+uses the manifest's unknown-location fallback. If you supply a geography
+endpoint, it must return country and region data in the supported shape.
+
+## Verify each deployment
+
+For request SSR, inspect the initial HTML under a policy that requires a prompt,
+then confirm hydration does not record a new choice. For static output, serve
+the generated files and check that all consent URLs exist on the deployed host.
+Reject, reload, navigate and reopen preferences. Use
+[verification](/docs/guides/verify-consent) for the network checks.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

@@ -1,0 +1,237 @@
+diff --git a/apps/c15t-docs/src/lib/source.ts b/apps/c15t-docs/src/lib/source.ts
+index 80fef7b9ad..7919cafe39 100644
+--- a/apps/c15t-docs/src/lib/source.ts
++++ b/apps/c15t-docs/src/lib/source.ts
+@@ -27,7 +27,22 @@ export const { source, getPages, getPagesSync, getDocsPageTree } =
+ 			mode: 'hierarchical',
+ 			excludeGroupSlugs: ['changelog'],
+ 			frameworkGroupSlug: 'frameworks',
+-			frameworkOrder: ['next', 'react', 'javascript'],
++			// Keep the selector aligned with the content repo's docs/docs.config.ts.
++			frameworkOrder: [
++				'next',
++				'tanstack-start',
++				'react',
++				'nuxt',
++				'vue',
++				'astro',
++				'svelte',
++				'sveltekit',
++				'javascript',
++			],
+ 		},
+ 		async getExtraPageTreeFolders() {
++			// Leadtype regenerates navigation outside Next's module graph.
++			if (process.env.NODE_ENV === 'development') {
++				source.invalidatePageTree();
++			}
+ 			return [createChangelogTree(await getVisibleChangelogPages())];
+diff --git a/apps/c15t-docs/src/mdx-components.tsx b/apps/c15t-docs/src/mdx-components.tsx
+index 309f1c9072..57a24454c0 100644
+--- a/apps/c15t-docs/src/mdx-components.tsx
++++ b/apps/c15t-docs/src/mdx-components.tsx
+@@ -2,6 +2,7 @@ import {
+ 	getMDXComponents as getSharedMDXComponents,
+ 	type MDXComponentsConfig,
+ } from '@inth/optin-docs/mdx-components';
++import { PackageCommandTabs } from '@inth/optincn/code-block/package-command-tabs';
+ import type { MDXComponents } from 'mdx/types';
+ import { Icon } from '~/components/icons';
+ import type { DocPage } from '~/lib/content';
+@@ -19,7 +20,11 @@ export function useMDXComponents(
+ 	components?: MDXComponents,
+ 	pageData?: Pick<DocPage, 'frontmatter' | 'slug'>
+ ): MDXComponents {
+-	return getSharedMDXComponents({ Icon, ...components }, pageData, mdxConfig);
++	return getSharedMDXComponents(
++		{ CommandTabs: PackageCommandTabs, Icon, ...components },
++		pageData,
++		mdxConfig
++	);
+ }
+ 
+ // Legacy export for backwards compatibility
+diff --git a/packages/docs/src/docs/frameworks.tsx b/packages/docs/src/docs/frameworks.tsx
+index fd5ef69c80..f0e6a815c0 100644
+--- a/packages/docs/src/docs/frameworks.tsx
++++ b/packages/docs/src/docs/frameworks.tsx
+@@ -23,6 +23,26 @@ export type FrameworkConfig = {
+  * Centralized framework configuration
+  */
+ export const FRAMEWORKS = {
++	next: {
++		id: 'next',
++		name: 'Next.js',
++		aliases: ['next', 'nextjs', 'next.js', 'Next'],
++		icon: ({ className }: { className?: string }) => (
++			<Icon className={className} name="next" />
++		),
++		defaultUrl: '/docs/frameworks/next/quickstart',
++		description: 'React framework for production applications',
++	},
++	'tanstack-start': {
++		id: 'tanstack-start',
++		name: 'TanStack Start',
++		aliases: ['tanstack-start', 'tanstack start', 'tanstackstart', 'tanstack'],
++		icon: ({ className }: { className?: string }) => (
++			<Icon className={className} name="react" />
++		),
++		defaultUrl: '/docs/frameworks/tanstack-start/quickstart',
++		description: 'React framework with server functions and loaders',
++	},
+ 	react: {
+ 		id: 'react',
+ 		name: 'React',
+@@ -33,15 +53,55 @@ export const FRAMEWORKS = {
+ 		defaultUrl: '/docs/frameworks/react/quickstart',
+ 		description: 'React framework for building user interfaces',
+ 	},
+-	next: {
+-		id: 'next',
+-		name: 'Next.js',
+-		aliases: ['next', 'nextjs', 'next.js', 'Next'],
++	nuxt: {
++		id: 'nuxt',
++		name: 'Nuxt',
++		aliases: ['nuxt', 'nuxtjs', 'nuxt.js'],
+ 		icon: ({ className }: { className?: string }) => (
+-			<Icon className={className} name="next" />
++			<Icon className={className} name="nuxt" />
+ 		),
+-		defaultUrl: '/docs/frameworks/next/quickstart',
+-		description: 'React framework for production applications',
++		defaultUrl: '/docs/frameworks/nuxt/quickstart',
++		description: 'Vue framework with SSR and prerendering',
++	},
++	vue: {
++		id: 'vue',
++		name: 'Vue',
++		aliases: ['vue', 'vuejs', 'vue.js'],
++		icon: ({ className }: { className?: string }) => (
++			<Icon className={className} name="vue" />
++		),
++		defaultUrl: '/docs/frameworks/vue/quickstart',
++		description: 'Vue plugin and components',
++	},
++	astro: {
++		id: 'astro',
++		name: 'Astro',
++		aliases: ['astro', 'astrojs'],
++		icon: ({ className }: { className?: string }) => (
++			<Icon className={className} name="astro" />
++		),
++		defaultUrl: '/docs/frameworks/astro/quickstart',
++		description: 'Consent management for Astro islands',
++	},
++	svelte: {
++		id: 'svelte',
++		name: 'Svelte',
++		aliases: ['svelte', 'sveltejs'],
++		icon: ({ className }: { className?: string }) => (
++			<Icon className={className} name="svelte" />
++		),
++		defaultUrl: '/docs/frameworks/svelte/quickstart',
++		description: 'Svelte 5 consent components',
++	},
++	sveltekit: {
++		id: 'sveltekit',
++		name: 'SvelteKit',
++		aliases: ['sveltekit', 'svelte-kit', 'svelte kit'],
++		icon: ({ className }: { className?: string }) => (
++			<Icon className={className} name="svelte" />
++		),
++		defaultUrl: '/docs/frameworks/sveltekit/quickstart',
++		description: 'Svelte framework with SSR and static hosting',
+ 	},
+ 	javascript: {
+ 		id: 'javascript',
+diff --git a/packages/docs/src/docs/layout/framework-dropdown.tsx b/packages/docs/src/docs/layout/framework-dropdown.tsx
+index a5cb4e8d21..9f2cf472d7 100644
+--- a/packages/docs/src/docs/layout/framework-dropdown.tsx
++++ b/packages/docs/src/docs/layout/framework-dropdown.tsx
+@@ -17,6 +17,7 @@ import { Icon } from '../../lib/icon';
+ import { useTreeContextOptional } from '../contexts/tree-context';
+ import {
+ 	type FrameworkOption,
++	getCurrentFrameworkFromSlug,
+ 	getDefaultFrameworkOptions,
+ 	getFramework,
+ } from '../frameworks';
+@@ -165,14 +166,14 @@ export function FrameworkDropdown({
+ 		return getDefaultFrameworkOptions();
+ 	}, [tree, customOptions]);
+ 
+-	// Use active framework from context, fallback to other detection methods
++	// Prefer the current page over a framework saved from an earlier visit.
+ 	const currentFramework = useMemo(() => {
+-		// Only use activeFramework if it's not empty
+-		if (activeFramework && activeFramework.trim() !== '') {
+-			return activeFramework;
+-		}
+-		if (selectedFramework) {
+-			return selectedFramework;
++		const segments = pathname.split('/').filter(Boolean);
++		const routeFramework = getCurrentFrameworkFromSlug(
++			segments.slice(segments.indexOf('frameworks'))
++		);
++		if (routeFramework) {
++			return routeFramework;
+ 		}
+ 
+ 		if (tree) {
+@@ -185,7 +186,7 @@ export function FrameworkDropdown({
+ 			}
+ 		}
+ 
+-		return '';
++		return selectedFramework || activeFramework.trim();
+ 	}, [activeFramework, selectedFramework, pathname, tree]);
+ 
+ 	// Find the currently selected framework option
+diff --git a/packages/docs/src/docs/frameworks.test.ts b/packages/docs/src/docs/frameworks.test.ts
+new file mode 100644
+index 0000000000..e9a9ee4d00
+--- /dev/null
++++ b/packages/docs/src/docs/frameworks.test.ts
+@@ -0,0 +1,41 @@
++import { describe, expect, it } from 'vitest';
++import {
++	getDefaultFrameworkOptions,
++	getCurrentFrameworkFromSlug,
++	getFramework,
++	getFrameworkUrl,
++} from './frameworks';
++
++describe('v3 framework navigation', () => {
++	it('orders the switcher by framework family', () => {
++		expect(getDefaultFrameworkOptions().map((option) => option.title)).toEqual([
++			'Next.js',
++			'TanStack Start',
++			'React',
++			'Nuxt',
++			'Vue',
++			'Astro',
++			'Svelte',
++			'SvelteKit',
++			'JavaScript',
++		]);
++	});
++
++	it.each([
++		'next',
++		'react',
++		'vue',
++		'nuxt',
++		'svelte',
++		'sveltekit',
++		'astro',
++		'tanstack-start',
++		'javascript',
++	])('recognizes %s pages and their quickstart destination', (id) => {
++		expect(getFramework(id)?.id).toBe(id);
++		expect(getCurrentFrameworkFromSlug(['frameworks', id, 'quickstart'])).toBe(
++			id
++		);
++		expect(getFrameworkUrl(id)).toBe(`/docs/frameworks/${id}/quickstart`);
++	});
++});

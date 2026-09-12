@@ -6,7 +6,7 @@ metadata:
 ---
 # @c15t/backend documentation
 
-Self-hosted c15t backend docs for configuration, APIs, storage, policy packs, and operations.
+Self-hosted v3 backend configuration, SQL storage, migrations and HTTP contracts.
 
 To work with @c15t/backend, read its bundled docs — they ship with the package and are version-matched to the installed code:
 
