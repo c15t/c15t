@@ -36,11 +36,11 @@
 	],
 	"type": "module",
 	"main": "./dist/module.mjs",
-	"types": "./dist/types.d.mts",
+	"types": "./dist/module.d.mts",
 	"typesVersions": {
 		"*": {
 			".": [
-				"./dist/types.d.mts"
+				"./dist/module.d.mts"
 			],
 			"vite": [
 				"./dist/vite.d.mts"
@@ -55,7 +55,7 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/types.d.mts",
+			"types": "./dist/module.d.mts",
 			"import": "./dist/module.mjs",
 			"default": "./dist/module.mjs"
 		},

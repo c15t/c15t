@@ -19,6 +19,11 @@ import {
 	resolveNuxtManifestRoute,
 } from './runtime/manifest';
 
+export { defineTheme, type Theme } from '@c15t/ui/theme';
+
+/** Options accepted by the Nuxt module. */
+export type ModuleOptions = Partial<ConsentConfig>;
+
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
 const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({

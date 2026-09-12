@@ -98,6 +98,42 @@ components include their styles; do not copy a React stylesheet import to a
 nonexistent Vue export. `showTrigger` also enables the built-in persistent
 trigger. The custom button above shows how to offer a footer entry point.
 
+## Customize the theme
+
+Plain Vue exports `defineTheme` and the `Theme` type from
+`c15t/vue/vue-plugin`. The helper returns a typed theme object; Vue applies
+styles through the plugin's `tokens` configuration. Map the values you want
+to use to their CSS token names.
+
+Update the existing plugin registration in `src/main.ts`, keeping any other
+options you already use:
+
+```ts title="src/main.ts"
+import { createApp } from 'vue';
+import { c15tVue, defineTheme } from 'c15t/vue/vue-plugin';
+import App from './App.vue';
+
+const theme = defineTheme({
+  colors: { primary: '#2f6f4e' },
+  radius: { lg: '4px' },
+});
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+
+createApp(App).use(c15tVue, {
+  backendURL,
+  showTrigger: true,
+  tokens: {
+    'c15t-primary': theme.colors.primary,
+    'c15t-radius-lg': theme.radius.lg,
+  },
+}).mount('#app');
+```
+
+When `ConsentRoot` mounts, it applies the green primary color and 4px
+large-radius token. Token keys omit the leading `--`.
+
 ## Read reactive permissions
 
 ```vue title="src/OptionalContent.vue"
