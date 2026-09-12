@@ -85,6 +85,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 | Integration                                    | Helper             | Category    | Loading behavior                                  |
 | ---------------------------------------------- | ------------------ | ----------- | ------------------------------------------------- |
 | [Meta Pixel](./meta-pixel.md)                  | `metaPixel`        | `marketing` | Waits for effective permission                    |
+| [OpenAI Pixel](./openai-pixel.md)              | `openaiPixel`      | `marketing` | Gated initially; retains SDK and signals consent  |
 | [Reddit Pixel](./reddit-pixel.md)              | `redditPixel`      | `marketing` | Gated initially; retains SDK and switches cookies |
 | [TikTok Pixel](./tiktok-pixel.md)              | `tiktokPixel`      | `marketing` | Gated initially; retains SDK and signals consent  |
 | [LinkedIn Insight Tag](./linkedin-insights.md) | `linkedinInsights` | `marketing` | Waits for effective permission                    |
