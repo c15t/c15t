@@ -46,6 +46,17 @@ the steps below. Offline setups do not need an endpoint; use the
 
 <CommandTabs command="@c15t/scripts" mode="install" />
 
+Add the prebuilt stylesheet to your global CSS, after any Tailwind import, so
+its component layer follows Tailwind's:
+
+```css title="app/globals.css"
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+```
+
+The layouts on this page import `./globals.css`; without Tailwind the same
+`@import` line goes at the top of whatever global stylesheet the layout loads.
+
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or
 your self-hosted backend, including any path prefix. This is a public endpoint,
 not a secret. Configure the backend to allow your app's origin.
@@ -98,7 +109,7 @@ import type { ReactNode } from 'react';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import './globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
   const initialConsent = await prefetchInitialConsent({ config: consentConfig });
@@ -192,7 +203,7 @@ import type { ReactNode } from 'react';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const initialConsent = prefetchInitialConsent({ config: consentConfig });
@@ -243,7 +254,7 @@ wrapper directly with an empty config:
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
 import { Consent } from '../components/consent';
-import 'c15t/next/styles.css';
+import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
