@@ -8,8 +8,7 @@
 		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/nextjs bunx tsx scripts/run-bench.ts",
 		"build": "next build",
 		"dev": "next dev",
-		"start": "next start",
-		"test:transport": "vitest run --config vitest.config.ts"
+		"start": "next start"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",

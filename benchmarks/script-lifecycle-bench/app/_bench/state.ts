@@ -5,6 +5,9 @@ import type { ScriptLifecycleScenarioName } from './fixtures';
 export interface ScriptBenchState {
 	scenario: ScriptLifecycleScenarioName;
 	startedAtMs: number;
+	actionStartedAtMs?: number;
+	actionCompletedAtMs?: number;
+	actionSettled?: boolean;
 	consentSaveCount: number;
 	activeUI: string;
 	loadedIds: string[];

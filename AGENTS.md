@@ -118,10 +118,35 @@ When adding or changing user-facing package behavior:
 
 ## CI on pull requests
 
-- **CI** (`ci.yml`): `turbo run check-types`, repo-wide Oxlint, Oxfmt checks, root script tests, `turbo run build --filter="./packages/*"`, and `turbo run test --filter="./packages/*"`; a separate coverage workflow posts per-package coverage comments afterward. Build and package tests are `--affected` on pull requests and run in full on pushes to `canary`, `main`, `v3`, and `2.0.0`; `check-types` and root script tests always run in full as cross-package backstops. **Release** (`release.yml`) calls the same CI checks in full on pushes to `canary`, `main`, `v3`, and `2.0.0`, then publishes only after every check passes. Keeping `release.yml` as the top-level publishing workflow also preserves its npm trusted-publisher identity. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
-- **autofix.ci**: runs `bun fmt` + `bun fmt:docs` and pushes fixes to your branch — pull before adding commits after CI runs.
-- **Bundle Analysis** (every PR) and **Benchmark Regression** (path-filtered: core/react/nextjs/translations/ui/benchmarks/lockfile/turbo.json) post bundle-size and perf comparisons. For perf work, include before/after benchmark numbers (`bun run bench`).
-- **PR Preview**: publishes preview packages to pkg.pr.new for package-path changes, but only for org members or PRs labeled `deploy:preview`.
+`ci.yml` selects checks from changed files and the workspace dependency graph.
+Docs-only PRs run lint, formatting, repository tests and docs generation.
+Runtime changes select affected packages and their dependents; lockfile, root
+configuration and unknown inputs select the full graph. Package code builds
+once and downstream jobs restore its outputs and Turbo cache from `ci-build`.
+Docs generation is a separate `build:docs` task. Root `build` and release
+commands include both tasks.
+
+Package tests, test-type checks, database tests and browser integration groups
+report through Actions summaries and artifacts. Coverage reports show changed
+instrumented lines and branches. Bundle and runtime comparisons fail on
+missing measurements. These workflows do not post PR comments. Superseded PR
+runs are cancelled.
+
+Browser groups own example acceptance, supported Next router/build contracts,
+framework parity and Storybook interactions, SSR consent journeys, and CSS
+compatibility. `scripts/ci-plan.ts` selects the groups; `scripts/ci-browser.ts`
+runs them. See [.github/CI.md](.github/CI.md) for commands and assertion ownership.
+
+`release.yml` calls full CI before publishing on `canary`, `main`, and `2.0.0`,
+preserving its npm trusted-publisher identity. `validation.yml` runs full CI
+nightly. `next-compat.yml` separately probes Next canary releases as advisory
+checks. Routine PR performance comparisons use the quick runtime profile;
+full validation includes browser performance. Historical v2 improvement
+comparisons remain an explicit release-profile benchmark command.
+
+`autofix.ci` runs `bun fmt` and `bun fmt:docs` and pushes formatting fixes.
+Pull before adding commits after it runs. PR Preview publishes package previews
+for org members or PRs labeled `deploy:preview`.
 
 ## Contributing rules
 

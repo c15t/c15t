@@ -108,7 +108,7 @@ describe('Testing Utilities', () => {
 		it('should allow overriding specific methods', async () => {
 			const mockClient = createMockClient({
 				getSubject: (id) =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						externalId: 'user_123',
 						id,
 					}),
@@ -123,7 +123,7 @@ describe('Testing Utilities', () => {
 		it('should support namespaced methods', async () => {
 			const mockClient = createMockClient({
 				checkConsent: () =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						results: { analytics: { hasConsent: true } },
 					}),
 			});
@@ -139,12 +139,12 @@ describe('Testing Utilities', () => {
 		it('should support subjects namespace', async () => {
 			const mockClient = createMockClient({
 				createSubject: (_input) =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						consentId: 'con_456',
 						subjectId: 'sub_123',
 					}),
 				listSubjects: () =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						items: [],
 						total: 0,
 					}),
@@ -167,11 +167,11 @@ describe('Testing Utilities', () => {
 		it('should support meta namespace', async () => {
 			const mockClient = createMockClient({
 				init: () =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						clientId: 'client_123',
 					}),
 				status: () =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						healthy: true,
 
 						version: '1.0.0',
@@ -207,7 +207,7 @@ describe('Testing Utilities', () => {
 			// Setup mock client
 			const mockClient = createMockClient({
 				checkConsent: () =>
-					createMockResponse({
+					createMockResponse<unknown>({
 						results: {
 							analytics: { hasConsent: true, isLatestPolicy: true },
 							marketing: { hasConsent: false, isLatestPolicy: true },

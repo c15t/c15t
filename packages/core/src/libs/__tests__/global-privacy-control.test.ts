@@ -20,7 +20,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// Restore the original window reference after each test
 		if (originalWindow === undefined) {
 			// Clean up a window created by the test.
-			delete (globalThis as typeof globalThis & { window?: unknown }).window;
+			Reflect.deleteProperty(globalThis, 'window');
 		} else {
 			globalThis.window = originalWindow;
 		}
@@ -28,7 +28,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 
 	it('returns false when window is undefined (server-side environment)', () => {
 		// Simulate a server-side environment where window is not available
-		delete (globalThis as typeof globalThis & { window?: unknown }).window;
+		Reflect.deleteProperty(globalThis, 'window');
 
 		const result = hasGlobalPrivacyControlSignal();
 

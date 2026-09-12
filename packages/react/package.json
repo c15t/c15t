@@ -220,7 +220,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react && node ../shared/restore-client-directives.mjs src dist",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit && tsc -p tsconfig.type-tests.json",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
@@ -228,7 +228,7 @@
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
 	},

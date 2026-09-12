@@ -91,7 +91,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "nuxt-module-build build && bun run build:docs",
+		"build": "nuxt-module-build build",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/vue",
 		"check-types": "bun run check-types:nuxt && bun run check-types:vue",
 		"check-types:nuxt": "nuxt typecheck playground",
@@ -99,7 +99,7 @@
 		"dev": "nuxt dev playground",
 		"dev:build": "nuxt build playground",
 		"dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
-		"prepack": "bun run build",
+		"prepack": "bun run build:docs && bun run build",
 		"test": "vitest run"
 	},
 	"dependencies": {

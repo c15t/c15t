@@ -100,7 +100,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts && bun run build:docs",
+		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/svelte",
 		"check-types": "bun prebuild && svelte-check --tsconfig ./tsconfig.json",
 		"clean:dist:test-artifacts": "bun --eval \"import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const walk = (dir) => { for (const entry of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, entry.name); if (entry.isDirectory()) { if (entry.name === '__tests__') { rmSync(full, { recursive: true, force: true }); continue; } walk(full); continue; } if (/\\.(test|spec)\\.[cm]?[jt]sx?$/.test(entry.name)) { rmSync(full, { force: true }); } } }; walk('dist');\"",
@@ -109,7 +109,7 @@
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/lib/version.ts",
-		"prepack": "bun run build",
+		"prepack": "bun run build:docs && bun run build",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

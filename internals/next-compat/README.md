@@ -1,6 +1,6 @@
 # Next.js compatibility matrix
 
-Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination we support. CI runs one job per cell (`.github/workflows/next-compat.yml`); a nightly job additionally runs the Next 16 cells against `next@canary` as an advisory check.
+Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination we support. Main CI runs the six stable cells in one compatibility group; `.github/workflows/next-compat.yml` additionally runs the Next 16 cells against `next@canary` nightly as an advisory check.
 
 ## Cells
 
@@ -58,7 +58,7 @@ Chromium is needed once: `bunx playwright@<root devDependency version> install c
 1. Copy the closest existing cell directory and rename the package to `@c15t/next-compat-<cell>`.
 2. Pin `next` (and `react`, `react-dom` if they must differ) in its `package.json`, run `bun install`.
 3. Adjust routes and the scenario table in `tests/compat.test.ts`. A cell without a server (`output: 'export'`) also needs the `compat.config.ts` and build step described under "Running locally"; `next-16-static-export` is the model.
-4. Add the cell to the matrix in `.github/workflows/next-compat.yml` and to the table above.
+4. Add the cell to the table above. Main CI discovers its `test:compat` script from the workspace graph. Add it to `.github/workflows/next-compat.yml` only if it also needs the advisory nightly Next canary probe.
 
 Keep route files thin: everything shared belongs in `shared/` so a failing cell points at the framework combination, not at fixture drift.
 

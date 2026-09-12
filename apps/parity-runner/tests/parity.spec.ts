@@ -372,7 +372,11 @@ test.describe('cross-framework parity', () => {
 	 */
 	test('paired stories match committed screenshot baselines per framework', async ({
 		page,
-	}) => {
+	}, testInfo) => {
+		test.skip(
+			testInfo.project.ignoreSnapshots,
+			'Committed baselines are opt-in; CI runs live pixel and geometry comparisons.'
+		);
 		const paired = await loadPairedStories();
 		for (const pair of paired) {
 			for (const [framework, entry] of Object.entries(pair.entries)) {
