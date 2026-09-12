@@ -1,0 +1,9 @@
+dist
+dist-types
+coverage
+src/version.ts
+src/generated/
+
+# Vitest browser failure screenshots and traces
+.vitest-attachments/
+src/**/__screenshots__/

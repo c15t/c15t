@@ -15,7 +15,12 @@
 import { TEST_IDS } from '../contract/test-ids';
 import type { TestDriver } from '../driver';
 import { POLICY_SCENARIOS } from '../fixtures/policy-scenarios';
-import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
+import {
+	conformanceTest,
+	queryByTestId,
+	queryAllIncludingShadowRoots,
+	waitForCondition,
+} from './helpers';
 import type { SuiteApi } from './helpers';
 import { runPolicyScenarioConformance } from './policy-scenarios';
 
@@ -45,9 +50,15 @@ const testIdsWithin = function testIdsWithin(
 	root: ParentNode,
 	prefix: string
 ): string[] {
-	return Array.from(root.querySelectorAll('[data-testid]'))
+	return queryAllIncludingShadowRoots(root, '[data-testid]')
 		.map((element) => element.getAttribute('data-testid') ?? '')
-		.filter((id) => id.startsWith(prefix));
+		.filter(
+			(id) =>
+				id.startsWith(prefix) &&
+				/^(?:purpose|stack|special-feature|special-purpose|feature)-item-\d+$/u.test(
+					id
+				)
+		);
 };
 
 const accessibleName = function accessibleName(el: HTMLElement): string {
@@ -240,7 +251,7 @@ export const runIabUiConformance = function runIabUiConformance(
 
 		conformanceTest(
 			api,
-			'IAB dialog keeps the locked essential rows out of the consent list',
+			'IAB dialog gives locked essential rows no consent controls',
 			async () => {
 				const mounted = await driver.mount({
 					component: 'iab-consent-dialog',
@@ -249,14 +260,13 @@ export const runIabUiConformance = function runIabUiConformance(
 					await waitForCondition(
 						() => testIdsWithin(document.body, 'purpose-item-').length > 0
 					);
-					// Special purposes and features have no consent to give, so
-					// they live behind the collapsed "essential functions"
-					// section rather than among the toggles.
-					api
-						.expect(
-							testIdsWithin(document.body, 'special-purpose-item-').length
-						)
-						.toBe(0);
+					// Frameworks may unmount collapsed content or use native details.
+					// Either way, essential disclosures must never offer consent.
+					const controls = queryAllIncludingShadowRoots(
+						document.body,
+						'[data-testid^="special-purpose-item-"] [role="switch"], [data-testid^="feature-item-"] [role="switch"], [data-testid^="special-purpose-item-"] [role="checkbox"], [data-testid^="feature-item-"] [role="checkbox"], [data-testid^="special-purpose-item-"] input, [data-testid^="feature-item-"] input'
+					);
+					api.expect(controls.length).toBe(0);
 				} finally {
 					await mounted.unmount();
 				}

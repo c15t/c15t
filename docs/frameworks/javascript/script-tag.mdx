@@ -1,0 +1,374 @@
+---
+title: Script tag
+description: Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
+group: frameworks
+---
+
+`@c15t/browser` is the c15t consent banner for sites you cannot bundle: page builders, CMS themes, static HTML. One `<script>` tag from a CDN installs the banner, the preference centre, and script gating. Nothing to compile, nothing to import.
+
+It is built on the same `@c15t/core` runtime and `@c15t/ui` stylesheet as the React, Vue, and Svelte packages, and uses the same policy and presentation resolvers. Framework API parity is covered under [limitations](#limitations).
+
+## Add the tag
+
+Paste this before `</head>` (Framer: Site Settings → Custom Code; Webflow: Project Settings → Custom Code; WordPress: a header scripts plugin or your theme's `header.php`).
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
+  data-backend-url="https://your-instance.c15t.dev"
+  defer
+></script>
+```
+
+Reload the page. You should see the banner in the bottom left corner. Accept or reject, and it stays hidden on the next visit.
+
+Pin a version in the URL so a release cannot change your banner without you.
+
+### Without a backend
+
+Drop `data-backend-url` to use offline mode. It resolves the same recommended rules as React and stores records in the browser. Unknown locations use the strict opt-in fallback. Pass known location through `overrides` or the data attributes, or use a hosted backend to resolve location. A backend also stores audit records and supplies translations.
+
+## Attributes
+
+Every attribute is optional.
+
+| Attribute | What it does |
+| --- | --- |
+| `data-backend-url` | Backend origin. Selects hosted mode. |
+| `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
+| `data-manifest-url` | URL to fetch a consent manifest. Include `data-backend-url` when this is not the backend's `/manifest` endpoint. |
+| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the entire policy scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
+| `data-policy-rules` | Comma-separated policy presets for offline mode: `europeOptIn`, `usPrivacyStatesOptOut`, `quebecOptIn`, `worldNone`. Resolved by the visitor's country. |
+| `data-language` | Force a language instead of reading the browser's. |
+| `data-country`, `data-region` | Known location, when your host injects it. |
+| `data-color-scheme` | `light`, `dark`, or `system` (default). |
+| `data-trigger` | Show a floating button that reopens the preference centre. |
+| `data-hide-branding` | Hide the "Secured by c15t" tag. The IAB first-layer banner always keeps its branding visible. |
+| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Show the configured legal links in the stock banner and preference centre. |
+| `data-shadow="false"` | Render into the page instead of a shadow root, so your CSS applies. |
+| `data-no-ui` | Run the runtime with no banner. Same as loading `c15t.headless.js`. |
+| `data-manual` | Capture the tag's configuration without initialising. The page calls `c15t.init()` itself after the script loads. |
+
+For anything the attributes cannot express, queue a `config` call on `window.c15t` before the tag. There is only one global: before the script loads it is an array of calls, after it loads it is the API, and the queue is replayed in order. `config` accepts every option of [`init()`](#the-window-api) and wins over the attributes.
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    legalLinks: { privacyPolicy: { href: '/privacy' } },
+    scripts: [
+      {
+        id: 'analytics',
+        src: '/analytics.js',
+        category: 'measurement',
+      },
+    ],
+    ui: {
+      colorScheme: 'dark',
+      trigger: true,
+      banner: { legalLinks: ['privacyPolicy'] },
+      dialog: { legalLinks: ['privacyPolicy'] },
+    },
+  }]);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js" defer></script>
+```
+
+With `data-manual`, a later `c15t.init()` retains the original tag's attributes. Queued `config` calls override those attributes, and options passed directly to `init()` win over both. Changing or removing the tag after it loads does not change the captured configuration. After `dispose()`, a new `init()` reuses the captured attributes and queued defaults, including backend-injected settings. Pass new options to `init()` to override them.
+
+Legal-link URL attributes select their links for both stock surfaces, including IAB. Override the selection with `ui.banner.legalLinks` or `ui.dialog.legalLinks`; `[]` or `null` hides links on that surface. Other banner or dialog options, such as `hideBranding`, preserve the selection.
+
+## Gate your own scripts
+
+List scripts under `scripts` for the core loader lifecycle, including cleanup callbacks. In HTML, keep a tag inert until consent by changing its `type`:
+
+```html
+<script type="text/plain" data-c15t-category="marketing" src="https://pixel.example/tag.js"></script>
+```
+
+External scripts without `async` finish loading before the next permitted non-async script runs, including inline code that uses the library. Explicit `async` scripts load independently. The scanner preserves each script's `nonce` for pages that authorize scripts through Content Security Policy.
+
+An activated inline or external script cannot be undone. Supply cleanup through the `scripts` API when a vendor supports it; otherwise reload after withdrawal. The HTML scanner activates only `type="text/plain"` scripts and also watches newly inserted tags.
+
+See [script gating](/docs/frameworks/javascript/script-loader) for the full `scripts` option, and the [integrations](/docs/integrations/overview) for ready-made GTM, GA4, and pixel loaders.
+
+## Buttons and links
+
+Any element on the page can drive the banner. Add `data-c15t-action` and the client wires it:
+
+```html
+<button data-c15t-action="customize">Cookie settings</button>
+<button data-c15t-action="accept">Accept all</button>
+<button data-c15t-action="reject">Reject all</button>
+```
+
+`dismiss` acknowledges a notice without changing category choices. `customize` opens the preference centre, `banner` shows the banner again, and `close` hides whatever is open. A plain link to `#c15t-preferences` opens the preference centre too, which is the easiest hook in a page builder's footer.
+
+## The window API
+
+The tag installs `window.c15t`. Use it from your own code:
+
+```js
+c15t.on('consent', (snapshot) => {
+  if (c15t.has('measurement')) {
+    startAnalytics();
+  }
+});
+
+c15t.ready().then(() => {
+  // the policy is resolved and the banner has rendered
+  c15t.hasConsented(); // an explicit category receipt exists; use has() for permission
+});
+c15t.openDialog();
+c15t.acceptAll();
+c15t.save({ measurement: true, marketing: false });
+c15t.identify({ id: 'user_123' });
+```
+
+Queue `config` and `on` before the tag loads. Call action methods after initialization:
+
+```html
+<script>
+  window.c15t = [['on', 'consent', (snapshot) => console.log(snapshot.effectivePermissions)]];
+</script>
+```
+
+Queued event listeners attach before the client starts, so consent listeners receive startup events when the client restores saved choices. `on()` returns an unsubscribe function that also works before initialization. Disposal removes the current client's listeners; register new listeners after `dispose()` to observe the next client.
+
+The same events fire on `document` as `c15t:ready`, `c15t:consent`, `c15t:ui`, and `c15t:error`, with the payload in `event.detail`.
+
+## Headless
+
+Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still resolves the policy, gates scripts, and persists consent; your HTML renders the banner and calls the API. `c15t.on('ui', surface)` tells you when to show it: `surface` is `'banner'`, `'dialog'`, or `'none'`.
+
+```html
+<div id="banner" hidden>
+  <p>We use cookies.</p>
+  <button data-c15t-action="reject">Reject</button>
+  <button data-c15t-action="accept">Accept</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
+<script>
+  window.c15t = [['on', 'ui', (surface) => { document.getElementById('banner').hidden = surface !== 'banner'; }]];
+</script>
+```
+
+## Styling
+
+The banner renders inside a shadow root with its own copy of the stylesheet, so a theme's global `button {}` rule cannot reach it and the banner's rules cannot leak out. Customise it through the theme tokens rather than selectors:
+
+```js
+window.c15t = window.c15t || [];
+c15t.push(['config', {
+  ui: {
+    theme: {
+      colors: { primary: '#0a66ff' },
+      radius: { lg: '1rem' },
+      typography: { fontFamily: 'system-ui, sans-serif' },
+    },
+    css: '[data-testid="consent-banner-card"] { border: 3px solid #0a66ff; }',
+  },
+}]);
+```
+
+`theme` takes the same object `@c15t/react` accepts. `css` is appended after the bundled stylesheet, still inside the shadow root. To take over completely, set `shadow: false` (or `data-shadow="false"`) and the DOM renders in the page with a stylesheet owned by the mounted host; `noStyle: true` then strips every class so you start from unstyled markup with the same `data-testid` attributes as the other c15t packages.
+
+For an ordinary page stylesheet, configure `ui: { shadow: false }` before loading the tag, then add:
+
+```css
+[data-c15t-ui] [data-testid="consent-banner-card"] {
+  border: 3px solid #0a66ff;
+}
+```
+
+For layout, pass host presentation separately from the policy:
+
+```js
+c15t.push(['config', {
+  presentation: {
+    prompt: { variant: 'bar', position: 'bottom' },
+    preferences: { uiProfile: 'balanced' },
+  },
+}]);
+```
+
+The prompt supports `floating`, `bar`, `widget`, and `wall`. The shared resolver applies policy constraints, including nonblocking notices and blocking choice walls. Colors, fonts, spacing, borders, and layout are frontend configuration. A backend would only be needed to store and distribute remotely managed settings.
+
+The repository's `examples/script-tag/styled.html` shows both CSS modes. Run `bun turbo run build --filter=@c15t/browser` and `bun run --cwd examples/script-tag dev`, then open `/styled` or `/styled?shadow=false`. `/custom` shows a banner made from your own HTML on the headless build.
+
+## Faster first paint with a manifest
+
+Hosted mode asks the backend for `/init` on every fresh visit before the banner can render. The backend also serves `/manifest`: the geo-independent half of that decision, cacheable at the CDN. In manifest mode the browser resolves the policy itself, so a "one banner for everyone" policy renders with no request at all when the manifest is inlined.
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    mode: 'manifest',
+    backendURL: 'https://your-instance.c15t.dev',
+    manifest: {/* GET https://your-instance.c15t.dev/manifest */},
+  }]);
+</script>
+```
+
+Or fetch a cached manifest with `data-manifest-url`. When you host the manifest on a separate CDN, also specify the backend that receives consent saves:
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
+  data-manifest-url="https://cdn.example.com/consent-policy.json"
+  data-backend-url="https://your-instance.c15t.dev"
+  defer
+></script>
+```
+
+Only a URL ending in `/manifest` can supply the backend base URL automatically. Other manifest URLs and inline manifests require `backendURL`, or `data-backend-url` on the tag. An explicit `backendURL: ''` uses the page's origin. Missing backend configuration raises an error during initialization. Use offline mode for browser-only persistence.
+
+The client fetches the manifest once, honouring its cache headers. When the policy depends on location and the browser does not know the country or region needed by a rule, the client falls back to the backend's `/init`. Consent saves go to that backend, even when the manifest comes from another CDN.
+
+Only English ships in the bundle; a manifest carries its own translations for the languages the site serves.
+
+### Serve it from your backend
+
+A [self-hosted backend](/docs/self-host/quickstart) does the inlining for you. It serves `GET /c15t.js` (and `/c15t.headless.js`): the same bundle behind a queued `config` call that already carries the manifest, the backend origin, and any defaults you configure. One tag, one request, and the banner renders as soon as the script parses.
+
+```html
+<script src="https://consent.example.com/c15t.js" defer></script>
+```
+
+Configure what gets baked in with the backend's `script` option:
+
+```ts
+createApp(runtime, {
+  script: {
+    config: {
+      legalLinks: { privacyPolicy: { href: 'https://example.com/privacy' } },
+      ui: {
+        banner: { legalLinks: ['privacyPolicy'] },
+        dialog: { legalLinks: ['privacyPolicy'] },
+      },
+    },
+  },
+});
+```
+
+Anything the page queues with `c15t.push(['config', ...])` before the tag still wins over the baked-in defaults. The response uses the same cache policy as `/manifest`, with an ETag covering the configuration and bundle, so put a CDN in front of it. Add `?language=de` to slice the manifest's translations to one language.
+
+## Dev tools
+
+Add a second tag and the c15t DevTools panel attaches to the page's client. It shows consents, gated scripts, the resolved policy and every kernel event, and its Location tab changes country, region, language and GPC and re-runs init, so you can watch a geo-keyed policy switch without spoofing headers or a VPN.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
+```
+
+Tag order does not matter; the panel waits for the client. It is also on `window.c15t.devtools`, so `c15t.devtools.actions.setOverrides({ country: 'US' })` followed by `c15t.devtools.actions.init()` does the same from the console. Leave the tag out of production pages; it shows internal state. Bundler users import `mountDevTools` from `@c15t/browser/devtools`.
+
+## In a bundler
+
+The same client is published as ES modules for projects that do have a build step but no framework:
+
+```package-install
+@c15t/browser
+```
+
+```ts
+import { init } from '@c15t/browser';
+
+const c15t = init({
+  backendURL: 'https://your-instance.c15t.dev',
+});
+```
+
+`@c15t/browser/headless` exports the client without the UI, and `@c15t/browser/styles.css` is the stylesheet for `shadow: false`.
+
+## Optional IAB entry
+
+Load `c15t.iab.js` instead of `c15t.js` when your policy requires IAB TCF. This separate build includes the CMP, TC-string codec, banner, and vendor/purpose preference centre. The normal and headless builds exclude the IAB implementation and stylesheet.
+
+```html
+<script>
+  window.c15t = [['config', {
+    backendURL: 'https://your-instance.c15t.dev',
+    iab: {
+      cmpId: 28, // Replace with your registered CMP ID, or let the backend supply it.
+      vendors: [1, 2, 755],
+    },
+    legalLinks: {
+      privacyPolicy: { href: '/privacy' },
+      cookiePolicy: { href: '/cookies' },
+    },
+    ui: {
+      trigger: true,
+      theme: { colors: { primary: '#0a66ff' } },
+      banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
+      dialog: { legalLinks: ['privacyPolicy'], hideBranding: true },
+    },
+  }]];
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.iab.js" defer></script>
+<button type="button" data-c15t-action="customize">Privacy settings</button>
+```
+
+The self-hosted backend can serve the same entry at `/c15t.iab.js`. Set `script.config.iab` to supply CMP defaults and `script.iabPath` to change the route. Both script routes use the same manifest and backend settings, but only the IAB route serves the IAB bundle.
+
+Do not load both `c15t.js` and `c15t.iab.js`. The IAB entry owns one client and one CMP. It shows the ordinary banner when the resolved policy is non-IAB. If an IAB policy cannot load its vendor list, the UI shows an error and keeps confirmation disabled.
+
+Bundler applications import the optional entry:
+
+```ts
+import { init } from '@c15t/browser/iab';
+
+const client = init({
+  backendURL: 'https://your-instance.c15t.dev',
+  iab: { cmpId: 28, vendors: [1, 2, 755] },
+  ui: { trigger: true },
+});
+
+await client.ready();
+const cmp = client.runtime.iab;
+if (cmp) {
+  await cmp.whenReady?.();
+  cmp.setPurposeConsent(1, true);
+  cmp.setVendorConsent(755, true);
+  const result = await client.saveIAB();
+  if (!result.ok) client.openDialog();
+}
+```
+
+`ready()` resolves the policy. `runtime.iab.whenReady()` waits for the vendor list and CMP setup and rejects if setup fails. The CMP installs `window.__tcfapi`; `dispose()` removes it and its subscriptions.
+
+`acceptAll()` and `rejectAll()` confirm through the CMP in IAB mode. Use `saveIAB()` for individual changes. Category-only `save({ ... })` rejects an IAB policy because it cannot produce the required TC authority. The CMP also exposes `setPurposeLegitimateInterest`, `setVendorLegitimateInterest`, and `setSpecialFeatureOptIn`. These edit the IAB draft; call `saveIAB()` to confirm it.
+
+### Purpose and partner choices
+
+In the stock preference centre, changing a purpose's consent also changes consent for the partners that use that purpose on a consent basis. Its legitimate-interest control changes the purpose and its legitimate-interest partners separately. Turning that control off records an objection; it does not change consent-based choices.
+
+Each stack has a group control for its purposes and consent-based partners. The control exposes a mixed state when only some purposes are selected. Special-feature controls update the feature opt-in and its associated consent partners without changing the same-numbered purpose. Partners shared by several purposes have one vendor-wide consent value.
+
+The vendor tab provides individual consent and legitimate-interest controls, search, and incremental loading. Expand a vendor to see its declared purposes, features, data categories, privacy and legitimate-interest policy links, cookie lifetime and refresh information, and retention periods for individual purposes and special purposes. These disclosures depend on the vendor's data in the Global Vendor List, or GVL.
+
+These grouped actions belong to the stock UI. The low-level `runtime.iab` setters each edit their named choice, so custom HTML must set associated vendor choices explicitly when offering the same grouped behavior.
+
+### IAB configuration and styling
+
+Configure link destinations in `legalLinks`, then select which links each layer shows with `ui.banner.legalLinks` and `ui.dialog.legalLinks`, as in the script example above. With JavaScript configuration alone, an omitted or empty selection shows no links. URL attributes select their links for both surfaces by default. The IAB banner always shows c15t branding, matching React. `ui.dialog.hideBranding` can hide it in the preference centre.
+
+Use `i18n` for translated copy. The ordinary `ui.banner.title`, `description`, `acceptButtonText`, `rejectButtonText`, and `customizeButtonText` overrides also apply to the IAB banner. A description can include `{partnerCount}`; the purpose summary and legitimate-interest disclosure remain visible below it.
+
+Use `presentation.prompt` and `presentation.preferences` to configure blocking and layout. The banner's `scrollLock` and `trapFocus` options also work; explicit presentation blocking takes precedence, and a wall remains blocking.
+
+The IAB UI supports `ui.theme`, `ui.css`, and `ui.shadow` just like the ordinary banner. For external light-DOM styles, load both `@c15t/browser/styles.css` and `@c15t/browser/iab/styles.css`. Set `ui: false` to build custom HTML against the IAB client. This still downloads the IAB-capable entry. Styling and custom markup need no backend changes or React component APIs.
+
+Override the adapter's loading error, save error, and pagination copy with `ui.iab.loadErrorText`, `ui.iab.saveErrorText`, and `ui.iab.moreVendorsText`. The remaining IAB copy comes from the resolved translations.
+
+Try `examples/script-tag/iab.html` at `/iab` in the example server. It uses a local sample vendor list and offline storage, so you can exercise TC-string saves without a backend.
+
+## Limitations
+
+- IAB TCF requires the optional IAB entry. The browser adapter has not yet joined the shared framework visual parity runner.
+- The bundle carries English only. Other languages come from the backend, manifest, or `i18n` overrides.
+- The browser client exposes `getSnapshot()`, `subscribe()`, and imperative actions. It does not expose React's `useConsentDraft()` API or compound component composition. A custom preference center must own its draft, seed it from explicit choices and policy defaults, and discard stale drafts when the choice fingerprint changes.
+- `acceptAll()`, `rejectAll()`, and `save()` resolve to a `SaveResult`. Check `result.ok`; a transport failure keeps the local receipt and queues a retry. The prebuilt preferences remain open on failure.
+- `ready()` waits for successful initialization. Listen for `error` when a transport cannot initialize.
+- `script.bundles` supplies filesystem paths. The backend routes currently depend on Node filesystem APIs; passing a path does not add support for runtimes without a filesystem.

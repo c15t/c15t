@@ -1,0 +1,20 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": [
+		"./src/index.ts",
+		"./src/headless.ts",
+		"./src/devtools.ts",
+		"./src/entries/cdn.ts",
+		"./src/entries/cdn-headless.ts",
+		"./src/entries/cdn-devtools.ts",
+		"./scripts/build-styles.ts",
+		"./scripts/copy-styles.ts"
+	],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest", "genversion"],
+	"ignore": [
+		"**/*.test.{js,ts}",
+		"rslib.config.ts",
+		"vitest.config.ts",
+		"src/generated/**"
+	]
+}

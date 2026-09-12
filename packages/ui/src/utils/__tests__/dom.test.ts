@@ -15,6 +15,44 @@ const flushFocusTimers = function flushFocusTimers(): Promise<void> {
 	});
 };
 
+test('focus trapping follows controls inside a shadow root and restores the opener', async () => {
+	const host = document.createElement('div');
+	const root = host.attachShadow({ mode: 'open' });
+	const opener = document.createElement('button');
+	const container = document.createElement('div');
+	const first = document.createElement('button');
+	const last = document.createElement('button');
+	container.append(first, last);
+	root.append(opener, container);
+	document.body.append(host);
+	opener.focus();
+	const release = setupFocusTrap(container);
+	await flushFocusTimers();
+	first.focus();
+	const forward = new KeyboardEvent('keydown', {
+		bubbles: true,
+		cancelable: true,
+		composed: true,
+		key: 'Tab',
+	});
+	first.dispatchEvent(forward);
+	expect(forward.defaultPrevented).toBe(false);
+	last.focus();
+	last.dispatchEvent(
+		new KeyboardEvent('keydown', {
+			bubbles: true,
+			cancelable: true,
+			composed: true,
+			key: 'Tab',
+		})
+	);
+	expect(root.activeElement).toBe(first);
+	release();
+	await flushFocusTimers();
+	expect(root.activeElement).toBe(opener);
+	host.remove();
+});
+
 describe('getTextDirection', () => {
 	test('returns ltr for undefined language', () => {
 		expect(getTextDirection(undefined)).toBe('ltr');
@@ -103,8 +141,11 @@ describe('setupScrollLock', () => {
 	});
 
 	test('sets overflow to hidden', () => {
-		setupScrollLock();
+		const cleanup = setupScrollLock();
 		expect(document.body.style.overflow).toBe('hidden');
+		// The lock is reference counted across the module; release it so the
+		// next test starts unlocked.
+		cleanup();
 	});
 
 	test('cleanup restores original overflow', () => {
@@ -112,6 +153,21 @@ describe('setupScrollLock', () => {
 		const cleanup = setupScrollLock();
 		expect(document.body.style.overflow).toBe('hidden');
 		cleanup();
+		expect(document.body.style.overflow).toBe('auto');
+	});
+
+	test('nested locks restore the page only when the last one releases', () => {
+		document.body.style.overflow = 'auto';
+		const first = setupScrollLock();
+		const second = setupScrollLock();
+		expect(document.body.style.overflow).toBe('hidden');
+
+		first();
+		expect(document.body.style.overflow).toBe('hidden');
+		first();
+		expect(document.body.style.overflow).toBe('hidden');
+
+		second();
 		expect(document.body.style.overflow).toBe('auto');
 	});
 

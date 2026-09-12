@@ -242,7 +242,7 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 							{inlineLegalLinks.map((key) => (
 								<a
 									data-testid={`consent-banner-legal-link-${key}`}
-									href={c15t.options.legalLinks?.[key]?.url}
+									href={c15t.options.legalLinks?.[key]?.href}
 									rel="noreferrer"
 									target="_blank"
 								>

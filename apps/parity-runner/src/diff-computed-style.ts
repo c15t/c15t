@@ -206,7 +206,17 @@ export const captureComputedStyleMap = async function captureComputedStyleMap(
 ): Promise<Record<string, ComputedStyleSnapshot>> {
 	const captured = await page.evaluate(
 		(args: { sel: string; props: readonly string[]; elements: string }) => {
-			const roots = Array.from(document.querySelectorAll(args.sel));
+			// The DevTools panel (and any surface a host mounts in a shadow
+			// root) is invisible to `document.querySelectorAll`; look through
+			// every open shadow root too.
+			const roots = [
+				...Array.from(document.querySelectorAll(args.sel)),
+				...Array.from(document.querySelectorAll('*')).flatMap((element) =>
+					element.shadowRoot
+						? Array.from(element.shadowRoot.querySelectorAll(args.sel))
+						: []
+				),
+			];
 			if (roots.length === 0) {
 				throw new Error(`no element: ${args.sel}`);
 			}

@@ -163,6 +163,17 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'Consent-aware vendor integrations and Consent Mode loading contracts.',
 	},
 	{
+		include: [
+			'frameworks/javascript/script-tag.mdx',
+			'frameworks/javascript/script-loader.mdx',
+			'integrations/**/*.mdx',
+		],
+		name: '@c15t/browser',
+		outDir: 'packages/browser',
+		summary:
+			'Script-tag consent docs for c15t on Framer, Webflow, WordPress, and plain HTML: the data attributes, the window.c15t API, headless use, styling, manifest mode, and integrations.',
+	},
+	{
 		include: ['upgrade-v3.mdx', 'guides/**/*.mdx', 'cli/**/*.mdx'],
 		name: '@c15t/cli',
 		outDir: 'packages/cli',

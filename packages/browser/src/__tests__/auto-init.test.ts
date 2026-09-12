@@ -1,0 +1,319 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { readPageOptions, readScriptOptions } from '../auto-init';
+import { autoInit, createGlobal, installGlobal } from '../global';
+import type { C15tGlobal } from '../global';
+
+type TestWindow = Window & {
+	c15t?: unknown;
+};
+
+const testWindow = window as TestWindow;
+
+const clearCookies = function clearCookies(): void {
+	for (const entry of document.cookie.split(';')) {
+		const name = entry.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		}
+	}
+};
+
+const scriptWith = function scriptWith(
+	attributes: Record<string, string>
+): HTMLScriptElement {
+	const script = document.createElement('script');
+	for (const [name, value] of Object.entries(attributes)) {
+		script.setAttribute(name, value);
+	}
+	return script;
+};
+
+afterEach(() => {
+	(testWindow.c15t as C15tGlobal | undefined)?.dispose?.();
+	testWindow.c15t = undefined;
+	localStorage.clear();
+	clearCookies();
+	document.body.replaceChildren();
+});
+
+describe('readScriptOptions', () => {
+	it('maps data attributes to client options', () => {
+		const options = readScriptOptions(
+			scriptWith({
+				'data-backend-url': 'https://x.c15t.dev',
+				'data-categories': 'measurement, marketing',
+				'data-color-scheme': 'dark',
+				'data-country': 'DE',
+				'data-hide-branding': '',
+				'data-policy-rules': 'europeOptIn,worldNone',
+				'data-privacy-policy-url': '/privacy',
+				'data-trigger': 'true',
+			})
+		);
+
+		expect(options).toEqual({
+			backendURL: 'https://x.c15t.dev',
+			consentCategories: ['measurement', 'marketing'],
+			legalLinks: { privacyPolicy: { href: '/privacy' } },
+			overrides: { country: 'DE' },
+			policyRules: ['europeOptIn', 'worldNone'],
+			ui: {
+				banner: { hideBranding: true, legalLinks: ['privacyPolicy'] },
+				colorScheme: 'dark',
+				dialog: { hideBranding: true, legalLinks: ['privacyPolicy'] },
+				trigger: true,
+			},
+		});
+	});
+
+	it('turns the UI off with data-no-ui', () => {
+		expect(
+			readScriptOptions(
+				scriptWith({
+					'data-no-ui': '',
+					'data-privacy-policy-url': '/privacy',
+				})
+			)
+		).toEqual({
+			legalLinks: { privacyPolicy: { href: '/privacy' } },
+			ui: false,
+		});
+	});
+
+	it.each([
+		['data-privacy-policy-url', 'privacyPolicy'],
+		['data-cookie-policy-url', 'cookiePolicy'],
+		['data-terms-url', 'termsOfService'],
+	])('selects %s in both surfaces', (attribute, key) => {
+		expect(readScriptOptions(scriptWith({ [attribute]: '/legal' }))).toEqual({
+			legalLinks: { [key]: { href: '/legal' } },
+			ui: {
+				banner: { legalLinks: [key] },
+				dialog: { legalLinks: [key] },
+			},
+		});
+	});
+
+	it('ignores empty legal-link URLs', () => {
+		expect(
+			readScriptOptions(
+				scriptWith({
+					'data-cookie-policy-url': '',
+					'data-privacy-policy-url': '',
+					'data-terms-url': '',
+				})
+			)
+		).toEqual({});
+	});
+
+	it('ignores unknown modes and schemes', () => {
+		expect(
+			readScriptOptions(
+				scriptWith({ 'data-color-scheme': 'sepia', 'data-mode': 'magic' })
+			)
+		).toEqual({});
+	});
+
+	it('returns nothing without a script element', () => {
+		expect(readScriptOptions(null)).toEqual({});
+	});
+});
+
+describe('readPageOptions', () => {
+	it('layers queued config over the script attributes, in order', () => {
+		const { manual, options } = readPageOptions(
+			scriptWith({
+				'data-backend-url': 'https://x.c15t.dev',
+				'data-color-scheme': 'light',
+			}),
+			[
+				{ consentCategories: ['marketing'], ui: { trigger: true } },
+				{ consentCategories: ['measurement'] },
+			]
+		);
+
+		expect(manual).toBe(false);
+		expect(options).toEqual({
+			backendURL: 'https://x.c15t.dev',
+			consentCategories: ['measurement'],
+			ui: { colorScheme: 'light', trigger: true },
+		});
+	});
+
+	it('honours data-manual', () => {
+		expect(readPageOptions(scriptWith({ 'data-manual': '' })).manual).toBe(
+			true
+		);
+		expect(readPageOptions(null).manual).toBe(false);
+	});
+
+	it('keeps attribute legal links when queued config changes branding', () => {
+		const { options } = readPageOptions(
+			scriptWith({ 'data-privacy-policy-url': '/privacy' }),
+			[
+				{
+					ui: {
+						banner: { hideBranding: true },
+						dialog: { hideBranding: true },
+					},
+				},
+			]
+		);
+
+		expect(options.ui).toEqual({
+			banner: { hideBranding: true, legalLinks: ['privacyPolicy'] },
+			dialog: { hideBranding: true, legalLinks: ['privacyPolicy'] },
+		});
+	});
+
+	it.each([null, []])(
+		'preserves explicit legal-link suppression with %j',
+		(legalLinks) => {
+			const { options } = readPageOptions(
+				scriptWith({ 'data-privacy-policy-url': '/privacy' }),
+				[
+					{ ui: { banner: { legalLinks }, dialog: { legalLinks } } },
+					{
+						ui: {
+							banner: { hideBranding: true },
+							dialog: { hideBranding: true },
+						},
+					},
+				]
+			);
+
+			expect(options.ui).toEqual({
+				banner: { hideBranding: true, legalLinks },
+				dialog: { hideBranding: true, legalLinks },
+			});
+		}
+	);
+
+	it.each([false, true])(
+		'lets surface booleans replace attribute defaults with %s',
+		(enabled) => {
+			const { options } = readPageOptions(
+				scriptWith({ 'data-privacy-policy-url': '/privacy' }),
+				[{ ui: { banner: enabled, dialog: enabled } }]
+			);
+
+			expect(options.ui).toEqual({ banner: enabled, dialog: enabled });
+		}
+	);
+
+	it('does not select links supplied only through programmatic config', () => {
+		const config = { legalLinks: { privacyPolicy: { href: '/privacy' } } };
+		expect(readPageOptions(null, [config]).options).toEqual(config);
+	});
+});
+
+describe('window.c15t', () => {
+	it('reuses the installed client when the script tag loads twice', async () => {
+		const first = installGlobal(createGlobal({ pkg: '@c15t/browser' }));
+		first.init({ ui: false });
+		await first.ready();
+		const second = installGlobal(createGlobal({ pkg: '@c15t/browser' }));
+		expect(second).toBe(first);
+		expect(second.init()).toBe(first.client);
+	});
+	it('keeps queued config above tag attributes during auto-init', async () => {
+		const script = scriptWith({ 'data-categories': 'marketing' });
+		const currentScript = vi
+			.spyOn(document, 'currentScript', 'get')
+			.mockReturnValue(script);
+		const api = createGlobal({ pkg: 'test' });
+		installGlobal(api);
+		api.config({ consentCategories: ['measurement'], ui: false });
+		try {
+			autoInit(api);
+			await api.ready();
+			expect(api.client?.options.consentCategories).toEqual(['measurement']);
+		} finally {
+			currentScript.mockRestore();
+		}
+	});
+	it('waits for init before ready() and on() fire', async () => {
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+		const onReady = vi.fn();
+		api.on('ready', onReady);
+		const ready = api.ready();
+		expect(() => api.getSnapshot()).toThrow(/init/u);
+
+		api.init({ consentCategories: ['measurement'], ui: false });
+
+		await expect(ready).resolves.toMatchObject({ activeUI: 'banner' });
+		await vi.waitFor(() => {
+			expect(onReady).toHaveBeenCalledOnce();
+		});
+		expect(api.mode).toBe('offline');
+		expect(testWindow.c15t).toBe(api);
+		expect(api.version).toBeTypeOf('string');
+	});
+
+	it('replays calls queued before the script loaded, config included', async () => {
+		const onConsent = vi.fn();
+		testWindow.c15t = [
+			['config', { consentCategories: ['measurement'], ui: false }],
+			['on', 'consent', onConsent],
+		];
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+
+		installGlobal(api);
+		const client = api.init();
+		await api.ready();
+		await api.acceptAll();
+
+		expect(client.options.consentCategories).toEqual(['measurement']);
+		expect(onConsent).toHaveBeenCalled();
+	});
+
+	it('lets init() options win over queued config, and warns after init', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* silenced */
+		});
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+		api.config({ consentCategories: ['marketing'], ui: false });
+
+		const client = api.init({ consentCategories: ['measurement'] });
+		api.config({ consentCategories: ['functionality'] });
+
+		expect(client.options.consentCategories).toEqual(['measurement']);
+		expect(client.options.ui).toBe(false);
+		expect(warn).toHaveBeenCalledOnce();
+		warn.mockRestore();
+	});
+
+	it('answers ready() and on() from the new client after dispose and init', async () => {
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+		const first = api.init({ consentCategories: ['measurement'], ui: false });
+		await api.ready();
+		api.dispose();
+
+		const onReady = vi.fn();
+		api.on('ready', onReady);
+		const ready = api.ready();
+		const second = api.init({ consentCategories: ['marketing'], ui: false });
+
+		expect(second).not.toBe(first);
+		await expect(ready).resolves.toMatchObject({ activeUI: 'banner' });
+		await vi.waitFor(() => {
+			expect(onReady).toHaveBeenCalledOnce();
+		});
+		expect(api.client).toBe(second);
+	});
+
+	it('stays on window.c15t after the runtime starts', () => {
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+
+		api.init({ ui: false });
+
+		// `@c15t/core` writes its own frozen debug object there on start.
+		expect(testWindow.c15t).toBe(api);
+		expect(api.init({ ui: false })).toBe(api.client);
+	});
+});

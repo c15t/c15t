@@ -8,8 +8,30 @@ import ConsentDevToolsDefault, {
 } from '../lib/devtools';
 import DevToolsFixture from './fixtures/devtools-fixture.svelte';
 
-const mountedDevTools = (): NodeListOf<HTMLElement> =>
-	document.querySelectorAll('[data-c15t-dev-tools]');
+/** The panel roots, which live inside each host's shadow root. */
+const mountedDevTools = (): HTMLElement[] =>
+	[...document.querySelectorAll<HTMLElement>('[data-c15t-dev-tools-host]')]
+		.map((host) =>
+			host.shadowRoot?.querySelector<HTMLElement>('[data-c15t-dev-tools]')
+		)
+		.filter((root): root is HTMLElement => root !== null && root !== undefined);
+
+/** `querySelector` across every mounted panel. */
+const queryDevTools = <ElementType extends Element = HTMLElement>(
+	selector: string
+): ElementType | null => {
+	for (const root of mountedDevTools()) {
+		// `querySelector` skips the element itself; position classes sit on
+		// the root.
+		const found = root.matches(selector)
+			? (root as unknown as ElementType)
+			: root.querySelector<ElementType>(selector);
+		if (found) {
+			return found;
+		}
+	}
+	return null;
+};
 
 describe('@c15t/svelte/devtools', () => {
 	test('keeps explicit service callbacks live without remounting', async () => {
@@ -101,10 +123,10 @@ describe('@c15t/svelte/devtools', () => {
 		try {
 			await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
 			expect(
-				document.querySelector('[data-focus-key="consent:marketing"]')
+				queryDevTools('[data-focus-key="consent:marketing"]')
 			).not.toBeNull();
 			expect(
-				document.querySelector('[data-focus-key="consent:measurement"]')
+				queryDevTools('[data-focus-key="consent:measurement"]')
 			).toBeNull();
 		} finally {
 			result.unmount();
@@ -118,11 +140,11 @@ describe('@c15t/svelte/devtools', () => {
 		try {
 			await vi.waitFor(() =>
 				expect(
-					document.querySelector('[data-focus-key="consent:marketing"]')
+					queryDevTools('[data-focus-key="consent:marketing"]')
 				).not.toBeNull()
 			);
 			expect(
-				document.querySelector('[data-focus-key="consent:measurement"]')
+				queryDevTools('[data-focus-key="consent:measurement"]')
 			).toBeNull();
 		} finally {
 			result.unmount();
@@ -141,7 +163,7 @@ describe('@c15t/svelte/devtools', () => {
 			});
 			await vi.waitFor(() =>
 				expect(
-					document.querySelector('[data-focus-key="consent:marketing"]')
+					queryDevTools('[data-focus-key="consent:marketing"]')
 				).not.toBeNull()
 			);
 			await result.rerender(
@@ -151,21 +173,19 @@ describe('@c15t/svelte/devtools', () => {
 			);
 			await vi.waitFor(() => {
 				expect(
-					document.querySelector('[data-focus-key="consent:measurement"]')
+					queryDevTools('[data-focus-key="consent:measurement"]')
 				).not.toBeNull();
 				expect(
-					document.querySelector('[data-focus-key="consent:marketing"]')
+					queryDevTools('[data-focus-key="consent:marketing"]')
 				).toBeNull();
 			});
 			const [root] = mountedDevTools();
-			document
-				.querySelector<HTMLInputElement>(
-					'[data-focus-key="consent:measurement"]'
-				)
-				?.click();
+			queryDevTools<HTMLInputElement>(
+				'[data-focus-key="consent:measurement"]'
+			)?.click();
 			await vi.waitFor(() =>
 				expect(
-					document.querySelector<HTMLInputElement>(
+					queryDevTools<HTMLInputElement>(
 						'[data-focus-key="consent:measurement"]'
 					)?.checked
 				).toBe(true)
@@ -178,13 +198,11 @@ describe('@c15t/svelte/devtools', () => {
 	test('updates presentation options without leaving duplicate instances', async () => {
 		const result = render(DevToolsFixture, { position: 'top-left' });
 		await vi.waitFor(() =>
-			expect(document.querySelector('.c15t-dev-tools--top-left')).not.toBeNull()
+			expect(queryDevTools('.c15t-dev-tools--top-left')).not.toBeNull()
 		);
 		await result.rerender({ position: 'bottom-left' });
 		await vi.waitFor(() =>
-			expect(
-				document.querySelector('.c15t-dev-tools--bottom-left')
-			).not.toBeNull()
+			expect(queryDevTools('.c15t-dev-tools--bottom-left')).not.toBeNull()
 		);
 		expect(mountedDevTools()).toHaveLength(1);
 		result.unmount();
@@ -205,10 +223,8 @@ describe('@c15t/svelte/devtools', () => {
 		await vi.waitFor(() => {
 			expect(mountedDevTools()).toHaveLength(2);
 		});
-		expect(document.querySelector('.c15t-dev-tools--top-left')).not.toBeNull();
-		expect(
-			document.querySelector('.c15t-dev-tools--bottom-right')
-		).not.toBeNull();
+		expect(queryDevTools('.c15t-dev-tools--top-left')).not.toBeNull();
+		expect(queryDevTools('.c15t-dev-tools--bottom-right')).not.toBeNull();
 
 		result.unmount();
 		expect(mountedDevTools()).toHaveLength(0);

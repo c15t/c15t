@@ -62,6 +62,16 @@ request-time framework rendering, prefer a cached manifest and local resolution
 when the adapter supports it. Do not cache one visitor's resolved `/init` result
 as shared configuration.
 
+## GET /c15t.js
+
+The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
+
+| Query | What it does |
+| --- | --- |
+| `language` | Slice the inlined manifest's translations to one language. |
+
+Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. Requires `@c15t/browser` next to `@c15t/backend`, or `script.bundles` pointing at the bundle files. Set `script.enabled: false` to remove all three routes.
+
 ## Save and read choices
 
 The v3 client sends `POST /subjects` with a domain, policy type, `preferences`,

@@ -11,6 +11,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 ## Start here
 
 - [JavaScript quickstart](./docs/frameworks/javascript/quickstart.md)
+- [Script tag setup](./docs/frameworks/javascript/script-tag.md)
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 - [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
@@ -29,6 +30,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Headless IAB integration](./docs/frameworks/javascript/iab/overview.md): Attach the IAB module to a consent kernel and manage its lifetime and vendor configuration.
 - [Quickstart](./docs/frameworks/javascript/quickstart.md): Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
 - [JavaScript script loading](./docs/frameworks/javascript/script-loader.md): Attach a script loader to the consent kernel and dispose it with the application.
+- [Script tag](./docs/frameworks/javascript/script-tag.md): Add a consent banner to Framer, Webflow, WordPress, Squarespace, or any HTML page with one script tag and no build step.
 - [Troubleshoot JavaScript consent](./docs/frameworks/javascript/troubleshooting.md): Diagnose policy resolution, early scripts, storage and rendering problems.
 
 ## Guides

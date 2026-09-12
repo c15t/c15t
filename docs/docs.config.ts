@@ -224,7 +224,7 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['script-loader', 'troubleshooting'],
+							pages: ['script-tag', 'script-loader', 'troubleshooting'],
 							title: 'Integration',
 						},
 						{

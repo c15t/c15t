@@ -11,6 +11,7 @@ const frameworkEntryPoints = [
 	['frameworks/svelte/quickstart.md', 'Svelte quickstart'],
 	['frameworks/sveltekit/quickstart.md', 'SvelteKit quickstart'],
 	['frameworks/javascript/quickstart.md', 'JavaScript quickstart'],
+	['frameworks/javascript/script-tag.md', 'Script tag setup'],
 ] as const;
 
 /** Add setup links that survive each package's filtered documentation bundle. */
@@ -39,7 +40,13 @@ export const withPackageSetupLinks = function withPackageSetupLinks(
 		return content;
 	}
 	if (!content.includes(heading)) {
-		throw new Error('Package documentation is missing its Start here section');
+		// leadtype drops the section when none of its configured links survive
+		// the bundle filter; recreate it before the trailing documentation links.
+		const more = '\n## More documentation\n';
+		const section = `${heading}${links}\n`;
+		return content.includes(more)
+			? content.replace(more, `\n${section}${more}`)
+			: `${content.trimEnd()}\n\n${section}`;
 	}
 	return content.replace(heading, `${heading}${links}\n`);
 };
