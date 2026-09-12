@@ -31,9 +31,8 @@ group: reference
   so it can be granted under an opt-out rule before the visitor records a
   choice, and a recorded grant can be overridden by a privacy signal.
 
-  The children are absent from the DOM while permission is denied, so an
-  iframe or a third-party widget inside `Frame` sends no requests until the
-  visitor allows the category. When the visitor later revokes it, the
+  While effective permission is denied, the children are absent from the DOM,
+  so an iframe or a third-party widget inside `Frame` sends no requests. When the visitor later revokes it, the
   children unmount and the embed disappears. `Frame` does not depend on the
   network blocker or the iframe blocker modules; use those for markup you
   cannot wrap in a component.
@@ -47,14 +46,15 @@ group: reference
   something to open.
 
   Under a policy with `scopeMode: 'strict'`, a category outside the rule's
-  scope cannot be granted. The placeholder then shows `frame.policyBlocked`,
+  scope cannot be granted. The built-in placeholder then shows `frame.policyBlocked`,
   "This content is unavailable under your region's consent policy.", without
   the button, and a stored grant for that category stays blocked.
 
   When the provider starts from a snapshot prefetched on the server, the
-  server renders either the children or the placeholder
-  and hydration keeps that markup; a visitor whose grant arrives in the request
-  cookie gets the embed in the server HTML. In a browser-only setup the
+  server renders the children or placeholder according to effective permission.
+  A grant in the request cookie allows the embed only when policy and privacy
+  signals permit it. Browser privacy signals detected during hydration can
+  withdraw that permission. In a browser-only setup the
   provider has no permission until it resolves policy on the client, so
   `Frame` shows the placeholder first and swaps in the embed after resolution
   when the category is already granted.
@@ -106,6 +106,8 @@ group: reference
 <section id="verify">
   ## Verify
 
+  Use an optional in-scope category that is available in the preference
+  center and is not restricted by policy or privacy signals such as GPC.
   Load the page with the category denied. The placeholder text names the
   category and the network panel shows no request to the embed's host. With a
   prefetched snapshot, the server HTML contains the placeholder for a denied

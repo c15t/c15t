@@ -13,7 +13,7 @@ group: reference
   | --- | --- | --- | --- |
   | `children` | `ReactNode` | required | The visible label, such as "Privacy settings" or "Manage preferences". It is also the accessible name. |
   | `asChild` | `boolean` | `false` | Renders your own element, such as an anchor, instead of a `button`, and attaches the click handler to it. |
-  | `noStyle` | `boolean` | `true` | The link ships unstyled so it inherits your footer's text styles. Pass `false` to render it as a consent button with `variant` and `mode`. |
+  | `noStyle` | `boolean` | `true` | Omits c15t button classes. Native browser styles remain unless your CSS resets them. Pass `false` to render it as a consent button with `variant` and `mode`. |
   | `onClick` | `(event) => void` | none | Runs before the dialog opens. Call `event.preventDefault()` to keep it closed. |
 
   Other `button` attributes such as `className`, `style`, `id` and `aria-*`
@@ -23,8 +23,8 @@ group: reference
 <section id="behavior">
   ## Behavior
 
-  `ConsentDialogLink` renders a `button` with `type="button"` and no built-in
-  styling. Clicking it makes `dialog` the active surface, which opens a
+  `ConsentDialogLink` renders a `button` with `type="button"` and no c15t
+  styling by default. Clicking it makes `dialog` the active surface, which opens a
   mounted `ConsentDialog`. It performs no save and does not change any
   permission.
 
@@ -75,8 +75,8 @@ group: reference
 <section id="verify">
   ## Verify
 
-  Scroll to the footer. The link renders with your footer's text styles and
-  no button chrome. Activate it with a click or with Enter: the preference
+  Scroll to the footer. With the footer button reset applied, the link uses
+  your footer's text styles and has no button chrome. Activate it with a click or with Enter: the preference
   center opens as a centered dialog. Close it with Escape: with the default
   blocking dialog, focus returns to the link. In your browser's element
   inspector the link has

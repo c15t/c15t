@@ -33,7 +33,8 @@ group: reference
   into `document.body` after hydration, so it is never part of the server
   HTML.
 
-  The dialog is open while the active surface is `dialog`. These set it:
+  Without an `open` prop, the dialog follows the active surface and opens while
+  it is `dialog`. These set that surface:
 
   - The Customize button on a `ConsentBanner`, and the "Manage preferences"
     or "Do not sell or share my data" button a notice renders.
@@ -139,6 +140,8 @@ group: reference
 <section id="verify">
   ## Verify
 
+  Use the default blocking, uncontrolled dialog and an optional in-scope
+  category that is not restricted by policy or privacy signals such as GPC.
   Open the dialog from the banner's Customize button or a preferences link.
   A centered card appears over a dimmed backdrop, the page behind it stops
   scrolling, and Tab stays inside the card. Press Escape: the card closes and

@@ -28,7 +28,7 @@ group: reference
   privacy page or an account settings screen.
 
   The rows are `necessary` plus the categories in the active policy's scope,
-  narrowed to the provider `options.consentCategories` when that list is set.
+  narrowed to the provider `options.consentCategories` when that list is non-empty.
   The `necessary` switch is on and disabled. Row titles and descriptions come
   from `consentTypes.<category>.title` and `.description`; the action labels
   from `common.rejectAll`, `common.acceptAll` and `common.save`. One row is
@@ -73,8 +73,6 @@ group: reference
   an empty `rights` list renders nothing; a `none` rule that lists any right,
   such as `['disclosure']`, renders the widget and Save completes without
   writing a consent record.
-  Under an opt-out rule the switches start on and Save records the visitor's
-  choice.
 
   For a fully custom preference center, `useConsentDraft()` returns the same
   draft: `values`, `displayedCategories`, `isDirty`, `isStale`, `set`,
@@ -139,13 +137,13 @@ group: reference
 <section id="verify">
   ## Verify
 
-  Visit the page with the widget. Use an in-scope category whose permission is
-  not restricted by policy or privacy signals such as GPC. One row per policy
+  Visit the page with the widget. Use a displayed optional category whose permission is
+  not restricted by policy or privacy signals such as GPC. One row per displayed
   category appears, with `necessary` on and disabled. Turn that category on:
   `useConsent('<category>')`
   elsewhere on the page still reports the old value. Choose Save: it now
   reports `true`. An open choice banner closes when the save answers its
   prompt; a notice banner stays open until acknowledged. Reload the page: the
-  switch keeps the saved value. Under an opt-out rule the switches start on
-  before any save.
+  switch keeps the saved value. Without a saved choice or configured draft
+  defaults, optional switches start on under an opt-out rule.
 </section>
