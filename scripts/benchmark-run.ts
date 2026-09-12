@@ -14,6 +14,7 @@ import { join, resolve } from 'node:path';
 
 import { replaceBenchmarkFixtures } from './benchmark-overlay';
 import { runCommand } from './browser-process';
+import { installBrowsers } from './install-browsers';
 
 const mode = process.argv[2] ?? 'quick';
 if (!['bundle', 'quick', 'full'].includes(mode)) {
@@ -61,6 +62,9 @@ const env = {
 	BENCH_WARMUP_ITERATIONS: '3',
 	C15T_BENCH_ITERATIONS: mode === 'quick' ? '15' : '30',
 	C15T_BENCH_WARMUP_ITERATIONS: '3',
+	// Microsecond operations need enough iterations for JIT warmup and sampling.
+	C15T_CORE_BENCH_ITERATIONS: '5000',
+	C15T_CORE_BENCH_WARMUP_ITERATIONS: '1000',
 };
 
 const measure = async function measure(cwd: string, sha: string, arm: string) {
@@ -93,6 +97,10 @@ try {
 		stdio: 'inherit',
 	});
 	await runCommand(['bun', 'install', '--frozen-lockfile'], { cwd: base });
+	if (mode !== 'bundle') {
+		await installBrowsers(base, process.env.CI === 'true');
+		await installBrowsers(root, process.env.CI === 'true');
+	}
 	// Apply the head's measurement fixtures to both revisions. Product sources,
 	// dependency lockfiles and build configuration remain at their own revision.
 	// Record this overlay instead of pretending it is a pristine baseline tree.

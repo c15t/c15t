@@ -77,7 +77,8 @@ that IAB, devtools and all locales have not entered its module graph. Missing
 or empty assets fail the run.
 
 `quick` covers core operations, policy resolution and script lifecycle with
-15 samples after 3 warmups. `full` uses 30 samples and adds React, Next, Nuxt,
+15 browser samples after 3 warmups. Engine operations use 5,000 samples after
+1,000 warmups in both profiles. `full` uses 30 browser samples and adds React, Next, Nuxt,
 SvelteKit, Astro and TanStack Start browser scenarios. PRs run the quick
 comparison when runtime benchmark consumers are affected. Full CI runs the
 browser comparison on publishing branches and nightly. Results and failures

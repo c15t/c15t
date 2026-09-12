@@ -106,3 +106,16 @@ describe('CI scheduling outputs', () => {
 		expect(ciSchedulingOutputs(result).packageChecks).toBe(true);
 	});
 });
+
+it('every selected artifact consumer has a package build in the real graph', () => {
+	const missingBuilds = workspaces.filter((workspace) => {
+		const result = plan([`${workspace.directory}/ci-fixture.ts`]);
+		const consumesArtifact =
+			result.backend ||
+			result.bundle ||
+			result.performance ||
+			result.integrations.length > 0;
+		return consumesArtifact && result.build.length === 0;
+	});
+	expect(missingBuilds.map((workspace) => workspace.name)).toEqual([]);
+});

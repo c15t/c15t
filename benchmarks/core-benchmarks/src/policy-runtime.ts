@@ -54,8 +54,16 @@ import type {
 } from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
 
-const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '500');
-const WARMUP = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '50');
+const ITERATIONS = Number(
+	process.env.C15T_CORE_BENCH_ITERATIONS ??
+		process.env.BENCH_ITERATIONS ??
+		'500'
+);
+const WARMUP = Number(
+	process.env.C15T_CORE_BENCH_WARMUP_ITERATIONS ??
+		process.env.BENCH_WARMUP_ITERATIONS ??
+		'50'
+);
 const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/policy-runtime';
 
 const byteSizes = function byteSizes(value: unknown) {

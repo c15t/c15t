@@ -45,3 +45,5 @@ jobs:
           name: consumer-bundles
           path: .ci-reports/bundle/
           retention-days: 14
+          include-hidden-files: true
+          if-no-files-found: error

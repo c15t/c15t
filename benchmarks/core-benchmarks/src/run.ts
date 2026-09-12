@@ -37,8 +37,14 @@ import {
 import { createConsentKernel } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 
-const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '25');
-const WARMUP = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '10');
+const ITERATIONS = Number(
+	process.env.C15T_CORE_BENCH_ITERATIONS ?? process.env.BENCH_ITERATIONS ?? '25'
+);
+const WARMUP = Number(
+	process.env.C15T_CORE_BENCH_WARMUP_ITERATIONS ??
+		process.env.BENCH_WARMUP_ITERATIONS ??
+		'10'
+);
 const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/core-v3-runtime';
 
 const measureSync = function measureSync(fn: () => ConsentKernel): number[] {

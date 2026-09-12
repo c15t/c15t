@@ -39,5 +39,4 @@ runs:
     # Always install system dependencies, even when the browser archive was cached.
     - shell: bash
       if: inputs.browsers == 'true'
-      run: |
-        bun -e "const versions = new Set([require('playwright/package.json').version, require(require.resolve('@playwright/test/package.json', { paths: ['./apps/parity-runner'] })).version]); for (const version of versions) { const result = Bun.spawnSync(['bunx', 'playwright@' + version, 'install', '--with-deps', 'chromium'], { stdout: 'inherit', stderr: 'inherit' }); if (result.exitCode) process.exit(result.exitCode); }"
+      run: bun scripts/install-browsers.ts --with-deps

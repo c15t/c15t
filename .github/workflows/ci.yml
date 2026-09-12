@@ -210,6 +210,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: browser-${{ matrix.kind }}
+          include-hidden-files: true
           path: |
             examples/shared/artifacts/
             apps/parity-runner/playwright-report/
