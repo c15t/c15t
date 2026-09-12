@@ -47,10 +47,12 @@ group: reference
   and renders nothing until that chunk is ready. Passing `open={true}` or
   `showTrigger` loads it on mount.
 
-  Escape closes the dialog. Save, Accept all and Reject all close it after
-  the save succeeds; a save that fails keeps it open. Clicking the backdrop
-  does not close it. Closing discards toggles that were not saved: the next
-  open starts from the recorded choice again. After a save from the dialog,
+  Without an `open` prop, Escape closes the dialog. Save, Accept all and
+  Reject all close it after the save succeeds; a save that fails keeps it
+  open. With `open={true}`, these actions leave the dialog visible; the
+  parent must set `open={false}` to close it. Clicking the backdrop does not
+  close it. Closing discards toggles that were not saved: the next open starts
+  from the recorded choice again. After a save from an uncontrolled dialog,
   every consent surface hides unless the policy still owes a prompt, in which
   case the banner returns.
 

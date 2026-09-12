@@ -43,8 +43,11 @@ does not shift when the placeholder is replaced.
 
 With the awaited `prefetchInitialConsent` from the App Router guide, the
 server decides between placeholder and embed from the resolved rule and the
-request cookie, and hydration keeps that choice as long as the browser's
-privacy signals agree with the request: a `navigator.globalPrivacyControl`
+request cookie. Pages Router works the same way when `getServerSideProps`
+awaits `prefetchInitialConsent` from `c15t/next/pages` and passes the result
+through `config` to `ConsentBoundary`, as in the
+[Pages Router guide](../pages-router). Hydration keeps that choice as long as
+the browser's privacy signals agree with the request: a `navigator.globalPrivacyControl`
 that the request did not carry as `Sec-GPC` is re-detected on hydration and
 can withdraw a category. Under an opt-in rule a new
 visitor gets the placeholder and a returning visitor who allowed `marketing`

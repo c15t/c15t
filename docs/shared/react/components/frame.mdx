@@ -107,11 +107,12 @@ group: reference
   ## Verify
 
   Load the page with the category denied. The placeholder text names the
-  category and the network panel shows no request to the embed's host. When
-  the provider is server-rendered from a prefetched snapshot, the server HTML
-  already contains the placeholder; a browser-only setup renders it after
-  policy resolves. Activate the placeholder
-  button: the preference center opens. Turn the category on and Save: the
-  placeholder is replaced by the embed and its requests start. Reject the
+  category and the network panel shows no request to the embed's host. With a
+  prefetched snapshot, the server HTML contains the placeholder for a denied
+  category or the embed for a granted category. Browser-only initialization
+  shows the placeholder before policy resolves, then replaces it with the
+  embed if the category is granted. After policy resolves, activate the
+  placeholder button: the preference center opens. Turn the category on and
+  Save: the placeholder is replaced by the embed and its requests start. Reject the
   category again from the preference center: the embed disappears.
 </section>

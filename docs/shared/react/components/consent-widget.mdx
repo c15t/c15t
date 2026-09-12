@@ -142,7 +142,8 @@ group: reference
   Visit the page with the widget. One row per policy category appears, with
   `necessary` on and disabled. Turn a category on: `useConsent('<category>')`
   elsewhere on the page still reports the old value. Choose Save: it now
-  reports `true`, and a banner that was open closes. Reload the page: the
+  reports `true`. An open choice banner closes when the save answers its
+  prompt; a notice banner stays open until acknowledged. Reload the page: the
   switch keeps the saved value. Under an opt-out rule the switches start on
   before any save.
 </section>
