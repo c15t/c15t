@@ -139,8 +139,10 @@ group: reference
 <section id="verify">
   ## Verify
 
-  Visit the page with the widget. One row per policy category appears, with
-  `necessary` on and disabled. Turn a category on: `useConsent('<category>')`
+  Visit the page with the widget. Use an in-scope category whose permission is
+  not restricted by policy or privacy signals such as GPC. One row per policy
+  category appears, with `necessary` on and disabled. Turn that category on:
+  `useConsent('<category>')`
   elsewhere on the page still reports the old value. Choose Save: it now
   reports `true`. An open choice banner closes when the save answers its
   prompt; a notice banner stays open until acknowledged. Reload the page: the

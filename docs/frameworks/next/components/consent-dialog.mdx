@@ -51,10 +51,11 @@ export function Consent({
 The root layout renders `Consent` with the `config` from
 `prefetchInitialConsent`, as in the router guides. The dialog itself renders
 nothing on the server: it mounts through a portal after hydration, so the
-server HTML and the streamed shell are unaffected by it. On routes that await
-`prefetchInitialConsent`, the server-rendered banner is what a new visitor
-sees first; on Pages Router pages without `getServerSideProps`, the banner
-appears after the browser resolves policy.
+server HTML and the streamed shell are unaffected by it. If the visitor owes
+a choice or notice, routes that await `prefetchInitialConsent` can render the
+banner on the server. Pages Router pages without `getServerSideProps` show it
+after browser policy resolution. No banner appears when the policy requires
+no prompt or an existing record already satisfies it.
 
 To open it from another Client Component inside the boundary, set the active
 surface:
