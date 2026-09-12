@@ -316,6 +316,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'meta-pixel',
+						'openai-pixel',
 						'reddit-pixel',
 						'tiktok-pixel',
 						'linkedin-insights',

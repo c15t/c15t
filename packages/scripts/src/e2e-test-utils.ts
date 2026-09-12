@@ -348,6 +348,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'plausible',
 		'posthog',
 		'rdt',
+		'oaiq',
 		'rudderanalytics',
 		'rudderAnalyticsBuildType',
 		'RudderSnippetVersion',

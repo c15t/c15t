@@ -159,6 +159,7 @@ const cleanupMockBrowser = function cleanupMockBrowser() {
 	delete globalRef.snaptr;
 	delete globalRef._snaptr;
 	delete globalRef.rdt;
+	delete globalRef.oaiq;
 	delete globalRef.twq;
 	delete globalRef._linkedin_partner_id;
 	delete globalRef._linkedin_data_partner_ids;

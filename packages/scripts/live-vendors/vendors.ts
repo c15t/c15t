@@ -14,6 +14,8 @@
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
+import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
+import { openaiPixel } from '../src/vendors/ads-and-pixels/openai-pixel';
 import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
@@ -55,6 +57,13 @@ import { crisp } from '../src/vendors/functional/crisp';
 import { intercom } from '../src/vendors/functional/intercom';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
+
+interface OpenAIPixelRuntime extends OpenAIPixelFunction {
+	loaded?: boolean;
+	version?: string;
+	measure?: (...args: unknown[]) => void;
+	consent?: (granted: boolean) => void;
+}
 
 const check = function check(
 	ok: boolean,
@@ -1095,6 +1104,32 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		runtimeVersion: () => (window.fbq as MetaPixelRuntime | undefined)?.version,
 		tier: 'full',
 		vendor: 'meta-pixel',
+	},
+	{
+		bootstrapCheck: () => {
+			const stub = window.oaiq;
+			return check(
+				typeof stub === 'function' && Array.isArray(stub.q),
+				'oaiq command queue exists before load'
+			);
+		},
+		createScript: () => openaiPixel({ pixelId: 'c15t_live_probe_placeholder' }),
+		loaderUrlSubstring: 'bzrcdn.openai.com/sdk/oaiq.min.js',
+		runtimeCheck: () => {
+			// The CDN loader sets loaded and replaces the stub with command methods.
+			const runtime = window.oaiq as OpenAIPixelRuntime | undefined;
+			return check(
+				runtime?.loaded === true &&
+					typeof runtime.measure === 'function' &&
+					typeof runtime.consent === 'function',
+				'OpenAI SDK loaded with measure and consent methods'
+			);
+		},
+		runtimeReplacedGlobals: ['oaiq'],
+		runtimeVersion: () =>
+			(window.oaiq as OpenAIPixelRuntime | undefined)?.version,
+		tier: 'full',
+		vendor: 'openai-pixel',
 	},
 	{
 		bootstrapCheck: () => {

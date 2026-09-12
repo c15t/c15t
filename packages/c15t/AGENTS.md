@@ -124,6 +124,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Microsoft Clarity](./docs/integrations/microsoft-clarity.md): Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
 - [Microsoft UET](./docs/integrations/microsoft-uet.md): Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
 - [Mixpanel](./docs/integrations/mixpanel-analytics.md): Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+- [OpenAI Pixel](./docs/integrations/openai-pixel.md): Configure the OpenAI Measurement Pixel for ChatGPT Ads with c15t v3, manage marketing permission and verify conversion delivery.
 - [Overview](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
 - [Pirsch](./docs/integrations/pirsch.md): Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
 - [Plausible Analytics](./docs/integrations/plausible-analytics.md): Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
