@@ -91,21 +91,16 @@ Await `prefetchInitialConsent` in an async Server Component and mount that
 component inside `Suspense`. The helper reads request cookies and geographic
 headers, resolves policy from the manifest and returns the visitor's prepared
 state, which the `Consent` wrapper passes to `ConsentBoundary` as `config`.
-`await connection()` marks the component as request-time before the helper
-reads the clock; without it, `cacheComponents: true` fails the route during
-prerendering, and with `cacheComponents` off it is a no-op.
 
 ```tsx title="app/layout.tsx"
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { connection } from 'next/server';
 import { prefetchInitialConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 import 'c15t/next/styles.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
-  await connection();
   const initialConsent = await prefetchInitialConsent({ config: consentConfig });
 
   return <Consent config={initialConsent}>{children}</Consent>;
