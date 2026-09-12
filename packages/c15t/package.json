@@ -418,11 +418,11 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun scripts/copy-distribution-css.ts && bun run build:docs",
+		"build": "bun scripts/copy-distribution-css.ts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts c15t",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./scripts",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

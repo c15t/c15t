@@ -5,7 +5,17 @@
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": [
 				".next/**",
 				"!.next/cache/**",
@@ -14,15 +24,23 @@
 				"dist/**",
 				"dist-types/**",
 				"storybook-static/**",
-				"AGENTS.md",
-				"docs/**",
 				"src/version.ts"
 			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"c15t#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": ["dist/**"]
 		},
 		"@c15t/core#build": {
@@ -30,21 +48,19 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts",
 				"$TURBO_ROOT$/scripts/prune-dist-types.ts",
 				"$TURBO_ROOT$/scripts/manifest-utils.ts",
 				"$TURBO_ROOT$/packages/shared/rslib-modules.ts",
 				"$TURBO_ROOT$/packages/shared/rslib-utils.ts",
-				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**"
 			],
-			"outputs": [
-				"dist/**",
-				"dist-types/**",
-				"AGENTS.md",
-				"docs/**",
-				"src/version.ts"
-			],
+			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/schema#build": {
@@ -54,7 +70,13 @@
 				".env*",
 				"$TURBO_ROOT$/packages/shared/rslib-modules.ts",
 				"$TURBO_ROOT$/packages/shared/rslib-utils.ts",
-				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**"
 			],
 			"outputs": ["dist/**", "dist-types/**"],
 			"env": ["WITH_RSDOCTOR"]
@@ -64,16 +86,15 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
 			],
-			"outputs": [
-				"dist/**",
-				"dist-types/**",
-				"AGENTS.md",
-				"docs/**",
-				"src/version.ts"
-			],
+			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
@@ -81,21 +102,30 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
 			],
-			"outputs": [
-				"dist/**",
-				"dist-types/**",
-				"AGENTS.md",
-				"docs/**",
-				"src/version.ts"
-			],
+			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/tanstack-start#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
@@ -104,47 +134,101 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
 			],
-			"outputs": [
-				"dist/**",
-				"dist-types/**",
-				"AGENTS.md",
-				"docs/**",
-				"src/version.ts"
-			],
+			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/example-nuxt#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json"
+			],
 			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
 			"env": ["VERCEL", "NITRO_PRESET", "NUXT_PUBLIC_C15T_BACKEND_URL"]
 		},
 		"@c15t/example-tanstack-start#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json"
+			],
 			"outputs": ["dist/**"],
 			"env": ["VERCEL", "VITE_C15T_BACKEND_URL"]
 		},
 		"@c15t/benchmarking#build": {
 			"dependsOn": ["^build"],
-			"outputs": []
+			"outputs": [],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json"
+			]
 		},
 		"@c15t/solid#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": []
 		},
 		"@c15t/svelte#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": ["dist/**", "src/lib/version.ts"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
 			"outputs": ["dist/**"]
 		},
 		"fmt": {
@@ -278,7 +362,16 @@
 				"C15T_BENCH_ORIGIN",
 				"C15T_BENCH_OUT_DIR"
 			],
-			"outputs": [".astro/**", "dist/**", "dist-baseline/**", "dist-hosted/**"]
+			"outputs": [".astro/**", "dist/**", "dist-baseline/**", "dist-hosted/**"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json"
+			]
 		},
 		"@c15t/astro-browser-bench#dev": {
 			"cache": false,
@@ -307,7 +400,16 @@
 		},
 		"@c15t/sveltekit-browser-bench#build": {
 			"dependsOn": ["^build"],
-			"outputs": [".svelte-kit/**", "build/**"]
+			"outputs": [".svelte-kit/**", "build/**"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json"
+			]
 		},
 		"@c15t/sveltekit-browser-bench#dev": {
 			"cache": false,
@@ -482,10 +584,15 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
 			],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/cli#build": {
@@ -493,11 +600,65 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				".env*",
-				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json",
+				"$TURBO_ROOT$/packages/shared/**",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
 			],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**"],
 			"env": ["WITH_RSDOCTOR"]
+		},
+		"build:docs": {
+			"inputs": [
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts",
+				"$TURBO_ROOT$/scripts/package-doc-entry-points.ts",
+				"$TURBO_ROOT$/scripts/rewrite-package-doc-links.ts",
+				"package.json"
+			],
+			"outputs": ["docs/**", "AGENTS.md", "SKILL.md"]
+		},
+		"check-types:test": {
+			"dependsOn": ["build", "^build"]
+		},
+		"@c15t/next-bundle-bench#test": {
+			"dependsOn": ["^build"],
+			"outputs": []
+		},
+		"@c15t/backend-bench#build": {
+			"dependsOn": ["^build"],
+			"outputs": []
+		},
+		"sveltekit-demo#build": {
+			"dependsOn": ["^build"],
+			"outputs": [".svelte-kit/**", "build/**"]
+		},
+		"@c15t/conformance#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
+		"@c15t/parity-runner#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
+		"@c15t/dev-tools#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
+		"@c15t/solid#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
+		"@c15t/benchmarking#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
+		"@c15t/example-demo#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
 		}
 	}
 }

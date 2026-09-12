@@ -243,12 +243,13 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/scripts",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"check-types": "tsc --noEmit && tsc -p live-vendors --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src ./live-vendors",
+		"prepack": "bun run build:docs",
 		"test": "vitest run",
 		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"

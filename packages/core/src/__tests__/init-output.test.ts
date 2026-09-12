@@ -194,7 +194,7 @@ describe('kernelConfigToInitResponse', () => {
 				initialOverrides: { country: 'DE', gpc: false, language: 'de' },
 				initialPolicyResolution,
 				initialPrivacySignals: { gpc: true },
-				initialTranslations: { language: 'de', translations: {} },
+				initialTranslations: { language: 'de', translations: enTranslations },
 			};
 			if (initialPolicyResolution.status === 'matched') {
 				config.initialIab = {

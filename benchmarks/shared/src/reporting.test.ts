@@ -31,16 +31,31 @@ describe('evaluateBudget', () => {
 		).toBe(false);
 	});
 
-	it('rejects a third notice render under the measured two-commit budget', () => {
-		const budget = reactBrowserBudgetsForScenario('policy-notice').find(
-			(candidate) => candidate.metric === 'renderCount'
-		);
-		if (!budget) {
-			throw new Error('Missing notice render budget');
+	it.each([2, 3])(
+		'rejects added notice renders against a base of %i commits',
+		(base) => {
+			const budget = reactBrowserBudgetsForScenario('policy-notice').find(
+				(candidate) => candidate.metric === 'renderCount'
+			);
+			if (!budget) {
+				throw new Error('Missing notice render budget');
+			}
+			expect(
+				evaluateBudget(
+					budget,
+					metric('renderCount', base),
+					metric('renderCount', base)
+				).pass
+			).toBe(true);
+			expect(
+				evaluateBudget(
+					budget,
+					metric('renderCount', base + 1),
+					metric('renderCount', base)
+				).pass
+			).toBe(false);
 		}
-		expect(evaluateBudget(budget, metric('renderCount', 2)).pass).toBe(true);
-		expect(evaluateBudget(budget, metric('renderCount', 3)).pass).toBe(false);
-	});
+	);
 
 	it('fails a relative budget when the base metric is missing', () => {
 		const result = evaluateBudget(
@@ -207,5 +222,39 @@ describe('hasFailingBudgets', () => {
 				])
 			)
 		).toBe(true);
+	});
+});
+
+describe('absolute noise floors', () => {
+	const budget = {
+		comparator: 'absolute-or-percent-lte' as const,
+		description: 'tiny operation',
+		metric: 'operation',
+		secondaryThreshold: 30,
+		threshold: 1,
+	};
+	it('reports sub-microsecond percentage changes without failing', () => {
+		expect(
+			evaluateBudget(
+				budget,
+				metric('operation', 0.521),
+				metric('operation', 0.391)
+			).pass
+		).toBe(true);
+	});
+	it('fails an increase exceeding both limits', () => {
+		expect(
+			evaluateBudget(budget, metric('operation', 2), metric('operation', 0.4))
+				.pass
+		).toBe(false);
+	});
+	it('allows changes within the percentage limit on larger operations', () => {
+		expect(
+			evaluateBudget(budget, metric('operation', 110), metric('operation', 100))
+				.pass
+		).toBe(true);
+	});
+	it('still requires a measured base', () => {
+		expect(evaluateBudget(budget, metric('operation', 0.1)).pass).toBe(false);
 	});
 });

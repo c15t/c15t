@@ -10,12 +10,15 @@
  * runner that drops or weakens a budget cannot pass the gate.
  */
 import {
+	astroBrowserBudgetsForScenario,
+	sveltekitBrowserBudgetsForScenario,
+	tanstackBrowserBudgetsForScenario,
+	bundleEntryBudgets,
 	artifactBudgets,
 	bundleBudgets,
 	coreRuntimeBudgets,
 	coreRuntimeCoverageBudgets,
 	coreRuntimeV3Budgets,
-	importBoundaryBudgets,
 	nextjsBrowserBudgetsForScenario,
 	nuxtBrowserBudgetsForScenario,
 	policyRuntimeBudgetsForFixture,
@@ -139,6 +142,9 @@ export const bundleRouteScenarios = [
 ] as const;
 
 export const bundleEntryScenarios = [
+	'browser-full',
+	'browser-headless',
+	'iab-lazy',
 	'kernel-hosted',
 	'kernel-hosted-offline',
 	'manifest-transport',
@@ -153,6 +159,47 @@ const bundleRouteBudget = function bundleRouteBudget(
 };
 
 export const expectedBenchmarkResults: ExpectedBenchmarkResult[] = [
+	...['baseline', 'ssr', 'ssr-manifest', 'ssr-deferred', 'repeat-visitor'].map(
+		(scenario) =>
+			expect(
+				'@c15t/astro-browser-bench',
+				scenario,
+				'browser-runtime',
+				astroBrowserBudgetsForScenario(scenario)
+			)
+	),
+	...[
+		'baseline',
+		'baseline-client',
+		'ssr',
+		'ssr-manifest',
+		'client',
+		'client-manifest',
+		'repeat-visitor',
+	].map((scenario) =>
+		expect(
+			'@c15t/sveltekit-browser-bench',
+			scenario,
+			'browser-runtime',
+			sveltekitBrowserBudgetsForScenario(scenario)
+		)
+	),
+	...[
+		'baseline',
+		'client',
+		'manifest-client',
+		'ssr',
+		'manifest-ssr',
+		'manifest-ssr-proxy',
+		'repeat-visitor',
+	].map((scenario) =>
+		expect(
+			'@c15t/tanstack-start-browser-bench',
+			scenario,
+			'browser-runtime',
+			tanstackBrowserBudgetsForScenario(scenario)
+		)
+	),
 	...Object.keys(coreFixtures).map((fixture) =>
 		expect('@c15t/core-benchmarks', fixture, 'core-runtime', [
 			...coreRuntimeBudgets,
@@ -214,7 +261,7 @@ export const expectedBenchmarkResults: ExpectedBenchmarkResult[] = [
 			'@c15t/next-bundle-bench',
 			scenario,
 			'bundle',
-			scenario === 'ordinary-react' ? importBoundaryBudgets : []
+			bundleEntryBudgets(scenario)
 		)
 	),
 ];

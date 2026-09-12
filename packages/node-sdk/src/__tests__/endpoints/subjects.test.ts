@@ -23,8 +23,10 @@ describe('Subjects Endpoints', () => {
 
 	const context: FetcherContext = {
 		baseUrl: 'https://api.example.com',
+		debug: false,
 		headers: {},
 		retryConfig: {},
+		timeout: 5000,
 	};
 
 	it('should have correct path', () => {
@@ -36,8 +38,8 @@ describe('Subjects Endpoints', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						consents: {},
-						id: 'sub_123',
+						consentId: 'consent_123',
+						subjectId: 'sub_123',
 					}),
 					{
 						headers: { 'content-type': 'application/json' },
@@ -48,16 +50,19 @@ describe('Subjects Endpoints', () => {
 			globalThis.fetch = mockFetch;
 
 			const result = await createSubject(context, {
-				consents: {},
+				domain: 'example.com',
+				givenAt: 1700000000000,
+				preferences: {},
 				subjectId: 'sub_123',
 				type: 'new',
 			});
 
 			expect(result.ok).toBe(true);
-			expect(result.data?.id).toBe('sub_123');
+			expect(result.data?.subjectId).toBe('sub_123');
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('/subjects');
 			expect(fetchCall[1].method).toBe('POST');
 		});
@@ -72,7 +77,9 @@ describe('Subjects Endpoints', () => {
 			globalThis.fetch = mockFetch;
 
 			const result = await createSubject(context, {
-				consents: {},
+				domain: 'example.com',
+				givenAt: 1700000000000,
+				preferences: {},
 				subjectId: '',
 				type: 'new',
 			});
@@ -88,7 +95,7 @@ describe('Subjects Endpoints', () => {
 				new Response(
 					JSON.stringify({
 						consents: [],
-						id: 'sub_123',
+						subject: { id: 'sub_123' },
 					}),
 					{
 						headers: { 'content-type': 'application/json' },
@@ -101,10 +108,11 @@ describe('Subjects Endpoints', () => {
 			const result = await getSubject(context, 'sub_123');
 
 			expect(result.ok).toBe(true);
-			expect(result.data?.id).toBe('sub_123');
+			expect(result.data?.subject.id).toBe('sub_123');
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('/subjects/sub_123');
 			expect(fetchCall[1].method).toBe('GET');
 		});
@@ -149,6 +157,7 @@ describe('Subjects Endpoints', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('/subjects/sub_123');
 			expect(fetchCall[1].method).toBe('PATCH');
 		});
@@ -177,6 +186,7 @@ describe('Subjects Endpoints', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('/subjects');
 			expect(fetchCall[1].method).toBe('GET');
 		});
@@ -198,15 +208,12 @@ describe('Subjects Endpoints', () => {
 
 			await listSubjects(context, {
 				externalId: 'user_123',
-				limit: 10,
-				offset: 0,
 			});
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('externalId=user_123');
-			expect(fetchCall[0]).toContain('limit=10');
-			expect(fetchCall[0]).toContain('offset=0');
 		});
 	});
 });

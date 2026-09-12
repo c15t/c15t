@@ -240,7 +240,7 @@ describe('run-compare gate', () => {
 			coreScenarios.length
 		);
 		expect(summaryOf(run).budgets.definitionMismatches[0]).toContain(
-			'threshold expected 15 but saw 50'
+			'threshold expected 1 but saw 50'
 		);
 	});
 
@@ -262,7 +262,7 @@ describe('run-compare gate', () => {
 		});
 		expect(run.code).not.toBe(0);
 		expect(summaryOf(run).budgets.definitionMismatches[0]).toContain(
-			'comparator expected percent-lte but saw absolute-lte'
+			'comparator expected absolute-or-percent-lte but saw absolute-lte'
 		);
 	});
 
@@ -311,6 +311,26 @@ describe('run-compare gate', () => {
 			v3ArmBudgetCount
 		);
 		expect(summaryOf(attemptedWaiver).ok).toBe(false);
+	});
+
+	it('compares v3 regressions without claiming to evaluate historical v2 targets', () => {
+		const results = fullCore();
+		const run = runCompare({
+			BENCHMARK_ARM_MAP: emptyArmMap(),
+			BENCHMARK_BASE_DIR: writeResults(results),
+			BENCHMARK_HEAD_DIR: writeResults(results),
+			BENCHMARK_PROFILE: 'regression',
+		});
+		expect(run.code).toBe(0);
+		expect(summaryOf(run).budgets.unevaluatedArm).toBe(0);
+		expect(summaryOf(run).budgets.expected).toBe(
+			coreScenarios.length * (coreBudgets.length - coreRuntimeV3Budgets.length)
+		);
+	});
+
+	it('rejects an empty suite selection instead of passing without results', () => {
+		const run = runCompare({ BENCHMARK_EXPECTED_SUITES: 'misspelled-suite' });
+		expect(run.code).not.toBe(0);
 	});
 
 	it('rejects an arm directory that holds no artifacts', () => {
@@ -364,7 +384,7 @@ describe('run-compare gate', () => {
 
 	it('fails an evaluated regression under enforcement', () => {
 		const base = fullCore();
-		const head = fullCore({ ...coreMedians, getSnapshot: 2 });
+		const head = fullCore({ ...coreMedians, getSnapshot: 3 });
 		const run = runCompare({
 			BENCHMARK_ARM_BASE_DIRS: `v2=${writeResults(v2Arm())}`,
 			BENCHMARK_ARM_MAP: emptyArmMap(),
@@ -374,4 +394,30 @@ describe('run-compare gate', () => {
 		expect(run.code).not.toBe(0);
 		expect(summaryOf(run).budgets.failed).toBe(coreScenarios.length);
 	});
+});
+
+it('reports unselected packages as unexpected without evaluating their failures', () => {
+	const unselected = {
+		...makeResult('unselected', { time: 100 }, [
+			{
+				comparator: 'absolute-lte',
+				description: 'fixture',
+				metric: 'time',
+				threshold: 0,
+			},
+		]),
+		package: '@fixture/unselected',
+	};
+	const run = runCompare({
+		BENCHMARK_ARM_MAP: emptyArmMap(),
+		BENCHMARK_BASE_DIR: writeResults(fullCore()),
+		BENCHMARK_EXPECTED_PACKAGES: '@c15t/core-benchmarks',
+		BENCHMARK_HEAD_DIR: writeResults([...fullCore(), unselected]),
+		BENCHMARK_PROFILE: 'regression',
+	});
+	expect(run.code).toBe(0);
+	expect(summaryOf(run).results.unexpected).toContain(
+		'@fixture/unselected:unselected:core-runtime'
+	);
+	expect(summaryOf(run).results.compared).toBe(coreScenarios.length);
 });

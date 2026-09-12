@@ -391,7 +391,7 @@ describe('resolveManifestInit', () => {
 			resolvedOverrides: { country: 'DE', language: 'de', region: 'BE' },
 			translations: { language: 'de' },
 		});
-		expect(init.resolvedOverrides).not.toHaveProperty('gpc');
+		expect(init).not.toHaveProperty('resolvedOverrides.gpc');
 		expect(init).not.toHaveProperty('policySnapshotToken');
 	});
 
@@ -428,7 +428,7 @@ describe('resolveManifestInit', () => {
 			policyResolution: { matchedBy: 'fallback', policyId: 'eu-opt-in' },
 			resolvedOverrides: { language: 'en' },
 		});
-		expect(init.resolvedOverrides).not.toHaveProperty('country');
+		expect(init).not.toHaveProperty('resolvedOverrides.country');
 	});
 
 	test('maps Sec-GPC and geo headers to resolver inputs with an English fallback', () => {

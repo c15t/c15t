@@ -47,7 +47,6 @@ import type {
 	BenchmarkComparisonResult,
 	BenchmarkComparisonSummary,
 	BenchmarkResult,
-	BenchmarkSuite,
 	MetricBudget,
 	MetricBudgetResult,
 	MetricSampleSet,
@@ -63,6 +62,14 @@ const defaultArmMapPath = join(
 );
 const armMapPath = process.env.BENCHMARK_ARM_MAP ?? defaultArmMapPath;
 const enforce = process.env.BENCHMARK_ENFORCE === 'true';
+
+// Routine v3 regressions and historical v2 release targets are separate checks.
+const profile = process.env.BENCHMARK_PROFILE ?? 'release';
+if (!['regression', 'release'].includes(profile)) {
+	throw new Error(`Unknown benchmark profile: ${profile}`);
+}
+const inProfile = (budget: MetricBudget) =>
+	profile === 'release' || !budget.baseArm;
 
 interface ArmMapFile {
 	_comment?: string;
@@ -210,26 +217,36 @@ const evaluateBudgets = function evaluateBudgets(
 		? indexMetrics(baseResult)
 		: new Map<string, MetricSampleSet>();
 
-	return (headResult.budgetDefinitions ?? []).map((budget) => {
-		const headMetric = indexedHeadMetrics.get(budget.metric);
-		if (budget.baseArm) {
-			return evaluateArmBudget(budget, headMetric, armResults, baseKey);
-		}
-		return evaluateBudget(
-			budget,
-			headMetric,
-			indexedBaseMetrics.get(budget.metric)
-		);
-	});
+	return (headResult.budgetDefinitions ?? [])
+		.filter(inProfile)
+		.map((budget) => {
+			const headMetric = indexedHeadMetrics.get(budget.metric);
+			if (budget.baseArm) {
+				return evaluateArmBudget(budget, headMetric, armResults, baseKey);
+			}
+			return evaluateBudget(
+				budget,
+				headMetric,
+				indexedBaseMetrics.get(budget.metric)
+			);
+		});
 };
 
 const selectExpected = function selectExpected(): ExpectedBenchmarkResult[] {
 	const suites = parseList(process.env.BENCHMARK_EXPECTED_SUITES);
-	if (suites.length === 0) {
-		return expectedBenchmarkResults;
+	const packages = parseList(process.env.BENCHMARK_EXPECTED_PACKAGES);
+	const selected = expectedBenchmarkResults
+		.filter(
+			(entry) =>
+				(!suites.length || suites.includes(entry.suite)) &&
+				(!packages.length ||
+					packages.some((name) => entry.key.startsWith(`${name}:`)))
+		)
+		.map((entry) => ({ ...entry, budgets: entry.budgets.filter(inProfile) }));
+	if (!selected.length) {
+		throw new Error('No expected benchmark results selected.');
 	}
-	const wanted = new Set(suites as BenchmarkSuite[]);
-	return expectedBenchmarkResults.filter((entry) => wanted.has(entry.suite));
+	return selected;
 };
 
 interface DefinitionCheck {
@@ -255,10 +272,9 @@ const checkDefinitions = function checkDefinitions(
 		unexpectedDefinitions: [],
 	};
 	const defined = new Map(
-		(headResult.budgetDefinitions ?? []).map((budget) => [
-			budgetIdentity(budget),
-			budget,
-		])
+		(headResult.budgetDefinitions ?? [])
+			.filter(inProfile)
+			.map((budget) => [budgetIdentity(budget), budget])
 	);
 	const expectedIdentities = new Set<string>();
 	for (const expected of entry.budgets) {
@@ -401,6 +417,7 @@ const buildSummary = function buildSummary(
 		enforce,
 		failures,
 		ok: failures.length === 0,
+		profile: profile === 'release' ? 'release' : 'regression',
 		results: {
 			compared: comparison.results.filter(
 				(result) => (result.status ?? 'compared') === 'compared'
@@ -428,7 +445,11 @@ const main = async function main() {
 		schemaVersion: BENCHMARK_SCHEMA_VERSION,
 	};
 
+	const expectedKeys = new Set(expected.map((entry) => entry.key));
 	for (const [key, headResult] of headResults) {
+		if (!expectedKeys.has(key)) {
+			continue;
+		}
 		const comparisonBaseKeys = armMap.get(key) ?? [key];
 
 		for (const baseKey of comparisonBaseKeys) {

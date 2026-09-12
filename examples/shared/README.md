@@ -57,3 +57,19 @@ rendered test pages but no production consent data or vendor account secrets.
 The existing `internals/next-compat` matrix remains responsible for Next 15/16
 and Cache Components build contracts. This suite adds real example workflows;
 it does not replace that compatibility coverage.
+
+## SSR consent journeys
+
+`bun run --cwd examples/shared test:ssr` runs the production Next, Nuxt and
+SvelteKit benchmark hosts through first-HTML, persistence, GPC, language,
+request-header and no-zombie-banner contracts. The Nuxt cases also check
+Nitro route methods, caching and version headers. Next cases also verify the
+backend receives one saved choice, with one init request for hosted SSR and
+zero for manifest SSR. Select hosts with
+`C15T_E2E_APPS=nextjs,nuxt`. `bun run e2e:consent` calls the same suite.
+
+These journeys use benchmark hosts because they expose server observations
+that the public examples do not. Example acceptance owns vendor gating and
+outage recovery. Shared server startup and process cleanup live in
+`scripts/browser-process.ts`. Failed journeys retain screenshots and traces
+under `.ci-reports/`.

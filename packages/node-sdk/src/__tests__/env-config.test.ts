@@ -94,6 +94,7 @@ describe('Environment Variable Configuration', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer options-token');
 		});
@@ -117,6 +118,7 @@ describe('Environment Variable Configuration', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer env-token');
 		});
@@ -141,6 +143,7 @@ describe('Environment Variable Configuration', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer options-token');
 		});
@@ -164,6 +167,7 @@ describe('Environment Variable Configuration', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBeUndefined();
 		});
@@ -191,6 +195,7 @@ describe('Environment Variable Configuration', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('api.example.com');
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer test-token');

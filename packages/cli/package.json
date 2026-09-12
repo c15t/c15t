@@ -63,13 +63,14 @@
 		]
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/cli",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/cli",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"knip": "knip",
 		"lint": "bun oxlint ./src",
+		"prepack": "bun run build:docs",
 		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest"
