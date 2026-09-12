@@ -253,8 +253,15 @@ Component. `RscBannerGate` becomes `ConsentBanner.Root`, which mounts only
 while the policy owes a prompt and reopens on expiry. `RscBannerActions`
 becomes `ConsentBanner.PolicyActions`, which renders the rights links and the
 action row the policy requires; `ConsentBanner.Rights`, `RightLink`, `Footer`,
-`FooterSubGroup` and the four buttons are available for finer control. Place
-the former `children` inside `ConsentBanner.Card`:
+`FooterSubGroup` and the four buttons are available for finer control.
+`PolicyActions` takes none of the old `acceptLabel`, `rejectLabel`,
+`customizeLabel`, `dismissLabel`, `rightLabels` or `classNames` props: set
+labels through the provider `i18n` translation overrides (`common.acceptAll`,
+`common.rejectAll`, `common.customize`, `common.acknowledge`, `rights.*`), or
+render `ConsentBanner.AcceptButton` and the other buttons with your own
+children; `renderAction` on `PolicyActions` replaces one button; classes move
+to the `components` slots listed in the table. Place the former `children`
+inside `ConsentBanner.Card`:
 
 ```tsx title="components/banner.tsx"
 'use client';
