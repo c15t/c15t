@@ -1,6 +1,6 @@
 # Next.js compatibility matrix
 
-Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination we support. CI runs one job per cell (`.github/workflows/next-compat.yml`); a nightly job additionally runs the Next 16 cells against `next@canary` as an advisory check.
+Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination we support. Main CI runs the six stable cells in one compatibility group; `.github/workflows/next-compat.yml` additionally runs the Next 16 cells against `next@canary` nightly as an advisory check.
 
 ## Cells
 

@@ -264,6 +264,19 @@ export const createCiPlan = function createCiPlan(
 
 export type CiPlan = ReturnType<typeof createCiPlan>;
 
+/** Keep workspace names in the artifact, outside GitHub's job-output secret filter. */
+export const ciSchedulingOutputs = (plan: CiPlan) => ({
+	backend: plan.backend,
+	build: plan.build.length > 0,
+	bundle: plan.bundle,
+	docs: plan.docs,
+	integrations: plan.integrations,
+	packageChecks:
+		plan.tests.length + plan.types.length + plan.testTypes.length > 0,
+	performance: plan.performance,
+	testBrowsers: plan.testBrowsers,
+});
+
 if (import.meta.main) {
 	const base = process.env.CI_DIFF_BASE;
 	const full = process.argv.includes('--full') || !base;
@@ -279,8 +292,7 @@ if (import.meta.main) {
 	const plan = createCiPlan(files, readWorkspaces(), full);
 	writeFileSync('ci-plan.json', `${JSON.stringify(plan, null, 2)}\n`);
 	if (process.env.GITHUB_OUTPUT) {
-		appendFileSync(process.env.GITHUB_OUTPUT, `plan=${JSON.stringify(plan)}\n`);
-		for (const [key, value] of Object.entries(plan)) {
+		for (const [key, value] of Object.entries(ciSchedulingOutputs(plan))) {
 			appendFileSync(
 				process.env.GITHUB_OUTPUT,
 				`${key}=${JSON.stringify(value)}\n`

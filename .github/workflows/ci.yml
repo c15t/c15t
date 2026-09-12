@@ -29,10 +29,8 @@ jobs:
     name: Repository and docs
     runs-on: ubuntu-latest
     outputs:
-      plan: ${{ steps.plan.outputs.plan }}
       build: ${{ steps.plan.outputs.build }}
-      tests: ${{ steps.plan.outputs.tests }}
-      types: ${{ steps.plan.outputs.types }}
+      packageChecks: ${{ steps.plan.outputs.packageChecks }}
       backend: ${{ steps.plan.outputs.backend }}
       integrations: ${{ steps.plan.outputs.integrations }}
       testBrowsers: ${{ steps.plan.outputs.testBrowsers }}
@@ -47,6 +45,13 @@ jobs:
       - name: Select checks
         id: plan
         run: bun scripts/ci-plan.ts
+      - name: Save selected checks
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-plan
+          path: ci-plan.json
+          retention-days: 1
+          if-no-files-found: error
       - name: Lint
         run: bun oxlint . --format=github
       - name: Check formatting
@@ -60,7 +65,7 @@ jobs:
   build:
     name: Build packages once
     needs: repository
-    if: needs.repository.outputs.build != '[]'
+    if: needs.repository.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -68,9 +73,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Read selected checks
-        env:
-          CI_PLAN: ${{ needs.repository.outputs.plan }}
-        run: printf '%s\n' "$CI_PLAN" > ci-plan.json
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ci-plan
       - run: bun scripts/ci-run.ts build
       - name: Package same-run outputs and task cache
         run: bun scripts/ci-build-artifact.ts
@@ -91,7 +96,7 @@ jobs:
   packages:
     name: Package behavior and types
     needs: [repository, build]
-    if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.repository.outputs.tests != '[]' || needs.repository.outputs.types != '[]') }}
+    if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -104,9 +109,9 @@ jobs:
           built: ${{ needs.build.result == 'success' }}
           browsers: ${{ needs.repository.outputs.testBrowsers }}
       - name: Read selected checks
-        env:
-          CI_PLAN: ${{ needs.repository.outputs.plan }}
-        run: printf '%s\n' "$CI_PLAN" > ci-plan.json
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ci-plan
       - name: Check types
         run: bun scripts/ci-run.ts types
       - name: Check test types

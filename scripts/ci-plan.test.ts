@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createCiPlan, readWorkspaces } from './ci-plan';
+import { ciSchedulingOutputs, createCiPlan, readWorkspaces } from './ci-plan';
 
 // Use the real graph: dependency additions must change selection without a second map.
 const repository = new URL('..', import.meta.url).pathname;
@@ -75,5 +75,34 @@ describe('CI selection', () => {
 		expect(result.build).toContain('@c15t/core');
 		expect(result.examples).toEqual(['vue']);
 		expect(result.compat).toEqual([]);
+	});
+});
+
+describe('CI scheduling outputs', () => {
+	it('keeps workspace names out of job outputs while selecting runtime work', () => {
+		const output = ciSchedulingOutputs(plan(['packages/core/src/kernel.ts']));
+		expect(output).toMatchObject({ build: true, packageChecks: true });
+		expect(JSON.stringify(output)).not.toContain('@c15t/');
+	});
+	it('skips runtime jobs for documentation', () => {
+		expect(ciSchedulingOutputs(plan(['docs/guide.mdx']))).toMatchObject({
+			build: false,
+			integrations: [],
+			packageChecks: false,
+		});
+	});
+	it('schedules packages when only test types are selected', () => {
+		const result = createCiPlan(
+			['fixtures/typecheck/types.ts'],
+			[
+				{
+					dependencies: [],
+					directory: 'fixtures/typecheck',
+					name: 'fixture',
+					scripts: { 'check-types:test': 'tsc --noEmit' },
+				},
+			]
+		);
+		expect(ciSchedulingOutputs(result).packageChecks).toBe(true);
 	});
 });
