@@ -43,7 +43,10 @@ does not shift when the placeholder is replaced.
 
 With the awaited `prefetchInitialConsent` from the App Router guide, the
 server decides between placeholder and embed from the resolved rule and the
-request cookie, with no swap after hydration. Under an opt-in rule a new
+request cookie, and hydration keeps that choice as long as the browser's
+privacy signals agree with the request: a `navigator.globalPrivacyControl`
+that the request did not carry as `Sec-GPC` is re-detected on hydration and
+can withdraw a category. Under an opt-in rule a new
 visitor gets the placeholder and a returning visitor who allowed `marketing`
 gets the iframe; under an opt-out rule a new visitor already has effective
 permission, so the iframe renders until they opt out.

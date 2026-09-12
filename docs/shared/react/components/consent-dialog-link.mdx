@@ -64,8 +64,10 @@ group: reference
   The rendered `button` is keyboard-focusable and activates with Enter and
   Space; its accessible name is the text you pass as `children`, so give it
   words that describe the destination rather than "click here". Because the
-  dialog it opens is labelled by its own title and returns focus on close, no
-  additional `aria-haspopup` or `aria-controls` is added. With `asChild`,
+  dialog it opens is labelled by its own title and, while blocking, returns
+  focus to the link on close, no additional `aria-haspopup` or
+  `aria-controls` is added; a non-blocking dialog manages no focus, so the
+  link does not regain it. With `asChild`,
   focusability comes from your element: use a `button` or an anchor with an
   `href`.
 </section>
@@ -75,8 +77,9 @@ group: reference
 
   Scroll to the footer. The link renders with your footer's text styles and
   no button chrome. Activate it with a click or with Enter: the preference
-  center opens as a centered dialog. Close it with Escape: focus returns to
-  the link. In your browser's element inspector the link has
+  center opens as a centered dialog. Close it with Escape: with the default
+  blocking dialog, focus returns to the link. In your browser's element
+  inspector the link has
   `data-c15t-rights`; change the visitor's region to a US opt-out rule and
   the value includes `opt-out`. Under a rule with `model: 'none'` and no
   rights, the link is absent.

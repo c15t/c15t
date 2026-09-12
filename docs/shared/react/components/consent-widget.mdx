@@ -42,9 +42,10 @@ group: reference
   and without that it is on under an opt-out rule and on only for the rule's
   preselected categories under an opt-in rule. Save records the displayed
   categories, then reseeds the draft from the new record. Accept all and
-  Reject all record immediately without a separate Save. A save answers the
-  prompt, so a banner that is still open closes. Unsaved toggles are lost
-  when the widget unmounts.
+  Reject all record immediately without a separate Save. A save answers a
+  choice prompt, so an open choice banner closes; it does not dismiss a
+  `notice` prompt, which keeps its own acknowledgement record. Unsaved toggles
+  are lost when the widget unmounts.
 
   When the policy changes in a way that affects the choice while the draft has
   unsaved toggles, the widget shows an alert, "The privacy policy changed.
@@ -108,6 +109,8 @@ group: reference
   for you.
 
   ```tsx
+  import { useState } from 'react';
+
   const [open, setOpen] = useState<string[]>([]);
 
   <ConsentWidget.Root>
