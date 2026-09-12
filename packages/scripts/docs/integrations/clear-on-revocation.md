@@ -101,8 +101,10 @@ for a cookie on another path.
 Partitioned cookies require `partitioned: true`; ordinary targets remove
 unpartitioned cookies. Cookie deletion preserves the browser's `__Secure-`
 and `__Host-` prefix requirements. c15t protects its own consent, notice,
-privacy, and pending-save records, including configured custom storage keys,
-even if your patterns match them.
+privacy, pending-save, and IAB consent records in cookies and localStorage,
+including configured custom storage keys, even if your patterns match them.
+c15t does not store consent in sessionStorage, so targeted entries there are
+removed even when their names match consent storage keys.
 
 ## When cleanup runs
 

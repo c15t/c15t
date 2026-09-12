@@ -106,7 +106,7 @@ const clearCookie = (
 const clearStorage = (
 	kind: 'localStorage' | 'sessionStorage',
 	patterns: readonly string[],
-	protectedKeys: ReadonlySet<string>
+	protectedKeys?: ReadonlySet<string>
 ): void => {
 	let storage: Storage;
 	try {
@@ -139,7 +139,7 @@ const clearStorage = (
 			keys.push(pattern);
 		}
 		for (const key of keys) {
-			if (!protectedKeys.has(key)) {
+			if (!protectedKeys?.has(key)) {
 				try {
 					storage.removeItem(key);
 				} catch {
@@ -165,6 +165,7 @@ export const clearTargets = (
 		clearStorage('localStorage', targets.localStorage, protectedKeys);
 	}
 	if (targets.sessionStorage?.length) {
-		clearStorage('sessionStorage', targets.sessionStorage, protectedKeys);
+		// c15t does not persist consent records in sessionStorage.
+		clearStorage('sessionStorage', targets.sessionStorage);
 	}
 };

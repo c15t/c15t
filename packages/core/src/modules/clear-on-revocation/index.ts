@@ -47,7 +47,13 @@ export const createClearOnRevocation = (
 		};
 	}
 	const { kernel, config, storageConfig } = options;
-	const protectedKeys = new Set([STORAGE_KEY, PENDING_SAVES_STORAGE_KEY]);
+	const protectedKeys = new Set([
+		STORAGE_KEY,
+		PENDING_SAVES_STORAGE_KEY,
+		// Keep the optional IAB addon's receipts without importing its runtime.
+		'c15t-iab-authority-v1',
+		'euconsent-v2',
+	]);
 	for (const key of [
 		STORAGE_KEY_V2,
 		storageConfig?.storageKey || STORAGE_KEY_V2,

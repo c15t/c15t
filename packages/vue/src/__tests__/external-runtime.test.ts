@@ -1,6 +1,7 @@
 import { hosted } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntime } from '@c15t/core/runtime';
+import { resolvePolicyRules } from '@c15t/schema/types';
 import { mount } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import { defineComponent, h, inject } from 'vue';
@@ -16,6 +17,21 @@ const createRuntime = function createRuntime(): ConsentRuntime {
 	return createConsentRuntime({
 		mode: hosted({ url: 'https://consent.example.test' }),
 		pkg: '@c15t/vue-test',
+		prefetch: {
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: null,
+				regionCode: null,
+				rules: [
+					{
+						categories: ['measurement'],
+						id: 'borrowed-runtime',
+						match: { fallback: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
+		},
 	});
 };
 
@@ -60,6 +76,10 @@ describe('createVueConsentKernelContext with an external runtime', () => {
 describe('startVueConsentRuntime with an external runtime', () => {
 	test('mounts none of the modules the runtime already owns', () => {
 		const runtime = createRuntime();
+		expect(runtime.kernel.getSnapshot().policyPending).toBe(false);
+		expect(runtime.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			false
+		);
 		const init = vi.spyOn(runtime.kernel.commands, 'init');
 		const context = createVueConsentKernelContext({ config: {}, runtime });
 

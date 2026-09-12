@@ -6,11 +6,13 @@ import { render } from 'vitest-browser-react';
 
 import { KernelContext } from '../context';
 import { ConsentProvider, offline } from '../index';
+import { policyFixture } from './policy-fixture';
 
 const createRuntime = function createRuntime(): ConsentRuntime {
 	return createConsentRuntime({
 		mode: offline(),
 		pkg: '@c15t/react-external-test',
+		prefetch: policyFixture({ measurement: false }),
 	});
 };
 
@@ -51,6 +53,10 @@ describe('ConsentProvider with an external runtime', () => {
 
 	test('leaves init and every side-effecting module to the owner', async () => {
 		const runtime = createRuntime();
+		expect(runtime.kernel.getSnapshot().policyPending).toBe(false);
+		expect(runtime.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			false
+		);
 		const init = vi.spyOn(runtime.kernel.commands, 'init');
 		localStorage.setItem('analytics:visitor', 'owner');
 
@@ -67,8 +73,9 @@ describe('ConsentProvider with an external runtime', () => {
 			</ConsentProvider>
 		);
 
-		// A microtask turn is enough for the mount effects to have run.
-		await Promise.resolve();
+		// Cleanup follows the script loader's dynamic import. Wait for that
+		// entire chain so an accidental mount has time to delete the target.
+		await vi.dynamicImportSettled();
 
 		expect(init).not.toHaveBeenCalled();
 		expect(localStorage.getItem('analytics:visitor')).toBe('owner');

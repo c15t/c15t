@@ -133,6 +133,43 @@ describe('cookie cleanup', () => {
 });
 
 describe('web storage cleanup', () => {
+	test.each(['euconsent-v2', 'euconsent-*'])(
+		'preserves IAB consent records matched by %s and c15t*',
+		(tcStringTarget) => {
+			localStorage.setItem('c15t-iab-authority-v1', 'authority');
+			localStorage.setItem('euconsent-v2', 'tc-string');
+			document.cookie = 'euconsent-v2=tc-string; Path=/';
+			localStorage.setItem('c15t-analytics', 'tracking');
+			attach({
+				measurement: {
+					cookies: [tcStringTarget],
+					localStorage: ['c15t*', tcStringTarget],
+				},
+			});
+			expect(localStorage.getItem('c15t-iab-authority-v1')).toBe('authority');
+			expect(localStorage.getItem('euconsent-v2')).toBe('tc-string');
+			expect(document.cookie).toContain('euconsent-v2=tc-string');
+			expect(localStorage.getItem('c15t-analytics')).toBeNull();
+		}
+	);
+
+	test('removes targeted session data even when names match consent records', () => {
+		const keys = ['c15t', 'c15t-notice', 'custom', 'euconsent-v2'];
+		for (const key of keys) {
+			sessionStorage.setItem(key, 'tracking');
+		}
+		sessionStorage.setItem('unrelated', 'keep');
+		attach(
+			{ measurement: { sessionStorage: ['c15t*', 'custom', 'euconsent-v2'] } },
+			createConsentKernel(),
+			'custom'
+		);
+		for (const key of keys) {
+			expect(sessionStorage.getItem(key)).toBeNull();
+		}
+		expect(sessionStorage.getItem('unrelated')).toBe('keep');
+	});
+
 	test('matches exact and prefix names without skipping keys as indexes shift', () => {
 		for (const key of [
 			'track:1',
