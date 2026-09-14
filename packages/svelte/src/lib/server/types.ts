@@ -17,5 +17,10 @@ export interface ReadInitialConsentConfigOptions {
 export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigOptions {
 	backendURL: string;
 	fetch?: typeof globalThis.fetch;
+	/**
+	 * Default request fetch supplied by the SvelteKit adapter.
+	 * @internal
+	 */
+	frameworkFetch?: typeof globalThis.fetch;
 	forwardHeaders?: string[];
 }

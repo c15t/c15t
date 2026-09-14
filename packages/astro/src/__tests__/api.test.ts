@@ -4,11 +4,13 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import {
 	clearManifestCache,
 	createConsentRouteHandlers,
 	resolveManifestSourceURL,
 } from '../api';
+import { resolveManifestInit } from '../api/manifest-init';
 import { resolveOptions } from '../integration';
 import { hostedMode, manifestMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
@@ -389,5 +391,32 @@ it.each([false, true])(
 		expect(second.headers.get('age')).toBe('57');
 		expect(second.headers.get('cache-control')).toBe('s-maxage=60');
 		expect(fetch).toHaveBeenCalledTimes(1);
+	}
+);
+
+it.each(['default', 'fetch', 'fetchGvl'] as const)(
+	'preserves vendor loading context for %s Astro manifest resolution',
+	async (loader) => {
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: {
+				cmpId: 28,
+				enabled: true,
+				gvl: { url: 'https://vendors.example/list.json' },
+			},
+			policyRules: [policyRulePresets.europeIab()],
+		});
+		const fetch = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
+		vi.stubGlobal('fetch', fetch);
+		const result = await resolveManifestInit({
+			fetch: loader === 'fetch' ? fetch : undefined,
+			fetchGvl:
+				loader === 'fetchGvl' ? () => Promise.resolve(completeGVL) : undefined,
+			inputs: { country: 'DE' },
+			manifest,
+		});
+		expect(result.gvl).toEqual(loader === 'default' ? null : completeGVL);
+		expect(Boolean(result.gvlReference)).toBe(loader === 'default');
+		vi.unstubAllGlobals();
 	}
 );

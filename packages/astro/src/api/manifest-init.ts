@@ -262,7 +262,7 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		region: inputs.region,
 	});
 	payload.resolvedPrivacySignals = { gpc: inputs.gpc };
-	return manifest.iab?.gvl
+	return manifest.iab?.gvl && !input.fetch && !input.fetchGvl
 		? deferInitGvl(payload, manifest.iab.gvl.url)
 		: payload;
 };

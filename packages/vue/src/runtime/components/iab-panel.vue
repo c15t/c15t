@@ -8,7 +8,15 @@ import type {
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { getTextDirection } from '@c15t/ui/utils';
-import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
+import {
+	computed,
+	ref,
+	Teleport,
+	Transition,
+	toRaw,
+	toValue,
+	watch,
+} from 'vue';
 
 import {
 	createDefaultIabSelection,
@@ -252,23 +260,27 @@ const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 	}
 };
 
-const onAction = function onAction(action: PresentationAction) {
-	if (action === 'save') {
-		save(
-			{
-				...structuredClone(draftIab.value),
-				preferenceCenterTab: activeTab.value,
-			},
-			activeTab.value
-		);
-		return;
-	}
-	if (action === 'accept') {
-		save('all', activeTab.value);
-		return;
-	}
-	if (action === 'reject') {
-		save('none', activeTab.value);
+const onAction = async function onAction(action: PresentationAction) {
+	try {
+		if (action === 'save') {
+			await save(
+				{
+					...structuredClone(toRaw(draftIab.value)),
+					preferenceCenterTab: activeTab.value,
+				},
+				activeTab.value
+			);
+			return;
+		}
+		if (action === 'accept') {
+			await save('all', activeTab.value);
+			return;
+		}
+		if (action === 'reject') {
+			await save('none', activeTab.value);
+		}
+	} catch {
+		// Leave the prompt available so a failed vendor-list load can be retried.
 	}
 };
 

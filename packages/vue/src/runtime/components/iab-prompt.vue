@@ -129,18 +129,22 @@ const descriptionParts = computed(() => {
 	return { after: after ?? '', before: before ?? text };
 });
 
-const onAction = function onAction(action: PresentationAction) {
-	if (action === 'customize') {
-		iabSelection.value.preferenceCenterTab = 'purposes';
-		activeUI.value = 'manager';
-		return;
-	}
-	if (action === 'accept') {
-		save('all');
-		return;
-	}
-	if (action === 'reject') {
-		save('none');
+const onAction = async function onAction(action: PresentationAction) {
+	try {
+		if (action === 'customize') {
+			iabSelection.value.preferenceCenterTab = 'purposes';
+			activeUI.value = 'manager';
+			return;
+		}
+		if (action === 'accept') {
+			await save('all');
+			return;
+		}
+		if (action === 'reject') {
+			await save('none');
+		}
+	} catch {
+		// Leave the prompt available so a failed vendor-list load can be retried.
 	}
 };
 

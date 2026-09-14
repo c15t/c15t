@@ -249,6 +249,11 @@ export const createCMPApi = function createCMPApi(
 		const listenerId = nextListenerId;
 		eventListeners.set(listenerId, handler);
 
+		// Replacement loads keep listeners registered until consent is ready.
+		if (cmpStatus !== 'loaded') {
+			return;
+		}
+
 		// Immediately call with current state
 		const tcData = await buildTCData('tcloaded', listenerId);
 		handler(tcData, true);

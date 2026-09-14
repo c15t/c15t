@@ -392,10 +392,20 @@ test('TCF listeners receive tcloaded only after the replacement list arrives', a
 		expect.objectContaining({ cmpStatus: 'loading', eventStatus: 'tcloaded' }),
 		true
 	);
+	const addedWhileLoading = vi.fn();
+	window.__tcfapi?.('addEventListener', 2, addedWhileLoading);
+	await Promise.resolve();
+	expect(addedWhileLoading).not.toHaveBeenCalled();
 	complete(Response.json(completeGVL));
 	await handle.whenReady();
 	await vi.waitFor(() =>
 		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({ cmpStatus: 'loaded', eventStatus: 'tcloaded' }),
+			true
+		)
+	);
+	await vi.waitFor(() =>
+		expect(addedWhileLoading).toHaveBeenCalledWith(
 			expect.objectContaining({ cmpStatus: 'loaded', eventStatus: 'tcloaded' }),
 			true
 		)

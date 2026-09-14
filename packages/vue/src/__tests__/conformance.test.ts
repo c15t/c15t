@@ -37,6 +37,8 @@ import { createApp, createSSRApp, defineComponent, h } from 'vue';
 import type { App } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { createIAB } from '../../../iab/src/index';
 import IabConsentDialog from '../runtime/components/iab-panel.vue';
 import IabConsentBanner from '../runtime/components/iab-prompt.vue';
 import ConsentManager from '../runtime/components/manager.vue';
@@ -640,3 +642,113 @@ const api: SuiteApi = {
 };
 
 runConformanceSuite(driver, api);
+
+test.each([
+	['iab-consent-banner', 'accept'],
+	['iab-consent-banner', 'reject'],
+] as const)(
+	'retains %s after a failed deferred %s action',
+	async (component, action) => {
+		const opts: MountOptions = { component };
+		const { context, config, options } = createContext(opts);
+		let rejectLoad!: (error: Error) => void;
+		const fetch = vi
+			.fn()
+			.mockImplementationOnce(
+				() =>
+					new Promise<Response>((_resolve, reject) => {
+						rejectLoad = reject;
+					})
+			)
+			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		vi.stubGlobal('fetch', fetch);
+		context.kernel.set.iab({
+			enabled: true,
+			...deferInitGvl({ gvl: completeGVL }, '/vendor-list'),
+		});
+		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		const container = document.createElement('div');
+		document.body.append(container);
+		const app = createApp(createHarness(opts, options, context));
+		provideContext(app, context, config);
+		app.mount(container);
+		try {
+			const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
+			const button = () =>
+				document.querySelector<HTMLButtonElement>(
+					`[data-testid="iab-consent-${surface}-${action}-button"]`
+				);
+			await vi.waitFor(() => expect(button()).not.toBeNull());
+			button()?.click();
+			rejectLoad(new Error('offline'));
+			await flushScheduler();
+			expect(context.kernel.getSnapshot().activeUI).toBe(surface);
+			expect(context.kernel.getSnapshot().iab?.authority).toBeNull();
+			button()?.click();
+			await vi.waitFor(() =>
+				expect(
+					context.kernel.getSnapshot().iab?.authority?.tcString
+				).toBeTruthy()
+			);
+			expect(fetch).toHaveBeenCalledTimes(2);
+		} finally {
+			app.unmount();
+			container.remove();
+			handle.dispose();
+			context.dispose();
+			vi.unstubAllGlobals();
+		}
+	}
+);
+
+test.each(['accept', 'reject', 'save'])(
+	'retains the Vue IAB dialog when %s rejects',
+	async (action) => {
+		const opts: MountOptions = { component: 'iab-consent-dialog' };
+		const { context, config, options } = createContext(opts);
+		context.kernel.set.iab({ enabled: true, gvl: completeGVL });
+		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		await handle.whenReady();
+		const previousAuthority = context.kernel.getSnapshot().iab?.authority;
+		const save = vi.fn(() => handle.save());
+		context.iab = {
+			...handle,
+			save,
+			whenReady: vi
+				.fn()
+				.mockRejectedValueOnce(new Error('offline'))
+				.mockImplementation(() => handle.whenReady()),
+		};
+		const container = document.createElement('div');
+		document.body.append(container);
+		const app = createApp(createHarness(opts, options, context));
+		provideContext(app, context, config);
+		app.mount(container);
+		try {
+			const button = () =>
+				document.querySelector<HTMLButtonElement>(
+					`[data-testid="iab-consent-dialog-card"] [data-action="${action}"]`
+				);
+			await vi.waitFor(() => expect(button()).not.toBeNull());
+			button()?.click();
+			await flushScheduler();
+			expect(context.kernel.getSnapshot().activeUI).toBe('dialog');
+			expect(context.kernel.getSnapshot().iab?.authority).toEqual(
+				previousAuthority
+			);
+			expect(save).not.toHaveBeenCalled();
+			button()?.click();
+			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+			await vi.waitFor(() =>
+				expect(
+					context.kernel.getSnapshot().iab?.authority?.tcString
+				).toBeTruthy()
+			);
+		} finally {
+			app.unmount();
+			container.remove();
+			handle.dispose();
+			context.dispose();
+		}
+	}
+);

@@ -47,7 +47,7 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	/** Extra request headers to forward upstream in hosted mode. */
 	forwardHeaders?: string[];
 
-	/** Fetch implementation for hosted mode. Defaults to the global `fetch`. */
+	/** Fetch implementation for hosted mode. Defaults to `event.fetch`. */
 	fetch?: typeof globalThis.fetch;
 }
 
@@ -197,8 +197,9 @@ export const loadConsent = async function loadConsent(
 			backendURL: options.backendURL,
 			cookieName,
 			country: inputs.country,
-			fetch: options.fetch ?? event.fetch,
+			fetch: options.fetch,
 			forwardHeaders: options.forwardHeaders,
+			frameworkFetch: event.fetch,
 			headers: event.request.headers,
 			language: inputs.language,
 			region: inputs.region,
