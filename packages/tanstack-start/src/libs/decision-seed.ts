@@ -17,13 +17,14 @@ const configLocation = (config: KernelConfig) => ({
 });
 
 /**
- * The decision inputs a server-side prefetch folded into the kernel config,
- * in the shape the hosted transport asserts on `POST /subjects`. `undefined`
- * when the config carries no resolved policy decision, or when the client
- * overrides differ from the inputs that decision was made for.
+ * The decision inputs a server-side `resolveConsent()` folded into the
+ * consent state, in the shape the hosted transport asserts on
+ * `POST /subjects`. `undefined` when the state carries no resolved policy
+ * decision, or when the client overrides differ from the inputs that
+ * decision was made for.
  *
- * @param config - Config produced by `prefetchInitialConsent()`.
- * @param overrides - The boundary's client overrides, if any.
+ * @param config - State produced by `resolveConsent({ backendURL })`.
+ * @param overrides - The root's client overrides, if any.
  * @returns Inputs to seed the transport with, if any.
  */
 export const decisionInputsFromConfig = function decisionInputsFromConfig(

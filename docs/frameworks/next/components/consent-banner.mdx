@@ -1,34 +1,34 @@
 ---
 title: ConsentBanner
-description: Render the pre-built ConsentBanner inside a Next.js ConsentBoundary and configure its variants, per-policy buttons and compound parts.
+description: Render the pre-built ConsentBanner inside a Next.js ConsentRoot and configure its variants, per-policy buttons and compound parts.
 group: frameworks
 ---
 
 ## Usage
 
-Keep the boundary and URL configuration from your
+Keep the `ConsentRoot` and URL configuration from your
 [App Router setup](/docs/frameworks/next/app-router). Render one banner inside
-its existing consent boundary. Keep the global stylesheet from that setup,
+that existing root. Keep the global stylesheet from that setup,
 with the c15t import after Tailwind CSS 4's import:
 
 ```tsx
 // app/layout.tsx
-import { ConsentBanner, ConsentBoundary, ConsentDialog } from 'c15t/next';
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { ConsentBanner, ConsentDialog, ConsentRoot } from 'c15t/next';
+import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import './globals.css';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-	const config = prefetchInitialConsent({ config: consentConfig });
+	const state = resolveConsent({ config: consentConfig });
 
 	return (
 		<html lang="en">
 			<body>
-				<ConsentBoundary config={config} consent={consentConfig}>
+				<ConsentRoot state={state} config={consentConfig}>
 					{children}
 					<ConsentBanner />
 					<ConsentDialog />
-				</ConsentBoundary>
+				</ConsentRoot>
 			</body>
 		</html>
 	);

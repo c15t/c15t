@@ -1,17 +1,17 @@
-import type { ConsentBoundaryProps } from 'c15t/next';
-import { prefetchInitialConsent } from 'c15t/next/pages';
+import type { ConsentRootProps } from 'c15t/next';
+import { resolveConsent } from 'c15t/next/pages';
 import type { GetServerSideProps } from 'next';
 
 import { consentConfig, demoLocation } from '../c15t.config';
 
 interface PageProps {
-	initialConsent: ConsentBoundaryProps['config'];
+	initialConsent: ConsentRootProps['state'];
 }
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({
 	req,
 }) => {
-	const initialConsent = await prefetchInitialConsent({
+	const initialConsent = await resolveConsent({
 		config: consentConfig,
 		...demoLocation,
 		req,

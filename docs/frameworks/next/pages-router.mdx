@@ -26,7 +26,7 @@ them, c15t uses your unknown-location rule. Check the supported
 before deploying.
 
 The setup below uses `getServerSideProps` for request-specific consent. Pages
-without prefetch initialize in the browser through the same app boundary.
+without prefetch initialize in the browser through the same `ConsentRoot`.
 
 ## Install c15t and configure your backend
 
@@ -83,7 +83,7 @@ use `src/pages/`.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
-## Keep one boundary in the app
+## Keep one root in the app
 
 Add c15t to your global stylesheet. With Tailwind CSS 4, keep its import first:
 
@@ -98,24 +98,24 @@ Keep any existing app styles and adjust the import below to their location.
 
 ```tsx title="pages/_app.tsx"
 import type { AppProps } from 'next/app';
-import type { ConsentBoundaryProps } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import { Consent } from '../components/consent';
 import '../styles/globals.css';
 
 type ConsentPageProps = {
-  initialConsent?: ConsentBoundaryProps['config'];
+  consentState?: ConsentRootProps['state'];
 };
 
 export default function App({ Component, pageProps }: AppProps<ConsentPageProps>) {
   return (
-    <Consent config={pageProps.initialConsent ?? {}}>
+    <Consent state={pageProps.consentState ?? {}}>
       <Component {...pageProps} />
     </Consent>
   );
 }
 ```
 
-`initialConsent` is the prepared visitor state; `consentConfig` contains the
+`consentState` is the visitor's resolved state; `consentConfig` contains the
 shared URLs. Without page prefetch, the browser loads the manifest and resolves
 policy locally. Without supplied location, geography is unknown. For browser
 initialization with request geography, see the
@@ -129,19 +129,19 @@ helper reads a different request context and must not be used here.
 
 ```tsx title="pages/index.tsx"
 import type { GetServerSideProps } from 'next';
-import type { ConsentBoundaryProps } from 'c15t/next';
-import { prefetchInitialConsent } from 'c15t/next/pages';
+import type { ConsentRootProps } from 'c15t/next';
+import { resolveConsent } from 'c15t/next/pages';
 import { consentConfig } from '../c15t.config';
 
-type PageProps = { initialConsent: ConsentBoundaryProps['config'] };
+type PageProps = { consentState: ConsentRootProps['state'] };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
-  const initialConsent = await prefetchInitialConsent({ config: consentConfig, req });
+  const state = await resolveConsent({ config: consentConfig, req });
   return {
     props: {
-      initialConsent: JSON.parse(
-        JSON.stringify(initialConsent)
-      ) as PageProps['initialConsent'],
+      consentState: JSON.parse(
+        JSON.stringify(state)
+      ) as PageProps['consentState'],
     },
   };
 };

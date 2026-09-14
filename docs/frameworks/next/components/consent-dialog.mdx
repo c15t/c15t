@@ -1,6 +1,6 @@
 ---
 title: ConsentDialog
-description: Mount ConsentDialog as a Client Component inside a Next.js ConsentBoundary to open the preference center from the banner, links and triggers.
+description: Mount ConsentDialog as a Client Component inside a Next.js ConsentRoot to open the preference center from the banner, links and triggers.
 group: frameworks
 ---
 
@@ -10,7 +10,7 @@ group: frameworks
 it lives in the `components/consent.tsx` wrapper from the
 [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) setup, inside the
-`ConsentBoundary` that already provides the consent runtime. Mount it once,
+`ConsentRoot` that already provides the consent runtime. Mount it once,
 next to the banner; it opens whenever something makes `dialog` the active
 surface: the banner's Customize button, a `ConsentDialogLink` in your footer,
 a `ConsentDialogTrigger`, or your own code.
@@ -21,38 +21,38 @@ a `ConsentDialogTrigger`, or your own code.
 import type { ReactNode } from 'react';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
+  ConsentRoot,
 } from 'c15t/next';
-import type { ConsentBoundaryProps } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import { consentConfig } from '../c15t.config';
 
 export function Consent({
   children,
-  config,
+  state,
 }: {
   children: ReactNode;
-  config: ConsentBoundaryProps['config'];
+  state: ConsentRootProps['state'];
 }) {
   return (
-    <ConsentBoundary config={config} consent={consentConfig}>
+    <ConsentRoot state={state} config={consentConfig}>
       {children}
       <ConsentBanner />
       <ConsentDialog hideBranding />
       <footer>
         <ConsentDialogLink>Privacy settings</ConsentDialogLink>
       </footer>
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
 
-The root layout renders `Consent` with the `config` from
-`prefetchInitialConsent`, as in the router guides. The dialog itself renders
+The root layout renders `Consent` with the `state` from
+`resolveConsent`, as in the router guides. The dialog itself renders
 nothing on the server: it mounts through a portal after hydration, so the
 server HTML and the streamed shell are unaffected by it. If the visitor owes
-a choice or notice, routes that await `prefetchInitialConsent` can render the
+a choice or notice, routes that await `resolveConsent` can render the
 banner on the server. Pages Router pages without `getServerSideProps` show it
 after browser policy resolution. No banner appears when the policy requires
 no prompt or an existing record already satisfies it.

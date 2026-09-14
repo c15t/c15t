@@ -3,8 +3,8 @@
  *
  * Reads the incoming request (cookies + headers via `getRequest()` from
  * `@tanstack/react-start/server`) and produces a JSON-serializable
- * `ConsentConfig` (a `KernelConfig` without `transport`). The root route
- * loader returns it, and the client `ConsentBoundary` reads it back with
+ * `ConsentState` (a `KernelConfig` without `transport`). The root route
+ * loader returns it, and the client `ConsentRoot` reads it back with
  * `Route.useLoaderData()`.
  *
  * The recommended `__root.tsx` shape:
@@ -12,33 +12,33 @@
  * ```tsx
  * import { createRootRoute, Outlet } from '@tanstack/react-router';
  * import { createServerFn } from '@tanstack/react-start';
- * import { ConsentBoundary } from '@c15t/tanstack-start';
+ * import { ConsentRoot } from '@c15t/tanstack-start';
  * import {
  *   consentLoaderOptions,
- *   createConsentConfigHandler,
+ *   createConsentStateHandler,
  * } from '@c15t/tanstack-start/server';
  *
- * const getConsentConfig = createServerFn({ method: 'GET' }).handler(
- *   createConsentConfigHandler({ backendURL: 'https://consent.example.com' })
+ * const getConsentState = createServerFn({ method: 'GET' }).handler(
+ *   createConsentStateHandler({ backendURL: 'https://consent.example.com' })
  * );
  *
  * export const Route = createRootRoute({
  *   ...consentLoaderOptions,
- *   loader: () => getConsentConfig(),
+ *   loader: () => getConsentState(),
  *   component: RootComponent,
  * });
  *
  * function RootComponent() {
- *   const config = Route.useLoaderData();
+ *   const state = Route.useLoaderData();
  *   return (
- *     <ConsentBoundary config={config} backendURL="https://consent.example.com">
+ *     <ConsentRoot state={state} backendURL="https://consent.example.com">
  *       <Outlet />
- *     </ConsentBoundary>
+ *     </ConsentRoot>
  *   );
  * }
  * ```
  *
- * The config travels only through loader data, never through module state,
+ * The state travels only through loader data, never through module state,
  * so the server-rendered HTML and the hydrated tree always agree. Because
  * the loader is a server function call, the same code keeps working under
  * `ssr: false`, `ssr: 'data-only'`, and `defaultSsr: false`: the loader
@@ -95,7 +95,7 @@ const DEFAULT_ROUTE_PREFIX = '/api/c15t';
 const stripTransport = function stripTransport({
 	transport: _transport,
 	...config
-}: KernelConfig): ConsentConfig {
+}: KernelConfig): ConsentState {
 	return config;
 };
 
@@ -106,7 +106,7 @@ const stripTransport = function stripTransport({
  */
 const resolveRequestInputs = function resolveRequestInputs(
 	request: Request,
-	options: Pick<ReadInitialConsentConfigOptions, 'country' | 'language'>
+	options: Pick<ConsentRequestOptions, 'country' | 'language'>
 ) {
 	const remembered = readConsentInputs(request);
 	if (!remembered) {
@@ -138,7 +138,11 @@ const readCurrentRequest = async function readCurrentRequest(
 	return getRequest();
 };
 
-export interface ReadInitialConsentConfigOptions {
+/**
+ * How {@link resolveConsent} reads the current request: the clock, the
+ * consent cookie, explicit geo/language overrides, and the request source.
+ */
+export interface ConsentRequestOptions {
 	/** Request clock reused for validation and hydration. */
 	now?: number;
 	/**
@@ -169,7 +173,8 @@ export interface ReadInitialConsentConfigOptions {
 }
 
 /**
- * Derive a `KernelConfig` from the current TanStack Start request.
+ * The cookie-and-headers half of {@link resolveConsent}: the state the
+ * request alone determines, before any manifest is consulted.
  *
  * What it reads:
  * - Cookie, defaulting to `c15t`, read with the persistence parser. A
@@ -179,21 +184,14 @@ export interface ReadInitialConsentConfigOptions {
  *   `x-c15t-*` overrides written by `consentRequestMiddleware()`.
  * - The negotiated `accept-language` entry and the `sec-gpc` signal.
  *
- * What it does NOT do:
- * - Does not fetch from the backend. Banner info and translations come
- *   from init once the client kernel mounts, or from
- *   {@link prefetchInitialConsent} when you want them in the first paint.
- * - Does not set cookies. Writes happen client-side via the persistence
- *   module.
- * - Does not cache across requests.
- *
- * @param options - Cookie name, overrides, and the request source.
- * @returns A serializable kernel config for `ConsentBoundary`.
+ * It does not fetch from the backend, does not set cookies (writes happen
+ * client-side via the persistence module), and does not cache across
+ * requests.
  */
-export const readInitialConsentConfig = async function readInitialConsentConfig(
-	options: ReadInitialConsentConfigOptions = {}
-): Promise<ConsentConfig> {
-	const request = await readCurrentRequest(options.request);
+const readRequestState = function readRequestState(
+	request: Request,
+	options: ConsentRequestOptions
+): ConsentState {
 	const cookieHeader = request.headers.get('cookie') ?? undefined;
 	const now = options.now ?? Date.now();
 	const initialRecords = readStoredRecordsFromCookieHeader(
@@ -203,17 +201,17 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 	);
 	const inputs = resolveRequestInputs(request, options);
 	const overrides = consentInputsToOverrides({ ...inputs, gpc: undefined });
-	const config: ConsentConfig = {
+	const state: ConsentState = {
 		initialPrivacySignals: { gpc: inputs.gpc },
 		initialRecords,
 		now,
 	};
 
 	if (Object.keys(overrides).length > 0) {
-		config.initialOverrides = overrides;
+		state.initialOverrides = overrides;
 	}
 
-	return config;
+	return state;
 };
 
 /**
@@ -223,31 +221,35 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 export type { KernelConfig } from '@c15t/core';
 
 /**
- * The JSON-serializable subset of `KernelConfig` the server helpers return.
+ * The visitor's resolved consent state: the JSON-serializable subset of
+ * `KernelConfig` the server helpers return and `ConsentRoot` consumes.
  *
  * `KernelConfig.transport` holds functions, and TanStack Start's server
  * function types reject any return value that may carry one. Returning this
  * narrower type is what lets `createServerFn().handler(...)` accept the
- * helpers directly. `ConsentBoundary` accepts it as-is.
+ * helpers directly. `ConsentRoot` accepts it as-is.
  */
-export type ConsentConfig = Omit<KernelConfig, 'transport'>;
+export type ConsentState = Omit<KernelConfig, 'transport'>;
 
-// -- Optional: server-side prefetch of the init roundtrip -------------------
+// -- Resolving the visitor's state ------------------------------------------
 
-export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigOptions {
+/** Options for {@link resolveConsent}. */
+export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/**
 	 * Backend base URL of your c15t instance, for example
-	 * `https://consent.example.com`. The helper reads `${backendURL}/manifest`
-	 * through the in-process manifest cache and resolves init locally, so the
-	 * first paint already carries policy, UI, translations, and IAB metadata.
+	 * `https://consent.example.com`. When set, the helper reads
+	 * `${backendURL}/manifest` through the in-process manifest cache and
+	 * resolves init locally, so the first paint already carries policy, UI,
+	 * translations, and IAB metadata. Omit it to only read cookies and
+	 * headers; the client then runs init through the same-origin route.
 	 *
 	 * Relative URLs are resolved against the request's own origin
 	 * (`request.url`); set `trustForwardedHeaders` to use `x-forwarded-*`
 	 * behind a trusted proxy. Do not point this at the app's own `/api/c15t` route:
 	 * a server fetching itself during SSR deadlocks the dev server, so the
-	 * helper skips that case and returns the baseline config instead.
+	 * helper skips that case and returns the cookie-and-headers state instead.
 	 */
-	backendURL: string;
+	backendURL?: string;
 
 	/**
 	 * Absolute `GET /manifest` URL. Overrides `${backendURL}/manifest`.
@@ -341,7 +343,7 @@ const collectForwardHeaders = function collectForwardHeaders(
 };
 
 const loadManifest = async function loadManifest(
-	options: PrefetchInitialConsentOptions,
+	options: ResolveConsentOptions & { backendURL: string },
 	request: Request,
 	forward: Record<string, string>
 ): Promise<{ backendURL: string; manifest: ConsentManifest } | null> {
@@ -380,26 +382,35 @@ const loadManifest = async function loadManifest(
 };
 
 /**
- * Server-side consent prefetch.
+ * Resolves the visitor's consent state from the current TanStack Start
+ * request.
  *
- * 1. Reads cookies + geo headers like {@link readInitialConsentConfig}.
- * 2. Loads the consent manifest through the in-process cache (or uses the
- *    inline `manifest`) and resolves init locally for this request's
- *    country, region, language, and GPC signal.
- * 3. Folds the result into a `KernelConfig` so first paint is correct
- *    without waiting for a client roundtrip.
+ * 1. Reads the consent cookie, the CDN geo headers (plus the `x-c15t-*`
+ *    overrides `consentRequestMiddleware()` wrote), `accept-language`, and
+ *    `sec-gpc`. Without a `backendURL` this is the whole result: the client
+ *    then runs init through the same-origin route on mount.
+ * 2. With a `backendURL`, loads the consent manifest through the
+ *    in-process cache (or uses the inline `manifest`) and resolves init
+ *    locally for this request's country, region, language, and GPC signal.
+ * 3. Folds the result into the state so first paint is correct without
+ *    waiting for a client roundtrip.
  *
  * Never calls the app's own `/api/c15t` route. If anything fails, returns
- * the baseline config: the client boundary then runs init on mount.
+ * the cookie-and-headers state: the client root then runs init on mount.
  *
- * @param options - Backend location, manifest source, and request source.
- * @returns A serializable kernel config for `ConsentBoundary`.
+ * @param options - Request source and overrides, plus the backend location
+ * and manifest source for the prefetch.
+ * @returns A serializable state for `ConsentRoot`.
  */
-export const prefetchInitialConsent = async function prefetchInitialConsent(
-	options: PrefetchInitialConsentOptions
-): Promise<ConsentConfig> {
+export const resolveConsent = async function resolveConsent(
+	options: ResolveConsentOptions = {}
+): Promise<ConsentState> {
 	const request = await readCurrentRequest(options.request);
-	const base = await readInitialConsentConfig({ ...options, request });
+	const base = readRequestState(request, options);
+	const { backendURL } = options;
+	if (!backendURL) {
+		return base;
+	}
 
 	try {
 		const forward = collectForwardHeaders(
@@ -407,7 +418,11 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 			options.forwardHeaders,
 			options.cookieNames
 		);
-		const loaded = await loadManifest(options, request, forward);
+		const loaded = await loadManifest(
+			{ ...options, backendURL },
+			request,
+			forward
+		);
 		if (!loaded) {
 			return base;
 		}
@@ -439,17 +454,17 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 
 /**
  * Folds a raw init payload (for example the JSON a same-origin init route
- * returned) into a kernel config. Exposed for custom loaders that already
+ * returned) into a consent state. Exposed for custom loaders that already
  * hold an `InitOutput`.
  *
- * @param base - Config from {@link readInitialConsentConfig}.
+ * @param base - State from {@link resolveConsent} without a `backendURL`.
  * @param init - The init payload to merge.
- * @returns The merged kernel config.
+ * @returns The merged state.
  */
-export const mergeInitIntoConsentConfig = function mergeInitIntoConsentConfig(
-	base: ConsentConfig,
+export const mergeInitIntoConsentState = function mergeInitIntoConsentState(
+	base: ConsentState,
 	init: InitOutput
-): ConsentConfig {
+): ConsentState {
 	return stripTransport(mergeInitOutputIntoKernelConfig(base, init));
 };
 
@@ -458,7 +473,7 @@ export const mergeInitIntoConsentConfig = function mergeInitIntoConsentConfig(
 /**
  * Root route options that keep the consent loader from re-running on
  * client-side navigation. Spread them into `createRootRoute()` next to
- * the loader. The config only changes when the request changes, and a
+ * the loader. The state only changes when the request changes, and a
  * client navigation reuses the same request context, so re-running would
  * only re-serialize the same value.
  *
@@ -466,7 +481,7 @@ export const mergeInitIntoConsentConfig = function mergeInitIntoConsentConfig(
  * ```ts
  * export const Route = createRootRoute({
  *   ...consentLoaderOptions,
- *   loader: () => getConsentConfig(),
+ *   loader: () => getConsentState(),
  * });
  * ```
  */
@@ -476,7 +491,7 @@ export const consentLoaderOptions = {
 } as const;
 
 /**
- * Builds the handler for the consent config server function.
+ * Builds the handler for the consent state server function.
  *
  * TanStack Start keys each server function's ID to the file path of the
  * `createServerFn().handler()` call site and requires that call to be a
@@ -488,24 +503,22 @@ export const consentLoaderOptions = {
  * @example
  * ```ts
  * import { createServerFn } from '@tanstack/react-start';
- * import { createConsentConfigHandler } from '@c15t/tanstack-start/server';
+ * import { createConsentStateHandler } from '@c15t/tanstack-start/server';
  *
- * export const getConsentConfig = createServerFn({ method: 'GET' }).handler(
- *   createConsentConfigHandler({ backendURL: 'https://consent.example.com' })
+ * export const getConsentState = createServerFn({ method: 'GET' }).handler(
+ *   createConsentStateHandler({ backendURL: 'https://consent.example.com' })
  * );
  * ```
  *
  * Omit `backendURL` to skip the manifest prefetch and only read cookies
  * and headers; the client then runs init through the same-origin route.
  *
- * @param options - Prefetch options; `request` defaults to `getRequest()`.
- * @returns A handler that resolves to the request's kernel config.
+ * @param options - {@link resolveConsent} options; `request` defaults to
+ * `getRequest()`.
+ * @returns A handler that resolves to the request's consent state.
  */
-export const createConsentConfigHandler = function createConsentConfigHandler(
-	options: PrefetchInitialConsentOptions | ReadInitialConsentConfigOptions = {}
-): () => Promise<ConsentConfig> {
-	return () =>
-		'backendURL' in options && options.backendURL
-			? prefetchInitialConsent(options)
-			: readInitialConsentConfig(options);
+export const createConsentStateHandler = function createConsentStateHandler(
+	options: ResolveConsentOptions = {}
+): () => Promise<ConsentState> {
+	return () => resolveConsent(options);
 };

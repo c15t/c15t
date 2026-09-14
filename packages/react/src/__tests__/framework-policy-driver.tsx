@@ -58,7 +58,7 @@ import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import type { FrameworkBoundary } from './framework-boundary';
+import type { FrameworkRoot } from './framework-root';
 
 // Theme styles load after mount; compare the consent markup and track hydration warnings separately.
 const consentMarkup = (container: HTMLElement) => {
@@ -213,13 +213,12 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 	};
 };
 
-/** Execute raw shared scenarios against a mounted Next.js boundary and real controls. */
-/** Shares policy exercises while each adapter supplies its real boundary and server reader. */
+/** Shares policy exercises while each adapter supplies its real root component and server reader. */
 export const createFrameworkPolicyDriver = ({
-	Boundary: ConsentBoundary,
+	Root: ConsentRoot,
 	readInitialConfig,
 }: {
-	Boundary: FrameworkBoundary;
+	Root: FrameworkRoot;
 	readInitialConfig: (input: {
 		cookie: string;
 		cookieName: string;
@@ -433,9 +432,9 @@ export const createFrameworkPolicyDriver = ({
 				? serverConfig?.initialRecords
 				: readStoredRecords(config, setup.clock.now()).records;
 			return (
-				<ConsentBoundary
+				<ConsentRoot
 					persistence={false}
-					config={{
+					state={{
 						initialIab:
 							setup.policy.model === 'iab'
 								? {
@@ -503,7 +502,7 @@ export const createFrameworkPolicyDriver = ({
 							/>
 						</Frame>
 					) : null}
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 		};
 		const mount = async (hydrate = false) => {

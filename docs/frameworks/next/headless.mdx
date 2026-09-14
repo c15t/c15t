@@ -1,6 +1,6 @@
 ---
 title: Headless
-description: Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentBoundary.
+description: Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
 group: frameworks
 ---
 
@@ -15,10 +15,10 @@ state.
 
 ## Minimal example
 
-The headless hooks read the runtime from the `ConsentBoundary` set up in your
+The headless hooks read the runtime from the `ConsentRoot` set up in your
 [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) guide, so they only run in a
-Client Component. Render this component inside that existing boundary in place
+Client Component. Render this component inside that existing root in place
 of the stock banner. Keep the dialog and persistent preferences control.
 
 ```tsx title="components/consent-banner.tsx"

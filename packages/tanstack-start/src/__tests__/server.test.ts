@@ -1,16 +1,17 @@
 /**
- * Tests for readInitialConsentConfig, the server-only helper that
- * produces a KernelConfig from the incoming TanStack Start request.
+ * Tests for resolveConsent without a backendURL: the server-only helper
+ * then produces the visitor's ConsentState from the incoming TanStack
+ * Start request alone, without touching the network.
  *
  * Each test builds a plain `Request`, which is exactly what `getRequest()`
  * hands the helper at runtime.
  */
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import {
-	createConsentConfigHandler,
-	readInitialConsentConfig as baseReadInitialConsentConfig,
+	createConsentStateHandler,
+	resolveConsent as baseResolveConsent,
 } from '../server';
 
 const createRequest = function createRequest(
@@ -19,127 +20,144 @@ const createRequest = function createRequest(
 	return new Request('https://app.example.com/', { headers });
 };
 
-const readInitialConsentConfig = (
+const resolveConsent = (
 	headers: Record<string, string> = {},
 	options: Omit<
-		NonNullable<Parameters<typeof baseReadInitialConsentConfig>[0]>,
+		NonNullable<Parameters<typeof baseResolveConsent>[0]>,
 		'request'
 	> = {}
-) =>
-	baseReadInitialConsentConfig({ ...options, request: createRequest(headers) });
+) => baseResolveConsent({ ...options, request: createRequest(headers) });
 
-describe('readInitialConsentConfig: cookies', () => {
-	test('returns empty config when nothing is present', async () => {
-		expect(await readInitialConsentConfig()).toMatchObject({
+describe('resolveConsent without backendURL: cookies', () => {
+	test('returns empty state when nothing is present', async () => {
+		expect(await resolveConsent()).toMatchObject({
 			initialRecords: { choice: null, subject: null },
 			now: expect.any(Number),
 		});
 	});
 
+	test('reads cookies and headers without fetching', async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockRejectedValue(new Error('resolveConsent must not fetch'));
+		try {
+			const state = await resolveConsent({
+				cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
+				'x-vercel-ip-country': 'DE',
+			});
+			expect(fetchSpy).not.toHaveBeenCalled();
+			expect(!!state.initialRecords?.choice).toBe(true);
+			expect(state.initialOverrides?.country).toBe('DE');
+			expect(state.initialPolicyResolution).toBeUndefined();
+		} finally {
+			fetchSpy.mockRestore();
+		}
+	});
+
 	test('reads the compact persistence module cookie', async () => {
 		// Returning visitors must not get the banner re-rendered into the
 		// first HTML: the server has to see what the client persisted.
-		const config = await readInitialConsentConfig({
+		const state = await resolveConsent({
 			cookie: 'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1234567890',
 		});
-		expect(!!config.initialRecords?.choice).toBe(true);
-		expect(config.initialRecords?.choice?.categories).toMatchObject({
+		expect(!!state.initialRecords?.choice).toBe(true);
+		expect(state.initialRecords?.choice?.categories).toMatchObject({
 			marketing: { value: true },
 			measurement: { value: false },
 		});
 	});
 
 	test('ignores malformed cookie values', async () => {
-		const config = await readInitialConsentConfig({
+		const state = await resolveConsent({
 			cookie: 'c15t=not-a-consent-payload',
 		});
-		expect(config.initialRecords?.choice).toBeNull();
-		expect(config.initialRecords?.choice).toBeNull();
+		expect(state.initialRecords?.choice).toBeNull();
+		expect(state.initialRecords?.choice).toBeNull();
 	});
 
 	test('respects a customized storage key', async () => {
-		const config = await readInitialConsentConfig(
+		const state = await resolveConsent(
 			{ cookie: 'my-consent=c.necessary:1,c.marketing:1,i.t:1' },
 			{ cookieName: 'my-consent' }
 		);
-		expect(!!config.initialRecords?.choice).toBe(true);
-		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+		expect(!!state.initialRecords?.choice).toBe(true);
+		expect(state.initialRecords?.choice?.categories.marketing?.value).toBe(
 			true
 		);
 	});
 
 	test('accepts a request factory', async () => {
-		const config = await baseReadInitialConsentConfig({
+		const state = await baseResolveConsent({
 			request: () => createRequest({ 'x-c15t-country': 'FR' }),
 		});
-		expect(config.initialOverrides?.country).toBe('FR');
+		expect(state.initialOverrides?.country).toBe('FR');
 	});
 });
 
-describe('readInitialConsentConfig: geo headers', () => {
+describe('resolveConsent without backendURL: geo headers', () => {
 	test('uses x-vercel-ip-country', async () => {
-		const config = await readInitialConsentConfig({
+		const state = await resolveConsent({
 			'x-vercel-ip-country': 'DE',
 		});
-		expect(config.initialOverrides?.country).toBe('DE');
+		expect(state.initialOverrides?.country).toBe('DE');
 	});
 
 	test('x-c15t-country from the middleware wins over CDN headers', async () => {
-		const config = await readInitialConsentConfig({
+		const state = await resolveConsent({
 			'cf-ipcountry': 'FR',
 			'x-c15t-country': 'DE',
 		});
-		expect(config.initialOverrides?.country).toBe('DE');
+		expect(state.initialOverrides?.country).toBe('DE');
 	});
 
 	test('reads region when present', async () => {
-		const config = await readInitialConsentConfig({
+		const state = await resolveConsent({
 			'x-vercel-ip-country': 'US',
 			'x-vercel-ip-country-region': 'CA',
 		});
-		expect(config.initialOverrides).toMatchObject({
+		expect(state.initialOverrides).toMatchObject({
 			country: 'US',
 			region: 'CA',
 		});
 	});
 
 	test('options.country overrides the header', async () => {
-		const config = await readInitialConsentConfig(
+		const state = await resolveConsent(
 			{ 'x-vercel-ip-country': 'US' },
 			{ country: 'DE' }
 		);
-		expect(config.initialOverrides?.country).toBe('DE');
+		expect(state.initialOverrides?.country).toBe('DE');
 	});
 });
 
-describe('readInitialConsentConfig: language and GPC', () => {
+describe('resolveConsent without backendURL: language and GPC', () => {
 	test('negotiates the first language from accept-language', async () => {
-		const config = await readInitialConsentConfig({
+		const state = await resolveConsent({
 			'accept-language': 'de-DE,de;q=0.9,en;q=0.5',
 		});
-		expect(config.initialOverrides?.language).toBe('de');
+		expect(state.initialOverrides?.language).toBe('de');
 	});
 
 	test('options.language overrides the header', async () => {
-		const config = await readInitialConsentConfig(
+		const state = await resolveConsent(
 			{ 'accept-language': 'de' },
 			{ language: 'fr' }
 		);
-		expect(config.initialOverrides?.language).toBe('fr');
+		expect(state.initialOverrides?.language).toBe('fr');
 	});
 
 	test('reads sec-gpc', async () => {
-		const config = await readInitialConsentConfig({ 'sec-gpc': '1' });
-		expect(config.initialPrivacySignals?.gpc).toBe(true);
+		const state = await resolveConsent({ 'sec-gpc': '1' });
+		expect(state.initialPrivacySignals?.gpc).toBe(true);
 	});
 });
 
-describe('createConsentConfigHandler: server function contract', () => {
-	test('never carries a transport in the resolved config', async () => {
-		const config = await createConsentConfigHandler({
+describe('createConsentStateHandler: server function contract', () => {
+	test('never carries a transport in the resolved state', async () => {
+		const state = await createConsentStateHandler({
 			request: createRequest({ 'x-c15t-country': 'DE' }),
 		})();
-		expect(config).not.toHaveProperty('transport');
-		expect(config.initialOverrides).toMatchObject({ country: 'DE' });
+		expect(state).not.toHaveProperty('transport');
+		expect(state.initialOverrides).toMatchObject({ country: 'DE' });
 	});
 });

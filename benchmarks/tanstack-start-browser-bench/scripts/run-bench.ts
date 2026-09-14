@@ -664,7 +664,7 @@ const run = async function run() {
 						notes: rootProviderMode
 							? [
 									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
-									'Root-mounted provider variant: `ConsentBoundary` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
+									'Root-mounted provider variant: `ConsentRoot` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
 								]
 							: [
 									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',

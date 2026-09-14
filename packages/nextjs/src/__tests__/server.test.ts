@@ -1,15 +1,16 @@
 /**
- * Tests for readInitialConsentConfig — the server-only helper that
- * produces a KernelConfig from the incoming Next.js request.
+ * Tests for the request-only branch of resolveConsent — the server helper
+ * that produces the visitor's ConsentState from the incoming Next.js
+ * request when no backend URL is configured.
  *
  * Tests supply a tiny Next-compatible request context so each one controls
  * cookies and headers independently.
  */
 
 import type { KernelConfig } from '@c15t/core';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { readInitialConsentConfig as baseReadInitialConsentConfig } from '../server';
+import { resolveConsent as baseResolveConsent } from '../server';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
@@ -40,18 +41,41 @@ const request = {
 	headers: () => Promise.resolve(createHeaders()),
 };
 
-const readInitialConsentConfig = (
-	options: Parameters<typeof baseReadInitialConsentConfig>[0] = {}
-) => baseReadInitialConsentConfig({ ...options, request });
+const resolveConsent = (
+	options: Parameters<typeof baseResolveConsent>[0] = {}
+) => baseResolveConsent({ ...options, request });
 
 beforeEach(() => {
 	cookieStore.clear();
 	headerStore.clear();
 });
 
-describe('readInitialConsentConfig: cookies', () => {
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
+
+describe('resolveConsent: no backend URL', () => {
+	test('returns the cookie and header state without fetching', async () => {
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+		headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
+		headerStore.set('x-vercel-ip-country', 'DE');
+
+		const state = await resolveConsent({ fetch: fetchSpy });
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(state.initialOverrides?.country).toBe('DE');
+		expect(state.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		expect(Object.hasOwn(state, 'initialPolicyResolution')).toBe(false);
+		expect(JSON.parse(JSON.stringify(state))).toEqual(state);
+	});
+});
+
+describe('resolveConsent: cookies', () => {
 	test('returns empty config when nothing is present', async () => {
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.now).toEqual(expect.any(Number));
 		expect(config.initialRecords?.choice).toBeNull();
 	});
@@ -64,7 +88,7 @@ describe('readInitialConsentConfig: cookies', () => {
 			'cookie',
 			'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1234567890'
 		);
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialRecords?.choice?.version).toBe(3);
 		expect(config.initialRecords?.choice?.categories).toMatchObject({
 			marketing: { confirmedAt: 1234567890, value: true },
@@ -74,21 +98,21 @@ describe('readInitialConsentConfig: cookies', () => {
 
 	test('ignores malformed cookie values', async () => {
 		headerStore.set('cookie', 'c15t=not-a-consent-payload');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialRecords?.choice).toBeNull();
 		expect(Object.hasOwn(config, 'initialHasConsented')).toBe(false);
 	});
 
 	test('ignores unrelated cookies', async () => {
 		headerStore.set('cookie', 'session=abc; theme=dark');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialRecords?.choice).toBeNull();
 	});
 
 	test('respects a customized storage key', async () => {
 		// Mirrors a client that set storageConfig.storageKey = 'my-consent'.
 		headerStore.set('cookie', 'my-consent=c.necessary:1,c.marketing:1,i.t:1');
-		const config = await readInitialConsentConfig({
+		const config = await resolveConsent({
 			cookieName: 'my-consent',
 		});
 		expect(config.initialRecords?.choice?.version).toBe(3);
@@ -98,67 +122,67 @@ describe('readInitialConsentConfig: cookies', () => {
 	});
 });
 
-describe('readInitialConsentConfig: geo headers', () => {
+describe('resolveConsent: geo headers', () => {
 	test('uses x-vercel-ip-country', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 
 	test('falls back to cf-ipcountry', async () => {
 		headerStore.set('cf-ipcountry', 'FR');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides?.country).toBe('FR');
 	});
 
 	test('cf-ipcountry wins over x-vercel-ip-country', async () => {
 		headerStore.set('x-vercel-ip-country', 'US');
 		headerStore.set('cf-ipcountry', 'FR');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides?.country).toBe('FR');
 	});
 
 	test('reads region when present', async () => {
 		headerStore.set('x-vercel-ip-country', 'US');
 		headerStore.set('x-vercel-ip-country-region', 'CA');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides?.country).toBe('US');
 		expect(config.initialOverrides?.region).toBe('CA');
 	});
 
 	test('options.country overrides the header', async () => {
 		headerStore.set('x-vercel-ip-country', 'US');
-		const config = await readInitialConsentConfig({ country: 'DE' });
+		const config = await resolveConsent({ country: 'DE' });
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 });
 
-describe('readInitialConsentConfig: language', () => {
+describe('resolveConsent: language', () => {
 	test('parses first language from accept-language', async () => {
 		headerStore.set('accept-language', 'de-DE,de;q=0.9,en;q=0.5');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides?.language).toBe('de');
 	});
 
 	test('options.language overrides the header', async () => {
 		headerStore.set('accept-language', 'de');
-		const config = await readInitialConsentConfig({ language: 'fr' });
+		const config = await resolveConsent({ language: 'fr' });
 		expect(config.initialOverrides?.language).toBe('fr');
 	});
 
 	test('ignores silly values', async () => {
 		headerStore.set('accept-language', 'this-is-way-too-long-for-a-lang-code');
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides?.language).toBe('this');
 	});
 
 	test('returns no overrides block when nothing was set', async () => {
-		const config = await readInitialConsentConfig();
+		const config = await resolveConsent();
 		expect(config.initialOverrides).toBeUndefined();
 	});
 });
 
-describe('readInitialConsentConfig: fluid-compute safety', () => {
+describe('resolveConsent: fluid-compute safety', () => {
 	// Two concurrent calls with different cookie values must produce
 	// distinct configs. If a module-level cache had crept in, this
 	// would fail.
@@ -169,13 +193,13 @@ describe('readInitialConsentConfig: fluid-compute safety', () => {
 			'c15t-consent',
 			encodeURIComponent(JSON.stringify({ marketing: true }))
 		);
-		calls.push(readInitialConsentConfig());
+		calls.push(resolveConsent());
 
 		cookieStore.set(
 			'c15t-consent',
 			encodeURIComponent(JSON.stringify({ marketing: false }))
 		);
-		calls.push(readInitialConsentConfig());
+		calls.push(resolveConsent());
 
 		const results = await Promise.all(calls);
 		// Both calls read the same mutable mock store — that's expected.

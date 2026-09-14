@@ -39,7 +39,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 "
 `;
 
-exports[`consent component template > generates the canonical Next.js v3 SSR boundary 1`] = `
+exports[`consent component template > generates the canonical Next.js v3 SSR provider 1`] = `
 "'use client';
 
 import type { ReactNode } from 'react';
@@ -48,7 +48,7 @@ import {
 	ConsentProvider,
 	ConsentBanner,
 	hosted,
-	type KernelConfig,
+	type ConsentState,
 } from 'c15t/next';
 import { lazy, Suspense } from 'react';
 
@@ -62,15 +62,15 @@ import { googleTagManager } from '@c15t/scripts/google-tag-manager';
  */
 export default function ConsentManagerClient({
 	children,
-	config,
+	state,
 }: {
 	children: ReactNode;
-	config: KernelConfig;
+	state: ConsentState;
 }) {
 	return (
 		<ConsentProvider options={{
 			mode: hosted({ url: '/api/c15t' }),
-				prefetch: config,
+				prefetch: state,
 			scripts: [
 					googleTagManager({ id: 'GTM-XXXXXX' }),
 				],

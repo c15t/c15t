@@ -1,6 +1,6 @@
 ---
 title: ConsentDialogLink
-description: Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentBoundary.
+description: Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentRoot.
 group: frameworks
 ---
 
@@ -9,7 +9,7 @@ group: frameworks
 `ConsentDialogLink` is an unstyled button that opens the consent dialog.
 Put it where your site already keeps its legal links, so preferences stay
 reachable after the banner closes. It is a Client Component and must render
-inside the `ConsentBoundary` from your
+inside the `ConsentRoot` from your
 [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) setup, which also mounts
 the `ConsentDialog` it opens.

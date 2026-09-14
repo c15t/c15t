@@ -1,6 +1,6 @@
 ---
 title: Frame
-description: Consent-gate an iframe in Next.js with Frame inside ConsentBoundary; with server prefetch the placeholder or embed is decided in the server HTML.
+description: Consent-gate an iframe in Next.js with Frame inside ConsentRoot; with server prefetch the placeholder or embed is decided in the server HTML.
 group: frameworks
 ---
 
@@ -10,7 +10,7 @@ group: frameworks
 consent category is granted, and shows a placeholder otherwise. Wrap any
 iframe or third-party widget that would set cookies or contact a vendor on
 load. It is a Client Component; render it from any route under the layout
-that mounts the `ConsentBoundary` from your
+that mounts the `ConsentRoot` from your
 [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) setup, which also mounts
 the `ConsentDialog` the placeholder button opens.
@@ -37,7 +37,7 @@ export function ProductVideo() {
 
 Import `ProductVideo` into any page or Server Component; only this file needs
 `'use client'`. `marketing` must be in your policy scope. If you set a
-non-empty `options.consentCategories` list on `ConsentBoundary`, include
+non-empty `options.consentCategories` list on `ConsentRoot`, include
 `marketing` there too so the preference center can display and save it.
 `Frame` does not add categories to that list.
 
@@ -45,11 +45,11 @@ The placeholder names the category using its title from your translations. Set
 `className` or `style` on `Frame` to reserve the embed's space, so the page
 does not shift when the placeholder is replaced.
 
-With the awaited `prefetchInitialConsent` from the App Router guide, the
+With the awaited `resolveConsent` from the App Router guide, the
 server decides between placeholder and embed from the resolved rule and the
 request cookie. Pages Router works the same way when `getServerSideProps`
-awaits `prefetchInitialConsent` from `c15t/next/pages` and passes the result
-through `config` to `ConsentBoundary`, as in the
+awaits `resolveConsent` from `c15t/next/pages` and passes the result
+through `state` to `ConsentRoot`, as in the
 [Pages Router guide](../pages-router). Hydration keeps that choice as long as
 the browser's privacy signals agree with the request: a `navigator.globalPrivacyControl`
 that the request did not carry as `Sec-GPC` is re-detected on hydration and

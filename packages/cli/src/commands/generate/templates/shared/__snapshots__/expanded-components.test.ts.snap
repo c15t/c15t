@@ -1,11 +1,11 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`expanded component templates > generates a Next.js v3 SSR boundary with config 1`] = `
+exports[`expanded component templates > generates a Next.js v3 SSR provider with consent state 1`] = `
 "'use client';
 
 import type { ReactNode } from 'react';
 import { ConsentProvider, hosted } from 'c15t/next';
-import type { KernelConfig } from 'c15t/next';
+import type { ConsentState } from 'c15t/next';
 
 import { lazy, Suspense } from 'react';
 
@@ -18,19 +18,19 @@ import { components, theme } from './theme';
 
 interface Props {
 	children: ReactNode;
-	config: KernelConfig;
+	state: ConsentState;
 }
 
 /**
  * Client-side consent manager provider with compound components.
  * @see https://c15t.com/docs/frameworks/next/quickstart
  */
-export default function ConsentManagerClient({ children, config }: Props) {
+export default function ConsentManagerClient({ children, state }: Props) {
 	return (
 		<ConsentProvider
 			options={{
 				mode: hosted({ url: '/api/c15t' }),
-				prefetch: config,
+				prefetch: state,
 				theme,
 				components,
 				// Add your scripts here:

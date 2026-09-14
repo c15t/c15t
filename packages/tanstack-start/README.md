@@ -23,7 +23,7 @@ TanStack Start cookie banner and consent management platform with SSR-hydrated f
 ## Key Features
 
 - Works with TanStack Start and TanStack Router 1.x
-- Root route loader hands the server-resolved consent config to the client, so the first paint already shows the right banner
+- Root route loader hands the server-resolved consent state to the client, so the first paint already shows the right banner
 - Same-origin manifest and init server routes with in-process caching, ETag passthrough, and no self-fetch during SSR
 - Request middleware that normalizes CDN geo, language, and Global Privacy Control headers for every request
 - Static helpers for prerendered builds: strictest policy first, client-side geo fix-up afterwards
@@ -57,9 +57,9 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ## Usage
 
-1. Mount the consent server route so the client has same-origin `manifest` and `init` endpoints (the snippets below use this default; optionally add `proxy: true` and point `ConsentBoundary` at `/api/c15t` to also route consent saves through it)
-2. Resolve the consent config in the root route loader with a server function
-3. Wrap the app in `ConsentBoundary` and add `ConsentBanner` and `ConsentDialog`
+1. Mount the consent server route so the client has same-origin `manifest` and `init` endpoints (the snippets below use this default; optionally add `proxy: true` and point `ConsentRoot` at `/api/c15t` to also route consent saves through it)
+2. Resolve the consent state in the root route loader with a server function
+3. Wrap the app in `ConsentRoot` and add `ConsentBanner` and `ConsentDialog`
 4. For full implementation details, see the [TanStack Start quickstart docs](https://c15t.com/docs/frameworks/tanstack-start/quickstart)
 
 ```tsx
@@ -82,32 +82,32 @@ import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
+  ConsentRoot,
 } from '@c15t/tanstack-start';
 import {
   consentLoaderOptions,
-  createConsentConfigHandler,
+  createConsentStateHandler,
 } from '@c15t/tanstack-start/server';
 
-const getConsentConfig = createServerFn({ method: 'GET' }).handler(
-  createConsentConfigHandler({ backendURL: 'https://your-instance.c15t.dev' })
+const getConsentState = createServerFn({ method: 'GET' }).handler(
+  createConsentStateHandler({ backendURL: 'https://your-instance.c15t.dev' })
 );
 
 export const Route = createRootRoute({
   ...consentLoaderOptions,
-  loader: () => getConsentConfig(),
+  loader: () => getConsentState(),
   component: RootComponent,
 });
 
 function RootComponent() {
-  const config = Route.useLoaderData();
+  const state = Route.useLoaderData();
   return (
-    <ConsentBoundary config={config} backendURL="https://your-instance.c15t.dev">
+    <ConsentRoot state={state} backendURL="https://your-instance.c15t.dev">
       <ConsentBanner />
       <ConsentDialog />
       <Outlet />
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```

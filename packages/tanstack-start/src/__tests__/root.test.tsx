@@ -1,9 +1,9 @@
 /**
- * Tests for ConsentBoundary, the client component that creates a kernel
- * from loader-produced config and wraps children in ConsentProvider.
+ * Tests for ConsentRoot, the client component that creates a kernel
+ * from loader-produced state and wraps children in ConsentProvider.
  *
  * Invariants verified:
- * - Config is respected (initial consents, initial overrides).
+ * - State is respected (initial consents, initial overrides).
  * - Kernel is per-mount (two mounts produce two kernels).
  * - `backendURL` selects hosted mode with the same-origin init route.
  */
@@ -11,31 +11,31 @@ import { useConsent, useOverrides } from '@c15t/react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentBoundary, DEFAULT_INIT_ROUTE } from '../boundary';
+import { ConsentRoot, DEFAULT_INIT_ROUTE } from '../root';
 import { policyFixture } from './policy-fixture';
 
-describe('ConsentBoundary: config is honored', () => {
-	test('initial consents from config reach useConsent', async () => {
+describe('ConsentRoot: state is honored', () => {
+	test('initial consents from state reach useConsent', async () => {
 		const MarketingStatus = () => {
 			const allowed = useConsent('marketing');
 			return <div data-testid="status">{String(allowed)}</div>;
 		};
 
 		const { getByTestId } = await render(
-			<ConsentBoundary
-				config={{
+			<ConsentRoot
+				state={{
 					...policyFixture({ marketing: true, measurement: true }),
 				}}
 				persistence={false}
 			>
 				<MarketingStatus />
-			</ConsentBoundary>
+			</ConsentRoot>
 		);
 
 		await expect.element(getByTestId('status')).toHaveTextContent('true');
 	});
 
-	test('initial overrides from config reach useOverrides', async () => {
+	test('initial overrides from state reach useOverrides', async () => {
 		const CountryLabel = () => {
 			const overrides = useOverrides();
 			return (
@@ -46,20 +46,20 @@ describe('ConsentBoundary: config is honored', () => {
 		};
 
 		const { getByTestId } = await render(
-			<ConsentBoundary
-				config={{ initialOverrides: { country: 'DE', language: 'de' } }}
+			<ConsentRoot
+				state={{ initialOverrides: { country: 'DE', language: 'de' } }}
 				persistence={false}
 			>
 				<CountryLabel />
-			</ConsentBoundary>
+			</ConsentRoot>
 		);
 
 		await expect.element(getByTestId('country')).toHaveTextContent('DE/de');
 	});
 });
 
-describe('ConsentBoundary: kernel is per-mount', () => {
-	test('two boundaries do not share consent state', async () => {
+describe('ConsentRoot: kernel is per-mount', () => {
+	test('two roots do not share consent state', async () => {
 		const Status = ({ id }: { id: string }) => {
 			const allowed = useConsent('marketing');
 			return <div data-testid={id}>{String(allowed)}</div>;
@@ -67,22 +67,22 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 
 		const { getByTestId } = await render(
 			<>
-				<ConsentBoundary
-					config={{
+				<ConsentRoot
+					state={{
 						...policyFixture({ marketing: true }),
 					}}
 					persistence={false}
 				>
 					<Status id="first" />
-				</ConsentBoundary>
-				<ConsentBoundary
-					config={{
+				</ConsentRoot>
+				<ConsentRoot
+					state={{
 						...policyFixture({ marketing: false }),
 					}}
 					persistence={false}
 				>
 					<Status id="second" />
-				</ConsentBoundary>
+				</ConsentRoot>
 			</>
 		);
 
@@ -91,7 +91,7 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 	});
 });
 
-describe('ConsentBoundary: transport selection', () => {
+describe('ConsentRoot: transport selection', () => {
 	test('backendURL runs init through the same-origin init route', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			Response.json({
@@ -104,13 +104,13 @@ describe('ConsentBoundary: transport selection', () => {
 
 		try {
 			await render(
-				<ConsentBoundary
+				<ConsentRoot
 					backendURL="https://consent.example.com"
-					config={{}}
+					state={{}}
 					persistence={false}
 				>
 					<span>ready</span>
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await vi.waitFor(() => {
@@ -136,14 +136,14 @@ describe('ConsentBoundary: transport selection', () => {
 
 		try {
 			await render(
-				<ConsentBoundary
+				<ConsentRoot
 					backendURL="https://consent.example.com"
-					config={{}}
+					state={{}}
 					initRoute={false}
 					persistence={false}
 				>
 					<span>ready</span>
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await vi.waitFor(() => {

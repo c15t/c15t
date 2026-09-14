@@ -1,6 +1,6 @@
 /**
  * `consentPrefetchHead()` starts the init request before hydration; the
- * boundary must find that promise again so the provider consumes it
+ * root must find that promise again so the provider consumes it
  * instead of issuing a second request.
  */
 import { primePrefetchedInitialData } from '@c15t/core';
@@ -65,7 +65,7 @@ describe('readPrefetchedInitialData', () => {
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 
-	test('matches a head prefetch that carried the boundary GPC override', () => {
+	test('matches a head prefetch that carried the root GPC override', () => {
 		vi.stubGlobal('window', {
 			location: { hostname: 'app.example.com', origin: ORIGIN },
 			navigator: { globalPrivacyControl: false },

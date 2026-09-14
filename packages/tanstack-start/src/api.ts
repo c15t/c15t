@@ -16,13 +16,13 @@
  * - `GET /api/c15t/manifest` passes the cached backend manifest through
  *   with its cache headers, so browsers and CDNs can cache it.
  * - `GET /api/c15t/init` resolves init in-process from that manifest for
- *   the request's geo, language, and GPC signal. `ConsentBoundary` points
+ *   the request's geo, language, and GPC signal. `ConsentRoot` points
  *   `initURL` here by default; a client language switch re-hits it.
  *
  * By default `POST /subjects` is not proxied: consent saves go straight to
  * `backendURL`, which mirrors the Next.js and Nuxt adapters. Pass
  * `proxy: true` to forward the remaining consent paths through the same
- * route so `ConsentBoundary` can use `backendURL="/api/c15t"`; see
+ * route so `ConsentRoot` can use `backendURL="/api/c15t"`; see
  * {@link ConsentServerRouteOptions.proxy}.
  */
 
@@ -90,7 +90,7 @@ export interface ConsentServerRouteOptions {
 
 	/**
 	 * Manifest cache to read through. Defaults to the module-level cache
-	 * shared with `prefetchInitialConsent()`.
+	 * shared with `resolveConsent()`.
 	 */
 	cache?: ManifestCache;
 
@@ -108,7 +108,7 @@ export interface ConsentServerRouteOptions {
 
 	/**
 	 * Forward consent traffic to `backendURL` through this route, so the
-	 * browser only ever talks to the app's own origin and `ConsentBoundary`
+	 * browser only ever talks to the app's own origin and `ConsentRoot`
 	 * can take `backendURL="/api/c15t"`, the way a Next.js app uses a
 	 * `next.config` rewrite.
 	 *
@@ -137,8 +137,8 @@ export interface ConsentServerRouteOptions {
 	 * Fight Mode still block the proxied `POST /subjects` unless the consent
 	 * paths are exempted, because a server cannot solve a browser challenge.
 	 *
-	 * Server-side `prefetchInitialConsent` must still receive the absolute
-	 * backend URL: its self-route guard skips a relative `/api/c15t`.
+	 * Server-side `resolveConsent` must still receive the absolute backend
+	 * URL: its self-route guard skips a relative `/api/c15t`.
 	 *
 	 * @defaultValue false
 	 */
@@ -336,7 +336,7 @@ const readSplat = function readSplat(
  *   server: {
  *     handlers: createConsentServerRoute({
  *       backendURL: 'https://consent.example.com',
- *       proxy: true, // then <ConsentBoundary backendURL="/api/c15t" />
+ *       proxy: true, // then <ConsentRoot backendURL="/api/c15t" />
  *     }),
  *   },
  * });

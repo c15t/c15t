@@ -1,27 +1,27 @@
 ---
-title: ConsentBoundary
-description: Pass server-prefetched consent and shared configuration to the Next.js consent boundary.
+title: ConsentRoot
+description: Pass server-resolved consent state and shared configuration to the Next.js ConsentRoot.
 group: frameworks
 ---
 
-## Mount one boundary
+## Mount one root
 
-`ConsentBoundary` wraps the React `ConsentProvider` and connects it to your
-Next.js configuration and server-prefetched state. Mount the boundary once;
-it already supplies the provider used by consent components and hooks.
+`ConsentRoot` wraps the React `ConsentProvider` and connects it to your
+Next.js configuration and server-resolved state. Mount it once; it already
+supplies the provider used by consent components and hooks.
 
 Follow [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) for the complete setup.
-Keep the boundary mounted across navigation and import the stylesheet once
+Keep `ConsentRoot` mounted across navigation and import the stylesheet once
 at the app root.
 
 ## Props
 
 | Prop | Purpose |
 | --- | --- |
-| `config` | Visitor state or its promise from `prefetchInitialConsent`; use `{}` for browser initialization |
-| `consent` | Shared configuration from `defineConsentConfig` in `c15t.config.ts` |
-| `backendURL` | Overrides `consent.backendURL` |
+| `state` | Visitor state or its promise from `resolveConsent`; use `{}` for browser initialization |
+| `config` | Shared configuration from `defineConsentConfig` in `c15t.config.ts` |
+| `backendURL` | Overrides `config.backendURL` |
 | `scripts` | Consent-managed script configurations |
 | `scriptLoader` | Script-loader options |
 | `networkBlocker` | Network-blocker options, or `false` to disable it |
@@ -30,8 +30,8 @@ at the app root.
 
 ## Provider options
 
-The boundary passes `options` to its provider. Keep scripts, persistence and
-network-blocker configuration in their top-level boundary props.
+`ConsentRoot` passes `options` to its provider. Keep scripts, persistence and
+network-blocker configuration in their top-level `ConsentRoot` props.
 
 The provider owns initialization, persistence, script loading and subscriptions.
 Changing its initial mode or prefetch configuration is not a supported way to
@@ -63,6 +63,6 @@ Use `ConsentProvider` from `c15t/next` when you need to manage the runtime and
 transport yourself. For example, it accepts an externally owned `runtime`.
 Its owner must start and dispose that runtime.
 
-For standard Next.js setups, keep `ConsentBoundary`. It supports
+For standard Next.js setups, keep `ConsentRoot`. It supports
 [browser initialization](/docs/frameworks/next/client-side) as well as
 [server prefetch](/docs/frameworks/next/server-side).

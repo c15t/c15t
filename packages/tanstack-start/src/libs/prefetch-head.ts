@@ -6,7 +6,7 @@ import {
 
 import type { ConsentPrefetchHead, ConsentPrefetchHeadOptions } from '../types';
 
-/** Same-origin init route the boundary defaults to; mirrored from the boundary. */
+/** Same-origin init route `ConsentRoot` defaults to; mirrored from `root.tsx`. */
 const DEFAULT_INIT_ROUTE = '/api/c15t/init';
 
 const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
@@ -20,8 +20,8 @@ const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
  *
  * Use it on prerendered or `ssr: false` routes where no loader runs on the
  * server, so the banner still resolves as early as possible. Point
- * `backendURL` at the same base the boundary's init route lives under
- * (`/api/c15t` for the default route); `ConsentBoundary` looks the
+ * `backendURL` at the same base the root's init route lives under
+ * (`/api/c15t` for the default route); `ConsentRoot` looks the
  * response up by that base and hands it to the provider as its first init.
  *
  * @param options - Prefetch options plus an optional script element id.
@@ -40,7 +40,7 @@ const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
  */
 /**
  * Base URL the head prefetch script keyed its request on: the init route
- * without its trailing `/init`, or the backend itself when the boundary
+ * without its trailing `/init`, or the backend itself when the root
  * calls the backend directly.
  */
 const prefetchBaseFor = function prefetchBaseFor(
@@ -61,11 +61,11 @@ const prefetchBaseFor = function prefetchBaseFor(
 
 /**
  * Finds the init response a `consentPrefetchHead()` script started for
- * this boundary's init endpoint, so the provider can consume it instead of
+ * this root's init endpoint, so the provider can consume it instead of
  * issuing a second `/init` request. Client only; `undefined` on the server
  * or when no matching prefetch exists.
  *
- * @param input - The boundary's backend URL, init route, and overrides.
+ * @param input - The root's backend URL, init route, and overrides.
  * @returns The prefetched initial data promise, if one matches.
  */
 export const readPrefetchedInitialData =

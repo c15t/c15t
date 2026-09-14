@@ -100,7 +100,7 @@ describe('expanded component templates', () => {
 		expect(template).toMatchSnapshot();
 	});
 
-	it('generates a Next.js v3 SSR boundary with config', () => {
+	it('generates a Next.js v3 SSR provider with consent state', () => {
 		const template = generateExpandedProviderTemplate({
 			enableDevTools: true,
 			enableSSR: true,
@@ -109,9 +109,12 @@ describe('expanded component templates', () => {
 		});
 
 		expect(template).toContain("from 'c15t/next';");
+		expect(template).toContain(
+			"import type { ConsentState } from 'c15t/next';"
+		);
 		expect(template).toContain("import('c15t/next/devtools')");
 		expect(template).toContain('<ConsentProvider');
-		expect(template).toContain('prefetch: config');
+		expect(template).toContain('prefetch: state');
 		expect(template).not.toContain("mode: 'hosted'");
 		expect(template).toMatchSnapshot();
 	});

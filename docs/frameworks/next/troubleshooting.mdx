@@ -6,12 +6,12 @@ group: frameworks
 
 ## Why does the page render when consent prefetch fails?
 
-`prefetchInitialConsent` returns its baseline configuration when a manifest or
+`resolveConsent` returns its baseline state when a manifest or
 backend request fails. The page can still render, and the client retries
 initialization. Until policy resolution succeeds, optional categories stay
 denied and the stock banner stays hidden.
 
-Pass `onError` to `prefetchInitialConsent` to report failures in production.
+Pass `onError` to `resolveConsent` to report failures in production.
 Without it, the helper logs a warning only outside production. Check the failed
 URL and response in your server logs, as browser Network tools cannot show a
 server-side fetch.
@@ -44,7 +44,7 @@ Check the Next.js server and browser requests after following the
 
 ## Why is the visitor's location unknown on the server?
 
-`prefetchInitialConsent` and the local init handler read the visitor's country
+`resolveConsent` and the local init handler read the visitor's country
 and region from hosting platform headers such as `cf-ipcountry` and
 `x-vercel-ip-country`; c15t never derives location from an IP address itself.
 Some platforms expose those headers to Next.js middleware or proxy but strip
@@ -58,30 +58,20 @@ precedence everywhere c15t reads location.
 
 ## Why does Next.js report an unstable `Date.now()` during prerendering?
 
-The awaited recipe inside `Suspense` builds and runs under
-`cacheComponents: true` without extra calls; the repository's Next 16
-compatibility suite covers that path. The error
+The error
 `Next.js encountered the unstable value Date.now() while prerendering`,
-pointing at the `await prefetchInitialConsent(...)` line, has been observed in
-`next dev` when the manifest request fails, for example with an unreachable
-`backendURL`: the failure path reads the clock before the request headers
-have marked the component as dynamic. Fix the backend URL first. If the error
-persists in your setup, opt the component into request time before the
-helper runs and report the case on
-[c15t/c15t#1107](https://github.com/c15t/c15t/issues/1107):
+pointing at the `await resolveConsent(...)` line, comes from
+`partialPrefetching: true` combined with `cacheComponents: true` (Next.js
+16.3 and later). During the runtime-prefetch stage Next.js resolves
+`headers()` and then flags the `Date.now()` that follows. It only appears in
+`next dev`; `next build` passes because build-time prerenders never resolve
+`headers()`.
 
-```tsx title="app/layout.tsx (partial)"
-import { connection } from 'next/server';
-
-async function ResolvedConsent({ children }: { children: ReactNode }) {
-  await connection();
-  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
-  return <Consent config={initialConsent}>{children}</Consent>;
-}
-```
-
-`connection()` only marks the component as request-time; the rest of the page
-outside the `Suspense` boundary still prerenders. It is not part of the
-default recipe because the default recipe does not need it.
+`resolveConsent` handles this itself: the default App Router request reader
+calls `await connection()` from `next/server` before reading the clock, so the
+component is already request-time when the clock is read. You do not need to
+add `connection()` to your layout. If you still see the error on the current
+release, report your Next.js version and config on
+[c15t/c15t#1107](https://github.com/c15t/c15t/issues/1107).
 
 <include src="../../guides/troubleshooting.mdx" />

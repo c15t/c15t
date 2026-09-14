@@ -3,15 +3,15 @@
  *
  * Pattern:
  *   // app/layout.tsx (Server Component)
- *   import { readInitialConsentConfig } from '@c15t/nextjs/server';
- *   import { ConsentBoundary } from '@c15t/nextjs';
+ *   import { resolveConsent } from '@c15t/nextjs/server';
+ *   import { ConsentRoot } from '@c15t/nextjs';
  *
  *   export default async function RootLayout({ children }) {
- *     const config = await readInitialConsentConfig();
+ *     const state = await resolveConsent();
  *     return (
  *       <html>
  *         <body>
- *           <ConsentBoundary config={config}>{children}</ConsentBoundary>
+ *           <ConsentRoot state={state}>{children}</ConsentRoot>
  *         </body>
  *       </html>
  *     );
@@ -27,8 +27,8 @@
 
 // oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from '@c15t/react';
-export type { ConsentBoundaryProps } from './boundary';
-export { ConsentBoundary } from './boundary';
-export type { InitialConsentConfig } from './types';
+export type { ConsentRootProps } from './root';
+export { ConsentRoot } from './root';
+export type { ConsentState } from './types';
 export type { ConsentConfig } from './config';
 export { defineConsentConfig } from './config';

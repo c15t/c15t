@@ -12,7 +12,7 @@ interface GetSSROptionOptions {
  * Prompts the user to enable SSR data fetching for Next.js App Router.
  *
  * @remarks
- * SSR request config uses `readInitialConsentConfig()`, which requires the
+ * SSR consent state comes from `resolveConsent()`, which requires the
  * Next.js `headers()` API.
  * This is a dynamic API that:
  * - Works in dynamic routes and server components

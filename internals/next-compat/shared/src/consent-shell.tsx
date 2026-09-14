@@ -3,11 +3,11 @@
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
 	ConsentBanner,
-	ConsentBoundary,
 	ConsentDialog,
+	ConsentRoot,
 	custom,
 } from '@c15t/nextjs';
-import type { ConsentBoundaryProps } from '@c15t/nextjs';
+import type { ConsentRootProps } from '@c15t/nextjs';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
@@ -24,10 +24,10 @@ export interface ConsentShellProps {
 	children?: ReactNode;
 	scenario: string;
 	/**
-	 * Server-derived kernel config from `readInitialConsentConfig()` or
-	 * `prefetchInitialConsent()`. Omitted on routes that init in the browser.
+	 * Server-resolved consent state from `resolveConsent()`. Omitted on
+	 * routes that init in the browser.
 	 */
-	config?: ConsentBoundaryProps['config'];
+	state?: ConsentRootProps['state'];
 	backendURL?: string;
 	/**
 	 * `hosted` calls the backend `/init`; `manifest` resolves init in the
@@ -48,7 +48,7 @@ const createMode = function createMode({
 	Pick<ConsentShellProps, 'manifest'>) {
 	switch (transport) {
 		case 'manifest-geo': {
-			// Selection comes from the `consent` config on the boundary.
+			// Selection comes from the `config` prop on the root.
 			return undefined;
 		}
 		case 'manifest': {
@@ -77,13 +77,13 @@ const createMode = function createMode({
  * @remarks
  * Kept identical across routers and Next.js versions so a failing cell
  * points at the framework combination, not at fixture drift. Mirrors the
- * v3 pattern: one `ConsentBoundary`, hosted mode via `backendURL`, and the
- * server config (when any) passed as a plain prop.
+ * v3 pattern: one `ConsentRoot`, hosted mode via `backendURL`, and the
+ * server state (when any) passed as a plain prop.
  */
 export const ConsentShell = ({
 	children,
 	scenario,
-	config,
+	state,
 	backendURL = COMPAT_BACKEND_URL,
 	transport = 'hosted',
 	manifest,
@@ -94,10 +94,10 @@ export const ConsentShell = ({
 	);
 
 	return (
-		<ConsentBoundary
+		<ConsentRoot
 			backendURL={transport === 'hosted' ? backendURL : undefined}
-			consent={transport === 'manifest-geo' ? COMPAT_CONSENT_CONFIG : undefined}
-			config={config ?? {}}
+			config={transport === 'manifest-geo' ? COMPAT_CONSENT_CONFIG : undefined}
+			state={state ?? {}}
 			options={{
 				callbacks: {
 					onChoiceRecorded() {
@@ -132,6 +132,6 @@ export const ConsentShell = ({
 				<h1>next-compat: {scenario}</h1>
 				{children}
 			</main>
-		</ConsentBoundary>
+		</ConsentRoot>
 	);
 };

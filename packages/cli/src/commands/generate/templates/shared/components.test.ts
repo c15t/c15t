@@ -39,7 +39,7 @@ describe('consent component template', () => {
 		expect(template).toMatchSnapshot();
 	});
 
-	it('generates the canonical Next.js v3 SSR boundary', () => {
+	it('generates the canonical Next.js v3 SSR provider', () => {
 		const template = generateConsentComponent({
 			defaultExport: true,
 			devToolsImportSource: 'c15t/next/devtools',
@@ -54,7 +54,8 @@ describe('consent component template', () => {
 
 		expect(template).toContain("import('c15t/next/devtools')");
 		expect(template).toContain('<ConsentProvider');
-		expect(template).toContain('prefetch: config');
+		expect(template).toContain('type ConsentState');
+		expect(template).toContain('prefetch: state');
 		expect(template).not.toContain("mode: 'hosted'");
 		expect(template).toMatchSnapshot();
 	});

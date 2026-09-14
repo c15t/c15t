@@ -1,7 +1,7 @@
 'use client';
 
-import { ConsentBoundary, useActiveUI } from '@c15t/nextjs';
-import type { ConsentBoundaryProps } from '@c15t/nextjs';
+import { ConsentRoot, useActiveUI } from '@c15t/nextjs';
+import type { ConsentRootProps } from '@c15t/nextjs';
 
 const SSRStateProbe = () => {
 	const activeUI = useActiveUI();
@@ -9,16 +9,16 @@ const SSRStateProbe = () => {
 };
 export const NextjsSSRProvider = ({
 	children,
-	config,
+	state,
 }: {
 	children: React.ReactNode;
-	config: ConsentBoundaryProps['config'];
+	state: ConsentRootProps['state'];
 }) => (
-	<ConsentBoundary
+	<ConsentRoot
 		backendURL="/api/bench-consent"
-		config={config}
+		state={state}
 	>
 		<SSRStateProbe />
 		{children}
-	</ConsentBoundary>
+	</ConsentRoot>
 );

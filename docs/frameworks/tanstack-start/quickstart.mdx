@@ -59,13 +59,13 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-r
 import { createServerFn } from '@tanstack/react-start';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
+  ConsentRoot,
 } from 'c15t/tanstack-start';
 import {
   consentLoaderOptions,
-  createConsentConfigHandler,
+  createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 import { createExampleScripts } from '../example-scripts';
@@ -78,29 +78,29 @@ const scripts = createExampleScripts(
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
 
-const getConsentConfig = createServerFn({ method: 'GET' }).handler(
-  createConsentConfigHandler({ backendURL }),
+const getConsentState = createServerFn({ method: 'GET' }).handler(
+  createConsentStateHandler({ backendURL }),
 );
 
 export const Route = createRootRoute({
   ...consentLoaderOptions,
-  loader: () => getConsentConfig(),
+  loader: () => getConsentState(),
   head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
   component: Root,
 });
 
 function Root() {
-  const config = Route.useLoaderData();
+  const state = Route.useLoaderData();
   return (
     <html lang="en">
       <head><HeadContent /></head>
       <body>
-        <ConsentBoundary config={config} backendURL={backendURL} initRoute={false} scripts={scripts}>
+        <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
           <Outlet />
           <ConsentBanner />
           <ConsentDialog />
           <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-        </ConsentBoundary>
+        </ConsentRoot>
         <Scripts />
       </body>
     </html>
@@ -110,15 +110,15 @@ function Root() {
 
 Merge the loader and head entries if the root route already has them. Keep
 `consentLoaderOptions` so consent loading follows the adapter's cache and reload
-settings. The server prepares the configuration; the boundary uses it for the
-first client render. `initRoute={false}` sends browser initialization to
-`${backendURL}/init`, matching this direct-backend setup.
+settings. The server resolves the visitor's `ConsentState`; `ConsentRoot`
+uses it for the first client render. `initRoute={false}` sends browser
+initialization to `${backendURL}/init`, matching this direct-backend setup.
 
 ## Add a same-origin proxy when needed
 
 If browser traffic should use `/api/c15t`, mount a real Start server route using
 `createConsentServerRoute` from `c15t/tanstack-start/api` with `proxy: true`.
-Give `createConsentConfigHandler` the upstream backend URL and the boundary the
+Give `createConsentStateHandler` the upstream backend URL and `ConsentRoot` the
 browser route URL. Remove `initRoute={false}` to use the default
 `/api/c15t/init` route, or set `initRoute` to your custom route URL. Do not make
 prefetch call its own proxy unnecessarily.

@@ -102,8 +102,8 @@ The manifest URLs remain explicit in the current API. A configuration with only
 `backendURL` uses regular backend `/init` and can also use this rewrite. That
 setup must not have a local manifest init handler intercepting `/api/c15t/init`.
 
-Keep using `consentConfig` for prefetch and the boundary. Omit a separate
-`ConsentBoundary` `backendURL` prop because it overrides the shared value.
+Keep using `consentConfig` for `resolveConsent` and `ConsentRoot`. Omit a
+separate `ConsentRoot` `backendURL` prop because it overrides the shared value.
 
 ### Keep route handlers pointed upstream
 

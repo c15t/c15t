@@ -1,13 +1,13 @@
 ---
 title: Content Security Policy
-description: Pass a per-request CSP nonce to ConsentBoundary in Next.js and allow the consent backend in connect-src.
+description: Pass a per-request CSP nonce to ConsentRoot in Next.js and allow the consent backend in connect-src.
 group: frameworks
 ---
 
-## Pass the request nonce to the boundary
+## Pass the request nonce to ConsentRoot
 
 Read the nonce from the `x-nonce` request header in the root layout and pass it
-as `options={{ nonce }}` on `ConsentBoundary`. This is the standard Next.js
+as `options={{ nonce }}` on `ConsentRoot`. This is the standard Next.js
 nonce pattern: your `proxy.ts` (Next.js 16) or `middleware.ts` (Next.js 15)
 generates a nonce per request, sets the `Content-Security-Policy` response
 header with `'nonce-<value>'` in `script-src` and `style-src`, and forwards the
@@ -31,30 +31,30 @@ Add a `nonce` prop to the `Consent` wrapper from the
 'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentBoundary } from 'c15t/next';
-import type { ConsentBoundaryProps } from 'c15t/next';
+import { ConsentRoot } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import { consentConfig } from '../c15t.config';
 import { scripts } from '../lib/scripts';
 
 export function Consent({
   children,
-  config,
+  state,
   nonce,
 }: {
   children: ReactNode;
-  config: ConsentBoundaryProps['config'];
+  state: ConsentRootProps['state'];
   nonce?: string;
 }) {
   return (
-    <ConsentBoundary
-      config={config}
-      consent={consentConfig}
+    <ConsentRoot
+      state={state}
+      config={consentConfig}
       options={{ nonce }}
       scripts={scripts}
     >
       {children}
       {/* banner, dialog and footer as in the App Router guide */}
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
@@ -66,17 +66,17 @@ and pass it through:
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 import './globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+  const state = await resolveConsent({ config: consentConfig });
 
   return (
-    <Consent config={initialConsent} nonce={nonce}>
+    <Consent state={state} nonce={nonce}>
       {children}
     </Consent>
   );
@@ -105,7 +105,7 @@ hash-based policy that guide describes; a host-only `script-src` such as
 `'unsafe-inline'`, which defeats the policy. Otherwise keep the route fully
 dynamic and use the nonce.
 
-`options.nonce` is read when the boundary mounts. The provider keeps the latest
+`options.nonce` is read when `ConsentRoot` mounts. The provider keeps the latest
 value in a ref, but the script loader is created once per runtime, so a nonce
 that changes during client-side navigation is not applied to scripts already
 created. Each full page load gets the fresh nonce from its own request.

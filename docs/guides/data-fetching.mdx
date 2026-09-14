@@ -89,7 +89,7 @@ export const mode = hosted({
 The route must return the c15t init response contract. `assertDecisionInputs`
 binds saves to the resolved policy when init did not return a signed policy
 snapshot token. The backend can then reject a stale policy decision. Next.js
-sets this option for you when `ConsentBoundary` receives a consent config with
+sets this option for you when `ConsentRoot` receives a `config` with
 `initURL`.
 
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`

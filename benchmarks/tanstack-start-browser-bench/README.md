@@ -14,9 +14,9 @@ provider" below.
 | `baseline` | `/baseline` | Page floor: identical shell, no consent code. |
 | `client` | `/client` | `ConsentProvider` with `hosted({ url: '/api/bench-consent' })`, `ssr: false`, so the provider mounts and runs init in the browser. |
 | `manifest-client` | `/manifest-client` | `custom(createManifestTransport(...))` reading the same-origin `/api/c15t/manifest` route, `ssr: false`. |
-| `ssr` | `/ssr` | Loader fetches `/api/bench-consent/init` server-side on every request and folds it in with `mergeInitIntoConsentConfig`; `ConsentBoundary` with `initRoute={false}`. Direct-init semantics, matching the Next `ssr` arm. |
-| `manifest-ssr` | `/manifest-ssr` | Loader runs `createConsentConfigHandler({ backendURL, manifestURL })` through the in-process manifest cache; `ConsentBoundary` with the default same-origin init route. Saves post to the fixture directly. |
-| `manifest-ssr-proxy` | `/manifest-ssr-proxy` | Same prefetch, but `ConsentBoundary backendURL="/api/c15t-proxy"`, a second `createConsentServerRoute({ proxy: true })` mount, so the accept click's `POST /subjects` takes one hop through the Start server. Start only. |
+| `ssr` | `/ssr` | Loader fetches `/api/bench-consent/init` server-side on every request and folds it in with `mergeInitIntoConsentState`; `ConsentRoot` with `initRoute={false}`. Direct-init semantics, matching the Next `ssr` arm. |
+| `manifest-ssr` | `/manifest-ssr` | Loader runs `createConsentStateHandler({ backendURL, manifestURL })` through the in-process manifest cache; `ConsentRoot` with the default same-origin init route. Saves post to the fixture directly. |
+| `manifest-ssr-proxy` | `/manifest-ssr-proxy` | Same prefetch, but `ConsentRoot backendURL="/api/c15t-proxy"`, a second `createConsentServerRoute({ proxy: true })` mount, so the accept click's `POST /subjects` takes one hop through the Start server. Start only. |
 | `repeat-visitor` | derived | After each measured `client` iteration a second browser context loads `/client` and the runner measures the Open Preferences click, exactly as the Next runner does. Note that neither runner preseeds the consent cookie for this arm. |
 | `manifest-ssr-root` | `/manifest-ssr` in the `dist-root/` build | `--root-provider` only. Same route and metrics as `manifest-ssr`, but the provider and the manifest prefetch loader live in `__root.tsx` and the route renders only the page shell. Built with `C15T_BENCH_ROOT_PROVIDER=1` (`bun run build:root`). |
 
@@ -73,12 +73,12 @@ which writes `.benchmarks/compare/frameworks.md` and `frameworks.json`.
 - **`ssr` on the server.** Both arms call `/api/bench-consent/init` on every
   request. Start uses a hand-written loader for this because the package
   helper always goes through the manifest cache; see `src/bench/loaders.ts`.
-- **`manifest-ssr` on the server.** Next's `prefetchInitialConsent` fetches
+- **`manifest-ssr` on the server.** Next's `resolveConsent` fetches
   its own `/api/c15t/manifest` route over HTTP each request and the route
   answers from the in-process cache. Start's prefetch refuses self-fetches and
   reads the same cache directly. That saved hop is a real adapter difference,
   not a harness artefact.
-- **`manifest-ssr` saves.** The Next arm's boundary has no `backendURL`, so
+- **`manifest-ssr` saves.** The Next arm's root has no `backendURL`, so
   it runs in offline mode and the accept click never posts. The Start arm is
   in hosted mode and posts to the fixture. Compare the Next number against
   Start's `interactionLatencyMs` with that in mind, and use `manifest-ssr`
@@ -172,7 +172,7 @@ Start does less main-thread work once the code arrives (`longTaskTotalMs`
 - Start's `ssr` arm needs a hand-written loader to match Next's per-request
   `/init` fetch; the package helper would have gone through the manifest
   cache and looked like `manifest-ssr`.
-- Next's `manifest-ssr` boundary runs in offline mode, so its accept click
+- Next's `manifest-ssr` root runs in offline mode, so its accept click
   never posts to the fixture; Start's `manifest-ssr` posts. Compare their
   `interactionLatencyMs` with that in mind.
 - The `rsc-ssr` rows in the result tables come from a Next arm that no longer
@@ -203,7 +203,7 @@ bun run bench:frameworks
 **Hypothesis.** The bench mounts the consent provider inside each scenario
 route, which Start code-splits, so the provider's chunks are fetched after
 the route component chunk executes. The documented app pattern mounts
-`ConsentBoundary` in `__root.tsx`, which Start does not code-split, so in a
+`ConsentRoot` in `__root.tsx`, which Start does not code-split, so in a
 real app those chunks should be part of the preloaded entry graph and the
 mobile gap should shrink.
 
@@ -272,7 +272,7 @@ ever list it.
 #### Metrics
 
 Medians and p95 from this session. Next has no root-mounted counterpart;
-its `manifest-ssr` boundary is already in the root layout.
+its `manifest-ssr` root is already in the root layout.
 
 Desktop profile, no added latency:
 

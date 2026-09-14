@@ -102,23 +102,23 @@ The paths below assume `app/` is at the project root. Adjust imports if you use
 
 ## Start consent resolution in the root layout
 
-Await `prefetchInitialConsent` in an async Server Component and mount that
+Await `resolveConsent` in an async Server Component and mount that
 component inside `Suspense`. The helper reads request cookies and geographic
-headers, resolves policy from the manifest and returns the visitor's prepared
-state, which the `Consent` wrapper passes to `ConsentBoundary` as `config`.
+headers, resolves policy from the manifest and returns the visitor's resolved
+state, which the `Consent` wrapper passes to `ConsentRoot` as `state`.
 
 ```tsx title="app/layout.tsx"
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 import './globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
-  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
+  const state = await resolveConsent({ config: consentConfig });
 
-  return <Consent config={initialConsent}>{children}</Consent>;
+  return <Consent state={state}>{children}</Consent>;
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -144,8 +144,8 @@ fingerprint, or one that no longer covers every required category prompts
 again. Location rules apply when your host supplies trusted geography
 headers. The [runnable Next.js example](/docs/examples) uses this awaited form.
 
-If the manifest request fails, `prefetchInitialConsent` returns a baseline
-config without a resolved policy and logs the failure outside production. The
+If the manifest request fails, `resolveConsent` returns a baseline
+state without a resolved policy and logs the failure outside production. The
 page still renders, and the browser resolves policy after hydration, so on that
 request a new visitor sees the prompt appear late. Pass `onError` to report
 these failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
@@ -172,7 +172,7 @@ unstable `Date.now()` during prerendering, see
 
 ## What server prefetch costs
 
-`prefetchInitialConsent` reads request cookies and headers through
+`resolveConsent` reads request cookies and headers through
 `next/headers`. Without `cacheComponents`, this makes routes under the layout
 dynamically rendered. With `cacheComponents` enabled, Next.js can prerender
 and cache the static shell outside `Suspense`, while the visitor-specific
@@ -207,22 +207,22 @@ request, so the route stays dynamic. When the site must stay fully static, use
 ## Stream the page while consent resolves
 
 To render the page shell before consent resolves, keep the root layout
-synchronous and pass the pending promise from `prefetchInitialConsent` to
-`config`. `ConsentBoundary` accepts either the resolved result or its promise.
+synchronous and pass the pending promise from `resolveConsent` to
+`state`. `ConsentRoot` accepts either the resolved result or its promise.
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const initialConsent = prefetchInitialConsent({ config: consentConfig });
+  const state = resolveConsent({ config: consentConfig });
 
   return (
     <html lang="en">
-      <body><Consent config={initialConsent}>{children}</Consent></body>
+      <body><Consent state={state}>{children}</Consent></body>
     </html>
   );
 }
@@ -259,9 +259,9 @@ settings. If resolution fails, use
 
 ## Initialize in the browser
 
-Keep the shared config and manifest route. Remove the `prefetchInitialConsent`
+Keep the shared config and manifest route. Remove the `resolveConsent`
 and `Suspense` imports and the `ResolvedConsent` component, and render the
-wrapper directly with an empty config:
+wrapper directly with an empty state:
 
 ```tsx title="app/layout.tsx"
 import type { ReactNode } from 'react';
@@ -272,7 +272,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Consent config={{}}>{children}</Consent>
+        <Consent state={{}}>{children}</Consent>
       </body>
     </html>
   );

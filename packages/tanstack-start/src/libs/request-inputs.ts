@@ -2,8 +2,8 @@ import type { ConsentRequestInputs } from '../headers';
 
 /**
  * Consent inputs the request middleware resolved, keyed by the request
- * object. Lets header-only readers (`readInitialConsentConfig`, the init
- * route) see middleware overrides even on runtimes whose `request.headers`
+ * object. Lets header-only readers (`resolveConsent`, the init route) see
+ * middleware overrides even on runtimes whose `request.headers`
  * are immutable and cannot carry the normalized values.
  */
 const inputsByRequest = new WeakMap<Request, ConsentRequestInputs>();

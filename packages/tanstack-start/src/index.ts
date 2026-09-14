@@ -5,32 +5,32 @@
  *   // src/routes/__root.tsx
  *   import { createRootRoute, Outlet } from '@tanstack/react-router';
  *   import { createServerFn } from '@tanstack/react-start';
- *   import { ConsentBoundary } from '@c15t/tanstack-start';
+ *   import { ConsentRoot } from '@c15t/tanstack-start';
  *   import {
  *     consentLoaderOptions,
- *     createConsentConfigHandler,
+ *     createConsentStateHandler,
  *   } from '@c15t/tanstack-start/server';
  *
  *   const backendURL = 'https://consent.example.com';
  *
  *   // Declared in your module: the Start compiler splits server code at
  *   // this `createServerFn().handler()` call site.
- *   const getConsentConfig = createServerFn({ method: 'GET' }).handler(
- *     createConsentConfigHandler({ backendURL })
+ *   const getConsentState = createServerFn({ method: 'GET' }).handler(
+ *     createConsentStateHandler({ backendURL })
  *   );
  *
  *   export const Route = createRootRoute({
  *     ...consentLoaderOptions,
- *     loader: () => getConsentConfig(),
+ *     loader: () => getConsentState(),
  *     component: RootComponent,
  *   });
  *
  *   function RootComponent() {
- *     const config = Route.useLoaderData();
+ *     const state = Route.useLoaderData();
  *     return (
- *       <ConsentBoundary config={config} backendURL={backendURL}>
+ *       <ConsentRoot state={state} backendURL={backendURL}>
  *         <Outlet />
- *       </ConsentBoundary>
+ *       </ConsentRoot>
  *     );
  *   }
  *
@@ -51,7 +51,7 @@
 export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
 // oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from '@c15t/react';
-export type { ConsentBoundaryProps } from './boundary';
-export { ConsentBoundary, DEFAULT_INIT_ROUTE } from './boundary';
 export { consentPrefetchHead } from './libs/prefetch-head';
+export type { ConsentRootProps } from './root';
+export { ConsentRoot, DEFAULT_INIT_ROUTE } from './root';
 export type { ConsentPrefetchHead, ConsentPrefetchHeadOptions } from './types';
