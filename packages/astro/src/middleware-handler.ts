@@ -8,6 +8,7 @@
 
 import type { MiddlewareHandler } from 'astro';
 
+import { waitUntilFromLocals } from './api/handlers';
 import { resolveConsentContext } from './server';
 import type { C15tResolvedOptions } from './types';
 
@@ -90,6 +91,8 @@ export const createConsentMiddleware = function createConsentMiddleware(
 		context.locals.c15t = await resolveConsentContext({
 			fetch: middlewareOptions.fetch,
 			headers: context.request.headers,
+			onBackgroundRevalidate: (revalidation) =>
+				waitUntilFromLocals(revalidation, context.locals),
 			options,
 			skipPrefetch: context.isPrerendered === true,
 			url: context.request.url,

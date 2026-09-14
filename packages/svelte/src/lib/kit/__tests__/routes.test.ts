@@ -31,20 +31,68 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 						})
 					)
 				);
-				const registered: Promise<void>[] = [];
+				const registered: { refresh: Promise<void>; url: string }[] = [];
 				const { manifest } = createSvelteKitConsentRouteHandlers({
 					backendURL: 'https://api.example.com',
 					fetch: fetchImpl,
-					onBackgroundRevalidate: (refresh) => {
-						registered.push(refresh);
+					onBackgroundRevalidate: (refresh, event) => {
+						// The event is passed so a module-scope factory can still
+						// reach a per-request platform handle.
+						registered.push({ refresh, url: event.url.pathname });
 					},
 				});
 
-				await manifest(createEvent());
+				await manifest(
+					createEvent({ url: 'http://localhost/api/c15t/manifest' })
+				);
 				expect(registered).toHaveLength(0);
 
 				vi.advanceTimersByTime(1500);
-				await manifest(createEvent());
+				await manifest(
+					createEvent({ url: 'http://localhost/api/c15t/manifest' })
+				);
+				expect(registered).toHaveLength(1);
+				expect(registered[0]?.url).toBe('/api/c15t/manifest');
+				await expect(registered[0]?.refresh).resolves.toBeUndefined();
+				expect(fetchImpl).toHaveBeenCalledTimes(2);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		test('defaults to event.platform.context.waitUntil when the adapter provides one', async () => {
+			vi.useFakeTimers();
+			try {
+				const fetchImpl = vi.fn(() =>
+					Promise.resolve(
+						manifestResponse({
+							'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+							etag: '"rev-1"',
+						})
+					)
+				);
+				const registered: Promise<unknown>[] = [];
+				const { manifest } = createSvelteKitConsentRouteHandlers({
+					backendURL: 'https://api.example.com',
+					fetch: fetchImpl,
+				});
+				const platformEvent = () => {
+					const event = createEvent();
+					(event as { platform?: unknown }).platform = {
+						context: {
+							waitUntil: (promise: Promise<unknown>) => {
+								registered.push(promise);
+							},
+						},
+					};
+					return event;
+				};
+
+				await manifest(platformEvent());
+				expect(registered).toHaveLength(0);
+
+				vi.advanceTimersByTime(1500);
+				await manifest(platformEvent());
 				expect(registered).toHaveLength(1);
 				await expect(registered[0]).resolves.toBeUndefined();
 				expect(fetchImpl).toHaveBeenCalledTimes(2);

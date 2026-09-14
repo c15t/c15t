@@ -1,6 +1,7 @@
 import type { KernelConfig } from '@c15t/core';
 import type { ManifestFetch, ManifestSourceConfig } from '@c15t/core/server';
 import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
+import type { RequestEvent } from '@sveltejs/kit';
 
 /**
  * What {@link c15tHandle} stores on `event.locals.c15t`.
@@ -48,10 +49,15 @@ export interface ConsentManifestOptions extends ManifestSourceConfig {
 	fetch?: ManifestFetch;
 	/**
 	 * Receives the promise of a background manifest revalidation started by
-	 * this request, so the host can keep it alive past the response on
-	 * runtimes that stop detached work once a response is sent (a platform
-	 * `waitUntil`, for example). The promise never rejects. Not called when
-	 * the manifest is fresh or the request itself waits on the upstream.
+	 * this request, with the request event, so the host can keep it alive
+	 * past the response on runtimes that stop detached work once a response
+	 * is sent. Defaults to handing it to `event.platform.context.waitUntil`
+	 * when the adapter provides one (Cloudflare, Vercel edge); nothing is
+	 * registered otherwise. The promise never rejects. Not called when the
+	 * manifest is fresh or the request itself waits on the upstream.
 	 */
-	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+	onBackgroundRevalidate?: (
+		revalidation: Promise<void>,
+		event: RequestEvent
+	) => void;
 }

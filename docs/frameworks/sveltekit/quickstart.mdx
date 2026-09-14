@@ -86,10 +86,10 @@ are mounted, `loadConsent(event, { initRoute: '/api/c15t' })` uses the app's own
 init route through `event.fetch`. Merely changing the URL does not create it.
 
 Past the manifest's `s-maxage` those routes serve it stale and refresh it in
-the background. On a runtime that stops work after the response is sent, pass
-`onBackgroundRevalidate` to the handlers and hand the promise to your
-platform's `waitUntil` (`event.platform.context.waitUntil` on Cloudflare); it
-never rejects.
+the background. On adapters that expose `event.platform.context.waitUntil`
+(Cloudflare, Vercel edge) the handlers hand the refresh to it so it is not cut
+short when the response is sent; nothing is needed from you. For another
+lifetime API, pass `onBackgroundRevalidate(refresh, event)` to the handlers.
 
 ## Use static hosting
 

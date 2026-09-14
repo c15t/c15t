@@ -1,9 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import {
+	buildConsentManifestFromConfig,
+	policyRulePresets,
+} from '@c15t/schema/types';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { clearManifestCache } from '../api';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
-import { hostedMode, offlineMode } from '../mode';
+import { hostedMode, manifestMode, offlineMode } from '../mode';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 import { testRule, testWire } from './policy-fixture';
 
@@ -12,6 +17,8 @@ interface RunInput {
 	options?: C15tAstroOptions;
 	isPrerendered?: boolean;
 	fetch?: typeof globalThis.fetch;
+	/** Extra `Astro.locals` fields, such as an adapter runtime. */
+	locals?: Record<string, unknown>;
 }
 
 const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
@@ -21,7 +28,7 @@ const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
 		),
 		{ fetch: input.fetch }
 	);
-	const locals = {} as { c15t: C15tLocals };
+	const locals = { ...(input.locals ?? {}) } as { c15t: C15tLocals };
 	const next = vi.fn(() => new Response('ok'));
 	await middleware(
 		{
@@ -38,6 +45,53 @@ const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
 };
 
 describe('consent middleware', () => {
+	afterEach(() => {
+		clearManifestCache();
+		vi.useRealTimers();
+	});
+
+	it("hands a stale manifest's background refresh to locals.runtime.ctx.waitUntil", async () => {
+		vi.useFakeTimers();
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			policyRules: [policyRulePresets.europeOptIn()],
+		});
+		const fetchImpl = vi.fn(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(manifest), {
+					headers: {
+						'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+						'content-type': 'application/json',
+						etag: 'W/"v1"',
+					},
+					status: 200,
+				})
+			)
+		) as unknown as typeof globalThis.fetch;
+		const registered: Promise<unknown>[] = [];
+		const locals = {
+			runtime: {
+				ctx: {
+					waitUntil: (promise: Promise<unknown>) => {
+						registered.push(promise);
+					},
+				},
+			},
+		};
+		const options: C15tAstroOptions = {
+			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+		};
+
+		await run({ fetch: fetchImpl, locals, options });
+		expect(registered).toHaveLength(0);
+
+		vi.setSystemTime(Date.now() + 1500);
+		await run({ fetch: fetchImpl, locals, options });
+		expect(registered).toHaveLength(1);
+		await expect(registered[0]).resolves.toBeUndefined();
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
 	it('populates locals for a first-time visitor', async () => {
 		const c15t = await run();
 		expect(c15t.shouldShowBanner).toBe(true);

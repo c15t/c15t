@@ -9,8 +9,9 @@
 export {
 	createConsentRouteHandlers,
 	resolveManifestSourceURL,
+	waitUntilFromLocals,
 } from './handlers';
-export type { ConsentRouteHandlerOptions } from './handlers';
+export type { ConsentRouteHandlerOptions, RequestLifetime } from './handlers';
 export {
 	loadConsentManifest,
 	resolveManifestInit,

@@ -169,6 +169,42 @@ describe('manifest caching through the routes', () => {
 		expect(await response.json()).toEqual(MANIFEST);
 	});
 
+	it("defaults to the adapter's locals.runtime.ctx.waitUntil for a stale read's refresh", async () => {
+		vi.useFakeTimers();
+		const fetchImpl = vi.fn(() =>
+			Promise.resolve(
+				jsonResponse(MANIFEST, {
+					'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+					etag: 'W/"v1"',
+				})
+			)
+		);
+		const registered: Promise<unknown>[] = [];
+		// Same shape the injected routes pass: the request plus `{ locals }`.
+		const locals = {
+			runtime: {
+				ctx: {
+					waitUntil: (promise: Promise<unknown>) => {
+						registered.push(promise);
+					},
+				},
+			},
+		};
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
+
+		await handlers.manifest(makeManifestRequest(), { locals });
+		expect(registered).toHaveLength(0);
+
+		vi.setSystemTime(Date.now() + 1500);
+		await handlers.manifest(makeManifestRequest(), { locals });
+		expect(registered).toHaveLength(1);
+		await expect(registered[0]).resolves.toBeUndefined();
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
 	it("hands a stale read's refresh to onBackgroundRevalidate", async () => {
 		vi.useFakeTimers();
 		const fetchImpl = vi.fn(() =>

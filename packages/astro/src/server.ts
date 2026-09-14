@@ -67,6 +67,14 @@ export interface ResolveConsentContextOptions {
 	 * Useful for static output where every request shares one render.
 	 */
 	skipPrefetch?: boolean;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this render, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent. The
+	 * middleware passes the adapter's `waitUntil` from `locals.runtime.ctx`
+	 * when there is one. The promise never rejects.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 /**
@@ -351,6 +359,7 @@ interface PrefetchLocalInput {
 	headers: Headers;
 	url?: string;
 	fetch?: typeof globalThis.fetch;
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 const prefetchManifest = async function prefetchManifest(
@@ -370,6 +379,7 @@ const prefetchManifest = async function prefetchManifest(
 	try {
 		const manifest = await loadConsentManifest({
 			fetch: input.fetch as ManifestFetch | undefined,
+			onBackgroundRevalidate: input.onBackgroundRevalidate,
 			options: input.options,
 			source,
 		});
@@ -550,6 +560,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 						fetch: input.fetch,
 						headers,
 						inputs,
+						onBackgroundRevalidate: input.onBackgroundRevalidate,
 						options,
 						translations,
 						url: input.url,
