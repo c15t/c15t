@@ -29,8 +29,8 @@ The script asserts that both representations produce identical banner copy.
 It measures 200 samples after 20 warmups. Browser parsing uses batches of
 20 operations to avoid reporting timer-rounded zeroes.
 
-These are data-boundary measurements, not complete framework HTML sizes or
-IAB network-latency measurements. A cold browser now makes a separate list
+These are data-boundary measurements. The production page measurements below
+cover HTML size and IAB readiness on localhost. A cold browser now makes a separate list
 request. The total first-visit transfer still includes the full list, and an
 immediate consent action can wait for that request. Fetching begins on mount
 rather than on interaction. A warm browser can reuse a cacheable list across
@@ -59,7 +59,65 @@ run had a 15.9 ms HTML-completion median. Both runs contained approximately
 The small samples show no clear application regression; they do not establish
 identical performance on every device or network.
 
-## Reproduce
+## Production IAB pages
+
+The same pinned GVL and IAB policy were served to production builds of both
+revisions. TanStack uses its manifest SSR route. Nuxt uses hosted SSR because
+the parent manifest handler omitted the GVL. Each run contains seven measured
+cold/warm browser pairs after two warmup pairs. A warm page reuses the browser
+HTTP cache but has no saved consent. Server caches are warm in both arms.
+The complete banner text matches before and after in each framework.
+
+| Measurement | TanStack before | TanStack after | Nuxt before | Nuxt after |
+| --- | ---: | ---: | ---: | ---: |
+| HTML bytes | 952,346 | 14,187 | 1,022,401 | 27,607 |
+| HTML gzip bytes | 168,773 | 5,459 | 197,849 | 8,130 |
+| Cold TTFB, median | 18.4 ms | 5.3 ms | 31.3 ms | 15.1 ms |
+| Cold HTML complete, median | 19.6 ms | 5.6 ms | 32.7 ms | 15.3 ms |
+| Cold banner DOM present, median | 26.3 ms | 13.0 ms | 41.0 ms | 22.5 ms |
+| Cold CMP loaded, median | 77.2 ms | 57.0 ms | unavailable | 69.8 ms |
+| Warm CMP loaded, median | 49.7 ms | 26.9 ms | unavailable | 45.1 ms |
+| CLS / long-task time | 0 / 0 ms | 0 / 0 ms | 0 / 0 ms | 0 / 0 ms |
+
+The HTML falls by 98.5% in TanStack and 97.3% in Nuxt. The TanStack list
+request transfers 854,657 bytes including headers on the cold page, then
+zero bytes on the warm page. Its local server does not compress that route.
+Nuxt hosted init retains private/no-store caching, so its browser list fetch
+is repeated; cross-origin transfer sizes are opaque to Resource Timing.
+The gzip sizes above are computed from captured HTML, not observed wire
+compression. Both local production servers serve uncompressed HTML.
+
+These runs found no startup regression. They use localhost without network
+or CPU throttling. The additional request still exposes CMP readiness and
+very early actions to network latency on a cold browser. Banner DOM presence
+is sampled once per animation frame and is not a paint or interaction metric.
+Nuxt's parent build never installs the CMP API, so its readiness cannot be
+compared as a working baseline. The after run requires a loaded CMP in both
+frameworks and rejects browser exceptions.
+
+To repeat this comparison, copy the benchmark's `provider.tsx` and
+`manifest-url.ts` into a checkout of #1120. Build package dependencies and
+both apps in each checkout. Run the script from the fixed checkout using
+Node 24, passing the app checkout to measure. The fixture server uses port
+4325; the apps use 4313 and 4314. Run the arms serially.
+
+```sh
+C15T_BENCH_IAB=1 bun run --cwd benchmarks/tanstack-start-browser-bench build
+bun run --cwd benchmarks/nuxt-browser-bench build
+node benchmarks/tanstack-start-browser-bench/scripts/measure-iab-page.ts /path/to/base before /tmp/page-before.json
+node benchmarks/tanstack-start-browser-bench/scripts/measure-iab-page.ts /path/to/head after /tmp/page-after.json
+```
+
+## Bundle and validation checks
+
+Local CI's bundle comparison measured all 23 expected consumer fixtures.
+All 30 bundle budgets passed with no missing measurements. Affected package
+builds, type checks and 3,207 tests passed across core, IAB, React, Next.js,
+TanStack Start, Vue, Svelte and Astro. Schema tests passed separately.
+Repository tooling and docs checks passed all 163 tests after correcting
+the Local CI Git wrapper for tests that create temporary repositories.
+
+## Reproduce the data and ordinary-consent benchmarks
 
 Build the relevant packages at each revision before running browser benches.
 Run the measurements serially on an idle machine.

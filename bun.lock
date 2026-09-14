@@ -410,6 +410,7 @@
         "@c15t/benchmarking": "workspace:*",
         "@c15t/core": "workspace:*",
         "@c15t/iab": "workspace:*",
+        "@c15t/react": "workspace:*",
         "@c15t/tanstack-start": "workspace:*",
         "@tanstack/react-router": "1.170.32",
         "@tanstack/react-start": "1.168.49",
