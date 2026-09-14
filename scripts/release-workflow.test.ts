@@ -24,6 +24,13 @@ const readWorkflow = function readWorkflow(name: string): unknown {
 
 describe('release validation', () => {
 	it('opts only releases into advisory runtime comparisons', () => {
+		const performanceAdvisory = `\${{ inputs.performance_advisory || false }}`;
+		const advisory = `\${{ inputs.advisory || false }}`;
+		const advisoryFailure =
+			`\${{ !cancelled() && inputs.advisory && ` +
+			`steps.measure.outcome == 'failure' }}`;
+		const notCancelled = `\${{ !cancelled() }}`;
+
 		expect(readWorkflow('release')).toHaveProperty('jobs.checks.with', {
 			performance_advisory: true,
 		});
@@ -33,7 +40,7 @@ describe('release validation', () => {
 		expect(readWorkflow('ci')).toMatchObject({
 			jobs: {
 				performance: {
-					with: { advisory: `\${{ inputs.performance_advisory || false }}` },
+					with: { advisory: performanceAdvisory },
 				},
 			},
 			on: {
@@ -47,15 +54,15 @@ describe('release validation', () => {
 				benchmark: {
 					steps: expect.arrayContaining([
 						expect.objectContaining({
-							'continue-on-error': `\${{ inputs.advisory || false }}`,
+							'continue-on-error': advisory,
 							id: 'measure',
 						}),
 						expect.objectContaining({
-							if: `\${{ !cancelled() && inputs.advisory && steps.measure.outcome == 'failure' }}`,
+							if: advisoryFailure,
 							run: expect.stringContaining('::warning::'),
 						}),
 						expect.objectContaining({
-							if: `\${{ !cancelled() }}`,
+							if: notCancelled,
 							with: expect.objectContaining({ name: 'runtime-benchmarks' }),
 						}),
 					]),
