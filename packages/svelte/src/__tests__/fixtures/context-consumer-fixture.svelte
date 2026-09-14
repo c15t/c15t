@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 	import ContextReader from './context-reader.svelte';
 

@@ -63,10 +63,8 @@ const config: StorybookConfig = {
 						find: /^@c15t\/vue\/vue-plugin$/u,
 						replacement: workspace('packages/vue/src/index.ts'),
 					},
-					{
-						find: /^@c15t\/vue\/runtime\/(?<capture2>.*)$/u,
-						replacement: workspace('packages/vue/src/runtime/$1'),
-					},
+					// Vue runtime imports use the published export map, including
+					// compatibility paths whose filenames differ from the subpath.
 					// `@c15t/react` imports its own sources through `~/`.
 					{
 						find: /^~\/(?<capture1>.*)$/u,

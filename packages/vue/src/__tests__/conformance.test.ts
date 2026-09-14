@@ -37,11 +37,11 @@ import { createApp, createSSRApp, defineComponent, h } from 'vue';
 import type { App } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-import ConsentBanner from '../runtime/components/consent-banner.vue';
-import ConsentManager from '../runtime/components/consent-manager.vue';
-import ConsentWidget from '../runtime/components/consent-widget.vue';
-import IabConsentBanner from '../runtime/components/iab-consent-banner.vue';
-import IabConsentDialog from '../runtime/components/iab-consent-dialog.vue';
+import IabConsentDialog from '../runtime/components/iab-panel.vue';
+import IabConsentBanner from '../runtime/components/iab-prompt.vue';
+import ConsentManager from '../runtime/components/manager.vue';
+import ConsentWidget from '../runtime/components/preferences.vue';
+import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';

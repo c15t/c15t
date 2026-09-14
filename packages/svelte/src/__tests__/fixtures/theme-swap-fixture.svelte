@@ -2,7 +2,7 @@
 	import type { KernelOverrides, KernelUser } from '@c15t/core';
 	import type { Theme } from '@c15t/ui/theme';
 
-	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 
 	let {

@@ -12,13 +12,13 @@ import {
 	StableTriggerProvider,
 	StableV3UIConfigProvider,
 } from '~/__tests__/stable-context-providers';
-import { ConsentBannerTitle } from '~/components/consent-banner/components';
-import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
-import { TriggerButton } from '~/components/consent-dialog-trigger/atoms/button';
-import { ConsentDialogHeaderTitle } from '~/components/consent-dialog/atoms/card';
-import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
-import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
-import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
+import { IABConsentBannerFooter } from '~/components/iab-prompt/atoms/footer';
+import { IABConsentBannerHeader } from '~/components/iab-prompt/atoms/header';
+import { ConsentDialogTriggerToolbar } from '~/components/panel-trigger';
+import { TriggerButton } from '~/components/panel-trigger/atoms/button';
+import { ConsentDialogHeaderTitle } from '~/components/panel/atoms/card';
+import { ConsentWidgetAccordion } from '~/components/preferences/atoms/accordion';
+import { ConsentBannerTitle } from '~/components/prompt/components';
 import * as Switch from '~/components/shared/ui/switch';
 import { offline } from '~/transports/offline';
 

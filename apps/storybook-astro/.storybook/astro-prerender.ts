@@ -79,11 +79,11 @@ const extractConfig = function extractConfig(html: string): unknown {
 };
 
 const COMPONENT_FILES: Record<string, string> = {
-	'consent-banner': 'components/consent-banner.astro',
-	'consent-dialog': 'components/consent-dialog.astro',
-	'consent-dialog-trigger': 'components/consent-dialog-trigger.astro',
-	'iab-consent-banner': 'components/iab-consent-banner.astro',
-	'iab-consent-dialog': 'components/iab-consent-dialog.astro',
+	'consent-banner': 'components/prompt.astro',
+	'consent-dialog': 'components/panel.astro',
+	'consent-dialog-trigger': 'components/panel-trigger.astro',
+	'iab-consent-banner': 'components/iab-prompt.astro',
+	'iab-consent-dialog': 'components/iab-panel.astro',
 };
 
 /**

@@ -3,7 +3,7 @@
 import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useEffect } from 'react';
 
-import { useConsentManager } from '~/component-hooks/use-consent-manager';
+import { useConsentManager } from '~/component-hooks/use-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
 
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';

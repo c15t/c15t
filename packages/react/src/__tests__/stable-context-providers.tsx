@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
-import { TriggerContext } from '~/components/consent-dialog-trigger/atoms/root';
-import type { TriggerContextValue } from '~/components/consent-dialog-trigger/atoms/root';
+import { TriggerContext } from '~/components/panel-trigger/atoms/root';
+import type { TriggerContextValue } from '~/components/panel-trigger/atoms/root';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
 import { V3UIConfigContext } from '~/ui-config-context';

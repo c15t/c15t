@@ -147,6 +147,38 @@ for (const target of selectedTargets()) {
 					expect(html).not.toContain('<iframe');
 				});
 			}
+			test(`${route}: UI loads with component URL filters enabled`, async () => {
+				({ context, page, requests } = await openBrowserContext(
+					browser,
+					server.baseURL,
+					server.backendURL
+				));
+				const blocked: string[] = [];
+				// Model URL blocking, including CSS requests and Vite's /@fs/
+				// modules. Cosmetic rules are a separate extension behavior.
+				await context.route('**/*', async (request) => {
+					const { pathname } = new URL(request.request().url());
+					if (
+						/(?:consent[-_](?:banner|dialog|widget|manager)|cookie[-_]banner)/iu.test(
+							pathname
+						)
+					) {
+						blocked.push(pathname);
+						await request.abort('blockedbyclient');
+						return;
+					}
+					await request.fallback();
+				});
+				await page.goto(route);
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+				await openPreferences(page);
+				await expect.poll(() => saveButton(page).isVisible()).toBe(true);
+				await saveButton(page).click();
+				await expectNoTracking(page, requests);
+				expect(blocked).toEqual([]);
+			});
+
 			test(`${route}: rejection survives reload and preferences reopen`, async () => {
 				await visit(route);
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);

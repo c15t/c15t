@@ -9,9 +9,9 @@ import { useContext, useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentBanner } from '../components/consent-banner';
-import { ConsentDialog } from '../components/consent-dialog';
-import { ConsentDialogTrigger } from '../components/consent-dialog-trigger';
+import { ConsentDialog } from '../components/panel';
+import { ConsentDialogTrigger } from '../components/panel-trigger';
+import { ConsentBanner } from '../components/prompt';
 import { KernelContext } from '../context';
 import { ConsentDraftProvider, useConsentDraft } from '../draft';
 import { ConsentProvider } from '../provider';

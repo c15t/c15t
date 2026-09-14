@@ -6,7 +6,7 @@ import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__test
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { offline } from '~/transports/offline';
 
-import { useConsentManager } from '../use-consent-manager';
+import { useConsentManager } from '../use-manager';
 
 const createWrapper = function createWrapper(
 	options: Partial<ConsentProviderOptions> = {}

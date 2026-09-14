@@ -89,6 +89,41 @@ provider is not needed. Keep `ConsentRoot` outside route-specific pages so it
 survives navigation. The mounted hook registers scripts against the module's
 existing kernel after hydration; unmounting the app cleans up the loader.
 
+## Customize the theme
+
+Import `defineTheme` from `c15t/vue` in `nuxt.config.ts`. That entry also
+exports the `Theme` type. The helper returns a typed theme object; map its
+values to the module's `tokens` configuration to apply them to the consent UI.
+
+Merge these tokens into your existing module configuration:
+
+```ts title="nuxt.config.ts"
+import { defineTheme } from 'c15t/vue';
+
+const theme = defineTheme({
+  colors: { primary: '#2f6f4e' },
+  radius: { lg: '4px' },
+});
+
+export default defineNuxtConfig({
+  modules: ['c15t/vue'],
+  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
+  c15t: {
+    backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
+    manifest: true,
+    showTrigger: true,
+    tokens: {
+      'c15t-primary': theme.colors.primary,
+      'c15t-radius-lg': theme.radius.lg,
+    },
+  },
+});
+```
+
+The consent UI uses a green primary color and a 4px large-radius token. Token
+keys omit the leading `--`. Use `c15t/vue/vue-plugin` for theme imports inside
+Vue components; `c15t/vue` is the Nuxt configuration entry.
+
 ## Configure SPA or static output
 
 For a deployment without a Nuxt server, resolve the manifest in the browser and

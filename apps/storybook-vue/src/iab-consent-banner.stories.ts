@@ -1,8 +1,8 @@
 import { customizeFlow } from '@c15t/conformance/play/iab-consent-banner';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
-import IabConsentBanner from '../../../packages/vue/src/runtime/components/iab-consent-banner.vue';
-import IabConsentDialog from '../../../packages/vue/src/runtime/components/iab-consent-dialog.vue';
+import IabConsentDialog from '../../../packages/vue/src/runtime/components/iab-panel.vue';
+import IabConsentBanner from '../../../packages/vue/src/runtime/components/iab-prompt.vue';
 import { useStorybookIABConsent as setupStorybookIABConsent } from './storybook-consent-fixtures';
 
 const meta = {

@@ -3,8 +3,8 @@ import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigge
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { expect, waitFor, within } from 'storybook/test';
 
-import ConsentDialogTrigger from '../../../packages/vue/src/runtime/components/consent-dialog-trigger.vue';
-import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
+import ConsentManager from '../../../packages/vue/src/runtime/components/manager.vue';
+import ConsentDialogTrigger from '../../../packages/vue/src/runtime/components/panel-trigger.vue';
 import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
 
 const meta = {

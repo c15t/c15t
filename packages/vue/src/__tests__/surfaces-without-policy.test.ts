@@ -10,11 +10,11 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 import { defineComponent, h } from 'vue';
 
-import ConsentBanner from '../runtime/components/consent-banner.vue';
-import ConsentDialogTrigger from '../runtime/components/consent-dialog-trigger.vue';
-import ConsentManager from '../runtime/components/consent-manager.vue';
-import ConsentPreferencesLink from '../runtime/components/consent-preferences-link.vue';
-import ConsentWidget from '../runtime/components/consent-widget.vue';
+import ConsentManager from '../runtime/components/manager.vue';
+import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
+import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
+import ConsentWidget from '../runtime/components/preferences.vue';
+import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';

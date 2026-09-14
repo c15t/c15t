@@ -13,7 +13,7 @@ import { createSSRApp, defineComponent, h, nextTick, shallowRef } from 'vue';
 import type { App, ShallowRef } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-import ConsentBanner from '../runtime/components/consent-banner.vue';
+import ConsentBanner from '../runtime/components/prompt.vue';
 import { useConsentKernelContext } from '../runtime/composables/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
 import { resolveManifestInit } from '../runtime/server/manifest-mode';

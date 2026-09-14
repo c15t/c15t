@@ -52,21 +52,21 @@ const UI_ADAPTERS: Record<
 		adapterModule: '@c15t/astro/ui/react',
 		astroIntegration: '@astrojs/react',
 		packages: ['@astrojs/react', '@c15t/react', 'react', 'react-dom'],
-		surfaceModule: '@c15t/astro/islands/consent-dialog-surface.tsx',
+		surfaceModule: '@c15t/astro/islands/panel-surface.tsx',
 	},
 	svelte: {
 		adapterExport: 'svelteDialogAdapter',
 		adapterModule: '@c15t/astro/ui/svelte',
 		astroIntegration: '@astrojs/svelte',
 		packages: ['@astrojs/svelte', 'svelte'],
-		surfaceModule: '@c15t/astro/islands/consent-dialog-surface.svelte',
+		surfaceModule: '@c15t/astro/islands/panel-surface.svelte',
 	},
 	vue: {
 		adapterExport: 'vueDialogAdapter',
 		adapterModule: '@c15t/astro/ui/vue',
 		astroIntegration: '@astrojs/vue',
 		packages: ['@astrojs/vue', '@c15t/vue', 'vue'],
-		surfaceModule: '@c15t/astro/islands/consent-dialog-surface.vue',
+		surfaceModule: '@c15t/astro/islands/panel-surface.vue',
 	},
 };
 

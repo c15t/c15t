@@ -107,29 +107,29 @@
 			"default": "./dist/module-hooks/iframe-blocker.js"
 		},
 		"./consent-banner": {
-			"types": "./dist-types/consent-banner.d.ts",
-			"import": "./dist/consent-banner.js",
-			"default": "./dist/consent-banner.js"
+			"types": "./dist-types/prompt.d.ts",
+			"import": "./dist/prompt.js",
+			"default": "./dist/prompt.js"
 		},
 		"./consent-dialog": {
-			"types": "./dist-types/consent-dialog.d.ts",
-			"import": "./dist/consent-dialog.js",
-			"default": "./dist/consent-dialog.js"
+			"types": "./dist-types/panel.d.ts",
+			"import": "./dist/panel.js",
+			"default": "./dist/panel.js"
 		},
 		"./consent-widget": {
-			"types": "./dist-types/consent-widget.d.ts",
-			"import": "./dist/consent-widget.js",
-			"default": "./dist/consent-widget.js"
+			"types": "./dist-types/preferences.d.ts",
+			"import": "./dist/preferences.js",
+			"default": "./dist/preferences.js"
 		},
 		"./consent-dialog-link": {
-			"types": "./dist-types/consent-dialog-link.d.ts",
-			"import": "./dist/consent-dialog-link.js",
-			"default": "./dist/consent-dialog-link.js"
+			"types": "./dist-types/panel-link.d.ts",
+			"import": "./dist/panel-link.js",
+			"default": "./dist/panel-link.js"
 		},
 		"./consent-dialog-trigger": {
-			"types": "./dist-types/consent-dialog-trigger.d.ts",
-			"import": "./dist/consent-dialog-trigger.js",
-			"default": "./dist/consent-dialog-trigger.js"
+			"types": "./dist-types/panel-trigger.d.ts",
+			"import": "./dist/panel-trigger.js",
+			"default": "./dist/panel-trigger.js"
 		},
 		"./frame": {
 			"types": "./dist-types/frame.d.ts",
@@ -166,29 +166,29 @@
 			"default": "./dist/headless.js"
 		},
 		"./components/consent-banner": {
-			"types": "./dist-types/components/consent-banner/index.d.ts",
-			"import": "./dist/components/consent-banner/index.js",
-			"default": "./dist/components/consent-banner/index.js"
+			"types": "./dist-types/components/prompt/index.d.ts",
+			"import": "./dist/components/prompt/index.js",
+			"default": "./dist/components/prompt/index.js"
 		},
 		"./components/consent-dialog": {
-			"types": "./dist-types/components/consent-dialog/index.d.ts",
-			"import": "./dist/components/consent-dialog/index.js",
-			"default": "./dist/components/consent-dialog/index.js"
+			"types": "./dist-types/components/panel/index.d.ts",
+			"import": "./dist/components/panel/index.js",
+			"default": "./dist/components/panel/index.js"
 		},
 		"./components/consent-dialog-trigger": {
-			"types": "./dist-types/components/consent-dialog-trigger/index.d.ts",
-			"import": "./dist/components/consent-dialog-trigger/index.js",
-			"default": "./dist/components/consent-dialog-trigger/index.js"
+			"types": "./dist-types/components/panel-trigger/index.d.ts",
+			"import": "./dist/components/panel-trigger/index.js",
+			"default": "./dist/components/panel-trigger/index.js"
 		},
 		"./components/consent-dialog-link": {
-			"types": "./dist-types/components/consent-dialog-link/index.d.ts",
-			"import": "./dist/components/consent-dialog-link/index.js",
-			"default": "./dist/components/consent-dialog-link/index.js"
+			"types": "./dist-types/components/panel-link/index.d.ts",
+			"import": "./dist/components/panel-link/index.js",
+			"default": "./dist/components/panel-link/index.js"
 		},
 		"./components/consent-widget": {
-			"types": "./dist-types/components/consent-widget/index.d.ts",
-			"import": "./dist/components/consent-widget/index.js",
-			"default": "./dist/components/consent-widget/index.js"
+			"types": "./dist-types/components/preferences/index.d.ts",
+			"import": "./dist/components/preferences/index.js",
+			"default": "./dist/components/preferences/index.js"
 		},
 		"./components/frame": {
 			"types": "./dist-types/components/frame/index.d.ts",

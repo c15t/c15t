@@ -19,6 +19,7 @@ import {
 } from './runtime/utils/symbols';
 
 export type * from '@c15t/schema/config';
+export { defineTheme, type Theme } from '@c15t/ui/theme';
 export * from './runtime/composables';
 export type {
 	ConsentConfig,

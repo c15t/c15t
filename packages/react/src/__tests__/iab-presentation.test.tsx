@@ -4,8 +4,8 @@ import type { GlobalVendorList } from '@c15t/schema/types';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { IABConsentBanner } from '../components/iab-consent-banner';
-import { IABConsentDialog } from '../components/iab-consent-dialog';
+import { IABConsentDialog } from '../components/iab-panel';
+import { IABConsentBanner } from '../components/iab-prompt';
 import { ComponentFixtureProvider } from './component-fixture-provider';
 import type { ComponentFixtureOptions } from './component-fixture-provider';
 import { policyFixture } from './policy-fixture';

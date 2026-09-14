@@ -13,7 +13,7 @@ import { createSSRApp, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
 import { c15tVue } from '../index';
-import ConsentRoot from '../runtime/components/consent-root.vue';
+import ConsentRoot from '../runtime/components/root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useHasConsent as getConsentedCategories } from '../runtime/composables/consent';
 import type { ConsentConfig } from '../runtime/config';

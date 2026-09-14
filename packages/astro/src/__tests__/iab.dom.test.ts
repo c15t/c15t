@@ -45,10 +45,7 @@ describe('the page IAB factory', () => {
 describe('the dialog island', () => {
 	it('reaches the IAB surface only through a dynamic import', () => {
 		const source = readFileSync(
-			join(
-				process.cwd(),
-				'src/components/islands/consent-dialog-surface.svelte'
-			),
+			join(process.cwd(), 'src/components/islands/panel-surface.svelte'),
 			'utf8'
 		);
 
