@@ -43,6 +43,7 @@ import type {
 } from '@c15t/schema/types';
 
 import { filterCookieHeader } from './libs/cookies';
+import { trimPathSlashes, trimTrailingSlashes } from './libs/path';
 import {
 	FORWARDING_HEADERS,
 	proxyConsentRequest,
@@ -317,10 +318,10 @@ const readSplat = function readSplat(
 ): string {
 	const splat = context.params?._splat;
 	if (splat !== undefined) {
-		return splat.replace(/^\/+|\/+$/gu, '');
+		return trimPathSlashes(splat);
 	}
 	const { pathname } = new URL(context.request.url);
-	return pathname.replace(/\/+$/u, '').split('/').pop() ?? '';
+	return trimTrailingSlashes(pathname).split('/').pop() ?? '';
 };
 
 /**

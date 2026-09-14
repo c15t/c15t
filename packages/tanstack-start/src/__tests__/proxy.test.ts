@@ -10,7 +10,11 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentServerRoute } from '../api';
 import type { ConsentProxyOptions } from '../api';
-import { isProxyPathAllowed, rewriteSetCookie } from '../libs/proxy';
+import {
+	isProxyPathAllowed,
+	proxyConsentRequest,
+	rewriteSetCookie,
+} from '../libs/proxy';
 import { version } from '../version';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -62,6 +66,38 @@ const upstreamCall = function upstreamCall(fetch: FetchSpy, index = 0) {
 	}
 	return { headers: new Headers(call[1].headers), init: call[1], url: call[0] };
 };
+
+describe('proxy path normalization', () => {
+	test('forwards under a long backend mount without rescanning interior slashes', async () => {
+		const backendURL = `${BACKEND}/api/${'/'.repeat(100_000)}consent`;
+		const fetch = createUpstream();
+		const start = performance.now();
+		const response = await proxyConsentRequest({
+			backendURL: `${backendURL}///`,
+			fetch,
+			options: {
+				cookieNames: undefined,
+				forwardHeaders: [],
+				paths: ['subjects'],
+				timeoutMs: 1_000,
+				trustForwardedHeaders: false,
+			},
+			path: '///subjects///',
+			request: request('subjects?language=en'),
+		});
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(response.status).toBe(200);
+		expect(upstreamCall(fetch).url).toBe(`${backendURL}/subjects?language=en`);
+	});
+
+	test('rejects long paths without rescanning interior slashes', () => {
+		const path = `///subjects/${'/'.repeat(100_000)}missing///`;
+		const start = performance.now();
+		const allowed = isProxyPathAllowed(path, ['subjects/*']);
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(allowed).toBe(false);
+	});
+});
 
 describe('proxy off (default)', () => {
 	test('returns exactly the in-process handler set', () => {

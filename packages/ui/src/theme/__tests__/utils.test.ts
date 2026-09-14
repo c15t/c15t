@@ -241,6 +241,22 @@ describe('themeToVars', () => {
 });
 
 describe('getContrastColor', () => {
+	test('parses comma-separated colors with long channel whitespace', () => {
+		const color = `rgb(255,214,10${' '.repeat(100_000)})`;
+		const start = performance.now();
+		const contrast = getContrastColor(color);
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(contrast).toBe('#000000');
+	});
+
+	test.each([
+		'rgb( 255 , 214 , 10 )',
+		'rgb(255 214 10 / 50%)',
+		'hsl( 0 , 0% , 100% )',
+	])('preserves channel whitespace handling for %s', (color) => {
+		expect(getContrastColor(color)).toBe('#000000');
+	});
+
 	test('returns dark text for bright backgrounds', () => {
 		expect(getContrastColor('#2ed1c3')).toBe('#000000');
 	});

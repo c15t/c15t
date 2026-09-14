@@ -9,6 +9,12 @@ The preparation commit removes old canary and RC suffixes and uses a temporary
 are inputs to Changesets, not releases to publish. The consolidated major
 changeset advances every public package to `3.0.0-alpha.0`.
 
+Until the first alpha version PR consumes `v3-alpha`, keep `v3-alpha.md` as the
+only changeset entry. Fold pending user-facing summaries into that file, including
+changes from PRs merged during release preparation. It already lists every public
+package, including the `c15t` umbrella package. Ordinary changesets resume after
+the first alpha versioning step.
+
 Changesets alpha mode is already recorded in `pre.json`. Do not enter it again
 for each release or delete consumed changesets while prerelease mode is active.
 

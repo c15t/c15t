@@ -21,6 +21,18 @@ if (!engine) {
 }
 
 describe('deriveBackendURL', () => {
+	it('normalizes long mount paths without rescanning interior slashes', () => {
+		const prefix = `/api/${'/'.repeat(100_000)}consent`;
+		const start = performance.now();
+		const result = deriveBackendURL(
+			'https://example.test/c15t.js',
+			'/c15t.js',
+			`${prefix}///`
+		);
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(result).toBe(`https://example.test${prefix}`);
+	});
+
 	it('invalidates cached scripts when bundle bytes change without changing length', async () => {
 		const request = {
 			backendURL: 'https://example.test',

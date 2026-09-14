@@ -277,6 +277,20 @@ describe('deriveUmbrellaArtifacts', () => {
 		);
 	});
 
+	it('preserves dollar replacement tokens in wildcard module names', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				exports: {
+					'./primitives/*': { import: './dist/primitives/*.js' },
+				},
+				wildcards: { './primitives/*': ['$&-button'] },
+			}),
+		]);
+		expect(artifacts.shimFiles['shims/primitives/$&-button.js']).toContain(
+			"export * from '@c15t/fixture/primitives/$&-button';"
+		);
+	});
+
 	it('mirrors nested wildcard modules with nested shim files', () => {
 		const artifacts = deriveUmbrellaArtifacts([
 			fixtureSource({

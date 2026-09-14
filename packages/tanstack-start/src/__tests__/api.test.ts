@@ -39,6 +39,22 @@ afterEach(() => {
 });
 
 describe('createConsentServerRoute: splat dispatch', () => {
+	test.each([true, false])(
+		'rejects long unknown paths with router params %s',
+		async (withParams) => {
+			const path = `unknown/${'/'.repeat(100_000)}missing///`;
+			const { GET } = createRoute();
+			const context = {
+				params: withParams ? { _splat: `///${path}` } : undefined,
+				request: request(`/api/c15t/${path}`),
+			};
+			const start = performance.now();
+			const response = await GET(context);
+			expect(performance.now() - start).toBeLessThan(1_000);
+			expect(response.status).toBe(404);
+		}
+	);
+
 	test('routes the init splat to the init handler', async () => {
 		const { GET } = createRoute({
 			backendURL: 'https://consent.example.com',

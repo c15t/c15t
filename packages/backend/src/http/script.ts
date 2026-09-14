@@ -136,7 +136,11 @@ export const deriveBackendURL = function deriveBackendURL(
 		(url.pathname.endsWith(routePath)
 			? url.pathname.slice(0, -routePath.length)
 			: url.pathname);
-	return `${url.origin}${pathname}`.replace(/\/+$/u, '');
+	let end = pathname.length;
+	while (end > 0 && pathname[end - 1] === '/') {
+		end -= 1;
+	}
+	return `${url.origin}${pathname.slice(0, end)}`;
 };
 
 /** What {@link buildScriptResponse} needs. */

@@ -154,7 +154,7 @@ const parseColorChannels = function parseColorChannels(
 ): string[] {
 	const channels = value.split('/')[0] ?? '';
 	return channels.includes(',')
-		? channels.split(/\s*,\s*/u)
+		? channels.split(',').map((channel) => channel.trim())
 		: channels.trim().split(/\s+/u);
 };
 

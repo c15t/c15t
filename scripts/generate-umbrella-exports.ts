@@ -386,7 +386,7 @@ const buildStringWildcardEntry = function buildStringWildcardEntry(
 
 	const shimRoot = `shims/${umbrellaSubpath.slice(2, -2)}`;
 	for (const name of names) {
-		const concreteSubpath = subpath.replace('*', name);
+		const concreteSubpath = subpath.replaceAll('*', () => name);
 		const specifier = toSpecifier(source.config.packageName, concreteSubpath);
 		const shimPath = `${shimRoot}/${name}`;
 
@@ -397,7 +397,7 @@ const buildStringWildcardEntry = function buildStringWildcardEntry(
 			shimFiles[`${base}.vue.d.ts`] = renderVueDeclarationShim(specifier);
 		} else if (name.endsWith('.js')) {
 			const info = source.analyzeEntry(concreteSubpath, {
-				import: target.replace('*', name),
+				import: target.replaceAll('*', () => name),
 			});
 			shimFiles[shimPath] = renderEsmShim(specifier, info);
 			shimFiles[`${shimPath.slice(0, -'.js'.length)}.d.ts`] = renderTypesShim(
@@ -458,16 +458,16 @@ const buildWildcardEntry = function buildWildcardEntry(
 	}
 
 	for (const name of names) {
-		const concreteSubpath = subpath.replace('*', name);
+		const concreteSubpath = subpath.replaceAll('*', () => name);
 		const concreteEntry: ConditionalExport = {};
 		for (const [condition, target] of Object.entries(entry)) {
-			concreteEntry[condition] = target.replace('*', name);
+			concreteEntry[condition] = target.replaceAll('*', () => name);
 		}
 		buildConditionalEntry(
 			source,
 			concreteSubpath,
 			concreteEntry,
-			umbrellaSubpath.replace('*', name),
+			umbrellaSubpath.replaceAll('*', () => name),
 			shimFiles
 		);
 	}

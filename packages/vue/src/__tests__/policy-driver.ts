@@ -74,6 +74,7 @@ import {
 	symbolActiveUI,
 	symbolConsent,
 } from '../runtime/utils/symbols';
+import { serializeWithoutComments } from './serialize-without-comments';
 
 // oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 const settle = () =>
@@ -517,7 +518,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 							right.getAttribute('data-testid') ?? ''
 						)
 					)
-					.map((element) => element.outerHTML.replace(/<!--.*?-->/gsu, ''))
+					.map(serializeWithoutComments)
 					.join('');
 			const serverDom = normalizeDom();
 			const serverSnapshot = kernel.getSnapshot();

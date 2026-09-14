@@ -1,5 +1,7 @@
 import { resolveBackendURL } from '@c15t/schema/types';
 
+import { trimTrailingSlashes } from './path';
+
 const FORWARDED_HEADER_NAMES = [
 	'x-forwarded-proto',
 	'x-forwarded-ssl',
@@ -72,7 +74,7 @@ export const isSelfRoute = function isSelfRoute(
 	try {
 		const target = new URL(url);
 		const origin = new URL(request.url);
-		const prefix = pathPrefix.replace(/\/+$/u, '');
+		const prefix = trimTrailingSlashes(pathPrefix);
 		return (
 			target.origin === origin.origin &&
 			(target.pathname === prefix || target.pathname.startsWith(`${prefix}/`))

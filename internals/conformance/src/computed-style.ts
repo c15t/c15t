@@ -160,14 +160,13 @@ const parseHexColor = function parseHexColor(
 const parseRgbColor = function parseRgbColor(
 	value: string
 ): [number, number, number, number] | null {
-	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-	const m = value.match(/^rgba?\s*\(\s*([^)]+)\s*\)$/iu);
-	if (!m) {
+	const prefix = /^rgba?\s*\(/iu.exec(value);
+	if (!prefix || value.indexOf(')') !== value.length - 1) {
 		return null;
 	}
-	const parts = (m[1] as string)
-		.replace(/\//gu, ',')
-		.split(/[\s,]+/u)
+	const parts = value
+		.slice(prefix[0].length, -1)
+		.split(/[\s,/]+/u)
 		.filter(Boolean);
 	if (parts.length < 3 || parts.length > 4) {
 		return null;
@@ -223,14 +222,13 @@ const hslToRgb = function hslToRgb(
 const parseHslColor = function parseHslColor(
 	value: string
 ): [number, number, number, number] | null {
-	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-	const m = value.match(/^hsla?\s*\(\s*([^)]+)\s*\)$/iu);
-	if (!m) {
+	const prefix = /^hsla?\s*\(/iu.exec(value);
+	if (!prefix || value.indexOf(')') !== value.length - 1) {
 		return null;
 	}
-	const parts = (m[1] as string)
-		.replace(/\//gu, ',')
-		.split(/[\s,]+/u)
+	const parts = value
+		.slice(prefix[0].length, -1)
+		.split(/[\s,/]+/u)
 		.filter(Boolean);
 	if (parts.length < 3 || parts.length > 4) {
 		return null;
@@ -328,18 +326,43 @@ const isColorPropertyName = function isColorPropertyName(
 	);
 };
 
-const looksLikeColor = function looksLikeColor(value: string): boolean {
-	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-	return /#[0-9a-f]+|rgba?\s*\([^)]*\)|hsla?\s*\([^)]*\)/iu.test(value.trim());
-};
-
 const canonicalizeColors = function canonicalizeColors(value: string): string {
-	return value
-		.replace(/#[0-9a-f]+|rgba?\s*\([^)]*\)|hsla?\s*\([^)]*\)/giu, (color) =>
-			canonicalizeColor(color)
-		)
-		.replace(/\(\s+/gu, '(')
-		.replace(/\s+\)/gu, ')');
+	// Consume each function through its closing delimiter once. A failed suffix
+	// search must not restart at every nested or repeated color prefix.
+	const starts = /#[0-9a-f]+|(?:rgba?|hsla?)\s*\(/giu;
+	const chunks: string[] = [];
+	let cursor = 0;
+	let noClosingDelimiter = false;
+	for (let match = starts.exec(value); match; match = starts.exec(value)) {
+		let end = starts.lastIndex;
+		if (!match[0].startsWith('#')) {
+			if (noClosingDelimiter) {
+				continue;
+			}
+			const close = value.indexOf(')', end);
+			if (close === -1) {
+				noClosingDelimiter = true;
+				continue;
+			}
+			end = close + 1;
+		}
+		chunks.push(
+			value.slice(cursor, match.index),
+			canonicalizeColor(value.slice(match.index, end))
+		);
+		cursor = end;
+		starts.lastIndex = end;
+	}
+	if (chunks.length === 0) {
+		return value;
+	}
+	chunks.push(value.slice(cursor));
+	const result = chunks.join('');
+	return result.replace(/\s+/gu, (space: string, offset: number) =>
+		result[offset - 1] === '(' || result[offset + space.length] === ')'
+			? ''
+			: space
+	);
 };
 
 const isAnimationPropertyName = function isAnimationPropertyName(
@@ -362,7 +385,7 @@ export const canonicalizeStyleValue = function canonicalizeStyleValue(
 	if (isAnimationPropertyName(name)) {
 		return canonicalizeAnimation(value);
 	}
-	if (isColorPropertyName(name) && looksLikeColor(value)) {
+	if (isColorPropertyName(name)) {
 		return canonicalizeColors(value);
 	}
 	return value;
