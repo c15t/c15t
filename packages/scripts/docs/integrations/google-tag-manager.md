@@ -39,18 +39,18 @@ below. These are partial edits to that owner, not additional providers.
 Import the configuration into the client boundary from your router guide:
 
 ```ts
-import { ConsentBoundary } from 'c15t/next';
+import { ConsentRoot } from 'c15t/next';
 import { scripts } from './consent-scripts';
 ```
 
-Keep the server-prefetched configuration and shared `consentConfig` from
-your router guide. Its manifest, init and save URLs stay in effect. Add
-`scripts` as a top-level prop on the existing boundary:
+Keep the server-resolved `state` and shared `consentConfig` from your
+router guide. Its manifest, init and save URLs stay in effect. Add
+`scripts` as a top-level prop on the existing root:
 
 ```tsx
-<ConsentBoundary config={config} consent={consentConfig} scripts={scripts}>
+<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
   {children}
-</ConsentBoundary>
+</ConsentRoot>
 ```
 
 For a Pages Router or static-export setup using `ConsentProvider`, add
@@ -59,21 +59,21 @@ from [Next.js script loading](../frameworks/next/script-loader.md).
 
 **TanStack Start**
 
-In your existing root route component, import the scripts alongside the
-boundary. Keep the server loader from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart).
+In your existing root route component, import the scripts alongside
+`ConsentRoot`. Keep the server loader from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart).
 
 ```tsx
 import { Outlet } from '@tanstack/react-router';
-import { ConsentBoundary } from 'c15t/tanstack-start';
+import { ConsentRoot } from 'c15t/tanstack-start';
 import { scripts } from '../consent-scripts';
 
 function Root() {
-  const config = Route.useLoaderData();
+  const state = Route.useLoaderData();
   return (
-    <ConsentBoundary config={config} backendURL={backendURL} initRoute={false} scripts={scripts}>
+    <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
       <Outlet />
       {/* Keep your consent banner, dialog and preferences link here. */}
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
