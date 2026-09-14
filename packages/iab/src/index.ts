@@ -75,7 +75,7 @@ export interface CreateIABOptions {
 	 */
 	gvl?: GlobalVendorList | null;
 	/**
-	 * Override the GVL endpoint. Default: `gvl.inth.com`.
+	 * Override the GVL endpoint. Default: `gvl.inth.app`.
 	 */
 	gvlURL?: string;
 }
@@ -293,14 +293,17 @@ const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
 export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
-	const {
-		kernel,
-		cmpId,
-		cmpVersion = 1,
-		vendors,
-		gvl: preloadedGvl,
-		gvlURL,
-	} = options;
+	const { kernel, cmpId, cmpVersion = 1, vendors, gvlURL } = options;
+
+	// A server-resolved state (`resolveConsent`, the framework init routes)
+	// already put the vendor list in the kernel. Reseeding from an absent
+	// `gvl` option would wipe it, flip `enabled` to false, and pay for a
+	// second fetch; keep what the kernel holds and only fetch when nothing
+	// has supplied a GVL yet.
+	const preloadedGvl =
+		options.gvl === undefined
+			? (kernel.getSnapshot().iab?.gvl ?? undefined)
+			: options.gvl;
 
 	// Seed the iab slice immediately so downstream consumers see the
 	// cmpId + any preloaded GVL. If no GVL yet, `enabled` stays false

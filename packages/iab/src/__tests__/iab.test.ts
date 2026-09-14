@@ -100,6 +100,24 @@ describe('createIAB: seeding the kernel', () => {
 		iab.dispose();
 	});
 
+	test('keeps a GVL the kernel already holds instead of refetching', async () => {
+		const kernel = createConsentKernel();
+		kernel.set.iab({ cmpId: 28, enabled: true, gvl: MOCK_GVL });
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const iab = createIAB({ cmpId: 28, kernel });
+		await iab.whenReady();
+
+		const snap = kernel.getSnapshot();
+		expect(snap.iab?.enabled).toBe(true);
+		expect(snap.iab?.gvl).toBe(MOCK_GVL);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		iab.dispose();
+		vi.unstubAllGlobals();
+	});
+
 	test('null gvl disables IAB (non-IAB region)', () => {
 		const kernel = createConsentKernel();
 		const iab = createIAB({

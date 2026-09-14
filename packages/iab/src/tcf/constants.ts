@@ -22,4 +22,4 @@ export const IAB_STORAGE_KEYS = {
  *
  * @internal
  */
-export const GVL_ENDPOINT = 'https://gvl.inth.com';
+export const GVL_ENDPOINT = 'https://gvl.inth.app';

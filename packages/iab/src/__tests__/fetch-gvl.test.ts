@@ -20,7 +20,7 @@ test('fetches the default vendor list from Inth', async () => {
 	await expect(fetchGVL()).resolves.toBeNull();
 
 	expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
-		'https://gvl.inth.com/',
+		'https://gvl.inth.app/',
 		expect.any(Object)
 	);
 });
