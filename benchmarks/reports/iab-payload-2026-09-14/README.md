@@ -111,7 +111,10 @@ node benchmarks/tanstack-start-browser-bench/scripts/measure-iab-page.ts /path/t
 ## Bundle and validation checks
 
 Local CI's bundle comparison measured all 23 expected consumer fixtures.
-All 30 bundle budgets passed with no missing measurements. Affected package
+All 30 bundle budgets passed with no missing measurements. The quick shared
+runtime comparison against #1120 passed all 81 budgets across 14 results,
+covering core operations, policy resolution and script lifecycles. Its
+comparison and summary JSON are included alongside the page measurements. Affected package
 builds, type checks and 3,209 tests passed across core, IAB, React, Next.js,
 TanStack Start, Vue, Svelte and Astro. Schema tests passed separately.
 Repository tooling and docs checks passed all 163 tests after correcting
@@ -134,3 +137,6 @@ conformance covers compact state through React, Next.js, TanStack Start, Vue
 and Svelte. IAB tests cover early actions, TC encoding, version mismatch,
 explicit disablement and cancellation while loading. The Vue runtime test
 checks that Nuxt/Vue mounts the shared CMP and records a TC string.
+
+The broader full browser CI comparison was still running when the draft PR
+was published. The completed checks above do not imply a full CI pass.
