@@ -25,8 +25,10 @@ describe('the page IAB factory', () => {
 	it('returns a usable handle before the module has loaded', async () => {
 		const handle = lazyCreateIAB(factoryOptions);
 
+		// A server-rendered banner is clickable before `@c15t/iab` lands, so
+		// the handle queues calls instead of leaving them undefined.
 		expect(typeof handle.dispose).toBe('function');
-		expect(handle.setPurposeConsent).toBeUndefined();
+		expect(handle.setPurposeConsent).toBeTypeOf('function');
 
 		await whenIABReady();
 		expect(handle.setPurposeConsent).toBeTypeOf('function');
