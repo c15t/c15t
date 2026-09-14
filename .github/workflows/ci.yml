@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
+    inputs:
+      performance_advisory:
+        description: Report runtime benchmark failures without blocking releases
+        type: boolean
+        default: false
     secrets:
       TURBO_TOKEN:
         required: false
@@ -232,6 +237,7 @@ jobs:
     if: needs.repository.outputs.performance == 'true'
     uses: ./.github/workflows/benchmark-regression.yml
     with:
+      advisory: ${{ inputs.performance_advisory || false }}
       base_ref: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
       built: true
       mode: ${{ github.event_name != 'pull_request' && 'full' || 'quick' }}
