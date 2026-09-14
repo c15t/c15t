@@ -20,10 +20,12 @@ it('stubs PostHog domains and aborts lookalike hosts', async () => {
 		await expect(
 			page.goto('https://posthog.com.evil.example/array.js')
 		).rejects.toThrow();
+		await expect(page.goto('https://.posthog.com/array.js')).rejects.toThrow();
 		expect(requests.posthog).toBe(2);
 		expect(requests.unexpected).toEqual([
 			'https://evilposthog.com/array.js',
 			'https://posthog.com.evil.example/array.js',
+			'https://.posthog.com/array.js',
 		]);
 	} finally {
 		await browser.close();

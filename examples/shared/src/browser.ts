@@ -62,7 +62,7 @@ export const openBrowserContext = async function openBrowserContext(
 		}
 		if (
 			url.hostname === 'posthog.com' ||
-			url.hostname.endsWith('.posthog.com')
+			(!url.hostname.startsWith('.') && url.hostname.endsWith('.posthog.com'))
 		) {
 			if (url.pathname.endsWith('/array.js')) {
 				requests.posthog += 1;
