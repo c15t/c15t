@@ -333,10 +333,20 @@ const createForwardHeaders = function createForwardHeaders(
 	return forward;
 };
 
+const canDeferHostedGvl = (
+	options: ResolveConsentOptions,
+	forward: Record<string, string>,
+	requestHeaders: Headers
+): boolean =>
+	!options.fetch &&
+	!forward.cookie &&
+	!options.forwardHeaders?.some((name) => requestHeaders.has(name));
+
 const fetchHostedInit = async function fetchHostedInit(input: {
 	backendURL: string;
 	fetch?: typeof globalThis.fetch;
 	headers: Record<string, string>;
+	deferGvl: boolean;
 }): Promise<ReturnType<typeof mapInitOutputToInitResponse>> {
 	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
 	if (!fetchImpl) {
@@ -359,7 +369,9 @@ const fetchHostedInit = async function fetchHostedInit(input: {
 	}
 	const payload: InitOutput = await response.json();
 	return mapInitOutputToInitResponse(
-		deferInitGvl(payload, `${input.backendURL}/init`, 'init'),
+		input.deferGvl
+			? deferInitGvl(payload, `${input.backendURL}/init`, 'init')
+			: payload,
 		input.headers,
 		{
 			producerContract: readProducerPolicyContract(response.headers),
@@ -383,6 +395,7 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 	const transport = createManifestTransport({
 		backendURL: absoluteBackend,
 		baseTranslations,
+		deferGvl: true,
 		fetch: options.fetch,
 		gvlRoute: options.config?.initURL,
 		headers: input.forward,
@@ -505,6 +518,9 @@ export const resolveConsent = async function resolveConsent(
 	try {
 		const response = await fetchHostedInit({
 			backendURL: absoluteBackend,
+			// A browser reference cannot replay private server credentials or a
+			// custom fetch implementation. Preserve the fetched list in that case.
+			deferGvl: canDeferHostedGvl(options, forward, requestHeaders),
 			fetch: options.fetch,
 			headers: {
 				...forward,

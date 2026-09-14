@@ -69,8 +69,13 @@ if (
 ) {
 	throw new Error('Banner summaries differ.');
 }
-const median = (values: number[]) =>
-	[...values].sort((a, b) => a - b)[Math.floor(values.length / 2)] ?? 0;
+const median = (values: number[]) => {
+	const sorted = [...values].sort((a, b) => a - b);
+	const middle = Math.floor(sorted.length / 2);
+	return sorted.length % 2
+		? (sorted[middle] ?? 0)
+		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+};
 const browser = await chromium.launch();
 try {
 	const page = await browser.newPage();

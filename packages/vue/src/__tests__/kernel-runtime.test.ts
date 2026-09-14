@@ -690,6 +690,22 @@ test('mounts the shared CMP for a prefetched IAB reference and encodes consent',
 			expect.stringContaining('/vendor-list'),
 			expect.any(Object)
 		);
+		const firstHandle = context.iab;
+		context.kernel.set.iab({ cmpId: 29 });
+		expect(context.iab).toBeDefined();
+		expect(context.iab).not.toBe(firstHandle);
+		await context.iab?.whenReady?.();
+		context.iab?.acceptAll();
+		await context.iab?.save();
+		const { decodeTCString } = await import('../../../iab/src/tcf/tc-string');
+		const tcString = context.snapshot.value.iab?.authority?.tcString;
+		expect(tcString).toBeTruthy();
+		if (!tcString) {
+			throw new Error('Expected consent');
+		}
+		expect((await decodeTCString(tcString)).cmpId).toBe(29);
+		context.kernel.set.iab({ cmpId: null });
+		expect(context.iab).toBeUndefined();
 	} finally {
 		dispose();
 	}

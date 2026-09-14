@@ -2187,12 +2187,32 @@ describe('createHostedTransport: request shape', () => {
 });
 
 describe('createManifestTransport: local init resolution', () => {
+	test.each([false, true])(
+		'retains a custom GVL fetch result without a route (defer=%s)',
+		async (deferGvl) => {
+			const list = REALISTIC_INIT_OUTPUT.gvl;
+			const fetchGvl = vi.fn().mockResolvedValue(list);
+			const transport = createManifestTransport({
+				backendURL: 'https://api.example.com/c15t',
+				deferGvl,
+				fetchGvl,
+				inputs: { country: 'DE', region: 'BE' },
+				manifest: MANIFEST_FIXTURE,
+			});
+			const response = await transport.init?.({ overrides: {}, user: null });
+			expect(response?.gvl).toBe(list);
+			expect(response?.gvlReference).toBeUndefined();
+			expect(fetchGvl).toHaveBeenCalledTimes(1);
+		}
+	);
+
 	test('resolves init from an inline manifest and lazily fetches GVL for IAB', async () => {
 		const fetchGvl = vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl);
 		const transport = createManifestTransport({
 			backendURL: 'https://api.example.com/c15t',
 			fetch: vi.fn() as unknown as typeof globalThis.fetch,
 			fetchGvl,
+			gvlRoute: '/api/c15t/init',
 			inputs: {
 				country: 'DE',
 				gpc: true,
@@ -2210,7 +2230,7 @@ describe('createManifestTransport: local init resolution', () => {
 			gvl: null,
 			gvlReference: {
 				language: 'de',
-				url: 'https://gvl.example.com',
+				url: '/api/c15t/init?c15t-gvl=42&language=de',
 				vendorListVersion: 42,
 			},
 			policyResolution: {

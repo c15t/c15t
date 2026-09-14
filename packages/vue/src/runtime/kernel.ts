@@ -63,6 +63,7 @@ export type VueConsentDisplayData = Pick<
 >;
 
 export interface VueConsentKernelContext {
+	/** Mounted client CMP handle; absent before mount or outside an IAB policy. */
 	iab?: ConsentRuntimeIABHandle;
 	/** Clears records through the mounted persistence instance when available. */
 	clearRecords: () => void;
@@ -721,15 +722,27 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	// The shared CMP owns list loading, TC encoding and authority restoration.
 	const iabFactory = createLazyIABFactory(() => import('@c15t/iab'));
 	let iabHandle: ConsentRuntimeIABHandle | undefined;
+	let activeCmpId: number | undefined;
 	const mountIab = () => {
 		const state = context.kernel.getSnapshot();
-		if (
-			!iabHandle &&
+		const cmpId = state.iab?.cmpId;
+		const nextCmpId =
 			state.policyRule.model === 'iab' &&
-			typeof state.iab?.cmpId === 'number'
-		) {
+			typeof cmpId === 'number' &&
+			Number.isInteger(cmpId) &&
+			cmpId > 0
+				? cmpId
+				: undefined;
+		if (activeCmpId === nextCmpId) {
+			return;
+		}
+		activeCmpId = nextCmpId;
+		iabHandle?.dispose();
+		iabHandle = undefined;
+		context.iab = undefined;
+		if (nextCmpId !== undefined) {
 			iabHandle = iabFactory.create({
-				cmpId: state.iab.cmpId,
+				cmpId: nextCmpId,
 				kernel: context.kernel,
 			});
 			context.iab = iabHandle;

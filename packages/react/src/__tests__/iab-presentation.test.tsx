@@ -1,11 +1,18 @@
 import { MINIMAL_GVL } from '@c15t/conformance';
-import { custom } from '@c15t/core';
+import {
+	custom,
+	createConsentKernel,
+	resolveIABBannerSummary,
+} from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
+import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { IABConsentDialog } from '../components/iab-panel';
 import { IABConsentBanner } from '../components/iab-prompt';
+import { KernelContext } from '../context';
+import { IABProvider, useIAB } from '../iab-context';
 import { ComponentFixtureProvider } from './component-fixture-provider';
 import type { ComponentFixtureOptions } from './component-fixture-provider';
 import { policyFixture } from './policy-fixture';
@@ -146,3 +153,53 @@ describe('IAB policy presentation', () => {
 		}
 	);
 });
+
+const SummaryProbe = () => {
+	const summary = resolveIABBannerSummary(useIAB());
+	return <output>{summary.isReady ? summary.vendorCount : 'pending'}</output>;
+};
+
+it.each([false, true])(
+	'SSR honors client vendor configuration (filtered=%s)',
+	(filtered) => {
+		const kernel = createConsentKernel({
+			initialIab: {
+				cmpId: 28,
+				enabled: true,
+				gvl: null,
+				gvlReference: {
+					language: 'en',
+					summary: { items: ['Storage'], vendorCount: 100 },
+					url: '/vendor-list',
+					vendorListVersion: 42,
+				},
+			},
+		});
+		try {
+			const html = renderToString(
+				<KernelContext.Provider value={kernel}>
+					<IABProvider
+						cmpId={28}
+						vendors={filtered ? [1] : undefined}
+						customVendors={[
+							{
+								id: 'publisher',
+								name: 'Publisher',
+								privacyPolicyUrl: 'https://example.com/privacy',
+								purposes: [1],
+							},
+						]}
+					>
+						<SummaryProbe />
+					</IABProvider>
+				</KernelContext.Provider>
+			);
+			expect(html).toContain(filtered ? 'pending' : '101');
+			expect(
+				kernel.getServerSnapshot().iab?.gvlReference?.summary?.vendorCount
+			).toBe(100);
+		} finally {
+			kernel.dispose();
+		}
+	}
+);

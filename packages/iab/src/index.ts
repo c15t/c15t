@@ -182,6 +182,13 @@ const seedInitialIAB = function seedInitialIAB(
 	options: CreateIABOptions,
 	gvl: GlobalVendorList | null
 ): void {
+	let reference =
+		options.gvl === undefined
+			? kernel.getSnapshot().iab?.gvlReference
+			: undefined;
+	if (reference && options.vendors?.length) {
+		reference = { ...reference, summary: undefined };
+	}
 	kernel.set.iab({
 		cmpId: options.cmpId,
 		customVendors:
@@ -191,10 +198,7 @@ const seedInitialIAB = function seedInitialIAB(
 			(options.gvl === undefined &&
 				Boolean(kernel.getSnapshot().iab?.gvlReference)),
 		gvl,
-		gvlReference:
-			options.gvl === undefined
-				? kernel.getSnapshot().iab?.gvlReference
-				: undefined,
+		gvlReference: reference,
 	});
 };
 
@@ -288,7 +292,36 @@ const changedIABDraft = function changedIABDraft(
 		current.iab !== previous.iab &&
 		current.iab?.gvl === previous.iab?.gvl &&
 		current.iab?.enabled === previous.iab?.enabled &&
+		current.iab?.gvlReference === previous.iab?.gvlReference &&
 		!current.iab?.authority
+	);
+};
+
+const changedSelections = (
+	previous: ConsentSnapshot,
+	current: ConsentSnapshot
+): boolean =>
+	current.iab?.purposeConsents !== previous.iab?.purposeConsents ||
+	current.iab?.purposeLegitimateInterests !==
+		previous.iab?.purposeLegitimateInterests ||
+	current.iab?.vendorConsents !== previous.iab?.vendorConsents ||
+	current.iab?.vendorLegitimateInterests !==
+		previous.iab?.vendorLegitimateInterests ||
+	current.iab?.specialFeatureOptIns !== previous.iab?.specialFeatureOptIns;
+
+const changedReference = (
+	previous: ConsentSnapshot['iab'],
+	current: ConsentSnapshot['iab']
+): boolean => {
+	const before = previous?.gvlReference;
+	const after = current?.gvlReference;
+	return Boolean(
+		after &&
+		(!before ||
+			after.url !== before.url ||
+			after.language !== before.language ||
+			after.vendorListVersion !== before.vendorListVersion ||
+			after.format !== before.format)
 	);
 };
 
@@ -344,7 +377,7 @@ export const createIAB = function createIAB(
 	const { kernel, cmpId, cmpVersion = 1, vendors, gvlURL } = options;
 
 	const preloadedGvl = resolvePreloadedGvl(kernel, options);
-	const reference =
+	let reference =
 		options.gvl === undefined
 			? kernel.getSnapshot().iab?.gvlReference
 			: undefined;
@@ -358,6 +391,7 @@ export const createIAB = function createIAB(
 	let disposed = false;
 	let authorityTimer: ReturnType<typeof setTimeout> | undefined;
 	let confirmationGeneration = 0;
+	let selectionRevision = 0;
 	const armAuthorityTimer = function armAuthorityTimer(): void {
 		clearTimeout(authorityTimer);
 		const authority = kernel.getSnapshot().iab?.authority;
@@ -383,30 +417,30 @@ export const createIAB = function createIAB(
 
 	// Fetch outside the page payload. Start on mount so CMP readiness and
 	// returning-visitor validation do not depend on a banner interaction.
-	const gvlPromise = (async (): Promise<GlobalVendorList | null> => {
-		if (preloadedGvl !== undefined) {
-			return preloadedGvl;
+	const loadList = async (
+		preloaded: GlobalVendorList | null | undefined,
+		requested: typeof reference
+	): Promise<GlobalVendorList | null> => {
+		if (preloaded !== undefined) {
+			return preloaded;
 		}
-		if (disposed) {
-			return null;
-		}
-		const list = await fetchGVL(reference ? undefined : vendors, {
-			endpoint: reference?.url ?? gvlURL,
-			format: reference?.format,
-			headers: reference
-				? { 'accept-language': reference.language }
+		const list = await fetchGVL(requested ? undefined : vendors, {
+			endpoint: requested?.url ?? gvlURL,
+			format: requested?.format,
+			headers: requested
+				? { 'accept-language': requested.language }
 				: undefined,
 		});
 		if (
-			reference &&
-			(!list || list.vendorListVersion !== reference.vendorListVersion)
+			requested &&
+			(!list || list.vendorListVersion !== requested.vendorListVersion)
 		) {
 			throw new Error(
 				'The IAB vendor list changed. Reload to review the current list.'
 			);
 		}
 		return list && vendors?.length ? narrowGVLToVendors(list, vendors) : list;
-	})();
+	};
 
 	let restoredFingerprint: string | null = null;
 	let hydrationCancelled = false;
@@ -458,24 +492,34 @@ export const createIAB = function createIAB(
 		confirmationGeneration += 1;
 		clearAuthorityReceipt();
 	});
-	const initializationSnapshot = kernel.getSnapshot();
+	let listGeneration = 0;
+	let publishedList = preloadedGvl ?? null;
 	let initializationError: unknown;
-	const initialization = (async () => {
+	const initialize = async (
+		preloaded: GlobalVendorList | null | undefined,
+		requested: typeof reference
+	) => {
+		listGeneration += 1;
+		const generation = listGeneration;
+		const initializationSnapshot = kernel.getSnapshot();
+		initializationError = undefined;
+		cmpApi?.updateVendorList(null);
 		try {
-			const gvl = await gvlPromise;
-			if (disposed) {
+			const gvl = await loadList(preloaded, requested);
+			if (disposed || generation !== listGeneration) {
 				return;
 			}
 			if (gvl === null) {
-				// Server / fetch says no-IAB. Mark disabled.
 				kernel.set.iab({ enabled: false, gvl: null });
 				return;
 			}
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
+			cmpApi?.updateVendorList(gvl);
+			publishedList = gvl;
 			kernel.set.iab({ enabled: true, gvl, gvlReference: undefined });
 			try {
-				cmpApi = createCMPApi({
+				cmpApi ??= createCMPApi({
 					cmpId,
 					cmpVersion,
 					gdprApplies: kernel.getSnapshot().policyRule.model === 'iab',
@@ -486,19 +530,37 @@ export const createIAB = function createIAB(
 					void restoreAuthority();
 				}
 			} catch {
-				// Failing to install CMP API is non-fatal; kernel state is
-				// still correct, the rest of the module just can't respond
-				// to __tcfapi queries yet.
+				// Kernel metadata remains available if installing the CMP API fails.
 			}
 		} catch (error) {
-			initializationError = error;
+			if (generation === listGeneration) {
+				initializationError = error;
+			}
 		}
-	})();
+	};
+	let initialization = initialize(preloadedGvl, reference);
+	let notifyReplacement!: () => void;
+	let replaced = new Promise<void>((resolve) => {
+		notifyReplacement = resolve;
+	});
 
 	const whenReady = async (): Promise<void> => {
-		await initialization;
+		// A later user action retries a failed request; concurrent callers share it.
+		if (initializationError && reference && !disposed) {
+			initialization = initialize(undefined, reference);
+		}
+		let pending: Promise<void>;
+		do {
+			pending = initialization;
+			// A replacement can finish before an obsolete request ever responds.
+			// oxlint-disable-next-line no-await-in-loop -- Each iteration follows a new initialization generation.
+			await Promise.race([pending, replaced]);
+		} while (pending !== initialization);
 		if (initializationError) {
-			throw initializationError;
+			throw new Error(
+				`Unable to load IAB privacy settings: ${initializationError instanceof Error ? initializationError.message : 'vendor list request failed'}`,
+				{ cause: initializationError }
+			);
 		}
 		// An explicit null, from the option or the server state, is a
 		// decision, not a failed load.
@@ -523,8 +585,10 @@ export const createIAB = function createIAB(
 		);
 	};
 	const queueBlanket = async (value: boolean): Promise<void> => {
+		selectionRevision += 1;
+		const revision = selectionRevision;
 		try {
-			if (await waitForReferencedList()) {
+			if ((await waitForReferencedList()) && revision === selectionRevision) {
 				const { gvl } = readIAB(kernel);
 				if (gvl) {
 					applyBlanket(kernel, gvl, value);
@@ -535,17 +599,66 @@ export const createIAB = function createIAB(
 		}
 	};
 
+	// oxlint-disable-next-line complexity -- Keep replacement, cancellation and allowlist handling in one lifecycle transition.
+	const syncList = (previous: ConsentSnapshot, snapshot: ConsentSnapshot) => {
+		if (options.gvl !== undefined) {
+			return;
+		}
+		let inline = snapshot.iab?.gvl ?? undefined;
+		const inlineChanged = inline && inline !== publishedList;
+		const removed =
+			previous.iab?.gvlReference && !snapshot.iab?.gvlReference && !inline;
+		if (
+			!(
+				changedReference(previous.iab, snapshot.iab) ||
+				inlineChanged ||
+				removed
+			)
+		) {
+			return;
+		}
+		reference = snapshot.iab?.gvlReference;
+		if (reference?.summary && vendors?.length) {
+			reference = { ...reference, summary: undefined };
+			kernel.set.iab({ gvlReference: reference });
+		}
+		publishedList = inline ?? null;
+		confirmationGeneration += 1;
+		restoredFingerprint = null;
+		const notify = notifyReplacement;
+		replaced = new Promise<void>((resolve) => {
+			notifyReplacement = resolve;
+		});
+		if (inline && vendors?.length) {
+			inline = narrowGVLToVendors(inline, vendors);
+		}
+		if (removed) {
+			listGeneration += 1;
+			cmpApi?.updateVendorList(null);
+			initialization = Promise.resolve();
+		} else {
+			initialization = initialize(inline, reference);
+		}
+		notify();
+	};
+
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
 	let previousSnapshot = kernel.getSnapshot();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
-		const policyChanged = snapshot.resolution !== previousSnapshot.resolution;
-		if (!policyChanged && changedIABDraft(previousSnapshot, snapshot)) {
+		const previous = previousSnapshot;
+		previousSnapshot = snapshot;
+		if (changedSelections(previous, snapshot)) {
+			selectionRevision += 1;
+		}
+		syncList(previous, snapshot);
+
+		const policyChanged = snapshot.resolution !== previous.resolution;
+		if (!policyChanged && changedIABDraft(previous, snapshot)) {
 			hydrationCancelled = true;
 		}
-		previousSnapshot = snapshot;
 		if (policyChanged) {
 			queueMicrotask(() => {
 				void restoreAuthority();

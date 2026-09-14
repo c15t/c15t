@@ -57,6 +57,8 @@ const getDefined = <Value>(
 };
 
 export interface ManifestTransportOptions {
+	/** Defer a public list for SSR. Client-only transports retain their fetched list. */
+	deferGvl?: boolean;
 	/** Init route that serves versioned GVL requests. */
 	gvlRoute?: string;
 	/**
@@ -398,7 +400,12 @@ export const createManifestTransport = function createManifestTransport(
 				});
 			}
 
-			if (payload.gvl && manifest.iab?.gvl) {
+			if (
+				payload.gvl &&
+				manifest.iab?.gvl &&
+				(options.gvlRoute ||
+					(options.deferGvl && !options.fetch && !options.fetchGvl))
+			) {
 				payload = options.gvlRoute
 					? deferInitGvlToRoute(payload, options.gvlRoute)
 					: deferInitGvl(payload, manifest.iab.gvl.url);

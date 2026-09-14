@@ -276,6 +276,9 @@ const driver: TestDriver = {
 	probePolicyContract,
 	serverRender(opts: MountOptions): Promise<string> {
 		const options = buildProviderOptions(opts);
+		if (options.iab) {
+			options.iab.gvl = undefined;
+		}
 		if (options.prefetch?.initialIab?.gvl) {
 			Object.assign(
 				options.prefetch.initialIab,

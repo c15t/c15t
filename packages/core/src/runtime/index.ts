@@ -260,6 +260,18 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	return createConsentKernel({
 		...prefetch,
+		initialIab:
+			prefetch.initialIab?.gvlReference &&
+			options.iab &&
+			options.iab.vendors?.length
+				? {
+						...prefetch.initialIab,
+						gvlReference: {
+							...prefetch.initialIab.gvlReference,
+							summary: undefined,
+						},
+					}
+				: prefetch.initialIab,
 		initialOverrides: {
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),

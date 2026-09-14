@@ -1,9 +1,15 @@
 # IAB page payload measurement
 
-The full vendor list leaves the serialized page state. The banner keeps the
+Public vendor lists leave the serialized page state. The banner keeps the
 same summary while the browser loads the list and validates consent.
+Client-only vendor allowlists wait for the filtered list before showing a summary.
+Next.js hosted requests carrying cookies, forwarded headers or a custom fetch
+retain the inline list because a browser reference cannot replay that access.
+The measurements below cover the public-list path.
 
-Measured on an Apple M5 Pro, Node 24.21.0 and Chromium 149.0.7827.55.
+Measured on an Apple M5 Pro and Node 24.21.0. The ordinary-consent Nuxt
+measurements used Chromium 145.0.7632.6; the other measurements used
+Chromium 149.0.7827.55.
 The comparison starts from PR #1120 at `6ba1d8d2e`. Its later `d63dcdb4c`
 commit changes only an Astro test expectation.
 
@@ -138,5 +144,6 @@ and Svelte. IAB tests cover early actions, TC encoding, version mismatch,
 explicit disablement and cancellation while loading. The Vue runtime test
 checks that Nuxt/Vue mounts the shared CMP and records a TC string.
 
-The broader full browser CI comparison was still running when the draft PR
-was published. The completed checks above do not imply a full CI pass.
+The full Local CI runtime comparison also passed all 319 budgets across
+58 expected comparisons, with no failures or missing measurements. These
+local results are separate from the GitHub checks on the latest PR revision.

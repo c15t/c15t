@@ -84,7 +84,8 @@ const getCookie = function getCookie(name: string): string | null {
 export const createCMPApi = function createCMPApi(
 	config: CMPApiConfig
 ): CMPApi {
-	const { cmpId = CMP_ID, cmpVersion = CMP_VERSION, gvl } = config;
+	const { cmpId = CMP_ID, cmpVersion = CMP_VERSION } = config;
+	let { gvl } = config;
 	let gdprApplies = config.gdprApplies ?? true;
 
 	let tcString = '';
@@ -235,7 +236,7 @@ export const createCMPApi = function createCMPApi(
 		handler: TCFApiCallback<GlobalVendorList>,
 		_vendorListVersion?: number
 	): void {
-		handler(gvl, true);
+		handler(cmpStatus === 'loaded' ? gvl : null, cmpStatus === 'loaded');
 	};
 
 	/**
@@ -415,8 +416,18 @@ export const createCMPApi = function createCMPApi(
 			currentConsentData = newTcString ? (consentData ?? null) : null;
 			// Invalidate cache
 			cachedTCData = null;
-			cmpStatus = 'loaded';
 			notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
+		},
+
+		updateVendorList: (nextGvl) => {
+			if (nextGvl) {
+				gvl = nextGvl;
+			}
+			cmpStatus = nextGvl ? 'loaded' : 'loading';
+			tcString = '';
+			currentConsentData = null;
+			cachedTCData = null;
+			notifyEventListeners('tcloaded');
 		},
 	};
 };

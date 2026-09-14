@@ -85,6 +85,56 @@ afterEach(() => {
 });
 
 describe('resolveConsent: backend call', () => {
+	test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
+		'preserves hosted IAB loading through %s access',
+		async (access) => {
+			const { completeGVL } =
+				await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+			if (access === 'cookie') {
+				cookieStore.set('session', 'private');
+			}
+			if (access === 'header') {
+				headerStore.set('authorization', 'Bearer private');
+			}
+			const fetchSpy = vi.fn().mockResolvedValue(
+				Response.json(
+					createInitOutput({
+						cmpId: 28,
+						gvl: completeGVL,
+						policyResolution: writePolicyResolutionWire(
+							resolvePolicyRules({
+								countryCode: 'DE',
+								regionCode: null,
+								rules: [
+									{
+										id: 'iab',
+										match: { isDefault: true },
+										model: 'iab',
+										prompt: 'choice',
+									},
+								],
+							})
+						),
+					}),
+					{ headers: { 'x-c15t-policy-contract': '1' } }
+				)
+			);
+			vi.stubGlobal('fetch', fetchSpy);
+			const state = await resolveConsent({
+				backendURL: 'https://private.example.com',
+				fetch: access === 'custom-fetch' ? fetchSpy : undefined,
+				forwardHeaders: access === 'header' ? ['authorization'] : undefined,
+			});
+			expect(state.initialPolicyResolution).toMatchObject({
+				status: 'matched',
+			});
+			expect(Boolean(state.initialIab?.gvl)).toBe(access !== 'public');
+			expect(Boolean(state.initialIab?.gvlReference)).toBe(access === 'public');
+			expect(JSON.stringify(state)).not.toContain('Bearer private');
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		}
+	);
+
 	test('calls backendURL/init with current context', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
 		headerStore.set('host', 'app.example.com');

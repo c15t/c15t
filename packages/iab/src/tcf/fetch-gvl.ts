@@ -156,10 +156,14 @@ export const fetchGVL = function fetchGVL(
 				);
 			}
 
-			const payload = await response.json();
-			const gvl = (
-				options.format === 'init' ? payload.gvl : payload
-			) as GlobalVendorList;
+			let payload: unknown = await response.json();
+			if (options.format === 'init') {
+				payload =
+					payload && typeof payload === 'object' && 'gvl' in payload
+						? payload.gvl
+						: null;
+			}
+			const gvl = payload as GlobalVendorList;
 			if (!gvl) {
 				return null;
 			}

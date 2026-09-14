@@ -7,6 +7,7 @@ import { resolveIABBannerSummary } from '../libs/iab-banner-summary';
  * The same summary renders on the server and during browser hydration.
  * @param payload - Init payload, left unchanged.
  * @param url - Public GVL URL, or a same-origin init route serving versioned lists.
+ * @param format - Set to `init` when the URL returns an init envelope.
  * @returns Init data without the full list.
  */
 export const deferInitGvl = <
@@ -49,7 +50,13 @@ export const deferInitGvl = <
 	};
 };
 
-/** Builds a versioned list URL on an existing init route. */
+/**
+ * Builds a versioned list URL on an existing init route.
+ * @param initURL - Absolute or root-relative init route.
+ * @param gvl - List whose version the route must serve.
+ * @param language - Language of the public list.
+ * @returns The init URL with version and language query parameters.
+ */
 export const createGvlReferenceURL = (
 	initURL: string,
 	gvl: GlobalVendorList,
@@ -64,6 +71,9 @@ export const createGvlReferenceURL = (
 /**
  * Serve only a public vendor list for a versioned request. A changed version
  * must never be cached under the old URL. Policy and visitor data stay out.
+ * @param request - Incoming init or versioned-list request.
+ * @param load - Loads the public list for the requested language.
+ * @returns A list response, or null when this is an ordinary init request.
  */
 export const serveGvlReference = async (
 	request: Request,
@@ -90,7 +100,12 @@ export const serveGvlReference = async (
 	});
 };
 
-/** Prepare init data for an adapter whose init route also serves the list. */
+/**
+ * Prepare init data for an adapter whose init route also serves the list.
+ * @param payload - Resolved init data; left unchanged.
+ * @param route - Init route that handles versioned-list requests.
+ * @returns Init data carrying a versioned reference in place of a full list.
+ */
 export const deferInitGvlToRoute = (
 	payload: InitOutput,
 	route: string

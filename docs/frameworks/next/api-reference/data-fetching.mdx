@@ -403,3 +403,12 @@ perform IP lookup. Supply `policyRules` to replace that pack when your local
 policy needs different behavior. Browser persistence stores choices, but this
 setup has no backend record service. See
 [transport choices](/docs/guides/data-fetching) for the tradeoffs.
+
+### Authenticated hosted vendor lists
+
+When hosted `resolveConsent()` forwards cookies or additional request headers,
+or uses a custom `fetch`, it retains the fetched vendor list in server state.
+The browser cannot replay a private server fetch. This fallback preserves consent
+loading and vendor filtering without copying credentials into the page. Its
+payload size is unchanged from inline GVL loading. For compact pages with private
+upstreams, expose the public list through a same-origin manifest init handler.

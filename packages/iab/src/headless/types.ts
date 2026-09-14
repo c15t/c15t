@@ -22,6 +22,7 @@ export type HeadlessIABVendorId = number | string;
  */
 export interface HeadlessIABStateInput {
 	gvl: GlobalVendorList | null;
+	/** Server summary and fetch location, present while the full gvl is absent. */
 	gvlReference?: KernelIABState['gvlReference'];
 	isLoadingGVL?: boolean;
 	nonIABVendors?: NonIABVendor[];

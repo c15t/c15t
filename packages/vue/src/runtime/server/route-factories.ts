@@ -219,6 +219,7 @@ export const createInitRoute = function createInitRoute(
 				cmpId: mapped.cmpId,
 				customVendors: mapped.customVendors,
 				gvl: mapped.gvl,
+				gvlReference: mapped.gvlReference,
 				jurisdiction: payload.jurisdiction,
 				location: payload.location,
 				policyResolution: writePolicyResolutionWire(

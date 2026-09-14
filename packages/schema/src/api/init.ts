@@ -181,10 +181,13 @@ export const initOutputSchema = v.object({
 		v.object({
 			format: v.optional(v.literal('init')),
 			language: v.string(),
-			summary: v.object({
-				items: v.array(v.string()),
-				vendorCount: v.number(),
-			}),
+			/** Absent when client filtering requires the full list to derive copy. */
+			summary: v.optional(
+				v.object({
+					items: v.array(v.string()),
+					vendorCount: v.number(),
+				})
+			),
 			url: v.string(),
 			vendorListVersion: v.number(),
 		})

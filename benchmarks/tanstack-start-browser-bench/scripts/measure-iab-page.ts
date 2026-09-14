@@ -242,10 +242,12 @@ try {
 				scenario: framework === 'nuxt' ? 'ssr-hosted' : 'manifest-ssr',
 			});
 		} finally {
-			server.kill('SIGTERM');
-			await new Promise<void>((resolve) => {
-				server.once('exit', () => resolve());
-			});
+			if (server.exitCode === null && server.signalCode === null) {
+				await new Promise<void>((resolve) => {
+					server.once('exit', () => resolve());
+					server.kill('SIGTERM');
+				});
+			}
 		}
 	}
 	writeFileSync(

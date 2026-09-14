@@ -40,11 +40,22 @@ of embedding the full Global Vendor List. The reference contains its URL,
 language and `vendorListVersion`. The banner shows the same purpose names and
 vendor count on the server and during hydration.
 
+Configure vendor filtering on the server when the banner must render immediately.
+An additional client-only `vendors` allowlist makes the server summary unsuitable:
+the banner waits for the full list, then shows the filtered count and disclosures.
+Unknown or duplicate IDs do not increase the count. This case adds the list fetch
+to banner visibility time; the default server-configured path does not wait.
+
 The IAB module fetches the full list when it mounts in the browser. Loading
 starts before interaction so CMP initialization and validation of returning
 visitors' consent do not wait for a click. Early Accept and Reject actions wait
 for the list before encoding a TC String. A failed fetch leaves the banner
-visible and does not grant consent. A list version mismatch requires a reload.
+visible and does not grant consent. A later action retries a failed request.
+A list version mismatch requires a new init response or a reload.
+A new reference from initialization or a language change starts a new load and
+cancels actions queued for the previous list. Existing TCF listeners are retained.
+Client-only manifest transports keep their fetched GVL, including custom fetcher
+filtering; deferral applies at server-rendering boundaries.
 
 TanStack Start, Nuxt, Next.js and SvelteKit manifest init handlers also serve
 versioned list requests on their existing init route. These responses contain

@@ -37,6 +37,12 @@ export interface CMPApiConfig {
  * Handle returned by the CMP API factory.
  */
 export interface CMPApi {
+	/**
+	 * Update public vendor metadata while retaining registered TCF listeners.
+	 * @param gvl - The new list, or null to mark a replacement as loading.
+	 * @returns Nothing.
+	 */
+	updateVendorList: (gvl: GlobalVendorList | null) => void;
 	/** Update the confirmed TC data and, when supplied, regional applicability. */
 	updateConsent: (
 		tcString: string,

@@ -10,14 +10,21 @@
 import type { KernelIABState } from '../types';
 
 type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
-	Partial<Pick<KernelIABState, 'gvlReference' | 'customVendors'>> & {
+	Partial<Pick<KernelIABState, 'customVendors'>> & {
+		/** Server summary and list location, used while gvl is absent. */
+		gvlReference?: KernelIABState['gvlReference'];
 		nonIABVendors?: KernelIABState['customVendors'];
 	};
 
+/** Banner copy derived from a full list or a deferred server summary. */
 export interface HeadlessIABBannerState {
+	/** Whether sufficient vendor data is available to display the summary. */
 	isReady: boolean;
+	/** Number of registered and custom vendors disclosed by the banner. */
 	vendorCount: number;
+	/** Names of applicable purposes, stacks and special features. */
 	displayItems: string[];
+	/** Number of disclosure items omitted by the display limit. */
 	remainingCount: number;
 }
 
@@ -43,7 +50,7 @@ const referencedSummary = (
 	iab: HeadlessIABStateInput | null,
 	maxItems: number
 ): HeadlessIABBannerState => {
-	if (iab?.gvlReference) {
+	if (iab?.gvlReference?.summary) {
 		const { items, vendorCount } = iab.gvlReference.summary;
 		return {
 			displayItems: items.slice(0, maxItems),
