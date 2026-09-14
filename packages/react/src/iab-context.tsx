@@ -8,6 +8,7 @@ import type {
 import { createIAB } from '@c15t/iab';
 import type { CreateIABOptions, IABHandle } from '@c15t/iab';
 import {
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -62,6 +63,10 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
 	const [handle, setHandle] = useState<IABHandle | null>(null);
 	const optionsRef = useRef(options);
+	const handleRef = useRef<IABHandle | null>(null);
+	// Actions taken between hydration and the effect below creating the
+	// handle. A server-rendered banner is clickable in that window.
+	const queuedRef = useRef<((handle: IABHandle) => void)[]>([]);
 
 	useEffect(() => {
 		optionsRef.current = options;
@@ -69,15 +74,39 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 
 	useEffect(() => {
 		const next = createIAB({ ...optionsRef.current, kernel });
+		handleRef.current = next;
 		setHandle(next);
+		const queued = queuedRef.current;
+		queuedRef.current = [];
+		for (const action of queued) {
+			action(next);
+		}
 		return () => {
+			handleRef.current = null;
 			next.dispose();
 		};
 	}, [kernel]);
 
+	const run = useCallback<NonNullable<IABContextValue['run']>>((action) => {
+		const { current } = handleRef;
+		if (current) {
+			return Promise.resolve(action(current));
+		}
+		return new Promise<void>((resolve, reject) => {
+			queuedRef.current.push(async (mounted) => {
+				try {
+					await action(mounted);
+					resolve();
+				} catch (error) {
+					reject(error);
+				}
+			});
+		});
+	}, []);
+
 	const value = useMemo<IABContextValue>(
-		() => ({ handle, setTab, tab }),
-		[handle, tab]
+		() => ({ handle, run, setTab, tab }),
+		[handle, run, tab]
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;
@@ -106,40 +135,48 @@ export const useIAB = function useIAB(): ReactIABState | null {
 		const noop = () => {
 			// Intentionally empty.
 		};
-		const noopAsync = async () => {
-			// Intentionally empty.
-		};
-		const fallbackTo = <Value,>(
-			value: Value | undefined,
-			fallback: Value
-		): Value => value ?? fallback;
-
 		// Rendering keys on kernel state so a server-resolved GVL renders the
-		// IAB surfaces into the first HTML. The handle only exists after the
-		// provider's effect runs; until then the actions below are no-ops.
+		// IAB surfaces into the first HTML. Until the provider's effect has
+		// created the handle, actions queue through `run` and replay against
+		// it; outside any IAB provider they are no-ops.
+		const deferred =
+			iabContext?.run ??
+			((action: (mounted: IABHandle) => void | Promise<void>) =>
+				handle ? Promise.resolve(action(handle)) : Promise.resolve());
+		const act =
+			<Args extends unknown[]>(
+				method: (mounted: IABHandle) => (...args: Args) => void
+			) =>
+			(...args: Args) => {
+				if (handle) {
+					method(handle)(...args);
+					return;
+				}
+				void deferred((mounted) => method(mounted)(...args));
+			};
+
 		return {
 			...iab,
-			acceptAll: fallbackTo(handle?.acceptAll, noop),
+			acceptAll: act((mounted) => mounted.acceptAll),
 			config: {
 				cmpId: iab.cmpId,
 				enabled: iab.enabled && Boolean(iab.gvl),
 			},
 			isLoadingGVL: iab.enabled && !iab.gvl,
 			nonIABVendors: iab.customVendors,
-			preferenceCenterTab: fallbackTo(iabContext?.tab, 'purposes'),
-			rejectAll: fallbackTo(handle?.rejectAll, noop),
-			save: fallbackTo(handle?.save, noopAsync),
-			setPreferenceCenterTab: fallbackTo(iabContext?.setTab, noop),
-			setPurposeConsent: fallbackTo(handle?.setPurposeConsent, noop),
-			setPurposeLegitimateInterest: fallbackTo(
-				handle?.setPurposeLegitimateInterest,
-				noop
+			preferenceCenterTab: iabContext?.tab ?? 'purposes',
+			rejectAll: act((mounted) => mounted.rejectAll),
+			save: () =>
+				handle ? handle.save() : deferred((mounted) => mounted.save()),
+			setPreferenceCenterTab: iabContext?.setTab ?? noop,
+			setPurposeConsent: act((mounted) => mounted.setPurposeConsent),
+			setPurposeLegitimateInterest: act(
+				(mounted) => mounted.setPurposeLegitimateInterest
 			),
-			setSpecialFeatureOptIn: fallbackTo(handle?.setSpecialFeatureOptIn, noop),
-			setVendorConsent: fallbackTo(handle?.setVendorConsent, noop),
-			setVendorLegitimateInterest: fallbackTo(
-				handle?.setVendorLegitimateInterest,
-				noop
+			setSpecialFeatureOptIn: act((mounted) => mounted.setSpecialFeatureOptIn),
+			setVendorConsent: act((mounted) => mounted.setVendorConsent),
+			setVendorLegitimateInterest: act(
+				(mounted) => mounted.setVendorLegitimateInterest
 			),
 		};
 	}, [iab, iabContext]);

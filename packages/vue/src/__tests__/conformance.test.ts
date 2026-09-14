@@ -222,13 +222,8 @@ const buildInitOutput = function buildInitOutput(
 		policyId: policy.id,
 		status: 'matched',
 	});
-	return {
+	const init: InitOutput = {
 		branding: 'c15t',
-		// The same-origin init route ships the vendor list for IAB policies,
-		// and the Nuxt plugin hands that payload to the server render.
-		...(isIabComponent(opts.component)
-			? { gvl: MINIMAL_GVL as unknown as GlobalVendorList }
-			: {}),
 		jurisdiction: 'GDPR',
 		location: {
 			countryCode: 'DE',
@@ -238,6 +233,12 @@ const buildInitOutput = function buildInitOutput(
 		policySnapshotToken: 'vue_conformance_token',
 		translations: resolveTranslations(options, opts.locale),
 	};
+	// The same-origin init route ships the vendor list for IAB policies,
+	// and the Nuxt plugin hands that payload to the server render.
+	if (isIabComponent(opts.component)) {
+		init.gvl = MINIMAL_GVL as unknown as GlobalVendorList;
+	}
+	return init;
 };
 
 const buildKernelConfig = function buildKernelConfig(

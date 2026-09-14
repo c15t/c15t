@@ -118,6 +118,41 @@ describe('createIAB: seeding the kernel', () => {
 		vi.unstubAllGlobals();
 	});
 
+	test('narrows a kernel-held GVL to the vendors allowlist', async () => {
+		const kernel = createConsentKernel();
+		kernel.set.iab({ cmpId: 28, enabled: true, gvl: MOCK_GVL });
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+		const [keep] = Object.keys(MOCK_GVL.vendors);
+
+		const iab = createIAB({ cmpId: 28, kernel, vendors: [Number(keep)] });
+		await iab.whenReady();
+
+		const held = kernel.getSnapshot().iab?.gvl;
+		expect(Object.keys(held?.vendors ?? {})).toEqual([keep]);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		iab.dispose();
+		vi.unstubAllGlobals();
+	});
+
+	test('keeps a server null GVL for a non-IAB policy instead of fetching', async () => {
+		const kernel = createConsentKernel({
+			initialIab: { cmpId: 28, enabled: false, gvl: null },
+		});
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const iab = createIAB({ cmpId: 28, kernel });
+		await iab.whenReady();
+
+		expect(kernel.getSnapshot().iab?.enabled).toBe(false);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		iab.dispose();
+		vi.unstubAllGlobals();
+	});
+
 	test('null gvl disables IAB (non-IAB region)', () => {
 		const kernel = createConsentKernel();
 		const iab = createIAB({
