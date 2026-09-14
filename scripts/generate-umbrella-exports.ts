@@ -257,7 +257,15 @@ const toShimBase = function toShimBase(umbrellaSubpath: string): string {
 	if (umbrellaSubpath === '.') {
 		return 'shims/index';
 	}
-	return `shims/${umbrellaSubpath.slice(2)}`;
+	// Public specifiers stay descriptive; Vite serves the resolved shim URL.
+	// Keep component names out of that URL, including direct subpath imports.
+	const filename = umbrellaSubpath
+		.slice(2)
+		.replaceAll('consent-banner', 'prompt')
+		.replaceAll('consent-dialog', 'panel')
+		.replaceAll('consent-widget', 'preferences')
+		.replaceAll('consent-manager', 'manager');
+	return `shims/${filename}`;
 };
 
 const renderEsmShim = function renderEsmShim(

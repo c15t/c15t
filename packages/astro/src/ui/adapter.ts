@@ -59,7 +59,7 @@ const surfaces = new Map<C15tUIAdapterName, ConsentDialogSurfaceLoader>();
  * @example
  * ```ts
  * registerDialogSurface('svelte', () =>
- *   import('@c15t/astro/islands/consent-dialog-surface.svelte')
+ *   import('@c15t/astro/islands/panel-surface.svelte')
  * );
  * ```
  */

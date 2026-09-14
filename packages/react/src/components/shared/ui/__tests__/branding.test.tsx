@@ -6,8 +6,8 @@ import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
-import type { useConsentManager } from '~/component-hooks/use-consent-manager';
-import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
+import type { useConsentManager } from '~/component-hooks/use-manager';
+import { ConsentDialogFooter } from '~/components/panel/atoms/card';
 import { offline } from '~/transports/offline';
 
 import { BrandingCompactLogo, BrandingLink } from '../branding';

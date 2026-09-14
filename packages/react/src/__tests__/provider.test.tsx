@@ -5,7 +5,7 @@ import { useContext, useEffect, StrictMode } from 'react';
 import { afterEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentBanner } from '../components/consent-banner';
+import { ConsentBanner } from '../components/prompt';
 import { KernelContext } from '../context';
 import { custom, offline } from '../index';
 import { ConsentProvider } from '../provider';

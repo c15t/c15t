@@ -50,11 +50,11 @@ import {
 } from '../../../core/src/modules/persistence/record-codec';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import { ConsentBanner } from '../components/consent-banner';
-import { ConsentDialog } from '../components/consent-dialog';
-import { ConsentDialogLink } from '../components/consent-dialog-link';
-import { ConsentDialogTrigger } from '../components/consent-dialog-trigger';
 import { Frame } from '../components/frame';
+import { ConsentDialog } from '../components/panel';
+import { ConsentDialogLink } from '../components/panel-link';
+import { ConsentDialogTrigger } from '../components/panel-trigger';
+import { ConsentBanner } from '../components/prompt';
 import { KernelContext } from '../context';
 import { ConsentProvider } from '../provider';
 import { consentMarkup } from './consent-markup';

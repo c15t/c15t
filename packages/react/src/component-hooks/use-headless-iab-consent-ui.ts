@@ -4,7 +4,7 @@ import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import { useCallback, useMemo } from 'react';
 
 import { useIAB } from '../iab-context';
-import { useConsentManager } from './use-consent-manager';
+import { useConsentManager } from './use-manager';
 
 export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 	const iab = useIAB();

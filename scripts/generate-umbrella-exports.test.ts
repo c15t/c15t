@@ -102,6 +102,33 @@ describe('deriveUmbrellaArtifacts', () => {
 		);
 	});
 
+	it('keeps direct component imports behind neutral client shim URLs', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: { packageName: '@c15t/react', prefix: 'react' },
+				entryInfo: {
+					'./consent-dialog': { hasDefaultExport: false, isClientModule: true },
+				},
+				exports: {
+					'./consent-dialog': {
+						import: './dist/panel.js',
+						types: './dist-types/panel.d.ts',
+					},
+				},
+			}),
+		]);
+		expect(artifacts.exports['./react/consent-dialog']).toEqual({
+			import: './shims/react/panel.js',
+			types: './shims/react/panel.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/react/panel.js']).toContain(
+			"'use client'"
+		);
+		expect(artifacts.shimFiles['shims/react/panel.js']).toContain(
+			"export * from '@c15t/react/consent-dialog'"
+		);
+	});
+
 	it('mirrors CSS subpaths as copied dist files', () => {
 		const artifacts = deriveUmbrellaArtifacts([
 			fixtureSource({

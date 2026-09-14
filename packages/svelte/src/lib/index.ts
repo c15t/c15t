@@ -61,16 +61,16 @@ export type {
 export { focusTrap } from './actions/focus-trap';
 export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';
-export { default as ConsentBanner } from './components/consent-banner.svelte';
-export { default as ConsentButton } from './components/consent-button.svelte';
-export { default as ConsentDialog } from './components/consent-dialog.svelte';
-export { default as ConsentDialogLink } from './components/consent-dialog-link.svelte';
-export { default as ConsentDialogTrigger } from './components/consent-dialog-trigger.svelte';
-export { default as ConsentManagerProvider } from './components/consent-manager-provider.svelte';
-export { default as ConsentWidget } from './components/consent-widget.svelte';
+export { default as ConsentBanner } from './components/prompt.svelte';
+export { default as ConsentButton } from './components/action-button.svelte';
+export { default as ConsentDialog } from './components/panel.svelte';
+export { default as ConsentDialogLink } from './components/panel-link.svelte';
+export { default as ConsentDialogTrigger } from './components/panel-trigger.svelte';
+export { default as ConsentManagerProvider } from './components/manager-provider.svelte';
+export { default as ConsentWidget } from './components/preferences.svelte';
 export { default as Frame } from './components/frame.svelte';
-export { default as IABConsentBanner } from './components/iab-consent-banner.svelte';
-export { default as IABConsentDialog } from './components/iab-consent-dialog.svelte';
+export { default as IABConsentBanner } from './components/iab-prompt.svelte';
+export { default as IABConsentDialog } from './components/iab-panel.svelte';
 export {
 	getConsentKernel,
 	getConsentManager,

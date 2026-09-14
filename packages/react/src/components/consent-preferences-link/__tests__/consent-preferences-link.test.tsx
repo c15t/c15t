@@ -4,9 +4,9 @@ import { userEvent } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
-import { ConsentDialog } from '~/components/consent-dialog';
-import { ConsentDialogLink } from '~/components/consent-dialog-link';
-import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import { ConsentDialog } from '~/components/panel';
+import { ConsentDialogLink } from '~/components/panel-link';
+import { ConsentDialogTrigger } from '~/components/panel-trigger';
 import { offline } from '~/transports/offline';
 
 describe('ConsentDialogLink', () => {

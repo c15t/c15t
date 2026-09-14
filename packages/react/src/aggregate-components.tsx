@@ -7,11 +7,11 @@ import { registerDialogChunkWarmer } from './chunk-warming';
 import type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
-} from './components/consent-dialog';
+} from './components/panel';
 import type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
-} from './components/consent-widget';
+} from './components/preferences';
 import { useActiveUI } from './hooks';
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
@@ -27,10 +27,12 @@ const withSuspense = function withSuspense(
 	return LazyAggregateComponent;
 };
 
+// Vite uses these module paths for development requests and production
+// chunk names. Keep them neutral so URL filters do not block the UI.
 const lazyDialogExport = function lazyDialogExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
-			const module = await import('./components/consent-dialog');
+			const module = await import('./components/panel');
 			const exports = module as Record<string, unknown>;
 			return {
 				default: exports[name] as AnyComponent,
@@ -42,13 +44,13 @@ const lazyDialogExport = function lazyDialogExport(name: string) {
 // Warm the dialog chunk on user intent (customize-button hover/focus) so the
 // first open never pays network+parse on the click path.
 registerDialogChunkWarmer(() => {
-	void import('./components/consent-dialog');
+	void import('./components/panel');
 });
 
 const lazyWidgetExport = function lazyWidgetExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
-			const module = await import('./components/consent-widget');
+			const module = await import('./components/preferences');
 			const exports = module as Record<string, unknown>;
 			return {
 				default: exports[name] as AnyComponent,

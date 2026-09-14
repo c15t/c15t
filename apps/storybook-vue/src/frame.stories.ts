@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
-import ConsentFrame from '../../../packages/vue/src/runtime/components/consent-frame.vue';
+import ConsentFrame from '../../../packages/vue/src/runtime/components/frame.vue';
 import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
 
 const meta = {

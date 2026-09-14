@@ -74,6 +74,11 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	'./vue/vue-plugin',
 	'./vue/consent-root',
 	'./vue/consent-widget',
+	// Compatibility entries also resolve to raw SFCs, which Node cannot load.
+	...Object.keys(manifest.exports).filter(
+		(subpath) =>
+			subpath.startsWith('./vue/runtime/') && subpath.endsWith('.vue')
+	),
 ]);
 
 const describeResult = function describeResult(result: LoadResult): string {
@@ -264,6 +269,15 @@ describe('umbrella file subpaths', () => {
 	);
 
 	it('mirrors every vue wildcard shim onto a real scoped runtime file', () => {
+		// Explicit compatibility entries share these directories. Their filenames
+		// differ from public subpaths; the import parity cases cover them above.
+		const explicitTargets = new Set(
+			Object.entries(manifest.exports).flatMap(([subpath, target]) =>
+				typeof target === 'string' || subpath.includes('*')
+					? []
+					: Object.values(target)
+			)
+		);
 		for (const wildcard of ['./vue/runtime/*', './vue/composables/*']) {
 			const target = manifest.exports[wildcard];
 			expect(typeof target, `${wildcard} must be a string wildcard`).toBe(
@@ -271,7 +285,9 @@ describe('umbrella file subpaths', () => {
 			);
 			const shimRoot = (target as string).slice(2, -2);
 			const files = listFiles(join(PACKAGE_DIR, shimRoot)).filter(
-				(file) => !(file.endsWith('.d.ts') || file.endsWith('.d.vue.ts'))
+				(file) =>
+					!(file.endsWith('.d.ts') || file.endsWith('.d.vue.ts')) &&
+					!explicitTargets.has(`./${shimRoot}/${file}`)
 			);
 			expect(files.length, `${wildcard} matched no shim files`).toBeGreaterThan(
 				0

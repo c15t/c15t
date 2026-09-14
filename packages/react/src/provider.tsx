@@ -52,7 +52,7 @@ import type {
 } from './module-hooks';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
-import type { ReactUIOptions } from './types/consent-manager';
+import type { ReactUIOptions } from './types/manager';
 import type { ReactComponentSlots } from './types/slots';
 import type { Theme } from './types/theme';
 import type { V3UIConfigValue } from './ui-config-context';

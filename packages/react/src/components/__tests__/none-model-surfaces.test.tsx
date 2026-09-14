@@ -5,14 +5,14 @@ import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
-import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentDialog } from '~/components/consent-dialog';
+import { ConsentDialogLink } from '~/components/consent-preferences-link/consent-preferences-link';
+import { ConsentDialog } from '~/components/panel';
 import {
 	ConsentDialogTrigger,
 	ConsentDialogTriggerToolbar,
-} from '~/components/consent-dialog-trigger';
-import { ConsentDialogLink } from '~/components/consent-preferences-link/consent-preferences-link';
-import { ConsentWidget } from '~/components/consent-widget';
+} from '~/components/panel-trigger';
+import { ConsentWidget } from '~/components/preferences';
+import { ConsentBanner } from '~/components/prompt';
 import { KernelContext } from '~/context';
 import { useHasConsentUI, useModel } from '~/hooks';
 import { offline } from '~/transports/offline';

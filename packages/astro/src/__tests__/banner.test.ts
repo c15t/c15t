@@ -2,8 +2,8 @@ import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import ConsentBanner from '../components/consent-banner.astro';
-import ConsentDialogTrigger from '../components/consent-dialog-trigger.astro';
+import ConsentDialogTrigger from '../components/panel-trigger.astro';
+import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
 import { hostedMode, offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
