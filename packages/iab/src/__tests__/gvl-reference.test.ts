@@ -418,6 +418,17 @@ test('TCF listeners receive tcloaded only after the replacement list arrives', a
 			true
 		)
 	);
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	expect(
+		listener.mock.calls.filter(([data]) => data.eventStatus === 'tcloaded')
+	).toHaveLength(1);
+	expect(
+		addedWhileLoading.mock.calls.filter(
+			([data]) => data.eventStatus === 'tcloaded'
+		)
+	).toHaveLength(1);
 });
 
 test('hosted fetching reproduces the server geo and privacy inputs', async () => {

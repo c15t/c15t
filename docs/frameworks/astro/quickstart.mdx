@@ -78,12 +78,15 @@ Set `C15T_BACKEND_URL` to your backend's absolute URL, with policy rules and the
 app origin configured. The integration serializes its options into browser
 configuration. Keep secrets and callbacks out of this configuration.
 
-For IAB policies, the browser fetches the vendor list from the backend's `/init`
-endpoint after server rendering. That endpoint must be publicly reachable from
-the app origin and allow its CORS requests without server-only credentials.
-A private backend needs a public same-origin proxy that keeps authentication on
-the server. Astro injects its local init route only in manifest mode; hosted mode
-uses the configured backend URL directly.
+For IAB policies in hosted mode, the browser fetches the vendor list from the
+configured backend's `/init` endpoint after server rendering. That endpoint must
+be publicly reachable from the app origin and allow its CORS requests without
+server-only credentials. A private hosted backend needs a public same-origin
+proxy that keeps authentication on the server.
+
+In manifest mode, Astro injects a local init route and the browser fetches the
+vendor list through that same-origin route. The backend does not need to allow
+browser access or CORS requests from the app.
 
 The framework integration must appear before `c15t()`. For React or Vue, install
 that framework's Astro integration and c15t adapter, register the matching

@@ -6,11 +6,13 @@ import {
 	resolveIABBannerSummary,
 } from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
+import { useEffect } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { useHeadlessIABConsentUI } from '../component-hooks/use-headless-iab-consent-ui';
 import { IABConsentDialog } from '../components/iab-panel';
 import { IABConsentBanner } from '../components/iab-prompt';
 import { KernelContext } from '../context';
@@ -206,9 +208,13 @@ it.each([false, true])(
 	}
 );
 
-it.each(['accept', 'reject'])(
-	'keeps the React IAB banner available after a failed deferred %s',
-	async (action) => {
+it.each(
+	(['banner', 'dialog', 'compound'] as const).flatMap((surface) =>
+		['accept', 'reject'].map((action) => ({ action, surface }))
+	)
+)(
+	'keeps the React IAB $surface available after a failed deferred $action',
+	async ({ action, surface }) => {
 		let rejectLoad!: (error: Error) => void;
 		const fetch = vi
 			.fn()
@@ -226,6 +232,7 @@ it.each(['accept', 'reject'])(
 				options={{
 					...options(false),
 					iab: { cmpId: 28 },
+					initialUI: surface === 'banner' ? 'banner' : 'dialog',
 					prefetch: {
 						...policyFixture({}, { model: 'iab' }),
 						initialIab: {
@@ -236,16 +243,31 @@ it.each(['accept', 'reject'])(
 					},
 				}}
 			>
-				<IABConsentBanner />
+				{
+					{
+						banner: <IABConsentBanner />,
+						compound: (
+							<IABConsentDialog.Root>
+								<IABConsentDialog.Card>
+									<IABConsentDialog.Footer />
+								</IABConsentDialog.Card>
+							</IABConsentDialog.Root>
+						),
+						dialog: <IABConsentDialog />,
+					}[surface]
+				}
 			</ComponentFixtureProvider>
 		);
 		try {
 			const button = () =>
 				document.querySelector<HTMLButtonElement>(
-					`[data-testid="iab-consent-banner-${action}-button"]`
+					surface === 'banner'
+						? `[data-testid="iab-consent-banner-${action}-button"]`
+						: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
 				);
 			await vi.waitFor(() => {
 				expect(button()).not.toBeNull();
+				expect(button()?.disabled).toBe(false);
 				expect(fetch).toHaveBeenCalledOnce();
 			});
 			button()?.click();
@@ -260,6 +282,48 @@ it.each(['accept', 'reject'])(
 		} finally {
 			await screen.unmount();
 			vi.unstubAllGlobals();
+		}
+	}
+);
+
+it.each(['banner', 'dialog'] as const)(
+	'a pending IAB %s save preserves a reopened dialog',
+	async (surface) => {
+		const reply = Promise.withResolvers<{ ok: boolean }>();
+		const save = vi.fn(() => reply.promise);
+		let controls!: ReturnType<typeof useHeadlessIABConsentUI>;
+		const Probe = () => {
+			const current = useHeadlessIABConsentUI();
+			useEffect(() => {
+				controls = current;
+			}, [current]);
+			return null;
+		};
+		const screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					initialUI: surface,
+					mode: custom({ save }),
+				}}
+			>
+				<Probe />
+			</ComponentFixtureProvider>
+		);
+		try {
+			await vi.waitFor(() => expect(controls.iab?.gvl).toBeTruthy());
+			const pending =
+				surface === 'banner'
+					? controls.performBannerAction('accept')
+					: controls.performDialogAction('accept');
+			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+			controls.openDialog();
+			await vi.waitFor(() => expect(controls.activeUI).toBe('dialog'));
+			reply.resolve({ ok: true });
+			await pending;
+			expect(controls.activeUI).toBe('dialog');
+		} finally {
+			await screen.unmount();
 		}
 	}
 );

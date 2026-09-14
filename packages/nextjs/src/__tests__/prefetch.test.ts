@@ -702,3 +702,54 @@ describe('resolveConsent: error reporting', () => {
 		expect(warnSpy).not.toHaveBeenCalled();
 	});
 });
+
+test.each(['public', 'custom-fetch', 'header'] as const)(
+	'preserves the %s manifest GVL access context',
+	async (access) => {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: {
+				cmpId: 28,
+				enabled: true,
+				gvl: { url: 'https://vendors.test/list.json' },
+			},
+			policyRules: [
+				{
+					id: 'iab',
+					match: { isDefault: true },
+					model: 'iab',
+					prompt: 'choice',
+				},
+			],
+		});
+		headerStore.set('accept-language', 'en');
+		if (access === 'header') {
+			headerStore.set('authorization', 'Bearer private');
+		}
+		const fetch = vi.fn((url: string | URL | Request) =>
+			Promise.resolve(
+				Response.json(
+					String(url).endsWith('/manifest') ? manifest : completeGVL
+				)
+			)
+		);
+		vi.stubGlobal('fetch', fetch);
+		const state = await resolveConsent({
+			config: defineConsentConfig({
+				backendURL: 'https://backend.test',
+				initURL: '/api/c15t/init',
+				manifestURL: 'https://backend.test/manifest',
+			}),
+			fetch: access === 'custom-fetch' ? fetch : undefined,
+			forwardHeaders: access === 'header' ? ['authorization'] : undefined,
+		});
+		expect(state.initialPolicyResolution?.status).toBe('matched');
+		expect(state.initialIab?.gvl).toEqual(
+			access === 'public' ? null : completeGVL
+		);
+		expect(Boolean(state.initialIab?.gvlReference)).toBe(access === 'public');
+		expect(JSON.stringify(state)).not.toContain('Bearer private');
+	}
+);

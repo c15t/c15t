@@ -196,6 +196,11 @@ export const useConsentIabSave = function useConsentIabSave() {
 	return async (input: IabConsentSaveInput, tab?: IabPreferenceTab) => {
 		const controls = context.iab ?? getIABControls(kernel);
 		await controls?.whenReady?.();
+		if (controls !== (context.iab ?? getIABControls(kernel))) {
+			throw new Error(
+				'IAB action cancelled because the consent runtime changed.'
+			);
+		}
 		const gvlData = init.value?.gvl;
 		if (!gvlData) {
 			return;

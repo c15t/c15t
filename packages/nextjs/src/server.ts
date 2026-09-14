@@ -392,12 +392,13 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 		country: options.country,
 		language: options.language,
 	});
+	const deferGvl = !options.fetch && Object.keys(input.forward).length === 0;
 	const transport = createManifestTransport({
 		backendURL: absoluteBackend,
 		baseTranslations,
-		deferGvl: true,
+		deferGvl,
 		fetch: options.fetch,
-		gvlRoute: options.config?.initURL,
+		gvlRoute: deferGvl ? options.config?.initURL : undefined,
 		headers: input.forward,
 		inputs: manifestInputs,
 		manifest: options.manifest,

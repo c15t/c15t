@@ -537,7 +537,10 @@ export const createVueConsentKernelContext =
 			}
 		);
 
-		return {
+		// Assigned after context creation because the subscription updates that context.
+		// oxlint-disable-next-line prefer-const
+		let unsubscribeIab: (() => void) | undefined;
+		const context: VueConsentKernelContext = {
 			activeUI,
 			clearRecords: () => {
 				if (options.runtime) {
@@ -553,6 +556,7 @@ export const createVueConsentKernelContext =
 				kernel.events.emit({ type: 'records:cleared' });
 			},
 			dispose() {
+				unsubscribeIab?.();
 				unsubscribe();
 				unsubscribeChoice();
 				unsubscribePermissions();
@@ -568,6 +572,10 @@ export const createVueConsentKernelContext =
 			snapshot,
 			storedConsent,
 		};
+		unsubscribeIab = options.runtime?.onIABChange((handle) => {
+			context.iab = handle ?? undefined;
+		});
+		return context;
 	};
 
 const normalizeGeoValue = function normalizeGeoValue(

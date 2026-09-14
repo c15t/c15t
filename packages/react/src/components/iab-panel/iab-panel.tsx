@@ -159,7 +159,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	} = useIABConsentManager({
 		preferences: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
 	});
-	const { closeUI, openDialog, performDialogAction } =
+	const { banner, closeUI, openDialog, performDialogAction } =
 		useHeadlessIABConsentUI();
 	const resolvedScrollLock = policyDialog.blocking;
 
@@ -234,16 +234,28 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		[iabState]
 	);
 
-	const handleAcceptAll = () => {
-		void performDialogAction('accept');
+	const handleAcceptAll = async () => {
+		try {
+			await performDialogAction('accept');
+		} catch {
+			// Keep the dialog open so a failed vendor-list request can be retried.
+		}
 	};
 
-	const handleRejectAll = () => {
-		void performDialogAction('reject');
+	const handleRejectAll = async () => {
+		try {
+			await performDialogAction('reject');
+		} catch {
+			// Keep the dialog open so a failed vendor-list request can be retried.
+		}
 	};
 
-	const handleSave = () => {
-		void performDialogAction('customize');
+	const handleSave = async () => {
+		try {
+			await performDialogAction('customize');
+		} catch {
+			// Keep the dialog open so a failed vendor-list request can be retried.
+		}
 	};
 
 	const handleClose = useCallback(() => {
@@ -886,7 +898,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 									mode="stroke"
 									size="small"
 									onClick={handleRejectAll}
-									disabled={isLoading}
+									disabled={!banner.isReady}
 									data-action="reject"
 								>
 									{iabTranslations.common.rejectAll}
@@ -896,7 +908,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 									mode="stroke"
 									size="small"
 									onClick={handleAcceptAll}
-									disabled={isLoading}
+									disabled={!banner.isReady}
 									data-action="accept"
 								>
 									{iabTranslations.common.acceptAll}

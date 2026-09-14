@@ -34,18 +34,16 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 			if (action === 'accept') {
 				iab?.acceptAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			if (action === 'reject') {
 				iab?.rejectAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			openDialog();
 		},
-		[closeUI, iab, openDialog]
+		[iab, openDialog]
 	);
 
 	const performDialogAction = useCallback(
@@ -53,19 +51,16 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 			if (action === 'accept') {
 				iab?.acceptAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			if (action === 'reject') {
 				iab?.rejectAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			await iab?.save();
-			closeUI();
 		},
-		[closeUI, iab]
+		[iab]
 	);
 
 	return {

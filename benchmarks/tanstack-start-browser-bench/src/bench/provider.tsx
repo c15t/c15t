@@ -1,6 +1,6 @@
 import { createManifestTransport } from '@c15t/core/transports/manifest';
-// The private IAB fixture uses the adapter's existing React dependency so
-// baseline comparisons keep the parent revision's dependency graph.
+// Vite resolves this through the adapter's own React dependency, preserving
+// the dependency graph used by baseline comparisons.
 import { IABProvider, IABConsentBanner } from '@c15t/react/iab';
 import {
 	ConsentBanner,

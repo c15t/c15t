@@ -752,3 +752,45 @@ test.each(['accept', 'reject', 'save'])(
 		}
 	}
 );
+
+test('cancels an action waiting on a replaced Vue IAB handle and retries on the current handle', async () => {
+	const opts: MountOptions = { component: 'iab-consent-banner' };
+	const { context, config, options } = createContext(opts);
+	context.kernel.set.iab({ enabled: true, gvl: completeGVL });
+	const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+	await handle.whenReady();
+	let finish!: () => void;
+	const waiting = new Promise<void>((resolve) => {
+		finish = resolve;
+	});
+	const oldSave = vi.fn(() => handle.save());
+	const newSave = vi.fn(() => handle.save());
+	context.iab = { ...handle, save: oldSave, whenReady: () => waiting };
+	const container = document.createElement('div');
+	document.body.append(container);
+	const app = createApp(createHarness(opts, options, context));
+	provideContext(app, context, config);
+	app.mount(container);
+	try {
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				'[data-testid="iab-consent-banner-accept-button"]'
+			);
+		await vi.waitFor(() => expect(button()).not.toBeNull());
+		const before = context.kernel.getSnapshot().iab?.vendorConsents;
+		button()?.click();
+		context.iab = { ...handle, save: newSave };
+		finish();
+		await flushScheduler();
+		expect(oldSave).not.toHaveBeenCalled();
+		expect(newSave).not.toHaveBeenCalled();
+		expect(context.kernel.getSnapshot().iab?.vendorConsents).toEqual(before);
+		button()?.click();
+		await vi.waitFor(() => expect(newSave).toHaveBeenCalledOnce());
+	} finally {
+		app.unmount();
+		container.remove();
+		handle.dispose();
+		context.dispose();
+	}
+});

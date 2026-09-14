@@ -583,6 +583,7 @@ export const createIAB = function createIAB(
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
+			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
 			try {
 				cmpApi ??= createCMPApi({
@@ -592,9 +593,10 @@ export const createIAB = function createIAB(
 					gvl,
 				});
 				const current = kernel.getSnapshot();
-				if (existingApi) {
+				if (existingApi && current === beforeUpdate) {
+					// Changed snapshots already publish through the kernel subscription.
 					existingApi.updateConsent(
-						current.iab?.authority?.tcString ?? '',
+						readIAB(kernel).authority?.tcString ?? '',
 						undefined,
 						current.policyRule.model === 'iab'
 					);

@@ -10,5 +10,12 @@ export const getBenchManifestURL = function getBenchManifestURL(): string {
 		.process?.env?.C15T_BENCH_COLD_MANIFEST_TOKEN;
 	const base =
 		process.env.C15T_BENCH_MANIFEST_URL ?? `${BENCH_BACKEND_URL}/manifest`;
-	return token ? `${base}?cold=${encodeURIComponent(token)}` : base;
+	if (!token) {
+		return base;
+	}
+	const url = new URL(base, 'http://c15t-benchmark.local');
+	url.searchParams.set('cold', token);
+	return base.startsWith('/')
+		? `${url.pathname}${url.search}${url.hash}`
+		: url.href;
 };

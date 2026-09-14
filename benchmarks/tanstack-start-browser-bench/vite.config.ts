@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
@@ -19,6 +20,10 @@ import { defineConfig } from 'vite';
  *   `envPrefix`, folds the per-route provider out of `/manifest-ssr`.
  */
 const rootProvider = process.env.C15T_BENCH_ROOT_PROVIDER === '1';
+// Resolve the adapter-owned dependency explicitly, including under isolated installs.
+const adapterRequire = createRequire(
+	createRequire(import.meta.url).resolve('@c15t/tanstack-start')
+);
 
 export default defineConfig({
 	envPrefix: ['VITE_', 'C15T_'],
@@ -33,6 +38,7 @@ export default defineConfig({
 					import.meta.url
 				)
 			),
+			'@c15t/react/iab': adapterRequire.resolve('@c15t/react/iab'),
 		},
 	},
 });

@@ -100,7 +100,13 @@ test.each([undefined, false, true])(
 test('counts custom vendors once before and after list deferral', () => {
 	const input = {
 		customVendors: [
-			{ id: 'custom', legIntPurposes: [], name: 'Custom vendor', purposes: [] },
+			{
+				id: 'custom',
+				legIntPurposes: [],
+				name: 'Custom vendor',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [],
+			},
 		],
 		gvl,
 	};
