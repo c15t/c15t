@@ -329,7 +329,17 @@ const prefetchHosted = async function prefetchHosted(input: {
 		const payload = (await response.json()) as InitOutput;
 		return mergeInitOutputIntoKernelConfig(
 			input.base,
-			input.fetch ? payload : deferInitGvl(payload, `${absolute}/init`, 'init'),
+			input.fetch
+				? payload
+				: deferInitGvl(
+						payload,
+						`${absolute}/init`,
+						'init',
+						forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
+							allowCookie,
+							cookieName: consentCookieName(input.options),
+						})
+					),
 			{},
 			{
 				producerContract: readProducerPolicyContract(response.headers),

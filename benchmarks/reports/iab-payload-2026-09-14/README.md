@@ -73,16 +73,21 @@ the parent manifest handler omitted the GVL. Each run contains seven measured
 cold/warm browser pairs after two warmup pairs. A warm page reuses the browser
 HTTP cache but has no saved consent. Server caches are warm in both arms.
 The complete banner text matches before and after in each framework.
+The after column uses `page-after-review.json`, remeasured after the loading,
+consent-restoration and hosted request-context fixes. `page-after.json` retains
+the first implementation run. Hosted references now include country, region and
+GPC inputs; cross-origin requests may require a preflight. The local fixture
+allows these headers, and the after run includes that request behavior.
 
 | Measurement | TanStack before | TanStack after | Nuxt before | Nuxt after |
 | --- | ---: | ---: | ---: | ---: |
-| HTML bytes | 952,346 | 14,187 | 1,022,401 | 27,607 |
-| HTML gzip bytes | 168,773 | 5,459 | 197,849 | 8,130 |
-| Cold TTFB, median | 18.4 ms | 5.3 ms | 31.3 ms | 15.1 ms |
-| Cold HTML complete, median | 19.6 ms | 5.6 ms | 32.7 ms | 15.3 ms |
-| Cold banner DOM present, median | 26.3 ms | 13.0 ms | 41.0 ms | 22.5 ms |
-| Cold CMP loaded, median | 77.2 ms | 57.0 ms | unavailable | 69.8 ms |
-| Warm CMP loaded, median | 49.7 ms | 26.9 ms | unavailable | 45.1 ms |
+| HTML bytes | 952,346 | 14,202 | 1,022,401 | 27,656 |
+| HTML gzip bytes | 168,773 | 5,463 | 197,849 | 8,149 |
+| Cold TTFB, median | 18.4 ms | 6.0 ms | 31.3 ms | 15.1 ms |
+| Cold HTML complete, median | 19.6 ms | 6.2 ms | 32.7 ms | 15.3 ms |
+| Cold banner DOM present, median | 26.3 ms | 14.3 ms | 41.0 ms | 22.5 ms |
+| Cold CMP loaded, median | 77.2 ms | 64.7 ms | unavailable | 68.1 ms |
+| Warm CMP loaded, median | 49.7 ms | 27.7 ms | unavailable | 47.5 ms |
 | CLS / long-task time | 0 / 0 ms | 0 / 0 ms | 0 / 0 ms | 0 / 0 ms |
 
 The HTML falls by 98.5% in TanStack and 97.3% in Nuxt. The TanStack list

@@ -370,7 +370,7 @@ const fetchHostedInit = async function fetchHostedInit(input: {
 	const payload: InitOutput = await response.json();
 	return mapInitOutputToInitResponse(
 		input.deferGvl
-			? deferInitGvl(payload, `${input.backendURL}/init`, 'init')
+			? deferInitGvl(payload, `${input.backendURL}/init`, 'init', input.headers)
 			: payload,
 		input.headers,
 		{

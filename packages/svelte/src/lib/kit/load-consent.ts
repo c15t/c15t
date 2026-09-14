@@ -179,7 +179,7 @@ export const loadConsent = async function loadConsent(
 			const payload = (await response.json()) as InitOutput;
 			return mergeInitOutputIntoKernelConfig(
 				config,
-				deferInitGvl(payload, options.initRoute, 'init'),
+				deferInitGvl(payload, options.initRoute, 'init', forwarded),
 				{
 					...headersToRecord(event.request.headers),
 					...forwarded,

@@ -70,7 +70,11 @@ without a new vendor-list version.
 Next.js uses the same-origin route when `config.initURL` is configured. Without
 it, manifest resolution references the public list URL from the manifest, as
 Astro does. Hosted init responses use an `init` reference to read the list from
-the existing init endpoint; that endpoint keeps its existing private caching
+the existing init endpoint. These references include the original country,
+region and GPC inputs so a hosted request resolves the same regional policy.
+They do not carry credentials. Cross-origin hosted requests can require a CORS
+preflight, which adds latency before CMP readiness on a cold connection.
+The endpoint keeps its existing private caching
 rules. Allow the referenced origin in your CSP `connect-src` directive.
 
 An explicit `gvl` supplied by your application still takes precedence, including

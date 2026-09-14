@@ -179,6 +179,14 @@ export const initOutputSchema = v.object({
 	/** Deferred public list and the small summary needed to render the banner. */
 	gvlReference: v.optional(
 		v.object({
+			/** Non-secret policy inputs for a hosted init request. */
+			context: v.optional(
+				v.object({
+					country: v.optional(v.string()),
+					gpc: v.optional(v.boolean()),
+					region: v.optional(v.string()),
+				})
+			),
 			format: v.optional(v.literal('init')),
 			language: v.string(),
 			/** Absent when client filtering requires the full list to derive copy. */

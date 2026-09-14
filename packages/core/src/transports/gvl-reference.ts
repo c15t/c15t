@@ -1,3 +1,4 @@
+import { extractConsentRequestInputs } from '@c15t/schema/types';
 import type { GlobalVendorList, InitOutput } from '@c15t/schema/types';
 
 import { resolveIABBannerSummary } from '../libs/iab-banner-summary';
@@ -11,17 +12,21 @@ const normalizeLanguage = (language?: string): string =>
  * @param payload - Init payload, left unchanged.
  * @param url - Public GVL URL, or a same-origin init route serving versioned lists.
  * @param format - Set to `init` when the URL returns an init envelope.
+ * @param requestHeaders - Server request headers; only geo and GPC inputs are retained.
  * @returns Init data without the full list.
  */
 export const deferInitGvl = <
 	Payload extends {
 		gvl?: GlobalVendorList | null;
 		translations?: { language: string } | null;
+		location?: { countryCode?: string | null; regionCode?: string | null };
+		resolvedPrivacySignals?: { gpc?: boolean };
 	},
 >(
 	payload: Payload,
 	url: string,
-	format?: 'init'
+	format?: 'init',
+	requestHeaders?: HeadersInit
 ): Omit<Payload, 'gvl'> & {
 	gvl?: GlobalVendorList | null;
 	gvlReference?: InitOutput['gvlReference'];
@@ -33,6 +38,10 @@ export const deferInitGvl = <
 	) {
 		return payload;
 	}
+	const inputs =
+		format === 'init'
+			? extractConsentRequestInputs(new Headers(requestHeaders))
+			: undefined;
 	const summary = resolveIABBannerSummary(
 		{ gvl: payload.gvl },
 		{ maxItems: Number.POSITIVE_INFINITY }
@@ -41,6 +50,13 @@ export const deferInitGvl = <
 		...payload,
 		gvl: null,
 		gvlReference: {
+			context: inputs
+				? {
+						country: payload.location?.countryCode ?? inputs.country,
+						gpc: payload.resolvedPrivacySignals?.gpc ?? inputs.gpc ?? false,
+						region: payload.location?.regionCode ?? inputs.region,
+					}
+				: undefined,
 			format,
 			language: normalizeLanguage(payload.translations?.language),
 			summary: {

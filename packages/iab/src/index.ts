@@ -321,8 +321,34 @@ const changedReference = (
 			after.url !== before.url ||
 			after.language !== before.language ||
 			after.vendorListVersion !== before.vendorListVersion ||
-			after.format !== before.format)
+			after.format !== before.format ||
+			after.context?.country !== before.context?.country ||
+			after.context?.region !== before.context?.region ||
+			after.context?.gpc !== before.context?.gpc)
 	);
+};
+
+const referenceHeaders = (
+	requested: NonNullable<ConsentSnapshot['iab']>['gvlReference']
+): Record<string, string> | undefined => {
+	if (!requested) {
+		return undefined;
+	}
+	const headers: Record<string, string> = {
+		'accept-language': requested.language,
+	};
+	if (requested.format === 'init') {
+		if (requested.context?.country) {
+			headers['x-c15t-country'] = requested.context.country;
+		}
+		if (requested.context?.region) {
+			headers['x-c15t-region'] = requested.context.region;
+		}
+		if (requested.context?.gpc !== undefined) {
+			headers['x-c15t-gpc'] = requested.context.gpc ? '1' : '0';
+		}
+	}
+	return headers;
 };
 
 const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
@@ -424,12 +450,11 @@ export const createIAB = function createIAB(
 		if (preloaded !== undefined) {
 			return preloaded;
 		}
+
 		const list = await fetchGVL(requested ? undefined : vendors, {
 			endpoint: requested?.url ?? gvlURL,
 			format: requested?.format,
-			headers: requested
-				? { 'accept-language': requested.language }
-				: undefined,
+			headers: referenceHeaders(requested),
 		});
 		if (
 			requested &&
@@ -515,7 +540,8 @@ export const createIAB = function createIAB(
 			}
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
-			cmpApi?.updateVendorList(gvl);
+			const existingApi = cmpApi;
+			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
 			kernel.set.iab({ enabled: true, gvl, gvlReference: undefined });
 			try {
@@ -525,7 +551,15 @@ export const createIAB = function createIAB(
 					gdprApplies: kernel.getSnapshot().policyRule.model === 'iab',
 					gvl,
 				});
-				cmpApi.setDisplayStatus(cmpDisplayStatus(kernel.getSnapshot()));
+				const current = kernel.getSnapshot();
+				if (existingApi) {
+					existingApi.updateConsent(
+						current.iab?.authority?.tcString ?? '',
+						undefined,
+						current.policyRule.model === 'iab'
+					);
+				}
+				cmpApi.setDisplayStatus(cmpDisplayStatus(current));
 				if (mayHydrate) {
 					void restoreAuthority();
 				}

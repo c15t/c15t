@@ -429,9 +429,7 @@ export const createCMPApi = function createCMPApi(
 			tcString = '';
 			currentConsentData = null;
 			cachedTCData = null;
-			if (nextGvl) {
-				notifyEventListeners('tcloaded');
-			}
+			// The owner publishes current confirmed TC data with updateConsent.
 		},
 	};
 };

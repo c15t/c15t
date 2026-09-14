@@ -131,7 +131,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 				forward.cookie ||
 				options.forwardHeaders?.some((name) => options.headers.has(name))
 				? response
-				: deferInitGvl(response, `${absoluteBackend}/init`, 'init')
+				: deferInitGvl(response, `${absoluteBackend}/init`, 'init', forward)
 		);
 		if (response.subjectId) {
 			merged.initialRecords = {

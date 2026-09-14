@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import {
 	createGvlReferenceURL,
+	deferInitGvl,
 	serveGvlReference,
 } from '../transports/gvl-reference';
 
@@ -59,4 +60,27 @@ describe('versioned public vendor list route', () => {
 		).toBeNull();
 		expect(load).not.toHaveBeenCalled();
 	});
+});
+
+test('hosted references preserve policy inputs without request credentials', () => {
+	const deferred = deferInitGvl(
+		{
+			gvl,
+			location: { countryCode: 'DE', regionCode: 'BE' },
+			translations: { language: 'DE-DE' },
+		},
+		'/init',
+		'init',
+		{
+			authorization: 'Bearer private',
+			cookie: 'session=private',
+			'sec-gpc': '1',
+			'x-vercel-ip-country': 'US',
+		}
+	);
+	expect(deferred.gvlReference).toMatchObject({
+		context: { country: 'DE', gpc: true, region: 'BE' },
+		language: 'de',
+	});
+	expect(JSON.stringify(deferred)).not.toContain('private');
 });

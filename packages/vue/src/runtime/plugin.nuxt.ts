@@ -90,7 +90,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				deferInitGvl(
 					payload,
 					`${initFetchTarget.baseURL?.replace(/\/$/u, '') ?? ''}${initFetchTarget.url}`,
-					'init'
+					'init',
+					headers
 				),
 		});
 		prefetch = data.value ?? undefined;

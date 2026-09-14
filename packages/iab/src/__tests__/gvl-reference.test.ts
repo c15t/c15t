@@ -401,3 +401,55 @@ test('TCF listeners receive tcloaded only after the replacement list arrives', a
 		)
 	);
 });
+
+test('hosted fetching reproduces the server geo and privacy inputs', async () => {
+	const kernel = kernelWithReference();
+	const deferred = deferInitGvl(
+		{ ...payload, location: { countryCode: 'DE', regionCode: 'BE' } },
+		'/hosted/init',
+		'init',
+		{ 'sec-gpc': '1' }
+	);
+	kernel.set.iab({ gvlReference: deferred.gvlReference });
+	const fetch = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+		const headers = new Headers(init?.headers);
+		const matched =
+			headers.get('x-c15t-country') === 'DE' &&
+			headers.get('x-c15t-region') === 'BE' &&
+			headers.get('x-c15t-gpc') === '1';
+		return Promise.resolve(
+			Response.json({ gvl: matched ? completeGVL : null })
+		);
+	});
+	vi.stubGlobal('fetch', fetch);
+	const handle = createIAB({ cmpId: 28, kernel });
+	disposers.push(handle.dispose);
+	await handle.whenReady();
+	expect(kernel.getSnapshot().iab?.gvl).toEqual(completeGVL);
+});
+
+test('inline list replacement preserves retained consent in the CMP API', async () => {
+	const kernel = kernelWithReference();
+	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
+	const handle = createIAB({ cmpId: 28, kernel, persistence: false });
+	disposers.push(handle.dispose);
+	await handle.whenReady();
+	handle.acceptAll();
+	await handle.save();
+	const tcString = kernel.getSnapshot().iab?.authority?.tcString;
+	expect(tcString).toBeTruthy();
+	const api = handle.cmpApi;
+	kernel.set.iab({ gvl: { ...completeGVL } });
+	await handle.whenReady();
+	expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(tcString);
+	expect(handle.cmpApi).toBe(api);
+	expect(api?.getTcString()).toBe(tcString);
+	const callback = vi.fn();
+	window.__tcfapi?.('getTCData', 2, callback);
+	await vi.waitFor(() =>
+		expect(callback).toHaveBeenCalledWith(
+			expect.objectContaining({ tcString }),
+			true
+		)
+	);
+});
