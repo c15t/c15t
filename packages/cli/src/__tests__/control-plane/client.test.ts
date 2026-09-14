@@ -14,6 +14,24 @@ const client = () =>
 	});
 afterEach(() => vi.unstubAllGlobals());
 describe('hosted projects', () => {
+	it('normalizes long backend paths without rescanning interior slashes', async () => {
+		const baseUrl = `https://example.com/api/${'/'.repeat(100_000)}control`;
+		const fetch = vi
+			.fn()
+			.mockResolvedValue(Response.json({ data: [], success: true }));
+		vi.stubGlobal('fetch', fetch);
+		const start = performance.now();
+		const configured = new ControlPlaneClient({
+			accessToken: 'test-token',
+			baseUrl: `${baseUrl}///`,
+		});
+		expect(performance.now() - start).toBeLessThan(1_000);
+		await configured.listInstances();
+		expect(fetch.mock.calls[0]?.[0]).toBe(
+			`${baseUrl}/api/v1/consent/instances`
+		);
+	});
+
 	it('never substitutes a dashboard URL for a pending backend', async () => {
 		vi.stubGlobal(
 			'fetch',

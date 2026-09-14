@@ -31,6 +31,8 @@ For unpublished v3 development, use [boilerplate generation](./commands/boilerpl
 
 Setup supports Next.js App Router, Next.js Pages Router, generic React applications with a recognizable application component, and vanilla JavaScript configuration. It selects the exported application component when editing a layout and refuses ambiguous layouts.
 
+Next.js layout detection includes locale directories and two nested route segments, such as `app/[locale]/(site)/layout.tsx` and `src/app/(site)/[locale]/layout.ts`. A directory named `layout.tsx` does not count as a layout file.
+
 Automatic editing of existing application layouts remains limited to the Next.js and React setup paths. For Vue, Nuxt, Svelte, SvelteKit, Solid, Astro, and TanStack Start, generate boilerplate and follow its wiring instructions. Remix and Gatsby require manual integration.
 
 ## Choose a workflow

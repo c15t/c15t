@@ -88,7 +88,7 @@ for (const [subpath, value] of Object.entries(manifest.exports)) {
 			value.import.slice(2).replace('/*.js', '')
 		);
 		concretes = listShimModules(shimDir).map((name) =>
-			subpath.replace('*', name)
+			subpath.replaceAll('*', () => name)
 		);
 	}
 

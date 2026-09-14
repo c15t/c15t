@@ -61,6 +61,59 @@ describe('reconcileIframe', () => {
 		expect(iframe.getAttribute('data-src')).toBeNull();
 	});
 
+	test.each([
+		// oxlint-disable-next-line no-script-url -- Exercise rejection of executable URLs.
+		'javascript:parent.__iframeProbe = true;void 0',
+		// oxlint-disable-next-line no-script-url -- Exercise rejection of mixed-case executable URLs.
+		'JaVaScRiPt:parent.__iframeProbe = true;void 0',
+		' \t\njavascript:parent.__iframeProbe = true;void 0',
+		'java\tscript:parent.__iframeProbe = true;void 0',
+		'java\nscript:parent.__iframeProbe = true;void 0',
+		'java\rscript:parent.__iframeProbe = true;void 0',
+		'data:text/html,<script>parent.__iframeProbe = true</script>',
+		'blob:https://example.com/untrusted',
+		'about:blank',
+		'https://[invalid',
+	])('keeps unsafe or malformed data-src blocked: %j', (dataSrc) => {
+		const snap = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+		}).getSnapshot();
+		const iframe = makeIframe({
+			'data-category': 'marketing',
+			'data-src': dataSrc,
+		});
+		reconcileIframe(iframe, buildReconcilePass(snap));
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe(dataSrc);
+	});
+
+	test.each([
+		['https://example.com/embed', 'https://example.com/embed'],
+		['http://example.com/embed', 'http://example.com/embed'],
+		['//example.com/embed', 'https://example.com/embed'],
+		['/embed', 'https://site.example/embed'],
+		['../embed', 'https://site.example/embed'],
+		['embed', 'https://site.example/content/embed'],
+	])(
+		'resolves HTTP(S) data-src against the iframe document: %s',
+		(dataSrc, expected) => {
+			const ownerDocument = document.implementation.createHTMLDocument();
+			const base = ownerDocument.createElement('base');
+			base.href = 'https://site.example/content/';
+			ownerDocument.head.appendChild(base);
+			// oxlint-disable-next-line iframe-missing-sandbox -- Detached DOM fixture for URL resolution, not React.createElement.
+			const iframe = ownerDocument.createElement('iframe');
+			iframe.setAttribute('data-category', 'marketing');
+			iframe.setAttribute('data-src', dataSrc);
+			const snap = createConsentKernel({
+				initialRecords: choiceRecords({ marketing: true }),
+			}).getSnapshot();
+			reconcileIframe(iframe, buildReconcilePass(snap));
+			expect(iframe.src).toBe(expected);
+			expect(iframe.getAttribute('data-src')).toBeNull();
+		}
+	);
+
 	test('removes src when consent revoked', () => {
 		const snap = createConsentKernel().getSnapshot();
 		const iframe = makeIframe({

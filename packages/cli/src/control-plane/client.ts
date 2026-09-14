@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
 	getControlPlaneBaseUrl,
 	getControlPlaneOrigin,
+	normalizeControlPlaneBaseUrl,
 } from '../auth/base-url';
 import { fetchWithDeadline } from '../auth/http';
 import { TIMEOUTS } from '../constants';
@@ -69,7 +70,7 @@ export class ControlPlaneClient {
 		getControlPlaneOrigin(config.baseUrl);
 		this.config = {
 			...config,
-			baseUrl: config.baseUrl.replace(/\/+$/u, ''),
+			baseUrl: normalizeControlPlaneBaseUrl(config.baseUrl),
 			timeout: config.timeout ?? TIMEOUTS.CONTROL_PLANE_CONNECTION,
 		};
 	}

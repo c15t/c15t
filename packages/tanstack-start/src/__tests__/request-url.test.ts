@@ -54,6 +54,19 @@ describe('resolveRequestURL', () => {
 });
 
 describe('isSelfRoute', () => {
+	test('matches long prefixes without rescanning interior slashes', () => {
+		const prefix = `/api/${'/'.repeat(100_000)}c15t`;
+		const request = new Request('https://example.test/');
+		const start = performance.now();
+		const result = isSelfRoute(
+			`https://example.test${prefix}/manifest`,
+			request,
+			`${prefix}///`
+		);
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(result).toBe(true);
+	});
+
 	test('detects the app’s own consent route', () => {
 		const request = new Request('http://localhost:3010/');
 		expect(

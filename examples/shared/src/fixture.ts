@@ -77,8 +77,11 @@ export const startExampleFixture = async function startExampleFixture(
 			);
 			await writeWebResponse(result, response);
 		} catch (error) {
+			console.error('Fixture request failed', error);
 			response.statusCode = 500;
-			response.end(String(error));
+			response.setHeader('content-type', 'text/plain; charset=utf-8');
+			response.setHeader('x-content-type-options', 'nosniff');
+			response.end('Fixture request failed');
 		}
 	});
 	server.listen(0, '127.0.0.1');

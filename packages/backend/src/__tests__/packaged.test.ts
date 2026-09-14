@@ -46,11 +46,11 @@ const entries = Object.entries(manifest.exports).flatMap(
 		subpath.includes('*')
 			? [
 					[
-						subpath.replace('*', '1-baseline'),
+						subpath.replaceAll('*', '1-baseline'),
 						Object.fromEntries(
 							Object.entries(targets).map(([k, v]) => [
 								k,
-								v.replace('*', '1-baseline'),
+								v.replaceAll('*', '1-baseline'),
 							])
 						) as typeof targets,
 					] as const,

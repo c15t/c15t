@@ -1,5 +1,15 @@
 import { URLS } from '../constants';
 
+/** Removes trailing slashes without rescanning slash runs inside the URL. @internal */
+export const normalizeControlPlaneBaseUrl =
+	function normalizeControlPlaneBaseUrl(baseUrl: string): string {
+		let end = baseUrl.length;
+		while (end > 0 && baseUrl[end - 1] === '/') {
+			end -= 1;
+		}
+		return baseUrl.slice(0, end);
+	};
+
 /**
  * Resolve the control-plane base URL for auth + hosted project management.
  *
@@ -13,7 +23,7 @@ export const getControlPlaneBaseUrl =
 			return URLS.CONSENT_IO;
 		}
 
-		return envValue.replace(/\/+$/u, '');
+		return normalizeControlPlaneBaseUrl(envValue);
 	};
 
 /** Normalize the issuer used to scope locally stored credentials. */

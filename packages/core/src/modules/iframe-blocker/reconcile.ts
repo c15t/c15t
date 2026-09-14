@@ -6,10 +6,10 @@
  * kernel access — the snapshot-derived `ReconcilePass` is built once
  * by `buildReconcilePass` and shared across every iframe in the pass.
  *
- * Semantics (matching v2):
+ * Semantics:
  * - iframes WITHOUT `data-category` are untouched (never blocked).
  * - iframes WITH `data-category`:
- *   - consent granted + has `data-src` but no `src` → move data-src → src
+ *   - consent granted + HTTP(S) `data-src` but no `src` → set resolved src
  *   - consent NOT granted + has `src`              → removeAttribute('src')
  */
 import type { AllConsentNames } from '../../consent/consent-types';
@@ -79,7 +79,17 @@ export const reconcileIframe = function reconcileIframe(
 
 	if (allowed) {
 		if (dataSrc && !iframe.getAttribute('src')) {
-			iframe.setAttribute('src', dataSrc);
+			let source: URL;
+			try {
+				source = new URL(dataSrc, iframe.ownerDocument.baseURI);
+			} catch {
+				return;
+			}
+			// Parse before checking the scheme: browsers normalize control characters.
+			if (source.protocol !== 'http:' && source.protocol !== 'https:') {
+				return;
+			}
+			iframe.setAttribute('src', source.href);
 			iframe.removeAttribute('data-src');
 		}
 		return;

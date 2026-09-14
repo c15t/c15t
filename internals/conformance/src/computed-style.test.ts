@@ -333,3 +333,44 @@ test('diffComputedStyle ignores animation-name hash drift across bundlers', () =
 	};
 	expect(diffComputedStyle(a, b)).toEqual([]);
 });
+
+test('canonicalizes space-separated and comma-separated color functions', () => {
+	for (const value of [
+		'RGB ( 255 0 0 / 50% )',
+		'rgba(255, 0, 0, .5)',
+		'hsl(0 100% 50% / .5)',
+	]) {
+		expect(canonicalizeStyleValue('color', value)).toBe('rgba(255, 0, 0, 0.5)');
+	}
+});
+
+test('preserves incomplete colors without rescanning repeated function prefixes', () => {
+	for (const prefix of ['rgb(', 'hsl(']) {
+		const value = prefix.repeat(25_000);
+		expect(canonicalizeStyleValue('color', value)).toBe(value);
+		expect(canonicalizeStyleValue('color', `#abc ${value}`)).toBe(
+			`rgb(170, 187, 204) ${value}`
+		);
+	}
+});
+
+test('handles long whitespace runs in and after color functions', () => {
+	const spaces = ' '.repeat(100_000);
+	for (const name of ['rgb', 'hsl']) {
+		expect(canonicalizeStyleValue('color', `${name}(${spaces})`)).toBe(
+			`${name}()`
+		);
+		expect(canonicalizeStyleValue('color', `${name}(${spaces}`)).toBe(
+			`${name}(${spaces}`
+		);
+	}
+	expect(canonicalizeStyleValue('color', `#abc ${spaces}end`)).toBe(
+		`rgb(170, 187, 204) ${spaces}end`
+	);
+});
+
+test('still canonicalizes hex colors after an unterminated function', () => {
+	expect(canonicalizeStyleValue('color', 'rgb( #abc')).toBe(
+		'rgb(rgb(170, 187, 204)'
+	);
+});

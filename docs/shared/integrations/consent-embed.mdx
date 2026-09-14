@@ -344,3 +344,17 @@ Keep a transcript, address or other useful alternative outside the embed.
 `loading="lazy"` is a performance hint; the consent condition controls whether
 the iframe exists at all. A denied category may be fixed by policy, so opening
 preferences does not guarantee that the visitor can grant it.
+
+## Gate existing iframe markup
+
+For markup that uses `data-category` and `data-src`, the
+`createIframeBlocker` module from `c15t/modules/iframe-blocker` promotes
+`data-src` only when the category has consent and the URL resolves to HTTP or
+HTTPS. Relative URLs resolve against the iframe document's base URL.
+Malformed URLs and other schemes, including `javascript:`, `data:` and `blob:`,
+remain in `data-src` without loading. Correct the URL and call
+`processAllIframes()` to retry.
+
+Keep the initial URL in `data-src`, without `src`, so the browser cannot load
+it before the blocker runs. The module does not sanitize arbitrary HTML or
+modify iframes without `data-category`.

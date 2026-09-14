@@ -281,6 +281,32 @@ describe('shared policy assertion sensitivity', () => {
 });
 
 describe('evidence deltas and hydration diagnostics', () => {
+	for (const [message, accepted] of [
+		['Prominence must match', true],
+		['PRIMARYBUTTON is invalid', true],
+		['equal emphasis for ACCEPT and reject', true],
+		['reject before equal', false],
+		['equal\naccept', false],
+		['equal '.repeat(25_000), false],
+	] as const) {
+		test(`checks policy diagnostics: ${message.slice(0, 40)}`, async () => {
+			await withKernel(async (kernel) => {
+				const actual = evidence(kernel, {
+					...emptyLogs(),
+					diagnostics: [message],
+				});
+				const checked = checkObservation(actual, {
+					diagnostic: 'action-prominence',
+				});
+				if (accepted) {
+					await checked;
+				} else {
+					await expect(checked).rejects.toThrow('corrupted-observation');
+				}
+			});
+		});
+	}
+
 	test('counts the current action independently of earlier cumulative callbacks', async () => {
 		await withKernel(async (kernel) => {
 			const events: { name: string; payload: unknown }[] = [];

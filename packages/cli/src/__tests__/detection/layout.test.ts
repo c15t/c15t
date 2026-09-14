@@ -16,6 +16,48 @@ describe('layout detection', () => {
 	});
 
 	describe('findLayoutFile', () => {
+		test.each([
+			['app/[locale]/(site)/layout.tsx', 'app/[locale]'],
+			['src/app/[locale]/(site)/layout.tsx', 'src/app/[locale]'],
+			['app/(site)/[locale]/layout.ts', 'app/(site)/[locale]'],
+		])('finds nested layout %s', async (layoutPath, appDirectory) => {
+			await fs.mkdir(path.dirname(path.join(projectRoot, layoutPath)), {
+				recursive: true,
+			});
+			await fs.writeFile(path.join(projectRoot, layoutPath), '');
+
+			const { findLayoutFile } = await import('../../detection/layout');
+			expect(await findLayoutFile(projectRoot)).toMatchObject({
+				appDirectory: appDirectory.split('/').join(path.sep),
+				localeSegment: '[locale]',
+				path: layoutPath.split('/').join(path.sep),
+				type: 'app',
+			});
+		});
+
+		test('does not treat a directory named layout.tsx as a layout file', async () => {
+			await fs.mkdir(path.join(projectRoot, 'app', 'layout.tsx'), {
+				recursive: true,
+			});
+			const { findLayoutFile } = await import('../../detection/layout');
+			expect(await findLayoutFile(projectRoot)).toBeNull();
+		});
+
+		test('prefers the root layout when a nested layout also exists', async () => {
+			await fs.mkdir(path.join(projectRoot, 'app', '[locale]', '(site)'), {
+				recursive: true,
+			});
+			await fs.writeFile(path.join(projectRoot, 'app', 'layout.tsx'), '');
+			await fs.writeFile(
+				path.join(projectRoot, 'app', '[locale]', '(site)', 'layout.tsx'),
+				''
+			);
+			const { findLayoutFile } = await import('../../detection/layout');
+			expect((await findLayoutFile(projectRoot))?.path).toBe(
+				path.join('app', 'layout.tsx')
+			);
+		});
+
 		test('should find standard app/layout.tsx', async () => {
 			await fs.mkdir(path.join(projectRoot, 'app'), { recursive: true });
 			await fs.writeFile(path.join(projectRoot, 'app/layout.tsx'), '');

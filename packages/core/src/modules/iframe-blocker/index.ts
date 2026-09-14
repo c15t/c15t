@@ -12,10 +12,10 @@
  *
  * v2 parity: `packages/core/src/libs/iframe-blocker/core.ts`.
  *
- * Semantics (matching v2):
+ * Semantics:
  * - iframes WITHOUT `data-category` are untouched (never blocked).
  * - iframes WITH `data-category`:
- *   - consent granted + has `data-src` but no `src` → move data-src → src
+ *   - consent granted + HTTP(S) `data-src` but no `src` → set resolved src
  *   - consent NOT granted + has `src`              → removeAttribute('src')
  *
  * Headless (no placeholder UI in v2; v3 preserves that — consumer can
