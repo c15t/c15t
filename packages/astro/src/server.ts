@@ -394,7 +394,10 @@ const prefetchManifest = async function prefetchManifest(
 		});
 		return mergeInitOutputIntoKernelConfig(
 			input.base,
-			payload,
+			// This loader only caches the public list; caller fetches stay inline.
+			!input.fetch && manifest.iab?.gvl
+				? deferInitGvl(payload, manifest.iab.gvl.url)
+				: payload,
 			forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
 				allowCookie: absoluteTarget
 					? mayForwardCookie(absoluteTarget, input.url)
