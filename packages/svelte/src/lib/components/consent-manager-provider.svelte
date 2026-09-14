@@ -208,10 +208,13 @@
 
 	const getIABState = function getIABState(): SvelteIABState | null {
 		const { iab } = snapshot;
-		const { handle: readyHandle, pending } = resolvedIABHandle();
-		if (!iab || pending) {
+		if (!iab) {
 			return null;
 		}
+		// Rendering keys on the kernel state so a server-resolved GVL puts the
+		// IAB surfaces in the first HTML. The handle becomes ready only after
+		// `@c15t/iab` lands on the client; until then the actions are no-ops.
+		const { handle: readyHandle } = resolvedIABHandle();
 		const noop = () => {
 			/* empty */
 		};
@@ -223,7 +226,7 @@
 			acceptAll: readyHandle?.acceptAll ?? noop,
 			config: {
 				cmpId: iab.cmpId,
-				enabled: iab.enabled,
+				enabled: iab.enabled && Boolean(iab.gvl),
 			},
 			isLoadingGVL: iab.enabled && !iab.gvl,
 			nonIABVendors: iab.customVendors,

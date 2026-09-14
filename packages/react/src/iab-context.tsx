@@ -114,14 +114,17 @@ export const useIAB = function useIAB(): ReactIABState | null {
 			fallback: Value
 		): Value => value ?? fallback;
 
+		// Rendering keys on kernel state so a server-resolved GVL renders the
+		// IAB surfaces into the first HTML. The handle only exists after the
+		// provider's effect runs; until then the actions below are no-ops.
 		return {
 			...iab,
 			acceptAll: fallbackTo(handle?.acceptAll, noop),
 			config: {
 				cmpId: iab.cmpId,
-				enabled: iab.enabled && Boolean(handle),
+				enabled: iab.enabled && Boolean(iab.gvl),
 			},
-			isLoadingGVL: iab.enabled && (!iab.gvl || !handle),
+			isLoadingGVL: iab.enabled && !iab.gvl,
 			nonIABVendors: iab.customVendors,
 			preferenceCenterTab: fallbackTo(iabContext?.tab, 'purposes'),
 			rejectAll: fallbackTo(handle?.rejectAll, noop),

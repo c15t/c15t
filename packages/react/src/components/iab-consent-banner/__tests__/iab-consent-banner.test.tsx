@@ -365,4 +365,33 @@ describe('IAB Consent Banner Unit Tests', () => {
 			);
 		});
 	});
+
+	describe('Server rendering', () => {
+		test('renders into the first HTML when the server state carries the GVL', async () => {
+			const { renderToString } = await import('react-dom/server');
+			// A server-resolved state: the kernel already holds the vendor list,
+			// but no `IABProvider` effect has run, so there is no handle yet.
+			const options: ConsentProviderOptions = {
+				iab: { cmpId: 160, cmpVersion: 1 },
+				mode: offline(),
+				prefetch: {
+					...defaultIABOptions.prefetch,
+					initialIab: {
+						cmpId: 160,
+						enabled: true,
+						gvl: mockGVL as never,
+					},
+				},
+			};
+
+			const html = renderToString(
+				<ConsentProvider options={options}>
+					<IABConsentBanner />
+				</ConsentProvider>
+			);
+
+			expect(html).toContain('data-testid="iab-consent-banner-card"');
+			expect(html).toContain('data-testid="iab-consent-banner-accept-button"');
+		});
+	});
 });
