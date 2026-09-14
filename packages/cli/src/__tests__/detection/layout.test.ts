@@ -20,6 +20,10 @@ describe('layout detection', () => {
 			['app/[locale]/(site)/layout.tsx', 'app/[locale]'],
 			['src/app/[locale]/(site)/layout.tsx', 'src/app/[locale]'],
 			['app/(site)/[locale]/layout.ts', 'app/(site)/[locale]'],
+			['app/[locale]/(site)/layout.jsx', 'app/[locale]'],
+			['app/(site)/[locale]/layout.js', 'app/(site)/[locale]'],
+			['src/app/[locale]/(site)/layout.jsx', 'src/app/[locale]'],
+			['src/app/(site)/[locale]/layout.js', 'src/app/(site)/[locale]'],
 		])('finds nested layout %s', async (layoutPath, appDirectory) => {
 			await fs.mkdir(path.dirname(path.join(projectRoot, layoutPath)), {
 				recursive: true,
