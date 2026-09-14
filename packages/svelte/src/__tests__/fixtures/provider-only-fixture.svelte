@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ConsentKernel } from '@c15t/core';
 
-	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 	import ConformanceKernelCapture from './conformance-kernel-capture.svelte';
 

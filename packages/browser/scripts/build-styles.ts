@@ -39,7 +39,9 @@ const readClassMap = async function readClassMap(
 ): Promise<Record<string, string>> {
 	// The `.node.js` variant is the class map without the CSS import.
 	const source = await readFile(
-		join(uiDist, 'styles', 'components', `${component}.node.js`),
+		fileURLToPath(
+			import.meta.resolve(`@c15t/ui/styles/components/${component}`)
+		),
 		'utf8'
 	);
 	const match = /export default(?<map>\{.*\});?\s*$/su.exec(source);

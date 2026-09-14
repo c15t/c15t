@@ -8,8 +8,8 @@ import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import type { Component, ComponentPublicInstance } from 'vue';
 
-import ConsentDialogTrigger from '../runtime/components/consent-dialog-trigger.vue';
-import ConsentManager from '../runtime/components/consent-manager.vue';
+import ConsentManager from '../runtime/components/manager.vue';
+import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';

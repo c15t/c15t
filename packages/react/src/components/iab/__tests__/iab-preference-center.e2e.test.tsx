@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
+import { IABConsentDialog } from '~/components/iab-panel';
 
 import {
 	clearConsentState,

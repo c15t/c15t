@@ -4,9 +4,9 @@ import { useContext, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
 
-import { useConsentManager } from '../component-hooks/use-consent-manager';
 import { useHeadlessConsentUI } from '../component-hooks/use-headless-consent-ui';
-import { ConsentDialog } from '../components/consent-dialog';
+import { useConsentManager } from '../component-hooks/use-manager';
+import { ConsentDialog } from '../components/panel';
 import { KernelContext } from '../context';
 import { ConsentProvider } from '../provider';
 

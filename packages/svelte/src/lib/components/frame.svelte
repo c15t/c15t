@@ -7,7 +7,7 @@
 	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
-	import ConsentButton from './consent-button.svelte';
+	import ConsentButton from './action-button.svelte';
 
 	let {
 		category,

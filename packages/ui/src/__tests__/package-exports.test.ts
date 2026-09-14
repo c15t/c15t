@@ -158,6 +158,10 @@ const NODE_CONDITIONS = ['node', 'import'] as const;
  */
 describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 	for (const name of COMPONENT_STYLE_MODULES) {
+		const filename = name
+			.replace('consent-banner', 'prompt')
+			.replace('consent-dialog', 'panel')
+			.replace('consent-manager', 'manager');
 		test(`@c15t/ui/styles/components/${name} → dist JS class map`, () => {
 			const resolvedPath = resolveExport(
 				`./styles/components/${name}`,
@@ -166,7 +170,7 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 
 			expect(resolvedPath).toContain('/dist/styles/components/');
 			expect(resolvedPath).not.toContain('/src/');
-			expect(resolvedPath).toMatch(new RegExp(`/${name}\\.js$`, 'u'));
+			expect(resolvedPath).toMatch(new RegExp(`/${filename}\\.js$`, 'u'));
 			expect(existsSync(resolvedPath)).toBe(true);
 		});
 
@@ -176,7 +180,7 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 			);
 
 			expect(resolvedPath).toContain('/dist/styles/components/');
-			expect(resolvedPath).toMatch(new RegExp(`/${name}\\.css$`, 'u'));
+			expect(resolvedPath).toMatch(new RegExp(`/${filename}\\.css$`, 'u'));
 			expect(readFileSync(resolvedPath, 'utf-8')).toContain('c15t-ui-');
 		});
 
@@ -187,7 +191,7 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 			);
 
 			expect(resolvedPath).toContain('/dist/styles/components/');
-			expect(resolvedPath).toMatch(new RegExp(`/${name}\\.js$`, 'u'));
+			expect(resolvedPath).toMatch(new RegExp(`/${filename}\\.js$`, 'u'));
 			expect(existsSync(resolvedPath)).toBe(true);
 		});
 
@@ -197,7 +201,7 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 				'utf-8'
 			);
 
-			expect(contents).toContain(`./${name}.css`);
+			expect(contents).toContain(`./${filename}.css`);
 			for (const marker of STYLE_LOADER_MARKERS) {
 				expect(contents).not.toContain(marker);
 			}
@@ -213,6 +217,10 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
  */
 describe('package exports: node condition serves class maps without CSS imports', () => {
 	for (const name of COMPONENT_STYLE_MODULES) {
+		const filename = name
+			.replace('consent-banner', 'prompt')
+			.replace('consent-dialog', 'panel')
+			.replace('consent-manager', 'manager');
 		test(`@c15t/ui/styles/components/${name} → ${name}.node.js`, () => {
 			for (const subpath of [
 				`./styles/components/${name}`,
@@ -221,7 +229,9 @@ describe('package exports: node condition serves class maps without CSS imports'
 				const resolvedPath = resolveExport(subpath, NODE_CONDITIONS);
 
 				expect(resolvedPath).toContain('/dist/styles/components/');
-				expect(resolvedPath).toMatch(new RegExp(`/${name}\\.node\\.js$`, 'u'));
+				expect(resolvedPath).toMatch(
+					new RegExp(`/${filename}\\.node\\.js$`, 'u')
+				);
 				expect(existsSync(resolvedPath)).toBe(true);
 			}
 		});
@@ -245,7 +255,7 @@ describe('package exports: node condition serves class maps without CSS imports'
 			}
 			expect(nodeContents).toBe(
 				bundlerContents.replace(
-					new RegExp(`import\\s*["']\\./${name}\\.css["']\\s*;?`, 'u'),
+					new RegExp(`import\\s*["']\\./${filename}\\.css["']\\s*;?`, 'u'),
 					''
 				)
 			);

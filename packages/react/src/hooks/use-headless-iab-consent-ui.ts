@@ -8,7 +8,7 @@ import type {
 } from '@c15t/iab/headless';
 import { useCallback, useMemo } from 'react';
 
-import { useIABConsentManager } from './use-iab-consent-manager';
+import { useIABConsentManager } from './use-iab-manager';
 
 export type {
 	HeadlessIABBannerAction,

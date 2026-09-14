@@ -10,7 +10,7 @@ import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 
-import ConsentBanner from '../runtime/components/consent-banner.vue';
+import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';

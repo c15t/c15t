@@ -10,8 +10,8 @@
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import ConsentBanner from '../components/consent-banner.astro';
 import ConsentScript from '../components/consent-script.astro';
+import ConsentBanner from '../components/prompt.astro';
 import { c15t, resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { buildColorSchemeScript, resolveConsentContext } from '../server';

@@ -15,6 +15,19 @@ Check the backend URL and Network response, then confirm the active policy for
 the visitor's location. Do not solve missing UI by granting every category or
 setting `enabled: false`: disabling the runtime permits optional loading.
 
+## Why does the UI disappear with a content blocker?
+
+Check the browser Network panel for `ERR_BLOCKED_BY_CLIENT` or a failed dynamic
+import. Older c15t builds used component filenames such as
+`consent-dialog-*.js`, which some cookie-annoyance lists block. Update the c15t
+packages and rebuild the app. Current component modules use neutral filenames;
+public component imports stay the same. This also covers Vite development
+requests used by TanStack Start and other Vite integrations.
+
+Extensions can separately hide elements with cosmetic filters or block a
+configured backend URL. Check the failed request or hidden element to distinguish
+those cases from a missing component module.
+
 ## Why does analytics run before a choice?
 
 Check effective permission under the selected policy, then find every loader

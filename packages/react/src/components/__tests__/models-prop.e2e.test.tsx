@@ -13,14 +13,14 @@ import { render } from 'vitest-browser-react';
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
-import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentDialog } from '~/components/consent-dialog';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
+import { IABConsentDialog } from '~/components/iab-panel';
+import { IABConsentBanner } from '~/components/iab-prompt';
 import {
 	clearConsentState,
 	defaultProviderIABOptions,
 } from '~/components/iab/__tests__/e2e-setup';
+import { ConsentDialog } from '~/components/panel';
+import { ConsentBanner } from '~/components/prompt';
 import { offline } from '~/transports/offline';
 
 // Mock localStorage

@@ -9,8 +9,8 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
-import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
+import ConsentSwitch from './switch.vue';
 
 const props = defineProps<{
 	vendorData: GlobalVendorList | null;

@@ -104,7 +104,19 @@
 			"default": "./dist/api/manifest.js"
 		},
 		"./styles.css": "./dist/styles.css",
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./components/consent-banner-deferred.astro": "./src/components/prompt-deferred.astro",
+		"./components/consent-banner.astro": "./src/components/prompt.astro",
+		"./components/consent-dialog-trigger.astro": "./src/components/panel-trigger.astro",
+		"./components/consent-dialog.astro": "./src/components/panel.astro",
+		"./components/iab-consent-banner.astro": "./src/components/iab-prompt.astro",
+		"./components/iab-consent-dialog.astro": "./src/components/iab-panel.astro",
+		"./components/islands/consent-dialog-surface.svelte": "./src/components/islands/panel-surface.svelte",
+		"./islands/consent-dialog-surface.svelte": "./src/components/islands/panel-surface.svelte",
+		"./components/islands/consent-dialog-surface.tsx": "./src/components/islands/panel-surface.tsx",
+		"./islands/consent-dialog-surface.tsx": "./src/components/islands/panel-surface.tsx",
+		"./components/islands/consent-dialog-surface.vue": "./src/components/islands/panel-surface.vue",
+		"./islands/consent-dialog-surface.vue": "./src/components/islands/panel-surface.vue"
 	},
 	"publishConfig": {
 		"access": "public"

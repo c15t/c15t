@@ -14,12 +14,12 @@ import { userEvent } from 'vitest/browser';
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
-import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentDialog } from '~/components/consent-dialog';
+import { ConsentDialog } from '~/components/panel';
 import {
 	ConsentDialogTrigger,
 	ConsentDialogTriggerToolbar,
-} from '~/components/consent-dialog-trigger';
+} from '~/components/panel-trigger';
+import { ConsentBanner } from '~/components/prompt';
 import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(
