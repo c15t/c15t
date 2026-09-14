@@ -88,6 +88,13 @@ In manifest mode, Astro injects a local init route and the browser fetches the
 vendor list through that same-origin route. The backend does not need to allow
 browser access or CORS requests from the app.
 
+Past the manifest's `s-maxage` the injected routes and the middleware serve it
+stale and refresh it in the background. On adapters that expose
+`locals.runtime.ctx.waitUntil` (Cloudflare) the refresh is handed to it so it
+is not cut short when the response is sent; nothing is needed from you. For
+another lifetime API, pass `onBackgroundRevalidate` to
+`createConsentRouteHandlers` or `resolveConsentContext`.
+
 The framework integration must appear before `c15t()`. For React or Vue, install
 that framework's Astro integration and c15t adapter, register the matching
 integration, and set `ui: 'react'` or `ui: 'vue'`.

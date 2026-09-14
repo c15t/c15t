@@ -29,7 +29,13 @@ export const register = function register({
 				c.req.query('language') ?? null
 			);
 
+			// Vercel's CDN consumes `s-maxage` and `stale-while-revalidate` from a
+			// bare `Cache-Control` and strips them before forwarding, so a server
+			// adapter reading through the CDN would never see them. Sending the
+			// same policy as `CDN-Cache-Control` makes Vercel forward
+			// `Cache-Control` untouched; other CDNs honour either header.
 			c.header('Cache-Control', manifest.cacheControl);
+			c.header('CDN-Cache-Control', manifest.cacheControl);
 			c.header('ETag', manifest.etag);
 
 			// A matching etag means the client already has this manifest; 304

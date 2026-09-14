@@ -36,6 +36,12 @@ export const replaceBenchmarkFixtures = function replaceBenchmarkFixtures(
 			.split('\0')
 			.filter(Boolean);
 	const manifests = new Map<string, string>();
+	// A harness the base revision does not have cannot be measured on both
+	// sides, so it stays out of the base tree entirely rather than being
+	// installed there against the base lockfile.
+	const newPackageDirectories: string[] = [];
+	const isInNewPackage = (file: string) =>
+		newPackageDirectories.some((directory) => file.startsWith(directory));
 	for (const file of tracked(source, true).filter((path) =>
 		path.endsWith('/package.json')
 	)) {
@@ -43,9 +49,8 @@ export const replaceBenchmarkFixtures = function replaceBenchmarkFixtures(
 			continue;
 		}
 		if (!existsSync(join(base, file))) {
-			throw new Error(
-				`Benchmark fixture ${file} does not exist on the base revision.`
-			);
+			newPackageDirectories.push(file.slice(0, -'package.json'.length));
+			continue;
 		}
 		const headManifest = JSON.parse(readFileSync(join(source, file), 'utf8'));
 		const baseManifest = JSON.parse(readFileSync(join(base, file), 'utf8'));
@@ -81,7 +86,7 @@ export const replaceBenchmarkFixtures = function replaceBenchmarkFixtures(
 		rmSync(join(base, file), { force: true });
 	}
 	for (const file of tracked(source, true)) {
-		if (!existsSync(join(source, file))) {
+		if (!existsSync(join(source, file)) || isInNewPackage(file)) {
 			continue;
 		}
 		mkdirSync(dirname(join(base, file)), { recursive: true });

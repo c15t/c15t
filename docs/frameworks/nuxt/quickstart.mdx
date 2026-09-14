@@ -29,6 +29,12 @@ server manifest path and registers same-origin init and manifest routes. Nuxt
 resolves the visitor's consent using the manifest and reuses the initial state
 for hydration.
 
+Past the manifest's `s-maxage` those routes serve it stale and refresh it in
+the background. On request-scoped presets (Vercel, Cloudflare, Netlify) Nitro
+puts the platform's `waitUntil` on the event, and the routes hand the refresh
+to it so it is not cut short when the response is sent. Nothing is needed from
+you.
+
 ## Register consent-gated scripts
 
 Include measurement and marketing categories in your policy for these vendors.

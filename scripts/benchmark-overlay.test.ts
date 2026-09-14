@@ -54,6 +54,24 @@ it('removes retired routes, includes new fixtures, and preserves base product co
 		expect(() => replaceBenchmarkFixtures(head, base)).toThrow(
 			'absent from the base manifest'
 		);
+		// A harness only the head has is left out of the base tree: it cannot
+		// be measured on both sides and must not be installed against the base
+		// lockfile.
+		writeFileSync(
+			join(head, 'benchmarks/app/package.json'),
+			JSON.stringify({ dependencies: { dependency: 'head' } })
+		);
+		mkdirSync(join(head, 'benchmarks/new-harness/src'), { recursive: true });
+		writeFileSync(
+			join(head, 'benchmarks/new-harness/package.json'),
+			JSON.stringify({ dependencies: { dependency: 'head' } })
+		);
+		writeFileSync(join(head, 'benchmarks/new-harness/src/run.ts'), 'new');
+		replaceBenchmarkFixtures(head, base);
+		expect(existsSync(join(base, 'benchmarks/new-harness'))).toBe(false);
+		expect(readFileSync(join(base, 'benchmarks/app/new.ts'), 'utf8')).toBe(
+			'new fixture'
+		);
 	} finally {
 		rmSync(root, { force: true, recursive: true });
 	}

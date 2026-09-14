@@ -306,6 +306,15 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	cache?: ManifestCache;
 
 	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
+	/**
 	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
 	 * Set this explicitly to route deferred public vendor lists through it.
 	 * Without it, lists use the manifest URL directly. Self-route detection
@@ -375,6 +384,7 @@ const loadManifest = async function loadManifest(
 		cache: options.cache,
 		fetch: options.fetch,
 		headers: stripIdentityForCleartext(forward, sourceURL),
+		onBackgroundRevalidate: options.onBackgroundRevalidate,
 		sourceURL,
 	});
 	return { backendURL, manifest: cached.manifest };

@@ -40,6 +40,36 @@ import type { ConsentManifestOptions } from './types';
 const INIT_CACHE_CONTROL = 'private, no-store';
 const MANIFEST_ROUTE_SUFFIX = '/manifest';
 
+/**
+ * Hands a promise to the `waitUntil` a SvelteKit adapter exposes on
+ * `event.platform.context` (Cloudflare Workers and Pages, Vercel edge), so a
+ * background refresh outlives the response on runtimes that would cancel
+ * it. A no-op where the adapter provides none.
+ */
+export const waitUntilFromEvent = function waitUntilFromEvent(
+	revalidation: Promise<void>,
+	event: RequestEvent
+): void {
+	const context = (
+		event.platform as { context?: { waitUntil?: unknown } } | undefined
+	)?.context;
+	if (context && typeof context.waitUntil === 'function') {
+		(context.waitUntil as (promise: Promise<unknown>) => void).call(
+			context,
+			revalidation
+		);
+	}
+};
+
+const bindBackgroundRevalidate = function bindBackgroundRevalidate(
+	options: ConsentManifestOptions,
+	event: RequestEvent
+): (revalidation: Promise<void>) => void {
+	const onBackgroundRevalidate =
+		options.onBackgroundRevalidate ?? waitUntilFromEvent;
+	return (revalidation) => onBackgroundRevalidate(revalidation, event);
+};
+
 /** Options for {@link createSvelteKitConsentRouteHandlers}. */
 export interface SvelteKitConsentRouteOptions extends ConsentManifestOptions {
 	/**
@@ -179,6 +209,7 @@ export const createSvelteKitConsentRouteHandlers =
 			const { manifest } = await fetchCachedManifest({
 				config: { manifestURL },
 				fetch: options.fetch,
+				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 			});
 
 			const listResponse = await serveGvlReference(event.request, (language) =>
@@ -240,6 +271,7 @@ export const createSvelteKitConsentRouteHandlers =
 			const result = await fetchCachedManifest({
 				config: { manifestURL },
 				fetch: options.fetch,
+				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 				query,
 			});
 

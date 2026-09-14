@@ -36,6 +36,49 @@ import type { FetchGvl } from './manifest-init';
 const INIT_CACHE_CONTROL = 'private, no-store';
 const MANIFEST_ROUTE_SUFFIX = '/manifest';
 
+/**
+ * The per-request context a route or the middleware can pass so a
+ * background refresh is registered with the platform. Astro adapters that
+ * cancel detached work after the response expose `waitUntil` on
+ * `locals.runtime.ctx` (Cloudflare); anything else is left alone.
+ */
+export interface RequestLifetime {
+	locals?: unknown;
+}
+
+/**
+ * Hands a promise to the `waitUntil` an Astro adapter exposes on
+ * `locals.runtime.ctx` (Cloudflare), so a background refresh outlives the
+ * response on runtimes that would cancel it. A no-op where there is none.
+ */
+export const waitUntilFromLocals = function waitUntilFromLocals(
+	revalidation: Promise<void>,
+	locals: unknown
+): void {
+	const ctx = (
+		locals as { runtime?: { ctx?: { waitUntil?: unknown } } } | undefined
+	)?.runtime?.ctx;
+	if (ctx && typeof ctx.waitUntil === 'function') {
+		(ctx.waitUntil as (promise: Promise<unknown>) => void).call(
+			ctx,
+			revalidation
+		);
+	}
+};
+
+const bindBackgroundRevalidate = function bindBackgroundRevalidate(
+	handlerOptions: ConsentRouteHandlerOptions,
+	lifetime: RequestLifetime | undefined
+): ((revalidation: Promise<void>) => void) | undefined {
+	if (handlerOptions.onBackgroundRevalidate) {
+		return handlerOptions.onBackgroundRevalidate;
+	}
+	if (!lifetime) {
+		return undefined;
+	}
+	return (revalidation) => waitUntilFromLocals(revalidation, lifetime.locals);
+};
+
 /** Options accepted by the route handler factory. */
 export interface ConsentRouteHandlerOptions {
 	/** The resolved integration options. */
@@ -47,6 +90,14 @@ export interface ConsentRouteHandlerOptions {
 	 * Defaults to a plain `GET` of the manifest's GVL reference.
 	 */
 	fetchGvl?: FetchGvl;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 /**
@@ -87,10 +138,23 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	handlerOptions: ConsentRouteHandlerOptions
 ) {
-	/** `GET /api/c15t/init` — a resolved `InitOutput`, never cached. */
-	const init = async function init(request: Request): Promise<Response> {
+	/**
+	 * `GET /api/c15t/init` — a resolved `InitOutput`, never cached.
+	 *
+	 * @param request - The incoming request.
+	 * @param lifetime - The route's `{ locals }`, so a background manifest
+	 * refresh can be registered with the adapter's `waitUntil`.
+	 */
+	const init = async function init(
+		request: Request,
+		lifetime?: RequestLifetime
+	): Promise<Response> {
 		const manifest = await loadConsentManifest({
 			fetch: handlerOptions.fetch,
+			onBackgroundRevalidate: bindBackgroundRevalidate(
+				handlerOptions,
+				lifetime
+			),
 			options: handlerOptions.options,
 			source: { headers: request.headers, url: request.url },
 		});
@@ -119,9 +183,16 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		});
 	};
 
-	/** `GET /api/c15t/manifest` — the manifest, with its own cache headers. */
+	/**
+	 * `GET /api/c15t/manifest` — the manifest, with its own cache headers.
+	 *
+	 * @param request - The incoming request.
+	 * @param lifetime - The route's `{ locals }`, so a background manifest
+	 * refresh can be registered with the adapter's `waitUntil`.
+	 */
 	const manifest = async function manifest(
-		request: Request
+		request: Request,
+		lifetime?: RequestLifetime
 	): Promise<Response> {
 		const manifestURL = resolveManifestSourceURL(
 			request,
@@ -131,6 +202,10 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		const result = await fetchCachedManifest({
 			config: { manifestURL },
 			fetch: handlerOptions.fetch,
+			onBackgroundRevalidate: bindBackgroundRevalidate(
+				handlerOptions,
+				lifetime
+			),
 			query,
 		});
 
