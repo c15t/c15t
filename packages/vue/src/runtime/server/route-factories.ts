@@ -48,10 +48,11 @@ interface RouteDependencies {
 	useRuntimeConfig: RuntimeConfigReader;
 	/**
 	 * Receives the promise of a background manifest revalidation started by
-	 * a request, with that request's event, so a host on a runtime that
-	 * stops detached work after the response can register it (for example
-	 * `event.waitUntil` where the Nitro preset provides one). The promise
-	 * never rejects.
+	 * a request, with that request's event. Defaults to
+	 * {@link waitUntilFromEvent}: Nitro attaches the platform's `waitUntil`
+	 * to the event on request-scoped presets (Vercel, Cloudflare, Netlify),
+	 * and nothing is registered where there is none. The promise never
+	 * rejects.
 	 */
 	onBackgroundRevalidate?: (
 		revalidation: Promise<void>,
@@ -59,14 +60,30 @@ interface RouteDependencies {
 	) => void;
 }
 
+/**
+ * Hands a promise to the `waitUntil` Nitro places on the event when the
+ * deployment preset provides one, so a background refresh outlives the
+ * response on runtimes that would otherwise cancel it.
+ */
+export const waitUntilFromEvent = function waitUntilFromEvent(
+	revalidation: Promise<void>,
+	event: H3Event<EventHandlerRequest>
+): void {
+	const { waitUntil } = event as { waitUntil?: unknown };
+	if (typeof waitUntil === 'function') {
+		(waitUntil as (promise: Promise<unknown>) => void).call(
+			event,
+			revalidation
+		);
+	}
+};
+
 const bindBackgroundRevalidate = function bindBackgroundRevalidate(
 	dependencies: RouteDependencies,
 	event: H3Event<EventHandlerRequest>
-): ((revalidation: Promise<void>) => void) | undefined {
-	const { onBackgroundRevalidate } = dependencies;
-	if (!onBackgroundRevalidate) {
-		return undefined;
-	}
+): (revalidation: Promise<void>) => void {
+	const onBackgroundRevalidate =
+		dependencies.onBackgroundRevalidate ?? waitUntilFromEvent;
 	return (revalidation) => onBackgroundRevalidate(revalidation, event);
 };
 

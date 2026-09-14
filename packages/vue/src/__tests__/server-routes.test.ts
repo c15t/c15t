@@ -154,6 +154,52 @@ describe('manifest route background revalidation', () => {
 	});
 });
 
+describe('manifest route default background registration', () => {
+	test('hands the refresh to event.waitUntil when the Nitro preset provides one', async () => {
+		vi.useFakeTimers();
+		try {
+			mocks.serverFetch.mockImplementation(() =>
+				Promise.resolve(
+					manifestResponse({
+						'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+						etag: '"rev-1"',
+					})
+				)
+			);
+			const registered: Promise<unknown>[] = [];
+			// The default handlers pass only fetch and runtime config, as the
+			// module's registered entrypoints do; Nitro's per-request
+			// `event.waitUntil` is what a request-scoped preset exposes.
+			const handler = createManifestRoute(routeDependencies);
+			const call = () => {
+				const app = createApp();
+				app.use('/api/c15t/manifest', (event) => {
+					(event as { waitUntil?: unknown }).waitUntil = (
+						promise: Promise<unknown>
+					) => {
+						registered.push(promise);
+					};
+				});
+				(app.use as unknown as MountRoute)('/api/c15t/manifest', handler);
+				return toWebHandler(app)(
+					new Request('http://localhost/api/c15t/manifest')
+				);
+			};
+
+			await call();
+			expect(registered).toHaveLength(0);
+
+			vi.advanceTimersByTime(1500);
+			await call();
+			expect(registered).toHaveLength(1);
+			await expect(registered[0]).resolves.toBeUndefined();
+			expect(mocks.serverFetch).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
 describe('manifest route caching headers', () => {
 	test("forwards the backend's Cache-Control and ETag verbatim", async () => {
 		mocks.serverFetch.mockResolvedValue(
