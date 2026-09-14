@@ -32,7 +32,7 @@ import type {
 	TranslationsResponse,
 } from '@c15t/schema/types';
 import { flushPromises } from '@vue/test-utils';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, onTestFinished, test, vi } from 'vitest';
 import { createApp, createSSRApp, defineComponent, h } from 'vue';
 import type { App } from 'vue';
 import { renderToString } from 'vue/server-renderer';
@@ -653,6 +653,7 @@ test.each([
 	async (component, action) => {
 		const opts: MountOptions = { component };
 		const { context, config, options } = createContext(opts);
+		onTestFinished(() => context.dispose());
 		let rejectLoad!: (error: Error) => void;
 		const fetch = vi
 			.fn()
@@ -663,48 +664,44 @@ test.each([
 					})
 			)
 			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		onTestFinished(() => {
+			vi.unstubAllGlobals();
+		});
 		vi.stubGlobal('fetch', fetch);
 		context.kernel.set.iab({
 			enabled: true,
 			...deferInitGvl({ gvl: completeGVL }, '/vendor-list'),
 		});
 		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		onTestFinished(() => handle.dispose());
 		const container = document.createElement('div');
+		onTestFinished(() => container.remove());
 		document.body.append(container);
 		const app = createApp(createHarness(opts, options, context));
+		onTestFinished(() => app.unmount());
 		provideContext(app, context, config);
 		app.mount(container);
-		try {
-			const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
-			const button = () =>
-				document.querySelector<HTMLButtonElement>(
-					surface === 'banner'
-						? `[data-testid="iab-consent-banner-${action}-button"]`
-						: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
-				);
-			await vi.waitFor(() => {
-				expect(button()).not.toBeNull();
-				expect(button()?.disabled).toBe(false);
-			});
-			button()?.click();
-			rejectLoad(new Error('offline'));
-			await flushScheduler();
-			expect(context.kernel.getSnapshot().activeUI).toBe(surface);
-			expect(context.kernel.getSnapshot().iab?.authority).toBeNull();
-			button()?.click();
-			await vi.waitFor(() =>
-				expect(
-					context.kernel.getSnapshot().iab?.authority?.tcString
-				).toBeTruthy()
+		const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
 			);
-			expect(fetch).toHaveBeenCalledTimes(2);
-		} finally {
-			app.unmount();
-			container.remove();
-			handle.dispose();
-			context.dispose();
-			vi.unstubAllGlobals();
-		}
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		button()?.click();
+		rejectLoad(new Error('offline'));
+		await flushScheduler();
+		expect(context.kernel.getSnapshot().activeUI).toBe(surface);
+		expect(context.kernel.getSnapshot().iab?.authority).toBeNull();
+		button()?.click();
+		await vi.waitFor(() =>
+			expect(context.kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy()
+		);
+		expect(fetch).toHaveBeenCalledTimes(2);
 	}
 );
 
@@ -713,8 +710,10 @@ test.each(['accept', 'reject', 'save'])(
 	async (action) => {
 		const opts: MountOptions = { component: 'iab-consent-dialog' };
 		const { context, config, options } = createContext(opts);
+		onTestFinished(() => context.dispose());
 		context.kernel.set.iab({ enabled: true, gvl: completeGVL });
 		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		onTestFinished(() => handle.dispose());
 		await handle.whenReady();
 		const previousAuthority = context.kernel.getSnapshot().iab?.authority;
 		const save = vi.fn(() => handle.save());
@@ -727,44 +726,39 @@ test.each(['accept', 'reject', 'save'])(
 				.mockImplementation(() => handle.whenReady()),
 		};
 		const container = document.createElement('div');
+		onTestFinished(() => container.remove());
 		document.body.append(container);
 		const app = createApp(createHarness(opts, options, context));
+		onTestFinished(() => app.unmount());
 		provideContext(app, context, config);
 		app.mount(container);
-		try {
-			const button = () =>
-				document.querySelector<HTMLButtonElement>(
-					`[data-testid="iab-consent-dialog-card"] [data-action="${action}"]`
-				);
-			await vi.waitFor(() => expect(button()).not.toBeNull());
-			button()?.click();
-			await flushScheduler();
-			expect(context.kernel.getSnapshot().activeUI).toBe('dialog');
-			expect(context.kernel.getSnapshot().iab?.authority).toEqual(
-				previousAuthority
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				`[data-testid="iab-consent-dialog-card"] [data-action="${action}"]`
 			);
-			expect(save).not.toHaveBeenCalled();
-			button()?.click();
-			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-			await vi.waitFor(() =>
-				expect(
-					context.kernel.getSnapshot().iab?.authority?.tcString
-				).toBeTruthy()
-			);
-		} finally {
-			app.unmount();
-			container.remove();
-			handle.dispose();
-			context.dispose();
-		}
+		await vi.waitFor(() => expect(button()).not.toBeNull());
+		button()?.click();
+		await flushScheduler();
+		expect(context.kernel.getSnapshot().activeUI).toBe('dialog');
+		expect(context.kernel.getSnapshot().iab?.authority).toEqual(
+			previousAuthority
+		);
+		expect(save).not.toHaveBeenCalled();
+		button()?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(context.kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy()
+		);
 	}
 );
 
 test('cancels an action waiting on a replaced Vue IAB handle and retries on the current handle', async () => {
 	const opts: MountOptions = { component: 'iab-consent-banner' };
 	const { context, config, options } = createContext(opts);
+	onTestFinished(() => context.dispose());
 	context.kernel.set.iab({ enabled: true, gvl: completeGVL });
 	const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+	onTestFinished(() => handle.dispose());
 	await handle.whenReady();
 	let finish!: () => void;
 	const waiting = new Promise<void>((resolve) => {
@@ -774,30 +768,25 @@ test('cancels an action waiting on a replaced Vue IAB handle and retries on the 
 	const newSave = vi.fn(() => handle.save());
 	context.iab = { ...handle, save: oldSave, whenReady: () => waiting };
 	const container = document.createElement('div');
+	onTestFinished(() => container.remove());
 	document.body.append(container);
 	const app = createApp(createHarness(opts, options, context));
+	onTestFinished(() => app.unmount());
 	provideContext(app, context, config);
 	app.mount(container);
-	try {
-		const button = () =>
-			document.querySelector<HTMLButtonElement>(
-				'[data-testid="iab-consent-banner-accept-button"]'
-			);
-		await vi.waitFor(() => expect(button()).not.toBeNull());
-		const before = context.kernel.getSnapshot().iab?.vendorConsents;
-		button()?.click();
-		context.iab = { ...handle, save: newSave };
-		finish();
-		await flushScheduler();
-		expect(oldSave).not.toHaveBeenCalled();
-		expect(newSave).not.toHaveBeenCalled();
-		expect(context.kernel.getSnapshot().iab?.vendorConsents).toEqual(before);
-		button()?.click();
-		await vi.waitFor(() => expect(newSave).toHaveBeenCalledOnce());
-	} finally {
-		app.unmount();
-		container.remove();
-		handle.dispose();
-		context.dispose();
-	}
+	const button = () =>
+		document.querySelector<HTMLButtonElement>(
+			'[data-testid="iab-consent-banner-accept-button"]'
+		);
+	await vi.waitFor(() => expect(button()).not.toBeNull());
+	const before = context.kernel.getSnapshot().iab?.vendorConsents;
+	button()?.click();
+	context.iab = { ...handle, save: newSave };
+	finish();
+	await flushScheduler();
+	expect(oldSave).not.toHaveBeenCalled();
+	expect(newSave).not.toHaveBeenCalled();
+	expect(context.kernel.getSnapshot().iab?.vendorConsents).toEqual(before);
+	button()?.click();
+	await vi.waitFor(() => expect(newSave).toHaveBeenCalledOnce());
 });

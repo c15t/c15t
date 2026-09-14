@@ -2,7 +2,7 @@ import { custom, deferInitGvl } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
-import { expect, test, vi } from 'vitest';
+import { expect, onTestFinished, test, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
@@ -24,11 +24,21 @@ test.each(
 					})
 			)
 			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		onTestFinished(() => {
+			vi.unstubAllGlobals();
+		});
 		vi.stubGlobal('fetch', fetch);
 		const target = document.createElement('div');
+		onTestFinished(() => target.remove());
 		document.body.append(target);
 		let kernel: ConsentKernel | undefined;
-		const app = mount(ConformanceFixture, {
+		const mounted: { app?: ReturnType<typeof mount> } = {};
+		onTestFinished(async () => {
+			if (mounted.app) {
+				await unmount(mounted.app);
+			}
+		});
+		mounted.app = mount(ConformanceFixture, {
 			props: {
 				component,
 				onKernel: (value) => {
@@ -62,44 +72,38 @@ test.each(
 			},
 			target,
 		});
-		try {
-			const button = () =>
-				document.querySelector<HTMLButtonElement>(
-					component === 'iab-consent-banner'
-						? `[data-testid="iab-consent-banner-${action}-button"]`
-						: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
-				);
-			await vi.waitFor(() => {
-				expect(fetch).toHaveBeenCalledTimes(1);
-				expect(button()).not.toBeNull();
-				expect(button()?.disabled).toBe(false);
-			});
-			if (component === 'iab-consent-dialog') {
-				kernel?.set.activeUI('dialog');
-			}
-			button()?.click();
-			expect(kernel?.getSnapshot().activeUI).toBe(
-				component === 'iab-consent-banner' ? 'banner' : 'dialog'
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				component === 'iab-consent-banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
 			);
-			rejectLoad(new Error('offline'));
-			await new Promise((resolve) => {
-				setTimeout(resolve, 0);
-			});
-			expect(kernel?.getSnapshot().activeUI).toBe(
-				component === 'iab-consent-banner' ? 'banner' : 'dialog'
-			);
-			expect(kernel?.getSnapshot().iab?.authority).toBeNull();
-			button()?.click();
-			await vi.waitFor(() =>
-				expect(kernel?.getSnapshot().iab?.authority?.tcString).toBeTruthy()
-			);
-			expect(kernel?.getSnapshot().activeUI).toBe('none');
-			expect(fetch).toHaveBeenCalledTimes(2);
-		} finally {
-			await unmount(app);
-			target.remove();
-			vi.unstubAllGlobals();
+		await vi.waitFor(() => {
+			expect(fetch).toHaveBeenCalledTimes(1);
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		if (component === 'iab-consent-dialog') {
+			kernel?.set.activeUI('dialog');
 		}
+		button()?.click();
+		expect(kernel?.getSnapshot().activeUI).toBe(
+			component === 'iab-consent-banner' ? 'banner' : 'dialog'
+		);
+		rejectLoad(new Error('offline'));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(kernel?.getSnapshot().activeUI).toBe(
+			component === 'iab-consent-banner' ? 'banner' : 'dialog'
+		);
+		expect(kernel?.getSnapshot().iab?.authority).toBeNull();
+		button()?.click();
+		await vi.waitFor(() =>
+			expect(kernel?.getSnapshot().iab?.authority?.tcString).toBeTruthy()
+		);
+		expect(kernel?.getSnapshot().activeUI).toBe('none');
+		expect(fetch).toHaveBeenCalledTimes(2);
 	}
 );
 
@@ -115,8 +119,15 @@ test.each(['iab-consent-banner', 'iab-consent-dialog'] as const)(
 		});
 		let kernel: ConsentKernel | undefined;
 		const target = document.createElement('div');
+		onTestFinished(() => target.remove());
 		document.body.append(target);
-		const app = mount(ConformanceFixture, {
+		const mounted: { app?: ReturnType<typeof mount> } = {};
+		onTestFinished(async () => {
+			if (mounted.app) {
+				await unmount(mounted.app);
+			}
+		});
+		mounted.app = mount(ConformanceFixture, {
 			props: {
 				component,
 				onKernel: (value) => {
@@ -145,25 +156,20 @@ test.each(['iab-consent-banner', 'iab-consent-dialog'] as const)(
 			},
 			target,
 		});
-		try {
-			const selector =
-				component === 'iab-consent-banner'
-					? '[data-testid="iab-consent-banner-accept-button"]'
-					: '[data-action="accept"]';
-			const button = () => document.querySelector<HTMLButtonElement>(selector);
-			await vi.waitFor(() => expect(button()).not.toBeNull());
-			button()?.click();
-			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-			kernel?.set.activeUI('none');
-			kernel?.set.activeUI('dialog');
-			finish();
-			await new Promise((resolve) => {
-				setTimeout(resolve, 0);
-			});
-			expect(kernel?.getSnapshot().activeUI).toBe('dialog');
-		} finally {
-			await unmount(app);
-			target.remove();
-		}
+		const selector =
+			component === 'iab-consent-banner'
+				? '[data-testid="iab-consent-banner-accept-button"]'
+				: '[data-action="accept"]';
+		const button = () => document.querySelector<HTMLButtonElement>(selector);
+		await vi.waitFor(() => expect(button()).not.toBeNull());
+		button()?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		kernel?.set.activeUI('none');
+		kernel?.set.activeUI('dialog');
+		finish();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(kernel?.getSnapshot().activeUI).toBe('dialog');
 	}
 );

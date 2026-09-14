@@ -8,7 +8,7 @@ import {
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { useEffect } from 'react';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
@@ -225,9 +225,16 @@ it.each(
 					})
 			)
 			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		onTestFinished(() => {
+			vi.unstubAllGlobals();
+		});
 		vi.stubGlobal('fetch', fetch);
 		vi.stubGlobal('__c15t_mock_gvl', undefined);
-		const screen = await render(
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
 			<ComponentFixtureProvider
 				options={{
 					...options(false),
@@ -258,31 +265,26 @@ it.each(
 				}
 			</ComponentFixtureProvider>
 		);
-		try {
-			const button = () =>
-				document.querySelector<HTMLButtonElement>(
-					surface === 'banner'
-						? `[data-testid="iab-consent-banner-${action}-button"]`
-						: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
-				);
-			await vi.waitFor(() => {
-				expect(button()).not.toBeNull();
-				expect(button()?.disabled).toBe(false);
-				expect(fetch).toHaveBeenCalledOnce();
-			});
-			button()?.click();
-			rejectLoad(new Error('offline'));
-			await new Promise((resolve) => {
-				setTimeout(resolve, 0);
-			});
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => {
 			expect(button()).not.toBeNull();
-			button()?.click();
-			await vi.waitFor(() => expect(button()).toBeNull());
-			expect(fetch).toHaveBeenCalledTimes(2);
-		} finally {
-			await screen.unmount();
-			vi.unstubAllGlobals();
-		}
+			expect(button()?.disabled).toBe(false);
+			expect(fetch).toHaveBeenCalledOnce();
+		});
+		button()?.click();
+		rejectLoad(new Error('offline'));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(button()).not.toBeNull();
+		button()?.click();
+		await vi.waitFor(() => expect(button()).toBeNull());
+		expect(fetch).toHaveBeenCalledTimes(2);
 	}
 );
 
@@ -299,7 +301,11 @@ it.each(['banner', 'dialog'] as const)(
 			}, [current]);
 			return null;
 		};
-		const screen = await render(
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
 			<ComponentFixtureProvider
 				options={{
 					...options(false),
@@ -310,20 +316,16 @@ it.each(['banner', 'dialog'] as const)(
 				<Probe />
 			</ComponentFixtureProvider>
 		);
-		try {
-			await vi.waitFor(() => expect(controls.iab?.gvl).toBeTruthy());
-			const pending =
-				surface === 'banner'
-					? controls.performBannerAction('accept')
-					: controls.performDialogAction('accept');
-			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-			controls.openDialog();
-			await vi.waitFor(() => expect(controls.activeUI).toBe('dialog'));
-			reply.resolve({ ok: true });
-			await pending;
-			expect(controls.activeUI).toBe('dialog');
-		} finally {
-			await screen.unmount();
-		}
+		await vi.waitFor(() => expect(controls.iab?.gvl).toBeTruthy());
+		const pending =
+			surface === 'banner'
+				? controls.performBannerAction('accept')
+				: controls.performDialogAction('accept');
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		controls.openDialog();
+		await vi.waitFor(() => expect(controls.activeUI).toBe('dialog'));
+		reply.resolve({ ok: true });
+		await pending;
+		expect(controls.activeUI).toBe('dialog');
 	}
 );
