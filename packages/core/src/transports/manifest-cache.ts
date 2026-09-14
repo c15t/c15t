@@ -12,15 +12,15 @@
  * `@c15t/core/transports/manifest-cache` in server code only.
  */
 
-import type {
-	ConsentManifest,
-	InitOutput,
-	ResolveInitFromManifestInputs,
-} from '@c15t/schema/types';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	InitOutput,
+	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
@@ -133,3 +133,4 @@ export const resolveManifestInit = function resolveManifestInit(
 		resolvedPrivacySignals: { gpc: inputs.gpc },
 	} as InitOutput;
 };
+export { fetchCachedGvl } from './gvl-cache';

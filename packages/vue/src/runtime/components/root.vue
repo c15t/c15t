@@ -33,7 +33,7 @@ onMounted(() => {
 		document.documentElement.style.setProperty(`--${key}`, String(value));
 	}
 	// Warm the dialog chunk during idle so the first open is instant.
-	if (init.value?.gvl) {
+	if (init.value?.gvl || init.value?.gvlReference) {
 		prefetchIabConsentDialog();
 	} else {
 		prefetchConsentManager();
@@ -54,9 +54,17 @@ watch(
 </script>
 
 <template>
-	<LazyIabConsentBanner v-if="init?.gvl && activeUI === 'banner'" />
-	<LazyIabConsentDialog v-else-if="init?.gvl && activeUI === 'manager'" />
-	<ConsentBanner v-else-if="!init?.gvl && activeUI === 'banner'" />
-	<LazyConsentManager v-else-if="!init?.gvl && activeUI === 'manager'" />
+	<LazyIabConsentBanner
+		v-if="(init?.gvl || init?.gvlReference) && activeUI === 'banner'"
+	/>
+	<LazyIabConsentDialog
+		v-else-if="(init?.gvl || init?.gvlReference) && activeUI === 'manager'"
+	/>
+	<ConsentBanner
+		v-else-if="!(init?.gvl || init?.gvlReference) && activeUI === 'banner'"
+	/>
+	<LazyConsentManager
+		v-else-if="!(init?.gvl || init?.gvlReference) && activeUI === 'manager'"
+	/>
 	<ConsentDialogTrigger v-if="config.showTrigger" />
 </template>

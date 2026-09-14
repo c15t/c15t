@@ -1,3 +1,4 @@
+import { getIABControls } from '@c15t/core';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { computed } from 'vue';
 import type { Ref } from 'vue';
@@ -190,8 +191,11 @@ export const useConsentIabSave = function useConsentIabSave() {
 	const init = useConsentInit();
 	const kernel = useConsentKernel();
 	const selection = useConsentIabSelection();
+	const context = useConsentKernelContext();
 
-	return (input: IabConsentSaveInput, tab?: IabPreferenceTab) => {
+	return async (input: IabConsentSaveInput, tab?: IabPreferenceTab) => {
+		const controls = context.iab ?? getIABControls(kernel);
+		await controls?.whenReady?.();
 		const gvlData = init.value?.gvl;
 		if (!gvlData) {
 			return;
@@ -216,6 +220,10 @@ export const useConsentIabSave = function useConsentIabSave() {
 				preferenceCenterTab: tab ?? input.preferenceCenterTab,
 			});
 		}
-		void kernel.commands.save();
+		if (controls) {
+			await controls.save();
+		} else {
+			await kernel.commands.save();
+		}
 	};
 };

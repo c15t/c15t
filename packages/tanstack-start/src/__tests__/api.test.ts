@@ -230,9 +230,11 @@ describe('createConsentServerRoute: GVL', () => {
 
 describe('createConsentServerRoute: GVL and forwarded hosts', () => {
 	test('fetches the GVL for the resolved language when the manifest enables IAB', async () => {
-		const fetchGvl = vi
-			.fn()
-			.mockResolvedValue({ vendors: { '1': { name: 'Vendor' } } });
+		const fetchGvl = vi.fn().mockResolvedValue({
+			purposes: {},
+			vendorListVersion: 42,
+			vendors: { '1': { name: 'Vendor' } },
+		});
 		const iabManifest = {
 			...MANIFEST_FIXTURE,
 			iab: {
@@ -267,7 +269,10 @@ describe('createConsentServerRoute: GVL and forwarded hosts', () => {
 				'accept-language': 'de-DE,de;q=0.9',
 			}),
 		});
-		const payload = (await response.json()) as { gvl?: unknown };
+		const payload = (await response.json()) as {
+			gvl?: unknown;
+			gvlReference: { url: string };
+		};
 
 		expect(fetchGvl).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -275,7 +280,17 @@ describe('createConsentServerRoute: GVL and forwarded hosts', () => {
 				reference: { url: 'https://gvl.example/vendor-list.json' },
 			})
 		);
-		expect(payload.gvl).toEqual({ vendors: { '1': { name: 'Vendor' } } });
+		expect(payload.gvl).toBeNull();
+		expect(payload.gvlReference).toMatchObject({
+			language: 'de',
+			summary: { vendorCount: 1 },
+			vendorListVersion: 42,
+		});
+		const list = await initGET({ request: request(payload.gvlReference.url) });
+		expect(await list.json()).toMatchObject({
+			vendors: { '1': { name: 'Vendor' } },
+		});
+		expect(list.headers.get('cache-control')).toContain('public');
 	});
 
 	test('resolves a relative backendURL against request.url, not a forged x-forwarded-host', async () => {

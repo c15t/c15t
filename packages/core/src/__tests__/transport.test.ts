@@ -5,8 +5,8 @@
  * backend. createHostedTransport is also unit-tested against a mocked
  * fetch so we know the request shape and error handling are correct.
  */
-import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel, createHostedTransport } from '../index';
@@ -2207,7 +2207,12 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(response).toMatchObject({
 			cmpId: 28,
 			customVendors: [{ id: 'internal-analytics' }],
-			gvl: { vendorListVersion: 42 },
+			gvl: null,
+			gvlReference: {
+				language: 'de',
+				url: 'https://gvl.example.com',
+				vendorListVersion: 42,
+			},
 			policyResolution: {
 				policy: { id: 'de-iab', model: 'iab' },
 				status: 'matched',

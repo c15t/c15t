@@ -76,7 +76,7 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 		},
 		closeUI,
 		dialog: {
-			isReady: Boolean(iab?.gvl),
+			isReady: Boolean(iab?.gvl || iab?.gvlReference),
 			scrollLock: policyDialog.scrollLock,
 		},
 		iab,

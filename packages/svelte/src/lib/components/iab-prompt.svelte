@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { resolveConsentPresentation } from '@c15t/core';
+	import {
+		resolveIABBannerSummary,
+		resolveConsentPresentation,
+	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import buttonStyles from '@c15t/ui/styles/components/button';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -11,7 +14,6 @@
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
-	import { getIABBannerDisplayItems } from '../iab-types';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
 	import { resolveComponentStyles } from '../utils';
 	import Branding from './branding.svelte';
@@ -83,23 +85,12 @@
 		() => disableAnimation
 	);
 
-	// Vendor count from GVL + custom vendors
-	const vendorCount = $derived.by(() => {
-		if (!iabState?.gvl) {
-			return 0;
-		}
-		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
-		return gvlVendorCount + customVendorCount;
-	});
-
-	// Display items: stacks + purposes + special features (max 5)
-	const displayItems = $derived.by(() => {
-		if (!iabState?.gvl) {
-			return { displayed: [] as string[], isReady: false, remainingCount: 0 };
-		}
-		const result = getIABBannerDisplayItems(iabState.gvl);
-		return { ...result, isReady: true };
+	const summary = $derived(resolveIABBannerSummary(iabState));
+	const vendorCount = $derived(summary.vendorCount);
+	const displayItems = $derived({
+		displayed: summary.displayItems,
+		isReady: summary.isReady,
+		remainingCount: summary.remainingCount,
 	});
 
 	// Handlers

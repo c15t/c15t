@@ -2,6 +2,8 @@ import type { ConsentKernel } from '../types';
 
 /** Operations supplied by the provider's existing IAB module. */
 export interface KernelIABControls {
+	/** Wait for the public vendor list before applying selections. */
+	whenReady?: () => Promise<void>;
 	setVendorConsent: (id: string | number, value: boolean) => void;
 	setVendorLegitimateInterest: (id: string | number, value: boolean) => void;
 	setPurposeConsent: (id: number, value: boolean) => void;

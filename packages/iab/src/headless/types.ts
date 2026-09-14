@@ -1,10 +1,13 @@
+import type {
+	KernelIABState,
+	GlobalVendorList,
+	NonIABVendor,
+} from '@c15t/core';
 /**
  * Headless IAB types shared across all framework wrappers.
  *
  * @packageDocumentation
  */
-
-import type { GlobalVendorList, NonIABVendor } from '@c15t/core';
 
 export type HeadlessIABBannerAction = 'accept' | 'reject' | 'customize';
 export type HeadlessIABDialogAction = 'accept' | 'reject' | 'customize';
@@ -19,6 +22,7 @@ export type HeadlessIABVendorId = number | string;
  */
 export interface HeadlessIABStateInput {
 	gvl: GlobalVendorList | null;
+	gvlReference?: KernelIABState['gvlReference'];
 	isLoadingGVL?: boolean;
 	nonIABVendors?: NonIABVendor[];
 	customVendors?: NonIABVendor[];

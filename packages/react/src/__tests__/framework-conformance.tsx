@@ -15,6 +15,7 @@ import type {
 	CreatePolicySession,
 	ProbePolicyContract,
 } from '@c15t/conformance/contract/policy-driver';
+import { deferInitGvl } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentKernel,
@@ -540,6 +541,12 @@ export const runFrameworkConformance = ({
 		probePolicyContract,
 		serverRender(opts: MountOptions): Promise<string> {
 			const options = buildProviderOptions(opts);
+			if (options.prefetch?.initialIab?.gvl) {
+				Object.assign(
+					options.prefetch.initialIab,
+					deferInitGvl({ gvl: options.prefetch.initialIab.gvl }, '/test-gvl')
+				);
+			}
 			return Promise.resolve(
 				renderToString(
 					renderTree(opts, options, () => {

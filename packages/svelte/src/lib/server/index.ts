@@ -1,4 +1,5 @@
 import {
+	deferInitGvl,
 	createHostedTransport,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
@@ -124,7 +125,10 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		if (!response) {
 			return base;
 		}
-		const merged = mergeInitResponseIntoKernelConfig(base, response);
+		const merged = mergeInitResponseIntoKernelConfig(
+			base,
+			deferInitGvl(response, `${absoluteBackend}/init`, 'init')
+		);
 		if (response.subjectId) {
 			merged.initialRecords = {
 				...merged.initialRecords,

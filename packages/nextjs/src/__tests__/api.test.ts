@@ -265,9 +265,14 @@ test('reuses the GVL between IAB init requests', async () => {
 	};
 	const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation((url) =>
 		Promise.resolve(
-			Response.json(url === gvlURL ? { vendorListVersion: 12 } : manifest, {
-				headers: { 'cache-control': 'public, max-age=3600, s-maxage=3600' },
-			})
+			Response.json(
+				url === gvlURL
+					? { purposes: {}, vendorListVersion: 12, vendors: {} }
+					: manifest,
+				{
+					headers: { 'cache-control': 'public, max-age=3600, s-maxage=3600' },
+				}
+			)
 		)
 	);
 	const { GET } = createNextConsentRouteHandlers({
@@ -275,10 +280,10 @@ test('reuses the GVL between IAB init requests', async () => {
 		manifestURL: 'https://api.test/next-manifest',
 	});
 	const request = new Request('https://app.test/api/c15t/init');
-	expect((await (await GET(request)).json()).gvl).toEqual({
+	expect((await (await GET(request)).json()).gvlReference).toMatchObject({
 		vendorListVersion: 12,
 	});
-	expect((await (await GET(request)).json()).gvl).toEqual({
+	expect((await (await GET(request)).json()).gvlReference).toMatchObject({
 		vendorListVersion: 12,
 	});
 	expect(fetch.mock.calls.filter(([url]) => url === gvlURL)).toHaveLength(1);

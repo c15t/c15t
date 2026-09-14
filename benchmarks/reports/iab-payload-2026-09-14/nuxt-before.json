@@ -1,0 +1,261 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Banner readiness should not regress by more than 25ms and 15%.",
+			"metric": "bannerReadyMs",
+			"secondaryThreshold": 15,
+			"threshold": 25
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Final app-script response end budget.",
+			"metric": "lastAppScriptEndMs",
+			"secondaryThreshold": 10,
+			"threshold": 15
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Interaction latency budget.",
+			"metric": "interactionLatencyMs",
+			"secondaryThreshold": 20,
+			"threshold": 20
+		},
+		{
+			"comparator": "percent-lte",
+			"description": "Long-task total should not grow by more than 25%.",
+			"metric": "longTaskTotalMs",
+			"threshold": 25
+		},
+		{
+			"comparator": "count-eq",
+			"description": "SSR and repeat-visitor routes should not trigger browser-observed init requests.",
+			"metric": "initRequestsAfterLoad",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "6ba1d8d2ef08ac8e7ad51b4d7c6c511a10aedd92",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "145.0.7632.6",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "ssr-manifest",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "vue",
+	"metadata": {
+		"bannerInFirstHtml": true,
+		"bannerPaintMs": 40,
+		"cls": 0,
+		"coldManifestMode": false,
+		"fixtureInitExecutions": 0,
+		"fixtureManifestExecutions": 1,
+		"fixtureSubjectExecutions": 1,
+		"gitDirty": true,
+		"initLatencyMs": 0,
+		"profile": "none"
+	},
+	"metrics": [
+		{
+			"avg": 35.9,
+			"median": 35.1,
+			"name": "bannerReadyMs",
+			"p95": 38.5,
+			"samples": [
+				33.200000047683716, 38.5, 34.09999990463257, 38.5, 33.700000047683716,
+				35.10000002384186, 38.200000047683716
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 35.914,
+			"median": 35.1,
+			"name": "bannerVisibleMs",
+			"p95": 38.5,
+			"samples": [
+				33.200000047683716, 38.5, 34.09999990463257, 38.5, 33.700000047683716,
+				35.10000002384186, 38.299999952316284
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 33.143,
+			"median": 40,
+			"name": "bannerPaintMs",
+			"p95": 40,
+			"samples": [24, 40, 24, 40, 24, 40, 40],
+			"unit": "ms"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "bannerInFirstHtml",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "cls",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0],
+			"unit": "ratio"
+		},
+		{
+			"avg": 41.2,
+			"median": 41.4,
+			"name": "firstAppScriptStartMs",
+			"p95": 44.3,
+			"samples": [
+				38.89999997615814, 42, 40.89999997615814, 41.699999928474426,
+				39.200000047683716, 44.299999952316284, 41.39999997615814
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 42.486,
+			"median": 42.5,
+			"name": "lastAppScriptEndMs",
+			"p95": 45.3,
+			"samples": [
+				40.39999997615814, 43.10000002384186, 42.5, 42.699999928474426, 41,
+				45.299999952316284, 42.39999997615814
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 4,
+			"median": 4,
+			"name": "appScriptCount",
+			"p95": 4,
+			"samples": [4, 4, 4, 4, 4, 4, 4],
+			"unit": "count"
+		},
+		{
+			"avg": 3.5,
+			"median": 3.5,
+			"name": "ttfbMs",
+			"p95": 3.9,
+			"samples": [3.6, 3.3, 3.8, 3, 3.4, 3.9, 3.5],
+			"unit": "ms"
+		},
+		{
+			"avg": 22.229,
+			"median": 23.8,
+			"name": "htmlDoneMs",
+			"p95": 25.3,
+			"samples": [23.8, 19.4, 24.3, 19.3, 24.1, 25.3, 19.4],
+			"unit": "ms"
+		},
+		{
+			"avg": 22.229,
+			"median": 23.8,
+			"name": "domContentLoadedMs",
+			"p95": 25.3,
+			"samples": [23.8, 19.4, 24.3, 19.3, 24.1, 25.3, 19.4],
+			"unit": "ms"
+		},
+		{
+			"avg": 22.6,
+			"median": 23.9,
+			"name": "loadEventMs",
+			"p95": 25.4,
+			"samples": [23.9, 20.2, 24.3, 20.1, 24.1, 25.4, 20.2],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "sameOriginInitRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "mountCount",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "renderCount",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskTotalMs",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0],
+			"unit": "ms"
+		},
+		{
+			"avg": 77,
+			"median": 77,
+			"name": "domNodeCount",
+			"p95": 77,
+			"samples": [77, 77, 77, 77, 77, 77, 77],
+			"unit": "count"
+		},
+		{
+			"avg": 22.047,
+			"median": 22.068,
+			"name": "interactionLatencyMs",
+			"p95": 24.632,
+			"samples": [
+				20.932708000000275, 20.83112500000061, 22.06800000000112,
+				19.934124999999767, 22.425999999999476, 24.632332999999562,
+				23.502040999999736
+			],
+			"unit": "ms"
+		}
+	],
+	"notes": [
+		"Nuxt browser bench covers SSR, client SPA, and pre-seeded repeat-visitor paths with local deterministic Nitro endpoints."
+	],
+	"package": "@c15t/vue",
+	"runtime": "playwright",
+	"scenario": "ssr-manifest",
+	"schemaVersion": 1,
+	"suite": "browser-runtime",
+	"timestamp": "2026-09-14T12:04:34.168Z"
+}

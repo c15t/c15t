@@ -11,6 +11,8 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
+import { deferInitGvl, initOutputToKernelConfig } from '@c15t/core';
+import type { InitResponse, KernelConfig, KernelTransport } from '@c15t/core';
 /**
  * Vue conformance entry point.
  *
@@ -18,8 +20,6 @@ import type {
  * component, so the driver builds the same kernel context the plugin provides
  * and injects it into a small Vue app around the requested component.
  */
-import { initOutputToKernelConfig } from '@c15t/core';
-import type { InitResponse, KernelConfig, KernelTransport } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import {
 	normalizePolicyRule,
@@ -614,6 +614,10 @@ const driver: TestDriver = {
 				? createContext(opts)
 				: createControlledContext(opts);
 		try {
+			const { iab } = context.kernel.getSnapshot();
+			if (iab?.gvl) {
+				context.kernel.set.iab(deferInitGvl({ gvl: iab.gvl }, '/test-gvl'));
+			}
 			const app = createSSRApp(createHarness(opts, options, context));
 			provideContext(app, context, config);
 			// The prompts render through `<Teleport to="body">`, which Vue's

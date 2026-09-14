@@ -1,3 +1,9 @@
+import {
+	deferInitGvlToRoute,
+	serveGvlReference,
+	c15tProtocolHeaders,
+	fetchCachedGvl,
+} from '@c15t/core';
 /**
  * `@c15t/tanstack-start/api` same-origin consent routes.
  *
@@ -25,8 +31,6 @@
  * route so `ConsentRoot` can use `backendURL="/api/c15t"`; see
  * {@link ConsentServerRouteOptions.proxy}.
  */
-
-import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
 import {
 	fetchCachedManifest,
 	getManifestAge,
@@ -446,6 +450,18 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			),
 			sourceURL: initSourceURL,
 		});
+		const listResponse = await serveGvlReference(request, (language) =>
+			cached.manifest.iab?.gvl
+				? (resolved.fetchGvl ?? defaultFetchGvl)({
+						fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
+						language,
+						reference: cached.manifest.iab.gvl,
+					})
+				: Promise.resolve(null)
+		);
+		if (listResponse) {
+			return listResponse;
+		}
 		const remembered = readConsentInputs(request);
 		const payload = resolveManifestInit(
 			remembered
@@ -465,9 +481,12 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			});
 		}
 
-		return Response.json(payload, {
-			headers: { 'cache-control': INIT_CACHE_CONTROL },
-		});
+		return Response.json(
+			deferInitGvlToRoute(payload, new URL(request.url).pathname),
+			{
+				headers: { 'cache-control': INIT_CACHE_CONTROL },
+			}
+		);
 	};
 
 	const notFound = () =>

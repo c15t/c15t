@@ -1,4 +1,8 @@
-import { C15T_POLICY_CONTRACT_HEADER, c15tProtocolHeaders } from '@c15t/core';
+import {
+	deferInitGvl,
+	C15T_POLICY_CONTRACT_HEADER,
+	c15tProtocolHeaders,
+} from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
@@ -82,6 +86,12 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 					producerContract.value = null;
 				}
 			},
+			transform: (payload) =>
+				deferInitGvl(
+					payload,
+					`${initFetchTarget.baseURL?.replace(/\/$/u, '') ?? ''}${initFetchTarget.url}`,
+					'init'
+				),
 		});
 		prefetch = data.value ?? undefined;
 	}

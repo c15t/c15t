@@ -6,16 +6,16 @@
  * only in server code, or load it lazily for static client-only hosts.
  */
 
+import {
+	POLICY_CONTRACT_VERSION,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
 	GlobalVendorList,
 	InitOutput,
 	ResolveInitFromManifestInputs,
-} from '@c15t/schema/types';
-import {
-	POLICY_CONTRACT_VERSION,
-	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
@@ -34,6 +34,7 @@ import {
 } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { fetchCachedGvl } from './gvl-cache';
+import { deferInitGvl, deferInitGvlToRoute } from './gvl-reference';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
@@ -56,6 +57,8 @@ const getDefined = <Value>(
 };
 
 export interface ManifestTransportOptions {
+	/** Init route that serves versioned GVL requests. */
+	gvlRoute?: string;
 	/**
 	 * Base translations used for local manifest resolution. Defaults to every
 	 * language bundled by `@c15t/translations`.
@@ -382,7 +385,7 @@ export const createManifestTransport = function createManifestTransport(
 		async init(ctx: InitContext): Promise<TransportInitResponse> {
 			const manifest = await getManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			const payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
+			let payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
 				baseTranslations: options.baseTranslations ?? baseTranslations,
 			});
 
@@ -395,6 +398,11 @@ export const createManifestTransport = function createManifestTransport(
 				});
 			}
 
+			if (payload.gvl && manifest.iab?.gvl) {
+				payload = options.gvlRoute
+					? deferInitGvlToRoute(payload, options.gvlRoute)
+					: deferInitGvl(payload, manifest.iab.gvl.url);
+			}
 			lastDecisionInputs = rememberDecisionInputs(payload, inputs.gpc);
 			// Local resolution always produces the v3 wire; the manifest's own
 			// schema version decides matched, lifted, or failed inside it.

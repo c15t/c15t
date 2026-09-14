@@ -1,3 +1,9 @@
+import {
+	deferInitGvl,
+	c15tProtocolHeaders,
+	mergeInitOutputIntoKernelConfig,
+} from '@c15t/core';
+import type { KernelConfig } from '@c15t/core';
 /**
  * `loadConsent` — the `+layout.server.ts` half of the SvelteKit layer.
  *
@@ -6,19 +12,14 @@
  * server, so the banner is in the first HTML instead of appearing a frame
  * after hydration.
  */
-import {
-	c15tProtocolHeaders,
-	mergeInitOutputIntoKernelConfig,
-} from '@c15t/core';
-import type { KernelConfig } from '@c15t/core';
 import { readProducerPolicyContract } from '@c15t/core/transports';
-import type {
-	ConsentRequestHeaderInputs,
-	InitOutput,
-} from '@c15t/schema/types';
 import {
 	extractConsentRequestInputs,
 	headersToRecord,
+} from '@c15t/schema/types';
+import type {
+	ConsentRequestHeaderInputs,
+	InitOutput,
 } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -178,7 +179,7 @@ export const loadConsent = async function loadConsent(
 			const payload = (await response.json()) as InitOutput;
 			return mergeInitOutputIntoKernelConfig(
 				config,
-				payload,
+				deferInitGvl(payload, options.initRoute, 'init'),
 				{
 					...headersToRecord(event.request.headers),
 					...forwarded,

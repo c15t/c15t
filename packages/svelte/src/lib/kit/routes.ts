@@ -1,3 +1,4 @@
+import { deferInitGvlToRoute, serveGvlReference } from '@c15t/core';
 /**
  * Same-origin consent routes for SvelteKit.
  *
@@ -19,17 +20,17 @@ import {
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 } from '@c15t/core/server';
-import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveBackendURL,
 	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentManifestGVLReference,
+	GlobalVendorList,
+	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
@@ -180,6 +181,18 @@ export const createSvelteKitConsentRouteHandlers =
 				fetch: options.fetch,
 			});
 
+			const listResponse = await serveGvlReference(event.request, (language) =>
+				manifest.iab?.gvl
+					? (options.fetchGvl ?? defaultFetchGvl)({
+							fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+							language,
+							reference: manifest.iab.gvl,
+						})
+					: Promise.resolve(null)
+			);
+			if (listResponse) {
+				return listResponse;
+			}
 			const inputs = extractConsentRequestInputs(event.request.headers);
 			const payload = resolveInitFromManifest(
 				manifest,
@@ -213,9 +226,12 @@ export const createSvelteKitConsentRouteHandlers =
 			});
 			payload.resolvedPrivacySignals = { gpc: inputs.gpc };
 
-			return Response.json(payload, {
-				headers: { 'cache-control': INIT_CACHE_CONTROL },
-			});
+			return Response.json(
+				deferInitGvlToRoute(payload, new URL(event.request.url).pathname),
+				{
+					headers: { 'cache-control': INIT_CACHE_CONTROL },
+				}
+			);
 		};
 
 		const manifest: RequestHandler = async (event) => {

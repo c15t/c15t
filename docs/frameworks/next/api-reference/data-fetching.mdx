@@ -315,8 +315,13 @@ parameter on the manifest route is passed to the upstream manifest request.
 the manifest includes an `iab.gvl` reference, and the resolved policy matched
 with `model: 'iab'`. It receives the reference, the `fetch` option, and the
 language taken from the first segment of the resolved translations language
-(`en` when empty). Its result, including `null`, becomes the payload's `gvl`.
-The default fetcher caches the vendor list in process.
+(`en` when empty). The default fetcher caches the vendor list in process.
+A fetched list becomes a `gvlReference` and a small banner summary in the
+serialized payload. A `null` result keeps IAB unavailable. With
+`config.initURL`, the browser reads the list from that same-origin handler;
+otherwise it uses the manifest's public list URL. See
+[server-rendered vendor data](../../javascript/iab/overview#server-rendered-vendor-data)
+for loading and caching behavior.
 
 `createPagesApiHandlers(options)` from `c15t/next/pages` accepts the same
 options or a `defineConsentConfig` result and returns `{ init, manifest }`:

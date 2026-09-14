@@ -32,3 +32,34 @@ A complete implementation needs policy-aware actions, vendor and purpose
 controls, persistent preferences access and keyboard interaction. Test the
 resulting TC String, `__tcfapi` and actual vendor requests. Keep backend, schema,
 core and IAB packages on compatible v3 versions.
+
+## Server-rendered vendor data
+
+Server integrations serialize a `gvlReference` and the banner's summary instead
+of embedding the full Global Vendor List. The reference contains its URL,
+language and `vendorListVersion`. The banner shows the same purpose names and
+vendor count on the server and during hydration.
+
+The IAB module fetches the full list when it mounts in the browser. Loading
+starts before interaction so CMP initialization and validation of returning
+visitors' consent do not wait for a click. Early Accept and Reject actions wait
+for the list before encoding a TC String. A failed fetch leaves the banner
+visible and does not grant consent. A list version mismatch requires a reload.
+
+TanStack Start, Nuxt, Next.js and SvelteKit manifest init handlers also serve
+versioned list requests on their existing init route. These responses contain
+only the public list and use `public, max-age=86400`. Resolved init data remains
+private. The list URL includes its language and version; a route returns an
+uncacheable `409` if it can no longer supply that version. Responses are not
+marked immutable because translations or publisher filtering can change
+without a new vendor-list version.
+
+Next.js uses the same-origin route when `config.initURL` is configured. Without
+it, manifest resolution references the public list URL from the manifest, as
+Astro does. Hosted init responses use an `init` reference to read the list from
+the existing init endpoint; that endpoint keeps its existing private caching
+rules. Allow the referenced origin in your CSP `connect-src` directive.
+
+An explicit `gvl` supplied by your application still takes precedence, including
+`gvl: null` to disable IAB. Applications that supply a list inline are responsible
+for its serialized size. Vendor allowlists still apply after the list loads.

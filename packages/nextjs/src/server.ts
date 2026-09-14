@@ -1,3 +1,10 @@
+import {
+	deferInitGvl,
+	mergeInitResponseIntoKernelConfig,
+	c15tProtocolHeaders,
+	mapInitOutputToInitResponse,
+} from '@c15t/core';
+import type { KernelOverrides } from '@c15t/core';
 /**
  * `@c15t/nextjs/server` server-only helpers.
  *
@@ -12,16 +19,10 @@
  * Component or route handler. It is NOT marked `'use server'` because it
  * is a plain async function, not an action.
  */
-
-import {
-	mergeInitResponseIntoKernelConfig,
-	c15tProtocolHeaders,
-	mapInitOutputToInitResponse,
-} from '@c15t/core';
-import type { KernelOverrides } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
+import type { InitOutput } from '@c15t/schema/types';
 import { resolveBackendURL } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
@@ -356,9 +357,14 @@ const fetchHostedInit = async function fetchHostedInit(input: {
 			`resolveConsent: /init responded ${response.status} ${response.statusText}`
 		);
 	}
-	return mapInitOutputToInitResponse(await response.json(), input.headers, {
-		producerContract: readProducerPolicyContract(response.headers),
-	});
+	const payload: InitOutput = await response.json();
+	return mapInitOutputToInitResponse(
+		deferInitGvl(payload, `${input.backendURL}/init`, 'init'),
+		input.headers,
+		{
+			producerContract: readProducerPolicyContract(response.headers),
+		}
+	);
 };
 
 const resolveFromManifest = async function resolveFromManifest(input: {
@@ -378,6 +384,7 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 		backendURL: absoluteBackend,
 		baseTranslations,
 		fetch: options.fetch,
+		gvlRoute: options.config?.initURL,
 		headers: input.forward,
 		inputs: manifestInputs,
 		manifest: options.manifest,

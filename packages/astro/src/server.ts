@@ -1,13 +1,5 @@
-/**
- * Server helpers for `@c15t/astro`.
- *
- * These run inside the Astro middleware and the injected API routes. They
- * read the incoming request, resolve the consent decision for it, and
- * produce the `KernelConfig` the page inlines so the browser boots without
- * an `/init` roundtrip.
- */
-
 import {
+	deferInitGvl,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
@@ -22,6 +14,14 @@ import type {
 	KernelTranslations,
 	TranslationsResponse,
 } from '@c15t/core';
+/**
+ * Server helpers for `@c15t/astro`.
+ *
+ * These run inside the Astro middleware and the injected API routes. They
+ * read the incoming request, resolve the consent decision for it, and
+ * produce the `KernelConfig` the page inlines so the browser boots without
+ * an `/init` roundtrip.
+ */
 import {
 	CONSENT_STORAGE_KEY,
 	readStoredRecordsFromCookieHeader,
@@ -329,7 +329,7 @@ const prefetchHosted = async function prefetchHosted(input: {
 		const payload = (await response.json()) as InitOutput;
 		return mergeInitOutputIntoKernelConfig(
 			input.base,
-			payload,
+			deferInitGvl(payload, `${absolute}/init`, 'init'),
 			{},
 			{
 				producerContract: readProducerPolicyContract(response.headers),
@@ -457,7 +457,7 @@ const withResolvedGvl = async function withResolvedGvl(input: {
 	if (!(isIABConfigured(iab) && iab)) {
 		return input.config;
 	}
-	if (input.config.initialIab?.gvl) {
+	if (input.config.initialIab?.gvl || input.config.initialIab?.gvlReference) {
 		return input.config;
 	}
 

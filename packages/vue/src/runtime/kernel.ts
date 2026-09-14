@@ -25,7 +25,11 @@ import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
-import type { ConsentRuntime } from '@c15t/core/runtime';
+import { createLazyIABFactory } from '@c15t/core/runtime';
+import type {
+	ConsentRuntime,
+	ConsentRuntimeIABHandle,
+} from '@c15t/core/runtime';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
@@ -49,10 +53,17 @@ const INIT_HEADER_ALLOWLIST = new Set<string>(INIT_HEADER_NAMES);
 /** Translation, location and branding data for Vue components. Policy lives in the kernel snapshot. */
 export type VueConsentDisplayData = Pick<
 	InitOutput,
-	'branding' | 'cmpId' | 'customVendors' | 'gvl' | 'location' | 'translations'
+	| 'branding'
+	| 'cmpId'
+	| 'customVendors'
+	| 'gvl'
+	| 'gvlReference'
+	| 'location'
+	| 'translations'
 >;
 
 export interface VueConsentKernelContext {
+	iab?: ConsentRuntimeIABHandle;
 	/** Clears records through the mounted persistence instance when available. */
 	clearRecords: () => void;
 	kernel: ConsentKernel;
@@ -148,6 +159,7 @@ const snapshotToDisplayData = function snapshotToDisplayData(
 		cmpId: snapshot.iab?.cmpId ?? undefined,
 		customVendors: snapshot.iab?.customVendors,
 		gvl: snapshot.iab?.gvl ?? undefined,
+		gvlReference: snapshot.iab?.gvlReference,
 		location: snapshot.location,
 		translations: snapshot.translations,
 	};
@@ -547,6 +559,7 @@ export const createVueConsentKernelContext =
 					kernel.dispose();
 				}
 			},
+			iab: options.runtime?.iab ?? undefined,
 			init,
 			initialRecords: records.hydrationRecords,
 			kernel,
@@ -704,6 +717,30 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		});
 		disposers.push(() => iframeBlocker.dispose());
 	}
+
+	// The shared CMP owns list loading, TC encoding and authority restoration.
+	const iabFactory = createLazyIABFactory(() => import('@c15t/iab'));
+	let iabHandle: ConsentRuntimeIABHandle | undefined;
+	const mountIab = () => {
+		const state = context.kernel.getSnapshot();
+		if (
+			!iabHandle &&
+			state.policyRule.model === 'iab' &&
+			typeof state.iab?.cmpId === 'number'
+		) {
+			iabHandle = iabFactory.create({
+				cmpId: state.iab.cmpId,
+				kernel: context.kernel,
+			});
+			context.iab = iabHandle;
+		}
+	};
+	mountIab();
+	const unsubscribeIab = context.kernel.subscribe(mountIab);
+	disposers.push(() => {
+		unsubscribeIab();
+		iabHandle?.dispose();
+	});
 
 	const browserGpc = getBrowserGpc();
 	if (browserGpc !== undefined) {

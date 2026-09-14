@@ -1,20 +1,25 @@
-import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
+import {
+	deferInitGvlToRoute,
+	serveGvlReference,
+	c15tProtocolHeaders,
+	fetchCachedGvl,
+} from '@c15t/core';
 import {
 	fetchCachedManifest as fetchManifestThroughCache,
 	getManifestAge,
 	parseCacheDirectiveSeconds,
 } from '@c15t/core/libs/manifest-cache';
-import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
 import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 	resolveBackendURL,
 	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentManifestGVLReference,
+	GlobalVendorList,
+	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
@@ -299,6 +304,18 @@ export const createNextConsentRouteHandlers =
 		return {
 			async GET(request: Request): Promise<Response> {
 				const { manifest } = await fetchCachedManifest(request, options);
+				const listResponse = await serveGvlReference(request, (language) =>
+					manifest.iab?.gvl
+						? (options.fetchGvl ?? defaultFetchGvl)({
+								fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+								language,
+								reference: manifest.iab.gvl,
+							})
+						: Promise.resolve(null)
+				);
+				if (listResponse) {
+					return listResponse;
+				}
 				const inputs = extractConsentRequestInputs(request.headers);
 				const payload = resolveInitFromManifest(manifest, inputs, {
 					baseTranslations,
@@ -329,12 +346,15 @@ export const createNextConsentRouteHandlers =
 					});
 				}
 
-				return Response.json(payload, {
-					headers: {
-						'cache-control': INIT_CACHE_CONTROL,
-						[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
-					},
-				});
+				return Response.json(
+					deferInitGvlToRoute(payload, new URL(request.url).pathname),
+					{
+						headers: {
+							'cache-control': INIT_CACHE_CONTROL,
+							[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
+						},
+					}
+				);
 			},
 
 			async manifestGET(request: Request): Promise<Response> {

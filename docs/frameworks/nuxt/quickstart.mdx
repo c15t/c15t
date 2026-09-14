@@ -161,3 +161,12 @@ Reject, reload, navigate and reopen preferences. Use
 
 Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
 YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
+
+## IAB vendor data
+
+For an IAB policy, Nuxt serializes the banner summary and a reference to the
+Global Vendor List. The Vue runtime mounts the shared IAB module after hydration
+and loads the list before saving a TC String. The manifest init route serves
+cacheable versioned lists. Hosted mode reads the list from the existing init
+endpoint. See [server-rendered vendor data](../javascript/iab/overview#server-rendered-vendor-data)
+for cache rules and error behavior.

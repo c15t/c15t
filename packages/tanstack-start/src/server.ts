@@ -431,6 +431,7 @@ export const resolveConsent = async function resolveConsent(
 			backendURL: loaded.backendURL,
 			baseTranslations,
 			fetch: options.fetch,
+			gvlRoute: `${options.routePrefix ?? DEFAULT_ROUTE_PREFIX}/init`,
 			headers: forward,
 			inputs,
 			manifest: loaded.manifest,
