@@ -1,4 +1,4 @@
-import type { IABHandle } from '@c15t/iab';
+import type { IABHandle, CreateIABOptions } from '@c15t/iab';
 import { createContext } from 'react';
 
 /**
@@ -10,6 +10,10 @@ import { createContext } from 'react';
 export interface IABContextValue {
 	/** The mounted CMP, or `null` until one is ready. */
 	handle: IABHandle | null;
+	/** A client allowlist requires loaded vendor data before displaying summary copy. */
+	filtered?: boolean;
+	/** Publisher vendors used by the summary before the CMP mounts. */
+	customVendors?: CreateIABOptions['customVendors'];
 	/**
 	 * Run an action against the CMP: at once when the handle exists,
 	 * otherwise once it mounts. A server-rendered banner is clickable before

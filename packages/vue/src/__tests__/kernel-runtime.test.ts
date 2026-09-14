@@ -636,3 +636,77 @@ describe('@c15t/vue kernel runtime', () => {
 		}
 	});
 });
+
+test('mounts the shared CMP for a prefetched IAB reference and encodes consent', async () => {
+	const { completeGVL } =
+		await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+	const { deferInitGvl } = await import('@c15t/core');
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.test',
+		iframeBlocker: false,
+	};
+	const prefetch = deferInitGvl(
+		{
+			...initFixture,
+			cmpId: 28,
+			gvl: completeGVL,
+			policyResolution: writePolicyResolutionWire(
+				resolvePolicyRules({
+					countryCode: 'DE',
+					regionCode: null,
+					rules: [
+						{
+							id: 'iab-runtime',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				})
+			),
+		},
+		'/vendor-list'
+	);
+	const fetchMock = vi.fn((input: RequestInfo | URL) =>
+		Promise.resolve(
+			Response.json(
+				String(input).includes('/vendor-list')
+					? completeGVL
+					: { subjectId: 'subject-iab' }
+			)
+		)
+	);
+	vi.stubGlobal('fetch', fetchMock);
+	const context = createVueConsentKernelContext({ config, prefetch });
+	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	try {
+		expect(context.iab).toBeDefined();
+		await context.iab?.whenReady?.();
+		expect(context.snapshot.value.model).toBe('iab');
+		context.iab?.acceptAll();
+		await context.iab?.save();
+		expect(context.snapshot.value.iab?.authority?.tcString).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.stringContaining('/vendor-list'),
+			expect.any(Object)
+		);
+		const firstHandle = context.iab;
+		context.kernel.set.iab({ cmpId: 29 });
+		expect(context.iab).toBeDefined();
+		expect(context.iab).not.toBe(firstHandle);
+		await context.iab?.whenReady?.();
+		context.iab?.acceptAll();
+		await context.iab?.save();
+		const { decodeTCString } = await import('../../../iab/src/tcf/tc-string');
+		const tcString = context.snapshot.value.iab?.authority?.tcString;
+		expect(tcString).toBeTruthy();
+		if (!tcString) {
+			throw new Error('Expected consent');
+		}
+		expect((await decodeTCString(tcString)).cmpId).toBe(29);
+		context.kernel.set.iab({ cmpId: null });
+		expect(context.iab).toBeUndefined();
+	} finally {
+		dispose();
+	}
+});

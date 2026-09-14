@@ -6,7 +6,11 @@
  * they regress, since the app still renders either way.
  */
 import type { ConsentManifest } from '@c15t/schema/types';
-import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import {
+	createConsentManifestPolicyPack,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -222,6 +226,44 @@ describe('fetchCachedManifest upstream dedupe', () => {
 });
 
 describe('init route', () => {
+	test('preserves a deferred list when falling back to upstream init', async () => {
+		const gvlReference = {
+			language: 'en',
+			summary: { items: ['Storage'], vendorCount: 2 },
+			url: '/vendor-list',
+			vendorListVersion: 42,
+		};
+		mocks.serverFetch
+			.mockResolvedValueOnce(new Response(null, { status: 404 }))
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						cmpId: 28,
+						gvlReference,
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							resolvePolicyRules({
+								countryCode: 'DE',
+								regionCode: null,
+								rules: [
+									{
+										id: 'iab',
+										match: { isDefault: true },
+										model: 'iab',
+										prompt: 'choice',
+									},
+								],
+							})
+						),
+						translations: { language: 'en', translations: {} },
+					},
+					{ headers: { 'x-c15t-policy-contract': '1' } }
+				)
+			);
+		const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+		expect(await response.json()).toMatchObject({ gvlReference });
+	});
+
 	test.each([
 		{ reason: 'transport', status: 'failed' },
 		{ status: 'no-match' },

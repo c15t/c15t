@@ -105,8 +105,15 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	}, []);
 
 	const value = useMemo<IABContextValue>(
-		() => ({ handle, run, setTab, tab }),
-		[handle, run, tab]
+		() => ({
+			customVendors: options.customVendors,
+			filtered: Boolean(options.vendors?.length),
+			handle,
+			run,
+			setTab,
+			tab,
+		}),
+		[handle, run, tab, options.vendors?.length, options.customVendors]
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;
@@ -160,10 +167,15 @@ export const useIAB = function useIAB(): ReactIABState | null {
 			acceptAll: act((mounted) => mounted.acceptAll),
 			config: {
 				cmpId: iab.cmpId,
-				enabled: iab.enabled && Boolean(iab.gvl),
+				enabled: iab.enabled,
 			},
+			customVendors: iabContext?.customVendors ?? iab.customVendors,
+			gvlReference:
+				iab.gvlReference && iabContext?.filtered
+					? { ...iab.gvlReference, summary: undefined }
+					: iab.gvlReference,
 			isLoadingGVL: iab.enabled && !iab.gvl,
-			nonIABVendors: iab.customVendors,
+			nonIABVendors: iabContext?.customVendors ?? iab.customVendors,
 			preferenceCenterTab: iabContext?.tab ?? 'purposes',
 			rejectAll: act((mounted) => mounted.rejectAll),
 			save: () =>

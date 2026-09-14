@@ -1,4 +1,8 @@
 import { createConsentKernel } from '@c15t/core';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { expect, test, vi } from 'vitest';
 
 import {
@@ -84,3 +88,59 @@ test('Svelte prefetch preserves a backend literal subject without manufacturing 
 		kernel.dispose();
 	}
 });
+
+test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
+	'hosted Svelte retains GVL with %s access',
+	async (access) => {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const headers = new Headers();
+		if (access === 'cookie') {
+			headers.set('cookie', 'session=private');
+		}
+		if (access === 'header') {
+			headers.set('authorization', 'Bearer private');
+		}
+		const fetch = vi.fn().mockResolvedValue(
+			Response.json(
+				{
+					cmpId: 28,
+					gvl: completeGVL,
+					location: { countryCode: 'DE', regionCode: null },
+					policyResolution: writePolicyResolutionWire(
+						resolvePolicyRules({
+							countryCode: 'DE',
+							regionCode: null,
+							rules: [
+								{
+									id: 'iab',
+									match: { isDefault: true },
+									model: 'iab',
+									prompt: 'choice',
+								},
+							],
+						})
+					),
+					translations: { language: 'en', translations: {} },
+				},
+				{ headers: { 'x-c15t-policy-contract': '1' } }
+			)
+		);
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const config = await prefetchInitialConsent({
+				backendURL: 'https://private.test',
+				fetch: access === 'custom-fetch' ? fetch : undefined,
+				forwardHeaders: access === 'header' ? ['authorization'] : undefined,
+				headers,
+			});
+			expect(Boolean(config.initialIab?.gvl)).toBe(access !== 'public');
+			expect(Boolean(config.initialIab?.gvlReference)).toBe(
+				access === 'public'
+			);
+			expect(JSON.stringify(config)).not.toContain('Bearer private');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	}
+);

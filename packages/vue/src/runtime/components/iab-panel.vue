@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
-import { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
+import {
+	resolveIABBannerSummary,
+	resolveIABDialogDisplayModel,
+} from '@c15t/iab/headless';
 import type {
 	HeadlessIABDisplayRow,
 	HeadlessIABDisplayStackRow,
@@ -8,7 +11,15 @@ import type {
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { getTextDirection } from '@c15t/ui/utils';
-import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
+import {
+	computed,
+	ref,
+	Teleport,
+	Transition,
+	toRaw,
+	toValue,
+	watch,
+} from 'vue';
 
 import {
 	createDefaultIabSelection,
@@ -87,7 +98,7 @@ const isOpen = computed(() => {
 	return (
 		activeUI.value === 'manager' &&
 		snapshot.value.policyRule.model === 'iab' &&
-		Boolean(gvl.value) &&
+		Boolean(gvl.value || initValue.value?.gvlReference) &&
 		matchesModel
 	);
 });
@@ -95,7 +106,7 @@ const disableAnimation = computed(() =>
 	Boolean(toValue(config).disableAnimation)
 );
 
-const showDialog = computed(() => isOpen.value && Boolean(gvl.value));
+const showDialog = isOpen;
 
 const props = withDefaults(
 	defineProps<{
@@ -136,6 +147,13 @@ const isStackRow = function isStackRow(
 };
 
 const isLoading = computed(() => !gvl.value);
+const bannerSummary = computed(() =>
+	resolveIABBannerSummary({
+		customVendors: customVendors.value,
+		gvl: gvl.value,
+		gvlReference: initValue.value?.gvlReference,
+	})
+);
 
 // The footer *is* the action root, the way it is in React.
 const footerAttrs = computed(() => ({
@@ -252,23 +270,27 @@ const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 	}
 };
 
-const onAction = function onAction(action: PresentationAction) {
-	if (action === 'save') {
-		save(
-			{
-				...structuredClone(draftIab.value),
-				preferenceCenterTab: activeTab.value,
-			},
-			activeTab.value
-		);
-		return;
-	}
-	if (action === 'accept') {
-		save('all', activeTab.value);
-		return;
-	}
-	if (action === 'reject') {
-		save('none', activeTab.value);
+const onAction = async function onAction(action: PresentationAction) {
+	try {
+		if (action === 'save') {
+			await save(
+				{
+					...structuredClone(toRaw(draftIab.value)),
+					preferenceCenterTab: activeTab.value,
+				},
+				activeTab.value
+			);
+			return;
+		}
+		if (action === 'accept') {
+			await save('all', activeTab.value);
+			return;
+		}
+		if (action === 'reject') {
+			await save('none', activeTab.value);
+		}
+	} catch {
+		// Leave the prompt available so a failed vendor-list load can be retried.
 	}
 };
 
@@ -714,7 +736,8 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 							:test-ids="IAB_DIALOG_ACTION_TEST_IDS"
 							primary-mode="filled"
 							secondary-mode="stroke"
-							:disabled="isLoading"
+							:disabled="!bannerSummary.isReady"
+							:disabled-actions="isLoading ? ['save'] : []"
 							:root-test-id="null"
 							:root-class="dialogStyles.footer"
 							:root-attrs="footerAttrs"

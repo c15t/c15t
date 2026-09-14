@@ -1,11 +1,22 @@
 import { MINIMAL_GVL } from '@c15t/conformance';
-import { custom } from '@c15t/core';
+import {
+	custom,
+	deferInitGvl,
+	createConsentKernel,
+	resolveIABBannerSummary,
+} from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
-import { describe, expect, it, vi } from 'vitest';
+import { useEffect } from 'react';
+import { renderToString } from 'react-dom/server';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { useHeadlessIABConsentUI } from '../component-hooks/use-headless-iab-consent-ui';
 import { IABConsentDialog } from '../components/iab-panel';
 import { IABConsentBanner } from '../components/iab-prompt';
+import { KernelContext } from '../context';
+import { IABProvider, useIAB } from '../iab-context';
 import { ComponentFixtureProvider } from './component-fixture-provider';
 import type { ComponentFixtureOptions } from './component-fixture-provider';
 import { policyFixture } from './policy-fixture';
@@ -146,3 +157,175 @@ describe('IAB policy presentation', () => {
 		}
 	);
 });
+
+const SummaryProbe = () => {
+	const summary = resolveIABBannerSummary(useIAB());
+	return <output>{summary.isReady ? summary.vendorCount : 'pending'}</output>;
+};
+
+it.each([false, true])(
+	'SSR honors client vendor configuration (filtered=%s)',
+	(filtered) => {
+		const kernel = createConsentKernel({
+			initialIab: {
+				cmpId: 28,
+				enabled: true,
+				gvl: null,
+				gvlReference: {
+					language: 'en',
+					summary: { items: ['Storage'], vendorCount: 100 },
+					url: '/vendor-list',
+					vendorListVersion: 42,
+				},
+			},
+		});
+		try {
+			const html = renderToString(
+				<KernelContext.Provider value={kernel}>
+					<IABProvider
+						cmpId={28}
+						vendors={filtered ? [1] : undefined}
+						customVendors={[
+							{
+								id: 'publisher',
+								name: 'Publisher',
+								privacyPolicyUrl: 'https://example.com/privacy',
+								purposes: [1],
+							},
+						]}
+					>
+						<SummaryProbe />
+					</IABProvider>
+				</KernelContext.Provider>
+			);
+			expect(html).toContain(filtered ? 'pending' : '101');
+			expect(
+				kernel.getServerSnapshot().iab?.gvlReference?.summary?.vendorCount
+			).toBe(100);
+		} finally {
+			kernel.dispose();
+		}
+	}
+);
+
+it.each(
+	(['banner', 'dialog', 'compound'] as const).flatMap((surface) =>
+		['accept', 'reject'].map((action) => ({ action, surface }))
+	)
+)(
+	'keeps the React IAB $surface available after a failed deferred $action',
+	async ({ action, surface }) => {
+		let rejectLoad!: (error: Error) => void;
+		const fetch = vi
+			.fn()
+			.mockImplementationOnce(
+				() =>
+					new Promise<Response>((_resolve, reject) => {
+						rejectLoad = reject;
+					})
+			)
+			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		onTestFinished(() => {
+			vi.unstubAllGlobals();
+		});
+		vi.stubGlobal('fetch', fetch);
+		vi.stubGlobal('__c15t_mock_gvl', undefined);
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					iab: { cmpId: 28 },
+					initialUI: surface === 'banner' ? 'banner' : 'dialog',
+					prefetch: {
+						...policyFixture({}, { model: 'iab' }),
+						initialIab: {
+							cmpId: 28,
+							enabled: true,
+							...deferInitGvl({ gvl: completeGVL }, '/vendor-list'),
+						},
+					},
+				}}
+			>
+				{
+					{
+						banner: <IABConsentBanner />,
+						compound: (
+							<IABConsentDialog.Root>
+								<IABConsentDialog.Card>
+									<IABConsentDialog.Footer />
+								</IABConsentDialog.Card>
+							</IABConsentDialog.Root>
+						),
+						dialog: <IABConsentDialog />,
+					}[surface]
+				}
+			</ComponentFixtureProvider>
+		);
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+			expect(fetch).toHaveBeenCalledOnce();
+		});
+		button()?.click();
+		rejectLoad(new Error('offline'));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(button()).not.toBeNull();
+		button()?.click();
+		await vi.waitFor(() => expect(button()).toBeNull());
+		expect(fetch).toHaveBeenCalledTimes(2);
+	}
+);
+
+it.each(['banner', 'dialog'] as const)(
+	'a pending IAB %s save preserves a reopened dialog',
+	async (surface) => {
+		const reply = Promise.withResolvers<{ ok: boolean }>();
+		const save = vi.fn(() => reply.promise);
+		let controls!: ReturnType<typeof useHeadlessIABConsentUI>;
+		const Probe = () => {
+			const current = useHeadlessIABConsentUI();
+			useEffect(() => {
+				controls = current;
+			}, [current]);
+			return null;
+		};
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					initialUI: surface,
+					mode: custom({ save }),
+				}}
+			>
+				<Probe />
+			</ComponentFixtureProvider>
+		);
+		await vi.waitFor(() => expect(controls.iab?.gvl).toBeTruthy());
+		const pending =
+			surface === 'banner'
+				? controls.performBannerAction('accept')
+				: controls.performDialogAction('accept');
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		controls.openDialog();
+		await vi.waitFor(() => expect(controls.activeUI).toBe('dialog'));
+		reply.resolve({ ok: true });
+		await pending;
+		expect(controls.activeUI).toBe('dialog');
+	}
+);

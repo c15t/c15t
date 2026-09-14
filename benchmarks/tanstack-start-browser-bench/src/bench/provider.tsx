@@ -1,4 +1,7 @@
 import { createManifestTransport } from '@c15t/core/transports/manifest';
+// Vite resolves this through the adapter's own React dependency, preserving
+// the dependency graph used by baseline comparisons.
+import { IABProvider, IABConsentBanner } from '@c15t/react/iab';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -77,6 +80,11 @@ const BenchmarkContents = ({
 }) => (
 	<>
 		<TanstackBenchmarkProbe scenario={scenario} />
+		{import.meta.env.C15T_BENCH_IAB === '1' && (
+			<IABProvider cmpId={28}>
+				<IABConsentBanner disableAnimation />
+			</IABProvider>
+		)}
 		<ConsentBanner disableAnimation />
 		<ConsentDialog disableAnimation />
 		{children}

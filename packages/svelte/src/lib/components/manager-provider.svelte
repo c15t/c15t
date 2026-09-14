@@ -205,7 +205,7 @@
 			acceptAll: readyHandle?.acceptAll ?? noop,
 			config: {
 				cmpId: iab.cmpId,
-				enabled: iab.enabled && Boolean(iab.gvl),
+				enabled: iab.enabled,
 			},
 			isLoadingGVL: iab.enabled && !iab.gvl,
 			nonIABVendors: iab.customVendors,

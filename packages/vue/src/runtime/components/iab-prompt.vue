@@ -70,7 +70,7 @@ const isOpen = computed(() => {
 	return (
 		activeUI.value === 'banner' &&
 		snapshot.value.policyRule.model === 'iab' &&
-		Boolean(gvl.value) &&
+		Boolean(gvl.value || initValue.value?.gvlReference) &&
 		matchesModel
 	);
 });
@@ -90,13 +90,18 @@ const labels = computed(() => ({
 // names, and how many it leaves out — comes from the shared model in
 // `@c15t/iab/headless`, so the four banners list the same things.
 const bannerSummary = computed(() =>
-	resolveIABBannerSummary(
-		gvl.value ? { customVendors: customVendors.value, gvl: gvl.value } : null
-	)
+	resolveIABBannerSummary({
+		customVendors: customVendors.value,
+		gvl: gvl.value,
+		gvlReference: initValue.value?.gvlReference,
+	})
 );
 
 const showBanner = computed(
-	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady
+	() =>
+		isOpen.value &&
+		Boolean(gvl.value || initValue.value?.gvlReference) &&
+		bannerSummary.value.isReady
 );
 
 const descriptionText = computed(() =>
@@ -124,18 +129,22 @@ const descriptionParts = computed(() => {
 	return { after: after ?? '', before: before ?? text };
 });
 
-const onAction = function onAction(action: PresentationAction) {
-	if (action === 'customize') {
-		iabSelection.value.preferenceCenterTab = 'purposes';
-		activeUI.value = 'manager';
-		return;
-	}
-	if (action === 'accept') {
-		save('all');
-		return;
-	}
-	if (action === 'reject') {
-		save('none');
+const onAction = async function onAction(action: PresentationAction) {
+	try {
+		if (action === 'customize') {
+			iabSelection.value.preferenceCenterTab = 'purposes';
+			activeUI.value = 'manager';
+			return;
+		}
+		if (action === 'accept') {
+			await save('all');
+			return;
+		}
+		if (action === 'reject') {
+			await save('none');
+		}
+	} catch {
+		// Leave the prompt available so a failed vendor-list load can be retried.
 	}
 };
 

@@ -1,3 +1,4 @@
+import { deferInitGvlToRoute } from '@c15t/core';
 /**
  * Manifest resolution shared by the injected routes and the middleware.
  *
@@ -8,20 +9,19 @@
  * transport would carry its own memo and re-fetch the manifest on every
  * page render, which is exactly the cost manifest mode exists to remove.
  */
-
 import { fetchCachedManifest } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
+import {
+	consentInputsToOverrides,
+	resolveBackendURL,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
 	ConsentRequestHeaderInputs,
 	GlobalVendorList,
 	InitOutput,
-} from '@c15t/schema/types';
-import {
-	consentInputsToOverrides,
-	resolveBackendURL,
-	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
@@ -220,6 +220,8 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 	manifest: ConsentManifest;
 	inputs: ConsentRequestHeaderInputs;
 	fetch?: ManifestFetch;
+	/** Same-origin init route that serves versioned public lists. */
+	gvlRoute?: string;
 	fetchGvl?: FetchGvl;
 }): Promise<ResolvedInitOutput> {
 	const { inputs, manifest } = input;
@@ -262,5 +264,7 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		region: inputs.region,
 	});
 	payload.resolvedPrivacySignals = { gpc: inputs.gpc };
-	return payload;
+	return input.gvlRoute && !input.fetch && !input.fetchGvl
+		? deferInitGvlToRoute(payload, input.gvlRoute)
+		: payload;
 };

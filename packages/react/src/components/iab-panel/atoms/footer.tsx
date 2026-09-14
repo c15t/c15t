@@ -30,22 +30,34 @@ const IABConsentDialogFooter = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
 >(({ children, className, ...props }, ref) => {
-	const { performDialogAction } = useHeadlessIABConsentUI();
+	const { banner, performDialogAction } = useHeadlessIABConsentUI();
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
 	const iabTranslations = useIABTranslations();
 	const { isLoading } = useGVLData();
 
-	const handleAcceptAll = () => {
-		void performDialogAction('accept');
+	const handleAcceptAll = async () => {
+		try {
+			await performDialogAction('accept');
+		} catch {
+			// Keep the dialog open so a failed vendor-list request can be retried.
+		}
 	};
 
-	const handleRejectAll = () => {
-		void performDialogAction('reject');
+	const handleRejectAll = async () => {
+		try {
+			await performDialogAction('reject');
+		} catch {
+			// Keep the dialog open so a failed vendor-list request can be retried.
+		}
 	};
 
-	const handleSave = () => {
-		void performDialogAction('customize');
+	const handleSave = async () => {
+		try {
+			await performDialogAction('customize');
+		} catch {
+			// Keep the dialog open so a failed vendor-list request can be retried.
+		}
 	};
 
 	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.footer, {
@@ -73,7 +85,7 @@ const IABConsentDialogFooter = createForwardRef<
 							mode="stroke"
 							size="small"
 							onClick={handleRejectAll}
-							disabled={isLoading}
+							disabled={!banner.isReady}
 							data-action="reject"
 						>
 							{iabTranslations.common.rejectAll}
@@ -83,7 +95,7 @@ const IABConsentDialogFooter = createForwardRef<
 							mode="stroke"
 							size="small"
 							onClick={handleAcceptAll}
-							disabled={isLoading}
+							disabled={!banner.isReady}
 							data-action="accept"
 						>
 							{iabTranslations.common.acceptAll}

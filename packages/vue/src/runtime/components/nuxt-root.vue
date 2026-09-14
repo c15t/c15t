@@ -67,7 +67,7 @@ watch(
 	activeUI,
 	(ui) => {
 		if (ui === 'manager') {
-			if (init.value?.gvl) {
+			if (init.value?.gvl || init.value?.gvlReference) {
 				iabDialogNeeded.value = true;
 			} else {
 				managerNeeded.value = true;
@@ -77,7 +77,7 @@ watch(
 	{ immediate: true }
 );
 onMounted(() => {
-	if (init.value?.gvl) {
+	if (init.value?.gvl || init.value?.gvlReference) {
 		prefetchIabConsentDialog();
 	} else {
 		prefetchConsentManager();
@@ -86,9 +86,13 @@ onMounted(() => {
 </script>
 
 <template>
-	<LazyIabConsentBanner v-if="init?.gvl" />
+	<LazyIabConsentBanner v-if="init?.gvl || init?.gvlReference" />
 	<ConsentBanner v-else />
-	<LazyIabConsentDialog v-if="init?.gvl && iabDialogNeeded" />
-	<LazyConsentManager v-else-if="!init?.gvl && managerNeeded" />
+	<LazyIabConsentDialog
+		v-if="(init?.gvl || init?.gvlReference) && iabDialogNeeded"
+	/>
+	<LazyConsentManager
+		v-else-if="!(init?.gvl || init?.gvlReference) && managerNeeded"
+	/>
 	<ConsentDialogTrigger v-if="config.showTrigger" />
 </template>

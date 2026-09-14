@@ -1,3 +1,9 @@
+import {
+	deferInitGvl,
+	c15tProtocolHeaders,
+	mergeInitOutputIntoKernelConfig,
+} from '@c15t/core';
+import type { KernelConfig } from '@c15t/core';
 /**
  * `loadConsent` — the `+layout.server.ts` half of the SvelteKit layer.
  *
@@ -6,19 +12,14 @@
  * server, so the banner is in the first HTML instead of appearing a frame
  * after hydration.
  */
-import {
-	c15tProtocolHeaders,
-	mergeInitOutputIntoKernelConfig,
-} from '@c15t/core';
-import type { KernelConfig } from '@c15t/core';
 import { readProducerPolicyContract } from '@c15t/core/transports';
-import type {
-	ConsentRequestHeaderInputs,
-	InitOutput,
-} from '@c15t/schema/types';
 import {
 	extractConsentRequestInputs,
 	headersToRecord,
+} from '@c15t/schema/types';
+import type {
+	ConsentRequestHeaderInputs,
+	InitOutput,
 } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -46,7 +47,7 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	/** Extra request headers to forward upstream in hosted mode. */
 	forwardHeaders?: string[];
 
-	/** Fetch implementation for hosted mode. Defaults to the global `fetch`. */
+	/** Fetch implementation for hosted mode. Defaults to `event.fetch`. */
 	fetch?: typeof globalThis.fetch;
 }
 
@@ -178,7 +179,7 @@ export const loadConsent = async function loadConsent(
 			const payload = (await response.json()) as InitOutput;
 			return mergeInitOutputIntoKernelConfig(
 				config,
-				payload,
+				deferInitGvl(payload, options.initRoute, 'init', forwarded),
 				{
 					...headersToRecord(event.request.headers),
 					...forwarded,
@@ -196,8 +197,9 @@ export const loadConsent = async function loadConsent(
 			backendURL: options.backendURL,
 			cookieName,
 			country: inputs.country,
-			fetch: options.fetch ?? event.fetch,
+			fetch: options.fetch,
 			forwardHeaders: options.forwardHeaders,
+			frameworkFetch: event.fetch,
 			headers: event.request.headers,
 			language: inputs.language,
 			region: inputs.region,

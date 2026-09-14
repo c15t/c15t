@@ -1,3 +1,13 @@
+import type {
+	InitOutput,
+	GlobalVendorList,
+	LocationResponse,
+	NonIABVendor,
+	PolicyResolution,
+	PolicyScopeMode,
+	ResolvedPolicyRule,
+	TranslationsResponse,
+} from '@c15t/schema/types';
 /**
  * Kernel public types.
  *
@@ -11,15 +21,6 @@
  * active policy, expiry, scope and privacy signals. Draft values never
  * establish processing permissions.
  */
-import type {
-	GlobalVendorList,
-	LocationResponse,
-	NonIABVendor,
-	PolicyResolution,
-	PolicyScopeMode,
-	ResolvedPolicyRule,
-	TranslationsResponse,
-} from '@c15t/schema/types';
 
 import type {
 	ConsentSubject,
@@ -181,6 +182,8 @@ export interface KernelIABState {
 	enabled: boolean;
 	/** Global Vendor List (IAB-registered vendors + purposes). */
 	gvl: GlobalVendorList | null;
+	/** Public list deferred until the IAB runtime needs it. */
+	gvlReference?: InitOutput['gvlReference'];
 	/** Non-IAB vendors declared by the publisher. */
 	customVendors: NonIABVendor[];
 	/** CMP ID registered with IAB Europe. */
@@ -401,6 +404,7 @@ export interface InitResponse {
 
 	/** Global Vendor List. `null` means the server disabled IAB for this request. */
 	gvl?: GlobalVendorList | null;
+	gvlReference?: InitOutput['gvlReference'];
 	/** Non-IAB vendors configured on the backend. */
 	customVendors?: NonIABVendor[];
 	/** CMP ID registered with IAB Europe. */

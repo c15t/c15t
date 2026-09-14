@@ -1,0 +1,285 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Banner readiness should not regress by more than 25ms and 15%.",
+			"metric": "bannerReadyMs",
+			"secondaryThreshold": 15,
+			"threshold": 25
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Final app-script response end budget.",
+			"metric": "lastAppScriptEndMs",
+			"secondaryThreshold": 10,
+			"threshold": 15
+		},
+		{
+			"comparator": "absolute-and-percent-lte",
+			"description": "Interaction latency budget.",
+			"metric": "interactionLatencyMs",
+			"secondaryThreshold": 20,
+			"threshold": 20
+		},
+		{
+			"comparator": "percent-lte",
+			"description": "Long-task total should not grow by more than 25%.",
+			"metric": "longTaskTotalMs",
+			"threshold": 25
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Authoritative SSR prefetch must avoid a second init request in the browser.",
+			"metric": "initRequestsAfterLoad",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "6ba1d8d2ef08ac8e7ad51b4d7c6c511a10aedd92",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "manifest-ssr",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "tanstack-start",
+	"metadata": {
+		"bannerInFirstHtml": true,
+		"bannerPaintMs": 24,
+		"cls": 0,
+		"coldManifestMode": false,
+		"fixtureInitExecutions": 0,
+		"fixtureManifestExecutions": 1,
+		"fixtureSubjectExecutions": 1,
+		"initLatencyMs": 0,
+		"profile": "none"
+	},
+	"metrics": [
+		{
+			"avg": 48.42,
+			"median": 48.7,
+			"name": "bannerReadyMs",
+			"p95": 51.2,
+			"samples": [
+				50.5, 48.700000047683716, 48.299999952316284, 49.200000047683716,
+				48.200000047683716, 48.39999997615814, 47.200000047683716, 49.5,
+				43.699999928474426, 51.199999928474426, 48.89999997615814,
+				48.699999928474426, 48, 48.800000071525574, 47
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 48.42,
+			"median": 48.7,
+			"name": "bannerVisibleMs",
+			"p95": 51.2,
+			"samples": [
+				50.5, 48.700000047683716, 48.299999952316284, 49.200000047683716,
+				48.200000047683716, 48.39999997615814, 47.200000047683716, 49.5,
+				43.699999928474426, 51.199999928474426, 48.89999997615814,
+				48.699999928474426, 48, 48.800000071525574, 47
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 22.4,
+			"median": 24,
+			"name": "bannerPaintMs",
+			"p95": 24,
+			"samples": [24, 24, 20, 20, 24, 20, 24, 24, 20, 24, 24, 20, 20, 24, 24],
+			"unit": "ms"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "bannerInFirstHtml",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "cls",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "ratio"
+		},
+		{
+			"avg": 6.153,
+			"median": 6.1,
+			"name": "firstAppScriptStartMs",
+			"p95": 6.8,
+			"samples": [
+				6.799999952316284, 6.399999976158142, 6.199999928474426,
+				5.900000095367432, 6.400000095367432, 6.5, 6.300000071525574,
+				6.400000095367432, 5.899999976158142, 5.599999904632568, 6,
+				6.100000023841858, 5.899999976158142, 5.899999976158142, 6
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 48.087,
+			"median": 48.3,
+			"name": "lastAppScriptEndMs",
+			"p95": 52.8,
+			"samples": [
+				51.699999928474426, 49.700000047683716, 45.5, 46.10000002384186,
+				49.200000047683716, 45.39999997615814, 48.10000002384186,
+				50.40000009536743, 44.699999928474426, 52.799999952316284,
+				49.89999997615814, 45.89999997615814, 44.10000002384186, 49.5,
+				48.299999952316284
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 10,
+			"median": 10,
+			"name": "appScriptCount",
+			"p95": 10,
+			"samples": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+			"unit": "count"
+		},
+		{
+			"avg": 232771,
+			"median": 232771,
+			"name": "jsBytes",
+			"p95": 232771,
+			"samples": [
+				232771, 232771, 232771, 232771, 232771, 232771, 232771, 232771, 232771,
+				232771, 232771, 232771, 232771, 232771, 232771
+			],
+			"unit": "bytes"
+		},
+		{
+			"avg": 4.793,
+			"median": 4.7,
+			"name": "ttfbMs",
+			"p95": 5.4,
+			"samples": [
+				5.4, 5, 5, 4.7, 4.9, 5.1, 5, 4.9, 4.6, 4.2, 4.6, 4.7, 4.5, 4.6, 4.7
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 12.067,
+			"median": 10.1,
+			"name": "htmlDoneMs",
+			"p95": 16,
+			"samples": [
+				10.8, 10.1, 15.6, 15.6, 9.6, 16, 9.7, 9.8, 15.5, 8.9, 9.5, 15.7, 15.2,
+				9.4, 9.6
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 12.067,
+			"median": 10.1,
+			"name": "domContentLoadedMs",
+			"p95": 16,
+			"samples": [
+				10.8, 10.1, 15.6, 15.6, 9.6, 16, 9.7, 9.8, 15.5, 8.9, 9.5, 15.7, 15.2,
+				9.4, 9.6
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 27.353,
+			"median": 29.1,
+			"name": "loadEventMs",
+			"p95": 31.5,
+			"samples": [
+				28.1, 29.4, 23.8, 24.1, 30.1, 23.7, 29.3, 31.5, 22.5, 31.3, 29.7, 23.9,
+				22.9, 30.9, 29.1
+			],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequestsAfterLoad",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "mountCount",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "renderCount",
+			"p95": 1,
+			"samples": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskCount",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "longTaskTotalMs",
+			"p95": 0,
+			"samples": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			"unit": "ms"
+		},
+		{
+			"avg": 46,
+			"median": 46,
+			"name": "domNodeCount",
+			"p95": 46,
+			"samples": [46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46],
+			"unit": "count"
+		},
+		{
+			"avg": 21.37,
+			"median": 21.708,
+			"name": "interactionLatencyMs",
+			"p95": 24.242,
+			"samples": [
+				16.84841600000027, 23.746874999999818, 20.55016599999999,
+				22.33029099999976, 21.707542000000103, 24.241667000000234,
+				17.847749999999905, 21.94604199999958, 21.18787499999962,
+				17.855207999999948, 24.029708000000028, 20.796583000000282,
+				21.50891700000011, 23.347499999999854, 22.60333400000036
+			],
+			"unit": "ms"
+		}
+	],
+	"notes": [
+		"TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths."
+	],
+	"package": "@c15t/tanstack-start-browser-bench",
+	"runtime": "playwright",
+	"scenario": "manifest-ssr",
+	"schemaVersion": 1,
+	"suite": "browser-runtime",
+	"timestamp": "2026-09-14T12:28:46.946Z"
+}

@@ -315,8 +315,13 @@ parameter on the manifest route is passed to the upstream manifest request.
 the manifest includes an `iab.gvl` reference, and the resolved policy matched
 with `model: 'iab'`. It receives the reference, the `fetch` option, and the
 language taken from the first segment of the resolved translations language
-(`en` when empty). Its result, including `null`, becomes the payload's `gvl`.
-The default fetcher caches the vendor list in process.
+(`en` when empty). The default fetcher caches the vendor list in process.
+A fetched list becomes a `gvlReference` and a small banner summary in the
+serialized payload. A `null` result keeps IAB unavailable. With
+`config.initURL`, the browser reads the list from that same-origin handler;
+otherwise it uses the manifest's public list URL. See
+[server-rendered vendor data](../../javascript/iab/overview#server-rendered-vendor-data)
+for loading and caching behavior.
 
 `createPagesApiHandlers(options)` from `c15t/next/pages` accepts the same
 options or a `defineConsentConfig` result and returns `{ init, manifest }`:
@@ -398,3 +403,12 @@ perform IP lookup. Supply `policyRules` to replace that pack when your local
 policy needs different behavior. Browser persistence stores choices, but this
 setup has no backend record service. See
 [transport choices](/docs/guides/data-fetching) for the tradeoffs.
+
+### Authenticated hosted vendor lists
+
+When hosted `resolveConsent()` forwards cookies or additional request headers,
+or uses a custom `fetch`, it retains the fetched vendor list in server state.
+The browser cannot replay a private server fetch. This fallback preserves consent
+loading and vendor filtering without copying credentials into the page. Its
+payload size is unchanged from inline GVL loading. For compact pages with private
+upstreams, expose the public list through a same-origin manifest init handler.

@@ -1,0 +1,180 @@
+/**
+ * Framework-agnostic IAB banner summary logic.
+ *
+ * Extracted from the React useHeadlessIABConsentUI hook to be
+ * shared across React, Svelte, Vue, Solid, and Astro.
+ *
+ * @packageDocumentation
+ */
+
+import type { KernelIABState } from '../types';
+
+type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
+	Partial<Pick<KernelIABState, 'customVendors'>> & {
+		/** Server summary and list location, used while gvl is absent. */
+		gvlReference?: KernelIABState['gvlReference'];
+		nonIABVendors?: KernelIABState['customVendors'];
+	};
+
+/** Banner copy derived from a full list or a deferred server summary. */
+export interface HeadlessIABBannerState {
+	/** Whether sufficient vendor data is available to display the summary. */
+	isReady: boolean;
+	/** Number of registered and custom vendors disclosed by the banner. */
+	vendorCount: number;
+	/** Names of applicable purposes, stacks and special features. */
+	displayItems: string[];
+	/** Number of disclosure items omitted by the display limit. */
+	remainingCount: number;
+}
+
+/**
+ * How many summary items the banner lists before it collapses the rest
+ * into "and {count} more". Exported so an adapter that wants to say how
+ * many it dropped does not re-guess the number.
+ */
+export const IAB_BANNER_MAX_DISPLAY_ITEMS = 5;
+
+const STANDALONE_PURPOSE_ID = 1;
+
+/** Options for {@link resolveIABBannerSummary}. */
+export interface ResolveIABBannerSummaryOptions {
+	/**
+	 * How many items to list before collapsing the rest into the
+	 * "and {count} more" line. Defaults to {@link IAB_BANNER_MAX_DISPLAY_ITEMS}.
+	 */
+	maxItems?: number;
+}
+
+const referencedSummary = (
+	iab: HeadlessIABStateInput | null,
+	maxItems: number
+): HeadlessIABBannerState => {
+	if (iab?.gvlReference?.summary) {
+		const { items, vendorCount } = iab.gvlReference.summary;
+		return {
+			displayItems: items.slice(0, maxItems),
+			isReady: true,
+			remainingCount: Math.max(0, items.length - maxItems),
+			vendorCount:
+				vendorCount + (iab.nonIABVendors ?? iab.customVendors ?? []).length,
+		};
+	}
+	return {
+		displayItems: [],
+		isReady: false,
+		remainingCount: 0,
+		vendorCount: 0,
+	};
+};
+
+/**
+ * Resolves the IAB banner summary from the current IAB state.
+ *
+ * Pure function — no framework reactivity. Each framework package
+ * wraps this in its own reactive primitive (useMemo, $derived, computed, etc.).
+ *
+ * @param iab - IAB state carrying the GVL and any custom vendors.
+ * @param options - The item cap, when a caller wants its own.
+ * @returns The names the banner lists, how many it left out, and the
+ * vendor count.
+ */
+export const resolveIABBannerSummary = function resolveIABBannerSummary(
+	iab: HeadlessIABStateInput | null,
+	options: ResolveIABBannerSummaryOptions = {}
+): HeadlessIABBannerState {
+	const maxItems = options.maxItems ?? IAB_BANNER_MAX_DISPLAY_ITEMS;
+	if (!iab?.gvl) {
+		return referencedSummary(iab, maxItems);
+	}
+
+	const { gvl } = iab;
+	const customVendors = iab.nonIABVendors ?? iab.customVendors ?? [];
+	const vendorCount = Object.keys(gvl.vendors).length + customVendors.length;
+
+	const purposesWithVendors = Object.entries(gvl.purposes)
+		.filter(([id]) =>
+			Object.values(gvl.vendors).some(
+				(vendor) =>
+					vendor.purposes?.includes(Number(id)) ||
+					vendor.legIntPurposes?.includes(Number(id))
+			)
+		)
+		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
+
+	const standalonePurpose = purposesWithVendors.find(
+		(purpose) => purpose.id === STANDALONE_PURPOSE_ID
+	);
+	const otherPurposes = purposesWithVendors.filter(
+		(purpose) => purpose.id !== STANDALONE_PURPOSE_ID
+	);
+	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
+
+	const stackScores: {
+		name: string;
+		coveredPurposeIds: number[];
+		score: number;
+	}[] = [];
+
+	for (const stack of Object.values(gvl.stacks || {})) {
+		const coveredPurposeIds = stack.purposes.filter((purposeId) =>
+			otherPurposeIds.has(purposeId)
+		);
+		if (coveredPurposeIds.length >= 2) {
+			stackScores.push({
+				coveredPurposeIds,
+				name: stack.name,
+				score: coveredPurposeIds.length,
+			});
+		}
+	}
+
+	stackScores.sort((a, b) => b.score - a.score);
+
+	const selectedStacks: string[] = [];
+	const assignedPurposeIds = new Set<number>();
+	for (const { name, coveredPurposeIds } of stackScores) {
+		const unassignedPurposes = coveredPurposeIds.filter(
+			(purposeId) => !assignedPurposeIds.has(purposeId)
+		);
+		if (unassignedPurposes.length >= 2) {
+			selectedStacks.push(name);
+			for (const purposeId of unassignedPurposes) {
+				assignedPurposeIds.add(purposeId);
+			}
+		}
+	}
+
+	const uncoveredPurposes = otherPurposes.filter(
+		(purpose) => !assignedPurposeIds.has(purpose.id)
+	);
+
+	const specialFeaturesWithVendors = Object.entries(gvl.specialFeatures || {})
+		.filter(([id]) =>
+			Object.values(gvl.vendors).some((vendor) =>
+				vendor.specialFeatures?.includes(Number(id))
+			)
+		)
+		.map(([, feature]) => feature.name);
+
+	const items: string[] = [];
+	if (standalonePurpose) {
+		items.push(standalonePurpose.name);
+	}
+	for (const stackName of selectedStacks) {
+		items.push(stackName);
+	}
+	for (const purpose of uncoveredPurposes) {
+		items.push(purpose.name);
+	}
+	for (const featureName of specialFeaturesWithVendors) {
+		items.push(featureName);
+	}
+
+	return {
+		displayItems: items.slice(0, maxItems),
+		isReady: true,
+		remainingCount: Math.max(0, items.length - maxItems),
+		vendorCount,
+	};
+};

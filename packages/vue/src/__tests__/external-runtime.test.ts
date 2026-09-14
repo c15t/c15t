@@ -5,6 +5,8 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import { defineComponent, h, inject } from 'vue';
 
+import { createIAB } from '../../../iab/src';
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import { c15tVue } from '../index';
 import {
 	createVueConsentKernelContext,
@@ -93,4 +95,35 @@ describe('the c15tVue plugin', () => {
 		wrapper.unmount();
 		expect(dispose).not.toHaveBeenCalled();
 	});
+});
+
+test('tracks external IAB handle changes and unsubscribes on disposal', () => {
+	const runtime = createRuntime();
+	const handle = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel: runtime.kernel,
+		persistence: false,
+	});
+	let changed: Parameters<ConsentRuntime['onIABChange']>[0] = () => {};
+	const unsubscribe = vi.fn();
+	vi.spyOn(runtime, 'onIABChange').mockImplementation((listener) => {
+		changed = listener;
+		return unsubscribe;
+	});
+	const context = createVueConsentKernelContext({ config: {}, runtime });
+	try {
+		changed(handle);
+		expect(context.iab).toBe(handle);
+		const replacement = { ...handle };
+		changed(replacement);
+		expect(context.iab).toBe(replacement);
+		changed(null);
+		expect(context.iab).toBeUndefined();
+		context.dispose();
+		expect(unsubscribe).toHaveBeenCalledOnce();
+	} finally {
+		handle.dispose();
+		runtime.dispose();
+	}
 });

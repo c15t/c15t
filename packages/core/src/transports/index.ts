@@ -61,3 +61,8 @@ export {
 	c15tVersionHeaders,
 	readProducerPolicyContract,
 } from './version-header';
+export {
+	deferInitGvl,
+	createGvlReferenceURL,
+	serveGvlReference,
+} from './gvl-reference';

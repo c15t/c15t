@@ -84,7 +84,8 @@ const getCookie = function getCookie(name: string): string | null {
 export const createCMPApi = function createCMPApi(
 	config: CMPApiConfig
 ): CMPApi {
-	const { cmpId = CMP_ID, cmpVersion = CMP_VERSION, gvl } = config;
+	const { cmpId = CMP_ID, cmpVersion = CMP_VERSION } = config;
+	let { gvl } = config;
 	let gdprApplies = config.gdprApplies ?? true;
 
 	let tcString = '';
@@ -105,7 +106,7 @@ export const createCMPApi = function createCMPApi(
 	): Promise<TCData> {
 		// Use cached data if available and tc string hasn't changed
 		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
-			return cachedTCData;
+			return { ...cachedTCData, listenerId };
 		}
 
 		let purposeConsents: Record<number, boolean> =
@@ -235,7 +236,7 @@ export const createCMPApi = function createCMPApi(
 		handler: TCFApiCallback<GlobalVendorList>,
 		_vendorListVersion?: number
 	): void {
-		handler(gvl, true);
+		handler(cmpStatus === 'loaded' ? gvl : null, cmpStatus === 'loaded');
 	};
 
 	/**
@@ -248,8 +249,11 @@ export const createCMPApi = function createCMPApi(
 		const listenerId = nextListenerId;
 		eventListeners.set(listenerId, handler);
 
-		// Immediately call with current state
-		const tcData = await buildTCData('tcloaded', listenerId);
+		// Registration always returns its ID, including while the list is loading.
+		const tcData = await buildTCData(
+			cmpStatus === 'loaded' ? 'tcloaded' : undefined,
+			listenerId
+		);
 		handler(tcData, true);
 	};
 
@@ -330,13 +334,13 @@ export const createCMPApi = function createCMPApi(
 		// Clear the stub queue
 		clearStubQueue();
 
+		// The real API is created with a list. Replayed calls can read it now.
+		cmpStatus = 'loaded';
+
 		// Process queued calls
 		for (const args of queuedCalls) {
 			window.__tcfapi?.(...args);
 		}
-
-		// Mark as loaded
-		cmpStatus = 'loaded';
 	};
 
 	// Initialize on creation
@@ -415,8 +419,20 @@ export const createCMPApi = function createCMPApi(
 			currentConsentData = newTcString ? (consentData ?? null) : null;
 			// Invalidate cache
 			cachedTCData = null;
-			cmpStatus = 'loaded';
-			notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
+			if (cmpStatus === 'loaded') {
+				notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
+			}
+		},
+
+		updateVendorList: (nextGvl) => {
+			if (nextGvl) {
+				gvl = nextGvl;
+			}
+			cmpStatus = nextGvl ? 'loaded' : 'loading';
+			tcString = '';
+			currentConsentData = null;
+			cachedTCData = null;
+			// The owner publishes current confirmed TC data with updateConsent.
 		},
 	};
 };

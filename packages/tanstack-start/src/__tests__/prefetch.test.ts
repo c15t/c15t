@@ -3,9 +3,15 @@
  * resolves init from the cached manifest and folds it into the ConsentState
  * handed to the client `ConsentRoot`.
  */
+import { clearGvlCache } from '@c15t/core';
 import { createManifestCache } from '@c15t/core/transports/manifest-cache';
+import {
+	buildConsentManifestFromConfig,
+	policyRulePresets,
+} from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import {
 	createConsentStateHandler,
 	resolveConsent as baseResolveConsent,
@@ -354,3 +360,44 @@ describe('resolveConsent: cleartext backend', () => {
 		expect(headers.get('accept-language')).toBe('de');
 	});
 });
+
+test.each(['direct', 'proxy', 'custom-fetch', 'forwarded'] as const)(
+	'resolves IAB vendor loading for the %s TanStack setup',
+	async (setup) => {
+		clearGvlCache();
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: { cmpId: 28, enabled: true },
+			policyRules: [policyRulePresets.europeIab()],
+		});
+		const fetch = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const state = await resolveConsent(
+				{
+					backendURL: 'https://consent.example.com',
+					fetch: setup === 'custom-fetch' ? fetch : undefined,
+					forwardHeaders: setup === 'forwarded' ? ['x-tenant'] : undefined,
+					manifest,
+					routePrefix: setup === 'direct' ? undefined : '/privacy',
+				},
+				createRequest({ 'x-c15t-country': 'DE', 'x-tenant': 'private' })
+			);
+			const reference = state.initialIab?.gvlReference;
+			const expectedURL = {
+				'custom-fetch': undefined,
+				direct: manifest.iab?.gvl?.url,
+				forwarded: undefined,
+				proxy: `/privacy/init?c15t-gvl=${completeGVL.vendorListVersion}&language=en`,
+			}[setup];
+			expect(reference?.url).toBe(expectedURL);
+			expect(state.initialIab?.gvl).toEqual(
+				setup === 'direct' || setup === 'proxy' ? null : completeGVL
+			);
+			expect(fetch).toHaveBeenCalledOnce();
+		} finally {
+			vi.unstubAllGlobals();
+			clearGvlCache();
+		}
+	}
+);

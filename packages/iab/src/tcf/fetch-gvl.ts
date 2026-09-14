@@ -95,7 +95,7 @@ export const narrowGVLToVendors = function narrowGVLToVendors(
 
 export const fetchGVL = function fetchGVL(
 	vendorIds?: number[],
-	options: { endpoint?: string; headers?: HeadersInit } = {}
+	options: { endpoint?: string; headers?: HeadersInit; format?: 'init' } = {}
 ): Promise<GlobalVendorList | null> {
 	// Check for window-level mock GVL first (for testing in browser mode)
 	const windowMockGVL =
@@ -120,7 +120,7 @@ export const fetchGVL = function fetchGVL(
 	// Create a stable key for the request based on sorted vendorIds and headers
 	const sortedVendorIds = vendorIds ? [...vendorIds].sort((a, b) => a - b) : [];
 	const headersKey = headers ? JSON.stringify(headers) : '';
-	const cacheKey = `${endpoint}|${sortedVendorIds.join(',')}|${headersKey}`;
+	const cacheKey = `${endpoint}|${sortedVendorIds.join(',')}|${headersKey}|${options.format ?? 'gvl'}`;
 
 	// Return in-flight request if one exists for these parameters (deduplication)
 	const existingRequest = inflightRequests.get(cacheKey);
@@ -129,7 +129,10 @@ export const fetchGVL = function fetchGVL(
 	}
 
 	// Build URL with vendor IDs filter
-	const url = new URL(endpoint);
+	const url = new URL(
+		endpoint,
+		typeof window === 'undefined' ? undefined : window.location.href
+	);
 	if (sortedVendorIds.length > 0) {
 		url.searchParams.set('vendorIds', sortedVendorIds.join(','));
 	}
@@ -153,7 +156,17 @@ export const fetchGVL = function fetchGVL(
 				);
 			}
 
-			const gvl = (await response.json()) as GlobalVendorList;
+			let payload: unknown = await response.json();
+			if (options.format === 'init') {
+				payload =
+					payload && typeof payload === 'object' && 'gvl' in payload
+						? payload.gvl
+						: null;
+			}
+			const gvl = payload as GlobalVendorList;
+			if (!gvl) {
+				return null;
+			}
 
 			// Validate the response has required fields
 			if (!gvl.vendorListVersion || !gvl.purposes || !gvl.vendors) {

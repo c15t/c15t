@@ -2,6 +2,7 @@
 	import {
 		defaultTranslationConfig,
 		resolveConsentPresentation,
+		resolveIABBannerSummary,
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
@@ -141,6 +142,7 @@
 		)
 	);
 
+	const summary = $derived(resolveIABBannerSummary(iabState));
 	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
 
 	const handlePurposeToggle = function handlePurposeToggle(
@@ -180,21 +182,25 @@
 			iabState?.setPurposeLegitimateInterest(purposeId, value);
 		};
 
+	const handleSave = async function handleSave() {
+		if (!iabState) {
+			return;
+		}
+		try {
+			await iabState.save();
+		} catch {
+			// Keep the prompt available so a later action can retry the failed load/save.
+		}
+	};
+
 	const handleAcceptAll = function handleAcceptAll() {
 		iabState?.acceptAll();
-		iabState?.save();
-		consent.state.setActiveUI('none');
+		return handleSave();
 	};
 
 	const handleRejectAll = function handleRejectAll() {
 		iabState?.rejectAll();
-		iabState?.save();
-		consent.state.setActiveUI('none');
-	};
-
-	const handleSave = function handleSave() {
-		iabState?.save();
-		consent.state.setActiveUI('none');
+		return handleSave();
 	};
 
 	const handleVendorClick = function handleVendorClick(vendorId: VendorId) {
@@ -493,7 +499,7 @@
 							type="button"
 							class={noStyle ? '' : secondaryButtonClass}
 							onclick={handleRejectAll}
-							disabled={isLoading}
+							disabled={!summary.isReady}
 							data-action="reject"
 						>
 							{iabT.common.rejectAll}
@@ -502,7 +508,7 @@
 							type="button"
 							class={noStyle ? '' : secondaryButtonClass}
 							onclick={handleAcceptAll}
-							disabled={isLoading}
+							disabled={!summary.isReady}
 							data-action="accept"
 						>
 							{iabT.common.acceptAll}

@@ -173,9 +173,33 @@ export const initOutputSchema = v.object({
 	 * Global Vendor List for IAB TCF compliance.
 	 * Present when IAB is active for the resolved request policy.
 	 * For policy-based setups, non-IAB policies omit this field.
-	 * If absent (and response is 200), IAB mode should be disabled on client.
+	 * When both this list and gvlReference are absent, IAB is unavailable.
 	 */
 	gvl: v.optional(v.nullable(globalVendorListSchema)),
+	/** Deferred public list and the small summary needed to render the banner. */
+	gvlReference: v.optional(
+		v.object({
+			/** Non-secret policy inputs for a hosted init request. */
+			context: v.optional(
+				v.object({
+					country: v.optional(v.string()),
+					gpc: v.optional(v.boolean()),
+					region: v.optional(v.string()),
+				})
+			),
+			format: v.optional(v.literal('init')),
+			language: v.string(),
+			/** Absent when client filtering requires the full list to derive copy. */
+			summary: v.optional(
+				v.object({
+					items: v.array(v.string()),
+					vendorCount: v.number(),
+				})
+			),
+			url: v.string(),
+			vendorListVersion: v.number(),
+		})
+	),
 	jurisdiction: jurisdictionCodeSchema,
 	location: locationSchema,
 	/** Explicit, versioned policy outcome for every complete response. */

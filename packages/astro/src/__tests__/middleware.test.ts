@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
 import { hostedMode, offlineMode } from '../mode';
@@ -252,3 +253,36 @@ describe('consent middleware', () => {
 		);
 	});
 });
+
+it.each(['c15t=consent', 'session=unrelated'])(
+	'preserves hosted Astro vendor loading when the request cookie is %s',
+	async (cookie) => {
+		const fetch = vi.fn(() =>
+			Promise.resolve(
+				Response.json({
+					branding: 'c15t',
+					gvl: completeGVL,
+					location: { countryCode: 'DE', regionCode: null },
+					policyResolution: testWire({ model: 'iab' }),
+					translations: { language: 'en', translations: {} },
+				})
+			)
+		);
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const result = await run({
+				headers: { cookie },
+				options: { mode: hostedMode({ url: 'https://example.com/api/c15t' }) },
+			});
+			expect(fetch).toHaveBeenCalledOnce();
+			expect(result.config.initialIab?.gvl).toEqual(
+				cookie.startsWith('c15t=') ? completeGVL : null
+			);
+			expect(Boolean(result.config.initialIab?.gvlReference)).toBe(
+				!cookie.startsWith('c15t=')
+			);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	}
+);

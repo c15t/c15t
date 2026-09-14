@@ -1,4 +1,5 @@
 import {
+	deferInitGvl,
 	createHostedTransport,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
@@ -95,7 +96,10 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 	const forward = createForwardHeaders(options, base.initialOverrides);
 
 	try {
-		const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+		const fetchImpl =
+			options.fetch ??
+			options.frameworkFetch ??
+			globalThis.fetch?.bind(globalThis);
 		if (!fetchImpl) {
 			return base;
 		}
@@ -124,7 +128,15 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		if (!response) {
 			return base;
 		}
-		const merged = mergeInitResponseIntoKernelConfig(base, response);
+		const merged = mergeInitResponseIntoKernelConfig(
+			base,
+			options.fetch ||
+				forward.cookie ||
+				(options.frameworkFetch && options.headers.has('authorization')) ||
+				options.forwardHeaders?.some((name) => options.headers.has(name))
+				? response
+				: deferInitGvl(response, `${absoluteBackend}/init`, 'init', forward)
+		);
 		if (response.subjectId) {
 			merged.initialRecords = {
 				...merged.initialRecords,

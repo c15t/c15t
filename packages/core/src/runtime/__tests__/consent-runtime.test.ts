@@ -95,6 +95,29 @@ describe('hasResolvedPrefetch', () => {
 });
 
 describe('createRuntimeKernel', () => {
+	test('withholds an unfiltered reference summary before runtime mount', () => {
+		const gvlReference = {
+			language: 'en',
+			summary: { items: ['Storage'], vendorCount: 100 },
+			url: '/vendor-list',
+			vendorListVersion: 42,
+		};
+		const kernel = createRuntimeKernel({
+			iab: { cmpId: 28, vendors: [1] },
+			mode: custom(createTransport()),
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialIab: { enabled: true, gvl: null, gvlReference },
+			},
+		});
+		expect(kernel.getServerSnapshot().iab?.gvlReference).toEqual({
+			...gvlReference,
+			summary: undefined,
+		});
+		expect(gvlReference.summary.vendorCount).toBe(100);
+		kernel.dispose();
+	});
+
 	test('throws when `mode` is not a transport factory', () => {
 		expect(() =>
 			createRuntimeKernel({ mode: undefined as never })

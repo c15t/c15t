@@ -156,8 +156,11 @@ The consent UI uses a green primary color and a 4px large-radius token. Merge
 
 If browser traffic should use `/api/c15t`, mount a real Start server route using
 `createConsentServerRoute` from `c15t/tanstack-start/api` with `proxy: true`.
-Give `createConsentStateHandler` the upstream backend URL and `ConsentRoot` the
-browser route URL. Remove `initRoute={false}` to use the default
+Give `createConsentStateHandler` the upstream backend URL and set its
+`routePrefix: '/api/c15t'` to the mounted route prefix. This also routes deferred
+IAB vendor lists through the proxy. Without an explicit `routePrefix`, the browser
+loads public vendor lists directly from the manifest URL, which must allow
+browser access and CORS. Give `ConsentRoot` the browser route URL. Remove `initRoute={false}` to use the default
 `/api/c15t/init` route, or set `initRoute` to your custom route URL. Do not make
 prefetch call its own proxy unnecessarily.
 

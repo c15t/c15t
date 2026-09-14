@@ -117,6 +117,7 @@ export const createLazyIABFactory = function createLazyIABFactory(
 				if (property === 'whenReady') {
 					return async () => {
 						await pending;
+						await inner?.whenReady?.();
 					};
 				}
 				const source = inner as Record<string, unknown> | null;
