@@ -3,6 +3,10 @@ name: Benchmark Regression
 on:
   workflow_call:
     inputs:
+      advisory:
+        description: Report runtime benchmark failures without failing the job
+        type: boolean
+        default: false
       base_ref:
         type: string
         default: 'HEAD^'
@@ -44,10 +48,16 @@ jobs:
           built: ${{ inputs.built || false }}
           browsers: 'true'
       - name: Measure base and head in sequence
+        id: measure
+        continue-on-error: ${{ inputs.advisory || false }}
         env:
           BENCHMARK_BASE_REF: ${{ inputs.base_ref || 'HEAD^' }}
           BENCHMARK_MODE: ${{ inputs.mode || 'full' }}
         run: bun scripts/benchmark-run.ts "$BENCHMARK_MODE"
+      - name: Warn about advisory benchmark failures
+        if: ${{ !cancelled() && inputs.advisory && steps.measure.outcome == 'failure' }}
+        run: |
+          echo "::warning::Runtime benchmarks failed. This release treats performance as advisory; review the benchmark summary and runtime-benchmarks artifact."
       - name: Save measurements and comparison
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

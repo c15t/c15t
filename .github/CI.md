@@ -43,6 +43,12 @@ follow reverse dependencies, while builds include forward dependencies of all
 selected hosts. Unknown paths, root config, lockfiles and removed packages
 select everything. Full publishing-branch and nightly runs cover the entire
 graph. Stable check `CI complete` fails if any selected job fails or cancels.
+Release runs opt into advisory runtime benchmarks: measurement or comparison
+failures produce a warning, summary, and artifact without blocking the version
+PR or npm publishing. Benchmark setup and artifact upload failures still fail
+the job. PRs, nightly validation, and manual benchmark runs enforce runtime
+budgets. Tests, builds, consumer bundle budgets, and package validation remain
+required for releases.
 Repository branch-protection settings must require this name when replacing
 the old required checks.
 
