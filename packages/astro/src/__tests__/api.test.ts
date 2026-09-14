@@ -13,6 +13,7 @@ import {
 import { resolveManifestInit } from '../api/manifest-init';
 import { resolveOptions } from '../integration';
 import { hostedMode, manifestMode } from '../mode';
+import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 
 // Built through the shared builder so the fixture is exactly what a real
@@ -415,6 +416,7 @@ it.each(['default', 'fetch', 'fetchGvl'] as const)(
 					loader === 'fetchGvl'
 						? () => Promise.resolve(completeGVL)
 						: undefined,
+				gvlRoute: '/api/c15t/init',
 				inputs: { country: 'DE' },
 				manifest,
 			});
@@ -425,3 +427,73 @@ it.each(['default', 'fetch', 'fetchGvl'] as const)(
 		}
 	}
 );
+
+it('serves Astro manifest SSR references through the same-origin init route', async () => {
+	const manifest = await buildConsentManifestFromConfig({
+		branding: 'c15t',
+		iab: {
+			cmpId: 28,
+			enabled: true,
+			gvl: { url: 'https://server-only.example/list.json' },
+		},
+		policyRules: [policyRulePresets.europeIab()],
+	});
+	if (!manifest.iab) {
+		throw new Error('Expected IAB manifest');
+	}
+	manifest.iab.gvl = { url: 'https://server-only.example/list.json' };
+	const upstream = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
+	vi.stubGlobal('fetch', upstream);
+	try {
+		const resolved = options({
+			endpoints: { initPath: '/privacy/init' },
+			mode: manifestMode({ manifest }),
+		});
+		const context = await resolveConsentContext({
+			headers: new Headers({ 'x-c15t-country': 'DE' }),
+			options: resolved,
+			url: 'https://site.example.com/page',
+		});
+		const reference = context.config.initialIab?.gvlReference;
+		expect(context.config.initialIab?.gvl).toBeNull();
+		expect(reference?.url).toBe(
+			`/privacy/init?c15t-gvl=${completeGVL.vendorListVersion}&language=en`
+		);
+		const handlers = createConsentRouteHandlers({ options: resolved });
+		const init = await handlers.init(
+			makeRequest('https://site.example.com/privacy/init', {
+				'x-c15t-country': 'DE',
+			})
+		);
+		const initPayload = await init.json();
+		expect(initPayload.gvlReference.url).toBe(reference?.url);
+		expect(init.headers.get('cache-control')).toBe('private, no-store');
+		const response = await handlers.init(
+			makeRequest(
+				new URL(reference?.url ?? '', 'https://site.example.com').href
+			)
+		);
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual(completeGVL);
+		expect(response.headers.get('cache-control')).toBe('public, max-age=86400');
+		const mismatch = await handlers.init(
+			makeRequest(
+				`https://site.example.com/privacy/init?c15t-gvl=${completeGVL.vendorListVersion + 1}&language=en`
+			)
+		);
+		expect(mismatch.status).toBe(409);
+		expect(mismatch.headers.get('cache-control')).toBe('no-store');
+		const french = await handlers.init(
+			makeRequest(
+				`https://site.example.com/privacy/init?c15t-gvl=${completeGVL.vendorListVersion}&language=fr`
+			)
+		);
+		expect(french.status).toBe(200);
+		expect(upstream).toHaveBeenCalledWith(
+			'https://server-only.example/list.json',
+			expect.objectContaining({ headers: { 'accept-language': 'fr' } })
+		);
+	} finally {
+		vi.unstubAllGlobals();
+	}
+});

@@ -81,5 +81,6 @@ export const getManifestConsentState = createServerFn({
 	createConsentStateHandler({
 		backendURL: BENCH_BACKEND_URL,
 		manifestURL: getBenchManifestURL(),
+		routePrefix: '/api/c15t',
 	})
 );

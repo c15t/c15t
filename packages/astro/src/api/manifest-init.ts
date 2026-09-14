@@ -1,4 +1,4 @@
-import { deferInitGvl } from '@c15t/core';
+import { deferInitGvlToRoute } from '@c15t/core';
 /**
  * Manifest resolution shared by the injected routes and the middleware.
  *
@@ -220,6 +220,8 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 	manifest: ConsentManifest;
 	inputs: ConsentRequestHeaderInputs;
 	fetch?: ManifestFetch;
+	/** Same-origin init route that serves versioned public lists. */
+	gvlRoute?: string;
 	fetchGvl?: FetchGvl;
 }): Promise<ResolvedInitOutput> {
 	const { inputs, manifest } = input;
@@ -262,7 +264,7 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		region: inputs.region,
 	});
 	payload.resolvedPrivacySignals = { gpc: inputs.gpc };
-	return manifest.iab?.gvl && !input.fetch && !input.fetchGvl
-		? deferInitGvl(payload, manifest.iab.gvl.url)
+	return input.gvlRoute && !input.fetch && !input.fetchGvl
+		? deferInitGvlToRoute(payload, input.gvlRoute)
 		: payload;
 };

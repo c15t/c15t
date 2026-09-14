@@ -646,6 +646,8 @@ runConformanceSuite(driver, api);
 test.each([
 	['iab-consent-banner', 'accept'],
 	['iab-consent-banner', 'reject'],
+	['iab-consent-dialog', 'accept'],
+	['iab-consent-dialog', 'reject'],
 ] as const)(
 	'retains %s after a failed deferred %s action',
 	async (component, action) => {
@@ -676,9 +678,14 @@ test.each([
 			const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
 			const button = () =>
 				document.querySelector<HTMLButtonElement>(
-					`[data-testid="iab-consent-${surface}-${action}-button"]`
+					surface === 'banner'
+						? `[data-testid="iab-consent-banner-${action}-button"]`
+						: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
 				);
-			await vi.waitFor(() => expect(button()).not.toBeNull());
+			await vi.waitFor(() => {
+				expect(button()).not.toBeNull();
+				expect(button()?.disabled).toBe(false);
+			});
 			button()?.click();
 			rejectLoad(new Error('offline'));
 			await flushScheduler();

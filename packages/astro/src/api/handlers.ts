@@ -15,7 +15,9 @@
  *   `private, no-store`.
  */
 
+import { serveGvlReference } from '@c15t/core';
 import {
+	fetchCachedGvl,
 	fetchCachedManifest,
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
@@ -92,9 +94,18 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 			options: handlerOptions.options,
 			source: { headers: request.headers, url: request.url },
 		});
+		const listResponse = await serveGvlReference(request, (language) =>
+			manifest.iab?.gvl && !handlerOptions.fetch && !handlerOptions.fetchGvl
+				? fetchCachedGvl({ language, url: manifest.iab.gvl.url })
+				: Promise.resolve(null)
+		);
+		if (listResponse) {
+			return listResponse;
+		}
 		const payload = await resolveManifestInit({
 			fetch: handlerOptions.fetch,
 			fetchGvl: handlerOptions.fetchGvl,
+			gvlRoute: new URL(request.url).pathname,
 			// The same override the SSR path applies, so both resolve one
 			// language — and one set of GVL translations.
 			inputs: extractConsentRequestInputs(request.headers, {

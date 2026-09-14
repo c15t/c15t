@@ -2,6 +2,7 @@
 	import {
 		defaultTranslationConfig,
 		resolveConsentPresentation,
+		resolveIABBannerSummary,
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
@@ -141,6 +142,7 @@
 		)
 	);
 
+	const summary = $derived(resolveIABBannerSummary(iabState));
 	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
 
 	const handlePurposeToggle = function handlePurposeToggle(
@@ -497,7 +499,7 @@
 							type="button"
 							class={noStyle ? '' : secondaryButtonClass}
 							onclick={handleRejectAll}
-							disabled={isLoading}
+							disabled={!summary.isReady}
 							data-action="reject"
 						>
 							{iabT.common.rejectAll}
@@ -506,7 +508,7 @@
 							type="button"
 							class={noStyle ? '' : secondaryButtonClass}
 							onclick={handleAcceptAll}
-							disabled={isLoading}
+							disabled={!summary.isReady}
 							data-action="accept"
 						>
 							{iabT.common.acceptAll}

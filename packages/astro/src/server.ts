@@ -1,5 +1,6 @@
 import {
 	deferInitGvl,
+	deferInitGvlToRoute,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
@@ -387,7 +388,7 @@ const prefetchManifest = async function prefetchManifest(
 			input.base,
 			// This loader only caches the public list; caller fetches stay inline.
 			!input.fetch && manifest.iab?.gvl
-				? deferInitGvl(payload, manifest.iab.gvl.url)
+				? deferInitGvlToRoute(payload, input.options.endpoints.initPath)
 				: payload,
 			forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
 				allowCookie: absoluteTarget

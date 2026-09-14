@@ -306,11 +306,10 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	cache?: ManifestCache;
 
 	/**
-	 * Same-origin prefix of the consent server route, used to detect a
-	 * self-referencing `backendURL`. Only change it if you mount
-	 * `createConsentServerRoute()` somewhere other than `/api/c15t/$`.
-	 *
-	 * @default '/api/c15t'
+	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
+	 * Set this explicitly to route deferred public vendor lists through it.
+	 * Without it, lists use the manifest URL directly. Self-route detection
+	 * still checks `/api/c15t` by default.
 	 */
 	routePrefix?: string;
 }
@@ -427,11 +426,16 @@ export const resolveConsent = async function resolveConsent(
 			return base;
 		}
 		const inputs = resolveRequestInputs(request, options);
+		const deferGvl = !options.fetch && Object.keys(forward).length === 0;
 		const transport = createManifestTransport({
 			backendURL: loaded.backendURL,
 			baseTranslations,
+			deferGvl,
 			fetch: options.fetch,
-			gvlRoute: `${options.routePrefix ?? DEFAULT_ROUTE_PREFIX}/init`,
+			gvlRoute:
+				deferGvl && options.routePrefix
+					? `${options.routePrefix}/init`
+					: undefined,
 			headers: forward,
 			inputs,
 			manifest: loaded.manifest,

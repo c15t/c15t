@@ -7,9 +7,13 @@ import { expect, test, vi } from 'vitest';
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
-test.each(['accept', 'reject'])(
-	'keeps the banner open after deferred %s fails and allows retry',
-	async (action) => {
+test.each(
+	(['iab-consent-banner', 'iab-consent-dialog'] as const).flatMap((component) =>
+		['accept', 'reject'].map((action) => ({ action, component }))
+	)
+)(
+	'keeps $component open after deferred $action fails and allows retry',
+	async ({ component, action }) => {
 		let rejectLoad!: (error: Error) => void;
 		const fetch = vi
 			.fn()
@@ -26,7 +30,7 @@ test.each(['accept', 'reject'])(
 		let kernel: ConsentKernel | undefined;
 		const app = mount(ConformanceFixture, {
 			props: {
-				component: 'iab-consent-banner',
+				component,
 				onKernel: (value) => {
 					kernel = value;
 				},
@@ -61,19 +65,29 @@ test.each(['accept', 'reject'])(
 		try {
 			const button = () =>
 				document.querySelector<HTMLButtonElement>(
-					`[data-testid="iab-consent-banner-${action}-button"]`
+					component === 'iab-consent-banner'
+						? `[data-testid="iab-consent-banner-${action}-button"]`
+						: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
 				);
 			await vi.waitFor(() => {
 				expect(fetch).toHaveBeenCalledTimes(1);
 				expect(button()).not.toBeNull();
+				expect(button()?.disabled).toBe(false);
 			});
+			if (component === 'iab-consent-dialog') {
+				kernel?.set.activeUI('dialog');
+			}
 			button()?.click();
-			expect(kernel?.getSnapshot().activeUI).toBe('banner');
+			expect(kernel?.getSnapshot().activeUI).toBe(
+				component === 'iab-consent-banner' ? 'banner' : 'dialog'
+			);
 			rejectLoad(new Error('offline'));
 			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
-			expect(kernel?.getSnapshot().activeUI).toBe('banner');
+			expect(kernel?.getSnapshot().activeUI).toBe(
+				component === 'iab-consent-banner' ? 'banner' : 'dialog'
+			);
 			expect(kernel?.getSnapshot().iab?.authority).toBeNull();
 			button()?.click();
 			await vi.waitFor(() =>

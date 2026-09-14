@@ -35,6 +35,7 @@ const props = withDefaults(
 		rootClass?: string;
 		size?: ButtonSize;
 		disabled?: boolean;
+		disabledActions?: T[];
 		primaryMode?: 'stroke' | 'filled';
 		secondaryMode?: 'stroke' | 'filled';
 		fill?: boolean;
@@ -157,7 +158,7 @@ const buttonMode = function buttonMode(action: T) {
 				:variant="isPrimary(action) ? 'primary' : 'neutral'"
 				:mode="buttonMode(action)"
 				:size="buttonSize ?? size"
-				:disabled="disabled"
+				:disabled="disabled || disabledActions?.includes(action)"
 				:data-action="action"
 				:data-testid="actionTestId(action)"
 				@click="emit('action', action)"

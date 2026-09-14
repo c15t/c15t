@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
-import { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
+import {
+	resolveIABBannerSummary,
+	resolveIABDialogDisplayModel,
+} from '@c15t/iab/headless';
 import type {
 	HeadlessIABDisplayRow,
 	HeadlessIABDisplayStackRow,
@@ -95,7 +98,7 @@ const isOpen = computed(() => {
 	return (
 		activeUI.value === 'manager' &&
 		snapshot.value.policyRule.model === 'iab' &&
-		Boolean(gvl.value) &&
+		Boolean(gvl.value || initValue.value?.gvlReference) &&
 		matchesModel
 	);
 });
@@ -103,7 +106,7 @@ const disableAnimation = computed(() =>
 	Boolean(toValue(config).disableAnimation)
 );
 
-const showDialog = computed(() => isOpen.value && Boolean(gvl.value));
+const showDialog = isOpen;
 
 const props = withDefaults(
 	defineProps<{
@@ -144,6 +147,13 @@ const isStackRow = function isStackRow(
 };
 
 const isLoading = computed(() => !gvl.value);
+const bannerSummary = computed(() =>
+	resolveIABBannerSummary({
+		customVendors: customVendors.value,
+		gvl: gvl.value,
+		gvlReference: initValue.value?.gvlReference,
+	})
+);
 
 // The footer *is* the action root, the way it is in React.
 const footerAttrs = computed(() => ({
@@ -726,7 +736,8 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 							:test-ids="IAB_DIALOG_ACTION_TEST_IDS"
 							primary-mode="filled"
 							secondary-mode="stroke"
-							:disabled="isLoading"
+							:disabled="!bannerSummary.isReady"
+							:disabled-actions="isLoading ? ['save'] : []"
 							:root-test-id="null"
 							:root-class="dialogStyles.footer"
 							:root-attrs="footerAttrs"
