@@ -8,7 +8,7 @@ group: frameworks
 
 Add `c15tProxy` when your hosting platform exposes the visitor's location to
 Next.js middleware or proxy but strips those headers before Server Components
-and Route Handlers run. Without them, `prefetchInitialConsent`, the awaited
+and Route Handlers run. Without them, `resolveConsent`, the awaited
 server helpers and the optional local `/api/c15t/init` handler see an unknown
 location and apply your unknown-location policy rule for every visitor.
 
@@ -55,8 +55,8 @@ If you already have a proxy, call `c15tProxy(request)` where you would
 otherwise return `NextResponse.next()`, and set any response headers or
 cookies on the returned response.
 
-`config.matcher` must cover every page that renders the consent boundary,
-because `prefetchInitialConsent` and the awaited helpers run during those page
+`config.matcher` must cover every page that renders `ConsentRoot`,
+because `resolveConsent` and the awaited helpers run during those page
 requests. It must also cover `/api/c15t/:path*` if you serve the optional local
 init route and want it to resolve policy with the visitor's location. The
 manifest route serves public policy data and does not need location.
@@ -118,23 +118,23 @@ disappears keeps the previous cookie until it is cleared or the session cookie
 expires.
 
 The c15t server helpers read request headers, not these cookies. To use the
-cookie, read it where you call `prefetchInitialConsent` and pass it as the
+cookie, read it where you call `resolveConsent` and pass it as the
 `country` override:
 
 ```tsx title="app/layout.tsx (partial)"
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
   const country = (await cookies()).get('c15t-country')?.value;
-  const initialConsent = await prefetchInitialConsent({
+  const state = await resolveConsent({
     config: consentConfig,
     country,
   });
-  return <Consent config={initialConsent}>{children}</Consent>;
+  return <Consent state={state}>{children}</Consent>;
 }
 ```
 
@@ -142,7 +142,7 @@ This is the `ResolvedConsent` component from the
 [App Router guide](/docs/frameworks/next/app-router); keep it inside the
 `Suspense` boundary shown there.
 
-`prefetchInitialConsent` accepts `country` and `language` overrides. It has no
+`resolveConsent` accepts `country` and `language` overrides. It has no
 `region` override in the current API, so the region cookie is available only to
 your own code.
 

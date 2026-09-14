@@ -6,10 +6,10 @@ group: frameworks
 
 ## Read only the state you need
 
-Every hook reads the runtime from the `ConsentBoundary` set up in your
+Every hook reads the runtime from the `ConsentRoot` set up in your
 [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) guide, so call them from a
-Client Component rendered inside that boundary and import them from
+Client Component rendered inside that root and import them from
 `c15t/next`.
 
 ```tsx title="components/optional-feature.tsx"

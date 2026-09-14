@@ -1,8 +1,8 @@
 import { consentLoaderOptions } from '@c15t/tanstack-start/server';
-import type { ConsentConfig } from '@c15t/tanstack-start/server';
+import type { ConsentState } from '@c15t/tanstack-start/server';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { getManifestConsentConfig } from '../bench/loaders';
+import { getManifestConsentState } from '../bench/loaders';
 import { BenchmarkPageShell } from '../bench/page-shell';
 import { TanstackManifestBenchmarkProvider } from '../bench/provider';
 
@@ -16,7 +16,7 @@ const ROOT_PROVIDER = import.meta.env.C15T_BENCH_ROOT_PROVIDER === '1';
 
 const ManifestSSRPage = () => {
 	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
-	const config = Route.useLoaderData() as ConsentConfig;
+	const state = Route.useLoaderData() as ConsentState;
 
 	if (ROOT_PROVIDER) {
 		return <BenchmarkPageShell scenario="manifest-ssr-root" />;
@@ -24,7 +24,7 @@ const ManifestSSRPage = () => {
 
 	return (
 		<TanstackManifestBenchmarkProvider
-			config={config}
+			state={state}
 			scenario="manifest-ssr"
 		>
 			<BenchmarkPageShell scenario="manifest-ssr" />
@@ -34,7 +34,7 @@ const ManifestSSRPage = () => {
 
 const routeConsentOptions = ROOT_PROVIDER
 	? {}
-	: { ...consentLoaderOptions, loader: () => getManifestConsentConfig() };
+	: { ...consentLoaderOptions, loader: () => getManifestConsentState() };
 
 export const Route = createFileRoute('/manifest-ssr')({
 	...routeConsentOptions,

@@ -1,15 +1,15 @@
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
 	ConsentBanner,
-	ConsentBoundary,
 	ConsentDialog,
 	ConsentProvider,
+	ConsentRoot,
 	custom,
 	hosted,
 } from '@c15t/tanstack-start';
 import type {
-	ConsentBoundaryProps,
 	ConsentProviderOptions,
+	ConsentRootProps,
 } from '@c15t/tanstack-start';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
@@ -60,9 +60,9 @@ const createOptions = function createOptions(
 	};
 };
 
-const createBoundaryOptions = function createBoundaryOptions(
+const createRootOptions = function createRootOptions(
 	scenario: TanstackBenchScenario
-): ConsentBoundaryProps['options'] {
+): ConsentRootProps['options'] {
 	const { mode, ...options } = createOptions(scenario);
 	void mode;
 	return options;
@@ -129,53 +129,53 @@ export const TanstackManifestClientBenchmarkProvider = ({
 };
 
 /**
- * `ssr` arm: the loader already carries the init response, so the boundary
+ * `ssr` arm: the loader already carries the init response, so the root
  * renders the banner into the first HTML. `initRoute={false}` keeps
  * direct-init semantics for any client refresh, matching the Next arm.
  */
 export const TanstackPrefetchedBenchmarkProvider = ({
 	children,
-	config,
+	state,
 	scenario,
 }: {
 	children: ReactNode;
-	config: ConsentBoundaryProps['config'];
+	state: ConsentRootProps['state'];
 	scenario: TanstackBenchScenario;
 }) => (
-	<ConsentBoundary
+	<ConsentRoot
 		backendURL={BENCH_BACKEND_URL}
-		config={config}
+		state={state}
 		initRoute={false}
-		options={createBoundaryOptions(scenario)}
+		options={createRootOptions(scenario)}
 	>
 		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-	</ConsentBoundary>
+	</ConsentRoot>
 );
 
 /**
- * `manifest-ssr` and `manifest-ssr-proxy` arms: manifest-prefetched
- * config plus the same-origin init route. `backendURL` decides where the
+ * `manifest-ssr` and `manifest-ssr-proxy` arms: manifest-resolved
+ * state plus the same-origin init route. `backendURL` decides where the
  * accept click posts: the fixture directly, or the proxy mount.
  */
 export const TanstackManifestBenchmarkProvider = ({
 	backendURL = BENCH_BACKEND_URL,
 	children,
-	config,
+	state,
 	initRoute,
 	scenario,
 }: {
 	backendURL?: string;
 	children: ReactNode;
-	config: ConsentBoundaryProps['config'];
-	initRoute?: ConsentBoundaryProps['initRoute'];
+	state: ConsentRootProps['state'];
+	initRoute?: ConsentRootProps['initRoute'];
 	scenario: TanstackBenchScenario;
 }) => (
-	<ConsentBoundary
+	<ConsentRoot
 		backendURL={backendURL}
-		config={config}
+		state={state}
 		initRoute={initRoute}
-		options={createBoundaryOptions(scenario)}
+		options={createRootOptions(scenario)}
 	>
 		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-	</ConsentBoundary>
+	</ConsentRoot>
 );

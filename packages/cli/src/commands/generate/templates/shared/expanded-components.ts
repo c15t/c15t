@@ -52,10 +52,10 @@ export const generateExpandedProviderTemplate =
 		if (enableSSR) {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
-	config: KernelConfig;
+	state: ConsentState;
 }\n`;
-			propsDestructure = '{ children, config }: Props';
-			typeImports = `import type { KernelConfig } from '${framework.importSource}';`;
+			propsDestructure = '{ children, state }: Props';
+			typeImports = `import type { ConsentState } from '${framework.importSource}';`;
 		} else {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
@@ -64,7 +64,7 @@ export const generateExpandedProviderTemplate =
 			typeImports = '';
 		}
 
-		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: config,' : '';
+		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: state,' : '';
 		const devToolsImport = enableDevTools
 			? generateDevToolsImport(
 					framework.devToolsImportSource,

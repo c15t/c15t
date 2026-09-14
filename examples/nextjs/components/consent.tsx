@@ -2,11 +2,11 @@
 
 import {
 	ConsentBanner,
-	ConsentBoundary,
 	ConsentDialog,
 	ConsentDialogTrigger,
+	ConsentRoot,
 } from 'c15t/next';
-import type { ConsentBoundaryProps } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import { ConsentDevTools } from 'c15t/next/devtools';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -19,21 +19,21 @@ import { Demo } from './demo';
 
 export type BannerDesign = 'default' | 'branded' | 'custom';
 
-/** One boundary for each router, with a shared gallery and client-only scripts. */
+/** One root for each router, with a shared gallery and client-only scripts. */
 export const Consent = ({
-	config,
+	state,
 	children,
 }: {
-	config: ConsentBoundaryProps['config'];
+	state: ConsentRootProps['state'];
 	children: ReactNode;
 }) => {
 	const [design, setDesign] = useState<BannerDesign>('default');
 	const [showTrigger, setShowTrigger] = useState(false);
 
 	return (
-		<ConsentBoundary
-			config={config}
-			consent={consentConfig}
+		<ConsentRoot
+			state={state}
+			config={consentConfig}
 			scripts={scripts}
 			persistence={false}
 			options={{ theme: design === 'default' ? undefined : brandTheme }}
@@ -50,6 +50,6 @@ export const Consent = ({
 			<ConsentDialog />
 			{showTrigger && <ConsentDialogTrigger />}
 			<ConsentDevTools position="bottom-right" />
-		</ConsentBoundary>
+		</ConsentRoot>
 	);
 };

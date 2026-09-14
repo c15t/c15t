@@ -6,8 +6,8 @@ group: frameworks
 
 ## URL configuration
 
-`defineConsentConfig` from `c15t/next` declares the URLs shared by server
-prefetch and `ConsentBoundary`. For help choosing a setup, start with
+`defineConsentConfig` from `c15t/next` declares the URLs shared by
+`resolveConsent` and `ConsentRoot`. For help choosing a setup, start with
 [data fetching](/docs/frameworks/next/data-fetching).
 Requires Next.js 15 or 16 (`next ^15.0.0 || ^16.0.0`).
 
@@ -109,18 +109,24 @@ for rewrite configuration.
 
 ## Server helper options
 
-Server prefetch has three entry points. `c15t/next/server` exports
-`prefetchInitialConsent` and `readInitialConsentConfig` for the App Router,
-where the default request context reads `next/headers`. `c15t/next/pages`
-exports the same helpers for the Pages Router, taking the Node `req` instead.
-Both entries accept the options in this section; the Pages Router entry
-replaces only the `request` adapter.
+`resolveConsent` is the one server helper. `c15t/next/server` exports it for
+the App Router, where the default request context reads `next/headers` and
+calls `await connection()` from `next/server` before reading the clock.
+`c15t/next/pages` exports the same function for the Pages Router, taking the
+Node `req` instead. Both entries accept the options in this section; the
+Pages Router entry replaces only the `request` adapter.
 
-### prefetchInitialConsent options
+What `resolveConsent` does depends on whether it has a backend to reach. With
+`config` or `backendURL`, it resolves policy from the manifest or backend
+`/init` and returns the visitor's `ConsentState`. Without either, it makes no
+network request and returns cookie- and header-only state; see
+[cookie-only state](#cookie-only-state).
+
+### resolveConsent options
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `backendURL` | `config.backendURL` | Backend base URL. Required unless `config` supplies it; an explicit value overrides `config.backendURL`. Without a manifest source, server prefetch calls `${backendURL}/init`. |
+| `backendURL` | `config.backendURL` | Backend base URL. An explicit value overrides `config.backendURL`. Without a manifest source, `resolveConsent` calls `${backendURL}/init`. Omit both `backendURL` and `config` for cookie-only state. |
 | `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. `initURL` is not read. |
 | `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. |
 | `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
@@ -133,13 +139,12 @@ replaces only the `request` adapter.
 | `language` | header detection | Overrides the language read from `accept-language`. |
 | `request` | `next/headers` | Request context adapter with `cookies()` and `headers()`. The default only works in the App Router. |
 
-`prefetchInitialConsent` throws when neither `backendURL` nor `config` is
-given, when the request adapter's `headers()` or `cookies()` rejects (the
-default adapter rejects outside a request scope), and when your `onError`
-callback throws. Thrown URL resolution, network and policy resolution errors
-are handled: they return the baseline config that `readInitialConsentConfig`
-produces, with stored records, geography, language and GPC from the request
-but no resolved policy. The page still renders and the browser initializes
+`resolveConsent` throws when the request adapter's `headers()` or `cookies()`
+rejects (the default adapter rejects outside a request scope), and when your
+`onError` callback throws. Thrown URL resolution, network and policy
+resolution errors are handled: they return the same baseline state as the
+cookie-only call, with stored records, geography, language and GPC from the
+request but no resolved policy. The page still renders and the browser initializes
 consent on mount. Non-2xx responses from backend `/init` are failures too, so
 a `500` renders the baseline rather than throwing. A successful response whose
 body reports `policyResolution.status: 'failed'`, for example an unsupported
@@ -150,8 +155,8 @@ hidden until the cause is fixed.
 Absolute `http(s)` URLs are used as given. A `/`-relative `backendURL` or
 `manifestURL` is resolved from the request: the scheme comes from
 `x-forwarded-proto` and defaults to `https`; the host comes from
-`x-forwarded-host`, then `host`, then the `referer` host. When no host is available, server prefetch reports the error
-and returns the baseline config. Those headers decide where the server sends
+`x-forwarded-host`, then `host`, then the `referer` host. When no host is available, `resolveConsent` reports the error
+and returns the baseline state. Those headers decide where the server sends
 the request, so behind a proxy the edge must overwrite `x-forwarded-host` and
 `x-forwarded-proto` rather than pass client values through; otherwise a client
 can point server prefetch at a host of its choosing. When you cannot guarantee
@@ -189,13 +194,15 @@ records, the provider treats them as prepared and skips browser hydration, so
 the visitor's existing choice stays ignored for the whole mount, not only at
 first paint.
 
-### readInitialConsentConfig options
+### Cookie-only state
 
-`readInitialConsentConfig` makes no network request and does not resolve
-policy. It reads the request and returns a JSON-serializable config with
-`initialRecords`, `initialPrivacySignals.gpc`, `now` and, when any value was
-detected, `initialOverrides` with `country`, `region` and `language`. It does
-not set cookies and does not cache across requests.
+Call `resolveConsent` with no `config` and no `backendURL` when rendering
+needs the visitor's stored records but not a resolved policy. It makes no
+network request. It reads the request and returns a JSON-serializable
+`ConsentState` with `initialRecords`, `initialPrivacySignals.gpc`, `now` and,
+when any value was detected, `initialOverrides` with `country`, `region` and
+`language`. It does not set cookies and does not cache across requests. Only
+these options apply:
 
 | Option | Default | Behavior |
 | --- | --- | --- |
@@ -209,32 +216,43 @@ The cookie header is read from `headers().get('cookie')` first and from
 `request.cookies()` only when that header is absent. Country and region come
 from the headers listed in [geography and privacy signals](#geography-and-privacy-signals).
 
+### Types
+
+| Type | Exported from | What it names |
+| --- | --- | --- |
+| `ConsentState` | `c15t/next`, `c15t/next/server`, `c15t/next/pages` | The value `resolveConsent` returns and `ConsentRoot` takes as `state` |
+| `ResolveConsentOptions` | `c15t/next/server` | The App Router options bag |
+| `ConsentRequestOptions` | `c15t/next/server` | The request-reading subset: `now`, `cookieName`, `country`, `language`, `request` |
+| `PagesResolveConsentOptions` | `c15t/next/pages` | `ResolveConsentOptions` with `req` in place of `request` |
+| `ConsentRootProps` | `c15t/next` | Props of `ConsentRoot`; `ConsentRootProps['state']` also accepts the pending promise |
+| `ConsentConfig` | `c15t/next`, `c15t/next/server`, `c15t/next/pages` | The frozen `defineConsentConfig` result passed as `config` |
+
 ### Pages Router differences
 
-`c15t/next/pages` exports the same helpers with the Node request in place of
-the `request` adapter. `prefetchInitialConsent({ req, ...options })` accepts
-every option in the App Router table except `request`; `req` is the request
-from `getServerSideProps` or an API route. `readInitialConsentConfig(req,
-options)` takes `req` as its first argument and the remaining options as its
-second. Both return JSON-compatible data, but fields that were not detected
-are `undefined` (for example `initialPrivacySignals.gpc` without a `sec-gpc`
-header), and `getServerSideProps` rejects `undefined` values in development.
-Round-trip the result through `JSON.parse(JSON.stringify(result))` before
-returning it as a prop, as `examples/nextjs/pages/pages-router.tsx` does.
+`c15t/next/pages` exports `resolveConsent` with the Node request in place of
+the `request` adapter. `resolveConsent({ req, ...options })` accepts every
+option in the App Router table except `request`; `req` is the request from
+`getServerSideProps` or an API route. Omitting `config` and `backendURL`
+returns cookie-only state here too. The result is JSON-compatible, but fields
+that were not detected are `undefined` (for example
+`initialPrivacySignals.gpc` without a `sec-gpc` header), and
+`getServerSideProps` rejects `undefined` values in development. Round-trip the
+result through `JSON.parse(JSON.stringify(result))` before returning it as a
+prop, as `examples/nextjs/pages/pages-router.tsx` does.
 
 `createPagesRequestContext(req)` builds the `request` adapter itself. Headers
 are converted to Web `Headers`, and cookies are read from the `cookie` header.
-Use it when calling the `c15t/next/server` helpers from a custom server or
+Use it when calling the `c15t/next/server` helper from a custom server or
 test harness where `next/headers` is unavailable:
 
 ```ts title="server/consent.ts"
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { resolveConsent } from 'c15t/next/server';
 import { createPagesRequestContext } from 'c15t/next/pages';
 import { consentConfig } from '../c15t.config';
 import type { IncomingMessage } from 'node:http';
 
-export function prefetchConsent(req: IncomingMessage) {
-  return prefetchInitialConsent({
+export function resolveRequestConsent(req: IncomingMessage) {
+  return resolveConsent({
     config: consentConfig,
     request: createPagesRequestContext(req),
   });
@@ -314,11 +332,11 @@ The [App Router](/docs/frameworks/next/app-router) and
 
 1. The app's manifest handler fetches the absolute backend's `/manifest`
    endpoint and caches public policy data.
-2. `prefetchInitialConsent({ config: consentConfig })` reads the manifest route,
+2. `resolveConsent({ config: consentConfig })` reads the manifest route,
    resolves policy with the current request's inputs and restores valid consent
    cookies.
-3. `ConsentBoundary` receives that result as `config` and the URL configuration
-   as `consent`. Hydration preserves the prepared state.
+3. `ConsentRoot` receives that result as `state` and the URL configuration
+   as `config`. Hydration preserves the resolved state.
 4. If browser initialization is needed, it resolves the manifest locally. An
    optional `initURL` moves this resolution to the app server.
 5. Browser choices post to `${backendURL}/subjects`.
@@ -356,21 +374,21 @@ development, tests or demos that do not need backend records.
 
 Omit hosted prefetch and select the offline factory in a Client Component.
 Keep your existing banner, dialog and preferences link as children of this
-boundary:
+root:
 
 ```tsx title="app/offline-consent.tsx"
 'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentBoundary, offline } from 'c15t/next';
+import { ConsentRoot, offline } from 'c15t/next';
 
 const mode = offline();
 
 export function OfflineConsent({ children }: { children: ReactNode }) {
   return (
-    <ConsentBoundary config={{}} options={{ mode }}>
+    <ConsentRoot state={{}} options={{ mode }}>
       {children}
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```

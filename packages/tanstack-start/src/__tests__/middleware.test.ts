@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { consentRequestMiddleware } from '../middleware';
-import { readInitialConsentConfig } from '../server';
+import { resolveConsent } from '../server';
 
 type ServerHandler = (input: {
 	context: Record<string, never>;
@@ -108,7 +108,7 @@ describe('consentRequestMiddleware: language override', () => {
 });
 
 describe('consentRequestMiddleware: immutable request headers', () => {
-	test('overrides still reach readInitialConsentConfig when headers cannot be written', async () => {
+	test('overrides still reach resolveConsent when headers cannot be written', async () => {
 		const request = new Request('https://app.example.com/', {
 			headers: { 'accept-language': 'de', 'x-vercel-ip-country': 'DE' },
 		});
@@ -126,8 +126,8 @@ describe('consentRequestMiddleware: immutable request headers', () => {
 		});
 
 		expect(request.headers.get('x-c15t-country')).toBeNull();
-		const config = await readInitialConsentConfig({ request });
-		expect(config.initialOverrides).toMatchObject({
+		const state = await resolveConsent({ request });
+		expect(state.initialOverrides).toMatchObject({
 			country: 'FR',
 			language: 'fr',
 		});

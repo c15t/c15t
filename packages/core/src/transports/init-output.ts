@@ -297,7 +297,7 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
  * provisional placeholder policy the way a real init would.
  *
  * @param config - Kernel config, typically produced by a server helper such
- * as `prefetchInitialConsent()`.
+ * as `resolveConsent()`.
  * @returns The equivalent init response, or `undefined` when the config
  * carries no resolved policy. A policy-less config (persisted consents,
  * geo, language) is a baseline rather than an init result, so callers

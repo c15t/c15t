@@ -1,7 +1,7 @@
 ---
 title: Load scripts with consent
-description: Register vendor scripts in your existing Next.js consent boundary
-  and handle loading and revocation.
+description: Register vendor scripts in your existing Next.js ConsentRoot and
+  handle loading and revocation.
 group: frameworks
 ---
 
@@ -67,7 +67,7 @@ any existing loader for these vendors, including `next/script` and tag-manager
 entries, so each integration loads once.
 
 Create this client wrapper. It keeps scripts and browser callbacks in the client
-while the router supplies prepared consent through `config`:
+while the router supplies the visitor's resolved state through `state`:
 
 ```tsx title="components/consent.tsx"
 'use client';
@@ -75,35 +75,35 @@ while the router supplies prepared consent through `config`:
 import type { ReactNode } from 'react';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
+  ConsentRoot,
 } from 'c15t/next';
-import type { ConsentBoundaryProps } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import { consentConfig } from '../c15t.config';
 import { scripts } from '../lib/scripts';
 
 export function Consent({
   children,
-  config,
+  state,
 }: {
   children: ReactNode;
-  config: ConsentBoundaryProps['config'];
+  state: ConsentRootProps['state'];
 }) {
   return (
-    <ConsentBoundary config={config} consent={consentConfig} scripts={scripts}>
+    <ConsentRoot state={state} config={consentConfig} scripts={scripts}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
       <footer>
         <ConsentDialogLink>Privacy settings</ConsentDialogLink>
       </footer>
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
 
-`ConsentBoundary` already provides the consent runtime. Mount this wrapper once;
+`ConsentRoot` already provides the consent runtime. Mount this wrapper once;
 do not add a second provider. Keep your site's content and footer inside it.
 
 ## Pass prepared consent through your router
@@ -115,13 +115,13 @@ wrapper inside it. This partial example is that component; keep the
 
 ```tsx
 import type { ReactNode } from 'react';
-import { prefetchInitialConsent } from 'c15t/next/server';
+import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
-  const initialConsent = await prefetchInitialConsent({ config: consentConfig });
-  return <Consent config={initialConsent}>{children}</Consent>;
+  const state = await resolveConsent({ config: consentConfig });
+  return <Consent state={state}>{children}</Consent>;
 }
 ```
 
@@ -129,12 +129,12 @@ To stream the page shell before consent resolves instead, pass the unawaited
 promise from a synchronous layout as described in
 [stream the page while consent resolves](https://c15t.com/docs/frameworks/next/app-router#stream-the-page-while-consent-resolves).
 
-Pages Router passes `config={pageProps.initialConsent ?? {}}` to this wrapper
+Pages Router passes `state={pageProps.consentState ?? {}}` to this wrapper
 in `_app.tsx`. Keep `getServerSideProps` and its `c15t/next/pages` helper.
 The router guides contain complete layout and `_app.tsx` files.
 
-For static export or browser-only initialization, pass `config={{}}` and keep
-that setup's existing transport. Register scripts on its existing boundary;
+For static export or browser-only initialization, pass `state={{}}` and keep
+that setup's existing transport. Register scripts on its existing `ConsentRoot`;
 do not introduce server prefetch or local routes just to add a vendor.
 
 ## Check each vendor's loading behavior

@@ -251,7 +251,7 @@ async function createExpandedConsentManagerComponents(
  * @remarks
  * Creates in components/consent-manager/:
  * - index.tsx - Main server component entry point
- * - provider.tsx - Client component with ConsentProvider or ConsentBoundary
+ * - provider.tsx - Client component with ConsentProvider or ConsentRoot
  */
 async function createPrebuiltConsentManagerComponents(
 	projectRoot: string,

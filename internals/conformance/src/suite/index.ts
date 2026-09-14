@@ -16,6 +16,7 @@ import { runPoliciesConformance } from './policies';
 import { runPolicyScenarioConformance } from './policy-scenarios';
 import { runProviderConformance } from './provider';
 import { runInitVisibilityConformance } from './request-lifecycle';
+import { runServerRenderConformance } from './ssr';
 
 export { runA11yConformance } from './a11y';
 export { runErrorConformance } from './errors';
@@ -34,7 +35,7 @@ export { runPoliciesConformance } from './policies';
 export { runPolicyProducerConformance } from './policy-producers';
 export { runProviderConformance } from './provider';
 export { runRequestLifecycleConformance } from './request-lifecycle';
-export { runSsrConformance } from './ssr';
+export { runServerRenderConformance, runSsrConformance } from './ssr';
 export { runStoreConformance } from './store';
 
 export const runConformanceSuite = function runConformanceSuite(
@@ -55,6 +56,7 @@ export const runConformanceSuite = function runConformanceSuite(
 	runErrorConformance(driver, api);
 	runA11yConformance(driver, api);
 	runIabUiConformance(driver, api);
+	runServerRenderConformance(driver, api);
 };
 
 export {

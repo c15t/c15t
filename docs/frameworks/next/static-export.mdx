@@ -7,7 +7,7 @@ group: frameworks
 [Create an Inth project](https://inth.com) and use its backend endpoint in
 this guide. Configure the project's policy rules and allowed app origins first.
 
-## Use a browser boundary
+## Use a browser ConsentRoot
 
 A Next.js static export has no runtime server for `/api/c15t`, Next.js rewrites or
 request cookies. Point the browser at an absolute consent backend URL. Static
@@ -28,21 +28,21 @@ export default config;
 import type { ReactNode } from 'react';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
+  ConsentRoot,
 } from 'c15t/next';
 
 export function Consent({ children }: { children: ReactNode }) {
   const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
   if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
   return (
-    <ConsentBoundary config={{}} backendURL={backendURL}>
+    <ConsentRoot state={{}} backendURL={backendURL}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
       <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
@@ -109,7 +109,7 @@ around that pending state.
 ## Use an external manifest when you need client resolution
 
 Regular Inth `/init` is the simpler hosted path for static export. If you want
-the browser to resolve a manifest instead, change the existing client boundary
+the browser to resolve a manifest instead, change the existing `ConsentRoot`
 to use a consent config. Set `NEXT_PUBLIC_C15T_MANIFEST_URL` to a reachable
 absolute manifest endpoint and keep the same backend URL for saves.
 
@@ -125,9 +125,9 @@ if (!backendURL || !manifestURL) throw new Error('Set the public consent URLs');
 const consentConfig = defineConsentConfig({ backendURL, manifestURL });
 
 // Keep the existing children, banner, dialog and preferences link.
-<ConsentBoundary config={{}} consent={consentConfig}>
+<ConsentRoot state={{}} config={consentConfig}>
   {children}
-</ConsentBoundary>
+</ConsentRoot>
 ```
 
 Do not set `initURL` to a local Next.js API route in an export. The browser

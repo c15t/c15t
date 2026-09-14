@@ -1,6 +1,6 @@
 ---
 title: DevTools
-description: Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentBoundary.
+description: Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentRoot.
 group: frameworks
 ---
 
@@ -8,7 +8,7 @@ group: frameworks
 
 ## Usage
 
-Keep the consent boundary from your router setup. Add this client component as
+Keep the `ConsentRoot` from your router setup. Add this client component as
 one of its children, alongside the banner and dialog. It uses the existing
 runtime, including its prefetch result and configured transport.
 
@@ -30,8 +30,8 @@ export function ConsentDevTools() {
 ```
 
 Import `ConsentDevTools` into your existing consent wrapper or App Router layout
-and render `<ConsentDevTools />` inside `ConsentBoundary`. Keep its `config`,
-`consent` and other props unchanged. A setup that uses `ConsentProvider`
+and render `<ConsentDevTools />` inside `ConsentRoot`. Keep its `state`,
+`config` and other props unchanged. A setup that uses `ConsentProvider`
 directly can place the same component inside that provider.
 
 The umbrella import is `c15t/next/devtools`. When installing the dedicated

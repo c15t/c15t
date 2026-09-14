@@ -1,14 +1,14 @@
 /**
- * Tests for prefetchInitialConsent, the server-side helper that resolves
- * init from the cached manifest and folds it into the KernelConfig handed
- * to the client `ConsentBoundary`.
+ * Tests for resolveConsent with a backendURL: the server-side helper then
+ * resolves init from the cached manifest and folds it into the ConsentState
+ * handed to the client `ConsentRoot`.
  */
 import { createManifestCache } from '@c15t/core/transports/manifest-cache';
 import { describe, expect, test, vi } from 'vitest';
 
 import {
-	createConsentConfigHandler,
-	prefetchInitialConsent as basePrefetchInitialConsent,
+	createConsentStateHandler,
+	resolveConsent as baseResolveConsent,
 } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -34,23 +34,23 @@ const createManifestFetch = function createManifestFetch() {
 	);
 };
 
-const prefetchInitialConsent = (
+const resolveConsent = (
 	options: Omit<
-		Parameters<typeof basePrefetchInitialConsent>[0],
+		NonNullable<Parameters<typeof baseResolveConsent>[0]>,
 		'request' | 'cache'
 	>,
 	request = createRequest()
 ) =>
-	basePrefetchInitialConsent({
+	baseResolveConsent({
 		...options,
 		cache: createManifestCache(),
 		request,
 	});
 
-describe('prefetchInitialConsent: manifest resolution', () => {
+describe('resolveConsent: manifest resolution', () => {
 	test('resolves init locally from the backend manifest', async () => {
 		const fetchSpy = createManifestFetch();
-		const config = await prefetchInitialConsent(
+		const state = await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -65,13 +65,13 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
 			'https://consent.example.com/manifest'
 		);
-		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
-		expect(config.initialPolicyResolution).toMatchObject({
+		expect(state.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(state.initialPolicyResolution).toMatchObject({
 			fingerprints: MANIFEST_FIXTURE.policyPacks[0]?.fingerprints,
 			status: 'matched',
 		});
-		expect(config.initialTranslations?.language).toBe('de');
-		expect(config.initialOverrides).toMatchObject({
+		expect(state.initialTranslations?.language).toBe('de');
+		expect(state.initialOverrides).toMatchObject({
 			country: 'DE',
 			language: 'de',
 		});
@@ -79,7 +79,7 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 
 	test('uses an inline manifest without touching the network', async () => {
 		const fetchSpy = createManifestFetch();
-		const config = await prefetchInitialConsent(
+		const state = await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -92,11 +92,11 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 		);
 
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(config.initialPolicyResolution?.policy?.id).toBe('us-ca-opt-out');
+		expect(state.initialPolicyResolution?.policy?.id).toBe('us-ca-opt-out');
 	});
 
 	test('keeps persisted cookie consent alongside the resolved policy', async () => {
-		const config = await prefetchInitialConsent(
+		const state = await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
@@ -107,16 +107,16 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 			})
 		);
 
-		expect(!!config.initialRecords?.choice).toBe(true);
-		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+		expect(!!state.initialRecords?.choice).toBe(true);
+		expect(state.initialRecords?.choice?.categories.marketing?.value).toBe(
 			true
 		);
-		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(state.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 
 	test('resolves a relative backendURL from forwarded headers when trusted', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: '/consent',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -134,10 +134,10 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 	});
 });
 
-describe('prefetchInitialConsent: degradation', () => {
+describe('resolveConsent: degradation', () => {
 	test("never fetches the app's own consent route during SSR", async () => {
 		const fetchSpy = createManifestFetch();
-		const config = await prefetchInitialConsent(
+		const state = await resolveConsent(
 			{
 				backendURL: '/api/c15t',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -146,20 +146,20 @@ describe('prefetchInitialConsent: degradation', () => {
 		);
 
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(config.initialPolicyResolution).toBeUndefined();
-		expect(config.initialOverrides?.country).toBe('DE');
+		expect(state.initialPolicyResolution).toBeUndefined();
+		expect(state.initialOverrides?.country).toBe('DE');
 	});
 
-	test('createConsentConfigHandler with the proxied route prefix falls back silently', async () => {
+	test('createConsentStateHandler with the proxied route prefix falls back silently', async () => {
 		// With `createConsentServerRoute({ proxy: true })` the browser gets
 		// `backendURL="/api/c15t"`. Handing that same value to the server
 		// function must not turn into a self-fetch; it degrades to the
-		// cookie-and-headers config without throwing or logging.
+		// cookie-and-headers state without throwing or logging.
 		const fetchSpy = createManifestFetch();
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 		try {
-			const handler = createConsentConfigHandler({
+			const handler = createConsentStateHandler({
 				backendURL: '/api/c15t',
 				cache: createManifestCache(),
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -167,11 +167,11 @@ describe('prefetchInitialConsent: degradation', () => {
 					cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
 				}),
 			});
-			const config = await handler();
+			const state = await handler();
 
 			expect(fetchSpy).not.toHaveBeenCalled();
-			expect(!!config.initialRecords?.choice).toBe(true);
-			expect(config.initialPolicyResolution).toBeUndefined();
+			expect(!!state.initialRecords?.choice).toBe(true);
+			expect(state.initialPolicyResolution).toBeUndefined();
 			expect(warn).not.toHaveBeenCalled();
 			expect(error).not.toHaveBeenCalled();
 		} finally {
@@ -180,11 +180,11 @@ describe('prefetchInitialConsent: degradation', () => {
 		}
 	});
 
-	test('returns the baseline config when the manifest fetch fails', async () => {
+	test('returns the cookie-and-headers state when the manifest fetch fails', async () => {
 		const fetchSpy = vi
 			.fn()
 			.mockResolvedValue(new Response('nope', { status: 503 }));
-		const config = await prefetchInitialConsent(
+		const state = await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -192,38 +192,38 @@ describe('prefetchInitialConsent: degradation', () => {
 			createRequest({ 'x-vercel-ip-country': 'DE' })
 		);
 
-		expect(config).toMatchObject({ initialOverrides: { country: 'DE' } });
+		expect(state).toMatchObject({ initialOverrides: { country: 'DE' } });
 	});
 
-	test('returns the baseline config when fetch throws', async () => {
+	test('returns the cookie-and-headers state when fetch throws', async () => {
 		const fetchSpy = vi.fn().mockRejectedValue(new Error('offline'));
-		const config = await prefetchInitialConsent({
+		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		expect(config).toMatchObject({
+		expect(state).toMatchObject({
 			initialRecords: { choice: null, subject: null },
 			now: expect.any(Number),
 		});
 	});
 });
 
-describe('createConsentConfigHandler', () => {
+describe('createConsentStateHandler', () => {
 	test('prefetches when a backendURL is configured', async () => {
-		const handler = createConsentConfigHandler({
+		const handler = createConsentStateHandler({
 			backendURL: 'https://consent.example.com',
 			cache: createManifestCache(),
 			fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
 			request: createRequest({ 'x-vercel-ip-country': 'DE' }),
 		});
 
-		const config = await handler();
-		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+		const state = await handler();
+		expect(state.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 
 	test('only reads the request without a backendURL', async () => {
-		const handler = createConsentConfigHandler({
+		const handler = createConsentStateHandler({
 			request: createRequest({ 'x-vercel-ip-country': 'DE' }),
 		});
 
@@ -233,7 +233,7 @@ describe('createConsentConfigHandler', () => {
 	});
 });
 
-describe('prefetchInitialConsent: header forwarding', () => {
+describe('resolveConsent: header forwarding', () => {
 	const manifestCall = function manifestCall(
 		fetchSpy: ReturnType<typeof vi.fn>
 	) {
@@ -246,7 +246,7 @@ describe('prefetchInitialConsent: header forwarding', () => {
 
 	test('forwards named headers but no cookies on the manifest fetch by default', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -265,7 +265,7 @@ describe('prefetchInitialConsent: header forwarding', () => {
 
 	test('never resolves a relative backendURL against a forged forwarded host', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: '/consent-backend',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -279,7 +279,7 @@ describe('prefetchInitialConsent: header forwarding', () => {
 
 	test('scopes forwarded cookies with cookieNames', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				cookieNames: ['c15t'],
@@ -291,10 +291,10 @@ describe('prefetchInitialConsent: header forwarding', () => {
 	});
 });
 
-describe('prefetchInitialConsent: cookie cannot bypass cookieNames', () => {
+describe('resolveConsent: cookie cannot bypass cookieNames', () => {
 	test('forwardHeaders listing cookie forwards nothing without cookieNames', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -308,10 +308,10 @@ describe('prefetchInitialConsent: cookie cannot bypass cookieNames', () => {
 	});
 });
 
-describe('prefetchInitialConsent: forwarding headers', () => {
+describe('resolveConsent: forwarding headers', () => {
 	test('never copies client x-forwarded-* onto the manifest fetch', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -336,10 +336,10 @@ describe('prefetchInitialConsent: forwarding headers', () => {
 	});
 });
 
-describe('prefetchInitialConsent: cleartext backend', () => {
+describe('resolveConsent: cleartext backend', () => {
 	test('drops caller-configured identity headers before the manifest fetch', async () => {
 		const fetchSpy = createManifestFetch();
-		await prefetchInitialConsent(
+		await resolveConsent(
 			{
 				backendURL: 'http://backend.example',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,

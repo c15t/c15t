@@ -1,6 +1,6 @@
 ---
 title: ConsentDialogTrigger
-description: Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentBoundary so visitors can reopen the preference center.
+description: Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentRoot so visitors can reopen the preference center.
 group: frameworks
 ---
 
@@ -87,7 +87,7 @@ Toolbars are horizontal by default. Set `orientation="vertical"` to stack the ac
 The toolbar follows the standard precedence: bundled styles, then provider slots, then direct `className` and `style` on the toolbar or on one action. Use `noStyle` for a fully custom implementation.
 
 Add these slot values to `options.components` on your existing
-`ConsentBoundary` or `ConsentProvider`. Merge them with any existing component
+`ConsentRoot` or `ConsentProvider`. Merge them with any existing component
 slots and retain the configured transport:
 
 ```ts

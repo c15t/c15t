@@ -1,12 +1,12 @@
 'use client';
 
-import type { KernelConfig, KernelTransport } from '@c15t/core';
+import type { KernelTransport } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 /**
- * Client boundary for the Next.js adapter.
+ * Client root for the Next.js adapter.
  *
- * Receives a plain `KernelConfig` from a Server Component and forwards it
- * to the React provider as `options.prefetch`. Kernel creation,
+ * Receives the visitor's `ConsentState` from a Server Component and forwards
+ * it to the React provider as `options.prefetch`. Kernel creation,
  * persistence, init, and module wiring live in `@c15t/react`.
  */
 import { custom, hosted, offline } from '@c15t/react';
@@ -22,19 +22,20 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ConsentConfig } from './config';
+import type { ConsentState } from './types';
 
-export interface ConsentBoundaryProps {
+export interface ConsentRootProps {
 	/**
-	 * Kernel configuration produced server-side by
-	 * `readInitialConsentConfig()` or `prefetchInitialConsent()` from
-	 * `@c15t/nextjs/server`. Serializable JSON.
+	 * The visitor's resolved consent state, produced server-side by
+	 * `resolveConsent()` from `@c15t/nextjs/server`. Serializable JSON; a
+	 * promise is fine, the provider awaits it.
 	 */
-	config: KernelConfig | Promise<KernelConfig>;
+	state: ConsentState | Promise<ConsentState>;
 
 	/**
 	 * Backend base URL (e.g. `/api/c15t` or `https://consent.example.com`).
 	 * When provided, the provider uses hosted mode and auto-runs init.
-	 * Overrides `consent.backendURL`.
+	 * Overrides `config.backendURL`.
 	 */
 	backendURL?: string;
 
@@ -50,7 +51,7 @@ export interface ConsentBoundaryProps {
 	 *   it stays out of the initial bundle.
 	 * - Otherwise: hosted mode against `backendURL`.
 	 */
-	consent?: ConsentConfig;
+	config?: ConsentConfig;
 
 	/**
 	 * Script tags to manage with the script-loader module.
@@ -99,7 +100,7 @@ type ManifestModeOptions = Pick<ConsentConfig, 'backendURL'> & {
  * Manifest transport that loads `@c15t/core/transports/manifest` on first
  * use. The resolver pulls in every translation language, so a static
  * import would land in the client bundle of every app that renders the
- * boundary, manifest mode or not.
+ * root, manifest mode or not.
  */
 const loadManifestTransport = async function loadManifestTransport(
 	options: ManifestModeOptions
@@ -153,7 +154,7 @@ const createLazyManifestTransport = function createLazyManifestTransport(
 
 const resolveMode = function resolveMode(input: {
 	backendURL: string | undefined;
-	consent: ConsentConfig | undefined;
+	config: ConsentConfig | undefined;
 	manifestTransport: KernelTransport | undefined;
 	mode: ProviderTransportFactory | undefined;
 }): ProviderTransportFactory {
@@ -163,10 +164,10 @@ const resolveMode = function resolveMode(input: {
 	if (!input.backendURL) {
 		return offline();
 	}
-	if (input.consent?.initURL) {
+	if (input.config?.initURL) {
 		return hosted({
 			assertDecisionInputs: true,
-			initURL: input.consent.initURL,
+			initURL: input.config.initURL,
 			url: input.backendURL,
 		});
 	}
@@ -176,20 +177,48 @@ const resolveMode = function resolveMode(input: {
 	return hosted({ url: input.backendURL });
 };
 
-export const ConsentBoundary = ({
-	config,
+/**
+ * Mounts the consent provider for a Next.js app. Render it once, near the
+ * top of the tree, with the `state` a Server Component resolved through
+ * `resolveConsent()`.
+ *
+ * @example
+ * ```tsx
+ * // app/layout.tsx
+ * import { ConsentRoot } from '@c15t/nextjs';
+ * import { resolveConsent } from '@c15t/nextjs/server';
+ * import { consentConfig } from '@/consent.config';
+ *
+ * export default function RootLayout({ children }) {
+ *   return (
+ *     <html>
+ *       <body>
+ *         <ConsentRoot
+ *           state={resolveConsent({ config: consentConfig })}
+ *           config={consentConfig}
+ *         >
+ *           {children}
+ *         </ConsentRoot>
+ *       </body>
+ *     </html>
+ *   );
+ * }
+ * ```
+ */
+export const ConsentRoot = ({
+	state,
 	backendURL,
-	consent,
+	config,
 	scripts,
 	scriptLoader,
 	networkBlocker,
 	persistence,
 	options,
 	children,
-}: ConsentBoundaryProps) => {
-	const resolvedBackendURL = backendURL ?? consent?.backendURL;
+}: ConsentRootProps) => {
+	const resolvedBackendURL = backendURL ?? config?.backendURL;
 	const manifestURL =
-		consent?.initURL || !resolvedBackendURL ? undefined : consent?.manifestURL;
+		config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;
 	const manifestTransport = useMemo(
 		() =>
 			resolvedBackendURL && manifestURL
@@ -202,7 +231,7 @@ export const ConsentBoundary = ({
 	);
 	const mode = resolveMode({
 		backendURL: resolvedBackendURL,
-		consent,
+		config,
 		manifestTransport,
 		mode: options?.mode,
 	});
@@ -215,7 +244,7 @@ export const ConsentBoundary = ({
 				mode,
 				networkBlocker,
 				persistence,
-				prefetch: config,
+				prefetch: state,
 				scriptLoader,
 				scripts,
 			}}

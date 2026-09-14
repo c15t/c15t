@@ -1,16 +1,16 @@
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+import { resolveConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
 
 import { NextjsPrefetchedBenchmarkProvider } from '../_bench/provider';
 
 const SSRLayout = async ({ children }: { children: ReactNode }) => {
-	const config = await prefetchInitialConsent({
+	const state = await resolveConsent({
 		backendURL: '/api/bench-consent',
 	});
 
 	return (
 		<NextjsPrefetchedBenchmarkProvider
-			config={config}
+			state={state}
 			scenario="ssr"
 		>
 			{children}

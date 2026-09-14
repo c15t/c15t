@@ -82,6 +82,36 @@ describe('createLazyIABFactory', () => {
 		expect(handle.setPurposeConsent).toHaveBeenCalledWith(1, true);
 	});
 
+	test('replays calls made before the module lands, in order', async () => {
+		// A server-rendered IAB banner is clickable before `@c15t/iab` has
+		// downloaded; those clicks must record consent, not vanish.
+		const handle = createHandle();
+		const gate = (Promise as PromiseWithResolvers).withResolvers<undefined>();
+		const createIAB = vi.fn().mockReturnValue(handle);
+		const factory = createLazyIABFactory(async () => {
+			await gate.promise;
+			return { createIAB };
+		});
+
+		const proxy = factory.create(options);
+		expect('acceptAll' in proxy).toBe(true);
+		proxy.setPurposeConsent(2, true);
+		proxy.acceptAll();
+		const saved = proxy.save();
+		expect(handle.acceptAll).not.toHaveBeenCalled();
+
+		gate.resolve(undefined);
+		await saved;
+
+		expect(handle.setPurposeConsent).toHaveBeenCalledWith(2, true);
+		expect(handle.acceptAll).toHaveBeenCalledTimes(1);
+		expect(handle.save).toHaveBeenCalledTimes(1);
+		const order = [handle.setPurposeConsent, handle.acceptAll, handle.save].map(
+			(method) => vi.mocked(method).mock.invocationCallOrder[0]
+		);
+		expect(order).toEqual([...order].sort((a, b) => (a ?? 0) - (b ?? 0)));
+	});
+
 	test('`dispose()` before the load lands never mounts the CMP', async () => {
 		const handle = createHandle();
 		const createIAB = vi.fn().mockReturnValue(handle);

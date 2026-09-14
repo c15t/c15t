@@ -8,7 +8,7 @@ group: frameworks
 
 Use browser initialization when consent does not need to be resolved in the
 initial HTML. This works with prerendered pages and client navigation. No
-`prefetchInitialConsent`, manifest route or rewrite is required for this setup.
+`resolveConsent`, manifest route or rewrite is required for this setup.
 
 Use [server rendering](/docs/frameworks/next/server-side) when consent UI should
 render on the server after policy resolution, or when resolution should start
@@ -43,7 +43,7 @@ With the current API, a config containing only `backendURL` initializes through
 not enable manifest resolution or generate API routes. Use
 [data fetching](/docs/frameworks/next/data-fetching) to choose manifest mode.
 
-## Mount one browser consent boundary
+## Mount one browser ConsentRoot
 
 ```tsx title="components/consent.tsx"
 'use client';
@@ -51,25 +51,25 @@ not enable manifest resolution or generate API routes. Use
 import type { ReactNode } from 'react';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
+  ConsentRoot,
 } from 'c15t/next';
 import { consentConfig } from '../c15t.config';
 
 export function Consent({ children }: { children: ReactNode }) {
   return (
-    <ConsentBoundary config={{}} consent={consentConfig}>
+    <ConsentRoot state={{}} config={consentConfig}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
       <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
 
-`config={{}}` supplies no server-prefetched policy. The boundary starts hosted
+`state={{}}` supplies no server-resolved policy. `ConsentRoot` starts hosted
 initialization in the browser. Keep it mounted across client navigation.
 
 For App Router, load the [stylesheet for your Tailwind version](/docs/frameworks/next/styling/overview#stylesheet)

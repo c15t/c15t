@@ -1,4 +1,4 @@
-import type { ConsentBoundaryProps } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import type { AppProps } from 'next/app';
 
 import { Consent } from '../components/consent';
@@ -7,11 +7,11 @@ import 'c15t/next/styles.css';
 import '../app/styles.css';
 
 export interface ConsentPageProps {
-	initialConsent?: ConsentBoundaryProps['config'];
+	initialConsent?: ConsentRootProps['state'];
 }
 
 const App = ({ Component, pageProps }: AppProps<ConsentPageProps>) => (
-	<Consent config={pageProps.initialConsent ?? {}}>
+	<Consent state={pageProps.initialConsent ?? {}}>
 		<Component {...pageProps} />
 	</Consent>
 );

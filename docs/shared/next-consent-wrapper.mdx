@@ -24,7 +24,7 @@ any existing loader for these vendors, including `next/script` and tag-manager
 entries, so each integration loads once.
 
 Create this client wrapper. It keeps scripts and browser callbacks in the client
-while the router supplies prepared consent through `config`:
+while the router supplies the visitor's resolved state through `state`:
 
 ```tsx title="components/consent.tsx"
 'use client';
@@ -32,33 +32,33 @@ while the router supplies prepared consent through `config`:
 import type { ReactNode } from 'react';
 import {
   ConsentBanner,
-  ConsentBoundary,
   ConsentDialog,
   ConsentDialogLink,
+  ConsentRoot,
 } from 'c15t/next';
-import type { ConsentBoundaryProps } from 'c15t/next';
+import type { ConsentRootProps } from 'c15t/next';
 import { consentConfig } from '../c15t.config';
 import { scripts } from '../lib/scripts';
 
 export function Consent({
   children,
-  config,
+  state,
 }: {
   children: ReactNode;
-  config: ConsentBoundaryProps['config'];
+  state: ConsentRootProps['state'];
 }) {
   return (
-    <ConsentBoundary config={config} consent={consentConfig} scripts={scripts}>
+    <ConsentRoot state={state} config={consentConfig} scripts={scripts}>
       {children}
       <ConsentBanner />
       <ConsentDialog />
       <footer>
         <ConsentDialogLink>Privacy settings</ConsentDialogLink>
       </footer>
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
 
-`ConsentBoundary` already provides the consent runtime. Mount this wrapper once;
+`ConsentRoot` already provides the consent runtime. Mount this wrapper once;
 do not add a second provider. Keep your site's content and footer inside it.

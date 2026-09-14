@@ -10,10 +10,7 @@
 		createConsentRuntime,
 		normalizeKernelUser,
 	} from '@c15t/core/runtime';
-	import type {
-		ConsentRuntime,
-		ConsentRuntimeIABHandle,
-	} from '@c15t/core/runtime';
+	import type { ConsentRuntime } from '@c15t/core/runtime';
 	import type { IABHandle } from '@c15t/iab';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { setupColorScheme } from '@c15t/ui/utils';
@@ -22,7 +19,7 @@
 
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
-	import { isIABConfigured, lazyCreateIAB, whenIABReady } from '../iab-loader';
+	import { isIABConfigured, lazyCreateIAB } from '../iab-loader';
 	import type { ConsentManagerOptions } from '../types';
 
 	type ProviderOptionsInput = Omit<ConsentManagerOptions, 'mode'> & {
@@ -109,9 +106,6 @@
 	let iabHandle = $state<IABHandle | null>(
 		untrack(() => runtime.iab as IABHandle | null)
 	);
-	// The handle the lazy factory returns forwards nothing until
-	// `@c15t/iab` lands. Surfaces stay unrendered until it has.
-	let iabHandleReady = $state(false);
 	let iabTab = $state<'purposes' | 'vendors'>('purposes');
 	let configuredCategories = $state<AllConsentNames[]>(
 		untrack(() => options.consentCategories ?? runtime.consentCategories)
@@ -190,28 +184,16 @@
 		},
 	};
 
-	// A handle that has not resolved yet answers every call with
-	// `undefined`; rendering the preference centre against it would give the
-	// visitor inert toggles, so surfaces wait for the real one.
-	const resolvedIABHandle = function resolvedIABHandle(): {
-		handle: IABHandle | null;
-		pending: boolean;
-	} {
-		if (!iabHandle) {
-			return { handle: null, pending: false };
-		}
-		return {
-			handle: iabHandleReady ? iabHandle : null,
-			pending: !iabHandleReady,
-		};
-	};
-
 	const getIABState = function getIABState(): SvelteIABState | null {
 		const { iab } = snapshot;
-		const { handle: readyHandle, pending } = resolvedIABHandle();
-		if (!iab || pending) {
+		if (!iab) {
 			return null;
 		}
+		// Rendering keys on the kernel state so a server-resolved GVL puts the
+		// IAB surfaces in the first HTML. Until `@c15t/iab` lands the lazy
+		// handle queues calls and replays them, so an early Accept still
+		// records consent; without any handle the actions are no-ops.
+		const readyHandle = iabHandle;
 		const noop = () => {
 			/* empty */
 		};
@@ -223,7 +205,7 @@
 			acceptAll: readyHandle?.acceptAll ?? noop,
 			config: {
 				cmpId: iab.cmpId,
-				enabled: iab.enabled,
+				enabled: iab.enabled && Boolean(iab.gvl),
 			},
 			isLoadingGVL: iab.enabled && !iab.gvl,
 			nonIABVendors: iab.customVendors,
@@ -263,55 +245,11 @@
 		snapshot = next;
 	});
 
-	// `$state` wraps the assigned handle in its own proxy, so identity is
-	// tracked with a counter rather than by comparing references.
-	let iabGeneration = 0;
-
-	// A borrowed runtime was built by another package, with its own lazy
-	// IAB factory. This package's `whenIABReady()` knows nothing about that
-	// load and resolves immediately, which would mark an empty proxy ready
-	// and hand the surfaces no-op consent methods. The handle carries its
-	// own readiness signal, so prefer it and keep the local loader only for
-	// a runtime this provider created.
-	const awaitIABReady = function awaitIABReady(
-		handle: ConsentRuntimeIABHandle
-	): Promise<void> {
-		const { whenReady } = handle;
-		return typeof whenReady === 'function'
-			? whenReady.call(handle)
-			: whenIABReady();
-	};
-
-	const awaitIABHandle = function awaitIABHandle(
-		handle: ConsentRuntimeIABHandle,
-		generation: number
-	) {
-		void (async () => {
-			await awaitIABReady(handle);
-			if (generation === iabGeneration) {
-				iabHandleReady = true;
-			}
-		})();
-	};
-
+	// The lazy handle queues calls until `@c15t/iab` lands and replays them,
+	// so the surfaces render against it as soon as it exists.
 	const unsubscribeIAB = runtime.onIABChange((next) => {
 		iabHandle = next as IABHandle | null;
-		iabHandleReady = false;
-		iabGeneration += 1;
-		if (!next) {
-			return;
-		}
-		awaitIABHandle(next, iabGeneration);
 	});
-
-	// A provider that borrows a runtime — an Astro island, say — mounts
-	// after the CMP was created, so `onIABChange` has already fired and
-	// will not fire again. Without this the surfaces waited forever on a
-	// handle that had been ready since before the component existed.
-	const initialHandle = untrack(() => iabHandle);
-	if (initialHandle) {
-		awaitIABHandle(initialHandle, iabGeneration);
-	}
 
 	onMount(() => {
 		if (!ownsRuntime) {

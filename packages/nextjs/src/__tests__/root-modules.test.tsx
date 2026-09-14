@@ -1,5 +1,5 @@
 /**
- * ConsentBoundary module prop auto-wiring tests.
+ * ConsentRoot module prop auto-wiring tests.
  *
  * Verifies that passing curated module props causes the corresponding
  * modules to mount and react to kernel state.
@@ -7,14 +7,14 @@
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentBoundary } from '../boundary';
+import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
-describe('ConsentBoundary module props', () => {
+describe('ConsentRoot module props', () => {
 	test('scripts prop mounts <script> tags for eligible categories', async () => {
 		const { getByText } = await render(
-			<ConsentBoundary
-				config={policyFixture({ marketing: true })}
+			<ConsentRoot
+				state={policyFixture({ marketing: true })}
 				persistence={false}
 				scripts={[
 					{
@@ -24,11 +24,11 @@ describe('ConsentBoundary module props', () => {
 					},
 				]}
 			>
-				<div>boundary rendered</div>
-			</ConsentBoundary>
+				<div>root rendered</div>
+			</ConsentRoot>
 		);
 
-		await expect.element(getByText('boundary rendered')).toBeInTheDocument();
+		await expect.element(getByText('root rendered')).toBeInTheDocument();
 
 		// Script should be appended to document.head by the script-loader module.
 		await vi.waitFor(
@@ -44,13 +44,13 @@ describe('ConsentBoundary module props', () => {
 
 	test('no module props → no extra DOM work beyond the children', async () => {
 		const { getByText } = await render(
-			<ConsentBoundary
-				config={{}}
+			<ConsentRoot
+				state={{}}
 				persistence={false}
 			>
-				<div>plain boundary</div>
-			</ConsentBoundary>
+				<div>plain root</div>
+			</ConsentRoot>
 		);
-		await expect.element(getByText('plain boundary')).toBeInTheDocument();
+		await expect.element(getByText('plain root')).toBeInTheDocument();
 	});
 });

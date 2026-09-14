@@ -33,7 +33,7 @@ export function Consent({ children }: { children: ReactNode }) {
 ```
 
 Import your adapter's stylesheet globally, as in the framework quickstart. For
-an existing server-prefetched `ConsentBoundary`, keep that boundary and pass
+an existing server-resolved `ConsentRoot`, keep that root and pass
 `scripts` as a top-level prop instead of mounting a second provider.
 
 ## Understand loading and revocation

@@ -1,14 +1,14 @@
 import { consentLoaderOptions } from '@c15t/tanstack-start/server';
-import type { ConsentConfig } from '@c15t/tanstack-start/server';
+import type { ConsentState } from '@c15t/tanstack-start/server';
 import { Outlet, useLoaderData } from '@tanstack/react-router';
 
 import { BenchDocument } from './document';
-import { getManifestConsentConfig } from './loaders';
+import { getManifestConsentState } from './loaders';
 import { TanstackManifestBenchmarkProvider } from './provider';
 
 /**
  * Root-mounted variant (`C15T_BENCH_ROOT_PROVIDER=1`): the root route runs
- * the manifest prefetch loader and wraps the outlet in `ConsentBoundary`,
+ * the manifest prefetch loader and wraps the outlet in `ConsentRoot`,
  * which is the pattern the adapter docs recommend. Start does not
  * code-split the root route, so the consent chunks join the entry graph
  * instead of hanging off the `/manifest-ssr` component chunk. Only that
@@ -17,17 +17,17 @@ import { TanstackManifestBenchmarkProvider } from './provider';
  */
 export const rootConsentRouteOptions = {
 	...consentLoaderOptions,
-	loader: () => getManifestConsentConfig(),
+	loader: () => getManifestConsentState(),
 };
 
 export const RootComponent = () => {
 	// The root match is the closest match while the root component renders.
-	const config = useLoaderData({ strict: false }) as ConsentConfig;
+	const state = useLoaderData({ strict: false }) as ConsentState;
 
 	return (
 		<BenchDocument>
 			<TanstackManifestBenchmarkProvider
-				config={config}
+				state={state}
 				scenario="manifest-ssr-root"
 			>
 				<Outlet />

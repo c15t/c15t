@@ -1,17 +1,17 @@
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+import { resolveConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
 
 import { NextjsManifestBenchmarkProvider } from '../_bench/provider';
 
 const ManifestSSRLayout = async ({ children }: { children: ReactNode }) => {
-	const config = await prefetchInitialConsent({
+	const state = await resolveConsent({
 		backendURL: '/api/c15t',
 		manifestURL: '/api/c15t/manifest',
 	});
 
 	return (
 		<NextjsManifestBenchmarkProvider
-			config={config}
+			state={state}
 			scenario="manifest-ssr"
 		>
 			{children}

@@ -135,7 +135,7 @@ export const generateConsentComponent = function generateConsentComponent({
 		: generateScriptsCommentPlaceholder();
 
 	// Build the full options object
-	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tprefetch: config,' : '';
+	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tprefetch: state,' : '';
 	const themeLine = includeTheme ? '\n\t\t\t\ttheme,\n\t\t\t\tcomponents,' : '';
 	const overridesLine = '';
 
@@ -150,7 +150,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	);
 	const namedImports = `ConsentDialog,
 	ConsentProvider,
-	ConsentBanner,${modeImports.map((name) => `\n\t${name},`).join('')}${needsDataType ? '\n\ttype KernelConfig,' : ''}`;
+	ConsentBanner,${modeImports.map((name) => `\n\t${name},`).join('')}${needsDataType ? '\n\ttype ConsentState,' : ''}`;
 
 	// Build framework props type import
 	const frameworkPropsImport = '';
@@ -160,10 +160,10 @@ export const generateConsentComponent = function generateConsentComponent({
 	if (ssrDataOption) {
 		propsDestructure = `{
 	children,
-	config,
+	state,
 }: {
 	children: ReactNode;
-	config: KernelConfig;
+	state: ConsentState;
 }`;
 	} else if (initialDataProp) {
 		propsDestructure = `{
@@ -171,7 +171,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	initialData,
 }: {
 	children: ReactNode;
-	initialData?: KernelConfig;
+	initialData?: ConsentState;
 }`;
 	} else {
 		propsDestructure = '{ children }: { children: ReactNode }';

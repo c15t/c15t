@@ -64,6 +64,35 @@ let mockGVLData: GlobalVendorList | null | undefined = undefined;
  *
  * @public
  */
+/**
+ * Narrow a vendor list to a publisher allowlist.
+ *
+ * The GVL endpoint applies `vendorIds` server-side; a list that arrived by
+ * another route (server-resolved state) is narrowed here so both paths
+ * disclose the same vendors.
+ *
+ * @param gvl - The full vendor list.
+ * @param vendorIds - Vendor IDs to keep. An empty list keeps every vendor.
+ * @returns The same list with `vendors` limited to the allowlist.
+ * @public
+ */
+export const narrowGVLToVendors = function narrowGVLToVendors(
+	gvl: GlobalVendorList,
+	vendorIds: readonly number[]
+): GlobalVendorList {
+	if (vendorIds.length === 0) {
+		return gvl;
+	}
+	const allowed = new Set(vendorIds.map(String));
+	const vendors: GlobalVendorList['vendors'] = {};
+	for (const [id, vendor] of Object.entries(gvl.vendors)) {
+		if (allowed.has(id)) {
+			vendors[id] = vendor;
+		}
+	}
+	return { ...gvl, vendors };
+};
+
 export const fetchGVL = function fetchGVL(
 	vendorIds?: number[],
 	options: { endpoint?: string; headers?: HeadersInit } = {}

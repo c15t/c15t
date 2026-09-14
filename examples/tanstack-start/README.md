@@ -2,7 +2,7 @@
 
 Minimal c15t TanStack Start integration through the `c15t` umbrella package
 (`c15t/tanstack-start` ≡ `@c15t/tanstack-start`): a server function in the
-root route loader, one `<ConsentBoundary>` around the app, one splat server
+root route loader, one `<ConsentRoot>` around the app, one splat server
 route for the same-origin consent endpoints, plus a self-hosted
 `@c15t/backend` mounted at `/api/self-host` (`src/routes/api/self-host/$.ts`)
 so the whole demo, including the consent manifest, is served from a single
@@ -15,10 +15,10 @@ bun run dev        # http://localhost:3010
 
 ## What it shows
 
-- `src/routes/__root.tsx` declares `getConsentConfig` with
-  `createServerFn().handler(createConsentConfigHandler({ backendURL }))`.
+- `src/routes/__root.tsx` declares `getConsentState` with
+  `createServerFn().handler(createConsentStateHandler({ backendURL }))`.
   The loader runs it on the server, where it reads the `c15t` cookie and the
-  geo headers and resolves init from the backend manifest. `ConsentBoundary`
+  geo headers and resolves init from the backend manifest. `ConsentRoot`
   reads the result back with `Route.useLoaderData()`, so the banner is in the
   first HTML with zero CLS and hydration never disagrees with the server.
   `consentLoaderOptions` keeps the loader from re-running on client-side
@@ -33,7 +33,7 @@ bun run dev        # http://localhost:3010
   `internals/rfcs/0001-consent-manifest.md`.
 - `proxy: true` forwards the rest of the consent traffic (`POST
   /api/c15t/subjects`, `PATCH /api/c15t/subjects/:id`, `GET /api/c15t/status`)
-  to `backendURL`, so `ConsentBoundary` takes `backendURL="/api/c15t"` and
+  to `backendURL`, so `ConsentRoot` takes `backendURL="/api/c15t"` and
   the browser only ever talks to this origin, like a Next.js rewrite. The
   proxy forwards the browser's `user-agent`, `accept-language`, `cookie`,
   `origin`, `referer`, and geo headers plus the client IP in

@@ -20,15 +20,15 @@ export interface ConsentRequestMiddlewareOptions {
 	/**
 	 * Override the negotiated language. Written back onto the request as
 	 * `accept-language` when header normalization is on, so readers that
-	 * only look at headers (`readInitialConsentConfig`, the init route) see
-	 * the same value as `context.consent.language`.
+	 * only look at headers (`resolveConsent`, the init route) see the same
+	 * value as `context.consent.language`.
 	 */
 	language?: string;
 
 	/**
 	 * Write the normalized `x-c15t-country`, `x-c15t-region`, and `sec-gpc`
 	 * headers back onto the incoming request so every downstream reader
-	 * (server routes, server functions, `prefetchInitialConsent`) sees one
+	 * (server routes, server functions, `resolveConsent`) sees one
 	 * canonical set regardless of which CDN populated them.
 	 *
 	 * @default true

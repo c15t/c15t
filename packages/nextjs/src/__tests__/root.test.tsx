@@ -1,9 +1,9 @@
 /**
- * Tests for ConsentBoundary — the client component that creates a kernel
- * from server-produced config and wraps children in ConsentProvider.
+ * Tests for ConsentRoot — the client component that creates a kernel
+ * from the server-resolved state and wraps children in ConsentProvider.
  *
  * Invariants verified:
- * - Config is respected (initial consents, initial overrides).
+ * - State is respected (initial consents, initial overrides).
  * - Kernel is per-mount (two mounts → two kernels).
  * - Selector hooks work downstream.
  */
@@ -11,29 +11,29 @@ import { useConsent, useOverrides } from '@c15t/react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentBoundary } from '../boundary';
+import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
-describe('ConsentBoundary: config is honored', () => {
-	test('initial consents from config reach useConsent', async () => {
+describe('ConsentRoot: state is honored', () => {
+	test('initial consents from state reach useConsent', async () => {
 		const MarketingStatus = () => {
 			const allowed = useConsent('marketing');
 			return <div data-testid="status">{String(allowed)}</div>;
 		};
 
 		const { getByTestId } = await render(
-			<ConsentBoundary
-				config={policyFixture({ marketing: true, measurement: true })}
+			<ConsentRoot
+				state={policyFixture({ marketing: true, measurement: true })}
 				persistence={false}
 			>
 				<MarketingStatus />
-			</ConsentBoundary>
+			</ConsentRoot>
 		);
 
 		await expect.element(getByTestId('status')).toHaveTextContent('true');
 	});
 
-	test('initial overrides from config reach useOverrides', async () => {
+	test('initial overrides from state reach useOverrides', async () => {
 		const CountryLabel = () => {
 			const o = useOverrides();
 			return (
@@ -44,19 +44,19 @@ describe('ConsentBoundary: config is honored', () => {
 		};
 
 		const { getByTestId } = await render(
-			<ConsentBoundary
-				config={{ initialOverrides: { country: 'DE', language: 'de' } }}
+			<ConsentRoot
+				state={{ initialOverrides: { country: 'DE', language: 'de' } }}
 			>
 				<CountryLabel />
-			</ConsentBoundary>
+			</ConsentRoot>
 		);
 
 		await expect.element(getByTestId('country')).toHaveTextContent('DE/de');
 	});
 });
 
-describe('ConsentBoundary: kernel is per-mount', () => {
-	test('two boundaries receive independent kernels', async () => {
+describe('ConsentRoot: kernel is per-mount', () => {
+	test('two roots receive independent kernels', async () => {
 		const MarketingStatus = ({ label }: { label: string }) => {
 			const allowed = useConsent('marketing');
 			return (
@@ -66,23 +66,23 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 			);
 		};
 
-		// Two separate ConsentBoundary mounts with different config values.
+		// Two separate ConsentRoot mounts with different state values.
 		// Each must produce its own kernel; mutating one shouldn't affect
 		// the other.
 		const screen = await render(
 			<div>
-				<ConsentBoundary
-					config={policyFixture({ marketing: true })}
+				<ConsentRoot
+					state={policyFixture({ marketing: true })}
 					persistence={false}
 				>
 					<MarketingStatus label="a" />
-				</ConsentBoundary>
-				<ConsentBoundary
-					config={policyFixture({ marketing: false })}
+				</ConsentRoot>
+				<ConsentRoot
+					state={policyFixture({ marketing: false })}
 					persistence={false}
 				>
 					<MarketingStatus label="b" />
-				</ConsentBoundary>
+				</ConsentRoot>
 			</div>
 		);
 

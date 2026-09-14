@@ -9,13 +9,11 @@ import {
 	useState,
 } from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useActiveUI, useModel, useTranslations } from '~/hooks';
 import { useIABConsentManager } from '~/hooks/use-iab-manager';
-import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -68,13 +66,15 @@ const IABConsentBannerRootChildren = createForwardRef<
 		const model = useModel();
 		const translations = useTranslations();
 		const textDirection = useTextDirection(translations?.language ?? 'en');
-		const [isVisible, setIsVisible] = useState(false);
-		const [hasAnimated, setHasAnimated] = useState(false);
-		const [animationDurationMs, setAnimationDurationMs] = useState(200);
-
 		// IAB banner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner =
 			model !== null && activeUI === 'banner' && models.includes(model);
+		// Seed visibility from the resolved state so a server-rendered banner
+		// carries its visible class in the first HTML and hydrates without a
+		// flash, matching `ConsentBanner.Root`.
+		const [isVisible, setIsVisible] = useState(shouldShowBanner);
+		const [hasAnimated, setHasAnimated] = useState(shouldShowBanner);
+		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		useEffect(() => {
 			const duration = Number.parseInt(
@@ -127,12 +127,6 @@ const IABConsentBannerRootChildren = createForwardRef<
 			...props,
 		});
 
-		const isMounted = useIsHydrated();
-
-		if (!isMounted) {
-			return null;
-		}
-
 		const finalClassName = noStyle
 			? contentStyle.className || ''
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
@@ -140,7 +134,9 @@ const IABConsentBannerRootChildren = createForwardRef<
 			return null;
 		}
 
-		return createPortal(
+		// Rendered inline rather than through a portal so the banner exists in
+		// server HTML; the stylesheet positions it with `position: fixed`.
+		return (
 			<>
 				<IABConsentBannerOverlay />
 				<div
@@ -156,8 +152,7 @@ const IABConsentBannerRootChildren = createForwardRef<
 				>
 					{children}
 				</div>
-			</>,
-			document.body
+			</>
 		);
 	}
 );

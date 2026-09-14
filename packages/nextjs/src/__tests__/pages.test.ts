@@ -10,11 +10,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { defineConsentConfig } from '../config';
 import { toWebHeaders, toWebRequest } from '../node-bridge';
 import type { NodeApiResponseLike } from '../node-bridge';
-import {
-	createPagesApiHandlers,
-	prefetchInitialConsent,
-	readInitialConsentConfig,
-} from '../pages';
+import { createPagesApiHandlers, resolveConsent } from '../pages';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 import { policyFixture } from './policy-fixture';
 
@@ -96,13 +92,15 @@ describe('@c15t/nextjs/pages: header conversion', () => {
 		expect(headers.has('x-missing')).toBe(false);
 	});
 
-	test('readInitialConsentConfig reads geo, language, and GPC from req.headers', async () => {
-		const config = await readInitialConsentConfig({
-			headers: {
-				'accept-language': ['de-DE,de;q=0.9', 'en'],
-				'sec-gpc': '1',
-				'x-vercel-ip-country': 'DE',
-				'x-vercel-ip-country-region': 'BE',
+	test('resolveConsent reads geo, language, and GPC from req.headers', async () => {
+		const config = await resolveConsent({
+			req: {
+				headers: {
+					'accept-language': ['de-DE,de;q=0.9', 'en'],
+					'sec-gpc': '1',
+					'x-vercel-ip-country': 'DE',
+					'x-vercel-ip-country-region': 'BE',
+				},
 			},
 		});
 		expect(config.initialOverrides).toEqual({
@@ -114,10 +112,12 @@ describe('@c15t/nextjs/pages: header conversion', () => {
 });
 
 describe('@c15t/nextjs/pages: cookies', () => {
-	test('readInitialConsentConfig parses the consent cookie from req.headers.cookie', async () => {
-		const config = await readInitialConsentConfig({
-			headers: {
-				cookie: 'sess=abc; c15t=c.necessary:1,c.marketing:1,i.t:1',
+	test('resolveConsent parses the consent cookie from req.headers.cookie', async () => {
+		const config = await resolveConsent({
+			req: {
+				headers: {
+					cookie: 'sess=abc; c15t=c.necessary:1,c.marketing:1,i.t:1',
+				},
 			},
 		});
 		expect(!!config.initialRecords?.choice).toBe(true);
@@ -127,10 +127,12 @@ describe('@c15t/nextjs/pages: cookies', () => {
 	});
 
 	test('cookieName follows a custom storage key', async () => {
-		const config = await readInitialConsentConfig(
-			{ headers: { cookie: 'consent=c.necessary:1,c.marketing:0,i.t:1' } },
-			{ cookieName: 'consent' }
-		);
+		const config = await resolveConsent({
+			cookieName: 'consent',
+			req: {
+				headers: { cookie: 'consent=c.necessary:1,c.marketing:0,i.t:1' },
+			},
+		});
 		expect(!!config.initialRecords?.choice).toBe(true);
 		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
 			false
@@ -138,14 +140,16 @@ describe('@c15t/nextjs/pages: cookies', () => {
 	});
 
 	test('returns plain JSON', async () => {
-		const config = await readInitialConsentConfig({
-			headers: { cookie: 'c15t=c.necessary:1,i.t:1', 'x-country': 'FR' },
+		const config = await resolveConsent({
+			req: {
+				headers: { cookie: 'c15t=c.necessary:1,i.t:1', 'x-country': 'FR' },
+			},
 		});
 		expect(JSON.parse(JSON.stringify(config))).toEqual(config);
 	});
 });
 
-describe('@c15t/nextjs/pages: prefetchInitialConsent', () => {
+describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 	test('resolves the backend URL from req and forwards cookies', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(
@@ -161,7 +165,7 @@ describe('@c15t/nextjs/pages: prefetchInitialConsent', () => {
 			)
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			req: {
@@ -196,7 +200,7 @@ describe('@c15t/nextjs/pages: prefetchInitialConsent', () => {
 			})
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			manifestURL: '/api/consent/manifest',
@@ -321,7 +325,7 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 		expect(body.translations.language).toBe('de');
 	});
 
-	test('handlers and prefetch accept a defineConsentConfig result', async () => {
+	test('handlers and resolveConsent accept a defineConsentConfig result', async () => {
 		const fetchSpy = vi
 			.fn()
 			.mockImplementation(() =>
@@ -348,7 +352,7 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			},
 			sink.res
 		);
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			config: consentConfig,
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			req: {

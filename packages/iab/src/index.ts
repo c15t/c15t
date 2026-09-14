@@ -37,7 +37,7 @@ import {
 	validateAuthority,
 } from './authority';
 import { createCMPApi } from './tcf/cmp-api';
-import { clearGVLCache, fetchGVL } from './tcf/fetch-gvl';
+import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import { getTCFCore } from './tcf/lazy-load';
 import {
 	c15tConsentsToIabPurposes,
@@ -75,7 +75,7 @@ export interface CreateIABOptions {
 	 */
 	gvl?: GlobalVendorList | null;
 	/**
-	 * Override the GVL endpoint. Default: `gvl.inth.com`.
+	 * Override the GVL endpoint. Default: `gvl.inth.app`.
 	 */
 	gvlURL?: string;
 }
@@ -290,17 +290,52 @@ const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
 		? 'visible'
 		: 'hidden';
 
+/**
+ * The vendor list `createIAB` starts from, before any network fetch.
+ *
+ * - An explicit `gvl` option wins, `null` included.
+ * - A list already in the kernel (server-resolved state from
+ *   `resolveConsent()` or a framework init route) is reused, narrowed to
+ *   the `vendors` allowlist the GVL endpoint would otherwise have applied.
+ *   Reseeding from an absent option would wipe it, flip `enabled` to
+ *   false, and pay for a second fetch.
+ * - A server that resolved this request without a vendor list for a
+ *   policy that is not IAB said "no IAB here"; keep that `null` instead of
+ *   fetching a list nothing will render. For an IAB policy the missing
+ *   list is a server-side failure, so fall through and fetch.
+ * - Otherwise `undefined`: fetch.
+ */
+const resolvePreloadedGvl = function resolvePreloadedGvl(
+	kernel: ConsentKernel,
+	options: CreateIABOptions
+): GlobalVendorList | null | undefined {
+	if (options.gvl !== undefined) {
+		return options.gvl;
+	}
+	const snapshot = kernel.getSnapshot();
+	const held = snapshot.iab?.gvl;
+	if (held) {
+		return options.vendors?.length
+			? narrowGVLToVendors(held, options.vendors)
+			: held;
+	}
+	const prepared = kernel.getServerSnapshot().iab;
+	if (
+		prepared &&
+		prepared.gvl === null &&
+		snapshot.policyRule.model !== 'iab'
+	) {
+		return null;
+	}
+	return undefined;
+};
+
 export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
-	const {
-		kernel,
-		cmpId,
-		cmpVersion = 1,
-		vendors,
-		gvl: preloadedGvl,
-		gvlURL,
-	} = options;
+	const { kernel, cmpId, cmpVersion = 1, vendors, gvlURL } = options;
+
+	const preloadedGvl = resolvePreloadedGvl(kernel, options);
 
 	// Seed the iab slice immediately so downstream consumers see the
 	// cmpId + any preloaded GVL. If no GVL yet, `enabled` stays false
@@ -691,7 +726,9 @@ export const createIAB = function createIAB(
 		},
 		async whenReady() {
 			await initialization;
-			if (!disposed && options.gvl !== null && !cmpApi) {
+			// An explicit null, from the option or the server state, is a
+			// decision, not a failed load.
+			if (!disposed && preloadedGvl !== null && !cmpApi) {
 				throw new Error('Unable to load IAB privacy settings.');
 			}
 		},

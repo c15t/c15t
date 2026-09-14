@@ -1,7 +1,7 @@
 /**
  * Opt-in same-origin proxy for the consent server route.
  *
- * Lets a Start app point `ConsentBoundary backendURL="/api/c15t"` at its own
+ * Lets a Start app point `ConsentRoot backendURL="/api/c15t"` at its own
  * origin, the way a Next.js app uses a `next.config` rewrite: the browser
  * talks to the app, the app forwards to the c15t backend. Only the paths the
  * client transport calls (`subjects`, `subjects/:id`, `init`, `manifest`,
