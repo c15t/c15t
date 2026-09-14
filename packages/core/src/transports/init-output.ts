@@ -255,8 +255,8 @@ export const mergeInitResponseIntoKernelConfig =
 			const nextIab: Partial<KernelIABState> = {
 				...(merged.initialIab ?? {}),
 			};
-			if (response.gvl !== undefined) {
-				nextIab.gvl = response.gvl;
+			if (response.gvl !== undefined || response.gvlReference !== undefined) {
+				nextIab.gvl = response.gvl ?? null;
 				nextIab.enabled =
 					response.gvl !== null || Boolean(response.gvlReference);
 				nextIab.gvlReference = response.gvlReference;

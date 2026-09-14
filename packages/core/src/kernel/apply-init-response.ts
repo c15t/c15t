@@ -120,6 +120,10 @@ export const applyInitResponse = function applyInitResponse(
 					? baseline.gvlReference
 					: response.gvlReference,
 		};
+		if (response.gvlReference !== undefined) {
+			nextIab.gvl = response.gvl ?? null;
+			nextIab.gvlReference = response.gvlReference;
+		}
 		// Server explicitly returned `gvl: null` → IAB disabled for this request.
 		if (response.gvlReference) {
 			nextIab.enabled = true;

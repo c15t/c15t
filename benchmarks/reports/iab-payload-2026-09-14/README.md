@@ -112,7 +112,7 @@ node benchmarks/tanstack-start-browser-bench/scripts/measure-iab-page.ts /path/t
 
 Local CI's bundle comparison measured all 23 expected consumer fixtures.
 All 30 bundle budgets passed with no missing measurements. Affected package
-builds, type checks and 3,207 tests passed across core, IAB, React, Next.js,
+builds, type checks and 3,209 tests passed across core, IAB, React, Next.js,
 TanStack Start, Vue, Svelte and Astro. Schema tests passed separately.
 Repository tooling and docs checks passed all 163 tests after correcting
 the Local CI Git wrapper for tests that create temporary repositories.
