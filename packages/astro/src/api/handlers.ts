@@ -47,6 +47,14 @@ export interface ConsentRouteHandlerOptions {
 	 * Defaults to a plain `GET` of the manifest's GVL reference.
 	 */
 	fetchGvl?: FetchGvl;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 /**
@@ -91,6 +99,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	const init = async function init(request: Request): Promise<Response> {
 		const manifest = await loadConsentManifest({
 			fetch: handlerOptions.fetch,
+			onBackgroundRevalidate: handlerOptions.onBackgroundRevalidate,
 			options: handlerOptions.options,
 			source: { headers: request.headers, url: request.url },
 		});
@@ -131,6 +140,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		const result = await fetchCachedManifest({
 			config: { manifestURL },
 			fetch: handlerOptions.fetch,
+			onBackgroundRevalidate: handlerOptions.onBackgroundRevalidate,
 			query,
 		});
 

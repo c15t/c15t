@@ -126,6 +126,37 @@ describe('createConsentServerRoute: splat dispatch', () => {
 	});
 });
 
+describe('createConsentServerRoute: background revalidation', () => {
+	test("hands a stale read's refresh to onBackgroundRevalidate", async () => {
+		vi.useFakeTimers();
+		try {
+			const fetchSpy = createManifestFetch({
+				'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+				etag: '"manifest-revision"',
+			});
+			const registered: Promise<void>[] = [];
+			const { manifestGET } = createRoute({
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				manifestURL: 'https://consent.example.com/manifest',
+				onBackgroundRevalidate: (refresh) => {
+					registered.push(refresh);
+				},
+			});
+
+			await manifestGET({ request: request('/api/c15t/manifest') });
+			expect(registered).toHaveLength(0);
+
+			vi.advanceTimersByTime(1500);
+			await manifestGET({ request: request('/api/c15t/manifest') });
+			expect(registered).toHaveLength(1);
+			await expect(registered[0]).resolves.toBeUndefined();
+			expect(fetchSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
 describe('createConsentServerRoute: manifest passthrough', () => {
 	test('forwards backend cache headers and the language query', async () => {
 		const fetchSpy = createManifestFetch();

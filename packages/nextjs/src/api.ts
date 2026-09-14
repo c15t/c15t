@@ -60,6 +60,27 @@ export interface NextConsentManifestHandlersOptions {
 
 	fetch?: typeof globalThis.fetch;
 
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * a request, so the host can keep it alive past the response on runtimes
+	 * that stop detached work once a response is sent. Called inside the
+	 * handler, so `after` from `next/server` (Next 15.1 and later; 15.0
+	 * exposes it as `unstable_after`) can be used directly. The promise
+	 * never rejects. Not called when the manifest is fresh or the request
+	 * itself waits on the upstream.
+	 *
+	 * @example
+	 * ```ts
+	 * import { after } from 'next/server';
+	 *
+	 * createNextConsentRouteHandlers({
+	 *   ...consentConfig,
+	 *   onBackgroundRevalidate: (refresh) => after(() => refresh),
+	 * });
+	 * ```
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
 	fetchGvl?: (input: {
 		reference: ConsentManifestGVLReference;
 		language: string;
@@ -216,6 +237,7 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 		fetch: options.fetch,
 		headers: nextHeaders as Record<string, string>,
 		init,
+		onBackgroundRevalidate: options.onBackgroundRevalidate,
 		url: manifestURL,
 	});
 

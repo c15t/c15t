@@ -149,16 +149,36 @@ manifest cache. The in-process cache also covers Pages Router runtimes without
 the Data Cache. It supports ETag revalidation and respects upstream cache
 headers, including responses marked private.
 
-The manifest fetch's Next.js revalidation interval defaults to 300 seconds.
-Set `C15T_MANIFEST_REVALIDATE_SECONDS` to change it, or pass
-`manifestRevalidateSeconds` to the handler factory. The upstream manifest's
-cache policy also controls reuse, so changing the Next.js interval alone does
-not override every cache layer. Choose refresh settings that fit how quickly
-policy changes need to reach visitors.
+Once the upstream `s-maxage` has passed, the in-process cache keeps serving the
+cached manifest for as long as the upstream `stale-while-revalidate` allows
+(an explicit `s-maxage` is required for that window to apply),
+and refreshes it in the background. Requests do not wait for that refresh, and
+a refresh that fails or times out leaves the cached manifest in place, so a
+slow or unavailable backend does not delay rendering on a server that has
+already loaded the manifest. Inth sends `s-maxage=300` and a 24 hour
+`stale-while-revalidate` by default; lower the second value on a self-hosted
+backend if a policy change must reach servers sooner after an outage. A server
+with an empty cache still waits for the first upstream response.
 
-The local init handler returns `Cache-Control: private, no-store` because its
-result belongs to a specific request. Preserve that header and keep personalized
-consent HTML out of shared caches.
+The background refresh is detached from the request. On runtimes that stop
+work once a response is sent, register it with the platform so it can finish.
+Pass `onBackgroundRevalidate` to the handler factory; it is called inside the
+handler with the refresh promise, which never rejects:
+
+```ts title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+import { after } from 'next/server';
+
+export const { manifestGET: GET } = createNextConsentRouteHandlers({
+  onBackgroundRevalidate: (refresh) => after(() => refresh),
+});
+```
+
+The same option applies to the init handler's `GET`. `after` is stable from
+Next 15.1; on Next 15.0 import `unstable_after` instead. Other hosts pass the
+promise to their equivalent, such as `waitUntil` on Vercel or Cloudflare.
+Without it the response still returns at once; only the refresh may be cut
+short, in which case the next request starts another.
 
 ## Avoid repeating startup work
 

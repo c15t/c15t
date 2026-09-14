@@ -1,0 +1,20 @@
+{
+	"name": "@c15t/manifest-cache-bench",
+	"private": true,
+	"description": "Benchmarks fetchCachedManifest against a simulated Vercel CDN fronting an Inth /manifest origin.",
+	"type": "module",
+	"scripts": {
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/manifest-cache bunx tsx src/run.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/manifest-cache bunx tsx src/run.ts",
+		"bench:quick": "BENCH_OUTPUT_DIR=../../.benchmarks/current/manifest-cache bunx tsx src/run.ts --quick",
+		"build": "echo 'manifest cache benchmarks are source-only'"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "22.19.11",
+		"typescript": "6.0.3"
+	}
+}

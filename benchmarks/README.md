@@ -34,6 +34,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Builds a synthetic esbuild entry for the ordinary non-IAB React path and reports `iabInputBytes`, `devtoolsInputBytes`, and `allLocalesInputBytes` from the metafile so the import boundary is measured, not assumed.
 - `shared`
   Shared schema, fixtures, budgets, expected-result registry, comparison logic, and report formatting.
+- `manifest-cache-bench`
+  Benchmarks `fetchCachedManifest` (`@c15t/core/transports/manifest-cache`) against an in-process simulated Vercel CDN fronting an Inth `/manifest` origin: cold bursts, steady-state `s-maxage` expiry, stale-while-revalidate serving with the origin down, and edge-unreachable timeouts. Not wired into CI or `turbo.json`; run by hand with `bun run --cwd benchmarks/manifest-cache-bench bench`. See its README.
 
 ### Consent tax
 

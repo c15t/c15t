@@ -20,7 +20,11 @@ manifestCache: {
 ```
 
 These are the defaults, in seconds. The resulting header is
-`public, s-maxage=300, stale-while-revalidate=86400`. A policy change alters the
+`public, s-maxage=300, stale-while-revalidate=86400`, sent as both
+`Cache-Control` and `CDN-Cache-Control`. Vercel's CDN consumes the shared-cache
+directives from a bare `Cache-Control` and strips them before forwarding; the
+second header keeps them visible to app servers reading the manifest through
+the CDN. A policy change alters the
 revision, but a shared cache can continue serving the previous response within
 its cache window. Purge the relevant cache or choose shorter durations when your
 rollout requires it. A revision is an identity, not a remote cache invalidation
@@ -40,6 +44,14 @@ A server framework can reuse `/manifest` and resolve it locally for each incomin
 request. That removes the backend initialization round trip on a manifest cache
 hit while preserving per-request policy selection. It does not remove later
 consent writes or make request cookies shareable.
+
+The framework adapters honour both directives above in their in-process cache.
+After `sMaxAge` seconds they keep serving the cached manifest for up to
+`staleWhileRevalidate` seconds while one background request revalidates it with
+the `ETag`, and a failed revalidation keeps the cached copy. A shorter
+`staleWhileRevalidate` therefore bounds how long an app server can keep serving
+an old policy after this backend becomes unreachable, at the cost of blocking
+requests on the backend once that window closes.
 
 ## Cache the Global Vendor List
 

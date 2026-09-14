@@ -46,4 +46,12 @@ export interface ConsentRequestOptions {
 export interface ConsentManifestOptions extends ManifestSourceConfig {
 	/** Fetch implementation. Defaults to the global `fetch`. */
 	fetch?: ManifestFetch;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }

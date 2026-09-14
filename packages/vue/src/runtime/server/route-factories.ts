@@ -46,7 +46,29 @@ type RuntimeConfigReader = (event?: H3Event<EventHandlerRequest>) => unknown;
 interface RouteDependencies {
 	fetch: ManifestFetch;
 	useRuntimeConfig: RuntimeConfigReader;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * a request, with that request's event, so a host on a runtime that
+	 * stops detached work after the response can register it (for example
+	 * `event.waitUntil` where the Nitro preset provides one). The promise
+	 * never rejects.
+	 */
+	onBackgroundRevalidate?: (
+		revalidation: Promise<void>,
+		event: H3Event<EventHandlerRequest>
+	) => void;
 }
+
+const bindBackgroundRevalidate = function bindBackgroundRevalidate(
+	dependencies: RouteDependencies,
+	event: H3Event<EventHandlerRequest>
+): ((revalidation: Promise<void>) => void) | undefined {
+	const { onBackgroundRevalidate } = dependencies;
+	if (!onBackgroundRevalidate) {
+		return undefined;
+	}
+	return (revalidation) => onBackgroundRevalidate(revalidation, event);
+};
 
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
@@ -73,6 +95,7 @@ export const createManifestRoute = function createManifestRoute(
 		const manifest = await fetchCachedManifest({
 			config,
 			fetch: dependencies.fetch,
+			onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
 			query: url.searchParams.toString(),
 		});
 
@@ -141,6 +164,7 @@ export const createInitRoute = function createInitRoute(
 			const manifest = await fetchCachedManifest({
 				config,
 				fetch: dependencies.fetch,
+				onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
 			});
 			const load = (language: string) =>
 				manifest.manifest.iab?.gvl

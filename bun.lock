@@ -288,6 +288,17 @@
         "typescript": "6.0.3",
       },
     },
+    "benchmarks/manifest-cache-bench": {
+      "name": "@c15t/manifest-cache-bench",
+      "dependencies": {
+        "@c15t/benchmarking": "workspace:*",
+        "@c15t/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "22.19.11",
+        "typescript": "6.0.3",
+      },
+    },
     "benchmarks/nextjs-browser-bench": {
       "name": "@c15t/nextjs-browser-bench",
       "dependencies": {
@@ -1630,6 +1641,8 @@
     "@c15t/iab": ["@c15t/iab@workspace:packages/iab"],
 
     "@c15t/logger": ["@c15t/logger@workspace:packages/logger"],
+
+    "@c15t/manifest-cache-bench": ["@c15t/manifest-cache-bench@workspace:benchmarks/manifest-cache-bench"],
 
     "@c15t/migration-fixtures": ["@c15t/migration-fixtures@workspace:internals/migration-fixtures"],
 

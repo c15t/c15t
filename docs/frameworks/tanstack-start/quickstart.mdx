@@ -169,6 +169,11 @@ sanitizes those headers. Otherwise a caller can supply a false visitor IP.
 The complete route example lives in `examples/tanstack-start` in the source
 repository.
 
+Once the cached manifest passes its `s-maxage`, the route and the prefetch
+serve it stale and refresh it in the background. On a runtime that stops work
+after the response is sent, pass `onBackgroundRevalidate` to either and hand
+the promise to your platform's `waitUntil`; it never rejects.
+
 ## Verify the server path
 
 Load the page directly and inspect the initial HTML under a choice policy.

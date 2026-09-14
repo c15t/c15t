@@ -179,6 +179,7 @@ export const createSvelteKitConsentRouteHandlers =
 			const { manifest } = await fetchCachedManifest({
 				config: { manifestURL },
 				fetch: options.fetch,
+				onBackgroundRevalidate: options.onBackgroundRevalidate,
 			});
 
 			const listResponse = await serveGvlReference(event.request, (language) =>
@@ -240,6 +241,7 @@ export const createSvelteKitConsentRouteHandlers =
 			const result = await fetchCachedManifest({
 				config: { manifestURL },
 				fetch: options.fetch,
+				onBackgroundRevalidate: options.onBackgroundRevalidate,
 				query,
 			});
 

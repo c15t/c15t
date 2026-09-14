@@ -181,6 +181,11 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 			'text/javascript; charset=utf-8'
 		);
 		expect(response.headers.get('cache-control')).toContain('s-maxage=');
+		// Vercel strips the shared-cache directives from a bare Cache-Control;
+		// the same policy in CDN-Cache-Control keeps them visible downstream.
+		expect(response.headers.get('cdn-cache-control')).toBe(
+			response.headers.get('cache-control')
+		);
 		expect(response.headers.get('etag')).toMatch(/^".+"$/u);
 
 		const body = await response.text();

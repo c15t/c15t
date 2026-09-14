@@ -153,6 +153,7 @@ export const loadConsentManifest = async function loadConsentManifest(input: {
 	options: C15tResolvedOptions;
 	fetch?: ManifestFetch;
 	query?: string;
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }): Promise<ConsentManifest> {
 	const { mode } = input.options;
 	if (mode.type === 'manifest' && mode.manifest) {
@@ -162,6 +163,7 @@ export const loadConsentManifest = async function loadConsentManifest(input: {
 	const { manifest } = await fetchCachedManifest({
 		config: { manifestURL },
 		fetch: input.fetch,
+		onBackgroundRevalidate: input.onBackgroundRevalidate,
 		query: input.query,
 	});
 	return manifest;

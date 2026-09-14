@@ -169,6 +169,35 @@ describe('manifest caching through the routes', () => {
 		expect(await response.json()).toEqual(MANIFEST);
 	});
 
+	it("hands a stale read's refresh to onBackgroundRevalidate", async () => {
+		vi.useFakeTimers();
+		const fetchImpl = vi.fn(() =>
+			Promise.resolve(
+				jsonResponse(MANIFEST, {
+					'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+					etag: 'W/"v1"',
+				})
+			)
+		);
+		const registered: Promise<void>[] = [];
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			onBackgroundRevalidate: (refresh) => {
+				registered.push(refresh);
+			},
+			options: options(),
+		});
+
+		await handlers.manifest(makeManifestRequest());
+		expect(registered).toHaveLength(0);
+
+		vi.setSystemTime(Date.now() + 1500);
+		await handlers.manifest(makeManifestRequest());
+		expect(registered).toHaveLength(1);
+		await expect(registered[0]).resolves.toBeUndefined();
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
 	it('surfaces a failing backend', async () => {
 		const fetchImpl = vi.fn(
 			() => new Response('nope', { status: 502, statusText: 'Bad Gateway' })

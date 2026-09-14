@@ -100,6 +100,15 @@ export interface ConsentServerRouteOptions {
 	cache?: ManifestCache;
 
 	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
+	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the
 	 * request's `x-forwarded-host` and `x-forwarded-proto` instead of
 	 * `request.url`. Off by default: those headers are client-controlled
@@ -407,6 +416,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			cache: resolved.cache,
 			fetch: resolved.fetch,
 			headers: credentials,
+			onBackgroundRevalidate: resolved.onBackgroundRevalidate,
 			query: readLanguageQuery(request),
 			sourceURL,
 		});
@@ -449,6 +459,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				manifestRequestHeaders(request),
 				initSourceURL
 			),
+			onBackgroundRevalidate: resolved.onBackgroundRevalidate,
 			sourceURL: initSourceURL,
 		});
 		const listResponse = await serveGvlReference(request, (language) =>

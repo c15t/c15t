@@ -85,6 +85,12 @@ For manifest-backed resolution, the package also exports
 are mounted, `loadConsent(event, { initRoute: '/api/c15t' })` uses the app's own
 init route through `event.fetch`. Merely changing the URL does not create it.
 
+Past the manifest's `s-maxage` those routes serve it stale and refresh it in
+the background. On a runtime that stops work after the response is sent, pass
+`onBackgroundRevalidate` to the handlers and hand the promise to your
+platform's `waitUntil` (`event.platform.context.waitUntil` on Cloudflare); it
+never rejects.
+
 ## Use static hosting
 
 A prerendered page cannot resolve a visitor's cookies at build time. For static

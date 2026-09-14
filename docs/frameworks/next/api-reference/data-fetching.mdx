@@ -274,6 +274,7 @@ with no options, so they read only environment variables.
 | `manifestURL` | `C15T_MANIFEST_URL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
 | `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it. The env value is read with `parseInt`, so `60seconds` becomes `60` and `1e2` becomes `1`; values without a leading number or below `0` fall back to the default. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
+| `onBackgroundRevalidate` | none | Receives the promise of a background manifest refresh started by a request, so a host can keep it alive with `after` from `next/server` or a platform `waitUntil`. Called inside the handler; the promise never rejects. See [Optimization](/docs/frameworks/next/optimization#configure-manifest-cache-refresh). |
 | `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies. Called only under the conditions described in this section. |
 
 An explicit option wins over its environment variable, and a manifest URL from

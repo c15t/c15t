@@ -19,6 +19,41 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		clearManifestCache();
 	});
 
+	describe('background revalidation', () => {
+		test("hands a stale read's refresh to onBackgroundRevalidate", async () => {
+			vi.useFakeTimers();
+			try {
+				const fetchImpl = vi.fn(() =>
+					Promise.resolve(
+						manifestResponse({
+							'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+							etag: '"rev-1"',
+						})
+					)
+				);
+				const registered: Promise<void>[] = [];
+				const { manifest } = createSvelteKitConsentRouteHandlers({
+					backendURL: 'https://api.example.com',
+					fetch: fetchImpl,
+					onBackgroundRevalidate: (refresh) => {
+						registered.push(refresh);
+					},
+				});
+
+				await manifest(createEvent());
+				expect(registered).toHaveLength(0);
+
+				vi.advanceTimersByTime(1500);
+				await manifest(createEvent());
+				expect(registered).toHaveLength(1);
+				await expect(registered[0]).resolves.toBeUndefined();
+				expect(fetchImpl).toHaveBeenCalledTimes(2);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+	});
+
 	describe('init route', () => {
 		test('resolves the policy locally from the manifest', async () => {
 			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
