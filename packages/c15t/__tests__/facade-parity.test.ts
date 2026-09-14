@@ -145,6 +145,17 @@ const assertParity = function assertParity(
 };
 
 describe('umbrella facade parity', () => {
+	it.each(['./react', './next', './tanstack-start', './vue'])(
+		'%s exports defineTheme',
+		(subpath) => {
+			const result = rows.find((row) => row.subpath === subpath)?.esm?.umbrella;
+			expect(result).toMatchObject({
+				keys: expect.arrayContaining(['defineTheme']),
+				ok: true,
+			});
+		}
+	);
+
 	it('ignores nondeterministic CSS traversal order in expected failures', () => {
 		const failure = (file: string): LoadFailure => ({
 			code: 'ERR_UNKNOWN_FILE_EXTENSION',

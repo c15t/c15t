@@ -114,6 +114,44 @@ settings. The server prepares the configuration; the boundary uses it for the
 first client render. `initRoute={false}` sends browser initialization to
 `${backendURL}/init`, matching this direct-backend setup.
 
+## Customize the theme
+
+Import `defineTheme` from `c15t/tanstack-start` to define colors and radius
+tokens. The same entry exports the `Theme` type for annotations.
+
+```ts title="src/consent-theme.ts"
+import { defineTheme } from 'c15t/tanstack-start';
+
+export const theme = defineTheme({
+  colors: { primary: '#2f6f4e' },
+  radius: { lg: '4px' },
+});
+```
+
+In `src/routes/__root.tsx`, import the theme and add it to the existing boundary's
+`options`. This partial example keeps the loader, transport and children from
+the root-route setup:
+
+```tsx title="src/routes/__root.tsx"
+import { theme } from '../consent-theme';
+
+<ConsentBoundary
+  config={config}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+  options={{ theme }}
+>
+  <Outlet />
+  <ConsentBanner />
+  <ConsentDialog />
+  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+</ConsentBoundary>;
+```
+
+The consent UI uses a green primary color and a 4px large-radius token. Merge
+`theme` with any other boundary options you already use.
+
 ## Add a same-origin proxy when needed
 
 If browser traffic should use `/api/c15t`, mount a real Start server route using

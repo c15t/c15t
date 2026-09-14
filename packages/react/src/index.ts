@@ -153,6 +153,7 @@ export type {
 } from './provider';
 export { ConsentProvider } from './provider';
 export type { ReactUIOptions } from './types/consent-manager';
+export { defineTheme, type Theme } from './types/theme';
 
 export {
 	useExplicitChoice,
