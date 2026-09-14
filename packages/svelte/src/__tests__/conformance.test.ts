@@ -114,15 +114,23 @@ const buildProviderOptions = function buildProviderOptions(
 		policyId: rule.id,
 		status: 'matched' as const,
 	};
+	const authoritative =
+		opts.initMode !== 'pending' && opts.initMode !== 'failing';
 	const prefetch: KernelConfig = {
 		...(provided.prefetch ?? {}),
 		initialBranding: 'c15t',
-		initialPolicyPending:
-			opts.initMode === 'pending' || opts.initMode === 'failing',
-		initialPolicyResolution:
-			opts.initMode === 'pending' || opts.initMode === 'failing'
-				? undefined
-				: resolution,
+		// A server that resolved an IAB policy ships the vendor list in the
+		// state; the lazy `@c15t/iab` factory only seeds it on the client.
+		initialIab:
+			isIabComponent(opts.component) && authoritative
+				? {
+						cmpId: IAB_FIXTURE_CMP_ID,
+						enabled: true,
+						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+					}
+				: undefined,
+		initialPolicyPending: !authoritative,
+		initialPolicyResolution: authoritative ? resolution : undefined,
 		initialPrivacySignals: { gpc: opts.gpc },
 	};
 

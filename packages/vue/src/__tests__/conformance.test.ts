@@ -224,6 +224,11 @@ const buildInitOutput = function buildInitOutput(
 	});
 	return {
 		branding: 'c15t',
+		// The same-origin init route ships the vendor list for IAB policies,
+		// and the Nuxt plugin hands that payload to the server render.
+		...(isIabComponent(opts.component)
+			? { gvl: MINIMAL_GVL as unknown as GlobalVendorList }
+			: {}),
 		jurisdiction: 'GDPR',
 		location: {
 			countryCode: 'DE',
@@ -610,7 +615,13 @@ const driver: TestDriver = {
 		try {
 			const app = createSSRApp(createHarness(opts, options, context));
 			provideContext(app, context, config);
-			return await renderToString(app);
+			// The prompts render through `<Teleport to="body">`, which Vue's
+			// server renderer collects on the context rather than inlining.
+			// Nuxt appends those buffers to `<body>`; do the same so the result
+			// is the HTML a visitor receives.
+			const ssrContext: { teleports?: Record<string, string> } = {};
+			const html = await renderToString(app, ssrContext);
+			return html + Object.values(ssrContext.teleports ?? {}).join('');
 		} finally {
 			context.dispose();
 		}
