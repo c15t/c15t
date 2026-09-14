@@ -129,12 +129,20 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	});
 
 	// Handle button actions
-	const handleAcceptAll = () => {
-		void performBannerAction('accept');
+	const handleAcceptAll = async () => {
+		try {
+			await performBannerAction('accept');
+		} catch {
+			// Keep the banner available so a failed list load or save can be retried.
+		}
 	};
 
-	const handleRejectAll = () => {
-		void performBannerAction('reject');
+	const handleRejectAll = async () => {
+		try {
+			await performBannerAction('reject');
+		} catch {
+			// Keep the banner available so a failed list load or save can be retried.
+		}
 	};
 
 	const handleCustomize = () => {

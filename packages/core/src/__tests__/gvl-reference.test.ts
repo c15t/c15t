@@ -1,6 +1,7 @@
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
+import { resolveIABBannerSummary } from '../libs/iab-banner-summary';
 import {
 	createGvlReferenceURL,
 	deferInitGvl,
@@ -83,4 +84,32 @@ test('hosted references preserve policy inputs without request credentials', () 
 		language: 'de',
 	});
 	expect(JSON.stringify(deferred)).not.toContain('private');
+});
+
+test.each([undefined, false, true])(
+	'preserves optional GPC %s through hosted deferral',
+	(gpc) => {
+		const result = deferInitGvl(
+			{ gvl, resolvedPrivacySignals: { gpc } },
+			'/init',
+			'init'
+		);
+		expect(result.gvlReference?.context?.gpc).toBe(gpc);
+	}
+);
+test('counts custom vendors once before and after list deferral', () => {
+	const input = {
+		customVendors: [
+			{ id: 'custom', legIntPurposes: [], name: 'Custom vendor', purposes: [] },
+		],
+		gvl,
+	};
+	const deferred = deferInitGvl(input, '/list');
+	expect(deferred.gvlReference?.summary?.vendorCount).toBe(0);
+	expect(resolveIABBannerSummary({ ...deferred, gvl: null })).toEqual(
+		resolveIABBannerSummary(input)
+	);
+	expect(resolveIABBannerSummary({ ...deferred, gvl: null }).vendorCount).toBe(
+		1
+	);
 });

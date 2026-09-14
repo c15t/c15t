@@ -394,8 +394,16 @@ test('TCF listeners receive tcloaded only after the replacement list arrives', a
 	);
 	const addedWhileLoading = vi.fn();
 	window.__tcfapi?.('addEventListener', 2, addedWhileLoading);
-	await Promise.resolve();
-	expect(addedWhileLoading).not.toHaveBeenCalled();
+	await vi.waitFor(() =>
+		expect(addedWhileLoading).toHaveBeenCalledWith(
+			expect.objectContaining({
+				cmpStatus: 'loading',
+				eventStatus: undefined,
+				listenerId: expect.any(Number),
+			}),
+			true
+		)
+	);
 	complete(Response.json(completeGVL));
 	await handle.whenReady();
 	await vi.waitFor(() =>
@@ -462,4 +470,63 @@ test('inline list replacement preserves retained consent in the CMP API', async 
 			true
 		)
 	);
+});
+
+test('stub-queued listeners receive loaded data even when the UI stays hidden', async () => {
+	const kernel = kernelWithReference();
+	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
+	const handle = createIAB({ cmpId: 28, kernel, persistence: false });
+	disposers.push(handle.dispose);
+	kernel.set.activeUI('none');
+	const listener = vi.fn();
+	window.__tcfapi?.('addEventListener', 2, listener);
+	await handle.whenReady();
+	await vi.waitFor(() =>
+		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({
+				cmpStatus: 'loaded',
+				eventStatus: 'tcloaded',
+				listenerId: expect.any(Number),
+			}),
+			true
+		)
+	);
+});
+test('invalidates retained authority when a replacement changes TCF policy version', async () => {
+	const kernel = kernelWithReference();
+	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
+	const handle = createIAB({ cmpId: 28, kernel, persistence: false });
+	disposers.push(handle.dispose);
+	await handle.whenReady();
+	handle.acceptAll();
+	await handle.save();
+	expect(kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy();
+	kernel.set.iab({
+		gvl: { ...completeGVL, tcfPolicyVersion: completeGVL.tcfPolicyVersion + 1 },
+	});
+	await handle.whenReady();
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(handle.cmpApi?.getTcString()).toBe('');
+	expect(kernel.getSnapshot().iab?.tcString).toBe('');
+});
+
+test('retries a configured endpoint without a deferred reference', async () => {
+	const kernel = createConsentKernel({ initialPolicyResolution: resolution });
+	disposers.push(kernel.dispose);
+	const fetch = vi
+		.fn()
+		.mockRejectedValueOnce(new Error('offline'))
+		.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+	vi.stubGlobal('fetch', fetch);
+	const handle = createIAB({
+		cmpId: 28,
+		gvlURL: 'https://vendors.test/list.json',
+		kernel,
+		persistence: false,
+	});
+	disposers.push(handle.dispose);
+	await expect(handle.whenReady()).rejects.toThrow('offline');
+	await expect(handle.whenReady()).resolves.toBeUndefined();
+	expect(fetch).toHaveBeenCalledTimes(2);
+	expect(kernel.getSnapshot().iab?.gvl).toEqual(completeGVL);
 });

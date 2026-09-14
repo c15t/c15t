@@ -209,6 +209,7 @@ const seedInitialIAB = function seedInitialIAB(
 const readIAB = function readIAB(kernel: ConsentKernel) {
 	return (
 		kernel.getSnapshot().iab ?? {
+			authority: null,
 			cmpId: null as number | null,
 			customVendors: [] as NonIABVendor[],
 			enabled: false,
@@ -520,6 +521,27 @@ export const createIAB = function createIAB(
 	let listGeneration = 0;
 	let publishedList = preloadedGvl ?? null;
 	let initializationError: unknown;
+	const retainedAuthorityMatchesList = async (
+		snapshot: ConsentSnapshot,
+		gvl: GlobalVendorList
+	): Promise<boolean> => {
+		const { iab } = snapshot;
+		const retained = iab?.authority;
+		if (!retained || !iab) {
+			return true;
+		}
+		return Boolean(
+			await validateAuthority(
+				{
+					...retained,
+					customConsents: retained.vendorConsents,
+					customLegitimateInterests: retained.vendorLegitimateInterests,
+				},
+				{ ...snapshot, iab: { ...iab, gvl } },
+				Date.now()
+			)
+		);
+	};
 	const initialize = async (
 		preloaded: GlobalVendorList | null | undefined,
 		requested: typeof reference
@@ -538,12 +560,30 @@ export const createIAB = function createIAB(
 				kernel.set.iab({ enabled: false, gvl: null });
 				return;
 			}
+			const beforePublish = kernel.getSnapshot();
+			const retained = beforePublish.iab?.authority;
+			const validAuthority = await retainedAuthorityMatchesList(
+				beforePublish,
+				gvl
+			);
+			if (disposed || generation !== listGeneration) {
+				return;
+			}
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
+			const update: Parameters<typeof kernel.set.iab>[0] = {
+				enabled: true,
+				gvl,
+				gvlReference: undefined,
+			};
+			if (!validAuthority && readIAB(kernel).authority === retained) {
+				update.authority = null;
+				update.tcString = '';
+			}
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
-			kernel.set.iab({ enabled: true, gvl, gvlReference: undefined });
+			kernel.set.iab(update);
 			try {
 				cmpApi ??= createCMPApi({
 					cmpId,
@@ -580,7 +620,7 @@ export const createIAB = function createIAB(
 
 	const whenReady = async (): Promise<void> => {
 		// A later user action retries a failed request; concurrent callers share it.
-		if (initializationError && reference && !disposed) {
+		if (initializationError && !disposed) {
 			initialization = initialize(undefined, reference);
 		}
 		let pending: Promise<void>;

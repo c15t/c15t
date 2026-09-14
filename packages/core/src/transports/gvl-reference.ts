@@ -42,6 +42,8 @@ export const deferInitGvl = <
 		format === 'init'
 			? extractConsentRequestInputs(new Headers(requestHeaders))
 			: undefined;
+	// Custom vendors stay in the payload and are added by the display resolver.
+	// The reference count covers registered vendors only to avoid double counting.
 	const summary = resolveIABBannerSummary(
 		{ gvl: payload.gvl },
 		{ maxItems: Number.POSITIVE_INFINITY }
@@ -53,7 +55,7 @@ export const deferInitGvl = <
 			context: inputs
 				? {
 						country: payload.location?.countryCode ?? inputs.country,
-						gpc: payload.resolvedPrivacySignals?.gpc ?? inputs.gpc ?? false,
+						gpc: payload.resolvedPrivacySignals?.gpc ?? inputs.gpc,
 						region: payload.location?.regionCode ?? inputs.region,
 					}
 				: undefined,

@@ -308,19 +308,18 @@ const prefetchHosted = async function prefetchHosted(input: {
 		return input.base;
 	}
 	const allowCookie = mayForwardCookie(absolute, input.url);
+	const forwarded = {
+		...forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
+			allowCookie,
+			cookieName: consentCookieName(input.options),
+		}),
+		...configuredInitHeaders(input.configuredHeaders),
+	};
 	try {
 		const response = await fetchImpl(`${absolute}/init`, {
 			cache: 'no-store',
 			credentials: allowCookie ? 'include' : 'omit',
-			headers: {
-				...forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-					allowCookie,
-					cookieName: consentCookieName(input.options),
-				}),
-				// Configured headers win, matching the core transport's own
-				// precedence on the browser's `/init`.
-				...configuredInitHeaders(input.configuredHeaders),
-			},
+			headers: forwarded,
 			method: 'GET',
 		});
 		if (!response.ok) {
@@ -329,17 +328,9 @@ const prefetchHosted = async function prefetchHosted(input: {
 		const payload = (await response.json()) as InitOutput;
 		return mergeInitOutputIntoKernelConfig(
 			input.base,
-			input.fetch
+			input.fetch || forwarded.cookie
 				? payload
-				: deferInitGvl(
-						payload,
-						`${absolute}/init`,
-						'init',
-						forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-							allowCookie,
-							cookieName: consentCookieName(input.options),
-						})
-					),
+				: deferInitGvl(payload, `${absolute}/init`, 'init', forwarded),
 			{},
 			{
 				producerContract: readProducerPolicyContract(response.headers),

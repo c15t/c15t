@@ -1,6 +1,7 @@
 import { MINIMAL_GVL } from '@c15t/conformance';
 import {
 	custom,
+	deferInitGvl,
 	createConsentKernel,
 	resolveIABBannerSummary,
 } from '@c15t/core';
@@ -9,6 +10,7 @@ import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import { IABConsentDialog } from '../components/iab-panel';
 import { IABConsentBanner } from '../components/iab-prompt';
 import { KernelContext } from '../context';
@@ -200,6 +202,64 @@ it.each([false, true])(
 			).toBe(100);
 		} finally {
 			kernel.dispose();
+		}
+	}
+);
+
+it.each(['accept', 'reject'])(
+	'keeps the React IAB banner available after a failed deferred %s',
+	async (action) => {
+		let rejectLoad!: (error: Error) => void;
+		const fetch = vi
+			.fn()
+			.mockImplementationOnce(
+				() =>
+					new Promise<Response>((_resolve, reject) => {
+						rejectLoad = reject;
+					})
+			)
+			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		vi.stubGlobal('fetch', fetch);
+		vi.stubGlobal('__c15t_mock_gvl', undefined);
+		const screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					iab: { cmpId: 28 },
+					prefetch: {
+						...policyFixture({}, { model: 'iab' }),
+						initialIab: {
+							cmpId: 28,
+							enabled: true,
+							...deferInitGvl({ gvl: completeGVL }, '/vendor-list'),
+						},
+					},
+				}}
+			>
+				<IABConsentBanner />
+			</ComponentFixtureProvider>
+		);
+		try {
+			const button = () =>
+				document.querySelector<HTMLButtonElement>(
+					`[data-testid="iab-consent-banner-${action}-button"]`
+				);
+			await vi.waitFor(() => {
+				expect(button()).not.toBeNull();
+				expect(fetch).toHaveBeenCalledOnce();
+			});
+			button()?.click();
+			rejectLoad(new Error('offline'));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(button()).not.toBeNull();
+			button()?.click();
+			await vi.waitFor(() => expect(button()).toBeNull());
+			expect(fetch).toHaveBeenCalledTimes(2);
+		} finally {
+			await screen.unmount();
+			vi.unstubAllGlobals();
 		}
 	}
 );

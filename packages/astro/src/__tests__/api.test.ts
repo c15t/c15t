@@ -408,15 +408,20 @@ it.each(['default', 'fetch', 'fetchGvl'] as const)(
 		});
 		const fetch = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
 		vi.stubGlobal('fetch', fetch);
-		const result = await resolveManifestInit({
-			fetch: loader === 'fetch' ? fetch : undefined,
-			fetchGvl:
-				loader === 'fetchGvl' ? () => Promise.resolve(completeGVL) : undefined,
-			inputs: { country: 'DE' },
-			manifest,
-		});
-		expect(result.gvl).toEqual(loader === 'default' ? null : completeGVL);
-		expect(Boolean(result.gvlReference)).toBe(loader === 'default');
-		vi.unstubAllGlobals();
+		try {
+			const result = await resolveManifestInit({
+				fetch: loader === 'fetch' ? fetch : undefined,
+				fetchGvl:
+					loader === 'fetchGvl'
+						? () => Promise.resolve(completeGVL)
+						: undefined,
+				inputs: { country: 'DE' },
+				manifest,
+			});
+			expect(result.gvl).toEqual(loader === 'default' ? null : completeGVL);
+			expect(Boolean(result.gvlReference)).toBe(loader === 'default');
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	}
 );

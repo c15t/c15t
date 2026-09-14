@@ -186,7 +186,6 @@
 		}
 		try {
 			await iabState.save();
-			consent.state.setActiveUI('none');
 		} catch {
 			// Keep the prompt available so a later action can retry the failed load/save.
 		}

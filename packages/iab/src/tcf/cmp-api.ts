@@ -106,7 +106,7 @@ export const createCMPApi = function createCMPApi(
 	): Promise<TCData> {
 		// Use cached data if available and tc string hasn't changed
 		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
-			return cachedTCData;
+			return { ...cachedTCData, listenerId };
 		}
 
 		let purposeConsents: Record<number, boolean> =
@@ -249,13 +249,11 @@ export const createCMPApi = function createCMPApi(
 		const listenerId = nextListenerId;
 		eventListeners.set(listenerId, handler);
 
-		// Replacement loads keep listeners registered until consent is ready.
-		if (cmpStatus !== 'loaded') {
-			return;
-		}
-
-		// Immediately call with current state
-		const tcData = await buildTCData('tcloaded', listenerId);
+		// Registration always returns its ID, including while the list is loading.
+		const tcData = await buildTCData(
+			cmpStatus === 'loaded' ? 'tcloaded' : undefined,
+			listenerId
+		);
 		handler(tcData, true);
 	};
 
@@ -336,13 +334,13 @@ export const createCMPApi = function createCMPApi(
 		// Clear the stub queue
 		clearStubQueue();
 
+		// The real API is created with a list. Replayed calls can read it now.
+		cmpStatus = 'loaded';
+
 		// Process queued calls
 		for (const args of queuedCalls) {
 			window.__tcfapi?.(...args);
 		}
-
-		// Mark as loaded
-		cmpStatus = 'loaded';
 	};
 
 	// Initialize on creation
