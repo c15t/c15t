@@ -57,7 +57,7 @@ cancels actions queued for the previous list. Existing TCF listeners are retaine
 Client-only manifest transports keep their fetched GVL, including custom fetcher
 filtering; deferral applies at server-rendering boundaries.
 
-TanStack Start, Nuxt, Next.js and SvelteKit manifest init handlers also serve
+Astro, TanStack Start, Nuxt, Next.js and SvelteKit manifest init handlers also serve
 versioned list requests on their existing init route. These responses contain
 only the public list and use `public, max-age=86400`. Resolved init data remains
 private. Next.js and Svelte hosted prefetch retain the inline list when cookies,
@@ -67,9 +67,14 @@ uncacheable `409` if it can no longer supply that version. Responses are not
 marked immutable because translations or publisher filtering can change
 without a new vendor-list version.
 
-Next.js uses the same-origin route when `config.initURL` is configured. Without
-it, manifest resolution references the public list URL from the manifest, as
-Astro does. Hosted init responses use an `init` reference to read the list from
+Astro manifest mode uses its configured same-origin `endpoints.initPath` route.
+Next.js uses a same-origin route when `config.initURL` is configured, and
+TanStack Start uses one when `routePrefix` explicitly names a mounted consent
+route. Without those options, Next.js and TanStack Start reference the public
+list URL from the manifest. Allow `'self'` in CSP `connect-src` for same-origin
+routes, or allow the public list origin for direct requests.
+
+Hosted init responses use an `init` reference to read the list from
 the existing init endpoint. These references include the original country,
 region and GPC inputs so a hosted request resolves the same regional policy.
 They do not carry credentials. Cross-origin hosted requests can require a CORS
