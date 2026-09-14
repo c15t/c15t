@@ -2,6 +2,9 @@ import type { GlobalVendorList, InitOutput } from '@c15t/schema/types';
 
 import { resolveIABBannerSummary } from '../libs/iab-banner-summary';
 
+const normalizeLanguage = (language?: string): string =>
+	language?.split('-')[0]?.toLowerCase() || 'en';
+
 /**
  * Replace a fetched list with a reference and its banner summary.
  * The same summary renders on the server and during browser hydration.
@@ -39,7 +42,7 @@ export const deferInitGvl = <
 		gvl: null,
 		gvlReference: {
 			format,
-			language: payload.translations?.language.split('-')[0] || 'en',
+			language: normalizeLanguage(payload.translations?.language),
 			summary: {
 				items: summary.displayItems,
 				vendorCount: summary.vendorCount,
@@ -64,7 +67,7 @@ export const createGvlReferenceURL = (
 ): string => {
 	const url = new URL(initURL, 'http://c15t.local');
 	url.searchParams.set('c15t-gvl', String(gvl.vendorListVersion));
-	url.searchParams.set('language', language);
+	url.searchParams.set('language', normalizeLanguage(language));
 	return initURL.startsWith('/') ? `${url.pathname}${url.search}` : url.href;
 };
 
@@ -116,7 +119,7 @@ export const deferInitGvlToRoute = (
 				createGvlReferenceURL(
 					route,
 					payload.gvl,
-					payload.translations?.language.split('-')[0] || 'en'
+					normalizeLanguage(payload.translations?.language)
 				)
 			)
 		: payload;

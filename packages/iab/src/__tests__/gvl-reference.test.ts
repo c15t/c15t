@@ -346,3 +346,58 @@ test('a consent action retries a transient list failure', async () => {
 	expect(fetch).toHaveBeenCalledTimes(2);
 	expect(kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy();
 });
+
+test('a removed reference clears its previous failure', async () => {
+	const kernel = kernelWithReference();
+	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
+	const handle = createIAB({ cmpId: 28, kernel });
+	disposers.push(handle.dispose);
+	await handle.whenReady();
+	if (!reference) {
+		throw new Error('Expected reference');
+	}
+	vi.stubGlobal('fetch', () => Promise.reject(new Error('offline')));
+	kernel.set.iab({ gvl: null, gvlReference: { ...reference, language: 'fr' } });
+	await expect(handle.whenReady()).rejects.toThrow('offline');
+	kernel.set.iab({ enabled: false, gvlReference: undefined });
+	await expect(handle.whenReady()).resolves.toBeUndefined();
+});
+
+test('TCF listeners receive tcloaded only after the replacement list arrives', async () => {
+	const kernel = kernelWithReference();
+	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
+	const handle = createIAB({ cmpId: 28, kernel });
+	disposers.push(handle.dispose);
+	await handle.whenReady();
+	const listener = vi.fn();
+	window.__tcfapi?.('addEventListener', 2, listener);
+	await vi.waitFor(() => expect(listener).toHaveBeenCalled());
+	listener.mockClear();
+	let complete!: (response: Response) => void;
+	vi.stubGlobal(
+		'fetch',
+		() =>
+			new Promise<Response>((resolve) => {
+				complete = resolve;
+			})
+	);
+	if (!reference) {
+		throw new Error('Expected reference');
+	}
+	kernel.set.iab({ gvl: null, gvlReference: { ...reference, language: 'fr' } });
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	expect(listener).not.toHaveBeenCalledWith(
+		expect.objectContaining({ cmpStatus: 'loading', eventStatus: 'tcloaded' }),
+		true
+	);
+	complete(Response.json(completeGVL));
+	await handle.whenReady();
+	await vi.waitFor(() =>
+		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({ cmpStatus: 'loaded', eventStatus: 'tcloaded' }),
+			true
+		)
+	);
+});

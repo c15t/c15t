@@ -94,16 +94,26 @@
 	});
 
 	// Handlers
+	const handleSave = async function handleSave() {
+		if (!iabState) {
+			return;
+		}
+		try {
+			await iabState.save();
+			consent.state.setActiveUI('none');
+		} catch {
+			// Keep the prompt available so a later action can retry the failed load/save.
+		}
+	};
+
 	const handleAcceptAll = function handleAcceptAll() {
 		iabState?.acceptAll();
-		iabState?.save();
-		consent.state.setActiveUI('none');
+		return handleSave();
 	};
 
 	const handleRejectAll = function handleRejectAll() {
 		iabState?.rejectAll();
-		iabState?.save();
-		consent.state.setActiveUI('none');
+		return handleSave();
 	};
 
 	const handleCustomize = function handleCustomize() {

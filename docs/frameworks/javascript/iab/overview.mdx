@@ -60,7 +60,9 @@ filtering; deferral applies at server-rendering boundaries.
 TanStack Start, Nuxt, Next.js and SvelteKit manifest init handlers also serve
 versioned list requests on their existing init route. These responses contain
 only the public list and use `public, max-age=86400`. Resolved init data remains
-private. The list URL includes its language and version; a route returns an
+private. Next.js and Svelte hosted prefetch retain the inline list when cookies,
+forwarded headers or a custom fetch are required. Those server credentials are
+not serialized into a browser reference. The list URL includes its language and version; a route returns an
 uncacheable `409` if it can no longer supply that version. Responses are not
 marked immutable because translations or publisher filtering can change
 without a new vendor-list version.

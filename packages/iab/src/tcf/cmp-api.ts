@@ -416,7 +416,9 @@ export const createCMPApi = function createCMPApi(
 			currentConsentData = newTcString ? (consentData ?? null) : null;
 			// Invalidate cache
 			cachedTCData = null;
-			notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
+			if (cmpStatus === 'loaded') {
+				notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
+			}
 		},
 
 		updateVendorList: (nextGvl) => {
@@ -427,7 +429,9 @@ export const createCMPApi = function createCMPApi(
 			tcString = '';
 			currentConsentData = null;
 			cachedTCData = null;
-			notifyEventListeners('tcloaded');
+			if (nextGvl) {
+				notifyEventListeners('tcloaded');
+			}
 		},
 	};
 };

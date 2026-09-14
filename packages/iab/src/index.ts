@@ -634,6 +634,7 @@ export const createIAB = function createIAB(
 		}
 		if (removed) {
 			listGeneration += 1;
+			initializationError = undefined;
 			cmpApi?.updateVendorList(null);
 			initialization = Promise.resolve();
 		} else {

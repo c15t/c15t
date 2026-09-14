@@ -13,19 +13,22 @@ const gvl = {
 } as GlobalVendorList;
 
 describe('versioned public vendor list route', () => {
-	test('returns only the list with cache headers and explicit language', async () => {
-		const load = vi.fn().mockResolvedValue(gvl);
-		const url = createGvlReferenceURL('/privacy/init', gvl, 'de');
-		const response = await serveGvlReference(
-			new Request(`https://app.test${url}`),
-			load
-		);
-		expect(await response?.json()).toEqual(gvl);
-		expect(load).toHaveBeenCalledWith('de');
-		expect(response?.headers.get('cache-control')).toBe(
-			'public, max-age=86400'
-		);
-	});
+	test.each(['de', 'DE-DE'])(
+		'returns a list for normalized language %s',
+		async (language) => {
+			const load = vi.fn().mockResolvedValue(gvl);
+			const url = createGvlReferenceURL('/privacy/init', gvl, language);
+			const response = await serveGvlReference(
+				new Request(`https://app.test${url}`),
+				load
+			);
+			expect(await response?.json()).toEqual(gvl);
+			expect(load).toHaveBeenCalledWith('de');
+			expect(response?.headers.get('cache-control')).toBe(
+				'public, max-age=86400'
+			);
+		}
+	);
 	test.each(['?c15t-gvl=wrong', '?c15t-gvl=42&language=../en'])(
 		'rejects invalid parameters %s',
 		async (query) => {

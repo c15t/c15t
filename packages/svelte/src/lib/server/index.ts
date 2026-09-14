@@ -127,7 +127,11 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		}
 		const merged = mergeInitResponseIntoKernelConfig(
 			base,
-			deferInitGvl(response, `${absoluteBackend}/init`, 'init')
+			options.fetch ||
+				forward.cookie ||
+				options.forwardHeaders?.some((name) => options.headers.has(name))
+				? response
+				: deferInitGvl(response, `${absoluteBackend}/init`, 'init')
 		);
 		if (response.subjectId) {
 			merged.initialRecords = {
