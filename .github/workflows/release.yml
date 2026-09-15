@@ -32,6 +32,7 @@ jobs:
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
+    # npm trusted publishing requires a GitHub-hosted runner.
     runs-on: ubuntu-latest
     permissions:
       contents: write # Needed by changesets/action to create releases/tags and commit version bumps

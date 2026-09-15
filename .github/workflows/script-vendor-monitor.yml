@@ -38,7 +38,7 @@ concurrency:
 jobs:
   live-vendor-probes:
     name: Live Vendor Probes
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     permissions:
       contents: read

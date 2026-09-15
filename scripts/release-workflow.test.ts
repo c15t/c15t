@@ -23,6 +23,17 @@ const readWorkflow = function readWorkflow(name: string): unknown {
 };
 
 describe('release validation', () => {
+	it('keeps npm trusted publishing on a GitHub-hosted runner', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				publish: {
+					permissions: { 'id-token': 'write' },
+					'runs-on': 'ubuntu-latest',
+				},
+			},
+		});
+	});
+
 	it('opts only releases into advisory runtime comparisons', () => {
 		const performanceAdvisory = `\${{ inputs.performance_advisory || false }}`;
 		const advisory = `\${{ inputs.advisory || false }}`;
