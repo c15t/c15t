@@ -103,8 +103,8 @@ export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 	},
 };
 
-const clamp = function clamp(value: number, min: number, max: number): number {
-	return Math.min(Math.max(value, min), max);
+const clamp = function clamp(value: number, max = 1): number {
+	return Math.min(Math.max(value, 0), max);
 };
 
 const parsePercentage = function parsePercentage(value: string): number | null {
@@ -113,7 +113,7 @@ const parsePercentage = function parsePercentage(value: string): number | null {
 	}
 
 	const parsed = Number.parseFloat(value);
-	return Number.isFinite(parsed) ? clamp(parsed / 100, 0, 1) : null;
+	return Number.isFinite(parsed) ? clamp(parsed / 100) : null;
 };
 
 const parseRGBChannel = function parseRGBChannel(value: string): number | null {
@@ -123,7 +123,7 @@ const parseRGBChannel = function parseRGBChannel(value: string): number | null {
 	}
 
 	const parsed = Number.parseFloat(value);
-	return Number.isFinite(parsed) ? clamp(parsed, 0, 255) : null;
+	return Number.isFinite(parsed) ? clamp(parsed, 255) : null;
 };
 
 const parseHue = function parseHue(value: string): number | null {
@@ -154,40 +154,35 @@ const parseColorChannels = function parseColorChannels(
 ): string[] {
 	const channels = value.split('/')[0] ?? '';
 	return channels.includes(',')
-		? channels.split(',').map((channel) => channel.trim())
+		? channels.split(',')
 		: channels.trim().split(/\s+/u);
 };
 
 const hslToRgb = function hslToRgb(h: number, s: number, l: number): RGBColor {
 	const normalizedHue = ((h % 360) + 360) % 360;
-	const saturation = clamp(s, 0, 1);
-	const lightness = clamp(l, 0, 1);
-
-	if (saturation === 0) {
-		const channel = Math.round(lightness * 255);
-		return { b: channel, g: channel, r: channel };
-	}
+	const saturation = clamp(s);
+	const lightness = clamp(l);
 
 	const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
 	const huePrime = normalizedHue / 60;
-	const secondary = chroma * (1 - Math.abs((huePrime % 2) - 1));
+	const secondary = saturation && chroma * (1 - Math.abs((huePrime % 2) - 1));
 	let red = 0;
 	let green = 0;
 	let blue = 0;
 
-	if (huePrime >= 0 && huePrime < 1) {
+	if (huePrime < 1) {
 		red = chroma;
 		green = secondary;
-	} else if (huePrime >= 1 && huePrime < 2) {
+	} else if (huePrime < 2) {
 		red = secondary;
 		green = chroma;
-	} else if (huePrime >= 2 && huePrime < 3) {
+	} else if (huePrime < 3) {
 		green = chroma;
 		blue = secondary;
-	} else if (huePrime >= 3 && huePrime < 4) {
+	} else if (huePrime < 4) {
 		green = secondary;
 		blue = chroma;
-	} else if (huePrime >= 4 && huePrime < 5) {
+	} else if (huePrime < 5) {
 		red = secondary;
 		blue = chroma;
 	} else {
@@ -205,29 +200,23 @@ const hslToRgb = function hslToRgb(h: number, s: number, l: number): RGBColor {
 };
 
 const parseHexColor = function parseHexColor(value: string): RGBColor | null {
-	const trimmedValue = value.trim();
-	const hex = trimmedValue.startsWith('#')
-		? trimmedValue.slice(1)
-		: trimmedValue;
+	const hex = value.trim().replace(/^#/u, '');
 
 	if (!/^[\da-f]{3,4}$|^[\da-f]{6}$|^[\da-f]{8}$/iu.test(hex)) {
 		return null;
 	}
 
 	const normalizedHex =
-		hex.length <= 4
-			? hex
-					.slice(0, 3)
-					.split('')
-					.map((channel) => `${channel}${channel}`)
-					.join('')
-			: hex.slice(0, 6);
+		hex.length <= 4 ? hex.slice(0, 3).replace(/./gu, '$&$&') : hex.slice(0, 6);
+	const rgb = Number.parseInt(normalizedHex, 16);
 
+	/* oxlint-disable no-bitwise -- Extract validated 24-bit RGB channels. */
 	return {
-		b: Number.parseInt(normalizedHex.slice(4, 6), 16),
-		g: Number.parseInt(normalizedHex.slice(2, 4), 16),
-		r: Number.parseInt(normalizedHex.slice(0, 2), 16),
+		b: rgb & 255,
+		g: (rgb >>> 8) & 255,
+		r: rgb >>> 16,
 	};
+	/* oxlint-enable no-bitwise */
 };
 
 const parseRGBColor = function parseRGBColor(value: string): RGBColor | null {
@@ -245,7 +234,7 @@ const parseRGBColor = function parseRGBColor(value: string): RGBColor | null {
 
 	const [red, green, blue] = channels.map(parseRGBChannel);
 
-	if ([red, green, blue].some((channel) => channel === null)) {
+	if ([red, green, blue].includes(null)) {
 		return null;
 	}
 
@@ -292,8 +281,12 @@ const srgbToLinear = function srgbToLinear(channel: number): number {
 };
 
 const getRelativeLuminance = function getRelativeLuminance(
-	color: RGBColor
-): number {
+	value: string
+): number | undefined {
+	const color = parseColor(value);
+	if (!color) {
+		return undefined;
+	}
 	return (
 		0.2126 * srgbToLinear(color.r) +
 		0.7152 * srgbToLinear(color.g) +
@@ -302,11 +295,9 @@ const getRelativeLuminance = function getRelativeLuminance(
 };
 
 const getContrastRatio = function getContrastRatio(
-	foreground: RGBColor,
-	background: RGBColor
+	foregroundLuminance: number,
+	backgroundLuminance: number
 ): number {
-	const foregroundLuminance = getRelativeLuminance(foreground);
-	const backgroundLuminance = getRelativeLuminance(background);
 	const lighterColor = Math.max(foregroundLuminance, backgroundLuminance);
 	const darkerColor = Math.min(foregroundLuminance, backgroundLuminance);
 
@@ -329,11 +320,15 @@ export const getContrastColor = function getContrastColor(
 		dark?: string;
 	} = {}
 ): string {
-	const background = parseColor(backgroundColor);
-	const lightColor = parseColor(light);
-	const darkColor = parseColor(dark);
+	const background = getRelativeLuminance(backgroundColor);
+	const lightColor = getRelativeLuminance(light);
+	const darkColor = getRelativeLuminance(dark);
 
-	if (!background || !lightColor || !darkColor) {
+	if (
+		background === undefined ||
+		lightColor === undefined ||
+		darkColor === undefined
+	) {
 		return light;
 	}
 
@@ -348,62 +343,61 @@ type ThemeCSSVariableResolver = (
 	colors?: ColorTokens
 ) => string | undefined;
 
+const fontWeightToString = (weight?: number): string | undefined =>
+	weight ? String(weight) : undefined;
+
+type ThemeCSSVariableSuffix =
+	keyof ThemeCSSVariables extends `--c15t-${infer Suffix}` ? Suffix : never;
+
 const themeCSSVariableResolvers: Record<
-	keyof ThemeCSSVariables,
+	ThemeCSSVariableSuffix,
 	ThemeCSSVariableResolver
 > = {
-	'--c15t-border': (_theme, colors) => colors?.border,
-	'--c15t-border-hover': (_theme, colors) => colors?.borderHover,
-	'--c15t-duration-fast': (theme) => theme.motion?.duration?.fast,
-	'--c15t-duration-normal': (theme) => theme.motion?.duration?.normal,
-	'--c15t-duration-slow': (theme) => theme.motion?.duration?.slow,
-	'--c15t-easing': (theme) => theme.motion?.easing,
-	'--c15t-easing-in-out': (theme) => theme.motion?.easingInOut,
-	'--c15t-easing-out': (theme) => theme.motion?.easingOut,
-	'--c15t-easing-spring': (theme) => theme.motion?.easingSpring,
-	'--c15t-font-family': (theme) => theme.typography?.fontFamily,
-	'--c15t-font-size-base': (theme) => theme.typography?.fontSize?.base,
-	'--c15t-font-size-lg': (theme) => theme.typography?.fontSize?.lg,
-	'--c15t-font-size-sm': (theme) => theme.typography?.fontSize?.sm,
-	'--c15t-font-weight-medium': (theme) =>
-		theme.typography?.fontWeight?.medium
-			? String(theme.typography.fontWeight.medium)
-			: undefined,
-	'--c15t-font-weight-normal': (theme) =>
-		theme.typography?.fontWeight?.normal
-			? String(theme.typography.fontWeight.normal)
-			: undefined,
-	'--c15t-font-weight-semibold': (theme) =>
-		theme.typography?.fontWeight?.semibold
-			? String(theme.typography.fontWeight.semibold)
-			: undefined,
-	'--c15t-line-height-normal': (theme) => theme.typography?.lineHeight?.normal,
-	'--c15t-line-height-relaxed': (theme) =>
-		theme.typography?.lineHeight?.relaxed,
-	'--c15t-line-height-tight': (theme) => theme.typography?.lineHeight?.tight,
-	'--c15t-overlay': (_theme, colors) => colors?.overlay,
-	'--c15t-primary': (_theme, colors) => colors?.primary,
-	'--c15t-primary-hover': (_theme, colors) => colors?.primaryHover,
-	'--c15t-radius-full': (theme) => theme.radius?.full,
-	'--c15t-radius-lg': (theme) => theme.radius?.lg,
-	'--c15t-radius-md': (theme) => theme.radius?.md,
-	'--c15t-radius-sm': (theme) => theme.radius?.sm,
-	'--c15t-shadow-lg': (theme) => theme.shadows?.lg,
-	'--c15t-shadow-md': (theme) => theme.shadows?.md,
-	'--c15t-shadow-sm': (theme) => theme.shadows?.sm,
-	'--c15t-space-lg': (theme) => theme.spacing?.lg,
-	'--c15t-space-md': (theme) => theme.spacing?.md,
-	'--c15t-space-sm': (theme) => theme.spacing?.sm,
-	'--c15t-space-xl': (theme) => theme.spacing?.xl,
-	'--c15t-space-xs': (theme) => theme.spacing?.xs,
-	'--c15t-surface': (_theme, colors) => colors?.surface,
-	'--c15t-surface-hover': (_theme, colors) => colors?.surfaceHover,
-	'--c15t-switch-thumb': (_theme, colors) => colors?.switchThumb,
-	'--c15t-switch-track': (_theme, colors) => colors?.switchTrack,
-	'--c15t-switch-track-active': (_theme, colors) => colors?.switchTrackActive,
-	'--c15t-text': (_theme, colors) => colors?.text,
-	'--c15t-text-muted': (_theme, colors) => colors?.textMuted,
-	'--c15t-text-on-primary': (_theme, colors) =>
+	border: (_theme, colors) => colors?.border,
+	'border-hover': (_theme, colors) => colors?.borderHover,
+	'duration-fast': (theme) => theme.motion?.duration?.fast,
+	'duration-normal': (theme) => theme.motion?.duration?.normal,
+	'duration-slow': (theme) => theme.motion?.duration?.slow,
+	easing: (theme) => theme.motion?.easing,
+	'easing-in-out': (theme) => theme.motion?.easingInOut,
+	'easing-out': (theme) => theme.motion?.easingOut,
+	'easing-spring': (theme) => theme.motion?.easingSpring,
+	'font-family': (theme) => theme.typography?.fontFamily,
+	'font-size-base': (theme) => theme.typography?.fontSize?.base,
+	'font-size-lg': (theme) => theme.typography?.fontSize?.lg,
+	'font-size-sm': (theme) => theme.typography?.fontSize?.sm,
+	'font-weight-medium': (theme) =>
+		fontWeightToString(theme.typography?.fontWeight?.medium),
+	'font-weight-normal': (theme) =>
+		fontWeightToString(theme.typography?.fontWeight?.normal),
+	'font-weight-semibold': (theme) =>
+		fontWeightToString(theme.typography?.fontWeight?.semibold),
+	'line-height-normal': (theme) => theme.typography?.lineHeight?.normal,
+	'line-height-relaxed': (theme) => theme.typography?.lineHeight?.relaxed,
+	'line-height-tight': (theme) => theme.typography?.lineHeight?.tight,
+	overlay: (_theme, colors) => colors?.overlay,
+	primary: (_theme, colors) => colors?.primary,
+	'primary-hover': (_theme, colors) => colors?.primaryHover,
+	'radius-full': (theme) => theme.radius?.full,
+	'radius-lg': (theme) => theme.radius?.lg,
+	'radius-md': (theme) => theme.radius?.md,
+	'radius-sm': (theme) => theme.radius?.sm,
+	'shadow-lg': (theme) => theme.shadows?.lg,
+	'shadow-md': (theme) => theme.shadows?.md,
+	'shadow-sm': (theme) => theme.shadows?.sm,
+	'space-lg': (theme) => theme.spacing?.lg,
+	'space-md': (theme) => theme.spacing?.md,
+	'space-sm': (theme) => theme.spacing?.sm,
+	'space-xl': (theme) => theme.spacing?.xl,
+	'space-xs': (theme) => theme.spacing?.xs,
+	surface: (_theme, colors) => colors?.surface,
+	'surface-hover': (_theme, colors) => colors?.surfaceHover,
+	'switch-thumb': (_theme, colors) => colors?.switchThumb,
+	'switch-track': (_theme, colors) => colors?.switchTrack,
+	'switch-track-active': (_theme, colors) => colors?.switchTrackActive,
+	text: (_theme, colors) => colors?.text,
+	'text-muted': (_theme, colors) => colors?.textMuted,
+	'text-on-primary': (_theme, colors) =>
 		colors?.textOnPrimary ??
 		(colors?.primary ? getContrastColor(colors.primary) : undefined),
 };
@@ -419,68 +413,48 @@ export const themeToVars = function themeToVars(
 	const colors = isDark ? { ...theme.colors, ...theme.dark } : theme.colors;
 
 	for (const [key, resolve] of Object.entries(themeCSSVariableResolvers) as [
-		keyof ThemeCSSVariables,
+		ThemeCSSVariableSuffix,
 		ThemeCSSVariableResolver,
 	][]) {
 		const value = resolve(theme, colors);
 		if (value) {
-			vars[key] = value;
+			vars[`--c15t-${key}`] = value;
 		}
 	}
 
 	return vars;
 };
 
+const serializeThemeVars = function serializeThemeVars(
+	theme: Theme,
+	isDark: boolean
+): string {
+	return Object.entries(themeToVars(theme, isDark))
+		.map(([key, value]) => `${key}: ${value};`)
+		.join('');
+};
+
 /**
  * Generates a CSS string for the theme variables.
+ * Apply `c15t-no-transitions` while switching themes to suppress animations.
+ * @param theme - Theme tokens to serialize.
+ * @param colorScheme - Select a scheme before hydration; defaults to root classes.
+ * @returns Theme CSS, including system preference rules when requested.
  */
 export const generateThemeCSS = function generateThemeCSS(
-	theme: Theme
+	theme: Theme,
+	colorScheme?: 'light' | 'dark' | 'system' | null
 ): string {
-	const lightVars = themeToVars(theme, false);
-	const darkVars = themeToVars(theme, true);
-
-	const lightCSS = Object.entries(lightVars)
-		.filter(([, value]) => value !== undefined)
-		.map(([key, value]) => `${key}: ${value};`)
-		.join('\n');
-
-	const darkCSS = Object.entries(darkVars)
-		.filter(([, value]) => value !== undefined)
-		.map(([key, value]) => `${key}: ${value};`)
-		.join('\n');
-
 	// `:host` is the shadow-DOM counterpart of `:root`: custom properties set
 	// there inherit into a shadow tree, which `:root` never reaches. Outside
 	// a shadow root it matches nothing, so light-DOM hosts are unaffected.
-	return `
-:root, :host, .c15t-theme-root {
-${lightCSS}
-}
-
-:root.dark, :host(.dark), .dark .c15t-theme-root, :root.c15t-dark, :host(.c15t-dark), .c15t-dark .c15t-theme-root {
-${darkCSS}
-}
-
-/*
- * Utility class to disable transitions during theme switching.
- * Apply this class to the root element before switching themes,
- * then remove it after a short delay to prevent flash of
- * animated content during the color scheme change.
- *
- * Example usage:
- *   document.documentElement.classList.add('c15t-no-transitions');
- *   // Switch theme...
- *   requestAnimationFrame(() => {
- *     document.documentElement.classList.remove('c15t-no-transitions');
- *   });
- */
-.c15t-no-transitions,
-.c15t-no-transitions *,
-.c15t-no-transitions *::before,
-.c15t-no-transitions *::after {
-	transition: none !important;
-	animation: none !important;
-}
-	`.trim();
+	const root = ':root,:host,.c15t-theme-root';
+	const dark =
+		(colorScheme
+			? serializeThemeVars({ colors: defaultDarkColors }, true)
+			: '') + serializeThemeVars(theme, true);
+	return `${root}{${colorScheme === 'dark' ? dark : serializeThemeVars(theme, false)}}
+${colorScheme === 'system' ? `@media(prefers-color-scheme:dark){${root}{${dark}}}` : ''}
+:root.dark,:host(.dark),.dark .c15t-theme-root,:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root{${dark}}
+.c15t-no-transitions,.c15t-no-transitions *,.c15t-no-transitions *::before,.c15t-no-transitions *::after{transition: none !important;animation: none !important;}`;
 };

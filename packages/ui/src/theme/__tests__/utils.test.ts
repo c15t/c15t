@@ -241,6 +241,25 @@ describe('themeToVars', () => {
 });
 
 describe('getContrastColor', () => {
+	test.each([
+		['hsl(0, 100%, 50%)', '#000000'],
+		['hsl(60, 100%, 50%)', '#000000'],
+		['hsl(120, 100%, 50%)', '#000000'],
+		['hsl(180, 100%, 50%)', '#000000'],
+		['hsl(240, 100%, 50%)', '#ffffff'],
+		['hsl(300, 100%, 50%)', '#000000'],
+		['hsl(-120, 100%, 50%)', '#ffffff'],
+		['hsl(600, 100%, 50%)', '#ffffff'],
+		['hsl(120, 0%, 0%)', '#ffffff'],
+		['hsl(240, 0%, 100%)', '#000000'],
+		['hsl(1e308turn, 0%, 100%)', '#000000'],
+		['#123', '#ffffff'],
+		['#1230', '#ffffff'],
+		['#ffffff00', '#000000'],
+	])('preserves readable foregrounds for %s', (color, foreground) => {
+		expect(getContrastColor(color)).toBe(foreground);
+	});
+
 	test('parses comma-separated colors with long channel whitespace', () => {
 		const color = `rgb(255,214,10${' '.repeat(100_000)})`;
 		const start = performance.now();

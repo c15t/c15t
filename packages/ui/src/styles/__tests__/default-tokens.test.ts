@@ -37,6 +37,17 @@ const readEntrypoint = function readEntrypoint(relativePath: string): string {
 	return readFileSync(path, 'utf8');
 };
 
+const findBlockStart = function findBlockStart(
+	css: string,
+	selector: string
+): number {
+	const pattern = selector
+		.split(',')
+		.map((part) => part.trim().replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'))
+		.join('\\s*,\\s*');
+	return css.search(new RegExp(`${pattern}\\s*\\{`, 'u'));
+};
+
 /**
  * Slice out one `selector { ... }` block by brace matching, so nested blocks
  * inside the stylesheet do not truncate it early.
@@ -45,7 +56,7 @@ const readBlock = function readBlock(
 	css: string,
 	selector: string
 ): string | null {
-	const start = css.indexOf(`${selector} {`);
+	const start = findBlockStart(css, selector);
 
 	if (start === -1) {
 		return null;
@@ -112,7 +123,7 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		const bare =
 			css.match(/(?:^|[\s,}{;]):root(?:\.[A-Za-z0-9_-]+)?\s*\{/gu) ?? [];
 		expect(bare).toEqual([]);
-		expect(css).toContain(':root, :host');
+		expect(css).toMatch(/:root\s*,\s*:host/u);
 	});
 
 	test('emits the tokens first, so they read as the file preamble', () => {
@@ -134,7 +145,9 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		// (`@import ... layer(c15t)`, as examples/sveltekit-demo does), the
 		// override wins by layer precedence instead.
 		const layerStart = css.indexOf('@layer');
-		const tokensEnd = css.indexOf('}', css.indexOf(LIGHT_SELECTOR));
+		const tokensStart = findBlockStart(css, LIGHT_SELECTOR);
+		expect(tokensStart).toBeGreaterThanOrEqual(0);
+		const tokensEnd = css.indexOf('}', tokensStart);
 
 		expect(tokensEnd).toBeLessThan(layerStart === -1 ? Infinity : layerStart);
 	});

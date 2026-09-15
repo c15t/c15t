@@ -23,6 +23,11 @@ group: reference
   the banner. Pass the same theme on the server and the first client render
   so your custom tokens apply before hydration. The provider's `nonce`
   option also applies to this stylesheet for Content Security Policy.
+
+  `colorScheme: 'dark'` applies dark tokens in the server HTML.
+  `colorScheme: 'system'` uses a CSS media query to follow the visitor's
+  preference before hydration. If your app manages dark mode through a
+  root class instead, include that class in the server HTML too.
 </section>
 
 <section id="token-roles">

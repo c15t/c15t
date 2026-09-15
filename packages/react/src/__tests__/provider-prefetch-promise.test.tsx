@@ -240,7 +240,7 @@ describe('ConsentProvider prefetch promise', () => {
 			.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
 		expect(init).toHaveBeenCalledTimes(1);
 		expect(warn).toHaveBeenCalledWith(
-			expect.stringContaining('`prefetch` promise rejected'),
+			expect.stringContaining('prefetch rejected'),
 			expect.any(Error)
 		);
 	});

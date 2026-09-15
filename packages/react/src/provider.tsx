@@ -55,7 +55,6 @@ import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ReactUIOptions } from './types/manager';
 import type { ReactComponentSlots } from './types/slots';
-import type { Theme } from './types/theme';
 import type { V3UIConfigValue } from './ui-config-context';
 import { defaultTranslationConfig } from './utils/default-translation-config';
 
@@ -339,7 +338,7 @@ const warnPrefetchRejected = function warnPrefetchRejected(error: unknown) {
 		return;
 	}
 	console.warn(
-		'c15t ConsentProvider: the `prefetch` promise rejected; falling back to the transport init.',
+		'c15t ConsentProvider: prefetch rejected; using transport init.',
 		error
 	);
 };
@@ -451,7 +450,7 @@ const getProviderMode = function getProviderMode(
 ): ProviderTransportFactory {
 	if (typeof options.mode !== 'function') {
 		throw new Error(
-			'c15t ConsentProvider: `mode` is required. Use hosted(), offline(), or custom().'
+			'c15t ConsentProvider: set mode to hosted(), offline(), or custom().'
 		);
 	}
 	return options.mode;
@@ -670,9 +669,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 		}
 		if (initialOnlyRef.current !== serialized) {
 			initialOnlyRef.current = serialized;
-			console.warn(
-				'c15t ConsentProvider: mode and i18n are initial-only options. Remount the provider to apply changes.'
-			);
+			console.warn('c15t ConsentProvider: remount to change mode or i18n.');
 		}
 	}, [options]);
 };
@@ -898,39 +895,6 @@ const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
 	return null;
 };
 
-/**
- * Emits the `--c15t-*` custom properties the prebuilt styles read. Without a
- * user theme the UI package's default theme is used, so components are
- * never left without colours; a stylesheet can still override any token.
- */
-const ThemeStyleMount = ({
-	nonce,
-	theme,
-}: {
-	nonce?: string;
-	theme?: Theme;
-}) => {
-	// The banner can render on the server, so its tokens must render with it.
-	const themeCSS = useMemo(
-		// CSS escapes preserve token values without allowing HTML closing tags.
-		() => generateThemeCSS(theme ?? defaultTheme).replace(/</gu, '\\3c '),
-		[theme]
-	);
-
-	if (!themeCSS) {
-		return null;
-	}
-
-	return (
-		<style
-			id="c15t-theme"
-			nonce={nonce}
-			// oxlint-disable-next-line react/no-danger -- Generated CSS variables
-			dangerouslySetInnerHTML={{ __html: themeCSS }}
-		/>
-	);
-};
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentProviderOptions
 ): UsePersistenceOptions | false {
@@ -1057,6 +1021,16 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	}, [owned, ownsRuntime]);
 
 	const userTheme = options.theme;
+	// Render tokens with the banner, including before hydration. CSS escapes
+	// preserve token values without allowing HTML closing tags.
+	const themeCSS = useMemo(
+		() =>
+			generateThemeCSS(userTheme ?? defaultTheme, options.colorScheme).replace(
+				/</gu,
+				'\\3c '
+			),
+		[userTheme, options.colorScheme]
+	);
 
 	const themeContextValue = useMemo(
 		() => ({
@@ -1145,9 +1119,11 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					themeConfig={themeContextValue}
 					uiConfig={uiConfigValue}
 				>
-					<ThemeStyleMount
+					<style
+						id="c15t-theme"
 						nonce={options.nonce}
-						theme={userTheme}
+						// oxlint-disable-next-line react/no-danger -- CSS escapes
+						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>
 					{providerChildren}
 				</V3ThemeProvider>

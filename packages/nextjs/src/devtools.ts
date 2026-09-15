@@ -1,4 +1,4 @@
 'use client';
 
-// oxlint-disable-next-line oxc/no-barrel-file -- Public framework entry point intentionally re-exports the supported API.
+// oxlint-disable-next-line oxc/no-barrel-file -- Public API entry point.
 export * from '@c15t/react/devtools';
