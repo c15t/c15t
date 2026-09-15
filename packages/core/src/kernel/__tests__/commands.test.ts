@@ -38,6 +38,27 @@ describe('resolveSaveSelection', () => {
 		});
 	});
 
+	test("'all' over a displayed subset still reports the bulk action", () => {
+		const snap = buildInitialSnapshot({
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing', 'measurement', 'experience'] })
+			),
+			now: NOW,
+		});
+		expect(
+			resolveSaveSelection(snap, null, 'all', ['marketing', 'measurement'])
+		).toEqual({
+			consentAction: 'all',
+			values: { marketing: true, measurement: true },
+		});
+		expect(
+			resolveSaveSelection(snap, null, 'none', ['marketing', 'measurement'])
+		).toEqual({
+			consentAction: 'necessary',
+			values: { marketing: false, measurement: false },
+		});
+	});
+
 	test('object input is passed through for validation', () => {
 		const snap = buildInitialSnapshot({ now: NOW });
 		expect(resolveSaveSelection(snap, null, { marketing: true })).toEqual({

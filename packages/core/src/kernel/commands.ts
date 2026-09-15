@@ -161,10 +161,11 @@ export const resolveSaveSelection = function resolveSaveSelection(
 					displayed.map((category) => [category, values[category]])
 				);
 	if (input === 'all' || input === 'none') {
-		const bulkAction = input === 'all' ? 'all' : 'necessary';
+		// A bulk action stays `all` / `necessary` even when the host displays
+		// a subset of the scope: the action names what the visitor clicked,
+		// `confirmed` names what it covered.
 		return {
-			consentAction:
-				displayed.length === rule.scope.length ? bulkAction : 'custom',
+			consentAction: input === 'all' ? 'all' : 'necessary',
 			values: narrow(scopeSelection(rule, input === 'all')),
 		};
 	}
