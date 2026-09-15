@@ -54,11 +54,11 @@ export const Providers = ({ children }: { children: React.ReactNode }) => (
 
 ## Count impressions with `onSurfaceShown`
 
-`onSurfaceShown` runs once each time the banner or the dialog opens, after the
-runtime's `init` completed. A banner that is already visible from a prefetched
-policy fires it when `init` runs on the client, so a server-rendered banner
-counts once, not on every hydration. `surface` is `'banner'` or `'dialog'`;
-`shownAt` is epoch milliseconds.
+`onSurfaceShown` runs once each time the banner or the dialog opens, once the
+runtime is live in the browser: after `init` completes, or after hydration
+when a server-resolved prefetch stands in for `init`. A server-rendered banner
+therefore counts once, on the client, not on every hydration. `surface` is
+`'banner'` or `'dialog'`; `shownAt` is epoch milliseconds.
 
 The event bus does not replay to late subscribers. An analytics SDK that loads
 after the banner appeared can read `snapshot.surfaceShownAt.banner` and

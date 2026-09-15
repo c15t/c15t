@@ -73,6 +73,7 @@ export const createConsentKernel = function createConsentKernel(
 		getServerSnapshot: () => serverSnapshot,
 		getSnapshot: runtime.getSnapshot,
 		hydrate: runtime.hydrate,
+		markLive: runtime.markLive,
 		refresh: runtime.refresh,
 		set,
 		subscribe: runtime.subscribe,

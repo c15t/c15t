@@ -722,6 +722,9 @@ const InitMount = ({
 					: kernel.getServerSnapshot().evaluatedAt,
 			});
 			hydrated.current = true;
+			// No init call marks this kernel live, so do it here: the banner
+			// the server rendered is the visitor's first impression.
+			kernel.markLive();
 			const { gpc } = kernel.getSnapshot().privacySignals;
 			if (gpc.detected && gpc.active) {
 				// Hydration stays read-only; activate the detected signal through

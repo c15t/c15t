@@ -86,6 +86,20 @@ describe('surface:shown', () => {
 		expect(kernel.getSnapshot().surfaceShownAt.banner).toBeNull();
 	});
 
+	test('markLive() stamps a visible banner without init, once', () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { kernel, shown } = setup();
+		kernel.hydrate({ subject: { subjectId: 'sub_1' } });
+		expect(shown).toHaveLength(0);
+
+		kernel.markLive();
+		kernel.markLive();
+
+		expect(shown).toHaveLength(1);
+		expect(shown[0]).toMatchObject({ shownAt: NOW + 500, surface: 'banner' });
+		expect(kernel.getSnapshot().surfaceShownAt.banner).toBe(NOW + 500);
+	});
+
 	test('a choice carries the time from the impression to the action', async () => {
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
 		const { kernel, save } = setup();

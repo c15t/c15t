@@ -200,6 +200,24 @@ describe('createConsentRuntime', () => {
 		runtime.dispose();
 	});
 
+	test('`start()` with a resolved prefetch still records the first impression', () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			prefetch: RESOLVED_PREFETCH,
+		});
+		const shown: string[] = [];
+		runtime.kernel.events.on('surface:shown', (event) =>
+			shown.push(event.surface)
+		);
+
+		runtime.start();
+
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		expect(shown).toEqual(['banner']);
+		expect(runtime.kernel.getSnapshot().surfaceShownAt.banner).not.toBeNull();
+		runtime.dispose();
+	});
+
 	test('`start()` skips init when the prefetch already resolved the policy', async () => {
 		const transport = createTransport();
 		const runtime = createConsentRuntime({

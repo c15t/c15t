@@ -668,6 +668,18 @@ export interface ConsentKernel {
 	hydrate: (records: HydrationRecords) => HydrationResult;
 
 	/**
+	 * Mark the kernel live in a visitor's browser. `init()` does this on its
+	 * own; an adapter that renders from a server-resolved prefetch and never
+	 * calls `init()` must call it after hydration so a visible surface is
+	 * stamped as an impression (`surface:shown`, `snapshot.surfaceShownAt`)
+	 * and a later choice can carry `timeToDecisionMs`. Idempotent; a server
+	 * or test kernel that never goes live records no impression.
+	 *
+	 * @param at - Impression time for a surface already visible. Defaults to now.
+	 */
+	markLive: (at?: number) => void;
+
+	/**
 	 * Re-evaluate at `now` (default `Date.now()`). Gates call this before a
 	 * time-sensitive decision so an elapsed expiry cannot hide behind a
 	 * delayed timer. Advances the snapshot only when something changed.
