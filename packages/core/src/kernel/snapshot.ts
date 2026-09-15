@@ -220,6 +220,7 @@ export const freezeSnapshot = function freezeSnapshot(
 	}
 	freezeChoice(snapshot.explicitChoice as ExplicitChoice | null);
 	for (const nested of [
+		snapshot.consentCategories,
 		snapshot.noticeDismissal,
 		snapshot.subject,
 		snapshot.user,
@@ -251,7 +252,14 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const now = config.now ?? config.initialRecords?.now ?? Date.now();
 	const resolution = config.initialPolicyResolution ?? UNCONFIGURED;
 	const effective = resolveEffectivePolicy(resolution);
-	const evaluationPolicy = buildEvaluationPolicy(effective);
+	const categories = [
+		...(config.consentCategories ?? []),
+		...(config.inferredConsentCategories ?? []),
+	];
+	const consentCategories = categories.length
+		? [...new Set(categories)].sort()
+		: null;
+	const evaluationPolicy = buildEvaluationPolicy(effective, consentCategories);
 	const policyPending = config.initialPolicyPending ?? false;
 
 	const validated = config.initialRecords
@@ -293,6 +301,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 			resolution,
 		}),
 		branding: config.initialBranding ?? null,
+		consentCategories,
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,

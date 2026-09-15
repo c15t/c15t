@@ -413,6 +413,15 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 						onPermissionsChanged: (payload) =>
 							callbacks.push({ name: 'onPermissionsChanged', payload }),
 					},
+					// The shared policy scenarios review the full scope, independently
+					// of the marketing-only integrations used to probe gates.
+					consentCategories: [
+						'necessary',
+						'functionality',
+						'measurement',
+						'experience',
+						'marketing',
+					],
 					disableAnimation: true,
 					mode: custom({
 						init: () => {

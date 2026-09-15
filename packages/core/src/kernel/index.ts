@@ -55,7 +55,7 @@ export const createConsentKernel = function createConsentKernel(
 		initialSnapshot,
 		transport,
 	});
-	const set = buildSetters(runtime);
+	const set = buildSetters(runtime, config);
 	const commandHandle = buildCommands({
 		initRetry: config.initRetry,
 		runtime,

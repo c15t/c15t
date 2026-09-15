@@ -136,7 +136,14 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 
 test('a draft preserves configured category order and confirms only the displayed policy scope', async () => {
 	const context = createVueConsentKernelContext({
-		config: {},
+		config: {
+			consentCategories: [
+				'necessary',
+				'measurement',
+				'experience',
+				'marketing',
+			],
+		},
 		kernelConfig: {
 			initialPolicyResolution: resolution({
 				categories: ['functionality', 'marketing', 'measurement'],

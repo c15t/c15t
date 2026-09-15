@@ -148,16 +148,15 @@ export const resolveSaveSelection = function resolveSaveSelection(
 	categories?: readonly AllConsentNames[]
 ): { values: unknown; consentAction: SavePayload['consentAction'] } {
 	const rule = snapshot.policyRule;
+	const choiceScope = snapshot.evaluationPolicy.choiceScope ?? rule.scope;
 	const displayed =
 		categories === undefined
-			? rule.scope
-			: rule.scope.filter((category) => categories.includes(category));
+			? choiceScope
+			: choiceScope.filter((category) => categories.includes(category));
 	const narrow = (values: PresentedSelection) =>
-		categories === undefined
-			? values
-			: Object.fromEntries(
-					displayed.map((category) => [category, values[category]])
-				);
+		Object.fromEntries(
+			displayed.map((category) => [category, values[category]])
+		);
 	if (input === 'all' || input === 'none') {
 		const bulkAction = input === 'all' ? 'all' : 'necessary';
 		return {

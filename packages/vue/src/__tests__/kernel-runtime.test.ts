@@ -778,3 +778,55 @@ test('mounts the shared CMP for a prefetched IAB reference and encodes consent',
 		dispose();
 	}
 });
+
+test('configured categories complete a choice without accepting hidden policy categories', async () => {
+	const context = createVueConsentKernelContext({
+		config: { consentCategories: ['necessary', 'measurement'] },
+		prefetch: initFixture,
+	});
+	try {
+		expect(context.kernel.getSnapshot().activeUI).toBe('banner');
+		await context.kernel.commands.save('all');
+		expect(context.kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'none',
+		});
+		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			true
+		);
+		expect(context.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			false
+		);
+		expect(
+			context.kernel.getSnapshot().explicitChoice?.categories.marketing
+		).toBeUndefined();
+	} finally {
+		context.dispose();
+	}
+});
+
+test('script categories are present before Vue mounts and complete the choice', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			scripts: [
+				{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+				{ callbackOnly: true, category: 'marketing', id: 'ads' },
+			],
+		},
+		prefetch: initFixture,
+	});
+	try {
+		expect(
+			context.kernel.getServerSnapshot().evaluationPolicy.choiceScope
+		).toEqual(['marketing', 'measurement']);
+		await context.kernel.commands.save('all');
+		expect(context.snapshot.value.promptRequirement.kind).toBe('none');
+		expect(
+			context.snapshot.value.explicitChoice?.categories.measurement?.value
+		).toBe(true);
+		expect(
+			context.snapshot.value.explicitChoice?.categories.marketing?.value
+		).toBe(true);
+	} finally {
+		context.dispose();
+	}
+});

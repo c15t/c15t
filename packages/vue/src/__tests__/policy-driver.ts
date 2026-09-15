@@ -406,6 +406,14 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				onPermissionsChanged: (payload) =>
 					callbacks.push({ name: 'onPermissionsChanged', payload }),
 			},
+			// Shared scenarios review the full scope; gate probes only use marketing.
+			consentCategories: [
+				'necessary',
+				'functionality',
+				'measurement',
+				'experience',
+				'marketing',
+			],
 			disableAnimation: true,
 			hideBranding: true,
 		};

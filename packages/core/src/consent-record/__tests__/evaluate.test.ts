@@ -824,3 +824,75 @@ describe('evaluateConsentRecord: the none model', () => {
 		);
 	});
 });
+
+describe('evaluateConsentRecord: displayed choice scope', () => {
+	it('ignores hidden missing decisions and refusals when requiring a displayed choice', () => {
+		const policy = makePolicy({ choiceScope: ['measurement'] });
+		const choice = makeChoice({ marketing: false }, NOW, currentBasis(policy));
+		const result = evaluateConsentRecord({
+			choice,
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+		expect(result.permissions.marketing).toBe(false);
+	});
+
+	it('keeps opt-in expiry deadlines for hidden grants without reopening the prompt', () => {
+		const policy = makePolicy({
+			choice: { fingerprint: 'fp', maxAgeMs: DAY },
+			choiceScope: ['measurement'],
+		});
+		const choice = makeChoice(
+			{ marketing: true },
+			NOW - DAY + 1000,
+			currentBasis(policy)
+		);
+		choice.categories.measurement = {
+			basis: currentBasis(policy),
+			confirmedAt: NOW,
+			value: true,
+		};
+		const input = { choice, noticeDismissal: null, now: NOW, policy };
+		const result = evaluateConsentRecord(input);
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.nextDeadline).toBe(NOW + 1000);
+		const expired = evaluateConsentRecord({ ...input, now: NOW + 1000 });
+		expect(expired.permissions.marketing).toBe(false);
+		expect(expired.promptRequirement).toEqual({ kind: 'none' });
+		expect(expired.nextDeadline).toBe(NOW + DAY);
+		expect(
+			evaluateConsentRecord({ ...input, now: NOW + DAY }).promptRequirement
+		).toEqual({ kind: 'choice', reason: 'expired' });
+	});
+
+	it('does not schedule irrelevant hidden opt-out grant expiry', () => {
+		const policy = makePolicy({
+			choice: { fingerprint: 'fp', maxAgeMs: DAY },
+			choiceScope: ['measurement'],
+			model: 'opt-out',
+		});
+		const choice = makeChoice(
+			{ marketing: true },
+			NOW - DAY + 1000,
+			currentBasis(policy)
+		);
+		choice.categories.measurement = {
+			basis: currentBasis(policy),
+			confirmedAt: NOW,
+			value: true,
+		};
+		const result = evaluateConsentRecord({
+			choice,
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.nextDeadline).toBe(NOW + DAY);
+	});
+});

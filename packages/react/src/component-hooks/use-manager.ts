@@ -12,12 +12,12 @@ import type {
 	TranslationConfig,
 } from '@c15t/core';
 import { evaluateConsent } from '@c15t/core';
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
-import { ProviderServicesContext } from '../context';
 import { useConsentManagerDraft } from '../draft';
 import {
 	useActiveUI,
+	useRegisterConsentCategories,
 	useBranding,
 	useConsents,
 	useModel,
@@ -97,7 +97,6 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 
 export const useConsentManager = function useConsentManager() {
 	const snapshot = useSnapshot();
-	const services = useContext(ProviderServicesContext);
 	const consents = useConsents();
 	const activeUI = useActiveUI();
 	const branding = useBranding();
@@ -121,8 +120,11 @@ export const useConsentManager = function useConsentManager() {
 		[policyCategoriesSnapshot]
 	);
 	const consentCategories = useMemo<AllConsentNames[]>(
-		() => [...(services?.getConsentCategories() ?? policyCategories)],
-		[services, policyCategories]
+		() => [
+			'necessary',
+			...(snapshot.evaluationPolicy.choiceScope ?? policyCategoriesSnapshot),
+		],
+		[snapshot.evaluationPolicy.choiceScope, policyCategoriesSnapshot]
 	);
 
 	const getDisplayedConsents = useCallback((): ConsentType[] => {
@@ -165,9 +167,7 @@ export const useConsentManager = function useConsentManager() {
 		[draft, consentCategories]
 	);
 
-	const updateConsentCategories = useCallback((_names: AllConsentNames[]) => {
-		// v3 policy categories come from the kernel. Frame registration is no-op.
-	}, []);
+	const updateConsentCategories = useRegisterConsentCategories();
 
 	const subscribeToConsentChanges = useCallback(
 		(listener: (state: ConsentState) => void) =>

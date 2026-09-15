@@ -28,7 +28,7 @@ export interface ConsentDraftHandle {
 	values: Readonly<ConsentState>;
 	displayedCategories: readonly AllConsentNames[];
 	isDirty: boolean;
-	/** A material policy change requires reset and review before saving. */
+	/** A policy or displayed-category change requires reset and review before saving. */
 	isStale: boolean;
 	set: (category: AllConsentNames, value: boolean) => void;
 	update: (patch: Partial<ConsentState>) => void;
@@ -54,7 +54,8 @@ const seed = function seed(
 		measurement: false,
 		necessary: true,
 	};
-	for (const category of snapshot.policyRule.scope) {
+	for (const category of snapshot.evaluationPolicy.choiceScope ??
+		snapshot.policyRule.scope) {
 		values[category] =
 			snapshot.explicitChoice?.categories[category]?.value ??
 			defaults?.[category] ??
@@ -73,7 +74,10 @@ const createDraftStore = function createDraftStore(
 	let base = seed(source, defaults);
 	let { fingerprint } = source.evaluationPolicy.choice;
 	let current: DraftSnapshot = {
-		displayedCategories: ['necessary', ...source.policyRule.scope],
+		displayedCategories: [
+			'necessary',
+			...(source.evaluationPolicy.choiceScope ?? source.policyRule.scope),
+		],
 		isDirty: false,
 		isStale: false,
 		values: base,
@@ -91,7 +95,10 @@ const createDraftStore = function createDraftStore(
 		base = seed(source, defaults);
 		({ fingerprint } = source.evaluationPolicy.choice);
 		publish({
-			displayedCategories: ['necessary', ...source.policyRule.scope],
+			displayedCategories: [
+				'necessary',
+				...(source.evaluationPolicy.choiceScope ?? source.policyRule.scope),
+			],
 			isDirty: false,
 			isStale: false,
 			values: base,
@@ -130,7 +137,15 @@ const createDraftStore = function createDraftStore(
 		) {
 			return;
 		}
-		const material = fingerprint !== next.evaluationPolicy.choice.fingerprint;
+		const nextScope =
+			next.evaluationPolicy.choiceScope ?? next.policyRule.scope;
+		const scopeChanged =
+			current.displayedCategories.length !== nextScope.length + 1 ||
+			nextScope.some(
+				(category) => !current.displayedCategories.includes(category)
+			);
+		const material =
+			fingerprint !== next.evaluationPolicy.choice.fingerprint || scopeChanged;
 		source = next;
 		if (!current.isDirty) {
 			reset();

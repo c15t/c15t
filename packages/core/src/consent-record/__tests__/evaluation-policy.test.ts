@@ -73,3 +73,13 @@ describe('createEvaluationPolicy', () => {
 		expect(policy.scope).toEqual([]);
 	});
 });
+
+it('validates and canonicalizes the displayed choice scope independently of permission scope', () => {
+	const policy = makePolicy({ choiceScope: ['measurement', 'measurement'] });
+	expect(policy.choiceScope).toEqual(['measurement']);
+	expect(policy.scope).toContain('marketing');
+	expect(makePolicy({ choiceScope: [] }).choiceScope).toEqual([]);
+	expect(() =>
+		makePolicy({ choiceScope: ['marketing'], scope: ['measurement'] })
+	).toThrow(/inside the policy scope/u);
+});

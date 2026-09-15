@@ -268,3 +268,25 @@ describe('ordered gated scripts', () => {
 		expect(document.querySelectorAll('script')).toHaveLength(2);
 	});
 });
+
+it('discovers inert script categories and adds newly inserted categories', async () => {
+	inertScript('measurement', 'window.__analytics = true;');
+	inertScript('marketing', 'window.__ads = true;');
+	const client = createConsentClient({ ui: false });
+	clients.push(client);
+	client.start();
+	await client.ready();
+	expect(client.consentCategories).toEqual([
+		'necessary',
+		'marketing',
+		'measurement',
+	]);
+	await client.acceptAll();
+	expect(client.getSnapshot().promptRequirement.kind).toBe('none');
+	inertScript('experience', 'window.__personalization = true;');
+	await vi.waitFor(() =>
+		expect(client.consentCategories).toContain('experience')
+	);
+	expect(client.getSnapshot().promptRequirement.kind).toBe('choice');
+	expect(client.getSnapshot().effectivePermissions.experience).toBe(false);
+});

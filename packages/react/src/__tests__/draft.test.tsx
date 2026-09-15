@@ -11,12 +11,14 @@
  * - ConsentDraftProvider shares draft across siblings
  * - kernel state changes reseed draft when draft is clean
  */
+import type { AllConsentNames } from '@c15t/core';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentDraftProvider, useConsentDraft } from '../draft';
-import { useConsent, useSaveConsents } from '../hooks';
+import { useConsent, useSaveConsents, useSnapshot } from '../hooks';
 import { ConsentProvider } from '../provider';
 import { offline } from '../transports/offline';
 import { policyFixture } from './policy-fixture';
@@ -310,4 +312,96 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 		await getByTestId('external').click();
 		await expect.element(getByTestId('m')).toHaveTextContent('true');
 	});
+});
+
+test('drafts use configured categories and require review when the displayed scope changes', async () => {
+	const Probe = ({ expand }: { expand: () => void }) => {
+		const draft = useConsentDraft();
+		const snapshot = useSnapshot();
+		return (
+			<>
+				<button
+					type="button"
+					onClick={() => draft.acceptAll()}
+				>
+					Accept draft
+				</button>
+				<button
+					type="button"
+					onClick={() => draft.save()}
+				>
+					Save draft
+				</button>
+				<button
+					type="button"
+					onClick={() => draft.rejectAll()}
+				>
+					Reject draft
+				</button>
+				<button
+					type="button"
+					onClick={expand}
+				>
+					Add marketing
+				</button>
+				<button
+					type="button"
+					onClick={() => draft.reset()}
+				>
+					Reset draft
+				</button>
+				<output>
+					{JSON.stringify({
+						categories: draft.displayedCategories,
+						choice: snapshot.explicitChoice,
+						stale: draft.isStale,
+					})}
+				</output>
+			</>
+		);
+	};
+	const App = () => {
+		const [categories, setCategories] = useState<AllConsentNames[]>([
+			'necessary',
+			'measurement',
+		]);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: categories,
+					mode: offline(),
+					persistence: false,
+					prefetch: policyFixture(),
+				}}
+			>
+				<Probe
+					expand={() =>
+						setCategories(['necessary', 'measurement', 'marketing'])
+					}
+				/>
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"categories":["necessary","measurement"]');
+	await screen.getByRole('button', { name: 'Accept draft' }).click();
+	await screen.getByRole('button', { name: 'Save draft' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"measurement":{"basis"');
+	await expect
+		.element(screen.getByRole('status'))
+		.not.toHaveTextContent('"marketing"');
+	// Stage an unsaved change before expanding the configured list.
+	await screen.getByRole('button', { name: 'Reject draft' }).click();
+	await screen.getByRole('button', { name: 'Add marketing' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"stale":true');
+	await screen.getByRole('button', { name: 'Reset draft' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"categories":["necessary","marketing","measurement"]');
 });
