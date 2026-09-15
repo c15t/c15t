@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/tanstack-start",
-	"version": "3.0.0-alpha.0",
+	"version": "3.0.0-alpha.1",
 	"description": "TanStack Start cookie banner and consent management platform with SSR-hydrated first paint, same-origin consent routes, request middleware, IAB TCF, and Consent Mode.",
 	"keywords": [
 		"ccpa",

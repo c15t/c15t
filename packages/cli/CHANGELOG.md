@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- @c15t/scripts@3.0.0-alpha.0
+- @c15t/backend@3.0.0-alpha.1
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

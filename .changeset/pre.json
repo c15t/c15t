@@ -41,5 +41,5 @@
 		"@c15t/ui": "2.2.0",
 		"@c15t/vue": "2.0.0"
 	},
-	"changesets": ["v3-alpha"]
+	"changesets": ["clear-on-revocation", "funny-knives-chew", "v3-alpha"]
 }
