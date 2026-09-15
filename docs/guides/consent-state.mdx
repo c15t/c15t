@@ -36,6 +36,17 @@ confirmation times. Do not call all three in one handler.
 changes in effective permissions, including changes caused by expiry or privacy
 signals. Hydration must not be counted as another visitor choice.
 
+## Count impressions separately from choices
+
+An impression is the banner or the dialog becoming visible; a choice is the
+visitor acting on it. The kernel emits `surface:shown` (`onSurfaceShown` in the
+provider callbacks) once per opening and stores the first impression time of
+each surface in `snapshot.surfaceShownAt`, so a script that subscribes after
+first paint can still read it. A recorded choice carries `timeToDecisionMs`,
+the milliseconds from that first impression to the action, whenever the
+surface it is attributed to was shown. Divide choices by impressions to
+measure a banner; do not infer an impression from a permission value.
+
 ## Treat notices and privacy signals separately
 
 `commands.dismissNotice()` acknowledges the current notice. It does not grant

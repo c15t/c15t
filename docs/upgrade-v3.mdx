@@ -110,7 +110,7 @@ Replace `onConsentSet` with `onChoiceRecorded` for explicit accept, reject, or
 save actions. Use `onPermissionsChanged` for permission changes caused by a
 choice, expiry, policy update, or privacy signal. Provider callbacks no longer
 include `onBannerFetched`; use the resolved policy and pending state to render
-loading UI.
+loading UI, and `onSurfaceShown` to count banner and dialog impressions.
 
 Only `kernel.commands.save()` creates an explicit choice. `save('all')` accepts,
 `save('none')` rejects, and `save({ marketing: false })` confirms only marketing.

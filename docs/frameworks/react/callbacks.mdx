@@ -1,0 +1,103 @@
+---
+title: Callbacks
+description: React ConsentProvider callbacks for banner impressions, recorded choices, permission changes and transport errors, with time to decision for analytics.
+group: frameworks
+---
+
+## Pass callbacks to the provider
+
+`ConsentProvider` from `c15t/react` accepts a `callbacks` object in its
+`options`. Each callback fires only when its event happens; none of them fires
+for a hydrated record or a server render. Callbacks read the latest function
+you pass, so an inline object does not restart the runtime.
+
+```tsx title="src/app/providers.tsx"
+'use client';
+
+import { ConsentProvider, hosted } from 'c15t/react';
+
+export const Providers = ({ children }: { children: React.ReactNode }) => (
+	<ConsentProvider
+		options={{
+			mode: hosted({ url: 'https://your-project.inth.app' }),
+			callbacks: {
+				onSurfaceShown: ({ surface, shownAt }) => {
+					analytics.track('consent_surface_shown', { surface, shownAt });
+				},
+				onChoiceRecorded: ({ confirmed, timeToDecisionMs, snapshot }) => {
+					analytics.track('consent_choice', {
+						confirmed,
+						timeToDecisionMs,
+						uiSource: snapshot.activeUI,
+					});
+				},
+				onPermissionsChanged: ({ snapshot }) => {
+					analytics.setConsent(snapshot.effectivePermissions);
+				},
+				onError: ({ error }) => {
+					console.error('c15t', error);
+				},
+			},
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
+```
+
+| Callback | Fires when | Payload |
+| --- | --- | --- |
+| `onSurfaceShown` | The banner or the dialog becomes visible | `surface`, `shownAt`, `snapshot` |
+| `onChoiceRecorded` | An explicit accept, reject or save is recorded locally | `confirmed`, `actionAt`, `timeToDecisionMs?`, `snapshot` |
+| `onPermissionsChanged` | Effective permissions change by value | `previous`, `snapshot` |
+| `onError` | A transport command fails | `error` (a string) |
+
+## Count impressions with `onSurfaceShown`
+
+`onSurfaceShown` runs once each time the banner or the dialog opens, after the
+runtime's `init` completed. A banner that is already visible from a prefetched
+policy fires it when `init` runs on the client, so a server-rendered banner
+counts once, not on every hydration. `surface` is `'banner'` or `'dialog'`;
+`shownAt` is epoch milliseconds.
+
+The event bus does not replay to late subscribers. An analytics SDK that loads
+after the banner appeared can read `snapshot.surfaceShownAt.banner` and
+`snapshot.surfaceShownAt.dialog` instead: the first impression time of each
+surface in this page's kernel, or `null` while it was never shown.
+
+```tsx
+import { useSnapshot } from 'c15t/react';
+
+const ImpressionProbe = () => {
+	const { surfaceShownAt } = useSnapshot();
+	return <output>{surfaceShownAt.banner ?? 'not shown'}</output>;
+};
+```
+
+## Measure time to decision with `onChoiceRecorded`
+
+`onChoiceRecorded` reports the visitor's action before the transport answers.
+`confirmed` lists the categories this action confirmed and `actionAt` is when
+the visitor acted. `timeToDecisionMs` is `actionAt` minus the first impression
+of the surface the save is attributed to: the banner or the dialog. It is
+absent when that surface was never shown to this kernel, or when the save came
+from `ConsentWidget`, which is attributed to `'widget'`.
+
+The same value is sent to the backend as `metadata.timeToDecisionMs` on the
+saved consent, next to `uiSource`, so a hosted project can compare designs
+without a client-side analytics tool.
+
+`onChoiceRecorded` does not fire for hydration, expiry, privacy signals or a
+policy change. Use `onPermissionsChanged` for those: it reports every change
+in effective permissions with the `previous` map, which is what a tag manager
+or an SDK's consent API needs.
+
+## Handle transport failures with `onError`
+
+`onError` receives a string message whenever `init`, `save`, `identify` or a
+privacy directive fails at the transport. A failed save keeps the local choice
+and queues the payload for retry, so the visitor's decision is not lost; use
+the callback for logging, not to re-prompt.
+
+See [understand consent state](/docs/guides/consent-state) for the difference
+between an impression, a choice and a permission.
