@@ -32,6 +32,7 @@ import type { ConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
+import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
 import {
 	lazy,
@@ -61,7 +62,6 @@ import { defaultTranslationConfig } from './utils/default-translation-config';
 const loadNetworkBlockerModule = () =>
 	import('@c15t/core/modules/network-blocker');
 const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
-const loadThemeModule = () => import('@c15t/ui/theme');
 
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
@@ -910,21 +910,11 @@ const ThemeStyleMount = ({
 	nonce?: string;
 	theme?: Theme;
 }) => {
-	const [themeCSS, setThemeCSS] = useState('');
-
-	useEffect(() => {
-		let disposed = false;
-		void (async () => {
-			const { defaultTheme, generateThemeCSS } = await loadThemeModule();
-			if (!disposed) {
-				setThemeCSS(generateThemeCSS((theme ?? defaultTheme) as never));
-			}
-		})();
-
-		return () => {
-			disposed = true;
-		};
-	}, [theme]);
+	// The banner can render on the server, so its tokens must render with it.
+	const themeCSS = useMemo(
+		() => generateThemeCSS(theme ?? defaultTheme),
+		[theme]
+	);
 
 	if (!themeCSS) {
 		return null;

@@ -18,6 +18,11 @@ group: reference
   Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
   properties. Set them on the provider through `theme`, or override the
   variables directly in your CSS.
+
+  React and Next.js render the theme stylesheet in the server HTML before
+  the banner. Pass the same theme on the server and the first client render
+  so your custom tokens apply before hydration. The provider's `nonce`
+  option also applies to this stylesheet for Content Security Policy.
 </section>
 
 <section id="token-roles">
