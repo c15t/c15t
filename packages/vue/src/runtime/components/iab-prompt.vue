@@ -19,7 +19,6 @@ import { useConsentPolicyActions } from '../composables/use-consent-policy-actio
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './actions.vue';
-import { warmIabConsentDialog } from './lazy-surfaces';
 import ConsentTag from './tag.vue';
 
 const IAB_BANNER_LAYOUT: (PresentationAction | PresentationAction[])[] = [
@@ -129,12 +128,6 @@ const descriptionParts = computed(() => {
 	const [before, after] = text.split(link);
 	return { after: after ?? '', before: before ?? text };
 });
-
-const onActionIntent = (action: PresentationAction) => {
-	if (action === 'customize') {
-		void warmIabConsentDialog();
-	}
-};
 
 const onAction = async function onAction(action: PresentationAction) {
 	try {
@@ -263,8 +256,6 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 									:class="bannerStyles.partnersLink"
 									data-testid="iab-consent-banner-partners-link"
 									@click="openVendors"
-									@pointerenter="warmIabConsentDialog"
-									@focus="warmIabConsentDialog"
 								>
 									{{ partnersLinkText }}
 								</button>
@@ -319,7 +310,6 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 									object | undefined
 							"
 							@action="onAction"
-							@intent="onActionIntent"
 						/>
 					</div>
 				</div>
