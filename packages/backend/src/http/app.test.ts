@@ -769,6 +769,40 @@ for (const engine of ENGINES) {
 			assert.strictEqual(rows[0]?.ipAddress, '203.0.113.0');
 		});
 
+		it('stores free-form metadata such as an experiment arm and echoes it', async () => {
+			await seed();
+			const metadata = {
+				experiment: {
+					acknowledgedDiagnostics: false,
+					assignedBy: 'host',
+					id: 'banner-shape',
+					variant: 'bar',
+				},
+				timeToDecisionMs: 3700,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.deepStrictEqual(body.metadata, metadata);
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ metadata: unknown }>`
+						select ${sql('metadata')} from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			// The JSON column comes back decoded on Postgres and as text on SQLite.
+			const raw = rows[0]?.metadata;
+			const stored = (
+				typeof raw === 'string' ? JSON.parse(raw) : raw
+			) as typeof metadata;
+			assert.deepStrictEqual(stored.experiment, metadata.experiment);
+			assert.strictEqual(stored.timeToDecisionMs, 3700);
+		});
+
 		it('rejects a submission missing its identifiers', async () => {
 			assert.strictEqual(
 				(await post({ ...submission, subjectId: undefined })).status,
