@@ -9,23 +9,42 @@
 
 import { PROMPT_VARIANT_POSITIONS } from 'c15t';
 import type {
+	ConsentExperiment,
 	ConsentPresentation,
+	ExperimentReporter,
 	PromptPosition,
 	PromptPresentation,
 	PromptVariant,
 } from 'c15t';
+
+/** Arms of the demo's banner-shape experiment (`?experiment=1`). */
+export const EXPERIMENT_ARMS = ['floating', 'wall'] as const;
+
+export type ExperimentArm = (typeof EXPERIMENT_ARMS)[number];
 
 /** Prompt shape chosen in the URL. Empty strings mean "let the resolver pick". */
 export interface SurfaceParams {
 	variant: PromptVariant | '';
 	position: PromptPosition | '';
 	blocking: boolean;
+	/** `experiment=1`: run the banner-shape experiment instead of `presentation`. */
+	experiment: boolean;
+	/** `arm=`: force the arm, as a flag provider would. Empty lets c15t assign. */
+	arm: ExperimentArm | '';
 }
 
 export const EMPTY_SURFACE: SurfaceParams = {
+	arm: '',
 	blocking: false,
+	experiment: false,
 	position: '',
 	variant: '',
+};
+
+export const isExperimentArm = function isExperimentArm(
+	value: string
+): value is ExperimentArm {
+	return (EXPERIMENT_ARMS as readonly string[]).includes(value);
 };
 
 export const PROMPT_VARIANTS = [
@@ -63,8 +82,13 @@ export const parseSurfaceParams = function parseSurfaceParams(
 	const variant = isPromptVariant(rawVariant) ? rawVariant : '';
 	const rawPosition = searchParams.get('position') ?? '';
 	const position = isPositionFor(variant, rawPosition) ? rawPosition : '';
+	const experiment = searchParams.get('experiment') === '1';
+	const rawArm = searchParams.get('arm') ?? '';
 	return {
+		// An arm without the experiment has nothing to force.
+		arm: experiment && isExperimentArm(rawArm) ? rawArm : '',
 		blocking: searchParams.get('blocking') === '1',
+		experiment,
 		position,
 		variant,
 	};
@@ -78,6 +102,8 @@ export const applySurfaceParams = function applySurfaceParams(
 	params.delete('variant');
 	params.delete('position');
 	params.delete('blocking');
+	params.delete('experiment');
+	params.delete('arm');
 	if (surface.variant) {
 		params.set('variant', surface.variant);
 	}
@@ -86,6 +112,12 @@ export const applySurfaceParams = function applySurfaceParams(
 	}
 	if (surface.blocking) {
 		params.set('blocking', '1');
+	}
+	if (surface.experiment) {
+		params.set('experiment', '1');
+		if (surface.arm) {
+			params.set('arm', surface.arm);
+		}
 	}
 	return params;
 };
@@ -128,4 +160,28 @@ export const withSurface = function withSurface(
 		prompt.blocking = true;
 	}
 	return { ...presentation, prompt };
+};
+
+/**
+ * The demo's banner-shape experiment, or `undefined` when the URL did not
+ * ask for one. `floating` is the base shape; `wall` is the arm under test.
+ * A forced `arm` shows host-resolved assignment; otherwise c15t assigns.
+ * Events go to `window.dataLayer` and to `report`, which the page renders.
+ */
+export const demoExperiment = function demoExperiment(
+	surface: SurfaceParams,
+	report: ExperimentReporter
+): ConsentExperiment | undefined {
+	if (!surface.experiment) {
+		return undefined;
+	}
+	return {
+		id: 'banner-shape',
+		reportTo: ['dataLayer', report],
+		variant: surface.arm || undefined,
+		variants: {
+			floating: {},
+			wall: { prompt: { variant: 'wall' } },
+		},
+	};
 };

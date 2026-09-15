@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	applySurfaceParams,
+	demoExperiment,
 	EMPTY_SURFACE,
 	parseSurfaceParams,
 	setSurfaceVariant,
@@ -15,8 +16,64 @@ describe('prompt surface params', () => {
 			parseSurfaceParams(
 				new URLSearchParams('variant=bar&position=top&blocking=1')
 			)
-		).toEqual({ blocking: true, position: 'top', variant: 'bar' });
+		).toEqual({
+			...EMPTY_SURFACE,
+			blocking: true,
+			position: 'top',
+			variant: 'bar',
+		});
 		expect(parseSurfaceParams(new URLSearchParams(''))).toEqual(EMPTY_SURFACE);
+	});
+
+	it('reads the experiment flag and a forced arm', () => {
+		expect(parseSurfaceParams(new URLSearchParams('experiment=1'))).toEqual({
+			...EMPTY_SURFACE,
+			experiment: true,
+		});
+		expect(
+			parseSurfaceParams(new URLSearchParams('experiment=1&arm=wall'))
+		).toEqual({ ...EMPTY_SURFACE, arm: 'wall', experiment: true });
+		// An unknown arm is dropped; an arm without the experiment is ignored.
+		expect(
+			parseSurfaceParams(new URLSearchParams('experiment=1&arm=bar'))
+		).toEqual({ ...EMPTY_SURFACE, experiment: true });
+		expect(parseSurfaceParams(new URLSearchParams('arm=wall'))).toEqual(
+			EMPTY_SURFACE
+		);
+		expect(
+			applySurfaceParams(new URLSearchParams('arm=wall'), {
+				...EMPTY_SURFACE,
+				arm: 'wall',
+				experiment: true,
+			}).toString()
+		).toBe('experiment=1&arm=wall');
+		expect(
+			applySurfaceParams(new URLSearchParams('experiment=1&arm=wall'), {
+				...EMPTY_SURFACE,
+				arm: 'wall',
+			}).toString()
+		).toBe('');
+	});
+
+	it('builds the demo experiment only when asked', () => {
+		const report = () => undefined;
+		expect(demoExperiment(EMPTY_SURFACE, report)).toBeUndefined();
+		const assigned = demoExperiment(
+			{ ...EMPTY_SURFACE, experiment: true },
+			report
+		);
+		expect(assigned).toMatchObject({
+			id: 'banner-shape',
+			reportTo: ['dataLayer', report],
+			variant: undefined,
+		});
+		expect(Object.keys(assigned?.variants ?? {})).toEqual(['floating', 'wall']);
+		expect(
+			demoExperiment(
+				{ ...EMPTY_SURFACE, arm: 'wall', experiment: true },
+				report
+			)?.variant
+		).toBe('wall');
 	});
 
 	it('drops unknown variants and positions the variant does not accept', () => {
@@ -24,16 +81,16 @@ describe('prompt surface params', () => {
 		// because some variant accepts it and the resolver validates the pair.
 		expect(
 			parseSurfaceParams(new URLSearchParams('variant=sheet&position=center'))
-		).toEqual({ blocking: false, position: 'center', variant: '' });
+		).toEqual({ ...EMPTY_SURFACE, position: 'center' });
 		expect(
 			parseSurfaceParams(new URLSearchParams('variant=bar&position=middle'))
-		).toEqual({ blocking: false, position: '', variant: 'bar' });
+		).toEqual({ ...EMPTY_SURFACE, variant: 'bar' });
 		expect(
 			parseSurfaceParams(new URLSearchParams('variant=widget&position=top'))
-		).toEqual({ blocking: false, position: '', variant: 'widget' });
+		).toEqual({ ...EMPTY_SURFACE, variant: 'widget' });
 		expect(
 			parseSurfaceParams(new URLSearchParams('position=bottom-center'))
-		).toEqual({ blocking: false, position: 'bottom-center', variant: '' });
+		).toEqual({ ...EMPTY_SURFACE, position: 'bottom-center' });
 		expect(parseSurfaceParams(new URLSearchParams('blocking=true'))).toEqual(
 			EMPTY_SURFACE
 		);
@@ -42,7 +99,7 @@ describe('prompt surface params', () => {
 	it('round-trips through search params and clears stale keys', () => {
 		const params = applySurfaceParams(
 			new URLSearchParams('country=DE&variant=wall&position=center'),
-			{ blocking: true, position: 'bottom', variant: 'bar' }
+			{ ...EMPTY_SURFACE, blocking: true, position: 'bottom', variant: 'bar' }
 		);
 		expect(params.toString()).toBe(
 			'country=DE&variant=bar&position=bottom&blocking=1'
@@ -72,7 +129,12 @@ describe('prompt surface params', () => {
 		expect(withSurface(base, EMPTY_SURFACE)).toBe(base);
 		expect(withSurface(undefined, EMPTY_SURFACE)).toBeUndefined();
 		expect(
-			withSurface(base, { blocking: true, position: 'top', variant: 'bar' })
+			withSurface(base, {
+				...EMPTY_SURFACE,
+				blocking: true,
+				position: 'top',
+				variant: 'bar',
+			})
 		).toEqual({
 			prompt: {
 				blocking: true,
