@@ -177,15 +177,31 @@ it('versions every public package into v3 alpha and keeps subsequent releases on
 		expect(manifest.version).toMatch(expectedVersion);
 	}
 	const corePath = join(root, 'packages/core/package.json');
-	const firstVersion = JSON.parse(readFileSync(corePath, 'utf8'))
-		.version as string;
+	// A pending changeset can advance another linked package ahead of core.
+	// Changesets uses the group's highest prerelease when core next releases.
+	const coreReleaseGroup: string[] = config.linked.find((group: string[]) =>
+		group.includes('@c15t/core')
+	);
+	const firstAlpha = Math.max(
+		...publicPackages
+			.filter(({ name }) => coreReleaseGroup.includes(name))
+			.map(({ directory }) => {
+				const { version }: { version: string } = JSON.parse(
+					readFileSync(
+						join(root, 'packages', directory, 'package.json'),
+						'utf8'
+					)
+				);
+				return Number(version.split('.').at(-1));
+			})
+	);
 	writeFileSync(
 		join(root, '.changeset/next-alpha.md'),
 		"---\n'@c15t/core': patch\n---\n\nFix consent persistence.\n"
 	);
 	execFileSync(process.execPath, [changesetBin, 'version'], { cwd: root });
 	const nextVersion = JSON.parse(readFileSync(corePath, 'utf8')).version;
-	const nextAlpha = Number(firstVersion.split('.').at(-1)) + 1;
+	const nextAlpha = firstAlpha + 1;
 	expect(nextVersion).toBe(`3.0.0-alpha.${nextAlpha}`);
 	expect(() => checkAlphaRelease(root)).not.toThrow();
 }, 30_000);
