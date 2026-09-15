@@ -166,3 +166,11 @@ with DevTools, or follow [verification](../../guides/verify-consent.md) in your 
 Use [custom integrations](../../integrations/building-integrations.md) for an
 unlisted vendor. Google helpers have a separate
 [Consent Mode contract](../../integrations/google-tag-manager.md).
+
+## Clear stored tracking data
+
+Script gating does not remove cookies or Web Storage entries that a script
+already wrote. Add `clearOnRevocation` to your `ConsentRoot` or provider
+options to remove declared data when its category is denied. See
+[clear on revocation](../../integrations/clear-on-revocation.md) for configuration
+and browser limits.

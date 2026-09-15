@@ -66,3 +66,11 @@ Its owner must start and dispose that runtime.
 For standard Next.js setups, keep `ConsentRoot`. It supports
 [browser initialization](/docs/frameworks/next/client-side) as well as
 [server prefetch](/docs/frameworks/next/server-side).
+
+## Clear data when consent is denied
+
+Pass `clearOnRevocation` to `ConsentRoot`, or through the client provider's
+`options`, to declare cookies and Web Storage keys by optional consent category.
+Cleanup runs in the browser after policy resolution. The provider option is
+initial-only. See [clear on revocation](/docs/integrations/clear-on-revocation)
+for examples, cookie scopes, and browser limits.

@@ -13,6 +13,7 @@ import type { I18nConfig } from '@c15t/translations';
 import type { AllConsentNames } from '../consent/consent-types';
 import type { StorageConfig } from '../libs/cookie';
 import type { ConsentPresentation } from '../libs/policy-actions';
+import type { ClearOnRevocationConfig } from '../modules/clear-on-revocation';
 import type { IframeBlockerOptions } from '../modules/iframe-blocker';
 import type {
 	NetworkBlockerConfig,
@@ -175,6 +176,12 @@ export interface ConsentRuntimeOptions {
 	mode: ProviderTransportFactory;
 	/** Cookie/localStorage naming and lifetime for stored consent. */
 	storageConfig?: StorageConfig;
+	/**
+	 * Delete configured first-party cookies and Web Storage entries when their
+	 * category loses permission, and once on startup for denied categories.
+	 * Cleanup waits for policy resolution. Initial-only; omitted disables it.
+	 */
+	clearOnRevocation?: ClearOnRevocationConfig;
 	/** Subject identity forwarded to the backend on `identify`. */
 	user?: User | KernelUser;
 	/** Decision inputs (country, region, language, GPC) forced by the host. */

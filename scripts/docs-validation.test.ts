@@ -109,6 +109,7 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'youtube',
 		'overview',
 		'building-integrations',
+		'clear-on-revocation',
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),

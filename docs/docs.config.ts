@@ -328,7 +328,7 @@ export default defineDocsConfig({
 					title: 'Ads and pixels',
 				},
 			],
-			pages: ['overview', 'building-integrations'],
+			pages: ['overview', 'building-integrations', 'clear-on-revocation'],
 			slug: 'integrations',
 			title: 'Integrations',
 		},

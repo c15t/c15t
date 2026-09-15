@@ -42,6 +42,11 @@ export {
 	IAB_BANNER_MAX_DISPLAY_ITEMS,
 } from './libs/iab-banner-summary';
 export type { ResolveIABBannerSummaryOptions } from './libs/iab-banner-summary';
+export type {
+	ClearOnRevocationConfig,
+	ClearOnRevocationCookie,
+	ClearOnRevocationTargets,
+} from './modules/clear-on-revocation';
 export type { KernelIABControls } from './modules/iab-controls';
 export {
 	getIABControls,

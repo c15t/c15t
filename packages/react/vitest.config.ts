@@ -40,6 +40,13 @@ export default mergeConfig(
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.
 				[
+					'@c15t/core/modules/clear-on-revocation',
+					resolve(
+						__dirname,
+						'../core/src/modules/clear-on-revocation/index.ts'
+					),
+				],
+				[
 					'@c15t/core/modules/script-loader',
 					resolve(__dirname, '../core/src/modules/script-loader/index.ts'),
 				],

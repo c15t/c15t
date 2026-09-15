@@ -274,3 +274,19 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect(init).toHaveBeenCalledTimes(1);
 	});
 });
+
+test('forwards cleanup targets through provider options', async () => {
+	localStorage.setItem('analytics:visitor', 'visitor');
+	const result = render(ProviderOnlyFixture, {
+		options: {
+			clearOnRevocation: {
+				measurement: { localStorage: ['analytics:visitor'] },
+			},
+			mode: testOffline(),
+		},
+	});
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('analytics:visitor')).toBeNull()
+	);
+	result.unmount();
+});
