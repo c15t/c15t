@@ -1,5 +1,13 @@
-import { EXPERIMENT_STORAGE_KEY, custom } from '@c15t/core';
-import type { ExperimentArmTheme, SavePayload } from '@c15t/core';
+import {
+	createOfflineTransport,
+	custom,
+	EXPERIMENT_STORAGE_KEY,
+} from '@c15t/core';
+import type {
+	ExperimentArmTheme,
+	ExperimentReportEvent,
+	SavePayload,
+} from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
@@ -178,6 +186,63 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 		mounted.unmount();
 	}
 });
+
+test('reportTo receives the banner impression and the choice', async () => {
+	const reports: ExperimentReportEvent[] = [];
+	// Impressions are stamped once init marks the kernel live, so this
+	// transport answers init instead of relying on a prepared prefetch.
+	const offline = createOfflineTransport({
+		policyRules: [
+			{
+				categories: ['marketing', 'measurement'],
+				id: 'react-experiment',
+				match: { isDefault: true },
+				model: 'opt-in',
+				prompt: 'choice',
+				scopeMode: 'permissive',
+			},
+		],
+	});
+	const save = vi.fn().mockResolvedValue({ ok: true });
+	const mounted = mount(
+		{
+			experiment: {
+				...experiment,
+				reportTo: (event) => reports.push(event),
+				variant: 'bar',
+			},
+			mode: Object.assign(() => ({ init: offline.init, save }), {
+				kind: 'custom' as const,
+			}),
+			prefetch: undefined,
+		},
+		<ConsentBanner />
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(reports.map((report) => report.name)).toEqual([
+				'c15t_surface_shown',
+			])
+		);
+		document
+			.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-banner-accept-button"]'
+			)
+			?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		expect(reports.map((report) => report.name)).toEqual([
+			'c15t_surface_shown',
+			'c15t_choice_recorded',
+		]);
+		expect(reports[1]).toMatchObject({
+			consentAction: 'all',
+			experimentId: 'banner-shape',
+			surface: 'banner',
+			variant: 'bar',
+		});
+	} finally {
+		mounted.unmount();
+	}
 
 test('an arm theme reaches the injected tokens and useResolvedTheme()', async () => {
 	const mounted = mount(

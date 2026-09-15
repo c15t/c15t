@@ -6,6 +6,7 @@ import {
 	assignExperimentVariant,
 	createConsentKernel,
 	createExperimentController,
+	createExperimentReporting,
 	extractConsentNamesFromCondition,
 	kernelConfigToInitResponse,
 } from '@c15t/core';
@@ -968,9 +969,19 @@ const PersistenceMount = ({
  */
 const ExperimentMount = ({
 	controller,
+	experiment,
+	kernel,
 }: {
 	controller: ExperimentController;
+	experiment: ConsentExperiment | undefined;
+	kernel: ConsentKernel;
 }) => {
+	const reportTo = experiment?.reportTo;
+	// Subscribed before assignment so the first impression is reported too.
+	useEffect(
+		() => createExperimentReporting({ kernel, reportTo }),
+		[kernel, reportTo]
+	);
 	useEffect(() => {
 		controller.assign();
 	}, [controller]);
@@ -1341,7 +1352,11 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						/>
 					) : null}
 					{enabled && experimentController ? (
-						<ExperimentMount controller={experimentController} />
+						<ExperimentMount
+							controller={experimentController}
+							experiment={options.experiment}
+							kernel={kernel}
+						/>
 					) : null}
 					<InitMount
 						enabled={enabled}

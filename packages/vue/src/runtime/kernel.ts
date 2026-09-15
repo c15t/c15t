@@ -31,6 +31,7 @@ import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import {
 	createExperimentController,
+	createExperimentReporting,
 	createLazyIABFactory,
 } from '@c15t/core/runtime';
 import type {
@@ -598,6 +599,13 @@ export const createVueConsentKernelContext =
 				);
 			}
 		);
+		const unsubscribeReporting =
+			experiment && options.config.experiment
+				? createExperimentReporting({
+						kernel,
+						reportTo: options.config.experiment.reportTo,
+					})
+				: undefined;
 		const unsubscribePermissions = kernel.events.on(
 			'permissions:changed',
 			({ snapshot: eventSnapshot, previous }) => {
@@ -643,6 +651,7 @@ export const createVueConsentKernelContext =
 				unsubscribeChoice();
 				unsubscribePermissions();
 				unsubscribeSurfaceShown();
+				unsubscribeReporting?.();
 				experiment?.dispose();
 				if (ownsKernel) {
 					kernel.dispose();
