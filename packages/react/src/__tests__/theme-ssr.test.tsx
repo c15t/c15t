@@ -93,3 +93,45 @@ test('renders default theme tokens on the server without a nonce', () => {
 	expect(style?.textContent).toContain('--c15t-surface:');
 	expect(style?.hasAttribute('nonce')).toBe(false);
 });
+
+test.each(['</style>', '</StYlE>', '</style >'])(
+	'keeps theme values containing %s inside the stylesheet through hydration',
+	async (closingTag) => {
+		const fontFamily = `"${closingTag}<script data-theme-injection>window.themeInjected = true</script>"`;
+		const app = (
+			<ConsentProvider
+				options={{
+					mode: offline(),
+					persistence: false,
+					prefetch: policyFixture(),
+					theme: { typography: { fontFamily } },
+				}}
+			>
+				<div data-testid="themed-child" />
+			</ConsentProvider>
+		);
+		const host = document.createElement('div');
+		host.innerHTML = renderToString(app);
+		expect(host.querySelector('[data-theme-injection]')).toBeNull();
+		const style = host.querySelector('#c15t-theme');
+		assert(style);
+		expect(style.textContent).toContain('window.themeInjected = true');
+		expect(style.textContent).not.toContain('<');
+		const css = style.textContent;
+		const onRecoverableError = vi.fn();
+		let root: ReturnType<typeof hydrateRoot> | undefined;
+		document.body.append(host);
+		try {
+			await act(() => {
+				root = hydrateRoot(host, app, { onRecoverableError });
+			});
+			expect(onRecoverableError).not.toHaveBeenCalled();
+			expect(host.querySelector('[data-theme-injection]')).toBeNull();
+			expect(host.querySelector('#c15t-theme')).toBe(style);
+			expect(style.textContent).toBe(css);
+		} finally {
+			await act(() => root?.unmount());
+			host.remove();
+		}
+	}
+);

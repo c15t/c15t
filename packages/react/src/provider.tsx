@@ -912,7 +912,8 @@ const ThemeStyleMount = ({
 }) => {
 	// The banner can render on the server, so its tokens must render with it.
 	const themeCSS = useMemo(
-		() => generateThemeCSS(theme ?? defaultTheme),
+		// CSS escapes preserve token values without allowing HTML closing tags.
+		() => generateThemeCSS(theme ?? defaultTheme).replace(/</gu, '\\3c '),
 		[theme]
 	);
 
