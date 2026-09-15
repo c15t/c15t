@@ -1,6 +1,13 @@
-import { custom, evaluateConsent, hosted, policyRulePresets } from '@c15t/core';
+import {
+	applyExperimentAssignment,
+	custom,
+	evaluateConsent,
+	hosted,
+	policyRulePresets,
+} from '@c15t/core';
 import type {
 	AllConsentNames,
+	ConsentPresentation,
 	ConsentSnapshot,
 	ConsentState,
 	HasCondition,
@@ -220,6 +227,7 @@ export const createConsentClient = function createConsentClient(
 		consentCategories: options.consentCategories,
 		createIAB: context.createIAB,
 		enabled: options.enabled,
+		experiment: options.experiment,
 		i18n: options.i18n,
 		iab: context.createIAB ? (options.iab ?? { enabled: true }) : undefined,
 		iframeBlocker: options.iframeBlocker,
@@ -538,6 +546,13 @@ export const createConsentClient = function createConsentClient(
 		},
 		openDialog,
 		options,
+		get presentation(): ConsentPresentation | undefined {
+			return applyExperimentAssignment(
+				options.presentation,
+				options.experiment,
+				kernel.getSnapshot().experiment
+			);
+		},
 		ready() {
 			return ready.promise;
 		},

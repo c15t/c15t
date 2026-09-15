@@ -2,6 +2,7 @@ import type { ConsentState, ConsentSnapshot, SaveResult } from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
+import { useResolvedPresentation } from './experiment';
 import { useConsentKernelContext } from './kernel';
 
 /** Editable, unmasked choices scoped to the categories the visitor reviewed. */
@@ -10,6 +11,7 @@ export const useConsentDraft = function useConsentDraft(
 ) {
 	const { kernel, snapshot } = useConsentKernelContext();
 	const config = useConsentConfig();
+	const presentation = useResolvedPresentation();
 	const fingerprint = ref('');
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
 	const values = ref<Partial<ConsentState>>({});
@@ -36,7 +38,7 @@ export const useConsentDraft = function useConsentDraft(
 				category,
 				category === 'necessary' ||
 					(current.explicitChoice?.categories[category]?.value ??
-						config.value.presentation?.preferences?.defaults?.[category] ??
+						presentation.value?.preferences?.defaults?.[category] ??
 						(current.policyRule.model === 'opt-out' ||
 							current.policyRule.preselectedCategories.includes(category))),
 			])

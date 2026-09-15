@@ -19,6 +19,7 @@ import type { C15tResolvedOptions } from '../types';
  */
 export interface DialogPresentationOptions {
 	consentCategories?: C15tResolvedOptions['consentCategories'];
+	experiment?: C15tResolvedOptions['experiment'];
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
 	theme?: C15tResolvedOptions['theme'];
@@ -46,6 +47,7 @@ export const buildProviderProps = function buildProviderProps(
 	return {
 		options: {
 			consentCategories: options.consentCategories,
+			experiment: options.experiment,
 			legalLinks: options.legalLinks,
 			presentation: options.presentation,
 			theme: options.theme,

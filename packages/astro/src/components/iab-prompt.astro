@@ -28,7 +28,7 @@
  * <IABConsentDialog />
  * ```
  */
-import { defaultTranslationConfig, resolveConsentPresentation } from '@c15t/core';
+import { applyExperimentAssignment, defaultTranslationConfig, resolveConsentPresentation } from '@c15t/core';
 import type { TranslationsResponse } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import {
@@ -89,7 +89,7 @@ const { snapshot } = c15t;
 const { blocking } = resolveConsentPresentation({
 	override: { scrollLock },
 	policy: snapshot.policyRule,
-	presentation: c15t.options.presentation,
+	presentation: applyExperimentAssignment(c15t.options.presentation, c15t.options.experiment, snapshot.experiment),
 	surface: 'prompt',
 });
 const emitConfig = markConfigEmitted(Astro.locals);

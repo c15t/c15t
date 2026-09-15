@@ -9,6 +9,7 @@ import { defineComponent, inject, onMounted, onUnmounted, watch } from 'vue';
 import type { PropType } from 'vue';
 
 import { useConsentConfig } from './runtime/composables/config';
+import { useResolvedPresentation } from './runtime/composables/experiment';
 import { useConsentKernel } from './runtime/composables/kernel';
 import { symbolKernelContext } from './runtime/utils/symbols';
 
@@ -46,6 +47,7 @@ export const ConsentDevTools = defineComponent({
 	setup(props) {
 		const kernel = useConsentKernel();
 		const config = useConsentConfig();
+		const presentation = useResolvedPresentation();
 		const context = inject(symbolKernelContext, undefined);
 		const getCategories = () => {
 			const configured =
@@ -85,7 +87,7 @@ export const ConsentDevTools = defineComponent({
 						getPresentation: () =>
 							props.getPresentation
 								? props.getPresentation()
-								: config.value.presentation,
+								: presentation.value,
 						kernel,
 						maxEvents: props.maxEvents,
 						position: props.position,

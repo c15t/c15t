@@ -64,7 +64,7 @@ export const createDialog = function createDialog(
 				'aria-labelledby': 'consent-dialog-title',
 				'aria-modal': resolveConsentPresentation({
 					policy: snapshot.policyRule,
-					presentation: ctx.client.options.presentation,
+					presentation: ctx.client.presentation,
 					surface: 'preferences',
 				}).blocking
 					? 'true'
@@ -197,7 +197,7 @@ export const createDialog = function createDialog(
 		ctx.root.append(overlay, positioner);
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
-			presentation: ctx.client.options.presentation,
+			presentation: ctx.client.presentation,
 			surface: 'preferences',
 		});
 		if (blocking) {

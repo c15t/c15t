@@ -1,15 +1,20 @@
 'use client';
 
 import {
-	extractConsentNamesFromCondition,
+	applyExperimentAssignment,
+	assignExperimentVariant,
 	createConsentKernel,
+	createExperimentController,
+	extractConsentNamesFromCondition,
 	kernelConfigToInitResponse,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
+	ConsentExperiment,
 	ConsentPresentation,
 	Callbacks,
+	ExperimentController,
 	ConsentKernel,
 	I18nConfig,
 	KernelTransport,
@@ -87,6 +92,13 @@ export interface ConsentProviderOptions extends Pick<
 > {
 	enabled?: boolean;
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation`, exposed through `useExperiment()`, and
+	 * recorded with every impression and choice. Initial-only: remount the
+	 * provider to change the experiment.
+	 */
+	experiment?: ConsentExperiment;
 	/**
 	 * Content Security Policy nonce applied to DOM nodes c15t injects.
 	 *
@@ -498,6 +510,13 @@ const createProviderKernel = function createProviderKernel(
 		() => kernelRef.current
 	);
 
+	// A host-resolved arm is known before any render, so the server
+	// snapshot carries it and hydration renders the same variant.
+	const initialExperiment =
+		enabled && options.experiment?.variant !== undefined
+			? assignExperimentVariant(options.experiment, '')
+			: undefined;
+
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
@@ -508,6 +527,7 @@ const createProviderKernel = function createProviderKernel(
 		].flatMap((integration) =>
 			extractConsentNamesFromCondition(integration.category)
 		),
+		initialExperiment,
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
@@ -929,6 +949,22 @@ const PersistenceMount = ({
 	return null;
 };
 
+/**
+ * Assigns the experiment arm once the browser has hydrated stored records:
+ * mounted after persistence so a returning visitor's subject id seeds the
+ * hash, and before init so the first impression carries the arm.
+ */
+const ExperimentMount = ({
+	controller,
+}: {
+	controller: ExperimentController;
+}) => {
+	useEffect(() => {
+		controller.assign();
+	}, [controller]);
+	return null;
+};
+
 const WindowDebugMount = ({
 	pkg,
 	mode,
@@ -1018,16 +1054,31 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
 	const options = (props.options ?? {}) as ConsentProviderOptions;
 	const enabled = getEnabled(options);
-	const [owned, setOwned] = useState(() => ({
-		clearOnRevocation: options.clearOnRevocation,
-		disabledKernel: props.runtime
-			? undefined
-			: createProviderKernel({ ...options, enabled: false }),
-		external: props.runtime,
-		kernel:
+	const [owned, setOwned] = useState(() => {
+		const kernel =
 			props.runtime?.kernel ??
-			createProviderKernel({ ...options, enabled: true }),
-	}));
+			createProviderKernel({ ...options, enabled: true });
+		return {
+			clearOnRevocation: options.clearOnRevocation,
+			disabledKernel: props.runtime
+				? undefined
+				: createProviderKernel({ ...options, enabled: false }),
+			// Validates every arm now, so a misconfigured experiment throws at
+			// mount rather than on the visitor's first paint. A borrowed
+			// runtime already owns its experiment.
+			experiment:
+				props.runtime || !options.experiment
+					? null
+					: createExperimentController({
+							experiment: options.experiment,
+							kernel,
+							presentation: options.presentation,
+							storageConfig: options.storageConfig,
+						}),
+			external: props.runtime,
+			kernel,
+		};
+	});
 	void setOwned;
 	const {
 		clearOnRevocation: initialClearOnRevocation,
@@ -1070,9 +1121,14 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						snapshot.policyRule.scope),
 				];
 			},
-			getPresentation: () => options.presentation,
+			getPresentation: () =>
+				applyExperimentAssignment(
+					options.presentation,
+					options.experiment,
+					kernel.getSnapshot().experiment
+				),
 		}),
-		[kernel, options.presentation, externalRuntime]
+		[kernel, options.presentation, options.experiment, externalRuntime]
 	);
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
@@ -1094,6 +1150,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		return () => {
 			queueMicrotask(() => {
 				if (lifecycle.current === generation) {
+					owned.experiment?.dispose();
 					owned.kernel.dispose();
 					owned.disabledKernel?.dispose();
 				}
@@ -1135,10 +1192,16 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const uiConfigValue = useMemo<V3UIConfigValue>(
 		() => ({
 			components: options.components,
+			experiment: options.experiment,
 			legalLinks: options.legalLinks,
 			presentation: options.presentation,
 		}),
-		[options.components, options.legalLinks, options.presentation]
+		[
+			options.components,
+			options.experiment,
+			options.legalLinks,
+			options.presentation,
+		]
 	);
 
 	useColorScheme(options.colorScheme);
@@ -1163,6 +1226,9 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 							options={persistenceOptions}
 							clearRef={clearRef}
 						/>
+					) : null}
+					{enabled && owned.experiment ? (
+						<ExperimentMount controller={owned.experiment} />
 					) : null}
 					<InitMount
 						enabled={enabled}

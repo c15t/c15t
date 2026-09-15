@@ -14,10 +14,10 @@ import {
 	useActiveUI,
 	useDismissNotice,
 	usePolicyRule,
+	useResolvedPresentation,
 	useSetActiveUI,
 } from '../hooks';
 import { useTheme } from '../hooks/use-theme';
-import { useUIConfig } from '../ui-config-context';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
 export type HeadlessConsentSurfaceAction = PresentationAction;
@@ -46,7 +46,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 ) {
 	const activeUI = useActiveUI();
 	const policy = usePolicyRule();
-	const { presentation: configuredPresentation } = useUIConfig();
+	const configuredPresentation = useResolvedPresentation();
 	const globalTheme = useContext(GlobalThemeContext);
 	const presentation = useMemo(
 		() => ({

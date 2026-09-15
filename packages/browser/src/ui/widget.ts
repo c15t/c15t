@@ -208,7 +208,7 @@ export const createWidget = function createWidget(
 		return (
 			draft[name] ??
 			snapshot.explicitChoice?.categories[name]?.value ??
-			ctx.client.options.presentation?.preferences?.defaults?.[name] ??
+			ctx.client.presentation?.preferences?.defaults?.[name] ??
 			(snapshot.policyRule.model === 'opt-out' ||
 				snapshot.policyRule.preselectedCategories.includes(name))
 		);
@@ -329,11 +329,7 @@ export const createWidget = function createWidget(
 			save: 'consent-widget-footer-save-button',
 		};
 		return renderActionFooter({
-			actions: resolveActions(
-				snapshot,
-				'preferences',
-				ctx.client.options.presentation
-			),
+			actions: resolveActions(snapshot, 'preferences', ctx.client.presentation),
 			buttonTestId: (action) => testIds[action],
 			footerClassName: classes.manager.footer,
 			label: (action) => labels[action],

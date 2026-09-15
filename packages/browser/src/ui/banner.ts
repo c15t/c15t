@@ -62,7 +62,7 @@ export const createBanner = function createBanner(
 		const actions = resolveActions(
 			snapshot,
 			'prompt',
-			ctx.client.options.presentation,
+			ctx.client.presentation,
 			{
 				scrollLock: options.scrollLock,
 				trapFocus: options.trapFocus,

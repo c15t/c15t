@@ -12,6 +12,7 @@ import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
 	ConsentSnapshot,
+	ConsentExperiment,
 	ConsentPresentation,
 	KernelConfig,
 	LegalLinks,
@@ -131,6 +132,13 @@ export interface C15tMiddlewareOptions {
 export interface C15tAstroOptions {
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation`, exposed as `snapshot.experiment`, and
+	 * recorded with every impression and choice. Pass `variant` to run the
+	 * arm your flag provider resolved; omit it for built-in assignment.
+	 */
+	experiment?: ConsentExperiment;
 	/**
 	 * Transport selection. Build it with `hosted()`, `offline()` or
 	 * `manifest()` so the descriptor stays well-formed.

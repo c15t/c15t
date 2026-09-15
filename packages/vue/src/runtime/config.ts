@@ -1,4 +1,5 @@
 import type {
+	ConsentExperiment,
 	ConsentPresentation,
 	ClearOnRevocationConfig,
 	KernelEvent,
@@ -54,6 +55,13 @@ export interface ConsentConfig
 	initialRecords?: HydrationRecords;
 	/** Application-owned prompt and preference presentation. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation` (read it with `useResolvedPresentation()`),
+	 * exposed through `useExperiment()`, and recorded with every impression
+	 * and choice.
+	 */
+	experiment?: ConsentExperiment;
 	/** Receives kernel events only when the corresponding change occurs. */
 	callbacks?: {
 		onChoiceRecorded?: (

@@ -21,7 +21,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
-import { useUIConfig } from './ui-config-context';
+import { useResolvedPresentation } from './hooks';
 import { saveConsentUI } from './ui-save';
 
 /** A local, unmasked selection, committed only by an explicit save. */
@@ -250,7 +250,7 @@ export const ConsentDraftProvider = ({
 }: ConsentDraftProviderProps) => {
 	const kernel = useKernel();
 	const parent = useContext(DraftContext);
-	const { presentation } = useUIConfig();
+	const presentation = useResolvedPresentation();
 	const [local, setLocal] = useState(() =>
 		createDraftStore(kernel, initial ?? presentation?.preferences?.defaults)
 	);
@@ -264,7 +264,7 @@ export const ConsentDraftProvider = ({
 const useDraftStore = function useDraftStore() {
 	const kernel = useKernel();
 	const shared = useContext(DraftContext);
-	const { presentation } = useUIConfig();
+	const presentation = useResolvedPresentation();
 	const [local, setLocal] = useState(() =>
 		createDraftStore(kernel, presentation?.preferences?.defaults)
 	);

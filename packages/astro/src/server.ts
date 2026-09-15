@@ -1,4 +1,5 @@
 import {
+	assignExperimentVariant,
 	deferInitGvl,
 	deferInitGvlToRoute,
 	c15tProtocolHeaders,
@@ -143,6 +144,12 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 		initialRecords,
 		now,
 	};
+	// A host-resolved arm is known on the server, so the inlined config and
+	// the first HTML already carry it. Built-in assignment happens in the
+	// browser, where the stored assignment lives.
+	if (options.experiment?.variant !== undefined) {
+		config.initialExperiment = assignExperimentVariant(options.experiment, '');
+	}
 	const overrides = consentInputsToOverrides({
 		country: inputs.country,
 		language: inputs.language,

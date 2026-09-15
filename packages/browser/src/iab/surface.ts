@@ -106,7 +106,7 @@ export const createIABSurface = (
 		const actions = resolveActions(
 			snapshot,
 			dialog ? 'preferences' : 'prompt',
-			client.options.presentation,
+			client.presentation,
 			dialog
 				? undefined
 				: {

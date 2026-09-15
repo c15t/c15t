@@ -19,7 +19,7 @@
  * <ConsentBanner />
  * ```
  */
-import {defaultTranslationConfig, resolveConsentPresentation} from '@c15t/core';
+import {applyExperimentAssignment, defaultTranslationConfig, resolveConsentPresentation} from '@c15t/core';
 import type { LegalLinks, TranslationsResponse } from '@c15t/core';
 import {
 	buildColorSchemeScript,
@@ -124,7 +124,9 @@ const textDirection = getTextDirection(snapshot.translations?.language);
 
 // Same policy-driven action resolution the Svelte and React banners use, so
 // an opt-out or IAB policy produces the same buttons in the same order.
-const presentation = resolveConsentPresentation({policy: snapshot.policyRule, presentation: c15t.options.presentation, surface: 'prompt'});
+// A host-resolved experiment arm is already on the server snapshot; a
+// built-in one is assigned in the browser and re-rendered there.
+const presentation = resolveConsentPresentation({policy: snapshot.policyRule, presentation: applyExperimentAssignment(c15t.options.presentation, c15t.options.experiment, snapshot.experiment), surface: 'prompt'});
 const {
 	actionGroups,
 	blocking,

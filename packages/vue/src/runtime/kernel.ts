@@ -1,4 +1,5 @@
 import {
+	assignExperimentVariant,
 	extractConsentNamesFromCondition,
 	c15tProtocolHeaders,
 	createConsentKernel,
@@ -27,10 +28,14 @@ import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
-import { createLazyIABFactory } from '@c15t/core/runtime';
+import {
+	createExperimentController,
+	createLazyIABFactory,
+} from '@c15t/core/runtime';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeIABHandle,
+	ExperimentController,
 } from '@c15t/core/runtime';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
@@ -76,6 +81,8 @@ export interface VueConsentKernelContext {
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
+	/** Owns the configured experiment; absent for a borrowed runtime or no experiment. */
+	experiment?: ExperimentController;
 	dispose: () => void;
 }
 
@@ -524,8 +531,29 @@ export const createVueConsentKernelContext =
 					options.initialRecords?.now ??
 					options.config.initialRecords?.now,
 				transport,
+				// A host-resolved arm is known before any render, so the server
+				// snapshot carries it and hydration renders the same variant.
+				...(options.config.experiment?.variant !== undefined
+					? {
+							initialExperiment: assignExperimentVariant(
+								options.config.experiment,
+								''
+							),
+						}
+					: {}),
 				...options.kernelConfig,
 			});
+		// Validates every arm now, so a misconfigured experiment throws at
+		// plugin install rather than on the visitor's first paint.
+		const experiment =
+			ownsKernel && options.config.experiment
+				? createExperimentController({
+						experiment: options.config.experiment,
+						kernel,
+						presentation: options.config.presentation,
+						storageConfig: options.config.storageConfig,
+					})
+				: undefined;
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -591,10 +619,12 @@ export const createVueConsentKernelContext =
 				unsubscribeChoice();
 				unsubscribePermissions();
 				unsubscribeSurfaceShown();
+				experiment?.dispose();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
 			},
+			experiment,
 			iab: options.runtime?.iab ?? undefined,
 			init,
 			initialRecords: records.hydrationRecords,
@@ -731,6 +761,9 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 			storageConfig: config.storageConfig,
 		});
 		hydrateVuePersistence(context, persistence);
+		// After hydration, so a returning visitor's subject id seeds the arm
+		// and before init, so the first impression already carries it.
+		context.experiment?.assign();
 		const clearMemory = context.clearRecords;
 		context.clearRecords = persistence.clear;
 		disposers.push(() => {

@@ -2,6 +2,7 @@ import type {
 	AllConsentNames,
 	Callbacks,
 	ClearOnRevocationConfig,
+	ConsentExperiment,
 	ConsentPresentation,
 	SaveResult,
 	NoticeDismissResult,
@@ -201,6 +202,13 @@ export interface ConsentClientOptions {
 	enabled?: boolean;
 	/** Host layout and behavior, resolved under the active policy constraints. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation` (read it from `client.presentation`),
+	 * exposed as `snapshot.experiment`, and recorded with every impression
+	 * and choice.
+	 */
+	experiment?: ConsentExperiment;
 	/** UI options, or `false` for headless use. */
 	ui?: ConsentUIOptions | false;
 	/** Package name reported on `window.c15t`. */
@@ -247,6 +255,12 @@ export interface ConsentClient {
 	readonly kernel: ConsentKernel;
 	/** The options the client was created with. */
 	readonly options: ConsentClientOptions;
+	/**
+	 * `options.presentation` with the assigned experiment arm merged over it.
+	 * Equal to `options.presentation` while no experiment is configured or
+	 * assigned. Surfaces render from this, not from `options.presentation`.
+	 */
+	readonly presentation: ConsentPresentation | undefined;
 	/** Which transport is in use. */
 	readonly mode: ConsentModeName | 'custom';
 	/** Categories the UI should offer, after policy filtering. */

@@ -5,6 +5,7 @@
 		KernelOverrides,
 		KernelUser,
 	} from '@c15t/core';
+	import { applyExperimentAssignment } from '@c15t/core';
 	import {
 		createConsentRuntime,
 		normalizeKernelUser,
@@ -182,7 +183,11 @@
 						name,
 						draftValues[name] ??
 							snapshot.explicitChoice?.categories[name]?.value ??
-							options.presentation?.preferences?.defaults?.[name] ??
+							applyExperimentAssignment(
+								options.presentation,
+								options.experiment,
+								snapshot.experiment
+							)?.preferences?.defaults?.[name] ??
 							(snapshot.policyRule.model === 'opt-out' ||
 								snapshot.policyRule.preselectedCategories.includes(name)),
 					])
@@ -239,6 +244,7 @@
 			...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
 		],
 		getDraft: () => draft,
+		getExperiment: () => options.experiment,
 		getIAB: getIABState,
 		getLegalLinks: () => options.legalLinks,
 		getPresentation: () => options.presentation,
