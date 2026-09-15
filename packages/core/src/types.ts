@@ -572,6 +572,12 @@ export type KernelEvent =
 			type: 'notice:dismissed';
 			snapshot: ConsentSnapshot;
 			dismissal: NoticeDismissal;
+			/** Surface the notice was dismissed from. */
+			surface: PromptSurface;
+			/** Milliseconds from the surface's first impression to the dismissal. */
+			timeToDecisionMs?: number;
+			/** Experiment arm active at the dismissal. */
+			experiment?: ExperimentAssignment;
 	  }
 	| {
 			/** A standing privacy directive was recorded from a user-agent signal. */

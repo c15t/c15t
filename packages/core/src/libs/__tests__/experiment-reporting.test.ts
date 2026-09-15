@@ -7,6 +7,7 @@ import type { ConsentSnapshot, KernelEvent } from '../../types';
 import type { ExperimentAssignment } from '../experiment';
 import {
 	buildChoiceRecordedReport,
+	buildNoticeDismissedReport,
 	buildSurfaceShownReport,
 	dataLayerReporter,
 	posthogReporter,
@@ -65,6 +66,22 @@ const recorded = function recorded(
 	return event;
 };
 
+const dismissed = function dismissed(
+	experiment: ExperimentAssignment | null
+): Extract<KernelEvent, { type: 'notice:dismissed' }> {
+	const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
+		dismissal: { dismissedAt: 1800, fingerprint: 'fp', version: 1 },
+		snapshot: snapshot(experiment),
+		surface: 'banner',
+		timeToDecisionMs: 800,
+		type: 'notice:dismissed',
+	};
+	if (experiment) {
+		event.experiment = experiment;
+	}
+	return event;
+};
+
 afterEach(() => {
 	const host = window as ReportingWindow;
 	delete host.dataLayer;
@@ -73,6 +90,19 @@ afterEach(() => {
 });
 
 describe('build reports', () => {
+	it('reports a notice dismissal as the outcome of an opt-out arm', () => {
+		expect(buildNoticeDismissedReport(dismissed(assignment))).toEqual({
+			actionAt: 1800,
+			assignedBy: 'host',
+			experimentId: 'banner-shape',
+			name: 'c15t_notice_dismissed',
+			surface: 'banner',
+			timeToDecisionMs: 800,
+			variant: 'bar',
+		});
+		expect(buildNoticeDismissedReport(dismissed(null))).toBeNull();
+	});
+
 	it('returns null without an experiment', () => {
 		expect(buildSurfaceShownReport(shown(null))).toBeNull();
 		expect(buildChoiceRecordedReport(recorded(null))).toBeNull();

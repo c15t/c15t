@@ -192,6 +192,40 @@ describe('runtime experiments', () => {
 		runtime.dispose();
 	});
 
+	test('an opt-out notice arm reports the dismissal, not a choice', async () => {
+		const reports: ExperimentReportEvent[] = [];
+		const notice: PolicyRule = {
+			...policyRulePresets.usPrivacyStatesOptOut(),
+			match: { isDefault: true },
+			prompt: 'notice',
+		};
+		const offline = createOfflineTransport({ policyRules: [notice] });
+		const transport: KernelTransport = {
+			init: (context) => offline.init(context),
+			save: vi.fn().mockResolvedValue({ ok: true }),
+		};
+		const { runtime } = createRuntime(
+			{ reportTo: (event) => reports.push(event), variant: 'bar' },
+			transport
+		);
+		runtime.start();
+		await vi.waitFor(() => expect(reports).toHaveLength(1));
+		const result = await runtime.kernel.commands.dismissNotice();
+		expect(result.ok).toBe(true);
+		expect(transport.save).not.toHaveBeenCalled();
+		expect(reports.map((report) => report.name)).toEqual([
+			'c15t_surface_shown',
+			'c15t_notice_dismissed',
+		]);
+		expect(reports[1]).toMatchObject({
+			experimentId: 'banner-shape',
+			surface: 'banner',
+			variant: 'bar',
+		});
+		expect(reports[1]).toHaveProperty('timeToDecisionMs');
+		runtime.dispose();
+	});
+
 	test('a throwing reporter is logged and does not stop the others', async () => {
 		const error = vi
 			.spyOn(console, 'error')

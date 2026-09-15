@@ -313,6 +313,7 @@ export type {
 } from './libs/experiment-assignment';
 export {
 	buildChoiceRecordedReport,
+	buildNoticeDismissedReport,
 	buildSurfaceShownReport,
 	createExperimentReporting,
 	dataLayerReporter,
@@ -322,6 +323,7 @@ export {
 } from './libs/experiment-reporting';
 export type {
 	ExperimentChoiceRecordedReport,
+	ExperimentNoticeDismissedReport,
 	ExperimentReportEvent,
 	ExperimentReporter,
 	ExperimentReporterName,

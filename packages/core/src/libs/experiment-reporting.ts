@@ -1,8 +1,8 @@
 /**
  * Reporting sink for presentation experiments.
  *
- * Turns `surface:shown` and `choice:recorded` kernel events into flat
- * analytics events and fans them out to the targets named in
+ * Turns `surface:shown`, `choice:recorded` and `notice:dismissed` kernel
+ * events into flat analytics events and fans them out to the targets named in
  * `experiment.reportTo`: `window.dataLayer`, PostHog, or any function. Only
  * the arm, the surface and the decision go out; no identifiers, no user
  * properties.
@@ -51,10 +51,25 @@ export interface ExperimentChoiceRecordedReport extends ExperimentReportBase {
 	actionAt: number;
 }
 
+/**
+ * A dismissed opt-out notice under an experiment arm. The outcome of a
+ * `notice` prompt: no choice is recorded, so this is the event to count
+ * against the impression.
+ */
+export interface ExperimentNoticeDismissedReport extends ExperimentReportBase {
+	name: 'c15t_notice_dismissed';
+	surface: PromptSurface;
+	/** Milliseconds from the surface's first impression to the dismissal, when known. */
+	timeToDecisionMs?: number;
+	/** Epoch milliseconds of the dismissal. */
+	actionAt: number;
+}
+
 /** Event handed to an {@link ExperimentReporter}. */
 export type ExperimentReportEvent =
 	| ExperimentSurfaceShownReport
-	| ExperimentChoiceRecordedReport;
+	| ExperimentChoiceRecordedReport
+	| ExperimentNoticeDismissedReport;
 
 /** Receives every report event. */
 export type ExperimentReporter = (event: ExperimentReportEvent) => void;
@@ -114,6 +129,33 @@ export const buildChoiceRecordedReport = function buildChoiceRecordedReport(
 	return report;
 };
 
+/**
+ * Build the report for a `notice:dismissed` event.
+ *
+ * @param event - The kernel event.
+ * @returns The report, or `null` when no experiment arm is assigned.
+ */
+export const buildNoticeDismissedReport = function buildNoticeDismissedReport(
+	event: Extract<KernelEvent, { type: 'notice:dismissed' }>
+): ExperimentNoticeDismissedReport | null {
+	const experiment = event.experiment ?? event.snapshot.experiment;
+	if (!experiment) {
+		return null;
+	}
+	const report: ExperimentNoticeDismissedReport = {
+		actionAt: event.dismissal.dismissedAt,
+		assignedBy: experiment.assignedBy,
+		experimentId: experiment.id,
+		name: 'c15t_notice_dismissed',
+		surface: event.surface,
+		variant: experiment.variant,
+	};
+	if (event.timeToDecisionMs !== undefined) {
+		report.timeToDecisionMs = event.timeToDecisionMs;
+	}
+	return report;
+};
+
 /** Snake_case properties the built-in targets send. */
 export interface ExperimentReportProperties {
 	experiment_id: string;
@@ -149,10 +191,12 @@ export const toExperimentReportProperties =
 			return properties;
 		}
 		properties.action_at = event.actionAt;
-		properties.consent_action = event.consentAction;
-		properties.confirmed = event.confirmed;
 		if (event.timeToDecisionMs !== undefined) {
 			properties.time_to_decision_ms = event.timeToDecisionMs;
+		}
+		if (event.name === 'c15t_choice_recorded') {
+			properties.consent_action = event.consentAction;
+			properties.confirmed = event.confirmed;
 		}
 		return properties;
 	};
@@ -241,7 +285,8 @@ export interface ExperimentReportingOptions {
 }
 
 /**
- * Subscribe reporters to the kernel's impression and choice events.
+ * Subscribe reporters to the kernel's impression, choice and notice
+ * dismissal events.
  *
  * A reporter that throws is reported through `onError` and never breaks
  * the kernel or the other reporters.
@@ -283,6 +328,9 @@ export const createExperimentReporting = function createExperimentReporting(
 		),
 		options.kernel.events.on('choice:recorded', (event) =>
 			send(buildChoiceRecordedReport(event))
+		),
+		options.kernel.events.on('notice:dismissed', (event) =>
+			send(buildNoticeDismissedReport(event))
 		),
 	];
 	return () => {

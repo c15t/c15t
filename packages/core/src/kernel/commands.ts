@@ -35,6 +35,8 @@ import type {
 	SavePayload,
 	SaveResult,
 	SaveUISource,
+	KernelEvent,
+	PromptSurface,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
@@ -787,8 +789,24 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
 				version: 1 as const,
 			};
+			const surface: PromptSurface =
+				snapshot.activeUI === 'dialog' ? 'dialog' : 'banner';
+			const shownAt = snapshot.surfaceShownAt[surface];
 			commit({ noticeDismissal: dismissal, now: actionAt });
-			emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			const after = getSnapshot();
+			const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
+				dismissal,
+				snapshot: after,
+				surface,
+				type: 'notice:dismissed',
+			};
+			if (shownAt !== null) {
+				event.timeToDecisionMs = Math.max(0, actionAt - shownAt);
+			}
+			if (after.experiment) {
+				event.experiment = after.experiment;
+			}
+			emit(event);
 			runtime.armDeadlineTimer();
 			return Promise.resolve({ dismissal, ok: true });
 		},
