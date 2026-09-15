@@ -182,8 +182,8 @@ export const demoExperiment = function demoExperiment(
 		reportTo: ['dataLayer', report],
 		variant: surface.arm || undefined,
 		variants: {
-			floating: {},
 			bar: { prompt: { position: 'bottom', variant: 'bar' } },
+			floating: {},
 		},
 	};
 };

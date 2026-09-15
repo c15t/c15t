@@ -67,7 +67,7 @@ describe('prompt surface params', () => {
 			reportTo: ['dataLayer', report],
 			variant: undefined,
 		});
-		expect(Object.keys(assigned?.variants ?? {})).toEqual(['floating', 'bar']);
+		expect(Object.keys(assigned?.variants ?? {})).toEqual(['bar', 'floating']);
 		expect(
 			demoExperiment({ ...EMPTY_SURFACE, arm: 'bar', experiment: true }, report)
 				?.variant
