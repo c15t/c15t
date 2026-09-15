@@ -35,6 +35,7 @@ import { createConsentKernel } from '../kernel';
 import { assignExperimentVariant } from '../libs/experiment';
 import { createExperimentController } from '../libs/experiment-assignment';
 import type { ExperimentController } from '../libs/experiment-assignment';
+import { createExperimentReporting } from '../libs/experiment-reporting';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
@@ -94,6 +95,13 @@ export {
 	writeStoredExperimentAssignment,
 } from '../libs/experiment-assignment';
 export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
+export { createExperimentReporting } from '../libs/experiment-reporting';
+export type {
+	ExperimentReportEvent,
+	ExperimentReporter,
+	ExperimentReporterName,
+	ExperimentReportingOptions,
+} from '../libs/experiment-reporting';
 export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
 export { isIABConfigured } from './iab-options';
 export { createLazyIABFactory } from './lazy-iab';
@@ -419,6 +427,14 @@ export const createConsentRuntime = function createConsentRuntime(
 	const disposers: (() => void)[] = [() => kernel.dispose()];
 	if (experiment) {
 		disposers.push(() => experiment.dispose());
+		// Reporters see the same events the callbacks do; a throwing reporter
+		// is logged and never reaches the kernel.
+		disposers.push(
+			createExperimentReporting({
+				kernel,
+				reportTo: options.experiment?.reportTo,
+			})
+		);
 	}
 	disposers.push(
 		wireRuntimeCallbacks({

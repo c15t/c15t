@@ -542,6 +542,10 @@ export type KernelEvent =
 			/** Categories whose receipt this action replaced. */
 			confirmed: readonly OptionalConsentCategory[];
 			actionAt: number;
+			/** Surface the action is attributed to. */
+			uiSource: SaveUISource;
+			/** Whether the action accepted all, only necessary, or a custom selection. */
+			consentAction: SavePayload['consentAction'];
 			/** Milliseconds from the surface's first impression to this action, when known. */
 			timeToDecisionMs?: number;
 			/** The experiment arm the visitor ran, when an experiment is assigned. */

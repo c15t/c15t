@@ -937,8 +937,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({
 				actionAt,
 				confirmed: recorded.confirmed,
+				consentAction,
 				snapshot: after,
 				type: 'choice:recorded',
+				uiSource,
 				...decisionTiming,
 			});
 			runtime.armDeadlineTimer();

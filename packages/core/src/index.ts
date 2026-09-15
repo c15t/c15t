@@ -311,6 +311,25 @@ export type {
 	ExperimentControllerOptions,
 	StoredExperimentAssignment,
 } from './libs/experiment-assignment';
+export {
+	buildChoiceRecordedReport,
+	buildSurfaceShownReport,
+	createExperimentReporting,
+	dataLayerReporter,
+	posthogReporter,
+	resolveExperimentReporters,
+	toExperimentReportProperties,
+} from './libs/experiment-reporting';
+export type {
+	ExperimentChoiceRecordedReport,
+	ExperimentReportEvent,
+	ExperimentReporter,
+	ExperimentReporterName,
+	ExperimentReportingOptions,
+	ExperimentReportProperties,
+	ExperimentReportTarget,
+	ExperimentSurfaceShownReport,
+} from './libs/experiment-reporting';
 export type {
 	ConsentPresentation,
 	PromptPresentation,

@@ -10,6 +10,10 @@
  */
 import type { ResolvedPolicyRule } from '@c15t/schema/types';
 
+import type {
+	ExperimentReporter,
+	ExperimentReporterName,
+} from './experiment-reporting';
 import { resolveConsentPresentation } from './policy-actions';
 import type {
 	ConsentPresentation,
@@ -90,6 +94,16 @@ export interface ConsentExperiment {
 	 * consent record with the arm.
 	 */
 	acknowledgeDiagnostics?: boolean;
+	/**
+	 * Where to send impression and choice events. `'dataLayer'` pushes to
+	 * `window.dataLayer` (GTM / gtag), `'posthog'` calls `window.posthog.capture`,
+	 * a function receives every event. Omit to report nothing; the events are
+	 * still available through `callbacks.onSurfaceShown` / `onChoiceRecorded`.
+	 */
+	reportTo?:
+		| ExperimentReporter
+		| ExperimentReporterName
+		| readonly (ExperimentReporter | ExperimentReporterName)[];
 }
 
 /** The arm a visitor runs, recorded with impressions and choices. */
