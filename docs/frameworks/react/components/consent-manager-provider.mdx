@@ -60,3 +60,12 @@ An externally owned runtime can be passed through `runtime`. Its owner must
 start and dispose it. A provider borrowing that runtime must not initialize or
 dispose a second copy. See [consent state](/docs/guides/consent-state) and
 [deployment modes](/docs/guides/deployment-modes).
+
+## Clear data when consent is denied
+
+Set `options.clearOnRevocation` to declare cookies, localStorage keys, and
+sessionStorage keys by optional consent category. Cleanup waits for policy
+resolution, then clears denied categories and later allowed-to-denied
+transitions. This option is initial-only. See
+[clear on revocation](/docs/integrations/clear-on-revocation) for examples,
+cookie scopes, and browser limits.

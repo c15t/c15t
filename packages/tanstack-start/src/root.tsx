@@ -77,6 +77,13 @@ export interface ConsentRootProps {
 	scripts?: Script[];
 
 	/**
+	 * Remove configured browser data for initially denied categories after policy
+	 * resolution and when consent is later revoked.
+	 * Initial-only: remount ConsentRoot to replace the cleanup configuration.
+	 */
+	clearOnRevocation?: ConsentProviderOptions['clearOnRevocation'];
+
+	/**
 	 * Script-loader options.
 	 */
 	scriptLoader?: UseScriptLoaderOptions;
@@ -97,6 +104,7 @@ export interface ConsentRootProps {
 	options?: Omit<
 		ConsentProviderOptions,
 		| 'mode'
+		| 'clearOnRevocation'
 		| 'networkBlocker'
 		| 'persistence'
 		| 'prefetch'
@@ -161,6 +169,7 @@ export const ConsentRoot = ({
 	initRoute,
 	scripts,
 	scriptLoader,
+	clearOnRevocation,
 	networkBlocker,
 	persistence,
 	options,
@@ -194,6 +203,7 @@ export const ConsentRoot = ({
 			options={{
 				...options,
 				__debugPkg: '@c15t/tanstack-start',
+				clearOnRevocation,
 				mode,
 				networkBlocker,
 				persistence,

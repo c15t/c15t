@@ -45,3 +45,10 @@ assuming all helpers have the same network behavior.
 The loader exposes `updateScripts`, `getLoadedScriptIds` and `dispose`.
 Unloading an element cannot reverse requests or code that already ran. Test
 revocation and vendor cleanup with [verification](../../guides/verify-consent.md).
+
+## Clear stored tracking data
+
+Script gating does not remove cookies or Web Storage entries that a script
+already wrote. Configure [clear on revocation](../../integrations/clear-on-revocation.md)
+on your runtime, or attach its module to your existing kernel, to remove
+declared data when its category is denied.

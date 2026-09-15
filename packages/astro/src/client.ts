@@ -376,6 +376,7 @@ const createClient = function createClient(
 	// The server already resolved translations into `prefetch`, which the
 	// runtime prefers over anything it would derive from `i18n`.
 	const runtime = createConsentRuntime({
+		clearOnRevocation: extension.clearOnRevocation ?? options.clearOnRevocation,
 		consentCategories: options.consentCategories,
 		createIAB: lazyCreateIAB,
 		i18n: options.i18n as ConsentRuntimeOptions['i18n'],

@@ -42,6 +42,13 @@ const workspaceAliases = [
 		replacement: resolve(__dirname, '../core/src/modules/persistence/index.ts'),
 	},
 	{
+		find: '@c15t/core/modules/clear-on-revocation',
+		replacement: resolve(
+			__dirname,
+			'../core/src/modules/clear-on-revocation/index.ts'
+		),
+	},
+	{
 		find: '@c15t/core/modules/script-loader',
 		replacement: resolve(
 			__dirname,

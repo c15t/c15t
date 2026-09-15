@@ -54,3 +54,22 @@ describe('ConsentRoot module props', () => {
 		await expect.element(getByText('plain root')).toBeInTheDocument();
 	});
 });
+
+test('forwards clearOnRevocation and removes denied category storage', async () => {
+	localStorage.setItem('analytics:visitor', 'visitor');
+	const screen = await render(
+		<ConsentRoot
+			state={policyFixture({ measurement: false })}
+			persistence={false}
+			clearOnRevocation={{
+				measurement: { localStorage: ['analytics:visitor'] },
+			}}
+		>
+			<div>cleanup configured</div>
+		</ConsentRoot>
+	);
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('analytics:visitor')).toBeNull()
+	);
+	screen.unmount();
+});
