@@ -62,16 +62,18 @@ import '../consent-example.css';
 			this.disposeExperiment = [
 				client.subscribe(renderArm),
 				kernel.events.on('surface:shown', (event) => {
-					const arm = event.experiment ?? event.snapshot.experiment;
-					if (arm) {
-						log(`c15t_surface_shown · ${arm.variant} · ${event.surface}`);
+					const assignment = event.experiment ?? event.snapshot.experiment;
+					if (assignment) {
+						log(
+							`c15t_surface_shown · ${assignment.variant} · ${event.surface}`
+						);
 					}
 				}),
 				kernel.events.on('choice:recorded', (event) => {
-					const arm = event.experiment ?? event.snapshot.experiment;
-					if (arm) {
+					const assignment = event.experiment ?? event.snapshot.experiment;
+					if (assignment) {
 						log(
-							`c15t_choice_recorded · ${arm.variant} · ${event.uiSource} · ${event.consentAction}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
+							`c15t_choice_recorded · ${assignment.variant} · ${event.uiSource} · ${event.consentAction}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
 						);
 					}
 				}),
