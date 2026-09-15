@@ -70,5 +70,13 @@ export const prefetchIabConsentDialog = () =>
 	prefetchSurfaceAfterLoad(loadIabConsentDialog);
 
 /** Immediate warm for user-intent signals (hover/focus on "customize"). */
-export const warmConsentManager = () => undefined;
-export const warmIabConsentDialog = () => undefined;
+const warmSurface = async (load: () => Promise<unknown>): Promise<void> => {
+	try {
+		await load();
+	} catch {
+		// Intent preloading is optional. The async component handles load errors
+		// when the visitor actually opens it, and can retry a failed preload.
+	}
+};
+export const warmConsentManager = () => warmSurface(loadConsentManager);
+export const warmIabConsentDialog = () => warmSurface(loadIabConsentDialog);

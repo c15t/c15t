@@ -25,6 +25,7 @@ import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './actions.vue';
 import ConsentDescription from './description.vue';
+import { warmConsentManager } from './lazy-surfaces';
 import ConsentTag from './tag.vue';
 
 /**
@@ -197,6 +198,12 @@ const actionTestIds = {
 	reject: 'consent-banner-reject-button',
 } as const;
 
+const onActionIntent = (action: PresentationAction) => {
+	if (action === 'customize') {
+		void warmConsentManager();
+	}
+};
+
 const onAction = function onAction(action: PresentationAction) {
 	if (action === 'dismiss') {
 		void kernel.commands.dismissNotice();
@@ -316,6 +323,7 @@ const onAction = function onAction(action: PresentationAction) {
 								...config.components?.banner?.actionGroup,
 							}"
 							@action="onAction"
+							@intent="onActionIntent"
 						>
 							<template #leading>
 								<div
@@ -335,6 +343,8 @@ const onAction = function onAction(action: PresentationAction) {
 										:data-right="right"
 										:data-testid="`consent-banner-right-link-${right}`"
 										@click="onRight"
+										@pointerenter="warmConsentManager"
+										@focus="warmConsentManager"
 									>
 										{{ rightLabels[right] }}
 									</button>

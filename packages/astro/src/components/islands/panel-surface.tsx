@@ -22,13 +22,61 @@ import {
 	ConsentDraftProvider,
 	ConsentProvider,
 } from '@c15t/react';
-import { lazy, Suspense } from 'react';
+import { useEffect, useState } from 'react';
+import type { ComponentType } from 'react';
 
 import type { DialogPresentationOptions } from '../../ui/provider-props';
+import type { IABDialogSurfaceProps } from './iab-dialog-surface';
 
 // The TCF surface is the larger half of this island and only an IAB site
 // ever opens it, so it arrives on its own chunk.
-const IABDialogSurface = lazy(() => import('./iab-dialog-surface'));
+let loadedIABSurface: ComponentType<IABDialogSurfaceProps> | undefined;
+let iabSurfacePromise:
+	| Promise<ComponentType<IABDialogSurfaceProps>>
+	| undefined;
+const loadIABSurface = () => {
+	iabSurfacePromise ??= (async () => {
+		const module = await import('./iab-dialog-surface');
+		loadedIABSurface = module.default;
+		return loadedIABSurface;
+	})();
+	return iabSurfacePromise;
+};
+
+// This island only mounts in the browser. Resolve its component through state
+// so the first open does not wait for React's Suspense retry throttle.
+const IABDialogSurface = (props: IABDialogSurfaceProps) => {
+	const [loadedComponent, setLoadedComponent] = useState(
+		() => loadedIABSurface
+	);
+	const [failure, setFailure] = useState<{ error: unknown }>();
+	useEffect(() => {
+		if (loadedComponent) {
+			return;
+		}
+		let active = true;
+		void (async () => {
+			try {
+				const loaded = await loadIABSurface();
+				if (active) {
+					setLoadedComponent(() => loaded);
+				}
+			} catch (error) {
+				if (active) {
+					setFailure({ error });
+				}
+			}
+		})();
+		return () => {
+			active = false;
+		};
+	}, [loadedComponent]);
+	if (failure) {
+		throw failure.error;
+	}
+	const Component = loadedComponent;
+	return Component ? <Component {...props} /> : null;
+};
 
 /** Props the React dialog adapter passes in. */
 export interface ConsentDialogSurfaceProps {
@@ -53,9 +101,7 @@ const ConsentDialogSurface = ({
 		options={options}
 	>
 		{kind === 'iab' ? (
-			<Suspense fallback={null}>
-				<IABDialogSurface tab={tab} />
-			</Suspense>
+			<IABDialogSurface tab={tab} />
 		) : (
 			<ConsentDraftProvider>
 				<ConsentDialog />

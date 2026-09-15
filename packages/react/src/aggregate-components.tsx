@@ -1,10 +1,8 @@
 'use client';
 
-import { lazy, Suspense, useSyncExternalStore } from 'react';
-import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
+import type { ComponentType } from 'react';
 
 import { registerDialogChunkWarmer } from './chunk-warming';
-import type * as DialogExports from './components/panel';
 import type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
@@ -14,107 +12,34 @@ import type {
 	ConsentWidgetProps,
 } from './components/preferences';
 import { useActiveUI } from './hooks';
+import { createDeferredModule } from './utils/deferred-module';
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
 
-const withSuspense = function withSuspense(
-	Component: LazyExoticComponent<AnyComponent>
-): AnyComponent {
-	const LazyAggregateComponent = (props: Record<string, unknown>) => (
-		<Suspense fallback={null}>
-			<Component {...props} />
-		</Suspense>
+// Vite derives chunk names from these paths. Keep them neutral so URL filters
+// do not block the UI. Each module is shared by its default and compound exports.
+const dialogModule = createDeferredModule(() => import('./components/panel'));
+const widgetModule = createDeferredModule(
+	() => import('./components/preferences')
+);
+const lazyDialogExport = (name: string) =>
+	dialogModule.component(
+		(module) => (module as Record<string, unknown>)[name] as AnyComponent
 	);
-	return LazyAggregateComponent;
-};
-
-type DialogModule = typeof DialogExports;
-type DialogSnapshot =
-	| { status: 'pending' }
-	| { status: 'ready'; module: DialogModule }
-	| { status: 'error'; error: unknown };
-
-const pendingDialog: DialogSnapshot = { status: 'pending' };
-let dialogSnapshot: DialogSnapshot = pendingDialog;
-let dialogPromise: Promise<void> | undefined;
-const dialogListeners = new Set<() => void>();
-const getDialogSnapshot = () => dialogSnapshot;
-const getServerDialogSnapshot = () => pendingDialog;
-
-const loadDialog = () => {
-	// Vite uses this path for chunk names. Keep it neutral so URL filters
-	// do not block the UI. Share the result with hover/focus warming.
-	dialogPromise ??= (async () => {
-		try {
-			const module = await import('./components/panel');
-			dialogSnapshot = { module, status: 'ready' };
-		} catch (error) {
-			dialogSnapshot = { error, status: 'error' };
-		}
-		for (const listener of dialogListeners) {
-			listener();
-		}
-	})();
-};
-
-const subscribeToDialog = (listener: () => void) => {
-	dialogListeners.add(listener);
-	loadDialog();
-	return () => {
-		dialogListeners.delete(listener);
-	};
-};
-
-const LazyConsentDialogComponent = (props: ConsentDialogProps) => {
-	// A null Suspense fallback still throttles React 19's first reveal.
-	// Subscribe to module completion so a ready dialog can mount directly.
-	const snapshot = useSyncExternalStore(
-		subscribeToDialog,
-		getDialogSnapshot,
-		getServerDialogSnapshot
+const lazyWidgetExport = (name: string) =>
+	widgetModule.component(
+		(module) => (module as Record<string, unknown>)[name] as AnyComponent
 	);
-	if (snapshot.status === 'error') {
-		throw snapshot.error;
-	}
-	if (snapshot.status === 'pending') {
-		return null;
-	}
-	const Component = snapshot.module.ConsentDialog;
-	return <Component {...props} />;
-};
 
-// Compound exports can render inline during SSR, unlike the default dialog's
-// client-only portal. Preserve their existing Suspense rendering contract.
-const lazyDialogExport = function lazyDialogExport(name: string) {
-	return withSuspense(
-		lazy(async () => {
-			const module = await import('./components/panel');
-			return {
-				default: (module as Record<string, unknown>)[name] as AnyComponent,
-			};
-		})
-	);
-};
-
-// Warm the dialog chunk on user intent (customize-button hover/focus) so the
-// first open never pays network+parse on the click path.
-registerDialogChunkWarmer(loadDialog);
-
-const lazyWidgetExport = function lazyWidgetExport(name: string) {
-	return withSuspense(
-		lazy(async () => {
-			const module = await import('./components/preferences');
-			const exports = module as Record<string, unknown>;
-			return {
-				default: exports[name] as AnyComponent,
-			};
-		})
-	);
-};
-
-const LazyConsentWidgetComponent = lazyWidgetExport(
-	'ConsentWidget'
-) as ComponentType<ConsentWidgetProps & { children?: ReactNode }>;
+registerDialogChunkWarmer(() => {
+	void dialogModule.preload();
+});
+const LazyConsentDialogComponent = dialogModule.component(
+	(module) => module.ConsentDialog
+);
+const LazyConsentWidgetComponent = widgetModule.component(
+	(module) => module.ConsentWidget
+);
 
 const LazyConsentDialog = (props: ConsentDialogProps) => {
 	const activeUI = useActiveUI();

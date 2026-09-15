@@ -10,6 +10,7 @@ import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 
+import * as lazySurfaces from '../runtime/components/lazy-surfaces';
 import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
@@ -282,4 +283,23 @@ describe('ConsentBanner surface variants', () => {
 			variant: 'floating',
 		});
 	});
+});
+
+test('preloads preferences on Customize hover and focus without opening it', async () => {
+	const warmConsentManager = vi.spyOn(lazySurfaces, 'warmConsentManager');
+	await renderBanner(buildInit(choiceRule));
+	const customize = query('consent-banner-customize-button');
+	expect(customize).not.toBeNull();
+	expect(warmConsentManager).not.toHaveBeenCalled();
+	customize?.dispatchEvent(new Event('pointerenter'));
+	expect(warmConsentManager).toHaveBeenCalledOnce();
+	customize?.dispatchEvent(new Event('focus'));
+	expect(warmConsentManager).toHaveBeenCalledTimes(2);
+	expect(query('consent-dialog-root')).toBeNull();
+	query('consent-banner-accept-button')?.dispatchEvent(
+		new Event('pointerenter')
+	);
+	expect(warmConsentManager).toHaveBeenCalledTimes(2);
+	await vi.dynamicImportSettled();
+	warmConsentManager.mockRestore();
 });

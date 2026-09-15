@@ -1,5 +1,10 @@
 # React dialog first-open delay
 
+This report records the initial default-dialog fix. The
+[follow-up loader audit](../consent-loader-audit-2026-09-15/README.md) expands
+the fix to compound exports and other loaders, preserves SSR hydration, and
+remeasures the default dialog with the final implementation.
+
 The default aggregate `ConsentDialog` waits for React's Suspense retry throttle
 after its code has loaded. A cached module subscription removes that wait while
 keeping the dialog loaded on demand. No configuration changes are required.
@@ -40,11 +45,11 @@ Instrumenting `window.setTimeout` before hydration captured React scheduling
 passes through `performWorkOnRoot`. Further retries used the remaining portion
 of the same deadline. React's renderer defines `FALLBACK_THROTTLE_MS = 300`.
 
-The default dialog now uses `useSyncExternalStore` to subscribe to a cached
+The initial default-dialog fix used `useSyncExternalStore` to subscribe to a cached
 dynamic import. Import completion mounts the component directly. Hover/focus
 warming fills the same cache. Import errors propagate to error boundaries.
 The default dialog and floating trigger already render through client-only
-portals. Compound exports keep their existing Suspense behavior because they
+portals. Compound exports initially kept their existing Suspense behavior because they
 can also render inline during SSR.
 
 ## Method

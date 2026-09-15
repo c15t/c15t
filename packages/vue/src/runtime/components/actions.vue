@@ -53,6 +53,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
 	action: [action: T];
+	intent: [action: T];
 }>();
 
 const actionGroups = computed<T[][]>(() => {
@@ -162,6 +163,8 @@ const buttonMode = function buttonMode(action: T) {
 				:data-action="action"
 				:data-testid="actionTestId(action)"
 				@click="emit('action', action)"
+				@pointerenter="emit('intent', action)"
+				@focus="emit('intent', action)"
 			>
 				{{ actionLabel(action) }}
 			</ConsentButton>

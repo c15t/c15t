@@ -95,6 +95,10 @@ provider is not needed. Keep `ConsentRoot` outside route-specific pages so it
 survives navigation. The mounted hook registers scripts against the module's
 existing kernel after hydration; unmounting the app cleans up the loader.
 
+The built-in banner preloads preferences when its Customize button or preference
+link receives hover or keyboard focus. Preloading does not open the dialog or
+record consent. A click without prior hover or focus loads it on demand.
+
 ## Customize the theme
 
 Import `defineTheme` from `c15t/vue` in `nuxt.config.ts`. That entry also
