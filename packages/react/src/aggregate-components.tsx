@@ -1,9 +1,10 @@
 'use client';
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useSyncExternalStore } from 'react';
 import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
 
 import { registerDialogChunkWarmer } from './chunk-warming';
+import type * as DialogExports from './components/panel';
 import type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
@@ -27,15 +28,69 @@ const withSuspense = function withSuspense(
 	return LazyAggregateComponent;
 };
 
-// Vite uses these module paths for development requests and production
-// chunk names. Keep them neutral so URL filters do not block the UI.
+type DialogModule = typeof DialogExports;
+type DialogSnapshot =
+	| { status: 'pending' }
+	| { status: 'ready'; module: DialogModule }
+	| { status: 'error'; error: unknown };
+
+const pendingDialog: DialogSnapshot = { status: 'pending' };
+let dialogSnapshot: DialogSnapshot = pendingDialog;
+let dialogPromise: Promise<void> | undefined;
+const dialogListeners = new Set<() => void>();
+const getDialogSnapshot = () => dialogSnapshot;
+const getServerDialogSnapshot = () => pendingDialog;
+
+const loadDialog = () => {
+	// Vite uses this path for chunk names. Keep it neutral so URL filters
+	// do not block the UI. Share the result with hover/focus warming.
+	dialogPromise ??= (async () => {
+		try {
+			const module = await import('./components/panel');
+			dialogSnapshot = { module, status: 'ready' };
+		} catch (error) {
+			dialogSnapshot = { error, status: 'error' };
+		}
+		for (const listener of dialogListeners) {
+			listener();
+		}
+	})();
+};
+
+const subscribeToDialog = (listener: () => void) => {
+	dialogListeners.add(listener);
+	loadDialog();
+	return () => {
+		dialogListeners.delete(listener);
+	};
+};
+
+const LazyConsentDialogComponent = (props: ConsentDialogProps) => {
+	// A null Suspense fallback still throttles React 19's first reveal.
+	// Subscribe to module completion so a ready dialog can mount directly.
+	const snapshot = useSyncExternalStore(
+		subscribeToDialog,
+		getDialogSnapshot,
+		getServerDialogSnapshot
+	);
+	if (snapshot.status === 'error') {
+		throw snapshot.error;
+	}
+	if (snapshot.status === 'pending') {
+		return null;
+	}
+	const Component = snapshot.module.ConsentDialog;
+	return <Component {...props} />;
+};
+
+// Compound exports can render inline during SSR, unlike the default dialog's
+// client-only portal. Preserve their existing Suspense rendering contract.
 const lazyDialogExport = function lazyDialogExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/panel');
-			const exports = module as Record<string, unknown>;
 			return {
-				default: exports[name] as AnyComponent,
+				default: (module as Record<string, unknown>)[name] as AnyComponent,
 			};
 		})
 	);
@@ -43,9 +98,7 @@ const lazyDialogExport = function lazyDialogExport(name: string) {
 
 // Warm the dialog chunk on user intent (customize-button hover/focus) so the
 // first open never pays network+parse on the click path.
-registerDialogChunkWarmer(() => {
-	void import('./components/panel');
-});
+registerDialogChunkWarmer(loadDialog);
 
 const lazyWidgetExport = function lazyWidgetExport(name: string) {
 	return withSuspense(
@@ -59,9 +112,6 @@ const lazyWidgetExport = function lazyWidgetExport(name: string) {
 	);
 };
 
-const LazyConsentDialogComponent = lazyDialogExport(
-	'ConsentDialog'
-) as ComponentType<ConsentDialogProps & { children?: ReactNode }>;
 const LazyConsentWidgetComponent = lazyWidgetExport(
 	'ConsentWidget'
 ) as ComponentType<ConsentWidgetProps & { children?: ReactNode }>;
