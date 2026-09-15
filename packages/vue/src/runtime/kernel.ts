@@ -476,6 +476,37 @@ const resolveInitialPolicyPending = (
 		initialConfig.initialPolicyResolution
 	);
 
+/**
+ * Kernel config carrying a host-resolved arm. Known before any render, so
+ * the server snapshot renders the same variant hydration will.
+ */
+const hostExperimentSeed = (
+	config: RuntimeConsentConfig
+): Pick<KernelConfig, 'initialExperiment'> => {
+	const seed: Pick<KernelConfig, 'initialExperiment'> = {};
+	if (config.experiment?.variant !== undefined) {
+		seed.initialExperiment = assignExperimentVariant(config.experiment, '');
+	}
+	return seed;
+};
+
+/**
+ * Validates every arm now, so a misconfigured experiment throws at plugin
+ * install rather than on the visitor's first paint.
+ */
+const createOwnedExperiment = (
+	kernel: ConsentKernel,
+	config: RuntimeConsentConfig
+): ExperimentController | undefined =>
+	config.experiment
+		? createExperimentController({
+				experiment: config.experiment,
+				kernel,
+				presentation: config.presentation,
+				storageConfig: config.storageConfig,
+			})
+		: undefined;
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -531,29 +562,12 @@ export const createVueConsentKernelContext =
 					options.initialRecords?.now ??
 					options.config.initialRecords?.now,
 				transport,
-				// A host-resolved arm is known before any render, so the server
-				// snapshot carries it and hydration renders the same variant.
-				...(options.config.experiment?.variant !== undefined
-					? {
-							initialExperiment: assignExperimentVariant(
-								options.config.experiment,
-								''
-							),
-						}
-					: {}),
+				...hostExperimentSeed(options.config),
 				...options.kernelConfig,
 			});
-		// Validates every arm now, so a misconfigured experiment throws at
-		// plugin install rather than on the visitor's first paint.
-		const experiment =
-			ownsKernel && options.config.experiment
-				? createExperimentController({
-						experiment: options.config.experiment,
-						kernel,
-						presentation: options.config.presentation,
-						storageConfig: options.config.storageConfig,
-					})
-				: undefined;
+		const experiment = ownsKernel
+			? createOwnedExperiment(kernel, options.config)
+			: undefined;
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -729,6 +743,34 @@ const mountClearOnRevocation = (
  * @param options - Set `runInit: false` to skip the initial `init()`.
  * @returns A disposer that undoes everything this call mounted.
  */
+/**
+ * Hydrate stored records into the kernel, then assign the experiment arm:
+ * after hydration so a returning visitor's subject id seeds the arm, and
+ * before init so the first impression already carries it. No-op without
+ * browser storage.
+ */
+const mountVuePersistence = (
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+		return () => undefined;
+	}
+	const persistence = createPersistence({
+		kernel: context.kernel,
+		skipHydration: true,
+		storageConfig: config.storageConfig,
+	});
+	hydrateVuePersistence(context, persistence);
+	context.experiment?.assign();
+	const clearMemory = context.clearRecords;
+	context.clearRecords = persistence.clear;
+	return () => {
+		context.clearRecords = clearMemory;
+		persistence.dispose();
+	};
+};
+
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
@@ -754,23 +796,7 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => windowDebug.dispose());
 	}
 
-	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
-		const persistence = createPersistence({
-			kernel: context.kernel,
-			skipHydration: true,
-			storageConfig: config.storageConfig,
-		});
-		hydrateVuePersistence(context, persistence);
-		// After hydration, so a returning visitor's subject id seeds the arm
-		// and before init, so the first impression already carries it.
-		context.experiment?.assign();
-		const clearMemory = context.clearRecords;
-		context.clearRecords = persistence.clear;
-		disposers.push(() => {
-			context.clearRecords = clearMemory;
-			persistence.dispose();
-		});
-	}
+	disposers.push(mountVuePersistence(context, config));
 
 	const detectedGpc = context.snapshot.value.privacySignals.gpc;
 	if (detectedGpc.detected && detectedGpc.active) {
