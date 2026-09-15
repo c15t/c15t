@@ -10,7 +10,7 @@ on:
 jobs:
   report:
     name: Generate Coverage Comment(s)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     # Only run this job if the triggering workflow run was successful AND was triggered by a pull_request event
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
 
@@ -172,7 +172,7 @@ jobs:
   report_coverage_matrix:
     name: Report Coverage (${{ matrix.package.name }})
     needs: report # Depends on the job that generated the matrix
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     if: needs.report.outputs.matrix != '[]' # Only run if matrix is not empty
     permissions:
       actions: read # re-download artifacts from the triggering CI run
