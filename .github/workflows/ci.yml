@@ -18,7 +18,7 @@ env:
 jobs:
   lint_and_check:
     name: 🧹 Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read # Needed for checkout
       checks: write # Needed for reviewdog to post results
@@ -64,7 +64,7 @@ jobs:
 
   build:
     name: 🏗️ Build Packages
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read # Needed for checkout
     steps:
@@ -106,7 +106,7 @@ jobs:
   test:
     name: 🧪 Run Tests & Coverage
     needs: build # Run only after build succeeds
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read # Needed for checkout
     steps:

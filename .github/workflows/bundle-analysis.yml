@@ -17,7 +17,7 @@ env:
 jobs:
   bundle-analysis:
     name: 📦 Bundle Size Analysis
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
     steps:
