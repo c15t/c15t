@@ -1,5 +1,8 @@
 ---
+'c15t': patch
+'@c15t/nextjs': patch
 '@c15t/react': patch
+'@c15t/tanstack-start': patch
 '@c15t/ui': patch
 ---
 
