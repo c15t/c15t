@@ -1,5 +1,12 @@
 # @c15t/backend
 
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [dd44a61]
+  - @c15t/browser@3.0.0-alpha.1
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

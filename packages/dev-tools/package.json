@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "3.0.0-alpha.0",
+	"version": "3.0.0-alpha.1",
 	"description": "Kernel-first developer tools for inspecting and debugging c15t consent state.",
 	"keywords": [
 		"c15t",

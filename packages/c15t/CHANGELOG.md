@@ -1,5 +1,28 @@
 # c15t
 
+## 3.0.0-alpha.1
+
+### Minor Changes
+
+- dd44a61: Add opt-in `clearOnRevocation` configuration to remove declared cookies, localStorage keys, and sessionStorage keys when their consent category is denied or revoked. Support exact names, prefix patterns, and cookie scopes while protecting c15t consent records.
+
+### Patch Changes
+
+- 46f45c4: Render theme CSS in the server HTML to prevent React and Next.js consent banners from flashing default styles before hydration. Preserve the stylesheet and CSP nonce through hydration, and escape theme values so HTML-like strings remain inside the stylesheet.
+
+  Apply explicit dark mode and system color preferences before hydration while preserving client-side theme updates.
+
+  Reduce the theme generator's initial JavaScript and generated CSS size without changing theme tokens or contrast colors.
+
+- Updated dependencies [dd44a61]
+- Updated dependencies [46f45c4]
+  - @c15t/core@3.0.0-alpha.1
+  - @c15t/react@3.0.0-alpha.1
+  - @c15t/nextjs@3.0.0-alpha.1
+  - @c15t/tanstack-start@3.0.0-alpha.1
+  - @c15t/vue@3.0.0-alpha.1
+  - @c15t/ui@3.0.0-alpha.1
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

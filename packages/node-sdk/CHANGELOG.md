@@ -1,5 +1,11 @@
 # @c15t/node-sdk
 
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- @c15t/backend@3.0.0-alpha.1
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

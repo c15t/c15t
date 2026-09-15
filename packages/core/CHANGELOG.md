@@ -1,5 +1,11 @@
 # c15t
 
+## 3.0.0-alpha.1
+
+### Minor Changes
+
+- dd44a61: Add opt-in `clearOnRevocation` configuration to remove declared cookies, localStorage keys, and sessionStorage keys when their consent category is denied or revoked. Support exact names, prefix patterns, and cookie scopes while protecting c15t consent records.
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

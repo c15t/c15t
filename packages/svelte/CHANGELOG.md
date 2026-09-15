@@ -1,5 +1,20 @@
 # @c15t/svelte
 
+## 3.0.0-alpha.1
+
+### Minor Changes
+
+- dd44a61: Add opt-in `clearOnRevocation` configuration to remove declared cookies, localStorage keys, and sessionStorage keys when their consent category is denied or revoked. Support exact names, prefix patterns, and cookie scopes while protecting c15t consent records.
+
+### Patch Changes
+
+- Updated dependencies [dd44a61]
+- Updated dependencies [46f45c4]
+  - @c15t/core@3.0.0-alpha.1
+  - @c15t/ui@3.0.0-alpha.1
+  - @c15t/dev-tools@3.0.0-alpha.1
+  - @c15t/iab@3.0.0-alpha.1
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

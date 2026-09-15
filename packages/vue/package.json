@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/vue",
-	"version": "3.0.0-alpha.0",
+	"version": "3.0.0-alpha.1",
 	"description": "Developer-first CMP for Vue and Nuxt: cookie banner, consent manager, preference center composables. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"ccpa",
