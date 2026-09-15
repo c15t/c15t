@@ -380,6 +380,29 @@ describe('save body receipts', () => {
 		).toThrow();
 	});
 
+	test('sends the time to decision and user properties as audit metadata', () => {
+		const user = { externalId: 'user-1', properties: { plan: 'pro' } };
+		expect(
+			buildSubjectPostBody(PAYLOAD, { domain: 'example.com' }).metadata
+		).toBeUndefined();
+		expect(
+			buildSubjectPostBody(
+				{ ...PAYLOAD, timeToDecisionMs: 3700 },
+				{ domain: 'example.com' }
+			).metadata
+		).toEqual({ timeToDecisionMs: 3700 });
+		expect(
+			buildSubjectPostBody(
+				{ ...PAYLOAD, timeToDecisionMs: 3700, user },
+				{ domain: 'example.com' }
+			).metadata
+		).toEqual({ timeToDecisionMs: 3700, userProperties: { plan: 'pro' } });
+		expect(
+			buildSubjectPostBody({ ...PAYLOAD, user }, { domain: 'example.com' })
+				.metadata
+		).toEqual({ userProperties: { plan: 'pro' } });
+	});
+
 	test('reuses the identical body on replay', () => {
 		const first = buildSubjectPostBody(PAYLOAD, { domain: 'example.com' });
 		const second = buildSubjectPostBody(PAYLOAD, { domain: 'example.com' });

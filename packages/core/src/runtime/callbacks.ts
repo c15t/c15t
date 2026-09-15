@@ -24,7 +24,8 @@ export const stringifyRuntimeError = (error: unknown): string => {
 };
 
 /**
- * Subscribe once per owning runtime to explicit actions and permission changes.
+ * Subscribe once per owning runtime to explicit actions, permission changes
+ * and surface impressions.
  * @param options - The kernel and application callbacks.
  * @returns A disposer for the subscriptions.
  */
@@ -38,6 +39,9 @@ export const wireRuntimeCallbacks = ({
 		),
 		kernel.events.on('permissions:changed', ({ type: _type, ...event }) =>
 			callbacks?.onPermissionsChanged?.(event)
+		),
+		kernel.events.on('surface:shown', ({ type: _type, ...event }) =>
+			callbacks?.onSurfaceShown?.(event)
 		),
 		kernel.events.on('command:error', ({ error }) =>
 			callbacks?.onError?.({ error: stringifyRuntimeError(error) })

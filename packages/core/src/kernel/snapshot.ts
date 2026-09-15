@@ -30,6 +30,7 @@ import type {
 	KernelConfig,
 	KernelIABAuthority,
 	KernelIABState,
+	PromptSurface,
 } from '../types';
 import { validateHydrationRecords } from './records';
 
@@ -78,6 +79,16 @@ const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
 );
 const EMPTY_DIRECTIVES: ConsentSnapshot['optOutDirectives'] = Object.freeze([]);
 const EMPTY_OVERRIDES = Object.freeze({});
+/** No prompt surface has been shown yet. Shared by every fresh snapshot. */
+export const UNSHOWN_SURFACES: ConsentSnapshot['surfaceShownAt'] =
+	Object.freeze({ banner: null, dialog: null });
+
+/** Whether an active UI value is a prompt surface the kernel timestamps. */
+export const isPromptSurface = function isPromptSurface(
+	value: unknown
+): value is PromptSurface {
+	return value === 'banner' || value === 'dialog';
+};
 const DEFAULT_PRIVACY_SIGNALS: ConsentSnapshot['privacySignals'] =
 	Object.freeze({
 		gpc: Object.freeze({ active: false, detected: false, override: undefined }),
@@ -233,6 +244,9 @@ export const freezeSnapshot = function freezeSnapshot(
 			Object.freeze(nested);
 		}
 	}
+	if (snapshot.surfaceShownAt !== UNSHOWN_SURFACES) {
+		Object.freeze(snapshot.surfaceShownAt);
+	}
 	return Object.freeze(snapshot) as ConsentSnapshot;
 };
 
@@ -326,6 +340,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		restrictions: evaluation.restrictions,
 		revision: 0,
 		subject,
+		surfaceShownAt: UNSHOWN_SURFACES,
 		translations: config.initialTranslations
 			? { ...config.initialTranslations }
 			: null,

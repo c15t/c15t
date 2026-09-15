@@ -403,6 +403,9 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		restrictions,
 		revision: current.revision + 1,
 		subject,
+		// Impressions are stamped by the runtime once its lifecycle started;
+		// derivation only carries the record through.
+		surfaceShownAt: current.surfaceShownAt,
 		translations: pick(patch.translations, current.translations),
 		user: pick(patch.user, current.user),
 	};

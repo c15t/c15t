@@ -1236,7 +1236,7 @@ describe('kernel transport: failed save replay', () => {
 				'not an entry',
 				entry(null),
 				entry({ ...validPayload, model: 'weird', subjectId: 'sub_model' }),
-				entry({ ...validPayload, subjectId: 'sub_ui', uiSource: 'widget' }),
+				entry({ ...validPayload, subjectId: 'sub_ui', uiSource: 'popup' }),
 				entry({ ...validPayload, consentAction: 'x', subjectId: 'sub_action' }),
 				entry({
 					...validPayload,

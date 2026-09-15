@@ -144,7 +144,8 @@ const isSavePayload = function isSavePayload(
 		value.uiSource === null ||
 		value.uiSource === 'none' ||
 		value.uiSource === 'banner' ||
-		value.uiSource === 'dialog';
+		value.uiSource === 'dialog' ||
+		value.uiSource === 'widget';
 	const validAction =
 		value.consentAction === 'all' ||
 		value.consentAction === 'necessary' ||
@@ -159,6 +160,7 @@ const isSavePayload = function isSavePayload(
 		validUiSource &&
 		validAction &&
 		isOptionalFiniteNumber(value.givenAt) &&
+		isOptionalFiniteNumber(value.timeToDecisionMs) &&
 		(value.policySnapshotToken === null ||
 			typeof value.policySnapshotToken === 'string') &&
 		(value.tcString === undefined ||

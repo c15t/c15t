@@ -6,6 +6,7 @@ import {
 	choiceRecords,
 	explicitChoice,
 	matchedResolution,
+	noneRule,
 	noticeRule,
 	NOW,
 	optOutRule,
@@ -98,7 +99,12 @@ test('every patch input agrees with full snapshot derivation', () => {
 
 test('no-op init retains the initial time and snapshot but emits lifecycle events', async () => {
 	vi.spyOn(Date, 'now').mockReturnValue(NOW + 1000);
-	const kernel = createConsentKernel({ now: NOW });
+	// A rule without a prompt keeps every surface hidden, so init records no
+	// impression and the snapshot can stay identical.
+	const kernel = createConsentKernel({
+		initialPolicyResolution: matchedResolution(noneRule()),
+		now: NOW,
+	});
 	const initial = kernel.getSnapshot();
 	const listener = vi.fn();
 	const completed = vi.fn();

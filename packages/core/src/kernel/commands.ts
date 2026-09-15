@@ -33,13 +33,14 @@ import type {
 	SaveInput,
 	SavePayload,
 	SaveResult,
+	SaveUISource,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import { createPendingSaveQueue } from './pending-saves';
 import type { KernelRuntime } from './runtime';
 import { selectSavePayload } from './save-selection';
-import { copyIABAuthority } from './snapshot';
+import { copyIABAuthority, isPromptSurface } from './snapshot';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_BASE_DELAY_MS = 1000;
@@ -406,6 +407,28 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 		};
 
+	/**
+	 * Which surface a save is attributed to and, when that surface has a
+	 * recorded impression, the milliseconds from it to the action. Unknown
+	 * for a non-prompt surface, a surface never shown, or a clock that moved
+	 * backwards; then `timeToDecisionMs` is omitted rather than negative.
+	 */
+	const saveAttribution = function saveAttribution(
+		current: ConsentSnapshot,
+		requested: SaveUISource | undefined,
+		actionAt: number
+	): { uiSource: SaveUISource; timeToDecisionMs?: number } {
+		const uiSource = requested ?? current.activeUI;
+		if (!isPromptSurface(uiSource)) {
+			return { uiSource };
+		}
+		const shownAt = current.surfaceShownAt[uiSource];
+		if (shownAt === null || actionAt < shownAt) {
+			return { uiSource };
+		}
+		return { timeToDecisionMs: actionAt - shownAt, uiSource };
+	};
+
 	const finishLifecycle = function finishLifecycle(
 		now: number,
 		activatePrivacy = true
@@ -431,6 +454,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	): Promise<InitResult> {
 		emit({ type: 'command:init:started' });
 		runtime.start();
+		runtime.markLive();
 
 		if (!transport?.init) {
 			const now = runtime.now();
@@ -785,6 +809,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				actionAt?: number;
 				iabAuthority?: KernelIABAuthority;
 				categories?: readonly AllConsentNames[];
+				uiSource?: SaveUISource;
 			}
 		): Promise<SaveResult> {
 			const currentTime = runtime.now();
@@ -816,7 +841,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return owedNothing;
 			}
 			// Captured once, before validation, yield, network or persistence.
-			const uiSource = before.activeUI;
+			const attribution = saveAttribution(before, context?.uiSource, actionAt);
 			const { values, consentAction } = resolveSaveSelection(
 				before,
 				runtime.getDraft(),
@@ -871,11 +896,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					confirmedCategories[category] = decision.value;
 				}
 			}
+			const { uiSource, ...decisionTiming } = attribution;
 			emit({
 				actionAt,
 				confirmed: recorded.confirmed,
 				snapshot: after,
 				type: 'choice:recorded',
+				...decisionTiming,
 			});
 			runtime.armDeadlineTimer();
 
@@ -896,6 +923,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				tcString: after.iab?.tcString ?? null,
 				uiSource,
 				user: after.user,
+				...decisionTiming,
 			};
 
 			const result = await sendSave(

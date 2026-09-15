@@ -193,7 +193,7 @@ export interface ConsentRuntimeOptions {
 	/** Lifecycle callbacks invoked as consent is fetched, set and changed. */
 	callbacks?: Pick<
 		Callbacks,
-		'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+		'onChoiceRecorded' | 'onPermissionsChanged' | 'onSurfaceShown' | 'onError'
 	>;
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];

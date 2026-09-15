@@ -93,7 +93,9 @@ export const buildSetters = function buildSetters(
 
 	return {
 		activeUI(ui: KernelActiveUI): void {
-			commit({ activeUI: ui });
+			// The clock travels so a surface impression is stamped at the time
+			// it opened, not at the previous evaluation.
+			commit({ activeUI: ui, now: runtime.now() });
 		},
 
 		consentCategories(

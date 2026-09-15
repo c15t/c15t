@@ -4,7 +4,8 @@
  *
  * - `commit()` merges a patch, re-derives dependent fields and adopts the
  *   result only when something changed, emitting `permissions:changed`
- *   when the effective permissions differ.
+ *   when the effective permissions differ and, once `init` marked the
+ *   kernel live, `surface:shown` when a prompt surface becomes visible.
  * - `hydrate()` is the validated read-only boundary for stored records.
  * - `refresh()` re-evaluates at a supplied time so an elapsed expiry cannot
  *   hide behind a delayed or background timer.
@@ -20,12 +21,13 @@ import type {
 	KernelEvent,
 	KernelTransport,
 	Listener,
+	PromptSurface,
 } from '../types';
 import { buildNextSnapshot, isUnchangedPatch, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
 import { mergeServerPatch } from './server-records';
-import { freezeSnapshot } from './snapshot';
+import { freezeSnapshot, isPromptSurface } from './snapshot';
 
 /** Longest delay `setTimeout` honors without overflowing to zero. */
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
@@ -57,6 +59,14 @@ export interface KernelRuntime {
 	isStarted: () => boolean;
 	/** Mark the lifecycle started: detect the browser signal, install listeners. */
 	start: () => void;
+	/**
+	 * Mark the kernel live in a visitor's browser: from here on, every commit
+	 * that leaves a prompt surface visible stamps its first impression. A
+	 * surface already visible is stamped at `at` (default: now). Hydration
+	 * alone never marks the kernel live, so a server or test kernel that only
+	 * applies records records no impression.
+	 */
+	markLive: (at?: number) => void;
 	hydrate: (records: HydrationRecords) => HydrationResult;
 	/**
 	 * Apply server-mapped records, keeping the newest receipt per category
@@ -120,6 +130,7 @@ export const createRuntime = function createRuntime(
 			}
 		: null;
 	let started = false;
+	let live = false;
 	let disposed = false;
 	let generation = 0;
 	let forwardedDirectives: Set<string> | undefined;
@@ -140,12 +151,37 @@ export const createRuntime = function createRuntime(
 		}
 	};
 
+	/**
+	 * Whether the visible prompt surface still lacks its first impression
+	 * time. Only a live kernel stamps impressions: a server render, a
+	 * prerender seed or a hydrate-only kernel never records that a visitor
+	 * saw anything.
+	 */
+	const impressionDue = function impressionDue(
+		candidate: ConsentSnapshot
+	): candidate is ConsentSnapshot & { activeUI: PromptSurface } {
+		return (
+			live &&
+			isPromptSurface(candidate.activeUI) &&
+			candidate.surfaceShownAt[candidate.activeUI] === null
+		);
+	};
+
 	const commit = function commit(patch: SnapshotPatch): boolean {
 		const current = snapshot;
-		if (isUnchangedPatch(current, patch)) {
+		if (!impressionDue(current) && isUnchangedPatch(current, patch)) {
 			return false;
 		}
-		const next = buildNextSnapshot(current, patch);
+		let next = buildNextSnapshot(current, patch);
+		if (impressionDue(next)) {
+			next = {
+				...next,
+				surfaceShownAt: {
+					...next.surfaceShownAt,
+					[next.activeUI]: next.evaluatedAt,
+				},
+			};
+		}
 		if (!snapshotChanged(current, next)) {
 			return false;
 		}
@@ -156,6 +192,19 @@ export const createRuntime = function createRuntime(
 				previous: current.effectivePermissions,
 				snapshot,
 				type: 'permissions:changed',
+			});
+		}
+		const surface = snapshot.activeUI;
+		if (
+			live &&
+			isPromptSurface(surface) &&
+			(surface !== current.activeUI || current.surfaceShownAt[surface] === null)
+		) {
+			emit({
+				shownAt: snapshot.evaluatedAt,
+				snapshot,
+				surface,
+				type: 'surface:shown',
 			});
 		}
 		return true;
@@ -325,6 +374,18 @@ export const createRuntime = function createRuntime(
 		}
 	};
 
+	const markLive = function markLive(at: number = now()): void {
+		if (live) {
+			return;
+		}
+		live = true;
+		// A surface visible before init ran is first shown now; the stamp
+		// records that impression once and emits `surface:shown` for it.
+		if (impressionDue(snapshot)) {
+			commit({ now: at });
+		}
+	};
+
 	const applyRecords = function applyRecords(
 		records: HydrationRecords,
 		mergeNewest: boolean
@@ -404,6 +465,7 @@ export const createRuntime = function createRuntime(
 			generation += 1;
 		},
 		isStarted: () => started,
+		markLive,
 		mergeServerRecords,
 		now,
 		rearm() {

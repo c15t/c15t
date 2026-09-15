@@ -1,6 +1,3 @@
-import type { JurisdictionCode } from '@c15t/schema/types';
-import type { Translations } from '@c15t/translations';
-
 import type { ConsentState } from '../consent/compliance';
 import type { KernelEvent } from '../types';
 
@@ -14,27 +11,30 @@ export type Callback<T = void> = (arg: T) => void;
 /**
  * Payload types for the callbacks
  */
-export interface OnBannerFetchedPayload {
-	jurisdiction: JurisdictionCode | { code: JurisdictionCode; message: string };
-	location: {
-		countryCode: string | null;
-		regionCode: string | null;
-	};
-	translations: {
-		language: string;
-		translations: Translations;
-	};
-}
 export interface OnErrorPayload {
 	error: string;
 }
 
+/**
+ * Payload of {@link Callbacks.onChoiceRecorded}: the snapshot after the
+ * action, the categories it confirmed, when it happened and, when the
+ * attributed surface has a recorded impression, `timeToDecisionMs`.
+ */
 export type OnChoiceRecordedPayload = Omit<
 	Extract<KernelEvent, { type: 'choice:recorded' }>,
 	'type'
 >;
 export type OnPermissionsChangedPayload = Omit<
 	Extract<KernelEvent, { type: 'permissions:changed' }>,
+	'type'
+>;
+/**
+ * Payload of {@link Callbacks.onSurfaceShown}: which prompt surface became
+ * visible, the epoch milliseconds of the impression and the snapshot it
+ * rendered from.
+ */
+export type OnSurfaceShownPayload = Omit<
+	Extract<KernelEvent, { type: 'surface:shown' }>,
 	'type'
 >;
 
@@ -44,11 +44,13 @@ export interface Callbacks {
 	/** Runs only when effective permissions change. */
 	onPermissionsChanged?: Callback<OnPermissionsChangedPayload>;
 	/**
-	 * Called when the consent banner is fetched.
+	 * Runs when the banner or the dialog becomes visible: once per opening,
+	 * never for a hydrated record or a server render. Count these as
+	 * impressions; `onChoiceRecorded` counts decisions.
 	 *
-	 * @param payload - The payload containing the consent banner information
+	 * @param payload - The surface, its impression time and the snapshot.
 	 */
-	onBannerFetched?: Callback<OnBannerFetchedPayload>;
+	onSurfaceShown?: Callback<OnSurfaceShownPayload>;
 	/**
 	 * Called when an error occurs.
 	 *
