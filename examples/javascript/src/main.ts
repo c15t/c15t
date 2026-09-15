@@ -56,7 +56,8 @@ const experimentKey = function experimentKey(): string {
 	localStorage.setItem('example-experiment-key', key);
 	return key;
 };
-// Recorded on the kernel so `surface:shown` and `choice:recorded` carry it.
+// Recorded on the kernel so `surface:shown`, `choice:recorded` and
+// `notice:dismissed` carry it.
 const assignment = experiment
 	? assignExperimentVariant(experiment, experimentKey())
 	: null;
@@ -99,10 +100,16 @@ const stopReporting = createExperimentReporting({
 				'dataLayer',
 				(event) => {
 					const item = document.createElement('li');
-					item.textContent =
+					const action =
 						event.name === 'c15t_choice_recorded'
-							? `${event.name} · ${event.variant} · ${event.surface} · ${event.consentAction}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
-							: `${event.name} · ${event.variant} · ${event.surface}`;
+							? ` · ${event.consentAction}`
+							: '';
+					const timing =
+						event.name !== 'c15t_surface_shown' &&
+						event.timeToDecisionMs !== undefined
+							? ` · ${event.timeToDecisionMs} ms`
+							: '';
+					item.textContent = `${event.name} · ${event.variant} · ${event.surface}${action}${timing}`;
 					experimentEvents.append(item);
 				},
 			]

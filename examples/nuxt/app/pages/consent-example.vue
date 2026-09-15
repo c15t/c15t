@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { ExperimentReportEvent } from 'c15t';
-import { buildChoiceRecordedReport, buildSurfaceShownReport } from 'c15t';
+import {
+	buildChoiceRecordedReport,
+	buildNoticeDismissedReport,
+	buildSurfaceShownReport,
+} from 'c15t';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const snapshot = useConsentSnapshot();
@@ -26,6 +30,12 @@ onMounted(() => {
 		}),
 		kernel.events.on('choice:recorded', (event) => {
 			const report = buildChoiceRecordedReport(event);
+			if (report) {
+				experimentEvents.value.push(report);
+			}
+		}),
+		kernel.events.on('notice:dismissed', (event) => {
+			const report = buildNoticeDismissedReport(event);
 			if (report) {
 				experimentEvents.value.push(report);
 			}
@@ -83,9 +93,14 @@ onUnmounted(() => {
 					{{ event.surface }}
 					<template v-if="event.name === 'c15t_choice_recorded'">
 						· {{ event.consentAction }}
-						<template v-if="event.timeToDecisionMs !== undefined">
-							· {{ event.timeToDecisionMs }} ms
-						</template>
+					</template>
+					<template
+						v-if="
+							event.name !== 'c15t_surface_shown' &&
+							event.timeToDecisionMs !== undefined
+						"
+					>
+						· {{ event.timeToDecisionMs }} ms
 					</template>
 				</li>
 			</ul>

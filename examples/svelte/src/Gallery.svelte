@@ -37,9 +37,9 @@
 						<code>{event.name}</code> · {event.variant} · {event.surface}
 						{#if event.name === 'c15t_choice_recorded'}
 							· {event.consentAction}
-							{#if event.timeToDecisionMs !== undefined}
-								· {event.timeToDecisionMs} ms
-							{/if}
+						{/if}
+						{#if event.name !== 'c15t_surface_shown' && event.timeToDecisionMs !== undefined}
+							· {event.timeToDecisionMs} ms
 						{/if}
 					</li>
 				{/each}

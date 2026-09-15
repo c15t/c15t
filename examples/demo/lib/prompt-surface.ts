@@ -18,7 +18,7 @@ import type {
 } from 'c15t';
 
 /** Arms of the demo's banner-shape experiment (`?experiment=1`). */
-export const EXPERIMENT_ARMS = ['floating', 'wall'] as const;
+export const EXPERIMENT_ARMS = ['floating', 'bar'] as const;
 
 export type ExperimentArm = (typeof EXPERIMENT_ARMS)[number];
 
@@ -164,7 +164,9 @@ export const withSurface = function withSurface(
 
 /**
  * The demo's banner-shape experiment, or `undefined` when the URL did not
- * ask for one. `floating` is the base shape; `wall` is the arm under test.
+ * ask for one. `floating` is the base shape; `bar` is the arm under test.
+ * A bar is valid for both `choice` and `notice` prompts; a wall would trip
+ * `blocking-forbidden` under the opt-out notice scenario.
  * A forced `arm` shows host-resolved assignment; otherwise c15t assigns.
  * Events go to `window.dataLayer` and to `report`, which the page renders.
  */
@@ -181,7 +183,7 @@ export const demoExperiment = function demoExperiment(
 		variant: surface.arm || undefined,
 		variants: {
 			floating: {},
-			wall: { prompt: { variant: 'wall' } },
+			bar: { prompt: { position: 'bottom', variant: 'bar' } },
 		},
 	};
 };

@@ -60,9 +60,14 @@ const experiment = useExperiment();
 					{{ event.surface }}
 					<template v-if="event.name === 'c15t_choice_recorded'">
 						· {{ event.consentAction }}
-						<template v-if="event.timeToDecisionMs !== undefined">
-							· {{ event.timeToDecisionMs }} ms
-						</template>
+					</template>
+					<template
+						v-if="
+							event.name !== 'c15t_surface_shown' &&
+							event.timeToDecisionMs !== undefined
+						"
+					>
+						· {{ event.timeToDecisionMs }} ms
 					</template>
 				</li>
 			</ul>

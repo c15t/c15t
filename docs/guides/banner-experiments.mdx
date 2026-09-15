@@ -11,7 +11,8 @@ look: variant, position, layout, primary actions, blocking. The policy rule,
 its categories and its copy stay the same for every arm, so every arm records
 a choice under the same policy fingerprint. c15t merges the assigned arm over
 `presentation`, exposes it as `snapshot.experiment`, and saves it with every
-choice, so you can compare opt-in rate and time to decision per arm.
+choice, so you can compare opt-in, opt-out and dismissal rates and time to
+decision per arm.
 
 ```tsx title="src/app/providers.tsx"
 'use client';
@@ -314,20 +315,22 @@ consent flow or the other reporters.
 
 ### Events
 
-Both events carry the arm and the surface. The built-in targets send the
+Every event carries the arm and the surface. The built-in targets send the
 snake\_case property names; a function receives the camelCase ones.
+`c15t_notice_dismissed` fires when a visitor dismisses an opt-out `notice`
+prompt, which records no choice.
 
-| Property (built-in) | Function field | `c15t_surface_shown` | `c15t_choice_recorded` |
-| --- | --- | --- | --- |
-| `experiment_id` | `experimentId` | yes | yes |
-| `variant` | `variant` | yes | yes |
-| `assigned_by` | `assignedBy` | `host` or `c15t` | `host` or `c15t` |
-| `surface` | `surface` | `banner` or `dialog` | `banner`, `dialog` or `widget` |
-| `shown_at` | `shownAt` | epoch ms | - |
-| `action_at` | `actionAt` | - | epoch ms |
-| `consent_action` | `consentAction` | - | `all`, `necessary` or `custom` |
-| `confirmed` | `confirmed` | - | categories the action confirmed |
-| `time_to_decision_ms` | `timeToDecisionMs` | - | ms from impression to action, when known |
+| Property (built-in) | Function field | `c15t_surface_shown` | `c15t_choice_recorded` | `c15t_notice_dismissed` |
+| --- | --- | --- | --- | --- |
+| `experiment_id` | `experimentId` | yes | yes | yes |
+| `variant` | `variant` | yes | yes | yes |
+| `assigned_by` | `assignedBy` | `host` or `c15t` | `host` or `c15t` | `host` or `c15t` |
+| `surface` | `surface` | `banner` or `dialog` | `banner`, `dialog` or `widget` | `banner` or `dialog` |
+| `shown_at` | `shownAt` | epoch ms | - | - |
+| `action_at` | `actionAt` | - | epoch ms | epoch ms |
+| `consent_action` | `consentAction` | - | `all`, `necessary` or `custom` | - |
+| `confirmed` | `confirmed` | - | categories the action confirmed | - |
+| `time_to_decision_ms` | `timeToDecisionMs` | - | ms from impression to action, when known | ms from impression to dismissal, when known |
 
 ### What is sent
 
@@ -345,6 +348,16 @@ with the same `experiment_id` and `variant`. Group both counts by those two
 properties and the ratio per group is the metric to compare. Add `surface` to
 the grouping when the dialog runs its own arm, so a choice made in the
 preference center is not counted against the banner impression.
+
+Under an `opt-out` policy with `prompt: 'notice'`, dismissing the notice
+records no choice, so the rate to compare is `c15t_notice_dismissed` events
+per `c15t_surface_shown` event with `surface: banner`. The secondary metric
+is `c15t_surface_shown` events with `surface: dialog` per banner impression:
+whether the arm drove more visitors into the preference center to opt out.
+
+Under `opt-out` with `prompt: 'choice'`, the choice event still fires. Count
+`c15t_choice_recorded` events with `consent_action: necessary` per impression
+as the opt-out rate.
 
 Time to decision is the median `time_to_decision_ms` per `experiment_id` and
 `variant` over the choice events. Use the median, not the mean: a visitor who

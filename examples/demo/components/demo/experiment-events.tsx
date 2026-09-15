@@ -44,11 +44,11 @@ export const ExperimentEvents = ({
 							<span className="text-muted-foreground">
 								{event.variant} · {event.surface}
 								{event.name === 'c15t_choice_recorded'
-									? ` · ${event.consentAction}${
-											event.timeToDecisionMs === undefined
-												? ''
-												: ` · ${event.timeToDecisionMs} ms`
-										}`
+									? ` · ${event.consentAction}`
+									: ''}
+								{event.name !== 'c15t_surface_shown' &&
+								event.timeToDecisionMs !== undefined
+									? ` · ${event.timeToDecisionMs} ms`
 									: ''}
 							</span>
 						</li>
@@ -57,7 +57,7 @@ export const ExperimentEvents = ({
 			)}
 			<p className="text-muted-foreground text-xs">
 				Also pushed to <code>window.dataLayer</code>. Add{' '}
-				<code>&amp;arm=wall</code> to force the arm as a flag provider would.
+				<code>&amp;arm=bar</code> to force the arm as a flag provider would.
 			</p>
 		</div>
 	);

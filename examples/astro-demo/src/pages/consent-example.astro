@@ -77,6 +77,14 @@ import '../consent-example.css';
 						);
 					}
 				}),
+				kernel.events.on('notice:dismissed', (event) => {
+					const assignment = event.experiment ?? event.snapshot.experiment;
+					if (assignment) {
+						log(
+							`c15t_notice_dismissed · ${assignment.variant} · ${event.surface}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
+						);
+					}
+				}),
 			];
 		};
 

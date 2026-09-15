@@ -68,11 +68,11 @@ const ExperimentReadout = ({
 					>
 						<code>{event.name}</code> · {event.variant} · {event.surface}
 						{event.name === 'c15t_choice_recorded'
-							? ` · ${event.consentAction}${
-									event.timeToDecisionMs === undefined
-										? ''
-										: ` · ${event.timeToDecisionMs} ms`
-								}`
+							? ` · ${event.consentAction}`
+							: ''}
+						{event.name !== 'c15t_surface_shown' &&
+						event.timeToDecisionMs !== undefined
+							? ` · ${event.timeToDecisionMs} ms`
 							: ''}
 					</li>
 				))}

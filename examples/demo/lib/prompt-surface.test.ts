@@ -31,26 +31,26 @@ describe('prompt surface params', () => {
 			experiment: true,
 		});
 		expect(
-			parseSurfaceParams(new URLSearchParams('experiment=1&arm=wall'))
-		).toEqual({ ...EMPTY_SURFACE, arm: 'wall', experiment: true });
+			parseSurfaceParams(new URLSearchParams('experiment=1&arm=bar'))
+		).toEqual({ ...EMPTY_SURFACE, arm: 'bar', experiment: true });
 		// An unknown arm is dropped; an arm without the experiment is ignored.
 		expect(
-			parseSurfaceParams(new URLSearchParams('experiment=1&arm=bar'))
+			parseSurfaceParams(new URLSearchParams('experiment=1&arm=wall'))
 		).toEqual({ ...EMPTY_SURFACE, experiment: true });
-		expect(parseSurfaceParams(new URLSearchParams('arm=wall'))).toEqual(
+		expect(parseSurfaceParams(new URLSearchParams('arm=bar'))).toEqual(
 			EMPTY_SURFACE
 		);
 		expect(
-			applySurfaceParams(new URLSearchParams('arm=wall'), {
+			applySurfaceParams(new URLSearchParams('arm=bar'), {
 				...EMPTY_SURFACE,
-				arm: 'wall',
+				arm: 'bar',
 				experiment: true,
 			}).toString()
-		).toBe('experiment=1&arm=wall');
+		).toBe('experiment=1&arm=bar');
 		expect(
-			applySurfaceParams(new URLSearchParams('experiment=1&arm=wall'), {
+			applySurfaceParams(new URLSearchParams('experiment=1&arm=bar'), {
 				...EMPTY_SURFACE,
-				arm: 'wall',
+				arm: 'bar',
 			}).toString()
 		).toBe('');
 	});
@@ -67,13 +67,25 @@ describe('prompt surface params', () => {
 			reportTo: ['dataLayer', report],
 			variant: undefined,
 		});
-		expect(Object.keys(assigned?.variants ?? {})).toEqual(['floating', 'wall']);
+		expect(Object.keys(assigned?.variants ?? {})).toEqual(['floating', 'bar']);
 		expect(
-			demoExperiment(
-				{ ...EMPTY_SURFACE, arm: 'wall', experiment: true },
-				report
-			)?.variant
-		).toBe('wall');
+			demoExperiment({ ...EMPTY_SURFACE, arm: 'bar', experiment: true }, report)
+				?.variant
+		).toBe('bar');
+	});
+
+	it('keeps the bar arm valid for an opt-out notice prompt', () => {
+		const forced = demoExperiment(
+			{ ...EMPTY_SURFACE, arm: 'bar', experiment: true },
+			() => undefined
+		);
+		// A notice is never blocking and cannot use `wall`, so the arm under
+		// test is a bottom bar, which both `choice` and `notice` accept.
+		expect(forced?.variants.bar).toEqual({
+			prompt: { position: 'bottom', variant: 'bar' },
+		});
+		expect(forced?.variants.bar?.prompt?.blocking).toBeUndefined();
+		expect(forced?.variants.floating).toEqual({});
 	});
 
 	it('drops unknown variants and positions the variant does not accept', () => {

@@ -221,7 +221,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const params = parseParams(searchParams);
 	const scenario = getScenarioById(params.scenarioId);
 	// `?experiment=1` swaps the scenario presentation for the banner-shape
-	// experiment; `&arm=wall` forces the arm the way a flag provider would.
+	// experiment; `&arm=bar` forces the arm the way a flag provider would.
 	const surface = parseSurfaceParams(searchParams);
 	const [experimentEvents, setExperimentEvents] = useState<
 		ExperimentReportEvent[]
