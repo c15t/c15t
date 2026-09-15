@@ -32,7 +32,7 @@ env:
 jobs:
   repository:
     name: Repository and docs
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       build: ${{ steps.plan.outputs.build }}
       packageChecks: ${{ steps.plan.outputs.packageChecks }}
@@ -71,7 +71,7 @@ jobs:
     name: Build packages once
     needs: repository
     if: needs.repository.outputs.build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -102,7 +102,7 @@ jobs:
     name: Package behavior and types
     needs: [repository, build]
     if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -145,7 +145,7 @@ jobs:
     name: Database behavior and migrations
     needs: [repository, build]
     if: needs.repository.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     services:
       postgres:
@@ -191,7 +191,7 @@ jobs:
     name: Browser integration (${{ matrix.kind }})
     needs: [repository, build]
     if: needs.repository.outputs.integrations != '[]'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -246,7 +246,7 @@ jobs:
     name: CI complete
     if: always()
     needs: [repository, build, packages, backend, browser, bundle, performance]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Check selected jobs
         env:

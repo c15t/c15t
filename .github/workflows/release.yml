@@ -32,7 +32,7 @@ jobs:
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: write # Needed by changesets/action to create releases/tags and commit version bumps
       pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
