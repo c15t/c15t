@@ -518,6 +518,24 @@ const createOwnedExperiment = (
 			})
 		: undefined;
 
+/**
+ * Fan out impressions and choices to `experiment.reportTo`. Only an owned
+ * experiment reports; a borrowed runtime already does.
+ */
+const mountExperimentReporting = (
+	kernel: ConsentKernel,
+	experiment: ExperimentController | undefined,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (!(experiment && config.experiment)) {
+		return () => undefined;
+	}
+	return createExperimentReporting({
+		kernel,
+		reportTo: config.experiment.reportTo,
+	});
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -599,13 +617,11 @@ export const createVueConsentKernelContext =
 				);
 			}
 		);
-		const unsubscribeReporting =
-			experiment && options.config.experiment
-				? createExperimentReporting({
-						kernel,
-						reportTo: options.config.experiment.reportTo,
-					})
-				: undefined;
+		const unsubscribeReporting = mountExperimentReporting(
+			kernel,
+			experiment,
+			options.config
+		);
 		const unsubscribePermissions = kernel.events.on(
 			'permissions:changed',
 			({ snapshot: eventSnapshot, previous }) => {
@@ -651,7 +667,7 @@ export const createVueConsentKernelContext =
 				unsubscribeChoice();
 				unsubscribePermissions();
 				unsubscribeSurfaceShown();
-				unsubscribeReporting?.();
+				unsubscribeReporting();
 				experiment?.dispose();
 				if (ownsKernel) {
 					kernel.dispose();
