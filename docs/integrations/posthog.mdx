@@ -143,3 +143,10 @@ and confirm later application calls stop. Repeat with persisted consent and
 client navigation. If you choose cookieless capture, verify that behavior
 explicitly in the project rather than expecting silence after denial. See
 [consent verification](/docs/guides/verify-consent).
+
+## Measure opt-in rate
+
+Running a banner experiment? Set `reportTo: 'posthog'` on the `experiment`
+option and c15t captures `c15t_surface_shown` and `c15t_choice_recorded` with
+the arm, surface and decision through `window.posthog.capture`. See
+[banner experiments](/docs/guides/banner-experiments#report-impressions-and-choices).
