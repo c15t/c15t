@@ -378,6 +378,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'openai-pixel',
+		hint: 'ChatGPT Ads conversion measurement',
+		integrationCategory: 'ads-and-pixels',
+		key: 'openaiPixel',
+		label: 'OpenAI Pixel (ChatGPT Ads)',
+		packageSubpath: 'openai-pixel',
+		vendor: 'openai-pixel',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'reddit-pixel',
 		hint: 'Reddit ads tracking',
 		integrationCategory: 'ads-and-pixels',

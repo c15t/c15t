@@ -1,18 +1,18 @@
 import {
-	createConsentConfigHandler,
-	mergeInitIntoConsentConfig,
-	readInitialConsentConfig,
+	createConsentStateHandler,
+	mergeInitIntoConsentState,
+	resolveConsent,
 } from '@c15t/tanstack-start/server';
-import type { ConsentConfig } from '@c15t/tanstack-start/server';
+import type { ConsentState } from '@c15t/tanstack-start/server';
 import { createServerFn } from '@tanstack/react-start';
 
 import { BENCH_BACKEND_URL, getBenchManifestURL } from './manifest-url';
 
-type InitPayload = Parameters<typeof mergeInitIntoConsentConfig>[1];
+type InitPayload = Parameters<typeof mergeInitIntoConsentState>[1];
 
 /**
  * Direct-init prefetch for the `ssr` arm. The package's
- * `createConsentConfigHandler({ backendURL })` always resolves init from
+ * `createConsentStateHandler({ backendURL })` always resolves init from
  * the in-process manifest cache, which would pay `C15T_BENCH_INIT_LATENCY_MS`
  * once per cache fill instead of once per request. The Next arm's `ssr`
  * route calls `${backendURL}/init` server-side on every render, so this
@@ -21,7 +21,7 @@ type InitPayload = Parameters<typeof mergeInitIntoConsentConfig>[1];
  */
 const fetchDirectInit = async function fetchDirectInit(
 	request: Request,
-	base: ConsentConfig
+	base: ConsentState
 ): Promise<InitPayload | null> {
 	const headers: Record<string, string> = { accept: 'application/json' };
 	const cookie = request.headers.get('cookie');
@@ -52,15 +52,15 @@ const fetchDirectInit = async function fetchDirectInit(
 	return (await response.json()) as InitPayload;
 };
 
-export const getDirectInitConsentConfig = createServerFn({
+export const getDirectInitConsentState = createServerFn({
 	method: 'GET',
 }).handler(async () => {
 	const { getRequest } = await import('@tanstack/react-start/server');
 	const request = getRequest();
-	const base = await readInitialConsentConfig({ request });
+	const base = await resolveConsent({ request });
 	try {
 		const init = await fetchDirectInit(request, base);
-		return init ? mergeInitIntoConsentConfig(base, init) : base;
+		return init ? mergeInitIntoConsentState(base, init) : base;
 	} catch {
 		// Silent degradation, like the package helper: the client runs init.
 		return base;
@@ -75,11 +75,12 @@ export const getDirectInitConsentConfig = createServerFn({
  * its own `/api/c15t/manifest` route over HTTP; Start's prefetch refuses
  * self-fetches, so it reads the cache directly instead.
  */
-export const getManifestConsentConfig = createServerFn({
+export const getManifestConsentState = createServerFn({
 	method: 'GET',
 }).handler(
-	createConsentConfigHandler({
+	createConsentStateHandler({
 		backendURL: BENCH_BACKEND_URL,
 		manifestURL: getBenchManifestURL(),
+		routePrefix: '/api/c15t',
 	})
 );

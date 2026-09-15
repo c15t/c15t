@@ -53,7 +53,7 @@ type DemoMode = 'offline' | 'hosted';
 interface ConsentDemoProps {
 	/**
 	 * Which backend the hosted mode talks to.
-	 * - `hosted`: the shared consent.io demo instance (sales-facing default)
+	 * - `hosted`: the shared inth.com demo instance (sales-facing default)
 	 * - `self-host`: this app's own /api/self-host route (development only)
 	 */
 	backend?: 'hosted' | 'self-host';
@@ -389,7 +389,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 												? 'Offline mode simulates the selected scenario locally — no backend required.'
 												: isSelfHost
 													? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
-													: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'
+													: 'Connected to a hosted inth.com instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'
 										}
 									</p>
 								</div>

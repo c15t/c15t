@@ -1,0 +1,42 @@
+---
+title: Adobe Analytics
+description: Configure Adobe Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Adobe Analytics
+
+Copy the full HTTPS embed URL for your Adobe Data Collection property environment. Replace the example URL; Adobe does not have a shared Analytics loader that only needs an account ID.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
+
+export const scripts = [adobeAnalytics({
+    scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js',
+  })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `scriptUrl` | Required full HTTPS property embed URL. Invalid or non-HTTPS URLs throw. |
+| `async` | Defaults to `true`. |
+| `seedAdobeDataLayer` | Defaults to `true`. Creates `window.adobeDataLayer` only if absent. |
+
+## Consent behavior
+
+Measurement permission gates the property loader. Rules and extensions inside the Adobe property may load other services. Review those destinations and their purposes too; this helper does not assign separate consent categories to individual Adobe rules.
+
+## Verify the integration
+
+Confirm the environment URL is correct and inspect requests from every enabled extension. Check that revoking permission stops application data-layer events; the helper does not call an Adobe shutdown API.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

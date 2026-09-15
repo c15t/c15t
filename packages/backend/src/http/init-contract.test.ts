@@ -201,6 +201,42 @@ describe('invalid policy configuration', () => {
 	});
 });
 
+describe('manifest cache headers', () => {
+	it('sends the cache policy as Cache-Control and CDN-Cache-Control on 200 and 304', async () => {
+		const harness = await createHttpHarness(engine, {
+			manifest: { appName: 'Cache', policyRules: RULES },
+		});
+		try {
+			const fresh = await harness.app.request('/manifest');
+			assert.strictEqual(fresh.status, 200);
+			const cacheControl = fresh.headers.get('Cache-Control');
+			assert.include(cacheControl, 's-maxage=');
+			assert.include(cacheControl, 'stale-while-revalidate=');
+			// Vercel strips the shared-cache directives from a bare
+			// Cache-Control before forwarding; the same policy in
+			// CDN-Cache-Control keeps them visible to servers reading through it.
+			assert.strictEqual(fresh.headers.get('CDN-Cache-Control'), cacheControl);
+
+			const etag = fresh.headers.get('ETag') as string;
+			const revalidated = await harness.app.request('/manifest', {
+				headers: { 'If-None-Match': etag },
+			});
+			assert.strictEqual(revalidated.status, 304);
+			assert.strictEqual(
+				revalidated.headers.get('Cache-Control'),
+				cacheControl
+			);
+			assert.strictEqual(
+				revalidated.headers.get('CDN-Cache-Control'),
+				cacheControl
+			);
+			assert.strictEqual(revalidated.headers.get('ETag'), etag);
+		} finally {
+			await harness.dispose();
+		}
+	});
+});
+
 describe('manifest cache identity', () => {
 	const revisionFor = async (rules: PolicyRule[]) => {
 		const harness = await createHttpHarness(engine, {

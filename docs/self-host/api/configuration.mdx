@@ -1,33 +1,70 @@
 ---
-title: Configuration
-description: Configuration options for the self-hosted backend.
+title: Backend configuration
+description: Configure SQL storage, trusted origins, policies, signing and request logging for a self-hosted v3 backend.
 group: self-host
 ---
 
-## Trusted origins
+## Configure the server
 
-Set `trustedOrigins` to the origins your backend accepts for cross-origin requests.
-For a native WebView, include its custom scheme:
+Use [Inth](https://inth.com) when you want managed hosting. These options belong
+to a self-hosted `@c15t/backend` instance. Browser `hosted()` options only select
+how a client connects; they do not configure the backend's policy.
 
-```ts
-import { defineConfig } from '@c15t/backend';
+```ts title="c15t-backend.config.ts"
+import { defineConfig, policyRulePresets } from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
 
 export default defineConfig({
-  database: { dialect: 'sqlite', filename: './consent.db' },
-  trustedOrigins: ['https://app.example.com', 'capacitor://localhost'],
+  database: { dialect: 'postgres', url, schema: 'c15t' },
+  basePath: '/api/c15t',
+  trustedOrigins: ['https://app.example.com'],
+  manifest: {
+    policyRules: [policyRulePresets.europeOptIn()],
+  },
+  ipAddress: { tracking: false },
 });
 ```
 
-`capacitor://localhost` matches that scheme and host. It does not match
-`ionic://localhost`, `https://localhost`, or `capacitor://www.localhost`.
-List `ionic://localhost` separately if your app uses that origin. Custom-scheme
-entries do not treat `www.` as equivalent to the bare host.
+The example uses the Europe preset for its matching locations and unknown-location
+fallback. Add reviewed rules for other locations in
+[policy configuration](/docs/self-host/guides/policy-packs).
 
-Web entries such as `https://app.example.com` and bare hosts such as `localhost`
-remain protocol-agnostic. They can match other schemes on the same host, including
-custom WebView schemes. Use `capacitor://localhost` when you want to restrict a
-localhost entry to that scheme. Matching is case-insensitive, and an explicit port
-must also match.
+## Instance options
+
+| Option | Purpose and default |
+| --- | --- |
+| `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
+| `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
+| `trustedOrigins` | Browser origins receiving CORS permission. Empty or absent allows no cross-origin browser access. |
+| `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. |
+| `manifest` | Policy rules, translations, branding and IAB configuration published by `/manifest` and resolved by `/init`. |
+| `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
+| `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
+| `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. |
+| `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
+| `gvl` | Server-side Global Vendor List loading and cache configuration. Set `enabled: true` to include it for matched IAB `/init` responses. |
+| `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |
+| `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
+| `version` | Version reported by the status endpoint and OpenAPI document. |
+| `observability` | Logging configuration passed directly to `c15tInstance`. Defaults to warning and error requests. |
+
+`defineConfig()` checks types and returns the supplied object. It does not load
+environment variables or run migrations. It deliberately rejects `observability`;
+pass logging callbacks when constructing the instance instead.
+
+## Manifest options
+
+| Option | What it changes |
+| --- | --- |
+| `policyRules` | Ordered canonical policy rules. Author this field, not the generated manifest's `policyPacks`. |
+| `tenantId` | Tenant metadata in the manifest. Keep it consistent with the instance's tenant. |
+| `appName` | Application name included in configuration. |
+| `branding` | Branding setting, defaulting to `c15t`. |
+| `disableGeoLocation` | Disables location-based resolution. Review the resulting default and fallback behavior. |
+| `customTranslations`, `i18n` | Translation overrides and locale configuration. |
+| `iab` | `enabled`, `cmpId`, `customVendors` and the GVL `endpoint`. |
 
 ## Browser script routes
 
@@ -68,3 +105,22 @@ Pass these options under `script` in the second argument to `createApp`:
 The routes share the `/manifest` cache policy through `manifestCache` and return
 ETags for conditional requests. See the [endpoint reference](/docs/self-host/api/endpoints)
 and [script-tag guide](/docs/frameworks/javascript/script-tag) for usage.
+
+## Origins, identity and secrets
+
+Use complete origins including scheme and any non-default port. CORS controls
+which browser pages can read responses. It is not authentication and does not
+prevent a non-browser client from calling a public endpoint. Keep API keys,
+database credentials and signing keys in server environment variables.
+
+A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
+correct tenant instance in trusted application code. Do not choose a tenant from
+an unchecked browser value.
+
+`ipAddress.ipAddressHeaders` overrides the ordered headers used to record an IP.
+Configure the reverse proxy to replace trusted forwarding headers. IP recording
+and policy location resolution are separate operations.
+
+See [HTTP endpoints](/docs/self-host/api/endpoints),
+[request logging](/docs/self-host/guides/observability) and
+[legal-document snapshots](/docs/self-host/guides/legal-document-snapshot-integration).

@@ -47,6 +47,12 @@ export interface FetchCachedManifestOptions {
 	init?: Omit<RequestInit, 'headers' | 'method'>;
 	/** Clock override for tests. */
 	now?: number;
+	/**
+	 * Receives the promise of a background revalidation started on this read,
+	 * for hosts that must register detached work with the platform (Next.js
+	 * `after`, Vercel `waitUntil`). See the runtime option of the same name.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 const cache = createManifestCache();
@@ -61,6 +67,7 @@ export const fetchCachedManifest = (
 		headers: options.headers,
 		init: options.init,
 		now: options.now,
+		onBackgroundRevalidate: options.onBackgroundRevalidate,
 		sourceURL: options.url,
 	});
 

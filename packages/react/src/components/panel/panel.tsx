@@ -1,0 +1,170 @@
+'use client';
+
+import type * as C15tCoreTypes from '@c15t/core';
+/**
+ * @packageDocumentation
+ * Default implementation of the Consent Dialog that ships with c15t.
+ *
+ * The new compound-component API exposes all primitives (Root, Card, etc.).
+ * This default export simply composes those primitives so consumers that
+ * prefer a one-line `<ConsentDialog />` usage still have it.
+ */
+import type { FC } from 'react';
+
+import { useConsentManager } from '~/component-hooks/use-manager';
+import { ConsentDialogTrigger } from '~/components/panel-trigger';
+import type { ConsentDialogTriggerProps } from '~/components/panel-trigger';
+import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
+import { useComponentConfig } from '~/hooks/use-component-config';
+
+import { ConsentCustomizationCard } from './atoms/card';
+import { Root as ConsentDialogRoot } from './atoms/root';
+
+/**
+ * Props for the `<ConsentDialog />` convenience component.
+ */
+export interface ConsentDialogProps {
+	/**
+	 * Theme configuration override (deprecated)
+	 * @deprecated Theme should be set on the ConsentProvider
+	 */
+	theme?: never;
+
+	/**
+	 * Disables all animations when true
+	 */
+	disableAnimation?: boolean;
+
+	/**
+	 * Removes default styles when true
+	 */
+	noStyle?: boolean;
+
+	/**
+	 * Locks the scroll when true
+	 */
+	scrollLock?: boolean;
+
+	/**
+	 * Traps keyboard focus within a dialog when true
+	 */
+	trapFocus?: boolean;
+
+	/**
+	 * Control the open state. If omitted the dialog follows
+	 * `useConsentManager().activeUI === 'dialog'`.
+	 */
+	open?: boolean;
+
+	/**
+	 * Controls which legal links to display.
+	 *
+	 * - `undefined` (default): Shows all available legal links
+	 * - `null`: Explicitly hides all legal links
+	 * - Array of keys: Shows only the specified legal links
+	 *
+	 * @defaultValue undefined
+	 *
+	 * @example
+	 * ```tsx
+	 * // Show all links
+	 * <ConsentDialog legalLinks={undefined} />
+	 *
+	 * // Show no links
+	 * <ConsentDialog legalLinks={null} />
+	 *
+	 * // Show only privacy policy
+	 * <ConsentDialog legalLinks={['privacyPolicy']} />
+	 * ```
+	 *
+	 * @remarks
+	 * You must set the legal links in the ConsentProvider options.
+	 */
+	legalLinks?: InlineLegalLinksProps['links'];
+
+	/**
+	 * Controls whether to hide the branding in the dialog footer.
+	 *
+	 * @defaultValue false
+	 */
+	hideBranding?: boolean;
+
+	/**
+	 * Show a floating trigger button to resurface the consent dialog.
+	 * Useful for allowing users to re-open the dialog after dismissing.
+	 *
+	 * - `true` - Show trigger with default settings
+	 * - `false` - Hide trigger (default)
+	 * - `ConsentDialogTriggerProps` - Show trigger with custom props
+	 *
+	 * @default false
+	 */
+	showTrigger?: boolean | ConsentDialogTriggerProps;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['opt-in', 'opt-out', 'none']
+	 */
+	models?: C15tCoreTypes.Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'dialog'
+	 */
+	uiSource?: string;
+}
+
+export const ConsentDialog: FC<ConsentDialogProps> = ({
+	open,
+	noStyle: localNoStyle,
+	disableAnimation: localDisableAnimation,
+	scrollLock: localScrollLock,
+	trapFocus: localTrapFocus,
+	hideBranding,
+	legalLinks,
+	showTrigger = false,
+	models,
+	uiSource,
+}) => {
+	const { activeUI } = useConsentManager();
+
+	// Merge local props with global theme context
+	const config = useComponentConfig({
+		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
+	});
+
+	// Compose the props we want to forward to the Root primitive
+	const rootProps = {
+		open: open ?? activeUI === 'dialog',
+		...config,
+		models,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
+		uiSource,
+	};
+
+	// Resolve trigger props
+	const triggerProps: ConsentDialogTriggerProps | null =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+		showTrigger === true
+			? // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+				// Use defaults
+				{}
+			: showTrigger === false
+				? null
+				: showTrigger;
+
+	return (
+		<>
+			{triggerProps && <ConsentDialogTrigger {...triggerProps} />}
+			<ConsentDialogRoot {...rootProps}>
+				<ConsentCustomizationCard
+					noStyle={rootProps.noStyle}
+					legalLinks={legalLinks}
+					hideBranding={hideBranding}
+				/>
+			</ConsentDialogRoot>
+		</>
+	);
+};

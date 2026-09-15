@@ -102,4 +102,42 @@ export function Demo() {
 		expect(unchanged).toContain('CookieBanner');
 		expect(unchanged).not.toContain('ConsentBanner');
 	});
+
+	it('renames imported references without changing shadowed components or registry keys', async () => {
+		const { rootDir, filePath } = await createTempProject(`
+import { CookieBanner } from '@c15t/react';
+const registry = { CookieBanner };
+function unrelated(CookieBanner: unknown) { return CookieBanner; }
+export const App = () => <CookieBanner />;
+`);
+		const result = await runComponentRenamesCodemod({
+			dryRun: false,
+			projectRoot: rootDir,
+		});
+		const updated = await readFile(filePath, 'utf8');
+		expect(result.errors).toEqual([]);
+		expect(updated).toContain('CookieBanner: ConsentBanner');
+		expect(updated).toContain(
+			'function unrelated(CookieBanner: unknown) { return CookieBanner; }'
+		);
+		expect(updated).toContain('<ConsentBanner />');
+	});
+
+	it('preserves aliases and avoids collisions with existing local declarations', async () => {
+		const { rootDir, filePath } = await createTempProject(`
+import { CookieBanner, ConsentManagerDialog as Dialog } from '@c15t/react';
+const ConsentBanner = 'local';
+export const App = () => <><CookieBanner /><Dialog /></>;
+`);
+		const result = await runComponentRenamesCodemod({
+			dryRun: false,
+			projectRoot: rootDir,
+		});
+		const updated = await readFile(filePath, 'utf8');
+		expect(result.errors).toEqual([]);
+		expect(updated).toContain('ConsentBanner as CookieBanner');
+		expect(updated).toContain('ConsentDialog as Dialog');
+		expect(updated).toContain("const ConsentBanner = 'local'");
+		expect(updated).toContain('<CookieBanner /><Dialog />');
+	});
 });

@@ -1,0 +1,44 @@
+---
+title: c15t vs Osano
+description: Compare Osano commercial consent management with c15t v3 for usage budgeting, vendor blocking and framework integration.
+group: reference
+---
+
+## Compare the commercial CMP you intend to use
+
+Evaluate Osano when you want its commercial consent-management workflow,
+including cookie classification and tag blocking. Evaluate c15t when consent
+state and presentation need to be integrated into framework code, with Inth
+running the policy and record backend.
+
+Osano lists classification, blocking, customizable banners and reporting for
+its CMP. Its open-source Cookie Consent license explicitly does not apply to
+the commercial platform. Keep those products distinct when comparing cost or
+hosting. [Osano CMP](https://www.osano.com/solutions/consent-management-platform),
+[Osano open-source license scope](https://www.osano.com/cookieconsent/documentation/license/)
+
+## Compare deployment and usage
+
+| Decision | c15t v3 | Osano commercial CMP |
+| --- | --- | --- |
+| Application integration | Framework adapters and a shared consent runtime | Evaluate the selected web integration and APIs |
+| Vendor control | Register consent-aware loaders and remove duplicates | Test configured blocking against the site's tags |
+| Backend | Inth or a self-hosted c15t backend | Confirm hosted service scope in the selected agreement |
+| Budget estimate | Request Inth terms or estimate backend operations | Supply usage figures matching Osano's pricing definition |
+
+Osano's pricing documentation says consent management is priced by how often
+`Osano.js` is served to a device, using average daily active users as an estimate
+because of browser caching. Do not substitute raw pageviews without checking
+the proposal. [Osano pricing method](https://docs.osano.com/en-US/osano/article/7Xe6qqNl-how-does-osano-price-for-consent-management)
+
+## Verify the tags you already run
+
+Test a vendor installed directly and another installed through a tag manager.
+Reject optional processing and inspect both request paths. When evaluating a
+switch to c15t, retire the previous blocking and loading configuration in a
+staging deployment before judging results. Two consent systems controlling the
+same tag can conceal duplicate loads or conflicting signals.
+
+Start c15t with [Inth](https://inth.com) and the [framework setup](/docs/frameworks), then run the [consent verification checks](/docs/guides/verify-consent) against both tag-loading paths.
+
+Sources reviewed on 10 September 2026.

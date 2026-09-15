@@ -1,5 +1,21 @@
 # @c15t/scripts
 
+## 3.0.0-alpha.0
+
+### Major Changes
+
+- 4460e3e: This v3 alpha is for internal use only. APIs are unstable, and breaking changes will occur between alpha releases.
+
+  Introduce the c15t umbrella package, shared consent runtime and policy rules, rewritten backend, and new framework and script-tag integrations. Update the CLI, IAB support, DevTools, and shared styles for v3.
+
+  Packages now ship ESM only. Keep related packages on compatible v3 alpha versions.
+
+  Export `defineTheme` and the `Theme` type from the React, Next.js, TanStack Start, and Vue entries so themes can use the same imports as their framework integration.
+
+  Restrict iframe-blocker URL activation to HTTP and HTTPS. Replace backtracking URL and theme parsing expressions, correct the PostHog hostname boundary, and fix CLI layout detection for nested route groups and locale directories.
+
+  Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
+
 ## 2.2.0-canary-20260727202135
 
 ### Minor Changes
@@ -60,7 +76,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ## 1.1.0-rc.1
 
@@ -104,13 +120,13 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ## 1.0.1
 
 ### Patch Changes
 
-- 68a7324: Full Changelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+- 68a7324: Full Changelog: https://c15t.com/changelog/1.8.0
 
 ## 1.0.1-canary-20251112105612
 
@@ -123,7 +139,7 @@
 
 ### Major Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/1.7.0
 
 ## 1.0.0-canary-20251012181938
 
@@ -135,4 +151,4 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/1.6.0).

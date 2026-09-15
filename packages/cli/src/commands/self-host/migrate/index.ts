@@ -29,6 +29,7 @@ import {
 	isUpToDate,
 } from '~/commands/self-host/migrate/report';
 import type { CliContext } from '~/context/types';
+import { CliError } from '~/core/errors';
 import { TelemetryEventName } from '~/utils/telemetry';
 
 interface MigrateDependencies {
@@ -56,12 +57,28 @@ export const migrate = async function migrate(
 	dependencies: MigrateDependencies = defaultMigrateDependencies
 ) {
 	const { logger, telemetry } = context;
+	const flags = context.flags ?? {};
+	if ((flags.plan || flags['dry-run']) && flags.apply) {
+		throw new CliError('CONFIG_INVALID', {
+			details: 'Choose --plan or --apply, not both.',
+		});
+	}
+	if (
+		flags['non-interactive'] &&
+		!(flags.plan || flags['dry-run'] || flags.apply)
+	) {
+		throw new CliError('CONFIG_INVALID', {
+			details:
+				'Supply --plan to inspect migrations or --apply to execute them.',
+		});
+	}
 	telemetry.trackEvent(TelemetryEventName.MIGRATION_STARTED, {});
 
 	const configResult = await dependencies.ensureBackendConfig(context);
 	if (!configResult?.path) {
-		logger.error('No backend config found.');
-		return;
+		throw new CliError('CONFIG_NOT_FOUND', {
+			details: 'No backend config found.',
+		});
 	}
 
 	if (configResult.dependencies.length > 0) {
@@ -92,25 +109,28 @@ export const migrate = async function migrate(
 			telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
 				blocked: true,
 			});
-			return;
+			throw new CliError('CONFIG_INVALID', { details: planned.blocked });
 		}
 
 		dependencies.describePlan(context, planned);
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_PLANNED, {
 			success: true,
 		});
+		if (flags.plan || flags['dry-run']) {
+			return { report: planned, status: 'planned' };
+		}
 
 		if (dependencies.isUpToDate(planned)) {
 			logger.success('Database is already up to date.');
-			return;
+			return { report: planned, status: 'up-to-date' };
 		}
 
-		if (!(await dependencies.confirmApply())) {
+		if (!flags.apply && !(await dependencies.confirmApply())) {
 			logger.info('No changes made.');
 			telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
 				execute: false,
 			});
-			return;
+			return { report: planned, status: 'cancelled' };
 		}
 
 		const applied = await migrator.apply();
@@ -122,6 +142,7 @@ export const migrate = async function migrate(
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_COMPLETED, {
 			success: true,
 		});
+		return { report: applied, status: 'applied' };
 	} finally {
 		await migrator.dispose();
 	}

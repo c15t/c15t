@@ -164,9 +164,9 @@ describe('astro:config:setup', () => {
 	});
 
 	it.each([
-		['svelte', '@c15t/astro/ui/svelte', 'consent-dialog-surface.svelte'],
-		['react', '@c15t/astro/ui/react', 'consent-dialog-surface.tsx'],
-		['vue', '@c15t/astro/ui/vue', 'consent-dialog-surface.vue'],
+		['svelte', '@c15t/astro/ui/svelte', 'panel-surface.svelte'],
+		['react', '@c15t/astro/ui/react', 'panel-surface.tsx'],
+		['vue', '@c15t/astro/ui/vue', 'panel-surface.vue'],
 	] as const)(
 		'registers only the %s adapter and island',
 		async (ui, adapterModule, surfaceFile) => {

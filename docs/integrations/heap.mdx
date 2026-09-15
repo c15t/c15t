@@ -1,0 +1,40 @@
+---
+title: Heap
+description: Configure Heap with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Heap
+
+Use the Heap environment ID for the application you want to track. The helper loads the environment-specific config script, which can load the rest of the Heap SDK.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { heap } from '@c15t/scripts/heap';
+
+export const scripts = [heap({ envId: 'YOUR_ENVIRONMENT_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `envId` | Required non-empty environment ID. |
+| `clientConfig` | Optional JSON-serializable configuration. c15t adds `shouldFetchServerConfig: false`. |
+| `scriptUrl` | Optional config-loader override. Defaults to the environment URL under `https://cdn.us.heap-api.com/config/`. |
+
+## Consent behavior
+
+Measurement permission gates the config loader. The helper has no consent-change hook calling Heap `stopTracking`; queued API support alone does not implement revocation. Add an SDK-specific stop strategy if recording must stop immediately after a later denial.
+
+## Verify the integration
+
+Inspect the config request and SDK requests it starts. Test recording after revocation, not only whether the original script element disappears.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

@@ -1,7 +1,7 @@
 /**
  * Opt-in same-origin proxy for the consent server route.
  *
- * Lets a Start app point `ConsentBoundary backendURL="/api/c15t"` at its own
+ * Lets a Start app point `ConsentRoot backendURL="/api/c15t"` at its own
  * origin, the way a Next.js app uses a `next.config` rewrite: the browser
  * talks to the app, the app forwards to the c15t backend. Only the paths the
  * client transport calls (`subjects`, `subjects/:id`, `init`, `manifest`,
@@ -23,6 +23,7 @@ import { c15tVersionHeaders } from '@c15t/core';
 import { CONSENT_REQUEST_HEADER_NAMES, getIpAddress } from '@c15t/schema/geo';
 
 import { filterCookieHeader } from './cookies';
+import { trimPathSlashes, trimTrailingSlashes } from './path';
 
 /** Value of the `x-c15t-proxy` header added to every forwarded request. */
 export const PROXY_HEADER_VALUE = '@c15t/tanstack-start';
@@ -156,15 +157,11 @@ export const resolveProxyOptions = function resolveProxyOptions(
 	};
 };
 
-const normalizePath = function normalizePath(path: string): string {
-	return path.replace(/^\/+|\/+$/gu, '');
-};
-
 const matchesPattern = function matchesPattern(
 	pattern: string,
 	segments: readonly string[]
 ): boolean {
-	const expected = normalizePath(pattern).split('/');
+	const expected = trimPathSlashes(pattern).split('/');
 	if (expected.length !== segments.length) {
 		return false;
 	}
@@ -301,7 +298,7 @@ export const isProxyPathAllowed = function isProxyPathAllowed(
 	path: string,
 	allowed: readonly string[]
 ): boolean {
-	const normalized = normalizePath(path);
+	const normalized = trimPathSlashes(path);
 	if (!normalized) {
 		return false;
 	}
@@ -480,13 +477,13 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	path,
 	request,
 }: ProxyConsentRequestInput): Promise<Response> {
-	const normalized = normalizePath(path);
+	const normalized = trimPathSlashes(path);
 	if (!isProxyPathAllowed(normalized, options.paths)) {
 		return Response.json({ error: 'Not found' }, { status: 404 });
 	}
 
 	const { search } = new URL(request.url);
-	const base = backendURL.replace(/\/+$/u, '');
+	const base = trimTrailingSlashes(backendURL);
 	const target = `${base}/${normalized}${search}`;
 	// Credentials never travel in clear text to a remote backend; a loopback
 	// host is allowed for local development.
@@ -495,7 +492,7 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	// Belt and braces: the segment check above rejects anything the URL
 	// parser would fold, so the parsed target must still sit exactly at the
 	// allowlisted path under the backend base.
-	const expectedPathname = `${new URL(base).pathname.replace(/\/+$/u, '')}/${normalized}`;
+	const expectedPathname = `${trimTrailingSlashes(new URL(base).pathname)}/${normalized}`;
 	if (new URL(target).pathname !== expectedPathname) {
 		return Response.json({ error: 'Not found' }, { status: 404 });
 	}

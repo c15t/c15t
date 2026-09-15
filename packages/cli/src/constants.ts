@@ -5,6 +5,8 @@
  * to maintain consistency and make updates easier.
  */
 
+import { packageInfo } from './package-info';
+
 // --- URLs ---
 export const URLS = {
 	/** API documentation */
@@ -68,7 +70,7 @@ export const CLI_INFO = {
 	/** CLI name */
 	NAME: 'c15t',
 	/** Current version (updated during build) */
-	VERSION: '2.0.0',
+	VERSION: packageInfo.version,
 } as const;
 
 // --- Timeouts ---
@@ -181,8 +183,12 @@ export const LAYOUT_PATTERNS = [
 	// Deeper nesting
 	'app/*/*/layout.tsx',
 	'app/*/*/layout.ts',
+	'app/*/*/layout.jsx',
+	'app/*/*/layout.js',
 	'src/app/*/*/layout.tsx',
 	'src/app/*/*/layout.ts',
+	'src/app/*/*/layout.jsx',
+	'src/app/*/*/layout.js',
 ] as const;
 
 // --- Pages Router Patterns ---

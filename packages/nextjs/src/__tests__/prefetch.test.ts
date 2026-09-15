@@ -4,14 +4,15 @@ import {
 	buildConsentManifestFromConfig,
 } from '@c15t/schema/types';
 /**
- * Tests for prefetchInitialConsent, the server-side helper that calls
- * the backend's /init, folds the response into KernelConfig, and hands
- * it to the client `ConsentBoundary` for first-paint accurate rendering.
+ * Tests for the backend branch of resolveConsent: with a backend URL the
+ * server helper calls the backend's /init (or resolves the manifest), folds
+ * the response into the ConsentState, and hands it to the client
+ * `ConsentRoot` for first-paint accurate rendering.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { defineConsentConfig } from '../config';
-import { prefetchInitialConsent as basePrefetchInitialConsent } from '../server';
+import { resolveConsent as baseResolveConsent } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const cookieStore = new Map<string, string>();
@@ -69,9 +70,9 @@ const request = {
 	headers: () => Promise.resolve(createHeaders()),
 };
 
-const prefetchInitialConsent = (
-	options: Omit<Parameters<typeof basePrefetchInitialConsent>[0], 'request'>
-) => basePrefetchInitialConsent({ ...options, request });
+const resolveConsent = (
+	options: Omit<Parameters<typeof baseResolveConsent>[0], 'request'>
+) => baseResolveConsent({ ...options, request });
 
 beforeEach(() => {
 	cookieStore.clear();
@@ -83,7 +84,57 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('prefetchInitialConsent: backend call', () => {
+describe('resolveConsent: backend call', () => {
+	test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
+		'preserves hosted IAB loading through %s access',
+		async (access) => {
+			const { completeGVL } =
+				await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+			if (access === 'cookie') {
+				cookieStore.set('session', 'private');
+			}
+			if (access === 'header') {
+				headerStore.set('authorization', 'Bearer private');
+			}
+			const fetchSpy = vi.fn().mockResolvedValue(
+				Response.json(
+					createInitOutput({
+						cmpId: 28,
+						gvl: completeGVL,
+						policyResolution: writePolicyResolutionWire(
+							resolvePolicyRules({
+								countryCode: 'DE',
+								regionCode: null,
+								rules: [
+									{
+										id: 'iab',
+										match: { isDefault: true },
+										model: 'iab',
+										prompt: 'choice',
+									},
+								],
+							})
+						),
+					}),
+					{ headers: { 'x-c15t-policy-contract': '1' } }
+				)
+			);
+			vi.stubGlobal('fetch', fetchSpy);
+			const state = await resolveConsent({
+				backendURL: 'https://private.example.com',
+				fetch: access === 'custom-fetch' ? fetchSpy : undefined,
+				forwardHeaders: access === 'header' ? ['authorization'] : undefined,
+			});
+			expect(state.initialPolicyResolution).toMatchObject({
+				status: 'matched',
+			});
+			expect(Boolean(state.initialIab?.gvl)).toBe(access !== 'public');
+			expect(Boolean(state.initialIab?.gvlReference)).toBe(access === 'public');
+			expect(JSON.stringify(state)).not.toContain('Bearer private');
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		}
+	);
+
 	test('calls backendURL/init with current context', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
 		headerStore.set('host', 'app.example.com');
@@ -108,7 +159,7 @@ describe('prefetchInitialConsent: backend call', () => {
 			)
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
@@ -150,7 +201,7 @@ describe('prefetchInitialConsent: backend call', () => {
 			.mockResolvedValue(
 				new Response(JSON.stringify(createInitOutput()), { status: 200 })
 			);
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
@@ -164,7 +215,7 @@ describe('prefetchInitialConsent: backend call', () => {
 
 		const fetchSpy = vi.fn().mockRejectedValue(new Error('network down'));
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			onError: () => undefined,
@@ -206,7 +257,7 @@ describe('prefetchInitialConsent: backend call', () => {
 			)
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
@@ -235,7 +286,7 @@ describe('prefetchInitialConsent: backend call', () => {
 			)
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
@@ -258,7 +309,7 @@ describe('prefetchInitialConsent: backend call', () => {
 				new Response(JSON.stringify(createInitOutput()), { status: 200 })
 			);
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
@@ -278,7 +329,7 @@ describe('prefetchInitialConsent: backend call', () => {
 				new Response(JSON.stringify(createInitOutput()), { status: 200 })
 			);
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
@@ -300,7 +351,7 @@ describe('prefetchInitialConsent: backend call', () => {
 				new Response(JSON.stringify(createInitOutput()), { status: 200 })
 			);
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			forwardHeaders: ['authorization', 'x-trace-id'],
@@ -313,7 +364,7 @@ describe('prefetchInitialConsent: backend call', () => {
 	});
 });
 
-describe('prefetchInitialConsent: manifest mode', () => {
+describe('resolveConsent: manifest mode', () => {
 	test('resolves init from manifestURL without calling /init', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
 		headerStore.set('accept-language', 'de-DE,de;q=0.9');
@@ -327,7 +378,7 @@ describe('prefetchInitialConsent: manifest mode', () => {
 			})
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			manifestURL: '/api/c15t/manifest',
@@ -355,7 +406,7 @@ describe('prefetchInitialConsent: manifest mode', () => {
 
 		const fetchSpy = vi.fn();
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: 'https://consent.example.com/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			manifest: MANIFEST_FIXTURE,
@@ -377,7 +428,7 @@ describe('prefetchInitialConsent: manifest mode', () => {
 describe('prefetch policy negotiation', () => {
 	for (const contract of ['1', '99']) {
 		test(`does not lift a legacy policy from a producer declaring ${contract}`, async () => {
-			const config = await prefetchInitialConsent({
+			const config = await resolveConsent({
 				backendURL: 'https://consent.example.com',
 				fetch: vi.fn().mockResolvedValue(
 					new Response(
@@ -422,7 +473,7 @@ test('versioned inline manifest prepares notice policy and GPC without an init f
 	});
 	headerStore.set('sec-gpc', '1');
 	const fetch = vi.fn();
-	const config = await prefetchInitialConsent({
+	const config = await resolveConsent({
 		backendURL: 'https://consent.example.com',
 		fetch,
 		manifest,
@@ -438,7 +489,7 @@ test('versioned inline manifest prepares notice policy and GPC without an init f
 });
 
 test('keeps a backend subject identifier without manufacturing consent', async () => {
-	const config = await prefetchInitialConsent({
+	const config = await resolveConsent({
 		backendURL: 'https://consent.example.com',
 		fetch: vi.fn().mockResolvedValue(
 			new Response(
@@ -457,7 +508,7 @@ test('keeps a backend subject identifier without manufacturing consent', async (
 	expect(config.initialRecords?.choice).toBeNull();
 });
 
-describe('prefetchInitialConsent: config', () => {
+describe('resolveConsent: config', () => {
 	test('config supplies backendURL and manifestURL', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
 		headerStore.set('host', 'app.example.com');
@@ -469,7 +520,7 @@ describe('prefetchInitialConsent: config', () => {
 			})
 		);
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
 				initURL: '/api/consent/init',
@@ -494,7 +545,7 @@ describe('prefetchInitialConsent: config', () => {
 				new Response(JSON.stringify(createInitOutput()), { status: 200 })
 			);
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: 'https://other.example.com',
 			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
@@ -517,7 +568,7 @@ describe('prefetchInitialConsent: config', () => {
 				new Response(JSON.stringify(createInitOutput()), { status: 200 })
 			);
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
 			}),
@@ -529,21 +580,30 @@ describe('prefetchInitialConsent: config', () => {
 		);
 	});
 
-	test('throws when neither backendURL nor config is given', async () => {
-		await expect(
-			prefetchInitialConsent({ fetch: vi.fn() as unknown as typeof fetch })
-		).rejects.toThrow('`backendURL` or a `config`');
+	test('skips the backend when neither backendURL nor config is given', async () => {
+		headerStore.set('host', 'app.example.com');
+		const fetchSpy = vi.fn();
+
+		const config = await resolveConsent({
+			fetch: fetchSpy as unknown as typeof fetch,
+		});
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(config).toMatchObject({
+			initialRecords: { choice: null, subject: null },
+			now: expect.any(Number),
+		});
 	});
 });
 
-describe('prefetchInitialConsent: error reporting', () => {
+describe('resolveConsent: error reporting', () => {
 	test('onError receives the failure and nothing is logged', async () => {
 		headerStore.set('host', 'app.example.com');
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const failure = new Error('network down');
 		const onError = vi.fn();
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: vi.fn().mockRejectedValue(failure) as unknown as typeof fetch,
 			onError,
@@ -563,7 +623,7 @@ describe('prefetchInitialConsent: error reporting', () => {
 		headerStore.set('x-forwarded-proto', 'https');
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: vi
 				.fn()
@@ -588,7 +648,7 @@ describe('prefetchInitialConsent: error reporting', () => {
 		headerStore.set('x-forwarded-proto', 'https');
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: vi
 				.fn()
@@ -608,7 +668,7 @@ describe('prefetchInitialConsent: error reporting', () => {
 		headerStore.set('host', 'app.example.com');
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: vi
 				.fn()
@@ -626,7 +686,7 @@ describe('prefetchInitialConsent: error reporting', () => {
 		vi.stubGlobal('process', { env: { NODE_ENV: 'production' } });
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-		const config = await prefetchInitialConsent({
+		const config = await resolveConsent({
 			backendURL: '/api/c15t',
 			fetch: vi
 				.fn()
@@ -642,3 +702,54 @@ describe('prefetchInitialConsent: error reporting', () => {
 		expect(warnSpy).not.toHaveBeenCalled();
 	});
 });
+
+test.each(['public', 'custom-fetch', 'header'] as const)(
+	'preserves the %s manifest GVL access context',
+	async (access) => {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: {
+				cmpId: 28,
+				enabled: true,
+				gvl: { url: 'https://vendors.test/list.json' },
+			},
+			policyRules: [
+				{
+					id: 'iab',
+					match: { isDefault: true },
+					model: 'iab',
+					prompt: 'choice',
+				},
+			],
+		});
+		headerStore.set('accept-language', 'en');
+		if (access === 'header') {
+			headerStore.set('authorization', 'Bearer private');
+		}
+		const fetch = vi.fn((url: string | URL | Request) =>
+			Promise.resolve(
+				Response.json(
+					String(url).endsWith('/manifest') ? manifest : completeGVL
+				)
+			)
+		);
+		vi.stubGlobal('fetch', fetch);
+		const state = await resolveConsent({
+			config: defineConsentConfig({
+				backendURL: 'https://backend.test',
+				initURL: '/api/c15t/init',
+				manifestURL: 'https://backend.test/manifest',
+			}),
+			fetch: access === 'custom-fetch' ? fetch : undefined,
+			forwardHeaders: access === 'header' ? ['authorization'] : undefined,
+		});
+		expect(state.initialPolicyResolution?.status).toBe('matched');
+		expect(state.initialIab?.gvl).toEqual(
+			access === 'public' ? null : completeGVL
+		);
+		expect(Boolean(state.initialIab?.gvlReference)).toBe(access === 'public');
+		expect(JSON.stringify(state)).not.toContain('Bearer private');
+	}
+);

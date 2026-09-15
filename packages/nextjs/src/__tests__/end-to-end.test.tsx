@@ -3,8 +3,8 @@ import type { KernelConfig } from '@c15t/core';
  * End-to-end tests for the Next.js adapter.
  *
  * Covers the full flow:
- * 1. Server: prefetchInitialConsent calls the backend, returns enriched config.
- * 2. Client: ConsentBoundary with backendURL auto-fires kernel.commands.init().
+ * 1. Server: resolveConsent calls the backend, returns the enriched state.
+ * 2. Client: ConsentRoot with backendURL auto-fires kernel.commands.init().
  * 3. Client: enabled=false disables init and treats consents as allowed.
  * 4. Prefetched banner visibility reaches the snapshot before the client
  *    roundtrip completes.
@@ -17,8 +17,8 @@ import {
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentBoundary } from '../boundary';
 import { defineConsentConfig } from '../config';
+import { ConsentRoot } from '../root';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 import { policyFixture } from './policy-fixture';
 
@@ -45,8 +45,8 @@ const POLICY_RESOLUTION = writePolicyResolutionWire(
 	})
 );
 
-describe('ConsentBoundary: backendURL triggers auto-init', () => {
-	test('boundary reports Next.js adapter identity on window.c15t', async () => {
+describe('ConsentRoot: backendURL triggers auto-init', () => {
+	test('root reports Next.js adapter identity on window.c15t', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ policyResolution: POLICY_RESOLUTION }), {
 				headers: { 'content-type': 'application/json' },
@@ -59,13 +59,13 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 		try {
 			const { unmount } = await render(
-				<ConsentBoundary
-					config={{}}
+				<ConsentRoot
+					state={{}}
 					backendURL="/api/c15t"
 					persistence={false}
 				>
 					<div data-testid="probe">ready</div>
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await vi.waitFor(() => {
@@ -82,7 +82,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		}
 	});
 
-	test('boundary with backendURL fires kernel.commands.init on mount', async () => {
+	test('root with backendURL fires kernel.commands.init on mount', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(
 				JSON.stringify({
@@ -110,13 +110,13 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{}}
+				<ConsentRoot
+					state={{}}
 					backendURL="http://bench.example.com/api/c15t"
 					persistence={false}
 				>
 					<Probe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			// After the init roundtrip completes, policy-derived state updates.
@@ -129,7 +129,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		}
 	});
 
-	test('boundary without backendURL or transport does NOT fire any network call', async () => {
+	test('root without backendURL or transport does NOT fire any network call', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(new Response());
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
@@ -141,12 +141,12 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{}}
+				<ConsentRoot
+					state={{}}
 					persistence={false}
 				>
 					<Probe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await expect.element(getByTestId('probe')).toHaveTextContent('false');
@@ -172,13 +172,13 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{}}
+				<ConsentRoot
+					state={{}}
 					backendURL="http://bench.example.com/api/c15t"
 					options={{ enabled: false }}
 				>
 					<Probe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
@@ -192,7 +192,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 	});
 });
 
-describe('ConsentBoundary: prefetched config reaches first paint', () => {
+describe('ConsentRoot: resolved state reaches first paint', () => {
 	test('prepared policy renders without a duplicate browser init', async () => {
 		// Fetch that resolves on demand — simulates a slow roundtrip.
 		let resolveInit: (value: unknown) => void = () => undefined;
@@ -219,17 +219,17 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 			);
 		};
 
-		const config: KernelConfig = policyFixture({}, { id: 'gdpr' });
+		const state: KernelConfig = policyFixture({}, { id: 'gdpr' });
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={config}
+				<ConsentRoot
+					state={state}
 					backendURL="http://bench.example.com/api/c15t"
 					persistence={false}
 				>
 					<Probe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			// First paint carries the prefetched values. The init roundtrip
@@ -253,7 +253,7 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 	});
 });
 
-describe('ConsentBoundary: consent config picks the transport', () => {
+describe('ConsentRoot: config picks the transport', () => {
 	const jsonResponse = (body: unknown) =>
 		new Response(JSON.stringify(body), {
 			headers: { 'content-type': 'application/json' },
@@ -306,9 +306,9 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{}}
-					consent={defineConsentConfig({
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
 						initURL: '/api/consent/init',
 						manifestURL: '/api/consent/manifest',
@@ -316,7 +316,7 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 					persistence={false}
 				>
 					<PolicyProbe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await expect
@@ -358,16 +358,16 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{ initialOverrides: { country: 'DE' } }}
-					consent={defineConsentConfig({
+				<ConsentRoot
+					state={{ initialOverrides: { country: 'DE' } }}
+					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
 						manifestURL: '/api/consent/manifest',
 					})}
 					persistence={false}
 				>
 					<PolicyProbe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await expect
@@ -402,15 +402,15 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{}}
-					consent={defineConsentConfig({
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
 					})}
 					persistence={false}
 				>
 					<PolicyProbe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await expect
@@ -424,7 +424,7 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 		}
 	});
 
-	test('options.mode still wins over the consent config', async () => {
+	test('options.mode still wins over the config', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(new Response());
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
@@ -436,9 +436,9 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary
-					config={{}}
-					consent={defineConsentConfig({
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
 						initURL: '/api/consent/init',
 						manifestURL: '/api/consent/manifest',
@@ -449,7 +449,7 @@ describe('ConsentBoundary: consent config picks the transport', () => {
 					persistence={false}
 				>
 					<PolicyProbe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 
 			await expect

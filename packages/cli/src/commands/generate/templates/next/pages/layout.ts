@@ -5,16 +5,15 @@
  * and creates separate consent-manager component files
  */
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
 import type { SourceFile } from 'ts-morph';
 
 import type { AvailablePackages } from '~/context/framework-detection';
 
-import { generateConsentComponent } from '../../shared/components';
+import type { StorageMode } from '../../../../../constants';
+import type { UIStyle, ExpandedTheme } from '../../../prompts';
+import { createConsentManagerComponent } from '../../shared/create-component-files';
+import { NEXTJS_CONFIG } from '../../shared/framework-config';
 import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
-import { generateOptionsText } from '../../shared/options';
 
 interface UpdatePagesLayoutOptions {
 	projectRoot: string;
@@ -25,6 +24,8 @@ interface UpdatePagesLayoutOptions {
 	proxyNextjs?: boolean;
 	enableDevTools?: boolean;
 	selectedScripts?: string[];
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
 	layoutFilePath?: string;
 }
 
@@ -80,52 +81,6 @@ function wrapPagesJsxContent(originalJsx: string): string {
  * Unlike App Directory, Pages Directory doesn't need a separate client component
  * because it doesn't use the 'use client' directive pattern.
  */
-async function createConsentManagerComponent(
-	projectRoot: string,
-	pagesDir: string,
-	optionsText: string,
-	selectedScripts?: string[],
-	enableDevTools?: boolean
-): Promise<ComponentFilePaths> {
-	// Determine the components directory path based on pages directory location
-	// If pages is at 'src/pages', components should be at 'src/components'
-	// If pages is at 'pages', components should be at 'components'
-	let componentsDir: string;
-	if (pagesDir.includes('src')) {
-		componentsDir = path.join('src', 'components');
-	} else {
-		componentsDir = 'components';
-	}
-
-	const componentsDirPath = path.join(projectRoot, componentsDir);
-
-	// Ensure components directory exists
-	await fs.mkdir(componentsDirPath, { recursive: true });
-
-	// Generate component file content
-	const consentManagerContent = generateConsentComponent({
-		devToolsImportSource: 'c15t/next/devtools',
-		docsSlug: 'next',
-		enableDevTools,
-		importSource: 'c15t/next',
-		optionsText,
-		selectedScripts,
-	});
-
-	// Define file path in components directory
-	const consentManagerPath = path.join(
-		componentsDirPath,
-		'consent-manager.tsx'
-	);
-
-	// Write file
-	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
-
-	return {
-		consentManager: consentManagerPath,
-	};
-}
-
 function updateAppComponentTyping(appFile: SourceFile): void {
 	const exportAssignment = appFile.getExportAssignment(() => true);
 	if (!exportAssignment) {
@@ -194,6 +149,8 @@ export function updatePagesLayout({
 	proxyNextjs,
 	enableDevTools = false,
 	selectedScripts,
+	uiStyle,
+	expandedTheme,
 	layoutFilePath,
 }: UpdatePagesLayoutOptions): Promise<{
 	updated: boolean;
@@ -201,23 +158,21 @@ export function updatePagesLayout({
 	alreadyModified: boolean;
 	componentFiles?: ComponentFilePaths;
 }> {
-	// Generate options text for the component
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs
-	);
-
 	return runLayoutUpdatePipeline({
 		afterImport: updateAppComponentTyping,
 		createComponents: (_layoutFilePath, pagesDir) =>
 			createConsentManagerComponent(
 				projectRoot,
 				pagesDir,
-				optionsText,
+				mode as StorageMode,
+				proxyNextjs ? '/api/c15t' : backendURL,
+				proxyNextjs ? false : useEnvFile,
 				selectedScripts,
-				enableDevTools
+				enableDevTools,
+				expandedTheme,
+				'node',
+				uiStyle,
+				NEXTJS_CONFIG
 			),
 		filePatterns: PAGES_APP_PATTERNS,
 		frameworkDirName: 'pages',

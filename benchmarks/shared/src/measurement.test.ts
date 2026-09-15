@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { measureAsyncLoop, measureLoop } from './utils';
+import { benchmarkCount, measureAsyncLoop, measureLoop } from './utils';
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -41,4 +41,16 @@ it('disposes each asynchronous sample after timing the completed operation', asy
 	);
 	expect(samples).toEqual([5000, 5000]);
 	expect(cleanup).toHaveBeenCalledTimes(2);
+});
+
+it.each(['', ' ', '0', '-1', '1.5', 'NaN', 'Infinity', 'bad'])(
+	'rejects invalid sample count %j',
+	(value) => {
+		expect(() => benchmarkCount(value, 500)).toThrow('positive integer');
+	}
+);
+
+it('uses defaults only when sample counts are unset', () => {
+	expect(benchmarkCount(undefined, 500)).toBe(500);
+	expect(benchmarkCount('1000', 500)).toBe(1000);
 });

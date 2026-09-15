@@ -1,0 +1,43 @@
+---
+title: Mixpanel
+description: Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Mixpanel
+
+Replace the example with your 32-character hexadecimal Mixpanel project token. The helper initializes the default Mixpanel instance; named instances and `people.*` queue helpers are outside its contract.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+
+export const scripts = [mixpanelAnalytics({
+    token: '0123456789abcdef0123456789abcdef',
+    initOptions: { opt_out_tracking_by_default: true },
+  })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `token` | Required 32-character hexadecimal project token. |
+| `initOptions` | Optional JSON-serializable SDK options. This example starts tracking opted out during initialization. |
+| `scriptUrl` | Optional loader override. |
+
+## Consent behavior
+
+This helper sets `alwaysLoad: true`: Mixpanel is requested even while measurement is denied. It calls `opt_in_tracking` or `opt_out_tracking` after loading and on permission changes. The example uses [Mixpanel's default opt-out setting](https://docs.mixpanel.com/docs/tracking-methods/sdks/javascript) to cover SDK initialization. This is not a no-request-before-consent setup.
+
+## Verify the integration
+
+Expect a loader request before permission. Check that tracking starts only when allowed, that revocation calls opt-out, and that your own `track` calls stop. Remove any separately initialized Mixpanel SDK.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

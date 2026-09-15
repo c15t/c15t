@@ -1,0 +1,39 @@
+---
+title: LinkedIn Insight Tag
+description: Configure LinkedIn Insight Tag with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure LinkedIn Insight Tag
+
+Use the Insight Tag partner ID from LinkedIn Campaign Manager. The helper sets the partner globals and loads the Insight Tag.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+
+export const scripts = [linkedinInsights({ id: 'YOUR_PARTNER_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `id` | Required Insight Tag partner ID. |
+| `scriptSrc` | Optional loader override. Defaults to LinkedIn's `insight.min.js`. |
+
+## Consent behavior
+
+Marketing permission gates the loader. There is no helper-provided LinkedIn revocation callback. Keep conversion calls behind current marketing permission.
+
+## Verify the integration
+
+Remove the original snippet and any tracking image. Confirm the partner ID and inspect conversion requests after grant, navigation and revocation.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

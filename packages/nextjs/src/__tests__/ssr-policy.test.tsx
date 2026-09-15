@@ -2,6 +2,7 @@ import { buildPrefetchScript, createConsentKernel } from '@c15t/core';
 import type { ConsentSnapshot, KernelConfig } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import {
+	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogTrigger,
 	custom,
@@ -15,9 +16,8 @@ import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/record-codec';
-import { ConsentBoundary } from '../boundary';
-import { RscConsentBanner } from '../rsc/banner';
-import { prefetchInitialConsent, readInitialConsentConfig } from '../server';
+import { ConsentRoot } from '../root';
+import { resolveConsent } from '../server';
 import { policyFixture } from './policy-fixture';
 
 const required = <Value,>(value: Value): NonNullable<Value> => {
@@ -86,16 +86,16 @@ const hydrate = async (config: KernelConfig) => {
 		snapshot = value;
 	});
 	const app = (
-		<ConsentBoundary
-			config={JSON.parse(JSON.stringify(config))}
+		<ConsentRoot
+			state={JSON.parse(JSON.stringify(config))}
 			persistence={{ storageConfig: { storageKey } }}
 			options={{ disableAnimation: true, mode: custom({ init }) }}
 		>
-			<RscConsentBanner config={config} />
+			<ConsentBanner />
 			<ConsentDialog />
 			<ConsentDialogTrigger />
 			<Probe />
-		</ConsentBoundary>
+		</ConsentRoot>
 	);
 	container = document.createElement('div');
 	document.body.append(container);
@@ -156,7 +156,7 @@ describe('Next.js request policy and RSC hydration', () => {
 					{ headers: { 'x-c15t-policy-contract': '1' } }
 				)
 			);
-			const config = await prefetchInitialConsent({
+			const config = await resolveConsent({
 				backendURL: '/api/c15t',
 				cookieName: storageKey,
 				fetch,
@@ -188,7 +188,7 @@ describe('Next.js request policy and RSC hydration', () => {
 					{},
 					{ ...rule, model: prompt === 'choice' ? 'opt-in' : 'opt-out', prompt }
 				),
-				...(await readInitialConsentConfig({ now, request: request('') })),
+				...(await resolveConsent({ now, request: request('') })),
 			};
 			const rendered = await hydrate(config);
 			expect(rendered.snapshot()?.promptRequirement.kind).toBe(prompt);
@@ -276,7 +276,7 @@ describe('Next.js request policy and RSC hydration', () => {
 		const { cookie } = document;
 		const config = {
 			...prepared,
-			...(await readInitialConsentConfig({
+			...(await resolveConsent({
 				cookieName: storageKey,
 				now,
 				request: request(cookie),
@@ -289,7 +289,7 @@ describe('Next.js request policy and RSC hydration', () => {
 		expect(document.cookie).toBe(cookie);
 	});
 
-	test('the RSC gate reopens an expired receipt after an initially hidden prompt', async () => {
+	test('the consent banner reopens an expired receipt after an initially hidden prompt', async () => {
 		const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
 		const config = policyFixture(
 			{ marketing: true },
@@ -313,7 +313,7 @@ describe('Next.js request policy and RSC hydration', () => {
 		);
 	});
 
-	test('C15tPrefetch script and the boundary share one browser init request', async () => {
+	test('C15tPrefetch script and the root share one browser init request', async () => {
 		const config = policyFixture({}, rule);
 		const fetch = vi.fn().mockResolvedValue(
 			new Response(
@@ -340,13 +340,13 @@ describe('Next.js request policy and RSC hydration', () => {
 				snapshot = value;
 			});
 			root.render(
-				<ConsentBoundary
-					config={{}}
+				<ConsentRoot
+					state={{}}
 					backendURL="/api/next-prefetch-test"
 					persistence={false}
 				>
 					<Probe />
-				</ConsentBoundary>
+				</ConsentRoot>
 			);
 			await vi.waitFor(() =>
 				expect(snapshot?.resolution.status).toBe('matched')
@@ -391,7 +391,7 @@ describe('Next.js request policy and RSC hydration', () => {
 	});
 
 	test('Sec-GPC remains a detected signal rather than a developer override', async () => {
-		const config = await readInitialConsentConfig({
+		const config = await resolveConsent({
 			now,
 			request: request('', '1'),
 		});

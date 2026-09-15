@@ -1,0 +1,41 @@
+---
+title: Snapchat Pixel
+description: Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Snapchat Pixel
+
+Use the Snapchat Pixel ID. The helper initializes `snaptr` and queues an initial `PAGE_VIEW` unless disabled.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
+
+export const scripts = [snapchatPixel({ pixelId: 'YOUR_PIXEL_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `pixelId` | Required Snapchat Pixel ID. |
+| `initOptions` | Optional JSON-serializable initialization payload. |
+| `trackPageView` | Defaults to `true`. |
+| `scriptUrl` | Defaults to `https://sc-static.net/scevent.min.js`. |
+
+## Consent behavior
+
+Marketing permission gates the first load. There is no vendor consent-change callback in this helper. `snapchatPixelEvent` checks whether the API exists but does not check consent.
+
+## Verify the integration
+
+Confirm one PAGE\_VIEW after permission and avoid a duplicate route event. Revoke marketing and ensure application conversion calls stop even if `snaptr` still exists.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

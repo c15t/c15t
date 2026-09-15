@@ -1,0 +1,70 @@
+---
+title: Mount the backend
+description: Connect the self-hosted request handler to a server framework and point existing c15t clients at it.
+group: self-host
+---
+
+## Keep backend and client setup separate
+
+Complete the [backend quickstart](/docs/self-host/quickstart) and migrations first.
+A backend accepts web `Request` objects and returns `Promise<Response>`. Create
+one instance per server module so requests reuse its connection pool.
+
+The frontend can be Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte,
+SvelteKit or JavaScript. Follow its [framework quickstart](/docs/frameworks), then
+use your backend URL where it asks for the Inth endpoint. The frontend framework
+does not need to run the backend in the same application.
+
+## Mount in Next.js App Router
+
+```ts title="app/api/c15t/[[...path]]/route.ts"
+import { c15tInstance } from '@c15t/backend';
+import config from '../../../../c15t-backend.config';
+
+export const runtime = 'nodejs';
+const backend = c15tInstance({ ...config, basePath: '/api/c15t' });
+
+export const GET = (request: Request) => backend.handler(request);
+export const POST = GET;
+export const PUT = GET;
+export const PATCH = GET;
+export const OPTIONS = GET;
+```
+
+`PUT` is needed for legal-document release synchronization. The catch-all route
+must cover the complete mounted path. Exporting only `POST` would leave manifest,
+initialization and subject reads unavailable.
+
+This route requires a server runtime. A static Next.js export must call a
+separately deployed backend. Do not add a request-time API route to an app that
+will be served as static files.
+
+## Mount in another server
+
+Pass the incoming web `Request` to the same instance handler and return its
+`Response` unchanged. If the framework supplies its own request type, use that
+framework's supported web-request adapter. Preserve the method, body, headers,
+status and response headers, including CORS and cache headers.
+
+Set `basePath` to the prefix present on the request you pass in. If a parent
+router already removes the prefix, do not remove it a second time through a
+mismatched mount configuration.
+
+## Connect an existing client
+
+Use an absolute backend URL for server prefetch. Browser requests may use a
+same-origin mounted path when the adapter allows it. Keep the database config
+server-only; the browser only needs the HTTP endpoint.
+
+A self-hosted backend still uses the client's hosted mode. Browser-only
+`offline()` does not call the service and will not record consent in its SQL
+store. Keep manifest prefetch and the browser's write transport pointed at the
+same deployment.
+
+## Check the deployment
+
+Request `/status` and `/manifest` through the public mount point, then load a
+frontend page with a trusted origin. Confirm a policy resolves, save a choice,
+and read it after a reload. Check CORS preflight for cross-origin deployments.
+Call `backend.dispose()` when a test or script finishes, or when your server's
+shutdown lifecycle releases its resources.

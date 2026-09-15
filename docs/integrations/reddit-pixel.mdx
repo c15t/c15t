@@ -1,0 +1,42 @@
+---
+title: Reddit Pixel
+description: Configure Reddit Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Reddit Pixel
+
+Use your Reddit Pixel ID. The helper initializes `rdt` and queues `PageVisit` by default.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { redditPixel } from '@c15t/scripts/reddit-pixel';
+
+export const scripts = [redditPixel({ pixelId: 't2_YOUR_PIXEL_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `pixelId` | Required Reddit Pixel ID. |
+| `trackPageVisit` | Defaults to `true`. |
+| `initOptions` | Optional Reddit initialization and matching settings. |
+| `disableFirstPartyCookies` | Merged into the initialization options when supplied. |
+| `scriptUrl` | Defaults to `https://www.redditstatic.com/ads/pixel.js`. |
+
+## Consent behavior
+
+The first load waits for marketing permission. The helper retains the pixel after revocation and calls `disableFirstPartyCookies`; a later grant calls `enableFirstPartyCookies`. Disabling cookies does not stop all events. `redditPixelEvent` checks API availability, not consent.
+
+## Verify the integration
+
+Inspect the initial PageVisit and verify cookie commands on revocation. Stop application conversion calls when marketing is denied, even if `rdt` remains callable.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

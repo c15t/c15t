@@ -6,7 +6,7 @@ metadata:
 ---
 # @c15t/core documentation
 
-Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/core for root c15t imports, @c15t/react for c15t/react, and @c15t/nextjs for c15t/next.
+Headless v3 consent, Inth setup, runtime ownership and script loading.
 
 To work with @c15t/core, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

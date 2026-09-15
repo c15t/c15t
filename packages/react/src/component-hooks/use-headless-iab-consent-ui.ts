@@ -4,7 +4,7 @@ import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import { useCallback, useMemo } from 'react';
 
 import { useIAB } from '../iab-context';
-import { useConsentManager } from './use-consent-manager';
+import { useConsentManager } from './use-manager';
 
 export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 	const iab = useIAB();
@@ -34,18 +34,16 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 			if (action === 'accept') {
 				iab?.acceptAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			if (action === 'reject') {
 				iab?.rejectAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			openDialog();
 		},
-		[closeUI, iab, openDialog]
+		[iab, openDialog]
 	);
 
 	const performDialogAction = useCallback(
@@ -53,19 +51,16 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 			if (action === 'accept') {
 				iab?.acceptAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			if (action === 'reject') {
 				iab?.rejectAll();
 				await iab?.save();
-				closeUI();
 				return;
 			}
 			await iab?.save();
-			closeUI();
 		},
-		[closeUI, iab]
+		[iab]
 	);
 
 	return {
@@ -76,7 +71,7 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 		},
 		closeUI,
 		dialog: {
-			isReady: Boolean(iab?.gvl),
+			isReady: Boolean(iab?.gvl || iab?.gvlReference),
 			scrollLock: policyDialog.scrollLock,
 		},
 		iab,

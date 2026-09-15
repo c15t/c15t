@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import { testOffline } from '../../__tests__/test-offline';
-import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 import { custom, hosted } from '../../lib/index';
 import { offline } from '../../lib/transports/offline';
 

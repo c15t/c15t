@@ -64,7 +64,7 @@ afterEach(() => {
 
 describe('lazy IAB loading', () => {
 	test.each([
-		'components/consent-manager-provider.svelte',
+		'components/manager-provider.svelte',
 		'context.svelte.ts',
 		'iab-loader.ts',
 		'index.ts',

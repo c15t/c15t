@@ -1,0 +1,40 @@
+---
+title: Microsoft Clarity
+description: Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Microsoft Clarity
+
+Use the Clarity project ID. The helper uses Consent V2 and derives its storage signals from c15t permissions.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { clarity } from '@c15t/scripts/microsoft-clarity';
+
+export const scripts = [clarity({ id: 'YOUR_PROJECT_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `id` | Project ID used to construct the loader URL. |
+| `defaultConsent` | Optional boot-time override. Omit it to use c15t state; it does not replace later synchronization. |
+| `scriptUrl` | Optional full Clarity loader URL. |
+
+## Consent behavior
+
+The initial loader waits for measurement permission. After loading, it remains installed on revocation and receives `consentv2` updates. c15t maps `measurement` to `analytics_Storage` and `marketing` to `ad_Storage`. Storage denial is not a promise of zero Clarity requests. See [Microsoft's Consent V2 API](https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-consent-api-v2).
+
+## Verify the integration
+
+Test measurement and marketing independently. Confirm the correct Consent V2 values reach Clarity on initial load and after each change, including a later measurement rejection.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

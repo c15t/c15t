@@ -6,12 +6,17 @@
  * while the CLI polls for the token.
  */
 
+import { setTimeout as delay } from 'node:timers/promises';
+
+import { z } from 'zod';
+
 import { TIMEOUTS, URLS } from '../constants';
 import { CliError } from '../core/errors';
+import { getControlPlaneOrigin } from './base-url';
+import { fetchWithDeadline } from './http';
 import type {
 	DeviceCodeResponse,
 	DeviceFlowError,
-	DeviceFlowState,
 	TokenResponse,
 } from './types';
 
@@ -82,73 +87,84 @@ const isApiSuccessPayload = function isApiSuccessPayload<T>(
 	);
 };
 
-const normalizeDeviceCodeResponse = function normalizeDeviceCodeResponse(
-	payload: unknown
-): DeviceCodeResponse {
-	if (
-		payload &&
-		typeof payload === 'object' &&
-		'device_code' in payload &&
-		'user_code' in payload &&
-		'verification_uri' in payload
-	) {
-		return payload as DeviceCodeResponse;
+const deviceCodeSchema = z.object({
+	device_code: z.string().min(1),
+	expires_in: z.number().positive().finite(),
+	interval: z.number().positive().finite().default(5),
+	user_code: z.string().min(1),
+	verification_uri: z.string().url(),
+	verification_uri_complete: z.string().url().optional(),
+});
+const tokenSchema = z.object({
+	access_token: z.string().min(1),
+	expires_in: z.number().nonnegative().finite().optional(),
+	refresh_token: z.string().optional(),
+	scope: z.string().optional(),
+	token_type: z.string().min(1),
+});
+const normalizeDeviceCodeResponse = (payload: unknown): DeviceCodeResponse => {
+	const camel = z
+		.object({
+			deviceCode: z.string(),
+			expiresIn: z.number(),
+			interval: z.number().optional(),
+			userCode: z.string(),
+			verificationUri: z.string(),
+			verificationUriComplete: z.string().optional(),
+		})
+		.safeParse(payload);
+	const parsed = deviceCodeSchema.safeParse(
+		camel.success
+			? {
+					device_code: camel.data.deviceCode,
+					expires_in: camel.data.expiresIn,
+					interval: camel.data.interval,
+					user_code: camel.data.userCode,
+					verification_uri: camel.data.verificationUri,
+					verification_uri_complete: camel.data.verificationUriComplete,
+				}
+			: payload
+	);
+	if (!parsed.success) {
+		throw new CliError('AUTH_FAILED', {
+			details: 'Invalid device code response',
+		});
 	}
-
-	if (
-		payload &&
-		typeof payload === 'object' &&
-		'deviceCode' in payload &&
-		'userCode' in payload &&
-		'verificationUri' in payload
-	) {
-		const v1 = payload as DeviceCodeResponseV1;
-		return {
-			device_code: v1.deviceCode,
-			expires_in: v1.expiresIn,
-			interval: v1.interval,
-			user_code: v1.userCode,
-			verification_uri: v1.verificationUri,
-			verification_uri_complete: v1.verificationUriComplete,
-		};
+	for (const url of [
+		parsed.data.verification_uri,
+		parsed.data.verification_uri_complete,
+	]) {
+		if (url) {
+			getControlPlaneOrigin(url);
+		}
 	}
-
-	throw new CliError('AUTH_FAILED', {
-		details: 'Invalid device code response',
-	});
+	return parsed.data;
 };
-
-const normalizeTokenResponse = function normalizeTokenResponse(
-	payload: unknown
-): TokenResponse {
-	if (
-		payload &&
-		typeof payload === 'object' &&
-		'access_token' in payload &&
-		'token_type' in payload
-	) {
-		return payload as TokenResponse;
+const normalizeTokenResponse = (payload: unknown): TokenResponse => {
+	const camel = z
+		.object({
+			accessToken: z.string(),
+			expiresIn: z.number().optional(),
+			refreshToken: z.string().optional(),
+			scope: z.string().optional(),
+			tokenType: z.string(),
+		})
+		.safeParse(payload);
+	const parsed = tokenSchema.safeParse(
+		camel.success
+			? {
+					access_token: camel.data.accessToken,
+					expires_in: camel.data.expiresIn,
+					refresh_token: camel.data.refreshToken,
+					scope: camel.data.scope,
+					token_type: camel.data.tokenType,
+				}
+			: payload
+	);
+	if (!parsed.success) {
+		throw new CliError('AUTH_FAILED', { details: 'Invalid token response' });
 	}
-
-	if (
-		payload &&
-		typeof payload === 'object' &&
-		'accessToken' in payload &&
-		'tokenType' in payload
-	) {
-		const v1 = payload as TokenResponseV1;
-		return {
-			access_token: v1.accessToken,
-			expires_in: v1.expiresIn,
-			refresh_token: v1.refreshToken,
-			scope: v1.scope,
-			token_type: v1.tokenType,
-		};
-	}
-
-	throw new CliError('AUTH_FAILED', {
-		details: 'Invalid token response',
-	});
+	return parsed.data;
 };
 
 const parseJsonSafe = async function parseJsonSafe(
@@ -228,18 +244,21 @@ const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
  * Requests a device code and user code from the authorization server.
  */
 export const initiateDeviceFlow = async function initiateDeviceFlow(
-	baseUrl: string = URLS.CONSENT_IO
+	baseUrl: string = URLS.CONSENT_IO,
+	signal?: AbortSignal
 ): Promise<DeviceCodeResponse> {
+	getControlPlaneOrigin(baseUrl);
 	const endpoints = getEndpoints(baseUrl);
 
 	// Prefer v1 control-plane endpoints used in local dashboard/dev branches.
 	{
-		const v1Response = await fetch(endpoints.deviceCodeV1Endpoint, {
+		const v1Response = await fetchWithDeadline(endpoints.deviceCodeV1Endpoint, {
 			body: '{}',
 			headers: {
 				'Content-Type': 'application/json',
 			},
 			method: 'POST',
+			signal,
 		});
 
 		if (v1Response.ok) {
@@ -267,16 +286,20 @@ export const initiateDeviceFlow = async function initiateDeviceFlow(
 	}
 
 	// Fallback to legacy OAuth device endpoint.
-	const response = await fetch(endpoints.deviceAuthorizationEndpoint, {
-		body: new URLSearchParams({
-			client_id: 'c15t-cli',
-			scope: 'instances:read instances:write',
-		}),
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
-		},
-		method: 'POST',
-	});
+	const response = await fetchWithDeadline(
+		endpoints.deviceAuthorizationEndpoint,
+		{
+			body: new URLSearchParams({
+				client_id: 'c15t-cli',
+				scope: 'instances:read instances:write',
+			}),
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+			},
+			method: 'POST',
+			signal,
+		}
+	);
 
 	if (!response.ok) {
 		const text = await response.text();
@@ -307,12 +330,6 @@ export const initiateDeviceFlow = async function initiateDeviceFlow(
 /**
  * Sleep for a specified duration
  */
-const sleep = function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
-};
-
 type TokenPollResult =
 	| { kind: 'legacy' }
 	| { kind: 'pending' }
@@ -321,12 +338,14 @@ type TokenPollResult =
 
 const pollV1TokenEndpoint = async (
 	endpoint: string,
-	deviceCode: string
+	deviceCode: string,
+	signal: AbortSignal
 ): Promise<TokenPollResult> => {
-	const response = await fetch(endpoint, {
+	const response = await fetchWithDeadline(endpoint, {
 		body: JSON.stringify({ deviceCode }),
 		headers: { 'Content-Type': 'application/json' },
 		method: 'POST',
+		signal,
 	});
 	const payload = await parseJsonSafe(response);
 	if (response.ok) {
@@ -362,9 +381,10 @@ const pollV1TokenEndpoint = async (
 
 const pollLegacyTokenEndpoint = async (
 	endpoint: string,
-	deviceCode: string
+	deviceCode: string,
+	signal: AbortSignal
 ): Promise<TokenPollResult> => {
-	const response = await fetch(endpoint, {
+	const response = await fetchWithDeadline(endpoint, {
 		body: new URLSearchParams({
 			client_id: 'c15t-cli',
 			device_code: deviceCode,
@@ -372,21 +392,30 @@ const pollLegacyTokenEndpoint = async (
 		}),
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 		method: 'POST',
+		signal,
 	});
 	const payload = await parseJsonSafe(response);
 	if (response.ok) {
 		return { kind: 'token', token: normalizeTokenResponse(payload) };
 	}
 
-	const error = payload as DeviceFlowError;
-	switch (error.error) {
+	const error = z
+		.object({ error: z.string(), error_description: z.string().optional() })
+		.safeParse(payload);
+	if (!error.success) {
+		throw new CliError('AUTH_FAILED', {
+			details: 'Invalid token error response',
+		});
+	}
+	const tokenError = error.data;
+	switch (tokenError.error) {
 		case 'authorization_pending':
 			return { kind: 'pending' };
 		case 'slow_down':
 			return { kind: 'slow-down' };
 		case 'access_denied':
 			throw new CliError('DEVICE_FLOW_DENIED', {
-				details: error.error_description,
+				details: tokenError.error_description,
 			});
 		case 'expired_token':
 			throw new CliError('DEVICE_FLOW_TIMEOUT', {
@@ -394,113 +423,72 @@ const pollLegacyTokenEndpoint = async (
 			});
 		default:
 			throw new CliError('AUTH_FAILED', {
-				details: error.error_description || `Unknown error: ${error.error}`,
+				details:
+					tokenError.error_description || `Unknown error: ${tokenError.error}`,
 			});
 	}
 };
 
-export const pollForToken = function pollForToken(
+/* oxlint-disable no-await-in-loop -- OAuth device polling must wait between sequential requests. */
+export const pollForToken = async function pollForToken(
 	baseUrl: string,
 	deviceCode: string,
 	interval: number = TIMEOUTS.DEVICE_FLOW_POLL_INTERVAL,
-	expiresIn: number = TIMEOUTS.DEVICE_FLOW_EXPIRY
+	expiresIn: number = TIMEOUTS.DEVICE_FLOW_EXPIRY,
+	signal?: AbortSignal
 ): Promise<TokenResponse> {
 	const endpoints = getEndpoints(baseUrl);
-	const startTime = Date.now();
-	const expiryTime = startTime + expiresIn * 1000;
-	// Convert to ms
+	const deadline = AbortSignal.timeout(
+		Math.max(1, Math.ceil(expiresIn * 1000))
+	);
+	const cancellation = signal ? AbortSignal.any([signal, deadline]) : deadline;
 	let currentInterval = interval * 1000;
-	let useLegacyOAuthEndpoints = false;
-
-	const poll = async (): Promise<TokenResponse> => {
-		if (Date.now() >= expiryTime) {
-			throw new CliError('DEVICE_FLOW_TIMEOUT');
-		}
-		await sleep(currentInterval);
-
-		try {
-			if (!useLegacyOAuthEndpoints) {
-				const result = await pollV1TokenEndpoint(
-					endpoints.deviceTokenV1Endpoint,
-					deviceCode
-				);
-				if (result.kind === 'token') {
-					return result.token;
+	let legacy = false;
+	try {
+		while (true) {
+			await delay(currentInterval, undefined, { signal: cancellation });
+			let result: TokenPollResult;
+			try {
+				result = legacy
+					? await pollLegacyTokenEndpoint(
+							endpoints.tokenEndpoint,
+							deviceCode,
+							cancellation
+						)
+					: await pollV1TokenEndpoint(
+							endpoints.deviceTokenV1Endpoint,
+							deviceCode,
+							cancellation
+						);
+			} catch (error) {
+				if (cancellation.aborted || error instanceof CliError) {
+					throw error;
 				}
-				if (result.kind === 'pending') {
-					return poll();
-				}
-				useLegacyOAuthEndpoints = true;
+				// Transient network errors may recover before the device code expires.
+				continue;
 			}
-
-			const result = await pollLegacyTokenEndpoint(
-				endpoints.tokenEndpoint,
-				deviceCode
-			);
 			if (result.kind === 'token') {
 				return result.token;
+			}
+			if (result.kind === 'legacy') {
+				legacy = true;
 			}
 			if (result.kind === 'slow-down') {
 				currentInterval += 5000;
 			}
-		} catch (error) {
-			if (error instanceof CliError) {
-				throw error;
-			}
 		}
-		return poll();
-	};
-
-	return poll();
-};
-
-/**
- * Run the complete device flow
- *
- * Returns a state object that can be used to track the flow progress.
- */
-export const runDeviceFlow = async function runDeviceFlow(
-	baseUrl: string = URLS.CONSENT_IO,
-	callbacks?: {
-		onDeviceCode?: (response: DeviceCodeResponse) => void;
-		onPolling?: () => void;
-		onSuccess?: (token: TokenResponse) => void;
-		onError?: (error: Error) => void;
-	}
-): Promise<DeviceFlowState> {
-	const state: DeviceFlowState = { status: 'pending' };
-
-	try {
-		// Step 1: Get device code
-		const deviceCode = await initiateDeviceFlow(baseUrl);
-		state.deviceCode = deviceCode;
-		callbacks?.onDeviceCode?.(deviceCode);
-
-		// Step 2: Poll for token
-		state.status = 'polling';
-		callbacks?.onPolling?.();
-
-		const token = await pollForToken(
-			baseUrl,
-			deviceCode.device_code,
-			deviceCode.interval,
-			deviceCode.expires_in
-		);
-
-		state.status = 'success';
-		state.token = token;
-		callbacks?.onSuccess?.(token);
-
-		return state;
 	} catch (error) {
-		state.status = 'error';
-		state.error = error instanceof Error ? error.message : String(error);
-		callbacks?.onError?.(
-			error instanceof Error ? error : new Error(String(error))
-		);
-		return state;
+		if (signal?.aborted) {
+			throw new CliError('CANCELLED');
+		}
+		if (deadline.aborted) {
+			throw new CliError('DEVICE_FLOW_TIMEOUT');
+		}
+		throw error;
 	}
 };
+
+/* oxlint-enable no-await-in-loop */
 
 /**
  * Format the user code for display (e.g., "ABCD-EFGH")

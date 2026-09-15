@@ -4,7 +4,6 @@ import { writePolicyResolutionWire } from '@c15t/schema/types';
  *
  * `offline()` lives in the framework adapters and is tested there.
  */
-import type { InitOutput } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { KernelTransport, SavePayload } from '../index';
@@ -63,7 +62,7 @@ describe('hosted()', () => {
 	});
 
 	test('forwards initURL and assertDecisionInputs to the hosted transport', async () => {
-		const init: InitOutput = {
+		const init = {
 			branding: 'c15t',
 			hasConsented: false,
 			jurisdiction: 'GDPR',
@@ -82,14 +81,15 @@ describe('hosted()', () => {
 			resolvedOverrides: { country: 'DE', language: 'de', region: 'BE' },
 			translations: { language: 'de', translations: {} as never },
 		};
-		const fetchSpy = vi.fn((input: string | URL | Request) =>
-			Promise.resolve(
-				new Response(
-					JSON.stringify(
-						String(input) === '/api/consent/init' ? init : { ok: true }
+		const fetchSpy = vi.fn(
+			(input: string | URL | Request, _options?: RequestInit) =>
+				Promise.resolve(
+					new Response(
+						JSON.stringify(
+							String(input) === '/api/consent/init' ? init : { ok: true }
+						)
 					)
 				)
-			)
 		);
 		const mode = hosted({
 			assertDecisionInputs: true,
@@ -109,7 +109,8 @@ describe('hosted()', () => {
 		const body = JSON.parse(String(fetchSpy.mock.calls[1]?.[1]?.body));
 		expect(body).toMatchObject({
 			country: 'DE',
-			fingerprint: init.policyResolution.fingerprints.policy,
+			fingerprint: matchedResolution(optInRule({ id: 'eu-opt-in' }))
+				.fingerprints.policy,
 			language: 'de',
 			policyId: 'eu-opt-in',
 			region: 'BE',

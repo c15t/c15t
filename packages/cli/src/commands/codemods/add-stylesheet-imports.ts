@@ -1,25 +1,15 @@
 import { existsSync } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
-import { Project } from 'ts-morph';
+import type { Project } from 'ts-morph';
 
 import {
 	ensureGlobalCssStylesheetImports,
 	formatSearchedCssPaths,
 } from '../shared/stylesheets';
-
-const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
-const IGNORED_DIRS = new Set([
-	'.git',
-	'.next',
-	'.turbo',
-	'coverage',
-	'dist',
-	'build',
-	'node_modules',
-	'out',
-]);
+import { createCodemodSession } from './runner';
+import type { CodemodRunOptions, CodemodRunResult } from './runner';
 
 /**
  * Import paths that indicate the project uses styled (prebuilt) UI components.
@@ -69,39 +59,6 @@ const NEXTJS_ENTRYPOINTS = [
 	'pages/_app.jsx',
 ] as const;
 
-export interface CodemodRunOptions {
-	/**
-	 * Absolute or relative project root to scan for source files.
-	 */
-	projectRoot: string;
-	/**
-	 * Whether to skip saving transformed files.
-	 */
-	dryRun: boolean;
-}
-
-/**
- * Result summary for a codemod run.
- */
-export interface CodemodRunResult {
-	/**
-	 * Number of source files scanned.
-	 */
-	totalFiles: number;
-	/**
-	 * Per-file transformation summaries.
-	 */
-	changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[];
-	/**
-	 * Non-fatal per-file transform errors.
-	 */
-	errors: { filePath: string; error: string }[];
-}
-
 type Framework = 'react' | 'nextjs';
 
 interface DetectionResult {
@@ -134,42 +91,6 @@ const detectTailwindVersion = async function detectTailwindVersion(
 	} catch {
 		return null;
 	}
-};
-
-const collectSourceFiles = async function collectSourceFiles(
-	rootDir: string
-): Promise<string[]> {
-	const files: string[] = [];
-
-	const walk = async function walk(currentDir: string): Promise<void> {
-		const entries = await readdir(currentDir, { withFileTypes: true });
-
-		for (const entry of entries) {
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
-				}
-				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
-
-			if (!entry.isFile()) {
-				continue;
-			}
-
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
-
-			files.push(join(currentDir, entry.name));
-		}
-	};
-
-	await walk(rootDir);
-
-	return files;
 };
 
 const matchesAnyPattern = function matchesAnyPattern(
@@ -347,14 +268,8 @@ export const runAddStylesheetImportsCodemod =
 	async function runAddStylesheetImportsCodemod(
 		options: CodemodRunOptions
 	): Promise<CodemodRunResult> {
-		const project = new Project({
-			compilerOptions: {
-				allowJs: true,
-			},
-			skipAddingFilesFromTsConfig: true,
-		});
-
-		const filePaths = await collectSourceFiles(options.projectRoot);
+		const { project, filePaths } =
+			options.session ?? (await createCodemodSession(options.projectRoot));
 		const changedFiles: {
 			filePath: string;
 			operations: number;
@@ -484,3 +399,5 @@ export const runAddStylesheetImportsCodemod =
 			totalFiles: filePaths.length,
 		};
 	};
+
+export type { CodemodRunOptions, CodemodRunResult } from './runner';

@@ -1,0 +1,42 @@
+---
+title: c15t vs Didomi
+description: Compare Didomi console-led consent operations with c15t v3 framework code, Inth hosting and application-owned presentation.
+group: reference
+---
+
+## Choose how teams publish consent changes
+
+Evaluate Didomi when marketing, legal and engineering need a shared console for
+managing consent notices. Evaluate c15t when the application team wants to
+control consent presentation and feature gates in framework code while Inth
+manages policy and consent records.
+
+Didomi describes a UI-based console for notice management alongside SDKs and
+APIs for integration. It presents these as workflows for multiple teams, so it
+would be inaccurate to describe Didomi as lacking developer access.
+[Didomi CMP](https://www.didomi.io/consent-management-platform)
+
+## Compare ownership before comparing buttons
+
+| Decision | c15t v3 evaluation | Didomi evaluation |
+| --- | --- | --- |
+| Change a notice | Test Inth policy changes and app translation overrides | Test the console's notice publication workflow |
+| Change application markup | Use component slots or headless APIs | Prototype the required SDK and customization route |
+| Resolve Next.js consent | Exercise the documented router and rendering path | Confirm the SDK behavior needed for your router |
+| Procurement | Confirm Inth service terms or self-hosting costs | Request terms for the required SDKs, properties and support |
+
+The linked Didomi product page is a feature source, not a price quote. Request
+current commercial terms for your intended scope; this comparison does not
+infer a cheaper option from the absence of a public price.
+
+## Run a policy-change exercise
+
+Have the person who will maintain notices change one purpose and one
+translation. Record which changes need an application deployment, what review
+is required, and when a returning visitor sees the new policy. Then verify that
+the vendor integration observes the revised permission. This tests the team
+workflow that a static feature table cannot establish.
+
+Use [Inth](https://inth.com) and the [framework setup](/docs/frameworks) for the c15t prototype. Reproduce the team publication exercise before deciding which ownership model fits.
+
+Sources reviewed on 10 September 2026.

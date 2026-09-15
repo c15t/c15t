@@ -1,0 +1,44 @@
+---
+title: Customize your consent interface
+description: Choose presentation, theme tokens, slots or custom markup for the change you need.
+group: customization
+---
+
+## Start with the change you want
+
+| Change | Use | Why |
+| --- | --- | --- |
+| Banner shape or location | Presentation or banner props | Keeps policy actions and built-in layout behavior |
+| Brand colors, radius, typography, spacing | Theme tokens | Changes related component parts together |
+| One card, footer, title or button group | Component slots | Targets existing markup |
+| Labels, descriptions or language | i18n configuration | Keeps banner and preferences copy consistent |
+| A different component structure | Compound components where available | Retains the component behavior while changing markup |
+| Your own interaction and markup | Headless APIs | You own rendering, focus behavior and policy action coverage |
+
+Most brand changes need tokens and a few slots. Start there before opting out
+of the stock styles. The [recipes](/docs/customization/recipes) show how each
+choice affects a real banner.
+
+## Keep behavior and appearance separate
+
+Presentation controls the prompt's shape, position and blocking behavior.
+Policy controls which actions and rights are required. Changing colors or button
+order does not change a saved choice or policy scope.
+
+A choice wall always blocks. Notices never block and cannot become a wall merely
+because `variant: 'wall'` was requested. Preference dialogs remain centered;
+prompt positioning does not move them. Required actions omitted from a custom
+layout can be restored by the policy renderer.
+
+## Use the adapter's configuration shape
+
+React and Next.js accept provider `theme`, `presentation` and `components`
+options. Vue and Nuxt expose their own shared configuration, including CSS
+`tokens` and component slots. Svelte accepts its provider options and theme
+contract. Astro serializes integration options and uses the selected adapter for
+dialogs. Do not move a configuration object between frameworks without checking
+the target types.
+
+Read [tokens and CSS](/docs/customization/tokens),
+[slots](/docs/customization/slots) or
+[copy and translations](/docs/customization/translations) for the next step.

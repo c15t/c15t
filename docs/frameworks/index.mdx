@@ -1,13 +1,55 @@
 ---
-title: Frameworks
-description: Pick the guide for your framework.
+title: Choose your c15t integration
+description: Find the c15t v3 setup for your framework, router and deployment.
 group: frameworks
 ---
 
-<Cards className="my-6 grid-cols-1 sm:grid-cols-3 @container not-prose grid gap-4">
-  <Card variant="interactive" title="React" description="Hooks, pre-built components, and theming for any React app." icon={<Icon name="react" />} href="/docs/frameworks/react/quickstart" />
+## Start with Inth
 
-  <Card variant="interactive" title="JavaScript" description="Framework-agnostic consent management for any frontend stack." icon={<Icon name="javascript" />} href="/docs/frameworks/javascript/quickstart" />
+[Inth](https://inth.com) is the recommended backend for these quickstarts.
+Choose your framework below and follow its setup guide.
 
-  <Card variant="interactive" title="Next.js" description="App Router, server-side consent, and geolocation for Next.js." icon={<Icon name="nextjs" />} href="/docs/frameworks/next/quickstart" />
-</Cards>
+## Start with your framework
+
+These guides describe the v3 APIs in this repository. Keep the core, schema,
+backend and framework adapter on compatible v3 releases. An older npm release
+may not export the APIs shown here.
+
+| Your app | Start here | Rendering choices |
+| --- | --- | --- |
+| Next.js | [Next.js setup](/docs/frameworks/next/quickstart) | App Router, Pages Router, static export |
+| TanStack Start | [TanStack Start setup](/docs/frameworks/tanstack-start/quickstart) | Server functions, root loader and client boundary |
+| React with Vite or another client bundler | [React setup](/docs/frameworks/react/quickstart) | Browser initialization |
+| Nuxt | [Nuxt setup](/docs/frameworks/nuxt/quickstart) | Request SSR, SPA, prerendering |
+| Vue with Vite | [Vue setup](/docs/frameworks/vue/quickstart) | Vue plugin and Vite integration |
+| Astro | [Astro setup](/docs/frameworks/astro/quickstart) | Prerendered or server pages, shared island runtime |
+| Svelte | [Svelte setup](/docs/frameworks/svelte/quickstart) | Svelte 5 components |
+| SvelteKit | [SvelteKit setup](/docs/frameworks/sveltekit/quickstart) | Request SSR or static hosting |
+| JavaScript or a custom UI | [JavaScript setup](/docs/frameworks/javascript/quickstart) | Headless engine and explicit runtime ownership |
+
+`@c15t/solid` currently re-exports UI primitives. It does not provide the same
+provider integration as React, Vue or Svelte. Use the headless engine when
+building a Solid integration and own its subscription and cleanup lifecycle.
+
+## Choose how consent resolves
+
+A static site can use a hosted consent backend. Static describes your app's
+hosting; browser-only describes where consent is managed. Those are separate
+choices. Use [deployment modes](/docs/guides/deployment-modes) to choose between
+request-time resolution, browser initialization and local policies.
+
+Install `c15t` for JavaScript, React, Next.js, Vue, Nuxt and TanStack Start.
+Use its framework entry points, such as `c15t/react` and `c15t/next`. Svelte and
+Astro currently use their dedicated packages because the umbrella package does
+not export those adapters. Add-ons such as `@c15t/scripts` are separate installs.
+
+## Finish the integration
+
+Adding a banner does not move existing analytics behind consent. Register
+optional scripts with c15t, replace unconditional embeds, and keep a way to
+reopen preferences. Follow [verification](/docs/guides/verify-consent) before
+shipping.
+
+Use [customization](/docs/customization/overview) to choose presentation, tokens,
+slots or custom markup. For an existing installation, start with
+[the v3 migration guide](/docs/upgrade-v3).

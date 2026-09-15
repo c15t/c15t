@@ -94,9 +94,11 @@ const createHandler = function createHandler(basePath: string) {
 			applyCors(response.headers, req);
 			await writeWebResponse(response, res);
 		} catch (error) {
+			console.error('Fixture request failed', error);
 			res.statusCode = 500;
-			res.setHeader('content-type', 'text/plain');
-			res.end(error instanceof Error ? error.stack : String(error));
+			res.setHeader('content-type', 'text/plain; charset=utf-8');
+			res.setHeader('x-content-type-options', 'nosniff');
+			res.end('Fixture request failed');
 		}
 	};
 };

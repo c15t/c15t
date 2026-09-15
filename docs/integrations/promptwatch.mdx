@@ -1,0 +1,39 @@
+---
+title: Promptwatch
+description: Configure Promptwatch with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Promptwatch
+
+Use the project ID from your Promptwatch dashboard. The helper installs the browser attribution client with `data-project-id`.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { promptwatch } from '@c15t/scripts/promptwatch';
+
+export const scripts = [promptwatch({ projectId: 'YOUR_PROJECT_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `projectId` | Required non-empty project ID. |
+| `scriptUrl` | Defaults to `https://ingest.promptwatch.com/js/client.min.js`. |
+
+## Consent behavior
+
+The client waits for measurement permission. This browser helper does not govern a separate server-side Promptwatch integration and has no vendor shutdown callback.
+
+## Verify the integration
+
+Confirm the project attribute and browser attribution requests. Verify a later denial separately from any server-side event collection your application performs.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

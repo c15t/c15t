@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "2.2.0-canary-20260731105620",
+	"version": "3.0.0-alpha.0",
 	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and Postgres, MySQL and SQLite storage.",
 	"keywords": [
 		"backend",
@@ -78,13 +78,14 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/backend",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
+		"prepack": "bun run build:docs",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},

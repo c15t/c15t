@@ -8,7 +8,10 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { PATHS } from '../constants';
+import { z } from 'zod';
+
+import { PATHS, URLS } from '../constants';
+import { getControlPlaneOrigin } from './base-url';
 import type { AuthState, C15tConfig } from './types';
 
 /**
@@ -36,24 +39,41 @@ const ensureConfigDir = async function ensureConfigDir(): Promise<void> {
 /**
  * Load the stored configuration
  */
-export const loadConfig =
-	async function loadConfig(): Promise<C15tConfig | null> {
-		try {
-			const configPath = getConfigPath();
-			const content = await fs.readFile(configPath, 'utf-8');
-			const config = JSON.parse(content) as C15tConfig;
-
-			// Validate the config has required fields
-			if (!config.accessToken) {
-				return null;
-			}
-
-			return config;
-		} catch {
-			// File doesn't exist or is invalid
+export const loadConfig = async function loadConfig(
+	baseUrl?: string
+): Promise<C15tConfig | null> {
+	try {
+		const configPath = getConfigPath();
+		const content = await fs.readFile(configPath, 'utf-8');
+		const config = z
+			.object({
+				accessToken: z.string().min(1),
+				email: z.string().optional(),
+				expiresAt: z.number().finite().optional(),
+				lastLogin: z.number().finite().optional(),
+				origin: z.string().url().optional(),
+				refreshToken: z.string().optional(),
+				selectedInstanceId: z.string().optional(),
+			})
+			.parse(JSON.parse(content));
+		if (
+			(config.origin ?? new URL(URLS.CONSENT_IO).origin) !==
+			getControlPlaneOrigin(baseUrl)
+		) {
 			return null;
 		}
-	};
+
+		// Validate the config has required fields
+		if (!config.accessToken) {
+			return null;
+		}
+
+		return config;
+	} catch {
+		// File doesn't exist or is invalid
+		return null;
+	}
+};
 
 /**
  * Save configuration to the store
@@ -64,21 +84,29 @@ export const saveConfig = async function saveConfig(
 	await ensureConfigDir();
 
 	const configPath = getConfigPath();
-	const content = JSON.stringify(config, null, 2);
+	const content = JSON.stringify(
+		{ ...config, origin: config.origin ?? getControlPlaneOrigin() },
+		null,
+		2
+	);
 
-	await fs.writeFile(configPath, content, {
-		// Read/write for owner only
-		mode: 0o600,
-	});
+	const temporaryPath = `${configPath}.${process.pid}.${Date.now()}.tmp`;
+	try {
+		await fs.writeFile(temporaryPath, content, { flag: 'wx', mode: 0o600 });
+		await fs.rename(temporaryPath, configPath);
+	} finally {
+		await fs.rm(temporaryPath, { force: true });
+	}
 };
 
 /**
  * Update specific fields in the configuration
  */
 export const updateConfig = async function updateConfig(
-	updates: Partial<C15tConfig>
+	updates: Partial<C15tConfig>,
+	baseUrl?: string
 ): Promise<C15tConfig | null> {
-	const existing = await loadConfig();
+	const existing = await loadConfig(baseUrl);
 	if (!existing) {
 		return null;
 	}
@@ -95,8 +123,12 @@ export const clearConfig = async function clearConfig(): Promise<void> {
 	try {
 		const configPath = getConfigPath();
 		await fs.unlink(configPath);
-	} catch {
-		// Ignore if file doesn't exist
+	} catch (error) {
+		if (
+			!(error instanceof Error && 'code' in error && error.code === 'ENOENT')
+		) {
+			throw error;
+		}
 	}
 };
 
@@ -111,16 +143,22 @@ export const isTokenExpired = function isTokenExpired(
 		return false;
 	}
 
-	// Add a 5-minute buffer
-	const buffer = 5 * 60 * 1000;
+	// Reserve at most 10% of a known token lifetime for request clock skew.
+	const lifetime =
+		config.lastLogin === undefined
+			? 50 * 60 * 1000
+			: config.expiresAt - config.lastLogin;
+	const buffer = Math.min(5 * 60 * 1000, Math.max(0, lifetime / 10));
 	return Date.now() > config.expiresAt - buffer;
 };
 
 /**
  * Get the current auth state
  */
-export const getAuthState = async function getAuthState(): Promise<AuthState> {
-	const config = await loadConfig();
+export const getAuthState = async function getAuthState(
+	baseUrl?: string
+): Promise<AuthState> {
+	const config = await loadConfig(baseUrl);
 
 	if (!config) {
 		return {
@@ -140,18 +178,20 @@ export const getAuthState = async function getAuthState(): Promise<AuthState> {
 /**
  * Check if the user is logged in
  */
-export const isLoggedIn = async function isLoggedIn(): Promise<boolean> {
-	const state = await getAuthState();
+export const isLoggedIn = async function isLoggedIn(
+	baseUrl?: string
+): Promise<boolean> {
+	const state = await getAuthState(baseUrl);
 	return state.isLoggedIn && !state.isExpired;
 };
 
 /**
  * Get the stored access token
  */
-export const getAccessToken = async function getAccessToken(): Promise<
-	string | null
-> {
-	const config = await loadConfig();
+export const getAccessToken = async function getAccessToken(
+	baseUrl?: string
+): Promise<string | null> {
+	const config = await loadConfig(baseUrl);
 	if (!config || isTokenExpired(config)) {
 		return null;
 	}
@@ -161,19 +201,21 @@ export const getAccessToken = async function getAccessToken(): Promise<
 /**
  * Get the selected project ID
  */
-export const getSelectedInstanceId =
-	async function getSelectedInstanceId(): Promise<string | null> {
-		const config = await loadConfig();
-		return config?.selectedInstanceId || null;
-	};
+export const getSelectedInstanceId = async function getSelectedInstanceId(
+	baseUrl?: string
+): Promise<string | null> {
+	const config = await loadConfig(baseUrl);
+	return config?.selectedInstanceId || null;
+};
 
 /**
  * Set the selected project ID
  */
 export const setSelectedInstanceId = async function setSelectedInstanceId(
-	instanceId: string
+	instanceId: string,
+	baseUrl?: string
 ): Promise<void> {
-	await updateConfig({ selectedInstanceId: instanceId });
+	await updateConfig({ selectedInstanceId: instanceId }, baseUrl);
 };
 
 /**
@@ -185,21 +227,25 @@ export const storeTokens = async function storeTokens(
 		refreshToken?: string;
 		expiresIn?: number;
 		email?: string;
+		baseUrl?: string;
 	}
 ): Promise<void> {
+	const baseUrl = options?.baseUrl;
 	const config: C15tConfig = {
 		accessToken,
 		email: options?.email,
-		expiresAt: options?.expiresIn
-			? Date.now() + options.expiresIn * 1000
-			: undefined,
+		expiresAt:
+			options?.expiresIn === undefined
+				? undefined
+				: Date.now() + options.expiresIn * 1000,
 		lastLogin: Date.now(),
+		origin: getControlPlaneOrigin(baseUrl),
 		refreshToken: options?.refreshToken,
 	};
 
 	// Preserve the selected project from existing config
-	const existing = await loadConfig();
-	if (existing?.selectedInstanceId) {
+	const existing = await loadConfig(baseUrl);
+	if (existing?.selectedInstanceId && existing.accessToken === accessToken) {
 		config.selectedInstanceId = existing.selectedInstanceId;
 	}
 

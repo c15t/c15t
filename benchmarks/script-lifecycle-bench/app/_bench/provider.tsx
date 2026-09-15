@@ -130,41 +130,45 @@ const evaluateCompletion = function evaluateCompletion(
 		state.completionMarkers.initialReady = true;
 	}
 
-	if (!state.completionMarkers.initialReady) {
+	if (!state.completionMarkers.initialReady || !state.actionSettled) {
 		return;
 	}
 
+	const complete = () => {
+		state.actionCompletedAtMs ??= nowMs();
+		state.completionMarkers[config.completionMarker] = true;
+	};
 	const isFinalReady = markIfReady(state, config, 'final');
 
 	switch (config.name) {
 		case 'grant-standard': {
 			if (isFinalReady && hasStandardLoads(state)) {
-				state.completionMarkers[config.completionMarker] = true;
+				complete();
 			}
 			return;
 		}
 		case 'revoke-standard': {
 			if (isFinalReady) {
-				state.completionMarkers[config.completionMarker] = true;
+				complete();
 			}
 			return;
 		}
 		case 'reload-single': {
 			if (isFinalReady && hasReloadedTarget(state, config)) {
-				state.completionMarkers[config.completionMarker] = true;
+				complete();
 			}
 			return;
 		}
 		case 'callback-only-toggle': {
 			if (isFinalReady && hasCallbackOnlyCycle(state)) {
-				state.completionMarkers[config.completionMarker] = true;
+				complete();
 			}
 			return;
 		}
 		case 'always-load-retain':
 		case 'persist-after-revoked': {
 			if (isFinalReady) {
-				state.completionMarkers[config.completionMarker] = true;
+				complete();
 			}
 			break;
 		}
@@ -314,6 +318,8 @@ export const ScriptLifecycleProvider = ({
 				return;
 			}
 
+			state.actionStartedAtMs = nowMs();
+			state.actionSettled = false;
 			switch (config.name) {
 				case 'grant-standard':
 				case 'callback-only-toggle':
@@ -352,6 +358,7 @@ export const ScriptLifecycleProvider = ({
 					return;
 			}
 
+			state.actionSettled = true;
 			const current = kernel.getSnapshot();
 			state.activeUI = current.activeUI ?? 'none';
 			state.loadedIds = normalizeIds(

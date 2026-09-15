@@ -1,0 +1,60 @@
+---
+title: Request logging
+description: Inspect failed backend requests, enable request logs and send events to your existing logging pipeline.
+group: self-host
+---
+
+## Choose the request log level
+
+The backend logs rejected and failed requests by default. Successful requests
+produce no request log at the default `warn` level. Configure logging directly on
+`c15tInstance`, not inside `defineConfig`.
+
+```ts title="src/consent-backend.ts"
+import { c15tInstance } from '@c15t/backend';
+import config from '../c15t-backend.config';
+
+export const backend = c15tInstance({
+  ...config,
+  observability: {
+    level: 'info',
+    service: 'consent-backend',
+    exclude: ['/status'],
+  },
+});
+```
+
+| Level | Requests logged |
+| --- | --- |
+| `silent` | None; no logging middleware is installed. |
+| `error` | Server failures with status 500 or higher. |
+| `warn` | Rejections and failures with status 400 or higher. Default. |
+| `info` | Every request. |
+| `inherit` | Use the host application's existing evlog configuration. |
+
+## Use your existing logging pipeline
+
+`observability.drain` receives evlog drain events. `enrich` can add fields before
+draining. `include` limits logged route patterns; `exclude` takes precedence.
+Automatic redaction is enabled unless explicitly disabled.
+
+The backend's log level and service name configure process-global evlog state.
+If several instances share a process, configure evlog once in the host and use
+`level: 'inherit'` without a per-instance `service`. Otherwise the most recently
+constructed instance can change logging for the others.
+
+## Diagnose a failed save
+
+Correlate the request's HTTP status and error code with its server event. SQL
+failures deliberately omit database details from the public response. The
+server log records the underlying error. Consent writes include whether the
+submission created a record or replayed an existing one, plus receipt and
+decision identifiers when present.
+
+A valid HTTP response with a failed policy resolution needs a configuration
+check too. Invalid `manifest.policyRules` produce a startup warning and a failed
+policy result. Inspect the manifest's `policyFailure` and the response's
+`policyResolution` instead of treating a `200` as a matched policy.
+
+Request logs are operational diagnostics. Stored consent records and privacy
+directives have their own persistence and are not replaced by a logging drain.

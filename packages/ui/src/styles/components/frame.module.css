@@ -25,9 +25,9 @@
 	--frame-placeholder-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
 	--frame-placeholder-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
 
-	--frame-placeholder-opacity: 0;
-	/* ease-out for entering elements - provides immediate visual feedback */
-	--frame-placeholder-animation: var(--c15t-fade-in-animation);
+	--frame-placeholder-opacity: 1;
+	/* Server-rendered placeholders are visible immediately; motion is opt-in. */
+	--frame-placeholder-animation: none;
 }
 
 @layer components {

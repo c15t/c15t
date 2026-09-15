@@ -1,5 +1,28 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { defineAsyncComponent, onUnmounted } from 'vue';
+
+import { createExampleScripts } from './example-scripts';
+
+import './consent-example.css';
+
+const route = useRoute();
+const publicConfig = useRuntimeConfig().public;
+const kernel = useConsentKernel();
+let loader: ReturnType<typeof createScriptLoader> | undefined;
+const removeMountedHook = useNuxtApp().hook('app:mounted', () => {
+	loader = createScriptLoader({
+		kernel,
+		scripts: createExampleScripts(
+			publicConfig.posthogKey,
+			publicConfig.xPixelId
+		),
+	});
+});
+onUnmounted(() => {
+	removeMountedHook();
+	loader?.dispose();
+});
 
 const ConsentDevTools = import.meta.dev
 	? defineAsyncComponent(() => import('c15t/vue/devtools'))
@@ -30,8 +53,13 @@ const openPreferences = () => {
 		position="bottom-right"
 	/>
 
-	<main class="page">
+	<NuxtPage v-if="route.path === '/consent-example'" />
+	<main
+		v-else
+		class="page"
+	>
 		<h1>c15t × Nuxt</h1>
+		<NuxtLink to="/consent-example">Consent example</NuxtLink>
 		<p>
 			Consent management with the banner server-rendered into the first HTML
 			(zero CLS) and consent resolved from a CDN-cacheable manifest — no

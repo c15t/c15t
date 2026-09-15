@@ -3,7 +3,7 @@ import {
 	COMPAT_MANIFEST_URL,
 } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+import { resolveConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
 
 /**
@@ -11,14 +11,14 @@ import type { ReactNode } from 'react';
  * backend `/init` is never called.
  */
 const ManifestSSRLayout = async ({ children }: { children: ReactNode }) => {
-	const config = await prefetchInitialConsent({
+	const state = await resolveConsent({
 		backendURL: COMPAT_BACKEND_URL,
 		manifestURL: COMPAT_MANIFEST_URL,
 	});
 
 	return (
 		<ConsentShell
-			config={config}
+			state={state}
 			scenario="manifest-ssr"
 			transport="manifest"
 		>

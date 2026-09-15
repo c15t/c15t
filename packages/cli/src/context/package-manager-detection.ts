@@ -3,6 +3,8 @@ import { detect } from 'package-manager-detector/detect';
 
 import type { CliLogger } from '~/utils/logger';
 
+import { CliError } from '../core/errors';
+
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 export const SUPPORTED_PACKAGE_MANAGERS: PackageManager[] = [
 	'npm',
@@ -42,7 +44,8 @@ const getPackageManagerVersion = async function getPackageManagerVersion(
  */
 export const detectPackageManager = async function detectPackageManager(
 	projectRoot: string,
-	logger?: CliLogger
+	logger?: CliLogger,
+	interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
 ): Promise<PackageManagerResult> {
 	try {
 		logger?.debug('Detecting package manager');
@@ -67,9 +70,13 @@ export const detectPackageManager = async function detectPackageManager(
 			version: pm.version ?? null,
 		};
 	} catch (error) {
-		logger?.error(
+		logger?.debug(
 			`Error detecting package manager: ${error instanceof Error ? error.message : String(error)}`
 		);
+	}
+
+	if (!interactive) {
+		return { name: 'npm', version: null };
 	}
 
 	// If no package manager found, prompt user for package manager
@@ -87,8 +94,7 @@ export const detectPackageManager = async function detectPackageManager(
 	if (p.isCancel(selectedPackageManager)) {
 		// Handle potential cancellation (though select usually throws)
 		logger?.debug('Package manager selection cancelled by user');
-		logger?.failed('Package manager selection cancelled. Exiting.');
-		process.exit(0);
+		throw new CliError('CANCELLED');
 	}
 
 	const version = await getPackageManagerVersion(selectedPackageManager);

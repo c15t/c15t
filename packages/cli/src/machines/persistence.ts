@@ -45,7 +45,6 @@ const NON_SERIALIZABLE_FIELDS = new Set([
 	'_processingStatus',
 	'_systemId',
 	'logic',
-	'src',
 	'system',
 	'self',
 	'_snapshot',
@@ -73,7 +72,13 @@ const makeSerializable = function makeSerializable(
 	seen.add(obj as object);
 
 	if (Array.isArray(obj)) {
-		return obj.map((item) => makeSerializable(item, seen));
+		const result = obj.map((item) => makeSerializable(item, seen));
+		seen.delete(obj);
+		return result;
+	}
+	if (obj instanceof Error) {
+		seen.delete(obj);
+		return { message: obj.message, name: obj.name };
 	}
 
 	// Handle Date objects
@@ -110,6 +115,7 @@ const makeSerializable = function makeSerializable(
 		result[key] = makeSerializable(value, seen);
 	}
 
+	seen.delete(obj);
 	return result;
 };
 
@@ -132,10 +138,15 @@ export const saveSnapshot = async function saveSnapshot<
 		machineId,
 		savedAt: Date.now(),
 		snapshot: serializableSnapshot,
-		version: 1,
+		version: 2,
 	};
 
-	await fs.writeFile(persistPath, JSON.stringify(persisted, null, 2), 'utf-8');
+	const temporaryPath = `${persistPath}.tmp`;
+	await fs.writeFile(temporaryPath, JSON.stringify(persisted, null, 2), {
+		encoding: 'utf-8',
+		mode: 0o600,
+	});
+	await fs.rename(temporaryPath, persistPath);
 };
 
 /**
@@ -168,7 +179,7 @@ export const loadSnapshot = async function loadSnapshot<TSnapshot>(
 		const persisted = JSON.parse(content) as PersistedState<TSnapshot>;
 
 		// Validate machine ID matches
-		if (persisted.machineId !== machineId) {
+		if (persisted.machineId !== machineId || persisted.version !== 2) {
 			return null;
 		}
 
@@ -247,38 +258,55 @@ export const createPersistenceSubscriber = function createPersistenceSubscriber(
 	const { persistStates, skipStates = ['exited', 'complete', 'error'] } =
 		options;
 
-	return (snapshot: PersistableSnapshot) => {
+	let pending = Promise.resolve();
+	const subscriber = (snapshot: PersistableSnapshot) => {
 		const stateValue = String(snapshot.value);
-
-		// Skip final states
-		if (skipStates.includes(stateValue)) {
-			// Clear persisted state on completion
-			void (async () => {
-				try {
-					await clearSnapshot(persistPath);
-				} catch {
-					// Snapshot cleanup is best effort after persistence failure.
-				}
-			})();
+		if (
+			persistStates &&
+			!persistStates.includes(stateValue) &&
+			!skipStates.includes(stateValue)
+		) {
 			return;
 		}
-
-		// Only persist specific states if configured
-		if (persistStates && !persistStates.includes(stateValue)) {
-			return;
-		}
-
-		// Save the snapshot
-		void (async () => {
+		const previous = pending;
+		pending = (async () => {
+			await previous;
 			try {
-				await saveSnapshot(
-					snapshot as unknown as SnapshotFrom<AnyStateMachine>,
-					machineId,
-					persistPath
-				);
-			} catch (error) {
-				console.error('Failed to persist state:', error);
+				if (skipStates.includes(stateValue)) {
+					await clearSnapshot(persistPath);
+				} else {
+					await saveSnapshot(
+						snapshot as unknown as SnapshotFrom<AnyStateMachine>,
+						machineId,
+						persistPath
+					);
+				}
+			} catch {
+				// Persistence must not interrupt the operation.
 			}
 		})();
 	};
+	return Object.assign(subscriber, { flush: () => pending });
+};
+
+/** Reattaches runtime services to restored machine context and invoked actor inputs. */
+export const rehydrateSnapshot = function rehydrateSnapshot(
+	snapshot: unknown,
+	cliContext: unknown
+): void {
+	if (!snapshot || typeof snapshot !== 'object') {
+		return;
+	}
+	for (const [key, child] of Object.entries(snapshot)) {
+		if (
+			(key === 'context' || key === 'input') &&
+			child &&
+			typeof child === 'object'
+		) {
+			Object.assign(child, { cliContext });
+		}
+		if (key !== 'cliContext') {
+			rehydrateSnapshot(child, cliContext);
+		}
+	}
 };

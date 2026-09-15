@@ -16,7 +16,12 @@ interface PackageJsonLike {
 	optionalDependencies?: DependencyMap;
 }
 
-const C15T_PACKAGE_PREFIX = '@c15t/';
+const MIGRATED_PACKAGES = new Set([
+	'c15t',
+	'@c15t/core',
+	'@c15t/react',
+	'@c15t/nextjs',
+]);
 
 /**
  * Codemod version metadata used for filtering by installed project version.
@@ -250,8 +255,8 @@ export const isCodemodApplicableForVersion =
 /**
  * Best-effort c15t version detection from a package.json object.
  *
- * Returns the lowest detected c15t version to avoid missing required upgrades
- * in mixed-version dependency graphs.
+ * Returns the lowest declared core/framework version. Independently versioned
+ * integrations and tooling do not determine the application API version.
  */
 export const detectInstalledC15tVersionFromPackageJson =
 	function detectInstalledC15tVersionFromPackageJson(
@@ -271,10 +276,7 @@ export const detectInstalledC15tVersionFromPackageJson =
 			}
 
 			for (const [packageName, specifier] of Object.entries(dependencies)) {
-				if (
-					packageName !== 'c15t' &&
-					!packageName.startsWith(C15T_PACKAGE_PREFIX)
-				) {
+				if (!MIGRATED_PACKAGES.has(packageName)) {
 					continue;
 				}
 

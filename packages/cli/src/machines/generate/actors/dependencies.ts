@@ -5,7 +5,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { once } from 'node:events';
+import type { ChildProcess } from 'node:child_process';
 
 import { fromPromise } from 'xstate';
 
@@ -30,14 +30,108 @@ export interface DependencyInstallOutput {
 	error?: string;
 }
 
+const pendingInstalls = new WeakMap<CliContext, Promise<void>>();
+
+const signalProcessGroup = (child: ChildProcess, signal: NodeJS.Signals) => {
+	if (!child.pid) {
+		return;
+	}
+	try {
+		process.kill(-child.pid, signal);
+	} catch (error) {
+		if (
+			!(error instanceof Error && 'code' in error && error.code === 'ESRCH')
+		) {
+			throw error;
+		}
+	}
+};
+
+/** Wait for process close, including cancellation of package lifecycle children. */
+const waitForInstaller = async (child: ChildProcess, signal?: AbortSignal) => {
+	let failure: Error | undefined;
+	let escalation: ReturnType<typeof setTimeout> | undefined;
+	let termination: Promise<void> | undefined;
+	const abort = () => {
+		if (process.platform === 'win32') {
+			if (child.pid) {
+				termination = new Promise<void>((resolve) => {
+					const killer = spawn(
+						'taskkill',
+						['/pid', String(child.pid), '/T', '/F'],
+						{
+							stdio: 'ignore',
+						}
+					);
+					killer.on('error', (error) => {
+						failure = error;
+						child.kill();
+					});
+					killer.on('close', () => resolve());
+				});
+			}
+			return;
+		}
+		signalProcessGroup(child, 'SIGTERM');
+		escalation = setTimeout(() => signalProcessGroup(child, 'SIGKILL'), 2000);
+	};
+	const closed = new Promise<number | null>((resolve) => {
+		child.on('error', (error) => {
+			failure = error;
+		});
+		child.once('close', resolve);
+	});
+	signal?.addEventListener('abort', abort, { once: true });
+	if (signal?.aborted) {
+		abort();
+	}
+	try {
+		const exitCode = await closed;
+		await termination;
+		if (
+			signal &&
+			process.platform !== 'win32' &&
+			(signal.aborted || failure || exitCode !== 0)
+		) {
+			// A package manager may exit before its lifecycle scripts. Stop the
+			// isolated group on cancellation or failure before rollback can start.
+			signalProcessGroup(child, 'SIGKILL');
+		}
+		signal?.throwIfAborted();
+		if (failure) {
+			throw failure;
+		}
+		if (exitCode !== 0) {
+			throw new Error(`Package manager exited with code ${exitCode}`);
+		}
+	} finally {
+		clearTimeout(escalation);
+		signal?.removeEventListener('abort', abort);
+	}
+};
+
+/** XState stops promise actors without awaiting them; cancellation must join teardown. */
+export const settleDependencyInstallActor = fromPromise<undefined, CliContext>(
+	async ({ input }) => {
+		try {
+			await pendingInstalls.get(input);
+		} catch {
+			// The install actor reports failures. Cancellation only waits for close.
+		}
+		return undefined;
+	}
+);
+
 /**
  * Execute package manager command to install dependencies
  */
-const runPackageManagerInstall = async function runPackageManagerInstall(
+export const runPackageManagerInstall = async function runPackageManagerInstall(
 	projectRoot: string,
 	dependencies: string[],
-	packageManager: PackageManager
+	packageManager: PackageManager,
+	signal?: AbortSignal
 ): Promise<void> {
+	signal?.throwIfAborted();
 	if (dependencies.length === 0) {
 		return;
 	}
@@ -68,14 +162,10 @@ const runPackageManagerInstall = async function runPackageManagerInstall(
 
 	const child = spawn(command, args, {
 		cwd: projectRoot,
-		stdio: 'inherit',
+		detached: signal !== undefined && process.platform !== 'win32',
+		stdio: ['ignore', process.stderr, process.stderr],
 	});
-
-	const [exitCode] = await once(child, 'exit');
-
-	if (exitCode !== 0) {
-		throw new Error(`Package manager exited with code ${exitCode}`);
-	}
+	await waitForInstaller(child, signal);
 };
 
 /**
@@ -84,7 +174,7 @@ const runPackageManagerInstall = async function runPackageManagerInstall(
 export const dependencyInstallActor = fromPromise<
 	DependencyInstallOutput,
 	DependencyInstallInput
->(async ({ input }) => {
+>(async ({ input, signal }) => {
 	const { cliContext, dependencies } = input;
 	const { projectRoot, packageManager, logger } = cliContext;
 
@@ -98,12 +188,15 @@ export const dependencyInstallActor = fromPromise<
 	logger.debug(`Installing dependencies: ${dependencies.join(', ')}`);
 	logger.debug(`Using package manager: ${packageManager.name}`);
 
+	const installation = runPackageManagerInstall(
+		projectRoot,
+		dependencies,
+		packageManager.name,
+		signal
+	);
+	pendingInstalls.set(cliContext, installation);
 	try {
-		await runPackageManagerInstall(
-			projectRoot,
-			dependencies,
-			packageManager.name
-		);
+		await installation;
 
 		return {
 			installedDependencies: dependencies,
@@ -119,6 +212,8 @@ export const dependencyInstallActor = fromPromise<
 			installedDependencies: [],
 			success: false,
 		};
+	} finally {
+		pendingInstalls.delete(cliContext);
 	}
 });
 

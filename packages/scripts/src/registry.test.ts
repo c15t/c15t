@@ -24,6 +24,10 @@ import {
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
 import {
+	openaiPixel,
+	openaiPixelManifest,
+} from './vendors/ads-and-pixels/openai-pixel';
+import {
 	redditPixel,
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
@@ -296,6 +300,14 @@ const helperParityCases = {
 			token: '1234567890abcdef1234567890abcdef',
 		}),
 	},
+	openaiPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://bzrcdn.openai.com/sdk/oaiq.min.js',
+		},
+		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
+	},
 	pirsch: {
 		expected: {
 			alwaysLoad: undefined,
@@ -445,6 +457,7 @@ const vendorManifests = [
 	crispManifest,
 	intercomManifest,
 	metaPixelManifest,
+	openaiPixelManifest,
 	redditPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

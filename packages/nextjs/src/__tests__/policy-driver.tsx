@@ -1,12 +1,12 @@
 import { createFrameworkPolicyDriver } from '../../../react/src/__tests__/framework-policy-driver';
-import { ConsentBoundary } from '../boundary';
-import { readInitialConsentConfig } from '../server';
+import { ConsentRoot } from '../root';
+import { resolveConsent } from '../server';
 
 export const { createPolicySession, probePolicyContract } =
 	createFrameworkPolicyDriver({
-		Boundary: ConsentBoundary,
+		Root: ConsentRoot,
 		readInitialConfig: ({ cookie, cookieName, now }) =>
-			readInitialConsentConfig({
+			resolveConsent({
 				cookieName,
 				now,
 				request: {

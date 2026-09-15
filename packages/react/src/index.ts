@@ -67,39 +67,39 @@ export type {
 	ConsentBannerRightLinkProps,
 	ConsentBannerRightsProps,
 	ConsentBannerSurface,
-} from './components/consent-banner';
+} from './components/prompt';
 // -- UI components ----------------------------------------------------------
 export {
 	ConsentBanner,
 	type ConsentBannerCompoundComponent,
 	useConsentBannerSurface,
-} from './components/consent-banner';
+} from './components/prompt';
 export type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
-} from './components/consent-dialog';
-export type { ConsentDialogLinkProps } from './components/consent-dialog-link';
-export { ConsentDialogLink } from './components/consent-dialog-link';
+} from './components/panel';
+export type { ConsentDialogLinkProps } from './components/panel-link';
+export { ConsentDialogLink } from './components/panel-link';
 export type {
 	ConsentDialogTriggerProps,
 	ConsentDialogTriggerToolbarAction,
 	ConsentDialogTriggerToolbarPreferences,
 	ConsentDialogTriggerToolbarProps,
 	TriggerOrientation,
-} from './components/consent-dialog-trigger';
+} from './components/panel-trigger';
 export {
 	ConsentDialogTrigger,
 	ConsentDialogTriggerToolbar,
-} from './components/consent-dialog-trigger';
+} from './components/panel-trigger';
 export type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
-} from './components/consent-widget';
+} from './components/preferences';
 export type { FrameProps } from './components/frame';
 export { Frame } from './components/frame';
 export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
 export { ConsentDraftProvider, useConsentDraft } from './draft';
-export { useConsentManager } from './component-hooks/use-consent-manager';
+export { useConsentManager } from './component-hooks/use-manager';
 export { useTranslations } from './component-hooks/use-translations';
 export {
 	useActiveUI,
@@ -152,7 +152,8 @@ export type {
 	OwnedRuntimeProviderProps,
 } from './provider';
 export { ConsentProvider } from './provider';
-export type { ReactUIOptions } from './types/consent-manager';
+export type { ReactUIOptions } from './types/manager';
+export { defineTheme, type Theme } from './types/theme';
 
 export {
 	useExplicitChoice,

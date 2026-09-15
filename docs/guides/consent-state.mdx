@@ -1,0 +1,59 @@
+---
+title: Understand consent state
+description: Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
+group: guides
+---
+
+## Use effective permissions to gate features
+
+`effectivePermissions` answers whether a category is allowed now. It combines
+the resolved policy, stored choices and privacy signals. Under an opt-out rule,
+permission can be true before the visitor acts. It is not evidence of a recorded
+grant.
+
+| Task | State or API |
+| --- | --- |
+| Load a script or render an optional feature | `effectivePermissions`, React `useConsent(category)` |
+| Inspect what the visitor confirmed | `explicitChoice` |
+| Decide whether to show a prompt | `promptRequirement` |
+| Explain regional behavior | `policyRule` |
+| Diagnose initialization | `resolution` |
+
+## Record only explicit visitor actions
+
+```ts
+// Run in the corresponding click or form-submit handler.
+await kernel.commands.save('all');
+await kernel.commands.save('none');
+await kernel.commands.save({ marketing: false });
+```
+
+These are three separate examples: accept, reject and a partial save. A partial
+save confirms only the supplied categories and keeps the other categories'
+confirmation times. Do not call all three in one handler.
+
+`onChoiceRecorded` reports an explicit choice. `onPermissionsChanged` reports
+changes in effective permissions, including changes caused by expiry or privacy
+signals. Hydration must not be counted as another visitor choice.
+
+## Treat notices and privacy signals separately
+
+`commands.dismissNotice()` acknowledges the current notice. It does not grant
+categories or overwrite existing denials. Global Privacy Control, or GPC, is a
+browser privacy signal. Its configured restrictions can change permissions
+without creating an explicit choice.
+
+A rule with `prompt: 'none'` can still require a persistent preferences entry
+point. Check the policy's rights instead of hiding preferences merely because
+the banner is absent. An unresolved rule is another distinct state; optional
+permissions stay denied until resolution succeeds.
+
+## Preserve records during hydration
+
+Server helpers return records with policy information and evaluation time.
+Forward that configuration intact. Copying an allowed category into a receipt
+would invent a grant and lose its original confirmation time.
+
+Valid v2 records can be read without a startup rewrite. The next explicit action
+writes the v3 format. See [migration](/docs/upgrade-v3) for expiry, partial saves,
+custom transports and backend contract changes.

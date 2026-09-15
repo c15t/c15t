@@ -24,79 +24,52 @@ const getDefined = <Value>(
 	return value;
 };
 
-/**
- * Find files matching glob patterns
- */
+/** Resolve each wildcard directory independently, without treating names as patterns. */
+const matchLayoutParts = async function matchLayoutParts(
+	directory: string,
+	parts: readonly string[]
+): Promise<string[]> {
+	const [part, ...remaining] = parts;
+	if (part === undefined) {
+		try {
+			return (await fs.stat(directory)).isFile() ? [directory] : [];
+		} catch {
+			return [];
+		}
+	}
+	if (part !== '*') {
+		return matchLayoutParts(path.join(directory, part), remaining);
+	}
+	try {
+		const entries = await fs.readdir(directory, { withFileTypes: true });
+		const matches = await Promise.all(
+			entries
+				.filter((entry) => entry.isDirectory())
+				.map((entry) =>
+					matchLayoutParts(path.join(directory, entry.name), remaining)
+				)
+		);
+		return matches.flat();
+	} catch {
+		return [];
+	}
+};
+
+/** Find layout files in pattern order, including nested wildcard directories. */
 const findMatchingFiles = async function findMatchingFiles(
 	projectRoot: string,
 	patterns: readonly string[],
 	logger?: CliLogger
 ): Promise<string[]> {
-	const matches: string[] = [];
-
-	for (const pattern of patterns) {
-		// Get the directory to search
-		const parts = pattern.split('/');
-		const hasWildcard = parts.some((p) => p === '*');
-
-		if (hasWildcard) {
-			// For patterns with wildcards, we need to walk the directory
-			const baseParts: string[] = [];
-			for (const part of parts) {
-				if (part === '*') {
-					break;
-				}
-				baseParts.push(part);
-			}
-			const baseDir = path.join(projectRoot, ...baseParts);
-
-			try {
-				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const entries = await fs.readdir(baseDir, { withFileTypes: true });
-
-				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				for (const entry of entries) {
-					if (entry.isDirectory()) {
-						// Build the potential path
-						const remainingParts = parts.slice(baseParts.length + 1);
-						const potentialPath = path.join(
-							baseDir,
-							entry.name,
-							...remainingParts
-						);
-						const relativePath = path.relative(projectRoot, potentialPath);
-
-						// Check if the pattern matches
-						const patternWithDir = pattern.replace('*', entry.name);
-						if (relativePath === patternWithDir.replace(/\//gu, path.sep)) {
-							try {
-								// oxlint-disable-next-line no-await-in-loop -- Keep traversal order stable.
-								await fs.access(potentialPath);
-								logger?.debug(`Found layout: ${relativePath}`);
-								matches.push(relativePath);
-							} catch {
-								// File doesn't exist
-							}
-						}
-					}
-				}
-			} catch {
-				// Directory doesn't exist
-			}
-		} else {
-			// For exact patterns, just check if the file exists
-			const filePath = path.join(projectRoot, pattern);
-			try {
-				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				await fs.access(filePath);
-				logger?.debug(`Found layout: ${pattern}`);
-				matches.push(pattern);
-			} catch {
-				// File doesn't exist
-			}
-		}
+	const results = await Promise.all(
+		patterns.map((pattern) => matchLayoutParts(projectRoot, pattern.split('/')))
+	);
+	const matches = [...new Set(results.flat())].map((file) =>
+		path.relative(projectRoot, file)
+	);
+	for (const match of matches) {
+		logger?.debug(`Found layout: ${match}`);
 	}
-
 	return matches;
 };
 
@@ -136,9 +109,11 @@ const getAppDirectory = function getAppDirectory(layoutPath: string): string {
 
 	// For app router, return up to and including 'app'
 	// If there's a locale segment, include it
-	if (hasLocaleSegment(layoutPath)) {
-		// Return app/[locale] or src/app/[locale]
-		return parts.slice(0, appIndex + 2).join(path.sep);
+	const localeIndex = parts.findIndex(
+		(part, index) => index > appIndex && hasLocaleSegment(part)
+	);
+	if (localeIndex !== -1) {
+		return parts.slice(0, localeIndex + 1).join(path.sep);
 	}
 
 	return parts.slice(0, appIndex + 1).join(path.sep);

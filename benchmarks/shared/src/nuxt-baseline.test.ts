@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { assertConsentFreeBaseline } from '../../nuxt-browser-bench/scripts/baseline';
+import { assertConsentFreeBaseline } from './nuxt-baseline';
 
 const empty = {
 	bannerCount: 0,

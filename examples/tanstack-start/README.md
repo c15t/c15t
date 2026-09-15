@@ -2,7 +2,7 @@
 
 Minimal c15t TanStack Start integration through the `c15t` umbrella package
 (`c15t/tanstack-start` ≡ `@c15t/tanstack-start`): a server function in the
-root route loader, one `<ConsentBoundary>` around the app, one splat server
+root route loader, one `<ConsentRoot>` around the app, one splat server
 route for the same-origin consent endpoints, plus a self-hosted
 `@c15t/backend` mounted at `/api/self-host` (`src/routes/api/self-host/$.ts`)
 so the whole demo, including the consent manifest, is served from a single
@@ -15,10 +15,10 @@ bun run dev        # http://localhost:3010
 
 ## What it shows
 
-- `src/routes/__root.tsx` declares `getConsentConfig` with
-  `createServerFn().handler(createConsentConfigHandler({ backendURL }))`.
+- `src/routes/__root.tsx` declares `getConsentState` with
+  `createServerFn().handler(createConsentStateHandler({ backendURL }))`.
   The loader runs it on the server, where it reads the `c15t` cookie and the
-  geo headers and resolves init from the backend manifest. `ConsentBoundary`
+  geo headers and resolves init from the backend manifest. `ConsentRoot`
   reads the result back with `Route.useLoaderData()`, so the banner is in the
   first HTML with zero CLS and hydration never disagrees with the server.
   `consentLoaderOptions` keeps the loader from re-running on client-side
@@ -33,7 +33,7 @@ bun run dev        # http://localhost:3010
   `internals/rfcs/0001-consent-manifest.md`.
 - `proxy: true` forwards the rest of the consent traffic (`POST
   /api/c15t/subjects`, `PATCH /api/c15t/subjects/:id`, `GET /api/c15t/status`)
-  to `backendURL`, so `ConsentBoundary` takes `backendURL="/api/c15t"` and
+  to `backendURL`, so `ConsentRoot` takes `backendURL="/api/c15t"` and
   the browser only ever talks to this origin, like a Next.js rewrite. The
   proxy forwards the browser's `user-agent`, `accept-language`, `cookie`,
   `origin`, `referer`, and geo headers plus the client IP in
@@ -103,3 +103,42 @@ no listener, so `bun run start` hosts it with `scripts/serve.mjs`: srvx on
 `node:http` serving `dist/client` as static files in front of the handler,
 which is the Node hosting shape TanStack Start documents for that output.
 `PORT` and `HOST` override the defaults (`3010`, `127.0.0.1`).
+
+## Consent example
+
+Open `/consent-example` for the shared integration scenario. The existing home
+and showcase routes remain available.
+
+For hosted operation, create an [Inth](https://inth.com) project, configure an
+opt-in policy covering `measurement` and `marketing`, and allow this app's
+origin. Set `VITE_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
+Then run from the repository root:
+
+```sh
+bun run --cwd examples/tanstack-start dev
+```
+
+Public vendor settings are optional:
+
+- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
+  change `region` in `example-scripts.ts` for a US project.
+- `VITE_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+
+An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
+and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
+other initializers for these vendors before reusing the example.
+
+The YouTube nocookie iframe only mounts with measurement permission and is
+removed on revocation. The placeholder opens preferences. Use the footer's
+Privacy settings control to reopen the dialog. Default theme and Branded theme
+buttons demonstrate CSS token overrides without replacing the consent runtime.
+
+Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
+requests are absent before their respective permissions, and the iframe is
+absent before measurement permission. The example emits no custom conversion
+events. Script removal cannot undo SDK code that already ran; application event
+calls must also stop after withdrawal.
+
+The root route keeps its existing server prefetch, proxy and IAB components.
+Without the backend override, the existing self-hosted backend is used.
+Development DevTools uses the React adapter against that same runtime.

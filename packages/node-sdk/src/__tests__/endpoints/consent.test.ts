@@ -17,8 +17,10 @@ describe('Consent Endpoints', () => {
 
 	const context: FetcherContext = {
 		baseUrl: 'https://api.example.com',
+		debug: false,
 		headers: {},
 		retryConfig: {},
+		timeout: 5000,
 	};
 
 	it('should have correct path', () => {
@@ -52,6 +54,7 @@ describe('Consent Endpoints', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('/consents/check');
 			expect(fetchCall[0]).toContain('externalId=user_123');
 			expect(fetchCall[1].method).toBe('GET');
@@ -100,6 +103,7 @@ describe('Consent Endpoints', () => {
 
 			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
+			expect.assert(fetchCall, 'Expected a fetch call');
 			expect(fetchCall[0]).toContain('type=analytics');
 		});
 

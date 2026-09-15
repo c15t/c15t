@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolvePolicyRules } from '@c15t/schema/types';
 
-	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 	import ConsentDevToolsComponent from '../../lib/devtools';
 	import { offline } from '../../lib/transports/offline';
 

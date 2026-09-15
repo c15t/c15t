@@ -1,7 +1,7 @@
 /**
  * `defineConsentConfig` — the URLs a Next.js consent setup needs, declared
- * once and shared by the route handlers, the server prefetch, and the
- * client boundary.
+ * once and shared by the route handlers, `resolveConsent`, and the client
+ * `ConsentRoot`.
  *
  * Plain data with no `next` imports, so the same module is safe to import
  * from a route file, a Server Component, and a `'use client'` file.
@@ -83,10 +83,9 @@ const assertConsentURL = function assertConsentURL(
 
 /**
  * Declare the consent URLs once and hand the result to every side of the
- * setup: `createNextConsentRouteHandlers` (route file),
- * `prefetchInitialConsent` (Server Component or `getServerSideProps`),
- * and `ConsentBoundary` (client). Each reads the fields it needs, so the
- * URLs are never repeated.
+ * setup: `createNextConsentRouteHandlers` (route file), `resolveConsent`
+ * (Server Component or `getServerSideProps`), and `ConsentRoot` (client).
+ * Each reads the fields it needs, so the URLs are never repeated.
  *
  * The returned object is frozen plain data: no `next` imports, safe to
  * import from a `'use client'` file, and serializable as a Server Component
@@ -130,18 +129,18 @@ const assertConsentURL = function assertConsentURL(
  *
  * ```tsx
  * // app/layout.tsx
- * import { ConsentBoundary } from '@c15t/nextjs';
- * import { prefetchInitialConsent } from '@c15t/nextjs/server';
+ * import { ConsentRoot } from '@c15t/nextjs';
+ * import { resolveConsent } from '@c15t/nextjs/server';
  * import { consentConfig } from '@/consent.config';
  *
  * export default async function RootLayout({ children }) {
- *   const config = await prefetchInitialConsent({ config: consentConfig });
+ *   const state = await resolveConsent({ config: consentConfig });
  *   return (
  *     <html>
  *       <body>
- *         <ConsentBoundary config={config} consent={consentConfig}>
+ *         <ConsentRoot state={state} config={consentConfig}>
  *           {children}
- *         </ConsentBoundary>
+ *         </ConsentRoot>
  *       </body>
  *     </html>
  *   );
@@ -169,7 +168,7 @@ export const defineConsentConfig = function defineConsentConfig(
 
 	if (config.initURL && !config.manifestURL && !isProduction()) {
 		console.warn(
-			'[c15t] defineConsentConfig: `initURL` without `manifestURL` sends browser init through `initURL`, but `prefetchInitialConsent` still calls the backend `/init` on every request. Set `manifestURL` to the same-origin manifest route so the server resolves init from the cached manifest too.'
+			'[c15t] defineConsentConfig: `initURL` without `manifestURL` sends browser init through `initURL`, but `resolveConsent` still calls the backend `/init` on every request. Set `manifestURL` to the same-origin manifest route so the server resolves init from the cached manifest too.'
 		);
 	}
 

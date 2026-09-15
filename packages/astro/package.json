@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/astro",
-	"version": "0.1.0",
+	"version": "3.0.0-alpha.0",
 	"description": "Astro consent management: server-rendered cookie banner, on-demand Svelte, React or Vue preference-centre islands, geo-aware middleware, and consent-gated script loading.",
 	"keywords": [
 		"astro",
@@ -36,7 +36,10 @@
 	"files": [
 		"dist",
 		"dist-types",
-		"src/components"
+		"src/components",
+		"docs",
+		"AGENTS.md",
+		"SKILL.md"
 	],
 	"type": "module",
 	"sideEffects": [
@@ -101,18 +104,31 @@
 			"default": "./dist/api/manifest.js"
 		},
 		"./styles.css": "./dist/styles.css",
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./components/consent-banner-deferred.astro": "./src/components/prompt-deferred.astro",
+		"./components/consent-banner.astro": "./src/components/prompt.astro",
+		"./components/consent-dialog-trigger.astro": "./src/components/panel-trigger.astro",
+		"./components/consent-dialog.astro": "./src/components/panel.astro",
+		"./components/iab-consent-banner.astro": "./src/components/iab-prompt.astro",
+		"./components/iab-consent-dialog.astro": "./src/components/iab-panel.astro",
+		"./components/islands/consent-dialog-surface.svelte": "./src/components/islands/panel-surface.svelte",
+		"./islands/consent-dialog-surface.svelte": "./src/components/islands/panel-surface.svelte",
+		"./components/islands/consent-dialog-surface.tsx": "./src/components/islands/panel-surface.tsx",
+		"./islands/consent-dialog-surface.tsx": "./src/components/islands/panel-surface.tsx",
+		"./components/islands/consent-dialog-surface.vue": "./src/components/islands/panel-surface.vue",
+		"./islands/consent-dialog-surface.vue": "./src/components/islands/panel-surface.vue"
 	},
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/astro",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

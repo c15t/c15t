@@ -18,9 +18,9 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { tanstackBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -366,64 +366,7 @@ type TanstackBrowserSample = Omit<
 	interactionLatencyMs?: number;
 };
 
-const budgetsForScenario = function budgetsForScenario(
-	scenario: string
-): MetricBudget[] {
-	const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-	const shared = browserBudgets.filter((budget) =>
-		[
-			'bannerReadyMs',
-			'lastAppScriptEndMs',
-			'interactionLatencyMs',
-			'longTaskTotalMs',
-		].includes(budget.metric)
-	);
-
-	if (
-		baseScenario === 'ssr' ||
-		baseScenario === 'manifest-ssr' ||
-		baseScenario === 'manifest-ssr-proxy' ||
-		baseScenario === 'manifest-ssr-root'
-	) {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'Hosted SSR routes re-validate once on the client: the React provider dispatches init eagerly even with an authoritative prefetch, so exactly one browser init request is expected.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 1,
-			},
-		];
-	}
-
-	if (baseScenario === 'repeat-visitor') {
-		return shared;
-	}
-
-	if (baseScenario === 'manifest-client') {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'Client manifest flow should resolve init from /manifest without a browser /init request.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	return [
-		...shared,
-		{
-			comparator: 'count-eq',
-			description: 'Client flow should make one init request on cold load.',
-			metric: 'initRequestsAfterLoad',
-			threshold: 1,
-		},
-	];
-};
+const budgetsForScenario = tanstackBrowserBudgetsForScenario;
 
 interface BenchConsentFixtureCounts {
 	init: number;
@@ -721,7 +664,7 @@ const run = async function run() {
 						notes: rootProviderMode
 							? [
 									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
-									'Root-mounted provider variant: `ConsentBoundary` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
+									'Root-mounted provider variant: `ConsentRoot` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
 								]
 							: [
 									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',

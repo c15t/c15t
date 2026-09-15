@@ -1,0 +1,43 @@
+---
+title: Plausible Analytics
+description: Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Plausible Analytics
+
+Use the script ID from your Plausible installation. Existing domain-based installations can use `domain` instead; the helper supports both URL formats.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+export const scripts = [plausibleAnalytics({ scriptId: 'YOUR_SCRIPT_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `scriptId / domain` | At least one is required. `scriptId` takes precedence when both are supplied. |
+| `extension` | Legacy domain-based script extensions. |
+| `customProperties / endpoint` | Additional page properties and a custom collection endpoint. |
+| `fileDownloads / hashBasedRouting` | File download options and hash routing support. |
+| `autoCapturePageviews / captureOnLocalhost` | Control automatic page views and local testing. |
+| `scriptUrl` | Optional full loader override. |
+
+## Consent behavior
+
+Measurement permission gates the loader. The helper does not call a vendor opt-out or shutdown API on revocation. Cookieless tracking does not change this c15t loading rule.
+
+## Verify the integration
+
+Check that the script ID or domain matches the site. Test client routing and custom events after grant and revocation. Enable `captureOnLocalhost` only when you want local visits recorded.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

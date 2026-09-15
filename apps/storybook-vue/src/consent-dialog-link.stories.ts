@@ -2,8 +2,8 @@ import { linkOpensDialog } from '@c15t/conformance/play/consent-dialog-link';
 import buttonStyles from '@c15t/ui/styles/components/button';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
-import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
-import ConsentPreferencesLink from '../../../packages/vue/src/runtime/components/consent-preferences-link.vue';
+import ConsentManager from '../../../packages/vue/src/runtime/components/manager.vue';
+import ConsentPreferencesLink from '../../../packages/vue/src/runtime/components/preferences-link.vue';
 import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
 
 const meta = {

@@ -1,3 +1,4 @@
+import { deferInitGvlToRoute, serveGvlReference } from '@c15t/core';
 /**
  * Same-origin consent routes for SvelteKit.
  *
@@ -19,17 +20,17 @@ import {
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 } from '@c15t/core/server';
-import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveBackendURL,
 	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentManifestGVLReference,
+	GlobalVendorList,
+	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
@@ -38,6 +39,36 @@ import type { ConsentManifestOptions } from './types';
 
 const INIT_CACHE_CONTROL = 'private, no-store';
 const MANIFEST_ROUTE_SUFFIX = '/manifest';
+
+/**
+ * Hands a promise to the `waitUntil` a SvelteKit adapter exposes on
+ * `event.platform.context` (Cloudflare Workers and Pages, Vercel edge), so a
+ * background refresh outlives the response on runtimes that would cancel
+ * it. A no-op where the adapter provides none.
+ */
+export const waitUntilFromEvent = function waitUntilFromEvent(
+	revalidation: Promise<void>,
+	event: RequestEvent
+): void {
+	const context = (
+		event.platform as { context?: { waitUntil?: unknown } } | undefined
+	)?.context;
+	if (context && typeof context.waitUntil === 'function') {
+		(context.waitUntil as (promise: Promise<unknown>) => void).call(
+			context,
+			revalidation
+		);
+	}
+};
+
+const bindBackgroundRevalidate = function bindBackgroundRevalidate(
+	options: ConsentManifestOptions,
+	event: RequestEvent
+): (revalidation: Promise<void>) => void {
+	const onBackgroundRevalidate =
+		options.onBackgroundRevalidate ?? waitUntilFromEvent;
+	return (revalidation) => onBackgroundRevalidate(revalidation, event);
+};
 
 /** Options for {@link createSvelteKitConsentRouteHandlers}. */
 export interface SvelteKitConsentRouteOptions extends ConsentManifestOptions {
@@ -178,8 +209,21 @@ export const createSvelteKitConsentRouteHandlers =
 			const { manifest } = await fetchCachedManifest({
 				config: { manifestURL },
 				fetch: options.fetch,
+				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 			});
 
+			const listResponse = await serveGvlReference(event.request, (language) =>
+				manifest.iab?.gvl
+					? (options.fetchGvl ?? defaultFetchGvl)({
+							fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+							language,
+							reference: manifest.iab.gvl,
+						})
+					: Promise.resolve(null)
+			);
+			if (listResponse) {
+				return listResponse;
+			}
 			const inputs = extractConsentRequestInputs(event.request.headers);
 			const payload = resolveInitFromManifest(
 				manifest,
@@ -213,9 +257,12 @@ export const createSvelteKitConsentRouteHandlers =
 			});
 			payload.resolvedPrivacySignals = { gpc: inputs.gpc };
 
-			return Response.json(payload, {
-				headers: { 'cache-control': INIT_CACHE_CONTROL },
-			});
+			return Response.json(
+				deferInitGvlToRoute(payload, new URL(event.request.url).pathname),
+				{
+					headers: { 'cache-control': INIT_CACHE_CONTROL },
+				}
+			);
 		};
 
 		const manifest: RequestHandler = async (event) => {
@@ -224,6 +271,7 @@ export const createSvelteKitConsentRouteHandlers =
 			const result = await fetchCachedManifest({
 				config: { manifestURL },
 				fetch: options.fetch,
+				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 				query,
 			});
 

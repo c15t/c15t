@@ -1,0 +1,44 @@
+---
+title: c15t vs Usercentrics
+description: Compare Usercentrics Web CMP plans with c15t v3 for session budgeting, framework integration and consent backend ownership.
+group: reference
+---
+
+## Identify the Usercentrics product before comparing
+
+This page compares c15t with Usercentrics Web CMP. Cookiebot has a
+[separate comparison](/docs/comparisons/cookiebot), and mobile requirements need
+the relevant app product evaluation. Treating them as one interchangeable plan
+can produce the wrong cost or implementation estimate.
+
+Evaluate Usercentrics Web CMP when its hosted website consent workflow fits your
+team. Evaluate c15t when the application team wants to integrate consent
+permissions and presentation into framework code, using Inth for managed
+policy and records.
+
+## Compare plans using the same traffic assumptions
+
+Usercentrics' pricing page distinguishes product options and includes Web CMP
+plans with monthly session and domain allowances. Check the live plan for the
+required domains, sessions and feature inclusions; a single headline price does
+not describe every deployment.
+[Usercentrics pricing](https://usercentrics.com/pricing/)
+
+| Decision | c15t v3 evaluation | Usercentrics Web CMP evaluation |
+| --- | --- | --- |
+| Application integration | Prototype framework hooks and registered vendor loaders | Prototype the selected web integration against the same application |
+| Backend ownership | Start with Inth or operate a c15t backend | Confirm service scope and data requirements in the selected plan |
+| Traffic budget | Request Inth terms for the expected deployment | Count sessions and domains using the plan's definitions |
+| Rendering | Test App Router, Pages Router or static export as needed | Confirm the chosen integration's initial render and navigation behavior |
+
+## Test one property before a portfolio rollout
+
+Choose a site with both direct vendor scripts and a tag manager. Verify the
+consent flow there before assuming that adding more domains is only a billing
+change. Check policy differences, translations, preference access and allowed
+origins for each property. For c15t, do not reuse a backend configuration across
+sites without confirming the intended policy and origin configuration.
+
+Configure the test property with [Inth](https://inth.com) and the [framework setup](/docs/frameworks). Use the measured deployment requirements when requesting terms for a wider rollout.
+
+Sources reviewed on 10 September 2026.

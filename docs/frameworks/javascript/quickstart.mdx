@@ -1,38 +1,63 @@
 ---
 title: Quickstart
-description: Add consent management to a vanilla JavaScript app.
-variants:
-  - value: "javascript"
-    href: "/docs/frameworks/javascript/quickstart"
-    label: "JavaScript"
-  - value: "react"
-    href: "/docs/frameworks/react/quickstart"
-    label: "React"
-  - value: "next"
-    href: "/docs/frameworks/next/quickstart"
-    label: "Next.js"
+description: Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
 group: frameworks
 ---
 
+## Connect Inth
+
+[Create an Inth project](https://inth.com), configure policy rules and your
+application origin, and copy its endpoint. The headless engine does not render
+a banner; choose a framework adapter if you want stock components.
+
 ## Install
 
-```package-install
-@c15t/core @c15t/schema
+<CommandTabs command="c15t @c15t/scripts" mode="install" />
+
+## Register consent-gated scripts
+
+Include measurement and marketing categories in your policy for these vendors.
+Remove any existing loaders for them so each script loads once.
+
+This setup uses Vite's public environment variables. Set the Inth endpoint and
+add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+
+```dotenv title=".env.local"
+VITE_C15T_BACKEND_URL=
+VITE_POSTHOG_KEY=
+VITE_POSTHOG_HOST=
+VITE_X_PIXEL_ID=
 ```
+
+Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
+an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
+shown in your PostHog project. Restart Vite after editing these values and
+rebuild for deployment. Other bundlers need their own configuration mechanism.
+
+Create `src/scripts.ts`. PostHog waits for measurement permission with
+`loadMode: 'after-consent'` and disables cookieless capture with
+`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+
+<include src="../../shared/examples/javascript-scripts.mdx" />
 
 ## Create the consent engine
 
-```ts
-import { createConsentKernel, createOfflineTransport } from '@c15t/core';
-import { createPersistence } from '@c15t/core/modules/persistence';
-import { policyRulePresets } from '@c15t/schema';
+```ts title="src/consent.ts"
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createPersistence } from 'c15t/modules/persistence';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { scripts } from './scripts';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
 
 const kernel = createConsentKernel({
-	transport: createOfflineTransport({
-		policyRules: [policyRulePresets.europeOptIn()],
+	transport: createHostedTransport({
+		backendURL,
 	}),
 });
 const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({ kernel, scripts });
 await kernel.commands.init();
 
 const unsubscribe = kernel.subscribe((snapshot) => {
@@ -47,6 +72,7 @@ async function rejectOptionalCategories() {
 // Call this when the app or consent integration is torn down.
 function dispose() {
 	unsubscribe();
+	loader.dispose();
 	persistence.dispose();
 	kernel.dispose();
 }
@@ -57,9 +83,8 @@ Connect your UI to `snapshot.promptRequirement` and expose persistent privacy
 settings. Use `save('all')` for accept, `save('none')` for reject, or
 `save({ marketing: false })` to confirm only that category.
 
-The offline transport keeps choices local. For a backend, use
-`createHostedTransport({ backendURL: 'https://consent.example.com' })` and
-configure rules there.
+Browser-only policy resolution is an alternative described in
+[deployment modes](/docs/guides/deployment-modes).
 
 ## Read permissions and choices
 
@@ -71,3 +96,8 @@ current notice; it does not save a choice.
 Validate the integration by rejecting, reloading, and confirming that optional
 features stay blocked. See the [v3 migration guide](/docs/upgrade-v3) for policy
 configuration and storage compatibility.
+
+## Run the complete example
+
+Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
+YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.

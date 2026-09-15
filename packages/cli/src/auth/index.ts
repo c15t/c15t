@@ -3,7 +3,8 @@
  */
 
 // Base URL
-export { getControlPlaneBaseUrl } from './base-url';
+export { getControlPlaneBaseUrl, getControlPlaneOrigin } from './base-url';
+export { authenticate } from './authenticate';
 // Config store
 export {
 	clearConfig,
@@ -26,7 +27,6 @@ export {
 	getVerificationUrl,
 	initiateDeviceFlow,
 	pollForToken,
-	runDeviceFlow,
 } from './device-flow';
 // Types
 export type {

@@ -1,0 +1,55 @@
+---
+title: Style component slots
+description: Target a specific c15t component part without replacing its markup or behavior.
+group: customization
+---
+
+## Use slots for local changes
+
+In React and Next.js, put per-part attributes in `options.components`. This
+fragment belongs in an existing provider's options:
+
+```tsx
+components: {
+  banner: {
+    card: { className: 'rounded-none shadow-none' },
+    title: { className: 'font-semibold' },
+    footer: { className: 'border-t' },
+  },
+}
+```
+
+The class names above assume Tailwind. A slot can also receive `style` and other
+supported element attributes. Keep shared colors and radius scales in tokens;
+use slots when only one component part should change.
+
+## Read attributes on the right element
+
+The banner root carries `data-prompt`, `data-model`, `data-variant`,
+`data-position` and `data-blocking`. Its child card does not inherit those HTML
+attributes. In Tailwind, give the root `className: 'group'` and use
+`group-data-[variant=bar]:...` on a child slot.
+
+| React banner slot | Use |
+| --- | --- |
+| `root` | Position wrapper and state attributes |
+| `cardShell` | Card sizing and branding container |
+| `card` | Visible card |
+| `header`, `title`, `description` | Heading and explanatory copy |
+| `footer`, `actions`, `actionGroup` | Action layout |
+| `rights`, `rightLink` | Preferences access controls |
+| `overlay` | Backdrop for blocking presentation |
+
+Buttons expose `data-action` for action-specific CSS. Test notices as well as
+choice prompts; a notice uses acknowledgement rather than accept/reject.
+
+## When to remove styles
+
+`noStyle` removes the built-in component styling. It does not supply replacement
+layout, spacing, focus indicators or responsive behavior. Use it when you intend
+to own all of that work, not as the first response to a token that appears to do
+nothing.
+
+If the markup itself must change, use the adapter's compound components or
+headless API. The slot objects above are the React contract; check Vue and Svelte
+slot types before reusing them.

@@ -248,7 +248,7 @@ export const defineCompatSuite = function defineCompatSuite({
 							break;
 						}
 						case 'ssr-stream': {
-							// The layout handed the boundary the pending promise. The
+							// The layout handed the root the pending promise. The
 							// server still called /init with the forwarded country, the
 							// browser did not, and the banner is not in the first HTML:
 							// it appears once the promise resolves.

@@ -11,7 +11,8 @@
 		"bench:entries": "bunx tsx analyze-entries.ts",
 		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/bundle bunx tsx analyze-bundle.ts && BENCH_OUTPUT_DIR=../../.benchmarks/nightly/bundle bunx tsx analyze-entries.ts",
 		"build": "next build",
-		"dev": "next dev"
+		"dev": "next dev",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",

@@ -152,7 +152,7 @@ describe('Telemetry', () => {
 		expect(payload[0].sequence).toBe(1);
 	});
 
-	it('tracks commands with sanitized args and flags', async () => {
+	it('tracks command counts and flag names without argument values', async () => {
 		telemetry.trackCommand('setup', ['hosted', '/tmp/private'], {
 			config: '/tmp/c15t.config.ts',
 			logger: 'debug',
@@ -172,16 +172,12 @@ describe('Telemetry', () => {
 			argsCount: 2,
 			command: 'setup',
 			event: TelemetryEventName.COMMAND_EXECUTED,
-			flagCount: 3,
+			flagCount: 2,
 		});
 		expect(event.commandRunId).toEqual(expect.any(String));
-		expect(event.args).toEqual(['hosted', '[absolute-path]']);
-		expect(event.flags).toEqual({
-			config: '[redacted]',
-			logger: 'debug',
-			'no-telemetry': false,
-		});
-		expect(event.flagNames).toEqual(['config', 'logger', 'no-telemetry']);
+		expect(event.args).toBeUndefined();
+		expect(event.flags).toBeUndefined();
+		expect(event.flagNames).toEqual(['config', 'logger']);
 	});
 
 	it('tracks errors with structured failure data', async () => {

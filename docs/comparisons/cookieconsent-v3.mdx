@@ -1,0 +1,43 @@
+---
+title: c15t vs CookieConsent v3
+description: Compare vanilla-cookieconsent with c15t v3 for browser setup, consent logging, framework rendering and policy ownership.
+group: reference
+---
+
+## Choose the runtime and record workflow
+
+CookieConsent v3 is a practical candidate when you want a browser library with
+category configuration and a preference modal. Evaluate c15t when you want
+framework-specific consent ownership and a managed policy and record backend
+through Inth.
+
+These are two different projects that both use version 3. CookieConsent installs
+as `vanilla-cookieconsent`; c15t installs as `c15t`. CookieConsent documents HTML,
+React, Vue and Angular setup, with categories and language required in its
+configuration. [CookieConsent installation](https://cookieconsent.orestbida.com/essential/getting-started.html)
+
+## Compare records and rendering
+
+| Decision | c15t v3 | CookieConsent v3 |
+| --- | --- | --- |
+| Browser configuration | Adapter boundary or provider with the chosen transport | `CookieConsent.run` with categories and language |
+| Remote consent records | Use Inth or a self-hosted c15t backend | Implement logging to your backend through callbacks |
+| Next.js server state | Documented App Router and Pages Router request helpers | Its React getting-started example initializes in an effect |
+| Styling | Tokens, component slots and custom markup | Evaluate its UI configuration and stylesheet against the design |
+
+CookieConsent's logging guide explicitly delegates the POST request to your
+backend. That is an integration task, not evidence that logging is impossible.
+Account for retries, storage and record retrieval if your evaluation needs them.
+[CookieConsent logging](https://cookieconsent.orestbida.com/advanced/consent-logging.html)
+
+## Try the same returning-visitor flow
+
+Accept one optional category, reject another, reload, and change the decision.
+Compare the browser state and remote record separately. For Next.js, also
+compare the initial HTML and hydration. A browser integration can work well
+without resolving consent on the server; decide whether your application
+actually needs that result before adding server setup.
+
+Start the c15t prototype with [Inth](https://inth.com) and the [framework setup](/docs/frameworks). Compare the resulting record workflow with the logging backend you would build for CookieConsent.
+
+Sources reviewed on 10 September 2026.

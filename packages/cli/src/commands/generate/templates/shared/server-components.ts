@@ -18,12 +18,12 @@ interface GenerateServerComponentOptions {
 /**
  * Generates the server-side consent-manager index.tsx component template
  *
- * When SSR is enabled, the component reads a serializable kernel config on
- * the server and passes it to the client component.
+ * When SSR is enabled, the component resolves serializable consent state on
+ * the server with `resolveConsent()` and passes it to the client component.
  * When SSR is disabled, it simply wraps children with the client component.
  *
  * @param options - Template generation options
- * @param options.enableSSR - Whether to include fetchInitialData for SSR
+ * @param options.enableSSR - Whether to call `resolveConsent()` for SSR
  * @param options.backendURLValue - The backend URL value (could be env var or literal)
  * @param options.framework - Framework-specific configuration
  * @returns The complete component file content
@@ -34,21 +34,21 @@ export const generateServerComponent = function generateServerComponent({
 	framework,
 }: GenerateServerComponentOptions): string {
 	if (enableSSR) {
-		return `import { prefetchInitialConsent } from '${framework.importSource}/server';
+		return `import { resolveConsent } from '${framework.importSource}/server';
 import type { ReactNode } from 'react';
 import ConsentManagerClient from './provider';
 
 /**
- * Server-side consent management wrapper with SSR data prefetching.
+ * Server-side consent management wrapper that resolves consent state per request.
  * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export async function ConsentManager({ children }: { children: ReactNode }) {
-	const config = await prefetchInitialConsent({
+	const state = await resolveConsent({
 		backendURL: ${backendURLValue},
 	});
 
 	return (
-		<ConsentManagerClient config={config}>
+		<ConsentManagerClient state={state}>
 			{children}
 		</ConsentManagerClient>
 	);

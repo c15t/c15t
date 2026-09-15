@@ -1,0 +1,40 @@
+---
+title: Hotjar
+description: Configure Hotjar with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Hotjar
+
+Replace the example site ID with your Hotjar site ID. The helper sets the Hotjar queue and settings before requesting the loader.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { hotjar } from '@c15t/scripts/hotjar';
+
+export const scripts = [hotjar({ siteId: 1234567 })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `siteId` | Required site ID as a string or number; missing, empty and zero values are rejected. |
+| `version` | Defaults to script version `6`. |
+| `scriptUrl` | Optional full loader URL. Otherwise derived from the site ID and version. |
+
+## Consent behavior
+
+The Hotjar loader waits for measurement permission. The helper does not call a recording-stop API on revocation. Removing a script is not evidence that an active recording session has ended.
+
+## Verify the integration
+
+Verify the site ID in the script URL, recording configuration, and masking on actual application screens. Test revocation during an active recording and check subsequent requests.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

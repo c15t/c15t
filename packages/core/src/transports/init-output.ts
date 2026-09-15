@@ -4,15 +4,15 @@
  * Older producers without a policy contract fail safely. Detected GPC
  * remains separate from a developer override.
  */
-import type {
-	InitOutput,
-	PolicyResolution,
-	PolicyResolutionWire,
-} from '@c15t/schema/types';
 import {
 	POLICY_CONTRACT_VERSION,
 	readPolicyResolutionWire,
 	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import type {
+	InitOutput,
+	PolicyResolution,
+	PolicyResolutionWire,
 } from '@c15t/schema/types';
 
 import type {
@@ -129,6 +129,7 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 		// On the real backend, omitted `gvl` on a 200 response means IAB is not
 		// active for this request. The kernel disables IAB on explicit null.
 		gvl: payload.gvl ?? null,
+		gvlReference: payload.gvlReference,
 
 		location: payload.location,
 		policyResolution: resolveInitPolicyWire(payload, options),
@@ -246,6 +247,7 @@ export const mergeInitResponseIntoKernelConfig =
 			merged.initialPolicySnapshotToken = response.policySnapshotToken;
 		}
 		if (
+			response.gvlReference !== undefined ||
 			response.gvl !== undefined ||
 			response.customVendors !== undefined ||
 			response.cmpId !== undefined
@@ -253,9 +255,11 @@ export const mergeInitResponseIntoKernelConfig =
 			const nextIab: Partial<KernelIABState> = {
 				...(merged.initialIab ?? {}),
 			};
-			if (response.gvl !== undefined) {
-				nextIab.gvl = response.gvl;
-				nextIab.enabled = response.gvl !== null;
+			if (response.gvl !== undefined || response.gvlReference !== undefined) {
+				nextIab.gvl = response.gvl ?? null;
+				nextIab.enabled =
+					response.gvl !== null || Boolean(response.gvlReference);
+				nextIab.gvlReference = response.gvlReference;
 			}
 			if (response.customVendors !== undefined) {
 				nextIab.customVendors = response.customVendors;
@@ -297,7 +301,7 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
  * provisional placeholder policy the way a real init would.
  *
  * @param config - Kernel config, typically produced by a server helper such
- * as `prefetchInitialConsent()`.
+ * as `resolveConsent()`.
  * @returns The equivalent init response, or `undefined` when the config
  * carries no resolved policy. A policy-less config (persisted consents,
  * geo, language) is a baseline rather than an init result, so callers
@@ -348,6 +352,7 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 
 	const iab = config.initialIab;
 	if (iab !== undefined) {
+		response.gvlReference = iab.gvlReference;
 		if (iab.gvl !== undefined) {
 			response.gvl = iab.gvl;
 		}

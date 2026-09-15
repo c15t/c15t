@@ -37,6 +37,8 @@ const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 interface SerializableScriptBenchState {
 	scenario: string;
 	startedAtMs: number;
+	actionStartedAtMs?: number;
+	actionCompletedAtMs?: number;
 	consentSaveCount: number;
 	activeUI: string;
 	loadedIds: string[];
@@ -219,7 +221,6 @@ const collectScenarioSample = async function collectScenarioSample(
 		{ timeout: 30_000 }
 	);
 
-	const startedAt = performance.now();
 	await page.click('#run-scenario-action');
 	await page.waitForFunction(
 		(marker) => {
@@ -229,7 +230,6 @@ const collectScenarioSample = async function collectScenarioSample(
 		config.completionMarker,
 		{ timeout: 30_000 }
 	);
-	const durationMs = performance.now() - startedAt;
 
 	const state = await page.evaluate(() => {
 		const current = window.__c15tScriptBench;
@@ -245,6 +245,15 @@ const collectScenarioSample = async function collectScenarioSample(
 
 	const typedState = state as SerializableScriptBenchState;
 	assertScenarioInvariants(typedState, config);
+	const { actionStartedAtMs, actionCompletedAtMs } = typedState;
+	if (
+		actionStartedAtMs === undefined ||
+		actionCompletedAtMs === undefined ||
+		actionCompletedAtMs < actionStartedAtMs
+	) {
+		throw new Error(`${config.name}: missing or invalid browser action timing`);
+	}
+	const durationMs = actionCompletedAtMs - actionStartedAtMs;
 
 	return {
 		durationMs,

@@ -1,0 +1,76 @@
+---
+title: RudderStack
+description: Gate the RudderStack browser SDK or map c15t categories to destination consent IDs.
+group: integrations
+---
+
+## Configure RudderStack
+
+Copy the source write key and HTTPS data plane URL from your RudderStack source.
+The default helper waits for measurement permission before loading the SDK.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { rudderstack } from '@c15t/scripts/rudderstack';
+
+export const scripts = [
+  rudderstack({
+    writeKey: 'YOUR_SOURCE_WRITE_KEY',
+    dataPlaneUrl: 'https://your-data-plane.example.com',
+  }),
+];
+```
+
+Replace both values before running the example. Keep secret control-plane
+credentials out of the browser.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Map destination consent when loading before permission
+
+`consentManagement` changes the loading contract. The SDK loads immediately,
+receives pre-consent configuration, and stays loaded after revocation. c15t
+sends consent updates through `rudderanalytics.consent()`.
+
+```ts title="src/consent-scripts.ts"
+import { rudderstack } from '@c15t/scripts/rudderstack';
+
+export const scripts = [
+  rudderstack({
+    writeKey: 'YOUR_SOURCE_WRITE_KEY',
+    dataPlaneUrl: 'https://your-data-plane.example.com',
+    consentManagement: {
+      mapping: {
+        measurement: ['product-analytics'],
+        marketing: ['advertising'],
+      },
+    },
+  }),
+];
+```
+
+The IDs in this example are placeholders for your destination consent settings.
+Allowed c15t categories contribute their IDs to `allowedConsentIds`; denied
+categories contribute theirs to `deniedConsentIds`. Test each destination
+independently. This mode does not prevent the initial SDK request.
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `writeKey` | Required non-empty browser source key. |
+| `dataPlaneUrl` | Required HTTPS data plane URL. |
+| `consentManagement.mapping` | Optional category-to-consent-ID map. Enables pre-consent loading. |
+| `loadOptions` | Optional JSON-serializable SDK options; functions are not supported. |
+| `trackPageView` | Defaults to `true`, queuing an initial `page()` call. |
+| `scriptUrl` | Optional HTTPS loader override. Defaults to the modern v3 RudderStack loader. |
+
+## Verify the integration
+
+In the default mode, confirm denial prevents the initial SDK load. With a
+consent mapping, expect the SDK request and inspect the destination consent IDs
+instead. The default mode has no vendor shutdown hook after loading, so verify
+revocation beyond script removal. In both modes, check routing for duplicate
+page events and stop disallowed application events. See
+[consent verification](/docs/guides/verify-consent).

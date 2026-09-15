@@ -11,5 +11,8 @@ import type { LayoutServerLoad } from './$types';
  * SSR path.
  */
 export const load: LayoutServerLoad = async (event) => ({
-	prefetch: await loadConsent(event, { initRoute: '/api/c15t' }),
+	prefetch:
+		event.url.pathname === '/consent-example'
+			? undefined
+			: await loadConsent(event, { initRoute: '/api/c15t' }),
 });

@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/vue",
-	"version": "2.0.0-rc.4",
+	"version": "3.0.0-alpha.0",
 	"description": "Developer-first CMP for Vue and Nuxt: cookie banner, consent manager, preference center composables. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"ccpa",
@@ -29,15 +29,18 @@
 	},
 	"files": [
 		"dist",
-		"schema"
+		"schema",
+		"docs",
+		"AGENTS.md",
+		"SKILL.md"
 	],
 	"type": "module",
 	"main": "./dist/module.mjs",
-	"types": "./dist/types.d.mts",
+	"types": "./dist/module.d.mts",
 	"typesVersions": {
 		"*": {
 			".": [
-				"./dist/types.d.mts"
+				"./dist/module.d.mts"
 			],
 			"vite": [
 				"./dist/vite.d.mts"
@@ -52,7 +55,7 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/types.d.mts",
+			"types": "./dist/module.d.mts",
 			"import": "./dist/module.mjs",
 			"default": "./dist/module.mjs"
 		},
@@ -72,30 +75,126 @@
 			"default": "./dist/devtools.mjs"
 		},
 		"./consent-root": {
-			"types": "./dist/runtime/components/consent-root.d.vue.ts",
-			"import": "./dist/runtime/components/consent-root.vue",
-			"default": "./dist/runtime/components/consent-root.vue"
+			"types": "./dist/runtime/components/root.d.vue.ts",
+			"import": "./dist/runtime/components/root.vue",
+			"default": "./dist/runtime/components/root.vue"
 		},
 		"./consent-widget": {
-			"types": "./dist/runtime/components/consent-widget.d.vue.ts",
-			"import": "./dist/runtime/components/consent-widget.vue",
-			"default": "./dist/runtime/components/consent-widget.vue"
+			"types": "./dist/runtime/components/preferences.d.vue.ts",
+			"import": "./dist/runtime/components/preferences.vue",
+			"default": "./dist/runtime/components/preferences.vue"
 		},
 		"./runtime/*": "./dist/runtime/*",
-		"./composables/*": "./dist/runtime/composables/*"
+		"./composables/*": "./dist/runtime/composables/*",
+		"./runtime/components/consent-banner.vue": {
+			"types": "./dist/runtime/components/prompt.d.vue.ts",
+			"import": "./dist/runtime/components/prompt.vue",
+			"default": "./dist/runtime/components/prompt.vue"
+		},
+		"./runtime/components/consent-dialog-trigger.vue": {
+			"types": "./dist/runtime/components/panel-trigger.d.vue.ts",
+			"import": "./dist/runtime/components/panel-trigger.vue",
+			"default": "./dist/runtime/components/panel-trigger.vue"
+		},
+		"./runtime/components/consent-manager.vue": {
+			"types": "./dist/runtime/components/manager.d.vue.ts",
+			"import": "./dist/runtime/components/manager.vue",
+			"default": "./dist/runtime/components/manager.vue"
+		},
+		"./runtime/components/consent-widget-manager-context.js": {
+			"types": "./dist/runtime/components/preferences-manager-context.d.ts",
+			"import": "./dist/runtime/components/preferences-manager-context.js",
+			"default": "./dist/runtime/components/preferences-manager-context.js"
+		},
+		"./runtime/components/consent-widget.vue": {
+			"types": "./dist/runtime/components/preferences.d.vue.ts",
+			"import": "./dist/runtime/components/preferences.vue",
+			"default": "./dist/runtime/components/preferences.vue"
+		},
+		"./runtime/components/iab-consent-banner.vue": {
+			"types": "./dist/runtime/components/iab-prompt.d.vue.ts",
+			"import": "./dist/runtime/components/iab-prompt.vue",
+			"default": "./dist/runtime/components/iab-prompt.vue"
+		},
+		"./runtime/components/iab-consent-dialog.vue": {
+			"types": "./dist/runtime/components/iab-panel.d.vue.ts",
+			"import": "./dist/runtime/components/iab-panel.vue",
+			"default": "./dist/runtime/components/iab-panel.vue"
+		},
+		"./runtime/components/consent-branding-icon.vue": {
+			"types": "./dist/runtime/components/branding-icon.d.vue.ts",
+			"import": "./dist/runtime/components/branding-icon.vue",
+			"default": "./dist/runtime/components/branding-icon.vue"
+		},
+		"./runtime/components/consent-preferences-link.vue": {
+			"types": "./dist/runtime/components/preferences-link.d.vue.ts",
+			"import": "./dist/runtime/components/preferences-link.vue",
+			"default": "./dist/runtime/components/preferences-link.vue"
+		},
+		"./runtime/components/consent-button.vue": {
+			"types": "./dist/runtime/components/button.d.vue.ts",
+			"import": "./dist/runtime/components/button.vue",
+			"default": "./dist/runtime/components/button.vue"
+		},
+		"./runtime/components/consent-tag.vue": {
+			"types": "./dist/runtime/components/tag.d.vue.ts",
+			"import": "./dist/runtime/components/tag.vue",
+			"default": "./dist/runtime/components/tag.vue"
+		},
+		"./runtime/components/consent-actions.vue": {
+			"types": "./dist/runtime/components/actions.d.vue.ts",
+			"import": "./dist/runtime/components/actions.vue",
+			"default": "./dist/runtime/components/actions.vue"
+		},
+		"./runtime/components/consent-switch.vue": {
+			"types": "./dist/runtime/components/switch.d.vue.ts",
+			"import": "./dist/runtime/components/switch.vue",
+			"default": "./dist/runtime/components/switch.vue"
+		},
+		"./runtime/components/consent-link.vue": {
+			"types": "./dist/runtime/components/link.d.vue.ts",
+			"import": "./dist/runtime/components/link.vue",
+			"default": "./dist/runtime/components/link.vue"
+		},
+		"./runtime/components/consent-description.vue": {
+			"types": "./dist/runtime/components/description.d.vue.ts",
+			"import": "./dist/runtime/components/description.vue",
+			"default": "./dist/runtime/components/description.vue"
+		},
+		"./runtime/components/consent-frame.vue": {
+			"types": "./dist/runtime/components/frame.d.vue.ts",
+			"import": "./dist/runtime/components/frame.vue",
+			"default": "./dist/runtime/components/frame.vue"
+		},
+		"./runtime/components/consent-legal-links.vue": {
+			"types": "./dist/runtime/components/legal-links.d.vue.ts",
+			"import": "./dist/runtime/components/legal-links.vue",
+			"default": "./dist/runtime/components/legal-links.vue"
+		},
+		"./runtime/components/consent-root.vue": {
+			"types": "./dist/runtime/components/root.d.vue.ts",
+			"import": "./dist/runtime/components/root.vue",
+			"default": "./dist/runtime/components/root.vue"
+		},
+		"./runtime/components/nuxt-consent-root.vue": {
+			"types": "./dist/runtime/components/nuxt-root.d.vue.ts",
+			"import": "./dist/runtime/components/nuxt-root.vue",
+			"default": "./dist/runtime/components/nuxt-root.vue"
+		}
 	},
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
 		"build": "nuxt-module-build build",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/vue",
 		"check-types": "bun run check-types:nuxt && bun run check-types:vue",
 		"check-types:nuxt": "nuxt typecheck playground",
 		"check-types:vue": "vue-tsc -p tsconfig.vue.json --noEmit",
 		"dev": "nuxt dev playground",
 		"dev:build": "nuxt build playground",
 		"dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
-		"prepack": "bun run build",
+		"prepack": "bun run build:docs && bun run build",
 		"test": "vitest run"
 	},
 	"dependencies": {

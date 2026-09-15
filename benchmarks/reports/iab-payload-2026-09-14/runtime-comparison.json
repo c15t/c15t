@@ -1,0 +1,2195 @@
+{
+	"baseSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+	"generatedAt": "2026-09-14T13:00:21.098Z",
+	"headSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+	"results": [
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 0.04199999999999998,
+					"comparator": "absolute-or-percent-lte",
+					"message": "createConsentKernel changed by 0.04 (12.61%)",
+					"metric": "createConsentKernel",
+					"pass": true,
+					"secondaryThreshold": 30,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.041000000000000036,
+					"comparator": "absolute-or-percent-lte",
+					"message": "getSnapshot changed by 0.04 (14.04%)",
+					"metric": "getSnapshot",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": -0.04099999999999998,
+					"comparator": "absolute-or-percent-lte",
+					"message": "initConsentManager changed by -0.04 (-8.20%)",
+					"metric": "initConsentManager",
+					"pass": true,
+					"secondaryThreshold": 15,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.16600000000000037,
+					"comparator": "absolute-and-percent-lte",
+					"message": "saveAll changed by 0.17 (3.83%)",
+					"metric": "saveAll",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": -0.125,
+					"comparator": "absolute-and-percent-lte",
+					"message": "repeatVisitorInit changed by -0.13 (-2.78%)",
+					"metric": "repeatVisitorInit",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.04099999999999998,
+					"comparator": "absolute-and-percent-lte",
+					"message": "setConsent changed by 0.04 (16.40%)",
+					"metric": "setConsent",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 1
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:large:core-runtime",
+			"metrics": [
+				{
+					"baseMedian": 0.333,
+					"delta": 0.042,
+					"deltaPercent": 12.613,
+					"headMedian": 0.375,
+					"name": "createConsentKernel",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.292,
+					"delta": 0.041,
+					"deltaPercent": 14.041,
+					"headMedian": 0.333,
+					"name": "getSnapshot",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.291,
+					"delta": 0.001,
+					"deltaPercent": 0.344,
+					"headMedian": 0.292,
+					"name": "subscribe",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.25,
+					"delta": 0.041,
+					"deltaPercent": 16.4,
+					"headMedian": 0.291,
+					"name": "setConsent",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 4.334,
+					"delta": 0.166,
+					"deltaPercent": 3.83,
+					"headMedian": 4.5,
+					"name": "saveAll",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 4.5,
+					"delta": -0.125,
+					"deltaPercent": -2.778,
+					"headMedian": 4.375,
+					"name": "repeatVisitorInit",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.5,
+					"delta": -0.041,
+					"deltaPercent": -8.2,
+					"headMedian": 0.459,
+					"name": "initConsentManager",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.875,
+					"delta": -0.042,
+					"deltaPercent": -4.8,
+					"headMedian": 0.833,
+					"name": "identify",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Kernel construction is pure and has no side effects.",
+				"Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.",
+				"v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "large",
+			"status": "compared",
+			"suite": "core-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 0,
+					"comparator": "absolute-or-percent-lte",
+					"message": "createConsentKernel changed by 0.00 (0.00%)",
+					"metric": "createConsentKernel",
+					"pass": true,
+					"secondaryThreshold": 30,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.04200000000000001,
+					"comparator": "absolute-or-percent-lte",
+					"message": "getSnapshot changed by 0.04 (20.19%)",
+					"metric": "getSnapshot",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.124,
+					"comparator": "absolute-or-percent-lte",
+					"message": "initConsentManager changed by 0.12 (37.13%)",
+					"metric": "initConsentManager",
+					"pass": true,
+					"secondaryThreshold": 15,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.16800000000000015,
+					"comparator": "absolute-and-percent-lte",
+					"message": "saveAll changed by 0.17 (5.31%)",
+					"metric": "saveAll",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.7080000000000002,
+					"comparator": "absolute-and-percent-lte",
+					"message": "repeatVisitorInit changed by 0.71 (23.60%)",
+					"metric": "repeatVisitorInit",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0,
+					"comparator": "absolute-and-percent-lte",
+					"message": "setConsent changed by 0.00 (0.00%)",
+					"metric": "setConsent",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 1
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:medium:core-runtime",
+			"metrics": [
+				{
+					"baseMedian": 0.25,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.25,
+					"name": "createConsentKernel",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.208,
+					"delta": 0.042,
+					"deltaPercent": 20.192,
+					"headMedian": 0.25,
+					"name": "getSnapshot",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.25,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.25,
+					"name": "subscribe",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.25,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.25,
+					"name": "setConsent",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 3.166,
+					"delta": 0.168,
+					"deltaPercent": 5.306,
+					"headMedian": 3.334,
+					"name": "saveAll",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 3,
+					"delta": 0.708,
+					"deltaPercent": 23.6,
+					"headMedian": 3.708,
+					"name": "repeatVisitorInit",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.334,
+					"delta": 0.124,
+					"deltaPercent": 37.126,
+					"headMedian": 0.458,
+					"name": "initConsentManager",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.667,
+					"delta": 0.166,
+					"deltaPercent": 24.888,
+					"headMedian": 0.833,
+					"name": "identify",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Kernel construction is pure and has no side effects.",
+				"Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.",
+				"v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "medium",
+			"status": "compared",
+			"suite": "core-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 0,
+					"comparator": "absolute-or-percent-lte",
+					"message": "createConsentKernel changed by 0.00 (0.00%)",
+					"metric": "createConsentKernel",
+					"pass": true,
+					"secondaryThreshold": 30,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0,
+					"comparator": "absolute-or-percent-lte",
+					"message": "getSnapshot changed by 0.00 (0.00%)",
+					"metric": "getSnapshot",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.125,
+					"comparator": "absolute-or-percent-lte",
+					"message": "initConsentManager changed by 0.13 (37.42%)",
+					"metric": "initConsentManager",
+					"pass": true,
+					"secondaryThreshold": 15,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.08399999999999963,
+					"comparator": "absolute-and-percent-lte",
+					"message": "saveAll changed by 0.08 (3.25%)",
+					"metric": "saveAll",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.2919999999999998,
+					"comparator": "absolute-and-percent-lte",
+					"message": "repeatVisitorInit changed by 0.29 (9.87%)",
+					"metric": "repeatVisitorInit",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.04100000000000001,
+					"comparator": "absolute-and-percent-lte",
+					"message": "setConsent changed by 0.04 (19.62%)",
+					"metric": "setConsent",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 1
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:small:core-runtime",
+			"metrics": [
+				{
+					"baseMedian": 0.208,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.208,
+					"name": "createConsentKernel",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.167,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.167,
+					"name": "getSnapshot",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.209,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.209,
+					"name": "subscribe",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.209,
+					"delta": 0.041,
+					"deltaPercent": 19.617,
+					"headMedian": 0.25,
+					"name": "setConsent",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2.583,
+					"delta": 0.084,
+					"deltaPercent": 3.252,
+					"headMedian": 2.667,
+					"name": "saveAll",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2.958,
+					"delta": 0.292,
+					"deltaPercent": 9.872,
+					"headMedian": 3.25,
+					"name": "repeatVisitorInit",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.334,
+					"delta": 0.125,
+					"deltaPercent": 37.425,
+					"headMedian": 0.459,
+					"name": "initConsentManager",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.625,
+					"delta": 0.042,
+					"deltaPercent": 6.72,
+					"headMedian": 0.667,
+					"name": "identify",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Kernel construction is pure and has no side effects.",
+				"Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.",
+				"v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "small",
+			"status": "compared",
+			"suite": "core-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 0.0010000000000000009,
+					"comparator": "absolute-or-percent-lte",
+					"message": "createConsentKernel changed by 0.00 (0.48%)",
+					"metric": "createConsentKernel",
+					"pass": true,
+					"secondaryThreshold": 30,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.04099999999999998,
+					"comparator": "absolute-or-percent-lte",
+					"message": "getSnapshot changed by 0.04 (24.55%)",
+					"metric": "getSnapshot",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.04199999999999998,
+					"comparator": "absolute-or-percent-lte",
+					"message": "initConsentManager changed by 0.04 (12.61%)",
+					"metric": "initConsentManager",
+					"pass": true,
+					"secondaryThreshold": 15,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.16599999999999993,
+					"comparator": "absolute-and-percent-lte",
+					"message": "saveAll changed by 0.17 (6.42%)",
+					"metric": "saveAll",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.125,
+					"comparator": "absolute-and-percent-lte",
+					"message": "repeatVisitorInit changed by 0.13 (4.29%)",
+					"metric": "repeatVisitorInit",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.04100000000000001,
+					"comparator": "absolute-and-percent-lte",
+					"message": "setConsent changed by 0.04 (19.62%)",
+					"metric": "setConsent",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 1
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:tiny:core-runtime",
+			"metrics": [
+				{
+					"baseMedian": 0.208,
+					"delta": 0.001,
+					"deltaPercent": 0.481,
+					"headMedian": 0.209,
+					"name": "createConsentKernel",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.167,
+					"delta": 0.041,
+					"deltaPercent": 24.551,
+					"headMedian": 0.208,
+					"name": "getSnapshot",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.209,
+					"delta": 0.041,
+					"deltaPercent": 19.617,
+					"headMedian": 0.25,
+					"name": "subscribe",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.209,
+					"delta": 0.041,
+					"deltaPercent": 19.617,
+					"headMedian": 0.25,
+					"name": "setConsent",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2.584,
+					"delta": 0.166,
+					"deltaPercent": 6.424,
+					"headMedian": 2.75,
+					"name": "saveAll",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2.917,
+					"delta": 0.125,
+					"deltaPercent": 4.285,
+					"headMedian": 3.042,
+					"name": "repeatVisitorInit",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.333,
+					"delta": 0.042,
+					"deltaPercent": 12.613,
+					"headMedian": 0.375,
+					"name": "initConsentManager",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.666,
+					"delta": 0.001,
+					"deltaPercent": 0.15,
+					"headMedian": 0.667,
+					"name": "identify",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Kernel construction is pure and has no side effects.",
+				"Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.",
+				"v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "tiny",
+			"status": "compared",
+			"suite": "core-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 0,
+					"comparator": "absolute-or-percent-lte",
+					"message": "createConsentKernel changed by 0.00 (0.00%)",
+					"metric": "createConsentKernel",
+					"pass": true,
+					"secondaryThreshold": 30,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.04099999999999998,
+					"comparator": "absolute-or-percent-lte",
+					"message": "getSnapshot changed by 0.04 (24.55%)",
+					"metric": "getSnapshot",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.04199999999999998,
+					"comparator": "absolute-or-percent-lte",
+					"message": "initConsentManager changed by 0.04 (12.61%)",
+					"metric": "initConsentManager",
+					"pass": true,
+					"secondaryThreshold": 15,
+					"status": "evaluated",
+					"threshold": 1
+				},
+				{
+					"actual": 0.1259999999999999,
+					"comparator": "absolute-and-percent-lte",
+					"message": "saveAll changed by 0.13 (4.88%)",
+					"metric": "saveAll",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.12400000000000011,
+					"comparator": "absolute-and-percent-lte",
+					"message": "repeatVisitorInit changed by 0.12 (4.19%)",
+					"metric": "repeatVisitorInit",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 3
+				},
+				{
+					"actual": 0.04100000000000001,
+					"comparator": "absolute-and-percent-lte",
+					"message": "setConsent changed by 0.04 (19.62%)",
+					"metric": "setConsent",
+					"pass": true,
+					"secondaryThreshold": 100,
+					"status": "evaluated",
+					"threshold": 1
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:xlarge:core-runtime",
+			"metrics": [
+				{
+					"baseMedian": 0.208,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 0.208,
+					"name": "createConsentKernel",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.167,
+					"delta": 0.041,
+					"deltaPercent": 24.551,
+					"headMedian": 0.208,
+					"name": "getSnapshot",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.208,
+					"delta": 0.001,
+					"deltaPercent": 0.481,
+					"headMedian": 0.209,
+					"name": "subscribe",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.209,
+					"delta": 0.041,
+					"deltaPercent": 19.617,
+					"headMedian": 0.25,
+					"name": "setConsent",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2.583,
+					"delta": 0.126,
+					"deltaPercent": 4.878,
+					"headMedian": 2.709,
+					"name": "saveAll",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2.959,
+					"delta": 0.124,
+					"deltaPercent": 4.191,
+					"headMedian": 3.083,
+					"name": "repeatVisitorInit",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.333,
+					"delta": 0.042,
+					"deltaPercent": 12.613,
+					"headMedian": 0.375,
+					"name": "initConsentManager",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 0.666,
+					"delta": 0.001,
+					"deltaPercent": 0.15,
+					"headMedian": 0.667,
+					"name": "identify",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Kernel construction is pure and has no side effects.",
+				"Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.",
+				"v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "xlarge",
+			"status": "compared",
+			"suite": "core-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 9,
+					"comparator": "absolute-lte",
+					"message": "realPolicyAcceptUs is 9 (allowance 150)",
+					"metric": "realPolicyAcceptUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 7.708,
+					"comparator": "absolute-lte",
+					"message": "realPolicyRejectUs is 7.708 (allowance 150)",
+					"metric": "realPolicyRejectUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 8.125,
+					"comparator": "absolute-lte",
+					"message": "realPolicyPartialUs is 8.125 (allowance 150)",
+					"metric": "realPolicyPartialUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 12.792,
+					"comparator": "absolute-lte",
+					"message": "realPolicyRepeatHydrationUs is 12.792 (allowance 150)",
+					"metric": "realPolicyRepeatHydrationUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 41.834,
+					"comparator": "absolute-lte",
+					"message": "realPolicyNoticeUs is 41.834 (allowance 150)",
+					"metric": "realPolicyNoticeUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 50.25,
+					"comparator": "absolute-lte",
+					"message": "realPolicyStandingGpcUs is 50.25 (allowance 150)",
+					"metric": "realPolicyStandingGpcUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "manifestJsonBytes increased by 0.00 bytes",
+					"metric": "manifestJsonBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 3072
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "manifestGzipBytes increased by 0.00 bytes",
+					"metric": "manifestGzipBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 1280
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "initJsonBytes increased by 0.00 bytes",
+					"metric": "initJsonBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 1536
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "initGzipBytes increased by 0.00 bytes",
+					"metric": "initGzipBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 640
+				},
+				{
+					"actual": -0.25,
+					"comparator": "absolute-and-percent-lte",
+					"message": "resolvePolicyUs changed by -0.25 (-0.49%)",
+					"metric": "resolvePolicyUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 100
+				},
+				{
+					"actual": -0.08300000000000018,
+					"comparator": "absolute-and-percent-lte",
+					"message": "resolveInitUs changed by -0.08 (-0.94%)",
+					"metric": "resolveInitUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 100
+				},
+				{
+					"actual": -0.041999999999999815,
+					"comparator": "absolute-and-percent-lte",
+					"message": "kernelInitUs changed by -0.04 (-0.89%)",
+					"metric": "kernelInitUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 50
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:optin-choice-eu:policy-runtime",
+			"metrics": [
+				{
+					"baseMedian": 9.125,
+					"delta": -0.125,
+					"deltaPercent": -1.37,
+					"headMedian": 9,
+					"name": "realPolicyAcceptUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 42.625,
+					"delta": -0.791,
+					"deltaPercent": -1.856,
+					"headMedian": 41.834,
+					"name": "realPolicyNoticeUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 8.25,
+					"delta": -0.125,
+					"deltaPercent": -1.515,
+					"headMedian": 8.125,
+					"name": "realPolicyPartialUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 8.208,
+					"delta": -0.5,
+					"deltaPercent": -6.092,
+					"headMedian": 7.708,
+					"name": "realPolicyRejectUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 13.875,
+					"delta": -1.083,
+					"deltaPercent": -7.805,
+					"headMedian": 12.792,
+					"name": "realPolicyRepeatHydrationUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 51.333,
+					"delta": -1.083,
+					"deltaPercent": -2.11,
+					"headMedian": 50.25,
+					"name": "realPolicyStandingGpcUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1216.958,
+					"delta": 142.73,
+					"deltaPercent": 11.728,
+					"headMedian": 1359.688,
+					"name": "transportedPolicyAcceptCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1228.312,
+					"delta": 143.771,
+					"deltaPercent": 11.705,
+					"headMedian": 1372.083,
+					"name": "transportedPolicyPartialCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1217.375,
+					"delta": 128.937,
+					"deltaPercent": 10.591,
+					"headMedian": 1346.312,
+					"name": "transportedPolicyRejectCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1250.771,
+					"delta": 125.791,
+					"deltaPercent": 10.057,
+					"headMedian": 1376.562,
+					"name": "transportedPolicyRepeatCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 2151,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 2151,
+					"name": "manifestJsonBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1040,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1040,
+					"name": "manifestGzipBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 844,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 844,
+					"name": "manifestBrotliBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 3065,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3065,
+					"name": "initJsonBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1449,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1449,
+					"name": "initGzipBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1103,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1103,
+					"name": "initBrotliBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 136.084,
+					"delta": -0.542,
+					"deltaPercent": -0.398,
+					"headMedian": 135.542,
+					"name": "manifestBuildUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 50.875,
+					"delta": -0.25,
+					"deltaPercent": -0.491,
+					"headMedian": 50.625,
+					"name": "resolvePolicyUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 8.875,
+					"delta": -0.083,
+					"deltaPercent": -0.935,
+					"headMedian": 8.792,
+					"name": "resolveInitUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 4.709,
+					"delta": -0.042,
+					"deltaPercent": -0.892,
+					"headMedian": 4.667,
+					"name": "kernelInitUs",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Payload bytes are measured on the JSON the installed schema package emits for a fixed preset deployment; nothing is hand-written.",
+				"resolvePolicyUs uses the installed synchronous resolver; resolveInitUs and kernelInitUs cover manifest init resolution and kernel prompt derivation.",
+				"Sync resolver: resolvePolicyRules; contract family: policy-rules."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "optin-choice-eu",
+			"status": "compared",
+			"suite": "policy-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 6.792,
+					"comparator": "absolute-lte",
+					"message": "realPolicyAcceptUs is 6.792 (allowance 150)",
+					"metric": "realPolicyAcceptUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 6.708,
+					"comparator": "absolute-lte",
+					"message": "realPolicyRejectUs is 6.708 (allowance 150)",
+					"metric": "realPolicyRejectUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 6.375,
+					"comparator": "absolute-lte",
+					"message": "realPolicyPartialUs is 6.375 (allowance 150)",
+					"metric": "realPolicyPartialUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 12.375,
+					"comparator": "absolute-lte",
+					"message": "realPolicyRepeatHydrationUs is 12.375 (allowance 150)",
+					"metric": "realPolicyRepeatHydrationUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 41.75,
+					"comparator": "absolute-lte",
+					"message": "realPolicyNoticeUs is 41.75 (allowance 150)",
+					"metric": "realPolicyNoticeUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 49.459,
+					"comparator": "absolute-lte",
+					"message": "realPolicyStandingGpcUs is 49.459 (allowance 150)",
+					"metric": "realPolicyStandingGpcUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "manifestJsonBytes increased by 0.00 bytes",
+					"metric": "manifestJsonBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 3072
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "manifestGzipBytes increased by 0.00 bytes",
+					"metric": "manifestGzipBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 1280
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "initJsonBytes increased by 0.00 bytes",
+					"metric": "initJsonBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 1536
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "initGzipBytes increased by 0.00 bytes",
+					"metric": "initGzipBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 640
+				},
+				{
+					"actual": 0.4579999999999984,
+					"comparator": "absolute-and-percent-lte",
+					"message": "resolvePolicyUs changed by 0.46 (1.09%)",
+					"metric": "resolvePolicyUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 100
+				},
+				{
+					"actual": -0.5,
+					"comparator": "absolute-and-percent-lte",
+					"message": "resolveInitUs changed by -0.50 (-7.69%)",
+					"metric": "resolveInitUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 100
+				},
+				{
+					"actual": -0.16600000000000037,
+					"comparator": "absolute-and-percent-lte",
+					"message": "kernelInitUs changed by -0.17 (-4.07%)",
+					"metric": "kernelInitUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 50
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:optout-california:policy-runtime",
+			"metrics": [
+				{
+					"baseMedian": 7,
+					"delta": -0.208,
+					"deltaPercent": -2.971,
+					"headMedian": 6.792,
+					"name": "realPolicyAcceptUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 41.333,
+					"delta": 0.417,
+					"deltaPercent": 1.009,
+					"headMedian": 41.75,
+					"name": "realPolicyNoticeUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 6.291,
+					"delta": 0.084,
+					"deltaPercent": 1.335,
+					"headMedian": 6.375,
+					"name": "realPolicyPartialUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 6.75,
+					"delta": -0.042,
+					"deltaPercent": -0.622,
+					"headMedian": 6.708,
+					"name": "realPolicyRejectUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 12.583,
+					"delta": -0.208,
+					"deltaPercent": -1.653,
+					"headMedian": 12.375,
+					"name": "realPolicyRepeatHydrationUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 49.125,
+					"delta": 0.334,
+					"deltaPercent": 0.68,
+					"headMedian": 49.459,
+					"name": "realPolicyStandingGpcUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1205.916,
+					"delta": 134.126,
+					"deltaPercent": 11.122,
+					"headMedian": 1340.042,
+					"name": "transportedPolicyAcceptCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1218.25,
+					"delta": -9.688,
+					"deltaPercent": -0.795,
+					"headMedian": 1208.562,
+					"name": "transportedPolicyPartialCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1213.583,
+					"delta": 14.875,
+					"deltaPercent": 1.226,
+					"headMedian": 1228.458,
+					"name": "transportedPolicyRejectCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1246.458,
+					"delta": -9.896,
+					"deltaPercent": -0.794,
+					"headMedian": 1236.562,
+					"name": "transportedPolicyRepeatCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1943,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1943,
+					"name": "manifestJsonBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 888,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 888,
+					"name": "manifestGzipBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 723,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 723,
+					"name": "manifestBrotliBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 3043,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3043,
+					"name": "initJsonBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1432,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1432,
+					"name": "initGzipBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1094,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1094,
+					"name": "initBrotliBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 120.958,
+					"delta": 0.042,
+					"deltaPercent": 0.035,
+					"headMedian": 121,
+					"name": "manifestBuildUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 42.042,
+					"delta": 0.458,
+					"deltaPercent": 1.089,
+					"headMedian": 42.5,
+					"name": "resolvePolicyUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 6.5,
+					"delta": -0.5,
+					"deltaPercent": -7.692,
+					"headMedian": 6,
+					"name": "resolveInitUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 4.083,
+					"delta": -0.166,
+					"deltaPercent": -4.066,
+					"headMedian": 3.917,
+					"name": "kernelInitUs",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Payload bytes are measured on the JSON the installed schema package emits for a fixed preset deployment; nothing is hand-written.",
+				"resolvePolicyUs uses the installed synchronous resolver; resolveInitUs and kernelInitUs cover manifest init resolution and kernel prompt derivation.",
+				"Sync resolver: resolvePolicyRules; contract family: policy-rules."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "optout-california",
+			"status": "compared",
+			"suite": "policy-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 7.166,
+					"comparator": "absolute-lte",
+					"message": "realPolicyAcceptUs is 7.166 (allowance 150)",
+					"metric": "realPolicyAcceptUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 6.666,
+					"comparator": "absolute-lte",
+					"message": "realPolicyRejectUs is 6.666 (allowance 150)",
+					"metric": "realPolicyRejectUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 6.958,
+					"comparator": "absolute-lte",
+					"message": "realPolicyPartialUs is 6.958 (allowance 150)",
+					"metric": "realPolicyPartialUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 12.125,
+					"comparator": "absolute-lte",
+					"message": "realPolicyRepeatHydrationUs is 12.125 (allowance 150)",
+					"metric": "realPolicyRepeatHydrationUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 41.125,
+					"comparator": "absolute-lte",
+					"message": "realPolicyNoticeUs is 41.125 (allowance 150)",
+					"metric": "realPolicyNoticeUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 49.125,
+					"comparator": "absolute-lte",
+					"message": "realPolicyStandingGpcUs is 49.125 (allowance 150)",
+					"metric": "realPolicyStandingGpcUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 150
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "manifestJsonBytes increased by 0.00 bytes",
+					"metric": "manifestJsonBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 4608
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "manifestGzipBytes increased by 0.00 bytes",
+					"metric": "manifestGzipBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 1920
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "initJsonBytes increased by 0.00 bytes",
+					"metric": "initJsonBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 1536
+				},
+				{
+					"actual": 0,
+					"comparator": "delta-bytes-lte",
+					"message": "initGzipBytes increased by 0.00 bytes",
+					"metric": "initGzipBytes",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 640
+				},
+				{
+					"actual": -0.5409999999999968,
+					"comparator": "absolute-and-percent-lte",
+					"message": "resolvePolicyUs changed by -0.54 (-1.23%)",
+					"metric": "resolvePolicyUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 100
+				},
+				{
+					"actual": -0.20800000000000018,
+					"comparator": "absolute-and-percent-lte",
+					"message": "resolveInitUs changed by -0.21 (-1.92%)",
+					"metric": "resolveInitUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 100
+				},
+				{
+					"actual": -0.08400000000000007,
+					"comparator": "absolute-and-percent-lte",
+					"message": "kernelInitUs changed by -0.08 (-2.10%)",
+					"metric": "kernelInitUs",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 50
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/core-benchmarks:optout-default-world:policy-runtime",
+			"metrics": [
+				{
+					"baseMedian": 7.291,
+					"delta": -0.125,
+					"deltaPercent": -1.714,
+					"headMedian": 7.166,
+					"name": "realPolicyAcceptUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 41.167,
+					"delta": -0.042,
+					"deltaPercent": -0.102,
+					"headMedian": 41.125,
+					"name": "realPolicyNoticeUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 6.709,
+					"delta": 0.249,
+					"deltaPercent": 3.711,
+					"headMedian": 6.958,
+					"name": "realPolicyPartialUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 6.584,
+					"delta": 0.082,
+					"deltaPercent": 1.245,
+					"headMedian": 6.666,
+					"name": "realPolicyRejectUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 12.041,
+					"delta": 0.084,
+					"deltaPercent": 0.698,
+					"headMedian": 12.125,
+					"name": "realPolicyRepeatHydrationUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 48.916,
+					"delta": 0.209,
+					"deltaPercent": 0.427,
+					"headMedian": 49.125,
+					"name": "realPolicyStandingGpcUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1209.771,
+					"delta": 32.875,
+					"deltaPercent": 2.717,
+					"headMedian": 1242.646,
+					"name": "transportedPolicyAcceptCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1226.333,
+					"delta": -11.292,
+					"deltaPercent": -0.921,
+					"headMedian": 1215.041,
+					"name": "transportedPolicyPartialCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1330.625,
+					"delta": -118.292,
+					"deltaPercent": -8.89,
+					"headMedian": 1212.333,
+					"name": "transportedPolicyRejectCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 1378.354,
+					"delta": -155.291,
+					"deltaPercent": -11.266,
+					"headMedian": 1223.063,
+					"name": "transportedPolicyRepeatCompletionUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 3043,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3043,
+					"name": "manifestJsonBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1257,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1257,
+					"name": "manifestGzipBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1030,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1030,
+					"name": "manifestBrotliBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 3069,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3069,
+					"name": "initJsonBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1452,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1452,
+					"name": "initGzipBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 1098,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1098,
+					"name": "initBrotliBytes",
+					"unit": "bytes"
+				},
+				{
+					"baseMedian": 192.23,
+					"delta": 0.562,
+					"deltaPercent": 0.292,
+					"headMedian": 192.792,
+					"name": "manifestBuildUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 43.875,
+					"delta": -0.541,
+					"deltaPercent": -1.233,
+					"headMedian": 43.334,
+					"name": "resolvePolicyUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 10.833,
+					"delta": -0.208,
+					"deltaPercent": -1.92,
+					"headMedian": 10.625,
+					"name": "resolveInitUs",
+					"unit": "us"
+				},
+				{
+					"baseMedian": 4,
+					"delta": -0.084,
+					"deltaPercent": -2.1,
+					"headMedian": 3.916,
+					"name": "kernelInitUs",
+					"unit": "us"
+				}
+			],
+			"notes": [
+				"Payload bytes are measured on the JSON the installed schema package emits for a fixed preset deployment; nothing is hand-written.",
+				"resolvePolicyUs uses the installed synchronous resolver; resolveInitUs and kernelInitUs cover manifest init resolution and kernel prompt derivation.",
+				"Sync resolver: resolvePolicyRules; contract family: policy-rules."
+			],
+			"package": "@c15t/core-benchmarks",
+			"scenario": "optout-default-world",
+			"status": "compared",
+			"suite": "policy-runtime"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 1,
+					"comparator": "absolute-and-percent-lte",
+					"message": "alwaysLoadRetentionMs changed by 1.00 (3.56%)",
+					"metric": "alwaysLoadRetentionMs",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 20
+				},
+				{
+					"actual": 0,
+					"comparator": "count-eq",
+					"message": "errorCount matched expected value 0",
+					"metric": "errorCount",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 0
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/script-lifecycle-bench:always-load-retain:script-lifecycle",
+			"metrics": [
+				{
+					"baseMedian": 28.1,
+					"delta": 1,
+					"deltaPercent": 3.559,
+					"headMedian": 29.1,
+					"name": "alwaysLoadRetentionMs",
+					"unit": "ms"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "loadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "unloadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "retainedDomScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackLoadCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackConsentChangeCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "errorCount",
+					"unit": "count"
+				}
+			],
+			"notes": [
+				"Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.",
+				"IAB-gated script lifecycle scenarios are intentionally excluded from v1."
+			],
+			"package": "@c15t/script-lifecycle-bench",
+			"scenario": "always-load-retain",
+			"status": "compared",
+			"suite": "script-lifecycle"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 1.3999999999999986,
+					"comparator": "absolute-and-percent-lte",
+					"message": "callbackOnlyToggleMs changed by 1.40 (5.26%)",
+					"metric": "callbackOnlyToggleMs",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 10
+				},
+				{
+					"actual": 0,
+					"comparator": "count-eq",
+					"message": "errorCount matched expected value 0",
+					"metric": "errorCount",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 0
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/script-lifecycle-bench:callback-only-toggle:script-lifecycle",
+			"metrics": [
+				{
+					"baseMedian": 26.6,
+					"delta": 1.4,
+					"deltaPercent": 5.263,
+					"headMedian": 28,
+					"name": "callbackOnlyToggleMs",
+					"unit": "ms"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "loadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "unloadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "retainedDomScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "callbackLoadCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackConsentChangeCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "errorCount",
+					"unit": "count"
+				}
+			],
+			"notes": [
+				"Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.",
+				"IAB-gated script lifecycle scenarios are intentionally excluded from v1."
+			],
+			"package": "@c15t/script-lifecycle-bench",
+			"scenario": "callback-only-toggle",
+			"status": "compared",
+			"suite": "script-lifecycle"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": -0.1999999999999993,
+					"comparator": "absolute-and-percent-lte",
+					"message": "grantStandardLifecycleMs changed by -0.20 (-0.72%)",
+					"metric": "grantStandardLifecycleMs",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 20
+				},
+				{
+					"actual": 0,
+					"comparator": "count-eq",
+					"message": "errorCount matched expected value 0",
+					"metric": "errorCount",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 0
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/script-lifecycle-bench:grant-standard:script-lifecycle",
+			"metrics": [
+				{
+					"baseMedian": 27.9,
+					"delta": -0.2,
+					"deltaPercent": -0.717,
+					"headMedian": 27.7,
+					"name": "grantStandardLifecycleMs",
+					"unit": "ms"
+				},
+				{
+					"baseMedian": 3,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3,
+					"name": "loadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "unloadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 3,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3,
+					"name": "retainedDomScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackLoadCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackConsentChangeCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "errorCount",
+					"unit": "count"
+				}
+			],
+			"notes": [
+				"Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.",
+				"IAB-gated script lifecycle scenarios are intentionally excluded from v1."
+			],
+			"package": "@c15t/script-lifecycle-bench",
+			"scenario": "grant-standard",
+			"status": "compared",
+			"suite": "script-lifecycle"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": -2.6000000000000014,
+					"comparator": "absolute-and-percent-lte",
+					"message": "persistAfterRevokedMs changed by -2.60 (-9.42%)",
+					"metric": "persistAfterRevokedMs",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 20
+				},
+				{
+					"actual": 0,
+					"comparator": "count-eq",
+					"message": "errorCount matched expected value 0",
+					"metric": "errorCount",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 0
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/script-lifecycle-bench:persist-after-revoked:script-lifecycle",
+			"metrics": [
+				{
+					"baseMedian": 27.6,
+					"delta": -2.6,
+					"deltaPercent": -9.42,
+					"headMedian": 25,
+					"name": "persistAfterRevokedMs",
+					"unit": "ms"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "loadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "unloadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "retainedDomScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackLoadCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackConsentChangeCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "errorCount",
+					"unit": "count"
+				}
+			],
+			"notes": [
+				"Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.",
+				"IAB-gated script lifecycle scenarios are intentionally excluded from v1."
+			],
+			"package": "@c15t/script-lifecycle-bench",
+			"scenario": "persist-after-revoked",
+			"status": "compared",
+			"suite": "script-lifecycle"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": 0.1999999999999993,
+					"comparator": "absolute-and-percent-lte",
+					"message": "reloadSingleScriptMs changed by 0.20 (0.78%)",
+					"metric": "reloadSingleScriptMs",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 15
+				},
+				{
+					"actual": 0,
+					"comparator": "count-eq",
+					"message": "errorCount matched expected value 0",
+					"metric": "errorCount",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 0
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/script-lifecycle-bench:reload-single:script-lifecycle",
+			"metrics": [
+				{
+					"baseMedian": 25.5,
+					"delta": 0.2,
+					"deltaPercent": 0.784,
+					"headMedian": 25.7,
+					"name": "reloadSingleScriptMs",
+					"unit": "ms"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "loadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "unloadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 1,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 1,
+					"name": "retainedDomScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackLoadCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackConsentChangeCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "errorCount",
+					"unit": "count"
+				}
+			],
+			"notes": [
+				"Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.",
+				"IAB-gated script lifecycle scenarios are intentionally excluded from v1."
+			],
+			"package": "@c15t/script-lifecycle-bench",
+			"scenario": "reload-single",
+			"status": "compared",
+			"suite": "script-lifecycle"
+		},
+		{
+			"baseCommitSha": "d63dcdb4cb590dc8f1e95b7d775fe6d2d9889e8b",
+			"budgets": [
+				{
+					"actual": -4.300000000000001,
+					"comparator": "absolute-and-percent-lte",
+					"message": "revokeStandardLifecycleMs changed by -4.30 (-15.30%)",
+					"metric": "revokeStandardLifecycleMs",
+					"pass": true,
+					"secondaryThreshold": 20,
+					"status": "evaluated",
+					"threshold": 25
+				},
+				{
+					"actual": 0,
+					"comparator": "count-eq",
+					"message": "errorCount matched expected value 0",
+					"metric": "errorCount",
+					"pass": true,
+					"status": "evaluated",
+					"threshold": 0
+				}
+			],
+			"framework": "core",
+			"headCommitSha": "704792dffedd9db9ca89d88eb75d2641576fae48",
+			"key": "@c15t/script-lifecycle-bench:revoke-standard:script-lifecycle",
+			"metrics": [
+				{
+					"baseMedian": 28.1,
+					"delta": -4.3,
+					"deltaPercent": -15.302,
+					"headMedian": 23.8,
+					"name": "revokeStandardLifecycleMs",
+					"unit": "ms"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "loadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 3,
+					"delta": 0,
+					"deltaPercent": 0,
+					"headMedian": 3,
+					"name": "unloadedScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "retainedDomScriptCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackLoadCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "callbackConsentChangeCount",
+					"unit": "count"
+				},
+				{
+					"baseMedian": 0,
+					"delta": 0,
+					"deltaPercent": null,
+					"headMedian": 0,
+					"name": "errorCount",
+					"unit": "count"
+				}
+			],
+			"notes": [
+				"Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.",
+				"IAB-gated script lifecycle scenarios are intentionally excluded from v1."
+			],
+			"package": "@c15t/script-lifecycle-bench",
+			"scenario": "revoke-standard",
+			"status": "compared",
+			"suite": "script-lifecycle"
+		}
+	],
+	"schemaVersion": 1,
+	"summary": {
+		"baseArms": {},
+		"budgets": {
+			"definitionMismatches": [],
+			"evaluated": 81,
+			"expected": 81,
+			"failed": 0,
+			"missingBaseMetric": 0,
+			"missingDefinitions": [],
+			"missingHeadMetric": 0,
+			"passed": 81,
+			"unevaluatedArm": 0,
+			"unexpectedDefinitions": []
+		},
+		"enforce": true,
+		"failures": [],
+		"ok": true,
+		"profile": "regression",
+		"results": {
+			"compared": 14,
+			"expected": 14,
+			"missingBase": [],
+			"missingHead": [],
+			"unexpected": []
+		}
+	}
+}

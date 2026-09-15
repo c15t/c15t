@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "2.2.0-canary-20260731105620",
+	"version": "3.0.0-alpha.0",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, IAB TCF, and Consent Mode.",
 	"keywords": [
 		"app-router",
@@ -115,11 +115,6 @@
 			"import": "./dist/static.js",
 			"default": "./dist/static.js"
 		},
-		"./rsc": {
-			"types": "./dist-types/rsc/index.d.ts",
-			"import": "./dist/rsc/index.js",
-			"default": "./dist/rsc/index.js"
-		},
 		"./devtools": {
 			"types": "./dist-types/devtools.d.ts",
 			"import": "./dist/devtools.js",
@@ -130,14 +125,14 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun ../../scripts/generate-package-docs.ts @c15t/nextjs && node ../shared/restore-client-directives.mjs src dist",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/nextjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},

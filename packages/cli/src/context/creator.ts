@@ -1,140 +1,135 @@
+import path from 'node:path';
+
+import { loadConfig } from 'c12';
+
+import { CliError } from '../core/errors';
+import { packageInfo } from '../package-info';
 import { createCliLogger, validLogLevels } from '../utils/logger';
-import type { LogLevel } from '../utils/logger';
-import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
+import type { CliLogger, LogLevel } from '../utils/logger';
+import { createTelemetry } from '../utils/telemetry';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
 import { detectFramework, detectProjectRoot } from './framework-detection';
 import { detectPackageManager } from './package-manager-detection';
 import { parseCliArgs } from './parser';
-import type { CliCommand, CliContext } from './types';
+import { runsSetupWithoutPrompts } from './setup-routing';
+import type { CliCommand, CliContext, ParsedArgs } from './types';
 import { createUserInteraction } from './user-interaction';
 
-/**
- * Parses arguments, creates the logger, and returns the application context.
- *
- * @param rawArgs - The raw command line arguments (process.argv.slice(2)).
- * @param cwd - The current working directory (process.cwd()).
- * @param commands - The list of available CLI commands.
- * @returns The CLI context object.
- */
-export const createCliContext = async function createCliContext(
+export interface CreateContextOptions {
+	parsed?: ParsedArgs;
+	logger?: CliLogger;
+	write?: (line: string) => void;
+	interactive?: boolean;
+	telemetry?: boolean;
+}
+
+/** Create the command context without changing cwd or installing process handlers. */
+export const createCliContext = async (
 	rawArgs: string[],
 	cwd: string,
-	commands: CliCommand[]
-): Promise<CliContext> {
-	const { commandName, commandArgs, parsedFlags } = parseCliArgs(
-		rawArgs,
-		commands
-	);
-
-	let desiredLogLevel: LogLevel = 'info';
-	const levelArg = parsedFlags.logger;
-
-	if (typeof levelArg === 'string') {
-		if ((validLogLevels as string[]).includes(levelArg)) {
-			desiredLogLevel = levelArg as LogLevel;
-		} else {
-			console.warn(
-				`[CLI Setup] Invalid log level '${levelArg}' provided via --logger. Using default 'info'.`
-			);
-		}
-	} else if (levelArg === true) {
-		console.warn(
-			"[CLI Setup] --logger flag found but no level specified. Using default 'info'."
-		);
+	commands: CliCommand[],
+	options: CreateContextOptions = {}
+): Promise<CliContext> => {
+	const parsed = options.parsed ?? parseCliArgs(rawArgs, commands);
+	const flags = { ...parsed.parsedFlags };
+	const interactive =
+		(options.interactive ??
+			Boolean(process.stdin.isTTY && process.stdout.isTTY)) &&
+		flags['non-interactive'] !== true &&
+		flags.json !== true;
+	flags['non-interactive'] = !interactive;
+	const levelArg = flags.logger;
+	if (
+		typeof levelArg === 'string' &&
+		!validLogLevels.includes(levelArg as LogLevel)
+	) {
+		throw new CliError('FLAG_INVALID', {
+			details: `Unknown log level: ${levelArg}`,
+		});
 	}
-
-	const logger = createCliLogger(desiredLogLevel);
-	logger.debug(`Logger initialized with level: ${desiredLogLevel}`);
-
-	// Create the base context
-	const baseContext: Partial<CliContext> = {
-		commandArgs,
-		commandName,
-		cwd,
-		flags: parsedFlags,
+	const logger =
+		options.logger ??
+		createCliLogger((levelArg as LogLevel | undefined) ?? 'info', {
+			interactive,
+			write:
+				options.write ??
+				(flags.json === true
+					? (line: string) => {
+							process.stderr.write(`${line}\n`);
+						}
+					: undefined),
+		});
+	const needsProject = [
+		'setup',
+		'generate',
+		'codemods',
+		'self-host',
+		'skills',
+	].includes(parsed.commandName ?? '');
+	const projectRoot = needsProject ? await detectProjectRoot(cwd, logger) : cwd;
+	const framework = needsProject
+		? await detectFramework(projectRoot, logger)
+		: {
+				framework: null,
+				frameworkVersion: null,
+				hasReact: false,
+				pkg: 'c15t' as const,
+				reactVersion: null,
+				tailwindVersion: null,
+			};
+	const promptForPackageManager =
+		interactive &&
+		!runsSetupWithoutPrompts(parsed.commandName, flags, parsed.commandArgs[0]);
+	const packageManager = needsProject
+		? await detectPackageManager(projectRoot, logger, promptForPackageManager)
+		: {
+				name: 'npm' as const,
+				version: null,
+			};
+	const telemetry = createTelemetry({
+		debug: flags['telemetry-debug'] === true,
+		defaultProperties: {
+			cliVersion: packageInfo.version,
+			entryCommand: parsed.commandName ?? 'interactive',
+		},
+		disabled: options.telemetry === false || flags['no-telemetry'] === true,
 		logger,
+	});
+	const error = createErrorHandlers({ telemetry });
+	const readConfig = async () => {
+		const result = await loadConfig({
+			configFile:
+				typeof flags.config === 'string'
+					? path.resolve(cwd, flags.config)
+					: undefined,
+			cwd: projectRoot,
+			name: 'c15t',
+		});
+		return result.config ?? null;
 	};
-
-	// Create a self-referential context object
-	const context = baseContext as CliContext;
-
-	// Add error handlers
-	context.error = createErrorHandlers(context);
-
-	// Add user interaction helpers
-	const userInteraction = createUserInteraction(context);
-	context.confirm = userInteraction.confirm;
-
-	// Add file system utilities
-	context.fs = createFileSystem(context);
-
-	// Detect project root, framework, and package manager
-	context.projectRoot = await detectProjectRoot(cwd, logger);
-	context.framework = await detectFramework(context.projectRoot, logger);
-	context.packageManager = await detectPackageManager(
-		context.projectRoot,
-		logger
-	);
-
-	// Add telemetry, respecting the telemetry flag if present
-	const telemetryDisabled = parsedFlags['no-telemetry'] === true;
-	const telemetryDebug = parsedFlags['telemetry-debug'] === true;
-
-	try {
-		context.telemetry = createTelemetry({
-			debug: telemetryDebug,
-			defaultProperties: {
-				cliVersion: context.fs.getPackageInfo().version,
-				commandArgsCount: commandArgs.length,
-				enabledFlags: Object.entries(parsedFlags)
-					.filter(([, value]) => value !== false && value !== undefined)
-					.map(([key]) => key)
-					.sort(),
-				entryCommand: commandName ?? 'interactive',
-				framework: context.framework.framework ?? 'unknown',
-				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-				hasReact: context.framework.hasReact,
-				package: context.framework.pkg ?? 'unknown',
-				packageManager: context.packageManager.name,
-				packageManagerVersion: context.packageManager.version ?? 'unknown',
-				reactVersion: context.framework.reactVersion ?? 'unknown',
+	return {
+		...parsed,
+		config: {
+			getPathAliases: () => null,
+			loadConfig: readConfig,
+			requireConfig: async () => {
+				const config = await readConfig();
+				if (!config) {
+					throw new CliError('CONFIG_NOT_FOUND');
+				}
+				return config;
 			},
-			disabled: telemetryDisabled,
-			logger: context.logger,
-		});
-
-		if (telemetryDisabled) {
-			logger.debug('Telemetry is disabled by user preference');
-		} else if (telemetryDebug) {
-			logger.debug('Telemetry initialized with debug mode enabled');
-		} else {
-			logger.debug('Telemetry initialized');
-		}
-
-		context.telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
-			command: commandName ?? 'interactive',
-			framework: context.framework.framework ?? 'unknown',
-			frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-			hasReact: context.framework.hasReact,
-			packageManager: context.packageManager.name,
-			packageManagerVersion: context.packageManager.version ?? 'unknown',
-			projectRootChanged: context.projectRoot !== cwd,
-			reactVersion: context.framework.reactVersion ?? 'unknown',
-			tailwindVersion: context.framework.tailwindVersion ?? 'unknown',
-		});
-	} catch {
-		// If telemetry initialization fails, create a disabled instance
-		logger.warn(
-			'Failed to initialize telemetry, continuing with telemetry disabled'
-		);
-		context.telemetry = createTelemetry({
-			disabled: true,
-			logger: context.logger,
-		});
-	}
-
-	logger.debug('CLI context fully initialized with all utilities');
-
-	return context;
+		},
+		confirm: createUserInteraction({ error, flags }).confirm,
+		cwd,
+		error,
+		flags,
+		framework,
+		fs: createFileSystem(),
+		logger,
+		packageManager,
+		projectRoot,
+		telemetry,
+	};
 };

@@ -1,0 +1,41 @@
+---
+title: Hightouch
+description: Configure Hightouch with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Hightouch
+
+Copy the write key from the Hightouch Event Source. The helper initializes `htevents` and queues an initial page call by default.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { hightouch } from '@c15t/scripts/hightouch';
+
+export const scripts = [hightouch({ writeKey: 'YOUR_EVENT_SOURCE_WRITE_KEY' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `writeKey` | Required non-empty Event Source write key. |
+| `apiHost` | Optional API host for another region or first-party tracking host. |
+| `trackPageView` | Defaults to `true`; set `false` when your router owns page calls. |
+| `scriptUrl` | Optional full loader override. |
+
+## Consent behavior
+
+Measurement permission gates the SDK. Hightouch destinations can forward events beyond the browser SDK; configure destination purposes and stop application event calls after revocation. The helper has no vendor shutdown callback.
+
+## Verify the integration
+
+Confirm the intended API host receives events and that the initial page event is not duplicated by your router. Check downstream destinations as well as browser requests.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

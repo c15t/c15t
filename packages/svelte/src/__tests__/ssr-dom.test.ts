@@ -13,7 +13,9 @@ describe('Svelte SSR evidence normalization', () => {
 			'<div data-testid="consent-banner-root"><!--[--><button data-action="accept">Accept</button><!--]--></div>';
 		expect(serializeConsentDom(dom(content))).toBe(
 			serializeConsentDom(
-				dom(`<section>${content.replaceAll(/<!--.*?-->/gu, '')}</section>`)
+				dom(
+					'<section><div data-testid="consent-banner-root"><button data-action="accept">Accept</button></div></section>'
+				)
 			)
 		);
 	});

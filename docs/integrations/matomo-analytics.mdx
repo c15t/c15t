@@ -1,0 +1,64 @@
+---
+title: Matomo Analytics
+description: Choose gated loading or Matomo consent signaling and configure the correct tracker endpoints.
+group: integrations
+---
+
+## Configure Matomo
+
+Use the site ID and base URL from your Matomo installation. This setup waits
+for measurement permission before requesting `matomo.js`.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
+
+export const scripts = [
+  matomoAnalytics({
+    siteId: 1,
+    matomoUrl: 'https://analytics.example.com',
+  }),
+];
+```
+
+Replace the base URL and site ID. For Matomo Cloud, use
+`cloudId: 'your-site.matomo.cloud'` instead of `matomoUrl`.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Choose the loading mode
+
+| `defaultConsent` | Initial load | Later changes |
+| --- | --- | --- |
+| Omitted | Waits for measurement permission | Removes the script on revocation; no Matomo consent callback |
+| `'required'` | Loads immediately with `requireConsent` | Signals `setConsentGiven` and `forgetConsentGiven`; keeps the SDK loaded |
+| `'given'` | Loads immediately with an initial grant | Signals later changes; keeps the SDK loaded |
+
+Set `defaultConsent: 'required'` only when you intend the SDK to load before
+permission and let Matomo control tracking. Do not select `'given'` to make an
+opt-in setup start tracking before the visitor's choice. Matomo distinguishes
+[tracking consent from cookie consent](https://developer.matomo.org/guides/tracking-consent).
+
+With the default gated mode, removing the script does not stop a tracker that
+has already executed. Add a vendor stop strategy if later denial must stop all
+automatic tracking, or deliberately use Matomo's consent-signaling mode.
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `siteId` | Defaults to `1`. Use your actual site ID. |
+| `matomoUrl / cloudId` | Base URL or Cloud identifier used to derive `matomo.js` and `matomo.php`. |
+| `trackerUrl / scriptUrl` | Explicit endpoint overrides. Both are required if no base or Cloud ID is supplied. |
+| `trackPageView` | Defaults to `true`. In required-consent mode, page views are queued on grants. |
+| `enableLinkTracking` | Defaults to `false`. |
+| `disableCookies` | Defaults to `false`; cookie disabling does not select a loading mode. |
+| `defaultConsent` | Omitted by default. `'required'` and `'given'` enable consent signaling. |
+
+## Verify the integration
+
+Check both the script and collection endpoints, especially with Cloud or proxy
+configuration. Test the chosen mode in a fresh session, grant measurement,
+revoke it, and inspect subsequent events. Check page-view counts during
+navigation and renewed grants. See [consent verification](/docs/guides/verify-consent).

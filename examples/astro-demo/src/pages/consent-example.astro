@@ -1,0 +1,82 @@
+---
+import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
+import Base from '../layouts/base.astro';
+import '../consent-example.css';
+---
+
+<Base title="Consent example">
+	<main class="consent-example">
+		<p>PostHog waits for measurement permission. X Pixel waits for marketing permission.</p>
+		<consent-example-video>
+			<button type="button" data-theme="default">Default theme</button>
+			<button type="button" data-theme="branded">Branded theme</button>
+			<h2>Watch the video</h2>
+			<div data-video><p>Allow measurement to load this YouTube video.</p></div>
+			<ConsentDialogTrigger>Open privacy settings</ConsentDialogTrigger>
+		</consent-example-video>
+		<footer><ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger></footer>
+	</main>
+</Base>
+
+<script>
+	import { getConsentClient } from '@c15t/astro/client';
+
+	class ConsentExampleVideo extends HTMLElement {
+		dispose?: () => void;
+
+		connect = () => {
+			if (this.dispose) {
+				return;
+			}
+			const client = getConsentClient();
+			const container = this.querySelector('[data-video]');
+			if (!client || !container) {
+				return;
+			}
+			const render = () => {
+				if (client.runtime.kernel.getSnapshot().effectivePermissions.measurement) {
+					if (container.querySelector('iframe')) {
+						return;
+					}
+					const frame = document.createElement('iframe');
+					frame.src = 'https://www.youtube-nocookie.com/embed/czTksCF6X8Y';
+					frame.title = 'YouTube video';
+					frame.allowFullscreen = true;
+					container.replaceChildren(frame);
+				} else {
+					container.textContent = 'Allow measurement to load this YouTube video. No video request is sent before permission.';
+				}
+			};
+			render();
+			this.dispose = client.runtime.kernel.subscribe(render);
+		};
+
+		setTheme = (event: Event) => {
+			const { target } = event;
+			if (!(target instanceof Node) || !this.contains(target)) {
+				return;
+			}
+			if (target instanceof HTMLButtonElement && target.dataset.theme) {
+				document.documentElement.dataset.consentExampleTheme = target.dataset.theme;
+			}
+		};
+
+		connectedCallback() {
+			this.addEventListener('click', this.setTheme);
+			document.addEventListener('DOMContentLoaded', this.connect, { once: true });
+			this.connect();
+		}
+
+		disconnectedCallback() {
+			this.removeEventListener('click', this.setTheme);
+			document.removeEventListener('DOMContentLoaded', this.connect);
+			this.dispose?.();
+			this.dispose = undefined;
+			delete document.documentElement.dataset.consentExampleTheme;
+		}
+	}
+
+	if (!customElements.get('consent-example-video')) {
+		customElements.define('consent-example-video', ConsentExampleVideo);
+	}
+</script>

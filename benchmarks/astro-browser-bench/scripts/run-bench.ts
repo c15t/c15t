@@ -30,9 +30,9 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { astroBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -406,44 +406,7 @@ type AstroBrowserSample = Omit<
 	interactionLatencyMs?: number;
 };
 
-const budgetsForScenario = function budgetsForScenario(
-	scenario: AstroBenchScenario
-): MetricBudget[] {
-	const shared = browserBudgets.filter((budget) =>
-		[
-			'bannerReadyMs',
-			'lastAppScriptEndMs',
-			'interactionLatencyMs',
-			'longTaskTotalMs',
-		].includes(budget.metric)
-	);
-
-	if (scenario === 'baseline') {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'The zero-consent baseline must not touch a consent endpoint.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	// Every Astro arm is server-rendered and boots from the inlined config,
-	// so none of them should ever put an init request on the browser.
-	return [
-		...shared,
-		{
-			comparator: 'count-eq',
-			description:
-				'Astro pages inline the resolved config, so the browser never calls init.',
-			metric: 'initRequestsAfterLoad',
-			threshold: 0,
-		},
-	];
-};
+const budgetsForScenario = astroBrowserBudgetsForScenario;
 
 const resetFixtureCounts = async function resetFixtureCounts(): Promise<void> {
 	await fetch(`${BASE_URL}/api/bench-consent/stats`, {

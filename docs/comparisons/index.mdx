@@ -1,13 +1,65 @@
 ---
-title: Comparisons
-description: How c15t compares with other consent management tools.
+title: Compare c15t with consent tools
+description: Choose a consent tool by its integration model, hosted operations, framework behavior and record workflow, with sourced vendor comparisons.
 group: reference
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Start with the consent work your application needs
 
-## Comparisons
+Evaluate c15t when your application needs policy-aware consent components,
+permissions and vendor loading in framework code. Start with
+[Inth](https://inth.com) for managed policy and records. Compare that setup with
+the specific product and plan you would deploy, including the engineering work
+and services each choice requires.
 
-TODO.
+A browser banner library, a managed web CMP and a broader privacy platform can
+overlap without covering the same tasks. The comparisons below identify their
+scope and link to official product documentation. They do not assign a winner
+from an untested feature list or reuse performance scores from older releases.
+
+## Compare hosted consent workflows
+
+| Comparison | Decision to investigate |
+| --- | --- |
+| [Cookiebot](/docs/comparisons/cookiebot) | Hosted scanning, domain and subpage billing, and control of existing tags |
+| [Didomi](/docs/comparisons/didomi) | Shared notice publication workflows across engineering, marketing and legal |
+| [iubenda](/docs/comparisons/iubenda) | Consent tooling purchased alongside legal-document generation |
+| [OneTrust](/docs/comparisons/onetrust) | Cookie inventory and scanning requirements within a larger operation |
+| [Osano](/docs/comparisons/osano) | Commercial CMP scope, usage estimates and vendor blocking |
+| [Usercentrics Web CMP](/docs/comparisons/usercentrics) | Product selection, session allowances and multiple domains |
+
+## Compare browser libraries and service configuration
+
+| Comparison | Decision to investigate |
+| --- | --- |
+| [CookieConsent v3](/docs/comparisons/cookieconsent-v3) | Browser categories and the backend work required for consent logging |
+| [Klaro](/docs/comparisons/klaro) | Service configuration and HTML resource annotations; hosted options also exist |
+| [react-cookie-consent](/docs/comparisons/react-cookie-consent) | A React banner component and the application behavior around its callbacks |
+| [Silktide Consent Manager](/docs/comparisons/silktide-consent-manager) | Browser configuration, consent signals and requirements beyond the banner |
+| [tarteaucitron.js](/docs/comparisons/tarteaucitron) | Service definitions, saved choices and migration to category permissions |
+
+## Run one integration before choosing
+
+Use the same application, vendors and policy requirements for each candidate.
+For c15t, install `c15t` and follow the
+[framework and router guide](/docs/frameworks). A Next.js static export needs a
+different setup from request-time server rendering.
+
+| Task | Evidence to collect |
+| --- | --- |
+| Load a vendor only when permitted | Network requests before a decision, after rejection and after acceptance |
+| Preserve a choice | Browser state and backend records after reload |
+| Change preferences | Permission updates and vendor-specific cleanup after withdrawal |
+| Match the application design | A working [customization recipe](/docs/customization/recipes), including keyboard and mobile behavior |
+| Operate the deployment | Required backend services, support terms and policy publication steps |
+| Use an agent to implement it | Correct imports and a working integration from version-matched documentation |
+
+Follow the [verification guide](/docs/guides/verify-consent) for the c15t checks.
+Neither a visible banner nor a vendor's product description establishes the
+behavior of your deployed site. Review legal requirements separately from the
+integration result.
+
+Competitor sources reviewed on 10 September 2026. Each page states its product
+scope and links to the official sources used. Check current pricing terms for
+your region and usage; these pages do not quote a fixed cost or measured speed
+advantage.

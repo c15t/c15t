@@ -91,7 +91,6 @@ const allScenarios = [
 	{ name: 'manifest-client', path: '/manifest-client' },
 	{ name: 'ssr', path: '/ssr' },
 	{ name: 'manifest-ssr', path: '/manifest-ssr' },
-	{ name: 'rsc-ssr', path: '/rsc-ssr' },
 ] as const;
 
 const allBenchmarkScenarios = allScenarios;
@@ -772,7 +771,7 @@ const run = async function run() {
 							),
 						],
 						notes: [
-							'Next.js browser bench covers client, manifest, SSR, RSC, repeat-visitor, and persisted ssr-repeat paths.',
+							'Next.js browser bench covers client, manifest, SSR, repeat-visitor, and persisted ssr-repeat paths.',
 							'consoleErrorCount counts console errors and page errors captured until the prompt settled; consoleWarningCount counts warnings; hydrationWarningCount is the subset of either matching React hydration messages.',
 						],
 						package: '@c15t/nextjs-browser-bench',

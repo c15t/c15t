@@ -105,21 +105,21 @@ The v3 adapter (Provider + 12 hooks + context + type re-exports) ships as 933 by
 
 ## v3 Next.js Adapter — Current Measurements (2026-04-24, Track 4 MVP)
 
-Adapter: `@c15t/nextjs/v3` and `@c15t/nextjs/v3/server`. Replaces v2's `fetchInitialData()` (which returned an unawaited `Promise<SSRInitialData>` and leaked an async boundary through props) with a plain `Promise<KernelConfig>` the Server Component awaits, handing a serializable config to the client `<ConsentBoundary>`.
+Adapter: `@c15t/nextjs/v3` and `@c15t/nextjs/v3/server`. Replaces v2's `fetchInitialData()` (which returned an unawaited `Promise<SSRInitialData>` and leaked an async boundary through props) with a plain `Promise<ConsentState>` the Server Component awaits, handing serializable state to the client `<ConsentRoot>`.
 
 ### Usage
 
 ```tsx
 // app/layout.tsx — Server Component
-import { readInitialConsentConfig } from '@c15t/nextjs/v3/server';
-import { ConsentBoundary } from '@c15t/nextjs/v3';
+import { resolveConsent } from '@c15t/nextjs/v3/server';
+import { ConsentRoot } from '@c15t/nextjs/v3';
 
 export default async function RootLayout({ children }) {
-	const config = await readInitialConsentConfig();
+	const state = await resolveConsent();
 	return (
 		<html>
 			<body>
-				<ConsentBoundary config={config}>{children}</ConsentBoundary>
+				<ConsentRoot state={state}>{children}</ConsentRoot>
 			</body>
 		</html>
 	);
@@ -146,30 +146,30 @@ The Next.js adapter now offers two integration levels:
 **Minimal** — client-only init, cookie + geo from server:
 ```tsx
 // app/layout.tsx
-import { readInitialConsentConfig } from '@c15t/nextjs/v3/server';
-import { ConsentBoundary } from '@c15t/nextjs/v3';
+import { resolveConsent } from '@c15t/nextjs/v3/server';
+import { ConsentRoot } from '@c15t/nextjs/v3';
 
 export default async function RootLayout({ children }) {
-  const config = await readInitialConsentConfig();
+  const state = await resolveConsent();
   return (
-    <ConsentBoundary config={config} backendURL="/api/c15t">
+    <ConsentRoot state={state} backendURL="/api/c15t">
       {children}
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
 
 **Optimal** — server prefetch of `/init`, zero first-paint flicker:
 ```tsx
-import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
-import { ConsentBoundary } from '@c15t/nextjs/v3';
+import { resolveConsent } from '@c15t/nextjs/v3/server';
+import { ConsentRoot } from '@c15t/nextjs/v3';
 
 export default async function RootLayout({ children }) {
-  const config = await prefetchInitialConsent({ backendURL: '/api/c15t' });
+  const state = await resolveConsent({ backendURL: '/api/c15t' });
   return (
-    <ConsentBoundary config={config} backendURL="/api/c15t">
+    <ConsentRoot state={state} backendURL="/api/c15t">
       {children}
-    </ConsentBoundary>
+    </ConsentRoot>
   );
 }
 ```
@@ -180,10 +180,10 @@ Both paths are Fluid Compute safe — every request gets its own kernel through 
 
 | Behavior | v2 status | v3 status |
 |---|---|---|
-| SSR consent hydration from cookie | backend fetch + promise-through-prop | cookie read inline, returns plain `KernelConfig` |
+| SSR consent hydration from cookie | backend fetch + promise-through-prop | cookie read inline, returns plain `ConsentState` |
 | Geo override from request headers | via backend roundtrip | direct read of `x-vercel-ip-country` / `cf-ipcountry` / region |
 | Language from `accept-language` | via translations pipeline | parsed inline for initial override |
-| Server-side `/init` prefetch | via `fetchInitialData()` Promise-as-prop | `prefetchInitialConsent()` returns plain config |
+| Server-side `/init` prefetch | via `fetchInitialData()` Promise-as-prop | `resolveConsent({ backendURL })` returns plain state |
 | Client-side `/init` refresh | implicit at provider mount | implicit at v3 provider mount |
 | First-paint flicker | possible (init race) | eliminated with server prefetch |
 | `unstable_cache` for SSR data | yes, keyed on normalized URL | opt-in at transport layer; not required |

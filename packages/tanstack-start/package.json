@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/tanstack-start",
-	"version": "2.2.0-canary-20260731105620",
+	"version": "3.0.0-alpha.0",
 	"description": "TanStack Start cookie banner and consent management platform with SSR-hydrated first paint, same-origin consent routes, request middleware, IAB TCF, and Consent Mode.",
 	"keywords": [
 		"ccpa",
@@ -51,7 +51,10 @@
 		"src/styles.css",
 		"src/styles.tw3.css",
 		"src/iab/styles.css",
-		"src/iab/styles.tw3.css"
+		"src/iab/styles.tw3.css",
+		"docs",
+		"AGENTS.md",
+		"SKILL.md"
 	],
 	"type": "module",
 	"sideEffects": [
@@ -105,12 +108,13 @@
 	},
 	"scripts": {
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/tanstack-start",
 		"check-types": "bun prebuild && tsc --noEmit && tsc -p tsconfig.type-tests.json",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},

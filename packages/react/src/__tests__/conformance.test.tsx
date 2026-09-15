@@ -32,8 +32,8 @@ import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
-import { ConsentDialog } from '~/components/consent-dialog';
-import { ConsentWidget } from '~/components/consent-widget';
+import { ConsentDialog } from '~/components/panel';
+import { ConsentWidget } from '~/components/preferences';
 import { KernelContext } from '~/context';
 import { IABProvider, IABConsentBanner, IABConsentDialog } from '~/iab';
 import { ConsentBanner, ConsentProvider, custom, offline } from '~/index';
@@ -218,6 +218,7 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 		},
 		scopeMode: 'strict',
 	});
+	const authoritative = (opts.initMode ?? 'authoritative') === 'authoritative';
 	return {
 		...provided,
 		disableAnimation: true,
@@ -226,12 +227,20 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 		prefetch: {
 			...prepared,
 			...provided.prefetch,
-			initialPolicyPending:
-				opts.initMode === 'pending' || opts.initMode === 'failing',
-			initialPolicyResolution:
-				(opts.initMode ?? 'authoritative') === 'authoritative'
-					? prepared.initialPolicyResolution
+			// A server that resolved an IAB policy ships the vendor list in the
+			// state, which is what lets the IAB banner server-render.
+			initialIab:
+				isIabComponent(opts.component) && authoritative
+					? {
+							cmpId: IAB_FIXTURE_CMP_ID,
+							enabled: true,
+							gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+						}
 					: undefined,
+			initialPolicyPending: !authoritative,
+			initialPolicyResolution: authoritative
+				? prepared.initialPolicyResolution
+				: undefined,
 			initialPrivacySignals: { gpc: opts.gpc },
 			initialTranslations: resolveTranslations(provided, opts.locale),
 		},

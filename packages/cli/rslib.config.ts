@@ -21,9 +21,9 @@ export default defineConfig({
 	},
 	source: {
 		entry: {
+			bin: './src/bin.ts',
 			index: './src/index.ts',
 		},
-		exclude: ['figlet'],
 	},
 	tools: {
 		rspack: {

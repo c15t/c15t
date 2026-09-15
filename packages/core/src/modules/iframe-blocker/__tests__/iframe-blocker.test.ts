@@ -18,6 +18,7 @@ import { createIframeBlocker } from '../index';
 interface StubIframe {
 	tagName: 'IFRAME';
 	nodeType: 1;
+	ownerDocument: { baseURI: string };
 	attributes: Map<string, string>;
 	getAttribute: (key: string) => string | null;
 	setAttribute: (key: string, value: string) => void;
@@ -51,6 +52,7 @@ const createStubIframe = function createStubIframe(
 			return attrs.get(key) ?? null;
 		},
 		nodeType: 1,
+		ownerDocument: { baseURI: 'https://site.example/' },
 		querySelectorAll() {
 			return [];
 		},

@@ -1,5 +1,27 @@
 # c15t
 
+## 3.0.0-alpha.0
+
+### Major Changes
+
+- 4460e3e: This v3 alpha is for internal use only. APIs are unstable, and breaking changes will occur between alpha releases.
+
+  Introduce the c15t umbrella package, shared consent runtime and policy rules, rewritten backend, and new framework and script-tag integrations. Update the CLI, IAB support, DevTools, and shared styles for v3.
+
+  Packages now ship ESM only. Keep related packages on compatible v3 alpha versions.
+
+  Export `defineTheme` and the `Theme` type from the React, Next.js, TanStack Start, and Vue entries so themes can use the same imports as their framework integration.
+
+  Restrict iframe-blocker URL activation to HTTP and HTTPS. Replace backtracking URL and theme parsing expressions, correct the PostHog hostname boundary, and fix CLI layout detection for nested route groups and locale directories.
+
+  Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
+
+### Patch Changes
+
+- Updated dependencies [4460e3e]
+  - @c15t/schema@3.0.0-alpha.0
+  - @c15t/translations@3.0.0-alpha.0
+
 ## 2.2.0-canary-20260731105620
 
 ### Patch Changes
@@ -91,7 +113,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 
@@ -263,7 +285,7 @@
 
 ### Patch Changes
 
-- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+- 408df0e: feat: CMP ID now comes from backend, either inth.com when hosted or BYO CMP ID
   feat: Center the IAB Banner for better policy compliance
   feat: Improve doc comments around IAB
 - Updated dependencies [408df0e]
@@ -284,7 +306,7 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ### Patch Changes
 
@@ -316,7 +338,7 @@
 
 ### Patch Changes
 
-- 6c28663: Full Changelog: https://c15t.com/changelog/2026-01-19-v1.8.3
+- 6c28663: Full Changelog: https://c15t.com/changelog/1.8.3
 
 ## 1.8.3-canary-20260109181827
 
@@ -346,7 +368,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://c15t.com/changelog/1.8.2
 
 ## 1.8.2-canary-20251212163241
 
@@ -370,7 +392,7 @@
 
 ### Minor Changes
 
-- 68a7324: Full Changelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+- 68a7324: Full Changelog: https://c15t.com/changelog/1.8.0
 
 ### Patch Changes
 
@@ -417,7 +439,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/1.7.0
 
 ### Patch Changes
 
@@ -447,7 +469,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/1.6.0).
 
 ### Patch Changes
 

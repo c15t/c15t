@@ -61,6 +61,19 @@ export interface LazyIABFactory {
  * @param load - Resolves the module exporting `createIAB`.
  * @returns The factory and its readiness signal.
  */
+/** Handle methods a surface may call before the CMP module has loaded. */
+const QUEUED_METHODS = new Set<keyof ConsentRuntimeIABHandle>([
+	'acceptAll',
+	'generateTCString',
+	'rejectAll',
+	'save',
+	'setPurposeConsent',
+	'setPurposeLegitimateInterest',
+	'setSpecialFeatureOptIn',
+	'setVendorConsent',
+	'setVendorLegitimateInterest',
+]);
+
 export const createLazyIABFactory = function createLazyIABFactory(
 	load: IABModuleLoader
 ): LazyIABFactory {
@@ -69,6 +82,7 @@ export const createLazyIABFactory = function createLazyIABFactory(
 	const create: ConsentRuntimeIABFactory = function create(options) {
 		let inner: ConsentRuntimeIABHandle | null = null;
 		let disposed = false;
+		let failed = false;
 
 		const pending = (async () => {
 			try {
@@ -79,6 +93,7 @@ export const createLazyIABFactory = function createLazyIABFactory(
 				inner = createIAB(options);
 			} catch {
 				// A failed load leaves IAB unmounted; the rest of the page works.
+				failed = true;
 			}
 		})();
 		const previous = ready;
@@ -102,17 +117,41 @@ export const createLazyIABFactory = function createLazyIABFactory(
 				if (property === 'whenReady') {
 					return async () => {
 						await pending;
+						await inner?.whenReady?.();
 					};
 				}
 				const source = inner as Record<string, unknown> | null;
-				const value = source?.[property as string];
-				return typeof value === 'function' ? value.bind(source) : value;
+				if (source) {
+					const value = source[property as string];
+					return typeof value === 'function' ? value.bind(source) : value;
+				}
+				// A server-rendered surface is interactive before the module
+				// lands. Queue the call instead of dropping it, so an early
+				// Accept still records consent once the real handle exists.
+				if (
+					!failed &&
+					typeof property === 'string' &&
+					QUEUED_METHODS.has(property as keyof ConsentRuntimeIABHandle)
+				) {
+					return async (...args: unknown[]) => {
+						await pending;
+						const target = inner as Record<string, unknown> | null;
+						const method = target?.[property];
+						return typeof method === 'function'
+							? method.apply(target, args)
+							: undefined;
+					};
+				}
+				return undefined;
 			},
 			has(_target, property) {
 				return (
 					property === 'dispose' ||
 					property === 'whenReady' ||
-					property in (inner ?? {})
+					(inner
+						? property in inner
+						: !failed &&
+							QUEUED_METHODS.has(property as keyof ConsentRuntimeIABHandle))
 				);
 			},
 		});

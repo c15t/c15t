@@ -3,16 +3,13 @@
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
 	ConsentBanner,
-	ConsentBoundary,
 	ConsentDialog,
 	ConsentProvider,
+	ConsentRoot,
 	custom,
 	hosted,
 } from '@c15t/nextjs';
-import type {
-	ConsentBoundaryProps,
-	ConsentProviderOptions,
-} from '@c15t/nextjs';
+import type { ConsentProviderOptions, ConsentRootProps } from '@c15t/nextjs';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
@@ -60,9 +57,9 @@ const createOptions = function createOptions(
 	};
 };
 
-const createBoundaryOptions = function createBoundaryOptions(
+const createRootOptions = function createRootOptions(
 	scenario: NextjsBenchScenario
-): ConsentBoundaryProps['options'] {
+): ConsentRootProps['options'] {
 	const { mode, ...options } = createOptions(scenario);
 	void mode;
 	return options;
@@ -125,46 +122,50 @@ export const NextjsManifestClientBenchmarkProvider = ({
 
 export const NextjsPrefetchedBenchmarkProvider = ({
 	children,
-	config,
+	state,
 	scenario,
 }: {
 	children: ReactNode;
-	config: ConsentBoundaryProps['config'];
+	state: ConsentRootProps['state'];
 	scenario: NextjsBenchScenario;
 }) => (
-	// One provider: the boundary forwards the server-prefetched config as
+	// One provider: the root forwards the server-resolved state as
 	// `options.prefetch` (authoritative → banner in first HTML). The old
-	// wiring nested a second ConsentProvider that shadowed the boundary's
+	// wiring nested a second ConsentProvider that shadowed the root's
 	// kernel — its banner-in-first-HTML came from the synthetic placeholder
 	// policy, which authoritative-only rendering correctly suppresses.
 	// The prefetched arm consumes server init without a second browser init.
-	<ConsentBoundary
-		config={config}
-		options={createBoundaryOptions(scenario)}
+	<ConsentRoot
+		backendURL="/api/bench-consent"
+		state={state}
+		options={createRootOptions(scenario)}
 	>
 		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-	</ConsentBoundary>
+	</ConsentRoot>
 );
 
 export const NextjsManifestBenchmarkProvider = ({
 	children,
-	config,
+	state,
 	scenario,
 	surfaces = 'client',
 }: {
 	children: ReactNode;
-	config: ConsentBoundaryProps['config'];
+	state: ConsentRootProps['state'];
 	scenario: NextjsBenchScenario;
 	/**
 	 * 'client' renders the client ConsentBanner/Dialog; 'none' renders no
-	 * client surfaces (the RSC arm supplies the banner as a Server
-	 * Component child instead).
+	 * client surfaces, keeping only the benchmark probe and children.
 	 */
 	surfaces?: 'client' | 'none';
 }) => (
-	<ConsentBoundary
-		config={config}
-		options={createBoundaryOptions(scenario)}
+	<ConsentRoot
+		config={{
+			backendURL: '/api/bench-consent',
+			manifestURL: '/api/c15t/manifest',
+		}}
+		state={state}
+		options={createRootOptions(scenario)}
 	>
 		{surfaces === 'client' ? (
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
@@ -174,5 +175,5 @@ export const NextjsManifestBenchmarkProvider = ({
 				{children}
 			</>
 		)}
-	</ConsentBoundary>
+	</ConsentRoot>
 );

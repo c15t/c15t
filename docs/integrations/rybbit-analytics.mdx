@@ -1,0 +1,44 @@
+---
+title: Rybbit Analytics
+description: Configure Rybbit Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Rybbit Analytics
+
+Use your Rybbit site ID and select only the tracking features your application intends to enable. This example enables SPA tracking and disables session replay.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
+
+export const scripts = [rybbitAnalytics({ siteId: 'YOUR_SITE_ID', trackSpa: true, sessionReplay: false })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `siteId` | Required site ID as a string or number. |
+| `autoTrackPageview / trackSpa` | Automatic page views and client routing. |
+| `trackQuery / trackOutbound / trackErrors` | Query-string, outbound-link and error tracking. |
+| `sessionReplay / webVitals` | Session replay and Web Vitals tracking. |
+| `skipPatterns / maskPatterns / debounce` | URL exclusions, masking and page-view debounce interval. |
+| `analyticsHost / scriptUrl` | Custom analytics host or explicit loader URL. |
+| `apiKey` | Optional browser tracking key. Do not use a management secret. |
+
+## Consent behavior
+
+All enabled features share measurement permission. The helper does not stop an SDK that has already run through a vendor shutdown API. Test any enabled replay or automatic tracking after revocation.
+
+## Verify the integration
+
+Check the serialized data attributes, including explicit `false` values. Verify one page view per route and that excluded or masked paths behave as configured.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

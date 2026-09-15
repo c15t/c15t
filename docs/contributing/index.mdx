@@ -1,17 +1,39 @@
 ---
-title: Contributing
-description: How to contribute to c15t and its docs.
+title: Contribute to c15t documentation
+description: Edit the MDX source, validate both rendered and agent-readable outputs, and submit a focused change.
 group: reference
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Work from the source
 
-## Getting started
+Edit `docs/**/*.mdx` in the c15t repository. Leadtype uses this source for the
+website and version-matched package Markdown. Do not edit generated package
+`docs/`, `AGENTS.md` or `SKILL.md` files.
 
-TODO.
+Read the repository's `AGENTS.md`, contributing guide and
+`.agents/skills/writing-docs/SKILL.md` before editing. Check current exports and
+tests for v3 behavior; the published site and `origin/main` may describe v2.
 
-## Docs
+## Validate a documentation change
 
-TODO.
+```bash
+bun run lint:docs
+bun run fmt:docs
+bun run generate:package-docs
+```
+
+Inspect the diff because the remark commands currently rewrite files. Check
+links and metadata with the installed leadtype linter. Read the generated
+Markdown to confirm code, include content and explanations survive conversion.
+Test runnable examples against the target adapter.
+
+The website uses a separate private docs template. Contributors can edit the
+public MDX source and use the pull request preview when available. A successful
+Markdown build does not verify the host's components, canonical URLs or iframes.
+
+## Keep changes useful
+
+Prefer a working recipe with prerequisites, expected results and failure cases.
+Use real component screenshots with their source configuration. Keep essential
+instructions outside interactive previews so agents and offline readers receive
+the same implementation guidance.

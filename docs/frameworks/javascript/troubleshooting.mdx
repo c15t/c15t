@@ -1,34 +1,7 @@
 ---
-title: Troubleshooting
-description: Common problems and fixes for c15t in JavaScript.
+title: Troubleshoot JavaScript consent
+description: Diagnose policy resolution, early scripts, storage and rendering problems.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
-
-## Browser storage is blocked
-
-Browser restrictions can make the `localStorage` getter or its methods throw.
-c15t reports storage failures through console warnings and continues running.
-It can still read, save, and clear consent cookies when localStorage is
-unavailable. If both storage mechanisms are blocked, choices remain in memory
-for the current page and cannot be restored after a reload. Rehydrating while
-storage is unreadable preserves those in-memory records. Readable empty storage
-still clears the corresponding records.
-
-## Hosted initialization fails
-
-A failed hosted initialization uses a conservative fallback without deleting
-saved choices. Explicit rejections survive backend recovery, including a
-rejection saved during the outage when browser storage is available. A recovered
-opt-out policy does not override an explicit rejection.
-
-Do not set `enabled: false` to work around initialization or storage failures.
-That option grants every category. Leave c15t enabled so unresolved optional
-consent remains denied.
-
-## Scripts load without consent
-
-TODO.
+<include src="../../guides/troubleshooting.mdx" />

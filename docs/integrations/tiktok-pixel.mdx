@@ -1,0 +1,39 @@
+---
+title: TikTok Pixel
+description: Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure TikTok Pixel
+
+Use your TikTok Pixel ID. The helper prepares `ttq`, queues consent and a page event, and loads the pixel for that ID.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
+
+export const scripts = [tiktokPixel({ pixelId: 'YOUR_PIXEL_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `pixelId` | Required TikTok Pixel ID. |
+| `scriptSrc` | Optional loader base URL. The helper appends `sdkid` and `lib=ttq`. |
+
+## Consent behavior
+
+The first request waits for marketing permission. The helper retains the SDK after revocation and calls `revokeConsent`; grants call `grantConsent`. It does not treat the presence of `ttq` as a grant.
+
+## Verify the integration
+
+Check the pixel ID in the loader URL and the initial page event. Test grant and revoke commands and stop your own `track` or `identify` calls when marketing is denied.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`marketing`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

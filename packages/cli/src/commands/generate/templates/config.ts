@@ -1,9 +1,15 @@
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
+import { STORAGE_MODES } from '../../../constants';
+import { getEnvVarPrefix } from './env';
 /**
  * Configuration file templates
  */
-
-import { STORAGE_MODES } from '../../../constants';
 import { DEFAULT_OFFLINE_RULES } from './shared/options';
+import {
+	generateScriptsImport,
+	generateScriptsArrayValue,
+} from './shared/scripts';
 
 /**
  * Offline/browser-only mode config
@@ -45,7 +51,7 @@ const generateHostedConfig = function generateHostedConfig(
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_C15T_URL'
-		: `'${backendURL || 'https://your-project.inth.app'}'`;
+		: JSON.stringify(backendURL || 'https://your-project.inth.app');
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
@@ -80,7 +86,7 @@ const generateCustomConfig = function generateCustomConfig(
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_CONSENT_API_URL'
-		: `'${backendURL || '/api/consent'}'`;
+		: JSON.stringify(backendURL || '/api/consent');
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
@@ -130,7 +136,7 @@ const generateSelfHostedConfig = function generateSelfHostedConfig(
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_C15T_URL'
-		: `'${backendURL || 'http://localhost:3001'}'`;
+		: JSON.stringify(backendURL || 'http://localhost:3001');
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
@@ -163,7 +169,7 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  * @param useEnvFile - Whether to use environment variable for backendURL
  * @returns The generated configuration file content
  */
-export const generateClientConfigContent = function generateClientConfigContent(
+const generateBaseConfig = function generateBaseConfig(
 	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean,
@@ -182,4 +188,34 @@ export const generateClientConfigContent = function generateClientConfigContent(
 		default:
 			return generateOfflineConfig(enableDevTools);
 	}
+};
+
+/** Generates the browser kernel and selected script loader configuration. */
+export const generateClientConfigContent = function generateClientConfigContent(
+	mode: string,
+	backendURL?: string,
+	useEnvFile?: boolean,
+	enableDevTools = false,
+	environment?: DevelopmentEnvironment,
+	selectedScripts: string[] = []
+): string {
+	let content = generateBaseConfig(
+		mode,
+		backendURL,
+		useEnvFile,
+		enableDevTools
+	);
+	const prefix = getEnvVarPrefix('c15t', environment);
+	content = content.replaceAll(
+		'process.env.NEXT_PUBLIC_',
+		environment === 'vite' ? 'import.meta.env.VITE_' : `process.env.${prefix}_`
+	);
+	if (selectedScripts.length) {
+		content = `import { createScriptLoader } from 'c15t/modules/script-loader';\n${generateScriptsImport(selectedScripts)}\n${content}`;
+		content = content.replace(
+			'void kernel.commands.init();',
+			`export const scriptLoader = createScriptLoader({ kernel, scripts: ${generateScriptsArrayValue(selectedScripts, '\t')} });\n\nvoid kernel.commands.init();`
+		);
+	}
+	return content;
 };

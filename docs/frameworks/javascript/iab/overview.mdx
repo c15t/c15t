@@ -1,17 +1,87 @@
 ---
-title: IAB TCF
-description: Enable IAB TCF 2.3 with the core store.
+title: Headless IAB integration
+description: Attach the IAB module to a consent kernel and manage its lifetime and vendor configuration.
 group: frameworks
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Attach the module to your kernel
 
-## Setup
+Install `@c15t/iab` with `c15t`. The following fragment assumes an existing
+kernel connected to Inth and an applicable IAB policy:
 
-TODO.
+```ts
+import { createIAB } from '@c15t/iab';
 
-## TC String
+function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
+  return createIAB({ kernel, cmpId });
+}
+```
 
-TODO.
+Supply your deployment's CMP ID and vendor configuration. Do not copy a demo ID
+into production. The module installs the CMP API, manages vendor data and can
+encode the TC String. It does not render your banner or preferences UI.
+
+## Own the lifecycle
+
+Dispose the IAB handle before disposing its kernel. When using a shared runtime,
+provide the IAB factory through that runtime's configuration instead of creating
+a second module for each UI root. Await lazy readiness before calling a lazily
+loaded handle's actions.
+
+A complete implementation needs policy-aware actions, vendor and purpose
+controls, persistent preferences access and keyboard interaction. Test the
+resulting TC String, `__tcfapi` and actual vendor requests. Keep backend, schema,
+core and IAB packages on compatible v3 versions.
+
+## Server-rendered vendor data
+
+Server integrations serialize a `gvlReference` and the banner's summary instead
+of embedding the full Global Vendor List. The reference contains its URL,
+language and `vendorListVersion`. The banner shows the same purpose names and
+vendor count on the server and during hydration.
+
+Configure vendor filtering on the server when the banner must render immediately.
+An additional client-only `vendors` allowlist makes the server summary unsuitable:
+the banner waits for the full list, then shows the filtered count and disclosures.
+Unknown or duplicate IDs do not increase the count. This case adds the list fetch
+to banner visibility time; the default server-configured path does not wait.
+
+The IAB module fetches the full list when it mounts in the browser. Loading
+starts before interaction so CMP initialization and validation of returning
+visitors' consent do not wait for a click. Early Accept and Reject actions wait
+for the list before encoding a TC String. A failed fetch leaves the banner
+visible and does not grant consent. A later action retries a failed request.
+A list version mismatch requires a new init response or a reload.
+A new reference from initialization or a language change starts a new load and
+cancels actions queued for the previous list. Existing TCF listeners are retained.
+Client-only manifest transports keep their fetched GVL, including custom fetcher
+filtering; deferral applies at server-rendering boundaries.
+
+Astro, TanStack Start, Nuxt, Next.js and SvelteKit manifest init handlers also serve
+versioned list requests on their existing init route. These responses contain
+only the public list and use `public, max-age=86400`. Resolved init data remains
+private. Next.js and Svelte hosted prefetch retain the inline list when cookies,
+forwarded headers or a custom fetch are required. Those server credentials are
+not serialized into a browser reference. The list URL includes its language and version; a route returns an
+uncacheable `409` if it can no longer supply that version. Responses are not
+marked immutable because translations or publisher filtering can change
+without a new vendor-list version.
+
+Astro manifest mode uses its configured same-origin `endpoints.initPath` route.
+Next.js uses a same-origin route when `config.initURL` is configured, and
+TanStack Start uses one when `routePrefix` explicitly names a mounted consent
+route. Without those options, Next.js and TanStack Start reference the public
+list URL from the manifest. Allow `'self'` in CSP `connect-src` for same-origin
+routes, or allow the public list origin for direct requests.
+
+Hosted init responses use an `init` reference to read the list from
+the existing init endpoint. These references include the original country,
+region and GPC inputs so a hosted request resolves the same regional policy.
+They do not carry credentials. Cross-origin hosted requests can require a CORS
+preflight, which adds latency before CMP readiness on a cold connection.
+The endpoint keeps its existing private caching
+rules. Allow the referenced origin in your CSP `connect-src` directive.
+
+An explicit `gvl` supplied by your application still takes precedence, including
+`gvl: null` to disable IAB. Applications that supply a list inline are responsible
+for its serialized size. Vendor allowlists still apply after the list loads.

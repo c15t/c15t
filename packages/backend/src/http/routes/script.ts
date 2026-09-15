@@ -74,6 +74,7 @@ export const register = function register({
 			// Same policy as /manifest: geo-independent, shared-cacheable, and
 			// the revision doubles as the validator.
 			c.header('Cache-Control', result.cacheControl);
+			c.header('CDN-Cache-Control', result.cacheControl);
 			c.header('ETag', result.etag);
 			c.header('Content-Type', 'text/javascript; charset=utf-8');
 			c.header('X-Content-Type-Options', 'nosniff');

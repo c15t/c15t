@@ -16,11 +16,6 @@ describe('detected React development environment', () => {
 	it.each([
 		{ dependencies: { vite: '7' }, environment: 'vite' },
 		{ dependencies: { '@vitejs/plugin-react': '5' }, environment: 'vite' },
-		{
-			dependencies: { '@remix-run/react': '2', vite: '7' },
-			environment: 'vite',
-		},
-		{ dependencies: { gatsby: '5', vite: '7' }, environment: 'node' },
 		{ dependencies: { 'react-scripts': '5' }, environment: 'node' },
 		{ dependencies: { webpack: '5' }, environment: 'node' },
 		{

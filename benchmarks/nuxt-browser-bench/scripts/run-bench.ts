@@ -14,6 +14,14 @@ import {
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { nuxtBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
+import {
+	assertConsentFreeBaseline,
+	baselineServerOutputDir,
+} from '@c15t/benchmarking/nuxt-baseline';
+import {
+	assertRepeatVisitor,
+	createRepeatVisitorCookie,
+} from '@c15t/benchmarking/nuxt-repeat-visitor';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
@@ -28,12 +36,6 @@ import {
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
-
-import { assertConsentFreeBaseline, baselineServerOutputDir } from './baseline';
-import {
-	assertRepeatVisitor,
-	createRepeatVisitorCookie,
-} from './repeat-visitor';
 
 type NuxtBenchScenario =
 	| 'baseline'

@@ -18,6 +18,7 @@ import path from 'node:path';
 import * as p from '@clack/prompts';
 
 import type { CliContext } from '~/context/types';
+import { CliError } from '~/core/errors';
 
 class Cancelled extends Error {
 	stage: string;
@@ -141,13 +142,27 @@ export const ensureBackendConfig = async function ensureBackendConfig(
 	dependencies: PromptDependencies = defaultPromptDependencies
 ): Promise<EnsuredConfig | null> {
 	const { cwd, logger } = context;
-	const targetPath = path.join(cwd, CONFIG_FILENAME);
+	const explicitConfig = context.flags?.config;
+	const targetPath = path.resolve(
+		cwd,
+		typeof explicitConfig === 'string' ? explicitConfig : CONFIG_FILENAME
+	);
 
 	if (await pathExists(targetPath)) {
 		logger.debug(`Backend config already exists at ${targetPath}`);
 		// Nothing to install: whatever an existing config needs is already a
 		// dependency, or it would never have loaded.
 		return { dependencies: [], path: targetPath };
+	}
+	if (
+		explicitConfig ||
+		context.flags?.['non-interactive'] ||
+		context.flags?.plan ||
+		context.flags?.['dry-run']
+	) {
+		throw new CliError('CONFIG_NOT_FOUND', {
+			details: `Backend config not found: ${targetPath}. Create it before planning or applying migrations.`,
+		});
 	}
 
 	try {

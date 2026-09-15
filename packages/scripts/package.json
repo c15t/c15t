@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "2.2.0-canary-20260727202135",
+	"version": "3.0.0-alpha.0",
 	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
 		"adobe-analytics",
@@ -198,6 +198,11 @@
 			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
 			"default": "./dist/vendors/ads-and-pixels/meta-pixel.js"
 		},
+		"./openai-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/openai-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/openai-pixel.js",
+			"default": "./dist/vendors/ads-and-pixels/openai-pixel.js"
+		},
 		"./reddit-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/reddit-pixel.js",
@@ -238,12 +243,13 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/scripts",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"check-types": "tsc --noEmit && tsc -p live-vendors --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src ./live-vendors",
+		"prepack": "bun run build:docs",
 		"test": "vitest run",
 		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"

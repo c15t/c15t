@@ -1,3 +1,9 @@
+import {
+	deferInitGvlToRoute,
+	serveGvlReference,
+	c15tProtocolHeaders,
+	fetchCachedGvl,
+} from '@c15t/core';
 /**
  * `@c15t/tanstack-start/api` same-origin consent routes.
  *
@@ -16,17 +22,15 @@
  * - `GET /api/c15t/manifest` passes the cached backend manifest through
  *   with its cache headers, so browsers and CDNs can cache it.
  * - `GET /api/c15t/init` resolves init in-process from that manifest for
- *   the request's geo, language, and GPC signal. `ConsentBoundary` points
+ *   the request's geo, language, and GPC signal. `ConsentRoot` points
  *   `initURL` here by default; a client language switch re-hits it.
  *
  * By default `POST /subjects` is not proxied: consent saves go straight to
  * `backendURL`, which mirrors the Next.js and Nuxt adapters. Pass
  * `proxy: true` to forward the remaining consent paths through the same
- * route so `ConsentBoundary` can use `backendURL="/api/c15t"`; see
+ * route so `ConsentRoot` can use `backendURL="/api/c15t"`; see
  * {@link ConsentServerRouteOptions.proxy}.
  */
-
-import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
 import {
 	fetchCachedManifest,
 	getManifestAge,
@@ -43,6 +47,7 @@ import type {
 } from '@c15t/schema/types';
 
 import { filterCookieHeader } from './libs/cookies';
+import { trimPathSlashes, trimTrailingSlashes } from './libs/path';
 import {
 	FORWARDING_HEADERS,
 	proxyConsentRequest,
@@ -90,9 +95,18 @@ export interface ConsentServerRouteOptions {
 
 	/**
 	 * Manifest cache to read through. Defaults to the module-level cache
-	 * shared with `prefetchInitialConsent()`.
+	 * shared with `resolveConsent()`.
 	 */
 	cache?: ManifestCache;
+
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 
 	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the
@@ -108,7 +122,7 @@ export interface ConsentServerRouteOptions {
 
 	/**
 	 * Forward consent traffic to `backendURL` through this route, so the
-	 * browser only ever talks to the app's own origin and `ConsentBoundary`
+	 * browser only ever talks to the app's own origin and `ConsentRoot`
 	 * can take `backendURL="/api/c15t"`, the way a Next.js app uses a
 	 * `next.config` rewrite.
 	 *
@@ -137,8 +151,8 @@ export interface ConsentServerRouteOptions {
 	 * Fight Mode still block the proxied `POST /subjects` unless the consent
 	 * paths are exempted, because a server cannot solve a browser challenge.
 	 *
-	 * Server-side `prefetchInitialConsent` must still receive the absolute
-	 * backend URL: its self-route guard skips a relative `/api/c15t`.
+	 * Server-side `resolveConsent` must still receive the absolute backend
+	 * URL: its self-route guard skips a relative `/api/c15t`.
 	 *
 	 * @defaultValue false
 	 */
@@ -317,10 +331,10 @@ const readSplat = function readSplat(
 ): string {
 	const splat = context.params?._splat;
 	if (splat !== undefined) {
-		return splat.replace(/^\/+|\/+$/gu, '');
+		return trimPathSlashes(splat);
 	}
 	const { pathname } = new URL(context.request.url);
-	return pathname.replace(/\/+$/u, '').split('/').pop() ?? '';
+	return trimTrailingSlashes(pathname).split('/').pop() ?? '';
 };
 
 /**
@@ -336,7 +350,7 @@ const readSplat = function readSplat(
  *   server: {
  *     handlers: createConsentServerRoute({
  *       backendURL: 'https://consent.example.com',
- *       proxy: true, // then <ConsentBoundary backendURL="/api/c15t" />
+ *       proxy: true, // then <ConsentRoot backendURL="/api/c15t" />
  *     }),
  *   },
  * });
@@ -402,6 +416,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			cache: resolved.cache,
 			fetch: resolved.fetch,
 			headers: credentials,
+			onBackgroundRevalidate: resolved.onBackgroundRevalidate,
 			query: readLanguageQuery(request),
 			sourceURL,
 		});
@@ -444,8 +459,21 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				manifestRequestHeaders(request),
 				initSourceURL
 			),
+			onBackgroundRevalidate: resolved.onBackgroundRevalidate,
 			sourceURL: initSourceURL,
 		});
+		const listResponse = await serveGvlReference(request, (language) =>
+			cached.manifest.iab?.gvl
+				? (resolved.fetchGvl ?? defaultFetchGvl)({
+						fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
+						language,
+						reference: cached.manifest.iab.gvl,
+					})
+				: Promise.resolve(null)
+		);
+		if (listResponse) {
+			return listResponse;
+		}
 		const remembered = readConsentInputs(request);
 		const payload = resolveManifestInit(
 			remembered
@@ -465,9 +493,12 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			});
 		}
 
-		return Response.json(payload, {
-			headers: { 'cache-control': INIT_CACHE_CONTROL },
-		});
+		return Response.json(
+			deferInitGvlToRoute(payload, new URL(request.url).pathname),
+			{
+				headers: { 'cache-control': INIT_CACHE_CONTROL },
+			}
+		);
 	};
 
 	const notFound = () =>

@@ -2,9 +2,8 @@
 import { readdir } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gzipSync } from 'node:zlib';
 
-import { importBoundaryBudgets } from '@c15t/benchmarking/budgets';
+import { bundleEntryBudgets } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
 import {
@@ -17,7 +16,13 @@ import {
 } from '@c15t/benchmarking/utils';
 import { build } from 'esbuild';
 
+import { measureEntryOutputs } from './measure-assets';
+
 interface EntryMeasurement {
+	initialGzip: number;
+	initialBrotli: number;
+	lazyGzip: number;
+	lazyBrotli: number;
 	name: string;
 	rawBytes: number;
 	gzipBytes: number;
@@ -42,8 +47,6 @@ const BOUNDARY_MATCHERS: Record<BoundaryFamily, RegExp> = {
 	devtools: /packages\/dev-tools\//u,
 	iab: /packages\/iab\/|@iabtechlabtcf\//u,
 };
-
-const ORDINARY_ENTRY = 'ordinary-react';
 
 const classifyBoundaries = function classifyBoundaries(
 	inputs: Record<string, { bytesInOutput: number }>
@@ -81,7 +84,9 @@ const measureEntry = async function measureEntry(
 		loader: { '.css': 'empty' },
 		metafile: true,
 		minify: true,
+		outdir: join(appDir, '.entry-output'),
 		platform: 'browser',
+		splitting: true,
 		write: false,
 	});
 	const [outputFile] = buildResult.outputFiles;
@@ -89,18 +94,25 @@ const measureEntry = async function measureEntry(
 		throw new Error(`esbuild produced no output for ${entryPath}`);
 	}
 
-	const [outputMetadata] = Object.values(buildResult.metafile.outputs);
+	const inputs: Record<string, { bytesInOutput: number }> = {};
+	for (const output of Object.values(buildResult.metafile.outputs)) {
+		for (const [path, input] of Object.entries(output.inputs)) {
+			inputs[path] = {
+				bytesInOutput: (inputs[path]?.bytesInOutput ?? 0) + input.bytesInOutput,
+			};
+		}
+	}
 	const boundaries = classifyBoundaries(
 		Object.fromEntries(
 			Object.keys(buildResult.metafile.inputs).map((path) => [
 				path,
 				{
-					bytesInOutput: outputMetadata?.inputs[path]?.bytesInOutput ?? 0,
+					bytesInOutput: inputs[path]?.bytesInOutput ?? 0,
 				},
 			])
 		)
 	);
-	const topInputs = Object.entries(outputMetadata?.inputs ?? {})
+	const topInputs = Object.entries(inputs)
 		.map(([path, input]) => ({
 			bytesInOutput: input.bytesInOutput,
 			path,
@@ -108,11 +120,16 @@ const measureEntry = async function measureEntry(
 		.sort((left, right) => right.bytesInOutput - left.bytesInOutput)
 		.slice(0, 10);
 
+	const sizes = measureEntryOutputs(buildResult, entryPath);
 	return {
+		...sizes,
 		boundaries,
-		gzipBytes: gzipSync(outputFile.contents).byteLength,
+		gzipBytes: sizes.initialGzip + sizes.lazyGzip,
 		name: basename(entryPath, extname(entryPath)),
-		rawBytes: outputFile.contents.byteLength,
+		rawBytes: buildResult.outputFiles.reduce(
+			(sum, file) => sum + file.contents.byteLength,
+			0
+		),
 		topInputs,
 	};
 };
@@ -120,8 +137,9 @@ const measureEntry = async function measureEntry(
 const toBenchmarkResult = function toBenchmarkResult(
 	measurement: EntryMeasurement
 ): BenchmarkResult {
-	const budgetDefinitions: MetricBudget[] =
-		measurement.name === ORDINARY_ENTRY ? importBoundaryBudgets : [];
+	const budgetDefinitions: MetricBudget[] = bundleEntryBudgets(
+		measurement.name
+	);
 	return {
 		baseSha: safeBaseSha(),
 		budgetDefinitions,
@@ -146,6 +164,9 @@ const toBenchmarkResult = function toBenchmarkResult(
 			),
 		},
 		metrics: [
+			...(
+				['initialGzip', 'initialBrotli', 'lazyGzip', 'lazyBrotli'] as const
+			).map((name) => summarizeMetric(name, 'bytes', [measurement[name]])),
 			...Object.entries(measurement.boundaries).map(([family, boundary]) =>
 				summarizeMetric(`${family}InputModuleCount`, 'count', [
 					boundary.inputs.length,
@@ -181,13 +202,13 @@ const toMarkdown = function toMarkdown(
 	const lines = [
 		'# Bundle entry benchmarks',
 		'',
-		'| Entry | Raw bytes | Gzip bytes |',
-		'| --- | ---: | ---: |',
+		'| Entry | Initial gzip | Initial Brotli | Deferred gzip | Deferred Brotli |',
+		'| --- | ---: | ---: | ---: | ---: |',
 	];
 
 	for (const measurement of measurements) {
 		lines.push(
-			`| ${measurement.name} | ${measurement.rawBytes} | ${measurement.gzipBytes} |`
+			`| ${measurement.name} | ${measurement.initialGzip} | ${measurement.initialBrotli} | ${measurement.lazyGzip} | ${measurement.lazyBrotli} |`
 		);
 	}
 

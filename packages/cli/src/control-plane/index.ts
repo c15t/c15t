@@ -1,6 +1,11 @@
 /**
  * Control-plane module exports
  */
+export {
+	createProject,
+	resolveInstance,
+	requireInstanceBackendUrl,
+} from './projects';
 
 export {
 	ControlPlaneClient,
@@ -9,9 +14,7 @@ export {
 } from './client';
 
 export type {
-	ControlPlaneCapabilities,
 	ControlPlaneClientConfig,
-	ControlPlaneConnectionState,
 	ControlPlaneOrganization,
 	ControlPlaneRegion,
 	CreateInstanceRequest,

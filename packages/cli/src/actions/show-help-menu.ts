@@ -1,62 +1,59 @@
-import color from 'picocolors';
+import { formatFlagHelp, globalFlags } from '../context/parser';
+import type { CliCommand, CliContext, CliFlag } from '../context/types';
+import { packageInfo } from '../package-info';
 
-// Import both types
-import type { CliCommand, CliContext, CliFlag } from '~/context/types';
-
-/**
- * Displays the CLI help menu, generating commands and options dynamically.
- *
- * @param context The CLI context
- * @param version The current CLI version.
- * @param commands The array of available CLI commands.
- * @param flags The array of available global CLI flags.
- */
-export const showHelpMenu = function showHelpMenu(
-	context: CliContext,
-	version: string,
+/** Return help data that both terminal and JSON adapters can render. */
+export const getCommandHelp = (
 	commands: CliCommand[],
-	flags: CliFlag[]
-): void {
-	const { logger } = context;
-	logger.debug('Displaying help menu using command and flag structures.');
-
-	const visibleCommands = commands.filter((cmd) => !cmd.hidden);
-
-	const commandColumnWidth =
-		Math.max(...visibleCommands.map((cmd) => cmd.name.length), 10) + 2;
-	const commandLines = visibleCommands
-		.map((cmd) => `  ${cmd.name.padEnd(commandColumnWidth)}${cmd.description}`)
-		.join('\n');
-
-	const flagDisplays = flags.map((flag) => {
-		const names = flag.names.join(', ');
-		// Add placeholder for flags expecting values
-		const valuePlaceholder = flag.expectsValue ? ' <value>' : '';
-		return names + valuePlaceholder;
-	});
-	const optionColumnWidth =
-		Math.max(...flagDisplays.map((flag) => flag.length), 20) + 2;
-
-	// Dynamically generate the options list
-	const optionLines = flags
-		.map((flag, index) => {
-			const display = flagDisplays[index] ?? '';
-			return `  ${display.padEnd(optionColumnWidth)}${flag.description}`;
-		})
-		.join('\n');
-
-	const helpContent = `c15t CLI version ${version}
-
-Available Commands:
-${commandLines}
-
-Options:
-${optionLines}
-
-Run a command directly (e.g., ${color.cyan('c15t setup')}) or select one interactively when no command is provided.
-
-For more help, visit: https://c15t.com`;
-
-	logger.debug('Help menu content generated.');
-	logger.note(helpContent, 'Usage');
+	commandName?: string
+) => {
+	const command = commands.find((candidate) => candidate.name === commandName);
+	return {
+		commands: (command?.subcommands ?? (command ? [] : commands))
+			.filter((candidate) => !candidate.hidden)
+			.map((candidate) => ({
+				description: candidate.description,
+				name: candidate.name,
+			})),
+		description: command?.description,
+		examples: command?.examples ?? ['c15t setup', 'c15t projects list --json'],
+		flags: [...globalFlags, ...(command?.flags ?? [])],
+		usage:
+			command?.usage ??
+			(command ? `c15t ${command.name}` : 'c15t <command> [options]'),
+		version: packageInfo.version,
+	};
 };
+
+export const formatHelp = (help: ReturnType<typeof getCommandHelp>): string =>
+	[
+		`c15t ${help.version}`,
+		'',
+		`Usage: ${help.usage}`,
+		...(help.description ? ['', help.description] : []),
+		...(help.commands.length
+			? [
+					'',
+					'Commands:',
+					...help.commands.map(
+						(command) => `  ${command.name.padEnd(14)}${command.description}`
+					),
+				]
+			: []),
+		'',
+		'Options:',
+		...help.flags.map(formatFlagHelp),
+		'',
+		'Examples:',
+		...help.examples.map((example) => `  ${example}`),
+	].join('\n');
+
+export const showHelpMenu = (
+	context: CliContext,
+	_version: string,
+	commands: CliCommand[],
+	_flags: CliFlag[]
+): void =>
+	context.logger.message(
+		formatHelp(getCommandHelp(commands, context.commandName))
+	);

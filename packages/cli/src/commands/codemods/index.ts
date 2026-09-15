@@ -2,6 +2,8 @@ import * as p from '@clack/prompts';
 
 import type { CliCommand, CliContext } from '~/context/types';
 
+import { CliError } from '../../core/errors';
+import { forEachSequential } from '../../utils/for-each-sequential';
 import { runActiveUiApiCodemod } from './active-ui-api';
 import { runAddStylesheetImportsCodemod } from './add-stylesheet-imports';
 import { runComponentRenamesCodemod } from './component-renames';
@@ -9,6 +11,8 @@ import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-
 import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
 import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
+import { createCodemodSession } from './runner';
+import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 import {
@@ -28,7 +32,7 @@ export interface CodemodDefinition {
 	/** Short description shown in the prompt hint column. */
 	hint: string;
 	/** Executes the codemod for the provided CLI context. */
-	run: (context: CliContext, dryRun: boolean) => Promise<void>;
+	run: (options: CodemodRunOptions) => Promise<CodemodRunResult>;
 	/** Version metadata used to determine codemod applicability. */
 	versioning?: CodemodVersionMetadata;
 }
@@ -81,95 +85,57 @@ const logCodemodResult = function logCodemodResult(
 	}
 };
 
+// V2 prereleases already use the v2 API. Include them in the target range
+// so automatic selection never treats an RC or canary as a v1 application.
 const codemods: CodemodDefinition[] = [
 	{
 		hint: 'Migrates showPopup/isPrivacyDialogOpen and setter usage to activeUI.',
 		id: 'active-ui-api',
 		label: 'showPopup API -> activeUI API',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runActiveUiApiCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runActiveUiApiCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: 'Renames CookieBanner/ConsentManagerDialog/ConsentManagerWidget.',
 		id: 'component-renames',
 		label: 'legacy component names -> v2 names',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runComponentRenamesCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runComponentRenamesCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: 'Migrates gdprTypes/initialGDPRTypes to consentCategories.',
 		id: 'gdpr-types-to-consent-categories',
 		label: 'gdprTypes -> consentCategories',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runGdprTypesToConsentCategoriesCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runGdprTypesToConsentCategoriesCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: "Migrates ignoreGeoLocation to overrides (forces country='DE').",
 		id: 'ignore-geo-location-to-overrides',
 		label: 'ignoreGeoLocation -> overrides',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runIgnoreGeoLocationToOverridesCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runIgnoreGeoLocationToOverridesCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: "Migrates legacy mode values from 'c15t' to 'hosted'.",
 		id: 'mode-c15t-to-hosted',
 		label: "mode: 'c15t' -> 'hosted'",
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runC15tModeToHostedCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runC15tModeToHostedCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 
@@ -177,75 +143,60 @@ const codemods: CodemodDefinition[] = [
 		hint: 'Lifts react.theme/colorScheme/disableAnimation to top-level.',
 		id: 'react-options-to-top-level',
 		label: 'react options -> top-level options',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runReactOptionsToTopLevelCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runReactOptionsToTopLevelCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: 'Migrates tracking blocker config to network blocker rules.',
 		id: 'tracking-blocker-to-network-blocker',
 		label: 'trackingBlockerConfig -> networkBlocker',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runTrackingBlockerToNetworkBlockerCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runTrackingBlockerToNetworkBlockerCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: 'Migrates legacy translation config keys to the v2 i18n shape.',
 		id: 'translations-to-i18n',
 		label: 'translations -> i18n',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runTranslationsToI18nCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runTranslationsToI18nCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 	{
 		hint: 'Moves styled c15t imports into the app CSS entrypoint, including Tailwind 3 and IAB variants when needed.',
 		id: 'add-stylesheet-imports',
 		label: 'configure global CSS for prebuilt UI',
-		run: async (context, dryRun) => {
-			const { projectRoot } = context;
-			const result = await runAddStylesheetImportsCodemod({
-				dryRun,
-
-				projectRoot,
-			});
-			logCodemodResult(context, result, dryRun);
-		},
+		run: runAddStylesheetImportsCodemod,
 		versioning: {
-			fromRange: '<2.0.0',
-			toRange: '>=2.0.0',
+			fromRange: '<2.0.0-0',
+			toRange: '>=2.0.0-0',
 		},
 	},
 ];
+
+const validateVersionFlags = (flags: CliContext['flags']): void => {
+	if (
+		typeof flags.from === 'string' &&
+		!/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/u.test(flags.from)
+	) {
+		throw new CliError('FLAG_INVALID', {
+			details: '--from requires a full version, for example --from 1.9.0.',
+		});
+	}
+	if (flags.to !== undefined && flags.to !== '2.0.0') {
+		throw new CliError('FLAG_INVALID', {
+			details:
+				'These legacy transforms target 2.0.0. For v3 use the migration workflow in the bundled CLI docs.',
+		});
+	}
+};
 
 /**
  * Runs one or more selected codemods for the current project.
@@ -253,77 +204,107 @@ const codemods: CodemodDefinition[] = [
  * @param context CLI execution context.
  * @returns Promise that resolves when selected codemods complete.
  */
-export const runCodemods = async function runCodemods(
-	context: CliContext
-): Promise<void> {
-	const { logger, commandArgs, projectRoot } = context;
-	const dryRun = commandArgs.includes('--dry-run');
-	const installedVersion = await detectInstalledC15tVersion(projectRoot);
-
-	if (installedVersion) {
-		logger.info(`Detected c15t version ${installedVersion}.`);
-	} else {
-		logger.warn(
-			'Could not detect c15t version from package.json. Showing all codemods.'
+export const runCodemods = async (context: CliContext) => {
+	const { logger, commandArgs, projectRoot, flags } = context;
+	const dryRun = flags['dry-run'] === true;
+	const declaredVersion = await detectInstalledC15tVersion(projectRoot);
+	const sourceVersion =
+		typeof flags.from === 'string' ? flags.from : declaredVersion;
+	validateVersionFlags(flags);
+	const available = codemods.filter((item) =>
+		isCodemodApplicableForVersion(sourceVersion, item.versioning ?? {})
+	);
+	if (flags.list === true) {
+		const entries = codemods.map(({ id, hint, versioning }) => ({
+			description: hint,
+			id,
+			...versioning,
+			applicable: available.some((item) => item.id === id),
+		}));
+		for (const entry of entries) {
+			logger.info(`${entry.id}: ${entry.description}`);
+		}
+		return {
+			codemods: entries,
+			declaredVersion,
+			kind: 'legacy-codemods',
+			sourceVersion,
+			targetVersion: '2.0.0',
+		};
+	}
+	const unknown = commandArgs.filter(
+		(id) => !codemods.some((item) => item.id === id)
+	);
+	if (unknown.length > 0) {
+		throw new CliError('FLAG_INVALID', {
+			details: `Unknown codemod: ${unknown.join(', ')}. Run codemods --list.`,
+		});
+	}
+	let selected: CodemodDefinition[] = [];
+	if (commandArgs.length > 0) {
+		selected = codemods.filter((item) => commandArgs.includes(item.id));
+	} else if (flags.all === true) {
+		selected = available;
+	}
+	if (selected.length === 0 && commandArgs.length === 0 && flags.all !== true) {
+		if (flags['non-interactive'] === true) {
+			throw new CliError('FLAG_INVALID', {
+				details:
+					'Specify codemod IDs or --all --from <source-version>. Use --dry-run to review changes.',
+			});
+		}
+		if (available.length > 0) {
+			const answer = await p.multiselect({
+				message: 'Select legacy v1 to v2 transforms:',
+				options: available.map(({ id, label, hint }) => ({
+					hint,
+					label,
+					value: id,
+				})),
+				required: false,
+			});
+			if (p.isCancel(answer)) {
+				throw new CliError('CANCELLED');
+			}
+			selected = available.filter(({ id }) => answer.includes(id));
+		}
+	}
+	if (selected.length === 0) {
+		logger.info(
+			'No legacy transforms selected. If dependencies were already upgraded, pass --from with the original version or name a transform explicitly.'
 		);
+		return {
+			declaredVersion,
+			dryRun,
+			kind: 'legacy-codemods',
+			results: [],
+			sourceVersion,
+			targetVersion: '2.0.0',
+		};
 	}
-
-	const availableCodemods = codemods.filter((codemod) =>
-		isCodemodApplicableForVersion(installedVersion, codemod.versioning ?? {})
-	);
-
-	if (availableCodemods.length === 0) {
-		if (installedVersion) {
-			logger.info(
-				`No codemods are applicable for detected c15t version ${installedVersion}.`
-			);
-		} else {
-			logger.info('No codemods available.');
-		}
-		return;
-	}
-
-	const selected = await p.multiselect({
-		message: 'Select codemods to run (space to toggle, enter to confirm):',
-		options: availableCodemods.map((codemod) => ({
-			hint: codemod.hint,
-			label: codemod.label,
-			value: codemod.id,
-		})),
-		required: false,
+	const session = await createCodemodSession(projectRoot);
+	const results: { id: string; result: CodemodRunResult }[] = [];
+	await forEachSequential(selected, {
+		run: async (item) => {
+			// Each migration sees the preceding migration's edits, including in dry runs.
+			const result = await item.run({ dryRun, projectRoot, session });
+			logCodemodResult(context, result, dryRun);
+			results.push({ id: item.id, result });
+			if (result.errors.length > 0) {
+				throw new CliError('MIGRATION_FAILED', {
+					details: `${item.id} failed for ${result.errors.length} file(s). ${dryRun ? 'No changes saved.' : 'Some files may have changed; review the working tree.'} ${result.errors.map(({ filePath, error }) => `${filePath}: ${error}`).join('; ')}`,
+				});
+			}
+		},
 	});
-
-	if (p.isCancel(selected)) {
-		logger.warn('Codemod execution cancelled.');
-		return;
-	}
-
-	const selectedCodemods = selected as string[];
-	if (!selectedCodemods.length) {
-		logger.info('No codemods selected.');
-		return;
-	}
-
-	let dryRunSuffix = '';
-	if (dryRun) {
-		dryRunSuffix = ' in dry-run mode';
-	}
-
-	logger.info(
-		`Running ${selectedCodemods.length} codemod(s)${dryRunSuffix}...`
-	);
-
-	for (const codemodId of selectedCodemods) {
-		const codemod = availableCodemods.find((item) => item.id === codemodId);
-		if (!codemod) {
-			logger.warn(`Unknown codemod selected: ${codemodId}`);
-			continue;
-		}
-
-		logger.info(`Running: ${codemod.label}`);
-		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-		await codemod.run(context, dryRun);
-	}
+	return {
+		declaredVersion,
+		dryRun,
+		kind: 'legacy-codemods',
+		results,
+		sourceVersion,
+		targetVersion: '2.0.0',
+	};
 };
 
 /**
@@ -333,7 +314,8 @@ export const codemodsCommand: CliCommand = {
 	action: runCodemods,
 	description:
 		'Run project codemods (for example translations -> i18n migration).',
-	hint: 'Run migration codemods',
+	hiddenFromMenu: true,
+	hint: 'Legacy v1 to v2 migrations',
 	label: 'Codemods',
 	name: 'codemods',
 };

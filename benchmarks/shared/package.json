@@ -13,7 +13,9 @@
 		"./schema": "./src/schema.ts",
 		"./utils": "./src/utils.ts",
 		"./policy-fixtures": "./src/policy-fixtures.ts",
-		"./expected-results": "./src/expected-results.ts"
+		"./expected-results": "./src/expected-results.ts",
+		"./nuxt-baseline": "./src/nuxt-baseline.ts",
+		"./nuxt-repeat-visitor": "./src/nuxt-repeat-visitor.ts"
 	},
 	"scripts": {
 		"bench": "echo 'no-op'",

@@ -194,7 +194,7 @@ describe('kernelConfigToInitResponse', () => {
 				initialOverrides: { country: 'DE', gpc: false, language: 'de' },
 				initialPolicyResolution,
 				initialPrivacySignals: { gpc: true },
-				initialTranslations: { language: 'de', translations: {} },
+				initialTranslations: { language: 'de', translations: enTranslations },
 			};
 			if (initialPolicyResolution.status === 'matched') {
 				config.initialIab = {
@@ -228,5 +228,20 @@ describe('kernelConfigToInitResponse', () => {
 		expect(response).not.toHaveProperty('transport');
 		expect(response).not.toHaveProperty('resolvedOverrides');
 		expect(response?.policyResolution?.status).toBe('matched');
+	});
+});
+
+test('server mapping accepts a reference without a redundant gvl field', () => {
+	const gvlReference = {
+		language: 'en',
+		summary: { items: ['Storage'], vendorCount: 2 },
+		url: '/api/c15t/init?c15t-gvl=1',
+		vendorListVersion: 1,
+	};
+	const result = mergeInitResponseIntoKernelConfig({}, { gvlReference });
+	expect(result.initialIab).toMatchObject({
+		enabled: true,
+		gvl: null,
+		gvlReference,
 	});
 });

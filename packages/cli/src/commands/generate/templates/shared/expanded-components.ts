@@ -15,6 +15,11 @@ import type { DevelopmentEnvironment } from '~/context/framework-detection';
 import type { ExpandedTheme } from '../../prompts/expanded-theme';
 import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import type { FrameworkConfig } from './framework-config';
+import {
+	generateScriptsImport,
+	generateScriptsConfig,
+	generateScriptsCommentPlaceholder,
+} from './scripts';
 
 interface GenerateExpandedProviderOptions {
 	developmentEnvironment?: DevelopmentEnvironment;
@@ -22,6 +27,7 @@ interface GenerateExpandedProviderOptions {
 	enableDevTools: boolean;
 	optionsText: string;
 	framework: FrameworkConfig;
+	selectedScripts?: string[];
 }
 
 /**
@@ -37,6 +43,7 @@ export const generateExpandedProviderTemplate =
 		enableDevTools,
 		optionsText,
 		framework,
+		selectedScripts = [],
 	}: GenerateExpandedProviderOptions): string {
 		let propsInterface: string;
 		let propsDestructure: string;
@@ -45,10 +52,10 @@ export const generateExpandedProviderTemplate =
 		if (enableSSR) {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
-	config: KernelConfig;
+	state: ConsentState;
 }\n`;
-			propsDestructure = '{ children, config }: Props';
-			typeImports = `import type { KernelConfig } from '${framework.importSource}';`;
+			propsDestructure = '{ children, state }: Props';
+			typeImports = `import type { ConsentState } from '${framework.importSource}';`;
 		} else {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
@@ -57,7 +64,7 @@ export const generateExpandedProviderTemplate =
 			typeImports = '';
 		}
 
-		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: config,' : '';
+		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: state,' : '';
 		const devToolsImport = enableDevTools
 			? generateDevToolsImport(
 					framework.devToolsImportSource,
@@ -73,6 +80,7 @@ export const generateExpandedProviderTemplate =
 
 ${reactNodeImport}import { ConsentProvider${modeImport ? `, ${modeImport}` : ''} } from '${framework.importSource}';
 ${typeImports}
+${generateScriptsImport(selectedScripts)}
 ${devToolsImport}import ConsentBanner from './consent-banner';
 import ConsentDialog from './consent-dialog';
 import { components, theme } from './theme';
@@ -88,10 +96,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 				${optionsText}${ssrDataOption}
 				theme,
 				components,
-				// Add your scripts here:
-				// scripts: [
-				//   googleTagManager({ id: 'GTM-XXXXXX' }),
-				// ],${enableSSR ? '' : "\n\t\t\t\t// Shows banner during development. Remove for production.\n\t\t\t\toverrides: { country: 'DE' },"}
+				${selectedScripts.length ? generateScriptsConfig(selectedScripts) : generateScriptsCommentPlaceholder()}
 			}}
 		>
 			<ConsentBanner />

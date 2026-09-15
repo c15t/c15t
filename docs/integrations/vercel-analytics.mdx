@@ -1,0 +1,41 @@
+---
+title: Vercel Analytics
+description: Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Vercel Analytics
+
+Enable Web Analytics for the target project and remove an existing Analytics component or script installation. If your deployment requires a DSN or custom endpoint, pass those explicitly.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
+
+export const scripts = [vercelAnalytics({ disableAutoTrack: false })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `dsn` | Optional project DSN for non-Vercel or self-hosted deployments. |
+| `disableAutoTrack` | Set `true` when application code owns page-view events. |
+| `mode / debug` | `development` or `debug: true` selects the debug script. `auto` does not infer your build environment. |
+| `endpoint / scriptUrl` | Optional collection endpoint and loader overrides. |
+
+## Consent behavior
+
+The tracker waits for measurement permission. The helper uses the hosted Vercel script by default and does not supply a vendor shutdown callback after revocation.
+
+## Verify the integration
+
+Confirm the production or debug loader URL, the project destination, and one page view per navigation. A local debug request is not proof that production analytics is configured.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

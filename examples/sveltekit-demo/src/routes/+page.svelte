@@ -13,6 +13,7 @@
 
 <main class="min-h-screen">
 	<Header />
+	<a href="/consent-example">Consent example</a>
 	<Hero />
 	<Stats />
 	<!-- <Features /> -->

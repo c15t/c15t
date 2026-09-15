@@ -1,9 +1,14 @@
-import { c15tProtocolHeaders, mapInitOutputToInitResponse } from '@c15t/core';
 import {
+	deferInitGvlToRoute,
+	serveGvlReference,
+	c15tProtocolHeaders,
+	mapInitOutputToInitResponse,
+} from '@c15t/core';
+import {
+	fetchCachedGvl,
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 } from '@c15t/core/transports/manifest-cache';
-import type { InitOutput } from '@c15t/schema/types';
 import {
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
@@ -11,6 +16,7 @@ import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
 import {
 	defineEventHandler,
 	getRequestHeader,
@@ -19,6 +25,7 @@ import {
 	sendNoContent,
 	setResponseHeader,
 	setResponseStatus,
+	sendWebResponse,
 } from 'h3';
 import type { EventHandlerRequest, H3Event } from 'h3';
 import { joinURL } from 'ufo';
@@ -39,7 +46,46 @@ type RuntimeConfigReader = (event?: H3Event<EventHandlerRequest>) => unknown;
 interface RouteDependencies {
 	fetch: ManifestFetch;
 	useRuntimeConfig: RuntimeConfigReader;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * a request, with that request's event. Defaults to
+	 * {@link waitUntilFromEvent}: Nitro attaches the platform's `waitUntil`
+	 * to the event on request-scoped presets (Vercel, Cloudflare, Netlify),
+	 * and nothing is registered where there is none. The promise never
+	 * rejects.
+	 */
+	onBackgroundRevalidate?: (
+		revalidation: Promise<void>,
+		event: H3Event<EventHandlerRequest>
+	) => void;
 }
+
+/**
+ * Hands a promise to the `waitUntil` Nitro places on the event when the
+ * deployment preset provides one, so a background refresh outlives the
+ * response on runtimes that would otherwise cancel it.
+ */
+export const waitUntilFromEvent = function waitUntilFromEvent(
+	revalidation: Promise<void>,
+	event: H3Event<EventHandlerRequest>
+): void {
+	const { waitUntil } = event as { waitUntil?: unknown };
+	if (typeof waitUntil === 'function') {
+		(waitUntil as (promise: Promise<unknown>) => void).call(
+			event,
+			revalidation
+		);
+	}
+};
+
+const bindBackgroundRevalidate = function bindBackgroundRevalidate(
+	dependencies: RouteDependencies,
+	event: H3Event<EventHandlerRequest>
+): (revalidation: Promise<void>) => void {
+	const onBackgroundRevalidate =
+		dependencies.onBackgroundRevalidate ?? waitUntilFromEvent;
+	return (revalidation) => onBackgroundRevalidate(revalidation, event);
+};
 
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
@@ -66,6 +112,7 @@ export const createManifestRoute = function createManifestRoute(
 		const manifest = await fetchCachedManifest({
 			config,
 			fetch: dependencies.fetch,
+			onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
 			query: url.searchParams.toString(),
 		});
 
@@ -109,6 +156,7 @@ const negotiateInit = function negotiateInit(
 	) {
 		delete negotiated.policySnapshotToken;
 		delete negotiated.gvl;
+		delete negotiated.gvlReference;
 		delete negotiated.cmpId;
 		delete negotiated.customVendors;
 	}
@@ -133,11 +181,37 @@ export const createInitRoute = function createInitRoute(
 			const manifest = await fetchCachedManifest({
 				config,
 				fetch: dependencies.fetch,
+				onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
 			});
-			return negotiateInit(
+			const load = (language: string) =>
+				manifest.manifest.iab?.gvl
+					? fetchCachedGvl({
+							fetch: dependencies.fetch as typeof globalThis.fetch,
+							language,
+							url: manifest.manifest.iab.gvl.url,
+						})
+					: Promise.resolve(null);
+			const listResponse = await serveGvlReference(
+				new Request(getRequestURL(event)),
+				load
+			);
+			if (listResponse) {
+				return sendWebResponse(event, listResponse);
+			}
+			const payload = negotiateInit(
 				resolveManifestInit({ headers, manifest: manifest.manifest }),
 				getRequestHeader(event, POLICY_CONTRACT_HEADER)
 			);
+			if (
+				payload.policyResolution.status === 'matched' &&
+				payload.policyResolution.policy.model === 'iab' &&
+				manifest.manifest.iab?.enabled
+			) {
+				payload.gvl = await load(
+					payload.translations.language.split('-')[0] || 'en'
+				);
+			}
+			return deferInitGvlToRoute(payload, getRequestURL(event).pathname);
 		} catch (cause) {
 			// Older backends may not expose /manifest; fall back to GET /init
 			// through the same fetch adapter so relative backend URLs work.
@@ -186,6 +260,7 @@ export const createInitRoute = function createInitRoute(
 				cmpId: mapped.cmpId,
 				customVendors: mapped.customVendors,
 				gvl: mapped.gvl,
+				gvlReference: mapped.gvlReference,
 				jurisdiction: payload.jurisdiction,
 				location: payload.location,
 				policyResolution: writePolicyResolutionWire(

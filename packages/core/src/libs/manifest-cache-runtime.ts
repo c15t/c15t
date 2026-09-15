@@ -24,8 +24,18 @@ export interface CachedManifestResponse {
 	headers: Record<string, string>;
 	/** The backend's `s-maxage`, in seconds, or `0` when it sent none. */
 	sMaxAge: number;
-	/** Epoch milliseconds after which the entry must be revalidated. */
+	/**
+	 * Epoch milliseconds after which the entry is stale. A stale entry is
+	 * still served until {@link staleUntil} while one background
+	 * revalidation runs; past that it blocks on the upstream again.
+	 */
 	expiresAt: number;
+	/**
+	 * Epoch milliseconds until which a stale entry may still be served:
+	 * `expiresAt` plus the backend's `stale-while-revalidate`. Equal to
+	 * `expiresAt` when the backend sent no such directive.
+	 */
+	staleUntil: number;
 	/** Epoch milliseconds when the upstream response was received. */
 	fetchedAt: number;
 	/** The upstream `Age` at receipt, in seconds, so TTLs do not restart. */
@@ -78,8 +88,11 @@ const DEFAULT_MAX_ENTRIES = 128;
 
 /**
  * Creates an empty, bounded manifest cache. Reads refresh an entry's
- * recency; when a write would exceed `maxEntries`, expired entries go
- * first, then the least recently used.
+ * recency; when a write would exceed `maxEntries`, entries past their
+ * stale window go first, then the least recently used. A stale entry that
+ * can still be served therefore competes on recency like a fresh one, so
+ * a manifest read on every request stays put while keys minted once (a
+ * `?language=` a visitor made up) age out.
  *
  * @param options - Size bound.
  * @returns A cache instance for {@link fetchCachedManifest}.
@@ -96,7 +109,7 @@ export const createManifestCache = function createManifestCache(
 		}
 		const now = Date.now();
 		for (const [key, entry] of entries) {
-			if (entry.expiresAt <= now) {
+			if (entry.staleUntil <= now) {
 				entries.delete(key);
 			}
 		}
@@ -153,6 +166,77 @@ const getInflight = function getInflight(
 };
 
 /**
+ * Most revalidation floors held per cache. A floor exists only while a key
+ * is being served stale after a failed or already-stale refresh, so a
+ * handful is the norm; the cap is a hard bound against visitor-minted keys,
+ * not a working-set size. It is twice the default cache cap so every live
+ * key in a default cache keeps its floor through an outage, with room for
+ * churn; a larger caller-supplied cache can lose a floor early, which costs
+ * one extra revalidation attempt for that key. Insertion order doubles as
+ * age, so the oldest record goes first when the cap is reached.
+ */
+const MAX_REVALIDATION_FLOORS = DEFAULT_MAX_ENTRIES * 2;
+
+/**
+ * Earliest time a stale entry may be revalidated again, per cache key, so a
+ * source that keeps answering stale (a CDN whose origin is down) or keeps
+ * failing is asked at most once per {@link MANIFEST_DEDUPE_TTL_SECONDS}
+ * while the entry is served. Keyed by cache key rather than entry identity
+ * because a caller-supplied {@link ManifestCache} may return a fresh object
+ * on every read. A record is dropped whenever a fresh entry is stored for
+ * its key, when the key is deleted or read after eviction, and when the
+ * map reaches {@link MAX_REVALIDATION_FLOORS}; lapsed records are inert
+ * either way. Evicting a live record early only costs one extra
+ * revalidation attempt for that key.
+ */
+const revalidateAfterByCache = new WeakMap<
+	ManifestCache,
+	Map<string, number>
+>();
+
+/**
+ * Snapshot of the revalidation floors a cache currently holds, keyed by
+ * cache key. Lapsed records are inert, so no public behaviour exposes the
+ * map's size or contents; tests read this instead.
+ *
+ * @internal
+ */
+export const readRevalidationFloors = function readRevalidationFloors(
+	cache: ManifestCache
+): ReadonlyMap<string, number> {
+	const floors = revalidateAfterByCache.get(cache);
+	return floors ? new Map(floors) : new Map();
+};
+
+const getRevalidateAfter = function getRevalidateAfter(
+	cache: ManifestCache
+): Map<string, number> {
+	let revalidateAfter = revalidateAfterByCache.get(cache);
+	if (!revalidateAfter) {
+		revalidateAfter = new Map();
+		revalidateAfterByCache.set(cache, revalidateAfter);
+	}
+	return revalidateAfter;
+};
+
+const setRevalidationFloor = function setRevalidationFloor(
+	cache: ManifestCache,
+	cacheKey: string,
+	deadline: number
+): void {
+	const revalidateAfter = getRevalidateAfter(cache);
+	revalidateAfter.delete(cacheKey);
+	while (revalidateAfter.size >= MAX_REVALIDATION_FLOORS) {
+		const oldest = revalidateAfter.keys().next();
+		if (oldest.done) {
+			break;
+		}
+		revalidateAfter.delete(oldest.value);
+	}
+	revalidateAfter.set(cacheKey, deadline);
+};
+
+/**
  * Generation counters so a fill that started before `clearManifestCache`
  * cannot write the discarded value back once it completes.
  */
@@ -174,6 +258,7 @@ export const clearManifestCache = function clearManifestCache(
 ): void {
 	cache.clear();
 	inflightByCache.get(cache)?.clear();
+	revalidateAfterByCache.get(cache)?.clear();
 	generationByCache.set(cache, getGeneration(cache) + 1);
 };
 
@@ -316,6 +401,34 @@ export const resolveManifestCacheTtlSeconds =
 		return MANIFEST_DEDUPE_TTL_SECONDS;
 	};
 
+/**
+ * Fresh and stale deadlines for a response received at `now`. The upstream
+ * `Age` is charged against both windows so a copy a CDN has already held
+ * for a while, or is already serving stale, does not get a restarted TTL.
+ */
+const resolveEntryLifetime = function resolveEntryLifetime(input: {
+	cacheControl: string | undefined;
+	now: number;
+	sMaxAge: number;
+	upstreamAge: number;
+}): { expiresAt: number; staleUntil: number; ttl: number } {
+	const ttl = resolveManifestCacheTtlSeconds(input.cacheControl, input.sMaxAge);
+	// The stale window only applies to a response that opted into shared
+	// caching with an explicit `s-maxage` (`0` included: stale on arrival, not
+	// unreusable). Without it the TTL is the dedupe floor, which is not a
+	// freshness lifetime to extend; and `no-store`, `no-cache`, and `private`
+	// switch the window off outright.
+	const staleWhileRevalidate =
+		!forbidsReuse(input.cacheControl) && hasSharedMaxAge(input.cacheControl)
+			? getManifestStaleWhileRevalidate(input.cacheControl)
+			: 0;
+	const expiresAt = input.now + Math.max(0, ttl - input.upstreamAge) * 1000;
+	const staleUntil =
+		input.now +
+		Math.max(0, ttl + staleWhileRevalidate - input.upstreamAge) * 1000;
+	return { expiresAt, staleUntil, ttl };
+};
+
 /** Where a server adapter reads the manifest from. */
 export interface ManifestSourceOptions {
 	/** Backend URL; the manifest is read from `${backendURL}/manifest`. */
@@ -387,6 +500,15 @@ export interface FetchCachedManifestOptions {
 	headers?: Record<string, string>;
 	/** Framework fetch options. Without a signal, requests time out after 10 seconds. */
 	init?: Omit<RequestInit, 'headers' | 'method'>;
+	/**
+	 * Called with the promise of a background revalidation started on this
+	 * read, so a host can keep the work alive past the response on runtimes
+	 * that cancel detached async work once a response is sent (Vercel
+	 * `waitUntil`, Next.js `after`, Cloudflare `ctx.waitUntil`). The promise
+	 * never rejects; failures leave the stale entry in place. Not called
+	 * when the read is served fresh or blocks on the upstream itself.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 const MANIFEST_FETCH_TIMEOUT_MS = 10_000;
@@ -519,6 +641,11 @@ const revalidateManifest = async function revalidateManifest(input: {
 	const store = function store(entry: CachedManifestResponse): void {
 		if (getGeneration(cache) === generation) {
 			cache.set(cacheKey, entry);
+			if (entry.expiresAt > now) {
+				// A fresh entry sets its own schedule: the next revalidation is
+				// due when it expires, however this fill was started.
+				revalidateAfterByCache.get(cache)?.delete(cacheKey);
+			}
 		}
 	};
 	const headers: Record<string, string> = {
@@ -548,23 +675,27 @@ const revalidateManifest = async function revalidateManifest(input: {
 			...normalizeHeaders(response.headers),
 		};
 		const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
-		const ttl = resolveManifestCacheTtlSeconds(
-			responseHeaders['cache-control'],
-			sMaxAge
-		);
 		const upstreamAge = readUpstreamAge(responseHeaders);
+		const { expiresAt, staleUntil } = resolveEntryLifetime({
+			cacheControl: responseHeaders['cache-control'],
+			now,
+			sMaxAge,
+			upstreamAge,
+		});
 		const refreshed: CachedManifestResponse = {
 			...cached,
-			expiresAt: now + Math.max(0, ttl - upstreamAge) * 1000,
+			expiresAt,
 			fetchedAt: now,
 			headers: responseHeaders,
 			sMaxAge,
+			staleUntil,
 			upstreamAge,
 		};
-		if (ttl > upstreamAge) {
+		if (staleUntil > now) {
 			store(refreshed);
 		} else if (getGeneration(cache) === generation) {
 			cache.delete(cacheKey);
+			revalidateAfterByCache.get(cache)?.delete(cacheKey);
 		}
 		return refreshed;
 	}
@@ -578,23 +709,34 @@ const revalidateManifest = async function revalidateManifest(input: {
 	const manifest = (await response.json()) as ConsentManifest;
 	const responseHeaders = normalizeHeaders(response.headers);
 	const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
-	const ttl = resolveManifestCacheTtlSeconds(
-		responseHeaders['cache-control'],
-		sMaxAge
-	);
 	// A source behind its own CDN reports how long the object has already
-	// lived; the remaining lifetime is what this cache may grant.
+	// lived; the remaining lifetime is what this cache may grant. A copy the
+	// CDN is itself serving stale arrives with `Age` past `s-maxage` and is
+	// stored as already stale, so it is served while the next revalidation
+	// runs instead of costing every request an upstream round trip.
 	const upstreamAge = readUpstreamAge(responseHeaders);
+	const { expiresAt, staleUntil } = resolveEntryLifetime({
+		cacheControl: responseHeaders['cache-control'],
+		now,
+		sMaxAge,
+		upstreamAge,
+	});
 	const entry: CachedManifestResponse = {
-		expiresAt: now + Math.max(0, ttl - upstreamAge) * 1000,
+		expiresAt,
 		fetchedAt: now,
 		headers: responseHeaders,
 		manifest,
 		sMaxAge,
+		staleUntil,
 		upstreamAge,
 	};
-	if (ttl > upstreamAge) {
+	if (staleUntil > now) {
 		store(entry);
+	} else if (getGeneration(cache) === generation) {
+		// The replacement cannot be cached (`no-store`, `private`, or already
+		// aged out), so the stale entry must not outlive it either.
+		cache.delete(cacheKey);
+		revalidateAfterByCache.get(cache)?.delete(cacheKey);
 	}
 	return entry;
 };
@@ -602,9 +744,13 @@ const revalidateManifest = async function revalidateManifest(input: {
 /**
  * Fetches the manifest through the in-process cache.
  *
- * Serves a fresh entry without a network round-trip, revalidates a stale
- * entry with `If-None-Match` and refreshes its TTL on `304`, and otherwise
- * fetches and caches the response according to its `Cache-Control`.
+ * Serves a fresh entry without a network round-trip. Once `s-maxage` has
+ * passed, a stale entry inside the backend's `stale-while-revalidate`
+ * window is still returned at once while one background request
+ * revalidates it with `If-None-Match`; a failed or timed-out revalidation
+ * leaves the stale entry in place and is retried no sooner than
+ * {@link MANIFEST_DEDUPE_TTL_SECONDS} later. Past that window, or with no
+ * such directive, the caller waits on the upstream as for a miss.
  * Concurrent misses for the same URL share one upstream request, so a cold
  * start or an expiry under load reaches the backend once.
  *
@@ -638,46 +784,117 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	}
 	const now = options.now ?? Date.now();
 	const cached = cache.get(cacheKey);
-	if (cached && cached.expiresAt > now) {
+	if (!cached) {
+		// The key left the cache (evicted or deleted by the host), so any
+		// throttle record for it is an orphan.
+		revalidateAfterByCache.get(cache)?.delete(cacheKey);
+	} else if (cached.expiresAt > now) {
 		return cached;
 	}
 
 	const inflight = getInflight(cache);
 	const pending = inflight.get(cacheKey);
+	/**
+	 * Starts one upstream fill and registers it as in flight. A background
+	 * fill outlives the request that triggered it, so it never inherits that
+	 * request's `signal`: it always gets a cache-owned controller with the
+	 * default timeout.
+	 */
+	const startFill = function startFill(
+		background = false
+	): Promise<CachedManifestResponse> {
+		const callerSignal = background ? undefined : options.init?.signal;
+		const controller = callerSignal ? undefined : new AbortController();
+		const timeout = controller
+			? setTimeout(() => {
+					controller.abort(
+						new Error('c15t manifest cache: fetch timed out after 10 seconds.')
+					);
+				}, MANIFEST_FETCH_TIMEOUT_MS)
+			: undefined;
+		const request = (async () => {
+			try {
+				return await revalidateManifest({
+					cache,
+					cacheKey,
+					cached,
+					fetchImpl,
+					generation,
+					headers: options.headers,
+					init: controller
+						? { ...options.init, signal: controller.signal }
+						: options.init,
+					now,
+					requestURL,
+				});
+			} finally {
+				clearTimeout(timeout);
+				// After a clear the map holds newer fills; leave those alone.
+				if (getGeneration(cache) === generation) {
+					inflight.delete(cacheKey);
+				}
+			}
+		})();
+		inflight.set(cacheKey, request);
+		return request;
+	};
+
+	if (cached && cached.staleUntil > now) {
+		// Stale but inside the backend's stale-while-revalidate window: answer
+		// from memory now and refresh behind the request. One fill at a time,
+		// and no sooner than the dedupe floor after the last one settled, so a
+		// source that keeps answering stale or keeps failing is not re-asked
+		// on every request.
+		const revalidateAfter = getRevalidateAfter(cache);
+		if (!pending && (revalidateAfter.get(cacheKey) ?? 0) <= now) {
+			// Claim the slot before the first await so concurrent stale reads
+			// in the same tick do not each start a fill.
+			setRevalidationFloor(cache, cacheKey, Number.POSITIVE_INFINITY);
+			const revalidation = (async () => {
+				// The floor counts from when the fill settles, not when it starts,
+				// so a slow or timed-out upstream is not asked again at once.
+				// Measured as elapsed wall time so an injected `now` still works.
+				const startedAt = Date.now();
+				let replacement: CachedManifestResponse | undefined;
+				try {
+					replacement = await startFill(true);
+				} catch {
+					// The stale entry stays in place; the next window retries.
+				} finally {
+					if (getGeneration(cache) === generation) {
+						const settledAt = now + (Date.now() - startedAt);
+						if (replacement && replacement.expiresAt > settledAt) {
+							// Fresh: `store` already cleared the floor and the entry's
+							// own expiry schedules the next revalidation, even if that
+							// is sooner than the floor (`s-maxage` under five seconds).
+							revalidateAfter.delete(cacheKey);
+						} else {
+							// Failed, or answered already stale (a CDN whose origin is
+							// down): hold off for the floor before asking again.
+							setRevalidationFloor(
+								cache,
+								cacheKey,
+								settledAt + MANIFEST_DEDUPE_TTL_SECONDS * 1000
+							);
+						}
+					}
+				}
+			})();
+			if (options.onBackgroundRevalidate) {
+				try {
+					options.onBackgroundRevalidate(revalidation);
+				} catch {
+					// A failing host registration must not turn a stale read that
+					// already has an answer into an error. The refresh still runs;
+					// it is only unregistered with the platform.
+				}
+			}
+		}
+		return cached;
+	}
+
 	if (pending) {
 		return pending;
 	}
-	const controller = options.init?.signal ? undefined : new AbortController();
-	const timeout = controller
-		? setTimeout(() => {
-				controller.abort(
-					new Error('c15t manifest cache: fetch timed out after 10 seconds.')
-				);
-			}, MANIFEST_FETCH_TIMEOUT_MS)
-		: undefined;
-	const request = (async () => {
-		try {
-			return await revalidateManifest({
-				cache,
-				cacheKey,
-				cached,
-				fetchImpl,
-				generation,
-				headers: options.headers,
-				init: controller
-					? { ...options.init, signal: controller.signal }
-					: options.init,
-				now,
-				requestURL,
-			});
-		} finally {
-			clearTimeout(timeout);
-			// After a clear the map holds newer fills; leave those alone.
-			if (getGeneration(cache) === generation) {
-				inflight.delete(cacheKey);
-			}
-		}
-	})();
-	inflight.set(cacheKey, request);
-	return request;
+	return startFill();
 };

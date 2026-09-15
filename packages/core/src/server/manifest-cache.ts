@@ -37,6 +37,14 @@ export interface FetchCachedManifestOptions {
 	query?: string;
 	/** Injectable clock, for tests. */
 	now?: number;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this request, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent (a platform
+	 * `waitUntil`, for example). The promise never rejects. Not called when
+	 * the manifest is fresh or the request itself waits on the upstream.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 const cache = createManifestCache({ maxEntries: 64 });
@@ -50,6 +58,7 @@ export const fetchCachedManifest = async (
 		cache,
 		fetch: input.fetch,
 		now: input.now,
+		onBackgroundRevalidate: input.onBackgroundRevalidate,
 		query: input.query,
 		sourceURL: resolveManifestSourceURL(input.config),
 	});

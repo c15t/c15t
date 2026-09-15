@@ -23,7 +23,7 @@ export const COMPAT_INIT_URL = '/api/consent/init';
 
 /**
  * The one config object the route files, the server helpers, and the
- * boundary all read.
+ * root all read.
  */
 export const COMPAT_CONSENT_CONFIG = defineConsentConfig({
 	backendURL: COMPAT_BACKEND_URL,

@@ -11,7 +11,7 @@
  *   `${backendURL}/manifest` from it, and the consent server route proxies
  *   to it. Only server code reads this.
  * - `consentRoute` is what the browser talks to: the app's own
- *   `createConsentServerRoute({ proxy: true })` mount. `ConsentBoundary`
+ *   `createConsentServerRoute({ proxy: true })` mount. `ConsentRoot`
  *   posts consent to `${consentRoute}/subjects`, which the route forwards to
  *   `${backendURL}/subjects` with the browser's identity headers and the
  *   client IP attached, so the backend and its firewall see a normal visitor

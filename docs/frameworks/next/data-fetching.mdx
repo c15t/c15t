@@ -1,0 +1,73 @@
+---
+title: Data fetching
+description: Choose cached manifests for a Next.js server, backend initialization for a simpler setup, or offline mode for local development.
+group: frameworks
+---
+
+## Cached manifests
+
+Recommended for Next.js deployments with a server.
+
+A manifest contains public policy configuration, such as the rules used to
+decide which consent permissions apply. Your Next.js server caches this data
+and resolves consent separately for each visitor. Reusing the manifest avoids
+asking the backend to resolve policy on every request.
+
+```text
+          Inth policy
+               ↓
+    Next.js manifest cache
+               ↓
+Request → Consent decision
+
+Choices → Inth records
+```
+
+Policy data is shared through the cache. Each visitor's decision uses their
+location, privacy signals and saved choices. Consent submissions still go to
+Inth.
+
+Follow the [App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup. Both configure the
+manifest route explicitly. A `backendURL` alone does
+not enable manifests.
+
+You can prepare consent during server rendering or initialize it in the browser.
+See [rendering choices](/docs/frameworks/next/server-side).
+
+## Backend initialization
+
+Use regular backend `/init` when you want fewer configuration steps, or when
+[exporting a static site](/docs/frameworks/next/static-export) that cannot run
+Next.js API routes.
+
+c15t asks the backend to resolve consent when initialization is needed. This
+requires only `backendURL` in your consent configuration, with no local manifest
+or init handlers. Inth still manages policy and stores consent records.
+
+Start with [client-side initialization](/docs/frameworks/next/client-side) for
+a complete setup. You can also use backend initialization with server prefetch,
+as shown in the router guides.
+
+## Offline mode
+
+Not recommended for production environments.
+
+Use offline mode for local development, tests or demos that do not need backend
+records. It resolves bundled policy rules and keeps choices in browser storage.
+It makes no consent backend requests and does not look up the visitor's location.
+
+See the [offline configuration example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+
+## Hosting and further configuration
+
+We recommend Inth to manage your backend. A
+[self-hosted backend](/docs/self-host/quickstart) supports both manifests and
+regular initialization, but you operate its database, policies and availability.
+Hosting is a separate choice from how your application fetches consent data.
+
+For optional same-origin rewrites and cache settings, see
+[Optimization](/docs/frameworks/next/optimization). Use the
+[fetching reference](/docs/frameworks/next/api-reference/data-fetching) for exact
+URL behavior and location headers, or
+[Troubleshooting](/docs/frameworks/next/troubleshooting) if consent fails to initialize.

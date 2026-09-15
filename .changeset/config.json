@@ -19,7 +19,7 @@
 	],
 	"privatePackages": false,
 	"access": "public",
-	"baseBranch": "2.0.0",
+	"baseBranch": "v3",
 	"updateInternalDependencies": "patch",
 	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
 		"onlyUpdatePeerDependentsWhenOutOfRange": true

@@ -54,7 +54,7 @@ import type {
 } from './module-hooks';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
-import type { ReactUIOptions } from './types/consent-manager';
+import type { ReactUIOptions } from './types/manager';
 import type { ReactComponentSlots } from './types/slots';
 import type { Theme } from './types/theme';
 import type { V3UIConfigValue } from './ui-config-context';
@@ -124,7 +124,7 @@ export interface ConsentProviderOptions extends Pick<
 	overrides?: KernelOverrides;
 	/**
 	 * Server-resolved kernel configuration, usually from a framework server
-	 * helper such as `prefetchInitialConsent()` or `readInitialConsentConfig()`.
+	 * helper such as `resolveConsent()`.
 	 *
 	 * Pass the resolved `KernelConfig` and the provider builds its kernel
 	 * from it synchronously: a config carrying a policy renders the banner
@@ -144,7 +144,7 @@ export interface ConsentProviderOptions extends Pick<
 	 * @example
 	 * ```tsx
 	 * // app/layout.tsx — stays synchronous, so the shell prerenders.
-	 * const config = prefetchInitialConsent({ backendURL });
+	 * const config = resolveConsent({ backendURL });
 	 * return (
 	 *   <ConsentProvider options={{ mode: hosted({ url }), prefetch: config }}>
 	 *     {children}

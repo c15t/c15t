@@ -1,0 +1,25 @@
+{
+	"name": "@c15t/example-nextjs",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"build": "next build",
+		"check-types": "next typegen && tsc --noEmit",
+		"dev": "next dev --port 3011",
+		"start": "next start"
+	},
+	"dependencies": {
+		"@c15t/scripts": "workspace:*",
+		"@c15t/ui": "workspace:*",
+		"c15t": "workspace:*",
+		"next": "16.2.10",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@types/node": "^25.5.0",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
+		"typescript": "6.0.3"
+	}
+}

@@ -1,0 +1,46 @@
+---
+title: Introduction
+description: Add consent management with Inth, integrate your framework and build a consent interface that fits your site.
+group: guides
+---
+
+## Start with your application
+
+Choose the [guide for your framework](/docs/frameworks), router and deployment.
+The quickstarts use [Inth](https://inth.com) for managed consent. Static sites can use Inth too. The framework guides
+include the stylesheet, provider, preferences entry point and verification.
+
+<Cards>
+  <Card title="Install for your framework" description="Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit and JavaScript." href="/docs/frameworks" />
+
+  <Card title="Customize the interface" description="See real components and choose presentation, tokens or slots for your design." href="/docs/customization/overview" />
+
+  <Card title="Connect third-party tools" description="Gate scripts and embeds, and understand Google Consent Mode behavior." href="/docs/integrations/overview" />
+
+  <Card title="Upgrade to v3" description="Migrate policies, saved choices, callbacks and custom transports." href="/docs/upgrade-v3" />
+</Cards>
+
+## Understand what you are integrating
+
+c15t resolves a policy, combines it with stored choices and privacy signals,
+and exposes effective permissions. Its components render the actions required
+by that policy. Its script and embed integrations use permission to control
+optional work.
+
+Choose [how consent data is fetched](/docs/guides/data-fetching), including
+cached manifests, regular backend initialization and browser-only operation.
+Next.js server deployments lead with manifests to reuse public configuration
+without sharing visitor-specific decisions. The
+[backend docs](/docs/self-host/overview) explain the service Inth manages and
+how to operate it yourself when needed.
+
+A banner does not automatically block code installed elsewhere. Follow
+[verification](/docs/guides/verify-consent) to check the actual vendor requests,
+rejection, reloads and preference changes.
+
+## Using a coding agent
+
+Read the installed package's `AGENTS.md` and linked Markdown for version-matched
+instructions. On the website, use the documentation index and individual
+Markdown pages before loading the full context bundle. Identify the framework,
+router and hosting shape before choosing a recipe.

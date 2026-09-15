@@ -12,5 +12,6 @@ import { createConsentRouteHandlers } from './handlers';
 
 const handlers = createConsentRouteHandlers({ options });
 
-export const GET: APIRoute = ({ request }) => handlers.manifest(request);
+export const GET: APIRoute = ({ locals, request }) =>
+	handlers.manifest(request, { locals });
 export const prerender = false;

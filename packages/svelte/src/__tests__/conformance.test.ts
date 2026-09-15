@@ -1,3 +1,9 @@
+import {
+	IAB_FIXTURE_CMP_ID,
+	IAB_FIXTURE_CMP_VERSION,
+	MINIMAL_GVL,
+	runConformanceSuite,
+} from '@c15t/conformance';
 /**
  * Svelte conformance entry point.
  *
@@ -13,13 +19,6 @@
  * shared minimal GVL fixture and an `iab` policy (the provider's `iab`
  * option wires `createIAB` exactly like production).
  */
-
-import {
-	IAB_FIXTURE_CMP_ID,
-	IAB_FIXTURE_CMP_VERSION,
-	MINIMAL_GVL,
-	runConformanceSuite,
-} from '@c15t/conformance';
 import type {
 	MountableComponent,
 	MountOptions,
@@ -27,6 +26,7 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
+import { deferInitGvl, custom } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentKernel,
@@ -34,13 +34,12 @@ import type {
 	KernelConfig,
 	InitResponse,
 } from '@c15t/core';
-import { custom } from '@c15t/core';
-import type { GlobalVendorList } from '@c15t/schema/types';
 import {
 	normalizePolicyRule,
 	createPolicyRuleFingerprints,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
+import type { GlobalVendorList } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
@@ -114,15 +113,23 @@ const buildProviderOptions = function buildProviderOptions(
 		policyId: rule.id,
 		status: 'matched' as const,
 	};
+	const authoritative =
+		opts.initMode !== 'pending' && opts.initMode !== 'failing';
 	const prefetch: KernelConfig = {
 		...(provided.prefetch ?? {}),
 		initialBranding: 'c15t',
-		initialPolicyPending:
-			opts.initMode === 'pending' || opts.initMode === 'failing',
-		initialPolicyResolution:
-			opts.initMode === 'pending' || opts.initMode === 'failing'
-				? undefined
-				: resolution,
+		// A server that resolved an IAB policy ships the vendor list in the
+		// state; the lazy `@c15t/iab` factory only seeds it on the client.
+		initialIab:
+			isIabComponent(opts.component) && authoritative
+				? {
+						cmpId: IAB_FIXTURE_CMP_ID,
+						enabled: true,
+						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+					}
+				: undefined,
+		initialPolicyPending: !authoritative,
+		initialPolicyResolution: authoritative ? resolution : undefined,
 		initialPrivacySignals: { gpc: opts.gpc },
 	};
 
@@ -269,6 +276,15 @@ const driver: TestDriver = {
 	probePolicyContract,
 	serverRender(opts: MountOptions): Promise<string> {
 		const options = buildProviderOptions(opts);
+		if (options.iab) {
+			options.iab.gvl = undefined;
+		}
+		if (options.prefetch?.initialIab?.gvl) {
+			Object.assign(
+				options.prefetch.initialIab,
+				deferInitGvl({ gvl: options.prefetch.initialIab.gvl }, '/test-gvl')
+			);
+		}
 		return renderSsr(
 			{ component: opts.component, options: { ...options, mode: undefined } },
 			'conformance-fixture.svelte'

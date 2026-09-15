@@ -25,8 +25,10 @@ describe('the page IAB factory', () => {
 	it('returns a usable handle before the module has loaded', async () => {
 		const handle = lazyCreateIAB(factoryOptions);
 
+		// A server-rendered banner is clickable before `@c15t/iab` lands, so
+		// the handle queues calls instead of leaving them undefined.
 		expect(typeof handle.dispose).toBe('function');
-		expect(handle.setPurposeConsent).toBeUndefined();
+		expect(handle.setPurposeConsent).toBeTypeOf('function');
 
 		await whenIABReady();
 		expect(handle.setPurposeConsent).toBeTypeOf('function');
@@ -43,10 +45,7 @@ describe('the page IAB factory', () => {
 describe('the dialog island', () => {
 	it('reaches the IAB surface only through a dynamic import', () => {
 		const source = readFileSync(
-			join(
-				process.cwd(),
-				'src/components/islands/consent-dialog-surface.svelte'
-			),
+			join(process.cwd(), 'src/components/islands/panel-surface.svelte'),
 			'utf8'
 		);
 

@@ -2,12 +2,12 @@
 	import type { ConsentKernel } from '@c15t/core';
 	import { untrack } from 'svelte';
 
-	import ConsentBanner from '../../lib/components/consent-banner.svelte';
-	import ConsentDialog from '../../lib/components/consent-dialog.svelte';
-	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
-	import ConsentWidget from '../../lib/components/consent-widget.svelte';
-	import IabConsentBanner from '../../lib/components/iab-consent-banner.svelte';
-	import IabConsentDialog from '../../lib/components/iab-consent-dialog.svelte';
+	import IabConsentDialog from '../../lib/components/iab-panel.svelte';
+	import IabConsentBanner from '../../lib/components/iab-prompt.svelte';
+	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+	import ConsentDialog from '../../lib/components/panel.svelte';
+	import ConsentWidget from '../../lib/components/preferences.svelte';
+	import ConsentBanner from '../../lib/components/prompt.svelte';
 	import type { ConsentManagerState } from '../../lib/context.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 	import ConformanceKernelCapture from './conformance-kernel-capture.svelte';

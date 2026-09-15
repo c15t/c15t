@@ -1,0 +1,153 @@
+---
+title: "ConsentDialog"
+description: "Shared ConsentDialog reference for the React and Next.js adapters."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Description |
+  | --- | --- | --- | --- |
+  | `open` | `boolean` | follows the active surface | Controls the open state. When set, Escape and the dialog's own Save, Accept all and Reject all buttons no longer close it; change the prop instead. A missing policy or an unlisted model still keeps it closed. |
+  | `showTrigger` | `boolean \| ConsentDialogTriggerProps` | `false` | Renders a floating `ConsentDialogTrigger` next to the dialog. Pass an object to configure that trigger. |
+  | `models` | `Model[]` | `['opt-in', 'opt-out', 'none']` | Policy models the dialog responds to. Under a model that is not listed, such as `iab`, it stays closed. |
+  | `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which of the links configured in the provider `options.legalLinks` render after the description. Omitting the prop renders none. `null` hides them. |
+  | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag in the card. |
+  | `uiSource` | `string` | `'dialog'` | Source identifier recorded with saves made from this dialog. |
+  | `scrollLock`, `trapFocus` | `boolean` | from `blocking` | Deprecated. Either one set to `false` makes the dialog non-blocking, unless the provider sets `presentation.preferences.blocking` explicitly, which wins. Prefer the provider option. |
+  | `disableAnimation` | `boolean` | `false` | Skips the enter and exit animation of the backdrop and the card. |
+  | `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
+</section>
+
+<section id="behavior">
+  ## Behavior
+
+  The dialog is a modal wrapper around the preference center. Its card has a
+  header with the title `consentManagerDialog.title` and the description
+  `consentManagerDialog.description` followed by the legal links, then the
+  same category accordion and Reject all, Accept all and Save actions that
+  `ConsentWidget` renders, then the branding tag. It mounts through a portal
+  into `document.body` after hydration, so it is never part of the server
+  HTML.
+
+  Without an `open` prop, the dialog follows the active surface and opens while
+  it is `dialog`. These set that surface:
+
+  - The Customize button on a `ConsentBanner`, and the "Manage preferences"
+    or "Do not sell or share my data" button a notice renders.
+  - `ConsentDialogLink` and `ConsentDialogTrigger`.
+  - The button in a `Frame` placeholder.
+  - `useSetActiveUI()('dialog')` in your own component, or `openDialog()`
+    from `useHeadlessConsentUI()` on the headless subpath.
+
+  The component code is split into its own chunk. It downloads when the
+  dialog first opens or when a visitor hovers or focuses a Customize button,
+  and renders nothing until that chunk is ready. Passing `open={true}` or
+  `showTrigger` loads it on mount.
+
+  Without an `open` prop, Escape closes the dialog. Save, Accept all and
+  Reject all close it after the save succeeds; a save that fails keeps it
+  open. With `open={true}`, these actions leave the dialog visible; the
+  parent must set `open={false}` to close it. Clicking the backdrop does not
+  close it. Closing discards toggles that were not saved: the next open starts
+  from the recorded choice again. After a save from an uncontrolled dialog,
+  every consent surface hides unless the policy still owes a prompt, in which
+  case the banner returns.
+
+  The preference center is blocking by default: a backdrop, body scroll lock
+  and focus trap, all as one value. Set `presentation.preferences.blocking`
+  to `false` in the provider options to remove all three; the deprecated
+  `scrollLock` and `trapFocus` props do the same for one dialog. `variant`
+  and `position` are prompt options. Setting them under
+  `presentation.preferences` logs an `invalid-variant` diagnostic in
+  development and changes nothing; the dialog is always centered.
+
+  The dialog never opens without a resolved policy rule, even when the
+  active surface is already `dialog`; it appears as soon as a rule resolves,
+  without a remount. A rule with `model: 'none'` and no rights owes no consent
+  UI, so the dialog stays closed under it. When such a rule lists any right,
+  for example `rights: ['disclosure']` or `rights: ['preferences']`, the dialog
+  can open as a settings route and Save completes without writing a consent
+  record.
+
+  Copy comes from these translation keys: `consentManagerDialog.title`,
+  `consentManagerDialog.description`, `common.acceptAll`, `common.rejectAll`,
+  `common.save`, and `consentTypes.<category>.title` and `.description` for
+  each row.
+</section>
+
+<section id="accessibility">
+  ## Accessibility
+
+  The panel carries `role="dialog"`, `aria-labelledby="consent-dialog-title"`
+  and `aria-describedby="consent-dialog-description"`, plus `aria-modal="true"`
+  while it is blocking. Its `dir` attribute follows the active language.
+
+  While blocking, focus moves on open to the panel itself rather than to a
+  button, so a screen reader announces the title and description first; Tab
+  then enters the legal links and category switches, Tab and Shift+Tab wrap
+  inside the panel, and on close focus returns to the element that opened the
+  dialog. A non-blocking dialog manages no focus: nothing moves focus into the
+  panel or back to the opener. The backdrop is `aria-hidden` and is not
+  focusable.
+
+  Each category switch has the category title as its accessible name. The
+  `necessary` switch is disabled and always on. A saved grant that the current
+  policy or a privacy signal overrides gets a note under its row, linked to
+  the switch through `aria-describedby`.
+</section>
+
+<section id="composition">
+  ## Composition
+
+  Every part is available as `ConsentDialog.<Part>`: `Root`, `Overlay`,
+  `Card`, `Header`, `HeaderTitle`, `HeaderDescription`, `Content`, `Footer`
+  and `ConsentCustomizationCard`, the stock card. `Root` provides the portal,
+  open state, focus trap, scroll lock and backdrop, and accepts `open`,
+  `models`, `noStyle`, `disableAnimation`, `scrollLock`, `trapFocus`,
+  `uiSource` and `overlay`. Pass `overlay={false}` to render no backdrop, or a
+  node to replace the built-in one.
+
+  ```tsx
+  <ConsentDialog.Root>
+    <ConsentDialog.Card>
+      <ConsentDialog.Header>
+        <ConsentDialog.HeaderTitle>Your privacy choices</ConsentDialog.HeaderTitle>
+        <ConsentDialog.HeaderDescription legalLinks={['privacyPolicy']} />
+      </ConsentDialog.Header>
+      <ConsentDialog.Content>
+        <ConsentWidget />
+      </ConsentDialog.Content>
+      <ConsentDialog.Footer hideBranding />
+    </ConsentDialog.Card>
+  </ConsentDialog.Root>
+  ```
+
+  Keep `ConsentWidget` inside `Content`: it owns the draft, the switches and
+  the policy actions, and inherits the dialog's `uiSource`. `Footer` renders
+  the branding tag unless you pass children or `hideBranding`.
+
+  The positioner carries `data-slot="dialog-positioner"`, and both it and the
+  panel carry `data-blocking="true"` while blocking. Provider component slots
+  for the stock structure are `dialog.root`, `dialog.container`,
+  `dialog.card`, `dialog.header`, `dialog.title`, `dialog.content`,
+  `dialog.overlay`, `description.dialog`, `manager.footer` and `tag.dialog`.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Use the default blocking, uncontrolled dialog and an optional in-scope
+  category that is not restricted by policy or privacy signals such as GPC.
+  Open the dialog from the banner's Customize button or a preferences link.
+  A centered card appears over a dimmed backdrop, the page behind it stops
+  scrolling, and Tab stays inside the card. Press Escape: the card closes and
+  focus returns to the button you used. Open it again, turn a category on and
+  choose Save. The dialog closes and `useConsent('<category>')` reports
+  `true` in your components; under a choice prompt the banner does not return,
+  while a `notice` prompt keeps its banner until it is acknowledged. Reload the
+  page and reopen the dialog: the switch reflects the saved choice.
+</section>

@@ -1,0 +1,20 @@
+{
+	"name": "@c15t/example-javascript",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"check-types": "tsc --noEmit",
+		"dev": "vite --host 127.0.0.1",
+		"start": "vite preview --host 127.0.0.1"
+	},
+	"dependencies": {
+		"@c15t/dev-tools": "workspace:*",
+		"@c15t/scripts": "workspace:*",
+		"c15t": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "6.0.3",
+		"vite": "7.3.2"
+	}
+}

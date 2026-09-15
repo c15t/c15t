@@ -14,7 +14,7 @@ Paste this before `</head>` (Framer: Site Settings → Custom Code; Webflow: Pro
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
   data-backend-url="https://your-instance.c15t.dev"
   defer
 ></script>
@@ -71,7 +71,7 @@ For anything the attributes cannot express, queue a `config` call on `window.c15
     },
   }]);
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js" defer></script>
 ```
 
 With `data-manual`, a later `c15t.init()` retains the original tag's attributes. Queued `config` calls override those attributes, and options passed directly to `init()` win over both. Changing or removing the tag after it loads does not change the captured configuration. After `dispose()`, a new `init()` reuses the captured attributes and queued defaults, including backend-injected settings. Pass new options to `init()` to override them.
@@ -90,7 +90,7 @@ External scripts without `async` finish loading before the next permitted non-as
 
 An activated inline or external script cannot be undone. Supply cleanup through the `scripts` API when a vendor supports it; otherwise reload after withdrawal. The HTML scanner activates only `type="text/plain"` scripts and also watches newly inserted tags.
 
-See [script gating](/docs/frameworks/javascript/script-loader) for the full `scripts` option, and the [integrations](/docs/integrations) for ready-made GTM, GA4, and pixel loaders.
+See [script gating](/docs/frameworks/javascript/script-loader) for the full `scripts` option, and the [integrations](/docs/integrations/overview) for ready-made GTM, GA4, and pixel loaders.
 
 ## Clear data when consent is withdrawn
 
@@ -109,7 +109,7 @@ Queue `clearOnRevocation` before the bundle loads, or pass it to `c15t.init()`:
     },
   }]);
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js" defer></script>
 ```
 
 The client removes these entries when measurement permission becomes denied. It also clears them at startup after the policy resolves if measurement is already denied. Other categories and c15t's own consent records stay intact.
@@ -171,7 +171,7 @@ Load `c15t.headless.js` instead and no banner or CSS ships. The runtime still re
   <button data-c15t-action="reject">Reject</button>
   <button data-c15t-action="accept">Accept</button>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.headless.js" data-backend-url="https://your-instance.c15t.dev" defer></script>
 <script>
   window.c15t = [['on', 'ui', (surface) => { document.getElementById('banner').hidden = surface !== 'banner'; }]];
 </script>
@@ -239,7 +239,7 @@ Or fetch a cached manifest with `data-manifest-url`. When you host the manifest 
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
   data-manifest-url="https://cdn.example.com/consent-policy.json"
   data-backend-url="https://your-instance.c15t.dev"
   defer
@@ -283,7 +283,7 @@ Anything the page queues with `c15t.push(['config', ...])` before the tag still 
 Add a second tag and the c15t DevTools panel attaches to the page's client. It shows consents, gated scripts, the resolved policy and every kernel event, and its Location tab changes country, region, language and GPC and re-runs init, so you can watch a geo-keyed policy switch without spoofing headers or a VPN.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.devtools.js" data-open data-tab="location" defer></script>
 ```
 
 Tag order does not matter; the panel waits for the client. It is also on `window.c15t.devtools`, so `c15t.devtools.actions.setOverrides({ country: 'US' })` followed by `c15t.devtools.actions.init()` does the same from the console. Leave the tag out of production pages; it shows internal state. Bundler users import `mountDevTools` from `@c15t/browser/devtools`.
@@ -330,7 +330,7 @@ Load `c15t.iab.js` instead of `c15t.js` when your policy requires IAB TCF. This 
     },
   }]];
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.iab.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.iab.js" defer></script>
 <button type="button" data-c15t-action="customize">Privacy settings</button>
 ```
 

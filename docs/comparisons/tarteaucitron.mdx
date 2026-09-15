@@ -1,0 +1,43 @@
+---
+title: c15t vs tarteaucitron.js
+description: Compare tarteaucitron.js service-based consent with c15t v3 categories, framework ownership, vendor integrations and Inth records.
+group: reference
+---
+
+## Compare service registration and application state
+
+Evaluate tarteaucitron.js when its service-based JavaScript integration fits the
+site. Evaluate c15t when you want consent policy and category permissions
+available to framework components, with Inth managing policy and records.
+
+tarteaucitron.js documents a panel for allowing or denying services and storing
+the choice in a cookie. Its repository contains the service definitions used
+by the library. This comparison covers that open-source project, not an assumed
+commercial service or price plan.
+[tarteaucitron.js repository](https://github.com/AmauriC/tarteaucitron.js)
+
+## Compare service mapping before migrating
+
+| Decision | c15t v3 | tarteaucitron.js |
+| --- | --- | --- |
+| Register a vendor | Use a documented helper or custom script configuration | Check the matching service definition and its configuration |
+| Read application permission | Consume category permissions from the runtime | Evaluate the service state required by the application |
+| Save backend records | Configure Inth or a self-hosted backend | Establish the record workflow beyond the documented browser cookie |
+| Keep preferences available | Mount a dialog link or trigger | Test the library's service preference panel in your layout |
+
+## Review each service's loading behavior
+
+List the services currently registered, their parameters and any scripts still
+inserted outside the consent manager. Map each one to a c15t integration or a
+custom loader. A vendor with a different display name may still load the same
+SDK twice if the old loader remains.
+
+Test an initially denied service, a later grant and withdrawal after loading.
+Removing a script element does not undo every side effect of an SDK that has
+already executed. Use each vendor guide's revocation behavior when deciding
+what cleanup your application must perform. Keep service-level choices distinct
+from category-wide choices when planning a record migration.
+
+Choose the first replacement from the [c15t integration guides](/docs/integrations/overview), then configure [Inth](https://inth.com) through the [framework setup](/docs/frameworks).
+
+Sources reviewed on 10 September 2026.

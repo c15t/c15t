@@ -7,7 +7,7 @@ group: frameworks
 ## Usage
 
 ```tsx
-import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from '@c15t/react';
+import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from 'c15t/react';
 import { policyRulePresets } from '@c15t/schema';
 
 const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
@@ -59,26 +59,7 @@ and keep preferences reachable after the banner closes.
 
 ## Props
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `title` | `ReactNode` | translation | Overrides the title. Under a notice the default is `cookieBanner.noticeTitle`. |
-| `description` | `ReactNode` | translation | Overrides the description. Under a notice the default is `cookieBanner.noticeDescription`. |
-| `acceptButtonText` | `ReactNode` | `common.acceptAll` | Accept label. |
-| `rejectButtonText` | `ReactNode` | `common.rejectAll` | Reject label. |
-| `customizeButtonText` | `ReactNode` | `common.customize` | Customize label. |
-| `dismissButtonText` | `ReactNode` | `common.acknowledge` | Label of the notice acknowledgement. |
-| `variant` | `PromptVariant` | `floating` | Shape of the prompt. See [Variants](#variants). |
-| `position` | `PromptPosition` | per variant | Where the prompt sits. Must be valid for the variant. |
-| `blocking` | `boolean` | `true` on `wall` | Backdrop, scroll lock, focus trap, and no outside dismissal, as one value. |
-| `layout` | `ConsentBannerLayout` | policy default | Orders and groups actions. Required actions the layout omits are restored. |
-| `primaryButton` | `ConsentBannerButton \| ConsentBannerButton[]` | `'customize'` | Which actions get the primary treatment. On a notice, dismiss is primary when it is the only action. |
-| `direction` | `'row' \| 'column'` | `'row'` | How action groups flow. |
-| `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which configured legal links render inline. |
-| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
-| `scrollLock` | `boolean` | unset | Deprecated. Use `blocking` to control scrolling, focus and backdrop together. |
-| `trapFocus` | `boolean` | unset | Deprecated. Use `blocking`. |
-| `disableAnimation` | `boolean` | `false` | Skips enter and exit animations. |
-| `noStyle` | `boolean` | `false` | Removes the built-in styling from every part. |
+<import src="../../../shared/react/components/consent-banner.mdx#props" />
 
 ## Per-policy buttons
 
@@ -87,8 +68,8 @@ primary on a notice. To set button order and treatment for specific rules,
 read the active policy inside the provider:
 
 ```tsx
-import { ConsentBanner, usePolicyRule } from '@c15t/react';
-import type { ConsentBannerProps } from '@c15t/react';
+import { ConsentBanner, usePolicyRule } from 'c15t/react';
+import type { ConsentBannerProps } from 'c15t/react';
 
 const banners: Record<
 	string,
@@ -195,7 +176,7 @@ for a notice `wall` falls back to `floating` with an `invalid-variant`
 diagnostic. Blocking banners carry `role="dialog"` and `aria-modal="true"`.
 Non-blocking banners leave page controls usable by keyboard and pointer.
 
-`PromptVariant` and `PromptPosition` are exported from `@c15t/react`.
+`PromptVariant` and `PromptPosition` are exported from `c15t/react`.
 Compound parts can read the resolved shape with `useConsentBannerSurface()`,
 which returns `variant`, `position`, `positionSource` (`host` or `default`),
 and `blocking`.
@@ -207,7 +188,7 @@ parts read the same policy state the pre-built banner does, so a custom layout
 still gets the right actions for the active rule.
 
 ```tsx
-import { ConsentBanner } from '@c15t/react';
+import { ConsentBanner } from 'c15t/react';
 
 export function CompactBanner() {
 	return (

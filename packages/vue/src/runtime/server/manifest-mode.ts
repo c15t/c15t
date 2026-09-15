@@ -51,10 +51,12 @@ export const fetchCachedManifest = function fetchCachedManifest(input: {
 	fetch?: ManifestFetch;
 	query?: string;
 	now?: number;
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }): Promise<CachedManifestResponse> {
 	return fetchCachedManifestFromSource({
 		fetch: input.fetch,
 		now: input.now,
+		onBackgroundRevalidate: input.onBackgroundRevalidate,
 		query: input.query,
 		sourceURL: resolveManifestSourceURL(input.config),
 	});

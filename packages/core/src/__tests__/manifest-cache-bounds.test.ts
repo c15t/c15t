@@ -3,13 +3,17 @@ import { describe, expect, test } from 'vitest';
 import type { CachedManifestResponse } from '../transports/manifest-cache';
 import { createManifestCache } from '../transports/manifest-cache';
 
-const entry = function entry(expiresAt: number): CachedManifestResponse {
+const entry = function entry(
+	expiresAt: number,
+	staleUntil = expiresAt
+): CachedManifestResponse {
 	return {
 		expiresAt,
 		fetchedAt: 0,
 		headers: {},
 		manifest: {} as CachedManifestResponse['manifest'],
 		sMaxAge: 0,
+		staleUntil,
 		upstreamAge: 0,
 	};
 };
@@ -38,6 +42,17 @@ describe('createManifestCache bounds', () => {
 
 		expect(cache.get('stale')).toBeUndefined();
 		expect(cache.get('live')).toBeDefined();
+	});
+
+	test('keeps a stale entry that may still be served over a live one', () => {
+		const cache = createManifestCache({ maxEntries: 2 });
+		cache.set('oldest-live', entry(FUTURE));
+		cache.set('stale-servable', entry(Date.now() - 1, FUTURE));
+		cache.set('fresh', entry(FUTURE));
+
+		// Nothing is past its stale window, so eviction falls back to LRU.
+		expect(cache.get('oldest-live')).toBeUndefined();
+		expect(cache.get('stale-servable')).toBeDefined();
 	});
 
 	test('overwriting a key never evicts another', () => {

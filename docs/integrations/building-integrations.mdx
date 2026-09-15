@@ -1,17 +1,46 @@
 ---
-title: Building Integrations
-description: Write a consent-aware loader for a tool c15t does not ship yet.
+title: Custom integrations
+description: Define loading, initialization and consent-change behavior for a vendor without a helper.
 group: integrations
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Start with a script configuration
 
-## Anatomy of an integration
+Check the installed `@c15t/scripts` exports first. For an unlisted SDK, define a
+stable ID, category and source URL, then pass the configuration to the existing
+provider or loader:
 
-TODO.
+```ts
+import type { Script } from 'c15t/modules/script-loader';
 
-## Example
+export const analyticsScript = {
+  id: 'example-analytics',
+  category: 'measurement',
+  src: 'https://analytics.example.com/sdk.js',
+  onLoad() {
+    // Initialize the vendor here using its documented API.
+  },
+  onError({ error }) {
+    console.error('Analytics SDK failed to load', error);
+  },
+} satisfies Script;
+```
 
-TODO.
+Replace the example URL and implement the vendor's initialization. This is a
+loader template, not a functioning analytics SDK. The script stays blocked
+while measurement permission is denied.
+
+## Define revocation deliberately
+
+`onConsentChange` receives current permission information. Use it to update the
+vendor's consent API or disable future work. `persistAfterConsentRevoked` retains
+a loaded script when set; `alwaysLoad` bypasses initial category gating. Enable
+those only when the vendor's own consent behavior matches the intended design.
+
+For a library imported elsewhere, `callbackOnly` allows lifecycle callbacks
+without inserting a script element. It does not prevent that earlier import
+from running. For SDKs with side effects at import time, defer the import too.
+
+A browser cannot undo executed JavaScript merely by removing its script tag.
+Test cleanup, queued events, re-grant and navigation. Use the provider's nonce
+option or a per-script nonce for a nonce-based Content Security Policy.

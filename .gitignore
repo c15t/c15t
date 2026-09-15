@@ -99,3 +99,14 @@ live-vendors-report.json
 
 # Vendored Effect source (effect-ts skill prerequisite)
 .repos/effect
+
+# Generated package documentation and agent indexes
+packages/*/docs/
+packages/*/AGENTS.md
+packages/*/SKILL.md
+
+# CI selection and same-run build handoff
+/ci-plan.json
+/ci-build.tar
+/ci-build-cache.tar
+/.ci-reports/

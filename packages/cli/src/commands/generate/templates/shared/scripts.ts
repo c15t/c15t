@@ -110,6 +110,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
 		importName: 'mixpanelAnalytics',
 	},
+	'openai-pixel': {
+		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
+		importName: 'openaiPixel',
+	},
 	pirsch: {
 		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",
 		importName: 'pirsch',
@@ -251,6 +255,9 @@ export function generateScriptsArrayValue(
 	selectedScripts: string[],
 	indentation = '\t\t\t\t'
 ): string {
+	if (!selectedScripts.length) {
+		return '[]';
+	}
 	const scriptConfigs = selectedScripts.map(
 		(script) => getSnippet(script).example
 	);

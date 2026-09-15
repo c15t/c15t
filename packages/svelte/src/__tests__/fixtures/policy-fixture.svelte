@@ -2,12 +2,12 @@
 	import type { ConsentKernel, ConsentPresentation } from '@c15t/core';
 	import { untrack } from 'svelte';
 
-	import ConsentBanner from '../../lib/components/consent-banner.svelte';
-	import ConsentDialogLink from '../../lib/components/consent-dialog-link.svelte';
-	import ConsentDialogTrigger from '../../lib/components/consent-dialog-trigger.svelte';
-	import ConsentDialog from '../../lib/components/consent-dialog.svelte';
-	import Provider from '../../lib/components/consent-manager-provider.svelte';
 	import Frame from '../../lib/components/frame.svelte';
+	import Provider from '../../lib/components/manager-provider.svelte';
+	import ConsentDialogLink from '../../lib/components/panel-link.svelte';
+	import ConsentDialogTrigger from '../../lib/components/panel-trigger.svelte';
+	import ConsentDialog from '../../lib/components/panel.svelte';
+	import ConsentBanner from '../../lib/components/prompt.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 	import Capture from './conformance-kernel-capture.svelte';
 

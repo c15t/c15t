@@ -13,5 +13,6 @@ import { createConsentRouteHandlers } from './handlers';
 
 const handlers = createConsentRouteHandlers({ options });
 
-export const GET: APIRoute = ({ request }) => handlers.init(request);
+export const GET: APIRoute = ({ locals, request }) =>
+	handlers.init(request, { locals });
 export const prerender = false;

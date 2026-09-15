@@ -252,3 +252,17 @@ export const measureAsyncLoop = function measureAsyncLoop<Result>(
 export const latestMtimeMs = function latestMtimeMs(path: string): number {
 	return statSync(path).mtimeMs;
 };
+
+/** Reject empty sampling plans instead of emitting zero-valued timing results. */
+export const benchmarkCount = (
+	value: string | undefined,
+	fallback: number
+): number => {
+	const count = value === undefined ? fallback : Number(value);
+	if (!Number.isSafeInteger(count) || count <= 0) {
+		throw new Error(
+			`Benchmark count must be a positive integer; received ${String(value ?? fallback)}`
+		);
+	}
+	return count;
+};

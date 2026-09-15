@@ -16,9 +16,6 @@ const HomePage = () => (
 			<li>
 				<Link href="/manifest-ssr">/manifest-ssr</Link>
 			</li>
-			<li>
-				<Link href="/rsc-ssr">/rsc-ssr</Link>
-			</li>
 		</ul>
 	</main>
 );

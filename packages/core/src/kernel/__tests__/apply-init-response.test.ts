@@ -240,3 +240,22 @@ describe('applyInitResponse', () => {
 		});
 	});
 });
+
+test('client init accepts a reference without a redundant gvl field', () => {
+	const gvlReference = {
+		language: 'en',
+		summary: { items: ['Storage'], vendorCount: 2 },
+		url: '/api/c15t/init?c15t-gvl=1',
+		vendorListVersion: 1,
+	};
+	const snapshot = buildInitialSnapshot({ now: NOW });
+	const { patch } = applyInitResponse(
+		snapshot,
+		{
+			gvlReference,
+			policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+		},
+		NOW
+	);
+	expect(patch.iab).toMatchObject({ enabled: true, gvl: null, gvlReference });
+});

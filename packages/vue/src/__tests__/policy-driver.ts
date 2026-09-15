@@ -57,11 +57,11 @@ import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import ConsentBanner from '../runtime/components/consent-banner.vue';
-import ConsentDialogTrigger from '../runtime/components/consent-dialog-trigger.vue';
-import ConsentFrame from '../runtime/components/consent-frame.vue';
-import ConsentManager from '../runtime/components/consent-manager.vue';
-import ConsentPreferencesLink from '../runtime/components/consent-preferences-link.vue';
+import ConsentFrame from '../runtime/components/frame.vue';
+import ConsentManager from '../runtime/components/manager.vue';
+import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
+import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
+import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';
@@ -74,6 +74,7 @@ import {
 	symbolActiveUI,
 	symbolConsent,
 } from '../runtime/utils/symbols';
+import { serializeWithoutComments } from './serialize-without-comments';
 
 // oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 const settle = () =>
@@ -517,7 +518,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 							right.getAttribute('data-testid') ?? ''
 						)
 					)
-					.map((element) => element.outerHTML.replace(/<!--.*?-->/gsu, ''))
+					.map(serializeWithoutComments)
 					.join('');
 			const serverDom = normalizeDom();
 			const serverSnapshot = kernel.getSnapshot();

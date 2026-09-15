@@ -19,6 +19,11 @@ import {
 	resolveNuxtManifestRoute,
 } from './runtime/manifest';
 
+export { defineTheme, type Theme } from '@c15t/ui/theme';
+
+/** Options accepted by the Nuxt module. */
+export type ModuleOptions = Partial<ConsentConfig>;
+
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
 const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
@@ -115,7 +120,7 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			// works too — ConsentRoot is the documented mount-anywhere entry.
 			global: true,
 			name: 'ConsentRoot',
-			filePath: resolver.resolve('./runtime/components/nuxt-consent-root.vue'),
+			filePath: resolver.resolve('./runtime/components/nuxt-root.vue'),
 		});
 
 		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
@@ -124,13 +129,13 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			// contract as @c15t/react and @c15t/svelte ConsentWidget.
 			global: true,
 			name: 'ConsentWidget',
-			filePath: resolver.resolve('./runtime/components/consent-widget.vue'),
+			filePath: resolver.resolve('./runtime/components/preferences.vue'),
 		});
 
 		for (const [name, file] of [
-			['ConsentPreferencesLink', 'consent-preferences-link'],
-			['ConsentDialogTrigger', 'consent-dialog-trigger'],
-			['ConsentFrame', 'consent-frame'],
+			['ConsentPreferencesLink', 'preferences-link'],
+			['ConsentDialogTrigger', 'panel-trigger'],
+			['ConsentFrame', 'frame'],
 		] as const) {
 			addComponent({
 				filePath: resolver.resolve(`./runtime/components/${file}.vue`),

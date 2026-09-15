@@ -17,6 +17,44 @@ describe('@c15t/nextjs/api', () => {
 		clearGvlCache();
 	});
 
+	test('manifestGET hands a background revalidation to onBackgroundRevalidate', async () => {
+		vi.useFakeTimers();
+		try {
+			const fetchSpy = vi.fn().mockResolvedValue(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), {
+					headers: {
+						'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+						etag: '"manifest-revision"',
+					},
+					status: 200,
+				})
+			);
+			const registered: Promise<void>[] = [];
+			const { manifestGET } = createNextConsentRouteHandlers({
+				backendURL: 'https://consent.example.com/api/c15t',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				onBackgroundRevalidate: (refresh) => {
+					registered.push(refresh);
+				},
+			});
+			const request = new Request('https://app.example.com/api/c15t/manifest');
+
+			await manifestGET(request);
+			expect(registered).toHaveLength(0);
+
+			// Past s-maxage, inside the stale window: served from memory and the
+			// refresh is handed to the host.
+			vi.advanceTimersByTime(1500);
+			const stale = await manifestGET(request);
+			expect(stale.status).toBe(200);
+			expect(registered).toHaveLength(1);
+			await expect(registered[0]).resolves.toBeUndefined();
+			expect(fetchSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	test('GET extracts geo, language, and GPC headers for local init', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
@@ -265,9 +303,14 @@ test('reuses the GVL between IAB init requests', async () => {
 	};
 	const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation((url) =>
 		Promise.resolve(
-			Response.json(url === gvlURL ? { vendorListVersion: 12 } : manifest, {
-				headers: { 'cache-control': 'public, max-age=3600, s-maxage=3600' },
-			})
+			Response.json(
+				url === gvlURL
+					? { purposes: {}, vendorListVersion: 12, vendors: {} }
+					: manifest,
+				{
+					headers: { 'cache-control': 'public, max-age=3600, s-maxage=3600' },
+				}
+			)
 		)
 	);
 	const { GET } = createNextConsentRouteHandlers({
@@ -275,10 +318,10 @@ test('reuses the GVL between IAB init requests', async () => {
 		manifestURL: 'https://api.test/next-manifest',
 	});
 	const request = new Request('https://app.test/api/c15t/init');
-	expect((await (await GET(request)).json()).gvl).toEqual({
+	expect((await (await GET(request)).json()).gvlReference).toMatchObject({
 		vendorListVersion: 12,
 	});
-	expect((await (await GET(request)).json()).gvl).toEqual({
+	expect((await (await GET(request)).json()).gvlReference).toMatchObject({
 		vendorListVersion: 12,
 	});
 	expect(fetch.mock.calls.filter(([url]) => url === gvlURL)).toHaveLength(1);

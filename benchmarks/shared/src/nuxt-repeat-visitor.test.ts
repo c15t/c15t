@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 import {
 	assertRepeatVisitor,
 	createRepeatVisitorCookie,
-} from '../../nuxt-browser-bench/scripts/repeat-visitor';
+} from './nuxt-repeat-visitor';
 
 it.each([Date.UTC(2025, 0, 1), Date.UTC(2030, 0, 1)])(
 	'restores the real repeat-visitor cookie at %s',

@@ -22,8 +22,10 @@ describe('Status Endpoint', () => {
 	it('should call status endpoint with GET method', async () => {
 		const context: FetcherContext = {
 			baseUrl: 'https://api.example.com',
+			debug: false,
 			headers: {},
 			retryConfig: {},
+			timeout: 5000,
 		};
 
 		const mockFetch = vi.fn().mockResolvedValueOnce(
@@ -56,6 +58,7 @@ describe('Status Endpoint', () => {
 
 		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const fetchCall = mockFetch.mock.calls[0];
+		expect.assert(fetchCall, 'Expected a fetch call');
 		expect(fetchCall[0]).toContain('/status');
 		expect(fetchCall[1].method).toBe('GET');
 	});
@@ -63,9 +66,11 @@ describe('Status Endpoint', () => {
 	it('should handle status endpoint errors', async () => {
 		const context: FetcherContext = {
 			baseUrl: 'https://api.example.com',
+			debug: false,
 			headers: {},
 			// Disable retries for this test
 			retryConfig: { maxRetries: 0 },
+			timeout: 5000,
 		};
 
 		const mockFetch = vi.fn().mockResolvedValueOnce(

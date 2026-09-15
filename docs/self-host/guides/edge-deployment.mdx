@@ -1,0 +1,57 @@
+---
+title: Deployment runtimes
+description: Choose a backend runtime that supports your SQL driver and deploy static or edge-rendered clients against its HTTP endpoint.
+group: self-host
+---
+
+## Choose a runtime for the database driver
+
+The backend has a web-request handler, but that does not make every SQL driver
+portable to every edge runtime. The built-in connection descriptions load these
+drivers:
+
+| Database configuration | Driver | Deployment requirement |
+| --- | --- | --- |
+| `dialect: 'postgres'` | `@effect/sql-pg` | A runtime supporting that PostgreSQL driver's networking and dependencies. |
+| `dialect: 'mysql'` | `@effect/sql-mysql2` | A runtime supporting the MySQL driver and its connections. |
+| `dialect: 'sqlite'` | `@effect/sql-sqlite-node` | Node-compatible SQLite dependencies and a durable filesystem for retained data. |
+
+The [Next.js backend mount](/docs/self-host/guides/framework-integration) uses
+`runtime: 'nodejs'`. A serverless instance's temporary filesystem is not durable
+SQLite storage. Choose a networked database or a deployment with a persistent
+volume and a supported driver.
+
+## Run edge clients against a separate backend
+
+Keep the consent backend on a supported server runtime and call it over HTTPS
+from edge-rendered or static applications. [Inth](https://inth.com) provides the
+managed version of this setup.
+
+A cached manifest can provide policy configuration to server rendering without
+running a database driver inside the frontend runtime. Consent writes still go
+to the backend. Use an absolute public endpoint, configure the frontend's trusted
+origins and preserve request-specific location and privacy signals.
+
+## Bring an Effect SQL layer
+
+`database` also accepts an Effect `SqlClient` layer. This is the extension point
+for an application that already owns a supported SQL client or needs another
+runtime-specific driver. The layer must supply the SQL dialect and behavior
+required by the backend's queries and migrations. A raw database handle, Prisma
+client, Cloudflare D1 binding or old v2 ORM adapter is not this interface.
+
+The exported Cloudflare KV cache adapter only supplies caching. It does not add
+D1 support or make the built-in Node SQL drivers work on Workers. Validate your
+chosen client and runtime with migrations, receipt writes and reads before
+using that deployment.
+
+## Operate multiple instances
+
+Run migrations as a deployment step against the same database and schema used by
+the service. Reuse one backend instance within each process. Use shared GVL
+caching when cold starts would otherwise repeat upstream fetches, and account
+for database connection limits as the service scales.
+
+See [database setup](/docs/self-host/guides/database-setup),
+[caching](/docs/self-host/guides/caching) and
+[request logging](/docs/self-host/guides/observability).

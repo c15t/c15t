@@ -27,11 +27,11 @@
 export {
 	IABConsentBanner,
 	type IABConsentBannerProps,
-} from './components/iab-consent-banner';
+} from './components/iab-prompt';
 export {
 	IABConsentDialog,
 	type IABConsentDialogProps,
-} from './components/iab-consent-dialog';
+} from './components/iab-panel';
 export {
 	type HeadlessIABBannerAction,
 	type HeadlessIABBannerState,

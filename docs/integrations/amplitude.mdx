@@ -1,0 +1,40 @@
+---
+title: Amplitude
+description: Configure Amplitude with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Amplitude
+
+Use the browser project API key. The helper initializes Amplitude Browser SDK 2 for you; remove an existing SDK initializer before registering it.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { amplitude } from '@c15t/scripts/amplitude';
+
+export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY', initOptions: { autocapture: false } })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `apiKey` | Required non-empty project API key. |
+| `initOptions` | Optional JSON-serializable Browser SDK 2 initialization options. |
+| `scriptUrl` | Optional loader override. The built-in loader is pinned to Browser SDK 2 version `2.44.4`. |
+
+## Consent behavior
+
+The SDK waits for measurement permission. Once loaded, consent changes call `setOptOut(false)` or `setOptOut(true)`. Keep application event calls behind the same permission, even when the global API still exists.
+
+## Verify the integration
+
+Verify the SDK initializes once and that a test event appears only while measurement is allowed. Revoke permission and inspect the `setOptOut(true)` transition before testing navigation.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

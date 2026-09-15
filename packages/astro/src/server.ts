@@ -1,13 +1,6 @@
-/**
- * Server helpers for `@c15t/astro`.
- *
- * These run inside the Astro middleware and the injected API routes. They
- * read the incoming request, resolve the consent decision for it, and
- * produce the `KernelConfig` the page inlines so the browser boots without
- * an `/init` roundtrip.
- */
-
 import {
+	deferInitGvl,
+	deferInitGvlToRoute,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
@@ -22,6 +15,14 @@ import type {
 	KernelTranslations,
 	TranslationsResponse,
 } from '@c15t/core';
+/**
+ * Server helpers for `@c15t/astro`.
+ *
+ * These run inside the Astro middleware and the injected API routes. They
+ * read the incoming request, resolve the consent decision for it, and
+ * produce the `KernelConfig` the page inlines so the browser boots without
+ * an `/init` roundtrip.
+ */
 import {
 	CONSENT_STORAGE_KEY,
 	readStoredRecordsFromCookieHeader,
@@ -66,6 +67,14 @@ export interface ResolveConsentContextOptions {
 	 * Useful for static output where every request shares one render.
 	 */
 	skipPrefetch?: boolean;
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * this render, so the host can keep it alive past the response on
+	 * runtimes that stop detached work once a response is sent. The
+	 * middleware passes the adapter's `waitUntil` from `locals.runtime.ctx`
+	 * when there is one. The promise never rejects.
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 /**
@@ -308,19 +317,18 @@ const prefetchHosted = async function prefetchHosted(input: {
 		return input.base;
 	}
 	const allowCookie = mayForwardCookie(absolute, input.url);
+	const forwarded = {
+		...forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
+			allowCookie,
+			cookieName: consentCookieName(input.options),
+		}),
+		...configuredInitHeaders(input.configuredHeaders),
+	};
 	try {
 		const response = await fetchImpl(`${absolute}/init`, {
 			cache: 'no-store',
 			credentials: allowCookie ? 'include' : 'omit',
-			headers: {
-				...forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-					allowCookie,
-					cookieName: consentCookieName(input.options),
-				}),
-				// Configured headers win, matching the core transport's own
-				// precedence on the browser's `/init`.
-				...configuredInitHeaders(input.configuredHeaders),
-			},
+			headers: forwarded,
 			method: 'GET',
 		});
 		if (!response.ok) {
@@ -329,7 +337,9 @@ const prefetchHosted = async function prefetchHosted(input: {
 		const payload = (await response.json()) as InitOutput;
 		return mergeInitOutputIntoKernelConfig(
 			input.base,
-			payload,
+			input.fetch || forwarded.cookie
+				? payload
+				: deferInitGvl(payload, `${absolute}/init`, 'init', forwarded),
 			{},
 			{
 				producerContract: readProducerPolicyContract(response.headers),
@@ -349,6 +359,7 @@ interface PrefetchLocalInput {
 	headers: Headers;
 	url?: string;
 	fetch?: typeof globalThis.fetch;
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
 
 const prefetchManifest = async function prefetchManifest(
@@ -368,6 +379,7 @@ const prefetchManifest = async function prefetchManifest(
 	try {
 		const manifest = await loadConsentManifest({
 			fetch: input.fetch as ManifestFetch | undefined,
+			onBackgroundRevalidate: input.onBackgroundRevalidate,
 			options: input.options,
 			source,
 		});
@@ -384,7 +396,10 @@ const prefetchManifest = async function prefetchManifest(
 		});
 		return mergeInitOutputIntoKernelConfig(
 			input.base,
-			payload,
+			// This loader only caches the public list; caller fetches stay inline.
+			!input.fetch && manifest.iab?.gvl
+				? deferInitGvlToRoute(payload, input.options.endpoints.initPath)
+				: payload,
 			forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
 				allowCookie: absoluteTarget
 					? mayForwardCookie(absoluteTarget, input.url)
@@ -457,7 +472,7 @@ const withResolvedGvl = async function withResolvedGvl(input: {
 	if (!(isIABConfigured(iab) && iab)) {
 		return input.config;
 	}
-	if (input.config.initialIab?.gvl) {
+	if (input.config.initialIab?.gvl || input.config.initialIab?.gvlReference) {
 		return input.config;
 	}
 
@@ -545,6 +560,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 						fetch: input.fetch,
 						headers,
 						inputs,
+						onBackgroundRevalidate: input.onBackgroundRevalidate,
 						options,
 						translations,
 						url: input.url,

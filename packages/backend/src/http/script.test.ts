@@ -21,6 +21,18 @@ if (!engine) {
 }
 
 describe('deriveBackendURL', () => {
+	it('normalizes long mount paths without rescanning interior slashes', () => {
+		const prefix = `/api/${'/'.repeat(100_000)}consent`;
+		const start = performance.now();
+		const result = deriveBackendURL(
+			'https://example.test/c15t.js',
+			'/c15t.js',
+			`${prefix}///`
+		);
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(result).toBe(`https://example.test${prefix}`);
+	});
+
 	it('invalidates cached scripts when bundle bytes change without changing length', async () => {
 		const request = {
 			backendURL: 'https://example.test',
@@ -169,6 +181,11 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 			'text/javascript; charset=utf-8'
 		);
 		expect(response.headers.get('cache-control')).toContain('s-maxage=');
+		// Vercel strips the shared-cache directives from a bare Cache-Control;
+		// the same policy in CDN-Cache-Control keeps them visible downstream.
+		expect(response.headers.get('cdn-cache-control')).toBe(
+			response.headers.get('cache-control')
+		);
 		expect(response.headers.get('etag')).toMatch(/^".+"$/u);
 
 		const body = await response.text();

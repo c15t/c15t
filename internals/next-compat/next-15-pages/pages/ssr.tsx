@@ -1,11 +1,11 @@
 import { COMPAT_BACKEND_URL } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
-import type { ConsentBoundaryProps } from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/pages';
+import type { ConsentRootProps } from '@c15t/nextjs';
+import { resolveConsent } from '@c15t/nextjs/pages';
 import type { GetServerSideProps } from 'next';
 
 interface SSRPageProps {
-	config: ConsentBoundaryProps['config'];
+	state: ConsentRootProps['state'];
 }
 
 /**
@@ -15,19 +15,19 @@ interface SSRPageProps {
 export const getServerSideProps: GetServerSideProps<SSRPageProps> = async ({
 	req,
 }) => {
-	const config = await prefetchInitialConsent({
+	const state = await resolveConsent({
 		backendURL: COMPAT_BACKEND_URL,
 		req,
 	});
-	return { props: { config } };
+	return { props: { state } };
 };
 
-const SSRPage = ({ config }: SSRPageProps) => (
+const SSRPage = ({ state }: SSRPageProps) => (
 	<ConsentShell
-		config={config}
+		state={state}
 		scenario="ssr"
 	>
-		<p>prefetchInitialConsent inside getServerSideProps.</p>
+		<p>resolveConsent inside getServerSideProps.</p>
 	</ConsentShell>
 );
 

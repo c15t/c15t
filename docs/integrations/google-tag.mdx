@@ -1,18 +1,53 @@
 ---
 title: Google Tag
-description: Load gtag.js for GA4 and Google Ads behind consent.
-icon: google-analytics
+description: Configure gtag with c15t Consent Mode signals and understand its loading behavior.
 group: integrations
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Register gtag
 
-## Usage
+<CommandTabs command="@c15t/scripts" mode="install" />
 
-TODO.
+```ts title="src/consent-scripts.ts"
+import { gtag } from '@c15t/scripts/google-tag';
 
-## Consent Mode
+export const scripts = [gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })];
+```
 
-TODO.
+Use your Google tag ID and pass `scripts` to the existing provider options.
+Choose `marketing` for a configuration whose purpose is advertising. The
+category describes the integration but does not override `alwaysLoad`.
+Remove a separately installed `gtag.js` snippet or a duplicate tag-manager
+configuration before testing.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Consent Mode is not a zero-request gate
+
+This helper sets `alwaysLoad: true`. It prepares the Google queue, sends consent
+defaults and updates, and loads Google's script even before a visitor makes a
+choice. That is different from preventing any request to Google until consent.
+Google describes the distinction in its
+[Consent Mode overview](https://developers.google.com/tag-platform/security/concepts/consent-mode).
+
+The default mapping is:
+
+| c15t category | Google consent types |
+| --- | --- |
+| `necessary` | `security_storage` |
+| `functionality` | `functionality_storage` |
+| `measurement` | `analytics_storage` |
+| `marketing` | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| `experience` | `personalization_storage` |
+
+`consentMapping` replaces the mapping when supplied. Keep the full set of
+signals your integration needs. Test both default and update commands and the
+actual tag behavior. Do not infer a saved grant from an allowed default under an
+opt-out policy.
+
+## Test event delivery
+
+Confirm the initial consent command precedes configuration and event commands.
+Then reject, grant and revoke permission and inspect updates. Test page-view
+behavior during client navigation so a separate routing integration does not
+send duplicate events or bypass your chosen consent behavior.

@@ -4,14 +4,15 @@ description: Remove configured first-party cookies and Web Storage keys when
   their consent category is denied.
 group: integrations
 ---
+
 ## Configure cleanup
 
 Add `clearOnRevocation` to your provider or runtime options. Declare only the
 data owned by each optional category:
 
 ```ts
-import { hosted, type ClearOnRevocationConfig } from '@c15t/core';
-import { createConsentRuntime } from '@c15t/core/runtime';
+import { hosted, type ClearOnRevocationConfig } from 'c15t';
+import { createConsentRuntime } from 'c15t/runtime';
 
 const clearOnRevocation = {
 	measurement: {
@@ -39,7 +40,7 @@ For React, pass the same configuration through `ConsentProvider.options`:
 
 ```tsx
 import type { ReactNode } from 'react';
-import { ConsentProvider, hosted } from '@c15t/react';
+import { ConsentProvider, hosted } from 'c15t/react';
 
 const mode = hosted({ url: '/api/c15t' });
 
@@ -59,7 +60,7 @@ export function Consent({ children }: { children: ReactNode }) {
 }
 ```
 
-The same option is available in Next.js and TanStack Start boundaries, Vue and
+The same option is available in Next.js and TanStack Start `ConsentRoot` props, Vue and
 Nuxt configuration, Svelte providers, and Astro integration options. Solid and
 other headless integrations can use `createConsentRuntime` as shown above.
 Every adapter uses the same cleanup module.
@@ -133,7 +134,7 @@ For a manually assembled integration, attach the module in the browser after
 persistence hydration and script-loader setup:
 
 ```ts
-import { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
+import { createClearOnRevocation } from 'c15t/modules/clear-on-revocation';
 
 const cleanup = createClearOnRevocation({
 	kernel,

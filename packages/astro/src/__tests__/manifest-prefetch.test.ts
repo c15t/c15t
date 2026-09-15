@@ -1,9 +1,11 @@
+import { clearGvlCache } from '@c15t/core/server';
 import {
 	buildConsentManifestFromConfig,
 	policyRulePresets,
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import { clearManifestCache } from '../api';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
@@ -40,7 +42,7 @@ const options = function options(
 interface RenderInput {
 	path?: string;
 	headers?: Record<string, string>;
-	fetch: typeof globalThis.fetch;
+	fetch?: typeof globalThis.fetch;
 	astroOptions?: C15tAstroOptions;
 }
 
@@ -67,6 +69,7 @@ const render = async function render(
 
 afterEach(() => {
 	clearManifestCache();
+	clearGvlCache();
 });
 
 describe('manifest-mode server prefetch', () => {
@@ -215,3 +218,36 @@ describe('middleware skip list', () => {
 		).toBeDefined();
 	});
 });
+
+it.each(['public', 'custom'] as const)(
+	'preserves %s Astro SSR vendor loading through the caching loader',
+	async (loader) => {
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: {
+				cmpId: 28,
+				enabled: true,
+				gvl: { url: `https://vendors.example/${loader}.json` },
+			},
+			policyRules: [policyRulePresets.europeIab()],
+		});
+		const fetch = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const result = await render({
+				astroOptions: { mode: manifestMode({ manifest }) },
+				fetch: loader === 'custom' ? fetch : undefined,
+				headers: { 'x-c15t-country': 'DE' },
+			});
+			expect(fetch).toHaveBeenCalledOnce();
+			expect(result.c15t?.config.initialIab?.gvl).toEqual(
+				loader === 'public' ? null : completeGVL
+			);
+			expect(Boolean(result.c15t?.config.initialIab?.gvlReference)).toBe(
+				loader === 'public'
+			);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	}
+);

@@ -1,0 +1,41 @@
+---
+title: Fathom Analytics
+description: Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure Fathom Analytics
+
+Copy the site ID from your Fathom snippet. Set SPA behavior deliberately when your application navigates without full page reloads.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+
+export const scripts = [fathomAnalytics({ site: 'YOUR_SITE_ID', spa: 'auto' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `site` | Required site ID, passed as `data-site`. |
+| `spa` | `auto`, `history` or `hash`. Omitted by default, so the helper does not enable SPA routing. |
+| `auto / canonical / honorDnt` | Optional booleans passed as data attributes. Omitted values leave the vendor defaults in place. |
+| `scriptUrl` | Defaults to `https://cdn.usefathom.com/script.js`. |
+
+## Consent behavior
+
+The script waits for measurement permission. The helper does not call a Fathom stop API after revocation. Application event calls and any routing listeners need separate verification.
+
+## Verify the integration
+
+Check the site ID and `data-spa` attribute, then compare a full page load with client navigation. Avoid installing both this helper and another Fathom routing plugin.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

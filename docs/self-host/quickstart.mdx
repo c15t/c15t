@@ -1,21 +1,75 @@
 ---
 title: Quickstart
-description: Self-host the c15t consent backend in your own infrastructure.
+description: Run the consent backend when you need to operate its database, policy and infrastructure yourself.
 group: self-host
 ---
 
-<Callout type="info">
-  This page is a placeholder for the v3 docs rewrite.
-</Callout>
+## Choose self-hosting deliberately
 
-## Install
+[Inth](https://inth.com) is the recommended hosted setup. Self-hosting gives you
+responsibility for database operations, migrations, service availability,
+secrets, policy configuration and upgrades. Client applications still use the
+hosted transport, pointed at your service.
 
-TODO.
+## Configure the backend
 
-## Configure
+<CommandTabs command="@c15t/backend" mode="install" />
 
-TODO.
+Install `@c15t/backend` and the SQL driver matching your backend release. For the
+SQLite recipe, use `@effect/sql-sqlite-node` at the version declared by the
+backend's peer dependencies.
 
-## Run
+```ts title="c15t-backend.config.ts"
+import { defineConfig, policyRulePresets } from '@c15t/backend';
 
-TODO.
+export default defineConfig({
+  database: { dialect: 'sqlite', filename: './consent.db' },
+  trustedOrigins: ['http://localhost:3000'],
+  manifest: { policyRules: [policyRulePresets.europeOptIn()] },
+});
+```
+
+This is a local development configuration. Review policy scope and configure
+production origins before deployment. Use persistent storage for the database
+file; an ephemeral filesystem does not retain consent history.
+
+## Create the database schema
+
+Install a compatible v3 CLI locally, then run the migration against the same
+configuration used by the server:
+
+```bash
+bun run cli self-host migrate --config ./c15t-backend.config.ts
+```
+
+Review the migration report before applying it. Back up an existing database
+before upgrading. See [database setup](/docs/self-host/guides/database-setup).
+
+## Mount the request handler
+
+This Next.js Node-runtime example mounts the backend at `/api/c15t`:
+
+```ts title="app/api/c15t/[[...path]]/route.ts"
+import { c15tInstance } from '@c15t/backend';
+import config from '../../../../c15t-backend.config';
+
+export const runtime = 'nodejs';
+const instance = c15tInstance({ ...config, basePath: '/api/c15t' });
+export const GET = (request: Request) => instance.handler(request);
+export const POST = GET;
+export const PUT = GET;
+export const PATCH = GET;
+export const OPTIONS = GET;
+```
+
+Create one instance for the server module rather than a new database pool per
+request. A test or short-lived script should call `instance.dispose()` when it
+finishes. A different framework can pass its web `Request` to the same handler.
+
+Set the client's backend URL to the mounted service. Request prefetch requires
+an absolute URL. Test origins, initialization, a saved choice and subsequent
+retrieval before routing production traffic to the backend.
+
+Continue with [configuration](/docs/self-host/api/configuration),
+[HTTP endpoints](/docs/self-host/api/endpoints) and
+[policy configuration](/docs/self-host/guides/policy-packs).

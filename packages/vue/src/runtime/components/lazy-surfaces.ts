@@ -1,3 +1,4 @@
+// Keep lazy module filenames neutral: Vite derives chunk URLs from them.
 /**
  * Lazy surface loading (mirrors the React adapter's chunk strategy).
  *
@@ -15,13 +16,13 @@
 import { defineAsyncComponent } from 'vue';
 
 export const LazyConsentManager = defineAsyncComponent(
-	() => import('./consent-manager.vue')
+	() => import('./manager.vue')
 );
 export const LazyIabConsentBanner = defineAsyncComponent(
-	() => import('./iab-consent-banner.vue')
+	() => import('./iab-prompt.vue')
 );
 export const LazyIabConsentDialog = defineAsyncComponent(
-	() => import('./iab-consent-dialog.vue')
+	() => import('./iab-panel.vue')
 );
 
 /**
@@ -60,8 +61,8 @@ export const prefetchSurfaceAfterLoad = function prefetchSurfaceAfterLoad(
 	}
 };
 
-const loadConsentManager = () => import('./consent-manager.vue');
-const loadIabConsentDialog = () => import('./iab-consent-dialog.vue');
+const loadConsentManager = () => import('./manager.vue');
+const loadIabConsentDialog = () => import('./iab-panel.vue');
 
 export const prefetchConsentManager = () =>
 	prefetchSurfaceAfterLoad(loadConsentManager);

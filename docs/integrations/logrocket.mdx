@@ -1,0 +1,41 @@
+---
+title: LogRocket
+description: Configure LogRocket with c15t v3, understand measurement permission and verify loading and revocation.
+group: integrations
+---
+
+## Configure LogRocket
+
+Use the LogRocket app ID in `org-slug/app-slug` form. The helper calls `LogRocket.init` after the SDK loads.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { logRocket } from '@c15t/scripts/logrocket';
+
+export const scripts = [logRocket({ appId: 'your-org/your-app' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `appId` | Required app ID in `org-slug/app-slug` form. |
+| `initOptions` | Optional JSON-serializable init options. Functions cannot be passed through this helper. |
+| `scriptUrl` | Defaults to `https://cdn.logrocket.io/LogRocket.min.js`. |
+| `asyncScriptUrl` | Optional logger-bundle URL for proxied installations. Sets `window._lrAsyncScript` before loading. |
+
+## Consent behavior
+
+The SDK waits for measurement permission. The helper does not provide a LogRocket shutdown callback. Review recording and network-capture settings and implement any required post-load revocation handling through the SDK.
+
+## Verify the integration
+
+For a proxy, check both the main loader and the asynchronously loaded logger bundle. Confirm recording stops as intended after revocation; a missing script tag is insufficient.
+
+Use a fresh session with an opt-in policy to check initial denial. Then grant
+`measurement`, revoke it, and reload. Inspect both network requests and future
+application events. Removing a script cannot undo code or requests that already
+ran. Follow the [consent verification guide](/docs/guides/verify-consent).

@@ -15,6 +15,7 @@ import type {
 	CreatePolicySession,
 	ProbePolicyContract,
 } from '@c15t/conformance/contract/policy-driver';
+import { deferInitGvl } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentKernel,
@@ -44,18 +45,18 @@ import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 
-import type { FrameworkBoundary } from './framework-boundary';
+import type { FrameworkRoot } from './framework-root';
 import type { policyFixture as PolicyFixture } from './policy-fixture';
 
 /** Runs the same assertions against each framework's own boundary. */
 export const runFrameworkConformance = ({
-	Boundary: ConsentBoundary,
+	Root: ConsentRoot,
 	framework,
 	policyFixture,
 	createPolicySession,
 	probePolicyContract,
 }: {
-	Boundary: FrameworkBoundary;
+	Root: FrameworkRoot;
 	framework: TestDriver['framework'];
 	policyFixture: typeof PolicyFixture;
 	createPolicySession: CreatePolicySession;
@@ -237,6 +238,8 @@ export const runFrameworkConformance = ({
 			},
 			scopeMode: 'strict',
 		});
+		const authoritative =
+			(opts.initMode ?? 'authoritative') === 'authoritative';
 		return {
 			...provided,
 			disableAnimation: true,
@@ -245,12 +248,20 @@ export const runFrameworkConformance = ({
 			prefetch: {
 				...prepared,
 				...provided.prefetch,
-				initialPolicyPending:
-					opts.initMode === 'pending' || opts.initMode === 'failing',
-				initialPolicyResolution:
-					(opts.initMode ?? 'authoritative') === 'authoritative'
-						? prepared.initialPolicyResolution
+				// A server that resolved an IAB policy ships the vendor list in
+				// the state, which is what lets the IAB banner server-render.
+				initialIab:
+					isIabComponent(opts.component) && authoritative
+						? {
+								cmpId: IAB_FIXTURE_CMP_ID,
+								enabled: true,
+								gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+							}
 						: undefined,
+				initialPolicyPending: !authoritative,
+				initialPolicyResolution: authoritative
+					? prepared.initialPolicyResolution
+					: undefined,
 				initialPrivacySignals: { gpc: opts.gpc },
 				initialTranslations: resolveTranslations(provided, opts.locale),
 			},
@@ -394,8 +405,8 @@ export const runFrameworkConformance = ({
 			/>
 		);
 		return (
-			<ConsentBoundary
-				config={options.prefetch ?? {}}
+			<ConsentRoot
+				state={options.prefetch ?? {}}
 				options={options}
 				persistence={options.persistence}
 			>
@@ -411,7 +422,7 @@ export const runFrameworkConformance = ({
 				) : (
 					content
 				)}
-			</ConsentBoundary>
+			</ConsentRoot>
 		);
 	};
 
@@ -530,6 +541,12 @@ export const runFrameworkConformance = ({
 		probePolicyContract,
 		serverRender(opts: MountOptions): Promise<string> {
 			const options = buildProviderOptions(opts);
+			if (options.prefetch?.initialIab?.gvl) {
+				Object.assign(
+					options.prefetch.initialIab,
+					deferInitGvl({ gvl: options.prefetch.initialIab.gvl }, '/test-gvl')
+				);
+			}
 			return Promise.resolve(
 				renderToString(
 					renderTree(opts, options, () => {

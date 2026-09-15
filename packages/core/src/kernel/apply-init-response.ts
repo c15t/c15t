@@ -2,8 +2,8 @@
  * Fold a complete transport response through the versioned policy reader.
  * Missing or invalid policy contracts fail safely and clear policy proof.
  */
-import type { PolicyResolution } from '@c15t/schema/types';
 import { readPolicyResolutionWire } from '@c15t/schema/types';
+import type { PolicyResolution } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
@@ -101,6 +101,7 @@ export const applyInitResponse = function applyInitResponse(
 	// IAB passthrough: fold gvl / customVendors / cmpId into the iab slice.
 	let nextIab: KernelIABState | null | undefined;
 	if (
+		response.gvlReference !== undefined ||
 		response.gvl !== undefined ||
 		response.customVendors !== undefined ||
 		response.cmpId !== undefined
@@ -114,9 +115,19 @@ export const applyInitResponse = function applyInitResponse(
 					? baseline.customVendors
 					: response.customVendors,
 			gvl: response.gvl === undefined ? baseline.gvl : response.gvl,
+			gvlReference:
+				response.gvl === undefined
+					? baseline.gvlReference
+					: response.gvlReference,
 		};
+		if (response.gvlReference !== undefined) {
+			nextIab.gvl = response.gvl ?? null;
+			nextIab.gvlReference = response.gvlReference;
+		}
 		// Server explicitly returned `gvl: null` → IAB disabled for this request.
-		if (response.gvl === null) {
+		if (response.gvlReference) {
+			nextIab.enabled = true;
+		} else if (response.gvl === null) {
 			nextIab.enabled = false;
 		}
 	}

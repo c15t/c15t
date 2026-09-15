@@ -22,6 +22,7 @@ export default defineNuxtConfig({
 	compatibilityDate: '2026-07-04',
 	devtools: { enabled: true },
 	modules: ['c15t/vue'],
+	runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
 	typescript: { strict: true },
 	vite: {
 		ssr: {

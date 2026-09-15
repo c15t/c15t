@@ -29,9 +29,9 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { sveltekitBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -448,73 +448,7 @@ type SvelteKitBrowserSample = Omit<
 	interactionLatencyMs?: number;
 };
 
-const budgetsForScenario = function budgetsForScenario(
-	scenario: string
-): MetricBudget[] {
-	const shared = browserBudgets.filter((budget) =>
-		[
-			'bannerReadyMs',
-			'lastAppScriptEndMs',
-			'interactionLatencyMs',
-			'longTaskTotalMs',
-		].includes(budget.metric)
-	);
-
-	if (scenario === 'baseline' || scenario === 'baseline-client') {
-		// Zero-consent floors: no consent traffic is the whole point.
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'The zero-consent baseline must not touch a consent endpoint.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	if (
-		scenario === 'ssr' ||
-		scenario === 'ssr-manifest' ||
-		scenario === 'repeat-visitor'
-	) {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'SSR and repeat-visitor routes should not trigger browser-observed init requests.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	if (scenario === 'client-manifest') {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'Browser-resolved manifest mode boots without any init request.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	return [
-		...shared,
-		{
-			comparator: 'count-eq',
-			description:
-				'Client SPA flow should make exactly one init request on cold load.',
-			metric: 'initRequestsAfterLoad',
-			threshold: 1,
-		},
-	];
-};
+const budgetsForScenario = sveltekitBrowserBudgetsForScenario;
 
 interface BenchConsentFixtureCounts {
 	init: number;

@@ -51,24 +51,13 @@ describe('selfHost command', () => {
 		expect(migrate).toHaveBeenCalledWith(context);
 	});
 
-	it('shows usage guidance for unknown subcommands', async () => {
-		const context = createMockContext(['unknown']);
-
-		await selfHost(context, dependencies);
-
-		expect(context.logger.error).toHaveBeenCalledWith(
-			'Unknown self-host subcommand: unknown'
+	it('throws for unknown subcommands', async () => {
+		const context = createMockContext();
+		context.commandArgs = ['unknown'];
+		await expect(selfHost(context, dependencies)).rejects.toThrow(
+			'Unknown command'
 		);
-		expect(context.logger.info).toHaveBeenCalledWith(
-			'Usage: c15t self-host <migrate>'
-		);
-		expect(context.telemetry.trackEvent).toHaveBeenCalledWith(
-			TelemetryEventName.SELF_HOST_COMPLETED,
-			{
-				reason: 'unknown_subcommand',
-				success: false,
-			}
-		);
+		expect(dependencies.migrate).not.toHaveBeenCalled();
 	});
 
 	it('exits self-host menu gracefully when Exit is selected', async () => {

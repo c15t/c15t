@@ -69,6 +69,15 @@ const runPreflightChecks = async function runPreflightChecks(
 		status: hasPackageJson ? 'pass' : 'fail',
 	});
 
+	if (framework.manualSetupUrl) {
+		checks.push({
+			hint: framework.manualSetupUrl,
+			message: `${framework.framework} requires manual integration.`,
+			name: 'Generator support',
+			status: 'fail',
+		});
+	}
+
 	// Check 2: Framework detected
 	checks.push({
 		hint: framework.framework ? undefined : 'Will use vanilla JavaScript setup',

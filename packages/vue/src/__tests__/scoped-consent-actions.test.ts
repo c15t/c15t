@@ -7,7 +7,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 
-import ConsentActions from '../runtime/components/consent-actions.vue';
+import ConsentActions from '../runtime/components/actions.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentSave } from '../runtime/composables/consent';
 import { symbolInit, symbolKernel } from '../runtime/utils/symbols';

@@ -143,11 +143,21 @@ const assertLogs = function assertLogs(
 	if (expected.diagnostic !== undefined) {
 		api
 			.expect(
-				after.diagnostics
-					.slice(before.diagnostics.length)
-					.some((message) =>
-						/prominence|primaryButton|equal.*(?:accept|reject)/iu.test(message)
-					)
+				after.diagnostics.slice(before.diagnostics.length).some((message) => {
+					const normalized = message.toLowerCase();
+					return (
+						normalized.includes('prominence') ||
+						normalized.includes('primarybutton') ||
+						normalized.split(/[\n\r\u2028\u2029]/u).some((line) => {
+							const equal = line.indexOf('equal');
+							return (
+								equal !== -1 &&
+								(line.includes('accept', equal + 5) ||
+									line.includes('reject', equal + 5))
+							);
+						})
+					);
+				})
 			)
 			.toBe(true);
 	}

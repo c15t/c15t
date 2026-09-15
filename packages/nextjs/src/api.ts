@@ -1,20 +1,25 @@
-import { c15tProtocolHeaders, fetchCachedGvl } from '@c15t/core';
+import {
+	deferInitGvlToRoute,
+	serveGvlReference,
+	c15tProtocolHeaders,
+	fetchCachedGvl,
+} from '@c15t/core';
 import {
 	fetchCachedManifest as fetchManifestThroughCache,
 	getManifestAge,
 	parseCacheDirectiveSeconds,
 } from '@c15t/core/libs/manifest-cache';
-import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
 import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 	resolveBackendURL,
 	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentManifestGVLReference,
+	GlobalVendorList,
+	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
@@ -54,6 +59,27 @@ export interface NextConsentManifestHandlersOptions {
 	manifestRevalidateSeconds?: number | false;
 
 	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * Receives the promise of a background manifest revalidation started by
+	 * a request, so the host can keep it alive past the response on runtimes
+	 * that stop detached work once a response is sent. Called inside the
+	 * handler, so `after` from `next/server` (Next 15.1 and later; 15.0
+	 * exposes it as `unstable_after`) can be used directly. The promise
+	 * never rejects. Not called when the manifest is fresh or the request
+	 * itself waits on the upstream.
+	 *
+	 * @example
+	 * ```ts
+	 * import { after } from 'next/server';
+	 *
+	 * createNextConsentRouteHandlers({
+	 *   ...consentConfig,
+	 *   onBackgroundRevalidate: (refresh) => after(() => refresh),
+	 * });
+	 * ```
+	 */
+	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 
 	fetchGvl?: (input: {
 		reference: ConsentManifestGVLReference;
@@ -211,6 +237,7 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 		fetch: options.fetch,
 		headers: nextHeaders as Record<string, string>,
 		init,
+		onBackgroundRevalidate: options.onBackgroundRevalidate,
 		url: manifestURL,
 	});
 
@@ -299,6 +326,18 @@ export const createNextConsentRouteHandlers =
 		return {
 			async GET(request: Request): Promise<Response> {
 				const { manifest } = await fetchCachedManifest(request, options);
+				const listResponse = await serveGvlReference(request, (language) =>
+					manifest.iab?.gvl
+						? (options.fetchGvl ?? defaultFetchGvl)({
+								fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+								language,
+								reference: manifest.iab.gvl,
+							})
+						: Promise.resolve(null)
+				);
+				if (listResponse) {
+					return listResponse;
+				}
 				const inputs = extractConsentRequestInputs(request.headers);
 				const payload = resolveInitFromManifest(manifest, inputs, {
 					baseTranslations,
@@ -329,12 +368,15 @@ export const createNextConsentRouteHandlers =
 					});
 				}
 
-				return Response.json(payload, {
-					headers: {
-						'cache-control': INIT_CACHE_CONTROL,
-						[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
-					},
-				});
+				return Response.json(
+					deferInitGvlToRoute(payload, new URL(request.url).pathname),
+					{
+						headers: {
+							'cache-control': INIT_CACHE_CONTROL,
+							[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
+						},
+					}
+				);
 			},
 
 			async manifestGET(request: Request): Promise<Response> {

@@ -1,5 +1,6 @@
 import type { ConsentRuntime } from '@c15t/core/runtime';
 // oxlint-disable oxc/no-barrel-file -- Public framework entry point intentionally re-exports the supported API.
+import { getCurrentInstance } from 'vue';
 import type { App, Plugin } from 'vue';
 
 import { consentConfigKey } from './runtime/composables/config';
@@ -18,6 +19,7 @@ import {
 } from './runtime/utils/symbols';
 
 export type * from '@c15t/schema/config';
+export { defineTheme, type Theme } from '@c15t/ui/theme';
 export * from './runtime/composables';
 export type {
 	ConsentConfig,
@@ -64,7 +66,8 @@ export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
 		let disposeRuntime = () => context.dispose();
 		app.mixin({
 			mounted() {
-				if (this.$root === this) {
+				// Exposed roots have a different public proxy from lifecycle `this`.
+				if (getCurrentInstance()?.parent === null) {
 					disposeRuntime = startVueConsentRuntime(context, config, {
 						runInit: !config.prefetch,
 					});

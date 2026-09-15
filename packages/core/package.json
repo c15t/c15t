@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/core",
-	"version": "2.2.0-canary-20260731105620",
+	"version": "3.0.0-alpha.0",
 	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
 		"ccpa",
@@ -133,7 +133,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/prune-dist-types.ts && bun ../../scripts/generate-package-docs.ts @c15t/core",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/prune-dist-types.ts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
@@ -141,7 +141,7 @@
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
 	},

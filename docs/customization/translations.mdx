@@ -1,0 +1,48 @@
+---
+title: Copy and translations
+description: Change consent wording through i18n and test the complete prompt and preferences flow.
+group: customization
+---
+
+## Configure shared messages
+
+Use provider `i18n` for wording that should stay consistent across components.
+For React, this fragment belongs in `ConsentProvider` options:
+
+```tsx
+i18n: {
+  messages: {
+    en: {
+      common: {
+        acceptAll: 'Accept all',
+        rejectAll: 'Reject optional',
+        customize: 'Choose cookies',
+        acknowledge: 'Got it',
+      },
+    },
+  },
+}
+```
+
+Supply the same message keys in each supported locale. A one-off component prop
+such as `dismissButtonText` is useful for one banner; use translations for a
+site-wide change. Astro's serializable integration options and Vue's module
+configuration have their own types, so verify those shapes before copying a
+React object.
+
+## Write labels that describe the action
+
+Accept and Reject record a choice. Customize opens preferences. Acknowledge
+dismisses a notice and does not record a grant. Do not label a notice dismissal
+"Accept all" or make a preferences link sound like it submits an opt-out.
+
+The notice acknowledgement uses `common.acknowledge`, with `common.dismiss` as
+a fallback for older translation bundles. Keep the displayed label and the
+command's effect aligned.
+
+## Test more than English
+
+Try the longest labels you support at a narrow width, with browser zoom and
+right-to-left text where relevant. Check banner actions, category descriptions,
+legal links and the preferences save action. Translate explanations as well as
+buttons so a visitor can make an informed choice.

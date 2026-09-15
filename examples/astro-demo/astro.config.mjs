@@ -1,8 +1,10 @@
+import { fileURLToPath } from 'node:url';
+
 import node from '@astrojs/node';
 import react from '@astrojs/react';
 import svelte from '@astrojs/svelte';
 import vue from '@astrojs/vue';
-import c15t, { offline } from '@c15t/astro';
+import c15t, { offline, hosted } from '@c15t/astro';
 import { defineConfig } from 'astro/config';
 
 import { demoGvl, demoIabPolicy } from './demo-gvl.mjs';
@@ -61,6 +63,9 @@ export default defineConfig({
 	integrations: [
 		uiIntegrations[ui],
 		c15t({
+			clientEntrypoint: fileURLToPath(
+				new URL('./src/consent-client.ts', import.meta.url)
+			),
 			consentCategories: [
 				'necessary',
 				'functionality',
@@ -77,6 +82,10 @@ export default defineConfig({
 			// vendor list the server needs to render the IAB banner at all;
 			// hosted and manifest mode get theirs from `/init`.
 			...iabOptions,
+			mode:
+				process.env.C15T_BACKEND_URL && !iab
+					? hosted({ url: process.env.C15T_BACKEND_URL })
+					: iabOptions.mode,
 			scripts: [
 				{
 					category: 'measurement',

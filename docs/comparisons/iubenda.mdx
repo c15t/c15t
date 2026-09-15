@@ -1,0 +1,43 @@
+---
+title: c15t vs iubenda
+description: Compare iubenda consent and legal-document packages with c15t v3 application integration and Inth-managed policy and records.
+group: reference
+---
+
+## Decide whether legal-document tooling belongs in the purchase
+
+Evaluate iubenda when the purchase needs to cover consent tooling together with
+privacy and cookie policy generation. Evaluate c15t when the task is integrating
+consent state, controls and vendor loading into an application, with Inth as
+the recommended managed backend.
+
+iubenda's pricing table includes its Privacy Controls and Cookie Solution,
+legal-document generation and plan-dependent services. It separates included
+pageviews and extra usage, and distinguishes cookie consent records from form
+consent services. Those are separate budget inputs.
+[iubenda pricing and inclusions](https://www.iubenda.com/en/pricing/)
+
+## Compare the scope you need
+
+| Requirement | c15t v3 | iubenda |
+| --- | --- | --- |
+| Application consent state | Framework hooks and policy-aware UI | Validate the integration API for the application |
+| Managed records | Configure Inth policy and consent submissions | Check the consent record services included in the plan |
+| Legal documents | Supply and maintain the application's disclosures | Evaluate the included generators and their coverage |
+| Cost model | Confirm Inth terms or self-hosted operating costs | Check pageviews, overage, form consent and required plan features |
+
+With c15t, supply your own privacy and cookie disclosures. Linking to a policy
+from a banner does not generate or maintain that document.
+
+## Test the complete disclosure workflow
+
+Choose one vendor used by your application. Update its disclosure, register its
+consent-aware loading behavior, and inspect the resulting preference screen.
+Verify where the corresponding decision is stored. If you use iubenda for
+legal documents and evaluate c15t for runtime consent, identify which product
+owns the banner and which owns the document so you do not mount two consent
+interfaces or double-initialize a tag.
+
+For the c15t runtime, start with [Inth](https://inth.com) and the [framework setup](/docs/frameworks). Keep legal-document ownership explicit if you retain iubenda for that service.
+
+Sources reviewed on 10 September 2026.

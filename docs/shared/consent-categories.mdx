@@ -1,0 +1,26 @@
+## Choose categories by purpose
+
+| Category | Purpose |
+| --- | --- |
+| `necessary` | Functionality required for the site to operate |
+| `functionality` | Optional features such as support widgets |
+| `measurement` | Analytics and usage measurement |
+| `experience` | Optional personalization |
+| `marketing` | Advertising and marketing |
+
+`necessary` is always permitted. Assign categories based on what an integration
+does in your application; renaming analytics to necessary does not change its
+purpose. The provider's displayed categories and the resolved policy scope must
+agree.
+
+## Respect policy scope
+
+A strict scope denies categories outside the rule. A permissive scope can allow
+out-of-scope categories unless another restriction applies. When a rule selects
+only some optional categories, set `scopeMode` explicitly. An omitted scope,
+`['*']`, or a list containing only `necessary` expands to the default optional
+categories; a necessary-only list is not a shortcut for disabling all tracking.
+
+Use effective permissions to gate work and explicit choices to inspect what the
+visitor confirmed. Read [consent state](/docs/guides/consent-state) for that
+distinction and [migration](/docs/upgrade-v3) for v3 policy configuration.

@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import { baselineServerOutputDir } from './scripts/baseline';
+import { baselineServerOutputDir } from '@c15t/benchmarking/nuxt-baseline';
 
 const getBenchManifestURL = function getBenchManifestURL() {
 	const token = process.env.C15T_BENCH_COLD_MANIFEST_TOKEN;

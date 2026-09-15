@@ -784,13 +784,19 @@ describe('evaluateConsentRecord: meaningful deadlines', () => {
 describe('evaluateConsentRecord: the none model', () => {
 	it('grants in-scope categories, owes no prompt and ignores GPC unless mapped', () => {
 		const policy = makePolicy({ model: 'none', prompt: 'none' });
-		const fresh = evaluateConsentRecord({ choice: null, now: NOW, policy });
+		const fresh = evaluateConsentRecord({
+			choice: null,
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
 		expect(fresh.permissions).toEqual(allTrue);
 		expect(fresh.promptRequirement).toEqual({ kind: 'none' });
 		expect(fresh.nextDeadline).toBeNull();
 		const signalled = evaluateConsentRecord({
 			choice: null,
 			gpc: true,
+			noticeDismissal: null,
 			now: NOW,
 			policy,
 		});
@@ -798,6 +804,7 @@ describe('evaluateConsentRecord: the none model', () => {
 		const mapped = evaluateConsentRecord({
 			choice: null,
 			gpc: true,
+			noticeDismissal: null,
 			now: NOW,
 			policy: makePolicy({
 				gpcDenyCategories: ['marketing'],

@@ -57,6 +57,18 @@ describe('codemod versioning', () => {
 		expect(version).toBeNull();
 	});
 
+	it('ignores independently versioned integrations and CLI dependencies', () => {
+		expect(
+			detectInstalledC15tVersionFromPackageJson({
+				dependencies: {
+					'@c15t/cli': '^1.5.0',
+					'@c15t/scripts': '^1.0.0',
+					c15t: '^3.0.0',
+				},
+			})
+		).toBe('3.0.0');
+	});
+
 	it('filters codemods using from/to ranges', () => {
 		const versioning = {
 			fromRange: '<2.0.0',

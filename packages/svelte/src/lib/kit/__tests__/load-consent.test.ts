@@ -6,6 +6,7 @@ import {
 } from '@c15t/schema/types';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { completeGVL } from '../../../../../iab/src/__tests__/fixtures/gvl-sample';
 import { c15tHandle } from '../handle';
 import { loadConsent } from '../load-consent';
 import type { C15tLocals } from '../types';
@@ -285,3 +286,29 @@ describe('loadConsent', () => {
 		expect(JSON.parse(JSON.stringify(config))).toEqual(config);
 	});
 });
+
+test.each(['public', 'custom', 'cookie', 'authorization'] as const)(
+	'preserves the %s hosted SvelteKit GVL loading contract',
+	async (mode) => {
+		const fetch = vi.fn(() =>
+			Promise.resolve(Response.json({ ...INIT_PAYLOAD, gvl: completeGVL }))
+		);
+		const headers = new Headers();
+		if (mode === 'cookie') {
+			headers.set('cookie', 'session=private');
+		}
+		if (mode === 'authorization') {
+			headers.set('authorization', 'Bearer private');
+		}
+		const event = createEvent({ fetch, headers: Object.fromEntries(headers) });
+		const config = await loadConsent(event, {
+			backendURL: 'https://api.example.com',
+			fetch: mode === 'custom' ? fetch : undefined,
+		});
+		expect(fetch).toHaveBeenCalledOnce();
+		expect(config.initialIab?.gvl).toEqual(
+			mode === 'public' ? null : completeGVL
+		);
+		expect(Boolean(config.initialIab?.gvlReference)).toBe(mode === 'public');
+	}
+);

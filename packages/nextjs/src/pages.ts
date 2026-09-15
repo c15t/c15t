@@ -9,10 +9,10 @@
  * @example
  * ```ts
  * // pages/index.tsx
- * import { prefetchInitialConsent } from '@c15t/nextjs/pages';
+ * import { resolveConsent } from '@c15t/nextjs/pages';
  *
  * export const getServerSideProps = async ({ req }) => ({
- * 	props: { config: await prefetchInitialConsent({ backendURL: '/api/c15t', req }) },
+ * 	props: { state: await resolveConsent({ backendURL: '/api/c15t', req }) },
  * });
  * ```
  */
@@ -27,15 +27,12 @@ import type {
 } from './node-bridge';
 import { toWebHeaders, toWebRequest, writeWebResponse } from './node-bridge';
 import type {
+	ConsentState,
 	KernelConfig,
 	NextRequestContext,
-	PrefetchInitialConsentOptions,
-	ReadInitialConsentConfigOptions,
+	ResolveConsentOptions,
 } from './server';
-import {
-	prefetchInitialConsent as prefetchInitialConsentFromContext,
-	readInitialConsentConfig as readInitialConsentConfigFromContext,
-} from './server';
+import { resolveConsent as resolveConsentFromContext } from './server';
 
 export type {
 	NodeApiRequestLike,
@@ -45,6 +42,7 @@ export type {
 } from './node-bridge';
 export type {
 	ConsentConfig,
+	ConsentState,
 	KernelConfig,
 	NextConsentManifestHandlersOptions,
 	NextRequestContext,
@@ -52,27 +50,18 @@ export type {
 export { defineConsentConfig } from './config';
 
 /**
- * `readInitialConsentConfig` options without the `request` adapter, which
- * this entry derives from `req`.
+ * `resolveConsent` options with the Node request in place of the `request`
+ * adapter, which this entry derives from `req`.
  */
-export type PagesReadInitialConsentConfigOptions = Omit<
-	ReadInitialConsentConfigOptions,
+export type PagesResolveConsentOptions = Omit<
+	ResolveConsentOptions,
 	'request'
->;
-
-/**
- * `prefetchInitialConsent` options with the Node request in place of the
- * `request` adapter.
- */
-export interface PagesPrefetchInitialConsentOptions extends Omit<
-	PrefetchInitialConsentOptions,
-	'request'
-> {
+> & {
 	/**
 	 * The `req` from `getServerSideProps` or an API route.
 	 */
 	req: NodeRequestLike;
-}
+};
 
 /**
  * Builds the `request` adapter the server helpers expect from a Node
@@ -93,46 +82,28 @@ export const createPagesRequestContext = function createPagesRequestContext(
 };
 
 /**
- * Derive a `KernelConfig` from a Pages Router request. Same behaviour as
- * `readInitialConsentConfig` from `@c15t/nextjs/server`, reading cookies and
- * geo headers from `req` instead of `next/headers`. The result is plain JSON,
- * so it can be returned from `getServerSideProps` as a prop.
- *
- * @param req - `req` from `getServerSideProps` or an API route
- * @param options - Cookie name and header overrides
- * @returns A JSON-serializable `KernelConfig`
- */
-export const readInitialConsentConfig = function readInitialConsentConfig(
-	req: NodeRequestLike,
-	options: PagesReadInitialConsentConfigOptions = {}
-): Promise<KernelConfig> {
-	return readInitialConsentConfigFromContext({
-		...options,
-		request: createPagesRequestContext(req),
-	});
-};
-
-/**
- * Server-side consent prefetch for `getServerSideProps`. Same behaviour as
- * `prefetchInitialConsent` from `@c15t/nextjs/server`, reading the request
- * from `req`. The result is plain JSON, so hand it to `ConsentBoundary` as a
- * prop.
+ * Resolve the visitor's consent state in `getServerSideProps`. Same
+ * behaviour as `resolveConsent` from `@c15t/nextjs/server`, reading cookies
+ * and geo headers from `req` instead of `next/headers`: without a backend
+ * URL it returns the request-only state, with one it also folds in the
+ * backend or manifest init. The result is plain JSON, so return it as a
+ * prop and hand it to `ConsentRoot`.
  *
  * @param options - Backend URL or a `defineConsentConfig` result, the Node
  * `req`, and the server helper options
- * @returns A JSON-serializable `KernelConfig`
+ * @returns The visitor's JSON-serializable `ConsentState`
  * @example
  * ```ts
  * export const getServerSideProps = async ({ req }) => ({
- * 	props: { config: await prefetchInitialConsent({ config: consentConfig, req }) },
+ * 	props: { state: await resolveConsent({ config: consentConfig, req }) },
  * });
  * ```
  */
-export const prefetchInitialConsent = function prefetchInitialConsent(
-	options: PagesPrefetchInitialConsentOptions
-): Promise<KernelConfig> {
+export const resolveConsent = function resolveConsent(
+	options: PagesResolveConsentOptions
+): Promise<ConsentState> {
 	const { req, ...rest } = options;
-	return prefetchInitialConsentFromContext({
+	return resolveConsentFromContext({
 		...rest,
 		request: createPagesRequestContext(req),
 	});
