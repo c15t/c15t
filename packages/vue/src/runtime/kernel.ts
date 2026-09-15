@@ -540,13 +540,9 @@ export const createVueConsentKernelContext =
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
 		const unsubscribeChoice = kernel.events.on(
 			'choice:recorded',
-			({ snapshot: eventSnapshot, confirmed, actionAt }) => {
+			({ type: _type, ...event }) => {
 				(ownsKernel ? options.config.callbacks : undefined)?.onChoiceRecorded?.(
-					{
-						actionAt,
-						confirmed,
-						snapshot: eventSnapshot,
-					}
+					event
 				);
 			}
 		);

@@ -15,7 +15,6 @@ export interface CompatProbeState {
 	hasPolicy: boolean;
 	policyProvisional: boolean;
 	countryCode: string | null;
-	onBannerFetchedCount: number;
 	onConsentSetCount: number;
 	onErrorCount: number;
 }
@@ -25,7 +24,7 @@ declare global {
 		__c15tCompat?: CompatProbeState;
 		__c15tCompatCounters?: Pick<
 			CompatProbeState,
-			'onBannerFetchedCount' | 'onConsentSetCount' | 'onErrorCount'
+			'onConsentSetCount' | 'onErrorCount'
 		>;
 	}
 }
@@ -35,7 +34,6 @@ export const getCompatCounters = function getCompatCounters() {
 		return undefined;
 	}
 	window.__c15tCompatCounters ??= {
-		onBannerFetchedCount: 0,
 		onConsentSetCount: 0,
 		onErrorCount: 0,
 	};
@@ -53,7 +51,6 @@ export const CompatProbe = ({ scenario }: { scenario: string }) => {
 			countryCode: snapshot.location?.countryCode ?? null,
 			hasConsented: snapshot.explicitChoice !== null,
 			hasPolicy: snapshot.resolution.status === 'matched',
-			onBannerFetchedCount: counters?.onBannerFetchedCount ?? 0,
 			onConsentSetCount: counters?.onConsentSetCount ?? 0,
 			onErrorCount: counters?.onErrorCount ?? 0,
 			policyProvisional: snapshot.policyPending,

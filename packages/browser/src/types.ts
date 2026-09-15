@@ -15,6 +15,7 @@ import type {
 	KernelOverrides,
 	KernelUser,
 	LegalLinks,
+	OnSurfaceShownPayload,
 	PolicyRule,
 	policyRulePresets,
 	ProviderTransportFactory,
@@ -232,6 +233,8 @@ export interface ConsentClientEventMap {
 	consent: ConsentSnapshot;
 	/** The surface the runtime wants shown changed. */
 	ui: KernelActiveUI;
+	/** The banner or the dialog became visible. Count it as an impression. */
+	surfaceShown: OnSurfaceShownPayload;
 	/** A transport call failed. */
 	error: unknown;
 }

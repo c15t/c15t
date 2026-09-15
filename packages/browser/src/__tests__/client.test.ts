@@ -184,6 +184,25 @@ describe('createConsentClient', () => {
 		document.removeEventListener('c15t:ui', onDocument);
 	});
 
+	it('emits a surface impression as a client event and a document event', async () => {
+		const client = start();
+		const onShown = vi.fn();
+		const onDocument = vi.fn();
+		client.on('surfaceShown', onShown);
+		document.addEventListener('c15t:surfaceShown', onDocument);
+		await client.ready();
+
+		expect(onShown).toHaveBeenCalledOnce();
+		expect(onShown.mock.calls[0]?.[0]).toMatchObject({ surface: 'banner' });
+		expect(onDocument.mock.calls[0]?.[0]).toMatchObject({
+			detail: { surface: 'banner' },
+		});
+		expect(client.getSnapshot().surfaceShownAt.banner).toBe(
+			onShown.mock.calls[0]?.[0].shownAt
+		);
+		document.removeEventListener('c15t:surfaceShown', onDocument);
+	});
+
 	it('replays ready and the current surface to listeners attached after init', async () => {
 		const client = start();
 		await client.ready();

@@ -68,7 +68,7 @@ const loadClearOnRevocationModule = () =>
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
 	Callbacks,
-	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+	'onChoiceRecorded' | 'onPermissionsChanged' | 'onSurfaceShown' | 'onError'
 >;
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
@@ -564,18 +564,14 @@ const useProviderCallbacks = function useProviderCallbacks(
 
 	useEffect(() => {
 		const subscriptions = [
-			kernel.events.on(
-				'choice:recorded',
-				({ snapshot, confirmed, actionAt }) => {
-					callbacksRef.current?.onChoiceRecorded?.({
-						actionAt,
-						confirmed,
-						snapshot,
-					});
-				}
-			),
+			kernel.events.on('choice:recorded', ({ type: _type, ...event }) => {
+				callbacksRef.current?.onChoiceRecorded?.(event);
+			}),
 			kernel.events.on('permissions:changed', ({ snapshot, previous }) => {
 				callbacksRef.current?.onPermissionsChanged?.({ previous, snapshot });
+			}),
+			kernel.events.on('surface:shown', ({ type: _type, ...event }) => {
+				callbacksRef.current?.onSurfaceShown?.(event);
 			}),
 
 			kernel.events.on(
