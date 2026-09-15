@@ -1,0 +1,176 @@
+---
+title: Banner experiments
+description: Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
+group: guides
+---
+
+## Vary presentation, not policy
+
+The `experiment` option changes only how the prompt and the preference center
+look: variant, position, layout, primary actions, blocking. The policy rule,
+its categories and its copy stay the same for every arm, so every arm records
+a choice under the same policy fingerprint. c15t merges the assigned arm over
+`presentation`, exposes it as `snapshot.experiment`, and saves it with every
+choice, so you can compare opt-in rate and time to decision per arm.
+
+```tsx title="src/app/providers.tsx"
+'use client';
+
+import { ConsentProvider, hosted } from 'c15t/react';
+
+export const Providers = ({
+	children,
+	variant,
+}: {
+	children: React.ReactNode;
+	variant?: string;
+}) => (
+	<ConsentProvider
+		options={{
+			mode: hosted({ url: 'https://your-project.inth.app' }),
+			presentation: { prompt: { position: 'bottom-left' } },
+			experiment: {
+				id: 'banner-shape',
+				variants: {
+					floating: {},
+					bar: { prompt: { variant: 'bar', position: 'bottom' } },
+				},
+				// From your flag provider. Omit it for built-in assignment.
+				variant,
+			},
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
+```
+
+| Field | Purpose |
+| --- | --- |
+| `id` | Stable experiment name, recorded with every impression and choice |
+| `variants` | Arm name to `presentation` fragment, merged over the base `presentation` per surface |
+| `variant` | The arm your flag provider resolved; must be a key of `variants` |
+| `weights` | Relative weights for built-in assignment; default equal |
+| `acknowledgeDiagnostics` | Run an arm that trips a presentation diagnostic and record that you reviewed it |
+
+The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
+`@c15t/svelte`, `@c15t/astro` and `@c15t/browser`.
+
+## Resolve the arm with a flag provider
+
+Resolve the arm wherever your flags live and pass its name as `variant`. c15t
+records `assignedBy: 'host'` and never re-assigns a visitor you assigned.
+
+### Vercel Flags SDK
+
+```ts title="src/flags.ts"
+import { flag } from 'flags/next';
+
+export const bannerShape = flag<'floating' | 'bar'>({
+	key: 'banner-shape',
+	decide: () => 'bar',
+});
+```
+
+```tsx title="src/app/layout.tsx"
+import { bannerShape } from '../flags';
+import { Providers } from './providers';
+
+export default async function RootLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	const variant = await bannerShape();
+	return (
+		<html lang="en">
+			<body>
+				<Providers variant={variant}>{children}</Providers>
+			</body>
+		</html>
+	);
+}
+```
+
+### PostHog
+
+```ts
+const variant = posthog.getFeatureFlag('banner-shape');
+// Pass `typeof variant === 'string' ? variant : undefined` as `variant`.
+```
+
+### LaunchDarkly, GrowthBook, Statsig
+
+```ts
+const variant = ldClient.variation('banner-shape', 'floating');
+const variant = growthbook.getFeatureValue('banner-shape', 'floating');
+const variant = Statsig.getExperiment('banner-shape').get('variant', 'floating');
+```
+
+A `variant` that is not a key of `variants` throws at provider construction.
+Treat that as a flag misconfiguration, not a visitor error.
+
+## Let c15t assign the arm
+
+Omit `variant` and c15t hashes a stable key into the arms by `weights`
+(equal by default). The key is the stored subject id when the browser already
+has one, or a random key created on first visit. The assignment is stored under
+`c15t-experiment-v1` in localStorage (a cookie when localStorage is unavailable)
+so a returning visitor keeps their arm. c15t records `assignedBy: 'c15t'`.
+
+```ts
+experiment: {
+	id: 'banner-shape',
+	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
+	weights: { floating: 90, bar: 10 },
+}
+```
+
+Changing `id` starts a new experiment and re-assigns everyone. Removing an
+arm re-assigns only the visitors who were in it.
+
+## Acknowledge presentation diagnostics
+
+Each arm is resolved under the active policy the same way `presentation` is.
+An arm that trips a diagnostic, for example `equivalent-prominence-overridden`
+because it makes accept primary while reject stays neutral, is rejected when
+the provider is constructed. Set `acknowledgeDiagnostics: true` to run it.
+c15t then logs the diagnostics once outside production and records
+`acknowledgedDiagnostics: true` with the arm on every choice. You own the
+legal review of that arm; c15t records that you made it.
+
+## Read the assignment
+
+```tsx
+import { useExperiment } from 'c15t/react';
+
+const { id, variant, assignedBy } = useExperiment() ?? {};
+```
+
+Vue exposes `useExperiment()` and `useResolvedPresentation()`, Svelte
+`getConsentManager().experiment`, and `@c15t/browser` `client.presentation`.
+Every adapter also reports it on `snapshot.experiment`. Built-in assignment
+lands after mount, so `useExperiment()` is `null` on the server render and
+during hydration; a host-resolved `variant` is known from the first render.
+
+## What is recorded
+
+Each choice saved through `POST /subjects` carries in `metadata`:
+
+| Key | Value |
+| --- | --- |
+| `experiment` | `{ id, variant, assignedBy, acknowledgedDiagnostics }` |
+| `timeToDecisionMs` | Milliseconds from the surface's first impression to the action |
+
+`uiSource` on the same record names the surface (`banner`, `dialog`,
+`widget`). The `surface:shown` and `choice:recorded` kernel events and the
+`onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
+`experiment` object, so impressions and decisions can be joined per arm in
+your analytics without a backend query.
+
+## Copy is out of scope
+
+Arms change presentation only. Copy is not a variant dimension because
+`copyRevision` is hashed into the prompt fingerprint: a copy change re-prompts
+every returning visitor, so a copy experiment would re-prompt them on each
+arm switch. Vary layout, shape, position and action prominence instead.

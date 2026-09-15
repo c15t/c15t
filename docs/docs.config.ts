@@ -79,6 +79,7 @@ export default defineDocsConfig({
 				'data-fetching',
 				'consent-state',
 				'verify-consent',
+				'banner-experiments',
 				'troubleshooting',
 			],
 			title: 'Understand consent',
