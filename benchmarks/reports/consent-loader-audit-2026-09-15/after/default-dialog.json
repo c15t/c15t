@@ -1,0 +1,319 @@
+{
+	"browser": "149.0.7827.55",
+	"iterations": 10,
+	"samples": [
+		{
+			"first": {
+				"fullyVisible": 188.5,
+				"mounted": 32.700000047683716,
+				"resources": [
+					{
+						"end": 8.100000143051147,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 11.100000143051147,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 6.900000095367432,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 43.80000019073486
+			},
+			"reopen": {
+				"fullyVisible": 177.89999985694885,
+				"mounted": 19.59999990463257,
+				"resources": [],
+				"visible": 35.799999952316284
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 193,
+				"mounted": 32.19999980926514,
+				"resources": [
+					{
+						"end": 7,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 9.299999952316284,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 6,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 51.299999952316284
+			},
+			"reopen": {
+				"fullyVisible": 165.29999995231628,
+				"mounted": 12.900000095367432,
+				"resources": [],
+				"visible": 23.799999952316284
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 188.19999980926514,
+				"mounted": 31,
+				"resources": [
+					{
+						"end": 6.8999998569488525,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 9.099999904632568,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 6,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 47.5
+			},
+			"reopen": {
+				"fullyVisible": 168.19999980926514,
+				"mounted": 11.199999809265137,
+				"resources": [],
+				"visible": 27.5
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 188.20000004768372,
+				"mounted": 28.899999856948853,
+				"resources": [
+					{
+						"end": 6.700000047683716,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 9.399999856948853,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 6.299999952316284,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 47.09999990463257
+			},
+			"reopen": {
+				"fullyVisible": 169.5,
+				"mounted": 9.900000095367432,
+				"resources": [],
+				"visible": 27.90000009536743
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 188.40000009536743,
+				"mounted": 28.100000143051147,
+				"resources": [
+					{
+						"end": 6.800000190734863,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 8.900000095367432,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 6.1000001430511475,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 46
+			},
+			"reopen": {
+				"fullyVisible": 168.09999990463257,
+				"mounted": 11.599999904632568,
+				"resources": [],
+				"visible": 26.299999952316284
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 190.70000004768372,
+				"mounted": 33.700000047683716,
+				"resources": [
+					{
+						"end": 8.799999952316284,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 10.599999904632568,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 7.3999998569488525,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 49.59999990463257
+			},
+			"reopen": {
+				"fullyVisible": 167.90000009536743,
+				"mounted": 11.400000095367432,
+				"resources": [],
+				"visible": 26.799999952316284
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 186.10000014305115,
+				"mounted": 25,
+				"resources": [
+					{
+						"end": 6.1000001430511475,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 5.400000095367432,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					},
+					{
+						"end": 8,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					}
+				],
+				"visible": 44.5
+			},
+			"reopen": {
+				"fullyVisible": 161.90000009536743,
+				"mounted": 8.799999952316284,
+				"resources": [],
+				"visible": 20.200000047683716
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 183.20000004768372,
+				"mounted": 25.5,
+				"resources": [
+					{
+						"end": 5.5,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 7.799999952316284,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 4.700000047683716,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 42.59999990463257
+			},
+			"reopen": {
+				"fullyVisible": 162.10000014305115,
+				"mounted": 8.700000047683716,
+				"resources": [],
+				"visible": 20.40000009536743
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 181.79999995231628,
+				"mounted": 24.59999990463257,
+				"resources": [
+					{
+						"end": 5.700000047683716,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 8,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					},
+					{
+						"end": 4.8999998569488525,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					}
+				],
+				"visible": 40.700000047683716
+			},
+			"reopen": {
+				"fullyVisible": 168.30000019073486,
+				"mounted": 10,
+				"resources": [],
+				"visible": 26.90000009536743
+			}
+		},
+		{
+			"first": {
+				"fullyVisible": 187,
+				"mounted": 28.09999990463257,
+				"resources": [
+					{
+						"end": 6.799999952316284,
+						"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css",
+						"type": "link"
+					},
+					{
+						"end": 5.799999952316284,
+						"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_0_pddl4.js",
+						"type": "script"
+					},
+					{
+						"end": 8.699999809265137,
+						"name": "http://localhost:3217/_next/static/chunks/packages_1k8u1cy._.js",
+						"type": "script"
+					}
+				],
+				"visible": 45.59999990463257
+			},
+			"reopen": {
+				"fullyVisible": 168.10000014305115,
+				"mounted": 11.200000047683716,
+				"resources": [],
+				"visible": 26.299999952316284
+			}
+		}
+	],
+	"summary": {
+		"first": {
+			"mounted": 28.5,
+			"visible": 45.799999952316284,
+			"fullyVisible": 188.19999992847443
+		},
+		"reopen": {
+			"mounted": 11.199999928474426,
+			"visible": 26.549999952316284,
+			"fullyVisible": 168.10000002384186
+		}
+	},
+	"url": "http://localhost:3217/dialog-first-open"
+}

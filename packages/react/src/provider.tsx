@@ -36,17 +36,10 @@ import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
-import {
-	lazy,
-	Suspense,
-	useContext,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
+import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
 import type {
 	UseNetworkBlockerOptions,
@@ -203,10 +196,6 @@ export interface ExternalRuntimeProviderProps {
 export type ConsentProviderProps =
 	| OwnedRuntimeProviderProps
 	| ExternalRuntimeProviderProps;
-const LazyExternalIABProvider = lazy(async () => {
-	const module = await import('./external-iab-context');
-	return { default: module.ExternalIABProvider };
-});
 
 const DISABLED_RESOLUTION = resolvePolicyRules({
 	countryCode: null,
@@ -1173,11 +1162,9 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 				</>
 			) : null}
 			{externalRuntime ? (
-				<Suspense fallback={children}>
-					<LazyExternalIABProvider runtime={externalRuntime}>
-						{children}
-					</LazyExternalIABProvider>
-				</Suspense>
+				<ExternalIABProvider runtime={externalRuntime}>
+					{children}
+				</ExternalIABProvider>
 			) : (
 				children
 			)}

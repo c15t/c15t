@@ -1,0 +1,33 @@
+{
+	"browser": "149.0.7827.55",
+	"samples": [
+		{
+			"mounted": 8.200000047683716,
+			"ready": 8.200000047683716,
+			"resources": []
+		},
+		{
+			"mounted": 9,
+			"ready": 9,
+			"resources": []
+		},
+		{
+			"mounted": 6.900000095367432,
+			"ready": 6.900000095367432,
+			"resources": []
+		},
+		{
+			"mounted": 7,
+			"ready": 7,
+			"resources": []
+		},
+		{
+			"mounted": 5.6000001430511475,
+			"ready": 5.6000001430511475,
+			"resources": []
+		}
+	],
+	"url": "http://localhost:4313/client",
+	"variant": "nuxt",
+	"warm": true
+}
