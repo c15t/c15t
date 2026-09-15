@@ -134,6 +134,8 @@ export interface EvaluationPolicy {
 	scope: readonly OptionalConsentCategory[];
 	/** How categories outside `scope` behave. */
 	scopeMode: 'strict' | 'permissive';
+	/** Displayed categories required for a choice. Defaults to the policy scope. */
+	choiceScope?: readonly OptionalConsentCategory[];
 	choice: RecordValidity;
 	notice: RecordValidity;
 	/**

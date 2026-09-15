@@ -1,4 +1,5 @@
 import {
+	extractConsentNamesFromCondition,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createHostedTransport,
@@ -237,6 +238,14 @@ const getManifestInputs = function getManifestInputs(
 		region: inputs.region ?? null,
 	};
 };
+
+const inferConfiguredCategories = (config: RuntimeConsentConfig) =>
+	[
+		...(config.scripts ?? []),
+		...(config.networkBlocker ? (config.networkBlocker.rules ?? []) : []),
+	].flatMap((integration) =>
+		extractConsentNamesFromCondition(integration.category)
+	);
 
 /**
  * Hosted transport for Nuxt. `initURL` selects server manifest mode: init
@@ -503,6 +512,8 @@ export const createVueConsentKernelContext =
 			options.runtime?.kernel ??
 			createConsentKernel({
 				...initialConfig,
+				consentCategories: options.config.consentCategories,
+				inferredConsentCategories: inferConfiguredCategories(options.config),
 				initialPolicyPending: resolveInitialPolicyPending(
 					initialConfig,
 					options.kernelConfig

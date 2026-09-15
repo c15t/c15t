@@ -32,6 +32,7 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
+import { extractConsentNamesFromCondition } from '../libs/has';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
@@ -261,6 +262,13 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	return createConsentKernel({
 		...prefetch,
+		consentCategories: options.consentCategories,
+		inferredConsentCategories: [
+			...(options.scripts ?? []),
+			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		].flatMap((integration) =>
+			extractConsentNamesFromCondition(integration.category)
+		),
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -353,7 +361,6 @@ export const createConsentRuntime = function createConsentRuntime(
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
 
-	let consentCategories: AllConsentNames[] = options.consentCategories ?? [];
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let started = false;
 	let disposed = false;
@@ -463,8 +470,12 @@ export const createConsentRuntime = function createConsentRuntime(
 			});
 			kernel.events.emit({ type: 'records:cleared' });
 		},
-		get consentCategories() {
-			return consentCategories;
+		get consentCategories(): AllConsentNames[] {
+			const snapshot = kernel.getSnapshot();
+			return [
+				'necessary',
+				...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
+			];
 		},
 		dispose() {
 			disposed = true;
@@ -505,7 +516,7 @@ export const createConsentRuntime = function createConsentRuntime(
 			await runInit();
 		},
 		setConsentCategories(categories) {
-			consentCategories = categories;
+			kernel.set.consentCategories(categories);
 		},
 		setOverrides(overrides: KernelOverrides) {
 			kernel.set.overrides(overrides);

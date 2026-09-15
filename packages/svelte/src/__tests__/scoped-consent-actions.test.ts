@@ -460,3 +460,47 @@ describe('displayed consent actions', () => {
 		}
 	);
 });
+
+test('scripts infer the displayed categories without a configured list', async () => {
+	const captured: { kernel?: ConsentKernel; manager?: ConsentManagerState } =
+		{};
+	const result = render(ConformanceFixture, {
+		component: 'consent-dialog',
+		onKernel: (kernel) => {
+			captured.kernel = kernel;
+		},
+		onManager: (manager) => {
+			captured.manager = manager;
+		},
+		options: {
+			mode: custom({ save: () => Promise.resolve({ ok: true }) }),
+			persistence: false,
+			prefetch: policyFixture({}, { categories: ['necessary'] }),
+			scripts: [
+				{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+				{ callbackOnly: true, category: 'marketing', id: 'ads' },
+			],
+		},
+	});
+	try {
+		const manager = required(captured.manager);
+		const kernel = required(captured.kernel);
+		expect(manager.consentCategories).toEqual([
+			'necessary',
+			'marketing',
+			'measurement',
+		]);
+		kernel.set.activeUI('dialog');
+		await tick();
+		await manager.saveConsents('all');
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(true);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+	} finally {
+		result.unmount();
+	}
+});

@@ -41,6 +41,7 @@ describe('displayed consent actions', () => {
 				{ actionAt: Date.now() - 1000 }
 			);
 			const before = kernel.getSnapshot().explicitChoice;
+			kernel.set.consentCategories(['necessary', 'measurement']);
 			let saved: ReturnType<typeof kernel.commands.save> | undefined;
 			const Control = defineComponent({
 				setup() {

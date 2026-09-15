@@ -26,6 +26,8 @@ export interface EvaluationPolicyInput {
 	/** Optional categories the policy governs. Wildcards already expanded. */
 	scope: readonly OptionalConsentCategory[];
 	scopeMode: 'strict' | 'permissive';
+	/** Displayed categories required for a choice. Defaults to the policy scope. */
+	choiceScope?: readonly OptionalConsentCategory[];
 	/** Choice prompt fingerprint and semantic validity. */
 	choice: RecordValidity;
 	/** Notice prompt fingerprint and semantic validity. */
@@ -150,10 +152,17 @@ export const createEvaluationPolicy = function createEvaluationPolicy(
 	const notice = normalizeValidity(input.notice, 'notice');
 	assertScope(input.scope);
 	const scope = canonicalizeCategories(input.scope);
+	const { choiceScope } = input;
+	if (choiceScope) {
+		assertScope(choiceScope);
+		if (choiceScope.some((category) => !scope.includes(category))) {
+			throw new TypeError('Choice scope must be inside the policy scope');
+		}
+	}
 	const gpcDenyCategories = input.gpcDenyCategories ?? [];
 	assertGpcMapping(gpcDenyCategories, scope);
 
-	return {
+	const policy: EvaluationPolicy = {
 		choice,
 		gpcDenyCategories: canonicalizeCategories(gpcDenyCategories),
 		legacyMaterialFingerprint,
@@ -163,4 +172,8 @@ export const createEvaluationPolicy = function createEvaluationPolicy(
 		scope,
 		scopeMode,
 	};
+	if (choiceScope) {
+		policy.choiceScope = canonicalizeCategories(choiceScope);
+	}
+	return policy;
 };

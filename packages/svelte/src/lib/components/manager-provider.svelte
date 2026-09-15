@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type {
-		AllConsentNames,
 		ConsentSnapshot,
 		ConsentState,
 		KernelOverrides,
@@ -99,6 +98,7 @@
 	const { kernel } = runtime;
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
+	let draftScope = $state<string | null>(null);
 	let draftFingerprint = $state<string | null>(null);
 	let draftRevision = 0;
 	let draftSaveSequence = 0;
@@ -107,21 +107,23 @@
 		untrack(() => runtime.iab as IABHandle | null)
 	);
 	let iabTab = $state<'purposes' | 'vendors'>('purposes');
-	let configuredCategories = $state<AllConsentNames[]>(
-		untrack(() => options.consentCategories ?? runtime.consentCategories)
-	);
 
 	const draft: ConsentDraftState = {
 		get isStale() {
 			return (
 				draftFingerprint !== null &&
-				draftFingerprint !== snapshot.evaluationPolicy.choice.fingerprint
+				(draftFingerprint !== snapshot.evaluationPolicy.choice.fingerprint ||
+					draftScope !==
+						(
+							snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope
+						).join(','))
 			);
 		},
 		reset() {
 			draftRevision += 1;
 			draftValues = {};
 			draftFingerprint = null;
+			draftScope = null;
 		},
 		async save(categories) {
 			const revision = draftRevision;
@@ -130,7 +132,11 @@
 			const current = kernel.getSnapshot();
 			if (
 				draftFingerprint !== null &&
-				draftFingerprint !== current.evaluationPolicy.choice.fingerprint
+				(draftFingerprint !== current.evaluationPolicy.choice.fingerprint ||
+					draftScope !==
+						(
+							current.evaluationPolicy.choiceScope ?? current.policyRule.scope
+						).join(','))
 			) {
 				throw new Error(
 					'The policy changed. Review your preferences before saving.'
@@ -139,12 +145,7 @@
 			const { values } = draft;
 			const result = await kernel.commands.save(
 				Object.fromEntries(
-					current.policyRule.scope
-						.filter(
-							(name) =>
-								configuredCategories.length === 0 ||
-								configuredCategories.includes(name)
-						)
+					(current.evaluationPolicy.choiceScope ?? current.policyRule.scope)
 						.filter(
 							(name) => categories === undefined || categories.includes(name)
 						)
@@ -165,13 +166,19 @@
 			draftRevision += 1;
 			draftFingerprint ??=
 				kernel.getSnapshot().evaluationPolicy.choice.fingerprint;
+			draftScope ??= (
+				kernel.getSnapshot().evaluationPolicy.choiceScope ??
+				kernel.getSnapshot().policyRule.scope
+			).join(',');
 			draftValues = { ...draftValues, [name]: value };
 		},
 		get values() {
 			return {
 				necessary: true,
 				...Object.fromEntries(
-					snapshot.policyRule.scope.map((name) => [
+					(
+						snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope
+					).map((name) => [
 						name,
 						draftValues[name] ??
 							snapshot.explicitChoice?.categories[name]?.value ??
@@ -229,10 +236,7 @@
 		clearRecords: () => runtime.clearRecords(),
 		getConsentCategories: () => [
 			'necessary',
-			...snapshot.policyRule.scope.filter(
-				(name) =>
-					!configuredCategories.length || configuredCategories.includes(name)
-			),
+			...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
 		],
 		getDraft: () => draft,
 		getIAB: getIABState,
@@ -294,11 +298,12 @@
 	// removing the prop restores that rather than leaving the last pushed
 	// list in place. Only restored if this provider did the pushing: a
 	// borrowed runtime's categories belong to whoever owns it.
-	const initialCategories = untrack(() => runtime.consentCategories);
+	const initialCategories = untrack(() => [
+		...(kernel.getSnapshot().consentCategories ?? []),
+	]);
 	let pushedCategories = false;
 
 	$effect(() => {
-		configuredCategories = consentCategoriesOption ?? initialCategories;
 		if (consentCategoriesOption) {
 			runtime.setConsentCategories(consentCategoriesOption);
 			pushedCategories = true;

@@ -10,8 +10,23 @@
 
 `necessary` is always permitted. Assign categories based on what an integration
 does in your application; renaming analytics to necessary does not change its
-purpose. The provider's displayed categories and the resolved policy scope must
-agree.
+purpose.
+
+c15t discovers categories from registered scripts, network rules, React `Frame`
+components, and iframes with `data-category` handled by the iframe blocker.
+The browser client also discovers inert scripts tagged with `data-c15t-category`.
+Compound script and network conditions contribute every category they reference.
+
+Discovered categories are added to `consentCategories`, when supplied. The dialog
+always includes Necessary and offers the optional categories in that combined
+set that are also in the resolved policy scope. Choice completion uses the same
+set. If neither configuration nor integrations supply categories, the dialog
+uses the full policy scope.
+
+Categories discovered later are added immediately and retained until the provider
+or runtime is recreated. Adding a category can require a new choice; removing a
+script or unmounting a frame does not remove its category or erase consent.
+Discovery does not grant consent or change backend permission restrictions.
 
 ## Respect policy scope
 
@@ -20,6 +35,20 @@ out-of-scope categories unless another restriction applies. When a rule selects
 only some optional categories, set `scopeMode` explicitly. An omitted scope,
 `['*']`, or a list containing only `necessary` expands to the default optional
 categories; a necessary-only list is not a shortcut for disabling all tracking.
+
+For example, a backend rule with `categories: ['necessary']` and scripts assigned
+to `marketing` and `measurement` displays Necessary, Marketing, and Analytics,
+even without `consentCategories`. Accept All records both optional choices and
+keeps the banner dismissed after reload. An explicit list of
+`['necessary', 'measurement']` with no other integrations displays Necessary and
+Analytics.
+
+Hidden optional categories do not need a choice to dismiss the banner. Their
+permissions still follow the backend policy, so hidden opt-in categories remain
+denied without a valid grant. React providers enable DOM iframe blocking and
+discovery by default; set `iframeBlocker: false` to disable it, or
+`iframeBlocker: { disableAutomaticBlocking: true }` to scan manually with
+`useIframeBlocker({ disableAutomaticBlocking: true }).processAllIframes()`.
 
 Use effective permissions to gate work and explicit choices to inspect what the
 visitor confirmed. Read [consent state](/docs/guides/consent-state) for that

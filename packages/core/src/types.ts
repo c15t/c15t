@@ -231,6 +231,8 @@ export type HydrationResult =
  * value did not change.
  */
 export interface ConsentSnapshot {
+	/** Configured and discovered categories. Null uses the full policy scope. */
+	readonly consentCategories: readonly AllConsentNames[] | null;
 	// -- Consent model -------------------------------------------------------
 	/** Latest explicit per-category receipts. Only accept, reject and save write it. */
 	readonly explicitChoice: Readonly<ExplicitChoice> | null;
@@ -301,6 +303,13 @@ export interface ConsentSnapshot {
  * handle and only invoked when the corresponding command fires.
  */
 export interface KernelConfig {
+	/**
+	 * Categories to offer alongside discovered categories, intersected with policy scope.
+	 * Uses the full policy scope when neither source supplies categories.
+	 */
+	consentCategories?: readonly AllConsentNames[];
+	/** Categories discovered before construction, including during SSR. */
+	inferredConsentCategories?: readonly AllConsentNames[];
 	/**
 	 * Evaluation clock in epoch milliseconds. A server render passes the
 	 * request time so the client can seed the same value and produce the same
@@ -636,6 +645,12 @@ export interface ConsentKernel {
 	 * Sync mutations. Notify subscribers synchronously.
 	 */
 	readonly set: {
+		/** Replace configured categories, retain discovered categories, and re-evaluate completion. */
+		consentCategories: (
+			categories: readonly AllConsentNames[] | undefined
+		) => void;
+		/** Add categories used by integrations. Retained for this kernel lifetime. */
+		registerConsentCategories: (categories: readonly AllConsentNames[]) => void;
 		/** Stages draft values a no-input `save()` confirms. Never a grant. */
 		draft: (input: Partial<ConsentState>) => void;
 		overrides: (input: KernelOverrides) => void;

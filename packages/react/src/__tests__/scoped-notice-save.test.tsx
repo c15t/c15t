@@ -8,7 +8,7 @@ import { ConsentDialog } from '../components/panel';
 import { KernelContext } from '../context';
 import { ConsentProvider } from '../provider';
 
-for (const scenario of ['notice', 'scoped'] as const) {
+for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 	for (const action of ['accept', 'reject', 'save'] as const) {
 		test(`${scenario} actual React ${action} saves displayed scope and respects the remaining prompt`, async () => {
 			const pending = Promise.withResolvers<{ ok: boolean }>();
@@ -18,7 +18,10 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				regionCode: null,
 				rules: [
 					{
-						categories: ['marketing', 'measurement'],
+						categories:
+							scenario === 'necessary-only'
+								? ['necessary']
+								: ['marketing', 'measurement'],
 						id: scenario,
 						match: { isDefault: true },
 						model: scenario === 'notice' ? 'opt-out' : 'opt-in',
@@ -46,7 +49,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				<ConsentProvider
 					options={{
 						consentCategories:
-							scenario === 'scoped' ? ['measurement'] : undefined,
+							scenario === 'notice' ? undefined : ['necessary', 'measurement'],
 						enabled: true,
 						mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
 						persistence: false,
@@ -66,7 +69,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				expect(kernel.getSnapshot().resolution.status).toBe('matched');
 				expect(kernel.getSnapshot().policyRule.id).toBe(scenario);
 				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
-				if (scenario === 'scoped') {
+				if (scenario !== 'notice') {
 					expect(
 						document.querySelector(
 							'[data-testid="consent-widget-switch-marketing"]'
@@ -93,7 +96,7 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				expect(kernel.getSnapshot().activeUI).toBe('dialog');
 				expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
 				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
-				if (scenario === 'scoped') {
+				if (scenario !== 'notice') {
 					expect(
 						kernel.getSnapshot().explicitChoice?.categories.marketing
 					).toBeUndefined();
@@ -106,8 +109,6 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				let prompt = 'none';
 				if (scenario === 'notice') {
 					prompt = 'notice';
-				} else if (action === 'accept') {
-					prompt = 'choice';
 				}
 				await vi.waitFor(() =>
 					expect(kernel.getSnapshot().activeUI).toBe(
@@ -116,9 +117,8 @@ for (const scenario of ['notice', 'scoped'] as const) {
 				);
 				expect(kernel.getSnapshot().promptRequirement.kind).toBe(prompt);
 				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
-				if (scenario === 'scoped') {
-					// Missing marketing consent remains denied when a measurement
-					// refusal suppresses the automatic choice banner.
+				if (scenario !== 'notice') {
+					// Hidden marketing remains denied after completing the displayed choice.
 					expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(
 						false
 					);

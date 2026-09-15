@@ -22,6 +22,7 @@ import type {
 	PromptRequirement,
 	RestrictionReason,
 } from '../consent-record/types';
+import type { AllConsentNames } from '../consent/consent-types';
 import {
 	buildEvaluationPolicy,
 	deriveActiveUI,
@@ -48,6 +49,7 @@ import { freezeSnapshot } from './snapshot';
  * Nullable fields: `undefined` (omitted) preserves, `null` clears.
  */
 export interface SnapshotPatch {
+	consentCategories?: readonly AllConsentNames[] | null;
 	explicitChoice?: ExplicitChoice | null;
 	noticeDismissal?: NoticeDismissal | null;
 	optOutDirectives?: readonly PrivacyOptOut[];
@@ -106,6 +108,8 @@ export const isUnchangedPatch = function isUnchangedPatch(
 			current.noticeDismissal &&
 		pick(patch.optOutDirectives, current.optOutDirectives) ===
 			current.optOutDirectives &&
+		pick(patch.consentCategories, current.consentCategories) ===
+			current.consentCategories &&
 		pick(patch.resolution, current.resolution) === current.resolution &&
 		pick(patch.subject, current.subject) === current.subject &&
 		pick(patch.overrides, current.overrides) === current.overrides &&
@@ -264,14 +268,22 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	patch: SnapshotPatch
 ): ConsentSnapshot {
 	const resolution = pick(patch.resolution, current.resolution);
+	const consentCategories = pick(
+		patch.consentCategories,
+		current.consentCategories
+	);
 	const resolutionChanged = resolution !== current.resolution;
 	const effective = resolutionChanged
 		? resolveEffectivePolicy(resolution)
 		: null;
 	const policyRule = effective ? effective.rule : current.policyRule;
-	const evaluationPolicy = effective
-		? buildEvaluationPolicy(effective)
-		: current.evaluationPolicy;
+	const evaluationPolicy =
+		effective || consentCategories !== current.consentCategories
+			? buildEvaluationPolicy(
+					effective ?? resolveEffectivePolicy(resolution),
+					consentCategories
+				)
+			: current.evaluationPolicy;
 
 	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
 	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
@@ -367,6 +379,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	return {
 		activeUI,
 		branding: pick(patch.branding, current.branding),
+		consentCategories,
 		effectivePermissions,
 		evaluatedAt: now,
 		evaluationPolicy,

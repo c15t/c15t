@@ -31,6 +31,7 @@
  *   to the kernel. The snapshot reference is swapped on every kernel
  *   subscribe tick.
  */
+import { extractConsentNamesFromCondition } from '../../libs/has';
 import type { ConsentSnapshot } from '../../types';
 import { installFetchPatch } from './patch-fetch';
 import { installXhrPatch } from './patch-xhr';
@@ -56,6 +57,11 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	const { kernel, onRequestBlocked } = options;
 	const logBlocked = options.logBlockedRequests ?? true;
 	let rules: NetworkBlockerRule[] = [...(options.rules ?? [])];
+	const registerCategories = () =>
+		kernel.set.registerConsentCategories(
+			rules.flatMap((rule) => extractConsentNamesFromCondition(rule.category))
+		);
+	registerCategories();
 	let enabled = options.enabled !== false;
 	let snapshot: ConsentSnapshot = kernel.getSnapshot();
 
@@ -80,6 +86,7 @@ export const createNetworkBlocker = function createNetworkBlocker(
 			},
 			updateRules(next) {
 				rules = [...next];
+				registerCategories();
 			},
 		};
 	}
@@ -123,6 +130,7 @@ export const createNetworkBlocker = function createNetworkBlocker(
 		},
 		updateRules(next) {
 			rules = [...next];
+			registerCategories();
 		},
 	};
 };

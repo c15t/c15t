@@ -1,4 +1,4 @@
-import type { ConsentState, SaveResult } from '@c15t/core';
+import type { ConsentState, ConsentSnapshot, SaveResult } from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
@@ -13,19 +13,24 @@ export const useConsentDraft = function useConsentDraft(
 	const fingerprint = ref('');
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
 	const values = ref<Partial<ConsentState>>({});
+	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
+		const scope =
+			current.evaluationPolicy.choiceScope ?? current.policyRule.scope;
+		const available = new Set<keyof ConsentState>(['necessary', ...scope]);
+		return [
+			...new Set<keyof ConsentState>([
+				'necessary',
+				...(config.value.consentCategories ?? []).filter((name) =>
+					available.has(name)
+				),
+				...scope,
+			]),
+		];
+	};
 	const reset = () => {
 		const current = snapshot.value;
 		fingerprint.value = current.evaluationPolicy.choice.fingerprint;
-		const configuredCategories =
-			config.value.consentCategories ?? current.policyRule.scope;
-		displayedCategories.value = [
-			'necessary',
-			...configuredCategories.filter(
-				(category) =>
-					category !== 'necessary' &&
-					current.policyRule.scope.includes(category)
-			),
-		];
+		displayedCategories.value = categoriesFor(current);
 		values.value = Object.fromEntries(
 			displayedCategories.value.map((category) => [
 				category,
@@ -40,12 +45,22 @@ export const useConsentDraft = function useConsentDraft(
 	reset();
 	const isStale = computed(
 		() =>
-			fingerprint.value !== snapshot.value.evaluationPolicy.choice.fingerprint
+			fingerprint.value !==
+				snapshot.value.evaluationPolicy.choice.fingerprint ||
+			displayedCategories.value.join(',') !==
+				categoriesFor(snapshot.value).join(',')
 	);
 	watch(
-		() => snapshot.value.explicitChoice,
-		() => {
-			if (shouldSyncChanges()) {
+		[
+			() => snapshot.value.explicitChoice,
+			() => snapshot.value.evaluationPolicy,
+		],
+		([choice, policy], [previousChoice]) => {
+			if (
+				shouldSyncChanges() &&
+				(choice !== previousChoice ||
+					fingerprint.value === policy.choice.fingerprint)
+			) {
 				reset();
 			}
 		}
@@ -55,10 +70,7 @@ export const useConsentDraft = function useConsentDraft(
 		isStale,
 		reset,
 		async save(): Promise<SaveResult> {
-			if (
-				fingerprint.value !==
-				kernel.getSnapshot().evaluationPolicy.choice.fingerprint
-			) {
+			if (isStale.value) {
 				return { ok: false };
 			}
 			const patch: Partial<ConsentState> = {};

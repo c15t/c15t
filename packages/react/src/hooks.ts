@@ -238,6 +238,12 @@ export const useTCString = function useTCString(): string | null {
 	return useKernelSelector((snap) => snap.iab?.tcString ?? null);
 };
 
+/** Register categories used by scripts, frames, or other integrations. */
+export const useRegisterConsentCategories =
+	function useRegisterConsentCategories() {
+		return useKernel().set.registerConsentCategories;
+	};
+
 // -- Action hooks -----------------------------------------------------------
 
 /**

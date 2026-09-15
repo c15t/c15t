@@ -30,6 +30,7 @@
  *   disconnects the kernel subscription. Elements mounted by other
  *   loaders (or already in the DOM) are left alone.
  */
+import { extractConsentNamesFromCondition } from '../../libs/has';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
 import { createDebugEmitter } from './debug';
@@ -92,6 +93,14 @@ export const createScriptLoader = function createScriptLoader(
 		diagnostics?.notify(event);
 	};
 
+	const registerCategories = (scripts: Script[]) => {
+		kernel.set.registerConsentCategories(
+			scripts.flatMap((script) =>
+				extractConsentNamesFromCondition(script.category)
+			)
+		);
+	};
+	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
 
 	const loadedElements = new Map<string, HTMLScriptElement | null>();
@@ -271,6 +280,7 @@ export const createScriptLoader = function createScriptLoader(
 				}
 			}
 			normalized = normalizeScripts(next);
+			registerCategories(next);
 			reconcile(true);
 		},
 	};

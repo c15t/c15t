@@ -6,13 +6,14 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import {
 	matchedResolution,
 	noneRule,
+	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { clearStoredConsentRecords } from '../../modules/persistence/record-storage';
 import { hosted } from '../../transports/mode';
 import { c15tProtocolHeaders } from '../../transports/version-header';
 import { createConsentRuntime } from '../index';
-import type { ConsentRuntime } from '../types';
+import type { ConsentRuntime, ConsentRuntimeOptions } from '../types';
 
 const runtimes: ConsentRuntime[] = [];
 const originalPolicy = matchedResolution(optOutRule());
@@ -36,7 +37,7 @@ afterEach(() => {
 	clearStoredConsentRecords();
 });
 
-const createRuntime = () => {
+const createRuntime = (options: Partial<ConsentRuntimeOptions> = {}) => {
 	const runtime = createConsentRuntime({
 		consentCategories: ['necessary', 'measurement'],
 		mode: hosted({
@@ -61,13 +62,14 @@ const createRuntime = () => {
 			url: '/api/c15t',
 		}),
 		prefetch: { initRetry: false },
+		...options,
 	});
 	runtimes.push(runtime);
 	return runtime;
 };
 
-const start = async () => {
-	const runtime = createRuntime();
+const start = async (options: Partial<ConsentRuntimeOptions> = {}) => {
+	const runtime = createRuntime(options);
 	const completed = Promise.withResolvers<undefined>();
 	runtime.kernel.events.on('command:init:completed', () =>
 		completed.resolve(undefined)
@@ -182,3 +184,109 @@ test.each(['opt-out', 'none', 'changed-policy', 'offline-rejection'] as const)(
 		);
 	}
 );
+
+test.each(['all', 'none', 'custom'] as const)(
+	'%s completes the configured categories across a hosted reload',
+	async (action) => {
+		policy = matchedResolution(
+			optInRule({
+				categories: ['necessary'],
+				id: 'europe_opt_in',
+				match: { countries: ['DE'] },
+				scopeMode: 'permissive',
+			}),
+			'country'
+		);
+		const initial = await start();
+		expect(initial.kernel.getSnapshot().activeUI).toBe('banner');
+		const result = await initial.kernel.commands.save(
+			action === 'custom' ? { measurement: true } : action,
+			{
+				categories: initial.consentCategories,
+			}
+		);
+		expect(result).toMatchObject({ confirmed: ['measurement'], ok: true });
+		expect(
+			initial.kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(action !== 'none');
+		expect(initial.kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'none',
+		});
+		expect(initial.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			false
+		);
+		expect(
+			initial.kernel.getSnapshot().explicitChoice?.categories.marketing
+		).toBeUndefined();
+		close(initial);
+
+		const reloaded = await start();
+		expect(
+			reloaded.kernel.getSnapshot().explicitChoice?.categories.measurement
+				?.value
+		).toBe(action !== 'none');
+		expect(reloaded.kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'none',
+		});
+		expect(reloaded.kernel.getSnapshot().activeUI).toBe('none');
+	}
+);
+
+test('changing configured categories re-evaluates completion without granting hidden categories', async () => {
+	policy = matchedResolution(optInRule());
+	const runtime = await start();
+	await runtime.kernel.commands.save('all');
+	expect(runtime.kernel.getSnapshot().promptRequirement).toEqual({
+		kind: 'none',
+	});
+	expect(
+		Object.keys(runtime.kernel.getSnapshot().explicitChoice?.categories ?? {})
+	).toEqual(['measurement']);
+
+	runtime.setConsentCategories(['necessary', 'measurement', 'marketing']);
+	expect(runtime.kernel.getSnapshot().promptRequirement).toEqual({
+		kind: 'choice',
+		reason: 'missing',
+	});
+	expect(runtime.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+		false
+	);
+	await runtime.kernel.commands.save('all');
+	expect(runtime.kernel.getSnapshot().promptRequirement).toEqual({
+		kind: 'none',
+	});
+	expect(
+		runtime.kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+	).toBe(true);
+});
+
+test('scripts infer marketing and measurement without a category list and keep a hosted reload dismissed', async () => {
+	policy = matchedResolution(
+		optInRule({ categories: ['necessary'], scopeMode: 'permissive' })
+	);
+	const options: Partial<ConsentRuntimeOptions> = {
+		consentCategories: undefined,
+		scripts: [
+			{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+			{ callbackOnly: true, category: 'marketing', id: 'ads' },
+		],
+	};
+	const initial = await start(options);
+	expect(
+		initial.kernel.getServerSnapshot().evaluationPolicy.choiceScope
+	).toEqual(['marketing', 'measurement']);
+	expect(initial.kernel.getSnapshot().evaluationPolicy.choiceScope).toEqual([
+		'marketing',
+		'measurement',
+	]);
+	expect(await initial.kernel.commands.save('all')).toMatchObject({ ok: true });
+	const choice = initial.kernel.getSnapshot().explicitChoice;
+	expect(choice?.categories.measurement?.value).toBe(true);
+	expect(choice?.categories.marketing?.value).toBe(true);
+	expect(choice?.categories.functionality).toBeUndefined();
+	close(initial);
+	const reloaded = await start(options);
+	expect(reloaded.kernel.getSnapshot().explicitChoice).toEqual(choice);
+	expect(reloaded.kernel.getSnapshot().activeUI).toBe('none');
+	expect(reloaded.kernel.getSnapshot().promptRequirement.kind).toBe('none');
+});
