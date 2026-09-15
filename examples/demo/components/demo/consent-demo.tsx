@@ -226,12 +226,13 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const [experimentEvents, setExperimentEvents] = useState<
 		ExperimentReportEvent[]
 	>([]);
+	const { experiment: experimentEnabled, arm } = surface;
 	const experiment = useMemo(
 		() =>
-			demoExperiment(surface, (event) =>
+			demoExperiment({ arm, experiment: experimentEnabled }, (event) =>
 				setExperimentEvents((previous) => [...previous, event])
 			),
-		[surface.experiment, surface.arm]
+		[experimentEnabled, arm]
 	);
 	const isSelfHost = backend === 'self-host';
 	const hostedLabel = isSelfHost ? 'Self-hosted' : 'Hosted';

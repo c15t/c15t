@@ -169,7 +169,7 @@ export const withSurface = function withSurface(
  * Events go to `window.dataLayer` and to `report`, which the page renders.
  */
 export const demoExperiment = function demoExperiment(
-	surface: SurfaceParams,
+	surface: Pick<SurfaceParams, 'arm' | 'experiment'>,
 	report: ExperimentReporter
 ): ConsentExperiment | undefined {
 	if (!surface.experiment) {
