@@ -25,6 +25,32 @@ const ui = process.env.C15T_UI ?? 'svelte';
 // surfaces can be exercised without a second demo app.
 const iab = process.env.C15T_IAB === '1';
 
+// Banner-shape experiment. The integration takes static config, so the
+// switch is an environment variable at build time, like `C15T_IAB`:
+//
+//   C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev
+//   C15T_EXPERIMENT=1 C15T_EXPERIMENT_ARM=wall bun run --cwd examples/astro-demo dev
+//
+// The arm env stands in for a flag provider; omit it and c15t assigns.
+// Only the serializable `'dataLayer'` target fits here; a function reporter
+// would go in `clientEntrypoint`.
+const experimentArm = process.env.C15T_EXPERIMENT_ARM;
+const experiment =
+	process.env.C15T_EXPERIMENT === '1'
+		? {
+				id: 'banner-shape',
+				reportTo: 'dataLayer',
+				variant:
+					experimentArm === 'wall' || experimentArm === 'floating'
+						? experimentArm
+						: undefined,
+				variants: {
+					floating: {},
+					wall: { prompt: { variant: 'wall' } },
+				},
+			}
+		: undefined;
+
 // Built up rather than spread conditionally: the IAB options and the mode
 // travel together — a TCF policy pack with no vendor list resolves a
 // banner the server cannot render.
@@ -82,6 +108,7 @@ export default defineConfig({
 			// vendor list the server needs to render the IAB banner at all;
 			// hosted and manifest mode get theirs from `/init`.
 			...iabOptions,
+			experiment,
 			mode:
 				process.env.C15T_BACKEND_URL && !iab
 					? hosted({ url: process.env.C15T_BACKEND_URL })

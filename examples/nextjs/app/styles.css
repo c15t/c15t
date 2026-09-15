@@ -71,6 +71,17 @@ button {
 .site-header nav a {
 	padding-block: 10px;
 }
+.experiment-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	font-size: 14px;
+}
+.experiment-readout ul {
+	margin: 8px 0;
+	padding-left: 20px;
+	font-size: 14px;
+}
 .intro {
 	max-width: 730px;
 	padding-block: 62px 36px;

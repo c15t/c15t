@@ -2,6 +2,10 @@
 	import { Frame, ConsentDialogLink } from '@c15t/svelte';
 	import { getConsentManager } from '@c15t/svelte/headless';
 
+	import { experimentEvents } from './experiment.svelte';
+
+	let { experimentConfigured = false }: { experimentConfigured?: boolean } =
+		$props();
 	const consent = getConsentManager();
 </script>
 
@@ -10,8 +14,39 @@
 	<h1>Consent example</h1>
 	<p>One consent setup for your analytics, advertising and video embeds.</p>
 	<nav aria-label="Banner design">
-		<a href="/">Default</a><a href="/?design=branded">Branded</a>
+		<a href="/">Default</a><a href="/?design=branded">Branded</a><a
+			href="/?experiment=1">Experiment</a
+		><a href="/?experiment=1&arm=wall">Experiment (wall arm)</a>
 	</nav>
+	{#if experimentConfigured}
+		<section
+			class="card"
+			data-testid="experiment"
+		>
+			<h2>Banner experiment</h2>
+			<p>
+				Arm: <code data-testid="experiment-arm"
+					>{consent.experiment
+						? `${consent.experiment.id} · ${consent.experiment.variant} · ${consent.experiment.assignedBy}`
+						: 'assigning…'}</code
+				>
+			</p>
+			<ul class="statuses">
+				{#each experimentEvents as event, index (index)}
+					<li>
+						<code>{event.name}</code> · {event.variant} · {event.surface}
+						{#if event.name === 'c15t_choice_recorded'}
+							· {event.consentAction}
+							{#if event.timeToDecisionMs !== undefined}
+								· {event.timeToDecisionMs} ms
+							{/if}
+						{/if}
+					</li>
+				{/each}
+			</ul>
+			<p>The same events are pushed to <code>window.dataLayer</code>.</p>
+		</section>
+	{/if}
 	<section class="card">
 		<h2>Scripts follow your choices</h2>
 		<ul class="statuses">

@@ -350,6 +350,17 @@ Time to decision is the median `time_to_decision_ms` per `experiment_id` and
 `variant` over the choice events. Use the median, not the mean: a visitor who
 leaves the tab open skews the mean without saying anything about the arm.
 
+## Try it
+
+Every example app under `examples/` runs this experiment. Open
+`/?experiment=1` in the React, Vue, Svelte, JavaScript and script-tag
+examples, `/app-router?experiment=1` in Next.js, or
+`/consent-example?experiment=1` in TanStack Start and SvelteKit; add
+`&arm=wall` to see a host-resolved arm. The Nuxt and Astro examples take
+static config, so start them with `NUXT_PUBLIC_C15T_EXPERIMENT=1` or
+`C15T_EXPERIMENT=1`. Each page shows the assigned arm and the events it
+reported to `window.dataLayer`.
+
 ## Copy is out of scope
 
 Arms change presentation and theme tokens only. Copy is not a variant dimension because

@@ -1,10 +1,18 @@
 import { createDevTools } from '@c15t/dev-tools';
 import {
+	applyExperimentAssignment,
+	assignExperimentVariant,
 	createConsentKernel,
+	createExperimentReporting,
 	createHostedTransport,
 	resolveConsentPresentation,
 } from 'c15t';
-import type { ConsentSnapshot, ConsentState, PresentationAction } from 'c15t';
+import type {
+	ConsentExperiment,
+	ConsentSnapshot,
+	ConsentState,
+	PresentationAction,
+} from 'c15t';
 import { createPersistence } from 'c15t/modules/persistence';
 import { createScriptLoader } from 'c15t/modules/script-loader';
 
@@ -23,6 +31,42 @@ const persistence = createPersistence({ kernel });
 const loader = createScriptLoader({ kernel, scripts });
 const devtools = createDevTools({ kernel });
 
+// The raw kernel has no `experiment` option; the runtime adapters build it
+// from these same helpers. `?experiment=1` picks the arm here, `&arm=wall`
+// forces it the way a flag provider would.
+const search = new URLSearchParams(location.search);
+const arm = search.get('arm');
+const experiment: ConsentExperiment | undefined =
+	search.get('experiment') === '1'
+		? {
+				id: 'banner-shape',
+				variant: arm === 'wall' || arm === 'floating' ? arm : undefined,
+				variants: {
+					floating: {},
+					wall: { prompt: { variant: 'wall' } },
+				},
+			}
+		: undefined;
+const experimentKey = function experimentKey(): string {
+	const stored = localStorage.getItem('example-experiment-key');
+	if (stored) {
+		return stored;
+	}
+	const key = crypto.randomUUID();
+	localStorage.setItem('example-experiment-key', key);
+	return key;
+};
+// Recorded on the kernel so `surface:shown` and `choice:recorded` carry it.
+const assignment = experiment
+	? assignExperimentVariant(experiment, experimentKey())
+	: null;
+kernel.set.experiment(assignment);
+const presentation = applyExperimentAssignment(
+	undefined,
+	experiment,
+	assignment
+);
+
 const element = function element<Kind extends HTMLElement>(
 	selector: string
 ): Kind {
@@ -40,6 +84,30 @@ const placeholder = element<HTMLElement>('#video-placeholder');
 const status = element<HTMLElement>('#consent-status');
 const actions = element<HTMLElement>('#prompt-actions');
 const preferencesActions = element<HTMLElement>('#preferences-actions');
+const experimentPanel = element<HTMLElement>('#experiment');
+const experimentEvents = element<HTMLElement>('#experiment-events');
+if (assignment) {
+	experimentPanel.hidden = false;
+	element<HTMLElement>('#experiment-arm').textContent =
+		`${assignment.id} · ${assignment.variant} · ${assignment.assignedBy}`;
+}
+// Impressions and choices go to `window.dataLayer` and the in-page log.
+const stopReporting = createExperimentReporting({
+	kernel,
+	reportTo: assignment
+		? [
+				'dataLayer',
+				(event) => {
+					const item = document.createElement('li');
+					item.textContent =
+						event.name === 'c15t_choice_recorded'
+							? `${event.name} · ${event.variant} · ${event.surface} · ${event.consentAction}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
+							: `${event.name} · ${event.variant} · ${event.surface}`;
+					experimentEvents.append(item);
+				},
+			]
+		: undefined,
+});
 const label: Record<PresentationAction, string> = {
 	accept: 'Accept all',
 	customize: 'Choose cookies',
@@ -81,11 +149,15 @@ const renderActions = function renderActions(
 	surface: 'prompt' | 'preferences',
 	snapshot: ConsentSnapshot
 ) {
-	const presentation = resolveConsentPresentation({
+	const resolved = resolveConsentPresentation({
 		policy: snapshot.policyRule,
+		presentation,
 		surface,
 	});
-	const buttons = presentation.orderedActions.map((action) => {
+	if (surface === 'prompt') {
+		prompt.dataset.variant = resolved.variant;
+	}
+	const buttons = resolved.orderedActions.map((action) => {
 		const button = document.createElement('button');
 		button.type = 'button';
 		button.textContent = label[action];
@@ -95,7 +167,7 @@ const renderActions = function renderActions(
 		return button;
 	});
 	if (surface === 'prompt') {
-		for (const right of presentation.rights) {
+		for (const right of resolved.rights) {
 			const button = document.createElement('button');
 			button.type = 'button';
 			button.textContent =
@@ -185,6 +257,7 @@ window.addEventListener('pagehide', (event) => {
 		return;
 	}
 	unsubscribe();
+	stopReporting();
 	devtools.destroy();
 	loader.dispose();
 	persistence.dispose();

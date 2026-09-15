@@ -286,6 +286,43 @@ for (const target of selectedTargets()) {
 			});
 		}
 
+		if (['nextjs', 'react'].includes(target.id)) {
+			const route = target.id === 'nextjs' ? '/app-router' : '/';
+			test('a host-resolved experiment arm reports the impression and the choice', async () => {
+				const dataLayer = () =>
+					page.evaluate(
+						() =>
+							(window as Window & { dataLayer?: Record<string, unknown>[] })
+								.dataLayer ?? []
+					);
+				await visit(`${route}?experiment=1&arm=wall`);
+				await expect.poll(() => acceptButton(page).isVisible()).toBe(true);
+				await expect
+					.poll(() => page.getByTestId('experiment-arm').textContent())
+					.toBe('banner-shape · wall · host');
+				await expect.poll(dataLayer).toContainEqual(
+					expect.objectContaining({
+						event: 'c15t_surface_shown',
+						experiment_id: 'banner-shape',
+						surface: 'banner',
+						variant: 'wall',
+					})
+				);
+				await acceptButton(page).click();
+				await expect.poll(dataLayer).toContainEqual(
+					expect.objectContaining({
+						consent_action: 'all',
+						event: 'c15t_choice_recorded',
+						experiment_id: 'banner-shape',
+						variant: 'wall',
+					})
+				);
+				await expect
+					.poll(() => page.getByTestId('experiment').textContent())
+					.toContain('c15t_choice_recorded');
+			});
+		}
+
 		if (target.id === 'javascript') {
 			test('a persisted pagehide keeps preferences and consent gating active', async () => {
 				await visit('/');

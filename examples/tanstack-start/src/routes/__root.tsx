@@ -5,6 +5,7 @@ import {
 	Scripts,
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
+import type { ExperimentReportEvent } from 'c15t';
 import {
 	IABConsentBanner,
 	IABProvider,
@@ -20,13 +21,21 @@ import {
 	consentLoaderOptions,
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
+import { createContext, useCallback, useMemo, useState } from 'react';
 
 import { backendURL, consentRoute } from '../consent';
 import { createExampleScripts } from '../example-scripts';
+import { bannerExperiment, experimentSearch } from '../experiment';
+import type { ExperimentSearch } from '../experiment';
 
 import '../consent-example.css';
 import appCss from '../styles.css?url';
 import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
+
+/** Events the banner experiment reported, for the page's readout. */
+export const ExperimentEventsContext = createContext<
+	readonly ExperimentReportEvent[] | null
+>(null);
 
 const scripts = createExampleScripts(
 	import.meta.env.VITE_POSTHOG_KEY,
@@ -65,7 +74,21 @@ const IabSurfaces = ({ cmpId }: { cmpId: number }) => {
 
 const RootComponent = () => {
 	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
-	const state = Route.useLoaderData();
+	const { experiment: experimentSwitch, ...state } = Route.useLoaderData();
+	// `?experiment=1` runs the banner-shape experiment; the loader resolved
+	// `arm` on the server, which is where a flag provider's answer would
+	// come from. Without the param the root gets no `experiment` option.
+	const [events, setEvents] = useState<ExperimentReportEvent[]>([]);
+	const report = useCallback((event: ExperimentReportEvent) => {
+		setEvents((previous) => [...previous, event]);
+	}, []);
+	const experiment = useMemo(
+		() =>
+			experimentSwitch.enabled
+				? bannerExperiment(experimentSwitch.arm, report)
+				: undefined,
+		[experimentSwitch.arm, experimentSwitch.enabled, report]
+	);
 
 	return (
 		<html lang="en">
@@ -77,11 +100,14 @@ const RootComponent = () => {
 					state={state}
 					backendURL={consentRoute}
 					scripts={scripts}
+					options={{ experiment }}
 				>
 					<ConsentBanner />
 					<ConsentDialog />
 					<IabSurfaces cmpId={state.initialIab?.cmpId ?? 10} />
-					<Outlet />
+					<ExperimentEventsContext.Provider value={experiment ? events : null}>
+						<Outlet />
+					</ExperimentEventsContext.Provider>
 				</ConsentRoot>
 				<Scripts />
 			</body>
@@ -103,5 +129,14 @@ export const Route = createRootRoute({
 			{ title: 'c15t × TanStack Start' },
 		],
 	}),
-	loader: () => getConsentState(),
+	loader: async ({
+		location,
+	}): Promise<
+		Awaited<ReturnType<typeof getConsentState>> & {
+			experiment: ExperimentSearch;
+		}
+	> => ({
+		...(await getConsentState()),
+		experiment: experimentSearch(location.searchStr),
+	}),
 });
