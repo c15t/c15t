@@ -187,6 +187,34 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 	}
 });
 
+test('a prepared prefetch reports the impression without an init call', async () => {
+	const reports: ExperimentReportEvent[] = [];
+	const mounted = mount(
+		{
+			experiment: {
+				...experiment,
+				reportTo: (event) => reports.push(event),
+				variant: 'bar',
+			},
+		},
+		<ConsentBanner />
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(reports.map((report) => report.name)).toEqual([
+				'c15t_surface_shown',
+			])
+		);
+		expect(reports[0]).toMatchObject({
+			assignedBy: 'host',
+			surface: 'banner',
+			variant: 'bar',
+		});
+	} finally {
+		mounted.unmount();
+	}
+});
+
 test('reportTo receives the banner impression and the choice', async () => {
 	const reports: ExperimentReportEvent[] = [];
 	// Impressions are stamped once init marks the kernel live, so this
