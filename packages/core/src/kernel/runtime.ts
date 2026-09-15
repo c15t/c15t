@@ -275,12 +275,16 @@ export const createRuntime = function createRuntime(
 			});
 		}
 		if (shown !== null) {
-			emit({
+			const event: Extract<KernelEvent, { type: 'surface:shown' }> = {
 				shownAt: adopted.evaluatedAt,
 				snapshot: adopted,
 				surface: shown,
 				type: 'surface:shown',
-			});
+			};
+			if (adopted.experiment) {
+				event.experiment = adopted.experiment;
+			}
+			emit(event);
 		}
 		return true;
 	};

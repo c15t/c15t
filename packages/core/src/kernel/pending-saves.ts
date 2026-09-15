@@ -54,6 +54,21 @@ const isOptionalString = function isOptionalString(value: unknown): boolean {
 	return value === undefined || typeof value === 'string';
 };
 
+const isOptionalExperiment = function isOptionalExperiment(
+	value: unknown
+): boolean {
+	if (value === undefined) {
+		return true;
+	}
+	return (
+		isRecord(value) &&
+		typeof value.id === 'string' &&
+		typeof value.variant === 'string' &&
+		(value.assignedBy === 'host' || value.assignedBy === 'c15t') &&
+		typeof value.acknowledgedDiagnostics === 'boolean'
+	);
+};
+
 const isOptionalFiniteNumber = function isOptionalFiniteNumber(
 	value: unknown
 ): boolean {
@@ -161,6 +176,7 @@ const isSavePayload = function isSavePayload(
 		validAction &&
 		isOptionalFiniteNumber(value.givenAt) &&
 		isOptionalFiniteNumber(value.timeToDecisionMs) &&
+		isOptionalExperiment(value.experiment) &&
 		(value.policySnapshotToken === null ||
 			typeof value.policySnapshotToken === 'string') &&
 		(value.tcString === undefined ||
