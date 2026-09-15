@@ -450,6 +450,16 @@ const hydrateVuePersistence = (
 	}
 };
 
+const resolveInitialPolicyPending = (
+	initialConfig: KernelConfig,
+	kernelConfig?: KernelConfig
+): boolean =>
+	initialConfig.initialPolicyPending ??
+	!(
+		kernelConfig?.initialPolicyResolution ??
+		initialConfig.initialPolicyResolution
+	);
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -493,6 +503,10 @@ export const createVueConsentKernelContext =
 			options.runtime?.kernel ??
 			createConsentKernel({
 				...initialConfig,
+				initialPolicyPending: resolveInitialPolicyPending(
+					initialConfig,
+					options.kernelConfig
+				),
 				initialRecords: records.initialRecords,
 				now:
 					options.now ??

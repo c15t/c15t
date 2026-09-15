@@ -637,6 +637,56 @@ describe('@c15t/vue kernel runtime', () => {
 	});
 });
 
+test.each(['opt-in', 'opt-out'] as const)(
+	'cleanup waits for the first %s policy without prefetch',
+	async (model) => {
+		let completeInit = (_response: Response): void => {};
+		const response = new Promise<Response>((resolve) => {
+			completeInit = resolve;
+		});
+		vi.stubGlobal('fetch', () => response);
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			clearOnRevocation: {
+				measurement: { localStorage: ['analytics:visitor'] },
+			},
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({ config });
+		localStorage.setItem('analytics:visitor', 'visitor');
+		const stop = startVueConsentRuntime(context, config);
+		try {
+			expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
+			completeInit(
+				Response.json({
+					...initFixture,
+					policyResolution: writePolicyResolutionWire(
+						resolvePolicyRules({
+							countryCode: null,
+							regionCode: null,
+							rules: [
+								{
+									id: 'initial-policy',
+									match: { isDefault: true },
+									model,
+									prompt: 'choice',
+								},
+							],
+						})
+					),
+				})
+			);
+			await expect.poll(() => context.snapshot.value.policyPending).toBe(false);
+			expect(localStorage.getItem('analytics:visitor')).toBe(
+				model === 'opt-out' ? 'visitor' : null
+			);
+		} finally {
+			stop();
+			completeInit(Response.json({}));
+		}
+	}
+);
+
 test('runtime clears configured storage when permission is revoked', async () => {
 	const config: RuntimeConsentConfig = {
 		clearOnRevocation: { measurement: { localStorage: ['analytics:visitor'] } },

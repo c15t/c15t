@@ -119,9 +119,10 @@ or synchronized records can cause that transition. Under an opt-out policy,
 an expired grant that remains effectively allowed does not trigger deletion.
 The `necessary` category cannot be configured for cleanup.
 
-If initialization fails, cleanup follows the settled safe fallback. Data may
-be deleted before a later retry restores an allowed permission. Deletion is
-not reversible.
+Cleanup keeps waiting if a failed initial request leaves the policy pending.
+If a previously settled policy falls back to denial after an initialization
+failure, cleanup removes its configured data. A later successful retry cannot
+restore deleted data.
 
 Runtime construction, server rendering, draft checkbox edits, opening the
 dialog, and disposal do not clear data. Cleanup does not poll storage or repeat

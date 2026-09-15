@@ -58,7 +58,11 @@ export interface ConsentRootProps {
 	 */
 	scripts?: Script[];
 
-	/** Browser data to remove when its consent permission is revoked. */
+	/**
+	 * Remove configured browser data for initially denied categories after policy
+	 * resolution and when consent is later revoked.
+	 * Initial-only: remount ConsentRoot to replace the cleanup configuration.
+	 */
 	clearOnRevocation?: ConsentProviderOptions['clearOnRevocation'];
 
 	/**
