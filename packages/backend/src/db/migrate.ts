@@ -41,6 +41,7 @@ import type { UnsupportedDialectError } from './dialect';
 import { up as baselineUp } from './migrations/1-baseline';
 import { up as indexesUp } from './migrations/2-hot-path-indexes';
 import { up as receiptsUp } from './migrations/3-consent-receipts-and-privacy-directives';
+import { up as attributionUp } from './migrations/4-experiment-attribution';
 import { encodeRow, encoder } from './values';
 
 const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
@@ -76,6 +77,7 @@ export const MIGRATIONS: readonly Migration[] = [
 		name: '3-consent-receipts-and-privacy-directives',
 		up: receiptsUp,
 	},
+	{ id: 4, name: '4-experiment-attribution', up: attributionUp },
 ];
 
 export interface MigrateOptions extends ApplyOptions {

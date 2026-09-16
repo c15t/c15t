@@ -20,6 +20,7 @@ import { ENGINES, resetDatabase } from '../__tests__/engines';
 import * as Dialect from '../db/dialect';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as attribution } from '../db/migrations/4-experiment-attribution';
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
@@ -76,6 +77,7 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* receipts;
+					yield* attribution;
 
 					const a = yield* recordDecision(input).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
@@ -110,6 +112,7 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* receipts;
+					yield* attribution;
 
 					// Scoping must not cost idempotency, which is the whole point of
 					// the key.
@@ -134,6 +137,7 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* receipts;
+					yield* attribution;
 
 					const first = yield* recordDecision(input);
 					const second = yield* recordDecision(input);

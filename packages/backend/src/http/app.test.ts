@@ -19,6 +19,7 @@ import * as Dialect from '../db/dialect';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as attribution } from '../db/migrations/4-experiment-attribution';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -37,6 +38,7 @@ for (const engine of ENGINES) {
 				yield* baseline;
 				yield* indexes;
 				yield* receipts;
+				yield* attribution;
 			})
 		);
 		app = createApp(runtime, {
@@ -801,6 +803,58 @@ for (const engine of ENGINES) {
 			) as typeof metadata;
 			assert.deepStrictEqual(stored.experiment, metadata.experiment);
 			assert.strictEqual(stored.timeToDecisionMs, 3700);
+
+			// And projected onto the attribution columns the summary groups on.
+			const columns = await runtime.runPromise(
+				Effect.gen(function* columns() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						experimentId: string | null;
+						experimentVariant: string | null;
+						timeToDecisionMs: number | string | null;
+					}>`
+						select ${sql('experimentId')}, ${sql('experimentVariant')},
+							${sql('timeToDecisionMs')}
+						from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			assert.strictEqual(columns[0]?.experimentId, 'banner-shape');
+			assert.strictEqual(columns[0]?.experimentVariant, 'bar');
+			assert.strictEqual(Number(columns[0]?.timeToDecisionMs), 3700);
+		});
+
+		it('drops oversized or malformed attribution without failing the save', async () => {
+			await seed();
+			const metadata = {
+				experiment: { id: 'x'.repeat(129), variant: 'bar' },
+				timeToDecisionMs: -1,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			// Still in the audit copy, just not on the columns.
+			assert.deepStrictEqual(body.metadata, metadata);
+			const columns = await runtime.runPromise(
+				Effect.gen(function* columns() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						experimentId: string | null;
+						experimentVariant: string | null;
+						timeToDecisionMs: number | null;
+					}>`
+						select ${sql('experimentId')}, ${sql('experimentVariant')},
+							${sql('timeToDecisionMs')}
+						from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			assert.isNull(columns[0]?.experimentId);
+			assert.strictEqual(columns[0]?.experimentVariant, 'bar');
+			assert.isNull(columns[0]?.timeToDecisionMs);
 		});
 
 		it('rejects a submission missing its identifiers', async () => {

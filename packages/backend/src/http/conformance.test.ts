@@ -17,6 +17,7 @@ import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as attribution } from '../db/migrations/4-experiment-attribution';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -34,6 +35,7 @@ for (const engine of ENGINES) {
 				yield* baseline;
 				yield* indexes;
 				yield* receipts;
+				yield* attribution;
 			})
 		);
 

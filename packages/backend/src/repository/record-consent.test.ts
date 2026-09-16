@@ -15,6 +15,7 @@ import { SqlClient } from 'effect/unstable/sql';
 
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as attribution } from '../db/migrations/4-experiment-attribution';
 import { singleTenant } from '../db/tenant';
 import { submit } from './record-consent';
 
@@ -26,6 +27,7 @@ const GIVEN_AT = new Date(1_800_000_000_000);
 const setup = Effect.gen(function* setup() {
 	yield* baseline;
 	yield* receipts;
+	yield* attribution;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
 		values ('dom_1','example.com',now(),now())`);

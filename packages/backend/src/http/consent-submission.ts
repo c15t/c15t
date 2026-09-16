@@ -128,6 +128,8 @@ export interface PreparedSubmission {
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
 	readonly metadata: Record<string, unknown> | undefined;
+	/** Attribution columns projected from `metadata`; see `attributionFields`. */
+	readonly attribution: AttributionFields;
 }
 
 const OPTIONAL: ReadonlySet<string> = new Set(POLICY_OPTIONAL_CATEGORIES);
@@ -606,6 +608,57 @@ const proofFields = (
 	};
 };
 
+export interface AttributionFields {
+	readonly experimentId: string | undefined;
+	readonly experimentVariant: string | undefined;
+	readonly timeToDecisionMs: number | undefined;
+}
+
+/**
+ * Longest experiment id or arm name stored on its own column.
+ *
+ * The columns are `indexedText`, which is `varchar(255)` on MySQL; well
+ * under that so an index key never has to be truncated.
+ */
+const ATTRIBUTION_TEXT_MAX = 128;
+
+const attributionText = (value: unknown): string | undefined =>
+	typeof value === 'string' &&
+	value.length > 0 &&
+	value.length <= ATTRIBUTION_TEXT_MAX
+		? value
+		: undefined;
+
+/**
+ * The experiment attribution a submission carries, as column values.
+ *
+ * A v3 client puts `experiment: { id, variant, … }` and `timeToDecisionMs`
+ * in `metadata`; the summary route groups and orders on them, so they are
+ * copied onto real columns at write time. `metadata` is left exactly as sent.
+ *
+ * Anything malformed is dropped, never rejected: attribution is analytics,
+ * and a consent save must not fail over it. A value that is missing here is
+ * still in `metadata` for the audit trail.
+ */
+const attributionFields = (
+	metadata: Record<string, unknown> | undefined
+): AttributionFields => {
+	const experiment = metadata?.experiment;
+	const arm =
+		experiment !== null && typeof experiment === 'object'
+			? (experiment as Record<string, unknown>)
+			: undefined;
+	const ms = metadata?.timeToDecisionMs;
+	return {
+		experimentId: attributionText(arm?.id),
+		experimentVariant: attributionText(arm?.variant),
+		timeToDecisionMs:
+			typeof ms === 'number' && Number.isSafeInteger(ms) && ms >= 0
+				? ms
+				: undefined,
+	};
+};
+
 interface ResolvedCategories {
 	appliedPreferences: Record<string, boolean> | undefined;
 	grantedCodes: string[];
@@ -717,6 +770,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 
 		return {
 			appliedPreferences,
+			attribution: attributionFields(input.metadata),
 			choice,
 			consentAction: deriveConsentAction(input.consentAction, model),
 			decision,

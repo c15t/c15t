@@ -19,6 +19,12 @@
  * | json     | `json`      | `TEXT`    | `json`        |
  * | bool     | `bool`      | `INTEGER` | `tinyint`     |
  * | timestamp| `timestamp` | `INTEGER` | `datetime(3)` |
+ * | integer  | `integer`   | `INTEGER` | `int`         |
+ *
+ * `integer` has no 2.0.0 fixture behind it: no baseline column is a whole
+ * number. It exists for columns added by later migrations (the first is
+ * `consent.timeToDecisionMs` in `4-experiment-attribution`), where a real
+ * numeric type is what makes `order by` and aggregates mean what they say.
  *
  * SQLite collapses everything into `TEXT` and `INTEGER` — notably timestamps
  * are epoch integers there, which the row decoders have to account for.
@@ -127,6 +133,8 @@ export interface PhysicalTypes {
 	readonly json: string;
 	readonly bool: string;
 	readonly timestamp: string;
+	/** Whole number. Not in the 2.0.0 baseline; used by later migrations. */
+	readonly integer: string;
 }
 
 const TYPES: Readonly<Record<Dialect, PhysicalTypes>> = {
@@ -136,6 +144,7 @@ const TYPES: Readonly<Record<Dialect, PhysicalTypes>> = {
 		bool: 'boolean',
 		id: 'varchar(255)',
 		indexedText: 'varchar(255)',
+		integer: 'int',
 		json: 'json',
 		text: 'text',
 		// Not `timestamp` — see the note on the 2038 cut-off and time-zone
@@ -146,6 +155,7 @@ const TYPES: Readonly<Record<Dialect, PhysicalTypes>> = {
 		bool: 'boolean',
 		id: 'varchar(255)',
 		indexedText: 'text',
+		integer: 'integer',
 		// `json`, not `jsonb` — matching what 2.0.0 databases actually hold.
 		// Switching would mean rewriting every JSON column on adoption.
 		json: 'json',
@@ -164,6 +174,7 @@ const TYPES: Readonly<Record<Dialect, PhysicalTypes>> = {
 		bool: 'integer',
 		// Epoch integers, not a date type. Row decoding must convert.
 		timestamp: 'integer',
+		integer: 'integer',
 	},
 };
 
