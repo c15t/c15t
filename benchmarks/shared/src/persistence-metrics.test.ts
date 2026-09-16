@@ -20,9 +20,10 @@ it('measures all three real cookie projections and hydrates without writes', asy
 	const persistence = createPersistence({ kernel });
 	await kernel.commands.init();
 	kernel.set.privacySignals({ gpc: true });
+	// A choice made while the notice is owed acknowledges it, so this one
+	// save writes the choice and the notice projections together.
 	await kernel.commands.save({ functionality: true });
-	expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
-	await kernel.commands.dismissNotice();
+	expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
 	vi.advanceTimersByTime(0);
 	const cookies = document.cookie.split('; ').sort();
 	expect(cookies.map((cookie) => cookie.split('=')[0]).sort()).toEqual([
