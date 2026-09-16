@@ -131,6 +131,16 @@ export const createRuntime = function createRuntime(
 		: null;
 	let started = false;
 	let live = false;
+	/**
+	 * Whether the kernel, not the adapter, last hid each surface: a derived
+	 * `activeUI` change (a save clearing the prompt) rather than an explicit
+	 * `set.activeUI`. An adapter restoring such a surface is not a new
+	 * impression.
+	 */
+	const hiddenBySave: Record<PromptSurface, boolean> = {
+		banner: false,
+		dialog: false,
+	};
 	let disposed = false;
 	let generation = 0;
 	let forwardedDirectives: Set<string> | undefined;
@@ -195,9 +205,25 @@ export const createRuntime = function createRuntime(
 			});
 		}
 		const surface = snapshot.activeUI;
+		// A save derives `activeUI` to `none` in the same commit that clears
+		// the prompt. An adapter that keeps its preference dialog open for the
+		// save then restores `dialog` a tick later; the visitor never saw it
+		// close. That restore is not a new impression. A surface the visitor
+		// reopens after the kernel hid it for real is.
+		const restoredAfterSave =
+			isPromptSurface(surface) &&
+			surface !== current.activeUI &&
+			hiddenBySave[surface];
+		if (isPromptSurface(current.activeUI) && current.activeUI !== surface) {
+			hiddenBySave[current.activeUI] = patch.activeUI === undefined;
+		}
+		if (isPromptSurface(surface)) {
+			hiddenBySave[surface] = false;
+		}
 		if (
 			live &&
 			isPromptSurface(surface) &&
+			!restoredAfterSave &&
 			(surface !== current.activeUI || current.surfaceShownAt[surface] === null)
 		) {
 			emit({

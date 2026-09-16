@@ -100,6 +100,30 @@ describe('surface:shown', () => {
 		expect(kernel.getSnapshot().surfaceShownAt.banner).toBe(NOW + 500);
 	});
 
+	test('a dialog the kernel hid on save and the adapter restored is one impression', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { kernel, shown } = setup();
+		await kernel.commands.init();
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2000);
+		kernel.set.activeUI('dialog');
+		expect(shown).toHaveLength(2);
+
+		// The save clears the prompt, which derives activeUI to none. The
+		// adapter keeps its dialog open for the save and puts it back.
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2100);
+		await kernel.commands.save('none');
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2102);
+		kernel.set.activeUI('dialog');
+		expect(shown).toHaveLength(2);
+
+		// The visitor closes it and reopens it later: a fresh impression.
+		kernel.set.activeUI('none');
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 9000);
+		kernel.set.activeUI('dialog');
+		expect(shown).toHaveLength(3);
+	});
+
 	test('a choice carries the time from the impression to the action', async () => {
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
 		const { kernel, save } = setup();
