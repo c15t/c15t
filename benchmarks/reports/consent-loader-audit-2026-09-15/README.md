@@ -183,3 +183,13 @@ finished its animation in 171 ms across ten fresh contexts. Reopening mounted
 in 7 ms with no downloads. Five-context compound, Astro IAB and external-runtime
 checks also completed without browser errors; the external probe showed no
 delayed remount. These remain local development measurements.
+
+The subsequent teardown review added cancellation for pending external IAB
+actions. Unmounting or replacing the bridge's runtime rejects a queued save
+with `AbortError`; StrictMode effect replay keeps the action pending until the
+handle arrives. The runtime owner must unmount the borrowing provider when
+disposing its runtime. No timeout is imposed while a mounted owner is still
+initializing. Tests cover cancellation, stale action references, StrictMode
+replay, and absence of unhandled rejections for void actions.
+
+The full React suite passes 675 tests after this teardown follow-up.

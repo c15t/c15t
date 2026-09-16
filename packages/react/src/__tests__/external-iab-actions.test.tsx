@@ -1,8 +1,11 @@
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import { createConsentRuntime } from '@c15t/core/runtime';
-import { useLayoutEffect } from 'react';
+import { StrictMode, useLayoutEffect } from 'react';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { KernelContext } from '../context';
+import { ExternalIABProvider } from '../external-iab-context';
 import { useIAB } from '../iab-context';
 import type { ReactIABState } from '../iab-context';
 import { ConsentProvider } from '../provider';
@@ -18,6 +21,20 @@ const Probe = ({ onReady }: { onReady: (iab: ReactIABState) => void }) => {
 	}, [iab, onReady]);
 	return null;
 };
+const BridgeProbe = ({
+	runtime,
+	onReady,
+}: {
+	runtime: ConsentRuntime;
+	onReady: (iab: ReactIABState) => void;
+}) => (
+	<KernelContext.Provider value={runtime.kernel}>
+		<ExternalIABProvider runtime={runtime}>
+			<Probe onReady={onReady} />
+		</ExternalIABProvider>
+	</KernelContext.Provider>
+);
+
 const fixture = () => {
 	const handle = {
 		acceptAll: vi.fn(),
@@ -76,7 +93,7 @@ test.each(['acceptAll', 'rejectAll', 'save'] as const)(
 	}
 );
 
-test('propagates a queued save failure and runs actions immediately once ready', async () => {
+test('propagates queued save errors and runs ready actions immediately', async () => {
 	const { handle, runtime } = fixture();
 	handle.save.mockRejectedValueOnce(new Error('save failed'));
 	let iab: ReactIABState | undefined;
@@ -99,6 +116,85 @@ test('propagates a queued save failure and runs actions immediately once ready',
 		await iab.save();
 		expect(handle.acceptAll).toHaveBeenCalledOnce();
 		expect(handle.save).toHaveBeenCalledTimes(2);
+	} finally {
+		screen.unmount();
+		runtime.dispose();
+	}
+});
+
+test.each(['unmount', 'replace'] as const)(
+	'aborts queued saves on provider %s',
+	async (operation) => {
+		const first = fixture();
+		const second = fixture();
+		let iab: ReactIABState | undefined;
+		const onReady = (value: ReactIABState) => {
+			iab = value;
+		};
+		const screen = await render(
+			<BridgeProbe
+				runtime={first.runtime}
+				onReady={onReady}
+			/>
+		);
+		try {
+			if (!iab) {
+				throw new Error('Missing IAB state');
+			}
+			const initialIAB = iab;
+			const saved = expect(iab.save()).rejects.toMatchObject({
+				name: 'AbortError',
+			});
+			// Void actions must not create unhandled rejections during teardown.
+			iab.acceptAll();
+			if (operation === 'unmount') {
+				screen.unmount();
+			} else {
+				await screen.rerender(
+					<BridgeProbe
+						runtime={second.runtime}
+						onReady={onReady}
+					/>
+				);
+			}
+			await saved;
+			await expect(initialIAB.save()).rejects.toMatchObject({
+				name: 'AbortError',
+			});
+			first.runtime.start();
+			second.runtime.start();
+			expect(first.handle.save).not.toHaveBeenCalled();
+			expect(first.handle.acceptAll).not.toHaveBeenCalled();
+			expect(second.handle.save).not.toHaveBeenCalled();
+		} finally {
+			if (operation !== 'unmount') {
+				screen.unmount();
+			}
+			first.runtime.dispose();
+			second.runtime.dispose();
+		}
+	}
+);
+
+test('keeps pending actions through StrictMode effect replay', async () => {
+	const { runtime, handle } = fixture();
+	let saved: Promise<void> | undefined;
+	const onReady = (iab: ReactIABState) => {
+		saved ??= iab.save();
+	};
+	const screen = await render(
+		<StrictMode>
+			<ConsentProvider runtime={runtime}>
+				<Probe onReady={onReady} />
+			</ConsentProvider>
+		</StrictMode>
+	);
+	try {
+		expect(saved).toBeDefined();
+		await new Promise(requestAnimationFrame);
+		runtime.start();
+		await saved;
+		expect(handle.save).toHaveBeenCalledOnce();
 	} finally {
 		screen.unmount();
 		runtime.dispose();

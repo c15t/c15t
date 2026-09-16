@@ -20,7 +20,9 @@ const gate = vi.hoisted(() => {
 	return { ready, release, requested, started };
 });
 
-// oxlint-disable-next-line anti-slop/no-module-mocking -- Gate only module arrival; render the actual island and actual imported component to reproduce the browser loading race.
+// Gate only module arrival. Render the actual island and imported component
+// to reproduce the browser loading race.
+// oxlint-disable-next-line anti-slop/no-module-mocking
 vi.mock(
 	'../../../astro/src/components/islands/iab-dialog-surface',
 	async (importOriginal) => {
