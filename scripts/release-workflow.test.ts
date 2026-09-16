@@ -34,61 +34,109 @@ describe('release validation', () => {
 		});
 	});
 
-	it('opts only releases into advisory runtime comparisons', () => {
-		const performanceAdvisory = `\${{ inputs.performance_advisory || false }}`;
-		const advisory = `\${{ inputs.advisory || false }}`;
-		const advisoryFailure =
-			`\${{ !cancelled() && inputs.advisory && ` +
-			`steps.measure.outcome == 'failure' }}`;
-		const notCancelled = `\${{ !cancelled() }}`;
-
-		expect(readWorkflow('release')).toHaveProperty('jobs.checks.with', {
-			performance_advisory: true,
+	it('skips runtime comparisons in releases while keeping other checks required', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				checks: { with: { skip_performance: true } },
+				publish: { needs: 'checks' },
+			},
 		});
 		expect(readWorkflow('validation')).not.toHaveProperty(
-			'jobs.checks.with.performance_advisory'
+			'jobs.checks.with.skip_performance'
 		);
 		expect(readWorkflow('ci')).toMatchObject({
 			jobs: {
+				complete: {
+					needs: [
+						'repository',
+						'build',
+						'packages',
+						'backend',
+						'browser',
+						'bundle',
+						'performance',
+					],
+				},
 				performance: {
-					with: { advisory: performanceAdvisory },
+					if: "needs.repository.outputs.performance == 'true' && !inputs.skip_performance",
+					with: {
+						mode: `\${{ github.event_name != 'pull_request' && 'full' || 'quick' }}`,
+					},
 				},
 			},
 			on: {
 				workflow_call: {
-					inputs: { performance_advisory: { default: false, type: 'boolean' } },
+					inputs: { skip_performance: { default: false, type: 'boolean' } },
 				},
 			},
 		});
+	});
+
+	it('runs full v3 comparisons separately on push, nightly, and manually', () => {
 		expect(readWorkflow('benchmark-regression')).toMatchObject({
 			jobs: {
 				benchmark: {
+					needs: 'plan',
 					steps: expect.arrayContaining([
 						expect.objectContaining({
-							'continue-on-error': advisory,
-							id: 'measure',
+							with: expect.objectContaining({
+								ref: `\${{ needs.plan.outputs.head_sha }}`,
+							}),
 						}),
 						expect.objectContaining({
-							if: advisoryFailure,
-							run: expect.stringContaining('::warning::'),
+							env: expect.objectContaining({
+								BENCHMARK_BASE_REF: `\${{ needs.plan.outputs.base_sha }}`,
+								BENCHMARK_MODE: `\${{ inputs.mode || 'full' }}`,
+								BENCHMARK_PACKAGE: `\${{ matrix.package }}`,
+							}),
+							run: 'bun scripts/benchmark-run.ts "$BENCHMARK_MODE"',
 						}),
 						expect.objectContaining({
-							if: notCancelled,
-							with: expect.objectContaining({ name: 'runtime-benchmarks' }),
+							if: `\${{ !cancelled() }}`,
+							with: expect.objectContaining({
+								name: `runtime-benchmarks-\${{ matrix.id }}`,
+							}),
+						}),
+					]),
+					strategy: {
+						'fail-fast': false,
+						matrix: `\${{ fromJSON(needs.plan.outputs.matrix) }}`,
+					},
+				},
+				plan: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							with: expect.objectContaining({
+								ref: `\${{ inputs.head_ref || (github.event_name == 'schedule' && 'v3') || github.sha }}`,
+							}),
 						}),
 					]),
 				},
 			},
 			on: {
-				workflow_call: {
-					inputs: { advisory: { default: false, type: 'boolean' } },
+				push: { branches: ['v3'] },
+				schedule: [{ cron: '43 2 * * *' }],
+				workflow_dispatch: {
+					inputs: { head_ref: { default: 'v3' }, mode: { default: 'full' } },
+				},
+			},
+		});
+		expect(readWorkflow('benchmark-regression')).not.toHaveProperty(
+			'on.workflow_call.inputs.advisory'
+		);
+		expect(readWorkflow('benchmark-regression')).not.toMatchObject({
+			jobs: {
+				benchmark: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({ 'continue-on-error': expect.anything() }),
+					]),
 				},
 			},
 		});
 	});
 
 	it.each(['repository', 'build', 'packages', 'backend', 'browser', 'bundle'])(
-		'blocks failed or cancelled %s checks even when performance succeeds',
+		'blocks failed or cancelled %s checks when release benchmarks are skipped',
 		(job) => {
 			const script = execFileSync(
 				'bun',
@@ -110,7 +158,7 @@ describe('release validation', () => {
 						...process.env,
 						RESULTS: JSON.stringify({
 							[job]: { result },
-							performance: { result: 'success' },
+							performance: { result: 'skipped' },
 						}),
 					},
 				});

@@ -5,8 +5,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
     inputs:
-      performance_advisory:
-        description: Report runtime benchmark failures without blocking releases
+      skip_performance:
+        description: Run release checks without waiting for separate runtime benchmarks
         type: boolean
         default: false
     secrets:
@@ -234,10 +234,9 @@ jobs:
 
   performance:
     needs: [repository, build]
-    if: needs.repository.outputs.performance == 'true'
+    if: needs.repository.outputs.performance == 'true' && !inputs.skip_performance
     uses: ./.github/workflows/benchmark-regression.yml
     with:
-      advisory: ${{ inputs.performance_advisory || false }}
       base_ref: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
       built: true
       mode: ${{ github.event_name != 'pull_request' && 'full' || 'quick' }}

@@ -13,13 +13,15 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { replaceBenchmarkFixtures } from './benchmark-overlay';
+import { createBenchmarkPlan } from './benchmark-plan';
 import { runCommand } from './browser-process';
 import { installBrowsers } from './install-browsers';
 
 const mode = process.argv[2] ?? 'quick';
-if (!['bundle', 'quick', 'full'].includes(mode)) {
-	throw new Error(`Unknown benchmark mode: ${mode}`);
-}
+const { expectedPackages, packages, suites } = createBenchmarkPlan(
+	mode,
+	process.env.BENCHMARK_PACKAGE
+);
 const root = process.cwd();
 const headSha = execFileSync('git', ['rev-parse', 'HEAD'], {
 	encoding: 'utf8',
@@ -38,23 +40,6 @@ const base = join(directory, 'base');
 const report = resolve('.ci-reports', mode);
 rmSync(report, { force: true, recursive: true });
 mkdirSync(report, { recursive: true });
-const packages =
-	mode === 'bundle'
-		? ['@c15t/next-bundle-bench']
-		: [
-				'@c15t/core-benchmarks',
-				'@c15t/script-lifecycle-bench',
-				...(mode === 'full'
-					? [
-							'@c15t/react-browser-bench',
-							'@c15t/nextjs-browser-bench',
-							'@c15t/nuxt-browser-bench',
-							'@c15t/sveltekit-browser-bench',
-							'@c15t/astro-browser-bench',
-							'@c15t/tanstack-start-browser-bench',
-						]
-					: []),
-			];
 const env = {
 	...process.env,
 	BENCHMARK_BASE_SHA: baseSha,
@@ -120,6 +105,7 @@ try {
 							'--',
 							'benchmarks',
 							'scripts/benchmark-run.ts',
+							'scripts/benchmark-plan.ts',
 						],
 						{ encoding: 'utf8' }
 					).length > 0,
@@ -141,12 +127,8 @@ try {
 			BENCHMARK_BASE_DIR: join(report, 'base'),
 			BENCHMARK_COMPARE_DIR: join(report, 'compare'),
 			BENCHMARK_ENFORCE: 'true',
-			BENCHMARK_EXPECTED_SUITES:
-				{
-					bundle: 'bundle,artifact',
-					full: 'core-runtime,policy-runtime,script-lifecycle,browser-runtime',
-					quick: 'core-runtime,policy-runtime,script-lifecycle',
-				}[mode] ?? '',
+			BENCHMARK_EXPECTED_PACKAGES: expectedPackages.join(','),
+			BENCHMARK_EXPECTED_SUITES: suites.join(','),
 			BENCHMARK_HEAD_DIR: join(report, 'head'),
 			BENCHMARK_PROFILE: 'regression',
 		},

@@ -74,6 +74,25 @@ dependency absent from the base manifest fails before measurement. `.ci-reports/
 records both SHAs and the fixture overlay; base, head and comparison evidence
 sit alongside it. A failed measurement cannot reuse a previous report.
 
+CI runs one benchmark package per runner: two parallel jobs for `quick` and
+eight for `full`. A planning job resolves both revisions to commit IDs before
+starting the matrix. Each runner measures its base and head sequentially with
+`--concurrency=1`, so timing loops do not compete for CPU. Local commands still
+run the whole profile sequentially unless `BENCHMARK_PACKAGE` selects one
+package, for example:
+
+```sh
+BENCHMARK_PACKAGE=@c15t/react-browser-bench bun scripts/benchmark-run.ts full
+```
+
+Unknown packages and packages outside the selected profile fail before any
+measurement. Each job enforces every expected result and budget for its package
+and uploads `runtime-benchmarks-<id>` with base, head, comparison and
+provenance files. The matrix `id` is the package name with `@c15t/` removed,
+for example `runtime-benchmarks-react-browser-bench` for
+`@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
+Sample counts, warmups and budget thresholds are unchanged.
+
 `bundle` measures real Next route assets, publish tarballs and consumer import
 entries. Entry reports separate initial and deferred JavaScript with gzip and
 Brotli sizes. Route reports also measure CSS. The ordinary React entry checks
@@ -84,9 +103,12 @@ or empty assets fail the run.
 15 browser samples after 3 warmups. Engine operations use 5,000 samples after
 1,000 warmups in both profiles. `full` uses 30 browser samples and adds React, Next, Nuxt,
 SvelteKit, Astro and TanStack Start browser scenarios. PRs run the quick
-comparison when runtime benchmark consumers are affected. Full CI runs the
-browser comparison on publishing branches and nightly. Results and failures
-appear in Actions summaries and artifacts, without PR comments. Script-lifecycle
+comparison when runtime benchmark consumers are affected. Full comparisons run
+separately on `v3` pushes, nightly, and manually through
+`benchmark-regression.yml`. They also remain part of full validation and manual
+CI runs. Release checks skip runtime comparisons so publishing does not wait
+for them. Nightly scheduling requires the workflow on the default branch.
+Results and failures appear in Actions summaries and artifacts, without PR comments. Script-lifecycle
 durations use the browser clock from action start through confirmed completion;
 Playwright click transport and polling time are excluded. The three tiny
 empty-kernel percentage budgets also require more than 1µs of growth before

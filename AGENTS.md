@@ -137,11 +137,15 @@ framework parity and Storybook interactions, SSR consent journeys, and CSS
 compatibility. `scripts/ci-plan.ts` selects the groups; `scripts/ci-browser.ts`
 runs them. See [.github/CI.md](.github/CI.md) for commands and assertion ownership.
 
-`release.yml` calls full CI before publishing on `canary`, `main`, and `2.0.0`,
-preserving its npm trusted-publisher identity. `validation.yml` runs full CI
-nightly. `next-compat.yml` separately probes Next canary releases as advisory
-checks. Routine PR performance comparisons use the quick runtime profile;
-full validation includes browser performance. Historical v2 improvement
+`release.yml` calls CI with runtime benchmarks skipped before publishing on
+`canary`, `main`, `2.0.0`, and `v3`, preserving its npm trusted-publisher identity.
+`benchmark-regression.yml` runs full runtime comparisons independently on `v3`
+pushes, nightly, and manually. Scheduled runs explicitly check out `v3` and
+activate once the workflow is on the default branch. `validation.yml` runs full
+CI nightly. `next-compat.yml` separately probes Next canary releases as advisory
+checks. Runtime benchmarks use one runner per package, with sequential base/head
+measurements on each runner. Routine PR comparisons use two quick-profile jobs;
+full validation uses eight jobs including browser performance. Historical v2 improvement
 comparisons remain an explicit release-profile benchmark command.
 
 `autofix.ci` runs `bun fmt` and `bun fmt:docs` and pushes formatting fixes.
