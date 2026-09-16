@@ -14,7 +14,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
-| Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics on full CI | Routine microbench runs |
+| Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate v3 runs and full validation | Routine microbench runs |
 
 ## Selection and local commands
 
@@ -43,13 +43,22 @@ follow reverse dependencies, while builds include forward dependencies of all
 selected hosts. Unknown paths, root config, lockfiles and removed packages
 select everything. Full publishing-branch and nightly runs cover the entire
 graph. Stable check `CI complete` fails if any selected job fails or cancels.
-Release runs opt into advisory runtime benchmarks: measurement or comparison
-failures produce a warning, summary, and artifact without blocking the version
-PR or npm publishing. Benchmark setup and artifact upload failures still fail
-the job. PRs, nightly validation, and manual benchmark runs enforce runtime
-budgets. Tests, builds, consumer bundle budgets, and package validation remain
-required for releases.
-Repository branch-protection settings must require this name when replacing
+Release runs skip runtime benchmarks so publishing does not wait for timing
+measurements. Tests, builds, consumer bundle budgets, and package validation
+remain required. Quick runtime comparisons still gate affected PRs. Full
+validation and manual CI runs still include full runtime comparisons.
+
+`benchmark-regression.yml` also runs full comparisons independently on pushes
+to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
+manual runs default to `v3` and accept a different `head_ref` or `base_ref`.
+Runtime comparisons use one runner per package: two jobs for quick runs and
+eight for full runs. Both revisions resolve once before the matrix starts.
+Each job measures base then head on the same runner and enforces that package's
+complete expected results and budgets. Jobs upload separate reports and keep
+running if another package fails. Failures fail the benchmark workflow and
+preserve its summaries and artifacts without blocking publishing. GitHub activates schedules only once the workflow is on
+the default branch; push runs work as soon as this change lands on `v3`.
+Repository branch-protection settings must require `CI complete` when replacing
 the old required checks.
 
 The setup action installs the pinned toolchain and resolved Playwright

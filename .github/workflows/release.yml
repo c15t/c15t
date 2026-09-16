@@ -24,7 +24,7 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
     with:
-      performance_advisory: true
+      skip_performance: true
     secrets:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}

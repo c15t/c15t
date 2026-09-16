@@ -1,12 +1,12 @@
 name: Benchmark Regression
 
 on:
+  push:
+    branches: ['v3']
+  schedule:
+    - cron: '43 2 * * *'
   workflow_call:
     inputs:
-      advisory:
-        description: Report runtime benchmark failures without failing the job
-        type: boolean
-        default: false
       base_ref:
         type: string
         default: 'HEAD^'
@@ -18,6 +18,9 @@ on:
         default: false
   workflow_dispatch:
     inputs:
+      head_ref:
+        description: Revision to benchmark
+        default: v3
       base_ref:
         description: Revision to compare with
         default: 'HEAD^'
@@ -34,13 +37,48 @@ env:
   NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
-  benchmark:
-    name: Runtime regression budgets
+  plan:
+    name: Select benchmark packages and revisions
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 90
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      head_sha: ${{ steps.plan.outputs.head_sha }}
+      base_sha: ${{ steps.plan.outputs.base_sha }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          # Resolve moving branch names once for every benchmark package.
+          ref: ${{ inputs.head_ref || (github.event_name == 'schedule' && 'v3') || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+        with:
+          bun-version: 1.3.11
+      - name: Plan benchmark matrix
+        id: plan
+        env:
+          BENCHMARK_BASE_REF: ${{ inputs.base_ref || 'HEAD^' }}
+          BENCHMARK_MODE: ${{ inputs.mode || 'full' }}
+        run: |
+          matrix=$(bun scripts/benchmark-plan.ts "$BENCHMARK_MODE")
+          head_sha=$(git rev-parse HEAD)
+          base_sha=$(git rev-parse --verify "${BENCHMARK_BASE_REF}^{commit}")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+
+  benchmark:
+    name: Runtime regression budgets (${{ matrix.id }})
+    needs: plan
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ needs.plan.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -48,21 +86,16 @@ jobs:
           built: ${{ inputs.built || false }}
           browsers: 'true'
       - name: Measure base and head in sequence
-        id: measure
-        continue-on-error: ${{ inputs.advisory || false }}
         env:
-          BENCHMARK_BASE_REF: ${{ inputs.base_ref || 'HEAD^' }}
+          BENCHMARK_BASE_REF: ${{ needs.plan.outputs.base_sha }}
           BENCHMARK_MODE: ${{ inputs.mode || 'full' }}
+          BENCHMARK_PACKAGE: ${{ matrix.package }}
         run: bun scripts/benchmark-run.ts "$BENCHMARK_MODE"
-      - name: Warn about advisory benchmark failures
-        if: ${{ !cancelled() && inputs.advisory && steps.measure.outcome == 'failure' }}
-        run: |
-          echo "::warning::Runtime benchmarks failed. This release treats performance as advisory; review the benchmark summary and runtime-benchmarks artifact."
       - name: Save measurements and comparison
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: runtime-benchmarks
+          name: runtime-benchmarks-${{ matrix.id }}
           path: .ci-reports/
           retention-days: 14
           include-hidden-files: true
