@@ -23,7 +23,7 @@ Positive decisions expire at `confirmedAt + choice.maxAgeMs` and remain valid wh
 
 A choice prompt uses the active optional scope. Empty scope requires no prompt. Otherwise, no decisions yields `missing`; any incompatible in-scope basis yields `policy-changed`; missing required coverage yields `missing`; any expired positive decision yields `expired`. Complete matching coverage requires no prompt. Matching denials satisfy coverage regardless of age.
 
-A notice prompt depends only on its dismissal. Missing dismissal yields `missing`, a fingerprint mismatch yields `policy-changed`, and expiry yields `expired`. Category saves, category expiry and GPC do not acknowledge a notice.
+A notice prompt depends only on its dismissal. Missing dismissal yields `missing`, a fingerprint mismatch yields `policy-changed`, and expiry yields `expired`. Category expiry and GPC do not acknowledge a notice. A category save made while a notice is owed does: the kernel records the dismissal with the choice, so the notice does not return after an opt-out made from the preference center.
 
 `nextDeadline` is the earliest expiry that changes a permission or the aggregate prompt. An unmasked opt-in or IAB grant still needs an expiry deadline when choice coverage is missing. A masked grant or opt-out grant needs one only when expiry changes satisfied choice coverage to `expired`. Existing `missing`, `policy-changed` and `expired` prompts keep their reason as other grants expire. A notice deadline uses the dismissal's independent lifetime.
 

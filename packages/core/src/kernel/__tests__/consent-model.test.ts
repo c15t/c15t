@@ -476,10 +476,6 @@ describe('notice prompts', () => {
 			reason: 'missing',
 		});
 
-		await kernel.commands.save({ marketing: false });
-		expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
-		expect(kernel.getSnapshot().activeUI).toBe('banner');
-
 		const permissions = vi.fn();
 		kernel.events.on('permissions:changed', permissions);
 		const result = await kernel.commands.dismissNotice();
@@ -500,7 +496,36 @@ describe('notice prompts', () => {
 			kind: 'notice',
 			reason: 'expired',
 		});
+		// Notice expiry re-asks; it never changes permissions.
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+	});
+
+	test('a choice recorded while a notice is owed acknowledges the notice', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: fixtureResolution({
+				model: 'opt-out',
+				prompt: 'notice',
+			}),
+			now: POLICY_NOW,
+		});
+		const dismissed = vi.fn();
+		kernel.events.on('notice:dismissed', dismissed);
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
+
+		await kernel.commands.save({ marketing: false });
+
+		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getSnapshot().noticeDismissal).toMatchObject({
+			fingerprint: NOTICE_FINGERPRINT,
+		});
+		// The choice is the outcome; no second notice event double-counts it.
+		expect(dismissed).not.toHaveBeenCalled();
+		expect(await kernel.commands.dismissNotice()).toEqual({
+			ok: false,
+			reason: 'not-required',
+		});
 	});
 
 	test('a dismissal against another notice fingerprint is policy-changed', () => {

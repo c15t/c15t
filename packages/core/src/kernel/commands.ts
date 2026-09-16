@@ -202,6 +202,27 @@ const saveUnderNoneRegime = function saveUnderNoneRegime(
 	return { confirmed: [], ok: true, subjectId: snapshot.subject?.subjectId };
 };
 
+/**
+ * A visitor who records a choice while a notice is owed has read the
+ * notice: the choice acknowledges it, so the banner does not return after
+ * an opt-out made from the preference center. The dismissal rides on
+ * `choice:recorded`; no separate notice event, so an outcome is counted once.
+ */
+const applyNoticeAcknowledgement = function applyNoticeAcknowledgement(
+	patch: SnapshotPatch,
+	before: ConsentSnapshot,
+	actionAt: number
+): void {
+	if (before.promptRequirement.kind !== 'notice') {
+		return;
+	}
+	patch.noticeDismissal = {
+		dismissedAt: actionAt,
+		fingerprint: before.evaluationPolicy.notice.fingerprint,
+		version: 1,
+	};
+};
+
 /** Subject written by a save: the stored identifiers plus the current user's. */
 const saveSubject = function saveSubject(
 	snapshot: ConsentSnapshot,
@@ -878,6 +899,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				now: currentTime,
 				subject,
 			};
+			applyNoticeAcknowledgement(patch, before, actionAt);
 			applySaveAuthority(patch, before, context?.iabAuthority);
 			commit(patch);
 			const after = getSnapshot();

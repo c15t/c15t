@@ -80,6 +80,8 @@ export const createPersistence = function createPersistence(
 	const unsubscribers = [
 		kernel.events.on('choice:recorded', () => {
 			choiceWrites.schedule();
+			// A choice under a notice prompt acknowledges the notice too.
+			noticeWrites.schedule();
 		}),
 		kernel.events.on('subject:resolved', () => {
 			choiceWrites.schedule();

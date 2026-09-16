@@ -50,7 +50,9 @@ measure a banner; do not infer an impression from a permission value.
 ## Treat notices and privacy signals separately
 
 `commands.dismissNotice()` acknowledges the current notice. It does not grant
-categories or overwrite existing denials. Global Privacy Control, or GPC, is a
+categories or overwrite existing denials. A choice saved while a notice is
+owed acknowledges it as well, so a visitor who opts out from the preference
+center is not shown the notice again. Global Privacy Control, or GPC, is a
 browser privacy signal. Its configured restrictions can change permissions
 without creating an explicit choice.
 
