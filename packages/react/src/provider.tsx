@@ -1,5 +1,10 @@
 'use client';
 
+import {
+	extractConsentNamesFromCondition,
+	createConsentKernel,
+	kernelConfigToInitResponse,
+} from '@c15t/core';
 import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
@@ -22,7 +27,6 @@ import type {
 	TranslationsResponse,
 	User,
 } from '@c15t/core';
-import { createConsentKernel, kernelConfigToInitResponse } from '@c15t/core';
 import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
@@ -46,6 +50,8 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './module-hooks';
+import { useIframeBlocker } from './module-hooks/iframe-blocker';
+import type { UseIframeBlockerOptions } from './module-hooks/iframe-blocker';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ReactUIOptions } from './types/manager';
@@ -154,8 +160,11 @@ export interface ConsentProviderOptions extends Pick<
 	scripts?: Script[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
+	/** Discover and gate DOM iframes with data-category. Enabled by default. */
+	iframeBlocker?: UseIframeBlockerOptions | false;
 	persistence?: boolean | UsePersistenceOptions;
 	i18n?: Partial<I18nConfig>;
+	/** Categories to offer alongside discovered integration categories, within policy scope. */
 	consentCategories?: AllConsentNames[];
 	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
 	components?: ReactComponentSlots;
@@ -492,6 +501,13 @@ const createProviderKernel = function createProviderKernel(
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
+		consentCategories: options.consentCategories,
+		inferredConsentCategories: [
+			...(options.scripts ?? []),
+			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		].flatMap((integration) =>
+			extractConsentNamesFromCondition(integration.category)
+		),
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
@@ -831,6 +847,15 @@ const ScriptsAndCleanupMount = ({
 	return null;
 };
 
+const IframeBlockerMount = ({
+	options,
+}: {
+	options?: UseIframeBlockerOptions;
+}) => {
+	useIframeBlocker(options);
+	return null;
+};
+
 const NetworkBlockerMount = ({
 	options,
 }: {
@@ -1013,6 +1038,11 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		? owned.kernel
 		: (owned.disabledKernel ?? owned.kernel);
 	const ownsRuntime = externalRuntime === undefined;
+	useEffect(() => {
+		if (ownsRuntime || options.consentCategories !== undefined) {
+			kernel.set.consentCategories(options.consentCategories);
+		}
+	}, [kernel, ownsRuntime, options.consentCategories]);
 	const clearRef = useRef<(() => void) | null>(null);
 	const services = useMemo(
 		() => ({
@@ -1034,18 +1064,16 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 				}
 			},
 			getConsentCategories: () => {
-				const { scope } = kernel.getSnapshot().policyRule;
-				const configured = options.consentCategories;
+				const snapshot = kernel.getSnapshot();
 				return [
 					'necessary' as const,
-					...scope.filter(
-						(name) => !configured?.length || configured.includes(name)
-					),
+					...(snapshot.evaluationPolicy.choiceScope ??
+						snapshot.policyRule.scope),
 				];
 			},
 			getPresentation: () => options.presentation,
 		}),
-		[kernel, options.consentCategories, options.presentation, externalRuntime]
+		[kernel, options.presentation, externalRuntime]
 	);
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
@@ -1155,6 +1183,9 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 							options={options.scriptLoader}
 							scripts={scripts}
 						/>
+					) : null}
+					{enabled && options.iframeBlocker !== false ? (
+						<IframeBlockerMount options={options.iframeBlocker} />
 					) : null}
 					{enabled && networkBlocker ? (
 						<NetworkBlockerMount options={networkBlocker} />

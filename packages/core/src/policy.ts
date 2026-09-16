@@ -19,6 +19,7 @@ import type {
 	OptionalConsentCategory,
 	PromptRequirement,
 } from './consent-record/types';
+import type { AllConsentNames } from './consent/consent-types';
 import { deepFreeze } from './libs/freeze-data';
 import type { KernelActiveUI, KernelModel } from './types';
 
@@ -29,7 +30,8 @@ export interface EffectivePolicy {
 }
 
 const projectEvaluationPolicy = (
-	effective: EffectivePolicy
+	effective: EffectivePolicy,
+	consentCategories?: readonly AllConsentNames[] | null
 ): EvaluationPolicy => {
 	const { rule, fingerprints } = effective;
 	return createEvaluationPolicy({
@@ -37,6 +39,9 @@ const projectEvaluationPolicy = (
 			fingerprint: fingerprints.choice,
 			maxAgeMs: Math.round(rule.validity.choiceMs),
 		},
+		choiceScope: consentCategories?.length
+			? rule.scope.filter((category) => consentCategories.includes(category))
+			: undefined,
 		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
 		legacyMaterialFingerprint: fingerprints.legacyMaterial ?? null,
 		model: rule.model,
@@ -85,12 +90,13 @@ export const resolveEffectivePolicy = function resolveEffectivePolicy(
  * past a timer tick would otherwise never be reached.
  */
 export const buildEvaluationPolicy = function buildEvaluationPolicy(
-	effective: EffectivePolicy
+	effective: EffectivePolicy,
+	consentCategories?: readonly AllConsentNames[] | null
 ): EvaluationPolicy {
-	if (effective === FALLBACK_EFFECTIVE_POLICY) {
+	if (effective === FALLBACK_EFFECTIVE_POLICY && !consentCategories?.length) {
 		return FALLBACK_EVALUATION_POLICY;
 	}
-	return projectEvaluationPolicy(effective);
+	return projectEvaluationPolicy(effective, consentCategories);
 };
 
 /**

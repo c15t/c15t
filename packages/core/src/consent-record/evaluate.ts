@@ -166,7 +166,7 @@ const hasChoiceRefusal = function hasChoiceRefusal(
 	policy: EvaluationPolicy,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
 ): boolean {
-	return policy.scope.some(
+	return (policy.choiceScope ?? policy.scope).some(
 		(category) => categories[category].restrictions.length > 0
 	);
 };
@@ -184,7 +184,8 @@ const deriveChoiceRequirement = function deriveChoiceRequirement(
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
 ): PromptRequirement {
 	const { policy } = input;
-	if (policy.scope.length === 0 || hasChoiceRefusal(policy, categories)) {
+	const choiceScope = policy.choiceScope ?? policy.scope;
+	if (choiceScope.length === 0 || hasChoiceRefusal(policy, categories)) {
 		return { kind: 'none' };
 	}
 	const decisions = input.choice?.categories;
@@ -193,7 +194,7 @@ const deriveChoiceRequirement = function deriveChoiceRequirement(
 	}
 	let missing = false;
 	let expired = false;
-	for (const category of policy.scope) {
+	for (const category of choiceScope) {
 		const decision = decisions[category];
 		const { authority } = categories[category];
 		if (authority === 'policy-changed') {
@@ -268,6 +269,7 @@ const deriveNextDeadline = function deriveNextDeadline(
 ): number | null {
 	const { policy } = input;
 	const candidates: number[] = [];
+	const choiceScope = policy.choiceScope ?? policy.scope;
 	// Expiry can only change a choice prompt from satisfied to expired.
 	// Missing coverage or a mismatch keeps precedence over later expiry.
 	const choicePromptCanChange =
@@ -278,14 +280,13 @@ const deriveNextDeadline = function deriveNextDeadline(
 		const evaluation = categories[category];
 		const decision = input.choice?.categories[category];
 		const permissionCanChange =
-			policy.model !== 'opt-out' &&
-			policy.model !== 'none' &&
-			evaluation.restrictions.length === 0;
+			!defaultPermission(policy, true) && evaluation.restrictions.length === 0;
 		if (
 			decision?.value === true &&
 			evaluation.authority === 'valid' &&
 			evaluation.expiresAt !== null &&
-			(permissionCanChange || choicePromptCanChange)
+			(permissionCanChange ||
+				(choicePromptCanChange && choiceScope.includes(category)))
 		) {
 			candidates.push(evaluation.expiresAt);
 		}

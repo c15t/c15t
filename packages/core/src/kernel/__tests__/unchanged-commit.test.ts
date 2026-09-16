@@ -62,6 +62,7 @@ test('every patch input agrees with full snapshot derivation', () => {
 	const patches: Record<keyof SnapshotPatch, SnapshotPatch> = {
 		activeUI: { activeUI: 'dialog' },
 		branding: { branding: 'consent' },
+		consentCategories: { consentCategories: ['necessary', 'measurement'] },
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
 		iab: { iab: { ...DEFAULT_IAB, enabled: true } },
 		location: { location: { countryCode: 'DE', regionCode: null } },

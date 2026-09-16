@@ -231,7 +231,7 @@ export interface ConsentRuntimeOptions {
 	policyRules?: PolicyRule[];
 	/** Locale and message overrides merged over the bundled translations. */
 	i18n?: Partial<I18nConfig>;
-	/** Categories surfaced in the banner and preference center. */
+	/** Categories to offer alongside discovered integration categories, within policy scope. */
 	consentCategories?: AllConsentNames[];
 	/**
 	 * Install the `window.c15t` debug object (`{ version, pkg, mode }`) on
@@ -289,7 +289,7 @@ export interface ConsentRuntime {
 	 * Re-run `kernel.commands.init()` and evaluate the current records. A no-op when `enabled` is `false`.
 	 */
 	reinit: () => Promise<void>;
-	/** Replace the categories surfaced in the UI. */
+	/** Replace configured categories; retain categories discovered from integrations. */
 	setConsentCategories: (categories: AllConsentNames[]) => void;
 	/** Subscribe to {@link ConsentRuntime.iab} changing. */
 	onIABChange: (

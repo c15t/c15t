@@ -41,13 +41,8 @@ const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 		},
 		ref
 	) => {
-		const {
-			has,
-			updateConsentCategories,
-			consentCategories,
-			policyCategories,
-			policyScopeMode,
-		} = useConsentManager();
+		const { has, updateConsentCategories, policyCategories, policyScopeMode } =
+			useConsentManager();
 		const { frame } = useTranslations();
 
 		const hasConsent = has(category);
@@ -61,10 +56,8 @@ const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
 		useEffect(() => {
-			if (!consentCategories.includes(category)) {
-				updateConsentCategories([...consentCategories, category]);
-			}
-		}, [category, consentCategories, updateConsentCategories]);
+			updateConsentCategories([category]);
+		}, [category, updateConsentCategories]);
 
 		const renderContent = () => {
 			// The kernel supplies the same permission snapshot for SSR and hydration.

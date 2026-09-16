@@ -149,27 +149,23 @@ const resolveMode = function resolveMode(
 };
 
 /**
- * Categories the UI should offer: the configured list intersected with
- * what the resolved policy allows, always including `necessary`.
+ * Categories the UI should offer: configured and discovered categories within
+ * the policy scope, preserving configured order and including `necessary`.
  */
 const resolveConsentCategories = function resolveConsentCategories(
 	snapshot: ConsentSnapshot,
 	configured: readonly AllConsentNames[]
 ): AllConsentNames[] {
-	const available: AllConsentNames[] = [
-		'necessary',
-		...snapshot.policyRule.scope,
-	];
-	if (configured.length === 0) {
-		return Array.from(available);
-	}
-	const allowed = new Set(available);
-	return Array.from(
-		new Set<AllConsentNames>([
+	const scope =
+		snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
+	const available = new Set<AllConsentNames>(['necessary', ...scope]);
+	return [
+		...new Set<AllConsentNames>([
 			'necessary',
-			...configured.filter((category) => allowed.has(category)),
-		])
-	);
+			...configured.filter((category) => available.has(category)),
+			...scope,
+		]),
+	];
 };
 
 const dispatchDocumentEvent = function dispatchDocumentEvent(
@@ -218,7 +214,6 @@ export const createConsentClient = function createConsentClient(
 		throw new Error('@c15t/browser: IAB requires the @c15t/browser/iab entry.');
 	}
 	const mode = resolveMode(options);
-	const configuredCategories = options.consentCategories ?? [];
 	const runtime = createConsentRuntime({
 		callbacks: options.callbacks,
 		clearOnRevocation: options.clearOnRevocation,
@@ -242,7 +237,11 @@ export const createConsentClient = function createConsentClient(
 		windowDebug: false,
 	});
 	const { kernel } = runtime;
-	const gatedScripts = createGatedScriptActivator(() => kernel.getSnapshot());
+	const gatedScripts = createGatedScriptActivator(
+		() => kernel.getSnapshot(),
+		undefined,
+		kernel.set.registerConsentCategories
+	);
 	let startingRuntime = false;
 	let drainingRuntimeEvents = false;
 	const pendingRuntimeEvents: (() => void)[] = [];
@@ -337,7 +336,10 @@ export const createConsentClient = function createConsentClient(
 	];
 
 	const categories = function categories(): AllConsentNames[] {
-		return resolveConsentCategories(kernel.getSnapshot(), configuredCategories);
+		return resolveConsentCategories(
+			kernel.getSnapshot(),
+			options.consentCategories ?? []
+		);
 	};
 
 	// Explicit navigation invalidates an older save's attempt to close the UI.

@@ -104,12 +104,14 @@ interface GatedScriptActivator {
  *
  * @param getSnapshot - Read current consent before each activation.
  * @param root - Where to look. Defaults to the document when scanning.
+ * @param registerCategories - Add discovered categories before evaluating gates.
  * @returns A scanner and its disposal function.
  * @internal
  */
 export const createGatedScriptActivator = function createGatedScriptActivator(
 	getSnapshot: () => ConsentSnapshot,
-	root?: ParentNode
+	root?: ParentNode,
+	registerCategories?: (categories: AllConsentNames[]) => void
 ): GatedScriptActivator {
 	let disposed = false;
 	let scanning = false;
@@ -143,6 +145,14 @@ export const createGatedScriptActivator = function createGatedScriptActivator(
 			const selector = `script[type="text/plain"][${CATEGORY_ATTRIBUTE}]:not([${ACTIVATED_ATTRIBUTE}])`;
 			const elements = (root ?? document).querySelectorAll<HTMLScriptElement>(
 				selector
+			);
+			registerCategories?.(
+				Array.from(elements).flatMap((element) => {
+					const category = element.getAttribute(
+						CATEGORY_ATTRIBUTE
+					) as AllConsentNames;
+					return allConsentNames.includes(category) ? [category] : [];
+				})
 			);
 			for (const element of elements) {
 				if (disposed) {

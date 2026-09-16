@@ -28,6 +28,7 @@
  */
 import {
 	buildReconcilePass,
+	determineCategory,
 	reconcileAllIframes,
 	reconcileIframe,
 } from './reconcile';
@@ -59,36 +60,60 @@ export const createIframeBlocker = function createIframeBlocker(
 		};
 	}
 
+	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
+		kernel.set.registerConsentCategories(
+			Array.from(iframes).flatMap((iframe) => {
+				const category = determineCategory(iframe);
+				return category ? [category] : [];
+			})
+		);
+	};
+
 	const observer = new MutationObserver((mutations) => {
-		const pass = buildReconcilePass(kernel.getSnapshot());
+		const iframes = new Set<HTMLIFrameElement>();
 		for (const mutation of mutations) {
+			if (
+				mutation.type === 'attributes' &&
+				(mutation.target as Element).tagName?.toUpperCase() === 'IFRAME'
+			) {
+				iframes.add(mutation.target as HTMLIFrameElement);
+			}
 			for (const node of Array.from(mutation.addedNodes)) {
-				// oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
-				if (node.nodeType !== 1 /* ELEMENT_NODE */) {
+				if (node.nodeType !== 1) {
 					continue;
 				}
 				const element = node as Element;
 				if (element.tagName?.toUpperCase() === 'IFRAME') {
-					reconcileIframe(element as HTMLIFrameElement, pass);
+					iframes.add(element as HTMLIFrameElement);
 				}
-				const nested = element.querySelectorAll?.('iframe');
-				if (nested) {
-					for (const iframe of Array.from(nested) as HTMLIFrameElement[]) {
-						reconcileIframe(iframe, pass);
-					}
+				for (const iframe of Array.from(element.querySelectorAll('iframe'))) {
+					iframes.add(iframe);
 				}
 			}
+		}
+		registerIframes(iframes);
+		const pass = buildReconcilePass(kernel.getSnapshot());
+		for (const iframe of iframes) {
+			reconcileIframe(iframe, pass);
 		}
 	});
 
 	const processAll = function processAll(): void {
+		registerIframes(
+			document.querySelectorAll<HTMLIFrameElement>('iframe[data-category]')
+		);
 		reconcileAllIframes(kernel.getSnapshot());
 	};
 
 	if (!disableAuto) {
 		processAll();
 		if (document.body) {
-			observer.observe(document.body, { childList: true, subtree: true });
+			observer.observe(document.body, {
+				attributeFilter: ['data-category'],
+				attributes: true,
+				childList: true,
+				subtree: true,
+			});
 		}
 	}
 
