@@ -25,6 +25,7 @@ you are building a custom transport or server integration.
 | `GET /subjects/:id/privacy-directives` | Read directives applying to the subject. | No, subject-scoped |
 | `POST /privacy-directives` | Record an identity-level privacy directive. | Required |
 | `GET /privacy-directives?externalId=...&identityProvider=...` | Read identity-level privacy directives. | Required |
+| `GET /experiments/:id/summary?from=...&to=...&domain=...` | Choices per arm of a [banner experiment](/docs/guides/banner-experiments), split by action and surface, with the median time to decision. Counts choices only; impressions stay client-side. | Required |
 | `PUT /legal-documents/:type/current` | Publish a legal document's current version, hash and effective date. | Required |
 | `GET /spec.json` | Discover the enabled OpenAPI routes. | No |
 
