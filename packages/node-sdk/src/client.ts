@@ -1,6 +1,8 @@
 import type {
 	CheckConsentOutput,
 	CheckConsentQuery,
+	ExperimentSummaryOutput,
+	ExperimentSummaryQuery,
 	GetSubjectOutput,
 	GetSubjectQuery,
 	InitOutput,
@@ -21,6 +23,7 @@ import {
 	listSubjects,
 	patchSubject,
 	status,
+	summarizeExperiment,
 } from './endpoints';
 import { DEFAULT_RETRY_CONFIG, DEFAULT_TIMEOUT_MS, fetcher } from './fetcher';
 import type { FetcherContext } from './fetcher';
@@ -229,6 +232,30 @@ export class C15TClient {
 	}
 
 	/**
+	 * Summarise a banner experiment (requires an API key)
+	 *
+	 * Counts choices per arm by consent action and surface, with the median
+	 * time to decision. Impressions never reach the backend, so compute rates
+	 * from the client-side `experiment.reportTo` events.
+	 *
+	 * @param id - Experiment id, as configured on the client
+	 * @param query - Optional `from`, `to` (ISO dates) and `domain` filters
+	 * @param options - Optional fetch options
+	 * @returns Per-arm summary
+	 */
+	summarizeExperiment(
+		id: string,
+		query?: ExperimentSummaryQuery,
+		options?: FetchOptions<
+			ExperimentSummaryOutput,
+			never,
+			ExperimentSummaryQuery
+		>
+	): Promise<ResponseContext<ExperimentSummaryOutput>> {
+		return summarizeExperiment(this.context, id, query, options);
+	}
+
+	/**
 	 * Make a custom API request to any endpoint
 	 *
 	 * @param path - API endpoint path
@@ -299,6 +326,24 @@ export class C15TClient {
 				Omit<PatchSubjectFullInput, 'id'>
 			>
 		) => this.patchSubject(id, input, options),
+	};
+
+	/**
+	 * Namespaced access to experiment endpoints
+	 */
+	experiments = {
+		/**
+		 * Summarise a banner experiment
+		 */
+		summary: (
+			id: string,
+			query?: ExperimentSummaryQuery,
+			options?: FetchOptions<
+				ExperimentSummaryOutput,
+				never,
+				ExperimentSummaryQuery
+			>
+		) => this.summarizeExperiment(id, query, options),
 	};
 
 	/**

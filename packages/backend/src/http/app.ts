@@ -22,6 +22,7 @@ import {
 import { makeRun } from './context';
 import type { AppOptions, RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
+import { register as registerExperiment } from './routes/experiment';
 import { register as registerInit } from './routes/init';
 import { register as registerLegalDocument } from './routes/legal-document';
 import { register as registerManifest } from './routes/manifest';
@@ -112,6 +113,7 @@ export const createApp = function createApp(
 	registerConsent(context);
 	registerSubject(context);
 	registerPrivacyDirective(context);
+	registerExperiment(context);
 
 	// Registered last so every route above is already on the app and appears
 	// in the generated document.

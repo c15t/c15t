@@ -17,6 +17,12 @@ export type {
 	CheckConsentQuery,
 	ConsentCheckResult,
 } from './api/consent';
+// API types - Experiment
+export type {
+	ExperimentSummaryOutput,
+	ExperimentSummaryQuery,
+	ExperimentVariantSummary,
+} from './api/experiment';
 // API types - Init
 export type {
 	InitOutput,

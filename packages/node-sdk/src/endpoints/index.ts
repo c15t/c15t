@@ -1,4 +1,5 @@
 export { CONSENT_CHECK_PATH, checkConsent } from './consent';
+export { EXPERIMENTS_PATH, summarizeExperiment } from './experiments';
 export { INIT_PATH, init } from './init';
 export { STATUS_PATH, status } from './status';
 export {
