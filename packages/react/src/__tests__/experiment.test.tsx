@@ -271,6 +271,7 @@ test('reportTo receives the banner impression and the choice', async () => {
 	} finally {
 		mounted.unmount();
 	}
+});
 
 test('an arm theme reaches the injected tokens and useResolvedTheme()', async () => {
 	const mounted = mount(
