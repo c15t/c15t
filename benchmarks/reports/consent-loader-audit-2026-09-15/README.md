@@ -175,3 +175,11 @@ module graph without lowering thresholds. The full run also exposed an existing
 persistence test checking before its scheduled storage write; it now waits for
 the actual record change. All six new regression assertions fail when the
 corresponding old behavior is restored.
+
+A fresh validation run on clean commit `f31c13b11` records the new metadata and
+summary fields in [review-validation-2026-09-16](./review-validation-2026-09-16/).
+The default dialog mounted in a median 15 ms, became visible in 30 ms, and
+finished its animation in 171 ms across ten fresh contexts. Reopening mounted
+in 7 ms with no downloads. Five-context compound, Astro IAB and external-runtime
+checks also completed without browser errors; the external probe showed no
+delayed remount. These remain local development measurements.

@@ -1,0 +1,42 @@
+{
+	"browser": "149.0.7827.55",
+	"commitSha": "f31c13b11336e416c424ebad16301dc5a729fb0b",
+	"metadata": {
+		"gitDirty": false
+	},
+	"samples": [
+		{
+			"mounted": 2.6000000000931323,
+			"ready": 2.6000000000931323,
+			"resources": [],
+			"mounts": [0, 0.10000000009313226]
+		},
+		{
+			"mounted": 2.3999999999068677,
+			"ready": 2.3999999999068677,
+			"resources": [],
+			"mounts": [0, 0.10000000009313226]
+		},
+		{
+			"mounted": 2.1999999997206032,
+			"ready": 2.1999999997206032,
+			"resources": [],
+			"mounts": [0, 0]
+		},
+		{
+			"mounted": 2.8999999999068677,
+			"ready": 2.8999999999068677,
+			"resources": [],
+			"mounts": [0, 0.20000000018626451]
+		},
+		{
+			"mounted": 2.2999999998137355,
+			"ready": 2.3999999999068677,
+			"resources": [],
+			"mounts": [0, 0.10000000009313226]
+		}
+	],
+	"url": "http://localhost:3217/loader-audit?variant=external",
+	"variant": "external",
+	"warm": false
+}
