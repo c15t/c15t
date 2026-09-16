@@ -241,7 +241,7 @@ describe('displayed consent actions', () => {
 		}
 	);
 	test.each(['all', 'necessary', 'custom'] as const)(
-		'%s returns to a still-required notice after a successful save',
+		'%s acknowledges the notice after a successful save',
 		async (action) => {
 			const captured: {
 				kernel?: ConsentKernel;
@@ -270,9 +270,10 @@ describe('displayed consent actions', () => {
 				const manager = required(captured.manager);
 				manager.setActiveUI('dialog');
 				await manager.saveConsents(action);
-				expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
-				expect(kernel.getSnapshot().noticeDismissal).toBeNull();
-				expect(kernel.getSnapshot().activeUI).toBe('banner');
+				// Saving from the preference center acknowledges the notice.
+				expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+				expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
+				expect(kernel.getSnapshot().activeUI).toBe('none');
 			} finally {
 				result.unmount();
 			}

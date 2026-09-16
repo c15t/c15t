@@ -646,7 +646,7 @@ describe('evaluateConsentRecord: notices', () => {
 		});
 	});
 
-	it('does not clear a notice requirement when a choice is saved', () => {
+	it('does not clear a notice requirement from a choice alone; the kernel records the dismissal with the save', () => {
 		const result = evaluateConsentRecord({
 			choice: makeChoice(
 				{

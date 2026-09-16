@@ -204,7 +204,7 @@ const assertStorage = function assertStorage(
 					: { directives: after.snapshot.optOutDirectives, version: 1 }
 			);
 	}
-	if (expected === 'choice-v3') {
+	if (expected === 'choice-v3' || expected === 'choice-and-notice') {
 		api.expect(bytes.choice.localStorage).not.toBeNull();
 		const envelope: unknown = JSON.parse(bytes.choice.localStorage ?? 'null');
 		api.expect(envelope).toHaveProperty('version');
@@ -223,8 +223,16 @@ const assertStorage = function assertStorage(
 		api
 			.expect('subject' in envelope ? envelope.subject : null)
 			.toEqual(after.snapshot.subject);
-		api.expect(bytes.notice).toEqual(before.notice);
 		api.expect(bytes.privacy).toEqual(before.privacy);
+		if (expected === 'choice-v3') {
+			api.expect(bytes.notice).toEqual(before.notice);
+			return;
+		}
+		// The same save acknowledged the owed notice.
+		api.expect(bytes.notice.localStorage).not.toBeNull();
+		api
+			.expect(JSON.parse(bytes.notice.localStorage ?? 'null'))
+			.toEqual(after.snapshot.noticeDismissal);
 	}
 };
 

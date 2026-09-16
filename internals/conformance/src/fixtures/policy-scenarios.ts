@@ -291,10 +291,12 @@ const gpc = (
 					POLICY_NOW
 				),
 				consentCallbacks: 1,
+				// The choice acknowledges the notice; no separate dismissal event.
 				events: { 'choice-recorded': 1, 'notice-dismissed': 0 },
 				gates: blockedGates,
+				noticeDismissal: 'current',
 				permissions: denied,
-				prompt: { kind: 'notice', reason: 'missing' },
+				prompt: { kind: 'none' },
 				standingOptOut: POLICY_SCOPE,
 			},
 			operation: { kind: 'accept' },
@@ -307,8 +309,9 @@ const gpc = (
 				),
 				consentCallbacks: 1,
 				events: { 'choice-recorded': 1, 'permissions-changed': 0 },
+				noticeDismissal: 'current',
 				permissions: denied,
-				prompt: { kind: 'notice', reason: 'missing' },
+				prompt: { kind: 'none' },
 				standingOptOut: POLICY_SCOPE,
 			},
 			operation: { kind: 'save-current' },
@@ -616,7 +619,7 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 	},
 	{
 		covers: ['F5', 'F10'],
-		id: 'notice-save-dismiss-expire-clear',
+		id: 'notice-save-acknowledges-expire-clear',
 		now: POLICY_NOW,
 		policy: POLICY_NOTICE,
 		steps: [
@@ -636,35 +639,33 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 				expect: {
 					choice: policyChoice({ marketing: false }, POLICY_NOW),
 					consentCallbacks: 1,
+					// A choice made while the notice is owed acknowledges it: one
+					// outcome, one `choice-recorded`, no `notice-dismissed`.
 					events: {
 						'choice-recorded': 1,
 						'notice-dismissed': 0,
 						'permissions-changed': 1,
 					},
-					firstLayer: 'notice',
-					noticeDismissal: 'absent',
+					firstLayer: 'hidden',
+					noticeDismissal: 'current',
 					permissions: { marketing: false, measurement: true },
-					prompt: { kind: 'notice', reason: 'missing' },
-					storage: 'choice-v3',
+					prompt: { kind: 'none' },
+					storage: 'choice-and-notice',
 				},
 				operation: { kind: 'save', values: { marketing: false } },
 			},
 			{
+				// The acknowledgement the save recorded survives a fresh mount:
+				// the notice does not return for this visitor.
 				expect: {
+					...quiet,
 					choice: policyChoice({ marketing: false }, POLICY_NOW),
-					consentCallbacks: 0,
-					consentRequests: 0,
-					events: {
-						'choice-recorded': 0,
-						'notice-dismissed': 1,
-						'permissions-changed': 0,
-					},
+					firstLayer: 'hidden',
 					noticeDismissal: 'current',
 					permissions: { marketing: false, measurement: true },
 					prompt: { kind: 'none' },
-					storage: 'notice-only',
 				},
-				operation: { kind: 'dismiss-notice' },
+				operation: { kind: 'reload' },
 			},
 			{
 				expect: {

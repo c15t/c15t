@@ -106,10 +106,9 @@ for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 				}
 				/* oxlint-enable vitest/no-conditional-expect */
 				pending.resolve({ ok: true });
-				let prompt = 'none';
-				if (scenario === 'notice') {
-					prompt = 'notice';
-				}
+				// A choice under a notice acknowledges the notice, and completing
+				// the displayed choice leaves nothing owed under a scoped rule.
+				const prompt = 'none';
 				await vi.waitFor(() =>
 					expect(kernel.getSnapshot().activeUI).toBe(
 						prompt === 'none' ? 'none' : 'banner'

@@ -241,17 +241,19 @@ describe('shared policy assertion sensitivity', () => {
 		});
 	});
 
-	test('rejects a notice save that hides the required prompt', async () => {
+	test('rejects a notice save whose prompt was tampered with', async () => {
 		await withKernel(
 			async (kernel) => {
 				await kernel.commands.init();
+				// A choice made while the notice is owed acknowledges it.
 				await kernel.commands.save({ marketing: false });
 				const actual = evidence(kernel);
-				const expected: PolicyObservation = {
-					prompt: { kind: 'notice', reason: 'missing' },
-				};
+				const expected: PolicyObservation = { prompt: { kind: 'none' } };
 				await checkObservation(actual, expected);
-				actual.snapshot.promptRequirement = { kind: 'none' };
+				actual.snapshot.promptRequirement = {
+					kind: 'notice',
+					reason: 'missing',
+				};
 				await expect(checkObservation(actual, expected)).rejects.toThrow(
 					'corrupted-observation'
 				);
