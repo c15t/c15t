@@ -64,10 +64,16 @@ export const buildSetters = function buildSetters(
 ) {
 	const { getSnapshot, commit, emit } = runtime;
 
-	let configured = [...(config.consentCategories ?? [])];
-	const inferred = new Set(config.inferredConsentCategories);
+	let configured = config.consentCategories
+		? [...config.consentCategories]
+		: [];
+	let inferred = config.inferredConsentCategories?.length
+		? new Set(config.inferredConsentCategories)
+		: null;
 	const updateCategories = () => {
-		const categories = [...new Set([...configured, ...inferred])].sort();
+		const categories = [
+			...new Set([...configured, ...(inferred ?? [])]),
+		].sort();
 		const next = categories.length ? categories : null;
 		const current = getSnapshot().consentCategories;
 		if (
@@ -140,10 +146,17 @@ export const buildSetters = function buildSetters(
 		},
 
 		registerConsentCategories(categories: readonly AllConsentNames[]): void {
+			if (!categories.length) {
+				return;
+			}
+			inferred ??= new Set();
+			const previousSize = inferred.size;
 			for (const category of categories) {
 				inferred.add(category);
 			}
-			updateCategories();
+			if (inferred.size !== previousSize) {
+				updateCategories();
+			}
 		},
 
 		subjectId(id: string | null): void {

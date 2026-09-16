@@ -252,13 +252,15 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const now = config.now ?? config.initialRecords?.now ?? Date.now();
 	const resolution = config.initialPolicyResolution ?? UNCONFIGURED;
 	const effective = resolveEffectivePolicy(resolution);
-	const categories = [
-		...(config.consentCategories ?? []),
-		...(config.inferredConsentCategories ?? []),
-	];
-	const consentCategories = categories.length
-		? [...new Set(categories)].sort()
-		: null;
+	const consentCategories =
+		config.consentCategories?.length || config.inferredConsentCategories?.length
+			? [
+					...new Set([
+						...(config.consentCategories ?? []),
+						...(config.inferredConsentCategories ?? []),
+					]),
+				].sort()
+			: null;
 	const evaluationPolicy = buildEvaluationPolicy(effective, consentCategories);
 	const policyPending = config.initialPolicyPending ?? false;
 

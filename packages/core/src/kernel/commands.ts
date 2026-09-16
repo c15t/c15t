@@ -154,9 +154,11 @@ export const resolveSaveSelection = function resolveSaveSelection(
 			? choiceScope
 			: choiceScope.filter((category) => categories.includes(category));
 	const narrow = (values: PresentedSelection) =>
-		Object.fromEntries(
-			displayed.map((category) => [category, values[category]])
-		);
+		displayed.length === rule.scope.length
+			? values
+			: Object.fromEntries(
+					displayed.map((category) => [category, values[category]])
+				);
 	if (input === 'all' || input === 'none') {
 		const bulkAction = input === 'all' ? 'all' : 'necessary';
 		return {
