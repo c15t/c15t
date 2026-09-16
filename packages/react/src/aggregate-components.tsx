@@ -1,7 +1,6 @@
 'use client';
 
-import { lazy, Suspense } from 'react';
-import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
+import type { ComponentType } from 'react';
 
 import { registerDialogChunkWarmer } from './chunk-warming';
 import type {
@@ -13,58 +12,34 @@ import type {
 	ConsentWidgetProps,
 } from './components/preferences';
 import { useActiveUI } from './hooks';
+import { createDeferredModule } from './utils/deferred-module';
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
 
-const withSuspense = function withSuspense(
-	Component: LazyExoticComponent<AnyComponent>
-): AnyComponent {
-	const LazyAggregateComponent = (props: Record<string, unknown>) => (
-		<Suspense fallback={null}>
-			<Component {...props} />
-		</Suspense>
+// Vite derives chunk names from these paths. Keep them neutral so URL filters
+// do not block the UI. Each module is shared by its default and compound exports.
+const dialogModule = createDeferredModule(() => import('./components/panel'));
+const widgetModule = createDeferredModule(
+	() => import('./components/preferences')
+);
+const lazyDialogExport = (name: string) =>
+	dialogModule.component(
+		(module) => (module as Record<string, unknown>)[name] as AnyComponent
 	);
-	return LazyAggregateComponent;
-};
-
-// Vite uses these module paths for development requests and production
-// chunk names. Keep them neutral so URL filters do not block the UI.
-const lazyDialogExport = function lazyDialogExport(name: string) {
-	return withSuspense(
-		lazy(async () => {
-			const module = await import('./components/panel');
-			const exports = module as Record<string, unknown>;
-			return {
-				default: exports[name] as AnyComponent,
-			};
-		})
+const lazyWidgetExport = (name: string) =>
+	widgetModule.component(
+		(module) => (module as Record<string, unknown>)[name] as AnyComponent
 	);
-};
 
-// Warm the dialog chunk on user intent (customize-button hover/focus) so the
-// first open never pays network+parse on the click path.
 registerDialogChunkWarmer(() => {
-	void import('./components/panel');
+	void dialogModule.preload();
 });
-
-const lazyWidgetExport = function lazyWidgetExport(name: string) {
-	return withSuspense(
-		lazy(async () => {
-			const module = await import('./components/preferences');
-			const exports = module as Record<string, unknown>;
-			return {
-				default: exports[name] as AnyComponent,
-			};
-		})
-	);
-};
-
-const LazyConsentDialogComponent = lazyDialogExport(
-	'ConsentDialog'
-) as ComponentType<ConsentDialogProps & { children?: ReactNode }>;
-const LazyConsentWidgetComponent = lazyWidgetExport(
-	'ConsentWidget'
-) as ComponentType<ConsentWidgetProps & { children?: ReactNode }>;
+const LazyConsentDialogComponent = dialogModule.component(
+	(module) => module.ConsentDialog
+);
+const LazyConsentWidgetComponent = widgetModule.component(
+	(module) => module.ConsentWidget
+);
 
 const LazyConsentDialog = (props: ConsentDialogProps) => {
 	const activeUI = useActiveUI();

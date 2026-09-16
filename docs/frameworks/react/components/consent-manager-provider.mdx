@@ -58,7 +58,11 @@ signals. Hydration and notice dismissal do not become explicit choices.
 
 An externally owned runtime can be passed through `runtime`. Its owner must
 start and dispose it. A provider borrowing that runtime must not initialize or
-dispose a second copy. See [consent state](/docs/guides/consent-state) and
+dispose a second copy. Keep the runtime stable for the provider's lifetime and
+unmount the borrowing provider when disposing the runtime. IAB actions taken
+before its handle is ready wait for that handle. If the provider unmounts first,
+a pending `save()` rejects with an `AbortError` instead of waiting indefinitely.
+See [consent state](/docs/guides/consent-state) and
 [deployment modes](/docs/guides/deployment-modes).
 
 ## Clear data when consent is denied

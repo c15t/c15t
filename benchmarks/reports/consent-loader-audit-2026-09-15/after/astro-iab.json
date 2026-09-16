@@ -1,0 +1,103 @@
+{
+	"browser": "149.0.7827.55",
+	"samples": [
+		{
+			"mounted": 71.5,
+			"ready": 71.5,
+			"resources": [
+				{
+					"end": 8.099999904632568,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 11.299999952316284,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 7,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 91.29999995231628,
+			"ready": 91.29999995231628,
+			"resources": [
+				{
+					"end": 10.5,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 14.5,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 9.200000047683716,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 94.20000004768372,
+			"ready": 94.20000004768372,
+			"resources": [
+				{
+					"end": 9.700000047683716,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 14.5,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 8.5,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 75.70000004768372,
+			"ready": 75.70000004768372,
+			"resources": [
+				{
+					"end": 8.800000190734863,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 12.700000047683716,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 7.800000190734863,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 133.70000004768372,
+			"ready": 133.70000004768372,
+			"resources": [
+				{
+					"end": 13.200000047683716,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 18.399999856948853,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 10.899999856948853,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		}
+	],
+	"url": "http://localhost:3217/loader-audit?variant=astro-iab",
+	"variant": "astro-iab",
+	"warm": false,
+	"commitSha": "unknown",
+	"metadata": {
+		"gitDirty": null,
+		"provenance": "Historical artifact: revision and dirty state were not captured by the runner. See the adjacent report for source-version context."
+	}
+}

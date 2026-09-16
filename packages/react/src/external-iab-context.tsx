@@ -17,7 +17,13 @@
 
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import type { IABHandle } from '@c15t/iab';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { IABContext } from './context/iab-context-value';
@@ -32,6 +38,38 @@ export interface ExternalIABProviderProps {
 
 const getServerHandle = function getServerHandle(): IABHandle | null {
 	return null;
+};
+
+// This imperative queue owns pending work independently of React's renders.
+const createActionQueue = (runtime: ConsentRuntime) => {
+	let active = false;
+	let closed = false;
+	const actions: {
+		run: (mounted: IABHandle) => Promise<void>;
+		cancel: () => void;
+	}[] = [];
+	return {
+		actions,
+		activate: () => {
+			active = true;
+			closed = false;
+		},
+		deactivate: () => {
+			active = false;
+			// StrictMode replays setup in the same turn. Only cancel once the
+			// provider is gone or has switched to a different runtime.
+			queueMicrotask(() => {
+				if (!active) {
+					closed = true;
+					for (const action of actions.splice(0)) {
+						action.cancel();
+					}
+				}
+			});
+		},
+		isClosed: () => closed,
+		runtime,
+	};
 };
 
 /**
@@ -51,9 +89,66 @@ export const ExternalIABProvider = ({
 		getServerHandle
 	);
 
+	// Keep pending actions attached to the runtime they were requested against.
+	const queue = useMemo(() => createActionQueue(runtime), [runtime]);
+	useEffect(() => {
+		queue.activate();
+		const flush = () => {
+			const mounted = queue.runtime.iab as IABHandle | null;
+			if (mounted) {
+				for (const action of queue.actions.splice(0)) {
+					void action.run(mounted);
+				}
+			}
+		};
+		const unsubscribe = queue.runtime.onIABChange(flush);
+		flush();
+		return () => {
+			unsubscribe();
+			queue.deactivate();
+		};
+	}, [queue]);
+	const run = useCallback<NonNullable<IABContextValue['run']>>(
+		(action) => {
+			const pending = new Promise<void>((resolve, reject) => {
+				const cancel = () =>
+					reject(
+						new DOMException(
+							'External IAB provider unmounted or changed runtimes.',
+							'AbortError'
+						)
+					);
+				if (queue.isClosed()) {
+					cancel();
+					return;
+				}
+				const invoke = async (ready: IABHandle) => {
+					try {
+						await action(ready);
+						resolve();
+					} catch (error) {
+						reject(error);
+					}
+				};
+				const mounted = queue.runtime.iab as IABHandle | null;
+				if (mounted) {
+					void invoke(mounted);
+				} else {
+					queue.actions.push({ cancel, run: invoke });
+				}
+			});
+			// Void IAB actions have no promise consumer. Handle their cancellation,
+			// while returning the original promise so awaiting save still rejects.
+			// oxlint-disable-next-line promise/prefer-await-to-then
+			void pending.catch(() => undefined);
+			return pending;
+		},
+		[queue]
+	);
+
 	const value = useMemo<IABContextValue>(
-		() => ({ handle, setTab, tab }),
-		[handle, tab]
+		() => ({ handle, run, setTab, tab }),
+		[handle, run, tab]
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;

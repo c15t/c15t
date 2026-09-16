@@ -4,6 +4,13 @@ description: Migrate policy configuration, consent records, callbacks, and custo
 group: reference
 ---
 
+## React version requirement
+
+The v3 React and Next.js adapters require React and React DOM 18 or newer.
+Upgrade both packages together before installing v3. Earlier alpha peer ranges
+incorrectly allowed React 16 and 17 even though v3 already uses `useId` and
+`useSyncExternalStore`, which those versions do not provide.
+
 ## Start with a policy rule
 
 ```ts

@@ -617,10 +617,16 @@ test('protects consent records after the persistence storage key changes', async
 		</ConsentProvider>
 	);
 	await kernel.commands.save('all');
-	expect(localStorage.getItem(nextKey)).not.toBeNull();
+	// Persistence batches writes in a macrotask; save resolves before storage.
+	await vi.waitFor(() => expect(localStorage.getItem(nextKey)).not.toBeNull());
+	const acceptedRecord = localStorage.getItem(nextKey);
 	localStorage.setItem('cleanup-visitor', 'visitor');
 	const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
 	await kernel.commands.save('none');
+	await vi.waitFor(() => {
+		expect(localStorage.getItem(nextKey)).not.toBeNull();
+		expect(localStorage.getItem(nextKey)).not.toBe(acceptedRecord);
+	});
 	// Deleting then rewriting the record would still notify other tabs.
 	expect(removeItem).not.toHaveBeenCalledWith(nextKey);
 	expect(localStorage.getItem('cleanup-visitor')).toBeNull();

@@ -1,0 +1,102 @@
+{
+	"browser": "149.0.7827.55",
+	"commitSha": "f31c13b11336e416c424ebad16301dc5a729fb0b",
+	"metadata": {
+		"gitDirty": false
+	},
+	"samples": [
+		{
+			"mounted": 8.199999999720603,
+			"ready": 10.600000000093132,
+			"resources": [
+				{
+					"end": 3.6000000000931323,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css"
+				},
+				{
+					"end": 3,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_1mjpwy5.js"
+				},
+				{
+					"end": 4.2999999998137355,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1kz_cd7._.js"
+				}
+			]
+		},
+		{
+			"mounted": 7.699999999720603,
+			"ready": 10,
+			"resources": [
+				{
+					"end": 3.3999999999068677,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css"
+				},
+				{
+					"end": 4.399999999906868,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1kz_cd7._.js"
+				},
+				{
+					"end": 3,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_1mjpwy5.js"
+				}
+			]
+		},
+		{
+			"mounted": 7.2999999998137355,
+			"ready": 9.699999999720603,
+			"resources": [
+				{
+					"end": 3.3999999999068677,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css"
+				},
+				{
+					"end": 4.199999999720603,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1kz_cd7._.js"
+				},
+				{
+					"end": 2.8999999999068677,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_1mjpwy5.js"
+				}
+			]
+		},
+		{
+			"mounted": 7.899999999906868,
+			"ready": 10.100000000093132,
+			"resources": [
+				{
+					"end": 2.7000000001862645,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_1mjpwy5.js"
+				},
+				{
+					"end": 3.3999999999068677,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css"
+				},
+				{
+					"end": 4.100000000093132,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1kz_cd7._.js"
+				}
+			]
+		},
+		{
+			"mounted": 8.199999999720603,
+			"ready": 10.399999999906868,
+			"resources": [
+				{
+					"end": 3.3999999999068677,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_0umjqdk._.css"
+				},
+				{
+					"end": 4.199999999720603,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1kz_cd7._.js"
+				},
+				{
+					"end": 3,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_panel_index_1mjpwy5.js"
+				}
+			]
+		}
+	],
+	"url": "http://localhost:3217/loader-audit?variant=compound",
+	"variant": "compound",
+	"warm": false
+}

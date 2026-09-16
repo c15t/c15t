@@ -1,0 +1,103 @@
+{
+	"browser": "149.0.7827.55",
+	"samples": [
+		{
+			"mounted": 19.5,
+			"ready": 19.5,
+			"resources": [
+				{
+					"end": 6.699999809265137,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1k5gyti._.css"
+				},
+				{
+					"end": 7.599999904632568,
+					"name": "http://localhost:3217/_next/static/chunks/packages_0nw6ude._.js"
+				},
+				{
+					"end": 6.299999952316284,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_preferences_index_1mjpwy5.js"
+				}
+			]
+		},
+		{
+			"mounted": 18.90000009536743,
+			"ready": 18.90000009536743,
+			"resources": [
+				{
+					"end": 5.900000095367432,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1k5gyti._.css"
+				},
+				{
+					"end": 6.900000095367432,
+					"name": "http://localhost:3217/_next/static/chunks/packages_0nw6ude._.js"
+				},
+				{
+					"end": 5.6000001430511475,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_preferences_index_1mjpwy5.js"
+				}
+			]
+		},
+		{
+			"mounted": 21.399999856948853,
+			"ready": 21.399999856948853,
+			"resources": [
+				{
+					"end": 6.099999904632568,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1k5gyti._.css"
+				},
+				{
+					"end": 7.799999952316284,
+					"name": "http://localhost:3217/_next/static/chunks/packages_0nw6ude._.js"
+				},
+				{
+					"end": 5.8999998569488525,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_preferences_index_1mjpwy5.js"
+				}
+			]
+		},
+		{
+			"mounted": 21,
+			"ready": 21,
+			"resources": [
+				{
+					"end": 6.6000001430511475,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1k5gyti._.css"
+				},
+				{
+					"end": 6.1000001430511475,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_preferences_index_1mjpwy5.js"
+				},
+				{
+					"end": 7.6000001430511475,
+					"name": "http://localhost:3217/_next/static/chunks/packages_0nw6ude._.js"
+				}
+			]
+		},
+		{
+			"mounted": 22.700000047683716,
+			"ready": 22.700000047683716,
+			"resources": [
+				{
+					"end": 6.700000047683716,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1k5gyti._.css"
+				},
+				{
+					"end": 7.800000190734863,
+					"name": "http://localhost:3217/_next/static/chunks/packages_0nw6ude._.js"
+				},
+				{
+					"end": 6.300000190734863,
+					"name": "http://localhost:3217/_next/static/chunks/packages_react_dist_components_preferences_index_1mjpwy5.js"
+				}
+			]
+		}
+	],
+	"url": "http://localhost:3217/loader-audit?variant=widget",
+	"variant": "widget",
+	"warm": false,
+	"commitSha": "unknown",
+	"metadata": {
+		"gitDirty": null,
+		"provenance": "Historical artifact: revision and dirty state were not captured by the runner. See the adjacent report for source-version context."
+	}
+}
