@@ -93,7 +93,7 @@ test.each(['acceptAll', 'rejectAll', 'save'] as const)(
 	}
 );
 
-test('propagates queued save errors and runs ready actions immediately', async () => {
+test('propagates save errors and runs ready actions', async () => {
 	const { handle, runtime } = fixture();
 	handle.save.mockRejectedValueOnce(new Error('save failed'));
 	let iab: ReactIABState | undefined;

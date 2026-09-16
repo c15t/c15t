@@ -32,7 +32,7 @@ vi.mock(
 	}
 );
 
-test('reveals the cold Astro React IAB island when its module is ready', async () => {
+test('reveals the cold Astro IAB island when its module is ready', async () => {
 	const runtime = createConsentRuntime({
 		createIAB,
 		iab: { cmpId: 42, gvl: mockGVL },
