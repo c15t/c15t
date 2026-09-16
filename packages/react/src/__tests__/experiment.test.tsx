@@ -1,11 +1,12 @@
 import { EXPERIMENT_STORAGE_KEY } from '@c15t/core';
-import type { SavePayload } from '@c15t/core';
+import type { ExperimentArmTheme, SavePayload } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
+import type { Theme } from '@c15t/ui/theme';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from 'vitest';
 
 import { ConsentBanner } from '../components/prompt';
-import { useExperiment } from '../hooks';
+import { useExperiment, useResolvedTheme } from '../hooks';
 import { ConsentProvider } from '../provider';
 import type { ConsentProviderOptions } from '../provider';
 
@@ -35,6 +36,11 @@ const experiment: NonNullable<ConsentProviderOptions['experiment']> = {
 const Probe = () => {
 	const assignment = useExperiment();
 	return <output data-testid="experiment">{JSON.stringify(assignment)}</output>;
+};
+
+const ThemeProbe = () => {
+	const theme = useResolvedTheme();
+	return <output data-testid="theme">{JSON.stringify(theme ?? null)}</output>;
 };
 
 const mount = function mount(
@@ -137,4 +143,39 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 	} finally {
 		mounted.unmount();
 	}
+});
+
+test('an arm theme reaches the injected tokens and useResolvedTheme()', async () => {
+	const mounted = mount(
+		{
+			experiment: {
+				id: 'button-style',
+				variant: 'bold',
+				variants: {
+					bold: { theme: { colors: { primary: '#123456' } } },
+					control: {},
+				},
+			},
+			theme: { colors: { surface: '#abcdef' } },
+		},
+		<ThemeProbe />
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(
+				JSON.parse(
+					document.querySelector('[data-testid="theme"]')?.textContent ?? 'null'
+				)
+			).toEqual({ colors: { primary: '#123456', surface: '#abcdef' } })
+		);
+		const css = document.getElementById('c15t-theme')?.textContent ?? '';
+		expect(css).toContain('#123456');
+		expect(css).toContain('#abcdef');
+	} finally {
+		mounted.unmount();
+	}
+});
+
+test('a @c15t/ui Theme is a valid experiment arm theme', () => {
+	expectTypeOf<Theme>().toMatchTypeOf<ExperimentArmTheme>();
 });

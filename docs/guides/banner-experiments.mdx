@@ -56,6 +56,35 @@ export const Providers = ({
 The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
 `@c15t/svelte`, `@c15t/astro` and `@c15t/browser`.
 
+### Vary the theme
+
+An arm can carry `theme` overrides next to its presentation fragment. They
+merge over the host `theme` one token group deep, so an arm can change one
+colour or radius and keep the rest of your palette. Arrays and scalars are
+replaced.
+
+```tsx
+experiment: {
+	id: 'button-style',
+	variants: {
+		control: {},
+		bold: {
+			theme: {
+				colors: { primary: '#0a0a0a' },
+				radius: { lg: '4px' },
+			},
+		},
+	},
+}
+```
+
+Read the merged theme with `useResolvedTheme()` in React,
+`useResolvedTheme(theme)` in Vue, `getConsentManager().theme` in Svelte and
+`client.theme` in `@c15t/browser`. Per-action styling through
+`theme.consentActions` runs through the same prominence check as
+presentation: an arm that fills accept and outlines reject trips
+`equivalent-prominence-overridden` and needs `acknowledgeDiagnostics: true`.
+
 ## Resolve the arm with a flag provider
 
 Resolve the arm wherever your flags live and pass its name as `variant`. c15t
@@ -170,7 +199,7 @@ your analytics without a backend query.
 
 ## Copy is out of scope
 
-Arms change presentation only. Copy is not a variant dimension because
+Arms change presentation and theme tokens only. Copy is not a variant dimension because
 `copyRevision` is hashed into the prompt fingerprint: a copy change re-prompts
 every returning visitor, so a copy experiment would re-prompt them on each
 arm switch. Vary layout, shape, position and action prominence instead.

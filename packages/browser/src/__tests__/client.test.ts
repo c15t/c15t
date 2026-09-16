@@ -315,6 +315,24 @@ describe('createConsentClient', () => {
 		expect(() => client.mountUI()).toThrow(/headless/u);
 	});
 
+	it('exposes the ui theme with the assigned arm merged over it', async () => {
+		const client = start({
+			experiment: {
+				id: 'button-style',
+				variant: 'bold',
+				variants: {
+					bold: { theme: { colors: { primary: '#123456' } } },
+					control: {},
+				},
+			},
+			ui: { theme: { colors: { surface: '#abcdef' } } },
+		});
+		await client.ready();
+		expect(client.theme).toEqual({
+			colors: { primary: '#123456', surface: '#abcdef' },
+		});
+		expect(start({ ui: false }).theme).toBeUndefined();
+	});
 	it('resolves ready straight away when disabled', async () => {
 		const client = start({ enabled: false });
 		await expect(client.ready()).resolves.toBeDefined();

@@ -37,10 +37,11 @@ import type {
 	LocationResponse,
 	PolicyScopeMode,
 } from '@c15t/core';
-import { applyExperimentAssignment } from '@c15t/core';
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
+import type { Theme } from './types/theme';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
 
@@ -413,6 +414,19 @@ export const useResolvedPresentation = function useResolvedPresentation():
 	return useMemo(
 		() => applyExperimentAssignment(presentation, experiment, assignment),
 		[presentation, experiment, assignment]
+	);
+};
+
+/**
+ * The host theme with the assigned experiment arm's `theme` merged over it.
+ * Equal to `options.theme` while no arm is assigned or the arm has no theme.
+ */
+export const useResolvedTheme = function useResolvedTheme(): Theme | undefined {
+	const { experiment, theme } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentTheme(theme, experiment, assignment),
+		[theme, experiment, assignment]
 	);
 };
 

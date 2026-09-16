@@ -1,11 +1,12 @@
-import { applyExperimentAssignment } from '@c15t/core';
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 import type {
 	ConsentPresentation,
 	ConsentSnapshot,
 	ExperimentAssignment,
 } from '@c15t/core';
-import { computed, inject, onScopeDispose, shallowRef } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
+import type { Theme } from '@c15t/ui/theme';
+import { computed, inject, onScopeDispose, shallowRef, toValue } from 'vue';
+import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
 
 import {
 	symbolKernel,
@@ -67,3 +68,28 @@ export const useResolvedPresentation =
 			)
 		);
 	};
+
+/**
+ * A host theme with the assigned experiment arm's `theme` merged over it.
+ *
+ * The Vue package renders no theme tokens itself, so the host passes the
+ * theme it renders and applies the result (for example through
+ * `generateThemeCSS` from `@c15t/ui/theme`). Equal to `base` while no arm
+ * is assigned or the arm has no theme.
+ *
+ * @param base - The host theme, or nothing.
+ * @returns The theme to render.
+ */
+export const useResolvedTheme = function useResolvedTheme(
+	base?: MaybeRefOrGetter<Theme | undefined>
+): ComputedRef<Theme | undefined> {
+	const config = useConsentConfig();
+	const experiment = useExperiment();
+	return computed(() =>
+		applyExperimentTheme(
+			toValue(base),
+			config.value.experiment,
+			experiment.value
+		)
+	);
+};

@@ -2,6 +2,7 @@
 
 import {
 	applyExperimentAssignment,
+	applyExperimentTheme,
 	assignExperimentVariant,
 	createConsentKernel,
 	createExperimentController,
@@ -45,7 +46,14 @@ import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
 import { ExternalIABProvider } from './external-iab-context';
@@ -1074,6 +1082,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 							kernel,
 							presentation: options.presentation,
 							storageConfig: options.storageConfig,
+							theme: options.theme,
 						}),
 			external: props.runtime,
 			kernel,
@@ -1158,7 +1167,17 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		};
 	}, [owned, ownsRuntime]);
 
-	const userTheme = options.theme;
+	// The arm's theme overrides ride on the host theme, so the injected
+	// tokens and the theme context both follow the assignment.
+	const assignment = useSyncExternalStore(
+		(listener) => kernel.subscribe(listener),
+		() => kernel.getSnapshot().experiment,
+		() => kernel.getServerSnapshot().experiment
+	);
+	const userTheme = useMemo(
+		() => applyExperimentTheme(options.theme, options.experiment, assignment),
+		[options.theme, options.experiment, assignment]
+	);
 	// Render tokens with the banner, including before hydration. CSS escapes
 	// preserve token values without allowing HTML closing tags.
 	const themeCSS = useMemo(
@@ -1195,12 +1214,14 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			experiment: options.experiment,
 			legalLinks: options.legalLinks,
 			presentation: options.presentation,
+			theme: options.theme,
 		}),
 		[
 			options.components,
 			options.experiment,
 			options.legalLinks,
 			options.presentation,
+			options.theme,
 		]
 	);
 

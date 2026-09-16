@@ -120,6 +120,7 @@ export {
 	usePolicyCategories,
 	usePreferencesPresentation,
 	useResolvedPresentation,
+	useResolvedTheme,
 	usePolicyScopeMode,
 	usePurposeConsent,
 	useSaveConsents,

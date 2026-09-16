@@ -5,7 +5,8 @@
  * resolves the arm itself (any feature-flag provider) or lets c15t assign
  * one deterministically. The assignment is recorded on every impression
  * and choice so opt-in rates can be compared per arm. Arms vary
- * presentation only; policy semantics and copy are untouched.
+ * presentation and theme tokens only; policy semantics and copy are
+ * untouched.
  */
 import type { ResolvedPolicyRule } from '@c15t/schema/types';
 
@@ -18,12 +19,59 @@ import type {
 	PromptPresentation,
 } from './policy-actions';
 
+/**
+ * Styling of one consent action, the shape `theme.consentActions` uses.
+ * Structural so core stays independent of `@c15t/ui`.
+ */
+export interface ExperimentActionStyle {
+	variant?: string;
+	mode?: string;
+}
+
+/**
+ * Theme overrides an arm merges over the host theme.
+ *
+ * Structurally compatible with `Theme` from `@c15t/ui/theme`: every token
+ * group is a plain object merged one level deep, so `colors: { primary }`
+ * replaces that colour and keeps the rest of the host palette. Arrays are
+ * replaced, not concatenated. `consentActions` is typed because
+ * {@link validateExperiment} reads it for the prominence check.
+ */
+export interface ExperimentArmTheme {
+	/** Light-mode colour tokens. */
+	colors?: object;
+	/** Dark-mode colour tokens. */
+	dark?: object;
+	/** Typography tokens. */
+	typography?: object;
+	/** Spacing tokens. */
+	spacing?: object;
+	/** Radius tokens. */
+	radius?: object;
+	/** Shadow tokens. */
+	shadows?: object;
+	/** Motion tokens. */
+	motion?: object;
+	/** Per-action button styling. Runs through the prominence check. */
+	consentActions?: Partial<
+		Record<'default' | 'primary' | PresentationAction, ExperimentActionStyle>
+	>;
+	/** Component slot overrides. */
+	slots?: object;
+}
+
+/** One arm: a presentation fragment plus optional theme overrides. */
+export interface ExperimentArm extends ConsentPresentation {
+	/** Theme overrides merged over the host theme for this arm. */
+	theme?: ExperimentArmTheme;
+}
+
 /** A/B experiment on prompt/preferences presentation. */
 export interface ConsentExperiment {
 	/** Stable experiment identifier, recorded with every impression and choice. */
 	id: string;
-	/** Presentation per arm. Keys are variant names. */
-	variants: Readonly<Record<string, ConsentPresentation>>;
+	/** Presentation and theme per arm. Keys are variant names. */
+	variants: Readonly<Record<string, ExperimentArm>>;
 	/**
 	 * Arm resolved by the host (any flag provider). When omitted, c15t assigns
 	 * deterministically from the subject id using `weights`.
@@ -228,14 +276,131 @@ export const applyExperimentAssignment = function applyExperimentAssignment(
 	return resolveExperimentPresentation(base, experiment, assignment);
 };
 
+const isTokenGroup = function isTokenGroup(
+	value: unknown
+): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+/**
+ * Merge the assigned arm's theme over the host theme.
+ *
+ * Top-level keys the arm sets win; a key both sides hold as a plain object
+ * (`colors`, `radius`, `consentActions`, ...) merges one level deeper so
+ * the arm can change one token and keep the rest. Arrays and scalars are
+ * replaced. Returns `base` itself when the arm has no theme or does not
+ * exist.
+ *
+ * @typeParam ThemeType - The host theme type, for example `Theme` from
+ * `@c15t/ui/theme`.
+ * @param base - The host's `theme` option.
+ * @param experiment - The experiment definition.
+ * @param assignment - The arm the subject runs.
+ * @returns The theme to render.
+ */
+export const resolveExperimentTheme = function resolveExperimentTheme<
+	ThemeType extends object,
+>(
+	base: ThemeType | undefined,
+	experiment: ConsentExperiment,
+	assignment: Pick<ExperimentAssignment, 'variant'>
+): ThemeType | undefined {
+	const arm = experiment.variants[assignment.variant]?.theme;
+	if (!arm) {
+		return base;
+	}
+	if (!base) {
+		return arm as ThemeType;
+	}
+	const baseGroups = base as Record<string, unknown>;
+	const merged: Record<string, unknown> = { ...baseGroups };
+	for (const [key, value] of Object.entries(arm)) {
+		if (value === undefined) {
+			continue;
+		}
+		const current = baseGroups[key];
+		merged[key] =
+			isTokenGroup(current) && isTokenGroup(value)
+				? { ...current, ...value }
+				: value;
+	}
+	return merged as ThemeType;
+};
+
+/**
+ * The theme an adapter renders: the assigned arm's overrides merged over
+ * `base`, or `base` untouched while no experiment is configured or
+ * assigned. Mirrors {@link applyExperimentAssignment} for theme tokens.
+ *
+ * @typeParam ThemeType - The host theme type.
+ * @param base - The host's `theme` option.
+ * @param experiment - The `experiment` option, if any.
+ * @param assignment - `snapshot.experiment`.
+ * @returns The theme to render.
+ */
+export const applyExperimentTheme = function applyExperimentTheme<
+	ThemeType extends object,
+>(
+	base: ThemeType | undefined,
+	experiment: ConsentExperiment | undefined,
+	assignment: Pick<ExperimentAssignment, 'id' | 'variant'> | null | undefined
+): ThemeType | undefined {
+	if (!experiment || !assignment || assignment.id !== experiment.id) {
+		return base;
+	}
+	return resolveExperimentTheme(base, experiment, assignment);
+};
+
+/** Appearance per action, as `resolveConsentPresentation` consumes it. */
+export type ActionAppearance = Partial<
+	Record<PresentationAction, ExperimentActionStyle>
+>;
+
+/**
+ * Derive per-action appearance from `theme.consentActions`, the way the
+ * framework adapters do before resolving a surface. `default` is spread
+ * under each action. Returns `undefined` when no action is styled, so the
+ * prominence check falls back to the policy's own defaults.
+ *
+ * @param theme - A theme carrying `consentActions`, or nothing.
+ * @returns Appearance keyed by action, or `undefined`.
+ */
+export const actionAppearanceFromTheme = function actionAppearanceFromTheme(
+	theme: Pick<ExperimentArmTheme, 'consentActions'> | undefined
+): ActionAppearance | undefined {
+	const styles = theme?.consentActions;
+	if (
+		!styles?.accept &&
+		!styles?.reject &&
+		!styles?.customize &&
+		!styles?.dismiss
+	) {
+		return undefined;
+	}
+	return {
+		accept: { ...styles.default, ...styles.accept },
+		customize: { ...styles.default, ...styles.customize },
+		dismiss: { ...styles.default, ...styles.dismiss },
+		reject: { ...styles.default, ...styles.reject },
+	};
+};
+
 /** Inputs {@link validateExperiment} resolves each arm with. */
 export interface ValidateExperimentOptions {
 	/** The host's base presentation each arm is merged over. */
 	presentation?: ConsentPresentation;
-	/** Host appearance tokens, so a themed prominence override is caught too. */
-	actionAppearance?: Partial<
-		Record<PresentationAction, { variant?: string; mode?: string }>
-	>;
+	/**
+	 * The host theme each arm's `theme` is merged over, so an arm that
+	 * restyles accept and reject through `consentActions` is checked with
+	 * the tokens it will render with.
+	 */
+	theme?: ExperimentArmTheme;
+	/**
+	 * Host appearance tokens already derived from the host theme. Used for
+	 * arms without a `theme`; prefer passing `theme` so themed arms are
+	 * derived the same way.
+	 */
+	actionAppearance?: ActionAppearance;
 }
 
 /**
@@ -265,10 +430,15 @@ export const validateExperiment = function validateExperiment(
 			experiment,
 			{ variant: name }
 		);
+		const actionAppearance = experiment.variants[name]?.theme
+			? actionAppearanceFromTheme(
+					resolveExperimentTheme(options.theme, experiment, { variant: name })
+				)
+			: (options.actionAppearance ?? actionAppearanceFromTheme(options.theme));
 		const found = (['prompt', 'preferences'] as const).flatMap(
 			(surface) =>
 				resolveConsentPresentation({
-					actionAppearance: options.actionAppearance,
+					actionAppearance,
 					policy,
 					presentation,
 					surface,

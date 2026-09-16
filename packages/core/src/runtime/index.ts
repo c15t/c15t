@@ -393,6 +393,7 @@ export const createConsentRuntime = function createConsentRuntime(
 					kernel,
 					presentation: options.presentation,
 					storageConfig: options.storageConfig,
+					theme: options.theme,
 				})
 			: null;
 

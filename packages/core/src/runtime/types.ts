@@ -12,7 +12,7 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { StorageConfig } from '../libs/cookie';
-import type { ConsentExperiment } from '../libs/experiment';
+import type { ConsentExperiment, ExperimentArmTheme } from '../libs/experiment';
 import type { ConsentPresentation } from '../libs/policy-actions';
 import type { ClearOnRevocationConfig } from '../modules/clear-on-revocation';
 import type { IframeBlockerOptions } from '../modules/iframe-blocker';
@@ -197,6 +197,13 @@ export interface ConsentRuntimeOptions {
 	 * saved with every choice as `metadata.experiment`.
 	 */
 	experiment?: ConsentExperiment;
+	/**
+	 * The host theme tokens. The runtime renders nothing with them; it only
+	 * merges each experiment arm's `theme` over them so arm validation sees
+	 * the `consentActions` the arm will render with. Framework packages
+	 * narrow this to their `Theme` type and render it.
+	 */
+	theme?: ExperimentArmTheme;
 	/** Lifecycle callbacks invoked as consent is fetched, set and changed. */
 	callbacks?: Pick<
 		Callbacks,

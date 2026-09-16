@@ -1,4 +1,6 @@
+import { applyExperimentTheme } from '@c15t/core';
 import { generateThemeCSS } from '@c15t/ui/theme';
+import type { Theme } from '@c15t/ui/theme';
 
 import { stylesheet } from '../generated/styles';
 import type {
@@ -31,6 +33,7 @@ const resolveContainer = function resolveContainer(
 
 const buildStyleText = function buildStyleText(
 	options: ConsentUIOptions,
+	theme: Theme | undefined,
 	extraStyles = ''
 ): string {
 	const parts: string[] = [];
@@ -38,8 +41,8 @@ const buildStyleText = function buildStyleText(
 		parts.push(stylesheet);
 		parts.push(extraStyles);
 	}
-	if (options.theme) {
-		parts.push(generateThemeCSS(options.theme));
+	if (theme) {
+		parts.push(generateThemeCSS(theme));
 	}
 	if (options.css) {
 		parts.push(options.css);
@@ -119,9 +122,25 @@ export const mountConsentUI = function mountConsentUI(
 		? host.attachShadow({ mode: 'open' })
 		: host;
 
-	const styleText = buildStyleText(options, extension?.stylesheet);
-	if (styleText) {
-		root.append(h('style', {}, styleText));
+	// The arm's theme overrides ride on the host theme. Assignment lands in
+	// `start()`, before the UI mounts, so the first sheet already carries it;
+	// `update()` re-renders the sheet if the arm changes later.
+	const resolveTheme = function resolveTheme(): Theme | undefined {
+		return applyExperimentTheme(
+			options.theme,
+			client.options.experiment,
+			client.getSnapshot().experiment
+		);
+	};
+	let renderedTheme = resolveTheme();
+	const styleText = buildStyleText(
+		options,
+		renderedTheme,
+		extension?.stylesheet
+	);
+	const styleEl = styleText ? h('style', {}, styleText) : null;
+	if (styleEl) {
+		root.append(styleEl);
 	}
 
 	const wrapper = h('div', { class: 'c15t-host' });
@@ -164,6 +183,15 @@ export const mountConsentUI = function mountConsentUI(
 
 	const update = function update(): void {
 		const snapshot = client.getSnapshot();
+		const theme = resolveTheme();
+		if (styleEl && theme !== renderedTheme) {
+			renderedTheme = theme;
+			styleEl.textContent = buildStyleText(
+				options,
+				theme,
+				extension?.stylesheet
+			);
+		}
 		for (const surface of surfaces) {
 			surface.sync(snapshot);
 		}

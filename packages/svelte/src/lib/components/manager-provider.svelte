@@ -5,7 +5,7 @@
 		KernelOverrides,
 		KernelUser,
 	} from '@c15t/core';
-	import { applyExperimentAssignment } from '@c15t/core';
+	import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 	import {
 		createConsentRuntime,
 		normalizeKernelUser,
@@ -249,6 +249,7 @@
 		getLegalLinks: () => options.legalLinks,
 		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
+		getTheme: () => options.theme,
 	});
 
 	const unsubscribe = kernel.subscribe((next) => {
@@ -386,7 +387,11 @@
 		return () => mediaQuery.removeEventListener('change', handler);
 	});
 
-	const userTheme = $derived(options.theme);
+	// The arm's theme overrides ride on the host theme, so the injected
+	// tokens and the theme context both follow the assignment.
+	const userTheme = $derived(
+		applyExperimentTheme(options.theme, options.experiment, snapshot.experiment)
+	);
 
 	setThemeContext({
 		get colorScheme() {

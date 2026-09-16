@@ -8,6 +8,7 @@ import type {
 import { createContext, useContext } from 'react';
 
 import type { ReactComponentSlots } from '~/types/slots';
+import type { Theme } from '~/types/theme';
 
 export interface V3UIConfigValue {
 	components?: ReactComponentSlots;
@@ -15,6 +16,8 @@ export interface V3UIConfigValue {
 	presentation?: ConsentPresentation;
 	/** The configured experiment; the assigned arm lives on the snapshot. */
 	experiment?: ConsentExperiment;
+	/** The host's base theme, before any experiment arm is applied. */
+	theme?: Theme;
 	legalLinks?: LegalLinks;
 }
 

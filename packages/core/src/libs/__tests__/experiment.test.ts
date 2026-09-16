@@ -2,8 +2,11 @@ import { normalizePolicyRule } from '@c15t/schema/types';
 import { describe, expect, it } from 'vitest';
 
 import {
+	actionAppearanceFromTheme,
+	applyExperimentTheme,
 	assignExperimentVariant,
 	resolveExperimentPresentation,
+	resolveExperimentTheme,
 	validateExperiment,
 } from '../experiment';
 import type { ConsentExperiment } from '../experiment';
@@ -141,5 +144,142 @@ describe('validateExperiment', () => {
 				presentation: { prompt: { primaryActions: ['accept'] } },
 			})
 		).toThrow(/"bar".*\n.*"floating"|"bar"/u);
+	});
+});
+
+describe('resolveExperimentTheme', () => {
+	const themed: ConsentExperiment = {
+		id: 'button-style',
+		variants: {
+			bold: {
+				theme: {
+					colors: { primary: '#0a0a0a' },
+					radius: { lg: '4px' },
+					slots: { consentBanner: ['a', 'b'] },
+				},
+			},
+			control: {},
+		},
+	};
+	const base = {
+		colors: { primary: '#2f6f4e', secondary: '#fff' },
+		motion: { duration: '1s' },
+		slots: { consentBanner: ['x'] },
+	};
+	it('merges the arm over the base one group deep, arm wins on the leaf', () => {
+		expect(resolveExperimentTheme(base, themed, { variant: 'bold' })).toEqual({
+			colors: { primary: '#0a0a0a', secondary: '#fff' },
+			motion: { duration: '1s' },
+			radius: { lg: '4px' },
+			slots: { consentBanner: ['a', 'b'] },
+		});
+	});
+	it('returns the base itself for an arm without a theme', () => {
+		expect(resolveExperimentTheme(base, themed, { variant: 'control' })).toBe(
+			base
+		);
+		expect(resolveExperimentTheme(base, themed, { variant: 'gone' })).toBe(
+			base
+		);
+	});
+	it('returns the arm theme when there is no base', () => {
+		expect(
+			resolveExperimentTheme(undefined, themed, { variant: 'bold' })
+		).toEqual(themed.variants.bold?.theme);
+	});
+	it('applies only for a matching assignment', () => {
+		expect(
+			applyExperimentTheme(base, themed, { id: 'other', variant: 'bold' })
+		).toBe(base);
+		expect(applyExperimentTheme(base, undefined, null)).toBe(base);
+		expect(
+			applyExperimentTheme(base, themed, {
+				id: 'button-style',
+				variant: 'bold',
+			})?.colors
+		).toEqual({ primary: '#0a0a0a', secondary: '#fff' });
+	});
+});
+
+describe('actionAppearanceFromTheme', () => {
+	it('spreads default under each styled action', () => {
+		expect(
+			actionAppearanceFromTheme({
+				consentActions: {
+					accept: { mode: 'filled' },
+					default: { variant: 'neutral' },
+				},
+			})
+		).toEqual({
+			accept: { mode: 'filled', variant: 'neutral' },
+			customize: { variant: 'neutral' },
+			dismiss: { variant: 'neutral' },
+			reject: { variant: 'neutral' },
+		});
+	});
+	it('is undefined when no action is styled', () => {
+		expect(actionAppearanceFromTheme(undefined)).toBeUndefined();
+		expect(
+			actionAppearanceFromTheme({
+				consentActions: { default: { mode: 'ghost' } },
+			})
+		).toBeUndefined();
+	});
+});
+
+describe('validateExperiment with arm themes', () => {
+	const uneven: ConsentExperiment = {
+		id: 'button-style',
+		variants: {
+			control: {},
+			loud: {
+				theme: {
+					consentActions: {
+						accept: { mode: 'filled', variant: 'primary' },
+						reject: { mode: 'stroke', variant: 'neutral' },
+					},
+				},
+			},
+		},
+	};
+	it('trips equivalent-prominence-overridden for a theme-only arm', () => {
+		expect(() => validateExperiment(uneven, choice)).toThrow(
+			/"loud": equivalent-prominence-overridden/u
+		);
+	});
+	it('passes when acknowledged and reports only the themed arm', () => {
+		const diagnostics = validateExperiment(
+			{ ...uneven, acknowledgeDiagnostics: true },
+			choice
+		);
+		expect(Object.keys(diagnostics)).toEqual(['loud']);
+	});
+	it('merges the arm theme over the host theme before checking', () => {
+		expect(() =>
+			validateExperiment(
+				{
+					id: 'button-style',
+					variants: {
+						control: {},
+						quiet: {
+							theme: {
+								consentActions: {
+									reject: { mode: 'filled', variant: 'primary' },
+								},
+							},
+						},
+					},
+				},
+				choice,
+				{
+					theme: {
+						consentActions: {
+							accept: { mode: 'filled', variant: 'primary' },
+							reject: { mode: 'stroke', variant: 'neutral' },
+						},
+					},
+				}
+			)
+		).toThrow(/"control": equivalent-prominence-overridden/u);
 	});
 });

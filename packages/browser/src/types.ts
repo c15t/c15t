@@ -261,6 +261,12 @@ export interface ConsentClient {
 	 * assigned. Surfaces render from this, not from `options.presentation`.
 	 */
 	readonly presentation: ConsentPresentation | undefined;
+	/**
+	 * `options.ui.theme` with the assigned experiment arm's `theme` merged
+	 * over it. Equal to `options.ui.theme` while no experiment is configured
+	 * or assigned, and `undefined` for a headless client.
+	 */
+	readonly theme: Theme | undefined;
 	/** Which transport is in use. */
 	readonly mode: ConsentModeName | 'custom';
 	/** Categories the UI should offer, after policy filtering. */

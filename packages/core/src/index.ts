@@ -281,13 +281,20 @@ export {
 	resolveConsentPresentation,
 } from './libs/policy-actions';
 export {
+	actionAppearanceFromTheme,
 	applyExperimentAssignment,
+	applyExperimentTheme,
 	assignExperimentVariant,
 	resolveExperimentPresentation,
+	resolveExperimentTheme,
 	validateExperiment,
 } from './libs/experiment';
 export type {
+	ActionAppearance,
 	ConsentExperiment,
+	ExperimentActionStyle,
+	ExperimentArm,
+	ExperimentArmTheme,
 	ExperimentAssignment,
 	ExperimentDiagnostics,
 	ValidateExperimentOptions,

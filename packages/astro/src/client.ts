@@ -398,6 +398,7 @@ const createClient = function createClient(
 		prefetch: config,
 		scripts,
 		storageConfig: options.storageConfig,
+		theme: options.theme,
 	});
 
 	let dialog: ConsentDialogHandle | null = null;

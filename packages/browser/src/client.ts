@@ -1,5 +1,6 @@
 import {
 	applyExperimentAssignment,
+	applyExperimentTheme,
 	custom,
 	evaluateConsent,
 	hosted,
@@ -22,6 +23,7 @@ import type {
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
+import type { Theme } from '@c15t/ui/theme';
 
 import { createDeferred } from './deferred';
 import { createGatedScriptActivator } from './gated-scripts';
@@ -240,6 +242,7 @@ export const createConsentClient = function createConsentClient(
 		presentation: options.presentation,
 		scripts: options.scripts,
 		storageConfig: options.storageConfig,
+		theme: options.ui === false ? undefined : options.ui?.theme,
 		user: options.user,
 		// The script-tag build owns `window.c15t`; core must not overwrite it.
 		windowDebug: false,
@@ -657,6 +660,13 @@ export const createConsentClient = function createConsentClient(
 		},
 		subscribe(listener) {
 			return kernel.subscribe(listener);
+		},
+		get theme(): Theme | undefined {
+			return applyExperimentTheme(
+				options.ui === false ? undefined : options.ui?.theme,
+				options.experiment,
+				kernel.getSnapshot().experiment
+			);
 		},
 		get ui() {
 			return ui;
