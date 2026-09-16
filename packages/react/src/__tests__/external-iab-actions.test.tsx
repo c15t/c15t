@@ -1,6 +1,6 @@
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import { createConsentRuntime } from '@c15t/core/runtime';
-import { StrictMode, useLayoutEffect } from 'react';
+import { Activity, StrictMode, useLayoutEffect } from 'react';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -194,6 +194,41 @@ test('keeps pending actions through StrictMode effect replay', async () => {
 		await new Promise(requestAnimationFrame);
 		runtime.start();
 		await saved;
+		expect(handle.save).toHaveBeenCalledOnce();
+	} finally {
+		screen.unmount();
+		runtime.dispose();
+	}
+});
+
+test('accepts new actions after a hidden provider resumes', async () => {
+	const { runtime, handle } = fixture();
+	let iab: ReactIABState | undefined;
+	const onReady = (value: ReactIABState) => {
+		iab = value;
+	};
+	const tree = (mode: 'visible' | 'hidden') => (
+		<Activity mode={mode}>
+			<BridgeProbe
+				runtime={runtime}
+				onReady={onReady}
+			/>
+		</Activity>
+	);
+	const screen = await render(tree('visible'));
+	try {
+		if (!iab) {
+			throw new Error('Missing IAB state');
+		}
+		const cancelled = expect(iab.save()).rejects.toMatchObject({
+			name: 'AbortError',
+		});
+		await screen.rerender(tree('hidden'));
+		await cancelled;
+		await screen.rerender(tree('visible'));
+		const resumed = iab.save();
+		runtime.start();
+		await resumed;
 		expect(handle.save).toHaveBeenCalledOnce();
 	} finally {
 		screen.unmount();

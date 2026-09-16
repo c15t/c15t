@@ -52,6 +52,7 @@ const createActionQueue = (runtime: ConsentRuntime) => {
 		actions,
 		activate: () => {
 			active = true;
+			closed = false;
 		},
 		deactivate: () => {
 			active = false;
