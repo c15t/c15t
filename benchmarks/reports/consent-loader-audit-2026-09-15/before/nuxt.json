@@ -6,255 +6,255 @@
 			"ready": 29.899999856948853,
 			"resources": [
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/manager.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/manager.vue",
 					"end": 2.1999998092651367
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/index.js",
 					"end": 4.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences-manager-context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences-manager-context.js",
 					"end": 4.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences.vue",
 					"end": 7.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-content.vue",
 					"end": 7.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-item.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-item.vue",
 					"end": 7.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-root.vue",
 					"end": 7.8999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-trigger.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-trigger.js",
 					"end": 8.099999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-content.vue",
 					"end": 8.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
 					"end": 8.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-portal.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-portal.vue",
 					"end": 8.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-root.vue",
 					"end": 9
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/focus-scope.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/focus-scope.vue",
 					"end": 9.099999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
 					"end": 9.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
 					"end": 10.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
 					"end": 10.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
 					"end": 9.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
 					"end": 9.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
 					"end": 10.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
 					"end": 11
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
 					"end": 11.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
 					"end": 12.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-root.vue",
 					"end": 11.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
 					"end": 12
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
 					"end": 13
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
 					"end": 13.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-thumb.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-thumb.vue",
 					"end": 13.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
 					"end": 13.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.js",
 					"end": 14.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.js",
 					"end": 14.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/index.js",
 					"end": 14.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/keys.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/keys.js",
 					"end": 15.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/dialog/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/dialog/index.js",
 					"end": 15.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/index.js",
 					"end": 15.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/context.js",
 					"end": 16.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/context.js",
 					"end": 16.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.css",
 					"end": 17
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.css",
 					"end": 17.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.js",
 					"end": 17.59999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.js",
 					"end": 17.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.js",
 					"end": 18.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.js",
 					"end": 18.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.js",
 					"end": 18.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.js",
 					"end": 19.09999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/dialog.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/dialog.js",
 					"end": 19.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/data-state.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/data-state.js",
 					"end": 20.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/accordion/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/accordion/index.js",
 					"end": 20.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/button/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/button/index.js",
 					"end": 20.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/collapsible/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/collapsible/index.js",
 					"end": 20.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/preference-item/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/preference-item/index.js",
 					"end": 21
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/switch/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/switch/index.js",
 					"end": 21.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/tabs/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/tabs/index.js",
 					"end": 21.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.module.js",
 					"end": 22.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.module.js",
 					"end": 22.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.module.js",
 					"end": 22.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.module.js",
 					"end": 23.09999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.module.js",
 					"end": 23.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.module.js",
 					"end": 24.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/accordion.js",
 					"end": 23.59999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/collapsible.js",
 					"end": 23.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/preference-item.js",
 					"end": 24.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/switch.js",
 					"end": 24.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/tabs.js",
 					"end": 24.299999952316284
 				}
 			]
@@ -264,255 +264,255 @@
 			"ready": 25.700000047683716,
 			"resources": [
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/manager.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/manager.vue",
 					"end": 2.3000001907348633
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/index.js",
 					"end": 3.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences-manager-context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences-manager-context.js",
 					"end": 4
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences.vue",
 					"end": 5.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-content.vue",
 					"end": 7.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-item.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-item.vue",
 					"end": 7.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-trigger.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-trigger.js",
 					"end": 7.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-root.vue",
 					"end": 7.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-content.vue",
 					"end": 8
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
 					"end": 8.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-portal.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-portal.vue",
 					"end": 8.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-root.vue",
 					"end": 8.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/focus-scope.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/focus-scope.vue",
 					"end": 9
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
 					"end": 9.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
 					"end": 9.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
 					"end": 9.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
 					"end": 9.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
 					"end": 10.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
 					"end": 9.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
 					"end": 9.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
 					"end": 10.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
 					"end": 10.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-root.vue",
 					"end": 10.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
 					"end": 10.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
 					"end": 10.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
 					"end": 10.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
 					"end": 11.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-thumb.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-thumb.vue",
 					"end": 11.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.js",
 					"end": 11.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.js",
 					"end": 11.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/index.js",
 					"end": 12.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/keys.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/keys.js",
 					"end": 12.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/dialog/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/dialog/index.js",
 					"end": 12.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/index.js",
 					"end": 13.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/context.js",
 					"end": 13.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/context.js",
 					"end": 12.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.css",
 					"end": 15.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.css",
 					"end": 15.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.js",
 					"end": 14.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.js",
 					"end": 14.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.js",
 					"end": 14.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.js",
 					"end": 15.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.js",
 					"end": 15.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.js",
 					"end": 16.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/data-state.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/data-state.js",
 					"end": 16.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/dialog.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/dialog.js",
 					"end": 16.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/accordion/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/accordion/index.js",
 					"end": 16.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/button/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/button/index.js",
 					"end": 16.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/collapsible/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/collapsible/index.js",
 					"end": 16.90000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/preference-item/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/preference-item/index.js",
 					"end": 17.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/switch/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/switch/index.js",
 					"end": 17.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/tabs/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/tabs/index.js",
 					"end": 18
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.module.js",
 					"end": 18.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.module.js",
 					"end": 18.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.module.js",
 					"end": 18.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.module.js",
 					"end": 19
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.module.js",
 					"end": 20
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.module.js",
 					"end": 19.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/accordion.js",
 					"end": 19.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/collapsible.js",
 					"end": 19.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/preference-item.js",
 					"end": 19.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/switch.js",
 					"end": 20.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/tabs.js",
 					"end": 20.200000047683716
 				}
 			]
@@ -522,255 +522,255 @@
 			"ready": 24.600000143051147,
 			"resources": [
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/manager.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/manager.vue",
 					"end": 2
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences-manager-context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences-manager-context.js",
 					"end": 3.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/index.js",
 					"end": 3.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences.vue",
 					"end": 5.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-content.vue",
 					"end": 7.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-item.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-item.vue",
 					"end": 7.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-root.vue",
 					"end": 7.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-trigger.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-trigger.js",
 					"end": 7.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-content.vue",
 					"end": 7.6000001430511475
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
 					"end": 7.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-portal.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-portal.vue",
 					"end": 8.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-root.vue",
 					"end": 8.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/focus-scope.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/focus-scope.vue",
 					"end": 8.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
 					"end": 9.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
 					"end": 9.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
 					"end": 9.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
 					"end": 9.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
 					"end": 9.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
 					"end": 9.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
 					"end": 10.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
 					"end": 10.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-root.vue",
 					"end": 10.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
 					"end": 10.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
 					"end": 10.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
 					"end": 10.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
 					"end": 11.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
 					"end": 11.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-thumb.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-thumb.vue",
 					"end": 11.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.js",
 					"end": 11.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.js",
 					"end": 11.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/index.js",
 					"end": 12.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/keys.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/keys.js",
 					"end": 13.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/dialog/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/dialog/index.js",
 					"end": 11.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/index.js",
 					"end": 12.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/context.js",
 					"end": 13.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/context.js",
 					"end": 14.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.css",
 					"end": 13.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.css",
 					"end": 13.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/data-state.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/data-state.js",
 					"end": 14.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/dialog.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/dialog.js",
 					"end": 14.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/accordion/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/accordion/index.js",
 					"end": 14.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/button/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/button/index.js",
 					"end": 14.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/collapsible/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/collapsible/index.js",
 					"end": 15
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/preference-item/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/preference-item/index.js",
 					"end": 15.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/switch/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/switch/index.js",
 					"end": 15.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/tabs/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/tabs/index.js",
 					"end": 15.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.js",
 					"end": 16.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.js",
 					"end": 16.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.js",
 					"end": 16.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.js",
 					"end": 16.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.js",
 					"end": 16.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.js",
 					"end": 17
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/accordion.js",
 					"end": 17.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/collapsible.js",
 					"end": 17.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/preference-item.js",
 					"end": 17.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/switch.js",
 					"end": 17.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/tabs.js",
 					"end": 18.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.module.js",
 					"end": 18.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.module.js",
 					"end": 18.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.module.js",
 					"end": 17.90000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.module.js",
 					"end": 18
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.module.js",
 					"end": 19
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.module.js",
 					"end": 18.800000190734863
 				}
 			]
@@ -780,255 +780,255 @@
 			"ready": 29.40000009536743,
 			"resources": [
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/manager.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/manager.vue",
 					"end": 2.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/index.js",
 					"end": 4.1000001430511475
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences-manager-context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences-manager-context.js",
 					"end": 4.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences.vue",
 					"end": 4.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-content.vue",
 					"end": 7.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-item.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-item.vue",
 					"end": 7.6000001430511475
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-root.vue",
 					"end": 7.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-trigger.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-trigger.js",
 					"end": 8.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-content.vue",
 					"end": 8.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
 					"end": 7.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-portal.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-portal.vue",
 					"end": 9
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-root.vue",
 					"end": 9.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/focus-scope.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/focus-scope.vue",
 					"end": 10
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
 					"end": 10.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
 					"end": 10.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
 					"end": 10.900000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
 					"end": 11
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
 					"end": 11.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
 					"end": 11.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
 					"end": 12.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
 					"end": 12.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
 					"end": 12.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-root.vue",
 					"end": 12.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
 					"end": 12.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
 					"end": 13.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
 					"end": 13.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
 					"end": 13.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-thumb.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-thumb.vue",
 					"end": 13.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.js",
 					"end": 14.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.js",
 					"end": 14.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/index.js",
 					"end": 16
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/keys.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/keys.js",
 					"end": 16.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/dialog/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/dialog/index.js",
 					"end": 14.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/index.js",
 					"end": 15.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/context.js",
 					"end": 15.400000095367432
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/context.js",
 					"end": 18
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.css",
 					"end": 16.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.css",
 					"end": 17.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/data-state.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/data-state.js",
 					"end": 17.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/dialog.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/dialog.js",
 					"end": 18.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/accordion/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/accordion/index.js",
 					"end": 18.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/button/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/button/index.js",
 					"end": 18.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/collapsible/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/collapsible/index.js",
 					"end": 19.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/preference-item/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/preference-item/index.js",
 					"end": 19.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/switch/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/switch/index.js",
 					"end": 19.90000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/tabs/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/tabs/index.js",
 					"end": 20.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.js",
 					"end": 20.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.js",
 					"end": 20.800000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.js",
 					"end": 20.90000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.js",
 					"end": 21
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.js",
 					"end": 21.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.js",
 					"end": 21.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/accordion.js",
 					"end": 21.700000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/collapsible.js",
 					"end": 22.100000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/preference-item.js",
 					"end": 22.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/switch.js",
 					"end": 22.300000190734863
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.module.js",
 					"end": 22.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/tabs.js",
 					"end": 22.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.module.js",
 					"end": 22.90000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.module.js",
 					"end": 23.200000047683716
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.module.js",
 					"end": 23.40000009536743
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.module.js",
 					"end": 23.600000143051147
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.module.js",
 					"end": 23.800000190734863
 				}
 			]
@@ -1038,258 +1038,263 @@
 			"ready": 25.799999952316284,
 			"resources": [
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/manager.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/manager.vue",
 					"end": 2.3999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/index.js",
 					"end": 4
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences-manager-context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences-manager-context.js",
 					"end": 4.3999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/components/preferences.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/components/preferences.vue",
 					"end": 5.8999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-content.vue",
 					"end": 6.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-item.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-item.vue",
 					"end": 6.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-root.vue",
 					"end": 6.8999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/accordion-trigger.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/accordion-trigger.js",
 					"end": 7
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-content.vue",
 					"end": 7.099999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-overlay.vue",
 					"end": 7.3999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-portal.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-portal.vue",
 					"end": 7.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/dialog-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/dialog-root.vue",
 					"end": 7.8999998569488525
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/focus-scope.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/focus-scope.vue",
 					"end": 8
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-auxiliary.vue",
 					"end": 8.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-content.vue",
 					"end": 8.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-header.vue",
 					"end": 8.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-control.vue",
 					"end": 10.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-leading.vue",
 					"end": 8.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-meta.vue",
 					"end": 9.099999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-root.vue",
 					"end": 10.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-trigger.vue",
 					"end": 10.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-root.vue",
 					"end": 10.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-content.vue",
 					"end": 10.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/preference-item-title.vue",
 					"end": 10.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-list.vue",
 					"end": 11.099999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-root.vue",
 					"end": 11.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/tabs-trigger.vue",
 					"end": 11.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/switch-thumb.vue",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/switch-thumb.vue",
 					"end": 12
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.js",
 					"end": 12.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.js",
 					"end": 12.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/index.js",
 					"end": 13.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/keys.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/keys.js",
 					"end": 12.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/dialog/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/dialog/index.js",
 					"end": 13
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/index.js",
 					"end": 13.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/preference-item/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/preference-item/context.js",
 					"end": 13.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/vue/dist/runtime/primitives/tabs/context.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/vue/dist/runtime/primitives/tabs/context.js",
 					"end": 13.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/accordion.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/accordion.css",
 					"end": 14.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/components/manager.css",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/components/manager.css",
 					"end": 14.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/data-state.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/data-state.js",
 					"end": 14.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/dialog.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/dialog.js",
 					"end": 14.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.js",
 					"end": 15
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.js",
 					"end": 15
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.js",
 					"end": 15.599999904632568
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.js",
 					"end": 15.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.js",
 					"end": 15.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.js",
 					"end": 16
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/accordion/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/accordion/index.js",
 					"end": 15.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/button/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/button/index.js",
 					"end": 16.09999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/collapsible/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/collapsible/index.js",
 					"end": 16.59999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/preference-item/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/preference-item/index.js",
 					"end": 16.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/switch/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/switch/index.js",
 					"end": 17.199999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/tabs/index.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/tabs/index.js",
 					"end": 17.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/accordion.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/accordion.module.js",
 					"end": 18.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/button.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/button.module.js",
 					"end": 18.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/collapsible.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/collapsible.module.js",
 					"end": 19
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/tabs.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/tabs.module.js",
 					"end": 17.799999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/preference-item.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/preference-item.module.js",
 					"end": 20.09999990463257
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/accordion.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/accordion.js",
 					"end": 19.299999952316284
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/styles/primitives/switch.module.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/styles/primitives/switch.module.js",
 					"end": 19.5
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/collapsible.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/collapsible.js",
 					"end": 19.699999809265137
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/preference-item.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/preference-item.js",
 					"end": 19.899999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/switch.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/switch.js",
 					"end": 20.399999856948853
 				},
 				{
-					"name": "http://localhost:4313/_nuxt/@fs/Users/kaylee/.t3/worktrees/c15t/t3code-790c32b8/packages/ui/dist/primitives/shared/tabs.js",
+					"name": "http://localhost:4313/_nuxt/@fs/<workspace>/packages/ui/dist/primitives/shared/tabs.js",
 					"end": 20.09999990463257
 				}
 			]
 		}
-	]
+	],
+	"commitSha": "unknown",
+	"metadata": {
+		"gitDirty": null,
+		"provenance": "Historical artifact: revision and dirty state were not captured by the runner. See the adjacent report for source-version context."
+	}
 }

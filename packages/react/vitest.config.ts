@@ -36,6 +36,11 @@ export default mergeConfig(
 		resolve: {
 			alias: Object.fromEntries([
 				['~', resolve(__dirname, './src')],
+				// Astro's source island must share this test suite's React contexts
+				// and coverage, rather than importing a second copy from dist.
+				['@c15t/react/iab', resolve(__dirname, './src/iab.ts')],
+				['@c15t/react/context', resolve(__dirname, './src/context.ts')],
+				['@c15t/react', resolve(__dirname, './src/index.ts')],
 				// Resolve core package to source so Vite can handle its dynamic
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.

@@ -94,5 +94,10 @@
 	],
 	"url": "http://localhost:3217/loader-audit?variant=widget",
 	"variant": "widget",
-	"warm": false
+	"warm": false,
+	"commitSha": "unknown",
+	"metadata": {
+		"gitDirty": null,
+		"provenance": "Historical artifact: revision and dirty state were not captured by the runner. See the adjacent report for source-version context."
+	}
 }

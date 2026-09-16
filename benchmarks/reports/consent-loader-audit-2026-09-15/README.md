@@ -144,3 +144,34 @@ React and Astro builds, React source/public types, Astro types,
 benchmark TypeScript, and changed-file lint/format checks pass. Full repository
 CI was not verified locally. The earlier Local CI attempt stopped when the
 unrelated workflow-security job reported zizmor's "no inputs collected" error.
+
+## Review follow-up
+
+The benchmark runners now reject invalid iteration counts, record `commitSha`
+and `metadata.gitDirty`, and normalize Vite filesystem URLs before writing
+artifacts. The default-dialog summary includes JS/CSS completion and the
+per-sample delay from download completion to mounting. No downloads are `null`.
+Historical artifacts predate that metadata capture. Their revision and dirty
+state are explicitly unknown; the source descriptions above were recorded in
+this report, not captured by the runner. No timing samples were changed during
+resource-name cleanup.
+
+The external IAB bridge queues actions while its runtime has no handle and
+replays them when the owner publishes it. React tests now hold the Astro module
+until the island requests it and cover a fully completed preload before the
+first lazy export mounts. The Astro test resolves React package imports to the
+same source modules as the suite; previously it also loaded compiled `dist`
+modules, splitting contexts and counting generated code in coverage.
+
+Failed imports still propagate to error boundaries and stay cached for the page
+session, matching the previous React.lazy behavior. Automatic retries and retry
+UI are not part of this fix.
+
+Review validation passed 672 React tests, 240 Astro tests and 75 shared benchmark
+tests, with package coverage floors enabled. React coverage is 69.53% functions
+and 65.91% branches. The earlier CI failure included compiled React modules
+loaded by the Astro source test; resolving them to source restores a single
+module graph without lowering thresholds. The full run also exposed an existing
+persistence test checking before its scheduled storage write; it now waits for
+the actual record change. All six new regression assertions fail when the
+corresponding old behavior is restored.

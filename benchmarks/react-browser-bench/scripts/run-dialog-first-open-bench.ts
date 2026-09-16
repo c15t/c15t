@@ -1,12 +1,23 @@
 /* oxlint-disable no-await-in-loop -- Sequential samples avoid CPU and network contention. */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import { safeCommitSha, safeGitDirty } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 import type { Page } from 'playwright';
 
+import {
+	normalizeResourceName,
+	parseIterations,
+	summarizeDialogSamples,
+} from '../../shared/src/loader-audit';
+
 const url = process.env.BENCH_URL ?? 'http://localhost:3217/dialog-first-open';
-const iterations = Number(process.env.BENCH_ITERATIONS ?? '10');
+const iterations = parseIterations(process.env.BENCH_ITERATIONS, 10);
+const commitSha = safeCommitSha();
+const metadata = { gitDirty: safeGitDirty() };
+const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const output = process.env.BENCH_OUTPUT ?? '/tmp/c15t-dialog-results.json';
 
 const measure = (page: Page, selector: string) =>
@@ -121,29 +132,32 @@ try {
 		samples.push({ first, reopen });
 		await context.close();
 	}
-	const median = (values: number[]) => {
-		const sorted = values.toSorted((left, right) => left - right);
-		const middle = Math.floor(sorted.length / 2);
-		const upper = sorted[middle] ?? 0;
-		const lower = sorted[middle - 1] ?? upper;
-		return sorted.length % 2 === 0 ? (lower + upper) / 2 : upper;
-	};
+	for (const sample of samples) {
+		for (const kind of ['first', 'reopen'] as const) {
+			for (const resource of sample[kind].resources) {
+				resource.name = normalizeResourceName(resource.name, workspaceRoot);
+			}
+		}
+	}
 	const summary = Object.fromEntries(
 		(['first', 'reopen'] as const).map((kind) => [
 			kind,
-			Object.fromEntries(
-				(['mounted', 'visible', 'fullyVisible'] as const).map((metric) => [
-					metric,
-					median(samples.map((sample) => sample[kind][metric])),
-				])
-			),
+			summarizeDialogSamples(samples.map((sample) => sample[kind])),
 		])
 	);
 	mkdirSync(dirname(output), { recursive: true });
 	writeFileSync(
 		output,
 		JSON.stringify(
-			{ browser: browser.version(), iterations, samples, summary, url },
+			{
+				browser: browser.version(),
+				commitSha,
+				iterations,
+				metadata,
+				samples,
+				summary,
+				url,
+			},
 			null,
 			2
 		)

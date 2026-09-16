@@ -17,7 +17,13 @@
 
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import type { IABHandle } from '@c15t/iab';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { IABContext } from './context/iab-context-value';
@@ -51,9 +57,49 @@ export const ExternalIABProvider = ({
 		getServerHandle
 	);
 
+	// Keep pending actions attached to the runtime they were requested against.
+	const queue = useMemo(
+		() => ({ actions: [] as ((mounted: IABHandle) => void)[], runtime }),
+		[runtime]
+	);
+	const queued = queue.actions;
+	useEffect(() => {
+		const flush = () => {
+			const mounted = runtime.iab as IABHandle | null;
+			if (mounted) {
+				for (const action of queued.splice(0)) {
+					action(mounted);
+				}
+			}
+		};
+		const unsubscribe = runtime.onIABChange(flush);
+		flush();
+		return unsubscribe;
+	}, [runtime, queued]);
+	const run = useCallback<NonNullable<IABContextValue['run']>>(
+		async (action) => {
+			const mounted = runtime.iab as IABHandle | null;
+			if (mounted) {
+				await action(mounted);
+				return;
+			}
+			await new Promise<void>((resolve, reject) => {
+				queued.push(async (ready) => {
+					try {
+						await action(ready);
+						resolve();
+					} catch (error) {
+						reject(error);
+					}
+				});
+			});
+		},
+		[runtime, queued]
+	);
+
 	const value = useMemo<IABContextValue>(
-		() => ({ handle, setTab, tab }),
-		[handle, tab]
+		() => ({ handle, run, setTab, tab }),
+		[handle, run, tab]
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;

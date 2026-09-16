@@ -161,3 +161,34 @@ test('reports a failed preload through the rendering error boundary', async () =
 		error.mockRestore();
 	}
 });
+
+test('reveals the first lazy export after its module was fully preloaded', async () => {
+	const fixture = deferred();
+	const Deferred = fixture.module.component((module) => module.Content);
+	const Later = fixture.module.component((module) => module.Content);
+	const preload = fixture.module.preload();
+	fixture.resolve(exports);
+	await preload;
+	const container = document.createElement('div');
+	document.body.append(container);
+	const root = createRoot(container);
+	try {
+		root.render(<Deferred label="Preloaded" />);
+		await frame();
+		await frame();
+		expect(container.textContent).toBe('Preloaded: 0');
+		root.render(
+			<>
+				<Deferred label="Preloaded" />
+				<Later label="Later" />
+			</>
+		);
+		await frame();
+		await frame();
+		expect(container.textContent).toBe('Preloaded: 0Later: 0');
+		expect(fixture.load).toHaveBeenCalledOnce();
+	} finally {
+		root.unmount();
+		container.remove();
+	}
+});

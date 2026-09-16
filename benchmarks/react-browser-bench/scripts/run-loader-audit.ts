@@ -1,13 +1,23 @@
 /* oxlint-disable no-await-in-loop -- Sequential samples avoid CPU and network contention. */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import { safeCommitSha, safeGitDirty } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
+
+import {
+	normalizeResourceName,
+	parseIterations,
+} from '../../shared/src/loader-audit';
 
 const variant = process.env.VARIANT ?? 'compound';
 const nuxt = variant === 'nuxt';
 const warm = process.env.WARM === '1';
-const iterations = Number(process.env.BENCH_ITERATIONS ?? '5');
+const iterations = parseIterations(process.env.BENCH_ITERATIONS, 5);
+const commitSha = safeCommitSha();
+const metadata = { gitDirty: safeGitDirty() };
+const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const url =
 	process.env.BENCH_URL ??
 	(nuxt
@@ -157,11 +167,24 @@ try {
 		}
 		await context.close();
 	}
+	for (const sample of samples) {
+		for (const resource of sample.resources) {
+			resource.name = normalizeResourceName(resource.name, workspaceRoot);
+		}
+	}
 	mkdirSync(dirname(output), { recursive: true });
 	writeFileSync(
 		output,
 		JSON.stringify(
-			{ browser: browser.version(), samples, url, variant, warm },
+			{
+				browser: browser.version(),
+				commitSha,
+				metadata,
+				samples,
+				url,
+				variant,
+				warm,
+			},
 			null,
 			2
 		)

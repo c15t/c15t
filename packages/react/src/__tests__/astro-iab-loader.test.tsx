@@ -1,12 +1,34 @@
 import { createConsentRuntime } from '@c15t/core/runtime';
 import { createIAB } from '@c15t/iab';
 import { createRoot } from 'react-dom/client';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import AstroDialog from '../../../astro/src/components/islands/panel-surface';
 import { mockGVL } from '../components/iab/__tests__/fixtures/mock-consent-state';
 import { offline } from '../transports/offline';
 import { policyFixture } from './policy-fixture';
+
+const gate = vi.hoisted(() => {
+	let requested!: () => void;
+	let release!: () => void;
+	const started = new Promise<void>((resolve) => {
+		requested = resolve;
+	});
+	const ready = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	return { ready, release, requested, started };
+});
+
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Gate only module arrival; render the actual island and actual imported component to reproduce the browser loading race.
+vi.mock(
+	'../../../astro/src/components/islands/iab-dialog-surface',
+	async (importOriginal) => {
+		gate.requested();
+		await gate.ready;
+		return importOriginal();
+	}
+);
 
 test('reveals the cold Astro React IAB island when its module is ready', async () => {
 	const runtime = createConsentRuntime({
@@ -32,7 +54,12 @@ test('reveals the cold Astro React IAB island when its module is ready', async (
 				kind="iab"
 			/>
 		);
-		await import('../../../astro/src/components/islands/iab-dialog-surface');
+		await gate.started;
+		expect(
+			document.querySelector('[data-testid="iab-consent-dialog-root"]')
+		).toBeNull();
+		gate.release();
+		await vi.dynamicImportSettled();
 		await new Promise(requestAnimationFrame);
 		await new Promise(requestAnimationFrame);
 		await new Promise(requestAnimationFrame);
@@ -40,6 +67,7 @@ test('reveals the cold Astro React IAB island when its module is ready', async (
 			document.querySelector('[data-testid="iab-consent-dialog-root"]')
 		).not.toBeNull();
 	} finally {
+		gate.release();
 		root.unmount();
 		container.remove();
 		runtime.dispose();
