@@ -313,3 +313,28 @@ it('preserves an edit made while an earlier save waits for its canonical subject
 		measurement: false,
 	});
 });
+
+it('shows the assigned experiment arm on the policy tab', async () => {
+	const kernel = createConsentKernel({
+		initialExperiment: {
+			acknowledgedDiagnostics: false,
+			assignedBy: 'host',
+			id: 'banner-shape',
+			variant: 'bar',
+		},
+		initialPolicyResolution: policyResolution({ model: 'opt-in' }),
+	});
+	cleanups.push(kernel.dispose);
+	await kernel.commands.init();
+	const tools = createDevTools({
+		defaultOpen: true,
+		defaultTab: 'policy',
+		kernel,
+	});
+	cleanups.push(tools.destroy);
+	const text = tools.element?.textContent ?? '';
+	for (const expected of ['Experiment', 'banner-shape', 'bar', 'host']) {
+		expect(text).toContain(expected);
+	}
+	expect(text).not.toContain('No presentation experiment');
+});

@@ -506,6 +506,55 @@ function renderLocation(
 	container.append(location, overrides);
 }
 
+/**
+ * The presentation experiment arm this visitor runs, with the impression
+ * times a choice or dismissal is measured from. Shows a developer the arm
+ * their flag provider (or c15t) assigned without opening the console.
+ */
+const createExperimentSection = function createExperimentSection(
+	document: Document,
+	snapshot: ConsentSnapshot
+): HTMLElement {
+	const { experiment } = snapshot;
+	const section = createSection(
+		document,
+		'Experiment',
+		experiment
+			? 'Impressions, choices and notice dismissals report this arm.'
+			: 'No presentation experiment is configured or assigned.'
+	);
+	if (!experiment) {
+		return section;
+	}
+	const stats = createElement(document, 'dl', 'c15t-dev-tools__stats');
+	stats.append(
+		createStat(document, 'Experiment', experiment.id),
+		createStat(document, 'Arm', experiment.variant),
+		createStat(document, 'Assigned by', experiment.assignedBy),
+		createStat(
+			document,
+			'Diagnostics',
+			experiment.acknowledgedDiagnostics ? 'Acknowledged' : 'None'
+		),
+		createStat(
+			document,
+			'Banner shown',
+			snapshot.surfaceShownAt.banner === null
+				? 'Not yet'
+				: new Date(snapshot.surfaceShownAt.banner).toISOString()
+		),
+		createStat(
+			document,
+			'Dialog shown',
+			snapshot.surfaceShownAt.dialog === null
+				? 'Not yet'
+				: new Date(snapshot.surfaceShownAt.dialog).toISOString()
+		)
+	);
+	section.append(stats);
+	return section;
+};
+
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 function renderPolicy(
 	document: Document,
@@ -537,6 +586,7 @@ function renderPolicy(
 	);
 	summary.append(stats);
 	container.append(summary);
+	container.append(createExperimentSection(document, snapshot));
 	for (const [title, value] of [
 		['Explicit choice receipts', snapshot.explicitChoice],
 		['Effective permissions', snapshot.effectivePermissions],
