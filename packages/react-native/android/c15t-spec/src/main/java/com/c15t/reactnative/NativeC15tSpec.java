@@ -16,12 +16,22 @@ import com.facebook.react.turbomodule.core.interfaces.TurboModule;
  * one. It is packaged nowhere: {@code :c15t-spec} is a {@code compileOnly}
  * dependency, so the app's generated class is the only one in a finished APK.
  *
- * <p>Signature rules follow Codegen: string arguments stay {@code String}, promise
- * returns become a trailing {@link Promise} parameter, synchronous returns get
- * {@code isBlockingSynchronousMethod}, and a TypeScript {@code number} arrives boxed
- * as {@code Double}. A unit test in {@code :c15t-react-native} reads the spec file
- * and asserts every declared method exists here and on the module, so a change to
- * the spec cannot pass unnoticed.
+ * <p>Signature rules follow Codegen, as observed from its output rather than guessed:
+ * string arguments stay {@code String}, promise returns become a trailing
+ * {@link Promise} parameter, synchronous returns get
+ * {@code isBlockingSynchronousMethod}, and a TypeScript {@code number} arrives as the
+ * primitive {@code double} rather than a boxed {@code Double}. That last one is a
+ * Kotlin-visible difference and not a style choice: {@code Double} overrides the boxed
+ * parameter and nothing else, so getting it wrong leaves a module that compiles against
+ * this file and not against the generated one.
+ *
+ * <p>Two checks keep this honest.
+ * {@code src/specs/__tests__/android-spec-surface.test.ts} generates the spec and
+ * compares method names, argument types, return types, the blocking flag, and the
+ * module name against what is written here;
+ * {@code :c15t-react-native}'s {@code C15tModuleSurfaceTest} reflects over the compiled
+ * bridge. The generator itself runs in the build with
+ * {@code ./gradlew -Pc15t.spec.source=codegen :c15t-spec:assembleRelease}.
  */
 public abstract class NativeC15tSpec extends ReactContextBaseJavaModule implements TurboModule {
 	/** Name the JavaScript side looks this module up by. */
@@ -64,5 +74,5 @@ public abstract class NativeC15tSpec extends ReactContextBaseJavaModule implemen
 	public abstract void addListener(String eventName);
 
 	@ReactMethod
-	public abstract void removeListeners(Double count);
+	public abstract void removeListeners(double count);
 }

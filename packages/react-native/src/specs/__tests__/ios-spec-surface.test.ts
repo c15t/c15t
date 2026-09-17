@@ -19,20 +19,32 @@
  * failure being guarded against.
  */
 
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
-const requireModule = createRequire(import.meta.url);
+import {
+	ALLOWED_OBJC_TYPES,
+	LIBRARY_NAME,
+	MODULE_CLASS_NAME,
+	MODULE_NAME,
+	SPEC_METHOD_NAMES,
+	SPEC_SOURCE,
+	codegenConfig,
+	stripComments,
+} from './spec-contract.ts';
 
 const PACKAGE_ROOT = resolve(
 	dirname(fileURLToPath(import.meta.url)),
 	'../../..'
 );
+
+/** The generator `-Pc15t.spec.source=codegen` runs, and `android-spec-surface` spawns. */
+const GENERATOR_PATH = join(PACKAGE_ROOT, 'android/codegen/generate-spec.mjs');
 
 const REACT_NATIVE_DIR = join(PACKAGE_ROOT, 'ios/C15tReactNative/ReactNative');
 
@@ -62,59 +74,6 @@ interface GeneratedSpec {
 	/** The protocol's Objective-C name, for example `NativeC15tSpec`. */
 	protocolName: string;
 }
-
-interface CodegenConfig {
-	android?: { javaPackageName?: string };
-	ios?: { modules?: Record<string, { className?: string }> };
-	jsSrcsDir: string;
-	name: string;
-	type: string;
-}
-
-interface PackageJson {
-	codegenConfig: CodegenConfig;
-}
-
-interface CombineModule {
-	combineSchemasInFileList: (
-		files: readonly string[],
-		platform: string,
-		exclude: RegExp | undefined,
-		libraryName: string
-	) => { modules: Record<string, unknown> };
-}
-
-interface RNCodegenModule {
-	generate: (
-		config: {
-			libraryName: string;
-			outputDirectory: string;
-			packageName: string;
-			schema: unknown;
-			useLocalIncludePaths: boolean;
-		},
-		options: { generators: readonly string[] }
-	) => boolean;
-}
-
-const packageJson = JSON.parse(
-	readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8')
-) as PackageJson;
-
-const { codegenConfig } = packageJson;
-
-/** The name JavaScript looks this module up by, straight from `codegenConfig`. */
-const [moduleName = ''] = Object.keys(codegenConfig.ios?.modules ?? {});
-
-/** The class name Codegen tells `RCTModuleProviders` to instantiate. */
-const [{ className = '' } = {}] = Object.values(
-	codegenConfig.ios?.modules ?? {}
-);
-
-const specSource = readFileSync(
-	join(PACKAGE_ROOT, codegenConfig.jsSrcsDir, 'NativeC15t.ts'),
-	'utf8'
-);
 
 const swiftSource = readFileSync(SWIFT_MODULE_PATH, 'utf8');
 
@@ -372,45 +331,45 @@ let generatedSpec: GeneratedSpec = {
 let outputDirectory = '';
 
 beforeAll(() => {
-	const { combineSchemasInFileList } = requireModule(
-		'@react-native/codegen/lib/cli/combine/combine-js-to-schema.js'
-	) as CombineModule;
-	const { generate } = requireModule(
-		'@react-native/codegen/lib/generators/RNCodegen.js'
-	) as RNCodegenModule;
-
-	const schema = combineSchemasInFileList(
-		[join(PACKAGE_ROOT, codegenConfig.jsSrcsDir)],
-		'ios',
-		undefined,
-		codegenConfig.name
-	);
-	const [codegenModuleName = ''] = Object.keys(schema.modules);
-
-	expect(codegenModuleName).not.toBe('');
-
 	outputDirectory = mkdtempSync(join(tmpdir(), 'c15t-spec-surface-'));
-	generate(
-		{
-			libraryName: codegenConfig.name,
-			outputDirectory,
-			packageName:
-				codegenConfig.android?.javaPackageName ?? 'com.c15t.reactnative',
-			schema,
-			useLocalIncludePaths: true,
-		},
-		{ generators: ['modulesIOS'] }
+	// The same command the Android check spawns and the Gradle build runs, for the other
+	// platform: one generator in the repository, not one per test file.
+	execFileSync(
+		process.execPath,
+		[
+			GENERATOR_PATH,
+			'--platform',
+			'ios',
+			'--output',
+			join(outputDirectory, 'generated'),
+			'--project-root',
+			PACKAGE_ROOT,
+		],
+		{ encoding: 'utf8' }
 	);
+
+	const header = readFileSync(
+		join(outputDirectory, 'generated', LIBRARY_NAME, `${LIBRARY_NAME}.h`),
+		'utf8'
+	);
+	// Read off the header rather than reconstructed from the file name, because the
+	// protocol name is what the ObjC++ category claims and what the JSI wrapper is called.
+	const protocolName =
+		/@protocol\s+(?<name>[A-Za-z_]\w*Spec)\s*</u.exec(stripComments(header))
+			?.groups?.name ?? '';
+
+	if (protocolName === '') {
+		throw new Error(
+			`Codegen wrote no @protocol ...Spec into ${LIBRARY_NAME}.h, so there is nothing to compare the hand-written selectors against.`
+		);
+	}
 
 	generatedSpec = {
-		codegenModuleName,
-		header: readFileSync(
-			join(outputDirectory, codegenConfig.name, `${codegenConfig.name}.h`),
-			'utf8'
-		),
-		protocolName: `${codegenModuleName}Spec`,
+		codegenModuleName: protocolName.slice(0, -'Spec'.length),
+		header,
+		protocolName,
 	};
-}, 30000);
+}, 60000);
 
 afterAll(() => {
 	if (outputDirectory.length > 0) {
@@ -437,16 +396,36 @@ describe('the generated iOS protocol', () => {
 	});
 
 	test('declares one method per entry in the TypeScript spec', () => {
-		const declared = [
-			...specSource.matchAll(/^\t(?<member>[A-Za-z_][A-Za-z0-9_]*):/gmu),
-		].map((member) => member.groups?.member ?? '');
 		const generated = parseGeneratedProtocol(
 			generatedSpec.header,
 			generatedSpec.protocolName
 		).map((method) => method.selector.split(':')[0]);
 
-		expect(declared).toHaveLength(10);
-		expect(generated).toEqual(declared);
+		expect(generated).toEqual(SPEC_METHOD_NAMES);
+	});
+
+	test('carries every structured payload as a JSON string', () => {
+		// The rule the contract exists to keep: Codegen cannot express the unions in a
+		// snapshot or a commit intent, so everything structured crosses as a string and
+		// both native readers decode the same bytes. A protocol that started declaring
+		// NSDictionary or NSInteger arguments would be internally consistent, would keep
+		// compiling, and would leave the Swift side reading something else.
+		const offenders: string[] = [];
+
+		for (const method of parseGeneratedProtocol(
+			generatedSpec.header,
+			generatedSpec.protocolName
+		)) {
+			for (const type of [method.returnType, ...method.argumentTypes]) {
+				if (!ALLOWED_OBJC_TYPES.has(type)) {
+					offenders.push(
+						`${method.selector}: the protocol passes ${type}, where the contract allows only NSString, double, void, and the two promise blocks`
+					);
+				}
+			}
+		}
+
+		expect(offenders).toEqual([]);
 	});
 });
 
@@ -509,21 +488,21 @@ describe('the hand-written iOS module', () => {
 
 	test('states the module name in every place it is read from', () => {
 		expect(Object.keys(codegenConfig.ios?.modules ?? {})).toHaveLength(1);
-		expect(moduleName).toBe('C15t');
-		expect(className).toBe('C15tReactNativeModule');
+		expect(MODULE_NAME).toBe('C15t');
+		expect(MODULE_CLASS_NAME).toBe('C15tReactNativeModule');
 		// The JavaScript spec asks for the name, `RCTModuleProviders` maps that
 		// name onto the class name, and `+moduleName` answers it at runtime. All
 		// three have to say the same thing or the lookup throws.
-		expect(specSource).toContain(`getEnforcing<Spec>('${moduleName}')`);
-		expect(moduleSource).toContain(`return @"${moduleName}";`);
-		expect(moduleSource).toContain(`@interface ${className} (`);
+		expect(SPEC_SOURCE).toContain(`getEnforcing<Spec>('${MODULE_NAME}')`);
+		expect(moduleSource).toContain(`return @"${MODULE_NAME}";`);
+		expect(moduleSource).toContain(`@interface ${MODULE_CLASS_NAME} (`);
 	});
 
 	test('imports the umbrella header where ReactCodegen installs it', () => {
 		// header_mappings_dir stays at './' in the generated podspec, so the
 		// subdirectory survives and a flat import never resolves.
 		expect(moduleSource).toContain(
-			`#import <ReactCodegen/${codegenConfig.name}/${codegenConfig.name}.h>`
+			`#import <ReactCodegen/${LIBRARY_NAME}/${LIBRARY_NAME}.h>`
 		);
 	});
 

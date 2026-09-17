@@ -361,6 +361,32 @@ jobs:
         run: |
           cd packages/react-native/android
           ./gradlew :c15t-react-native:assembleRelease --console=plain
+      - name: Generate the Codegen spec and compile the binding against it
+        if: matrix.kind == 'android-js'
+        # Assembling the AAR proves the bridge compiles against the hand-written stand-in in
+        # :c15t-spec. It says nothing about what Codegen emits for src/specs, which is the
+        # class that exists at runtime: a stand-in that drifted from generated output still
+        # compiles here and fails only in the user's app. Here React Native's generator runs
+        # over src/specs, :c15t-spec swaps its source set to the result, and the bridge is
+        # compiled against that. The generated class reaches the bridge through the same
+        # compileOnly edge as the stand-in, so it stays out of the AAR either way -- the
+        # step below asserts the AAR is still spec-free.
+        run: |
+          set -ex
+          cd packages/react-native/android
+          ./gradlew --console=plain -Pc15t.spec.source=codegen \
+            :c15t-spec:assembleRelease :c15t-react-native:assembleRelease
+          # Fail here, naming the file, if generation went quiet rather than wrong.
+          test -f c15t-spec/build/generated/c15t-spec/java/com/c15t/reactnative/NativeC15tSpec.java
+          # The other half of the mode: compiling the generated spec must not put it in the
+          # artifact. Two copies of that class in one APK is a duplicate-class failure.
+          unzip -p c15t-react-native/build/outputs/aar/c15t-react-native-release.aar classes.jar \
+            > "${RUNNER_TEMP}/bridge-classes.jar"
+          leaked="$(unzip -l "${RUNNER_TEMP}/bridge-classes.jar" | grep -c NativeC15tSpec || true)"
+          if [ "${leaked}" != "0" ]; then
+            echo "NativeC15tSpec is in the bridge AAR (${leaked} entries), where an app would meet a second copy of it." >&2
+            exit 1
+          fi
       - name: Resolve the binding the way a host app autolinks it
         if: matrix.kind == 'android-js'
         # Assembling the AAR proves Gradle can compile the library. It says nothing about
@@ -374,6 +400,13 @@ jobs:
         # Keep this unfiltered. The package's coverage ratchet gates on an
         # unfiltered vitest run, so adding a path filter here would drop the
         # 90% floor without failing anything.
+        #
+        # This is also where the spec drift check runs: src/specs/__tests__ generates the
+        # spec for both platforms through android/codegen/generate-spec.mjs and fails if the
+        # hand-written Android stand-in or the hand-written iOS module signatures disagree
+        # with it. It needs Node and the react-native devDependency and nothing else, so the
+        # Linux leg is where it belongs; the Gradle step above proves the same generated
+        # output compiles.
         run: bun turbo run test --filter=@c15t/react-native
       - name: Measure the mobile budgets
         run: bun run --cwd benchmarks/mobile bench:ci

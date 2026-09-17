@@ -48,7 +48,18 @@ File stubSpec = new File(packageRoot, 'android/c15t-spec/src/main/java/com/c15t/
 
 String requestedSpecSource = prop('c15t.spec.source') ?: 'auto'
 
-// React Native's Codegen executor, wherever that build's install of React Native lives.
+// The generator. One file, driven identically by `:c15t-spec`, by this module in a host
+// app, and by the drift check in src/specs/__tests__, so no mode is verified against a
+// second implementation of generation. It calls `@react-native/codegen` with library
+// semantics: the library name, `jsSrcsDir`, and `javaPackageName` all come from this
+// package's `codegenConfig`.
+File specGenerator = new File(packageRoot, 'android/codegen/generate-spec.mjs')
+
+// React Native, wherever that build's install lives. The generator resolves
+// `@react-native/codegen` from `codegenProjectRoot`, which is this package inside a
+// workspace and the app outside one, so a reachable install is what makes generation
+// possible at all; the property exists because Bun's isolated layout does not always put
+// it where a walk from here lands.
 List<File> candidateInstalls = [
 	new File(packageRoot, 'node_modules/react-native'),
 	packageRoot.parentFile ? new File(packageRoot.parentFile, 'node_modules/react-native') : null,
@@ -57,24 +68,22 @@ List<File> candidateInstalls = [
 	prop('c15t.reactNativeDir') ? file(prop('c15t.reactNativeDir')) : null,
 ].findAll { it != null }
 
-// generate-codegen-artifacts.js is the CLI entry point; the executors under
-// scripts/codegen/ are modules with no argument parsing.
-File codegenScript = candidateInstalls
-	.collect { new File(it, 'scripts/generate-codegen-artifacts.js') }
-	.find { it.isFile() }
+File reactNativeInstall = candidateInstalls.find { new File(it, 'package.json').isFile() }
 
-// Whether Codegen runs here at all. The stand-in project only exists in this repository's
-// own build; a host app autolinks the bridge module and nothing else, so `auto` follows
+// Whether Codegen runs at all. The stand-in project only exists in this repository's own
+// build; a host app autolinks the bridge module and nothing else, so `auto` follows
 // whichever of the two is actually reachable.
 boolean specProjectAvailable = project.findProject(':c15t-spec') != null
+boolean canGenerate = specGenerator.isFile() && reactNativeInstall != null
 boolean useCodegen
 switch (requestedSpecSource) {
 	case 'codegen':
-		if (codegenScript == null) {
+		if (!canGenerate && !specProjectAvailable) {
 			throw new GradleException(
-				"c15t.spec.source=codegen, but no React Native install was found. Point " +
-					"c15t.reactNativeDir at the react-native package, or use -Pc15t.spec.source=stub " +
-					"for the compileOnly stand-in.",
+				"c15t.spec.source=codegen, but Codegen cannot run here: no React Native install " +
+					"was found and " + specGenerator + ' is not readable. Point ' +
+					'c15t.reactNativeDir at the react-native package, or use ' +
+					'-Pc15t.spec.source=stub for the compileOnly stand-in.',
 			)
 		}
 		useCodegen = true
@@ -83,7 +92,7 @@ switch (requestedSpecSource) {
 		useCodegen = false
 		break
 	case 'auto':
-		useCodegen = specProjectAvailable ? false : codegenScript != null
+		useCodegen = specProjectAvailable ? false : canGenerate
 		if (!useCodegen && !specProjectAvailable) {
 			throw new GradleException(
 				'Neither a React Native install nor the :c15t-spec stand-in is reachable, so ' +
@@ -96,11 +105,36 @@ switch (requestedSpecSource) {
 		throw new GradleException("c15t.spec.source must be auto, codegen, or stub (got $requestedSpecSource)")
 }
 
+// Who puts `NativeC15tSpec` on this module's compile classpath.
+//
+// `:c15t-spec`, when the build has it: it compiles the hand-written stand-in for `auto` and
+// `stub`, and generates from src/specs for `codegen`. Either way the bridge depends on it
+// `compileOnly`, so the class is in no AAR -- two copies of it in one APK is a
+// duplicate-class failure, and that holds for generated output exactly as it holds for the
+// stand-in.
+//
+// This module, and only in a host app: there is no stand-in project to lean on, and a build
+// that links a library does not generate that library's spec, so the copy has to be made
+// and compiled here.
+boolean specFromProject = !useCodegen || specProjectAvailable
+boolean generatesIntoThisModule = useCodegen && !specProjectAvailable
+
 if (!useCodegen) {
 	logger.lifecycle(
 		'c15t-react-native: NativeC15tSpec compiles against the compileOnly stand-in in ' +
 			':c15t-spec, which is absent from the published AAR. -Pc15t.spec.source=codegen ' +
 			'compiles against Codegen output instead.',
+	)
+} else if (specProjectAvailable) {
+	logger.lifecycle(
+		'c15t-react-native: :c15t-spec generates NativeC15tSpec from src/specs with ' +
+			'@react-native/codegen and still reaches this module as compileOnly, so nothing ' +
+			'is added to the AAR.',
+	)
+} else {
+	logger.lifecycle(
+		"c15t-react-native: generating NativeC15tSpec into this module from " +
+			'src/specs, because no :c15t-spec project exists in this build.',
 	)
 }
 
@@ -168,10 +202,11 @@ dependencies {
 	testImplementation reactNativeCoordinate
 	testImplementation 'junit:junit:4.13.2'
 
-	// Compile-only, so the stand-in never reaches a finished APK: two copies of
-	// NativeC15tSpec in one app is a duplicate-class failure.
-	if (!useCodegen) {
-		if (!project.findProject(':c15t-spec')) {
+	// Compile-only, so the spec never reaches a finished APK whether it came from the
+	// stand-in or from Codegen: two copies of NativeC15tSpec in one app is a
+	// duplicate-class failure.
+	if (specFromProject) {
+		if (!specProjectAvailable) {
 			throw new GradleException(
 				'NativeC15tSpec should come from the :c15t-spec stand-in, but that project is not ' +
 					'part of this build. React Native autolinking links only the module under ' +
@@ -191,37 +226,46 @@ tasks.withType(Test).configureEach {
 	systemProperty 'c15t.stub.spec.file', stubSpec.absolutePath
 }
 
-if (useCodegen) {
+if (generatesIntoThisModule) {
 	// The project Codegen reads package.json and node_modules from. For a host app that is the
 	// app; for this repository it is the package, whose hoisted node_modules resolve.
 	File codegenProjectRoot = prop('c15t.codegenProjectRoot') ? file(prop('c15t.codegenProjectRoot')) : packageRoot
+	String nodeExecutable = (prop('c15t.nodeExecutable') ?: 'node') as String
+	File generatedJavaDir = new File(codegenOutputDir.get().asFile, 'java')
 
 	def generate = tasks.register('generateC15tCodegen', Exec) {
 		group = 'build'
 		description = 'Generate NativeC15tSpec from src/specs/NativeC15t.ts with React Native Codegen.'
 		inputs.dir specRoot
 		inputs.file new File(codegenProjectRoot, 'package.json')
+		inputs.file specGenerator
 		outputs.dir codegenOutputDir
 		doFirst {
 			codegenOutputDir.get().asFile.mkdirs()
 		}
-		// -s library generates the specs of the libraries reachable from -p, which is exactly
-		// the package.json codegenConfig entry (name C15tSpec, type modules, jsSrcsDir
-		// src/specs, android javaPackageName com.c15t.reactnative).
+		// Library semantics, deliberately not generate-codegen-artifacts.js. That entry point
+		// treats the folder as an app: it scans for codegen-enabled libraries and writes the
+		// spec under its own default package, com.facebook.fbreact.specs, which is neither the
+		// package codegenConfig declares nor the one this module's Kotlin is compiled in.
 		commandLine(
-			(prop('c15t.nodeExecutable') ?: 'node') as String,
-			codegenScript.absolutePath,
-			'--path', codegenProjectRoot.absolutePath,
-			'--targetPlatform', 'android',
-			'--outputPath', codegenOutputDir.get().asFile.absolutePath,
-			'--source', 'library',
+			nodeExecutable,
+			specGenerator.absolutePath,
+			'--platform', 'android',
+			'--output', codegenOutputDir.get().asFile.absolutePath,
+			'--project-root', codegenProjectRoot.absolutePath,
 		)
 	}
 
+	// preBuild is the task AGP hangs the rest of the build behind, which is what React
+	// Native's own plugin uses for the same reason. The annotation-extraction and lint tasks
+	// read the same source directories, so they are named too rather than left to ordering
+	// luck.
+	tasks.named('preBuild').configure { dependsOn generate }
 	tasks.matching { it.name.startsWith('compile') }.configureEach { dependsOn generate }
 
 	// A plain path, not a Provider: AGP 9 rejects provider-backed source directories unless
 	// android.sourceset.disallowProvider is turned off, which is not ours to set in an app.
-	// Recursive, because Codegen writes the Java under a package directory tree.
-	android.sourceSets.main.java.srcDir codegenOutputDir.get().asFile.absolutePath
+	// `java` and not the output root: the generator writes java/ (the spec) and jni/ (the
+	// C++ glue), and only the first is Java source.
+	android.sourceSets.main.java.srcDir generatedJavaDir.absolutePath
 }
