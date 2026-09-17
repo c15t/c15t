@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentSelector } from '../hooks/use-consent-selector';
@@ -113,7 +113,7 @@ export const ConsentBanner = ({
 				</ConsentSurfaceBody>
 				<ConsentSurfaceFooter>
 					{notice ? (
-						<>
+						<View style={parts.row}>
 							<ConsentButton
 								label={copy.acknowledge}
 								onPress={() => {
@@ -127,26 +127,35 @@ export const ConsentBanner = ({
 								onPress={customize}
 								parts={parts}
 							/>
-						</>
+						</View>
 					) : (
 						<>
-							<ConsentButton
-								label={copy.acceptAll}
-								onPress={() => {
-									void actions.acceptAll();
-								}}
-								parts={parts}
-							/>
+							{/*
+							 * The two decisions share a row at equal width and customize takes the row
+							 * below them, as it does on the web. With all three in one flex row they
+							 * grew from the same line and the labels decided the arithmetic: measured on
+							 * a device, reject came out 724px wide against customize's 167, which left
+							 * the tertiary action reading as a caption rather than a control.
+							 */}
+							<View style={parts.row}>
+								<ConsentButton
+									kind="secondary"
+									label={copy.rejectAll}
+									onPress={() => {
+										void actions.rejectAll();
+									}}
+									parts={parts}
+								/>
+								<ConsentButton
+									label={copy.acceptAll}
+									onPress={() => {
+										void actions.acceptAll();
+									}}
+									parts={parts}
+								/>
+							</View>
 							<ConsentButton
 								kind="secondary"
-								label={copy.rejectAll}
-								onPress={() => {
-									void actions.rejectAll();
-								}}
-								parts={parts}
-							/>
-							<ConsentButton
-								kind="link"
 								label={copy.customize}
 								onPress={customize}
 								parts={parts}

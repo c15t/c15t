@@ -24,7 +24,11 @@ import {
 	darkTheme,
 	resolveConsentColorScheme,
 } from './create-consent-theme';
-import type { ConsentColorScheme, ConsentTheme } from './create-consent-theme';
+import type {
+	ConsentColorScheme,
+	ConsentTheme,
+	ConsentTypeStyle,
+} from './create-consent-theme';
 
 /** What {@link useConsentStyles} hands a surface. */
 export interface ConsentStyles {
@@ -84,6 +88,59 @@ const flatten = function flatten(
 };
 
 /**
+ * The web switch geometry: a 32x20 fully rounded track, padded by 2, holding a
+ * 12-point thumb that travels the rest of the width.
+ *
+ * Exported because the control has to draw the thumb from the numbers the track
+ * was sized with, and a thumb that disagrees with its own track is the exact
+ * kind of drift this package exists to stop.
+ */
+export const CONSENT_SWITCH_GEOMETRY = {
+	height: 20,
+	padding: 2,
+	thumb: 12,
+	width: 32,
+} as const;
+
+/**
+ * The banner's elevation, which is the web `shadow-lg` token verbatim.
+ *
+ * `boxShadow` is the CSS-shaped style React Native reads on both platforms, so
+ * the card carries the same offset, blur, and alpha as the web banner rather
+ * than a platform guess. A host on a version that cannot read it loses the
+ * shadow and nothing else.
+ */
+const BANNER_SHADOW = '0 8px 24px rgba(0, 0, 0, 0.12)';
+
+/** The web card border: one hairline in the border token, on both surfaces. */
+const HAIRLINE = 1;
+
+/**
+ * A text style, from a type token and a colour.
+ *
+ * A theme spells its weight `weight` because that is the shorter name in a type
+ * scale a host writes by hand, and React Native only reads `fontWeight`. The two
+ * names meet here, once, rather than in every part that carries text: spread the
+ * token straight into a style and the weight is silently dropped, which leaves a
+ * semibold heading and a medium button label rendering at 400.
+ *
+ * @param type - The type token to read.
+ * @param color - Foreground the part draws with.
+ * @returns A text style React Native applies.
+ */
+const textStyle = function textStyle(
+	type: ConsentTypeStyle,
+	color: string
+): TextStyle {
+	return {
+		color,
+		fontSize: type.fontSize,
+		fontWeight: type.weight,
+		lineHeight: type.lineHeight,
+	};
+};
+
+/**
  * Resolve the styles for one render.
  *
  * @param options - Host choices.
@@ -134,7 +191,7 @@ export const useConsentStyles = function useConsentStyles(
 		// The gutter a floating banner keeps off the screen edge, and the gap a
 		// bottom sheet keeps below itself. The bands are added outside both, so a
 		// measurement moves the surface and never its internal rhythm.
-		const gutter = spacing.l;
+		const gutter = spacing.m;
 
 		// The band is not the clearance. A swipe up at a home indicator starts
 		// inside the band and travels upward, so a control sitting just outside it
@@ -155,13 +212,14 @@ export const useConsentStyles = function useConsentStyles(
 			right: 0,
 		};
 
-		// The sheet reaches the same floor by adding the band to its own bottom
-		// padding, so a measured band moves the sheet without touching the gap
-		// between its last control and its own rounded edge.
+		// The sheet keeps its actions the same distance above the band as the
+		// banner does, and the band is added outside the reserve rather than
+		// swapped for it: a measured band moves the sheet, and the gap between the
+		// deepest control and the sheet's own rounded edge stays with the footer.
 		const sheetLayer: ViewStyle = {
 			flex: 1,
 			justifyContent: 'flex-end',
-			paddingBottom: spacing.xl + safeArea.bottom,
+			paddingBottom: bottomGutter + safeArea.bottom,
 			paddingLeft: safeArea.left,
 			paddingRight: safeArea.right,
 			paddingTop: safeArea.top,
@@ -170,22 +228,37 @@ export const useConsentStyles = function useConsentStyles(
 		const base: Record<string, ViewStyle & TextStyle> = {
 			banner: {
 				backgroundColor: colors.surface,
+				borderColor: colors.border,
 				borderRadius: radius.surface,
+				borderWidth: HAIRLINE,
+				boxShadow: BANNER_SHADOW,
+				flexDirection: 'column',
 				gap: spacing.m,
-				padding: spacing.l,
+				overflow: 'hidden',
+				paddingBottom: 0,
+				paddingHorizontal: 0,
+				paddingTop: spacing.m,
 			},
-			caption: { ...typography.caption, color: colors.textMuted },
-			captionLink: { ...typography.caption, color: colors.text },
-			categoryDescription: { ...typography.body, color: colors.textMuted },
+			caption: textStyle(typography.caption, colors.textMuted),
+			captionLink: textStyle(typography.caption, colors.text),
+			categoryDescription: textStyle(typography.body, colors.textMuted),
 			categoryRow: {
 				alignItems: 'center',
 				flexDirection: 'row',
 				gap: spacing.m,
 				paddingVertical: spacing.m,
 			},
-			categoryTitle: { ...typography.label, color: colors.text },
-			description: { ...typography.body, color: colors.textMuted },
-			footer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s },
+			categoryTitle: textStyle(typography.label, colors.text),
+			description: textStyle(typography.body, colors.textMuted),
+			// The band a footer sits on, and the step between its action rows, are
+			// facts about the presentation. `ConsentSurfaceFooter` adds them under
+			// this part, so a host override here still wins.
+			footer: {
+				alignItems: 'stretch',
+				flexDirection: 'column',
+				paddingHorizontal: spacing.m,
+				paddingVertical: spacing.m,
+			},
 			handle: {
 				alignSelf: 'center',
 				backgroundColor: colors.border,
@@ -193,48 +266,69 @@ export const useConsentStyles = function useConsentStyles(
 				height: 4,
 				width: 36,
 			},
-			header: { gap: spacing.xs },
+			header: { gap: spacing.s, paddingHorizontal: spacing.m },
 			label: {
-				...typography.label,
-				color: colors.onPrimary,
+				...textStyle(typography.label, colors.primary),
 				textAlign: 'center',
 			},
 			overlay: { backgroundColor: colors.overlay },
 			primaryButton: {
 				alignItems: 'center',
-				backgroundColor: colors.primary,
+				backgroundColor: colors.surface,
+				borderColor: colors.primary,
 				borderRadius: radius.control,
-				flexBasis: '100%',
-				justifyContent: 'center',
-				minHeight: controlMinHeight,
-				paddingHorizontal: spacing.l,
-				paddingVertical: spacing.m,
-			},
-			primaryLabel: { ...typography.label, color: colors.onPrimary },
-			row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s },
-			scroll: { flexGrow: 0, flexShrink: 1 },
-			secondaryButton: {
-				alignItems: 'center',
-				backgroundColor: colors.secondary,
-				borderRadius: radius.control,
+				borderWidth: HAIRLINE,
+				flexBasis: 0,
 				flexGrow: 1,
 				flexShrink: 1,
 				justifyContent: 'center',
 				minHeight: controlMinHeight,
-				paddingHorizontal: spacing.l,
-				paddingVertical: spacing.m,
+				paddingHorizontal: spacing.m,
+				paddingVertical: spacing.s,
 			},
-			secondaryLabel: { ...typography.label, color: colors.onSecondary },
+			primaryLabel: {
+				...textStyle(typography.label, colors.primary),
+				textAlign: 'center',
+			},
+			row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.m },
+			scroll: { flexGrow: 0, flexShrink: 1, paddingHorizontal: spacing.m },
+			secondaryButton: {
+				alignItems: 'center',
+				backgroundColor: colors.surface,
+				borderColor: colors.border,
+				borderRadius: radius.control,
+				borderWidth: HAIRLINE,
+				flexBasis: 0,
+				flexGrow: 1,
+				flexShrink: 1,
+				justifyContent: 'center',
+				minHeight: controlMinHeight,
+				paddingHorizontal: spacing.m,
+				paddingVertical: spacing.s,
+			},
+			secondaryLabel: {
+				...textStyle(typography.label, colors.text),
+				textAlign: 'center',
+			},
 			sheet: {
 				backgroundColor: colors.surface,
 				borderRadius: radius.surface,
-				gap: spacing.l,
-				paddingBottom: spacing.xl,
-				paddingHorizontal: spacing.l,
-				paddingTop: spacing.l,
+				flexDirection: 'column',
+				gap: spacing.m,
+				overflow: 'hidden',
+				paddingBottom: 0,
+				paddingHorizontal: 0,
+				paddingTop: spacing.m,
 			},
-			switch: { minHeight: controlMinHeight },
-			title: { ...typography.title, color: colors.text },
+			switch: {
+				backgroundColor: colors.switchTrack,
+				borderRadius: CONSENT_SWITCH_GEOMETRY.height / 2,
+				height: CONSENT_SWITCH_GEOMETRY.height,
+				justifyContent: 'center',
+				padding: CONSENT_SWITCH_GEOMETRY.padding,
+				width: CONSENT_SWITCH_GEOMETRY.width,
+			},
+			title: textStyle(typography.title, colors.text),
 		};
 
 		const parts = { ...base } as ConsentResolvedParts;

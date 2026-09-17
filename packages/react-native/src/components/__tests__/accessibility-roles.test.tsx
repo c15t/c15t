@@ -132,6 +132,20 @@ describe('accessibility roles', () => {
 		tree.unmount();
 	});
 
+	test('the banner names every action a button, customize included', () => {
+		const tree = mountSurface(<ConsentBanner />);
+
+		// Customize used to be a run of underlined text, which is a caption to a
+		// reader and a guess to a finger. Web renders it as a control.
+		expect(
+			requestedRoles(tree).filter(
+				(role) => role === 'button' || role === 'link'
+			)
+		).toEqual(['button', 'button', 'button']);
+
+		tree.unmount();
+	});
+
 	test('the dialog sheet keeps its landmark, and the label that goes with it', () => {
 		const tree = mountSurface(
 			<ConsentDialog

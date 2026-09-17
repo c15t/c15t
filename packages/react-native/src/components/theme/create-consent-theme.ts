@@ -6,6 +6,10 @@
  * forking a component. Colors are literals rather than `Platform.Color` values
  * because the same object has to be comparable in a test and stable across a
  * re-render.
+ *
+ * The values mirror the web tokens in the `packages/ui` theme so a subject who
+ * sees the web banner and then the app banner recognises one design: the same
+ * accent, the same neutral steps, the same radii, and the same spacing scale.
  */
 
 /** Palette half of a {@link ConsentTheme}. */
@@ -14,7 +18,7 @@ export interface ConsentThemeColors {
 	readonly overlay: string;
 	/** Sheet or banner background. */
 	readonly surface: string;
-	/** Background for a raised row inside a surface. */
+	/** Muted surface: the banner footer band, and rows raised off the card. */
 	readonly surfaceRaised: string;
 	/** Hairline separating rows from the footer. */
 	readonly border: string;
@@ -22,11 +26,11 @@ export interface ConsentThemeColors {
 	readonly text: string;
 	/** Secondary text, such as a category description. */
 	readonly textMuted: string;
-	/** Background of the accept button. */
+	/** Accent: the outline and label of the primary actions, and the switch track when on. */
 	readonly primary: string;
-	/** Text on {@link ConsentThemeColors.primary}. */
+	/** Text on a filled {@link ConsentThemeColors.primary}. */
 	readonly onPrimary: string;
-	/** Background of the reject and customize buttons. */
+	/** Background of the outlined secondary buttons, which sit on the card surface. */
 	readonly secondary: string;
 	/** Text on {@link ConsentThemeColors.secondary}. */
 	readonly onSecondary: string;
@@ -46,11 +50,11 @@ export interface ConsentThemeSpacing {
 	readonly xs: number;
 	/** 8 */
 	readonly s: number;
-	/** 12 */
-	readonly m: number;
 	/** 16 */
-	readonly l: number;
+	readonly m: number;
 	/** 24 */
+	readonly l: number;
+	/** 32 */
 	readonly xl: number;
 }
 
@@ -148,15 +152,21 @@ export const resolveConsentColorScheme = function resolveConsentColorScheme(
 	return scheme === 'dark' ? 'dark' : 'light';
 };
 
-const baseSpacing: ConsentThemeSpacing = { l: 16, m: 12, s: 8, xl: 24, xs: 4 };
+const baseSpacing: ConsentThemeSpacing = {
+	l: 24,
+	m: 16,
+	s: 8,
+	xl: 32,
+	xs: 4,
+};
 
-const baseRadius: ConsentThemeRadius = { control: 10, surface: 14 };
+const baseRadius: ConsentThemeRadius = { control: 8, surface: 12 };
 
 const baseTypography: ConsentThemeTypography = {
-	body: { fontSize: 15, lineHeight: 22, weight: '400' },
+	body: { fontSize: 16, lineHeight: 24, weight: '400' },
 	caption: { fontSize: 13, lineHeight: 18, weight: '400' },
-	label: { fontSize: 16, lineHeight: 22, weight: '600' },
-	title: { fontSize: 19, lineHeight: 26, weight: '600' },
+	label: { fontSize: 14, lineHeight: 18, weight: '500' },
+	title: { fontSize: 14, lineHeight: 18, weight: '600' },
 };
 
 const baseMotion: ConsentThemeMotion = {
@@ -168,37 +178,37 @@ const baseMotion: ConsentThemeMotion = {
 };
 
 const lightColors: ConsentThemeColors = {
-	border: '#DEDEE3',
-	focus: '#1A4FD6',
+	border: '#E5E5E5',
+	focus: '#335CFF',
 	onPrimary: '#FFFFFF',
-	onSecondary: '#17171A',
-	overlay: 'rgba(9, 9, 12, 0.48)',
-	primary: '#17171A',
-	secondary: '#EDEDEF',
+	onSecondary: '#1A1A1A',
+	overlay: 'rgba(0, 0, 0, 0.5)',
+	primary: '#335CFF',
+	secondary: '#FFFFFF',
 	surface: '#FFFFFF',
-	surfaceRaised: '#F5F5F7',
+	surfaceRaised: '#FAFAFA',
 	switchThumb: '#FFFFFF',
-	switchTrack: '#C9C9CF',
-	switchTrackOn: '#17171A',
-	text: '#17171A',
-	textMuted: '#5B5B66',
+	switchTrack: '#D9D9D9',
+	switchTrackOn: '#335CFF',
+	text: '#1A1A1A',
+	textMuted: '#666666',
 };
 
 const darkColors: ConsentThemeColors = {
-	border: '#33333A',
-	focus: '#8FA9FF',
-	onPrimary: '#0F0F12',
-	onSecondary: '#F2F2F4',
-	overlay: 'rgba(0, 0, 0, 0.62)',
-	primary: '#F2F2F4',
-	secondary: '#26262C',
-	surface: '#1C1C21',
-	surfaceRaised: '#26262C',
-	switchThumb: '#F2F2F4',
-	switchTrack: '#43434B',
-	switchTrackOn: '#F2F2F4',
-	text: '#F2F2F4',
-	textMuted: '#A6A6B2',
+	border: '#333333',
+	focus: '#6685FF',
+	onPrimary: '#FFFFFF',
+	onSecondary: '#EDEDED',
+	overlay: 'rgba(0, 0, 0, 0.7)',
+	primary: '#6685FF',
+	secondary: '#121212',
+	surface: '#121212',
+	surfaceRaised: '#1A1A1A',
+	switchThumb: '#EDEDED',
+	switchTrack: '#404040',
+	switchTrackOn: '#6685FF',
+	text: '#EDEDED',
+	textMuted: '#999999',
 };
 
 /**

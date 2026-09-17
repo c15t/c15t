@@ -45,12 +45,6 @@ const LABEL_PART: Record<
  * part: a `minHeight` on the label would lengthen the text, and `alignItems` on it
  * would do nothing. The link reads as plain text, so it is the one control that
  * stops short of a tap target when nothing stretches it.
- *
- * This is also why `Customize` used to ride above `Reject All` instead of beside it.
- * The actions row stretches its items, so the link's box grew to the row's height
- * while its label stayed at the top of that box. Centring the content puts the label
- * on the same middle line as the button it shares a row with, and costs nothing when
- * the link wraps onto a line of its own.
  */
 const CONTAINER_EXTRA: Record<ConsentButtonKind, ViewStyle> = {
 	link: {
