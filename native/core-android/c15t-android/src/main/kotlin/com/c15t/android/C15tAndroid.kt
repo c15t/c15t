@@ -69,18 +69,22 @@ object C15tAndroid {
 		val store = C15tStores.create(appContext)
 		val http = transport ?: HostedTransport(C15tHttpClient(), config)
 
+		// One executor for both the core and the observer registered below, so the launch
+		// replay and the foreground replay cannot deliver the same queued entry twice.
+		val executor = TaskExecutor { task -> background.execute(task) }
+
 		C15t.bootstrap(
 			config = config,
 			store = store,
 			clock = clock,
 			transport = http,
-			executor = TaskExecutor { task -> background.execute(task) },
+			executor = executor,
 			logger = logger,
 		)
 
 		if (observeForeground && foregroundObserver == null) {
 			onMainThread {
-				val observer = C15tForegroundObserver()
+				val observer = C15tForegroundObserver(executor)
 				foregroundObserver = observer
 				androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
 			}
