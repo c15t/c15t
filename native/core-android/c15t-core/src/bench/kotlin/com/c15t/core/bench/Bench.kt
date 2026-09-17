@@ -230,7 +230,7 @@ object Bench {
 				fingerprint = "policy-fp-bench",
 			),
 			policySnapshotToken = "snap-bench".padEnd(64, 'x'),
-			subject = ConsentSubject(id = "3f1b8a3f-3f2c-4a11-9a7a-6d5c4b3a2109", externalId = "user-12345"),
+			subject = ConsentSubject(id = "sub_111CP17G2VuBxuByVqaokUtDVc", externalId = "user-12345"),
 			location = ConsentLocation(country = "DE", region = "BE", language = "de"),
 			overrides = KernelOverrides(language = "de"),
 			privacySignals = PrivacySignals(
@@ -245,12 +245,20 @@ object Bench {
 			SnapshotEnvelope(snapshot = snapshot, evaluationPolicy = policy, noticeDismissal = dismissal),
 		)
 
-		/** A store holding one realistic envelope, as a warm install would. */
+		/**
+	 * A store holding one realistic envelope, as a warm install would.
+	 *
+	 * The seeded subject id has to be in the producer's own shape, not merely well-formed
+	 * to this build: a stored id outside `sub_` plus a base58 body is refused on read, and
+	 * the core drops the envelope with it and comes up as a first launch. Seeding the old
+	 * UUID shape measured a cold install under a row named for a warm one, and took the
+	 * cold bootstrap sample with it.
+	 */
 		fun store(): C15tStore = C15tStore(
 			InMemoryStore(
 				mapOf(
 					C15tStoreKeys.SNAPSHOT to envelopeJson,
-					C15tStoreKeys.SUBJECT to """{"id":"3f1b8a3f-3f2c-4a11-9a7a-6d5c4b3a2109"}""",
+					C15tStoreKeys.SUBJECT to """{"id":"sub_111CP17G2VuBxuByVqaokUtDVc"}""",
 				),
 			),
 		)
