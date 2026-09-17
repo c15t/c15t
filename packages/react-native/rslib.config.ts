@@ -1,3 +1,4 @@
+import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
 
 import {
@@ -20,6 +21,7 @@ export default defineConfig({
 		cleanDistPath: true,
 		target: 'web',
 	},
+	plugins: [pluginReact()],
 	source: {
 		entry: {
 			'**': standardSourceEntries,
