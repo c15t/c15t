@@ -371,6 +371,27 @@ reports only what it delivered leaves the caller to assume the rest is waiting,
 which is exactly the wrong assumption about a decision that has just stopped
 being owed.
 
+A flush asks for a delivery pass; it is not a pass of its own. Both cores expose
+one retry entry point and reach it from several places at once: bootstrap, a
+resolved init, a foreground transition, a reachability change. A pass reads the
+queue once and then delivers entry by entry, which leaves every entry readable
+until its own send lands. Two passes that overlap therefore resend whatever was
+still in flight when the later one read. The bytes are frozen and carry the same
+consent id, so the backend dedupes and no decision comes out wrong. That is what
+lets the defect survive review: nothing in the stored state changes, and the only
+signal is a second POST for entries the subject already saw delivered.
+
+Only one pass may be in flight per core. A flush that arrives while a pass is
+running is answered by that pass, and the core starts another only if an entry was
+queued after the running pass read. Nothing about `committed` softens as a result:
+an entry waiting on an in-flight pass is still owed, still counted by the pending
+depth, and still announced by exactly one delivered event. The queue cannot tell a
+resend from a first send, so serialising passes is the core's own obligation. A
+core that runs every delivery on one serial queue satisfies it by construction and
+says so; a core that awaits concurrently has to guard the pass itself. Either way a
+test requests a second flush while a first send is still open, and fails if any
+entry reaches the transport twice for one queued decision.
+
 Whether to retry is decided by whether the same bytes could ever be accepted.
 The queue replays frozen bytes, so a `400 INPUT_VALIDATION_FAILED` or a contract
 declaration this build cannot speak says the same thing on the eleventh try as on
