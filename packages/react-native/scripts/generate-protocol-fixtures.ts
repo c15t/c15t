@@ -1877,8 +1877,8 @@ const RESET_BASELINE: Omit<
 	| 'subject'
 > = {
 	activeUI: 'none',
-	evaluatedAt: NOW,
 	error: null,
+	evaluatedAt: NOW,
 	explicitChoice: null,
 	iab: null,
 	location: null,
@@ -1910,6 +1910,21 @@ const RESET_NOTES = [
 	'expected.afterInit is kernel output: the same /init served to a device with the same pinned identity, the same overrides, and no stored records at all. The wiped device has to settle on the same answer field for field, which is what makes the re-run init part of the wipe rather than something the caller is asked to remember.',
 	'the two fixtures of this kind carry different input.intent and identical expected halves. A device that had accepted everything and a device that had refused everything have to be indistinguishable after both wipe, or the wipe left a trace of what it deleted.',
 ];
+
+/** Serialize with object keys sorted, so a comparison does not depend on order. */
+const stableStringify = function stableStringify(value: unknown): string {
+	return JSON.stringify(value, (_key, item: unknown) => {
+		if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+			const source = item as Record<string, unknown>;
+			const sorted: Record<string, unknown> = {};
+			for (const name of Object.keys(source).sort()) {
+				sorted[name] = source[name];
+			}
+			return sorted;
+		}
+		return item;
+	});
+};
 
 /**
  * Build the pair that pins what a wipe leaves behind.
@@ -2085,21 +2100,6 @@ const assertProtocolVersions = function assertProtocolVersions(
 			`native/protocol/${INDEX_FILE} was written for protocol ${String(previous.protocolVersion)}, and this package speaks ${String(PROTOCOL_VERSION)}. Every expectation has to be re-derived before the fixtures can be relabelled, so a native core does not pass against expectations from the old handshake. Rerun with --allow-protocol-change if the protocol really moved.`
 		);
 	}
-};
-
-/** Serialize with object keys sorted, so a comparison does not depend on order. */
-const stableStringify = function stableStringify(value: unknown): string {
-	return JSON.stringify(value, (_key, item: unknown) => {
-		if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
-			const source = item as Record<string, unknown>;
-			const sorted: Record<string, unknown> = {};
-			for (const name of Object.keys(source).sort()) {
-				sorted[name] = source[name];
-			}
-			return sorted;
-		}
-		return item;
-	});
 };
 
 /** Drop the contract version a wire carries but a resolution does not repeat. */
