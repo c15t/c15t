@@ -32,6 +32,13 @@ export {
 	PROTOCOL_VERSION,
 } from './version';
 
+export {
+	KERNEL_OWNED_KEYS,
+	SNAPSHOT_KEYS,
+	describeSnapshotWireDrift,
+} from './wire-shape';
+export type { WireDriftOptions } from './wire-shape';
+
 /**
  * Events the native module emits. The payload of each is a JSON string.
  *

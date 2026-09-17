@@ -94,7 +94,7 @@ const SelectorProbe = (): ReactNode => {
 	// An inline selector on purpose: the hook has to stay correct when the
 	// caller does not hoist it to module scope.
 	const country = useConsentSelector(
-		(snapshot) => snapshot.location?.country ?? 'none'
+		(snapshot) => snapshot.location?.countryCode ?? 'none'
 	);
 
 	useEffect(() => {
@@ -279,7 +279,7 @@ describe('useConsentSelector', () => {
 		flush(() => {
 			fake.pushSnapshot(
 				buildSnapshot({
-					location: { country: 'FR', language: 'fr', region: null },
+					location: { countryCode: 'FR', regionCode: null },
 					revision: 5,
 				})
 			);

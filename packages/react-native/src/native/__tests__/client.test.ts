@@ -265,6 +265,112 @@ describe('snapshot reads', () => {
 	});
 });
 
+describe('wire drift', () => {
+	/**
+	 * A snapshot whose bridge JSON moved one of the keys the kernel owns the name of.
+	 * This is the shape the Android bridge shipped with, and nothing about it throws.
+	 */
+	const drifted = function drifted(): ConsentSnapshot {
+		return {
+			...buildSnapshot(),
+			location: { country: 'DE', region: null },
+		} as unknown as ConsentSnapshot;
+	};
+
+	/** Record the warnings the client writes, without letting them fill the report. */
+	const captureWarnings = function captureWarnings() {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		return {
+			problems: () =>
+				warn.mock.calls.map((call) => call[1] as unknown as readonly string[]),
+			restore: () => warn.mockRestore(),
+			warn,
+		};
+	};
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test('names a key the native bridge renamed', () => {
+		const warnings = captureWarnings();
+		const { client } = makeClient({ snapshot: drifted() });
+
+		client.getSnapshot();
+
+		expect(warnings.warn).toHaveBeenCalledTimes(1);
+
+		const [message, problems] = warnings.warn.mock.calls[0] as [
+			string,
+			readonly string[],
+		];
+
+		expect(message).toContain(
+			'does not use the key names this package declares'
+		);
+		expect(problems).toContain(
+			'location.countryCode: required here, absent from the payload'
+		);
+		expect(problems).toContain(
+			'location.country: the kernel owns these key names and does not use "country" here'
+		);
+	});
+
+	test('warns once while the same broken snapshot stays current', () => {
+		const warnings = captureWarnings();
+		const { client } = makeClient({ snapshot: drifted() });
+
+		client.getSnapshot();
+		client.getSnapshot();
+		client.isAllowed('marketing');
+
+		expect(warnings.warn).toHaveBeenCalledTimes(1);
+	});
+
+	test('says nothing about a field this bundle does not know yet', () => {
+		// The contract lets a newer native core add a key. Warning there would tell
+		// every app that upgraded its native half that something is broken.
+		const warnings = captureWarnings();
+		const added = {
+			...buildSnapshot(),
+			tenantId: 'ten_1',
+		} as unknown as ConsentSnapshot;
+
+		const { client } = makeClient({ snapshot: added });
+		client.getSnapshot();
+
+		expect(warnings.warn).not.toHaveBeenCalled();
+	});
+
+	test('stays quiet in a production bundle', () => {
+		const warnings = captureWarnings();
+		const previous = process.env.NODE_ENV;
+		process.env.NODE_ENV = 'production';
+
+		try {
+			const { client } = makeClient({ snapshot: drifted() });
+			client.getSnapshot();
+		} finally {
+			process.env.NODE_ENV = previous;
+		}
+
+		expect(warnings.warn).not.toHaveBeenCalled();
+	});
+
+	test('reports a snapshot it can read but not one it cannot', () => {
+		// The fail-closed path already has its own message, and a payload that is not
+		// a JSON object has no keys to name.
+		const warnings = captureWarnings();
+		const { client, fake } = makeClient();
+
+		fake.pushUnreadableSnapshot('not json at all');
+
+		expect(client.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(warnings.warn).not.toHaveBeenCalled();
+	});
+});
+
 describe('subscriptions', () => {
 	test('notifies only the subscriber whose slice moved', () => {
 		const { client, fake } = makeClient();

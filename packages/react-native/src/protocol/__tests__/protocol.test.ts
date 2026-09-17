@@ -24,6 +24,7 @@ import type {
 import {
 	defaultNativeOverrides,
 	describeProtocolMismatch,
+	describeSnapshotWireDrift,
 	isProtocolVersionSupported,
 	MAX_SUPPORTED_PROTOCOL_VERSION,
 	MIN_SUPPORTED_PROTOCOL_VERSION,
@@ -42,32 +43,6 @@ const FIXTURE_DIR = resolve(
  * so it is not one.
  */
 const INDEX_FILE = 'index.json';
-
-/** Field set of the mobile snapshot, exactly as `native/CONTRACT.md` lists it. */
-const SNAPSHOT_KEYS = [
-	'activeUI',
-	'consentCategories',
-	'effectivePermissions',
-	'error',
-	'evaluatedAt',
-	'explicitChoice',
-	'iab',
-	'location',
-	'model',
-	'nextDeadline',
-	'optOutDirectives',
-	'overrides',
-	'policyPending',
-	'policySnapshotToken',
-	'privacySignals',
-	'promptRequirement',
-	'ready',
-	'resolution',
-	'restrictions',
-	'revision',
-	'subject',
-	'translations',
-].sort();
 
 const PERMISSION_KEYS = [
 	'experience',
@@ -331,7 +306,10 @@ describe('protocol fixtures', () => {
 		const snapshots = allSnapshots();
 		expect(snapshots.length).toBeGreaterThan(0);
 		for (const snapshot of snapshots) {
-			expect(Object.keys(snapshot).sort()).toEqual(SNAPSHOT_KEYS);
+			// The same checker the fixture runner in each native core is meant to call.
+			// Asserting the key names here means a snapshot that drifted is caught in
+			// the package that generated the fixtures, not on a device.
+			expect(describeSnapshotWireDrift(snapshot)).toEqual([]);
 			expect(snapshot.iab).toBeNull();
 			// Directives are records the kernel commits when a live privacy signal
 			// fires, so the field is a list of them rather than a permanently empty

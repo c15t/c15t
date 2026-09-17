@@ -55,7 +55,7 @@ export const buildSnapshot = function buildSnapshot(
 		evaluatedAt: 1_770_000_000_000,
 		explicitChoice: null,
 		iab: null,
-		location: { country: 'DE', language: 'en', region: null },
+		location: { countryCode: 'DE', regionCode: null },
 		model: 'opt-in',
 		nextDeadline: null,
 		optOutDirectives: [],

@@ -19,7 +19,11 @@ import type { AllConsentNames } from '@c15t/core';
 
 import { denyAllSnapshot } from '../lib/deny-all-snapshot';
 import { isCategoryAllowed } from '../lib/selectors';
-import { isProtocolVersionSupported, NATIVE_EVENT_NAMES } from '../protocol';
+import {
+	describeSnapshotWireDrift,
+	isProtocolVersionSupported,
+	NATIVE_EVENT_NAMES,
+} from '../protocol';
 import type {
 	BootstrapPayload,
 	CommitIntent,
@@ -174,6 +178,52 @@ const readString = function readString(
 };
 
 /**
+ * Whether warnings are worth printing where this code is running.
+ *
+ * Read off `globalThis` because a React Native bundle may have no `process` at all,
+ * depending on the polyfill the bundler chose.
+ */
+const isProduction = function isProduction(): boolean {
+	return (
+		(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
+			?.NODE_ENV === 'production'
+	);
+};
+
+/**
+ * Name the keys a native snapshot got wrong, once per distinct set of problems.
+ *
+ * A renamed key is the failure this catches. The bridge crosses in a JSON string, so
+ * TypeScript cannot see it, and every read of the moved field returns `undefined` with
+ * nothing thrown: the app just shows an empty subject, or denies a category nobody
+ * denied. Unknown keys stay quiet because the contract allows a newer native build to
+ * add one.
+ *
+ * @param problems - Lines from {@link describeSnapshotWireDrift}.
+ * @param seen - Holds the last set already reported, so a repeated snapshot is quiet.
+ */
+const warnSnapshotDrift = function warnSnapshotDrift(
+	problems: readonly string[],
+	seen: { value: string | null }
+): void {
+	if (problems.length === 0 || isProduction()) {
+		return;
+	}
+
+	const signature = problems.join('\n');
+
+	if (seen.value === signature) {
+		return;
+	}
+
+	seen.value = signature;
+	console.warn(
+		'c15t ConsentClient: the native snapshot does not use the key names this package declares. Consent state may read as missing.',
+		problems
+	);
+};
+
+/**
  * Decide whether a parsed value can be used as a snapshot.
  *
  * Checks are shallow and target the fields the JavaScript layer actually reads,
@@ -322,6 +372,8 @@ export const createConsentClient = function createConsentClient(
 
 	/** Raw text of the snapshot last decoded, so unchanged bytes skip the parse. */
 	let rawSnapshot: string | null = null;
+	/** Last key drift reported, so one broken core warns once and not on every pull. */
+	const drift = { value: null as string | null };
 	/** Decoded snapshot, kept so consumers read one immutable object. */
 	let snapshot: ConsentSnapshot | null = null;
 	/** Set when native said something changed and nothing has pulled yet. */
@@ -357,6 +409,10 @@ export const createConsentClient = function createConsentClient(
 		}
 
 		snapshot = parsed;
+		warnSnapshotDrift(
+			describeSnapshotWireDrift(parsed, { allowUnknownKeys: true }),
+			drift
+		);
 
 		return snapshot;
 	};
