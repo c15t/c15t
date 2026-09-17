@@ -84,8 +84,10 @@ const readPath = function readPath(source: string): {
 	path: string;
 	viewBox: string;
 } {
-	const path = /const C15T_MARK\s*=\s*'([^']+)'/.exec(source)?.[1];
-	const viewBox = /svg\('([\d.\s]+)',\s*\[C15T_MARK\]\)/.exec(source)?.[1];
+	const path = /const C15T_MARK\s*=\s*'(?<path>[^']+)'/u.exec(source)?.groups
+		?.path;
+	const viewBox = /svg\('(?<viewBox>[\d.\s]+)',\s*\[C15T_MARK\]\)/u.exec(source)
+		?.groups?.viewBox;
 
 	if (path === undefined || viewBox === undefined) {
 		throw new Error(
@@ -309,8 +311,7 @@ const pngEdge = function pngEdge(bytes: Buffer): number | null {
 
 	const width = bytes.readUInt32BE(16);
 	const height = bytes.readUInt32BE(20);
-	const bitDepth = bytes[24];
-	const colorType = bytes[25];
+	const [bitDepth, colorType] = bytes.subarray(24, 26);
 
 	// 8-bit truecolour with alpha: the only thing worth accepting for a glyph.
 	if (width !== height || bitDepth !== 8 || colorType !== 6) {
@@ -400,8 +401,6 @@ const moduleFor = function moduleFor(
 ): string {
 	const tick = '`';
 	const code = (text: string): string => `${tick}${text}${tick}`;
-	const fence = tick.repeat(3);
-
 	const rows = entries
 		.map((entry) => `\t${entry.scale}: '${entry.uri}',`)
 		.join('\n');
