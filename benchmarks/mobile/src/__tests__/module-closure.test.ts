@@ -57,7 +57,7 @@ describe('walking the built entry', () => {
 	it('carries no other c15t package, because nothing reaches them now', () => {
 		const packages = new Set<string>();
 		for (const file of closure.files) {
-			const name = relative(REPO_ROOT, file).split('/')[1];
+			const [, name] = relative(REPO_ROOT, file).split('/');
 			if (name !== undefined) {
 				packages.add(name);
 			}
