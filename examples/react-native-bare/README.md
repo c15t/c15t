@@ -96,9 +96,8 @@ needs `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 
 Verified here: `bun run check-types` is clean, `bun run bundle` writes a release bundle
 for both platforms, `pod install` completes, and the Android app gets through Gradle
-configuration. iOS has been built, installed and launched; [Device run](#device-run) says
-what that proved and what it could not. Android has never run, so the emulator half of the
-checklist below is still open.
+configuration. Both platforms have been built, installed and launched;
+[Device run](#device-run) says what each one proved and what it still cannot.
 
 iOS resolves. `pod install` from `ios/`, with `DEVELOPER_DIR` set, prints:
 
@@ -168,6 +167,27 @@ What this machine cannot do is drive a tap. It has both iOS runtimes and `simctl
 observed through `simctl io screenshot`. Everything in the checklist that needs a finger
 needs a machine with the full Xcode app, or a real device.
 
+### Android
+
+An API 36 `sdk_gphone64_arm64` emulator, `assembleDebug` from `android/` with the core
+compiled from source through the `includeBuild` in `settings.gradle`, talking to the same
+`examples/demo` backend over `adb reverse`. Unlike the iOS setup this one can be driven:
+`adb shell input tap` at coordinates read out of `uiautomator dump`, which is how every
+step in the checklist below was run. Process death is `am force-stop`, not a swipe.
+
+The core came up native, and `no_backup/c15t` holds `com.c15t.snapshot` and
+`com.c15t.pending` as AES/GCM blobs. After a force-stop and relaunch the first frame
+reported `stored snapshot: true`, `ready: true`, `policyPending: false` and the revision it
+had before the kill, and the banner stayed dismissed.
+
+Four defects were only visible here, and each is named in its own commit: Codegen output
+written somewhere an app's build never looks, `accessibilityRole` carrying ARIA values
+that Android's TalkBack enum rejects, subject ids in a shape the backend answers with
+HTTP 400, and a caller-supplied GCM IV that AndroidKeyStore refuses on encrypt. The last
+one is worth reading twice: `encrypt` had never once succeeded on a device, so no consent
+ever reached disk, and the storage layer's silent answer to a non-key failure is what kept
+it invisible. `ResilientKeyValueStore` now names that write out loud.
+
 ## Fake core
 
 The example ships an in-JavaScript fake core (`src/c15t/fake-native.ts`) built only on
@@ -194,6 +214,14 @@ Steps 3 to 5 passed on iOS, run headless with the backend stopped and the app re
 the first frame carried `ready: true`, `policyPending: false`, a non-zero `revision`, and an
 `evaluatedAt` about an hour old. The stale timestamp is the proof that it was stored state,
 not a response that happened to be quick.
+
+The cached-snapshot steps and the queued-save steps below passed on Android, driven over
+`adb` with the backend stopped and restarted between them. An accept committed while the
+backend was down grew `com.c15t.pending` from 44 to 1612 bytes, which is the payload on
+disk rather than a promise in memory; after a force-stop and a relaunch with the backend
+back up, the queue drained to its empty 44 bytes and the backend held exactly one
+`accept_all` row for that install's new `sub_` subject, carrying the five purposes the
+policy offered. Judged from the backend, as step 6 asks.
 
 Cached snapshot before any network:
 
@@ -226,6 +254,12 @@ Queued save replayed on relaunch:
 7. Fail when the record is missing, when the queue sent twice, or when the replayed
    body was rebuilt from the current policy instead of the payload that was queued.
 8. Repeat with two actions queued back to back. Both must arrive, in order, unchanged.
+   This fixture has no surface for it: once the banner is dismissed the Consent tab offers
+   nothing that commits, and the preference centre needs the policy only a reachable
+   backend can serve. The same assertion runs natively as
+   `two payloads queued back to back fly oldest first, unchanged` in
+   `native/core-android`, which is where a queue that sends only the newest, or rebuilds a
+   payload on the way out, gets caught.
 
 Reinstall:
 
