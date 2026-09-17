@@ -124,8 +124,9 @@ const textDirection = getTextDirection(snapshot.translations?.language);
 
 // Same policy-driven action resolution the Svelte and React banners use, so
 // an opt-out or IAB policy produces the same buttons in the same order.
-// A host-resolved experiment arm is already on the server snapshot; a
-// built-in one is assigned in the browser and re-rendered there.
+// The experiment arm is the host-resolved `variant`, already on the server
+// snapshot; `resolveOptions()` rejects an experiment without one because
+// this HTML is never re-rendered in the browser.
 const presentation = resolveConsentPresentation({policy: snapshot.policyRule, presentation: applyExperimentAssignment(c15t.options.presentation, c15t.options.experiment, snapshot.experiment), surface: 'prompt'});
 const {
 	actionGroups,

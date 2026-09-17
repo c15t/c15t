@@ -144,9 +144,9 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 		initialRecords,
 		now,
 	};
-	// A host-resolved arm is known on the server, so the inlined config and
-	// the first HTML already carry it. Built-in assignment happens in the
-	// browser, where the stored assignment lives.
+	// The arm is known on the server, so the inlined config and the first
+	// HTML already carry it. `resolveOptions()` rejects an experiment
+	// without a `variant`; the guard keeps a hand-built options object safe.
 	if (options.experiment?.variant !== undefined) {
 		config.initialExperiment = assignExperimentVariant(options.experiment, '');
 	}

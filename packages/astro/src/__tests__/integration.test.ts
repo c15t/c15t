@@ -87,6 +87,28 @@ describe('resolveOptions', () => {
 		).toMatchObject({ backendURL: 'https://consent.example.com' });
 	});
 
+	it('rejects an experiment without a host-resolved variant', () => {
+		// The banner is server HTML the browser only shows or hides, so an
+		// arm assigned in the browser would be recorded for a banner the
+		// visitor never saw.
+		const variants = {
+			bar: { prompt: { variant: 'bar' as const } },
+			control: {},
+		};
+		expect(() =>
+			resolveOptions({
+				experiment: { id: 'banner-shape', variants },
+				mode: offlineMode(),
+			})
+		).toThrowError(/Built-in assignment is not supported on Astro/u);
+		expect(
+			resolveOptions({
+				experiment: { id: 'banner-shape', variant: 'bar', variants },
+				mode: offlineMode(),
+			}).experiment
+		).toMatchObject({ variant: 'bar' });
+	});
+
 	it('keeps custom route paths', () => {
 		const resolved = resolveOptions({
 			endpoints: { enabled: true, initPath: '/consent/init' },

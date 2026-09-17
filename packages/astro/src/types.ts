@@ -135,8 +135,9 @@ export interface C15tAstroOptions {
 	/**
 	 * A/B experiment on prompt/preferences presentation. The assigned arm is
 	 * merged over `presentation`, exposed as `snapshot.experiment`, and
-	 * recorded with every impression and choice. Pass `variant` to run the
-	 * arm your flag provider resolved; omit it for built-in assignment.
+	 * recorded with every impression and choice. `variant` is required: the
+	 * banner is server-rendered, so the arm must be resolved on the server.
+	 * Built-in assignment is not available on Astro.
 	 */
 	experiment?: ConsentExperiment;
 	/**

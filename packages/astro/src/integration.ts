@@ -119,8 +119,9 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
  *
  * @param options - The options passed to `c15t()`.
  * @returns Options with defaults applied.
- * @throws {Error} When `mode` is missing, is not a mode descriptor, or is a
- * manifest mode with nowhere to save consent.
+ * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
+ * manifest mode with nowhere to save consent, or `experiment` has no
+ * `variant`.
  */
 export const resolveOptions = function resolveOptions(
 	options: C15tAstroOptions
@@ -152,6 +153,15 @@ export const resolveOptions = function resolveOptions(
 	if (options.ui !== undefined && !(options.ui in UI_ADAPTERS)) {
 		throw new Error(
 			`@c15t/astro: unknown \`ui\` ${JSON.stringify(options.ui)}. Supported adapters: ${UI_ADAPTER_NAMES.join(', ')}.`
+		);
+	}
+	// The banner is server-rendered HTML that the browser only shows or
+	// hides. An arm assigned in the browser would be recorded on the
+	// impression and the choice while the visitor saw the base banner, so
+	// the arm has to be known on the server.
+	if (options.experiment && options.experiment.variant === undefined) {
+		throw new Error(
+			`@c15t/astro: \`experiment\` needs a \`variant\`. Built-in assignment is not supported on Astro because the banner is server-rendered; resolve the arm on the server (a feature flag, a cookie) and pass it as \`experiment.variant\`.`
 		);
 	}
 	const {

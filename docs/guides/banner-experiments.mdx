@@ -56,6 +56,15 @@ export const Providers = ({
 The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
 `@c15t/svelte`, `@c15t/astro` and `@c15t/browser`.
 
+`experiment` is read once, when the provider mounts. Changing it later has
+no effect; remount the provider (a `key` in React) to switch experiments.
+
+On Astro, `variant` is required. The banner is server-rendered HTML that the
+browser only shows or hides, so an arm assigned in the browser would be
+recorded for a banner the visitor never saw. Resolve the arm on the server,
+from a flag or a cookie, and pass it as `variant`; `c15t()` throws at config
+time without one.
+
 ### Vary the theme
 
 An arm can carry `theme` overrides next to its presentation fragment. They
@@ -123,10 +132,44 @@ export default async function RootLayout({
 
 ### PostHog
 
-```ts
-const variant = posthog.getFeatureFlag('banner-shape');
-// Pass `typeof variant === 'string' ? variant : undefined` as `variant`.
+PostHog resolves flags asynchronously in the browser. Because `experiment`
+is read once at mount, a provider mounted before the flags load runs
+built-in assignment and never picks up the flag. Wait for the flags, then
+mount the provider with the resolved arm.
+
+```tsx title="src/app/flagged-providers.tsx"
+'use client';
+
+import { useEffect, useState } from 'react';
+import posthog from 'posthog-js';
+
+import { Providers } from './providers';
+
+export const FlaggedProviders = ({
+	children,
+}: {
+	children: React.ReactNode;
+}) => {
+	const [variant, setVariant] = useState<string | null>(null);
+	useEffect(
+		() =>
+			posthog.onFeatureFlags(() => {
+				const flag = posthog.getFeatureFlag('banner-shape');
+				setVariant(typeof flag === 'string' ? flag : 'floating');
+			}),
+		[]
+	);
+	if (variant === null) {
+		// Flags not loaded yet: no provider, no banner. Render the page
+		// without consent surfaces, or a placeholder, until they arrive.
+		return children;
+	}
+	return <Providers variant={variant}>{children}</Providers>;
+};
 ```
+
+Pick a fallback arm (`'floating'` above) for a visitor whose flag never
+resolves, so the choice is still attributed to an arm you declared.
 
 ### LaunchDarkly, GrowthBook, Statsig
 
@@ -157,6 +200,8 @@ experiment: {
 
 Changing `id` starts a new experiment and re-assigns everyone. Removing an
 arm re-assigns only the visitors who were in it.
+
+Built-in assignment is not available on `@c15t/astro`; pass `variant`.
 
 ## Acknowledge presentation diagnostics
 
