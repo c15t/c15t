@@ -55,8 +55,12 @@ class ReachabilityGate(private val onGained: () -> Unit) {
  * replays, which need no permission and are never optional.
  *
  * Callbacks arrive on the thread that registered, which is why [C15tAndroid.install]
- * registers on the main thread and [C15t.flushPending] hands the work to the core's own
- * executor: coming back online must not cost a frame.
+ * registers on the main thread. [C15t.flushPending] then runs its pass on the thread that
+ * called it -- it hands nothing to the core's executor, and a pass that wins the core's
+ * guard here opens its connection on the main thread, where the platform refuses it and the
+ * queue answers unreachable. The entries keep their place and the foreground leg, which does
+ * run off the main thread, sends them. A host that wants the wake-up itself to fly should
+ * drive the replay through [C15tAndroid]'s executor rather than call this one directly.
  */
 class C15tReachability private constructor(
 	private val manager: ConnectivityManager,

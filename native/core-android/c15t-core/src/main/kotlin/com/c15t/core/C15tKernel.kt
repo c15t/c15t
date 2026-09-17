@@ -57,6 +57,28 @@ private sealed interface Delivery {
 	data class Refused(val attempt: FailedAttempt, val error: KernelError) : Delivery
 }
 /**
+ * What one delivery pass did, as [C15tKernel.requestDeliveryPass] hands it back.
+ *
+ * Private to the core: `FlushResult` is the shape a host sees, and this carries the one fact a
+ * host has no use for -- whether the pass stopped because no sender could be reached at all,
+ * which is what decides whether reading the queue again is worth anything.
+ */
+private class PassReport(
+	val delivered: Int,
+	val error: KernelError?,
+	/** The pass stopped at an entry no sender could be reached for, not at the queue's end. */
+	val unreachable: Boolean,
+) {
+	companion object {
+		/** What a thread reports when a pass already holds the core and answered it instead. */
+		val Declined = PassReport(delivered = 0, error = null, unreachable = false)
+
+		/** What a save's own send reports when nobody owed a pass. */
+		val Quiet = PassReport(delivered = 0, error = null, unreachable = false)
+	}
+}
+
+/**
  * The consent engine.
  *
  * One immutable [ConsentSnapshot] is the whole state, held in an
@@ -71,7 +93,10 @@ private sealed interface Delivery {
  * @param store Typed persistence over the host's storage.
  * @param transport Backend commands; [C15tTransport.NONE] keeps the core local-only.
  * @param executor Where init and write delivery run. [TaskExecutor.DIRECT] runs
- * them inline, which is what the tests use to make ordering observable.
+ * them inline, which is what the tests use to make ordering observable. It does not have to
+ * be serial: a delivery pass is guarded by [requestDeliveryPass] rather than by the shape of
+ * this executor, so a host that hands the core a pool of its own still gets the contract's
+ * one-pass-in-flight rule.
  * @param logger Receives every [KernelError] the core emits.
  */
 class C15tKernel(
@@ -130,6 +155,15 @@ class C15tKernel(
 	private val errorObservers = CopyOnWriteArrayList<WeakReference<(KernelError) -> Unit>>()
 
 	private val queue = PendingSaveQueue(store, config.maxPendingSaves, queueIdGenerator)
+
+	/**
+	 * Which delivery work, if any, holds this core. See [requestDeliveryPass] for the rule it
+	 * holds and for why it lives here rather than in the shape of [background].
+	 */
+	private val passInFlight = AtomicBoolean(false)
+
+	/** A pass was asked for while [passInFlight] was held, so the holder reads again on release. */
+	private val passRequested = AtomicBoolean(false)
 
 	/**
 	 * Load stored state, adopt the subject id, then kick a flush and an init.
@@ -468,7 +502,7 @@ class C15tKernel(
 		// atomic holds at this instant and nothing more: `null` behind a pool, and the
 		// settled answer only where the host's executor ran the send before returning.
 		val firstSend = AtomicReference<Delivery>()
-		background.execute { firstSend.set(deliver(entry)) }
+		background.execute { requestDeliveryPass { deliverIfOwed(entry)?.let(firstSend::set) } }
 		val delivered = firstSend.get() === Delivery.Reached
 
 		val result = CommitResult(
@@ -610,44 +644,144 @@ class C15tKernel(
 	/**
 	 * Replay the offline queue, oldest first, each payload unchanged.
 	 *
-	 * Stops at the first entry the backend could not be reached for, since trying
-	 * the rest on a dead connection wastes battery. Entries this pass never sent keep the
-	 * attempt count they had: an attempt is spent by a send, not by a pass that skipped
-	 * them.
+	 * Stops at the first entry the backend could not be reached for, since trying the rest on
+	 * a dead connection wastes battery. Entries this pass never sent keep the attempt count
+	 * they had: an attempt is spent by a send, not by a pass that skipped them.
 	 *
 	 * Each entry settles by the same rules as the first send of a save, including which
 	 * refusals are permanent and which releases get announced.
+	 *
+	 * Only one pass may be in flight per core. That is the rule `native/CONTRACT.md` sets in
+	 * "The pending save queue", and [requestDeliveryPass] is where this core holds it, because a
+	 * flush is not a pass of its own and this method is a public synchronous entry point that
+	 * reaches it from several threads at once: bootstrap and a resolved init on [background], a
+	 * foreground transition on the lifecycle observer's worker, a reachability change on the
+	 * main thread, a React Native `refresh` on the module's thread, and any host that calls it
+	 * directly. A pass reads the queue once and then delivers entry by entry, so an entry stays
+	 * readable until its own send lands, and a flush that ran its own pass on any two of those
+	 * threads resends whatever was in flight. The single thread behind [backgroundPool] does not
+	 * cover this: it only ever orders the work handed to it.
+	 *
+	 * A flush that arrives while a pass is running is answered by that pass. It reports the depth
+	 * the queue owes with [FlushResult.delivered] at zero and no error -- nothing failed, another
+	 * thread is sending it -- and it asks the running pass to read the queue again on the way
+	 * out, which is what covers an entry queued after that pass had already read. Nothing about
+	 * `committed` softens as a result: an entry waiting on the running pass is still owed, still
+	 * counted in [FlushResult.remaining], and still announced by exactly one delivered event.
+	 *
+	 * The exclusivity is load-bearing rather than tidy, and it is tested: a scripted transport
+	 * holds a send open, a second flush is asked for from another thread mid-send, and the test
+	 * fails if any queued decision reaches the transport twice. Losing it does not need a bug,
+	 * only a host that hands this core an executor with two threads in it, which is why the rule
+	 * is guarded here instead of left to the shape of a queue.
 	 */
 	fun flushPending(): FlushResult {
+		if (queue.pending().isEmpty()) {
+			return FlushResult(delivered = 0, remaining = 0)
+		}
+		val pass = requestDeliveryPass(ownSend = null)
+		return FlushResult(
+			delivered = pass.delivered,
+			remaining = queue.pending().size,
+			error = pass.error,
+		)
+	}
+
+	/**
+	 * Ask for a delivery pass, and run it when no other pass holds the core.
+	 *
+	 * Contract: `native/CONTRACT.md`, "The pending save queue" -- only one pass may be in flight
+	 * per core, and this is the only place that answers that question. Two threads running
+	 * [runDeliveryPass] at once is the defect the contract describes: each reads the whole queue,
+	 * so each sends what the other is still sending, and because the bytes are frozen and carry
+	 * the same consent id the backend dedupes, nothing in stored state moves, and the only trace
+	 * is a second POST for a decision the subject already saw delivered.
+	 *
+	 * A request that finds the core held neither waits nor starts a pass. It records itself and
+	 * returns at once: a flush arrives on the main thread from a reachability callback on
+	 * Android, so this must never sit behind someone else's network timeout, and the running pass
+	 * is what answers it. That pass reads the queue again before releasing, which is how an entry
+	 * queued after its first read still gets delivered without waiting for the next launch,
+	 * foreground, or network.
+	 *
+	 * @param ownSend the first send of the entry a save just queued, run before the queue is
+	 * read, or `null` for a pass over the whole queue. It takes the same guard a replay does, so a
+	 * save's own send and a replay can never hold the same entry at the same time; when the guard
+	 * is already held, the pass that holds it covers this entry on its re-read.
+	 */
+	private fun requestDeliveryPass(ownSend: (() -> Unit)?): PassReport {
+		val askedForAPass = ownSend == null
+		var pendingSend = ownSend
+		var report = PassReport.Declined
+		while (true) {
+			if (!passInFlight.compareAndSet(false, true)) {
+				passRequested.set(true)
+				return report
+			}
+			try {
+				val requestedBefore = passRequested.getAndSet(false)
+				pendingSend?.invoke()
+				// This thread has sent whatever its save queued, whatever the answer was.
+				pendingSend = null
+				// A save asked for one send, not for a pass over the queue. Reading the rest of the
+				// queue on every save would spend an attempt on each older entry every time a
+				// subject tapped a banner, and attempts end in released entries, so this thread
+				// takes that cost on only when somebody actually asked for a pass.
+				report = if (askedForAPass || requestedBefore) runDeliveryPass() else PassReport.Quiet
+				while (!report.unreachable && passRequested.get()) {
+					passRequested.set(false)
+					val again = runDeliveryPass()
+					report = PassReport(
+						delivered = report.delivered + again.delivered,
+						error = again.error,
+						unreachable = again.unreachable,
+					)
+				}
+			} finally {
+				passInFlight.set(false)
+			}
+			// A pass that gave up on a dead connection has no reason to read the queue again, and
+			// a request that arrived while this thread was handing the core back still has to be
+			// answered by someone who knows the pass is over. That someone is this thread.
+			if (report.unreachable || !passRequested.get()) {
+				return report
+			}
+		}
+	}
+
+	/**
+	 * One read of the queue and the sends it owed, oldest first.
+	 *
+	 * Only [requestDeliveryPass] may call this, which is what keeps a second copy of the loop
+	 * from reading the queue while a send from the first is still open.
+	 */
+	private fun runDeliveryPass(): PassReport {
 		val pending = queue.pending()
 		if (pending.isEmpty()) {
-			return FlushResult(delivered = 0, remaining = 0)
+			return PassReport(delivered = 0, error = null, unreachable = false)
 		}
 		var delivered = 0
 		var lastError: KernelError? = null
 		for (entry in pending) {
-			// Every entry goes through the same settle rules as a save's first send, so a
-			// replay cannot decide permanence, attempts, or announcements differently.
-			when (val delivery = deliver(entry)) {
+			// Every entry goes through the same settle rules as a save's first send, so a replay
+			// cannot decide permanence, attempts, or announcements differently.
+			val delivery = deliverIfOwed(entry) ?: continue
+			when (delivery) {
 				Delivery.Reached -> delivered += 1
 
-				is Delivery.Unreachable -> return FlushResult(
+				is Delivery.Unreachable -> return PassReport(
 					delivered = delivered,
-					remaining = queue.pending().size,
-					// The entry that could not be reached spent its attempt; the ones this
-					// pass never sent did not, because nothing was sent for them.
+					// The entry that could not be reached spent its attempt; the ones this pass
+					// never sent did not, because nothing was sent for them.
 					error = lastError ?: delivery.error,
+					unreachable = true,
 				)
 
 				is Delivery.Refused -> lastError = delivery.error
 
 			}
 		}
-		return FlushResult(
-			delivered = delivered,
-			remaining = queue.pending().size,
-			error = lastError,
-		)
+		return PassReport(delivered = delivered, error = lastError, unreachable = false)
 	}
 
 	/** Drop stored consent and the queue, keeping the subject id. */
@@ -806,6 +940,22 @@ class C15tKernel(
 		persist()
 		emitted?.let(::emitError)
 		notifySnapshot(published)
+	}
+
+	/**
+	 * Send one queued body once, unless the queue no longer holds it.
+	 *
+	 * `null` says the body was not this sender's to send. Both senders hold [passInFlight] when
+	 * they reach here, so the only way an entry is already gone is that the pass or send which
+	 * held the guard before this one landed it -- after the read that brought this sender here.
+	 * Sending anyway is the second POST the contract names, so the queue gets asked last, and an
+	 * entry that is not owed spends no attempt and announces nothing.
+	 */
+	private fun deliverIfOwed(entry: QueuedSave): Delivery? {
+		if (!queue.isPending(entry.id)) {
+			return null
+		}
+		return deliver(entry)
 	}
 
 	/**
@@ -1088,6 +1238,20 @@ class C15tKernel(
 	}
 
 	private companion object {
+		/**
+		 * Where init and delivery run for a host that brings no executor of its own.
+		 *
+		 * One thread, so the work handed to it cannot overlap. Useful, and not what keeps a
+		 * delivery pass exclusive. [flushPending] is a public synchronous method that the shipped
+		 * wiring calls from the main thread on a reachability change, from the lifecycle
+		 * observer's worker, and from the React Native module's thread, while [save] hands its
+		 * first send to this pool with any of those already running, so a second pass can always
+		 * arrive on a thread this pool never sees. `native/CONTRACT.md` allows one pass per core
+		 * in flight, and [requestDeliveryPass] is what holds it: the guard is the guarantee, not
+		 * the thread count. Deliberately, because a host may hand this core a [TaskExecutor] with
+		 * two threads in it, and consent delivery must not begin resending bodies the moment
+		 * someone swaps this pool for a busier one.
+		 */
 		val backgroundPool = Executors.newSingleThreadExecutor { runnable ->
 			Thread(runnable, "c15t-core").apply { isDaemon = true }
 		}

@@ -74,6 +74,18 @@ class PendingSaveQueue(
 	fun pending(): List<QueuedSave> = store.readPending()
 
 	/**
+	 * Whether [id] is still waiting to be delivered.
+	 *
+	 * A sender asks immediately before it sends, because its copy of the entry can be older
+	 * than this moment: a pass reads the queue once and delivers entry by entry, and a save's
+	 * first send carries one entry in hand, so either can still be holding a body that the
+	 * other has already landed. Re-sending it is the resend the contract in
+	 * `native/CONTRACT.md` describes -- identical frozen bytes, same consent id, nothing in
+	 * stored state moved -- and this queue is the only record of what is owed.
+	 */
+	fun isPending(id: String): Boolean = store.readPending().any { it.id == id }
+
+	/**
 	 * Drop one delivered entry, reporting whether the queue is clear of it.
 	 *
 	 * `true` includes "the id was already gone", which is the honest answer for a caller
