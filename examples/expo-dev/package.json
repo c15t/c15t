@@ -21,7 +21,7 @@
 		"expo": "57.0.22",
 		"expo-constants": "57.0.18",
 		"expo-dev-client": "57.0.19",
-		"react": "19.2.3",
+		"react": "19.2.7",
 		"react-native": "0.86.3"
 	},
 	"devDependencies": {
