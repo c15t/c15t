@@ -398,12 +398,11 @@ class FakeCore {
 			},
 			getBootstrap: () => this.bootstrap(),
 			getSnapshot: () => this.getSnapshot(),
-			getTrackingAuthorization: () => {
+			getTrackingAuthorization: () =>
 				// The fake has no platform to read, which is the same answer Android
 				// gives: there is no system question for this build to ask, so the
 				// arm is `unsupported` rather than a not-yet-answered `not-determined`.
-				return JSON.stringify({ status: 'unsupported' });
-			},
+				JSON.stringify({ status: 'unsupported' }),
 			identify: async (externalId) => {
 				this.identify(externalId);
 				await settle();
@@ -418,15 +417,17 @@ class FakeCore {
 			removeListeners: () => {
 				// See `addListener`.
 			},
-			requestTrackingAuthorization: () => {
+			requestTrackingAuthorization: () =>
 				// Rejected with the code the real Android bridge uses, so a host that
 				// calls this against the fake sees the shape it would ship against.
-				return Promise.reject(
-					Object.assign(new Error('The fake core has no platform gate to ask'), {
-						code: 'C15T_TRACKING_UNSUPPORTED',
-					})
-				);
-			},
+				Promise.reject(
+					Object.assign(
+						new Error('The fake core has no platform gate to ask'),
+						{
+							code: 'C15T_TRACKING_UNSUPPORTED',
+						}
+					)
+				),
 			setOverrides: async (overrides) => {
 				this.setOverrides(overrides);
 				await settle();
