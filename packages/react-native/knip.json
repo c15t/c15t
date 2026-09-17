@@ -6,7 +6,7 @@
 		"**/*.spec.{js,ts,tsx}",
 		"**/*.test.{js,ts,tsx}",
 		"**/__tests__/**",
-		"react-native.config.js",
+		"react-native.config.cjs",
 		"rslib.config.ts",
 		"scripts/**"
 	],

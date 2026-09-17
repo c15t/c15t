@@ -329,11 +329,21 @@ A host app integrates two pods, both resolvable from this repository:
 - Resolution is proven, not parsed: `pod install` in a throwaway RN 0.87.1 app under
   /tmp installed 85 pods including both c15t pods from those paths, under
   CocoaPods 1.17.0 and `DEVELOPER_DIR` pointing at Xcode 27.
-- Open blocker owned by the binding package, not the cores: RN's codegen loads a
-  library's `react-native.config.js` with `require`, and that file is CommonJS in a
-  package declaring `"type": "module"`, so codegen run in library mode dies with
-  `module is not defined in ES module scope`. App-mode codegen with a real autolinking
-  step reads the config from `autolinking.json` and is unaffected.
+- The binding's RN config file is `react-native.config.cjs`, not `.js`. RN's tooling
+  loads that file with `require`, and inside a package declaring `"type": "module"` a
+  plain `.js` file is ESM to every loader that respects the field. This is preventive,
+  not a reproduced fix: no task in this repository runs library-mode codegen (see the
+  next bullet), so nobody here has watched it fail. Node 24 hides the hazard locally
+  anyway, because its module-syntax detection reads `module.exports` as CommonJS and a
+  bare `require` probe succeeds. `.cjs` removes the question for loaders that do not
+  guess. App-mode codegen reads `autolinking.json` and is unaffected either way.
+- `c15t.spec.source` is documented in the binding's `gradle.properties` as
+  `auto`/`stub`/`codegen`, but no build script reads it: `:c15t-spec` always compiles
+  the stand-in. So nothing in this repository has ever run RN's generator against
+  `src/specs/NativeC15t.ts`, and the claim that the stand-in matches Codegen output is
+  unverified. Setting the property to `codegen` now fails the build with an explicit
+  message instead of reporting a green run that never asked Codegen anything. Wiring a
+  real codegen task, and running it in CI, is open work.
 
 Expo config plugin, as built
 ----------------------------

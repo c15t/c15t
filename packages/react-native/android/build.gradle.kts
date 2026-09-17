@@ -5,7 +5,7 @@
 //    versions there, so the root project itself configures nothing.
 //
 //  * As a library inside a host app. React Native's settings plugin autolinks a package by
-//    pointing a project straight at its `sourceDir` (react-native.config.js: ./android), so
+//    pointing a project straight at its `sourceDir` (react-native.config.cjs: ./android), so
 //    this file is the library's build script even though the sources live one directory
 //    down. The library configuration therefore lives in c15t-react-native/library.gradle
 //    and is applied from here, with the source roots re-anchored, so that an app and this

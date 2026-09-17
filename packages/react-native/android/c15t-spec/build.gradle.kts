@@ -7,9 +7,11 @@
 // from the published AAR and the host app's generated class is the only one at runtime. Two
 // copies of that class in one APK is a duplicate-class failure, which is what this avoids.
 //
-// Build with -Pc15t.spec.source=codegen to run the real Codegen instead, which is what CI
-// should do: it replaces this source set with the generated output, and it is the check that
-// the stand-in has not drifted.
+// `c15t.spec.source=codegen` is not wired yet: no build script in this project runs RN's
+// generator, so this source set is always the stand-in. That means nothing here proves the
+// stand-in matches what Codegen emits for src/specs/NativeC15t.ts. The property is rejected
+// below rather than silently ignored, so a green build can never be read as a Codegen check.
+// Wiring that mode, and running it in CI, is open work.
 //
 // Standalone only. React Native never autolinks this module, so unlike the bridge it can apply
 // plugins through the build.
@@ -19,6 +21,15 @@ plugins {
 }
 
 fun property(name: String): String? = findProperty(name)?.toString()?.takeIf { it.isNotBlank() }
+
+// `codegen` would replace this source set with generated output. Nothing does, so honouring
+// the value would report a Codegen pass that never asked Codegen anything.
+val specSource = property("c15t.spec.source") ?: "auto"
+require(specSource in setOf("auto", "stub")) {
+    "c15t-spec: c15t.spec.source=$specSource is not implemented. Only auto and stub are " +
+        "supported, and both compile the stand-in in this standalone build. Running RN's " +
+        "Codegen against src/specs/NativeC15t.ts is not wired into any task yet."
+}
 
 android {
 	namespace = "com.c15t.reactnative.spec"

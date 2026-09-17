@@ -18,7 +18,7 @@ The consent engine is not copied here. It is either the included build of
 ## Two builds, one library script
 
 React Native's settings plugin autolinks a package by pointing a Gradle project at its
-`sourceDir` (`../../react-native.config.js`: `./android`), so `build.gradle.kts` is the
+`sourceDir` (`../../react-native.config.cjs`: `./android`), so `build.gradle.kts` is the
 library's build script inside a host app even though the sources live in `c15t-react-native/`.
 The configuration therefore sits in `c15t-react-native/library.gradle`, which both entry points
 apply, with the manifest, sources, and consumer rules anchored to absolute paths. That
@@ -50,7 +50,7 @@ Kotlin support, which is the AGP React Native 0.87's own Gradle plugin is built 
 | `c15t.core.fromSource` | `true` | `false` resolves `com.c15t:c15t-core` and `c15t-android` from the repository instead of building `native/core-android` as an included build. This is what a CI or release build wants once the core ships |
 | `c15t.core.version` | package version | The version of those published artifacts |
 | `c15t.core.group` | `com.c15t` | Their Maven group |
-| `c15t.spec.source` | `auto` | Where `NativeC15tSpec` comes from. `auto` uses the `:c15t-spec` stand-in when this build contains it and Codegen otherwise; `stub` forces the stand-in; `codegen` runs `generate-codegen-artifacts.js` |
+| `c15t.spec.source` | `auto` | `auto` and `stub` both compile the `:c15t-spec` stand-in in this standalone build. `codegen` is accepted by no build script yet and fails the build outright, so nothing is generated from `src/specs/NativeC15t.ts` here and the host app's own Codegen remains the only real generator |
 | `c15t.reactNativeVersion` | unset | Only for the standalone build. A host app leaves it unset and React Native's root plugin supplies the version, having forced `com.facebook.react:react-android` onto every configuration |
 | `c15t.reactNativeDir`, `c15t.codegenProjectRoot`, `c15t.nodeExecutable` | probed | Point Codegen at an install Gradle cannot infer |
 

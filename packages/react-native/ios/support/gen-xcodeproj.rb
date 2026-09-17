@@ -1,7 +1,7 @@
 require 'xcodeproj'
 require 'fileutils'
 
-# Regenerates ios/C15tReactNative.xcodeproj, the project react-native.config.js points
+# Regenerates ios/C15tReactNative.xcodeproj, the project react-native.config.cjs points
 # iOS at. It exists so the Swift half of the binding compiles for an iOS slice without
 # an example app checkout, and so a hand-authored pbxproj stays reviewable as a diff.
 #
