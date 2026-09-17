@@ -101,6 +101,14 @@ export interface MobileBenchSummary {
  * are budget-gated but not required, because a shared runner's quiet window is not
  * quiet. Everything else the leg's toolchain provisions is required, so a parser that
  * stops matching a bench's output fails the run instead of shrinking the table.
+ *
+ * The JavaScript timing rows, including the app-level ones (a fresh process reading its
+ * first consent, a stored envelope becoming an answer, the banner becoming
+ * interactive), are required only of `android-js`. That leg is the one that runs the
+ * JavaScript suite end to end; the rows are measured on the macOS leg too, and a shared
+ * macOS runner is where a timing ceiling has the least to say. The size rows are
+ * required of both, because both build the package and a byte count is the same
+ * measurement on either machine.
  */
 export const MOBILE_EXPECTED_ROWS: Record<string, readonly string[]> = {
 	'android-js': [
@@ -122,8 +130,17 @@ export const MOBILE_EXPECTED_ROWS: Record<string, readonly string[]> = {
 		'native_snapshot_pulls_per_run',
 		'policy_apply_per_rule_set_us',
 		'policy_rule_sets_covered',
+		'cold_start_js_to_first_consent_ms',
+		'cached_consent_available_ms',
+		'consent_ui_mount_to_interactive_ms',
+		'consent_ui_open_to_interactive_ms',
+		'consent_ui_remount_to_interactive_ms',
+		'consent_ui_action_to_commit_ms',
 		'js_shipped_bytes',
 		'js_shipped_gzip_bytes',
+		'js_closure_bytes',
+		'js_closure_gzip_bytes',
+		'js_closure_modules',
 		'android_binary_bytes',
 		'jsx_global_reference_files',
 		'package_manifest_parse_errors',
@@ -140,6 +157,9 @@ export const MOBILE_EXPECTED_ROWS: Record<string, readonly string[]> = {
 		'native_queue_replay_us',
 		'js_shipped_bytes',
 		'js_shipped_gzip_bytes',
+		'js_closure_bytes',
+		'js_closure_gzip_bytes',
+		'js_closure_modules',
 		'ios_binary_bytes',
 		'jsx_global_reference_files',
 		'package_manifest_parse_errors',
