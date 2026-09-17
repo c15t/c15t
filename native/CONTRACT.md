@@ -131,6 +131,8 @@ Native API (Swift and Kotlin, same shape)
     bootstrap(config) -> Void         // idempotent, safe from any launch hook
     snapshot() -> ConsentSnapshot     // synchronous, never blocks on I/O
     isAllowed(_ category) -> Bool     // synchronous read of effectivePermissions
+    decision(_ category)              // granted | denied | pending
+    isReady() -> Bool                 // hydrated, and the first init has resolved
     gate(_ category, onChange)        // fires now and on every change
     onChange(_ observer)              // snapshot observer, weakly held
     save(_ intent) -> CommitResult    // 'all' | 'necessary' | explicit map
@@ -142,6 +144,62 @@ Native API (Swift and Kotlin, same shape)
 
 `snapshot()` and `isAllowed()` must not touch the network, the disk, or a lock
 that can be held across either. They are called from ad SDKs on the main thread.
+
+Native SDK gating
+-----------------
+
+The reason the core is native at all is that an analytics or advertising SDK can
+initialize before the React Native bundle exists, so the core has to answer it. That
+answer is the surface a host app's own Swift or Kotlin code uses, and it is a public
+API in its own right, not a detail living behind the React Native bridge.
+
+A boolean cannot carry it. `isAllowed` answers `false` both for a user who refused and
+for a device whose policy has not resolved, and those need opposite handling: a
+refused category stays off, an unresolved one stays off *and keeps listening*. A gate
+that cannot tell them apart either initializes on an unknown, which is the violation
+this whole package exists to prevent, or switches off forever a category that was
+going to be granted. So the gate reports why, not just whether:
+
+    enum ConsentDecision { GRANTED | DENIED | PENDING }   // Swift: .granted/.denied/.pending
+
+    decision(category) -> ConsentDecision
+    gate(category) { (ConsentDecision) -> Void }
+
+Derive both from the snapshot and from nothing else, so the gate can never disagree
+with the state the UI is showing:
+
+- `necessary` is `GRANTED`. It is not something anyone gets to take away.
+- Otherwise, while `ready` is false or `policyPending` is true, `PENDING`. The device
+  has not been told yet, so nothing may read the current `false` as a refusal.
+- Otherwise `GRANTED` where `isAllowed` is true, `DENIED` where it is false.
+
+The decision-carrying `gate` keeps the boolean one's rules: the callback fires at
+registration with the current decision, again on every change, and the returned handle
+cancels it. Add one rule that matters to a late starter: a listener registered after
+the decision has been reached still receives that decision rather than silence, so an
+SDK that initializes two seconds into the launch does not have to know what it missed.
+
+`decision` and `isReady` hold the same line as `snapshot` and `isAllowed`: one read of
+in-memory state, no disk, no network, no lock held across either. Ad SDKs call these
+from the main thread inside `Application.onCreate` and
+`applicationDidFinishLaunching`, and a block there is an ANR or a watchdog kill that
+the store files against the host app.
+
+`PENDING` is not a promise that an answer is coming. A first launch with no network
+stays `PENDING` for the life of the process, which is the safe answer and the one that
+keeps the SDK switched off. A host that cannot wait that long bounds the wait itself.
+The core grows no timeout, because whatever number it picked would become a legally
+loadable answer the policy never gave.
+
+Platform privacy
+----------------
+
+ATT on iOS and the `AD_ID` runtime permission on Android are platform gates, not
+consent. A core may report their status so the host can act, and may request them
+where the host opts in, but no platform authorization moves a category from `DENIED`
+or `PENDING` to `GRANTED`: `decision` is a function of the resolved policy and the
+user's c15t choice only. A device with ATT granted and consent denied is denied, and
+its advertising identifier stays unavailable.
 
 Persistence
 -----------
