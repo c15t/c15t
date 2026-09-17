@@ -10,7 +10,18 @@
 declare module 'react-test-renderer' {
 	import type { ReactNode } from 'react';
 
+	export interface ReactTestInstance {
+		children: ReactTestInstance[];
+		props: Record<string, unknown>;
+		type: unknown;
+		findAll: (
+			predicate: (instance: ReactTestInstance) => boolean,
+			options?: { deep?: boolean }
+		) => ReactTestInstance[];
+	}
+
 	export interface ReactTestRenderer {
+		root: ReactTestInstance;
 		toJSON: () => unknown;
 		unmount: () => void;
 		update: (node: ReactNode) => void;

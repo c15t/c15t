@@ -19,7 +19,7 @@ import { act, create } from 'react-test-renderer';
 
 import { ensureReactGlobalForDist } from '../support/ensure-react-global';
 import { installBenchNativeModule } from '../support/fake-native';
-import { buildSnapshot } from '../support/fixtures';
+import { buildExplicitChoice, buildSnapshot } from '../support/fixtures';
 import type { BenchSnapshot } from '../support/fixtures';
 import {
 	emitNativeEvent,
@@ -195,16 +195,7 @@ export const measureRerenders =
 				...current.effectivePermissions,
 				marketing: true,
 			},
-			explicitChoice: {
-				action: 'accept',
-				actionAt: current.evaluatedAt + 25,
-				consents: {
-					experience: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-				},
-			},
+			explicitChoice: buildExplicitChoice(current.evaluatedAt + 25),
 			promptRequirement: { kind: 'choice', reason: 'standing' },
 			revision: current.revision + 1,
 		};

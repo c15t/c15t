@@ -22,6 +22,7 @@ import { join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import { findMissingReactImports } from '../support/ensure-react-global';
+import { walkModuleClosure } from '../support/module-closure';
 import { REPO_ROOT } from './native';
 
 const PACKAGE_DIR = resolve(REPO_ROOT, 'packages', 'react-native');
@@ -42,6 +43,11 @@ export interface BundleMetric {
 export interface BundleResult {
 	jsShippedBytes: BundleMetric;
 	jsShippedGzipBytes: BundleMetric;
+	/** What the entry drags in beyond this package, which is what a bundle pays. */
+	jsClosureBytes: BundleMetric;
+	jsClosureGzipBytes: BundleMetric;
+	/** Modules in that closure, so a regression can be attributed. */
+	jsClosureFiles: BundleMetric;
 	iosBinaryBytes: BundleMetric;
 	/** The TurboModule binding, which needs a pod install to compile. */
 	iosBindingBytes: BundleMetric;
@@ -395,6 +401,71 @@ const measureAndroidBytes = function measureAndroidBytes(): BundleMetric {
 };
 
 /**
+ * The JavaScript an app carries because it installed c15t.
+ *
+ * @param shippedModules - Module count of the package's own `dist`, for the detail.
+ * @returns Raw and gzipped closure bytes, plus the module count.
+ */
+const measureJavaScriptClosure = function measureJavaScriptClosure(
+	shippedModules: number
+): { bytes: BundleMetric; gzip: BundleMetric; files: BundleMetric } {
+	const empty: BundleMetric = { value: null };
+	const entry = join(DIST_DIR, 'index.js');
+
+	if (!existsSync(entry)) {
+		const reason = `no built entry at ${entry}; run bun turbo run build --filter=@c15t/react-native`;
+		return {
+			bytes: { ...empty, reason },
+			files: { ...empty, reason },
+			gzip: { ...empty, reason },
+		};
+	}
+
+	const closure = walkModuleClosure(entry, REPO_ROOT);
+
+	if (closure.files.length === 0) {
+		const reason = `walking ${entry} reached no module`;
+		return {
+			bytes: { ...empty, reason },
+			files: { ...empty, reason },
+			gzip: { ...empty, reason },
+		};
+	}
+
+	const buffers = closure.files.map((file) => readFileSync(file));
+	const concatenated = buffers.reduce(
+		(all, part) => Buffer.concat([all, part]),
+		Buffer.alloc(0)
+	);
+
+	const own = closure.files.filter((file) => file.startsWith(DIST_DIR)).length;
+	const detail = [
+		`${closure.files.length} modules from the entry`,
+		`${own} from @c15t/react-native, ${closure.files.length - own} from other @c15t packages`,
+	];
+	if (closure.external.length > 0) {
+		detail.push(`host imports not counted: ${closure.external.join(', ')}`);
+	}
+	if (closure.unresolved.length > 0) {
+		detail.push(
+			`${closure.unresolved.length} edge(s) did not resolve: ${closure.unresolved.slice(0, 3).join('; ')}`
+		);
+	}
+	if (shippedModules === 0) {
+		detail.push('the package itself shipped no JavaScript');
+	}
+
+	return {
+		bytes: { detail: detail.join('; '), value: concatenated.byteLength },
+		files: { detail: detail.join('; '), value: closure.files.length },
+		gzip: {
+			detail: detail.join('; '),
+			value: gzipSync(concatenated).byteLength,
+		},
+	};
+};
+
+/**
  * Measure everything the package ships.
  *
  * @returns One metric per shipped-bytes row.
@@ -430,11 +501,15 @@ export const measureBundle = function measureBundle(): BundleResult {
 	}
 
 	const jsxFiles = findMissingReactImports();
+	const closure = measureJavaScriptClosure(files.length);
 
 	return {
 		androidBinaryBytes: measureAndroidBytes(),
 		iosBinaryBytes: measureIosBytes(),
 		iosBindingBytes: measureIosBindingBytes(),
+		jsClosureBytes: closure.bytes,
+		jsClosureFiles: closure.files,
+		jsClosureGzipBytes: closure.gzip,
 		jsShippedBytes: raw,
 		jsShippedGzipBytes: gzip,
 		jsxGlobalReferenceFiles: {

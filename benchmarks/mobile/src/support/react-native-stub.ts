@@ -23,18 +23,22 @@ import type { CompletionCallback } from './animated-value';
 import { AnimatedValue } from './animated-value';
 
 /**
- * A host component that renders its children under one intrinsic tag.
+ * A host component that renders under one intrinsic tag, props and all.
  *
- * The bench never renders the package's UI, but the module graph links the
- * components, and a harness that renders one by accident should still see its
- * own tree rather than a link error. react-test-renderer accepts intrinsic tags.
+ * The module graph links the package's components, and the interactivity
+ * measurement renders them, so the props a control carries have to survive onto
+ * the element: `onPress` is what "the user could tap this now" means in a tree
+ * react-test-renderer produced. Passing them through is harmless here because
+ * the renderer stores props rather than handing them to a DOM.
  *
  * @param tag - Intrinsic element name to render.
  * @returns A component the renderers accept.
  */
 const hostComponent = function hostComponent(tag: string) {
-	return function HostComponent(props: { children?: ReactNode }): ReactNode {
-		return createElement(tag, null, props.children);
+	return function HostComponent(
+		props: Record<string, unknown> & { children?: ReactNode }
+	): ReactNode {
+		return createElement(tag, props, props.children);
 	};
 };
 
@@ -99,6 +103,9 @@ export class NativeEventEmitter {
  * links without a React Native runtime.
  */
 
+/** The host tag most recently asked for, so a run can prove focus landed. */
+export const accessibilityFocus = { lastTag: null as number | null };
+
 /** `AccessibilityInfo`, reduced to what the package subscribes to. */
 export const AccessibilityInfo = {
 	addEventListener: (_eventName: string, _handler: () => void) => ({
@@ -108,6 +115,10 @@ export const AccessibilityInfo = {
 	isReduceMotionEnabled: () => Promise.resolve(false),
 	isScreenReaderEnabled: () => Promise.resolve(false),
 	removeEventListener: (_eventName: string, _handler: () => void) => undefined,
+	// `useModalA11y` focuses the sheet it opened, one frame after the effect ran.
+	setAccessibilityFocus: (tag: number): void => {
+		accessibilityFocus.lastTag = tag;
+	},
 };
 
 /** `Animated`, reduced to the timing path the motion hook takes. */

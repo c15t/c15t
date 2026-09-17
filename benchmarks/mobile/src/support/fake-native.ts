@@ -8,7 +8,11 @@
  * timer would measure the timer.
  */
 
-import { BENCH_BOOTSTRAP, buildSnapshot } from './fixtures';
+import {
+	BENCH_BOOTSTRAP,
+	buildExplicitChoice,
+	buildSnapshot,
+} from './fixtures';
 import type { BenchSnapshot } from './fixtures';
 
 /** What the fake records, so a measurement can assert rather than assume. */
@@ -56,16 +60,7 @@ export const installBenchNativeModule = function installBenchNativeModule(
 			snapshot = {
 				...snapshot,
 				activeUI: 'none',
-				explicitChoice: {
-					action: 'accept',
-					actionAt: snapshot.evaluatedAt + 25,
-					consents: {
-						experience: true,
-						functionality: true,
-						marketing: true,
-						measurement: true,
-					},
-				},
+				explicitChoice: buildExplicitChoice(snapshot.evaluatedAt + 25),
 				promptRequirement: { kind: 'choice', reason: 'standing' },
 				revision: snapshot.revision + 1,
 			};

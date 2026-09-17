@@ -50,6 +50,36 @@ describe('budgets.json', () => {
 		expect(file.sampling.idleWindowMs).toBeGreaterThanOrEqual(30_000);
 		expect(file.sampling.subsequentRunDiffTolerancePercent).toBeGreaterThan(0);
 	});
+
+	it('gives the process-spawned rows enough samples to hold a median', () => {
+		// These two cannot borrow samples from a loop: one process is one sample, so a
+		// plan of one would report a single launch as if it were a typical one.
+		expect(file.sampling.coldStartProcesses).toBeGreaterThanOrEqual(3);
+		expect(file.sampling.quickColdStartProcesses).toBeGreaterThanOrEqual(2);
+		expect(file.sampling.quickColdStartProcesses).toBeLessThanOrEqual(
+			file.sampling.coldStartProcesses
+		);
+	});
+
+	it('gives the mount rows enough mounts to hide one compile', () => {
+		expect(file.sampling.uiMountIterations).toBeGreaterThanOrEqual(10);
+		expect(file.sampling.quickUiMountIterations).toBeGreaterThanOrEqual(2);
+		expect(file.sampling.quickUiMountIterations).toBeLessThanOrEqual(
+			file.sampling.uiMountIterations
+		);
+	});
+
+	it('runs a shorter plan in quick mode, never a longer one', () => {
+		expect(file.sampling.quickWarmupIterations).toBeLessThan(
+			file.sampling.warmupIterations
+		);
+		expect(file.sampling.quickMeasuredIterations).toBeLessThan(
+			file.sampling.measuredIterations
+		);
+		expect(file.sampling.quickIdleWindowMs).toBeLessThan(
+			file.sampling.idleWindowMs
+		);
+	});
 });
 
 describe('rows against budgets', () => {

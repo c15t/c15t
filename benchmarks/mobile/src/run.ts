@@ -22,9 +22,14 @@ import {
 	writeJson,
 } from '@c15t/benchmarking/utils';
 
+import { coverageNotes } from './axes';
 import { loadBudgets } from './budgets';
 import type { BundleResult } from './measure/bundle';
 import { measureBundle } from './measure/bundle';
+import type { CachedConsentResult } from './measure/cached-consent';
+import { measureCachedConsent } from './measure/cached-consent';
+import type { ColdStartResult } from './measure/cold-start';
+import { measureColdStart } from './measure/cold-start';
 import type { IdleResult } from './measure/idle';
 import { measureIdle } from './measure/idle';
 import { measureJavaScript } from './measure/javascript';
@@ -33,6 +38,8 @@ import { nativeRows } from './measure/native-rows';
 import type { PolicySweepResult } from './measure/policy-sweep';
 import { measurePolicySweep } from './measure/policy-sweep';
 import { measureRerenders } from './measure/rerender';
+import type { UiInteractiveResult } from './measure/ui-interactive';
+import { measureUiInteractive } from './measure/ui-interactive';
 import { buildCheck, diffRows, renderReport } from './report';
 import { makeRow, ROWS } from './rows';
 import type {
@@ -208,6 +215,103 @@ const sweepRows = function sweepRows(
 };
 
 /**
+ * Rows for the launch cost a warm process cannot show.
+ *
+ * @param cold - What the fresh processes produced.
+ * @param budgets - The loaded budget map.
+ * @returns Rows in report order.
+ */
+const coldStartRows = function coldStartRows(
+	cold: ColdStartResult,
+	budgets: Record<string, MobileBudget>
+): MobileBenchRow[] {
+	if (cold.unavailable) {
+		return [
+			makeRow(ROWS.coldStartJsLaunch, budgets, { reason: cold.unavailable }),
+		];
+	}
+
+	return [
+		makeRow(ROWS.coldStartJsLaunch, budgets, {
+			detail: `median of ${cold.samples} fresh processes: ${cold.moduleLoadMs} ms evaluating the entry and what it links, ${cold.attachMs} ms to the first read; ${cold.hostMs} ms of React and harness work excluded`,
+			samples: cold.samples,
+			value: cold.toFirstConsentMs,
+		}),
+	];
+};
+
+/**
+ * Rows for the store-to-answer span.
+ *
+ * @param cached - What the store reads produced.
+ * @param budgets - The loaded budget map.
+ * @returns Rows in report order.
+ */
+const cachedConsentRows = function cachedConsentRows(
+	cached: CachedConsentResult,
+	budgets: Record<string, MobileBudget>
+): MobileBenchRow[] {
+	if (cached.unavailable) {
+		return [
+			makeRow(ROWS.cachedConsent, budgets, { reason: cached.unavailable }),
+		];
+	}
+
+	return [
+		makeRow(ROWS.cachedConsent, budgets, {
+			detail: `envelope ${cached.envelopeBytes} B read off disk, granted marketing as the store said`,
+			samples: cached.samples,
+			value: cached.coldMs,
+		}),
+	];
+};
+
+/**
+ * Rows for the rendered banner. All four share one reason when the sheet never
+ * became actionable, because they are four readings of one mount.
+ *
+ * @param ui - What the mounts produced.
+ * @param budgets - The loaded budget map.
+ * @returns Rows in report order.
+ */
+const uiRows = function uiRows(
+	ui: UiInteractiveResult,
+	budgets: Record<string, MobileBudget>
+): MobileBenchRow[] {
+	if (ui.unavailable) {
+		return [
+			makeRow(ROWS.uiMount, budgets, { reason: ui.unavailable }),
+			makeRow(ROWS.uiRemount, budgets, { reason: ui.unavailable }),
+			makeRow(ROWS.uiOpen, budgets, { reason: ui.unavailable }),
+			makeRow(ROWS.uiActionToCommit, budgets, { reason: ui.unavailable }),
+		];
+	}
+
+	return [
+		makeRow(ROWS.uiMount, budgets, {
+			detail: `${ui.controls} live controls; react-test-renderer, so no layout pass or platform Modal`,
+			samples: 1,
+			value: ui.coldMountMs,
+		}),
+		makeRow(ROWS.uiRemount, budgets, {
+			detail: `median of ${ui.samples} mounts against one attached client`,
+			samples: ui.samples,
+			value: ui.mountMs,
+		}),
+		makeRow(ROWS.uiOpen, budgets, {
+			detail: `${ui.controls} controls after ${ui.openTicks} settle frame(s) past the event's own turn`,
+			samples: 1,
+			value: ui.openMs,
+		}),
+		makeRow(ROWS.uiActionToCommit, budgets, {
+			detail: `press to the intent reaching the module; ${ui.controlsAfterAccept} control(s) left, which should be 0`,
+			samples: 1,
+			value: ui.actionToCommitMs,
+		}),
+	];
+};
+
+/**
  * Rows for shipped bytes. A metric with no value carries the reason its build
  * could not run, which is the difference between a small artifact and no evidence.
  *
@@ -222,6 +326,9 @@ const bundleRows = function bundleRows(
 	const specs = [
 		[ROWS.jsRaw, bundle.jsShippedBytes],
 		[ROWS.jsGzip, bundle.jsShippedGzipBytes],
+		[ROWS.jsClosureBytes, bundle.jsClosureBytes],
+		[ROWS.jsClosureGzip, bundle.jsClosureGzipBytes],
+		[ROWS.jsClosureModules, bundle.jsClosureFiles],
 		[ROWS.iosBinary, bundle.iosBinaryBytes],
 		[ROWS.iosBinding, bundle.iosBindingBytes],
 		[ROWS.androidBinary, bundle.androidBinaryBytes],
@@ -257,8 +364,10 @@ export const runBenchmark = async function runBenchmark(
 	const sampling = quick
 		? {
 				...file.sampling,
+				coldStartProcesses: file.sampling.quickColdStartProcesses,
 				idleWindowMs: file.sampling.quickIdleWindowMs,
 				measuredIterations: file.sampling.quickMeasuredIterations,
+				uiMountIterations: file.sampling.quickUiMountIterations,
 				warmupIterations: file.sampling.quickWarmupIterations,
 			}
 		: file.sampling;
@@ -273,6 +382,29 @@ export const runBenchmark = async function runBenchmark(
 	rows.push(...nativeRows(swift, kotlin, budgets));
 
 	rows.push(...(await javaScriptRows(budgets, sampling)));
+
+	const cold = measureColdStart(sampling.coldStartProcesses);
+	rows.push(...coldStartRows(cold, budgets));
+	const contractCold = budgets.cold_start_overhead_ms?.max;
+	if (contractCold !== undefined && cold.toFirstConsentMs > contractCold) {
+		notes.push(
+			`the cold JavaScript span measures ${cold.toFirstConsentMs} ms, over the ${contractCold} ms the contract budgets for cold-start overhead. The contract row above times only the read path in a warm process; the contract number is a device-profile one and this harness runs on Node's module loader, which charges c15t for resolving every specifier a bundled app resolves from one bundle. Read the two rows together and treat neither as an app-launch number.`
+		);
+	}
+
+	rows.push(
+		...cachedConsentRows(
+			measureCachedConsent(
+				sampling.warmupIterations,
+				sampling.measuredIterations
+			),
+			budgets
+		)
+	);
+	rows.push(
+		...uiRows(measureUiInteractive(sampling.uiMountIterations), budgets)
+	);
+
 	rows.push(...idleRows(measureIdle(sampling.idleWindowMs), budgets));
 	const sweep = await measurePolicySweep(
 		Math.max(10, Math.round(sampling.warmupIterations / 2)),
@@ -291,6 +423,9 @@ export const runBenchmark = async function runBenchmark(
 		);
 	}
 
+	// Record coverage the same way every run sees it, so an axis that silently loses its
+	// last row shows up here and not only in a README that nobody re-reads.
+	notes.push(...coverageNotes(rows));
 	const previous = readPrevious();
 	const outputDir = process.env.BENCH_OUTPUT_DIR;
 	const artifact: MobileBenchArtifact = {

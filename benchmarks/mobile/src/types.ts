@@ -71,6 +71,19 @@ export interface MobileSampling {
 	quickWarmupIterations: number;
 	quickMeasuredIterations: number;
 	subsequentRunDiffTolerancePercent: number;
+	/**
+	 * Fresh processes behind the cold-start rows.
+	 *
+	 * One process is one sample: a second launch inside the first process is warm,
+	 * which is the thing being excluded.
+	 */
+	coldStartProcesses: number;
+	/** Cold-start processes in `--quick`, where each one still costs a spawn. */
+	quickColdStartProcesses: number;
+	/** Banner mounts behind the warm interactivity median. */
+	uiMountIterations: number;
+	/** Banner mounts in `--quick`. */
+	quickUiMountIterations: number;
 }
 
 /** Everything one run produces. Written to disk so a later run can diff. */

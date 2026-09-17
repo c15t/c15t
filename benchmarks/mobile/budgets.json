@@ -16,7 +16,11 @@
 		"quickIdleWindowMs": 2000,
 		"quickWarmupIterations": 5,
 		"quickMeasuredIterations": 30,
-		"subsequentRunDiffTolerancePercent": 25
+		"subsequentRunDiffTolerancePercent": 25,
+		"coldStartProcesses": 15,
+		"quickColdStartProcesses": 3,
+		"uiMountIterations": 40,
+		"quickUiMountIterations": 5
 	},
 	"budgets": {
 		"bootstrap_to_snapshot_warm_ms": {
@@ -35,7 +39,7 @@
 			"max": 10,
 			"unit": "ms",
 			"source": "contract",
-			"note": "Cold-start overhead attributable to c15t: under 10 ms. Measured as the cold bootstrap-to-first-snapshot span, which is the only work c15t adds to launch before the first read."
+			"note": "Cold-start overhead attributable to c15t: under 10 ms. This row times the read path only: handshake to the first synchronous snapshot() in the first client the process builds. The module evaluation an app also pays before that read is a separate row, cold_start_js_to_first_consent_ms, because it is a different span measured a different way (one fresh process per sample rather than a warm loop)."
 		},
 		"commit_ack_no_network_ms": {
 			"max": 50,
@@ -122,10 +126,10 @@
 			"note": "Resident-set growth across the quiet window: 256 KiB allows the allocator's own slack and rejects a per-tick leak."
 		},
 		"js_shipped_bytes": {
-			"max": 98304,
+			"max": 102400,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 96 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine."
+			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 100 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine. It moved from 96 KiB at 98,546 B measured: the package grew a decision-carrying gate and a wire-shape checker, and both belong here rather than in a dev-only side door, because the thing being guarded is what crosses the bridge. The size that actually needs defending is js_closure_bytes, four times this number."
 		},
 		"js_shipped_gzip_bytes": {
 			"max": 24576,
@@ -180,6 +184,60 @@
 			"unit": "us",
 			"source": "allowance",
 			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
+		},
+		"cold_start_js_to_first_consent_ms": {
+			"max": 80,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 31-44 ms on the development machine, of which under a millisecond is the handshake and the rest the module graph the built barrel pulls in: 131 modules, 46 of them this package. 80 ms is a blow-up guard, not a promise: it allows a runner twice as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
+		},
+		"cached_consent_available_ms": {
+			"max": 3,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Stored envelope on disk to an answer JavaScript can read: the store read, the envelope decode, and the first snapshot() of a fresh client. Measured 0.027 ms against a 3.1 KiB envelope that grants marketing. 3 ms is the contract's hydrate ceiling applied to the whole path rather than to the decode alone, so the row cannot pass by being fast and wrong."
+		},
+		"consent_ui_mount_to_interactive_ms": {
+			"max": 25,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Provider mount to a live press handler on the first banner this process renders, so the attach and the first render pass are inside the span. Measured 5-6.5 ms under react-test-renderer, which runs no layout, no platform Modal, and no font loading. 25 ms is the ceiling for a prompt that appears at launch without a device frame budget."
+		},
+		"consent_ui_remount_to_interactive_ms": {
+			"max": 5,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "The same mount with the module loaded and one client already attached, which is what a screen that shows a banner later in the session pays. Measured 0.46 ms over 40 mounts; 5 ms allows a ten-fold regression on a span that is a render, not an initialisation."
+		},
+		"consent_ui_open_to_interactive_ms": {
+			"max": 10,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "The core saying a prompt is owed to a live press handler, which is the common case: the app is already open and the policy resolved after first paint. Measured 1.1 ms with no settle frames needed. 10 ms is the ceiling for one sheet's worth of React work, and a span that starts growing is a subscription or selector problem."
+		},
+		"consent_ui_action_to_commit_ms": {
+			"max": 10,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Tap on the primary action to the module holding the intent, measured through the rendered control rather than a client call, so the React layer is inside the span. Measured 0.72 ms against a fake that answers offline. The 50 ms contract ceiling gates the client span below; 10 ms here says the render path must not add an order of magnitude to it."
+		},
+		"js_closure_bytes": {
+			"max": 524288,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry, including the @c15t/core graph its barrel re-exports. Measured 389,639 B over 131 modules, against 98,546 B for this package's own dist. 512 KiB is the ceiling for a boundary plus one kernel; the headroom is there because most of these bytes belong to a package this one does not own."
+		},
+		"js_closure_gzip_bytes": {
+			"max": 131072,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "The same closure gzipped, which is the shape it travels in. Measured 90,701 B over 131 modules; 128 KiB is the ceiling, which is the js_shipped_gzip_bytes allowance plus room for the kernel the boundary pulls in. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
+		},
+		"idle_heap_growth_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "V8 heap growth across the quiet window with one live subscription. Measured about 6 KiB, which is the allocation the window itself makes. 256 KiB matches the resident-set ceiling: the same promise from inside the isolate, where a per-tick allocation shows up long before it shows up in RSS."
 		}
 	}
 }

@@ -39,6 +39,50 @@ export interface Outcome {
  * @returns A row ready for the report and the artifact.
  * @throws {Error} When a row has neither a value nor a reason.
  */
+/**
+ * Round a measured value for the artifact without letting it read as zero.
+ *
+ * Three decimals is the right precision for a span of milliseconds and the wrong one
+ * for a span a bench reports in fractions of a microsecond. Printing `0` there would
+ * claim the work cost nothing, and the next run's diff would score it a total win, so
+ * such a value keeps four significant figures and says so in the detail.
+ *
+ * @param unit - The row's unit, which is what the third decimal is a third of.
+ * @param detail - The detail the measurement supplied, if any.
+ * @param value - The raw measured value.
+ * @returns The value to store and the detail to store beside it.
+ */
+const reportableValue = function reportableValue(
+	unit: MobileUnit,
+	detail: string | undefined,
+	value: number
+): { detail: string | undefined; value: number } {
+	const rounded = Number(value.toFixed(3));
+
+	if (value === 0 || rounded !== 0) {
+		return { detail, value: rounded };
+	}
+
+	const widened = Number(value.toPrecision(4));
+
+	return {
+		detail:
+			detail === undefined
+				? `reported to four significant figures: ${widened}, below three decimals in ${unit}`
+				: `${detail}; reported to four significant figures: ${widened}, below three decimals in ${unit}`,
+		value: widened,
+	};
+};
+
+/**
+ * Build one table row.
+ *
+ * @param spec - Identity and which budget gates it.
+ * @param budgets - The loaded budget map.
+ * @param outcome - The measured value, or the reason it is absent.
+ * @returns A row ready for the report and the artifact.
+ * @throws {Error} When a row has neither a value nor a reason.
+ */
 export const makeRow = function makeRow(
 	spec: RowSpec,
 	budgets: Record<string, MobileBudget>,
@@ -51,10 +95,15 @@ export const makeRow = function makeRow(
 		throw new Error(`row "${spec.id}" has no value and no reason`);
 	}
 
+	const reported =
+		value === null
+			? undefined
+			: reportableValue(spec.unit, outcome.detail, value);
+
 	return {
 		budget: budget?.max ?? null,
 		budgetSource: budget?.source ?? null,
-		detail: outcome.detail,
+		detail: reported?.detail,
 		id: spec.id,
 		label: spec.label,
 		reason: outcome.reason,
@@ -62,7 +111,7 @@ export const makeRow = function makeRow(
 		status: value === null ? 'not-measured' : 'measured',
 		surface: spec.surface,
 		unit: spec.unit,
-		value: value === null ? null : Number(value.toFixed(3)),
+		value: reported?.value ?? null,
 	};
 };
 
@@ -86,6 +135,20 @@ export const ROWS = {
 		budgetKey: 'bootstrap_to_snapshot_warm_ms',
 		id: 'bootstrap_to_snapshot_warm_ms',
 		label: 'handshake to first snapshot(), warm',
+		surface: 'react-native-js',
+		unit: 'ms',
+	},
+	cachedConsent: {
+		budgetKey: 'cached_consent_available_ms',
+		id: 'cached_consent_available_ms',
+		label: 'stored envelope on disk to a readable answer',
+		surface: 'react-native-js',
+		unit: 'ms',
+	},
+	coldStartJsLaunch: {
+		budgetKey: 'cold_start_js_to_first_consent_ms',
+		id: 'cold_start_js_to_first_consent_ms',
+		label: 'built entry to first snapshot(), fresh process',
 		surface: 'react-native-js',
 		unit: 'ms',
 	},
@@ -118,7 +181,7 @@ export const ROWS = {
 		unit: 'percent',
 	},
 	idleHeap: {
-		budgetKey: null,
+		budgetKey: 'idle_heap_growth_bytes',
 		id: 'idle_heap_growth_bytes',
 		label: 'heap growth over the quiet window',
 		surface: 'react-native-js',
@@ -151,6 +214,27 @@ export const ROWS = {
 		label: 'isAllowed() read',
 		surface: 'react-native-js',
 		unit: 'us',
+	},
+	jsClosureBytes: {
+		budgetKey: 'js_closure_bytes',
+		id: 'js_closure_bytes',
+		label: 'JavaScript an app carries from the entry',
+		surface: 'bundle',
+		unit: 'bytes',
+	},
+	jsClosureGzip: {
+		budgetKey: 'js_closure_gzip_bytes',
+		id: 'js_closure_gzip_bytes',
+		label: 'JavaScript an app carries, gzipped',
+		surface: 'bundle',
+		unit: 'bytes',
+	},
+	jsClosureModules: {
+		budgetKey: null,
+		id: 'js_closure_modules',
+		label: 'modules reachable from the built entry',
+		surface: 'bundle',
+		unit: 'count',
 	},
 	jsGzip: {
 		budgetKey: 'js_shipped_gzip_bytes',
@@ -334,5 +418,33 @@ export const ROWS = {
 		label: 'snapshot() read',
 		surface: 'react-native-js',
 		unit: 'us',
+	},
+	uiActionToCommit: {
+		budgetKey: 'consent_ui_action_to_commit_ms',
+		id: 'consent_ui_action_to_commit_ms',
+		label: 'tap on the primary action to the module holding it',
+		surface: 'react-native-js',
+		unit: 'ms',
+	},
+	uiMount: {
+		budgetKey: 'consent_ui_mount_to_interactive_ms',
+		id: 'consent_ui_mount_to_interactive_ms',
+		label: 'first banner mount to a live press handler',
+		surface: 'react-native-js',
+		unit: 'ms',
+	},
+	uiOpen: {
+		budgetKey: 'consent_ui_open_to_interactive_ms',
+		id: 'consent_ui_open_to_interactive_ms',
+		label: 'prompt owed to a live press handler',
+		surface: 'react-native-js',
+		unit: 'ms',
+	},
+	uiRemount: {
+		budgetKey: 'consent_ui_remount_to_interactive_ms',
+		id: 'consent_ui_remount_to_interactive_ms',
+		label: 'warm banner mount to a live press handler',
+		surface: 'react-native-js',
+		unit: 'ms',
 	},
 } satisfies Record<string, RowSpec>;
