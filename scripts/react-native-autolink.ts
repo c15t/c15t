@@ -22,16 +22,39 @@
  * It runs the unscoped command, not `config --platform android`, because that is what
  * `autolinkLibrariesFromCommand()` runs and because the iOS half has to keep resolving in the
  * same pass: a config file that stops the podspec from being found breaks `pod install` too.
+ *
+ * The check then runs a second time against the *packed* package. Both fixtures install
+ * `@c15t/react-native` as a symlink into this workspace, so the first pass resolves the
+ * checkout, and a checkout carries `src/specs`, `ios/Tests`, a Gradle wrapper, and every other
+ * file `package.json`'s `files` array leaves out of the tarball. An allowlist that drops
+ * something an app reads -- the Codegen input directory, the podspec's license file -- is
+ * invisible to it and fatal to `pod install` and `:c15t-react-native:generateC15tCodegen` in
+ * the app. So `packReactNativePackage()` runs `npm pack`, installs the result over the
+ * fixture's symlink, and asks the same two linkers the same questions.
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	lstatSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const EXAMPLE_DIR = join(ROOT, 'examples', 'react-native-bare');
+
+/** The package under check, packed and installed rather than read in place. */
+const PACKAGE_DIR = join(ROOT, 'packages', 'react-native');
 
 /**
  * The Expo fixture. It links through `expo-modules-autolinking`, which is a second
@@ -359,11 +382,525 @@ export const checkExpoAndroidAutolinking = function checkExpoAndroidAutolinking(
 	});
 };
 
+/**
+ * A file the installed package has to carry, and the build that reads it.
+ *
+ * These are the paths a host app opens, not the paths this repository writes. Every entry is
+ * a line in one of the two native builds, so a missing one is a named failure there rather
+ * than a mystery: `files` in `package.json` is an allowlist, and npm drops `.gitignore` the
+ * moment it sees one, so what is published is exactly this list and nothing else.
+ * `scripts/check-publish-artifacts.ts` turns the same list into `requiredPackedFilesByPackage`
+ * so the release gate and the linker check cannot drift apart.
+ */
+export interface HostReadPath {
+	/** Where the file sits inside the installed package. */
+	path: string;
+	/** Who reads it, in the words of the build that reads it. */
+	readBy: string;
+}
+
+/** The podspec, which is both the iOS half of autolinking and the thing that names the rest. */
+const PODSPEC_NAME = 'C15tReactNative.podspec';
+
+/**
+ * Shared with `scripts/check-publish-artifacts.ts` so the release gate and this check hold the
+ * tarball to one list.
+ */
+export const hostReadPaths: HostReadPath[] = [
+	{
+		path: PODSPEC_NAME,
+		readBy: '`use_native_modules!` finds the podspec at the package root',
+	},
+	{
+		path: 'LICENSE.md',
+		readBy:
+			"the podspec's `s.license` file, which Apache-2.0 requires to travel with it",
+	},
+	{
+		path: 'react-native.config.js',
+		readBy:
+			'both linkers read `dependency.platforms`; Expo reads only `.js` and `.ts`, so a `.cjs` is invisible to it',
+	},
+	{
+		path: 'src/specs/NativeC15t.ts',
+		readBy:
+			'`codegenConfig.jsSrcsDir`, which the app reads to generate `NativeC15tSpec` for both platforms',
+	},
+	{
+		path: 'android/codegen/generate-spec.mjs',
+		readBy:
+			'`library.gradle`, which generates the spec into the bridge module, because an app never generates the spec of a library it links',
+	},
+	{
+		path: 'android/c15t-react-native/build.gradle.kts',
+		readBy:
+			'the CLI text-matches this file for the namespace, and it is the module build script the app evaluates',
+	},
+	{
+		path: 'android/c15t-react-native/library.gradle',
+		readBy: "the module build script's `apply(from:)`",
+	},
+	{
+		path: 'android/c15t-react-native/consumer-rules.pro',
+		readBy: '`consumerProguardFiles` in `library.gradle`',
+	},
+	{
+		path: 'android/c15t-react-native/src/main/AndroidManifest.xml',
+		readBy:
+			'the first Java-package lookup the CLI makes, and the androidx.startup entry that bootstraps the core',
+	},
+];
+
+/** One packed package, on disk where an app would see it. */
+export interface PackedPackage {
+	/** The extracted tarball root, which is what a consumer's `node_modules` entry holds. */
+	installedDir: string;
+	/** Every packed path, POSIX-style and relative to `installedDir`. */
+	paths: string[];
+	/** The `.tgz` itself, kept so a failure can name it. */
+	tarball: string;
+}
+
+/**
+ * Translate one CocoaPods-style path pattern into a regular expression.
+ *
+ * CocoaPods matches `source_files` and friends with `Dir.glob`, and the podspec here uses the
+ * three forms that matter: `*` inside a segment, `**` across segments, and `{h,swift}` brace
+ * sets. Brace sets are expanded rather than compiled, which keeps the translation honest about
+ * what it matches.
+ *
+ * @param glob - The pattern exactly as the podspec spells it.
+ * @returns A pattern anchored at both ends, for testing against a packed path.
+ */
+export const globToRegExp = function globToRegExp(glob: string): RegExp {
+	const alternatives: string[] = [];
+
+	const literalToPattern = function literalToPattern(pattern: string): string {
+		let out = '';
+
+		for (let index = 0; index < pattern.length; index += 1) {
+			const character = pattern[index] as string;
+
+			if (pattern.startsWith('/**/', index)) {
+				out += '(?:/|.*/)';
+				index += 3;
+				continue;
+			}
+
+			if (character === '*' && pattern[index + 1] === '*') {
+				out += '.*';
+				index += 1;
+				continue;
+			}
+
+			if (character === '*') {
+				out += '[^/]*';
+				continue;
+			}
+
+			if (character === '?') {
+				out += '[^/]';
+				continue;
+			}
+
+			out += /[.+^${}()|[\]\\]/u.test(character) ? `\\${character}` : character;
+		}
+
+		return out;
+	};
+
+	const translate = function translate(pattern: string): void {
+		const brace = pattern.indexOf('{');
+
+		if (brace === -1) {
+			alternatives.push(literalToPattern(pattern));
+			return;
+		}
+
+		const close = pattern.indexOf('}', brace);
+
+		if (close === -1) {
+			alternatives.push(literalToPattern(pattern));
+			return;
+		}
+
+		const before = pattern.slice(0, brace);
+		const inside = pattern.slice(brace + 1, close);
+		const after = pattern.slice(close + 1);
+
+		for (const option of inside.split(',')) {
+			translate(`${before}${option}${after}`);
+		}
+	};
+
+	translate(glob);
+
+	return new RegExp(`^(?:${alternatives.join('|')})$`, 'u');
+};
+
+/** The podspec's path-shaped declarations, in the order an integrator reads them. */
+interface PodspecPathDeclaration {
+	/** The `s.` attribute, for the failure text. */
+	field: string;
+	/** The pattern or literal, straight out of the file. */
+	pattern: string;
+}
+
+/** `s.source_files = "a", "b"` and friends, where one attribute may name several patterns. */
+const LIST_FIELDS = new Set([
+	'exclude_files',
+	'preserve_paths',
+	'public_header_files',
+	'source_files',
+]);
+
+/**
+ * Read every path a podspec declares.
+ *
+ * Deliberately textual: the only podspecs this repository has to understand are its own, and
+ * evaluating Ruby is not an option on a Linux runner. A field the reader does not understand is
+ * not a failure here; the two that decide what an app compiles are enough to catch a `files`
+ * list that stopped matching the shipped surface.
+ *
+ * @param podspecSource - The podspec, as text.
+ * @returns Every declared path pattern.
+ */
+export const podspecPathDeclarations = function podspecPathDeclarations(
+	podspecSource: string
+): PodspecPathDeclaration[] {
+	const declarations: PodspecPathDeclaration[] = [];
+
+	for (const line of podspecSource.split('\n')) {
+		const attribute = /^\s*s\.(?<field>[a-z_]+)\s*(?<value>.*)$/u.exec(line);
+		const field = attribute?.groups?.field;
+
+		if (field && attribute?.groups.value && LIST_FIELDS.has(field)) {
+			for (const match of attribute.groups.value.matchAll(
+				/"(?<value>[^"]*)"/gu
+			)) {
+				if (match.groups?.value) {
+					declarations.push({
+						field: `s.${field}`,
+						pattern: match.groups.value,
+					});
+				}
+			}
+			continue;
+		}
+
+		// `s.resource_bundle = { "Name" => "path" }` carries the name on the left, which is
+		// not a path, so only the right-hand side of the arrow is read.
+		if (/^\s*s\.resource_bundle\s*[=]/u.test(line)) {
+			for (const match of line.matchAll(/[=]>\s*"(?<value>[^"]*)"/gu)) {
+				if (match.groups?.value) {
+					declarations.push({
+						field: 's.resource_bundle',
+						pattern: match.groups.value,
+					});
+				}
+			}
+			continue;
+		}
+
+		const license =
+			/^\s*s\.license\s*[=].*:file\s*=>\s*"(?<value>[^"]*)"/u.exec(line);
+
+		if (license?.groups?.value) {
+			declarations.push({ field: 's.license', pattern: license.groups.value });
+		}
+	}
+
+	return declarations;
+};
+
+/**
+ * Check the podspec against the files actually in the tarball.
+ *
+ * @param podspecSource - The packed podspec, as text.
+ * @param packedPaths - Every path in the same tarball.
+ * @returns Every declaration that matches nothing, or points outside the package. A podspec
+ * whose patterns resolve is one `pod install` can build from what it was shipped with.
+ */
+export const checkPodspecPaths = function checkPodspecPaths(
+	podspecSource: string,
+	packedPaths: string[]
+): string[] {
+	const failures: string[] = [];
+
+	for (const { field, pattern } of podspecPathDeclarations(podspecSource)) {
+		const normalized = pattern.replaceAll('\\', '/');
+
+		// A podspec is read from wherever the pod lives, which for an installed library is
+		// `node_modules/@c15t/react-native`. Two directories up is the consumer's tree.
+		if (normalized === '..' || normalized.startsWith('../')) {
+			failures.push(
+				`${field} points outside the package at "${pattern}", which resolves into the host app's tree, not ours.`
+			);
+			continue;
+		}
+
+		if (/[?*]/u.test(pattern)) {
+			const matcher = globToRegExp(normalized);
+			if (!packedPaths.some((path) => matcher.test(path))) {
+				failures.push(
+					`${field} declares "${pattern}" and no packed file matches it, so the pod builds from nothing there.`
+				);
+			}
+			continue;
+		}
+
+		// A bare name may be a directory, and a tarball listing carries files only.
+		if (
+			!packedPaths.includes(normalized) &&
+			!packedPaths.some((path) => path.startsWith(`${normalized}/`))
+		) {
+			failures.push(
+				`${field} names "${pattern}", which is not in the packed package.`
+			);
+		}
+	}
+
+	return failures;
+};
+
+/** Spec extensions React Native's Codegen reads, and the ones it skips. */
+const SPEC_FILE_PATTERN = /\.(?:js|jsx|ts|tsx)$/u;
+
+/**
+ * Check that the packed package is the package a host app reads.
+ *
+ * This is the half a workspace install cannot show: the fixtures reach the checkout through a
+ * symlink, so every file in the repository looks published from here.
+ *
+ * @param packed - The packed package to inspect.
+ * @returns Every way the tarball falls short of what the two native builds open.
+ */
+export const checkPackedPackageSurface = function checkPackedPackageSurface(
+	packed: PackedPackage
+): string[] {
+	const failures: string[] = [];
+	const packedPaths = new Set(packed.paths);
+
+	for (const { path, readBy } of hostReadPaths) {
+		if (!packedPaths.has(path)) {
+			failures.push(`the tarball has no ${path}, and ${readBy}.`);
+		}
+	}
+
+	const manifest = JSON.parse(
+		readFileSync(join(packed.installedDir, 'package.json'), 'utf8')
+	) as { codegenConfig?: { jsSrcsDir?: string } };
+	const jsSrcsDir = manifest.codegenConfig?.jsSrcsDir?.replace(/^\.\//u, '');
+
+	if (jsSrcsDir) {
+		const specs = packed.paths.filter(
+			(path) =>
+				path.startsWith(`${jsSrcsDir}/`) &&
+				SPEC_FILE_PATTERN.test(path) &&
+				!path.endsWith('.d.ts')
+		);
+
+		if (specs.length === 0) {
+			failures.push(
+				`\`codegenConfig.jsSrcsDir\` points at ${jsSrcsDir}, which holds no spec file in the tarball. Both generators fail on that: \`generate-spec.mjs\` refuses a directory that is not there, and the app's own Codegen pass reads the same path out of \`react-native config\` and writes no protocol, which the TurboModule then fails to conform to.`
+			);
+		}
+	} else {
+		failures.push(
+			'the packed package declares no `codegenConfig.jsSrcsDir`, so no app can generate NativeC15tSpec.'
+		);
+	}
+
+	const podspecPath = join(packed.installedDir, PODSPEC_NAME);
+
+	if (packedPaths.has(PODSPEC_NAME) && existsSync(podspecPath)) {
+		failures.push(
+			...checkPodspecPaths(readFileSync(podspecPath, 'utf8'), packed.paths)
+		);
+	}
+
+	return failures;
+};
+
+/**
+ * Run `npm pack` and unpack the result, so the check sees a tarball rather than a checkout.
+ *
+ * `--ignore-scripts` skips the package's `prepack`, which is `verify-package-artifacts.ts` and
+ * asks for `dist/`. That guard belongs to publishing, and the release flow keeps it; this check
+ * asks a different question -- does the tree that ships contain what a host app opens -- and it
+ * has to be answerable in a fresh checkout, because `bun run test:scripts` runs before anything
+ * is built. A missing `dist/` shows up as a missing JS entry, not as a failure here.
+ *
+ * @param workDir - A directory to pack into; the caller owns it.
+ * @returns The tarball, its extracted contents, and the listing inside it.
+ */
+export const packReactNativePackage = function packReactNativePackage(
+	workDir: string
+): PackedPackage {
+	execFileSync(
+		'npm',
+		['pack', '--ignore-scripts', '--pack-destination', workDir],
+		{
+			cwd: PACKAGE_DIR,
+			// The file list npm prints on stdout, and the notice banner, neither of which is
+			// the answer: the answer is the tarball it wrote into `workDir`.
+			stdio: ['ignore', 'ignore', 'pipe'],
+		}
+	);
+
+	const tarball = readdirSync(workDir).find((entry) => entry.endsWith('.tgz'));
+
+	if (!tarball) {
+		throw new Error(
+			`npm pack wrote no tarball into ${workDir} for ${PACKAGE_NAME}.`
+		);
+	}
+
+	const tarballPath = join(workDir, tarball);
+	const extractDir = join(workDir, 'extracted');
+
+	mkdirSync(extractDir, { recursive: true });
+	execFileSync('tar', ['-xzf', tarballPath, '-C', extractDir], {
+		stdio: ['ignore', 'ignore', 'pipe'],
+	});
+
+	const paths = execFileSync('tar', ['-tzf', tarballPath], {
+		encoding: 'utf8',
+	})
+		.split('\n')
+		.filter(Boolean)
+		.map((entry) => entry.replace(/^package\/?/u, ''))
+		.filter((entry) => entry.length > 0 && !entry.endsWith('/'));
+
+	return {
+		installedDir: join(extractDir, 'package'),
+		paths,
+		tarball: tarballPath,
+	};
+};
+
+/**
+ * Put the packed tree where a host app would find it, and hand back the undo.
+ *
+ * The fixtures install the package as a workspace symlink, which is the whole reason the packed
+ * check has to move it aside: a symlink resolves to the checkout, and the checkout has the
+ * files the tarball leaves out. The previous entry is renamed rather than deleted so the
+ * restore is a rename back, symlink and all.
+ *
+ * @param packedDir - The extracted tarball root.
+ * @param exampleDir - The fixture app to install into.
+ * @returns A function that puts the fixture back the way it was.
+ */
+const installIntoExample = function installIntoExample(
+	packedDir: string,
+	exampleDir: string
+): () => void {
+	const target = join(exampleDir, 'node_modules', ...PACKAGE_NAME.split('/'));
+
+	if (!existsSync(dirname(target))) {
+		throw new Error(
+			`${dirname(target)} does not exist, so ${PACKAGE_NAME} is not installed in ${exampleDir}. Run \`bun install\`.`
+		);
+	}
+
+	let previous: string | null = null;
+
+	try {
+		lstatSync(target);
+		previous = `${target}.${process.pid}.workspace`;
+		renameSync(target, previous);
+	} catch {
+		// Nothing installed there at all, which the restore turns into "leave it empty".
+	}
+
+	cpSync(packedDir, target, { recursive: true });
+
+	return () => {
+		rmSync(target, { force: true, recursive: true });
+
+		if (previous) {
+			renameSync(previous, target);
+		}
+	};
+};
+
+/**
+ * Ask both linkers what they make of the packed package.
+ *
+ * The swap is real and it is undone in the same call, which is also the whole reason the two
+ * fixtures cannot be checked in parallel: only one install of `@c15t/react-native` exists in
+ * each of them at a time.
+ *
+ * @param packed - The packed package to install.
+ * @param exampleDirs - The fixtures to install into, in the order the linkers are asked.
+ * @returns Every way the packed tree fails to autolink.
+ */
+export const checkPackedAutolinking = function checkPackedAutolinking(
+	packed: PackedPackage,
+	exampleDirs: { bare: string; expo: string } = {
+		bare: EXAMPLE_DIR,
+		expo: EXPO_EXAMPLE_DIR,
+	}
+): string[] {
+	const failures = checkPackedPackageSurface(packed);
+	const restores: (() => void)[] = [];
+
+	try {
+		for (const exampleDir of [exampleDirs.bare, exampleDirs.expo]) {
+			try {
+				restores.push(installIntoExample(packed.installedDir, exampleDir));
+			} catch (error) {
+				failures.push(
+					`cannot install the packed ${PACKAGE_NAME} into ${exampleDir}: ${
+						error instanceof Error ? error.message : String(error)
+					}`
+				);
+				return failures;
+			}
+		}
+
+		failures.push(...checkReactNativeAutolinking(exampleDirs.bare));
+		failures.push(...checkExpoAndroidAutolinking(exampleDirs.expo));
+
+		return failures;
+	} finally {
+		for (const restore of restores.toReversed()) {
+			restore();
+		}
+	}
+};
+
+/**
+ * Pack, install, and check, in a temporary directory the caller does not have to manage.
+ *
+ * @param body - Runs with the packed tree, and returns whatever the caller wants back.
+ * @returns Whatever `body` returned.
+ */
+export const withPackedPackage = function withPackedPackage<T>(
+	body: (packed: PackedPackage) => T
+): T {
+	const workDir = mkdtempSync(join(tmpdir(), 'c15t-autolink-'));
+
+	try {
+		return body(packReactNativePackage(workDir));
+	} finally {
+		rmSync(workDir, { force: true, recursive: true });
+	}
+};
+
 const main = function main(): void {
-	const failures = [
+	const workspaceFailures = [
 		...checkReactNativeAutolinking(),
 		...checkExpoAndroidAutolinking(),
 	];
+
+	const failures = withPackedPackage((packed) => {
+		console.log(
+			`packed ${PACKAGE_NAME}: ${packed.paths.length} entries in ${packed.tarball}`
+		);
+
+		return [...workspaceFailures, ...checkPackedAutolinking(packed)];
+	});
 
 	if (failures.length > 0) {
 		console.error(
@@ -378,7 +915,7 @@ const main = function main(): void {
 	}
 
 	console.log(
-		`${PACKAGE_NAME} resolves for Android and iOS from ${EXAMPLE_DIR}, and for Android from ${EXPO_EXAMPLE_DIR}.`
+		`${PACKAGE_NAME} resolves for Android and iOS from ${EXAMPLE_DIR}, for Android from ${EXPO_EXAMPLE_DIR}, and from its own tarball in both.`
 	);
 };
 

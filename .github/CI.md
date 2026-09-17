@@ -103,6 +103,28 @@ differently. `bun scripts/react-native-autolink.ts` asks both: the unscoped
 and the bare fixture additionally has to name the podspec. It runs on the Android leg of the
 mobile SDK group and, as `scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
 
+The same two questions are then asked of the tarball rather than the checkout. Both fixtures
+install `@c15t/react-native` as a workspace symlink, so a pass above only proves the repository
+tree resolves, and the tree holds files `package.json` never publishes. The script runs
+`npm pack`, installs the extracted tarball over the symlink in each fixture, resolves again,
+and restores what it moved aside. Against the packed tree it additionally holds the manifest to
+what the two native builds open: `codegenConfig.jsSrcsDir` has to contain a spec file, because
+an app generates `NativeC15tSpec` from that directory for both platforms and the Android bridge
+generates its own copy there, and every path the podspec declares -- sources, headers, the
+resource bundle, the license -- has to resolve inside the package rather than above it.
+Packing skips `prepack`, so this leg needs no build output and runs in `test:scripts` like the
+rest. A `files` allowlist that drops a file an app reads goes red here and green everywhere
+else, which is the gap this closes.
+
+The publish artifact guard in `scripts/check-publish-artifacts.ts` reads the same tarball from
+the other side. npm discards a package's root `.gitignore` as soon as `files` names an
+allowlist, so a directory that is allowlisted is published with whatever a build left in it:
+`ios/Pods` from a `pod install`, a Gradle `build/` tree, `ios/Tests`, `src/test/kotlin`. The
+guard refuses those shapes anywhere in a tarball, not only under `dist/`, and holds
+`@c15t/react-native` to the host-app file list above. It runs at release time as
+`bun run check:publish-artifacts`; its rules also run in `bun run test:scripts`, so an
+allowlist that starts sweeping a build tree fails the pull request rather than the release.
+
 Mobile budgets are gated twice, each on the runner that can measure them. The
 bench step runs `bench:ci`, which fails any measured row over its `budgets.json`
 ceiling. `scripts/ci-mobile-bench-report.ts` then fails a required row that

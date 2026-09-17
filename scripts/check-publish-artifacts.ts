@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -9,6 +10,7 @@ import {
 	readManifest,
 	wildcardToRegExp,
 } from './manifest-utils';
+import { hostReadPaths } from './react-native-autolink';
 
 interface PackedFile {
 	path: string;
@@ -24,13 +26,59 @@ interface PackResult {
 const ROOT = process.cwd();
 const PACKAGES_DIR = join(ROOT, 'packages');
 
-const distBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
+/**
+ * Path shapes that are wrong anywhere in a tarball, not just under `dist/`.
+ *
+ * npm throws away `.gitignore` as soon as `package.json` carries a `files` allowlist, so an
+ * allowlisted directory ships with whatever a local run left inside it: a `Pods/` install, a
+ * `build/` tree, `ios/Tests`, the Kotlin under an Android library's `src/test`. A release
+ * cut next to a native test run would publish that tree, and nothing here saw it, because
+ * the JS leak shapes used to be judged only inside `dist/`. The native shapes are named for
+ * the toolchains that write them: CocoaPods (`Pods/`), Xcode (`ios/Tests`), Gradle
+ * (`build/`, `.gradle/`), and the Android test source sets (`src/test`, `src/androidTest`).
+ */
+const tarballBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
 	{ pattern: /(?:^|\/)__tests__(?:\/|$)/u, reason: 'test folder' },
 	{ pattern: /(?:^|\/)__snapshots__(?:\/|$)/u, reason: 'snapshot folder' },
 	{ pattern: /(?:^|\/)__screenshots__(?:\/|$)/u, reason: 'screenshot folder' },
 	{ pattern: /\.test\./u, reason: 'test file' },
 	{ pattern: /\.spec\./u, reason: 'spec file' },
 	{ pattern: /\.e2e\./u, reason: 'e2e file' },
+	{
+		pattern: /(?:^|\/)ios\/Tests(?:\/|$)/u,
+		reason: 'Xcode test target source',
+	},
+	{ pattern: /(?:^|\/)build(?:\/|$)/u, reason: 'build output directory' },
+	{
+		pattern: /(?:^|\/)Pods(?:\/|$)/u,
+		reason: 'CocoaPods install tree',
+	},
+	{ pattern: /(?:^|\/)\.gradle(?:\/|$)/u, reason: 'Gradle cache directory' },
+	{
+		pattern: /(?:^|\/)src\/test(?:\/|$)/u,
+		reason: 'Android unit test source',
+	},
+	{
+		pattern: /(?:^|\/)src\/androidTest(?:\/|$)/u,
+		reason: 'Android instrumented test source',
+	},
+];
+
+/**
+ * The CommonJS artifacts this repository publishes on purpose.
+ *
+ * v3 ships ESM-only everywhere else. Expo resolves a config plugin with Node's CommonJS
+ * resolver and then `require()`s what it finds, which is why `@c15t/react-native` bundles
+ * `src/expo-plugin` into one self-contained `.cjs` (see that package's `rslib.config.ts`) and
+ * hands it out under the `require` export condition. `check-publish-artifacts.test.ts` fails
+ * when an entry here is no longer a `require` target of that package's exports map, so the
+ * exception cannot outlive the loader that needs it.
+ */
+export const allowedCommonJsArtifacts: Record<string, string[]> = {
+	'@c15t/react-native': ['dist/expo-plugin/index.cjs'],
+};
+
+const distBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
 	{
 		pattern: /(?:^|\/)mockServiceWorker\.js$/u,
 		reason: 'msw mock service worker',
@@ -79,6 +127,10 @@ const requiredPackedFilesByPackage: Record<string, string[]> = {
 		'src/styles.tw3.css',
 		'src/iab/styles.tw3.css',
 	],
+	// The native half has one owner for this list: `scripts/react-native-autolink.ts` says
+	// what a host app opens, and the release gate holds the tarball to it. A named directory
+	// is a directory npm will sweep, so every entry here is a file.
+	'@c15t/react-native': hostReadPaths.map(({ path }) => path),
 	'@c15t/scripts': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/ui': [
 		'styles.css',
@@ -104,6 +156,48 @@ const rootTw3ProxyContents: Record<string, string> = {
 	'styles.tw3.css': "@import './dist/styles.tw3.css';",
 };
 
+/**
+ * Refuse a published license copy that is not the repository's license.
+ *
+ * A podspec has to point its `s.license` file inside the package, so `@c15t/react-native`
+ * carries a copy of the root `LICENSE.md`. A copy is a copy: it goes stale the moment the
+ * repository one is edited, and nothing but this check would notice, which is the same failure
+ * that had the podspec naming `../../LICENSE.md` in the first place.
+ *
+ * @param packageDir - The package whose tarball is being judged.
+ * @param packedFilePaths - Every path in that tarball.
+ * @returns Every license copy that does not match the root license, byte for byte.
+ */
+export const scanPublishedLicenses = function scanPublishedLicenses(
+	packageDir: string,
+	packedFilePaths: Set<string>
+): { path: string; size: number; reason: string }[] {
+	const issues: { path: string; size: number; reason: string }[] = [];
+	const rootLicensePath = join(ROOT, 'LICENSE.md');
+
+	if (!existsSync(rootLicensePath)) {
+		return issues;
+	}
+
+	const rootLicense = readFileSync(rootLicensePath);
+
+	for (const path of ['LICENSE.md', 'LICENSE']) {
+		if (!packedFilePaths.has(path)) {
+			continue;
+		}
+
+		if (!readFileSync(join(packageDir, path)).equals(rootLicense)) {
+			issues.push({
+				path,
+				reason: 'license copy differs from the repository license',
+				size: 0,
+			});
+		}
+	}
+
+	return issues;
+};
+
 const scanPackedManifestTargets = function scanPackedManifestTargets(
 	manifest: PackageManifest,
 	packedFilePaths: Set<string>
@@ -126,22 +220,35 @@ const scanPackedManifestTargets = function scanPackedManifestTargets(
 		}));
 };
 
-const runPack = function runPack(packageDir: string): PackResult {
-	const proc = Bun.spawnSync(['npm', 'pack', '--json', '--dry-run'], {
-		cwd: packageDir,
-		stderr: 'pipe',
-		stdout: 'pipe',
-	});
+/**
+ * Ask npm what a package would publish, without writing a tarball.
+ *
+ * @param packageDir - The package to pack.
+ * @returns npm's own answer: the name, version, and every path in the tarball.
+ */
+export const runPack = function runPack(packageDir: string): PackResult {
+	let raw: string;
 
-	if (proc.exitCode !== 0) {
-		const stderr = new TextDecoder().decode(proc.stderr);
-		const stdout = new TextDecoder().decode(proc.stdout);
+	try {
+		raw = execFileSync('npm', ['pack', '--json', '--dry-run'], {
+			cwd: packageDir,
+			encoding: 'utf8',
+			// A package with a few hundred declarations is well past the 1 MiB default.
+			maxBuffer: 64 * 1024 * 1024,
+			stdio: ['ignore', 'pipe', 'pipe'],
+		});
+	} catch (error) {
+		const failure = error as {
+			stderr?: Buffer | string;
+			stdout?: Buffer | string;
+		};
 		throw new Error(
-			`npm pack failed in ${packageDir}\nstdout:\n${stdout}\nstderr:\n${stderr}`
+			`npm pack failed in ${packageDir}\nstdout:\n${String(failure.stdout ?? '')}\nstderr:\n${String(failure.stderr ?? error)}`,
+			{ cause: error }
 		);
 	}
 
-	const stdout = new TextDecoder().decode(proc.stdout).trim();
+	const stdout = raw.trim();
 	const jsonStart = stdout.indexOf('[\n  {');
 	const jsonEnd = stdout.lastIndexOf('\n]');
 	const jsonPayload =
@@ -169,9 +276,20 @@ export const getBlockedReason = function getBlockedReason(
 	path: string
 ): string | null {
 	// v3 ships ESM-only: no package publishes CommonJS artifacts anywhere in
-	// the tarball — dist/, shims/, or the package root.
-	if (path.endsWith('.cjs')) {
+	// the tarball — dist/, shims/, or the package root. The one exception is the
+	// Expo config plugin entry, which is named by an `exports` `require` condition.
+	if (
+		path.endsWith('.cjs') &&
+		!allowedCommonJsArtifacts[packageName]?.includes(path)
+	) {
 		return 'CommonJS artifact in ESM-only package';
+	}
+
+	// Everything below is judged against the whole tarball, not just the build output.
+	for (const rule of tarballBlockedPathPatterns) {
+		if (rule.pattern.test(path)) {
+			return rule.reason;
+		}
 	}
 
 	// Most accidental publish bloat in this repo comes from built output.
@@ -207,24 +325,6 @@ export const getBlockedReason = function getBlockedReason(
 		}
 		if (!path.endsWith('.d.ts')) {
 			return 'non-declaration file in published declarations';
-		}
-	}
-
-	// @c15t/ui intentionally publishes src/styles, so guard that surface too.
-	if (path.startsWith('src/styles/')) {
-		for (const rule of [
-			{
-				pattern: /(?:^|\/)__tests__(?:\/|$)/u,
-				reason: 'test folder in published styles',
-			},
-			{
-				pattern: /\.test\./u,
-				reason: 'test file in published styles',
-			},
-		]) {
-			if (rule.pattern.test(path)) {
-				return rule.reason;
-			}
 		}
 	}
 
@@ -436,6 +536,7 @@ const main = function main(): void {
 		blockedFiles.push(
 			...scanUiComponentStyleArtifacts(packageDir, packed.name, packedFilePaths)
 		);
+		blockedFiles.push(...scanPublishedLicenses(packageDir, packedFilePaths));
 
 		if (blockedFiles.length > 0) {
 			offenders.push({

@@ -34,10 +34,17 @@
 	"files": [
 		"dist",
 		"dist-types",
-		"ios",
-		"android",
+		"src/specs",
+		"!src/specs/__tests__",
+		"C15tReactNative.podspec",
+		"LICENSE.md",
 		"react-native.config.js",
-		"C15tReactNative.podspec"
+		"android/c15t-react-native/build.gradle.kts",
+		"android/c15t-react-native/consumer-rules.pro",
+		"android/c15t-react-native/library.gradle",
+		"android/c15t-react-native/src/main",
+		"android/codegen/generate-spec.mjs",
+		"ios/C15tReactNative"
 	],
 	"type": "module",
 	"sideEffects": false,

@@ -8,9 +8,14 @@ package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 #
 #   pod "C15tCore", :path => "../native/core-swift"
 #
-# `C15T_CORE_POD_VERSION` switches the dependency to a published version for a release
-# build, which is the escape hatch for shipping the binding without the monorepo.
-# Overridable from the environment so one file serves both without editing it.
+# `C15T_CORE_POD_VERSION` overrides the version requirement, but it is not an escape
+# hatch for a release build: nothing publishes a `C15tCore` pod, the trunk API answers
+# 404 for it, so an app installed from npm has no source for the core. The decision on
+# issue #1010 is that this package carries the core itself rather than publishing a pod
+# or a Swift artifact, so the shipped shape drops this dependency and compiles the core
+# from a copy generated out of `native/core-swift` at pack time. Until that lands, this
+# file only resolves inside a workspace install, where the Podfile line above is present.
+
 core_version = ENV["C15T_CORE_POD_VERSION"]
 
 Pod::Spec.new do |s|
@@ -18,7 +23,11 @@ Pod::Spec.new do |s|
   s.version      = package["version"]
   s.summary      = package["description"]
   s.homepage     = package["repository"]["url"]
-  s.license      = { :type => "Apache-2.0", :file => "../../LICENSE.md" }
+  # The package's own copy, shipped in the tarball. It used to name the repository's
+  # `../../LICENSE.md`, which only resolves through a symlinked workspace install: an app
+  # that installs from npm gets `node_modules/@c15t/LICENSE.md`, a path that exists in
+  # nobody's tree, and Apache-2.0 asks that the text travel with the software.
+  s.license      = { :type => "Apache-2.0", :file => "LICENSE.md" }
   s.authors      = { "c15t" => "https://c15t.com" }
   s.source       = { :git => "https://github.com/c15t/c15t.git", :tag => "react-native@#{s.version}" }
 
@@ -27,7 +36,9 @@ Pod::Spec.new do |s|
   s.source_files = "ios/C15tReactNative/**/*.{h,swift,m,mm}"
   s.public_header_files = "ios/C15tReactNative/C15tReactNative.h"
   s.resource_bundle = { "C15tReactNative" => "ios/C15tReactNative/Resources/Privacy.xcprivacy" }
-  s.preserve_paths = "ios", "package.json", "react-native.config.js", "Package.swift"
+  # `Package.swift` is not in here because it is not in the package: the SPM manifest
+  # resolves the core at `../../native/core-swift`, a path no installed tarball has.
+  s.preserve_paths = "ios", "package.json", "react-native.config.js"
 
   s.platforms = { :ios => "16.4" }
   s.swift_versions = ["5.9"]
