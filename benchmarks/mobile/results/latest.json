@@ -163,7 +163,7 @@
 			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
 		}
 	},
-	"commitSha": "188d3f6a43fcbad5e3b17ce099237f7690bab615",
+	"commitSha": "72e870f478fdba9082bd4401fa6ad3a7b9af24ec",
 	"contract": "native/CONTRACT.md",
 	"environment": {
 		"arch": "arm64",
@@ -175,40 +175,96 @@
 	"notes": [],
 	"package": "@c15t/react-native",
 	"previous": {
-		"previousCommitSha": "6296c775d3dfe5bf1df51da085dd600c5084c15f",
-		"previousTimestamp": "2026-09-17T10:59:38.566Z",
+		"previousCommitSha": "72e870f478fdba9082bd4401fa6ad3a7b9af24ec",
+		"previousTimestamp": "2026-09-17T15:34:21.775Z",
 		"rows": [
 			{
-				"current": 0.21,
-				"delta": 0.13,
-				"deltaPercent": 162.5,
-				"flagged": true,
-				"id": "kotlin_snapshot_plus_is_allowed_us",
-				"previous": 0.08
-			},
-			{
-				"current": 91233,
-				"delta": 5908,
-				"deltaPercent": 6.9,
+				"current": 0.047,
+				"delta": 0.003,
+				"deltaPercent": 6.8,
 				"flagged": false,
-				"id": "js_shipped_bytes",
-				"previous": 85325
+				"id": "bootstrap_to_snapshot_cold_ms",
+				"previous": 0.044
 			},
 			{
-				"current": 19313,
-				"delta": 595,
-				"deltaPercent": 3.2,
+				"current": 0.047,
+				"delta": 0.003,
+				"deltaPercent": 6.8,
 				"flagged": false,
-				"id": "js_shipped_gzip_bytes",
-				"previous": 18718
+				"id": "cold_start_overhead_ms",
+				"previous": 0.044
 			},
 			{
-				"current": 1,
+				"current": 0.647,
+				"delta": 0.035,
+				"deltaPercent": 5.7,
+				"flagged": false,
+				"id": "native_bootstrap_to_snapshot_cold_ms",
+				"previous": 0.612
+			},
+			{
+				"current": 1.445,
+				"delta": 0.043,
+				"deltaPercent": 3.1,
+				"flagged": false,
+				"id": "native_commit_ack_disk_ms",
+				"previous": 1.402
+			},
+			{
+				"current": 0.181,
+				"delta": 0.002,
+				"deltaPercent": 1.1,
+				"flagged": false,
+				"id": "native_commit_ack_no_network_ms",
+				"previous": 0.179
+			},
+			{
+				"current": 0.33,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
-				"id": "kotlin_snapshot_object_identities",
-				"previous": 1
+				"id": "native_policy_evaluation_us",
+				"previous": 0.33
+			},
+			{
+				"current": 0.04,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "native_snapshot_read_us",
+				"previous": 0.04
+			},
+			{
+				"current": 0.007,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "js_hydrate_envelope_ms",
+				"previous": 0.007
+			},
+			{
+				"current": 0.004,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "commit_ack_no_network_ms",
+				"previous": 0.004
+			},
+			{
+				"current": 0.041,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "snapshot_read_us",
+				"previous": 0.041
+			},
+			{
+				"current": 0.083,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "is_allowed_us",
+				"previous": 0.083
 			},
 			{
 				"current": 1,
@@ -235,6 +291,14 @@
 				"previous": 3
 			},
 			{
+				"current": 0.002,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "idle_cpu_percent",
+				"previous": 0.002
+			},
+			{
 				"current": 8,
 				"delta": 0,
 				"deltaPercent": 0,
@@ -243,204 +307,84 @@
 				"previous": 8
 			},
 			{
-				"current": 439862,
+				"current": 93699,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "js_shipped_bytes",
+				"previous": 93699
+			},
+			{
+				"current": 19754,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "js_shipped_gzip_bytes",
+				"previous": 19754
+			},
+			{
+				"current": 458842,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "ios_binary_bytes",
-				"previous": 439862
+				"previous": 458842
 			},
 			{
-				"current": 749541,
-				"delta": -13,
+				"current": 788237,
+				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "android_binary_bytes",
-				"previous": 749554
+				"previous": 788237
 			},
 			{
-				"current": 6072,
-				"delta": -1072,
-				"deltaPercent": -15,
-				"flagged": false,
-				"id": "idle_heap_growth_bytes",
-				"previous": 7144
-			},
-			{
-				"current": 0.08,
-				"delta": -0.04,
-				"deltaPercent": -33.3,
-				"flagged": false,
-				"id": "native_snapshot_read_us",
-				"previous": 0.12
-			},
-			{
-				"current": 0.083,
-				"delta": -0.042,
-				"deltaPercent": -33.6,
-				"flagged": false,
-				"id": "is_allowed_us",
-				"previous": 0.125
-			},
-			{
-				"current": 0.191,
-				"delta": -0.144,
-				"deltaPercent": -43,
-				"flagged": false,
-				"id": "kotlin_commit_ack_no_network_ms",
-				"previous": 0.335
-			},
-			{
-				"current": 25.21,
-				"delta": -21.87,
-				"deltaPercent": -46.5,
-				"flagged": false,
-				"id": "native_queue_replay_us",
-				"previous": 47.08
-			},
-			{
-				"current": 0.042,
-				"delta": -0.041,
-				"deltaPercent": -49.4,
-				"flagged": false,
-				"id": "snapshot_read_us",
-				"previous": 0.083
-			},
-			{
-				"current": 9.541,
-				"delta": -10.751,
-				"deltaPercent": -53,
-				"flagged": false,
-				"id": "policy_apply_per_rule_set_us",
-				"previous": 20.292
-			},
-			{
-				"current": 0.004,
-				"delta": -0.005,
-				"deltaPercent": -55.6,
-				"flagged": false,
-				"id": "bootstrap_to_snapshot_warm_ms",
-				"previous": 0.009
-			},
-			{
-				"current": 0.192,
-				"delta": -0.26,
-				"deltaPercent": -57.5,
-				"flagged": false,
-				"id": "native_bootstrap_to_snapshot_cold_ms",
-				"previous": 0.452
-			},
-			{
-				"current": 0.63,
-				"delta": -0.87,
-				"deltaPercent": -58,
-				"flagged": false,
-				"id": "kotlin_policy_evaluation_us",
-				"previous": 1.5
-			},
-			{
-				"current": 0.031,
-				"delta": -0.046,
-				"deltaPercent": -59.7,
-				"flagged": false,
-				"id": "kotlin_hydrate_envelope_ms",
-				"previous": 0.077
-			},
-			{
-				"current": 0.29,
-				"delta": -0.46,
-				"deltaPercent": -61.3,
-				"flagged": false,
-				"id": "native_policy_evaluation_us",
-				"previous": 0.75
-			},
-			{
-				"current": 0.158,
-				"delta": -0.262,
-				"deltaPercent": -62.4,
+				"current": 0.549,
+				"delta": -0.001,
+				"deltaPercent": -0.2,
 				"flagged": false,
 				"id": "native_bootstrap_to_snapshot_warm_ms",
-				"previous": 0.42
+				"previous": 0.55
 			},
 			{
-				"current": 0.158,
-				"delta": -0.262,
-				"deltaPercent": -62.4,
+				"current": 0.549,
+				"delta": -0.001,
+				"deltaPercent": -0.2,
 				"flagged": false,
 				"id": "native_hydrate_envelope_ms",
-				"previous": 0.42
+				"previous": 0.55
 			},
 			{
-				"current": 0.007,
-				"delta": -0.012,
-				"deltaPercent": -63.2,
+				"current": 6088,
+				"delta": -32,
+				"deltaPercent": -0.5,
 				"flagged": false,
-				"id": "js_hydrate_envelope_ms",
-				"previous": 0.019
+				"id": "idle_heap_growth_bytes",
+				"previous": 6120
 			},
 			{
-				"current": 0.048,
-				"delta": -0.083,
-				"deltaPercent": -63.4,
+				"current": 20.58,
+				"delta": -0.17,
+				"deltaPercent": -0.8,
 				"flagged": false,
-				"id": "bootstrap_to_snapshot_cold_ms",
-				"previous": 0.131
+				"id": "native_queue_replay_us",
+				"previous": 20.75
 			},
 			{
-				"current": 0.048,
-				"delta": -0.083,
-				"deltaPercent": -63.4,
+				"current": 0.003,
+				"delta": -0.001,
+				"deltaPercent": -25,
 				"flagged": false,
-				"id": "cold_start_overhead_ms",
-				"previous": 0.131
+				"id": "bootstrap_to_snapshot_warm_ms",
+				"previous": 0.004
 			},
 			{
-				"current": 0.004,
-				"delta": -0.007,
-				"deltaPercent": -63.6,
+				"current": 8.208,
+				"delta": -4.501,
+				"deltaPercent": -35.4,
 				"flagged": false,
-				"id": "commit_ack_no_network_ms",
-				"previous": 0.011
-			},
-			{
-				"current": 1.468,
-				"delta": -2.697,
-				"deltaPercent": -64.8,
-				"flagged": false,
-				"id": "native_commit_ack_disk_ms",
-				"previous": 4.165
-			},
-			{
-				"current": 0.182,
-				"delta": -0.374,
-				"deltaPercent": -67.3,
-				"flagged": false,
-				"id": "native_commit_ack_no_network_ms",
-				"previous": 0.556
-			},
-			{
-				"current": 0.002,
-				"delta": -0.029,
-				"deltaPercent": -93.5,
-				"flagged": false,
-				"id": "idle_cpu_percent",
-				"previous": 0.031
-			},
-			{
-				"current": 0,
-				"delta": 22462464,
-				"deltaPercent": -100,
-				"flagged": false,
-				"id": "idle_rss_growth_bytes",
-				"previous": -22462464
-			},
-			{
-				"current": 0,
-				"delta": -7,
-				"deltaPercent": -100,
-				"flagged": false,
-				"id": "jsx_global_reference_files",
-				"previous": 7
+				"id": "policy_apply_per_rule_set_us",
+				"previous": 12.709
 			},
 			{
 				"current": 0,
@@ -463,6 +407,22 @@
 				"delta": 0,
 				"deltaPercent": null,
 				"flagged": false,
+				"id": "idle_rss_growth_bytes",
+				"previous": 0
+			},
+			{
+				"current": 0,
+				"delta": 0,
+				"deltaPercent": null,
+				"flagged": false,
+				"id": "jsx_global_reference_files",
+				"previous": 0
+			},
+			{
+				"current": 0,
+				"delta": 0,
+				"deltaPercent": null,
+				"flagged": false,
 				"id": "package_manifest_parse_errors",
 				"previous": 0
 			}
@@ -473,67 +433,67 @@
 		{
 			"budget": 5,
 			"budgetSource": "contract",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_bootstrap_to_snapshot_warm_ms",
 			"label": "bootstrap() to first snapshot(), warm",
 			"samples": 300,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.158
+			"value": 0.549
 		},
 		{
 			"budget": 15,
 			"budgetSource": "contract",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_bootstrap_to_snapshot_cold_ms",
 			"label": "bootstrap() to first snapshot(), cold",
 			"samples": 1,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.192
+			"value": 0.647
 		},
 		{
 			"budget": 3,
 			"budgetSource": "contract",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_hydrate_envelope_ms",
 			"label": "hydrate from stored envelope",
 			"samples": 300,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.158
+			"value": 0.549
 		},
 		{
 			"budget": 50,
 			"budgetSource": "allowance",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_policy_evaluation_us",
 			"label": "policy evaluation, one rule set",
 			"samples": 20000,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "us",
-			"value": 0.29
+			"value": 0.33
 		},
 		{
 			"budget": 2,
 			"budgetSource": "allowance",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_snapshot_read_us",
 			"label": "snapshot() read",
 			"samples": 500000,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "us",
-			"value": 0.08
+			"value": 0.04
 		},
 		{
 			"budget": 2,
 			"budgetSource": "allowance",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_is_allowed_us",
 			"label": "isAllowed() read",
 			"samples": 500000,
@@ -545,50 +505,50 @@
 		{
 			"budget": 50,
 			"budgetSource": "contract",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_commit_ack_no_network_ms",
 			"label": "commit acknowledged, in-memory store, no network",
 			"samples": 500,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.182
+			"value": 0.181
 		},
 		{
 			"budget": 50,
 			"budgetSource": "contract",
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_commit_ack_disk_ms",
 			"label": "commit acknowledged, FileStore plus dead transport",
 			"samples": 200,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 1.468
+			"value": 1.445
 		},
 		{
 			"budget": null,
 			"budgetSource": null,
-			"detail": "bench envelope 1898 B",
+			"detail": "bench envelope 1943 B",
 			"id": "native_queue_replay_us",
 			"label": "read queued save bodies",
 			"samples": 200,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "us",
-			"value": 25.21
+			"value": 20.58
 		},
 		{
 			"budget": 3,
 			"budgetSource": "contract",
-			"detail": "bench envelope 9053 B",
+			"detail": "bench envelope 9083 B",
 			"id": "kotlin_hydrate_envelope_ms",
 			"label": "hydrate from stored envelope",
 			"samples": 3000,
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "ms",
-			"value": 0.031
+			"value": 0.055
 		},
 		{
 			"budget": 50,
@@ -599,7 +559,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "us",
-			"value": 0.63
+			"value": 0.79
 		},
 		{
 			"budget": 2,
@@ -610,7 +570,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "us",
-			"value": 0.21
+			"value": 0.17
 		},
 		{
 			"budget": 50,
@@ -621,7 +581,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "ms",
-			"value": 0.191
+			"value": 0.15
 		},
 		{
 			"budget": 1,
@@ -656,7 +616,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.004
+			"value": 0.003
 		},
 		{
 			"budget": 15,
@@ -667,7 +627,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.048
+			"value": 0.047
 		},
 		{
 			"budget": 10,
@@ -679,7 +639,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.048
+			"value": 0.047
 		},
 		{
 			"budget": 3,
@@ -713,7 +673,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "us",
-			"value": 0.042
+			"value": 0.041
 		},
 		{
 			"budget": 2,
@@ -776,7 +736,7 @@
 		{
 			"budget": 2,
 			"budgetSource": "allowance",
-			"detail": "30000.5 ms window after a 2000 ms settle, 1 live listener(s)",
+			"detail": "30000.6 ms window after a 2000 ms settle, 1 live listener(s)",
 			"id": "idle_cpu_percent",
 			"label": "idle CPU with one live subscription",
 			"samples": 1,
@@ -805,19 +765,19 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "bytes",
-			"value": 6072
+			"value": 6088
 		},
 		{
 			"budget": 100,
 			"budgetSource": "allowance",
-			"detail": "8 rule sets from native/protocol, worst 18.146 us, span is init plus first read",
+			"detail": "8 rule sets from native/protocol, worst 18.541 us, span is init plus first read",
 			"id": "policy_apply_per_rule_set_us",
 			"label": "apply a rule set (init to snapshot), median over the fixture corpus",
 			"samples": 2400,
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "us",
-			"value": 9.541
+			"value": 8.208
 		},
 		{
 			"budget": null,
@@ -834,26 +794,26 @@
 		{
 			"budget": 98304,
 			"budgetSource": "allowance",
-			"detail": "56 modules",
+			"detail": "58 modules",
 			"id": "js_shipped_bytes",
 			"label": "JavaScript shipped, unpacked",
 			"samples": 0,
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 91233
+			"value": 93699
 		},
 		{
 			"budget": 24576,
 			"budgetSource": "allowance",
-			"detail": "56 modules",
+			"detail": "58 modules",
 			"id": "js_shipped_gzip_bytes",
 			"label": "JavaScript shipped, gzipped",
 			"samples": 0,
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 19313
+			"value": 19754
 		},
 		{
 			"budget": 1048576,
@@ -865,7 +825,7 @@
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 439862
+			"value": 458842
 		},
 		{
 			"budget": 262144,
@@ -889,7 +849,7 @@
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 749541
+			"value": 788237
 		},
 		{
 			"budget": 0,
@@ -928,5 +888,5 @@
 	},
 	"schemaVersion": 1,
 	"suite": "mobile-runtime",
-	"timestamp": "2026-09-17T11:08:48.249Z"
+	"timestamp": "2026-09-17T15:38:48.089Z"
 }
