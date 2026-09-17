@@ -19,6 +19,12 @@
  * This module pulls in `node:fs` and `@expo/config-plugins`. It is a build-time
  * tool and nothing in the package's React Native entry point imports it, so it
  * never reaches a Metro bundle.
+ *
+ * Expo resolves a plugin with `require`, and `require()` of an ES module is
+ * unflagged only on Node 20.19+, 22.12+, and 24+. This entry therefore ships
+ * twice: the ES module at `dist/expo-plugin/index.js` under the `import`
+ * condition, and one bundled CommonJS file at `dist/expo-plugin/index.cjs` under
+ * `require`, which is the file Expo loads. Both carry the same exports.
  */
 import { createRunOncePlugin } from '@expo/config-plugins';
 

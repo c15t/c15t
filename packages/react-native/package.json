@@ -52,6 +52,7 @@
 		},
 		"./expo-plugin": {
 			"types": "./dist-types/expo-plugin/index.d.ts",
+			"require": "./dist/expo-plugin/index.cjs",
 			"import": "./dist/expo-plugin/index.js",
 			"default": "./dist/expo-plugin/index.js"
 		}
