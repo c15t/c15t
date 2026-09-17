@@ -1,0 +1,54 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+# c15t's core needs iOS 16.4, which is above the floor React Native 0.87 installs.
+# Declaring the lower version here makes CocoaPods reject the pod rather than warn.
+platform :ios, '16.4'
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'C15tBare' do
+  # Autolinking asks @react-native-community/cli for the config of *every* platform, and
+  # 'react-native config' currently exits 1 while it resolves the Android half of
+  # @c15t/react-native (see "Autolinking" in README.md). CocoaPods only reads the iOS
+  # half of that output, so the example asks for iOS alone and keeps building. Drop this
+  # override once the SDK's Android autolinking metadata carries a resolvable namespace.
+  autolink_command = [
+    'node', '-e',
+    "process.argv=['', '', 'config', '--platform', 'ios'];require('@react-native-community/cli').run()",
+  ]
+  config = use_native_modules!(autolink_command)
+
+  # The consent kernel is a pod of its own, so an app outside this repository pulls
+  # the published one and needs nothing here. Inside the monorepo both pods are
+  # checked out next to this app, and pointing at the directories is what lets the
+  # example run against unreleased code. Set C15T_CORE_POD_VERSION to a published
+  # version and C15T_LOCAL_PODS=false to build against the registry instead.
+  if ENV['C15T_LOCAL_PODS'] != 'false'
+    pod 'C15tCore', :path => '../../../native/core-swift'
+  end
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+  end
+end

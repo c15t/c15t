@@ -1,0 +1,48 @@
+/*
+ * The template's literal `../node_modules/@react-native/gradle-plugin` path only works in a
+ * hoisted install. This repository uses Bun's isolated install layout, where a package that
+ * only `react-native` depends on is not linked into this app's node_modules, so
+ * @react-native/gradle-plugin is a devDependency here and the path below resolves.
+ */
+pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'C15tBare'
+include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')
+
+/*
+ * Where the Kotlin consent engine comes from.
+ *
+ * @c15t/react-native's Android library depends on `com.c15t:c15t-core` and
+ * `com.c15t:c15t-android`. React Native autolinks that library into this build, so
+ * the coordinates have to resolve *here*: the included build the package declares in
+ * its own `android/settings.gradle.kts` governs its standalone build only, and a host
+ * app's settings script is the one that decides how its dependencies resolve.
+ *
+ * Inside this repository nothing is published to Maven, so the engine is the Gradle
+ * project next door. An app that installs the package from npm gets the published
+ * artifacts and needs none of this. Pass -Pc15t.core.fromSource=false to leave this
+ * settings file alone and resolve `com.c15t` from the repositories below.
+ */
+def c15tCoreFromSource = providers.gradleProperty('c15t.core.fromSource')
+  .getOrElse('true')
+  .toBoolean()
+def c15tCoreGroup = providers.gradleProperty('c15t.core.group').getOrElse('com.c15t')
+def c15tCoreDir = new File(rootDir, '../../../native/core-android')
+
+if (c15tCoreFromSource) {
+  if (!c15tCoreDir.isDirectory()) {
+    throw new GradleException(
+      "settings.gradle: c15t.core.fromSource is true but no Gradle project exists at ${c15tCoreDir}. " +
+        "Run this example from a c15t checkout, or pass -Pc15t.core.fromSource=false."
+    )
+  }
+
+  includeBuild(c15tCoreDir) {
+    dependencySubstitution {
+      substitute module("${c15tCoreGroup}:c15t-core") using project(':c15t-core')
+      substitute module("${c15tCoreGroup}:c15t-android") using project(':c15t-android')
+    }
+  }
+}

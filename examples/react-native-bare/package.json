@@ -1,0 +1,43 @@
+{
+	"name": "@c15t/example-react-native-bare",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Bare React Native fixture for @c15t/react-native: native consent kernel, built-in banner and dialog, preference centre, consent-gated loading, and a fake native stub for offline gating checks.",
+	"main": "index.js",
+	"scripts": {
+		"android": "react-native run-android",
+		"bundle": "bun run bundle:android && bun run bundle:ios",
+		"bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output .artifacts/android/index.android.bundle --assets-dest .artifacts/android",
+		"bundle:ios": "react-native bundle --platform ios --dev false --entry-file index.js --bundle-output .artifacts/ios/main.jsbundle --assets-dest .artifacts/ios",
+		"check-types": "tsc --noEmit",
+		"fmt": "oxfmt .",
+		"ios": "react-native run-ios",
+		"lint": "oxlint App.tsx index.js src",
+		"pod-install": "pod install --project-directory=ios",
+		"start": "react-native start",
+		"start:reset": "react-native start --reset-cache"
+	},
+	"dependencies": {
+		"@c15t/react-native": "workspace:*",
+		"react": "19.2.3",
+		"react-native": "0.87.1"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.25.2",
+		"@babel/preset-env": "^7.25.3",
+		"@babel/runtime": "^7.25.0",
+		"@react-native-community/cli": "20.2.0",
+		"@react-native-community/cli-platform-android": "20.2.0",
+		"@react-native-community/cli-platform-ios": "20.2.0",
+		"@react-native/babel-preset": "0.87.1",
+		"@react-native/gradle-plugin": "0.87.1",
+		"@react-native/metro-config": "0.87.1",
+		"@react-native/typescript-config": "0.87.1",
+		"@types/node": "25.5.0",
+		"@types/react": "~19.2.2",
+		"typescript": "7.0.2"
+	},
+	"engines": {
+		"node": ">= 22.11.0"
+	}
+}
