@@ -31,6 +31,7 @@ export default defineConfig({
 		pluginReact(),
 		publicEntryAliases({
 			'clear-on-revocation.js': './modules/clear-on-revocation/index.js',
+			'consent-categories.js': './consent-record/types.js',
 			'consent-record.js': './consent-record/index.js',
 			'generate-subject-id.js': './libs/generate-subject-id.js',
 			'iframe-blocker.js': './modules/iframe-blocker/index.js',

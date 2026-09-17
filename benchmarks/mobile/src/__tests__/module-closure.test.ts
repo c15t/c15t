@@ -3,10 +3,16 @@
  * 390 KiB", so the number is only worth reporting if the walk is honest: it has to
  * follow the real entry, resolve every edge it claims to follow, and leave the
  * packages an app was going to carry anyway out of the total.
+ *
+ * It is also the only thing that keeps the boundary narrow. A `import type` costs
+ * nothing, so the type surface of `@c15t/core` can grow freely here, while one
+ * runtime import to its barrel puts the kernel, the schema, and the translations
+ * back into every app. That edge has no compiler error and no failing test anywhere
+ * else, so the expected file list below is what fails instead.
  */
 
 import { existsSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -28,14 +34,36 @@ describe('walking the built entry', () => {
 		expect(closure.unresolved).toEqual([]);
 	});
 
-	it('reaches both the boundary and the kernel the boundary re-exports', () => {
+	it('reaches the boundary files it ships', () => {
 		const own = closure.files.filter((file) => file.startsWith(DIST_DIR));
-		const core = closure.files.filter((file) =>
-			file.startsWith(join(REPO_ROOT, 'packages', 'core'))
-		);
-
 		expect(own.length).toBeGreaterThan(0);
-		expect(core.length).toBeGreaterThan(0);
+	});
+
+	it('takes only the category vocabulary from @c15t/core', () => {
+		// The barrel is the expensive edge: it drags the kernel, the schema, and the
+		// translations in behind two string arrays. The boundary is allowed to read
+		// exactly one module instead, and nothing else from this package.
+		const core = closure.files
+			.filter((file) => file.startsWith(join(REPO_ROOT, 'packages', 'core')))
+			.map((file) => relative(REPO_ROOT, file))
+			.sort();
+
+		expect(core).toEqual([
+			'packages/core/dist/consent-categories.js',
+			'packages/core/dist/consent-record/types.js',
+		]);
+	});
+
+	it('carries no other c15t package, because nothing reaches them now', () => {
+		const packages = new Set<string>();
+		for (const file of closure.files) {
+			const name = relative(REPO_ROOT, file).split('/')[1];
+			if (name !== undefined) {
+				packages.add(name);
+			}
+		}
+
+		expect([...packages].sort()).toEqual(['core', 'react-native']);
 	});
 
 	it('counts each file once, and only files', () => {
@@ -61,14 +89,12 @@ describe('walking the built entry', () => {
 	});
 
 	it('follows subpath exports, not just the package root', () => {
-		// `@c15t/schema/types` is not the package's main entry, and the files it
-		// resolves to sit under a directory the package name does not mention. An
-		// app's bundle pays for them, so a walk that only followed main entries would
-		// understate the closure by whatever they hold.
-		const schema = closure.files.filter((file) =>
-			file.startsWith(join(REPO_ROOT, 'packages', 'schema'))
+		// `@c15t/core/consent-categories` is not the package's main entry, and the
+		// file it resolves to sits under a directory the subpath does not mention.
+		// An app's bundle pays for it, so a walk that only followed main entries
+		// would report a closure with the categories missing from it.
+		expect(closure.files.map((file) => relative(REPO_ROOT, file))).toContain(
+			'packages/core/dist/consent-record/types.js'
 		);
-
-		expect(schema.length).toBeGreaterThan(0);
 	});
 });

@@ -106,7 +106,7 @@
 			"max": 102400,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 100 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine. It moved from 96 KiB at 98,546 B measured: the package grew a decision-carrying gate and a wire-shape checker, and both belong here rather than in a dev-only side door, because the thing being guarded is what crosses the bridge. The size that actually needs defending is js_closure_bytes, four times this number."
+			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 100 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine. It moved from 96 KiB at 98,546 B measured: the package grew a decision-carrying gate and a wire-shape checker, and both belong here rather than in a dev-only side door, because the thing being guarded is what crosses the bridge. This is now the larger of the two size rows, and js_closure_bytes is the one that matters: 24,220 B of what ships is the Expo config plugin, which runs in Node at build time and never reaches a device."
 		},
 		"js_shipped_gzip_bytes": {
 			"max": 24576,
@@ -163,10 +163,10 @@
 			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
 		},
 		"cold_start_js_to_first_consent_ms": {
-			"max": 80,
+			"max": 40,
 			"unit": "ms",
 			"source": "allowance",
-			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 31-44 ms on the development machine, of which under a millisecond is the handshake and the rest the module graph the built barrel pulls in: 131 modules, 46 of them this package. 80 ms is a blow-up guard, not a promise: it allows a runner twice as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
+			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 10.9 ms on the development machine, 10.7 ms of it evaluating the entry and what it links. It read 31-44 ms while the built barrel pulled the @c15t/core graph into every app, which is the whole argument for the js_closure_bytes ceiling above. 40 ms is a blow-up guard, not a promise: it allows a runner three times as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
 		},
 		"cached_consent_available_ms": {
 			"max": 3,
@@ -199,25 +199,31 @@
 			"note": "Tap on the primary action to the module holding the intent, measured through the rendered control rather than a client call, so the React layer is inside the span. Measured 0.72 ms against a fake that answers offline. The 50 ms contract ceiling gates the client span below; 10 ms here says the render path must not add an order of magnitude to it."
 		},
 		"js_closure_bytes": {
-			"max": 524288,
-			"unit": "bytes",
-			"source": "allowance",
-			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry, including the @c15t/core graph its barrel re-exports. Measured 389,639 B over 131 modules, against 98,546 B for this package's own dist. 512 KiB is the ceiling for a boundary plus one kernel; the headroom is there because most of these bytes belong to a package this one does not own."
-		},
-		"js_closure_gzip_bytes": {
 			"max": 131072,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "The same closure gzipped, which is the shape it travels in. Measured 90,701 B over 131 modules; 128 KiB is the ceiling, which is the js_shipped_gzip_bytes allowance plus room for the kernel the boundary pulls in. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
+			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry. Measured 74,507 B over 48 modules, 46 of them this package and two the consent-category vocabulary it reads through @c15t/core/consent-categories. 128 KiB is the ceiling. It allows the boundary layer to grow by half again, and it fails the moment a runtime import to the @c15t/core barrel comes back: that edge measured 389,639 B over 131 modules, because behind two string arrays sits the kernel, the schema, and the translations."
+		},
+		"js_closure_gzip_bytes": {
+			"max": 24576,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "The same closure gzipped, which is the shape it travels in. Measured 14,956 B over 48 modules. 24 KiB is deliberately the same ceiling as js_shipped_gzip_bytes, so the two cannot be traded against each other; the barrel edge this guards measured 90,701 B gzipped, so the ceiling is nowhere near the regression it exists to catch. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
 		},
 		"idle_heap_growth_bytes": {
 			"max": 262144,
 			"unit": "bytes",
 			"source": "allowance",
 			"note": "V8 heap growth across the quiet window with one live subscription. Measured about 6 KiB, which is the allocation the window itself makes. 256 KiB matches the resident-set ceiling: the same promise from inside the isolate, where a per-tick allocation shows up long before it shows up in RSS."
+		},
+		"js_closure_modules": {
+			"max": 80,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Modules reachable from the built entry, which is the version of this budget that cannot be hidden by minifying. Measured 48: 46 from this package plus the consent-category module and the one-line alias that exports it. 80 is the ceiling, set with room for the components still to come, because the barrel edge announced itself as 131 modules well before anybody read the byte row."
 		}
 	},
-	"commitSha": "e14ef57908de7c84f10301471ee68be196e132f8",
+	"commitSha": "1723f6a0a0c5d86d4eb59750ee88a15db3ccfaa2",
 	"contract": "native/CONTRACT.md",
 	"environment": {
 		"arch": "arm64",
@@ -227,7 +233,7 @@
 	},
 	"gitDirty": true,
 	"notes": [
-		"the cold JavaScript span measures 31.535 ms, over the 10 ms the contract budgets for cold-start overhead. The contract row above times only the read path in a warm process; the contract number is a device-profile one and this harness runs on Node's module loader, which charges c15t for resolving every specifier a bundled app resolves from one bundle. Read the two rows together and treat neither as an app-launch number.",
+		"the cold JavaScript span measures 12.131 ms, over the 10 ms the contract budgets for cold-start overhead. The contract row above times only the read path in a warm process; the contract number is a device-profile one and this harness runs on Node's module loader, which charges c15t for resolving every specifier a bundled app resolves from one bundle. Read the two rows together and treat neither as an app-launch number.",
 		"axis 1/7 Cold-start overhead: cold_start_js_to_first_consent_ms, cold_start_overhead_ms, bootstrap_to_snapshot_cold_ms, native_bootstrap_to_snapshot_cold_ms (not measured this run: kotlin_bootstrap_to_snapshot_cold_ms)",
 		"axis 1 gap: no job here launches the app on a simulator or a device, so the process spawn, Metro, and the native SDK init around these spans stay unmeasured",
 		"axis 2/7 Time until cached consent is available: cached_consent_available_ms, js_hydrate_envelope_ms, native_hydrate_envelope_ms, kotlin_hydrate_envelope_ms",
@@ -242,32 +248,128 @@
 	],
 	"package": "@c15t/react-native",
 	"previous": {
-		"previousCommitSha": "e14ef57908de7c84f10301471ee68be196e132f8",
-		"previousTimestamp": "2026-09-17T17:29:44.278Z",
+		"previousCommitSha": "1723f6a0a0c5d86d4eb59750ee88a15db3ccfaa2",
+		"previousTimestamp": "2026-09-17T17:56:47.962Z",
 		"rows": [
 			{
-				"current": 0.027,
-				"delta": 0.002,
-				"deltaPercent": 8,
+				"current": 0.21,
+				"delta": 0.13,
+				"deltaPercent": 162.5,
+				"flagged": true,
+				"id": "kotlin_snapshot_plus_is_allowed_us",
+				"previous": 0.08
+			},
+			{
+				"current": 0.17,
+				"delta": 0.071,
+				"deltaPercent": 71.7,
+				"flagged": true,
+				"id": "kotlin_commit_ack_no_network_ms",
+				"previous": 0.099
+			},
+			{
+				"current": 0.061,
+				"delta": 0.023,
+				"deltaPercent": 60.5,
+				"flagged": true,
+				"id": "kotlin_hydrate_envelope_ms",
+				"previous": 0.038
+			},
+			{
+				"current": 1.363,
+				"delta": 0.497,
+				"deltaPercent": 57.4,
+				"flagged": true,
+				"id": "consent_ui_action_to_commit_ms",
+				"previous": 0.866
+			},
+			{
+				"current": 2.098,
+				"delta": 0.655,
+				"deltaPercent": 45.4,
+				"flagged": true,
+				"id": "native_commit_ack_disk_ms",
+				"previous": 1.443
+			},
+			{
+				"current": 0.567,
+				"delta": 0.175,
+				"deltaPercent": 44.6,
+				"flagged": true,
+				"id": "consent_ui_remount_to_interactive_ms",
+				"previous": 0.392
+			},
+			{
+				"current": 1.771,
+				"delta": 0.475,
+				"deltaPercent": 36.7,
+				"flagged": true,
+				"id": "consent_ui_open_to_interactive_ms",
+				"previous": 1.296
+			},
+			{
+				"current": 0.255,
+				"delta": 0.06,
+				"deltaPercent": 30.8,
+				"flagged": true,
+				"id": "native_commit_ack_no_network_ms",
+				"previous": 0.195
+			},
+			{
+				"current": 10.041,
+				"delta": 1.749,
+				"deltaPercent": 21.1,
+				"flagged": false,
+				"id": "policy_apply_per_rule_set_us",
+				"previous": 8.292
+			},
+			{
+				"current": 0.029,
+				"delta": 0.004,
+				"deltaPercent": 16,
 				"flagged": false,
 				"id": "cached_consent_available_ms",
 				"previous": 0.025
 			},
 			{
-				"current": 31.535,
-				"delta": 0.137,
-				"deltaPercent": 0.4,
+				"current": 5.859,
+				"delta": 0.609,
+				"deltaPercent": 11.6,
 				"flagged": false,
-				"id": "cold_start_js_to_first_consent_ms",
-				"previous": 31.398
+				"id": "consent_ui_mount_to_interactive_ms",
+				"previous": 5.25
 			},
 			{
-				"current": 20.79,
-				"delta": 0.04,
-				"deltaPercent": 0.2,
+				"current": 0.128,
+				"delta": 0.013,
+				"deltaPercent": 11.3,
+				"flagged": false,
+				"id": "bootstrap_to_snapshot_cold_ms",
+				"previous": 0.115
+			},
+			{
+				"current": 0.128,
+				"delta": 0.013,
+				"deltaPercent": 11.3,
+				"flagged": false,
+				"id": "cold_start_overhead_ms",
+				"previous": 0.115
+			},
+			{
+				"current": 12.131,
+				"delta": 1.197,
+				"deltaPercent": 10.9,
+				"flagged": false,
+				"id": "cold_start_js_to_first_consent_ms",
+				"previous": 10.934
+			},
+			{
+				"current": 21,
+				"delta": 0.96,
+				"deltaPercent": 4.8,
 				"flagged": false,
 				"id": "native_queue_replay_us",
-				"previous": 20.75
+				"previous": 20.04
 			},
 			{
 				"current": 0.33,
@@ -278,36 +380,12 @@
 				"previous": 0.33
 			},
 			{
-				"current": 0.0002,
-				"delta": 0,
-				"deltaPercent": 0,
-				"flagged": false,
-				"id": "native_commit_ack_disk_ms",
-				"previous": 0.0002
-			},
-			{
-				"current": 0.42,
-				"delta": 0,
-				"deltaPercent": 0,
-				"flagged": false,
-				"id": "kotlin_policy_evaluation_us",
-				"previous": 0.42
-			},
-			{
 				"current": 0.08,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
-				"id": "kotlin_snapshot_plus_is_allowed_us",
+				"id": "native_snapshot_read_us",
 				"previous": 0.08
-			},
-			{
-				"current": 0.097,
-				"delta": 0,
-				"deltaPercent": 0,
-				"flagged": false,
-				"id": "kotlin_commit_ack_no_network_ms",
-				"previous": 0.097
 			},
 			{
 				"current": 1,
@@ -318,12 +396,12 @@
 				"previous": 1
 			},
 			{
-				"current": 0.004,
+				"current": 0.005,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "bootstrap_to_snapshot_warm_ms",
-				"previous": 0.004
+				"previous": 0.005
 			},
 			{
 				"current": 0.008,
@@ -334,20 +412,20 @@
 				"previous": 0.008
 			},
 			{
-				"current": 0.004,
+				"current": 0.005,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "commit_ack_no_network_ms",
-				"previous": 0.004
+				"previous": 0.005
 			},
 			{
-				"current": 0.041,
+				"current": 0.042,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "snapshot_read_us",
-				"previous": 0.041
+				"previous": 0.042
 			},
 			{
 				"current": 0.083,
@@ -382,6 +460,22 @@
 				"previous": 3
 			},
 			{
+				"current": 0.001,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "idle_cpu_percent",
+				"previous": 0.001
+			},
+			{
+				"current": 5536,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "idle_heap_growth_bytes",
+				"previous": 5536
+			},
+			{
 				"current": 8,
 				"delta": 0,
 				"deltaPercent": 0,
@@ -390,188 +484,92 @@
 				"previous": 8
 			},
 			{
-				"current": 98546,
+				"current": 98584,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "js_shipped_bytes",
-				"previous": 98546
+				"previous": 98584
 			},
 			{
-				"current": 20862,
+				"current": 20872,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "js_shipped_gzip_bytes",
-				"previous": 20862
+				"previous": 20872
 			},
 			{
-				"current": 389639,
+				"current": 74507,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "js_closure_bytes",
-				"previous": 389639
+				"previous": 74507
 			},
 			{
-				"current": 90701,
+				"current": 14956,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "js_closure_gzip_bytes",
-				"previous": 90701
+				"previous": 14956
 			},
 			{
-				"current": 131,
+				"current": 48,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "js_closure_modules",
-				"previous": 131
+				"previous": 48
 			},
 			{
-				"current": 469545,
-				"delta": 0,
-				"deltaPercent": 0,
-				"flagged": false,
-				"id": "ios_binary_bytes",
-				"previous": 469545
-			},
-			{
-				"current": 824089,
+				"current": 837517,
 				"delta": 0,
 				"deltaPercent": 0,
 				"flagged": false,
 				"id": "android_binary_bytes",
-				"previous": 824089
+				"previous": 837517
 			},
 			{
-				"current": 6072,
-				"delta": -16,
-				"deltaPercent": -0.3,
+				"current": 470805,
+				"delta": -2564,
+				"deltaPercent": -0.5,
 				"flagged": false,
-				"id": "idle_heap_growth_bytes",
-				"previous": 6088
+				"id": "ios_binary_bytes",
+				"previous": 473369
 			},
 			{
-				"current": 0.535,
-				"delta": -0.004,
-				"deltaPercent": -0.7,
-				"flagged": false,
-				"id": "native_bootstrap_to_snapshot_warm_ms",
-				"previous": 0.539
-			},
-			{
-				"current": 0.535,
-				"delta": -0.004,
-				"deltaPercent": -0.7,
-				"flagged": false,
-				"id": "native_hydrate_envelope_ms",
-				"previous": 0.539
-			},
-			{
-				"current": 0.53,
+				"current": 0.545,
 				"delta": -0.016,
 				"deltaPercent": -2.9,
 				"flagged": false,
+				"id": "native_bootstrap_to_snapshot_warm_ms",
+				"previous": 0.561
+			},
+			{
+				"current": 0.545,
+				"delta": -0.016,
+				"deltaPercent": -2.9,
+				"flagged": false,
+				"id": "native_hydrate_envelope_ms",
+				"previous": 0.561
+			},
+			{
+				"current": 0.56,
+				"delta": -0.039,
+				"deltaPercent": -6.5,
+				"flagged": false,
 				"id": "native_bootstrap_to_snapshot_cold_ms",
-				"previous": 0.546
+				"previous": 0.599
 			},
 			{
-				"current": 0.827,
-				"delta": -0.03,
-				"deltaPercent": -3.5,
+				"current": 0.67,
+				"delta": -1.37,
+				"deltaPercent": -67.2,
 				"flagged": false,
-				"id": "consent_ui_action_to_commit_ms",
-				"previous": 0.857
-			},
-			{
-				"current": 0.183,
-				"delta": -0.008,
-				"deltaPercent": -4.2,
-				"flagged": false,
-				"id": "native_commit_ack_no_network_ms",
-				"previous": 0.191
-			},
-			{
-				"current": 1.262,
-				"delta": -0.07,
-				"deltaPercent": -5.3,
-				"flagged": false,
-				"id": "consent_ui_open_to_interactive_ms",
-				"previous": 1.332
-			},
-			{
-				"current": 5.732,
-				"delta": -0.442,
-				"deltaPercent": -7.2,
-				"flagged": false,
-				"id": "consent_ui_mount_to_interactive_ms",
-				"previous": 6.174
-			},
-			{
-				"current": 0.037,
-				"delta": -0.003,
-				"deltaPercent": -7.5,
-				"flagged": false,
-				"id": "kotlin_hydrate_envelope_ms",
-				"previous": 0.04
-			},
-			{
-				"current": 0.098,
-				"delta": -0.013,
-				"deltaPercent": -11.7,
-				"flagged": false,
-				"id": "bootstrap_to_snapshot_cold_ms",
-				"previous": 0.111
-			},
-			{
-				"current": 0.098,
-				"delta": -0.013,
-				"deltaPercent": -11.7,
-				"flagged": false,
-				"id": "cold_start_overhead_ms",
-				"previous": 0.111
-			},
-			{
-				"current": 0.387,
-				"delta": -0.06,
-				"deltaPercent": -13.4,
-				"flagged": false,
-				"id": "consent_ui_remount_to_interactive_ms",
-				"previous": 0.447
-			},
-			{
-				"current": 7.958,
-				"delta": -3.25,
-				"deltaPercent": -29,
-				"flagged": false,
-				"id": "policy_apply_per_rule_set_us",
-				"previous": 11.208
-			},
-			{
-				"current": -16089088,
-				"delta": 13156352,
-				"deltaPercent": -45,
-				"flagged": false,
-				"id": "idle_rss_growth_bytes",
-				"previous": -29245440
-			},
-			{
-				"current": 0.04,
-				"delta": -0.04,
-				"deltaPercent": -50,
-				"flagged": false,
-				"id": "native_snapshot_read_us",
-				"previous": 0.08
-			},
-			{
-				"current": 0.002,
-				"delta": -0.006,
-				"deltaPercent": -75,
-				"flagged": false,
-				"id": "idle_cpu_percent",
-				"previous": 0.008
+				"id": "kotlin_policy_evaluation_us",
+				"previous": 2.04
 			},
 			{
 				"current": 0,
@@ -587,6 +585,14 @@
 				"deltaPercent": null,
 				"flagged": false,
 				"id": "rerenders_per_unchanged_event",
+				"previous": 0
+			},
+			{
+				"current": -18874368,
+				"delta": -18874368,
+				"deltaPercent": null,
+				"flagged": false,
+				"id": "idle_rss_growth_bytes",
 				"previous": 0
 			},
 			{
@@ -619,7 +625,7 @@
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.535
+			"value": 0.545
 		},
 		{
 			"budget": 15,
@@ -631,7 +637,7 @@
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.53
+			"value": 0.56
 		},
 		{
 			"budget": 3,
@@ -643,7 +649,7 @@
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.535
+			"value": 0.545
 		},
 		{
 			"budget": 50,
@@ -667,7 +673,7 @@
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "us",
-			"value": 0.04
+			"value": 0.08
 		},
 		{
 			"budget": 2,
@@ -691,19 +697,19 @@
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.183
+			"value": 0.255
 		},
 		{
 			"budget": 50,
 			"budgetSource": "contract",
-			"detail": "bench envelope 1936 B; reported to four significant figures: 0.0002, below three decimals in ms",
+			"detail": "bench envelope 1936 B",
 			"id": "native_commit_ack_disk_ms",
 			"label": "commit acknowledged, FileStore plus dead transport",
 			"samples": 200,
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "ms",
-			"value": 0.0002
+			"value": 2.098
 		},
 		{
 			"budget": null,
@@ -715,7 +721,7 @@
 			"status": "measured",
 			"surface": "swift-core",
 			"unit": "us",
-			"value": 20.79
+			"value": 21
 		},
 		{
 			"budget": 3,
@@ -727,7 +733,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "ms",
-			"value": 0.037
+			"value": 0.061
 		},
 		{
 			"budget": 50,
@@ -738,7 +744,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "us",
-			"value": 0.42
+			"value": 0.67
 		},
 		{
 			"budget": 2,
@@ -749,7 +755,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "us",
-			"value": 0.08
+			"value": 0.21
 		},
 		{
 			"budget": 50,
@@ -760,7 +766,7 @@
 			"status": "measured",
 			"surface": "kotlin-core",
 			"unit": "ms",
-			"value": 0.097
+			"value": 0.17
 		},
 		{
 			"budget": 1,
@@ -795,7 +801,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.004
+			"value": 0.005
 		},
 		{
 			"budget": 15,
@@ -806,7 +812,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.098
+			"value": 0.128
 		},
 		{
 			"budget": 10,
@@ -818,7 +824,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.098
+			"value": 0.128
 		},
 		{
 			"budget": 3,
@@ -841,7 +847,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.004
+			"value": 0.005
 		},
 		{
 			"budget": 2,
@@ -852,7 +858,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "us",
-			"value": 0.041
+			"value": 0.042
 		},
 		{
 			"budget": 2,
@@ -913,16 +919,16 @@
 			"value": 3
 		},
 		{
-			"budget": 80,
+			"budget": 40,
 			"budgetSource": "allowance",
-			"detail": "median of 15 fresh processes: 31.334 ms evaluating the entry and what it links, 0.198 ms to the first read; 8.01 ms of React and harness work excluded",
+			"detail": "median of 15 fresh processes: 11.888 ms evaluating the entry and what it links, 0.238 ms to the first read; 12.07 ms of React and harness work excluded",
 			"id": "cold_start_js_to_first_consent_ms",
 			"label": "built entry to first snapshot(), fresh process",
 			"samples": 15,
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 31.535
+			"value": 12.131
 		},
 		{
 			"budget": 3,
@@ -934,7 +940,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.027
+			"value": 0.029
 		},
 		{
 			"budget": 25,
@@ -946,7 +952,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 5.732
+			"value": 5.859
 		},
 		{
 			"budget": 5,
@@ -958,7 +964,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.387
+			"value": 0.567
 		},
 		{
 			"budget": 10,
@@ -970,7 +976,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 1.262
+			"value": 1.771
 		},
 		{
 			"budget": 10,
@@ -982,19 +988,19 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "ms",
-			"value": 0.827
+			"value": 1.363
 		},
 		{
 			"budget": 2,
 			"budgetSource": "allowance",
-			"detail": "30001.8 ms window after a 2000 ms settle, 1 live listener(s)",
+			"detail": "30000.7 ms window after a 2000 ms settle, 1 live listener(s)",
 			"id": "idle_cpu_percent",
 			"label": "idle CPU with one live subscription",
 			"samples": 1,
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "percent",
-			"value": 0.002
+			"value": 0.001
 		},
 		{
 			"budget": 262144,
@@ -1005,7 +1011,7 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "bytes",
-			"value": -16089088
+			"value": -18874368
 		},
 		{
 			"budget": 262144,
@@ -1016,19 +1022,19 @@
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "bytes",
-			"value": 6072
+			"value": 5536
 		},
 		{
 			"budget": 100,
 			"budgetSource": "allowance",
-			"detail": "8 rule sets from native/protocol, worst 14.563 us, span is init plus first read",
+			"detail": "8 rule sets from native/protocol, worst 25.208 us, span is init plus first read",
 			"id": "policy_apply_per_rule_set_us",
 			"label": "apply a rule set (init to snapshot), median over the fixture corpus",
 			"samples": 2400,
 			"status": "measured",
 			"surface": "react-native-js",
 			"unit": "us",
-			"value": 7.958
+			"value": 10.041
 		},
 		{
 			"budget": null,
@@ -1052,7 +1058,7 @@
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 98546
+			"value": 98584
 		},
 		{
 			"budget": 24576,
@@ -1064,43 +1070,43 @@
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 20862
+			"value": 20872
 		},
 		{
-			"budget": 524288,
+			"budget": 131072,
 			"budgetSource": "allowance",
-			"detail": "131 modules from the entry; 46 from @c15t/react-native, 85 from other @c15t packages; host imports not counted: base-x, react, react-native, react/jsx-runtime, valibot",
+			"detail": "48 modules from the entry; 46 from @c15t/react-native, 2 from other @c15t packages; host imports not counted: react, react-native, react/jsx-runtime",
 			"id": "js_closure_bytes",
 			"label": "JavaScript an app carries from the entry",
 			"samples": 0,
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 389639
+			"value": 74507
 		},
 		{
-			"budget": 131072,
+			"budget": 24576,
 			"budgetSource": "allowance",
-			"detail": "131 modules from the entry; 46 from @c15t/react-native, 85 from other @c15t packages; host imports not counted: base-x, react, react-native, react/jsx-runtime, valibot",
+			"detail": "48 modules from the entry; 46 from @c15t/react-native, 2 from other @c15t packages; host imports not counted: react, react-native, react/jsx-runtime",
 			"id": "js_closure_gzip_bytes",
 			"label": "JavaScript an app carries, gzipped",
 			"samples": 0,
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 90701
+			"value": 14956
 		},
 		{
-			"budget": null,
-			"budgetSource": null,
-			"detail": "131 modules from the entry; 46 from @c15t/react-native, 85 from other @c15t packages; host imports not counted: base-x, react, react-native, react/jsx-runtime, valibot",
+			"budget": 80,
+			"budgetSource": "allowance",
+			"detail": "48 modules from the entry; 46 from @c15t/react-native, 2 from other @c15t packages; host imports not counted: react, react-native, react/jsx-runtime",
 			"id": "js_closure_modules",
 			"label": "modules reachable from the built entry",
 			"samples": 0,
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "count",
-			"value": 131
+			"value": 48
 		},
 		{
 			"budget": 1048576,
@@ -1112,7 +1118,7 @@
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 469545
+			"value": 470805
 		},
 		{
 			"budget": 262144,
@@ -1136,7 +1142,7 @@
 			"status": "measured",
 			"surface": "bundle",
 			"unit": "bytes",
-			"value": 824089
+			"value": 837517
 		},
 		{
 			"budget": 0,
@@ -1179,5 +1185,5 @@
 	},
 	"schemaVersion": 1,
 	"suite": "mobile-runtime",
-	"timestamp": "2026-09-17T17:30:29.433Z"
+	"timestamp": "2026-09-17T17:59:59.951Z"
 }

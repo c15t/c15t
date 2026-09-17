@@ -106,10 +106,11 @@ deliberately not on the required-row list: a shared runner's quiet window is not
 `js_shipped_bytes` is 242 B over its ceiling at this commit, from the uncommitted
 `packages/react-native` changes in this worktree. The ceiling was not raised to hide it.
 
-The shipped-vs-closure gap is the finding worth documenting: the package ships 98.5 KB,
-and an app carries 389.6 KB raw / 90.7 KB gzipped across 131 modules, because the built
-barrel re-exports the `@c15t/core` graph. `js_shipped_bytes` alone understates the
-install by about 4x.
+The shipped-vs-closure gap was the finding worth documenting: the package shipped
+98.5 KB while an app carried 389.6 KB raw / 90.7 KB gzipped across 131 modules, because
+the built barrel re-exported the `@c15t/core` graph. `js_shipped_bytes` alone
+understated the install by about 4x. The next section records what closed it, and what
+the ceilings became.
 
 ## Not measurable here
 
@@ -126,3 +127,38 @@ the consent UI under a platform renderer.
 resolution, not the reporter rounding a value away.
 
 Run totals: 45 measured, 2 not-measured, 1 over budget.
+
+## Post-audit: the barrel edge is gone
+
+That 4x had one cause. `@c15t/react-native` needs two string arrays from `@c15t/core`
+at runtime, `CONSENT_CATEGORIES` and `OPTIONAL_CONSENT_CATEGORIES`, and imported them
+from the barrel. Every other type it takes from core is a type import, which a bundler
+erases, and a bundler cannot tell the two apart at the barrel, so the kernel, the
+schema, and the translations arrived with the arrays.
+
+`@c15t/core/consent-categories` now exports those arrays from a module with no imports
+of its own, and both call sites read it. Re-measured on the same machine:
+
+| Row | Before | After | Ceiling |
+| --- | --- | --- | --- |
+| `js_closure_bytes` | 389,639 B | 74,507 B | 131,072 B |
+| `js_closure_gzip_bytes` | 90,701 B | 14,956 B | 24,576 B |
+| `js_closure_modules` | 131 | 48 | 80 |
+| `cold_start_js_to_first_consent_ms` | 31.621 ms | 10.9-12.1 ms | 40 ms |
+
+Three things follow from that table.
+
+The closure is now smaller than the tarball. 24,220 B of what `@c15t/react-native`
+ships is the Expo config plugin, which runs in Node at build time and never reaches a
+device, so `js_shipped_bytes` went from an understatement to the pessimistic row.
+
+Every ceiling above sits well above its measurement on purpose, and none of them is the
+real gate. [`src/__tests__/module-closure.test.ts`](./src/__tests__/module-closure.test.ts)
+names the exact `@c15t/core` files an app may carry, so a runtime import to the barrel
+fails a test on the pull request that adds it instead of showing up as a budget somebody
+has to notice. Reintroducing the import was verified to fail two cases and pull 54 extra
+files back in.
+
+`js_closure_modules` gained a budget in the same change. A module count is the size gate
+minification cannot hide, and it is the row that caught this first: it said 131 while the
+byte rows still looked comfortable.

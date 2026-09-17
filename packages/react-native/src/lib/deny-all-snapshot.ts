@@ -7,8 +7,8 @@
  * optional category denied, and an `error` that says why.
  */
 
-import { CONSENT_CATEGORIES } from '@c15t/core';
 import type { ConsentState } from '@c15t/core';
+import { CONSENT_CATEGORIES } from '@c15t/core/consent-categories';
 
 import type { ConsentSnapshot } from '../protocol';
 import {

@@ -230,7 +230,7 @@ export const ROWS = {
 		unit: 'bytes',
 	},
 	jsClosureModules: {
-		budgetKey: null,
+		budgetKey: 'js_closure_modules',
 		id: 'js_closure_modules',
 		label: 'modules reachable from the built entry',
 		surface: 'bundle',

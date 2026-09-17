@@ -129,7 +129,7 @@
 			"max": 102400,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 100 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine. It moved from 96 KiB at 98,546 B measured: the package grew a decision-carrying gate and a wire-shape checker, and both belong here rather than in a dev-only side door, because the thing being guarded is what crosses the bridge. The size that actually needs defending is js_closure_bytes, four times this number."
+			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 100 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine. It moved from 96 KiB at 98,546 B measured: the package grew a decision-carrying gate and a wire-shape checker, and both belong here rather than in a dev-only side door, because the thing being guarded is what crosses the bridge. This is now the larger of the two size rows, and js_closure_bytes is the one that matters: 24,220 B of what ships is the Expo config plugin, which runs in Node at build time and never reaches a device."
 		},
 		"js_shipped_gzip_bytes": {
 			"max": 24576,
@@ -186,10 +186,10 @@
 			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
 		},
 		"cold_start_js_to_first_consent_ms": {
-			"max": 80,
+			"max": 40,
 			"unit": "ms",
 			"source": "allowance",
-			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 31-44 ms on the development machine, of which under a millisecond is the handshake and the rest the module graph the built barrel pulls in: 131 modules, 46 of them this package. 80 ms is a blow-up guard, not a promise: it allows a runner twice as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
+			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 10.9 ms on the development machine, 10.7 ms of it evaluating the entry and what it links. It read 31-44 ms while the built barrel pulled the @c15t/core graph into every app, which is the whole argument for the js_closure_bytes ceiling above. 40 ms is a blow-up guard, not a promise: it allows a runner three times as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
 		},
 		"cached_consent_available_ms": {
 			"max": 3,
@@ -222,22 +222,28 @@
 			"note": "Tap on the primary action to the module holding the intent, measured through the rendered control rather than a client call, so the React layer is inside the span. Measured 0.72 ms against a fake that answers offline. The 50 ms contract ceiling gates the client span below; 10 ms here says the render path must not add an order of magnitude to it."
 		},
 		"js_closure_bytes": {
-			"max": 524288,
-			"unit": "bytes",
-			"source": "allowance",
-			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry, including the @c15t/core graph its barrel re-exports. Measured 389,639 B over 131 modules, against 98,546 B for this package's own dist. 512 KiB is the ceiling for a boundary plus one kernel; the headroom is there because most of these bytes belong to a package this one does not own."
-		},
-		"js_closure_gzip_bytes": {
 			"max": 131072,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "The same closure gzipped, which is the shape it travels in. Measured 90,701 B over 131 modules; 128 KiB is the ceiling, which is the js_shipped_gzip_bytes allowance plus room for the kernel the boundary pulls in. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
+			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry. Measured 74,507 B over 48 modules, 46 of them this package and two the consent-category vocabulary it reads through @c15t/core/consent-categories. 128 KiB is the ceiling. It allows the boundary layer to grow by half again, and it fails the moment a runtime import to the @c15t/core barrel comes back: that edge measured 389,639 B over 131 modules, because behind two string arrays sits the kernel, the schema, and the translations."
+		},
+		"js_closure_gzip_bytes": {
+			"max": 24576,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "The same closure gzipped, which is the shape it travels in. Measured 14,956 B over 48 modules. 24 KiB is deliberately the same ceiling as js_shipped_gzip_bytes, so the two cannot be traded against each other; the barrel edge this guards measured 90,701 B gzipped, so the ceiling is nowhere near the regression it exists to catch. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
 		},
 		"idle_heap_growth_bytes": {
 			"max": 262144,
 			"unit": "bytes",
 			"source": "allowance",
 			"note": "V8 heap growth across the quiet window with one live subscription. Measured about 6 KiB, which is the allocation the window itself makes. 256 KiB matches the resident-set ceiling: the same promise from inside the isolate, where a per-tick allocation shows up long before it shows up in RSS."
+		},
+		"js_closure_modules": {
+			"max": 80,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Modules reachable from the built entry, which is the version of this budget that cannot be hidden by minifying. Measured 48: 46 from this package plus the consent-category module and the one-line alias that exports it. 80 is the ceiling, set with room for the components still to come, because the barrel edge announced itself as 131 modules well before anybody read the byte row."
 		}
 	}
 }
