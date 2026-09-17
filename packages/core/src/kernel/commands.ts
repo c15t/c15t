@@ -36,7 +36,6 @@ import type {
 	SaveResult,
 	SaveUISource,
 	KernelEvent,
-	PromptSurface,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
@@ -789,9 +788,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
 				version: 1 as const,
 			};
-			const surface: PromptSurface =
-				snapshot.activeUI === 'dialog' ? 'dialog' : 'banner';
-			const shownAt = snapshot.surfaceShownAt[surface];
+			// Attributed like a save: the surface is whatever is open, and the
+			// timing is known only for a shown prompt surface and a forward clock.
+			const { uiSource: surface, timeToDecisionMs } = saveAttribution(
+				snapshot,
+				undefined,
+				actionAt
+			);
 			commit({ noticeDismissal: dismissal, now: actionAt });
 			const after = getSnapshot();
 			const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
@@ -800,8 +803,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				surface,
 				type: 'notice:dismissed',
 			};
-			if (shownAt !== null) {
-				event.timeToDecisionMs = Math.max(0, actionAt - shownAt);
+			if (timeToDecisionMs !== undefined) {
+				event.timeToDecisionMs = timeToDecisionMs;
 			}
 			if (after.experiment) {
 				event.experiment = after.experiment;

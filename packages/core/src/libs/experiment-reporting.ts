@@ -58,7 +58,8 @@ export interface ExperimentChoiceRecordedReport extends ExperimentReportBase {
  */
 export interface ExperimentNoticeDismissedReport extends ExperimentReportBase {
 	name: 'c15t_notice_dismissed';
-	surface: PromptSurface;
+	/** `banner` or `dialog`, or `none` for a programmatic dismissal with no prompt open. */
+	surface: SaveUISource;
 	/** Milliseconds from the surface's first impression to the dismissal, when known. */
 	timeToDecisionMs?: number;
 	/** Epoch milliseconds of the dismissal. */
@@ -230,14 +231,46 @@ export const dataLayerReporter: ExperimentReporter = function dataLayerReporter(
 	});
 };
 
-/** Calls `window.posthog.capture(name, properties)`. No-op without PostHog or in SSR. */
+/** How often the PostHog reporter checks for a late-loading SDK. */
+const POSTHOG_POLL_MS = 250;
+
+/** Events captured before `window.posthog` existed, in arrival order. */
+const posthogBuffer: ExperimentReportEvent[] = [];
+let posthogPoll: ReturnType<typeof setInterval> | undefined;
+
+/** Send every buffered event once `window.posthog.capture` exists. */
+const flushPosthogBuffer = function flushPosthogBuffer(): boolean {
+	const posthog = reportingWindow()?.posthog;
+	if (!posthog?.capture) {
+		return false;
+	}
+	for (const event of posthogBuffer.splice(0)) {
+		posthog.capture(event.name, { ...toExperimentReportProperties(event) });
+	}
+	return true;
+};
+
+/**
+ * Calls `window.posthog.capture(name, properties)`. While PostHog is not on
+ * the page yet (a consent-gated load, for example) the events are held and
+ * sent in order once it appears. No-op in SSR.
+ */
 export const posthogReporter: ExperimentReporter = function posthogReporter(
 	event
 ) {
-	const host = reportingWindow();
-	host?.posthog?.capture?.(event.name, {
-		...toExperimentReportProperties(event),
-	});
+	if (!reportingWindow()) {
+		return;
+	}
+	posthogBuffer.push(event);
+	if (flushPosthogBuffer() || posthogPoll !== undefined) {
+		return;
+	}
+	posthogPoll = setInterval(() => {
+		if (flushPosthogBuffer()) {
+			clearInterval(posthogPoll);
+			posthogPoll = undefined;
+		}
+	}, POSTHOG_POLL_MS);
 };
 
 const BUILT_IN_REPORTERS: Record<ExperimentReporterName, ExperimentReporter> = {

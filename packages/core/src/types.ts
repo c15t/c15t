@@ -572,9 +572,16 @@ export type KernelEvent =
 			type: 'notice:dismissed';
 			snapshot: ConsentSnapshot;
 			dismissal: NoticeDismissal;
-			/** Surface the notice was dismissed from. */
-			surface: PromptSurface;
-			/** Milliseconds from the surface's first impression to the dismissal. */
+			/**
+			 * Surface the notice was dismissed from: the snapshot's `activeUI`,
+			 * so `none` for a programmatic dismissal with no prompt open.
+			 */
+			surface: SaveUISource;
+			/**
+			 * Milliseconds from the surface's first impression to the dismissal.
+			 * Omitted when no prompt surface was open, the surface was never
+			 * shown, or the clock moved backwards.
+			 */
 			timeToDecisionMs?: number;
 			/** Experiment arm active at the dismissal. */
 			experiment?: ExperimentAssignment;

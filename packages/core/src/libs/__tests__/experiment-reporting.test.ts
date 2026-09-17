@@ -201,12 +201,36 @@ describe('posthog reporter', () => {
 		});
 	});
 
-	it('is a no-op without posthog', () => {
-		expect(() =>
+	it('holds events until posthog loads, then sends them in order', () => {
+		vi.useFakeTimers();
+		try {
 			posthogReporter(
 				buildSurfaceShownReport(shown(assignment)) as ExperimentReportEvent
-			)
-		).not.toThrow();
+			);
+			posthogReporter(
+				buildChoiceRecordedReport(recorded(assignment)) as ExperimentReportEvent
+			);
+			vi.advanceTimersByTime(1000);
+			const capture = vi.fn();
+			(window as ReportingWindow).posthog = { capture };
+			expect(capture).not.toHaveBeenCalled();
+			vi.advanceTimersByTime(250);
+			expect(capture.mock.calls.map(([name]) => name)).toEqual([
+				'c15t_surface_shown',
+				'c15t_choice_recorded',
+			]);
+			expect(capture.mock.calls[0]?.[1]).toMatchObject({
+				shown_at: 1000,
+				variant: 'bar',
+			});
+			// Once PostHog is present, later events go straight through.
+			posthogReporter(
+				buildSurfaceShownReport(shown(assignment)) as ExperimentReportEvent
+			);
+			expect(capture).toHaveBeenCalledTimes(3);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 
