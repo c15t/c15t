@@ -492,7 +492,15 @@ interface PressablePropsStub extends AccessibilityProps {
 		| ((state: Record<string, boolean>) => ReactNode);
 	readonly delayLongPress?: number;
 	readonly disabled?: boolean;
-	readonly hitSlop?: number | { readonly all?: number; readonly top?: number };
+	readonly hitSlop?:
+		| number
+		| {
+				readonly all?: number;
+				readonly bottom?: number;
+				readonly left?: number;
+				readonly right?: number;
+				readonly top?: number;
+		  };
 	readonly nextFocus?: Record<string, string>;
 	readonly onPress?: (event: PressStubEvent) => void;
 	readonly onPressIn?: () => void;
@@ -506,21 +514,38 @@ interface PressablePropsStub extends AccessibilityProps {
  * Flatten the shapes React Native accepts for `hitSlop` into four edges.
  *
  * A test asserts on the touch area, so the stand-in has to report the resolved
- * inset rather than whatever spelling the component happened to use.
+ * inset rather than whatever spelling the component happened to use, and one edge
+ * at a time: a control that needs 14 points above a short track and 8 past a
+ * narrow one asks for exactly that, and reading one edge for all four reports a
+ * touch area the platform never hands out.
  *
  * @param slop - The value passed to `hitSlop`.
  * @returns The four edges the touch area extends past the drawn box.
  */
-const uniformEdges = function uniformEdges(
-	slop: number | { all?: number; top?: number } | undefined
+const resolvedEdges = function resolvedEdges(
+	slop:
+		| number
+		| {
+				all?: number;
+				bottom?: number;
+				left?: number;
+				right?: number;
+				top?: number;
+		  }
+		| undefined
 ): { bottom: number; left: number; right: number; top: number } {
 	if (typeof slop === 'number') {
 		return { bottom: slop, left: slop, right: slop, top: slop };
 	}
 
-	const value = slop?.all ?? slop?.top ?? 0;
+	const edge = (value: number | undefined): number => value ?? slop?.all ?? 0;
 
-	return { bottom: value, left: value, right: value, top: value };
+	return {
+		bottom: edge(slop?.bottom),
+		left: edge(slop?.left),
+		right: edge(slop?.right),
+		top: edge(slop?.top),
+	};
 };
 
 const pressEvent = (): PressStubEvent => ({
@@ -550,7 +575,7 @@ export const Pressable = (props: PressablePropsStub): ReactElement => {
 			'data-hit-slop':
 				props.hitSlop === undefined
 					? undefined
-					: JSON.stringify(uniformEdges(props.hitSlop)),
+					: JSON.stringify(resolvedEdges(props.hitSlop)),
 			'data-rn-style': styleAttribute(props.style, { pressed: false }),
 			disabled,
 			href: isLink ? '#' : undefined,

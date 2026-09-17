@@ -7,7 +7,8 @@
  * radii, spacing and the type scale cannot drift. This file is the other half,
  * the facts that are not tokens anywhere and therefore have nothing to be
  * diffed against: which action carries the accent, the box an action draws and
- * the hit area that reaches the platform minimum, the rhythm inside a footer
+ * the hit area that reaches the platform minimum, the height of a collapsed
+ * category card and the pitch between two of them, the rhythm inside a footer
  * band, and how far the card sits off the bottom of the screen.
  *
  * Two of them contradict what this package used to do, and one contradicts the
@@ -31,6 +32,7 @@ import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
 import { lightTheme } from '../theme/create-consent-theme';
 import { BANNER_FOOTER_PADDING_HORIZONTAL } from '../theme/use-consent-styles';
 import {
+	hitSlop,
 	mountSurface,
 	nodeStyle,
 	requireRole,
@@ -86,32 +88,6 @@ const noticeSnapshot = function noticeSnapshot(): ConsentSnapshot {
 	return englishSnapshot({
 		promptRequirement: { kind: 'notice', reason: 'missing' },
 	});
-};
-
-/**
- * The hit area a control asked for.
- *
- * @param node - The rendered control.
- * @returns The four edges the touch area extends past the drawn box.
- */
-const hitSlop = function hitSlop(node: HTMLElement): {
-	bottom: number;
-	left: number;
-	right: number;
-	top: number;
-} {
-	const raw = node.getAttribute('data-hit-slop');
-
-	if (raw === null) {
-		return { bottom: 0, left: 0, right: 0, top: 0 };
-	}
-
-	return JSON.parse(raw) as {
-		bottom: number;
-		left: number;
-		right: number;
-		top: number;
-	};
 };
 
 /**
@@ -452,6 +428,59 @@ describe('dialog card', () => {
 });
 
 describe('category accordion', () => {
+	test('a closed card draws the web height and reaches the tap floor past it', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const row = requireRole(tree.container(), 'button', 'Marketing');
+		const card = row.parentElement as HTMLElement;
+		const trigger = nodeStyle(row);
+		// `.triggerRow` is `padding: 8` over `.trigger`'s `min-height: calc(icon +
+		// .25rem)`, which is the disclosure's 20 plus a quarter rem. React Native reads
+		// `minHeight` as the border box, so the part carries the padding too: 40 drawn,
+		// and 42 once `.item`'s two hairlines are on.
+		const drawn = Number(trigger.minHeight);
+
+		expect(trigger.padding).toBe(8);
+		expect(drawn).toBe(40);
+		expect(nodeStyle(card)).toMatchObject({
+			borderRadius: 8,
+			borderWidth: 1,
+		});
+		expect(drawn + 2).toBe(42);
+
+		// The pitch a device measures is that card plus the gap the stack carries: 54,
+		// where an inflated card pushed it to 74.
+		expect(
+			drawn + 2 + Number(nodeStyle(card.parentElement as HTMLElement).gap)
+		).toBe(54);
+
+		// Nothing inside the row may hold the touch floor as a laid-out size. The
+		// switch used to wrap its track in a 44pt box, which is a touch fact drawn as a
+		// layout one: on a 411x914 device every closed card measured 59.8 to 60.2 tall,
+		// 44 plus the trigger's padding, because a row is only as tall as the tallest
+		// thing in it. The visible control is untouched; its reach is not.
+		expect(
+			Number(
+				nodeStyle(requireRole(tree.container(), 'switch', 'Marketing'))
+					.height ?? 0
+			)
+		).toBeLessThanOrEqual(24);
+
+		// The fingertip still gets the platform minimum, above and below the drawn box.
+		const slop = hitSlop(row);
+
+		expect(drawn + slop.top + slop.bottom).toBeGreaterThanOrEqual(
+			MIN_TAP_TARGET
+		);
+
+		tree.unmount();
+	});
+
 	test('keeps the description shut until the row is tapped', () => {
 		const tree = mountSurface(
 			<ConsentDialog

@@ -217,6 +217,37 @@ export const nodeStyle = function nodeStyle(
 };
 
 /**
+ * The hit area a control asked for.
+ *
+ * A built-in control reaches the platform's 44pt floor through `hitSlop` rather
+ * than a drawn `minHeight`, so reading the style alone no longer says whether a
+ * finger is covered. The stand-in records the resolved inset on every `Pressable`.
+ *
+ * @param node - The rendered control.
+ * @returns The four edges the touch area extends past the drawn box, zero where the
+ * control asked for no slop at all.
+ */
+export const hitSlop = function hitSlop(node: HTMLElement): {
+	bottom: number;
+	left: number;
+	right: number;
+	top: number;
+} {
+	const raw = node.getAttribute('data-hit-slop');
+
+	if (raw === null) {
+		return { bottom: 0, left: 0, right: 0, top: 0 };
+	}
+
+	return JSON.parse(raw) as {
+		bottom: number;
+		left: number;
+		right: number;
+		top: number;
+	};
+};
+
+/**
  * The height a control's touch area covers.
  *
  * A web consent action draws 35.5 tall and reaches the platform's 44 through its

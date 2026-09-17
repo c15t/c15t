@@ -9,7 +9,9 @@
  * right up to the edge of its track.
  *
  * The touch target stays the platform minimum rather than the 32x20 track, so
- * the smaller visual does not cost anybody a reliable tap.
+ * the smaller visual does not cost anybody a reliable tap. It reaches that floor
+ * through its hit area rather than a laid-out box, so the row it sits in stays the
+ * height the design asks for.
  */
 
 import { useEffect, useMemo, useRef } from 'react';
@@ -57,18 +59,17 @@ const THUMB_SIZE_DISABLED = 8;
 const THUMB_HOLE = 4;
 
 /**
- * The tap target, which is larger than the track in both directions.
+ * What the control lays out: the track, and nothing around it.
  *
- * The track is centred inside it, so the visible control keeps the web
- * geometry while the finger gets the 44 points the platform asks for.
+ * The tap target used to be a 44pt box laid *around* the track, which is a touch
+ * fact drawn as a layout fact. A row is only as tall as the tallest thing inside
+ * it, so that box set the height of every category card open at 44 plus the
+ * trigger's padding, 18pt past the web's card, and no change to the row's own
+ * minimum could close the gap. The web lays the small track out at 28x16 and keeps
+ * its reach off the layout, so the reach moves to `hitSlop`, which covers the same
+ * points the box did without drawing them.
  */
-const HIT_AREA: ViewStyle = {
-	alignItems: 'center',
-	flexShrink: 0,
-	height: MIN_TAP_TARGET,
-	justifyContent: 'center',
-	minWidth: MIN_TAP_TARGET,
-};
+const HIT_BOX: ViewStyle = { flexShrink: 0 };
 
 /** Props for {@link ConsentSwitch}. */
 export interface ConsentSwitchProps {
@@ -121,6 +122,26 @@ export const ConsentSwitch = ({
 		points(track.width, width) - thumb - 2 * points(track.padding, padding)
 	);
 
+	// The inset that carries the track to the platform minimum on each axis, read
+	// off the track in force rather than hardcoded: 14 past a 16pt track, 8 past a
+	// 28pt one. A host that draws a bigger control through the `switch` part asks
+	// for less slop, and one that already clears the floor asks for none.
+	const slopFor = (side: number): number =>
+		Math.max(0, Math.ceil((MIN_TAP_TARGET - side) / 2));
+	const verticalSlop = slopFor(
+		points(track.height, CONSENT_SWITCH_GEOMETRY.height)
+	);
+	const horizontalSlop = slopFor(points(track.width, width));
+	const hitSlop =
+		verticalSlop === 0 && horizontalSlop === 0
+			? undefined
+			: {
+					bottom: verticalSlop,
+					left: horizontalSlop,
+					right: horizontalSlop,
+					top: verticalSlop,
+				};
+
 	// One value for the life of the control, and it starts at zero rather than at
 	// `value`: the memo may not read `value` without taking it as a dependency,
 	// and a ref read here would be a ref read during render. The effect below
@@ -167,10 +188,11 @@ export const ConsentSwitch = ({
 			accessibilityRole="switch"
 			accessibilityState={{ checked: value, disabled }}
 			disabled={disabled}
+			hitSlop={hitSlop}
 			onPress={() => {
 				onValueChange(!value);
 			}}
-			style={HIT_AREA}
+			style={HIT_BOX}
 		>
 			<View
 				style={[

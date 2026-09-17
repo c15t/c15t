@@ -250,14 +250,20 @@ export const CONSENT_DISCLOSURE_GEOMETRY = {
 } as const;
 
 /**
- * How long a collapsed category row is: 42.
+ * The floor the web puts under a collapsed row's content: 24.
  *
- * `.triggerRow` is 8 of padding over whichever is taller of a 14pt label and the
- * disclosure's own `min-height` of 24, plus the card's two hairlines. That is the
- * whole collapsed row: a row that also showed its description measured about 110,
- * which is why the mobile list and the web one looked unrelated.
+ * `.trigger` asks for `min-height: calc(var(--accordion-icon-size) + 0.25rem)`,
+ * the disclosure's 20 plus a quarter rem, and that is a floor on the web's
+ * *content* box: the row's own 8 of padding sits outside it. So a collapsed card
+ * is 8 + 24 + 8 plus the card's two hairlines, which is the 42 the live accordion
+ * measures, and the 44 a fingertip wants is nowhere in that arithmetic.
+ *
+ * React Native reads `minHeight` as the border box, so this number cannot go
+ * straight onto the part. Write 24 there and the padding is spent out of the
+ * floor, the row draws 36, and the disclosure is the thing that loses.
+ * `categoryTriggerHeight` adds the padding back so both platforms draw one card.
  */
-const CATEGORY_TRIGGER_MIN_HEIGHT = CONSENT_DISCLOSURE_GEOMETRY.box + 4;
+const CATEGORY_TRIGGER_CONTENT_FLOOR = CONSENT_DISCLOSURE_GEOMETRY.box + 4;
 
 /**
  * The line the revealed description sits on: 21.
@@ -369,6 +375,20 @@ export const useConsentStyles = function useConsentStyles(
 					HAIRLINE * 2
 			)
 		);
+		// What a collapsed trigger row draws, already carrying its own padding: at
+		// scale 1 the web's 24 floor wins and the row is 40, which with the card's
+		// hairlines is the 42 the web accordion measures. Past about 1.4x the
+		// label's line box passes that floor, and the row grows with the text rather
+		// than clipping it. The 44 a fingertip needs never enters here: it belongs on
+		// the row's hit area, which is what `hitSlopFor` in the row reaches.
+		const categoryTriggerHeight =
+			Math.ceil(
+				Math.max(
+					CATEGORY_TRIGGER_CONTENT_FLOOR,
+					typography.label.lineHeight * scaled
+				)
+			) +
+			spacing.s * 2;
 
 		// The gutter a floating banner keeps off the screen edge, and the gap a
 		// bottom sheet keeps below itself. The bands are added outside both, so a
@@ -538,14 +558,17 @@ export const useConsentStyles = function useConsentStyles(
 			),
 			// `.triggerRow`: 8 of padding, a 4 step, and a row of
 			// `[minmax(0,1fr), auto]`, which in React Native is a flexing text
-			// column against a switch that keeps its own width. The minimum height is
-			// the disclosure's `calc(icon + 0.25rem)`, so a collapsed card is 42 tall
-			// rather than the 110 a card that also showed its description came to.
+			// column against a switch that keeps its own width. `minHeight` is the web's
+			// disclosure floor plus that padding, because React Native reads it as the
+			// border box, and it is the whole collapsed card: 40 here plus the card's two
+			// hairlines is the 42 web draws. Nothing in the row may carry the 44pt touch
+			// floor as a drawn size, or the card measures 60 on a device again -- which
+			// is why the switch reaches its own floor through a hit area too.
 			categoryTrigger: {
 				alignItems: 'center',
 				flexDirection: 'row',
 				gap: spacing.xs,
-				minHeight: CATEGORY_TRIGGER_MIN_HEIGHT,
+				minHeight: categoryTriggerHeight,
 				padding: spacing.s,
 			},
 			description: textStyle(
