@@ -24,17 +24,28 @@ public struct ReplayReport: Sendable, Equatable {
     public let delivered: Int
     public let remaining: Int
     public let lastError: CoreErrorInfo?
+    /// Whether the backend could not be reached for some part of this pass.
+    ///
+    /// The answer that decides whether reading the queue again is worth anything. A
+    /// refusal says these bytes were read and turned away, so another read can find a
+    /// different entry waiting and worth trying; an endpoint that never answered says the
+    /// same thing about whatever else is queued, so a second read spends an attempt on
+    /// every entry behind it to deliver nothing. See
+    /// ``ConsentCore/requestDeliveryPass(ownSend:)``.
+    public let transportUnreachable: Bool
 
     public init(
         attempted: Int,
         delivered: Int,
         remaining: Int,
-        lastError: CoreErrorInfo? = nil
+        lastError: CoreErrorInfo? = nil,
+        transportUnreachable: Bool = false
     ) {
         self.attempted = attempted
         self.delivered = delivered
         self.remaining = remaining
         self.lastError = lastError
+        self.transportUnreachable = transportUnreachable
     }
 
     public static let empty = ReplayReport(attempted: 0, delivered: 0, remaining: 0)
@@ -149,6 +160,19 @@ final class PendingSaveQueue: @unchecked Sendable {
         entries().count
     }
 
+    /// Whether this entry is still waiting to be delivered.
+    ///
+    /// A sender asks immediately before it sends, because its own copy of the entry can
+    /// be older than this moment: a pass reads the queue once and delivers entry by
+    /// entry, while the save that queued a body carries that one entry in hand, so
+    /// either can still be holding a body the other has already landed. Re-sending it
+    /// is the resend the contract in `native/CONTRACT.md` describes -- identical frozen
+    /// bytes, same consent id, nothing in stored state moved -- and this queue is the
+    /// only record of what is owed.
+    func isPending(id: String) -> Bool {
+        lock.withLock { readEntries().contains { $0.id == id } }
+    }
+
     /// Drop every entry, for a subject reset.
     func clear() {
         lock.withLock { _ = writeEntries([]) }
@@ -201,6 +225,11 @@ final class PendingSaveQueue: @unchecked Sendable {
     /// and a flaky endpoint is not burst-attacked. Each result is applied to a
     /// freshly-read queue, so an action taken during a replay is never clobbered.
     ///
+    /// An entry the queue no longer holds is skipped rather than sent. The caller is
+    /// expected to hold the core's delivery pass, which is what makes "gone" mean
+    /// "already landed" instead of "someone cleared it" -- see
+    /// ``ConsentCore/requestDeliveryPass(ownSend:)``.
+    ///
     /// - Parameters:
     ///   - onResult: called per entry, so the core can emit an event for each replay
     ///     rather than one for the pass.
@@ -217,10 +246,20 @@ final class PendingSaveQueue: @unchecked Sendable {
         let pending = entries()
         guard !pending.isEmpty else { return .empty }
 
+        var attempted = 0
         var delivered = 0
         var lastError: CoreErrorInfo?
+        var unreachable = false
 
         for entry in pending {
+            // Asked last, immediately before the send, because the read that brought
+            // this entry here is older than this moment. A body another sender already
+            // landed is not this pass's to send: the frozen bytes carry the same
+            // consent id, so the backend would dedupe it and the only evidence that it
+            // ever happened is one more POST than the subject's decision called for.
+            guard isPending(id: entry.id) else { continue }
+            attempted += 1
+
             let result = await transport.sendSave(entry.body)
             switch result {
             case .success:
@@ -228,6 +267,11 @@ final class PendingSaveQueue: @unchecked Sendable {
                 remove(id: entry.id)
             case let .failure(error):
                 lastError = error.info
+                // Anything the producer did not decide by reading the body says the
+                // endpoint is the problem rather than these bytes.
+                if !error.isPermanentlyRejected {
+                    unreachable = true
+                }
                 let outcome = recordFailedAttempt(id: entry.id)
                 if outcome.dropsEntry {
                     onDrop?(entry, error, outcome)
@@ -237,10 +281,11 @@ final class PendingSaveQueue: @unchecked Sendable {
         }
 
         return ReplayReport(
-            attempted: pending.count,
+            attempted: attempted,
             delivered: delivered,
             remaining: count(),
-            lastError: lastError
+            lastError: lastError,
+            transportUnreachable: unreachable
         )
     }
 

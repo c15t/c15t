@@ -109,6 +109,12 @@ public final class ConsentCore: @unchecked Sendable {
     private var restoredFromStore = false
     private var inFlightWork = 0
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
+    /// Whether a delivery pass currently holds this core, and whether another has
+    /// been asked for in the meantime. Both are in-memory flags on the core's own
+    /// lock, and only ``requestDeliveryPass(ownSend:)`` and its bookkeeping helpers
+    /// read them. See "The pending save queue" in `native/CONTRACT.md`.
+    private var deliveryPassInFlight = false
+    private var deliveryPassRequested = false
     /// Strong holds on per-category gate subscriptions, keyed by identity. The
     /// observer set itself stays weak, as the contract requires. Holds both gate
     /// flavours: the boolean one ``gate(_:_:)`` and the decision-carrying
@@ -150,7 +156,7 @@ public final class ConsentCore: @unchecked Sendable {
         events.emit(.initialized)
 
         if config.flushPendingOnBootstrap {
-            schedule { await self.replayQueue() }
+            schedule { await self.requestDeliveryPass(ownSend: nil) }
         }
         scheduleInit(attempt: 1)
     }
@@ -158,6 +164,18 @@ public final class ConsentCore: @unchecked Sendable {
     /// Whether ``bootstrap(_:)`` has taken effect.
     public var isBootstrapped: Bool {
         lock.withLock { bootstrapped }
+    }
+
+    /// Whether a flush request is waiting to be answered by the pass that holds the
+    /// core.
+    ///
+    /// A test seam rather than a host API. ``flushPending()`` only asks, so a test
+    /// that has to prove a second request arrived *while a send was still open* needs
+    /// to see the request being recorded; without it the only evidence available is
+    /// that a duplicate POST did not show up, which a slow scheduler fakes perfectly
+    /// well.
+    package var hasWaitingDeliveryPassRequest: Bool {
+        lock.withLock { deliveryPassRequested }
     }
 
     /// The overrides in force, whether or not a policy has resolved.
@@ -583,18 +601,31 @@ public final class ConsentCore: @unchecked Sendable {
                     )))
                     return
                 }
-                switch await transport.sendSave(body) {
-                case .success:
-                    queue.remove(id: queuedID)
-                    self.events.emit(.saveDelivered(subjectId: subjectId))
-                case let .failure(error):
-                    self.settleFailedSend(
-                        error,
-                        queue: queue,
-                        entryID: queuedID,
-                        subjectId: subjectId
-                    )
-                }
+                // The first send takes the core the same way a replay does. It is a
+                // pass over one entry, and a pass over the whole queue must not be
+                // reading that entry at the same time -- see
+                // ``requestDeliveryPass(ownSend:)``. When it loses that race it sends
+                // nothing, because the pass that won covers this body on its way out.
+                await self.requestDeliveryPass(ownSend: {
+                    // The queue gets asked last. Both senders hold the pass when they
+                    // reach here, so an entry that is already gone was landed by the
+                    // pass that held the core before this one; re-sending the same
+                    // frozen bytes would buy a second POST for one decision.
+                    guard queue.isPending(id: queuedID) else { return }
+
+                    switch await transport.sendSave(body) {
+                    case .success:
+                        queue.remove(id: queuedID)
+                        self.events.emit(.saveDelivered(subjectId: subjectId))
+                    case let .failure(error):
+                        self.settleFailedSend(
+                            error,
+                            queue: queue,
+                            entryID: queuedID,
+                            subjectId: subjectId
+                        )
+                    }
+                })
             }
             return plan.result
         }
@@ -764,10 +795,17 @@ public final class ConsentCore: @unchecked Sendable {
         refresh()
     }
 
-    /// Retry everything the queue is holding. Call on launch, on foreground, and on
-    /// a reachability change.
+    /// Ask for everything the queue is holding to be delivered. Call on launch, on
+    /// foreground, and on a reachability change.
+    ///
+    /// This is a request for a pass, not a pass of its own. One pass may be in flight
+    /// per core, so a call that lands while another pass is sending is answered by
+    /// that pass and returns without starting a second one -- see
+    /// ``requestDeliveryPass(ownSend:)``. Nothing is weakened about the obligation:
+    /// an entry waiting on the running pass is still owed, still counted by
+    /// ``pendingSaveCount()``, and still announced by exactly one delivered event.
     public func flushPending() {
-        schedule { await self.replayQueue() }
+        schedule { await self.requestDeliveryPass(ownSend: nil) }
     }
 
     /// Everything waiting to reach the backend.
@@ -1223,7 +1261,7 @@ public final class ConsentCore: @unchecked Sendable {
         }
         // A save queued while the policy was still pending, or while the transport
         // was unreachable, gets another pass now that init has answered.
-        schedule { await self.replayQueue() }
+        schedule { await self.requestDeliveryPass(ownSend: nil) }
     }
 
     /// Merge server receipts with local ones, keeping the newer confirmation per
@@ -1288,10 +1326,139 @@ public final class ConsentCore: @unchecked Sendable {
         }
     }
 
-    private func replayQueue() async {
-        guard let transport = self.transport else { return }
+    // MARK: - Delivery passes
+
+    /// Ask for a delivery pass, and run one when no other pass holds this core.
+    ///
+    /// Contract: `native/CONTRACT.md`, "The pending save queue" -- only one pass may
+    /// be in flight per core, and this is the only place in the Swift core that
+    /// answers that question. Two passes reading the queue at once is the defect the
+    /// contract describes: a pass reads the queue once and then sends entry by entry,
+    /// so every entry it read stays readable until its own send lands, and the second
+    /// pass resends whatever the first is still sending. The bytes are frozen and
+    /// carry the same consent id, so the backend dedupes and no stored state moves --
+    /// the only trace is a second `POST /subjects` for a decision the subject already
+    /// saw delivered, once per entry per wake-up.
+    ///
+    /// The guard is the guarantee, not the shape of the concurrency. This core hands
+    /// its work to detached tasks on Swift's shared cooperative pool, and a foreground
+    /// transition is exactly the moment several callers arrive together: the platform
+    /// observer asks for a flush and the `refresh()` it then triggers reaches here
+    /// again from the resolved init. Anything that waits on one queue would still
+    /// let a host that calls ``flushPending()`` from its own thread start a second
+    /// read while a send is open, so the rule is held here rather than left to
+    /// whoever happens to call first.
+    ///
+    /// A request that finds the core held neither waits nor starts a pass. It records
+    /// itself and returns: ``flushPending()`` reaches here from a lifecycle callback,
+    /// and sitting behind somebody else's network timeout would block it. The pass
+    /// that holds the core answers it by reading the queue again on the way out, which
+    /// is what covers an entry queued after that pass had already read.
+    ///
+    /// - Parameter ownSend: the first send of the entry a save just queued, taken
+    ///   before the queue is read, or `nil` for a pass over the whole queue. It goes
+    ///   through the same guard a replay does, so a save's own send and a replay can
+    ///   never hold the same entry at the same time; when the guard is already held,
+    ///   the pass that holds it covers this entry on its re-read.
+    private func requestDeliveryPass(ownSend: (@Sendable () async -> Void)?) async {
+        // A save asks for one send, not for a pass over the queue. Reading the whole
+        // queue on every save would spend an attempt on each older entry every time a
+        // subject tapped a banner, and attempts end in released entries, so this
+        // thread takes that cost on only when somebody actually asked for a pass.
+        var owesPass = ownSend == nil
+        var pendingSend = ownSend
+
+        while true {
+            guard acquireDeliveryPass() else {
+                markDeliveryPassRequested()
+                return
+            }
+            owesPass = owesPass || takeDeliveryPassRequest()
+
+            var stoppedForUnreachableTransport = false
+            do {
+                // Handed back in a `defer`, so a pass that ever learns to throw or
+                // cancel mid-flight cannot leave this core locked for the rest of the
+                // launch with every later flush quietly declined.
+                defer { releaseDeliveryPass() }
+
+                if let send = pendingSend {
+                    await send()
+                    pendingSend = nil
+                }
+                if owesPass {
+                    var report = await runDeliveryPass()
+                    // Requests that landed during that read are answered by another
+                    // read, taken before the send, so an entry queued while this pass
+                    // was in the network is delivered now rather than at the next
+                    // launch, foreground, or network change.
+                    //
+                    // An endpoint that could not be reached cancels the extra reads. A
+                    // pass spends an attempt on everything it sends, so reading a dead
+                    // backend twice does not deliver the late entry -- it ages every
+                    // entry behind it toward the ceiling that releases them. The request
+                    // stays recorded for whoever takes the pass next, and the next launch,
+                    // foreground, or reachability change answers it over a connection that
+                    // exists at all.
+                    while !report.transportUnreachable, takeDeliveryPassRequest() {
+                        report = await runDeliveryPass()
+                    }
+                    stoppedForUnreachableTransport = report.transportUnreachable
+                }
+            }
+
+            // Read after the hand-back rather than claimed by it, for two reasons. A flush
+            // that arrives between the check and the release would otherwise be declined
+            // and then find the holder already gone, leaving a recorded request with
+            // nobody left to answer it. And a pass giving up on a dead endpoint has to
+            // leave that request where the next caller can still find it.
+            if stoppedForUnreachableTransport || !isDeliveryPassRequested { return }
+            owesPass = true
+        }
+    }
+
+    /// Take the core for one delivery pass. `false` when a pass already holds it.
+    private func acquireDeliveryPass() -> Bool {
+        lock.withLock {
+            guard !deliveryPassInFlight else { return false }
+            deliveryPassInFlight = true
+            return true
+        }
+    }
+
+    /// Hand the core back. The request flag is left where it is on purpose: whoever
+    /// takes the pass next is the one that claims it.
+    private func releaseDeliveryPass() {
+        lock.withLock { deliveryPassInFlight = false }
+    }
+
+    /// Whether somebody asked for a pass that nobody has claimed yet.
+    private var isDeliveryPassRequested: Bool {
+        lock.withLock { deliveryPassRequested }
+    }
+
+    private func markDeliveryPassRequested() {
+        lock.withLock { deliveryPassRequested = true }
+    }
+
+    /// Claim a recorded request, `false` when there is nothing to claim.
+    private func takeDeliveryPassRequest() -> Bool {
+        lock.withLock {
+            guard deliveryPassRequested else { return false }
+            deliveryPassRequested = false
+            return true
+        }
+    }
+
+    /// One read of the queue and the sends it owed, oldest first.
+    ///
+    /// Only ``requestDeliveryPass(ownSend:)`` may call this, which is what keeps a
+    /// second copy of the loop from reading the queue while a send from the first is
+    /// still open.
+    private func runDeliveryPass() async -> ReplayReport {
+        guard let transport = self.transport else { return .empty }
         let queue = lock.withLock { self.queue }
-        guard let queue else { return }
+        guard let queue else { return .empty }
         // Nothing can be delivered to a producer whose contract this build cannot
         // read, and the queue already holds the bodies for a later attempt.
         let report = await queue.replay(using: transport) { entry, result in
@@ -1308,6 +1475,7 @@ public final class ConsentCore: @unchecked Sendable {
         if let error = report.lastError {
             events.emit(.error(error))
         }
+        return report
     }
 
     // MARK: - Gate plumbing
