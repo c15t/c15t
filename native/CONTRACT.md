@@ -190,3 +190,24 @@ Budgets, measured on the reference device profile agreed in the issue:
 - Cold-start overhead attributable to c15t: under 10 ms.
 
 Report them as numbers from the bench tasks, not as claims.
+
+Implemented layout
+------------------
+
+Recorded here as the pieces land, so the Swift, Kotlin, and JavaScript workers
+build against the same reality.
+
+- `packages/react-native/src/protocol/` is the TypeScript source of truth for the
+  boundary types. `PROTOCOL_VERSION` and the supported range live in `version.ts`.
+- The Codegen spec is `packages/react-native/src/specs/NativeC15t.ts`. The
+  codegen config name is `C15tSpec` and the module name is `C15t`. Native targets
+  must register exactly that module name.
+- The package expects iOS at `packages/react-native/ios/` with
+  `C15tReactNative.xcodeproj`, and Android at `packages/react-native/android/`.
+- Fixtures live in `native/protocol/*.json`. Each object carries `id`, `kind`,
+  `description`, `notes`, `protocolVersion`, `input`, and `expected`. A native
+  test reads `input`, computes, and asserts against `expected`. Regenerate with
+  `bun run --cwd packages/react-native generate:fixtures`, which is byte-stable.
+- The fixture kinds so far are `evaluation-*` and `save-body-*`. Storage
+  round-trip fixtures are still missing and are owed by whoever adds the native
+  envelope format.

@@ -1,0 +1,24 @@
+{
+	"title": "@c15t/react-native: React Native Consent Management",
+	"description": "Consent management for iOS and Android apps. The consent engine runs natively, so consent state survives cold starts, works offline, and is readable from native ad SDKs, while the React Native layer renders banners and preference centers from the same snapshot.",
+	"features": [
+		"Native consent kernel on iOS (Swift) and Android (Kotlin), with no second kernel in JavaScript",
+		"Same policy resolution, save payloads, and storage envelope as the c15t web SDK, pinned by shared protocol fixtures",
+		"New Architecture TurboModule with Codegen types, no legacy bridge",
+		"Synchronous consent reads for ad SDK gates, with no network or disk access on the main thread",
+		"Offline consent queue: every action is persisted before the request and replayed on launch, foreground, or reconnect",
+		"Global Privacy Control honored as a denial, never invented as a grant",
+		"Geographic, region, and language overrides for policy preview and QA"
+	],
+	"prerequisites": [
+		"React Native 0.81 or newer with the New Architecture enabled",
+		"A c15t project ID, or a self-hosted `@c15t/backend` URL"
+	],
+	"manualInstallation": ["```bash", "pnpm add @c15t/react-native", "```"],
+	"docsLink": "https://c15t.com/",
+	"showCLIGeneration": false,
+	"customSections": {
+		"How it works": "The native cores own consent state. `bootstrap(config)` runs once from a launch hook, hydrates the stored snapshot from the Keychain or encrypted storage, and answers `snapshot()` synchronously from memory, so a cold start with no connectivity still knows what the user decided.\n\nThe React Native layer never recomputes consent. It reads the snapshot, renders the surface the policy asks for, and forwards the user's decision as a commit intent. The native core records the receipts, updates the effective permissions, and queues the backend write.",
+		"Gating a feature": "Consent checks are synchronous reads of the effective permission map, which is what makes them safe to call from an ad SDK initializer.\n\n```ts\nif (isAllowed('measurement')) {\n  enableAnalytics();\n}\n```\n\nWhile the policy is still resolving, or before the stored snapshot has hydrated, every optional category reads `false`. Nothing has to opt in to that behavior."
+	}
+}

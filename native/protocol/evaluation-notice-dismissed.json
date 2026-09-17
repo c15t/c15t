@@ -1,0 +1,107 @@
+{
+	"description": "The same notice-only rule after the notice was dismissed: the dismissal record is honoured, no interaction is owed, no surface renders, and permissions are unchanged from the undismissed run.",
+	"expected": {
+		"policyResolution": {
+			"fingerprint": "9266c87b43ec628e65deecae9886ab1ee5866ac9ea79c6cb85317e8f6826a1cf",
+			"policyId": "fixture_notice_only",
+			"status": "matched",
+			"matchedBy": "country"
+		},
+		"snapshot": {
+			"activeUI": "none",
+			"consentCategories": null,
+			"effectivePermissions": {
+				"necessary": true,
+				"functionality": false,
+				"experience": false,
+				"measurement": true,
+				"marketing": true
+			},
+			"error": null,
+			"evaluatedAt": 1770000000000,
+			"explicitChoice": null,
+			"iab": null,
+			"location": null,
+			"model": "opt-out",
+			"nextDeadline": 1785552000000,
+			"optOutDirectives": [],
+			"overrides": {
+				"country": "GB",
+				"language": "en",
+				"region": null,
+				"test": null
+			},
+			"policyPending": false,
+			"policySnapshotToken": "tok-notice-only",
+			"privacySignals": {
+				"gpc": false,
+				"msa": false
+			},
+			"promptRequirement": {
+				"kind": "none"
+			},
+			"ready": true,
+			"resolution": {
+				"fingerprint": "9266c87b43ec628e65deecae9886ab1ee5866ac9ea79c6cb85317e8f6826a1cf",
+				"policyId": "fixture_notice_only",
+				"status": "matched"
+			},
+			"restrictions": {
+				"functionality": ["strict-scope"],
+				"experience": ["strict-scope"]
+			},
+			"revision": 0,
+			"subject": {
+				"subjectId": "sub-notice-1"
+			},
+			"translations": null
+		}
+	},
+	"id": "evaluation-notice-dismissed",
+	"input": {
+		"geo": {
+			"country": "GB",
+			"region": null
+		},
+		"gpc": false,
+		"language": "en",
+		"policyRules": [
+			{
+				"categories": ["marketing", "measurement"],
+				"id": "fixture_notice_only",
+				"match": {
+					"countries": ["GB"]
+				},
+				"model": "opt-out",
+				"prompt": "notice",
+				"scopeMode": "strict",
+				"validity": {
+					"noticeDays": 180
+				}
+			}
+		],
+		"policySnapshotToken": "tok-notice-only",
+		"storedRecords": {
+			"now": 1770000000000,
+			"subject": {
+				"subjectId": "sub-notice-1"
+			},
+			"noticeDismissal": {
+				"dismissedAt": 1770000000000,
+				"fingerprint": "b0eaf419b888fab28391c6d8c4953c286fd9458ebe57eb079f7892647061ea88",
+				"version": 1
+			}
+		},
+		"user": null,
+		"hydrated": true
+	},
+	"kind": "evaluation",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation, so the pinned numbers are the reference numbering.",
+		"evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.",
+		"error is null in every fixture: no fixture exercises a transport failure.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed."
+	],
+	"protocolVersion": 1
+}

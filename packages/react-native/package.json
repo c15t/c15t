@@ -1,0 +1,96 @@
+{
+	"name": "@c15t/react-native",
+	"version": "3.0.0-alpha.1",
+	"description": "React Native consent management SDK with a native consent kernel for iOS and Android: banner, preference center, and consent-gated loading.",
+	"keywords": [
+		"android",
+		"c15t",
+		"ccpa",
+		"cmp",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"consent-management-platform",
+		"cookie-consent",
+		"expo",
+		"gdpr",
+		"headless",
+		"ios",
+		"mobile",
+		"privacy",
+		"react-native",
+		"typescript"
+	],
+	"homepage": "https://c15t.com/",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/react-native"
+	},
+	"files": [
+		"dist",
+		"dist-types",
+		"ios",
+		"android",
+		"react-native.config.js"
+	],
+	"type": "module",
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"react-native": "./dist/index.js",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"react-native": "./dist/index.js",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"check-types": "tsc --noEmit",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun oxfmt .",
+		"generate:fixtures": "tsx scripts/generate-protocol-fixtures.ts",
+		"lint": "bun oxlint ./src",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"test": "vitest run --passWithNoTests",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@react-native/codegen": "0.87.1",
+		"react": "19.2.7",
+		"react-native": "0.87.1",
+		"typescript": "7.0.2"
+	},
+	"peerDependencies": {
+		"react": ">=19.1.0",
+		"react-native": ">=0.81.0"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		}
+	},
+	"codegenConfig": {
+		"name": "C15tSpec",
+		"type": "modules",
+		"jsSrcsDir": "src/specs",
+		"android": {
+			"javaPackageName": "com.c15t.reactnative"
+		}
+	}
+}

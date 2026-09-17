@@ -1,0 +1,25 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": ["./src/index.ts", "./src/specs/NativeC15t.ts"],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "tsx", "vitest"],
+	"ignore": [
+		"**/*.spec.{js,ts,tsx}",
+		"**/*.test.{js,ts,tsx}",
+		"**/__tests__/**",
+		"react-native.config.js",
+		"rslib.config.ts",
+		"scripts/**"
+	],
+	"ignoreDependencies": [
+		"@c15t/typescript-config",
+		"@c15t/vitest-config",
+		"@react-native/codegen"
+	],
+	"rules": {
+		"exports": "warn",
+		"types": "warn",
+		"dependencies": "error",
+		"files": "warn"
+	},
+	"ignoreExportsUsedInFile": true
+}
