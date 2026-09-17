@@ -11,7 +11,7 @@
  * cannot express the unions in the snapshot or the commit intent, the
  * contract already requires event payloads to be JSON strings, and one
  * encoding keeps the Swift, Kotlin, and JavaScript reads identical. Parse the
- * result with the types in `src/protocol`.
+ * result with the exported protocol types.
  */
 
 import type { TurboModule } from 'react-native';
