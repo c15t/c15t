@@ -51,6 +51,7 @@ import {
 	surfaceNode,
 	translatedSnapshot,
 } from './harness';
+import type { SurfaceTree } from './harness';
 
 afterEach(() => {
 	resetConsentClient();
@@ -150,6 +151,31 @@ const tapSwitch = function tapSwitch(
 	requireRole(container, 'switch', label).click();
 };
 
+/**
+ * The style one piece of rendered text was drawn with.
+ *
+ * The banner keeps its copy in the scrolling body and the sheet keeps its beside
+ * the heading, so reading a role's sibling would only work for one of them.
+ *
+ * @param tree - Mounted surface.
+ * @param text - The exact string on screen.
+ * @returns The flattened style of the text node.
+ */
+const textStyleOf = function textStyleOf(
+	tree: SurfaceTree,
+	text: string
+): Record<string, unknown> {
+	const drawn = [...tree.container().querySelectorAll('span')].find(
+		(node) => node.textContent === text
+	);
+
+	if (drawn === undefined) {
+		throw new Error(`no rendered text ${text}`);
+	}
+
+	return nodeStyle(drawn);
+};
+
 describe('theme', () => {
 	test('follows the platform scheme', () => {
 		setColorScheme('dark');
@@ -195,7 +221,8 @@ describe('theme', () => {
 		expect(lightTheme.spacing).toEqual({ l: 24, m: 16, s: 8, xl: 32, xs: 4 });
 		expect(lightTheme.radius).toEqual({ control: 8, surface: 12 });
 
-		// Body 16/24, a button label 14 at medium, a heading 14 at semibold.
+		// A button label is 14 at medium, and the sheet pairs a 14 semibold
+		// heading over 16 regular copy.
 		expect(lightTheme.typography.body).toEqual({
 			fontSize: 16,
 			lineHeight: 24,
@@ -211,6 +238,143 @@ describe('theme', () => {
 			lineHeight: 18,
 			weight: '600',
 		});
+
+		// The banner inverts that: `.title` is `1rem` over a `0.875rem`
+		// description, so the heading leads the copy.
+		expect(lightTheme.typography.bannerTitle).toEqual({
+			fontSize: 16,
+			lineHeight: 24,
+			weight: '500',
+		});
+		expect(lightTheme.typography.bannerBody).toEqual({
+			fontSize: 14,
+			lineHeight: 20,
+			weight: '400',
+		});
+
+		// The neutral outline reads `border` and `text`, so the filled pair that
+		// would have served a solid button is gone rather than parked.
+		expect(lightTheme.colors).not.toHaveProperty('secondary');
+		expect(lightTheme.colors).not.toHaveProperty('onSecondary');
+		expect(darkTheme.colors).not.toHaveProperty('secondary');
+	});
+
+	test('the banner heading leads its copy and the sheet heading follows its', () => {
+		// One shared pair can only be right about one of these surfaces, which is
+		// what put a 14 heading under 16 copy on the banner in the first place.
+		const banner = mountSurface(<ConsentBanner />);
+
+		expect(textStyleOf(banner, 'Deine Privatsphaere')).toMatchObject({
+			fontSize: 16,
+			fontWeight: '500',
+		});
+		expect(textStyleOf(banner, 'Wir verarbeiten deine Daten.')).toMatchObject({
+			fontSize: 14,
+			fontWeight: '400',
+		});
+
+		const sheet = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+
+		expect(textStyleOf(sheet, 'Zustimmung verwalten')).toMatchObject({
+			fontSize: 14,
+			fontWeight: '600',
+		});
+		expect(
+			textStyleOf(sheet, 'Waehle die Kategorien, die du erlaubst.')
+		).toMatchObject({
+			fontSize: 16,
+			fontWeight: '400',
+		});
+
+		banner.unmount();
+		sheet.unmount();
+	});
+
+	test('a category is a bordered card and the list owns the gap', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+
+		const card = requireRole(tree.container(), 'switch', 'Werbung')
+			.parentElement as HTMLElement;
+
+		// `.item` is a card in its own border, not a row between two dividers.
+		expect(nodeStyle(card)).toMatchObject({
+			backgroundColor: lightTheme.colors.surface,
+			borderColor: lightTheme.colors.border,
+			borderRadius: lightTheme.radius.control,
+			borderWidth: 1,
+			gap: 4,
+			padding: 8,
+		});
+
+		// The separation sits between the cards rather than on one of them, so the
+		// last card does not push the footer down by an extra step.
+		const list = card.parentElement as HTMLElement;
+
+		expect(nodeStyle(list).gap).toBe(12);
+		expect(list.children.length).toBe(5);
+
+		tree.unmount();
+	});
+
+	test('each footer keeps the rhythm of its own surface', () => {
+		const banner = mountSurface(<ConsentBanner />);
+		const bannerFooter = surfaceNode(banner.container())
+			.lastElementChild as HTMLElement;
+
+		// `1rem 1.25rem` on `.footer`, on the muted band, under a hairline.
+		expect(nodeStyle(bannerFooter)).toMatchObject({
+			backgroundColor: lightTheme.colors.surfaceRaised,
+			borderTopColor: lightTheme.colors.border,
+			borderTopWidth: 1,
+			gap: 16,
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+		});
+
+		const sheet = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+		const sheetFooter = surfaceNode(sheet.container())
+			.lastElementChild as HTMLElement;
+
+		// A sheet sits on the card at 16 all round with the shorter step.
+		expect(nodeStyle(sheetFooter)).toMatchObject({
+			backgroundColor: lightTheme.colors.surface,
+			borderTopWidth: 1,
+			gap: 8,
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		});
+
+		banner.unmount();
+		sheet.unmount();
+	});
+
+	test('a button is padded by its label and sized by the tap target', () => {
+		const tree = mountSurface(<ConsentBanner />);
+		const action = nodeStyle(
+			requireRole(tree.container(), 'button', 'Alle akzeptieren')
+		);
+
+		// `0.625rem 1rem`, and the platform minimum still decides the height.
+		expect(action.paddingVertical).toBe(10);
+		expect(action.paddingHorizontal).toBe(16);
+		expect(action.minHeight).toBeGreaterThanOrEqual(44);
+
+		tree.unmount();
 	});
 
 	test('the switch is the web track inside a platform tap target', async () => {

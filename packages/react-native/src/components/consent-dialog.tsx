@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentSelector } from '../hooks/use-consent-selector';
@@ -106,6 +106,42 @@ const ConsentDialogContent = ({
 		}
 	};
 
+	/**
+	 * Take one of the two whole-sheet decisions.
+	 *
+	 * A decision is not a save. The label promises everything or nothing, so the
+	 * draft on screen is abandoned rather than carried into it, and the switches
+	 * reset so that reopening the sheet shows what was written instead of the
+	 * toggles that were never applied. Failure follows the save rule: the core
+	 * keeps the error, the sheet stays open, and the draft is where it was.
+	 *
+	 * @param choice - Which way to decide.
+	 * @returns Nothing.
+	 */
+	const decide = async (choice: 'accept' | 'reject'): Promise<void> => {
+		if (busy) {
+			return;
+		}
+
+		setBusy(true);
+
+		let written = false;
+
+		try {
+			await (choice === 'accept' ? actions.acceptAll() : actions.rejectAll());
+			written = true;
+		} catch {
+			// Same as a failed save: the sheet stays open with the draft intact.
+		}
+
+		setBusy(false);
+
+		if (written) {
+			selection.reset();
+			onRequestClose();
+		}
+	};
+
 	return (
 		<>
 			<ConsentSurfaceHeader>
@@ -131,8 +167,34 @@ const ConsentDialogContent = ({
 				))}
 			</ConsentSurfaceBody>
 			<ConsentSurfaceFooter>
+				{/*
+				 * The two decisions share a row in the accent, and the action that
+				 * writes the draft below takes the neutral outline, exactly as the
+				 * web sheet arranges them. Leaving the decisions out of a sheet that
+				 * owes a prompt meant a subject could not grant or deny everything
+				 * without flicking five switches.
+				 */}
+				<View style={parts.row}>
+					<ConsentButton
+						disabled={busy}
+						label={copy.rejectAll}
+						onPress={() => {
+							void decide('reject');
+						}}
+						parts={parts}
+					/>
+					<ConsentButton
+						disabled={busy}
+						label={copy.acceptAll}
+						onPress={() => {
+							void decide('accept');
+						}}
+						parts={parts}
+					/>
+				</View>
 				<ConsentButton
 					disabled={busy}
+					kind="secondary"
 					label={copy.save}
 					onPress={() => {
 						void save();

@@ -26,6 +26,7 @@ export const CONSENT_THEME_PARTS = [
 	'primaryLabel',
 	'row',
 	'scroll',
+	'scrollContent',
 	'secondaryButton',
 	'secondaryLabel',
 	'sheet',
