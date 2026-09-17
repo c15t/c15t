@@ -12,6 +12,7 @@ import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.ConsentState
 import com.c15t.core.model.ConsentSubject
 import com.c15t.core.model.ExplicitChoice
+import com.c15t.core.model.GpcSignal
 import com.c15t.core.model.KernelOverrides
 import com.c15t.core.model.KernelUser
 import com.c15t.core.model.PolicyResolution
@@ -175,7 +176,9 @@ object Bench {
 			subject = ConsentSubject(id = "3f1b8a3f-3f2c-4a11-9a7a-6d5c4b3a2109", externalId = "user-12345"),
 			location = ConsentLocation(country = "DE", region = "BE", language = "de"),
 			overrides = KernelOverrides(language = "de"),
-			privacySignals = PrivacySignals(gpc = true),
+			privacySignals = PrivacySignals(
+				gpc = GpcSignal.derive(override = null, detected = true),
+			),
 			translations = translations(),
 			evaluatedAt = now - 60_000L,
 		)
