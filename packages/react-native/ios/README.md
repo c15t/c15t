@@ -8,10 +8,10 @@ only. No UI here; every surface lives in JavaScript.
 
 | Path | Module | Contents |
 | --- | --- | --- |
-| `C15tReactNative/Bridge/` | none of React | wire encoders, the change pump, `Info.plist` configuration, the module handler. Compiles and tests with no Pods installed. |
+| `C15tReactNative/Bridge/` | none of React | wire encoders, the change pump, `Info.plist` configuration, the module handler, and the two lifecycle observers below. Compiles and tests with no Pods installed. |
 | `C15tReactNative/ReactNative/` | React + `ReactCodegen` | the TurboModule: the Swift implementation, and the ObjC++ category carrying the Codegen conformance, the JavaScript name, and the `getTurboModule:` provider. Also the constructor that starts the core before React Native initializes. |
 | `C15tReactNative/Resources/Privacy.xcprivacy` | resource | privacy manifest, shipped in the pod resource bundle and the SPM resource bundle. |
-| `Tests/C15tReactNativeTests/` | test | 47 tests over the wire layer and the module handler. |
+| `Tests/C15tReactNativeTests/` | test | 63 tests over the wire layer, the module handler, and the lifecycle legs. |
 | `C15tReactNative.xcodeproj` | generated | iOS-slice build of the wire layer against the core, for CI without an example app. |
 | `support/gen-xcodeproj.rb` | tooling | regenerates that project. |
 
@@ -73,6 +73,35 @@ first JavaScript frame. An app that owns its own setup sets
 `com.c15t.reactnative.AutoBootstrap` to `false` and calls
 `C15tReactNativeRuntime.install(core:)` (its own configured core) or
 `startCore()` (the `Info.plist` values, later) itself.
+
+## Platform lifecycle
+
+`native/CONTRACT.md` names three moments when a stored answer can have gone stale with
+nothing asking about it. The core sees only the first, inside `bootstrap`. The other two
+need a hook on the process, which a consent kernel is not allowed to hold, so
+`C15tReactNativeBootstrap` arms them as soon as a core is in place, whichever call put it
+there.
+
+| Leg | Trigger | What runs |
+| --- | --- | --- |
+| Launch | `bootstrap` | hydrate, then replay the pending queue |
+| Foreground | `UIApplication.didBecomeActiveNotification` | replay, then `refresh()` |
+| Reachability | a network this process did not already have | replay |
+
+Both callbacks hand their work to the core's own scheduler rather than running it inline,
+so coming back to the app costs no frame on the main thread.
+
+`C15tReachabilityGate` decides which `NWPathMonitor` updates are gains: the path the
+process started with seeds the gate and replays nothing, because that races the launch
+replay, and a path that changes interface without dropping counts once. The gate holds no
+`Network` types, which is what lets the rule be tested without a device and a link to
+drop. Android's reachability leg can be refused by a missing host permission;
+`NWPathMonitor` needs no entitlement or manifest key, so iOS has no declined branch.
+
+Neither leg polls a clock. `C15tReactNativeBootstrap.shutdown()` takes both back down for
+a host that would rather drive `flushPending()` and `refresh()` on its own schedule; the
+core keeps its snapshot, queue, and event pump, and `start()` or `install(_:)` puts the
+legs back.
 
 ## `Info.plist` keys
 

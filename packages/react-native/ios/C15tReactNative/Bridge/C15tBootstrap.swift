@@ -320,6 +320,90 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
 /// ``start(configuration:)`` or ``install(_:)``, and works against whatever core is
 /// installed afterwards.
 public enum C15tReactNativeBootstrap {
+    // MARK: - Platform lifecycle
+
+    /// The handles for the two lifecycle legs this layer registered, or `nil` when nothing
+    /// armed them.
+    ///
+    /// Held rather than forgotten for the same reason `C15tAndroid` keeps both: the
+    /// registrations are process-wide, so the only way back is the handle they came from,
+    /// and ``shutdown()`` has to be able to reach it.
+    private static let lifecycleLock = NSLock()
+    private static var foregroundObserver: C15tForegroundObserver?
+    private static var reachability: C15tReachability?
+
+    /// Arm the lifecycle legs ``ConsentCore`` cannot see for itself.
+    ///
+    /// Launch belongs to the core: `bootstrap` hydrates and replays before it serves a
+    /// first read. Foreground and reachability need a hook on the process, which is a thing
+    /// a consent kernel is deliberately not allowed to hold, so they are wired here and
+    /// their whole body is the core's own handoff calls.
+    ///
+    /// Idempotent, and called from every path that leaves a core in place, which is what
+    /// lets the launch hook, an explicit `start`, and a host-installed core all reach it
+    /// without agreeing about who owns the registration.
+    private static func armLifecycleObservers() {
+        lifecycleLock.lock()
+        var justCreated: C15tForegroundObserver?
+        if foregroundObserver == nil {
+            let observer = C15tForegroundObserver(onForeground: replayThenRefresh)
+            foregroundObserver = observer
+            justCreated = observer
+        }
+        if reachability == nil {
+            reachability = C15tReachability.register(onGained: replayQueuedSaves)
+        }
+        lifecycleLock.unlock()
+
+        // Outside the lock, and only for the observer this call created: `install()` is
+        // idempotent per instance, so one that already exists has already registered, and a
+        // second `start()` cannot double the replays per activation.
+        justCreated?.install()
+    }
+
+    /// The foreground leg: replay what is owed, then ask whether the policy still says what
+    /// it said. That order is the contract's.
+    ///
+    /// Both calls resolve the running core rather than closing over the one that happened to
+    /// be installing when the observer was armed. A host that tears a core down and installs
+    /// another would otherwise spend every later foreground on a kernel nobody reads any
+    /// more.
+    @Sendable private static func replayThenRefresh() {
+        guard let core = C15t.current else { return }
+        core.flushPending()
+        core.refresh()
+    }
+
+    /// The reachability leg is the replay alone. Policy was served at launch and again at
+    /// the last foreground, and a link that dropped and came back does not change what the
+    /// subject agreed to, so nothing here is worth a second round trip.
+    @Sendable private static func replayQueuedSaves() {
+        C15t.current?.flushPending()
+    }
+
+    /// Stop observing the process, leaving the core and its state alone.
+    ///
+    /// These two legs are the only registrations this layer makes against the app's
+    /// lifetime, so this is the teardown that matches them: the core keeps its snapshot, its
+    /// queue, and its event pump, and simply stops being woken. Calling it twice is
+    /// harmless, and ``start(configuration:)`` or ``install(_:)`` puts the legs back.
+    ///
+    /// A host that drives ``ConsentCore/flushPending()`` and ``ConsentCore/refresh()`` on its
+    /// own schedule is the intended caller. It is the choice Android offers as the
+    /// `observeForeground` flag on `C15tAndroid.install`, spelled here as one call after
+    /// startup rather than as a parameter on every entry point.
+    public static func shutdown() {
+        lifecycleLock.lock()
+        let observer = foregroundObserver
+        let monitor = reachability
+        foregroundObserver = nil
+        reachability = nil
+        lifecycleLock.unlock()
+
+        observer?.uninstall()
+        monitor?.unregister()
+    }
+
     /// Start the core from the values in `Info.plist`.
     ///
     /// - Returns: `true` when a core is installed after the call.
@@ -355,15 +439,14 @@ public enum C15tReactNativeBootstrap {
     ) -> Bool {
         // The opt-out is honoured here as well as in the `Info.plist` entry point, so
         // `autoBootstrap == false` means "the app starts it" whichever door is used.
-        guard configuration.autoBootstrap else { return C15t.current != nil }
-        if let running = C15t.current {
-            return running.isBootstrapped
+        guard configuration.autoBootstrap else { return observeInstalledCore() }
+        if C15t.current == nil {
+            guard let coreConfiguration = configuration.makeCoreConfiguration(fileStoreDirectory: fileStoreDirectory) else {
+                return false
+            }
+            C15t.bootstrap(coreConfiguration)
         }
-        guard let coreConfiguration = configuration.makeCoreConfiguration(fileStoreDirectory: fileStoreDirectory) else {
-            return false
-        }
-        C15t.bootstrap(coreConfiguration)
-        return C15t.current != nil
+        return observeInstalledCore()
     }
 
     /// Adopt a core the app already built and started.
@@ -375,12 +458,28 @@ public enum C15tReactNativeBootstrap {
     /// - Returns: `true` when `core` is the instance the bridge will use.
     @discardableResult
     public static func install(_ core: ConsentCore) -> Bool {
-        C15t.install(core)
+        guard C15t.install(core) else { return false }
+        armLifecycleObservers()
+        return true
     }
 
     /// Whether a core is installed and started.
     public static var isRunning: Bool {
         guard let core = C15t.current else { return false }
+        return core.isBootstrapped
+    }
+
+    /// Arm the lifecycle legs against the installed core and report whether it is running.
+    ///
+    /// Every exit from a start that found or made a core goes through here, so the legs
+    /// follow the core rather than one particular way of starting it. That includes the
+    /// host that set `AutoBootstrap` to `false`, bootstrapped a core itself before React
+    /// Native, and reaches this enum only through the module's `ensureCore()`: it gets the
+    /// foreground leg like everyone else, because launch and foreground are the two legs
+    /// the contract says are never optional.
+    private static func observeInstalledCore() -> Bool {
+        guard let core = C15t.current else { return false }
+        armLifecycleObservers()
         return core.isBootstrapped
     }
 }

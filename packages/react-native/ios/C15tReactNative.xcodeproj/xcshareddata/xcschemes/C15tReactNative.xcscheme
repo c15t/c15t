@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "038A515A50C5A5BC7805C766"
+               BlueprintIdentifier = "70052A703A520AB251BF2AA0"
                BuildableName = "C15tReactNative.framework"
                BlueprintName = "C15tReactNative"
                ReferencedContainer = "container:C15tReactNative.xcodeproj">
@@ -30,7 +30,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "038A515A50C5A5BC7805C766"
+            BlueprintIdentifier = "70052A703A520AB251BF2AA0"
             BuildableName = "C15tReactNative.framework"
             BlueprintName = "C15tReactNative"
             ReferencedContainer = "container:C15tReactNative.xcodeproj">
@@ -53,7 +53,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "038A515A50C5A5BC7805C766"
+            BlueprintIdentifier = "70052A703A520AB251BF2AA0"
             BuildableName = "C15tReactNative.framework"
             BlueprintName = "C15tReactNative"
             ReferencedContainer = "container:C15tReactNative.xcodeproj">
@@ -70,7 +70,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "038A515A50C5A5BC7805C766"
+            BlueprintIdentifier = "70052A703A520AB251BF2AA0"
             BuildableName = "C15tReactNative.framework"
             BlueprintName = "C15tReactNative"
             ReferencedContainer = "container:C15tReactNative.xcodeproj">

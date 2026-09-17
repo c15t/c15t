@@ -79,3 +79,86 @@ func memoryConfiguration() -> C15tBridgeConfiguration {
         gpc: nil
     )
 }
+
+/// A transport that counts what the core asked it to send, and decides whether a save is
+/// deliverable.
+///
+/// Each lifecycle leg this package wires has exactly one observable effect: a
+/// `POST /subjects` that goes out again, and an `/init` that asks again. Neither shows up
+/// in a snapshot, so counting the calls is the whole measurement.
+///
+/// Init serves an `unconfigured` policy resolution rather than a matched rule. That is
+/// deliberate: a non-matched outcome still resolves to the safe opt-in fallback, whose
+/// scope covers every optional category, so `ConsentCore/save(_:)` has a scope to be made
+/// against and the queue holds real bytes. Hand-building a matched rule here would copy
+/// `Fixture` from the core's own suite for no extra coverage.
+final class RecordingTransport: C15tTransport, @unchecked Sendable {
+    let domain = "recording"
+
+    private let lock = NSLock()
+    private var _initCount = 0
+    private var _saveCount = 0
+    private var _savesFail = true
+
+    /// Whether a save is refused, which is what keeps a queued entry in the queue where a
+    /// test can watch it leave.
+    var savesFail: Bool {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _savesFail
+        }
+        set {
+            lock.lock()
+            _savesFail = newValue
+            lock.unlock()
+        }
+    }
+
+    var initCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _initCount
+    }
+
+    var saveCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _saveCount
+    }
+
+    func performInit(_ context: InitContext) async -> Result<InitResponse, C15tError> {
+        lock.lock()
+        _initCount += 1
+        lock.unlock()
+        return .success(InitResponse(policyResolution: Self.unconfiguredResolution))
+    }
+
+    func sendSave(_ body: Data) async -> Result<Void, C15tError> {
+        lock.lock()
+        _saveCount += 1
+        let failing = _savesFail
+        lock.unlock()
+        // `.offline` rather than an HTTP status: a body the producer refused outright is
+        // dropped by design, and a drop would empty the queue for the wrong reason.
+        if failing { return .failure(.offline) }
+        return .success(())
+    }
+
+    func patchIdentity(
+        subjectId: String,
+        externalId: String,
+        identityProvider: String?
+    ) async -> Result<Void, C15tError> {
+        .success(())
+    }
+
+    /// The smallest policy resolution the core's wire reader accepts as an answer: a
+    /// non-matched outcome, which evaluates against the safe fallback rather than leaving
+    /// `policyPending` set.
+    static let unconfiguredResolution: JSONValue = .object([
+        "version": .integer(Int64(c15tPolicyContractVersion)),
+        "status": .string("unconfigured"),
+        "policy": .null,
+    ])
+}

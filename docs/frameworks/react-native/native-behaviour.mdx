@@ -217,6 +217,13 @@ Check `queued` before describing a resolved promise as a delivered write. Consen
 applies locally either way, which is the correct privacy behavior: a subject's rejection
 takes effect on the device immediately, whether or not the receipt has reached a server.
 
+Nothing in the core wakes itself on a timer, so the two wake-ups after launch belong to the
+native layer, which arms them once a core is in place. Android skips its reachability leg
+and logs once when the host app never declared `ACCESS_NETWORK_STATE`; iOS has no such
+branch because `NWPathMonitor` needs no entitlement. To drive the queue and the policy
+refresh yourself instead, pass `observeForeground: false` to Android's `C15tAndroid.install`
+or call `C15tReactNativeBootstrap.shutdown()` on iOS.
+
 ## Cost
 
 The contract's budgets, measured on the reference device profile:
