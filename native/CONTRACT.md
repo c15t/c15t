@@ -231,3 +231,27 @@ Kotlin core, as built
   instead of keeping the previous one, so audit continuity breaks across a keystore
   reset. The subject id is a random UUID and not sensitive, so it belongs in
   unencrypted storage that survives a key reset.
+
+Swift core, as built
+--------------------
+
+`native/core-swift/` is a standalone SwiftPM package, `C15tCore`, plus a
+`C15tCoreBench` executable. No UIKit, React Native, or Expo imports.
+
+- Verified with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`. The
+  machine's `xcode-select` still points at Command Line Tools, whose SwiftPM is
+  broken, so every Swift command needs that environment variable. Set it in CI too.
+- Layout: `ConsentCore`, `ConsentSnapshot`, `ConsentRecord`, `ConsentCategory`,
+  `ConsentStore` with in-memory, file, and Keychain conformances, `PolicyEvaluator`,
+  `PolicyWire`, `SavePayload`, `StoredEnvelope`, `PendingSaveQueue`,
+  `SubjectIdentity`, `Transports`, `Events`, `Lock`, `JSONValue`.
+- Measured: hydrate from store 212.67 us, policy evaluation 1.82 us mean, snapshot
+  and isAllowed 0.09 us each over 500000 iterations, save acknowledged without
+  network 205.74 us in memory and 1434.66 us on FileStore. `swift run -c release
+  C15tCoreBench` reproduces them.
+- The iOS simulator slice builds with
+  `xcodebuild -destination 'generic/platform=iOS Simulator' build`.
+- Open defect in the fixtures, not the core: the `evaluation-*.json` inputs carry
+  raw `policyRules` rather than the `policyResolution` a client actually receives
+  from `/init`. Neither native core can assert against them yet. Fix the generator
+  to emit the wire shape and wire both native test suites to it.
