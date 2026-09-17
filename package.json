@@ -33,6 +33,7 @@
 		"check-types": "turbo run check-types",
 		"check:alpha-release": "bun scripts/check-alpha-release.ts",
 		"check:publish-artifacts": "bun scripts/check-publish-artifacts.ts",
+		"check:react-native-autolink": "bun scripts/react-native-autolink.ts",
 		"ci:publish": "bunx changeset tag && bun publish",
 		"ci:version": "bun changeset version",
 		"clear-cache": "bun scripts/clear-rslib-cache.ts",

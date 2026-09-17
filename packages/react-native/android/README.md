@@ -15,20 +15,30 @@ took, and reports results as the JSON in `../src/protocol`.
 The consent engine is not copied here. It is either the included build of
 `native/core-android` or the published `com.c15t` artifacts, selected by a property.
 
-## Two builds, one library script
+## Autolinking
 
-React Native's settings plugin autolinks a package by pointing a Gradle project at its
-`sourceDir` (`../../react-native.config.cjs`: `./android`), so `build.gradle.kts` is the
-library's build script inside a host app even though the sources live in `c15t-react-native/`.
-The configuration therefore sits in `c15t-react-native/library.gradle`, which both entry points
-apply, with the manifest, sources, and consumer rules anchored to absolute paths. That
-anchoring is load-bearing: a manifest AGP cannot find means the `androidx.startup` entry that
-bootstraps the core before the first JavaScript frame quietly never gets merged.
+React Native's settings plugin autolinks a package by pointing a Gradle project at the
+directory in `../../react-native.config.cjs`, and it discovers the library's Java package by
+reading two files in that directory: a `package` attribute in `src/main/AndroidManifest.xml`,
+then a namespace in `build.gradle[.kts]`. AGP dropped the manifest attribute, so the namespace
+has to be readable in the build file at exactly that path. It is declared in
+`c15t-react-native/build.gradle.kts`, and `sourceDir` is `./android/c15t-react-native`: the
+library module, not this directory.
 
+Both halves matter together. Pointed at this directory, the CLI matches a build file with no
+namespace, `react-native config` exits non-zero, and a host app fails while its
+`settings.gradle` is still being evaluated. A namespace declared only in `library.gradle` is
+invisible to the same lookup. `scripts/react-native-autolink.ts` runs the real command from
+`examples/react-native-bare` and fails CI on both mistakes.
+
+`c15t-react-native/build.gradle.kts` is the only build script the library has, in a host app and
+in this standalone build alike; the `build.gradle.kts` one level up configures nothing. What is left in
 `library.gradle` is Groovy because a script pulled in with `apply(from:)` compiles without AGP
 on its classpath, so a Kotlin one could not name `LibraryExtension`, and a host app cannot be
 asked to add it. Groovy resolves the Android DSL at runtime against whichever AGP that build
-uses.
+uses. Its manifest, sources, and consumer rules take absolute paths: a manifest AGP cannot
+find means the `androidx.startup` entry that bootstraps the core before the first JavaScript
+frame quietly never gets merged.
 
 ## Commands
 

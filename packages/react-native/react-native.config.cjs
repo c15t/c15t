@@ -1,18 +1,34 @@
-// Metro autolinking for @c15t/react-native.
+// Autolinking for @c15t/react-native.
+//
+// This is a library's own configuration, so the entries go under `dependency.platforms`.
+// The shape a *consuming app* writes is different (its `dependencies` map keys each package
+// by name), and the CLI reads only `dependency.platforms` here: a file in the app shape
+// parses, validates, and is then ignored, which is how this package shipped with an Android
+// source directory that was never applied.
 //
 // The TurboModule bindings live in the `C15tReactNative` iOS target and the
-// `com.c15t.reactnative` Android module, both shipped inside this package.
-// The pure consent cores (`native/core-swift`, `native/core-android` in the
-// monorepo) are dependencies of those targets, never autolinked directly.
+// `com.c15t.reactnative` Android module, both shipped inside this package. The pure consent
+// cores (`native/core-swift`, `native/core-android` in the monorepo) are dependencies of
+// those targets, never autolinked directly.
 module.exports = {
-	dependencies: {
-		'@c15t/react-native': {
+	dependency: {
+		platforms: {
 			android: {
-				sourceDir: './android',
+				// The library module, not the `android` directory above it. React Native
+				// points the autolinked Gradle project at this path and works out the
+				// library's Java package from two files in it: a `package` attribute in
+				// `src/main/AndroidManifest.xml`, then a namespace declaration in this
+				// directory's `build.gradle[.kts]`. The namespace is declared in
+				// `build.gradle.kts` here, so this has to be the directory that file is
+				// in. One level up, `react-native config` exits non-zero and the host
+				// app's `settings.gradle` fails before it configures a single project.
+				sourceDir: './android/c15t-react-native',
 			},
-			ios: {
-				projects: ['./ios/C15tReactNative.xcodeproj'],
-			},
+
+			// iOS deliberately has no entry. A dependency's iOS config carries only the
+			// podspec, its `configurations`, and `scriptPhases`; the podspec at the package
+			// root is what the CLI discovers on its own, and it finds the right one.
+			// Declaring an Xcode project here would be read by nothing.
 		},
 	},
 };

@@ -361,6 +361,14 @@ jobs:
         run: |
           cd packages/react-native/android
           ./gradlew :c15t-react-native:assembleRelease --console=plain
+      - name: Resolve the binding the way a host app autolinks it
+        if: matrix.kind == 'android-js'
+        # Assembling the AAR proves Gradle can compile the library. It says nothing about
+        # whether React Native's CLI can find the library at all, and a host app's
+        # settings.gradle runs `react-native config`: a package the CLI cannot resolve fails
+        # that app's build before a single task runs. This asks the CLI from the bare example
+        # app's own install, which is the cheapest place that answer exists.
+        run: bun scripts/react-native-autolink.ts
       - name: Run the React Native test suite
         if: matrix.kind == 'android-js'
         # Keep this unfiltered. The package's coverage ratchet gates on an

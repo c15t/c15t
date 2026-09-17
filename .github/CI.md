@@ -15,7 +15,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
 | Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate v3 runs and full validation | Routine microbench runs |
-| Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
+| Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
 | Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
 ## Selection and local commands
@@ -77,6 +77,15 @@ macOS plus 8 Ubuntu minutes. Both groups pin Xcode 27, the version
 switching `xcode-select`, cache SwiftPM, Gradle and CocoaPods, and use
 GitHub-hosted runners only. Files under `native/` own no workspace, so they
 still widen to a full run.
+
+Autolinking is gated separately from the Android assemblies. Assembling an AAR proves Gradle
+can compile the library; it never asks React Native's CLI whether the library can be found. A
+host app's `settings.gradle` runs `react-native config`, so a package the CLI cannot resolve
+fails that app before it configures a project -- and nothing in `packages/react-native` goes
+through that path. `bun scripts/react-native-autolink.ts` runs the unscoped command from
+`examples/react-native-bare` and checks the answer names the library module, the package class,
+and the podspec. It runs on the Android leg of the mobile SDK group and, as
+`scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
 
 Mobile budgets are gated twice, each on the runner that can measure them. The
 bench step runs `bench:ci`, which fails any measured row over its `budgets.json`

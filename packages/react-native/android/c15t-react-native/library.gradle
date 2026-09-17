@@ -1,18 +1,19 @@
-// The React Native bridge library, applied by the two builds that need it: this module's own
-// build script, and a host app, which reaches it through ../build.gradle.kts because React
-// Native autolinks the package's `android` directory rather than this subdirectory.
+// The React Native bridge library, applied from this module's build.gradle.kts.
 //
 // It is Groovy on purpose. A script applied with apply(from:) is compiled against a classpath
 // that does not contain AGP, so a Kotlin script here could not name LibraryExtension at all,
 // and a host app could not be asked to add it. Groovy resolves the Android DSL at runtime, so
-// the same file configures the library in both builds, against whichever AGP that build uses.
+// the same file configures the library in every build that reaches it, against whichever AGP
+// that build uses.
 //
-// `libraryDir` is the other consequence of the two builds: the sources live there in both,
-// while projectDir is this directory standalone and the package's `android` folder inside an
-// app. The manifest, sources, and consumer rules therefore take absolute paths, because AGP's
-// defaults would look next to projectDir and find nothing in an app build. A missing manifest
-// is the failure worth designing against: the androidx.startup entry that bootstraps the core
-// before the first JavaScript frame would quietly never be merged.
+// The namespace is the one piece of the library that is deliberately not here. React Native
+// reads a library's Java package by matching its build file, so that value belongs in
+// build.gradle.kts, where AGP and an app's autolinking read the same line. Everything below
+// is invisible to that lookup.
+//
+// The manifest, sources, and consumer rules take absolute paths. A missing manifest is the
+// failure worth designing against: the androidx.startup entry that bootstraps the core before
+// the first JavaScript frame would quietly never be merged.
 
 import java.io.File
 
@@ -24,9 +25,6 @@ def prop = { String name ->
 	String text = value.toString().trim()
 	return text.isEmpty() ? null : text
 }
-
-// Set by ../build.gradle.kts when a host app evaluates this as its own project.
-File libraryDir = project.ext.has('c15t.libraryDir') ? (File) project.ext.get('c15t.libraryDir') : projectDir
 
 String groupName = prop('c15t.core.group') ?: 'com.c15t'
 String coreVersion = prop('c15t.core.version') ?: '3.0.0-alpha.1'
@@ -44,7 +42,7 @@ int compileSdkValue = prop('compileSdkVersion')?.toInteger() ?: 36
 int minSdkValue = prop('minSdkVersion')?.toInteger() ?: 24
 
 // The `@c15t/react-native` package root, which owns package.json and src/specs.
-File packageRoot = libraryDir.parentFile.parentFile
+File packageRoot = projectDir.parentFile.parentFile
 File specRoot = new File(packageRoot, 'src/specs')
 File stubSpec = new File(packageRoot, 'android/c15t-spec/src/main/java/com/c15t/reactnative/NativeC15tSpec.java')
 
@@ -109,12 +107,11 @@ if (!useCodegen) {
 def codegenOutputDir = layout.buildDirectory.dir('generated/source/c15t-codegen')
 
 android {
-	namespace = 'com.c15t.reactnative'
 	compileSdk = compileSdkValue
 
 	defaultConfig {
 		minSdk = minSdkValue
-		consumerProguardFiles new File(libraryDir, 'consumer-rules.pro').absolutePath
+		consumerProguardFiles new File(projectDir, 'consumer-rules.pro').absolutePath
 	}
 
 	compileOptions {
@@ -128,12 +125,12 @@ android {
 
 	sourceSets {
 		main {
-			manifest.srcFile new File(libraryDir, 'src/main/AndroidManifest.xml').absolutePath
-			java.srcDirs = [new File(libraryDir, 'src/main/kotlin').absolutePath, new File(libraryDir, 'src/main/java').absolutePath]
+			manifest.srcFile new File(projectDir, 'src/main/AndroidManifest.xml').absolutePath
+			java.srcDirs = [new File(projectDir, 'src/main/kotlin').absolutePath, new File(projectDir, 'src/main/java').absolutePath]
 			kotlin.srcDirs = java.srcDirs
 		}
 		test {
-			java.srcDirs = [new File(libraryDir, 'src/test/kotlin').absolutePath, new File(libraryDir, 'src/test/java').absolutePath]
+			java.srcDirs = [new File(projectDir, 'src/test/kotlin').absolutePath, new File(projectDir, 'src/test/java').absolutePath]
 			kotlin.srcDirs = java.srcDirs
 		}
 	}

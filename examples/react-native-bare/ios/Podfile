@@ -17,16 +17,7 @@ if linkage != nil
 end
 
 target 'C15tBare' do
-  # Autolinking asks @react-native-community/cli for the config of *every* platform, and
-  # 'react-native config' currently exits 1 while it resolves the Android half of
-  # @c15t/react-native (see "Autolinking" in README.md). CocoaPods only reads the iOS
-  # half of that output, so the example asks for iOS alone and keeps building. Drop this
-  # override once the SDK's Android autolinking metadata carries a resolvable namespace.
-  autolink_command = [
-    'node', '-e',
-    "process.argv=['', '', 'config', '--platform', 'ios'];require('@react-native-community/cli').run()",
-  ]
-  config = use_native_modules!(autolink_command)
+  config = use_native_modules!
 
   # The consent kernel is a pod of its own, so an app outside this repository pulls
   # the published one and needs nothing here. Inside the monorepo both pods are

@@ -95,9 +95,10 @@ needs `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 ## Native build status
 
 Verified here: `bun run check-types` is clean, `bun run bundle` writes a release bundle
-for both platforms, and `pod install` completes. Nobody has launched a simulator or an
-emulator from this fixture yet, so every box in the checklist below is still open, and
-the cold-start and airplane-mode steps need a human with a device.
+for both platforms, `pod install` completes, and the Android app gets through Gradle
+configuration. Nobody has launched a simulator or an emulator from this fixture yet, so
+every box in the checklist below is still open, and the cold-start and airplane-mode steps
+need a human with a device.
 
 iOS resolves. `pod install` from `ios/`, with `DEVELOPER_DIR` set, prints:
 
@@ -107,37 +108,32 @@ Pod installation complete! There are 88 dependencies from the Podfile and 87 tot
 ```
 
 with `C15tCore` and `C15tReactNative` both at 3.0.0-alpha.1, so the podspec, the `C15t`
-TurboModule codegen, and the local core path all hold. It also autolinks only after the
-Podfile asks for the iOS half of the config, for the reason below.
+TurboModule codegen, and the local core path all hold. Nothing is scoped away to get that:
+the Podfile calls `use_native_modules!` with no arguments and so runs the same unscoped
+`react-native config` a Gradle build would.
 
-Android cannot build, and the cause is in the SDK rather than in this app:
-`react-native config` cannot resolve a package name for `@c15t/react-native`.
+Android configures, which is the half that used to fail. `autolinkLibrariesFromCommand()` in
+`settings.gradle` runs an unscoped `react-native config`, so it is the check that a package's
+autolinking metadata is usable at all:
 
 ```console
 $ npx react-native config --platform android
-error Failed to build the app: No package name found.
-We couldn't parse the namespace from neither your build.gradle[.kts] file at
-.../@c15t/react-native/android/build.gradle.kts nor your package in the AndroidManifest at
-.../@c15t/react-native/android/c15t-react-native/src/main/AndroidManifest.xml.
+  "@c15t/react-native": {
+      "sourceDir": ".../node_modules/@c15t/react-native/android/c15t-react-native",
+      "packageImportPath": "import com.c15t.reactnative.C15tReactNativePackage;",
+
+$ cd android && sh ./gradlew :app:mergeDebugResources --console=plain
+BUILD SUCCESSFUL in 28s
 ```
 
-`react-native.config.cjs` points Android autolinking at `./android`, and the CLI's lookup
-is two regexes: `package="..."` in the library's `src/main/AndroidManifest.xml`, then
-`namespace "..."` in `./android/build.gradle[.kts]`. This package's manifest carries no
-`package` attribute (AGP dropped that convention), and the namespace lives in
-`android/c15t-react-native/library.gradle`, which the CLI never opens. Adding a
-`namespace` line to `android/build.gradle.kts` satisfies it, since the match is over the
-whole file, and so does pointing `android.sourceDir` at `./android/c15t-react-native`
-once the namespace is visible there. Either change belongs to `packages/react-native`.
+Before the fix in [packages/react-native](../../packages/react-native/android#autolinking),
+the first command exited 1 with `Failed to build the app: No package name found`, and with it
+this app's Gradle configuration died before compiling a single file; `pod install` only worked
+because the Podfile passed an iOS-scoped autolink command around it. Both workarounds are gone.
+`bun run check:react-native-autolink` re-runs that first command from this app's own install,
+and the mobile SDK CI group runs it.
 
-The same failure stops the Gradle build at configuration, not at compilation: the
-template's `autolinkLibrariesFromCommand()` runs the unscoped
-`npx @react-native-community/cli config` while `settings.gradle` is evaluated. CocoaPods
-reads only the iOS half of that output, which is why the Podfile passes an iOS-scoped
-autolink command to `use_native_modules!` and comments why. Drop the override once the
-package's Android metadata resolves.
-
-Two warnings from the same run belong to the package too.
+Two warnings from that `pod install` belong to the package too.
 `C15tReactNative.podspec` declares `license => '../../LICENSE.md'`, which is this
 repository's root license and exists two directories above the package only in a
 checkout, not in a consumer's `node_modules`. And React Native notes that calling
