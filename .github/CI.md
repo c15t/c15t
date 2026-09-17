@@ -37,6 +37,9 @@ CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 ```sh
 bun run --cwd benchmarks/mobile bench:ci
 bun scripts/ci-mobile-bench-report.ts --kind ios-toolchain --report-dir .ci-reports/mobile-ios-toolchain
+# Android instrumented suite, needs a booted emulator, so it is local-only
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ANDROID_HOME=$HOME/Library/Android/sdk \
+  sh native/core-android/gradlew -p native/core-android :c15t-android:connectedDebugAndroidTest --no-build-cache
 ```
 
 The selector compares committed changes with the merge base. Without
@@ -77,6 +80,14 @@ macOS plus 8 Ubuntu minutes. Both groups pin Xcode 27, the version
 switching `xcode-select`, cache SwiftPM, Gradle and CocoaPods, and use
 GitHub-hosted runners only. Files under `native/` own no workspace, so they
 still widen to a full run.
+
+The Android kernel's instrumented suite in `src/androidTest` runs on a booted
+emulator and belongs to neither group. Neither Android leg can host it: both are
+`ubuntu-latest`, which exposes no KVM, and a connected run that finds no device
+answers as a pass rather than a skip. Until a runner with nested virtualization
+or a device cloud is wired up, that suite is a local and pre-release gate, run
+before any change to storage, keystore, launch, or lifecycle, as
+`native/core-android/README.md` describes.
 
 Autolinking is gated separately from the Android assemblies. Assembling an AAR proves Gradle
 can compile the library; it never asks React Native's CLI whether the library can be found. A
