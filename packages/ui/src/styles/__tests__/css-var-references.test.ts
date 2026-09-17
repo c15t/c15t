@@ -100,8 +100,8 @@ const declared = new Set(
 	ENTRYPOINTS.flatMap((entrypoint) => {
 		const sheet = read(join(DIST_DIR, entrypoint));
 
-		return [...sheet.matchAll(/(--c15t-[a-z0-9-]+)\s*:/g)].map(
-			(match) => match[1] as string
+		return [...sheet.matchAll(/(?<name>--c15t-[a-z0-9-]+)\s*:/gu)].map(
+			(match) => match.groups?.name ?? ''
 		);
 	})
 );

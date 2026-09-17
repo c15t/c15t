@@ -16,10 +16,8 @@ describe('CI selection', () => {
 		// selector went on naming the old literal, so edits to the very file whose breakage
 		// dropped the library in silence stopped selecting the check that would have caught
 		// it. Reading the directory is what keeps this honest if it moves again.
-		const packageRoot = new URL(
-			'../packages/react-native/',
-			import.meta.url
-		).pathname;
+		const packageRoot = new URL('../packages/react-native/', import.meta.url)
+			.pathname;
 		const configs = readdirSync(packageRoot).filter((entry) =>
 			entry.startsWith('react-native.config.')
 		);
