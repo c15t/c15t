@@ -188,6 +188,23 @@ one is worth reading twice: `encrypt` had never once succeeded on a device, so n
 ever reached disk, and the storage layer's silent answer to a non-key failure is what kept
 it invisible. `ResilientKeyValueStore` now names that write out loud.
 
+Re-running that journey on the current tree, after the kernel key-name fix and the change
+that made a committed save owe its delivery, comes out the same with one thing missing from
+the log. `installDebug`, `pm clear`, launch: CORE read `native (TurboModule)`, the snapshot
+carried a fresh `sub_` subject at `ready: true` and `activeUI: banner`, and the
+`ConsentClient` key-name warning did not appear at all, which is the whole claim of the fix.
+One `input tap` on the banner's accept moved revision 2 to 3, left the subject id alone, and
+put a `consent_given` audit row against that same id in the backend. `am force-stop` and a
+relaunch came back at `stored snapshot: true` on the same subject, banner still dismissed,
+and no second write arrived over the next minute.
+
+One trap is worth naming because it looks like a contract break and is not. Metro serves the
+current JavaScript while the installed APK carries whichever Kotlin was compiled when it was
+last built, so a stale binary against a live bundle reads as the two cores disagreeing: the
+`ConsentClient` warning fires with a dozen "the kernel owns these key names" lines while both
+sides of the tree agree with each other. Rebuild with `sh gradlew installDebug` in `android/`.
+A JavaScript reload will not clear it, and the warning will keep firing.
+
 ## Fake core
 
 The example ships an in-JavaScript fake core (`src/c15t/fake-native.ts`) built only on
