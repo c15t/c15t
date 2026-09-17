@@ -1,0 +1,27 @@
+[versions]
+# Pinned deliberately. The wrapper distribution in gradle/wrapper must stay in
+# lockstep with the Android Gradle Plugin minimum, see gradle-wrapper.properties.
+agp = "9.2.1"
+kotlin = "2.2.10"
+kotlinxSerializationJson = "1.11.0"
+androidxStartup = "1.1.1"
+androidxLifecycle = "2.10.0"
+androidxAnnotation = "1.10.0"
+junit = "4.13.2"
+
+compileSdk = "36"
+minSdk = "24"
+targetSdk = "36"
+
+[libraries]
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+androidx-startup = { module = "androidx.startup:startup-runtime", version.ref = "androidxStartup" }
+androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidxLifecycle" }
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidxAnnotation" }
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+[plugins]
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
