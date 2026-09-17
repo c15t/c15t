@@ -36,6 +36,18 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- The demo's own scheme, so a reviewer at a shell can drive a consent journey
+             with `adb shell am start -a android.intent.action.VIEW -d c15t-demo://accept`.
+             JavaScript answers the verbs in src/deep-links, the same handler iOS runs when
+             `xcrun simctl openurl` delivers the identical link. The activity is already
+             singleTask, so a link that arrives while the app is up comes in as a new
+             intent rather than a second instance. -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="c15t-demo" />
+        </intent-filter>
       </activity>
     </application>
 </manifest>

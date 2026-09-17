@@ -15,7 +15,8 @@
 		"lint": "oxlint App.tsx index.js src",
 		"pod-install": "pod install --project-directory=ios",
 		"start": "react-native start",
-		"start:reset": "react-native start --reset-cache"
+		"start:reset": "react-native start --reset-cache",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@c15t/react-native": "workspace:*",
@@ -35,7 +36,8 @@
 		"@react-native/typescript-config": "0.87.1",
 		"@types/node": "25.5.0",
 		"@types/react": "~19.2.2",
-		"typescript": "7.0.2"
+		"typescript": "7.0.2",
+		"vitest": "4.1.10"
 	},
 	"engines": {
 		"node": ">= 22.11.0"

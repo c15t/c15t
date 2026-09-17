@@ -346,6 +346,20 @@ const newSubjectId = (): string => {
 };
 
 /**
+ * What Android's bridge answers when a host asks it to request tracking.
+ *
+ * The fake core has no platform gate to read, so it gives Android's answer verbatim
+ * rather than inventing a third one: nothing to ask, `unsupported` reported, and the
+ * c15t decision alone deciding. See `C15tTracking.kt` in the package.
+ */
+const ANDROID_TRACKING_UNSUPPORTED =
+	'Android has no platform tracking prompt for c15t to request, so nothing was ' +
+	'asked. Tracking readiness reports `unsupported` here, which means the platform ' +
+	'adds no gate and the c15t decision alone decides; the advertising identifier ' +
+	'belongs to Google Play services, which this package does not depend on. Nothing ' +
+	'about consent changed.';
+
+/**
  * One run of the fake core.
  *
  * The module and the emitter are ordinary objects, which is exactly what the
@@ -398,11 +412,11 @@ class FakeCore {
 			},
 			getBootstrap: () => this.bootstrap(),
 			getSnapshot: () => this.getSnapshot(),
-			getTrackingAuthorization: () =>
-				// The fake has no platform to read, which is the same answer Android
-				// gives: there is no system question for this build to ask, so the
-				// arm is `unsupported` rather than a not-yet-answered `not-determined`.
-				JSON.stringify({ status: 'unsupported' }),
+			// These are the answers the Android bridge gives, verbatim. The fake core
+			// has no platform gate to read, so it reports Android's arm rather than
+			// inventing a third one: nothing to ask, and the c15t decision alone
+			// decides. See `C15tTracking.kt`.
+			getTrackingAuthorization: () => JSON.stringify({ status: 'unsupported' }),
 			identify: async (externalId) => {
 				this.identify(externalId);
 				await settle();
@@ -418,15 +432,10 @@ class FakeCore {
 				// See `addListener`.
 			},
 			requestTrackingAuthorization: () =>
-				// Rejected with the code the real Android bridge uses, so a host that
-				// calls this against the fake sees the shape it would ship against.
 				Promise.reject(
-					Object.assign(
-						new Error('The fake core has no platform gate to ask'),
-						{
-							code: 'C15T_TRACKING_UNSUPPORTED',
-						}
-					)
+					Object.assign(new Error(ANDROID_TRACKING_UNSUPPORTED), {
+						code: 'C15T_TRACKING_UNSUPPORTED',
+					})
 				),
 			setOverrides: async (overrides) => {
 				this.setOverrides(overrides);
