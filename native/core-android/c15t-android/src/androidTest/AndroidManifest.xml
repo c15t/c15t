@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	Merges on top of the library manifest for the instrumented APK, which is what makes
+	these launch tests real: the values below reach the SDK through
+	`PackageManager.getApplicationInfo`, past the manifest merger and the resource
+	compiler, so the test reads the same bundle a host app's users do. No Robolectric
+	stand-in can prove that path.
+
+	`.invalid` is reserved by RFC 6761 and never resolves, so the launch core the
+	Initializer installs fails its first init the way a device in airplane mode does.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application>
+		<meta-data
+			android:name="com.c15t.PORTAL_URL"
+			android:value="https://consent.instrumentation.invalid" />
+		<meta-data
+			android:name="com.c15t.INIT_URL"
+			android:value="https://consent.instrumentation.invalid/api/consent/init" />
+		<meta-data
+			android:name="com.c15t.DOMAIN"
+			android:value="consent.instrumentation.invalid" />
+		<!--
+			Unquoted on purpose. The parser hands an unquoted `true` over as a Boolean and
+			a quoted `"true"` as text, and a reader that names one of the two honours only
+			whichever spelling the app happened to type.
+		-->
+		<meta-data
+			android:name="com.c15t.FORCE_GPC"
+			android:value="true" />
+
+		<!--
+			`ProcessLifecycleOwner` derives the process state from the activities in it, and
+			a library's instrumented process has none of its own. This one draws nothing: it
+			exists so a test can bring the process to the foreground and take it away again.
+		-->
+		<activity
+			android:name="com.c15t.android.C15tForegroundHostActivity"
+			android:exported="false"
+			android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+	</application>
+</manifest>

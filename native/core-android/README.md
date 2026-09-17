@@ -71,11 +71,16 @@ and the subject's c15t choice moves a category to `GRANTED`.
 ./gradlew :c15t-core:bench             # measured numbers against the contract budgets
 ./gradlew :c15t-android:assembleDebug  # the library
 ./gradlew build                        # everything, including Android lint
+
+# The device suite: ANDROID_HOME, a JDK 17 in JAVA_HOME, and one emulator attached.
+sh gradlew :c15t-android:connectedDebugAndroidTest --no-build-cache
 ```
 
 `local.properties` holds `sdk.dir` for the Android module and is gitignored;
 `ANDROID_HOME` works too. Gradle 9.4.1 and AGP 9.2.1 are pinned in
 `gradle/libs.versions.toml`.
+`sh gradlew` rather than the wrapper path: a Gradle launcher is POSIX sh either way, and
+the wrapper's executable bit does not survive every checkout.
 
 ## Host integration
 
@@ -125,10 +130,31 @@ coverage: a payload persisted before the request and replayed unchanged after a 
 a later init that does not rewrite a queued payload, and the newest-20 cap, alongside the
 protocol headers and the storage step-down when the platform key dies.
 
-Instrumented tests are not part of this phase: no emulator is available in the
-development environment, so `c15t-android` is verified by JVM unit tests plus
-`assembleDebug`. That module keeps its Android code thin enough that the interesting
-behaviour is elsewhere.
+The parts of `c15t-android` that only exist on a device have a device suite of their
+own, in `src/androidTest`, driven by `androidx.test.runner.AndroidJUnitRunner`. It covers
+what a JVM cannot reach however carefully the doubles are written: the merged-manifest read
+behind `configFrom`, the `androidx.startup` registration, `C15tAndroid.install` and the
+reads it puts behind the process-wide facade with no JavaScript runtime in the process, a
+second install leaving a running core alone, a host that declared no portal url still being
+answered deny-all, an `AndroidKeyStore` entry destroyed for real, and the foreground and
+reachability ports.
+
+The device suite found the bug the JVM suite could not see: the foreground replay called
+`C15t.flushPending()` on the thread the lifecycle callback arrived on, and the platform
+refuses an HTTP connection there outright, so the queue stayed queued on every foreground
+that looked like a retry. See `DeviceLifecycleTest`.
+
+**What cannot gate.** Nothing in CI runs these tests today, and that is worth stating
+rather than implying. CI's required mobile job runs `:c15t-core:test` and the Android
+assemblies only; the device-build group that could host a connected run is advisory by
+design and builds the example apps against a generic destination with no emulator booted
+and no device attached, so it proves linking and compiling, not behaviour. Making the
+connected suite gating needs a real device on a runner: either a boot step in the required
+`mobile` group of `.github/workflows/ci.yml`, which puts an emulator on every pull request
+that touches `native/`, or a promoted `mobileBrowserOrDevice` job, which also means
+dropping that group's advisory status and its absence from `CI complete`. Until one of
+those lands, `sh gradlew :c15t-android:connectedDebugAndroidTest` is a local and
+pre-release gate, run before any change to storage, keystore, launch, or lifecycle.
 
 A revoked key costs the records and not the identity. When the key stops working the
 core deletes the blobs it can no longer open, warns once, and continues deny-all with
