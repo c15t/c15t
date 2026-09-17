@@ -83,6 +83,85 @@ describe('CI selection', () => {
 		expect(result.examples).toEqual(['vue']);
 		expect(result.compat).toEqual([]);
 	});
+	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {
+		for (const file of [
+			'packages/react-native/src/index.ts',
+			'packages/react-native/android/c15t-react-native/library.gradle',
+			'benchmarks/mobile/src/run.ts',
+		]) {
+			const result = plan([file]);
+			expect(result.mobile, file).toBe(true);
+			expect(result.build).toContain('@c15t/react-native');
+		}
+		expect(plan(['packages/react-native/src/index.ts']).tests).toContain(
+			'@c15t/react-native'
+		);
+		expect(plan(['benchmarks/mobile/src/run.ts']).tests).toContain(
+			'@c15t/mobile-bench'
+		);
+	});
+	it('follows a core change into the mobile SDK that runs the same kernel', () => {
+		const result = plan(['packages/core/src/kernel.ts']);
+		expect(result.mobile).toBe(true);
+		expect(result.mobileBrowserOrDevice).toBe(false);
+	});
+	it.each([
+		'native/core-swift/Sources/C15tCore/ConsentCore.swift',
+		'native/core-android/c15t-core/src/main/kotlin/com/c15t/core/C15tKernel.kt',
+		'native/protocol/evaluation-eu-opt-in.json',
+	])('selects the whole graph for the native path %s', (file) => {
+		const result = plan([file]);
+		expect(result.full).toBe(true);
+		expect(result.mobile).toBe(true);
+		expect(result.mobileBrowserOrDevice).toBe(true);
+	});
+	it('keeps packages that only share benchmark tooling off the mobile runners', () => {
+		// The mobile bench depends on @c15t/benchmarking, which the backend depends on
+		// too. Selecting the mobile group through that edge would put a macOS runner on
+		// every backend pull request.
+		for (const file of [
+			'packages/backend/src/index.ts',
+			'benchmarks/shared/src/budgets.ts',
+		]) {
+			expect(plan([file]).mobile, file).toBe(false);
+			expect(plan([file]).mobileBrowserOrDevice, file).toBe(false);
+		}
+	});
+	it('runs app builds only for files an app compiles', () => {
+		const device = [
+			'examples/expo-dev/App.tsx',
+			'examples/react-native-bare/ios/Podfile',
+			'packages/react-native/ios/C15tReactNative/Bridge/Wire.swift',
+			'packages/react-native/C15tReactNative.podspec',
+			'packages/react-native/Package.swift',
+		];
+		for (const file of device) {
+			expect(plan([file]).mobileBrowserOrDevice, file).toBe(true);
+		}
+		// JavaScript inside the SDK is covered by the mobile SDK jobs, and an app
+		// build on every kernel tweak would cost macOS minutes for no new signal.
+		expect(
+			plan(['packages/react-native/src/index.ts']).mobileBrowserOrDevice
+		).toBe(false);
+		expect(plan(['packages/backend/src/index.ts']).mobileBrowserOrDevice).toBe(
+			false
+		);
+	});
+	it('runs no mobile work for mobile documentation', () => {
+		const result = plan([
+			'docs/mobile/react-native.mdx',
+			'native/CONTRACT.md',
+			'packages/react-native/README.md',
+			'benchmarks/mobile/README.md',
+		]);
+		expect(result).toMatchObject({
+			build: [],
+			docs: true,
+			mobile: false,
+			mobileBrowserOrDevice: false,
+			tests: [],
+		});
+	});
 });
 
 describe('CI scheduling outputs', () => {
@@ -95,8 +174,20 @@ describe('CI scheduling outputs', () => {
 		expect(ciSchedulingOutputs(plan(['docs/guide.mdx']))).toMatchObject({
 			build: false,
 			integrations: [],
+			mobile: false,
+			mobileBrowserOrDevice: false,
 			packageChecks: false,
 		});
+	});
+	it('schedules both mobile groups as booleans', () => {
+		const sdk = ciSchedulingOutputs(
+			plan(['packages/react-native/src/index.ts'])
+		);
+		expect(sdk.mobile).toBe(true);
+		expect(sdk.mobileBrowserOrDevice).toBe(false);
+		const apps = ciSchedulingOutputs(plan(['examples/expo-dev/App.tsx']));
+		expect(apps.mobileBrowserOrDevice).toBe(true);
+		expect(JSON.stringify(apps)).not.toContain('@c15t/');
 	});
 	it('schedules packages when only test types are selected', () => {
 		const result = createCiPlan(
@@ -121,6 +212,8 @@ it('every selected artifact consumer has a package build in the real graph', () 
 			result.backend ||
 			result.bundle ||
 			result.performance ||
+			result.mobile ||
+			result.mobileBrowserOrDevice ||
 			result.integrations.length > 0;
 		return consumesArtifact && result.build.length === 0;
 	});

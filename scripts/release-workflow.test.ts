@@ -53,9 +53,15 @@ describe('release validation', () => {
 						'packages',
 						'backend',
 						'browser',
+						'mobile',
 						'bundle',
 						'performance',
 					],
+				},
+				// The device builds are a build report, not a gate: a pod fetch that
+				// breaks must not turn `CI complete` red.
+				mobileBrowserOrDevice: {
+					needs: ['repository', 'build'],
 				},
 				performance: {
 					if: "needs.repository.outputs.performance == 'true' && !inputs.skip_performance",

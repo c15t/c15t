@@ -15,6 +15,8 @@ benchmark should reuse an existing group unless it proves a different contract.
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
 | Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate v3 runs and full validation | Routine microbench runs |
+| Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
+| Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
 ## Selection and local commands
 
@@ -32,6 +34,11 @@ CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.
 CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 ```
 
+```sh
+bun run --cwd benchmarks/mobile bench:ci
+bun scripts/ci-mobile-bench-report.ts --kind ios-toolchain --report-dir .ci-reports/mobile-ios-toolchain
+```
+
 The selector compares committed changes with the merge base. Without
 `CI_DIFF_BASE`, it selects a full run. Its regression tests use the real
 workspace dependency graph, including the docs-only paths from PR #1105.
@@ -47,6 +54,46 @@ Release runs skip runtime benchmarks so publishing does not wait for timing
 measurements. Tests, builds, consumer bundle budgets, and package validation
 remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
+
+Mobile work selects on paths, not on the dependency graph alone. The mobile
+SDK group runs for `packages/react-native`, `native/` and `benchmarks/mobile`,
+and for anything whose reverse dependencies reach `@c15t/react-native`, because
+the JS boundary drives the same kernel the web packages ship.
+`@c15t/benchmarking` is a dependency of both the mobile bench and the backend,
+so the bench is matched by path on purpose: a workspace edge there would put a
+macOS runner on every backend pull request. The device group is narrower, and
+takes only the files an app compiles -- the native kernels, the binding's
+`ios/` and `android/` halves, its podspec and Swift manifest, and the two
+example apps -- plus the runs that select everything. Mobile Markdown,
+`native/CONTRACT.md` included, selects neither group.
+
+The device group is advisory and absent from `complete`, so `CI complete` stays
+green when a pod fetch fails; read it as a build report. It is the most
+expensive thing here: roughly 25 macOS minutes and 12 Ubuntu minutes per
+selected run, and the same again on a dependency bump, because a full run
+selects it. The mobile SDK group is required when selected and costs roughly 10
+macOS plus 8 Ubuntu minutes. Both groups pin Xcode 27, the version
+`native/CONTRACT.md` standardises on, export `DEVELOPER_DIR` instead of
+switching `xcode-select`, cache SwiftPM, Gradle and CocoaPods, and use
+GitHub-hosted runners only. Files under `native/` own no workspace, so they
+still widen to a full run.
+
+Mobile budgets are gated twice, each on the runner that can measure them. The
+bench step runs `bench:ci`, which fails any measured row over its `budgets.json`
+ceiling. `scripts/ci-mobile-bench-report.ts` then fails a required row that
+produced no number, the way `BENCHMARK_EXPECTED_PACKAGES` does for the runtime
+comparisons, and publishes `mobile-summary.json` and a markdown table to the
+step summary and the evidence artifact. Each leg declares its own required
+rows: the Swift leg takes the `swift-core` rows and the iOS slice bytes, the
+Android leg takes the `kotlin-core` rows, the JS boundary and the Android class
+bytes. The idle rows are reported and budget-gated but never required, and
+`ios_binding_bytes` and `kotlin_bootstrap_to_snapshot_cold_ms` stay unmeasured
+by design. The Kotlin bench needs a warm Gradle run first, because the harness
+invokes Gradle with `--offline`, and the harness needs Xcode at
+`/Applications/Xcode.app`, which the Xcode step links when the image installs a
+versioned bundle. The SDK's vitest suite runs here too, on Linux, next to the
+package behaviour group's copy: the mobile group owns the mobile JS contract,
+and a JS-only regression should not wait on a native toolchain.
 
 `benchmark-regression.yml` also runs full comparisons independently on pushes
 to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
