@@ -10,10 +10,9 @@ ordering problem: an analytics SDK starts long before your React tree has painte
 
 ## The order things happen in
 
-1. The native core starts ahead of React Native. On iOS a
-   `__attribute__((constructor))` runs at image load, before React Native initializes.
-   On Android an `androidx.startup` initializer runs during `Application.onCreate`,
-   before the first `Activity` exists.
+1. The native core starts ahead of React Native. On iOS an Objective-C `+load` runs at
+   image load, before React Native initializes. On Android an `androidx.startup`
+   initializer runs during `Application.onCreate`, before the first `Activity` exists.
 2. `bootstrap()` reads the stored envelope synchronously, before it puts anything on a
    worker. Hydration is the reason this is its own step.
 3. The React host starts. `C15tProvider` calls `getBootstrap()` and `getSnapshot()`,

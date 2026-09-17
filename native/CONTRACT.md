@@ -817,10 +817,21 @@ A host app integrates two pods, both resolvable from this repository:
   0.87 resolves TurboModules through generated `RCTModuleProviders`. Verified by
   running RN's own generator against this package: it emits
   `@"C15t": @"C15tReactNativeModule", // @c15t/react-native`.
-- `com.c15t.reactnative.AutoBootstrap = false` in `Info.plist` skips the constructor
+- `com.c15t.reactnative.AutoBootstrap = false` in `Info.plist` skips the launch hook
   that starts the core before React Native initializes. An app that does that must
   call `C15tReactNativeRuntime.install(core:)` or `startCore()` itself, before the
   React host starts, or the module reads an empty deny-all store.
+- iOS starts the core from a `+load` on a class defined in the same translation unit as
+  the launch hook, and that is a link-time requirement the host build can verify.
+  CocoaPods builds the binding as a static archive, and the linker keeps an archive
+  member only if something references it or the host links `-ObjC` and the member
+  defines an Objective-C class or category. A member whose entire content is an
+  `__attribute__((constructor))` is neither, and was silently dropped: the app linked the
+  pod's classes and carried no `__TEXT,__init_offsets` section, so the core came up on
+  the first `getBootstrap()` from JavaScript instead of before it. Any early-start hook in
+  this pod therefore lives beside an Objective-C class. The check on a built app is
+  `otool -l` on the linked image for that section, not a unit test: nothing inside the pod
+  can see whether the host linked the file in.
 - Resolution is proven, not parsed: `pod install` in a throwaway RN 0.87.1 app under
   /tmp installed 85 pods including both c15t pods from those paths, under
   CocoaPods 1.17.0 and `DEVELOPER_DIR` pointing at Xcode 27.

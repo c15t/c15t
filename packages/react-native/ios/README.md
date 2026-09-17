@@ -67,9 +67,12 @@ package, not to one platform, and three consumers have to reach one file.
 
 ## Startup order
 
-`C15tReactNativeRuntimeInitializer.mm` runs a `__attribute__((constructor))` at image
-load, which is before React Native initializes, so stored consent resolves from the
-first JavaScript frame. An app that owns its own setup sets
+`C15tReactNativeRuntimeInitializer.mm` defines a class whose `+load` starts the core at
+image load, which is before React Native initializes, so stored consent resolves from the
+first JavaScript frame. It is a `+load` on a class rather than a bare
+`__attribute__((constructor))` because the pod is a static archive: the linker drops an
+archive member that neither is referenced nor defines an Objective-C class, and a file
+holding only a constructor is neither. An app that owns its own setup sets
 `com.c15t.reactnative.AutoBootstrap` to `false` and calls
 `C15tReactNativeRuntime.install(core:)` (its own configured core) or
 `startCore()` (the `Info.plist` values, later) itself.

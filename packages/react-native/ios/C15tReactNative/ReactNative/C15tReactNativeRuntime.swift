@@ -13,6 +13,11 @@ import Foundation
 /// `C15tReactNativeRuntimeInitializer.mm`, which runs before React Native
 /// initializes, and a host app that would rather call it itself. This is the `@objc`
 /// surface; the decisions live in `C15tReactNativeBootstrap`.
+///
+/// `C15tReactNativeEarlyStart`, which lives beside that launch hook in
+/// `C15tReactNativeRuntimeInitializer.mm`, is what gets this called with no app wiring.
+/// The pod is a static archive, so the file holding the hook survives a host's link only
+/// because it also defines an Objective-C class.
 @objc(C15tReactNativeRuntime)
 public final class C15tReactNativeRuntime: NSObject {
     /// Start the core from `Info.plist`, unless the app opted out.
