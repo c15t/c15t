@@ -481,14 +481,27 @@ A host app integrates two pods, both resolvable from this repository:
 - Resolution is proven, not parsed: `pod install` in a throwaway RN 0.87.1 app under
   /tmp installed 85 pods including both c15t pods from those paths, under
   CocoaPods 1.17.0 and `DEVELOPER_DIR` pointing at Xcode 27.
-- The binding's RN config file is `react-native.config.cjs`, not `.js`. RN's tooling
-  loads that file with `require`, and inside a package declaring `"type": "module"` a
-  plain `.js` file is ESM to every loader that respects the field. This is preventive,
-  not a reproduced fix: no task in this repository runs library-mode codegen (see the
-  next bullet), so nobody here has watched it fail. Node 24 hides the hazard locally
-  anyway, because its module-syntax detection reads `module.exports` as CommonJS and a
-  bare `require` probe succeeds. `.cjs` removes the question for loaders that do not
-  guess. App-mode codegen reads `autolinking.json` and is unaffected either way.
+- The binding's RN config file is `react-native.config.js`, written as ESM, and it must
+  keep that name. It used to be `.cjs`, on the reasoning that a `"type": "module"`
+  package hides a plain `.js` from `require`. That is wrong for Expo:
+  `expo-modules-autolinking`'s `loadConfigAsync` searches exactly
+  `react-native.config.js` and `react-native.config.ts` and nothing else, so a `.cjs`
+  is not read. Reproduced on this tree, not theorised. With the file named `.cjs`,
+  `expo-modules-autolinking react-native-config --platform android --json` from
+  `examples/expo-dev` returned only `expo`. Expo then falls back to
+  `sourceDir: 'android'`, whose `build.gradle.kts` declares no namespace, so
+  `parsePackageNameAsync` returns nothing, `resolveDependencyConfigImplAndroidAsync`
+  returns `null`, and the package is dropped from the generated `PackageList.java`
+  silently. CI's `assembleDebug` was green the whole time because an empty package list
+  still assembles. After the rename the same command reports
+  `sourceDir: .../android/c15t-react-native` with
+  `packageImportPath: import com.c15t.reactnative.C15tReactNativePackage;`.
+  `@expo/require-utils`' `evalModule` accepts ESM and CommonJS bodies in a `.js`, and
+  the community CLI's cosmiconfig search order is `.js`, `.cjs`, `.ts`, `.mjs`, with the
+  async loader used by `react-native config`, so one ESM `.js` satisfies both linkers.
+  `scripts/react-native-autolink.ts` now asserts both, because the bare fixture alone
+  could never see this: Expo's `expoAutolinking.rnConfigCommand` never asks the
+  community CLI anything.
 - `c15t.spec.source` is documented in the binding's `gradle.properties` as
   `auto`/`stub`/`codegen`, but no build script reads it: `:c15t-spec` always compiles
   the stand-in. So nothing in this repository has ever run RN's generator against

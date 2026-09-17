@@ -82,10 +82,15 @@ Autolinking is gated separately from the Android assemblies. Assembling an AAR p
 can compile the library; it never asks React Native's CLI whether the library can be found. A
 host app's `settings.gradle` runs `react-native config`, so a package the CLI cannot resolve
 fails that app before it configures a project -- and nothing in `packages/react-native` goes
-through that path. `bun scripts/react-native-autolink.ts` runs the unscoped command from
-`examples/react-native-bare` and checks the answer names the library module, the package class,
-and the podspec. It runs on the Android leg of the mobile SDK group and, as
-`scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
+through that path. It is also not the only linker: an Expo app's `settings.gradle` runs
+`expoAutolinking.rnConfigCommand`, so Expo's own resolver answers for that app and never asks
+the community CLI anything, and the two implementations read a library's config file
+differently. `bun scripts/react-native-autolink.ts` asks both: the unscoped
+`react-native config` from `examples/react-native-bare`, and
+`expo-modules-autolinking react-native-config --platform android --json` from
+`examples/expo-dev`. Each answer is checked to name the library module and the package class,
+and the bare fixture additionally has to name the podspec. It runs on the Android leg of the
+mobile SDK group and, as `scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
 
 Mobile budgets are gated twice, each on the runner that can measure them. The
 bench step runs `bench:ci`, which fails any measured row over its `budgets.json`

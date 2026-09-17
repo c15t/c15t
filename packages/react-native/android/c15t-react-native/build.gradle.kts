@@ -1,6 +1,6 @@
 // The bridge library. This is its only build script, in a host app and in the standalone
 // build one directory up alike: React Native autolinks this directory (see `android.sourceDir`
-// in ../../react-native.config.cjs), and settings.gradle.kts includes this module directly.
+// in ../../react-native.config.js), and settings.gradle.kts includes this module directly.
 //
 // The namespace belongs here for that reason. React Native discovers a library's Java package
 // by text-matching the build file at `sourceDir` and nothing else, so the string an app's

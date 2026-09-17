@@ -36,7 +36,7 @@
 		"dist-types",
 		"ios",
 		"android",
-		"react-native.config.cjs"
+		"react-native.config.js"
 	],
 	"type": "module",
 	"sideEffects": false,

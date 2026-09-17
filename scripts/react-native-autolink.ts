@@ -11,7 +11,7 @@
  *
  * Two shapes of mistake land here, and the CLI is what tells them apart:
  *
- *  * A library's `react-native.config.cjs` has to nest its entries under `dependency.platforms`.
+ *  * A library's `react-native.config.js` has to nest its entries under `dependency.platforms`.
  *    The shape an *app* writes (`dependencies`, keyed by package name) validates and is then
  *    ignored, which leaves the CLI guessing at the source directory.
  *  * The CLI finds a library's Java package by reading two files in the autolinked directory: a
@@ -25,12 +25,20 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const EXAMPLE_DIR = join(ROOT, 'examples', 'react-native-bare');
+
+/**
+ * The Expo fixture. It links through `expo-modules-autolinking`, which is a second
+ * implementation of the same question and reads the library config differently.
+ */
+const EXPO_EXAMPLE_DIR = join(ROOT, 'examples', 'expo-dev');
+
 const PACKAGE_NAME = '@c15t/react-native';
 
 /** The library module, not the `android` directory above it. */
@@ -90,47 +98,85 @@ const resolveCli = function resolveCli(exampleDir: string): string {
 };
 
 /**
- * Check the autolinking a host app would get, from a parsed `react-native config`.
+ * Check the Android half of one linker's answer against what the library ships.
  *
- * @param dependencies - The `dependencies` map of the config, keyed by package name.
- * @param javaPackage - The package Codegen is configured to generate `NativeC15tSpec` into.
- * Read from the package manifest; a parameter so a drift can be tested without editing it.
- * @returns Every way the answer disagrees with what `@c15t/react-native` ships. Empty means an
- * app can link the library on both platforms.
+ * @param android - The linker's Android entry, or nothing when autolinking is switched off.
+ * @param linker - Names the linker in the failure text.
+ * @returns Every disagreement. Empty means the host app's generated `PackageList` would name
+ * the real library.
  */
-export const checkAutolinkConfig = function checkAutolinkConfig(
-	dependencies: Record<string, DependencyConfig> | undefined,
-	javaPackage: string = codegenJavaPackage()
+const checkAndroidEntry = function checkAndroidEntry(
+	android: AndroidDependencyConfig | null | undefined,
+	linker: string
 ): string[] {
-	const dependency = dependencies?.[PACKAGE_NAME];
-
-	if (!dependency) {
+	if (!android) {
 		return [
-			`react-native config did not list ${PACKAGE_NAME}, so nothing autolinks it. A library's own config belongs under \`dependency.platforms\`, not the app-shaped \`dependencies\`.`,
+			`${linker} has no Android half for ${PACKAGE_NAME}. \`dependency.platforms.android: null\` turns Android autolinking off.`,
 		];
 	}
 
 	const failures: string[] = [];
-	const android = dependency.platforms?.android;
-	const ios = dependency.platforms?.ios;
 
-	if (!android) {
-		failures.push(
-			'react-native config has no Android half for @c15t/react-native. `dependency.platforms.android: null` turns Android autolinking off.'
-		);
-	} else if (!android.sourceDir.endsWith(ANDROID_MODULE_DIR)) {
+	if (!android.sourceDir.endsWith(ANDROID_MODULE_DIR)) {
 		failures.push(
 			`the autolinked Android directory is "${android.sourceDir}", not the library module (expected a path ending in "${ANDROID_MODULE_DIR}"). Pointed one level up, the CLI matches a build file with no namespace and exits non-zero.`
 		);
 	}
 
-	// The package the CLI read is written into the app's generated PackageList, so a drift here
-	// is a host app that cannot compile.
-	if (android && android.packageImportPath !== EXPECTED_IMPORT) {
+	// The import is written verbatim into the app's generated PackageList, so a drift here is a
+	// host app that does not compile.
+	if (android.packageImportPath !== EXPECTED_IMPORT) {
 		failures.push(
 			`packageImportPath is ${JSON.stringify(android.packageImportPath)}, expected ${JSON.stringify(EXPECTED_IMPORT)}.`
 		);
 	}
+
+	if (android.packageInstance !== 'new C15tReactNativePackage()') {
+		failures.push(
+			`packageInstance is ${JSON.stringify(android.packageInstance)}, expected "new C15tReactNativePackage()".`
+		);
+	}
+
+	return failures;
+};
+
+/** How one linker's answer should be read. */
+interface AutolinkCheckOptions {
+	/**
+	 * Whether the parsed config is expected to carry an iOS half. Expo asks each linker
+	 * per platform, so its `--platform android` answer legitimately has none.
+	 */
+	expectIos?: boolean;
+	/** Names the linker in the failure text, so a report says which one disagreed. */
+	linkerName?: string;
+}
+
+/**
+ * Check the autolinking a host app would get, from a parsed linker answer.
+ *
+ * @param dependencies - The `dependencies` map of the config, keyed by package name.
+ * @param javaPackage - The package Codegen is configured to generate `NativeC15tSpec` into.
+ * Read from the package manifest; a parameter so a drift can be tested without editing it.
+ * @param options - Which linker produced the config, and whether it should carry iOS.
+ * @returns Every way the answer disagrees with what `@c15t/react-native` ships. Empty means an
+ * app can link the library.
+ */
+export const checkAutolinkConfig = function checkAutolinkConfig(
+	dependencies: Record<string, DependencyConfig> | undefined,
+	javaPackage: string = codegenJavaPackage(),
+	options: AutolinkCheckOptions = {}
+): string[] {
+	const linker = options.linkerName ?? 'react-native config';
+	const expectIos = options.expectIos ?? true;
+	const dependency = dependencies?.[PACKAGE_NAME];
+
+	if (!dependency) {
+		return [
+			`${linker} did not list ${PACKAGE_NAME}, so nothing autolinks it. The likeliest cause is the config file itself: Expo reads only \`react-native.config.js\` and \`.ts\`, so a \`.cjs\` is found by the community CLI and invisible here. A library's own entries also belong under \`dependency.platforms\`, not the app-shaped \`dependencies\`.`,
+		];
+	}
+
+	const failures = checkAndroidEntry(dependency.platforms?.android, linker);
 
 	// One string is the AGP namespace, the Kotlin package the package class sits in, and the
 	// package Codegen generates NativeC15tSpec into. If codegenConfig drifts, the app writes the
@@ -141,15 +187,14 @@ export const checkAutolinkConfig = function checkAutolinkConfig(
 		);
 	}
 
-	if (android?.packageInstance !== 'new C15tReactNativePackage()') {
-		failures.push(
-			`packageInstance is ${JSON.stringify(android?.packageInstance ?? null)}, expected "new C15tReactNativePackage()".`
-		);
-	}
+	const ios = dependency.platforms?.ios;
 
-	if (!ios) {
+	if (!expectIos) {
+		// Expo resolves one platform per invocation; the iOS half is its own command, and the
+		// bare fixture covers CocoaPods through the community CLI.
+	} else if (!ios) {
 		failures.push(
-			'react-native config has no iOS half for @c15t/react-native, so `pod install` would not see it.'
+			`${linker} has no iOS half for ${PACKAGE_NAME}, so \`pod install\` would not see it.`
 		);
 	} else if (!ios.podspecPath.endsWith('C15tReactNative.podspec')) {
 		failures.push(
@@ -209,8 +254,116 @@ export const checkReactNativeAutolinking = function checkReactNativeAutolinking(
 	return checkAutolinkConfig(config.dependencies);
 };
 
+/**
+ * The `expo-modules-autolinking` CLI entry, resolved from an Expo app root.
+ *
+ * `expo` re-exports the command as its own `expo-modules-autolinking` bin, and the real
+ * package sits inside Expo's dependency tree rather than at a name the app can resolve, so
+ * `expo/bin/autolinking` is tried first: that shim is what `expo prebuild` and
+ * `npx expo-modules-autolinking` both end up executing.
+ */
+const resolveExpoAutolinking = function resolveExpoAutolinking(
+	expoExampleDir: string
+): string {
+	const readRequire = createRequire(join(expoExampleDir, 'noop.js'));
+	const paths = [expoExampleDir];
+
+	try {
+		const expoManifest = readRequire.resolve('expo/package.json', {
+			paths,
+		});
+		const shim = join(dirname(expoManifest), 'bin', 'autolinking');
+
+		if (existsSync(shim)) {
+			return shim;
+		}
+	} catch {
+		// Fall through to the direct resolution, which is the older layout.
+	}
+
+	const manifest = readRequire.resolve(
+		'expo-modules-autolinking/package.json',
+		{ paths }
+	);
+
+	return join(dirname(manifest), 'bin', 'expo-modules-autolinking.js');
+};
+
+/**
+ * Check the Android autolinking an Expo app would get.
+ *
+ * This is the half that was invisible, and it is invisible by construction: `expo prebuild`
+ * wires `settings.gradle` to `expoAutolinking.rnConfigCommand`, so an Expo app never asks
+ * `@react-native-community/cli` anything, and CI's `assembleDebug` is green whether or not
+ * the generated `PackageList.java` names the library.
+ *
+ * @param expoExampleDir - An Expo app root that depends on the package.
+ * @returns Every way Expo's answer disagrees with the package, including a command that fails
+ * or prints something unparseable.
+ */
+export const checkExpoAndroidAutolinking = function checkExpoAndroidAutolinking(
+	expoExampleDir: string = EXPO_EXAMPLE_DIR
+): string[] {
+	let bin: string;
+
+	try {
+		bin = resolveExpoAutolinking(expoExampleDir);
+	} catch {
+		return [
+			`expo-modules-autolinking is not resolvable from ${expoExampleDir}, so the Expo half of ${PACKAGE_NAME}'s autolinking is unverified. Installing the workspace is the fix; skipping this check is not, because an unchecked Expo linker is how the Kotlin library went unlinked in the first place.`,
+		];
+	}
+
+	let stdout: string;
+
+	try {
+		stdout = execFileSync(
+			process.execPath,
+			// `--json` is the machine-readable form, which is what Expo's Gradle plugin
+			// consumes through `expoAutolinking.rnConfigCommand`. Without it the command
+			// prints a colorized Node inspection rather than data.
+			[bin, 'react-native-config', '--platform', 'android', '--json'],
+			{
+				cwd: expoExampleDir,
+				encoding: 'utf8',
+				maxBuffer: 64 * 1024 * 1024,
+				stdio: ['ignore', 'pipe', 'pipe'],
+			}
+		);
+	} catch (error) {
+		const failure = error as {
+			stderr?: Buffer | string;
+			status?: number | null;
+		};
+		const detail = String(failure.stderr ?? error).trim();
+
+		return [
+			`expo-modules-autolinking exited ${failure.status ?? 'non-zero'} in ${expoExampleDir}.`,
+			detail,
+		].filter(Boolean);
+	}
+
+	let config: { dependencies?: Record<string, DependencyConfig> };
+
+	try {
+		config = JSON.parse(stdout);
+	} catch {
+		return [
+			'expo-modules-autolinking react-native-config printed something that is not JSON.',
+		];
+	}
+
+	return checkAutolinkConfig(config.dependencies, codegenJavaPackage(), {
+		expectIos: false,
+		linkerName: 'expo-modules-autolinking',
+	});
+};
+
 const main = function main(): void {
-	const failures = checkReactNativeAutolinking();
+	const failures = [
+		...checkReactNativeAutolinking(),
+		...checkExpoAndroidAutolinking(),
+	];
 
 	if (failures.length > 0) {
 		console.error(
@@ -225,7 +378,7 @@ const main = function main(): void {
 	}
 
 	console.log(
-		`${PACKAGE_NAME} resolves for Android and iOS from ${EXAMPLE_DIR}.`
+		`${PACKAGE_NAME} resolves for Android and iOS from ${EXAMPLE_DIR}, and for Android from ${EXPO_EXAMPLE_DIR}.`
 	);
 };
 

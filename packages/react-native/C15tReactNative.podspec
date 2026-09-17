@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   s.source_files = "ios/C15tReactNative/**/*.{h,swift,m,mm}"
   s.public_header_files = "ios/C15tReactNative/C15tReactNative.h"
   s.resource_bundle = { "C15tReactNative" => "ios/C15tReactNative/Resources/Privacy.xcprivacy" }
-  s.preserve_paths = "ios", "package.json", "react-native.config.cjs", "Package.swift"
+  s.preserve_paths = "ios", "package.json", "react-native.config.js", "Package.swift"
 
   s.platforms = { :ios => "16.4" }
   s.swift_versions = ["5.9"]

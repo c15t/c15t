@@ -6,11 +6,22 @@
 // parses, validates, and is then ignored, which is how this package shipped with an Android
 // source directory that was never applied.
 //
+// The file is named `.js` and written as ESM, which is a fix rather than a preference. It
+// used to be `.cjs`, on the reasoning that a `"type": "module"` package hides a plain `.js`
+// from `require`. That is wrong for one of the two linkers that matters:
+// `expo-modules-autolinking` looks for exactly `react-native.config.js` and
+// `react-native.config.ts` and nothing else, so a `.cjs` config is simply never found. Expo
+// then falls back to `sourceDir: 'android'`, whose `build.gradle.kts` declares no namespace,
+// so the Java package parses to nothing and the whole package is dropped from
+// `PackageList.java` without a warning. The community CLI searches `.js` before `.cjs` and
+// loads it asynchronously, so ESM suits it as well. `scripts/react-native-autolink.ts` now
+// asserts that both linkers resolve this package.
+//
 // The TurboModule bindings live in the `C15tReactNative` iOS target and the
 // `com.c15t.reactnative` Android module, both shipped inside this package. The pure consent
 // cores (`native/core-swift`, `native/core-android` in the monorepo) are dependencies of
 // those targets, never autolinked directly.
-module.exports = {
+export default {
 	dependency: {
 		platforms: {
 			android: {

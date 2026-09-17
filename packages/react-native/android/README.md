@@ -18,7 +18,7 @@ The consent engine is not copied here. It is either the included build of
 ## Autolinking
 
 React Native's settings plugin autolinks a package by pointing a Gradle project at the
-directory in `../../react-native.config.cjs`, and it discovers the library's Java package by
+directory in `../../react-native.config.js`, and it discovers the library's Java package by
 reading two files in that directory: a `package` attribute in `src/main/AndroidManifest.xml`,
 then a namespace in `build.gradle[.kts]`. AGP dropped the manifest attribute, so the namespace
 has to be readable in the build file at exactly that path. It is declared in
