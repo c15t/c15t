@@ -108,9 +108,59 @@ class SubjectIdGenerator(
 		 */
 		fun generate(): String = default.generate()
 
+		/**
+		 * Whether [candidate] is an id this generator writes, and therefore an id the
+		 * producer accepts: `^sub_[1-9A-HJ-NP-Za-km-z]+$`, the pattern in
+		 * `subjectIdSchema` in `packages/schema/src/api/subject/post.ts`.
+		 *
+		 * This is the gate for adopting a *stored* id too, not just for minting a new
+		 * one. `native/CONTRACT.md` puts the read side of the format rule the same way
+		 * the write side: an id the producer will not accept is an identity this build
+		 * cannot use, and it is worth nothing. The legacy UUID shape is not an exception
+		 * -- see [isLegacyUuidShape] for the one thing it is good for.
+		 */
+		fun isValid(candidate: String): Boolean {
+			if (!candidate.startsWith(ID_PREFIX) || candidate.length == ID_PREFIX.length) {
+				return false
+			}
+			return candidate.substring(ID_PREFIX.length).all { it in BASE58_ALPHABET }
+		}
+
+		/**
+		 * Whether [candidate] is the lowercase UUID v4 shape this SDK minted before
+		 * [SubjectIdGenerator] existed.
+		 *
+		 * Diagnosis only, and deliberately separate from [isValid]: recognising the
+		 * legacy shape is how a host explains to a user why they are being asked again,
+		 * and it is never a reason to adopt an id. Every id matched here is one the
+		 * producer answers with `INPUT_VALIDATION_FAILED`. Uppercase UUIDs are IDFV and
+		 * ADID, and this matches lowercase only, which is the form this SDK alone wrote.
+		 */
+		fun isLegacyUuidShape(candidate: String): Boolean {
+			if (candidate.length != UUID_LENGTH) {
+				return false
+			}
+			for (index in 0 until UUID_LENGTH) {
+				val char = candidate[index]
+				if (index in UUID_HYPHENS) {
+					if (char != '-') {
+						return false
+					}
+				} else if (!char.isDigit() && char !in 'a'..'f') {
+					return false
+				}
+			}
+			return candidate[UUID_VERSION_INDEX] == '4' && candidate[UUID_VARIANT_INDEX] in "89ab"
+		}
+
 		private val default = SubjectIdGenerator()
 
 		private const val ID_PREFIX = "sub_"
+
+		private const val UUID_LENGTH = 36
+		private val UUID_HYPHENS = setOf(8, 13, 18, 23)
+		private const val UUID_VERSION_INDEX = 14
+		private const val UUID_VARIANT_INDEX = 19
 
 		/** The web SDK's custom epoch: 2023-11-14T22:13:20Z. */
 		private const val EPOCH_MILLIS = 1_700_000_000_000L

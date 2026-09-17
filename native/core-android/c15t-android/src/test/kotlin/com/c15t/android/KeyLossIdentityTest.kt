@@ -92,9 +92,13 @@ class KeyLossIdentityTest {
 			fallback = PrefsStore(),
 		)
 		// The pre-migration layout: the id written straight into encrypted storage.
+		// The id itself is one the producer accepts, because this case is about which
+		// slot the id survives in. An older install carrying the legacy UUID shape is a
+		// different story -- the core refuses that id and the records under it, which is
+		// pinned in SubjectIdentityTest.
 		records.write(
 			C15tStoreKeys.SUBJECT,
-			C15tJson.storage.encodeToString(ConsentSubject.serializer(), ConsentSubject(id = "subject-legacy")),
+			C15tJson.storage.encodeToString(ConsentSubject.serializer(), ConsentSubject(id = CARRIED_ID)),
 		)
 		assertTrue(
 			"the fixture must really be on the encrypted path",
@@ -103,14 +107,14 @@ class KeyLossIdentityTest {
 		val identity = PrefsStore()
 
 		val upgraded = C15tStore(SubjectPreservingStore(records, identity))
-		assertEquals("subject-legacy", requireSubject(upgraded.readSubject()).id)
+		assertEquals(CARRIED_ID, requireSubject(upgraded.readSubject()).id)
 		assertFalse("the encrypted copy is retired", File(directory, C15tStoreKeys.SUBJECT).isFile)
 		assertEquals("the id now lives in plain storage", listOf(C15tStoreKeys.SUBJECT), identity.storedKeys)
 
 		// A later launch must find the same answer and disturb nothing.
 		val nextLaunch = C15tStore(SubjectPreservingStore(records, identity))
-		assertEquals("subject-legacy", requireSubject(nextLaunch.readSubject()).id)
-		assertEquals("running the migration twice cannot change the id", "subject-legacy", identity.subjectId())
+		assertEquals(CARRIED_ID, requireSubject(nextLaunch.readSubject()).id)
+		assertEquals("running the migration twice cannot change the id", CARRIED_ID, identity.subjectId())
 		assertFalse(File(directory, C15tStoreKeys.SUBJECT).isFile)
 		assertEquals(0, idsMinted)
 	}
@@ -123,11 +127,20 @@ class KeyLossIdentityTest {
 		executor = TaskExecutor.DIRECT,
 		subjectIdGenerator = {
 			idsMinted += 1
-			"subject-$idsMinted"
+			// Format-valid, and spelled in base58 rather than decimal: the core refuses a
+			// stored id outside the producer's pattern, and a harness minting one would
+			// make every relaunch here a test about that refusal rather than about where
+			// the id is kept. (`sub_install1` would be one: base58 has no lowercase L.)
+			"sub_key$idsMinted"
 		},
 	)
 
 	private fun newDirectory(): File = Files.createTempDirectory("c15t-identity").toFile().apply { deleteOnExit() }
+
+	private companion object {
+		/** An id written by an older build, already in the format the producer takes. */
+		const val CARRIED_ID = "sub_4ZrjtNN3QTDfdH8RQdZEAE8ohrCk"
+	}
 
 	/** JUnit's assertNotNull returns nothing, and these reads are preconditions, not assertions. */
 	private fun requireSubject(subject: ConsentSubject?): ConsentSubject =

@@ -798,7 +798,20 @@ public final class ConsentCore: @unchecked Sendable {
         guard let config = lock.withLock({ self.config }) else { return snapshot() }
 
         // Identity first, on disk, outside the lock.
-        let identity = SubjectIdentity.loadOrCreate(from: config.store)
+        let identityRead = SubjectIdentity.loadOrCreate(from: config.store)
+        let identity = identityRead.identity
+        if let unusable = identityRead.unusable {
+            // The id the records are keyed to is one the producer refuses, so those
+            // records describe a subject no query returns. Keep them and the next
+            // launch attributes them to the id minted a moment ago: one subject split
+            // across two ids, silently. `native/CONTRACT.md` prices the refused id at
+            // nothing, so everything written under it goes with it -- the envelope and
+            // the queued bodies alike, since those bytes were already refused for
+            // carrying this id and replaying them buys a guaranteed rejection.
+            config.store.set(nil, for: StorageKey.snapshot)
+            config.store.set(nil, for: StorageKey.pendingSaves)
+            announceUnusableSubjectId(unusable)
+        }
         let envelopeData = config.store.data(for: StorageKey.snapshot)
         let envelope = envelopeData.flatMap(StoredEnvelope.decode)
 
@@ -890,6 +903,39 @@ public final class ConsentCore: @unchecked Sendable {
     }
 
     // MARK: - Internals
+
+    /// Whether ``subject-id-unusable`` has been announced this launch.
+    ///
+    /// ``hydrate()`` is public and a binding layer can call it again after a store
+    /// swap, so the flag lives here rather than relying on bootstrap's once-only guard.
+    private var unusableSubjectIdAnnounced = false
+
+    /// Say once per launch why a returning user is being asked for consent again.
+    ///
+    /// The host gets the refused id, which shape it was, and what the core gave up,
+    /// because "the app forgot my choices" is only explainable if the message says whose
+    /// format refused the id and that the server never held the decision it is missing.
+    private func announceUnusableSubjectId(_ unusable: UnusableSubjectId) {
+        let alreadyAnnounced = lock.withLock {
+            if unusableSubjectIdAnnounced { return true }
+            unusableSubjectIdAnnounced = true
+            return false
+        }
+        guard !alreadyAnnounced else { return }
+
+        let origin = unusable.legacyShape
+            ? "it has the UUID shape this SDK wrote before the sub_ format existed"
+            : "it is a format this SDK never wrote"
+        events.emit(.error(CoreErrorInfo(
+            code: "subject-id-unusable",
+            message: "c15t: the stored subject id \(unusable.id) \(origin), and the c15t "
+                + "backend only accepts ids matching ^sub_[1-9A-HJ-NP-Za-km-z]+$, so this "
+                + "build cannot use that identity. The consent saved under it was discarded "
+                + "with it, because the backend refused every save that carried it and holds "
+                + "no decision for it. A new subject id was minted, so the app asks for "
+                + "consent again; nothing the subject chose was overwritten on the server."
+        )))
+    }
 
     private static let wallClock: @Sendable () -> Int64 = {
         Int64(Date().timeIntervalSince1970 * 1_000)

@@ -24,6 +24,7 @@ import com.c15t.core.store.C15tStore
 import com.c15t.core.store.FailedAttempt
 import com.c15t.core.store.PendingSaveQueue
 import com.c15t.core.store.SnapshotEnvelope
+import com.c15t.core.store.UnusableSubjectId
 import com.c15t.core.transport.C15tTransport
 import com.c15t.core.transport.MappedInit
 import com.c15t.core.transport.InitContext
@@ -109,6 +110,9 @@ class C15tKernel(
 
 	@Volatile
 	private var storedSnapshotFound = false
+
+	/** Whether `subject-id-unusable` has been reported. One launch, one announcement. */
+	private val unusableSubjectAnnounced = AtomicBoolean(false)
 
 	/**
 	 * GPC as the device and the backend report it, with no override applied.
@@ -655,15 +659,60 @@ class C15tKernel(
 
 	// -- internals ------------------------------------------------------------
 
+	/**
+	 * The subject this launch answers with: the stored one, or a fresh one.
+	 *
+	 * A stored id that the producer will not accept is not an identity, so it is not
+	 * adopted -- see [C15tStore.readSubject]. Replacing it is only honest together with the
+	 * records written under it, so this path clears them: keep the envelope and the fresh
+	 * id inherits a decision nobody made under it, which splits one subject across two ids
+	 * and re-prompts nobody, so nobody ever notices that it happened.
+	 *
+	 * The queue goes with the envelope. Its bodies are frozen and they carry the refused id,
+	 * so they are bytes the producer has already turned away on their own terms; replaying
+	 * them buys one more rejection of a decision this device has stopped remembering.
+	 */
 	private fun resolveSubject(): ConsentSubject {
 		store.readSubject()?.let { return it }
-		// Owned by c15t and minted by SubjectIdGenerator. Never derived from a
-		// hardware identifier. A stored id is adopted exactly as it is, including the
-		// UUIDs older installs wrote: minting a fresh one here would orphan every
-		// record the backend already holds against the id in storage.
+		store.takeUnusableSubject()?.let(::discardRecordsOfUnusableSubject)
+		// Owned by c15t and minted by SubjectIdGenerator. Never derived from a hardware
+		// identifier. An id this build wrote is adopted untouched, because minting a
+		// fresh one over an accepted stored id would orphan every record the backend holds
+		// against the id in storage.
 		val created = ConsentSubject(id = subjectIdGenerator())
 		store.writeSubject(created)
 		return created
+	}
+
+	/**
+	 * Drop the consent state an unusable identity keyed, and say so once per launch.
+	 *
+	 * The message is written for a host that has to explain a re-prompt to a person: which
+	 * id was refused, which build could have written it, what the core gave up, and the
+	 * fact that the backend holds nothing to lose. `subject-id-unusable` is the code both
+	 * cores use, per `native/CONTRACT.md`.
+	 */
+	private fun discardRecordsOfUnusableSubject(unusable: UnusableSubjectId) {
+		store.clearConsentState()
+		if (!unusableSubjectAnnounced.compareAndSet(false, true)) {
+			return
+		}
+		val origin = if (unusable.legacyUuidShape) {
+			"it has the UUID shape this SDK wrote before the sub_ format existed"
+		} else {
+			"it is a format this SDK never wrote"
+		}
+		emitError(
+			KernelError(
+				code = "subject-id-unusable",
+				message = "c15t: the stored subject id ${unusable.id} $origin, and the c15t " +
+					"backend only accepts ids matching ^sub_[1-9A-HJ-NP-Za-km-z]+$, so this build " +
+					"cannot use that identity. The consent saved under it was discarded with it, " +
+					"because the backend refused every save that carried it and holds no decision " +
+					"for it. A new subject id was minted, so the app asks for consent again; " +
+					"nothing the subject chose was overwritten on the server.",
+			),
+		)
 	}
 
 	private fun runInit() {

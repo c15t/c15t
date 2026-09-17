@@ -105,9 +105,13 @@ class StorageTest {
 		val backend = InMemoryKeyValueStore()
 		val store = C15tStore(backend)
 
-		store.writeSubject(ConsentSubject(id = "subject-1"))
+		store.writeSubject(ConsentSubject(id = "sub_4ZrjtiRsJnoW34Px8dAvhPTKJiWc"))
 
-		assertEquals("subject-1", assertNotNull(store.readSubject()).id)
+		assertEquals(
+			"sub_4ZrjtiRsJnoW34Px8dAvhPTKJiWc",
+			assertNotNull(store.readSubject()).id,
+			"an id the producer accepts is the one that reads back",
+		)
 		assertEquals(setOf(C15tStoreKeys.SUBJECT), backend.keys, "identity lives in its own slot")
 	}
 

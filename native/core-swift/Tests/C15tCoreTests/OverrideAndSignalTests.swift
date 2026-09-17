@@ -89,7 +89,7 @@ final class OverrideAndSignalTests: XCTestCase {
             ConsentSnapshot(
                 revision: 9,
                 effectivePermissions: ConsentState(marketing: true),
-                subject: SubjectSnapshot(id: "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03", externalId: nil)
+                subject: SubjectSnapshot(id: "sub_4ZrjtNN3QTDfdH8RQdZEAE8ohrCk", externalId: nil)
             )
         )
         var overrides = try XCTUnwrap(fields["overrides"]?.objectValue)
@@ -98,7 +98,7 @@ final class OverrideAndSignalTests: XCTestCase {
 
         let store = InMemoryStore()
         store.set(
-            Data("{\"id\":\"6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03\"}".utf8),
+            Data("{\"id\":\"sub_4ZrjtNN3QTDfdH8RQdZEAE8ohrCk\"}".utf8),
             for: StorageKey.subject
         )
         let envelope = try XCTUnwrap(
@@ -131,7 +131,7 @@ final class OverrideAndSignalTests: XCTestCase {
         }
         XCTAssertEqual(
             snapshot.subject?.id,
-            "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03",
+            "sub_4ZrjtNN3QTDfdH8RQdZEAE8ohrCk",
             "failing closed on a snapshot must not cost the device its identity"
         )
     }
@@ -225,8 +225,8 @@ final class OverrideAndSignalTests: XCTestCase {
             gpc: true
         )
         let payload = SavePayload(
-            subjectId: "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03",
-            subject: ConsentSubject(subjectId: "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03", externalId: nil, identityProvider: nil),
+            subjectId: "sub_4ZrjtNN3QTDfdH8RQdZEAE8ohrCk",
+            subject: ConsentSubject(subjectId: "sub_4ZrjtNN3QTDfdH8RQdZEAE8ohrCk", externalId: nil, identityProvider: nil),
             choice: .empty,
             confirmed: ConfirmedCoverage(categories: [:], actionAt: 1),
             consents: ConsentState(),

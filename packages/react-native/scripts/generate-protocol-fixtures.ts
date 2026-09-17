@@ -71,6 +71,8 @@ import {
 	C15T_POLICY_CONTRACT_HEADER,
 	c15tProtocolHeaders,
 	createConsentKernel,
+	generateSubjectId,
+	isValidSubjectId,
 	mapInitOutputToInitResponse,
 	policyRulePresets,
 	readPolicyResolutionWire,
@@ -122,41 +124,76 @@ const NOW = 1_770_000_000_000;
 const DOMAIN = 'app.example.com';
 
 /**
- * The subject ids fixtures replay, as UUID v4 values.
+ * The subject ids fixtures replay, every one in the format the producer accepts.
  *
- * `native/CONTRACT.md` rule 6 makes the subject id a c15t-generated UUID, and the
- * Swift core's `SubjectIdentity` refuses to load anything that is not a lowercase
- * v4 UUID: hand it `sub-eu-1` and it discards the stored identity and generates a
- * random one, so no iOS run could ever echo the id a fixture expects. The kernel
- * does not check the shape, which is exactly the kind of disagreement a
- * conformance fixture has to settle in the strict implementation's favour.
+ * `subjectIdSchema` in `packages/schema/src/api/subject/post.ts` requires
+ * `^sub_[1-9A-HJ-NP-Za-km-z]+$` and answers anything else with
+ * `INPUT_VALIDATION_FAILED`, so a UUID-shaped id in a fixture pins a `POST /subjects`
+ * body that no c15t backend would ever accept, and both native cores would faithfully
+ * implement a save that can only fail. These are minted by `generateSubjectId` at the
+ * pinned `NOW` with the twelve random bytes noted on each, which is the encoding
+ * `native/CONTRACT.md` pins: eight big-endian bytes of `now - 1_700_000_000_000`, then
+ * the tail, base58 over all twenty bytes with the Bitcoin alphabet. `assertSubjectIds`
+ * below refuses any id here that the schema would refuse, so the shape cannot drift back.
  *
- * They are constants and not generated because the expected snapshot and the
- * expected save body both carry the id, and a random one would make every
+ * They are constants and not generated at write time because the expected snapshot and
+ * the expected save body both carry the id, and a random one would make every
  * regeneration a diff.
  *
- * The ids below `california` and `europe` down to `notice` are the legacy UUID shape
- * `native/CONTRACT.md` now calls a prerelease population, and a separate task replaces
- * them. Anything added here is minted by the real generator instead, so it carries the
- * `sub_` shape `packages/schema` accepts and a core that enforces the read-side ruling
- * adopts it instead of discarding the identity.
+ * These used to be lowercase UUID v4 values, because the Swift core's `SubjectIdentity`
+ * once refused to load anything else and a conformance fixture has to settle a
+ * disagreement in the strict implementation's favour. That read-side rule has since been
+ * inverted: an id the producer will not accept is an identity a core cannot use, so the
+ * strict answer is now the `sub_` shape and a core that keeps the old one discards the
+ * envelope over it. Both cores enforce that, so the fixtures have to be producible ids.
  */
 const SUBJECT = {
 	/** The subject behind the California scenarios. */
-	california: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c02',
+	california: 'sub_1119tDZHoaqHUq5FWvuwaoswjM',
 	/** The California device on its first launch. */
 	californiaFirstLaunch: 'sub_111CP17G2b8XH3UdXwWqZZvDtD',
 	/** The subject behind the Europe scenarios, and most envelope cases. */
-	europe: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01',
+	europe: 'sub_1119tDZHoarNxm6kSm3BN6ze9d',
 	/** The Europe device on its first launch. */
 	europeFirstLaunch: 'sub_111CP17G2VuBxuByVqaokUtDVc',
 	/** The subject with an active GPC signal. */
-	gpc: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03',
+	gpc: 'sub_1119tDZHoasUSh8FNbAR9Q7LZu',
 	/** The subject on the no-match rule. */
-	noMatch: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c04',
+	noMatch: 'sub_1119tDZHoatZvd9kJRHevhE2zB',
 	/** The subject on the notice-only rule. */
-	notice: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c05',
+	notice: 'sub_1119tDZHoaufQZBFEFQthzLjQT',
 } as const;
+
+/**
+ * The clock reading and the twelve random bytes behind each minted id above.
+ *
+ * The literals in `SUBJECT` stay literals so a regeneration is not a diff, and this
+ * table is what keeps them honest: `assertSubjectIdsAreProducible` re-mints every id
+ * here through `generateSubjectId` and refuses a literal that is not what that encoder
+ * writes. Without it, an id here could drift into something no generator produces and
+ * still pass the format check.
+ */
+const SUBJECT_MINTS: Record<string, { clock: number; randomHex: string }> = {
+	california: { clock: NOW, randomHex: '010000000000000000000000' },
+	// The two rows below were minted against a live clock rather than the pinned one, and
+	// their draw was read back out of the literal upstream committed. That makes the weaker
+	// of the two guarantees: for the rows above a draw was chosen first and the id is what
+	// minting it wrote; for these two the check proves the literal is a real encoding of
+	// twenty bytes, not an invented string in the right shape. Tightening them means
+	// minting them here, which restamps two fixtures.
+	californiaFirstLaunch: {
+		clock: 1_789_671_294_838,
+		randomHex: '1b6cf25c72dc89e45f12f012',
+	},
+	europe: { clock: NOW, randomHex: '020000000000000000000000' },
+	europeFirstLaunch: {
+		clock: 1_789_671_294_837,
+		randomHex: '0648fde8511d6d10fb5baeb3',
+	},
+	gpc: { clock: NOW, randomHex: '030000000000000000000000' },
+	noMatch: { clock: NOW, randomHex: '040000000000000000000000' },
+	notice: { clock: NOW, randomHex: '050000000000000000000000' },
+};
 
 /**
  * The policy contract this build declares and reads, as the header string.
@@ -2018,6 +2055,123 @@ const writeIndex = function writeIndex(
 	return entries;
 };
 
+/** Twelve hex bytes, for re-minting a pinned id through the real generator. */
+const hexBytes = function hexBytes(hex: string): number[] {
+	const bytes: number[] = [];
+	for (let index = 0; index < hex.length; index += 2) {
+		const byte = Number.parseInt(hex.slice(index, index + 2), 16);
+		if (Number.isNaN(byte)) {
+			throw new Error(`${hex} is not hex`);
+		}
+		bytes.push(byte);
+	}
+	if (bytes.length !== 12) {
+		throw new Error(`${hex} must be exactly 12 random bytes`);
+	}
+	return bytes;
+};
+
+/**
+ * Run the real generator against a pinned clock reading and a pinned draw.
+ *
+ * `generateSubjectId` fills all twenty bytes from the CSPRNG and writes the timestamp
+ * over the first eight, so replacing the draw decides the identity and `Date.now` decides
+ * the offset, which together are the whole encoding. Everything is restored: this runs
+ * inside the same process that generates the fixtures, and a leaked clock stub there
+ * would quietly restamp every timestamp in the run.
+ */
+const mintFromEntropy = function mintFromEntropy(
+	randomHex: string,
+	clock: number
+): string {
+	const tail = hexBytes(randomHex);
+	const realDateNow = Date.now;
+	const cryptoObject = globalThis.crypto;
+	const realGetRandomValues = cryptoObject.getRandomValues.bind(cryptoObject);
+	Date.now = () => clock;
+	cryptoObject.getRandomValues = function getRandomValues<
+		TypeArray extends ArrayBufferView | null,
+	>(array: TypeArray): TypeArray {
+		if (array && 'length' in array) {
+			array.fill(0);
+			const view = new Uint8Array(
+				array.buffer,
+				array.byteOffset,
+				array.byteLength
+			);
+			tail.forEach((byte, index) => {
+				view[view.byteLength - 12 + index] = byte;
+			});
+		}
+		return array;
+	} as typeof cryptoObject.getRandomValues;
+	try {
+		return generateSubjectId();
+	} finally {
+		Date.now = realDateNow;
+		cryptoObject.getRandomValues = realGetRandomValues;
+	}
+};
+
+/**
+ * Refuse a fixture that carries a subject id the producer would reject.
+ *
+ * This is the reason the ids above are minted rather than invented. A save-body fixture
+ * pins a `POST /subjects` request byte for byte, and both native cores are graded against
+ * it, so a UUID-shaped id in one of these files certifies a request the backend answers
+ * with `INPUT_VALIDATION_FAILED`: two cores implementing a save that can never be
+ * accepted, green in CI, broken on every device. The same id is now also unreadable on
+ * the read side, where a core that finds one throws the envelope stored under it.
+ *
+ * The check is `isValidSubjectId`, the client-side form of `subjectIdSchema`, walked over
+ * every `subjectId` in every emitted fixture rather than over the `SUBJECT` table alone,
+ * because an id can reach a fixture from a scenario, a stored record, or a kernel
+ * response, and only the emitted bytes are what a native runner reads.
+ */
+const assertSubjectIdsAreProducible = function assertSubjectIdsAreProducible(
+	fixtures: readonly Fixture[]
+): void {
+	for (const [name, mint] of Object.entries(SUBJECT_MINTS)) {
+		const pinned = SUBJECT[name as keyof typeof SUBJECT];
+		const minted = mintFromEntropy(mint.randomHex, mint.clock);
+		if (pinned !== minted) {
+			throw new Error(
+				`SUBJECT.${name} is ${pinned}, but minting at clock ${String(mint.clock)} with entropy ${mint.randomHex} writes ${minted}. Mint fixture ids, do not invent them.`
+			);
+		}
+	}
+
+	const offenders = new Set<string>();
+	const walk = function walk(value: unknown, where: string): void {
+		if (Array.isArray(value)) {
+			value.forEach((item, index) => walk(item, `${where}[${String(index)}]`));
+			return;
+		}
+		if (value === null || typeof value !== 'object') {
+			return;
+		}
+		for (const [key, item] of Object.entries(
+			value as Record<string, unknown>
+		)) {
+			if (key === 'subjectId' && typeof item === 'string') {
+				if (!isValidSubjectId(item)) {
+					offenders.add(`${where}.subjectId=${item}`);
+				}
+				continue;
+			}
+			walk(item, `${where}.${key}`);
+		}
+	};
+	for (const fixture of fixtures) {
+		walk(fixture, fixture.id);
+	}
+	if (offenders.size > 0) {
+		throw new Error(
+			`Fixtures carry subject ids the backend rejects (subjectIdSchema requires ^sub_[1-9A-HJ-NP-Za-km-z]+$): ${[...offenders].sort().join(', ')}. Mint them with generateSubjectId at the pinned clock, as the SUBJECT table does. A fixture body the producer refuses certifies a save that can only fail.`
+		);
+	}
+};
+
 /** Refuse a fixture file the current run no longer produces. */
 const assertNoStaleFixtures = function assertNoStaleFixtures(
 	outDir: string,
@@ -2077,6 +2231,7 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 	);
 	assertWiresReadable(fixtures);
 	assertHydrationClaims(fixtures);
+	assertSubjectIdsAreProducible(fixtures);
 	for (const fixture of fixtures) {
 		writeFileSync(
 			resolve(outDir, `${fixture.id}.json`),

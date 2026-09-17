@@ -66,10 +66,12 @@ data class PolicyResolution(
  * Subject identifiers.
  *
  * [id] is the c15t-owned id minted at first launch by `SubjectIdGenerator`, in the
- * `sub_` format the backend's `subjectIdSchema` accepts. An install that predates
- * that format keeps the UUID it stored: the id is an identifier, and a stored one is
- * never rewritten. It is never derived from IDFV, ADID, or any other hardware
- * identifier.
+ * `sub_` format the backend's `subjectIdSchema` accepts. A stored id is adopted
+ * untouched when the producer would take it and refused when it would not: an id every
+ * save gets `INPUT_VALIDATION_FAILED` over is not an identity, and the envelope written
+ * under it is worth the same nothing. See `SubjectIdGenerator.isValid` and
+ * `native/CONTRACT.md`, Subject identity. Never derived from IDFV, ADID, or any other
+ * hardware identifier.
  */
 @Serializable
 data class ConsentSubject(

@@ -193,6 +193,27 @@ class FixedClock(start: Long = 1_700_000_000_000L) : Clock {
 	}
 }
 
+/**
+ * A deterministic harness subject id: `sub_` plus [sequence] in base58, so `sub_2` for
+ * the first one -- the alphabet's first digit is `1`, and that one stands for zero.
+ *
+ * The digits are base58 rather than decimal because the producer's pattern excludes
+ * `0`, `O`, `I`, and `l`, and the core now refuses a stored id outside it. A decimal
+ * counter would mint `sub_test10` on the tenth id, and every test that relaunches over
+ * it would fail somewhere far away from this file.
+ */
+fun subjectIdForSequence(sequence: Int): String {
+	var remaining = sequence
+	val digits = StringBuilder()
+	while (remaining > 0) {
+		digits.insert(0, BASE58_ALPHABET[remaining % BASE58_ALPHABET.length])
+		remaining /= BASE58_ALPHABET.length
+	}
+	return "sub_$digits"
+}
+
+private const val BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
 /** Build a kernel wired to in-memory doubles with inline task execution. */
 fun testKernel(
 	config: NativeConfig = NativeConfig(portalUrl = "https://test.c15t.app"),
@@ -208,10 +229,19 @@ fun testKernel(
 	/** Receives every error the core emits, so a test can assert on the codes. */
 	logger: (KernelError) -> Unit = {},
 ): C15tKernel {
-	var sequence = 0
-	val nextId: () -> String = {
-		sequence += 1
-		"%08d-0000-4000-8000-000000000000".format(sequence)
+	var queueSequence = 0
+	val nextQueueId: () -> String = {
+		queueSequence += 1
+		"%08d-0000-4000-8000-000000000000".format(queueSequence)
+	}
+	// Queue ids keep the UUID shape: they never leave the device, and PendingQueueTest
+	// compares them verbatim. Subject ids cannot. The core refuses a stored id outside the
+	// producer's pattern and discards the envelope stored under it, so a harness minting
+	// the legacy shape would turn every relaunch test into a test about that instead.
+	var subjectSequence = 0
+	val nextSubjectId: () -> String = {
+		subjectSequence += 1
+		subjectIdForSequence(subjectSequence)
 	}
 	return C15tKernel(
 		config = config,
@@ -223,8 +253,8 @@ fun testKernel(
 		executor = executor ?: TaskExecutor.DIRECT,
 		// Deterministic ids on both seams, so a replay assertion can compare queue
 		// entries and an identity assertion can compare subjects.
-		subjectIdGenerator = nextId,
-		queueIdGenerator = nextId,
+		subjectIdGenerator = nextSubjectId,
+		queueIdGenerator = nextQueueId,
 		logger = logger,
 	)
 }

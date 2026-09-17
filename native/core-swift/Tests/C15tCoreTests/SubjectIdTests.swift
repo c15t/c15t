@@ -108,6 +108,8 @@ final class SubjectIdTests: XCTestCase {
     }
 
     func testFormatCheckRejectsWhatTheBackendRejects() {
+        // `SubjectId.isValid` and `SubjectIdentity.isValid` are the same gate: the
+        // producer's pattern, with no legacy exception on the read side.
         for rejected in [
             "sub_",
             "sub_0", // `0` is out of the alphabet
@@ -142,39 +144,74 @@ final class SubjectIdTests: XCTestCase {
 
     // MARK: - Reading an id back
 
-    func testStoredIdsAreAdoptedExactlyAsStored() throws {
-        // Both formats this SDK writes, plus nothing in between: an install that
-        // upgrades keeps the subject its consent is already keyed to.
-        let stored = [
-            "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01", // minted before the `sub_` format
-            "sub_4ZrjtiRsJnoW34Px8dAvhPTKJiWc",
-        ]
-        for id in stored {
-            let store = InMemoryStore()
-            store.encode(["id": id], for: StorageKey.subject)
-            XCTAssertEqual(
-                SubjectIdentity.loadOrCreate(from: store).id,
-                id,
-                "reading back \(id)"
-            )
-        }
+    func testStoredSubIdIsAdoptedExactlyAsStored() throws {
+        // An install that upgrades keeps the subject its consent is already keyed to, so
+        // the one shape the producer accepts is the one shape that survives a read.
+        let id = "sub_4ZrjtiRsJnoW34Px8dAvhPTKJiWc"
+        let store = InMemoryStore()
+        store.encode(["id": id], for: StorageKey.subject)
+        let read = SubjectIdentity.loadOrCreate(from: store)
+        XCTAssertEqual(read.identity.id, id, "reading back \(id)")
+        XCTAssertNil(read.unusable, "an id the producer accepts is never reported unusable")
     }
 
     func testForeignStoredIdIsReplacedWithAFreshSubId() {
         // IDFV-shaped and uppercase: a device identifier, never a subject.
         let store = InMemoryStore()
         store.encode(["id": "6E9A1F2C-3B4D-5E6F-A7B8-C9D0E1F2A3B4"], for: StorageKey.subject)
-        let identity = SubjectIdentity.loadOrCreate(from: store)
-        XCTAssertNotEqual(identity.id, "6E9A1F2C-3B4D-5E6F-A7B8-C9D0E1F2A3B4")
-        XCTAssertTrue(SubjectId.isValid(identity.id))
+        let read = SubjectIdentity.loadOrCreate(from: store)
+        XCTAssertNotEqual(read.identity.id, "6E9A1F2C-3B4D-5E6F-A7B8-C9D0E1F2A3B4")
+        XCTAssertTrue(SubjectId.isValid(read.identity.id))
+        XCTAssertEqual(read.unusable?.id, "6E9A1F2C-3B4D-5E6F-A7B8-C9D0E1F2A3B4")
+        XCTAssertEqual(read.unusable?.legacyShape, false, "uppercase is not the shape this SDK wrote")
     }
 
-    func testLegacyUuidShapeCheckStillAcceptsOnlyTheFormThisSdkWrote() {
-        XCTAssertTrue(SubjectIdentity.isValid("6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"))
-        XCTAssertFalse(SubjectIdentity.isValid("6F1D2C3A-8B4E-4A7F-9C21-0D5E7A9B1C01"))
-        XCTAssertFalse(SubjectIdentity.isValid("6f1d2c3a-8b4e-5a7f-9c21-0d5e7a9b1c01")) // not v4
-        XCTAssertFalse(SubjectIdentity.isValid("6f1d2c3a-8b4e-4a7f-cc21-0d5e7a9b1c01")) // bad variant
-        XCTAssertFalse(SubjectIdentity.isValid("not-an-id"))
+    func testStoredIdsTheProducerRefusesAreNeverAdopted() {
+        // The read-side half of the format rule. Every one of these earns
+        // `INPUT_VALIDATION_FAILED` at `POST /subjects`, so an install holding one has
+        // consent attributed to an id no query returns, and adopting it again keeps the
+        // core reporting a committed save that can never land.
+        let refused = [
+            "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01", // the legacy shape this SDK used to mint
+            "6F1D2C3A-8B4E-4A7F-9C21-0D5E7A9B1C01", // IDFV / ADID
+            "sub_", // prefix and nothing else
+            "sub_0OI", // characters outside the alphabet
+            "not-an-id",
+            "",
+        ]
+        for id in refused {
+            let store = InMemoryStore()
+            store.encode(["id": id], for: StorageKey.subject)
+            let read = SubjectIdentity.loadOrCreate(from: store)
+            XCTAssertNotEqual(read.identity.id, id, "\(id) must not be adopted")
+            XCTAssertTrue(SubjectId.isValid(read.identity.id), "\(id) must leave a backend-acceptable id")
+            XCTAssertEqual(read.unusable?.id, id, "\(id) must be reported so the caller drops its records")
+        }
+    }
+
+    func testLegacyUuidShapeIsRecognisedForDiagnosisAndNeverAdopted() {
+        // What this check is now for: recognising the legacy shape tells a host *why* a
+        // returning user is being asked again, which is worth saying out loud. It is not
+        // an adoption gate -- `isValid` is, and it answers the backend's pattern only.
+        // Every id below is one this SDK once wrote and the producer still refuses.
+        XCTAssertTrue(SubjectIdentity.isLegacyUUIDv4("6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"))
+        XCTAssertFalse(SubjectIdentity.isLegacyUUIDv4("6F1D2C3A-8B4E-4A7F-9C21-0D5E7A9B1C01"))
+        XCTAssertFalse(SubjectIdentity.isLegacyUUIDv4("6f1d2c3a-8b4e-5a7f-9c21-0d5e7a9b1c01")) // not v4
+        XCTAssertFalse(SubjectIdentity.isLegacyUUIDv4("6f1d2c3a-8b4e-4a7f-cc21-0d5e7a9b1c01")) // bad variant
+        XCTAssertFalse(SubjectIdentity.isLegacyUUIDv4("not-an-id"))
+
+        // Recognition must never reach adoption: the same id is a legacy shape and an
+        // unusable identity, and the read is the only thing that decides what to keep.
+        let legacy = "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+        XCTAssertTrue(SubjectIdentity.isLegacyUUIDv4(legacy))
+        XCTAssertFalse(SubjectIdentity.isValid(legacy))
+        XCTAssertThrowsError(try SubjectIdentity(id: legacy))
+
+        let store = InMemoryStore()
+        store.encode(["id": legacy], for: StorageKey.subject)
+        let read = SubjectIdentity.loadOrCreate(from: store)
+        XCTAssertEqual(read.unusable?.legacyShape, true)
+        XCTAssertNotEqual(read.identity.id, legacy)
     }
 }
 
