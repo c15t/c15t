@@ -1,0 +1,902 @@
+{
+	"budgets": {
+		"bootstrap_to_snapshot_warm_ms": {
+			"max": 5,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), warm: under 5 ms."
+		},
+		"bootstrap_to_snapshot_cold_ms": {
+			"max": 15,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), cold: under 15 ms."
+		},
+		"cold_start_overhead_ms": {
+			"max": 10,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Cold-start overhead attributable to c15t: under 10 ms. Measured as the cold bootstrap-to-first-snapshot span, which is the only work c15t adds to launch before the first read."
+		},
+		"commit_ack_no_network_ms": {
+			"max": 50,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Consent action to native commit acknowledged, no network: under 50 ms."
+		},
+		"rerenders_per_consent_change": {
+			"max": 1,
+			"unit": "count",
+			"source": "contract",
+			"note": "React rerenders per consent change: at most one per subscribed component."
+		},
+		"rerenders_per_unchanged_event": {
+			"max": 0,
+			"unit": "count",
+			"source": "contract",
+			"note": "Derived from the contract: the module never sends a snapshot JavaScript already holds, and selector subscriptions rerender only when the selected value changes, so an unchanged snapshot event must cost zero rerenders."
+		},
+		"snapshot_object_identities": {
+			"max": 1,
+			"unit": "count",
+			"source": "contract",
+			"note": "snapshot() and isAllowed() must not allocate a new snapshot per call. Counted as the number of distinct snapshot objects observed across repeated reads: one object means none was built per call."
+		},
+		"native_bootstrap_to_snapshot_warm_ms": {
+			"max": 5,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), warm, on the native core: under 5 ms."
+		},
+		"native_bootstrap_to_snapshot_cold_ms": {
+			"max": 15,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), cold, on the native core: under 15 ms."
+		},
+		"native_hydrate_envelope_ms": {
+			"max": 3,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Native hydrate from a stored envelope: under 3 ms for a realistic payload."
+		},
+		"native_commit_ack_no_network_ms": {
+			"max": 50,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Native consent action to commit acknowledged, no network: under 50 ms."
+		},
+		"native_snapshot_object_identities": {
+			"max": 1,
+			"unit": "count",
+			"source": "contract",
+			"note": "The native read must not build a snapshot per call, counted as distinct snapshot objects across repeated reads."
+		},
+		"native_snapshot_read_us": {
+			"max": 2,
+			"unit": "us",
+			"source": "allowance",
+			"note": "No contract number for the read itself. 2 us is the guard against a synchronous read that starts doing work."
+		},
+		"policy_evaluation_us": {
+			"max": 50,
+			"unit": "us",
+			"source": "allowance",
+			"note": "The contract sets no ceiling for evaluation alone; the native benches already assert this one. 50 us guards against a blow-up in the selector path without pretending to be a contract number."
+		},
+		"snapshot_read_us": {
+			"max": 2,
+			"unit": "us",
+			"source": "allowance",
+			"note": "No contract number; the contract forbids per-call allocation and I/O instead. 2 us is a guard for a synchronous read that starts touching something it should not."
+		},
+		"idle_cpu_percent": {
+			"max": 2,
+			"unit": "percent",
+			"source": "allowance",
+			"note": "Quiet window with one active subscription: no timer, no poll, no network. 2 % of one core allows the periodic reachability hook and rules out a busy loop."
+		},
+		"idle_rss_growth_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Resident-set growth across the quiet window: 256 KiB allows the allocator's own slack and rejects a per-tick leak."
+		},
+		"js_shipped_bytes": {
+			"max": 98304,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 96 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine."
+		},
+		"js_shipped_gzip_bytes": {
+			"max": 24576,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Gzipped JavaScript the tarball ships. 24 KiB is the ceiling for a boundary layer: no kernel, no translations, no policy engine, no UI components in the public entry."
+		},
+		"ios_binary_bytes": {
+			"max": 1048576,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Bytes C15tCore adds to an iOS binary, measured as the linked __TEXT plus __DATA of the arm64 slice. 1 MiB is the ceiling for the Swift core with no IAB."
+		},
+		"ios_binding_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "TurboModule binding bytes on iOS. 256 KiB is the ceiling for a Codegen spec, a JSON marshalling layer, and an event emitter, with no consent logic in it."
+		},
+		"android_binary_bytes": {
+			"max": 1048576,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Bytes the Kotlin core plus the bridge add to an Android app, measured as the uncompressed class bytes of the release artifacts. 1 MiB matches the iOS ceiling for the same engine."
+		},
+		"js_hydrate_envelope_ms": {
+			"max": 3,
+			"unit": "ms",
+			"source": "contract",
+			"note": "The contract's 3 ms hydrate budget, applied to the JavaScript decode of the stored envelope."
+		},
+		"jsx_global_reference_files": {
+			"max": 0,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Built files that call `React.createElement` without importing React. Zero, because nothing defines a React global in a React Native app and the first render throws."
+		},
+		"package_manifest_parse_errors": {
+			"max": 0,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Whether `packages/react-native/package.json` parses. Zero, because a manifest that is not valid JSON cannot be resolved by any Node consumer."
+		},
+		"native_is_allowed_us": {
+			"max": 2,
+			"unit": "us",
+			"source": "allowance",
+			"note": "No contract number for the read itself. Same 2 us guard as the snapshot read: the contract's requirement here is that neither read touches I/O."
+		},
+		"policy_apply_per_rule_set_us": {
+			"max": 100,
+			"unit": "us",
+			"source": "allowance",
+			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
+		}
+	},
+	"commitSha": "6296c775d3dfe5bf1df51da085dd600c5084c15f",
+	"contract": "native/CONTRACT.md",
+	"environment": {
+		"arch": "arm64",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"gitDirty": true,
+	"notes": [
+		"dist emits classic-runtime JSX without importing React in components/consent-banner.js, components/consent-dialog.js, components/consent-preferences.js, components/internal/consent-button.js, components/internal/consent-category-row.js, components/internal/consent-surface.js, provider/c15t-provider.js. The harness supplies that global so the boundary can be measured; the artifact is still broken for an app until the build emits the import."
+	],
+	"package": "@c15t/react-native",
+	"previous": {
+		"previousCommitSha": "9443b7669c0e32d3c26a1821928e9ebce41bcb24",
+		"previousTimestamp": "2026-09-17T10:45:23.009Z",
+		"rows": [
+			{
+				"current": 1.5,
+				"delta": 0.92,
+				"deltaPercent": 158.6,
+				"flagged": true,
+				"id": "kotlin_policy_evaluation_us",
+				"previous": 0.58
+			},
+			{
+				"current": 0.077,
+				"delta": 0.044,
+				"deltaPercent": 133.3,
+				"flagged": true,
+				"id": "kotlin_hydrate_envelope_ms",
+				"previous": 0.033
+			},
+			{
+				"current": 0.335,
+				"delta": 0.181,
+				"deltaPercent": 117.5,
+				"flagged": true,
+				"id": "kotlin_commit_ack_no_network_ms",
+				"previous": 0.154
+			},
+			{
+				"current": 4.165,
+				"delta": 1.968,
+				"deltaPercent": 89.6,
+				"flagged": true,
+				"id": "native_commit_ack_disk_ms",
+				"previous": 2.197
+			},
+			{
+				"current": 0.556,
+				"delta": 0.236,
+				"deltaPercent": 73.8,
+				"flagged": true,
+				"id": "native_commit_ack_no_network_ms",
+				"previous": 0.32
+			},
+			{
+				"current": 0.42,
+				"delta": 0.145,
+				"deltaPercent": 52.7,
+				"flagged": true,
+				"id": "native_bootstrap_to_snapshot_warm_ms",
+				"previous": 0.275
+			},
+			{
+				"current": 0.42,
+				"delta": 0.145,
+				"deltaPercent": 52.7,
+				"flagged": true,
+				"id": "native_hydrate_envelope_ms",
+				"previous": 0.275
+			},
+			{
+				"current": 0.75,
+				"delta": 0.25,
+				"deltaPercent": 50,
+				"flagged": true,
+				"id": "native_policy_evaluation_us",
+				"previous": 0.5
+			},
+			{
+				"current": 0.452,
+				"delta": 0.137,
+				"deltaPercent": 43.5,
+				"flagged": true,
+				"id": "native_bootstrap_to_snapshot_cold_ms",
+				"previous": 0.315
+			},
+			{
+				"current": 0.011,
+				"delta": 0.003,
+				"deltaPercent": 37.5,
+				"flagged": true,
+				"id": "commit_ack_no_network_ms",
+				"previous": 0.008
+			},
+			{
+				"current": 47.08,
+				"delta": 11.5,
+				"deltaPercent": 32.3,
+				"flagged": true,
+				"id": "native_queue_replay_us",
+				"previous": 35.58
+			},
+			{
+				"current": 0.009,
+				"delta": 0.002,
+				"deltaPercent": 28.6,
+				"flagged": true,
+				"id": "bootstrap_to_snapshot_warm_ms",
+				"previous": 0.007
+			},
+			{
+				"current": 0.131,
+				"delta": 0.003,
+				"deltaPercent": 2.3,
+				"flagged": false,
+				"id": "bootstrap_to_snapshot_cold_ms",
+				"previous": 0.128
+			},
+			{
+				"current": 0.131,
+				"delta": 0.003,
+				"deltaPercent": 2.3,
+				"flagged": false,
+				"id": "cold_start_overhead_ms",
+				"previous": 0.128
+			},
+			{
+				"current": 0.12,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "native_snapshot_read_us",
+				"previous": 0.12
+			},
+			{
+				"current": 0.08,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "kotlin_snapshot_plus_is_allowed_us",
+				"previous": 0.08
+			},
+			{
+				"current": 1,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "kotlin_snapshot_object_identities",
+				"previous": 1
+			},
+			{
+				"current": 1,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "snapshot_object_identities",
+				"previous": 1
+			},
+			{
+				"current": 1,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "rerenders_per_consent_change",
+				"previous": 1
+			},
+			{
+				"current": 3,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "native_snapshot_pulls_per_run",
+				"previous": 3
+			},
+			{
+				"current": 8,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "policy_rule_sets_covered",
+				"previous": 8
+			},
+			{
+				"current": 85325,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "js_shipped_bytes",
+				"previous": 85325
+			},
+			{
+				"current": 18718,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "js_shipped_gzip_bytes",
+				"previous": 18718
+			},
+			{
+				"current": 439862,
+				"delta": 4,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "ios_binary_bytes",
+				"previous": 439858
+			},
+			{
+				"current": 749554,
+				"delta": 196,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "android_binary_bytes",
+				"previous": 749358
+			},
+			{
+				"current": 7,
+				"delta": 0,
+				"deltaPercent": 0,
+				"flagged": false,
+				"id": "jsx_global_reference_files",
+				"previous": 7
+			},
+			{
+				"current": 0.083,
+				"delta": -0.001,
+				"deltaPercent": -1.2,
+				"flagged": false,
+				"id": "snapshot_read_us",
+				"previous": 0.084
+			},
+			{
+				"current": 20.292,
+				"delta": -3.375,
+				"deltaPercent": -14.3,
+				"flagged": false,
+				"id": "policy_apply_per_rule_set_us",
+				"previous": 23.667
+			},
+			{
+				"current": 0.125,
+				"delta": -0.042,
+				"deltaPercent": -25.1,
+				"flagged": false,
+				"id": "is_allowed_us",
+				"previous": 0.167
+			},
+			{
+				"current": 0,
+				"delta": 0,
+				"deltaPercent": null,
+				"flagged": false,
+				"id": "native_is_allowed_us",
+				"previous": 0
+			},
+			{
+				"current": 0,
+				"delta": 0,
+				"deltaPercent": null,
+				"flagged": false,
+				"id": "rerenders_per_unchanged_event",
+				"previous": 0
+			},
+			{
+				"current": 0,
+				"delta": 0,
+				"deltaPercent": null,
+				"flagged": false,
+				"id": "package_manifest_parse_errors",
+				"previous": 0
+			}
+		],
+		"tolerancePercent": 25
+	},
+	"rows": [
+		{
+			"budget": 5,
+			"budgetSource": "contract",
+			"detail": "bench envelope 1898 B",
+			"id": "native_bootstrap_to_snapshot_warm_ms",
+			"label": "bootstrap() to first snapshot(), warm",
+			"samples": 300,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "ms",
+			"value": 0.42
+		},
+		{
+			"budget": 15,
+			"budgetSource": "contract",
+			"detail": "bench envelope 1898 B",
+			"id": "native_bootstrap_to_snapshot_cold_ms",
+			"label": "bootstrap() to first snapshot(), cold",
+			"samples": 1,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "ms",
+			"value": 0.452
+		},
+		{
+			"budget": 3,
+			"budgetSource": "contract",
+			"detail": "bench envelope 1898 B",
+			"id": "native_hydrate_envelope_ms",
+			"label": "hydrate from stored envelope",
+			"samples": 300,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "ms",
+			"value": 0.42
+		},
+		{
+			"budget": 50,
+			"budgetSource": "allowance",
+			"detail": "bench envelope 1898 B",
+			"id": "native_policy_evaluation_us",
+			"label": "policy evaluation, one rule set",
+			"samples": 20000,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "us",
+			"value": 0.75
+		},
+		{
+			"budget": 2,
+			"budgetSource": "allowance",
+			"detail": "bench envelope 1898 B",
+			"id": "native_snapshot_read_us",
+			"label": "snapshot() read",
+			"samples": 500000,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "us",
+			"value": 0.12
+		},
+		{
+			"budget": 2,
+			"budgetSource": "allowance",
+			"detail": "bench envelope 1898 B",
+			"id": "native_is_allowed_us",
+			"label": "isAllowed() read",
+			"samples": 500000,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "us",
+			"value": 0
+		},
+		{
+			"budget": 50,
+			"budgetSource": "contract",
+			"detail": "bench envelope 1898 B",
+			"id": "native_commit_ack_no_network_ms",
+			"label": "commit acknowledged, in-memory store, no network",
+			"samples": 500,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "ms",
+			"value": 0.556
+		},
+		{
+			"budget": 50,
+			"budgetSource": "contract",
+			"detail": "bench envelope 1898 B",
+			"id": "native_commit_ack_disk_ms",
+			"label": "commit acknowledged, FileStore plus dead transport",
+			"samples": 200,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "ms",
+			"value": 4.165
+		},
+		{
+			"budget": null,
+			"budgetSource": null,
+			"detail": "bench envelope 1898 B",
+			"id": "native_queue_replay_us",
+			"label": "read queued save bodies",
+			"samples": 200,
+			"status": "measured",
+			"surface": "swift-core",
+			"unit": "us",
+			"value": 47.08
+		},
+		{
+			"budget": 3,
+			"budgetSource": "contract",
+			"detail": "bench envelope 9053 B",
+			"id": "kotlin_hydrate_envelope_ms",
+			"label": "hydrate from stored envelope",
+			"samples": 3000,
+			"status": "measured",
+			"surface": "kotlin-core",
+			"unit": "ms",
+			"value": 0.077
+		},
+		{
+			"budget": 50,
+			"budgetSource": "allowance",
+			"id": "kotlin_policy_evaluation_us",
+			"label": "policy evaluation, one rule set",
+			"samples": 3000,
+			"status": "measured",
+			"surface": "kotlin-core",
+			"unit": "us",
+			"value": 1.5
+		},
+		{
+			"budget": 2,
+			"budgetSource": "allowance",
+			"id": "kotlin_snapshot_plus_is_allowed_us",
+			"label": "snapshot() plus three isAllowed() reads",
+			"samples": 3000,
+			"status": "measured",
+			"surface": "kotlin-core",
+			"unit": "us",
+			"value": 0.08
+		},
+		{
+			"budget": 50,
+			"budgetSource": "contract",
+			"id": "kotlin_commit_ack_no_network_ms",
+			"label": "commit acknowledged, no network",
+			"samples": 3000,
+			"status": "measured",
+			"surface": "kotlin-core",
+			"unit": "ms",
+			"value": 0.335
+		},
+		{
+			"budget": 1,
+			"budgetSource": "contract",
+			"detail": "object identity held across repeated reads: true",
+			"id": "kotlin_snapshot_object_identities",
+			"label": "distinct snapshot objects across repeated reads",
+			"samples": 3000,
+			"status": "measured",
+			"surface": "kotlin-core",
+			"unit": "count",
+			"value": 1
+		},
+		{
+			"budget": 15,
+			"budgetSource": "contract",
+			"id": "kotlin_bootstrap_to_snapshot_cold_ms",
+			"label": "bootstrap() to first snapshot(), cold",
+			"reason": "the JVM bench warms the kernel before sampling; a cold number needs one fresh JVM per sample",
+			"samples": 0,
+			"status": "not-measured",
+			"surface": "kotlin-core",
+			"unit": "ms",
+			"value": null
+		},
+		{
+			"budget": 5,
+			"budgetSource": "contract",
+			"id": "bootstrap_to_snapshot_warm_ms",
+			"label": "handshake to first snapshot(), warm",
+			"samples": 300,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "ms",
+			"value": 0.009
+		},
+		{
+			"budget": 15,
+			"budgetSource": "contract",
+			"id": "bootstrap_to_snapshot_cold_ms",
+			"label": "handshake to first snapshot(), cold",
+			"samples": 1,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "ms",
+			"value": 0.131
+		},
+		{
+			"budget": 10,
+			"budgetSource": "contract",
+			"detail": "same span as the cold handshake: the only c15t work before the first read",
+			"id": "cold_start_overhead_ms",
+			"label": "cold-start overhead attributable to c15t",
+			"samples": 1,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "ms",
+			"value": 0.131
+		},
+		{
+			"budget": 3,
+			"budgetSource": "contract",
+			"detail": "envelope 1959 B",
+			"id": "js_hydrate_envelope_ms",
+			"label": "hydrate stored envelope",
+			"samples": 300,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "ms",
+			"value": 0.019
+		},
+		{
+			"budget": 50,
+			"budgetSource": "contract",
+			"id": "commit_ack_no_network_ms",
+			"label": "action to acknowledged commit, no network",
+			"samples": 300,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "ms",
+			"value": 0.011
+		},
+		{
+			"budget": 2,
+			"budgetSource": "allowance",
+			"id": "snapshot_read_us",
+			"label": "snapshot() read",
+			"samples": 300,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "us",
+			"value": 0.083
+		},
+		{
+			"budget": 2,
+			"budgetSource": "allowance",
+			"id": "is_allowed_us",
+			"label": "isAllowed() read",
+			"samples": 300,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "us",
+			"value": 0.125
+		},
+		{
+			"budget": 1,
+			"budgetSource": "contract",
+			"id": "snapshot_object_identities",
+			"label": "distinct snapshot objects across repeated reads",
+			"samples": 300,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "count",
+			"value": 1
+		},
+		{
+			"budget": 1,
+			"budgetSource": "contract",
+			"detail": "{\"marketing\":1,\"measurement\":0,\"consentStatus\":1,\"measurement2\":0}",
+			"id": "rerenders_per_consent_change",
+			"label": "rerenders per consent change, worst component",
+			"samples": 4,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "count",
+			"value": 1
+		},
+		{
+			"budget": 0,
+			"budgetSource": "contract",
+			"detail": "{\"marketing\":0,\"measurement\":0,\"consentStatus\":0,\"measurement2\":0}",
+			"id": "rerenders_per_unchanged_event",
+			"label": "rerenders per unchanged snapshot event, worst component",
+			"samples": 4,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "count",
+			"value": 0
+		},
+		{
+			"budget": null,
+			"budgetSource": null,
+			"detail": "3 state changes, 3 distinct snapshot objects",
+			"id": "native_snapshot_pulls_per_run",
+			"label": "times the bridge pulled a snapshot",
+			"samples": 4,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "count",
+			"value": 3
+		},
+		{
+			"budget": 2,
+			"budgetSource": "allowance",
+			"detail": "30000.7 ms window after a 2000 ms settle, 1 live listener(s)",
+			"id": "idle_cpu_percent",
+			"label": "idle CPU with one live subscription",
+			"samples": 1,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "percent",
+			"value": 0.031
+		},
+		{
+			"budget": 262144,
+			"budgetSource": "allowance",
+			"id": "idle_rss_growth_bytes",
+			"label": "resident-set growth over the quiet window",
+			"samples": 1,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "bytes",
+			"value": -22462464
+		},
+		{
+			"budget": null,
+			"budgetSource": null,
+			"id": "idle_heap_growth_bytes",
+			"label": "heap growth over the quiet window",
+			"samples": 1,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "bytes",
+			"value": 7144
+		},
+		{
+			"budget": 100,
+			"budgetSource": "allowance",
+			"detail": "8 rule sets from native/protocol, worst 43.812 us, span is init plus first read",
+			"id": "policy_apply_per_rule_set_us",
+			"label": "apply a rule set (init to snapshot), median over the fixture corpus",
+			"samples": 2400,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "us",
+			"value": 20.292
+		},
+		{
+			"budget": null,
+			"budgetSource": null,
+			"detail": "every evaluation fixture driven",
+			"id": "policy_rule_sets_covered",
+			"label": "rule sets covered by the sweep",
+			"samples": 8,
+			"status": "measured",
+			"surface": "react-native-js",
+			"unit": "count",
+			"value": 8
+		},
+		{
+			"budget": 98304,
+			"budgetSource": "allowance",
+			"detail": "56 modules",
+			"id": "js_shipped_bytes",
+			"label": "JavaScript shipped, unpacked",
+			"samples": 0,
+			"status": "measured",
+			"surface": "bundle",
+			"unit": "bytes",
+			"value": 85325
+		},
+		{
+			"budget": 24576,
+			"budgetSource": "allowance",
+			"detail": "56 modules",
+			"id": "js_shipped_gzip_bytes",
+			"label": "JavaScript shipped, gzipped",
+			"samples": 0,
+			"status": "measured",
+			"surface": "bundle",
+			"unit": "bytes",
+			"value": 18718
+		},
+		{
+			"budget": 1048576,
+			"budgetSource": "allowance",
+			"detail": "C15tCore only, arm64 simulator slice; the TurboModule binding is its own row",
+			"id": "ios_binary_bytes",
+			"label": "iOS bytes added to the app binary",
+			"samples": 0,
+			"status": "measured",
+			"surface": "bundle",
+			"unit": "bytes",
+			"value": 439862
+		},
+		{
+			"budget": 262144,
+			"budgetSource": "allowance",
+			"id": "ios_binding_bytes",
+			"label": "iOS TurboModule binding bytes",
+			"reason": "the binding compiles against React Native headers, which need a pod install in a host app; packages/react-native ships a podspec but no C15tReactNative.xcodeproj",
+			"samples": 0,
+			"status": "not-measured",
+			"surface": "bundle",
+			"unit": "bytes",
+			"value": null
+		},
+		{
+			"budget": 1048576,
+			"budgetSource": "allowance",
+			"detail": "core jar + android aar + bridge aar, uncompressed class bytes",
+			"id": "android_binary_bytes",
+			"label": "Android class bytes added to the app",
+			"samples": 0,
+			"status": "measured",
+			"surface": "bundle",
+			"unit": "bytes",
+			"value": 749554
+		},
+		{
+			"budget": 0,
+			"budgetSource": "allowance",
+			"detail": "components/consent-banner.js, components/consent-dialog.js, components/consent-preferences.js, components/internal/consent-button.js, components/internal/consent-category-row.js, components/internal/consent-surface.js, provider/c15t-provider.js",
+			"id": "jsx_global_reference_files",
+			"label": "built files using a React global they never import",
+			"samples": 0,
+			"status": "measured",
+			"surface": "bundle",
+			"unit": "count",
+			"value": 7
+		},
+		{
+			"budget": 0,
+			"budgetSource": "allowance",
+			"detail": "parses",
+			"id": "package_manifest_parse_errors",
+			"label": "package manifest parse errors",
+			"samples": 0,
+			"status": "measured",
+			"surface": "bundle",
+			"unit": "count",
+			"value": 0
+		}
+	],
+	"runtime": "node v24.21.0",
+	"sampling": {
+		"warmupIterations": 50,
+		"measuredIterations": 300,
+		"idleWindowMs": 30000,
+		"quickIdleWindowMs": 2000,
+		"quickWarmupIterations": 5,
+		"quickMeasuredIterations": 30,
+		"subsequentRunDiffTolerancePercent": 25
+	},
+	"schemaVersion": 1,
+	"suite": "mobile-runtime",
+	"timestamp": "2026-09-17T10:59:38.566Z"
+}
