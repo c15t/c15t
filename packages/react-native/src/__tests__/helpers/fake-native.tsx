@@ -305,6 +305,12 @@ export const flush = function flush(mutate: () => void): void {
  */
 export const flushPromises = async function flushPromises(): Promise<void> {
 	await act(async () => {
-		await Promise.resolve();
+		// A macrotask boundary, not one microtask: `AccessibilityInfo` answers
+		// asynchronously, and a platform read that settles outside `act` has its
+		// update applied at the *next* boundary, which would land in the middle of
+		// whatever the test drives next.
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
 	});
 };

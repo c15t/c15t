@@ -8,8 +8,8 @@
  * module the registry handed back, how many emitters were built, and who is
  * listening to each event.
  *
- * The UI half — `View`, `Text`, `Pressable`, `Switch`, `Modal`, `Animated`, and
- * the platform hooks — lives in `./react-native-ui-stub` and re-exports from
+ * The UI half - `View`, `Text`, `Pressable`, `Switch`, `Modal`, `Animated`, and
+ * the platform hooks - lives in `./react-native-ui-stub` and re-exports from
  * here, so one alias covers the bridge and the components.
  */
 

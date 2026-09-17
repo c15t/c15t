@@ -108,6 +108,16 @@ export const linking: { opened: string[] } = { opened: [] };
 /** Platform override, so an Android-only path can be exercised. */
 export const platform: { os: 'android' | 'ios' | 'web' } = { os: 'ios' };
 
+export const Platform: {
+	OS: 'android' | 'ios' | 'web';
+	select: <T>(specifics: Record<string, T> & { default?: T }) => T | undefined;
+} = {
+	OS: 'ios',
+	select(specifics) {
+		return specifics[platform.os] ?? specifics.default;
+	},
+};
+
 /** Restore every recorded piece of UI state. */
 export const resetUiStub = function resetUiStub(): void {
 	uiState.announcements = [];
@@ -125,6 +135,9 @@ export const resetUiStub = function resetUiStub(): void {
 	focusState.tags = [];
 	linking.opened = [];
 	platform.os = 'ios';
+	// `Platform.OS` is a mutable property the components read directly, so it has
+	// to come back with everything else or the next case inherits the platform.
+	Platform.OS = 'ios';
 };
 
 /**
@@ -139,7 +152,9 @@ export const setReduceMotion = function setReduceMotion(value: boolean): void {
 	for (const listener of [
 		...(uiState.accessibilityListeners.get('reduceMotionChanged') ?? []),
 	]) {
-		listener();
+		// Real React Native hands the subscriber the new preference, and a hook
+		// that stores it needs the argument to store something true.
+		listener(value);
 	}
 };
 
@@ -228,30 +243,47 @@ const flattenStyle = function flattenStyle(
 };
 
 /** Keep the layout facts a DOM node can carry, and the ones a test reads. */
+/**
+ * The style properties a test is allowed to read back off a node.
+ *
+ * Held to the handful of facts that actually distinguish one render from
+ * another, which keeps the recorded attribute small and the reader honest about
+ * what the stand-in does not model.
+ */
+const RECORDED_STYLE_KEYS = [
+	'backgroundColor',
+	'bottom',
+	'color',
+	'flex',
+	'flexDirection',
+	'fontWeight',
+	'gap',
+	'left',
+	'marginTop',
+	'maxHeight',
+	'minHeight',
+	'padding',
+	'paddingBottom',
+	'paddingTop',
+	'position',
+	'right',
+	'rowGap',
+	'top',
+	'width',
+] as const;
+
 const styleAttribute = function styleAttribute(
 	style: StyleValue,
 	state: Record<string, unknown> = {}
 ): string {
 	const flat = flattenStyle(style, state);
+	const recorded: Record<string, unknown> = {};
 
-	return JSON.stringify({
-		bottom: flat.bottom ?? null,
-		flex: flat.flex ?? null,
-		flexDirection: flat.flexDirection ?? null,
-		gap: flat.gap ?? null,
-		left: flat.left ?? null,
-		marginTop: flat.marginTop ?? null,
-		maxHeight: flat.maxHeight ?? null,
-		minHeight: flat.minHeight ?? null,
-		padding: flat.padding ?? null,
-		paddingBottom: flat.paddingBottom ?? null,
-		paddingTop: flat.paddingTop ?? null,
-		position: flat.position ?? null,
-		right: flat.right ?? null,
-		rowGap: flat.rowGap ?? null,
-		top: flat.top ?? null,
-		width: flat.width ?? null,
-	});
+	for (const key of RECORDED_STYLE_KEYS) {
+		recorded[key] = flat[key] ?? null;
+	}
+
+	return JSON.stringify(recorded);
 };
 
 /* ------------------------------------------------------- accessibility map */
@@ -868,16 +900,6 @@ export const useLocaleConstants = (): {
 	orientation: 'portrait',
 	region: 'US',
 });
-
-export const Platform: {
-	OS: 'android' | 'ios' | 'web';
-	select: <T>(specifics: Record<string, T> & { default?: T }) => T | undefined;
-} = {
-	OS: 'ios',
-	select(specifics) {
-		return specifics[platform.os] ?? specifics.default;
-	},
-};
 
 /**
  * Point {@link Platform.OS} somewhere else for one test.
