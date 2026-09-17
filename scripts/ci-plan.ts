@@ -88,11 +88,15 @@ export const isMobileDevicePath = function isMobileDevicePath(
 		/^examples\/(?:expo-dev|react-native-bare)\//u.test(path) ||
 		isMobileNativePath(path) ||
 		/^packages\/react-native\/(?:ios|android)\//u.test(path) ||
-		/^packages\/react-native\/(?:Package\.swift|C15tReactNative\.podspec|react-native\.config\.cjs)$/u.test(
+		/^packages\/react-native\/(?:Package\.swift|C15tReactNative\.podspec|react-native\.config\.(?:js|cjs|mjs|ts))$/u.test(
 			path
 		)
 	);
 };
+
+// The autolink config is matched under every extension a linker might be told to read.
+// It has already been renamed once, from `.cjs` to `.js`, and the rename is what let Expo
+// drop the library silently; a selector naming one literal rots the next time it moves.
 
 /**
  * The mobile budget harness, as a path rather than a workspace.

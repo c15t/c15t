@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { ciSchedulingOutputs, createCiPlan, readWorkspaces } from './ci-plan';
@@ -8,6 +10,26 @@ const workspaces = readWorkspaces(repository);
 const plan = (files: string[]) => createCiPlan(files, workspaces);
 
 describe('CI selection', () => {
+	it('runs the device builds for whichever autolink config the package has', () => {
+		// The device group is the only job that asks Expo whether the library was linked,
+		// and it selects on paths alone. The config was renamed from `.cjs` to `.js` and the
+		// selector went on naming the old literal, so edits to the very file whose breakage
+		// dropped the library in silence stopped selecting the check that would have caught
+		// it. Reading the directory is what keeps this honest if it moves again.
+		const packageRoot = new URL(
+			'../packages/react-native/',
+			import.meta.url
+		).pathname;
+		const configs = readdirSync(packageRoot).filter((entry) =>
+			entry.startsWith('react-native.config.')
+		);
+		expect(configs).not.toHaveLength(0);
+		for (const config of configs) {
+			expect(plan([`packages/react-native/${config}`])).toMatchObject({
+				mobileBrowserOrDevice: true,
+			});
+		}
+	});
 	it('runs no runtime work for the docs and generated files in PR 1105', () => {
 		const result = plan([
 			'docs/docs.config.ts',
