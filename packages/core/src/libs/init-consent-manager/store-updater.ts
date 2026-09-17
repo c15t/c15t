@@ -336,21 +336,23 @@ export async function updateStore(
 	initSourceMetadata?: InitSourceMetadata
 ): Promise<void> {
 	const { set, get } = config;
-	const initialState = get();
 	const currentPolicyFingerprint = data.policy
 		? await createMaterialPolicyFingerprint(data.policy)
 		: undefined;
+	// A visitor may save while the fingerprint is being calculated.
+	// Read the latest choice and metadata before any storage write-back.
+	const currentState = get();
 
-	if (initialState.consentInfo && currentPolicyFingerprint) {
+	if (currentState.consentInfo && currentPolicyFingerprint) {
 		const storedPolicyFingerprint =
-			initialState.consentInfo.materialPolicyFingerprint;
+			currentState.consentInfo.materialPolicyFingerprint;
 
 		if (
 			storedPolicyFingerprint &&
 			storedPolicyFingerprint !== currentPolicyFingerprint
 		) {
-			const resetConsents = getDefaultConsents(initialState.consentTypes);
-			deleteConsentFromStorage(undefined, initialState.storageConfig);
+			const resetConsents = getDefaultConsents(currentState.consentTypes);
+			deleteConsentFromStorage(undefined, currentState.storageConfig);
 			set({
 				consents: resetConsents,
 				selectedConsents: resetConsents,
@@ -358,16 +360,16 @@ export async function updateStore(
 			});
 		} else if (!storedPolicyFingerprint) {
 			const updatedConsentInfo = {
-				...initialState.consentInfo,
+				...currentState.consentInfo,
 				materialPolicyFingerprint: currentPolicyFingerprint,
 			};
 			saveConsentToStorage(
 				{
-					consents: initialState.consents,
+					consents: currentState.consents,
 					consentInfo: updatedConsentInfo,
 				},
 				undefined,
-				initialState.storageConfig
+				currentState.storageConfig
 			);
 			set({ consentInfo: updatedConsentInfo });
 		}

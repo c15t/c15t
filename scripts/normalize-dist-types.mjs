@@ -6,6 +6,7 @@ const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
 const SPECIFIER_REGEXES = [
 	/(from\s+['"])([^'"]+)(['"])/g,
 	/(import\(\s*['"])([^'"]+)(['"]\s*\))/g,
+	/(\bimport\s*['"])([^'"]+)(['"])/g,
 ];
 
 async function discoverPackageTargets() {
@@ -109,12 +110,8 @@ function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
 		relativePath = `./${relativePath}`;
 	}
 
-	if (relativePath.endsWith('/index.d.ts')) {
-		return relativePath.slice(0, -'/index.d.ts'.length);
-	}
-
 	if (relativePath.endsWith('.d.ts')) {
-		return relativePath.slice(0, -'.d.ts'.length);
+		return `${relativePath.slice(0, -'.d.ts'.length)}.js`;
 	}
 
 	return relativePath;
@@ -154,7 +151,7 @@ async function resolveDeclarationTarget(fromFilePath, specifier) {
 	const resolvedBasePath = path.resolve(path.dirname(fromFilePath), specifier);
 	const candidatePaths = [
 		resolvedBasePath,
-		`${resolvedBasePath}.d.ts`,
+		`${resolvedBasePath.replace(/\.js$/u, '')}.d.ts`,
 		path.join(resolvedBasePath, 'index.d.ts'),
 	];
 

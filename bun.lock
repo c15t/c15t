@@ -582,6 +582,7 @@
       "version": "2.2.0-canary-20260804162155",
       "dependencies": {
         "@c15t/backend": "workspace:*",
+        "@c15t/schema": "workspace:*",
       },
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
