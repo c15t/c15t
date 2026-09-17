@@ -40,7 +40,10 @@ init.
 
 `necessary` is the one category that is always allowed. While either flag is unset, every
 optional category reads `false`, with no default-on and no model sniffing. `isAllowed`
-never needs a loading branch, because "unknown" and "denied" give the same instruction.
+never needs a loading branch, because "unknown" and "denied" give the same instruction:
+do not process. What those two rows do not share is what happens next, and a vendor
+wrapper that holds events waiting for a grant has to know which one it received.
+`decision` is that answer.
 
 ## An unreadable store fails closed
 
@@ -117,6 +120,80 @@ so there is no initial-state race to write around. `gate` lives on the core inst
 which is `C15t.current` after bootstrap, and takes an `OptionalConsentCategory` and a
 `(Bool) -> Void`. Android exposes the same shape through
 `C15t.gate(category) { allowed -> }`.
+
+### Three answers, not two
+
+`isAllowed` returns one Boolean, and `false` in it means two opposite things: the subject
+refused, or nothing has resolved yet. Both say "do not process", so a banner needs no
+branch for it. A vendor wrapper does, because the two want different code after the
+refusal: a refusal drops what it was holding, and an unresolved policy keeps holding it.
+
+| Decision | When | What the caller owes |
+| --- | --- | --- |
+| `granted` | Hydrated, policy resolved, permission true. `necessary` always. | Run. |
+| `pending` | Not hydrated, or the first init has not answered. | Do not run, and keep listening. |
+| `denied` | Hydrated, policy resolved, permission false. | Do not run, and stop waiting. |
+
+```swift
+// AppDelegate, before React mounts. `Analytics` is your own wrapper.
+guard let core = C15t.current else {
+    Analytics.pause()
+    return
+}
+
+switch core.decision(for: .measurement) {
+case .granted:
+    Analytics.start()
+case .pending:
+    Analytics.pause() // Keep the buffer. The grant may arrive on the next line.
+case .denied:
+    Analytics.pauseAndDiscard()
+}
+```
+
+```kotlin
+// Application.onCreate, after c15t's initializer has run.
+when (C15t.decision(ConsentCategory.MEASUREMENT)) {
+    ConsentDecision.GRANTED -> Analytics.start()
+    ConsentDecision.PENDING -> Analytics.pause() // Keep the buffer.
+    ConsentDecision.DENIED -> Analytics.pauseAndDiscard()
+}
+```
+
+`isReady()` is the same question one level up: hydrated, and the first init resolved a
+readable policy. Read it when you need to log or report why something stayed off, because
+`isReady() == false` says the `false` you are acting on is not the subject's answer.
+`decision` derives from the snapshot and nothing else, so it can never disagree with what
+`useConsent` is showing, and neither read touches disk or network.
+
+To observe the three-valued answer instead of reading it, register on the same gate:
+
+```swift
+// Swift takes an overload; the closure type selects it.
+C15t.current?.gate(.measurement) { decision in
+    if decision == .granted { Analytics.start() } else { Analytics.pause() }
+}
+```
+
+```kotlin
+// Kotlin names it, because (Boolean) -> Unit and (ConsentDecision) -> Unit both
+// erase to Function1 and cannot be declared as two methods.
+C15t.gateDecision(ConsentCategory.MEASUREMENT) { decision ->
+    if (decision == ConsentDecision.GRANTED) Analytics.start() else Analytics.pause()
+}
+```
+
+Both fire at registration with the decision as it stands, including one reached long
+before the call, then on every change, and the returned handle cancels. Registration is
+never silence.
+
+Two rules decide whether this API earns its place:
+
+- Treating `pending` as `denied` and unsubscribing is the bug. An SDK that stops listening
+  while the policy is unresolved never hears the grant, and nothing tells you.
+- No platform permission moves a category from `pending` or `denied` to `granted`.
+  A device with App Tracking Transparency authorized and consent denied is still denied.
+  Advertising identifiers are a second, separate question, and answering it is not consent.
 
 Three consequences worth stating plainly:
 
