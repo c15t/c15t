@@ -1,4 +1,5 @@
 import {
+	appendFileSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -15,9 +16,12 @@ import {
 	allowedCommonJsArtifacts,
 	getBlockedReason,
 	runPack,
+	scanPackedVendoredSources,
 	scanPublishedLicenses,
+	scanVendoredNativeSources,
 } from './check-publish-artifacts';
 import { hostReadPaths } from './react-native-autolink';
+import { vendoredCorePlan } from './sync-vendored-core';
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), '..');
 
@@ -348,5 +352,134 @@ describe('allowedCommonJsArtifacts', () => {
 				expect(requireTargets.has(path), path).toBe(true);
 			}
 		}
+	});
+});
+
+describe('vendored native sources', () => {
+	const workDir = mkdtempSync(join(tmpdir(), 'c15t-vendored-'));
+
+	afterAll(() => {
+		rmSync(workDir, { force: true, recursive: true });
+	});
+
+	/**
+	 * A package directory whose copy of the core is built straight from
+	 * `native/core-swift`, not from the package's own copy, so the fixture cannot agree with
+	 * the thing it is judging.
+	 */
+	const vendoredPackage = function vendoredPackage(name: string): string {
+		const packageDir = join(workDir, name);
+		const files: Record<string, string> = {};
+
+		for (const file of vendoredCorePlan()) {
+			files[`vendor/C15tCore/${file.relativePath}`] = readFileSync(
+				file.sourcePath,
+				'utf8'
+			);
+		}
+
+		makeTree(packageDir, files);
+
+		return packageDir;
+	};
+
+	it('says nothing about a package that vendors no native sources', () => {
+		const packageDir = join(workDir, 'no-vendor');
+
+		expect(scanVendoredNativeSources(packageDir)).toStrictEqual([]);
+		expect(scanPackedVendoredSources(packageDir, new Set())).toStrictEqual([]);
+	});
+
+	it('accepts a copy that matches native/core-swift', () => {
+		expect(scanVendoredNativeSources(vendoredPackage('clean'))).toStrictEqual(
+			[]
+		);
+	});
+
+	it('names a copy that was edited inside the package', () => {
+		const packageDir = vendoredPackage('edited');
+
+		appendFileSync(
+			join(packageDir, 'vendor/C15tCore/ConsentCore.swift'),
+			'\n// hand edit\n'
+		);
+
+		const issues = scanVendoredNativeSources(packageDir);
+
+		expect(issues).toHaveLength(1);
+		expect(issues[0]?.path).toBe('vendor/C15tCore/ConsentCore.swift');
+		expect(issues[0]?.reason).toMatch(/stale vendored native source/u);
+		expect(issues[0]?.reason).toMatch(/sync-vendored-core\.ts/u);
+	});
+
+	it('names a file the core no longer has', () => {
+		const packageDir = vendoredPackage('orphan');
+
+		makeTree(packageDir, {
+			'vendor/C15tCore/RenamedAway.swift': '// upstream',
+		});
+
+		expect(
+			scanVendoredNativeSources(packageDir).map((issue) => issue.path)
+		).toStrictEqual(['vendor/C15tCore/RenamedAway.swift']);
+	});
+
+	it('names a vendored file the tarball left out', () => {
+		const packageDir = vendoredPackage('not-packed');
+		const packed = new Set(
+			vendoredCorePlan().map((file) => `vendor/C15tCore/${file.relativePath}`)
+		);
+
+		packed.delete('vendor/C15tCore/ConsentCore.swift');
+
+		expect(
+			scanPackedVendoredSources(packageDir, packed).map((issue) => issue.path)
+		).toStrictEqual(['vendor/C15tCore/ConsentCore.swift']);
+	});
+
+	it('accepts a tarball that carries every vendored file', () => {
+		const packageDir = vendoredPackage('fully-packed');
+		const packed = new Set(
+			vendoredCorePlan().map((file) => `vendor/C15tCore/${file.relativePath}`)
+		);
+
+		expect(scanPackedVendoredSources(packageDir, packed)).toStrictEqual([]);
+	});
+
+	it('publishes the copy, because a pod cannot depend on a path', () => {
+		// The reason the copy exists. An npm-installed app has no `C15tCore` pod to resolve, so
+		// the kernel reaches it only inside this package, and the podspec must compile from there
+		// rather than name a dependency nobody publishes.
+		const reactNativeDir = join(ROOT, 'packages', 'react-native');
+		const packed = runPack(reactNativeDir);
+		const packedPaths = packed.files.map((file) => file.path);
+		const packedVendored = packedPaths.filter((path) =>
+			path.startsWith('vendor/C15tCore/')
+		);
+
+		expect(packedVendored).toEqual(
+			vendoredCorePlan()
+				.map((file) => `vendor/C15tCore/${file.relativePath}`)
+				.sort()
+		);
+
+		const podspecSource = readFileSync(
+			join(reactNativeDir, 'C15tReactNative.podspec'),
+			'utf8'
+		);
+
+		// Only the live spec: the header comment records why the dependency was dropped, and a
+		// comment naming a thing is not the same as declaring it.
+		const spec = podspecSource
+			.split('\n')
+			.filter((line) => !line.trimStart().startsWith('#'))
+			.join('\n');
+
+		expect(spec).not.toMatch(/s\.dependency\s+"C15tCore"/u);
+		expect(spec).not.toMatch(/C15T_CORE_POD_VERSION/u);
+		expect(spec).toMatch(/vendor\/C15tCore\/\*\*\/\*\.swift/u);
+		expect(
+			scanPackedVendoredSources(reactNativeDir, new Set(packedPaths))
+		).toStrictEqual([]);
 	});
 });

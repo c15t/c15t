@@ -132,15 +132,29 @@ or the core is installed from code.
 
 ## Integrating
 
-CocoaPods (default) and SPM (`RCTUseSPM`, Expo's SPM mode) both resolve the core from
-this repository, so the Swift, Kotlin, and JavaScript layers in one checkout cannot
-disagree about which core is running.
+The pod carries the consent kernel. `C15tReactNative.podspec` compiles it from
+`vendor/C15tCore`, a generated copy of `native/core-swift/Sources/C15tCore`, so an app
+that installs `@c15t/react-native` from npm resolves everything it needs from the package
+and names no second pod. It used to declare `s.dependency "C15tCore"`, which only resolved
+inside this repository, because the example Podfiles point that pod at a directory next to
+the app; a pod cannot point `s.dependency` at a path, and no `C15tCore` pod is published,
+so an installed app had no kernel to build.
 
 ```ruby
-# Podfile
-pod 'C15tReactNative', :path => '../packages/react-native'
-pod 'C15tCore', :path => '../native/core-swift'
+# Podfile, for an app installed from npm. Nothing else to add.
+# Autolinking finds the podspec through react-native.config.js.
+platform :ios, '16.4' # above RN 0.87's own floor
 ```
+
+Inside this repository an app resolves the same sources through a path, and the example
+Podfiles still carry `pod 'C15tCore', :path => '../native/core-swift'`. That line is no
+longer needed: the binding compiles its own copy, and the extra pod now only builds a second
+copy of the kernel that the app links without asking for it.
+
+SPM (`RCTUseSPM`, Expo's SPM mode) keeps the kernel as its own module. `Package.swift` is
+unchanged by the vendoring, so a later Swift Package Manager release of the core is
+unaffected; only the CocoaPods path compiles the copy, into the binding's module. The bridge
+serves both through `#if canImport(C15tCore)` around the import.
 
 ```sh
 # SPM: escape hatches for a published core instead of the repo path

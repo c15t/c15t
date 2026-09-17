@@ -2,21 +2,20 @@ require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 
-# The consent core. In this repository it is `native/core-swift`, a pure Swift package
-# with no React Native in it, and the app's Podfile points the `C15tCore` pod at that
-# directory:
+# The consent kernel is compiled from `vendor/C15tCore`, a generated copy of
+# `native/core-swift/Sources/C15tCore` written by `scripts/sync-vendored-core.ts`.
 #
-#   pod "C15tCore", :path => "../native/core-swift"
+# This spec used to declare `s.dependency "C15tCore"`. That resolved here only because the
+# example Podfiles write `pod "C15tCore", :path => "../native/core-swift"`; CocoaPods cannot
+# attach a path to a `s.dependency`, and nothing publishes the pod, so an app installed from
+# npm had no source for the kernel and `pod install` failed there. `C15T_CORE_POD_VERSION`
+# left with it: there is no published version to pin.
 #
-# `C15T_CORE_POD_VERSION` overrides the version requirement, but it is not an escape
-# hatch for a release build: nothing publishes a `C15tCore` pod, the trunk API answers
-# 404 for it, so an app installed from npm has no source for the core. The decision on
-# issue #1010 is that this package carries the core itself rather than publishing a pod
-# or a Swift artifact, so the shipped shape drops this dependency and compiles the core
-# from a copy generated out of `native/core-swift` at pack time. Until that lands, this
-# file only resolves inside a workspace install, where the Podfile line above is present.
-
-core_version = ENV["C15T_CORE_POD_VERSION"]
+# One target rather than two, because a second podspec in this package would still ask the host
+# Podfile to name `C15tCore`, which is the same request made of the consumer. The kernel's
+# sources come along inside the package and compile into this module, and the bridge's
+# `import C15tCore` sites sit behind `#if canImport(C15tCore)` so the SwiftPM path, where the
+# kernel is its own module, keeps working. See vendor/README.md.
 
 Pod::Spec.new do |s|
   s.name         = "C15tReactNative"
@@ -31,9 +30,15 @@ Pod::Spec.new do |s|
   s.authors      = { "c15t" => "https://c15t.com" }
   s.source       = { :git => "https://github.com/c15t/c15t.git", :tag => "react-native@#{s.version}" }
 
-  # The TurboModule, the ObjC export shim, the startup constructor, and the React-free
-  # wire layer underneath them.
-  s.source_files = "ios/C15tReactNative/**/*.{h,swift,m,mm}"
+  # The TurboModule, the ObjC export shim, the startup constructor, the React-free wire layer
+  # underneath them, and the consent kernel they are built on. One line on purpose:
+  # `scripts/react-native-autolink.ts` reads these declarations line by line when it checks
+  # that every pattern resolves inside the packed package.
+  #
+  # The kernel brings no privacy manifest of its own. Its own spec ships one, and it declares the
+  # same four keys with the same values as the bundle below, so the copy compiled into this
+  # target is described by it.
+  s.source_files = "ios/C15tReactNative/**/*.{h,swift,m,mm}", "vendor/C15tCore/**/*.swift"
   s.public_header_files = "ios/C15tReactNative/C15tReactNative.h"
   s.resource_bundle = { "C15tReactNative" => "ios/C15tReactNative/Resources/Privacy.xcprivacy" }
   # `Package.swift` is not in here because it is not in the package: the SPM manifest
@@ -66,12 +71,6 @@ Pod::Spec.new do |s|
   s.dependency "RCTTypeSafety"
   s.dependency "React-bridging"
 
-  if core_version && !core_version.empty?
-    s.dependency "C15tCore", core_version
-  else
-    s.dependency "C15tCore"
-  end
-
   # No `HEADER_SEARCH_PATHS` here on purpose. CocoaPods puts the headers of every declared
   # dependency under `${PODS_ROOT}/Headers/Public`, which is already on the include path
   # for this pod, and `ReactCodegen.podspec` keeps `header_mappings_dir` at `./`, so the
@@ -86,6 +85,11 @@ Pod::Spec.new do |s|
     # The generated spec includes `std::optional` and jsi, so the pod compiles as the
     # same C++ standard React Native itself uses.
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++20",
+    # The vendored kernel marks a few types `package`, and the compiler accepts that access
+    # level only once it is told which package it is building. SwiftPM passes the flag itself;
+    # CocoaPods does not, which is why ../native/core-swift/C15tCore.podspec passes it too. The
+    # copy is part of this module now, so it names this pod and not the kernel.
+    "OTHER_SWIFT_FLAGS" => '$(inherited) -package-name "C15tReactNative"',
   }
 
 end

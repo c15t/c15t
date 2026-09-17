@@ -44,7 +44,8 @@
 		"android/c15t-react-native/library.gradle",
 		"android/c15t-react-native/src/main",
 		"android/codegen/generate-spec.mjs",
-		"ios/C15tReactNative"
+		"ios/C15tReactNative",
+		"vendor/C15tCore"
 	],
 	"type": "module",
 	"sideEffects": false,
@@ -75,7 +76,7 @@
 		"fmt": "bun oxfmt .",
 		"generate:fixtures": "tsx scripts/generate-protocol-fixtures.ts",
 		"lint": "bun oxlint ./src",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"prepack": "bun ../../scripts/sync-vendored-core.ts && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "vitest run --passWithNoTests",
 		"test:coverage": "C15T_COVERAGE_RATCHET=1 vitest run --passWithNoTests && bun scripts/check-coverage-ratchet.ts",
 		"test:watch": "vitest"

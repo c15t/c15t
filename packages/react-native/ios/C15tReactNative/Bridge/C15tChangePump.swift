@@ -1,4 +1,9 @@
+#if canImport(C15tCore)
+// SwiftPM builds the consent kernel as its own module. CocoaPods compiles the vendored
+// copy into this module instead, where the import would fail, so it is conditional
+// rather than assumed.
 import C15tCore
+#endif
 import Foundation
 
 /// Where the pump pushes an event. The module wires it to the React emitter.

@@ -8,9 +8,12 @@ import PackageDescription
 //
 // This manifest serves React Native's CocoaPods-disabled path (`RCTUseSPM`, Expo's
 // SPM mode). It is not the only way to integrate: the CocoaPods path uses
-// ../C15tReactNative.podspec, and both resolve the consent core from this repository
-// rather than from a published artifact, so the Swift, Kotlin, and JavaScript layers
-// in one checkout cannot disagree about which core is running.
+// ../C15tReactNative.podspec, which builds the kernel from a generated copy in
+// vendor/C15tCore instead of this path dependency, because a pod cannot name a path in a
+// `s.dependency` and nothing publishes the core. Two module boundaries exist on purpose:
+// here the kernel is its own module, there it is part of the binding. The copy is
+// regenerated from native/core-swift at pack time and the release gate refuses a
+// divergence, so neither path can quietly run a different core from the other.
 //
 // Two facts shape the layout:
 //

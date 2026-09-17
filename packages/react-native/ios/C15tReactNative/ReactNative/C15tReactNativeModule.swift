@@ -1,4 +1,9 @@
+#if canImport(C15tCore)
+// SwiftPM builds the consent kernel as its own module. CocoaPods compiles the vendored
+// copy into this module instead, where the import would fail, so it is conditional
+// rather than assumed.
 import C15tCore
+#endif
 #if canImport(C15tReactNativeBridge)
 // SwiftPM builds the wire layer as its own module. CocoaPods compiles it into this
 // module instead, where the import would fail, so it is conditional rather than

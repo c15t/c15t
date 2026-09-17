@@ -11,6 +11,7 @@ import {
 	wildcardToRegExp,
 } from './manifest-utils';
 import { hostReadPaths } from './react-native-autolink';
+import { compareTrees, describeDrift, listFiles } from './sync-vendored-core';
 
 interface PackedFile {
 	path: string;
@@ -25,6 +26,9 @@ interface PackResult {
 
 const ROOT = process.cwd();
 const PACKAGES_DIR = join(ROOT, 'packages');
+
+/** Where a package keeps a generated copy of native sources it compiles itself. */
+const VENDORED_NATIVE_DIR = 'vendor/C15tCore';
 
 /**
  * Path shapes that are wrong anywhere in a tarball, not just under `dist/`.
@@ -198,6 +202,69 @@ export const scanPublishedLicenses = function scanPublishedLicenses(
 	return issues;
 };
 
+/**
+ * Refuse a checked-out copy of the native core that has drifted from its source of truth.
+ *
+ * The React Native pod compiles the Swift consent kernel from `vendor/C15tCore`, because a pod
+ * cannot point `s.dependency` at a path and no `C15tCore` pod is published, so an app installed
+ * from npm gets a kernel only if this package carries one. `native/core-swift` stays the source
+ * of truth and the copy is generated, so any difference between the two is a defect: a pod built
+ * from the copy is not a pod built from the core, and a reader of the checkout cannot
+ * tell them apart. The comparison is the one the sync script uses, so the copy is judged by the
+ * code that produces it rather than by a second reading of the rules.
+ *
+ * @param packageDir - The package to read, which is judged only if it vendors a core.
+ * @returns Every vendored file that differs from, is missing from, or outlives the core.
+ */
+export const scanVendoredNativeSources = function scanVendoredNativeSources(
+	packageDir: string
+): { path: string; size: number; reason: string }[] {
+	const vendoredDir = join(packageDir, VENDORED_NATIVE_DIR);
+
+	if (!existsSync(vendoredDir)) {
+		return [];
+	}
+
+	const sourceDir = join(ROOT, 'native', 'core-swift', 'Sources', 'C15tCore');
+
+	return compareTrees(sourceDir, vendoredDir).map((drift) => ({
+		path: `${VENDORED_NATIVE_DIR}/${drift.relativePath}`,
+		reason: `stale vendored native source: ${describeDrift(drift)}`,
+		size: 0,
+	}));
+};
+
+/**
+ * Refuse a vendored native source that never reaches the tarball.
+ *
+ * A generated copy that stays on disk helps nobody: `files` is an allowlist, and dropping
+ * `vendor/C15tCore` from it publishes a podspec whose `source_files` matches nothing, so the
+ * consumer builds a pod with no consent kernel in it and the failure surfaces as a missing type
+ * in an app that cannot see this repository.
+ *
+ * @param packageDir - The package whose tarball is being judged.
+ * @param packedFilePaths - Every path in that tarball.
+ * @returns Every vendored file the tarball left out.
+ */
+export const scanPackedVendoredSources = function scanPackedVendoredSources(
+	packageDir: string,
+	packedFilePaths: Set<string>
+): { path: string; size: number; reason: string }[] {
+	const vendoredDir = join(packageDir, VENDORED_NATIVE_DIR);
+
+	if (!existsSync(vendoredDir)) {
+		return [];
+	}
+
+	return listFiles(vendoredDir)
+		.map((relativePath) => `${VENDORED_NATIVE_DIR}/${relativePath}`)
+		.filter((packedPath) => !packedFilePaths.has(packedPath))
+		.map((packedPath) => ({
+			path: packedPath,
+			reason: 'vendored native source is not in the tarball',
+			size: 0,
+		}));
+};
 const scanPackedManifestTargets = function scanPackedManifestTargets(
 	manifest: PackageManifest,
 	packedFilePaths: Set<string>
@@ -505,6 +572,11 @@ const main = function main(): void {
 			continue;
 		}
 
+		// Read before packing. `prepack` regenerates the vendored core, so a copy that had drifted
+		// would repair itself between the read and the judgement, and the checkout would keep a
+		// second version of the kernel that nothing but this line ever reads.
+		const vendoredDrift = scanVendoredNativeSources(packageDir);
+
 		const packed = runPack(packageDir);
 		checkedPackages += 1;
 
@@ -537,6 +609,10 @@ const main = function main(): void {
 			...scanUiComponentStyleArtifacts(packageDir, packed.name, packedFilePaths)
 		);
 		blockedFiles.push(...scanPublishedLicenses(packageDir, packedFilePaths));
+		blockedFiles.push(...vendoredDrift);
+		blockedFiles.push(
+			...scanPackedVendoredSources(packageDir, packedFilePaths)
+		);
 
 		if (blockedFiles.length > 0) {
 			offenders.push({
