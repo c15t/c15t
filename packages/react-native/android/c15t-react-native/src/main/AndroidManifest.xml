@@ -17,6 +17,20 @@
 			<meta-data
 				android:name="com.c15t.reactnative.C15tReactNativeInitializer"
 				android:value="androidx.startup" />
+			<!--
+				Take the core's own initializer out of a React Native app. Without this both
+				entries merge, and com.c15t.android.C15tInitializer has no opt-out: it installs
+				a core from com.c15t.PORTAL_URL whenever that key is declared. C15t.bootstrap
+				is first-wins, so a host that set com.c15t.reactnative.AUTO_BOOTSTRAP to false
+				in order to install its own configured core would find the manifest core
+				already running and its own install refused, which is the opposite of what the
+				flag documents. This library's initializer honours the flag and calls the same
+				C15tAndroid.install, so removing the other entry changes nothing for a host that
+				did not opt out and everything for one that did.
+			-->
+			<meta-data
+				android:name="com.c15t.android.C15tInitializer"
+				tools:node="remove" />
 		</provider>
 	</application>
 </manifest>

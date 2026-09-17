@@ -213,6 +213,17 @@ starter: a listener registered after the decision has been reached still receive
 decision rather than silence, so an SDK that initializes two seconds into the launch
 does not have to know what it missed.
 
+One launch hook per app, owned by the layer that documents the opt-out. Android's core
+library registers an `androidx.startup` initializer of its own and the React Native
+binding registers one too, so two entries merge unless the binding says otherwise. The
+core's takes no flag: it installs a core whenever `com.c15t.PORTAL_URL` is declared, and
+installation is first-wins, so a host that set the binding's `AUTO_BOOTSTRAP` to install
+its own configured core would get the manifest core instead and have its own refused with
+no warning. The binding therefore removes the core's entry from a React Native app's
+merged manifest, and a pure Android app keeps its own. iOS has one image-load hook and one
+`Info.plist` key, so it needs no equivalent. The promise both platforms owe a host is the
+same: set the flag and nothing installs a core you did not ask for.
+
 "Whenever the decision changes" is a dedupe, and it is the whole reason this gate
 carries a decision instead of a boolean. A device that publishes five snapshots while
 the answer stays `PENDING` delivers one `PENDING`, not five: a host acts on the
