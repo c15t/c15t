@@ -170,7 +170,9 @@ describe('ConsentBrandingTag', () => {
 		expect(style.borderTopColor).toBe('rgba(255, 255, 255, 0.16)');
 		expect(style.minHeight).toBe(28);
 		expect(style.paddingHorizontal).toBe(10);
-		expect(style.paddingTop).toBe(4.5);
+		// 5, not the 4.5 in the base rule: `.brandingTag` is restated at
+		// `0.3125rem` inside the `max-width: 480px` query every phone matches.
+		expect(style.paddingTop).toBe(5);
 		expect(style.zIndex).toBe(2);
 
 		const mark = markNode(tree.container());

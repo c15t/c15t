@@ -17,6 +17,20 @@ import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
 /** How a button is dressed. */
 export type ConsentButtonKind = 'link' | 'primary' | 'secondary';
 
+/**
+ * How far a touch area may reach past the box it belongs to, one edge at a time.
+ *
+ * Spelled here rather than imported because `Pressable`'s `hitSlop` type is a
+ * structural shape that React Native has renamed between releases; the numbers are
+ * the same in all of them, and this component only ever passes plain points.
+ */
+interface TouchInset {
+	bottom?: number;
+	left?: number;
+	right?: number;
+	top?: number;
+}
+
 /** Which part styles the container for each kind. */
 const CONTAINER_PART: Record<
 	ConsentButtonKind,
@@ -43,18 +57,45 @@ const LABEL_PART: Record<
  * `captionLink` is both the container and the label of a link, so anything that is
  * true of a box but wrong for a run of text has to live here rather than in the
  * part: a `minHeight` on the label would lengthen the text, and `alignItems` on it
- * would do nothing. The link reads as plain text, so it is the one control that
- * stops short of a tap target when nothing stretches it.
+ * would do nothing. Every kind reaches the tap floor through `hitSlopFor`.
  */
 const CONTAINER_EXTRA: Record<ConsentButtonKind, ViewStyle> = {
-	link: {
-		alignItems: 'center',
-		flexShrink: 0,
-		justifyContent: 'center',
-		minHeight: MIN_TAP_TARGET,
-	},
+	link: { alignItems: 'center', flexShrink: 0, justifyContent: 'center' },
 	primary: {},
 	secondary: {},
+};
+
+/**
+ * The touch area a control gets, derived from the box it was drawn with.
+ *
+ * A web consent action is 35.5 tall, and a finger still needs 44. The two are
+ * reconciled on the hit area rather than on `minHeight`, so the drawn control
+ * matches the design and the fingertip gets its room. Deriving it from the parts
+ * in force rather than hardcoding an inset means a host theme with a taller label
+ * asks for a smaller inset, and one that already clears 44 asks for none.
+ *
+ * @param parts - Parts in force for this surface.
+ * @param kind - Which kind of control is being drawn.
+ * @returns An inset for `hitSlop`, or `undefined` when the box clears the floor.
+ */
+const hitSlopFor = function hitSlopFor(
+	parts: ConsentResolvedParts,
+	kind: ConsentButtonKind
+): TouchInset | undefined {
+	const box = parts[CONTAINER_PART[kind]];
+	const label = parts[LABEL_PART[kind]];
+	const border = (box.borderWidth ?? 0) * 2;
+	const drawn =
+		typeof box.paddingVertical === 'number'
+			? box.paddingVertical * 2 + (label.lineHeight ?? 0) + border
+			: (label.lineHeight ?? 0) + border;
+	const inset = Math.ceil((MIN_TAP_TARGET - drawn) / 2);
+
+	if (inset <= 0) {
+		return undefined;
+	}
+
+	return { bottom: inset, left: inset, right: inset, top: inset };
 };
 
 /** Props for {@link ConsentButton}. */
@@ -113,6 +154,7 @@ export const ConsentButton = ({
 		accessibilityRole={kind === 'link' ? 'link' : 'button'}
 		accessibilityState={{ disabled }}
 		disabled={disabled}
+		hitSlop={hitSlopFor(parts, kind)}
 		onPress={onPress}
 		style={[parts[CONTAINER_PART[kind]], CONTAINER_EXTRA[kind], style]}
 	>

@@ -239,6 +239,9 @@ describe('theme', () => {
 			lineHeight: 17.5,
 			weight: '500',
 		});
+
+		// `.title` in `panel.module.css` is `line-height: 1` at `font-size: sm`,
+		// so the heading sits in a 14 line box.
 		expect(lightTheme.typography.title).toEqual({
 			fontSize: 14,
 			lineHeight: 14,
@@ -337,12 +340,16 @@ describe('theme', () => {
 		const bannerFooter = surfaceNode(banner.container())
 			.lastElementChild as HTMLElement;
 
-		// `1rem 1.25rem` on `.footer`, on the muted band, under a hairline.
+		// `1rem 1.25rem` on `.footer`, on the muted band, under a hairline. The
+		// row gap is 8 rather than the 16 `.actionRoot` opens with, because
+		// `[data-split]` overrides it as soon as a banner has two action groups,
+		// which is every banner that opts in. It is what keeps the card 238 tall
+		// instead of 271.6.
 		expect(nodeStyle(bannerFooter)).toMatchObject({
 			backgroundColor: lightTheme.colors.surfaceRaised,
 			borderTopColor: lightTheme.colors.border,
 			borderTopWidth: 1,
-			gap: 16,
+			gap: 8,
 			paddingHorizontal: 20,
 			paddingVertical: 16,
 		});
@@ -375,10 +382,13 @@ describe('theme', () => {
 			requireRole(tree.container(), 'button', 'Alle akzeptieren')
 		);
 
-		// `0.625rem 1rem`, and the platform minimum still decides the height.
-		expect(action.paddingVertical).toBe(10);
-		expect(action.paddingHorizontal).toBe(16);
-		expect(action.minHeight).toBeGreaterThanOrEqual(44);
+		// `0.5rem 0.75rem`. The drawn box is 35.5 tall, which is under the
+		// platform minimum on purpose: the 44 is a touch requirement, so it grows
+		// the hit area rather than the control. See
+		// `web-token-parity.test.tsx` for the assertion on that hit area.
+		expect(action.paddingVertical).toBe(8);
+		expect(action.paddingHorizontal).toBe(12);
+		expect(action.minHeight ?? null).toBeNull();
 
 		tree.unmount();
 	});
@@ -395,6 +405,7 @@ describe('theme', () => {
 
 		// The 28x16 fully rounded track the consent surfaces ask the primitive
 		// for, rather than the native control tinted to look near it. The thumb
+
 		// lives inside the track's own padding.
 		const trackStyle = () =>
 			nodeStyle(

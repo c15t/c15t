@@ -8,4 +8,4 @@ React Native ships no SVG renderer, so the glyph is the web's own path rasterise
 
 The tab sits outside the card it attaches to, because both cards clip their corners and a clipped tab is a cut-off one. `ConsentSurface` gains a `branding` slot for it. It shares the card's radius on the two corners that face it, gives up the border on the edge they meet, and carries the web `min-height: 1.75rem`, 10/4.5 padding, and an 11px label at `line-height: 1`. `ConsentThemeColors` gains `primaryBorder`, which is the web `color-mix(in srgb, primary, black 14%)` resolved per scheme, since React Native has no colour function to run at render. `CONSENT_THEME_PARTS` gains `branding` and `brandingLabel`, and the lead-in comes from `common.securedBy` as `ConsentCopy.securedBy` falls back to English. The brand itself is the mark and wordmark, not a string a translation gets to change.
 
-The native snapshot carries no `branding` field yet, so the tab always names c15t. `inth` would need both that field and a second raster.
+The native snapshot carries no `branding` field yet, so the tab always names c15t. A host that rebrands it would need both that field and a second raster.

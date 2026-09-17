@@ -25,6 +25,7 @@ import {
 	roleNodes,
 	surfaceNode,
 	tap,
+	touchHeight,
 	translatedSnapshot,
 } from './harness';
 
@@ -263,8 +264,9 @@ describe('ConsentBanner', () => {
 		const tree = mountSurface(<ConsentBanner />);
 		const accept = requireRole(tree.container(), 'button', 'Alle akzeptieren');
 
-		// The tap target never drops below the platform minimum...
-		expect(nodeStyle(accept).minHeight).toBeGreaterThanOrEqual(44);
+		// The touch area never drops below the platform minimum, whether that comes
+		// from the hit slop or from a box the text has already grown.
+		expect(touchHeight(accept)).toBeGreaterThanOrEqual(44);
 
 		tree.unmount();
 
@@ -278,11 +280,11 @@ describe('ConsentBanner', () => {
 			'Alle akzeptieren'
 		);
 
-		// The floor is the label's own line box at this scale, so the number is
-		// read from the token rather than repeated here.
-		expect(nodeStyle(largeAccept).minHeight).toBe(
-			Math.round(lightTheme.typography.label.lineHeight * 3)
-		);
+		// Nothing clamps the box to a floor any more, which is the point: a 3x
+		// label sets its own line box and the control grows around it instead of
+		// clipping. The touch area still clears the platform minimum.
+		expect(nodeStyle(largeAccept).minHeight ?? null).toBeNull();
+		expect(touchHeight(largeAccept)).toBeGreaterThanOrEqual(44);
 
 		large.unmount();
 	});
@@ -325,7 +327,8 @@ describe('banner action row', () => {
 			expect(style.flexGrow).toBe(1);
 			expect(style.flexShrink).toBe(1);
 			expect(style.flexBasis).toBe(0);
-			expect(style.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+			// The box is the web's 35.5; the 44 is on the hit area.
+			expect(touchHeight(action)).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
 		}
 
 		tree.unmount();
@@ -347,12 +350,12 @@ describe('banner action row', () => {
 
 		expect(style.flexGrow).toBe(1);
 		expect(style.flexBasis).toBe(0);
-		expect(style.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		expect(touchHeight(customize)).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
 
 		tree.unmount();
 	});
 
-	test('every action is outlined, and the decisions carry the accent', () => {
+	test('every action is outlined, and Customize carries the accent', () => {
 		const tree = mountSurface(<ConsentBanner />);
 
 		const outlined = (name: string, accent: boolean): void => {
@@ -372,11 +375,12 @@ describe('banner action row', () => {
 			expect(label.fontWeight).toBe('500');
 		};
 
-		// Both decisions carry the accent and only the detour below them is
-		// neutral, which is how the web banner reads at a glance.
-		outlined('Alle akzeptieren', true);
-		outlined('Alle ablehnen', true);
-		outlined('Auswahlen', false);
+		// The two decisions stay neutral together and Customize carries the accent,
+		// which is the kernel's own default: `primaryActions` is `customize` so the
+		// prompt does not lean on a subject toward accepting or rejecting.
+		outlined('Alle akzeptieren', false);
+		outlined('Alle ablehnen', false);
+		outlined('Auswahlen', true);
 
 		tree.unmount();
 	});

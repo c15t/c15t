@@ -94,11 +94,18 @@ export interface ConsentThemeTypography {
 	 * inside a sheet, which is the same `0.875rem` in `accordion.module.css`.
 	 */
 	readonly bannerBody: ConsentTypeStyle;
-	/** Sheet title: 14 semibold, smaller than the body under it. */
+	/**
+	 * Sheet title: 14 semibold over 14, tighter than the body under it.
+	 *
+	 * `panel.module.css` sets `line-height: 1` on `.title`, so the heading owns a
+	 * 14 line box. Its tracking is not here: the web writes tracking in `em`, the
+	 * two sheet surfaces disagree on it, and it belongs with the surface that
+	 * draws the heading, so `useConsentStyles` puts it on the part.
+	 */
 	readonly title: ConsentTypeStyle;
 	/** Body copy of a sheet. */
 	readonly body: ConsentTypeStyle;
-	/** Button label. */
+	/** Button label: 14 over 17.5 at medium, the web `line-height-tight`. */
 	readonly label: ConsentTypeStyle;
 	/** Legal and status line. */
 	readonly caption: ConsentTypeStyle;

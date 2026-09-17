@@ -134,10 +134,14 @@ export const ConsentSurfaceBody = ({
  *
  * The two are measured apart rather than inferred from one another. A banner puts
  * its actions on the muted band with a hairline along its top edge, 16 deep and
- * 20 in from the card (`1rem 1.25rem` on `.footer`), with a full step between the
- * two action rows (`1rem` on `.actionRoot`). A sheet leaves them on the card with
- * a hairline only, 16 all round (`--consent-dialog-card-padding-mobile`,
- * `--consent-dialog-footer-padding-y`) and a half step (`--consent-dialog-footer-gap`).
+ * 20 in from the card (`1rem 1.25rem` on `.footer`). A sheet leaves them on the
+ * card with a hairline only, 16 all round
+ * (`--consent-dialog-card-padding-mobile`, `--consent-dialog-footer-padding-y`).
+ *
+ * The step between two action rows is 8 on both. `.actionRoot` is `gap: 1rem`,
+ * which is what a single action group gets, but the ordinary banner and the
+ * ordinary sheet carry `[data-split]` because they hold two groups, and that
+ * rule drops it to `0.5rem`. Measured row to row, the web footer is 8.0.
  *
  * All of that is a fact about the presentation rather than about a theme, so it
  * goes on under the resolved `footer` part, where a host override still wins.
@@ -153,7 +157,7 @@ const footerChrome = function footerChrome(
 		backgroundColor: banner ? colors.surfaceRaised : colors.surface,
 		borderTopColor: colors.border,
 		borderTopWidth: 1,
-		gap: banner ? spacing.m : spacing.s,
+		gap: spacing.s,
 		paddingHorizontal: banner ? BANNER_FOOTER_PADDING_HORIZONTAL : spacing.m,
 		paddingVertical: spacing.m,
 	};

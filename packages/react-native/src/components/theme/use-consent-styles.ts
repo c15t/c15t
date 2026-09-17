@@ -34,7 +34,13 @@ import type {
 export interface ConsentStyles {
 	/** Effective font scale, clamped to what the layouts were sized for. */
 	readonly fontScale: number;
-	/** Smallest height a control may take at this font scale. */
+	/**
+	 * The height a control's touch area may not fall below at this font scale.
+	 *
+	 * Reported rather than applied: a built-in control draws the web's 35.5 and
+	 * reaches the touch floor through its hit area, so this is the number a host
+	 * sizing its own control should clear, not a `minHeight` to put on one.
+	 */
 	readonly controlMinHeight: number;
 	/** Height a scrollable body may reach inside the safe area before it scrolls. */
 	readonly maxBodyHeight: number;
@@ -126,6 +132,16 @@ const TAG_SHADOW = '0 1px 2px rgba(15, 23, 42, 0.12)';
 const HAIRLINE = 1;
 
 /**
+ * The branding tab's vertical padding: 5.
+ *
+ * `.brandingTag` asks for `0.28125rem`, and the `max-width: 480px` query every
+ * phone matches restates it as `0.3125rem`. React Native only ever renders the
+ * phone case, so it takes the query's value, which is what the live banner at 402
+ * wide measures.
+ */
+const TAG_PADDING_VERTICAL = 5;
+
+/**
  * The banner footer's left and right inset: 20.
  *
  * `prompt.module.css` pads `.footer` `1rem 1.25rem`, so the band is 16 deep and
@@ -137,14 +153,33 @@ const HAIRLINE = 1;
 export const BANNER_FOOTER_PADDING_HORIZONTAL = 20;
 
 /**
- * A button's vertical padding: 10.
+ * A button's padding: 8 vertical, 12 horizontal.
  *
- * `button.module.css` pads `0.625rem 1rem`. It only decides the height when the
- * label plus this padding beats `MIN_TAP_TARGET`, which on a phone it does not,
- * so a control still lands at 44 and the padding is what a large system font
- * grows the button from.
+ * `button.module.css` pads `0.5rem 0.75rem`. Together with a 17.5 line height and
+ * two hairlines that is the 35.5 a web action measures, which is less than
+ * `MIN_TAP_TARGET` on purpose: the 44 is a touch requirement, so it belongs on the
+ * control's hit area and not on the box that gets drawn.
  */
-const BUTTON_PADDING_VERTICAL = 10;
+const BUTTON_PADDING_VERTICAL = 8;
+
+/** The horizontal half of that padding. */
+const BUTTON_PADDING_HORIZONTAL = 12;
+
+/**
+ * The tracking each surface puts on its heading, in points.
+ *
+ * Both web surfaces set `letter-spacing` in `em`, and React Native only takes an
+ * absolute length, so the `em` figure has to be multiplied by the size the same
+ * rule sets: `-0.011em` on a 16pt banner heading, `-0.025em` on the 14pt dialog
+ * one. The multiplication happens here rather than in the type scale because
+ * `title` is one token read by two surfaces that disagree, and the size that
+ * decides the product is the size the surface is drawing.
+ */
+const HEADING_TRACKING: Record<'banner' | 'sheet', number> = {
+	// -0.011em at 16pt, and -0.025em at 14pt, multiplied out.
+	banner: -0.176,
+	sheet: -0.35,
+};
 
 /**
  * The gap between two category cards: 12.
@@ -237,9 +272,17 @@ export const useConsentStyles = function useConsentStyles(
 			presentation === 'banner' ? typography.bannerTitle : typography.title;
 		const bodyType =
 			presentation === 'banner' ? typography.bannerBody : typography.body;
+		// The height a control's touch area may not fall below once the platform has
+		// scaled its text. The drawn box is the web's 8 + 17.5 + 8 plus two hairlines
+		// at scale 1, which is under the touch floor, so the floor decides there; past
+		// about 1.5x the box passes the floor on its own and reports its own height.
 		const controlMinHeight = Math.max(
 			MIN_TAP_TARGET,
-			Math.round(typography.label.lineHeight * scaled)
+			Math.round(
+				BUTTON_PADDING_VERTICAL * 2 +
+					typography.label.lineHeight * scaled +
+					HAIRLINE * 2
+			)
 		);
 
 		// The gutter a floating banner keeps off the screen edge, and the gap a
@@ -247,15 +290,12 @@ export const useConsentStyles = function useConsentStyles(
 		// measurement moves the surface and never its internal rhythm.
 		const gutter = spacing.m;
 
-		// The band is not the clearance. A swipe up at a home indicator starts
-		// inside the band and travels upward, so a control sitting just outside it
-		// is still in the gesture's path. The layer reserves a full interaction row
-		// past the band, which keeps the deepest control at least one control high
-		// above it on every device. The floor is the same minimum the theme already
-		// forces on a control, never a guess at one device's inset, so it behaves
-		// the same on a notched iPhone, an iPad with a 20-point band, and a phone
-		// that reports no band at all.
-		const bottomGutter = Math.max(gutter, MIN_TAP_TARGET);
+		// The card sits the gutter clear of the band, which is what the web does at
+		// the viewport edge: its banner root pads 16 and the card measures 16 from
+		// the bottom of an 872 viewport. Reserving a whole control height on top of
+		// the gutter, as this did, put the card 88 above the bottom of the screen
+		// and left it floating in the middle of the display.
+		const bottomGutter = gutter;
 
 		const bannerLayer: ViewStyle = {
 			bottom: safeArea.bottom,
@@ -313,9 +353,9 @@ export const useConsentStyles = function useConsentStyles(
 				flexDirection: 'row',
 				gap: 6,
 				minHeight: 28,
-				paddingBottom: 4.5,
+				paddingBottom: TAG_PADDING_VERTICAL,
 				paddingHorizontal: 10,
-				paddingTop: 4.5,
+				paddingTop: TAG_PADDING_VERTICAL,
 				// Above the card, so the card's own fill cannot paint over the 1px the
 				// tab overlaps it by. The web rule carries the same value.
 				zIndex: 2,
@@ -382,8 +422,7 @@ export const useConsentStyles = function useConsentStyles(
 				flexGrow: 1,
 				flexShrink: 1,
 				justifyContent: 'center',
-				minHeight: controlMinHeight,
-				paddingHorizontal: spacing.m,
+				paddingHorizontal: BUTTON_PADDING_HORIZONTAL,
 				paddingVertical: BUTTON_PADDING_VERTICAL,
 			},
 			primaryLabel: {
@@ -406,8 +445,7 @@ export const useConsentStyles = function useConsentStyles(
 				flexGrow: 1,
 				flexShrink: 1,
 				justifyContent: 'center',
-				minHeight: controlMinHeight,
-				paddingHorizontal: spacing.m,
+				paddingHorizontal: BUTTON_PADDING_HORIZONTAL,
 				paddingVertical: BUTTON_PADDING_VERTICAL,
 			},
 			secondaryLabel: {
@@ -432,7 +470,11 @@ export const useConsentStyles = function useConsentStyles(
 				padding: CONSENT_SWITCH_GEOMETRY.padding,
 				width: CONSENT_SWITCH_GEOMETRY.width,
 			},
-			title: textStyle(titleType, colors.text),
+			title: {
+				...textStyle(titleType, colors.text),
+				letterSpacing:
+					HEADING_TRACKING[presentation === 'banner' ? 'banner' : 'sheet'],
+			},
 		};
 
 		const parts = { ...base } as ConsentResolvedParts;

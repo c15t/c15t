@@ -153,16 +153,17 @@ export const ConsentBanner = ({
 					) : (
 						<>
 							{/*
-							 * The two decisions share a row at equal width, both in the accent, and
-							 * customize takes the row below them in the neutral outline, as it does on
-							 * the web. That split is what tells a decision from a detour before a
-							 * subject reads either label. With all three in one flex row the labels
-							 * decided the arithmetic instead: measured on a device, reject came out
-							 * 724px wide against customize's 167, which left the tertiary action
-							 * reading as a caption rather than a control.
+							 * The two decisions share a row at equal width, and Customize takes the row
+							 * below it on its own. The accent is on Customize rather than on the decisions:
+							 * `policy-actions.ts` defaults `primaryActions` to `customize` so that reject
+							 * and accept stay neutral together, which stops the prompt leaning on a subject
+							 * either way. With all three in one flex row the labels decided the arithmetic
+							 * instead: measured on a device, reject came out 724px wide against customize's
+							 * 167, which left the action that opens the choices reading as a caption.
 							 */}
 							<View style={parts.row}>
 								<ConsentButton
+									kind="secondary"
 									label={copy.rejectAll}
 									onPress={() => {
 										void actions.rejectAll();
@@ -170,6 +171,7 @@ export const ConsentBanner = ({
 									parts={parts}
 								/>
 								<ConsentButton
+									kind="secondary"
 									label={copy.acceptAll}
 									onPress={() => {
 										void actions.acceptAll();
@@ -178,7 +180,6 @@ export const ConsentBanner = ({
 								/>
 							</View>
 							<ConsentButton
-								kind="secondary"
 								label={copy.customize}
 								onPress={customize}
 								parts={parts}

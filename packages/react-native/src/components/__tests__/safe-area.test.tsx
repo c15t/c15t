@@ -31,6 +31,7 @@ import { ConsentBanner } from '../consent-banner';
 import { ConsentDialog } from '../consent-dialog';
 import { ConsentPreferences } from '../consent-preferences';
 import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
+import { lightTheme } from '../theme/create-consent-theme';
 import {
 	nodeStyle,
 	requireRole,
@@ -156,44 +157,44 @@ describe('consent surface safe area', () => {
 		tree.unmount();
 	});
 
-	/** How far the deepest control in a surface sits above the screen's bottom edge. */
-	const controlClearance = function controlClearance(
-		layer: Record<string, unknown>,
-		sheet: Record<string, unknown>
+	/**
+	 * How far the outer edge of a card sits above the screen's bottom edge.
+	 *
+	 * This is the measurement addendum 3 re-took off the live banner: the web card
+	 * is 16 from the bottom of an 872 viewport, so the clearance past the band is
+	 * one gutter and not a gutter stacked under a whole control height. Reserving
+	 * `MIN_TAP_TARGET` here as well is what floated the mobile card 88 above the
+	 * bottom of the screen. The 44 did not go away, it moved to the button hit
+	 * areas, which is asserted in `web-token-parity.test.tsx`.
+	 */
+	const cardClearance = function cardClearance(
+		layer: Record<string, unknown>
 	): number {
-		return (
-			length(layer, 'bottom') +
-			length(layer, 'paddingBottom', 'padding') +
-			length(sheet, 'paddingBottom', 'padding')
-		);
+		return length(layer, 'bottom') + length(layer, 'paddingBottom', 'padding');
 	};
 
-	test('keeps every banner tap target a control high above the band', () => {
+	test('keeps the banner card a gutter clear of the bottom band', () => {
 		const tree = mountWithInsets(PORTRAIT, <ConsentBanner />);
 
 		// The band itself is not clearance: a swipe up at the indicator starts
-		// inside it and travels, so what matters is the space past the band.
-		expect(
-			controlClearance(
-				layerStyle(tree.container()),
-				bannerStyle(tree.container())
-			) - PORTRAIT.bottom
-		).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		// inside it and travels. What has to survive is the gutter past it, and it
+		// has to stay exactly the gutter, so neither a collapsed edge nor an
+		// inflated reserve passes.
+		expect(cardClearance(layerStyle(tree.container())) - PORTRAIT.bottom).toBe(
+			lightTheme.spacing.m
+		);
 
 		tree.unmount();
 	});
 
-	test('holds that reserve on a device that reports no band at all', () => {
+	test('holds that gutter on a device that reports no band at all', () => {
 		const tree = mountWithInsets(NO_BANDS, <ConsentBanner />);
 
-		// The reserve is a floor and not an inset multiplier, so a flat screen gets
-		// the same clearance rather than collapsing to a bare gutter.
-		expect(
-			controlClearance(
-				layerStyle(tree.container()),
-				bannerStyle(tree.container())
-			) - NO_BANDS.bottom
-		).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		// The gutter is a constant and not an inset multiplier, so a flat screen
+		// gets the same 16 rather than collapsing onto the edge of the display.
+		expect(cardClearance(layerStyle(tree.container())) - NO_BANDS.bottom).toBe(
+			lightTheme.spacing.m
+		);
 
 		tree.unmount();
 	});
@@ -249,7 +250,6 @@ describe('consent surface safe area', () => {
 			/>
 		);
 		const layer = layerStyle(tree.container());
-		const sheet = nodeStyle(sheetNode(tree.container()));
 		const body = bodyStyle(tree.container());
 		const screen = uiState.window.height;
 
@@ -260,11 +260,13 @@ describe('consent surface safe area', () => {
 		).toBeLessThanOrEqual(screen);
 		expect(length(layer, 'paddingTop')).toBeGreaterThanOrEqual(PORTRAIT.top);
 
-		// Action side: the save row clears the band by a full control, not merely
-		// by sitting outside it.
-		expect(
-			controlClearance(layer, sheet) - PORTRAIT.bottom
-		).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		// Action side: the band lifts the sheet and the footer keeps its own
+		// gutter above it, so the save row is neither inside the indicator nor
+		// floated a control height clear of it.
+		expect(length(layer, 'paddingBottom') - PORTRAIT.bottom).toBe(
+			lightTheme.spacing.m
+		);
+		expect(cardClearance(layer)).toBeGreaterThan(PORTRAIT.bottom);
 		requireRole(tree.container(), 'button', 'Speichern');
 
 		tree.unmount();

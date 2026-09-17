@@ -286,6 +286,7 @@ const RECORDED_STYLE_KEYS = [
 	'height',
 	'justifyContent',
 	'left',
+	'letterSpacing',
 	'lineHeight',
 	'marginBottom',
 	'marginRight',
@@ -489,7 +490,7 @@ interface PressablePropsStub extends AccessibilityProps {
 		| ((state: Record<string, boolean>) => ReactNode);
 	readonly delayLongPress?: number;
 	readonly disabled?: boolean;
-	readonly hitSlop?: unknown;
+	readonly hitSlop?: number | { readonly all?: number; readonly top?: number };
 	readonly nextFocus?: Record<string, string>;
 	readonly onPress?: (event: PressStubEvent) => void;
 	readonly onPressIn?: () => void;
@@ -498,6 +499,27 @@ interface PressablePropsStub extends AccessibilityProps {
 	readonly style?: StyleValue;
 	readonly tabIndex?: number;
 }
+
+/**
+ * Flatten the shapes React Native accepts for `hitSlop` into four edges.
+ *
+ * A test asserts on the touch area, so the stand-in has to report the resolved
+ * inset rather than whatever spelling the component happened to use.
+ *
+ * @param slop - The value passed to `hitSlop`.
+ * @returns The four edges the touch area extends past the drawn box.
+ */
+const uniformEdges = function uniformEdges(
+	slop: number | { all?: number; top?: number } | undefined
+): { bottom: number; left: number; right: number; top: number } {
+	if (typeof slop === 'number') {
+		return { bottom: slop, left: slop, right: slop, top: slop };
+	}
+
+	const value = slop?.all ?? slop?.top ?? 0;
+
+	return { bottom: value, left: value, right: value, top: value };
+};
 
 const pressEvent = (): PressStubEvent => ({
 	nativeEvent: { target: 1 },
@@ -523,6 +545,10 @@ export const Pressable = (props: PressablePropsStub): ReactElement => {
 		{
 			...ariaAttributes(props),
 			'data-disabled': disabled ? 'true' : undefined,
+			'data-hit-slop':
+				props.hitSlop === undefined
+					? undefined
+					: JSON.stringify(uniformEdges(props.hitSlop)),
 			'data-rn-style': styleAttribute(props.style, { pressed: false }),
 			disabled,
 			href: isLink ? '#' : undefined,
