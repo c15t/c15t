@@ -342,8 +342,11 @@ describe('ConsentPreferences', () => {
 			/>
 		);
 
+		// The centre offers no leave button of its own: the web manager has exactly
+		// three actions, and leaving is what the scrim, the back gesture, and the
+		// escape key are for. The scrim is the one of those a test can reach.
 		tap(requireRole(tree.container(), 'switch', 'Werbung'));
-		tap(requireRole(tree.container(), 'button', 'Schliessen'));
+		tap(requireRole(tree.container(), 'button', 'Einstellungen: Schliessen'));
 
 		expect(tree.fake.commitIntents).toEqual([]);
 		expect(onRequestClose).toHaveBeenCalledTimes(1);

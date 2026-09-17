@@ -132,6 +132,16 @@ const TAG_SHADOW = '0 1px 2px rgba(15, 23, 42, 0.12)';
 const HAIRLINE = 1;
 
 /**
+ * The web `--c15t-shadow-sm`: `0 1px 2px 0 rgb(0 0 0 / 0.05)`.
+ *
+ * It is the whole elevation budget of the light surfaces. A dialog card carries
+ * it, and so does every consent action, which is why a button reads as a raised
+ * outline rather than a flat stroke; the banner is the one element with a lift of
+ * its own.
+ */
+const SHADOW_SM = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+
+/**
  * The branding tab's vertical padding: 5.
  *
  * `.brandingTag` asks for `0.28125rem`, and the `max-width: 480px` query every
@@ -166,20 +176,28 @@ const BUTTON_PADDING_VERTICAL = 8;
 const BUTTON_PADDING_HORIZONTAL = 12;
 
 /**
- * The tracking each surface puts on its heading, in points.
+ * The tracking each text role carries, in `em`.
  *
- * Both web surfaces set `letter-spacing` in `em`, and React Native only takes an
- * absolute length, so the `em` figure has to be multiplied by the size the same
- * rule sets: `-0.011em` on a 16pt banner heading, `-0.025em` on the 14pt dialog
- * one. The multiplication happens here rather than in the type scale because
- * `title` is one token read by two surfaces that disagree, and the size that
- * decides the product is the size the surface is drawing.
+ * Web writes `letter-spacing` in `em` and React Native only takes an absolute
+ * length, so `track` multiplies the figure by the size the same rule draws it at:
+ * `-0.011em` on a 16pt banner heading is `-0.176`, `-0.025em` on the 14pt dialog
+ * heading is `-0.35`. The product is taken per render rather than written out as
+ * a literal so a host that scales its type keeps the same relative squeeze.
+ *
+ * A role missing from this table is tracked at nothing, which is also a measured
+ * choice. `.trigger` and `.content` in the consent accordion both say
+ * `letter-spacing: inherit` under a card that never sets it, and the dialog's own
+ * `.description` declares none, so a category row and the dialog's supporting copy
+ * run at the platform default. Only the banner's small copy declares `-0.006em` of
+ * its own, and it belongs to the banner alone.
  */
-const HEADING_TRACKING: Record<'banner' | 'sheet', number> = {
-	// -0.011em at 16pt, and -0.025em at 14pt, multiplied out.
-	banner: -0.176,
-	sheet: -0.35,
-};
+const TRACKING_EM = {
+	bannerBody: -0.006,
+	bannerTitle: -0.011,
+	brandingLabel: 0.01,
+	brandingWordmark: -0.03,
+	dialogTitle: -0.025,
+} as const;
 
 /**
  * The gap between two category cards: 12.
@@ -189,6 +207,54 @@ const HEADING_TRACKING: Record<'banner' | 'sheet', number> = {
  * the list and not to a row, which is why it lives on the scroll content.
  */
 const CATEGORY_STACK_GAP = 12;
+
+/**
+ * How wide a dialog card may get: 448.
+ *
+ * `--consent-dialog-max-width` is `28rem`, and the card is `min(100%, that)`, so
+ * on a phone the 16pt gutter decides the width and this only bites on a tablet or
+ * a fold, where an unbounded card would stretch a two-line label across a hand.
+ */
+const DIALOG_MAX_WIDTH = 448;
+
+/**
+ * The disclosure glyph: a 20pt box holding a plus whose arms are 11.67 long and
+ * 1.67 thick.
+ *
+ * `.arrow` is `--accordion-icon-size`, `1.25rem`. The arms come from lucide's
+ * `plus` (`M5 12h14M12 5v14`), whose strokes run 14 units of a 24 unit view box
+ * at 2 units wide, scaled into that box. Exported because React Native has no SVG
+ * renderer, so the row draws the glyph from two bars and the second one needs the
+ * same numbers as the first: a plus whose arms disagree is a plus with a stub.
+ *
+ * The vertical arm disappears when the row opens, which is what turns the plus
+ * into the minus web shows for an open category.
+ */
+export const CONSENT_DISCLOSURE_GEOMETRY = {
+	arm: (14 / 24) * 20,
+	box: 20,
+	stroke: (2 / 24) * 20,
+} as const;
+
+/**
+ * How long a collapsed category row is: 42.
+ *
+ * `.triggerRow` is 8 of padding over whichever is taller of a 14pt label and the
+ * disclosure's own `min-height` of 24, plus the card's two hairlines. That is the
+ * whole collapsed row: a row that also showed its description measured about 110,
+ * which is why the mobile list and the web one looked unrelated.
+ */
+const CATEGORY_TRIGGER_MIN_HEIGHT = CONSENT_DISCLOSURE_GEOMETRY.box + 4;
+
+/**
+ * The line the revealed description sits on: 21.
+ *
+ * `.content` is `0.875rem` over `line-height: 1.5`, which is the dialog's normal
+ * leading rather than the banner copy's `1.25rem`. It is spelled here because the
+ * small-copy token it otherwise reads from is the banner body's, and that one is
+ * measured against `prompt.module.css` at 20.
+ */
+const CATEGORY_CONTENT_LINE_HEIGHT = 21;
 
 /**
  * A text style, from a type token and a colour.
@@ -201,16 +267,21 @@ const CATEGORY_STACK_GAP = 12;
  *
  * @param type - The type token to read.
  * @param color - Foreground the part draws with.
+ * @param trackingEm - `letter-spacing` in `em`, omitted where the web declares none.
  * @returns A text style React Native applies.
  */
 const textStyle = function textStyle(
 	type: ConsentTypeStyle,
-	color: string
+	color: string,
+	trackingEm?: number
 ): TextStyle {
 	return {
 		color,
 		fontSize: type.fontSize,
 		fontWeight: type.weight,
+		...(trackingEm === undefined
+			? null
+			: { letterSpacing: Number((trackingEm * type.fontSize).toFixed(4)) }),
 		lineHeight: type.lineHeight,
 	};
 };
@@ -226,13 +297,14 @@ const textStyle = function textStyle(
 export const useConsentStyles = function useConsentStyles(
 	options: {
 		/**
-		 * Which surface is asking, because the type roles differ.
+		 * Which surface is asking, because both the type roles and the rhythm differ.
 		 *
-		 * A banner reads `bannerTitle` over `bannerBody` and a sheet reads `title`
-		 * over `body`. Defaults to a sheet, which is the pair the scale had before
-		 * the banner roles existed.
+		 * A banner reads `bannerTitle` over `bannerBody`; a dialog and a bottom sheet
+		 * both read `title` over `body`, and differ from each other only in how the
+		 * card is anchored and padded. Defaults to the dialog, which is the shape the
+		 * web surface has.
 		 */
-		readonly presentation?: 'banner' | 'modal';
+		readonly presentation?: 'banner' | 'dialog' | 'sheet';
 		readonly styles?: ConsentPartStyles;
 		readonly theme?: ConsentTheme;
 	} = {}
@@ -240,7 +312,7 @@ export const useConsentStyles = function useConsentStyles(
 	const scheme = resolveConsentColorScheme(useColorScheme());
 	const { fontScale, height } = useWindowDimensions();
 	const safeArea = useConsentSafeArea();
-	const { presentation = 'modal', styles, theme } = options;
+	const { presentation = 'dialog', styles, theme } = options;
 
 	// A host theme is used exactly as given, including its colors: overriding
 	// only the palette would make `createConsentTheme` surprising. Built in a
@@ -297,6 +369,13 @@ export const useConsentStyles = function useConsentStyles(
 		// and left it floating in the middle of the display.
 		const bottomGutter = gutter;
 
+		// The inset every band of a card keeps from its own edge. The dialog takes
+		// the web's card padding, `--consent-dialog-card-padding` at 24; the bottom
+		// sheet and the banner stay on 16, which is what they were measured at. The
+		// card itself pads nothing: each band carries its own, the way the web's
+		// header, content, and footer do, so the footer rule runs edge to edge.
+		const cardPadding = presentation === 'dialog' ? spacing.l : spacing.m;
+
 		const bannerLayer: ViewStyle = {
 			bottom: safeArea.bottom,
 			left: 0,
@@ -306,17 +385,25 @@ export const useConsentStyles = function useConsentStyles(
 			right: 0,
 		};
 
-		// The sheet keeps its actions the same distance above the band as the
-		// banner does, and the band is added outside the reserve rather than
-		// swapped for it: a measured band moves the sheet, and the gap between the
-		// deepest control and the sheet's own rounded edge stays with the footer.
+		// A sheet keeps its actions the same distance above the band as the banner
+		// does, and the band is added outside the gutter rather than swapped for it:
+		// a measured band moves the sheet, and the gap between the deepest control
+		// and the sheet's own rounded edge stays with the footer.
+		// A dialog is the same card set down in the middle of the overlay rather than
+		// pushed to its bottom edge, which is what the web root does: pad 16 all
+		// round and centre. A notch is against that gutter rather than added to it,
+		// because a card 448 wide at most has no reason to slide under one.
+		const centered = presentation === 'dialog';
+		const sideGutter = Math.max(gutter, safeArea.left, safeArea.right);
+
 		const sheetLayer: ViewStyle = {
+			alignItems: centered ? 'center' : undefined,
 			flex: 1,
-			justifyContent: 'flex-end',
+			justifyContent: centered ? 'center' : 'flex-end',
 			paddingBottom: bottomGutter + safeArea.bottom,
-			paddingLeft: safeArea.left,
-			paddingRight: safeArea.right,
-			paddingTop: safeArea.top,
+			paddingLeft: centered ? sideGutter : safeArea.left,
+			paddingRight: centered ? sideGutter : safeArea.right,
+			paddingTop: centered ? gutter + safeArea.top : safeArea.top,
 		};
 
 		const base: Record<string, ViewStyle & TextStyle> = {
@@ -327,11 +414,7 @@ export const useConsentStyles = function useConsentStyles(
 				borderWidth: HAIRLINE,
 				boxShadow: BANNER_SHADOW,
 				flexDirection: 'column',
-				gap: spacing.m,
 				overflow: 'hidden',
-				paddingBottom: 0,
-				paddingHorizontal: 0,
-				paddingTop: spacing.m,
 			},
 			// The "Secured by c15t" tab. Every measurement here is `.brandingTag`:
 			// `min-height 1.75rem`, `padding .28125rem .625rem`, `gap .375rem`, and a
@@ -360,37 +443,87 @@ export const useConsentStyles = function useConsentStyles(
 				// tab overlaps it by. The web rule carries the same value.
 				zIndex: 2,
 			},
+			// Both runs are the tag's `--consent-dialog-branding-label-size`, 11pt over
+			// a line of its own size. They part company on tracking: `.brandingCopy`
+			// opens by `.01em` and `.brandingWordmarkLabel` closes by `.03em`, which is
+			// how the wordmark sits tight against its own mark.
 			brandingLabel: {
 				color: colors.onPrimary,
 				fontSize: 11,
+				letterSpacing: Number((TRACKING_EM.brandingLabel * 11).toFixed(4)),
+				lineHeight: 11,
+			},
+			brandingWordmark: {
+				color: colors.onPrimary,
+				fontSize: 11,
+				letterSpacing: Number((TRACKING_EM.brandingWordmark * 11).toFixed(4)),
 				lineHeight: 11,
 			},
 			caption: textStyle(typography.caption, colors.textMuted),
 			captionLink: textStyle(typography.caption, colors.text),
-			// `accordion.module.css` paints the description at `0.875rem` too, so a
-			// category row and the banner body read from one small-copy role.
-			categoryDescription: textStyle(typography.bannerBody, colors.textMuted),
-			// One bordered card per category, not a divided list: `.item` is a 1px
-			// border in the border token with `.triggerRow` padded by `space-sm`.
-			// The radius is the accordion's own `radius-md`, which measures 8 rather
-			// than the 12 a dialog card carries.
+			// The revealed description. It starts where the label starts, a box and a
+			// step past the card's edge, so the two lines of text share a margin.
+			categoryContent: {
+				paddingBottom: spacing.s,
+				paddingLeft: CONSENT_DISCLOSURE_GEOMETRY.box + 4,
+				paddingRight: spacing.s,
+			},
+			// The accordion's own small copy: same 14pt as the label above it, on a
+			// 21 line, in `.content`'s colour, and tracked at nothing because both
+			// `.content` and `.contentInner` inherit rather than declare.
+			categoryDescription: textStyle(
+				{
+					...typography.bannerBody,
+					lineHeight: CATEGORY_CONTENT_LINE_HEIGHT,
+				},
+				colors.contentText
+			),
+			// The glyph itself, as the two bars the row draws: this style is the
+			// horizontal one, and the vertical one swaps its own width and height, so
+			// one part carries the colour and the weight of the plus and its minus.
+			categoryDisclosure: {
+				backgroundColor: colors.disclosure,
+				height: CONSENT_DISCLOSURE_GEOMETRY.stroke,
+				width: CONSENT_DISCLOSURE_GEOMETRY.arm,
+			},
+			// One bordered card per category, not a divided list: `.item` is nothing
+			// but a 1px border in the border token and `radius-md`, which measures 8
+			// rather than the 12 a dialog card carries. Its padding belongs on the
+			// trigger inside it, because the description that a tap reveals sits
+			// outside that padding and lines up with the label instead.
 			categoryRow: {
-				alignItems: 'center',
 				backgroundColor: colors.surface,
 				borderColor: colors.border,
 				borderRadius: radius.control,
 				borderWidth: HAIRLINE,
+				flexDirection: 'column',
+			},
+			// The row label is the button label's size and line height at the body's
+			// weight: `.trigger` is `font-size: sm` over `line-height-tight` at
+			// regular. It used to sit at medium here, which stood in for the
+			// disclosure glyph the row did not have; with the glyph present the web's
+			// own weight reads, and the loudest thing on the row is the switch.
+			categoryTitle: textStyle(
+				{ ...typography.label, weight: '400' },
+				colors.text
+			),
+			// `.triggerRow`: 8 of padding, a 4 step, and a row of
+			// `[minmax(0,1fr), auto]`, which in React Native is a flexing text
+			// column against a switch that keeps its own width. The minimum height is
+			// the disclosure's `calc(icon + 0.25rem)`, so a collapsed card is 42 tall
+			// rather than the 110 a card that also showed its description came to.
+			categoryTrigger: {
+				alignItems: 'center',
 				flexDirection: 'row',
 				gap: spacing.xs,
+				minHeight: CATEGORY_TRIGGER_MIN_HEIGHT,
 				padding: spacing.s,
 			},
-			// The web title sits at 14 too, and drops to the inherited weight:
-			// `.trigger` asks for `--c15t-font-weight-regular`, which the token map
-			// never emits, so the declaration is invalid and the row inherits 400.
-			// The medium stays because the row keeps no disclosure icon to say "this
-			// is the heading", which leaves weight as the one cue that is not colour.
-			categoryTitle: textStyle(typography.label, colors.text),
-			description: textStyle(bodyType, colors.textMuted),
+			description: textStyle(
+				bodyType,
+				colors.textMuted,
+				presentation === 'banner' ? TRACKING_EM.bannerBody : undefined
+			),
 			// The band, the rule above it, the padding, and the step between the
 			// action rows are all facts about the presentation rather than the
 			// theme. `ConsentSurfaceFooter` adds them under this part, so a host
@@ -406,41 +539,64 @@ export const useConsentStyles = function useConsentStyles(
 				height: 4,
 				width: 36,
 			},
-			header: { gap: spacing.s, paddingHorizontal: spacing.m },
+			// The heading band. The web banner leads with `1rem` of padding and a
+			// `0.5rem` step between heading and copy; the dialog leads with the card
+			// padding and a `--consent-dialog-header-gap` of 4.
+			header: {
+				gap: presentation === 'banner' ? spacing.s : spacing.xs,
+				padding: cardPadding,
+			},
 			label: {
 				...textStyle(typography.label, colors.primary),
 				textAlign: 'center',
 			},
 			overlay: { backgroundColor: colors.overlay },
+			// The accent action. Web draws it as a neutral button with an accent ring
+			// laid *inside* the border (`inset 0 0 0 1px var(--button-primary)`), so the
+			// ring is 2px wide in total and the box is unchanged: the ring lies over
+			// the padding. React Native has no inset ring, so the accent becomes a 2pt
+			// border and a point of padding comes off each side to pay for it, which
+			// lands the same two numbers: 9pt from the edge to the label, and 35.5 tall,
+			// exactly what the neutral outline next to it measures.
 			primaryButton: {
 				alignItems: 'center',
 				backgroundColor: colors.surface,
 				borderColor: colors.primary,
 				borderRadius: radius.control,
-				borderWidth: HAIRLINE,
+				borderWidth: HAIRLINE + 1,
+				boxShadow: SHADOW_SM,
 				flexBasis: 0,
 				flexGrow: 1,
 				flexShrink: 1,
 				justifyContent: 'center',
-				paddingHorizontal: BUTTON_PADDING_HORIZONTAL,
-				paddingVertical: BUTTON_PADDING_VERTICAL,
+				paddingHorizontal: BUTTON_PADDING_HORIZONTAL - HAIRLINE,
+				paddingVertical: BUTTON_PADDING_VERTICAL - HAIRLINE,
 			},
 			primaryLabel: {
 				...textStyle(typography.label, colors.primary),
 				textAlign: 'center',
 			},
 			row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.m },
-			scroll: { flexGrow: 0, flexShrink: 1, paddingHorizontal: spacing.m },
+			scroll: {
+				flexGrow: 0,
+				flexShrink: 1,
+				paddingHorizontal: cardPadding,
+			},
 			// The list of category cards. The separation lives here because the
 			// stack gap belongs between the cards, where a row's own padding would
-			// also put one above the footer.
-			scrollContent: { gap: CATEGORY_STACK_GAP },
+			// also put one above the footer. The run under the last card is the
+			// bottom half of `.content`'s `padding: 24; padding-top: 0`.
+			scrollContent: { gap: CATEGORY_STACK_GAP, paddingBottom: cardPadding },
+			// Both decisions, and every action that only moves the subject around: the
+			// neutral outline, which is 1px of the border token over the card fill with
+			// the same `shadow-sm` the accent action carries.
 			secondaryButton: {
 				alignItems: 'center',
 				backgroundColor: colors.surface,
 				borderColor: colors.border,
 				borderRadius: radius.control,
 				borderWidth: HAIRLINE,
+				boxShadow: SHADOW_SM,
 				flexBasis: 0,
 				flexGrow: 1,
 				flexShrink: 1,
@@ -452,15 +608,18 @@ export const useConsentStyles = function useConsentStyles(
 				...textStyle(typography.label, colors.text),
 				textAlign: 'center',
 			},
+			// One part for both modal presentations, because it is the same card
+			// anchored two ways. A dialog adds the web card's own border and width
+			// cap; a bottom sheet runs to the screen edges and needs neither.
 			sheet: {
 				backgroundColor: colors.surface,
+				borderColor: colors.border,
 				borderRadius: radius.surface,
+				borderWidth: presentation === 'dialog' ? HAIRLINE : 0,
+				boxShadow: presentation === 'dialog' ? SHADOW_SM : undefined,
 				flexDirection: 'column',
-				gap: spacing.m,
+				maxWidth: presentation === 'dialog' ? DIALOG_MAX_WIDTH : undefined,
 				overflow: 'hidden',
-				paddingBottom: 0,
-				paddingHorizontal: 0,
-				paddingTop: spacing.m,
 			},
 			switch: {
 				backgroundColor: colors.switchTrack,
@@ -470,11 +629,13 @@ export const useConsentStyles = function useConsentStyles(
 				padding: CONSENT_SWITCH_GEOMETRY.padding,
 				width: CONSENT_SWITCH_GEOMETRY.width,
 			},
-			title: {
-				...textStyle(titleType, colors.text),
-				letterSpacing:
-					HEADING_TRACKING[presentation === 'banner' ? 'banner' : 'sheet'],
-			},
+			title: textStyle(
+				titleType,
+				colors.text,
+				presentation === 'banner'
+					? TRACKING_EM.bannerTitle
+					: TRACKING_EM.dialogTitle
+			),
 		};
 
 		const parts = { ...base } as ConsentResolvedParts;

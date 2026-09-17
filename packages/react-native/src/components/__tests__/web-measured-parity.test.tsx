@@ -26,6 +26,7 @@ import { resetConsentClient } from '../../native/client';
 import type { ConsentSnapshot } from '../../protocol';
 import { ConsentBanner } from '../consent-banner';
 import { ConsentDialog } from '../consent-dialog';
+import { ConsentPreferences } from '../consent-preferences';
 import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
 import { lightTheme } from '../theme/create-consent-theme';
 import { BANNER_FOOTER_PADDING_HORIZONTAL } from '../theme/use-consent-styles';
@@ -35,6 +36,7 @@ import {
 	requireRole,
 	roleNodes,
 	surfaceNode,
+	tap,
 	translatedSnapshot,
 } from './harness';
 
@@ -280,6 +282,25 @@ describe('button box', () => {
 		tree.unmount();
 	});
 
+	test('gives the accent ring its 2pt without growing the box', () => {
+		const tree = mountSurface(<ConsentBanner />, englishSnapshot());
+		const { container: box } = actionStyles(tree.container(), 'Customize');
+
+		// Web keeps `border: 1px` on both variants and lays an accent ring *inside*
+		// it (`inset 0 0 0 1px var(--button-primary)`), so the accent action reads 2px
+		// thick and exactly as tall as its neutral neighbours. React Native has no
+		// inset ring, so the border goes to 2 and a point of padding each side pays
+		// for it: 2 + 7 lands the label the same 9pt from the edge that web's 1 + 8
+		// does, and the box stays 35.5.
+		expect(box.borderWidth).toBe(2);
+		expect(box.paddingVertical).toBe(7);
+		expect(box.paddingHorizontal).toBe(11);
+		expect(box.borderRadius).toBe(BUTTON.radius);
+		expect(Number(box.paddingVertical) * 2 + BUTTON.lineHeight + 4).toBe(35.5);
+
+		tree.unmount();
+	});
+
 	test('keeps the tap target on the hit area rather than the drawing', () => {
 		const tree = mountSurface(<ConsentBanner />, englishSnapshot());
 		const node = requireRole(tree.container(), 'button', 'Accept All');
@@ -318,11 +339,241 @@ describe('banner footer', () => {
 		const tree = mountSurface(<ConsentBanner />, englishSnapshot());
 		const style = nodeStyle(footerNode(tree.container()));
 
-		expect(style.paddingVertical).toBe(16);
+		expect(style.paddingTop).toBe(16);
+		expect(style.paddingBottom).toBe(16);
 		expect(style.paddingHorizontal).toBe(BANNER_FOOTER_PADDING_HORIZONTAL);
 		expect(style.backgroundColor).toBe(WEB.surfaceHover);
 		expect(style.borderTopColor).toBe(WEB.border);
 		expect(style.borderTopWidth).toBe(1);
+
+		tree.unmount();
+	});
+});
+
+describe('dialog card', () => {
+	test('is centred in the overlay with the web gutter all round', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const card = surfaceNode(tree.container());
+		const layer = card.parentElement?.parentElement as HTMLElement;
+		const layerStyles = nodeStyle(layer);
+
+		// `--consent-dialog-content-overlay` pads 16 and centres, and the card is
+		// `min(100%, 28rem)`, so the mobile sheet used to sit against the bottom edge
+		// with no gutter at the sides was never the web surface.
+		expect(layerStyles.justifyContent).toBe('center');
+		expect(layerStyles.alignItems).toBe('center');
+		// The vertical padding is the same gutter plus the device bands, which
+		// `safe-area.test.tsx` measures; the sides are the gutter on its own.
+		expect(layerStyles.paddingLeft).toBe(16);
+		expect(layerStyles.paddingRight).toBe(16);
+		expect(nodeStyle(card).maxWidth).toBe(448);
+
+		tree.unmount();
+	});
+
+	test('draws the web card outline, and only a centred card draws it', () => {
+		const dialog = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const sheet = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+				presentation="sheet"
+			/>,
+			englishSnapshot()
+		);
+
+		// The card carries the web dialog's own 1px border and `shadow-sm`. A bottom
+		// sheet runs edge to edge, so it keeps the fill and the corners and gives up
+		// the outline it has nowhere to show.
+		expect(nodeStyle(surfaceNode(dialog.container()))).toMatchObject({
+			borderColor: lightTheme.colors.border,
+			borderRadius: lightTheme.radius.surface,
+			borderWidth: 1,
+			boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+		});
+		expect(nodeStyle(surfaceNode(sheet.container())).borderWidth).toBe(0);
+
+		// The grab handle belongs to the sheet alone: it says the card can be dragged,
+		// and a centred card cannot.
+		const dialogMotion = surfaceNode(dialog.container())
+			.parentElement as HTMLElement;
+
+		expect(dialogMotion.firstElementChild).toBe(
+			surfaceNode(dialog.container())
+		);
+
+		const sheetMotion = surfaceNode(sheet.container()).parentElement
+			?.firstElementChild as HTMLElement;
+
+		expect(nodeStyle(sheetMotion)).toMatchObject({ height: 4, width: 36 });
+
+		dialog.unmount();
+		sheet.unmount();
+	});
+
+	test('puts the accent on Save Settings and offers nothing else', () => {
+		const tree = mountSurface(
+			<ConsentPreferences
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const card = surfaceNode(tree.container(), 'Manage preferences');
+		const footer = card.lastElementChild as HTMLElement;
+		const actions = roleNodes(footer, 'button');
+
+		// The live centre renders three actions and nothing below them: leaving is the
+		// scrim's job, and the mobile sheet used to add a fourth button for it.
+		expect(actions.map((node) => node.getAttribute('aria-label'))).toEqual([
+			'Reject All',
+			'Accept All',
+			'Save Settings',
+		]);
+		expect(isAccent(tree.container(), 'Accept All')).toBe(false);
+		expect(nodeStyle(actions[2] as HTMLElement).borderColor).toBe(
+			lightTheme.colors.primary
+		);
+
+		tree.unmount();
+	});
+});
+
+describe('category accordion', () => {
+	test('keeps the description shut until the row is tapped', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+
+		expect(tree.text()).not.toContain(
+			'Shows you advertising that is relevant to you.'
+		);
+
+		tap(requireRole(tree.container(), 'button', 'Marketing'));
+
+		expect(tree.text()).toContain(
+			'Shows you advertising that is relevant to you.'
+		);
+		expect(
+			requireRole(tree.container(), 'button', 'Marketing').getAttribute(
+				'aria-expanded'
+			)
+		).toBe('true');
+
+		tree.unmount();
+	});
+
+	test('lets the switch inside the row keep its own tap', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+
+		// React Native gives a touch to the innermost responder, so a flip on the
+		// switch must not also open the card around it: the two controls share a row
+		// and do entirely different jobs.
+		tap(requireRole(tree.container(), 'switch', 'Marketing'));
+
+		expect(tree.text()).not.toContain(
+			'Shows you advertising that is relevant to you.'
+		);
+		expect(
+			requireRole(tree.container(), 'switch', 'Marketing').getAttribute(
+				'aria-checked'
+			)
+		).toBe('true');
+
+		tree.unmount();
+	});
+
+	test('tracks the disclosure glyph in the accordion arrow colour', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const row = requireRole(tree.container(), 'button', 'Marketing');
+		const glyph = row.firstElementChild as HTMLElement;
+		const bar = nodeStyle(glyph.firstElementChild as HTMLElement);
+
+		// `.arrow` is a 20pt box holding lucide's plus, whose arms are 14 of a 24
+		// unit view box at 2 wide, and whose colour is `--accordion-arrow-color`'s
+		// fallback: 63.92% lightness, a step lighter than the label it sits beside.
+		expect(nodeStyle(glyph)).toMatchObject({ height: 20, width: 20 });
+		expect(bar.width).toBeCloseTo(11.667, 2);
+		expect(bar.height).toBeCloseTo(1.667, 2);
+		expect(bar.backgroundColor).toBe(lightTheme.colors.disclosure);
+
+		tree.unmount();
+	});
+});
+
+describe('switch thumb', () => {
+	test('is a ring that lets the track show through', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const track = requireRole(tree.container(), 'switch', 'Marketing')
+			.firstElementChild as HTMLElement;
+		const thumb = track.lastElementChild as HTMLElement;
+		const dot = nodeStyle(thumb.firstElementChild as HTMLElement);
+
+		// `.thumb::before` is masked out in the middle and `.thumb::after` spreads 1px
+		// of the border token around the disc, so the thumb is a ring rather than a
+		// filled dot, and the 4pt hole reads as the track colour it sits on.
+		expect(dot).toMatchObject({ height: 4, width: 4 });
+		expect(dot.backgroundColor).toBe(lightTheme.colors.switchTrack);
+		expect(nodeStyle(thumb).boxShadow).toBe(
+			`0 0 0 1px ${lightTheme.colors.border}`
+		);
+
+		tree.unmount();
+	});
+
+	test('flattens the thumb of a category the subject cannot move', () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const track = requireRole(tree.container(), 'switch', 'Strictly Necessary')
+			.firstElementChild as HTMLElement;
+		const thumb = nodeStyle(track.lastElementChild as HTMLElement);
+
+		// `--switch-thumb-size-disabled` is 8 against 10, and the ring is dropped:
+		// that, over a track faded to 40%, is the whole reason the required row looks
+		// paler than the ones a subject decides.
+		expect(thumb).toMatchObject({ height: 8, width: 8 });
+		// The whitelist the stub records style through writes absent keys as null.
+		expect(thumb.boxShadow).toBeNull();
+		expect(nodeStyle(track).opacity).toBe(0.4);
 
 		tree.unmount();
 	});

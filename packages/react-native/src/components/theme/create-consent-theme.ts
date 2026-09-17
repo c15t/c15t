@@ -22,13 +22,36 @@ export interface ConsentThemeColors {
 	readonly surfaceRaised: string;
 	/** Hairline separating rows from the footer. */
 	readonly border: string;
+	/**
+	 * The disclosure glyph on a collapsed category row: the plus that becomes a
+	 * minus, and nothing else.
+	 *
+	 * Web keeps this one colour outside the palette: `.arrow` falls back to
+	 * `hsl(0, 0%, 63.92%)` when `--accordion-arrow-color` is unset, which is
+	 * lighter than `textMuted` on purpose so the row's own label stays the loudest
+	 * thing on it while the affordance is still findable.
+	 */
+	readonly disclosure: string;
+	/**
+	 * The copy a category card reveals when it opens.
+	 *
+	 * `.content` in the consent accordion resolves `--accordion-content-color` to
+	 * `hsl(0, 0%, 36.08%)`, a step under `textMuted`: the description is the same
+	 * size as the label it explains, so tone is the only thing separating them.
+	 */
+	readonly contentText: string;
 	/** Primary text. */
 	readonly text: string;
-	/** Secondary text, such as a category description. */
+	/** Secondary text, such as a heading's supporting line. */
 	readonly textMuted: string;
 	/**
-	 * Accent: the outline and label of the two decision actions, and the switch
-	 * track when on. Nothing in the built-in surfaces fills with it.
+	 * Accent: the outline and label of the action the surface is asking for, which
+	 * is `Customize` on a banner and `Save Settings` in a sheet, and the switch
+	 * track when on.
+	 *
+	 * The two decisions stay in {@link ConsentThemeColors.text} so a prompt never
+	 * leans a subject either way, and the fill is never used: every consent action
+	 * web ships is an outline. The branding tab is the one element that fills.
 	 */
 	readonly primary: string;
 	/** Text on a filled {@link ConsentThemeColors.primary}, for a host that fills one. */
@@ -212,6 +235,8 @@ const baseMotion: ConsentThemeMotion = {
 
 const lightColors: ConsentThemeColors = {
 	border: '#E6E6E6',
+	contentText: '#5C5C5C',
+	disclosure: '#A3A3A3',
 	focus: '#335CFF',
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.5)',
@@ -228,6 +253,8 @@ const lightColors: ConsentThemeColors = {
 
 const darkColors: ConsentThemeColors = {
 	border: '#333333',
+	contentText: '#999999',
+	disclosure: '#CCCCCC',
 	focus: '#6685FF',
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.7)',

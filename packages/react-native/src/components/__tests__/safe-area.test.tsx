@@ -329,6 +329,32 @@ describe('consent surface safe area', () => {
 			/>
 		);
 
+		// A centred card is a web surface, and the web overlay pads 16 all round
+		// *inside* the safe area: the band is added to the gutter, not traded for it.
+		expect(layerStyle(tree.container()).paddingTop).toBe(
+			28 + lightTheme.spacing.m
+		);
+
+		tree.unmount();
+	});
+
+	test('leaves the band alone at the top of a bottom sheet', () => {
+		setPlatformOS('android');
+		setStatusBarHeight(28);
+
+		const tree = mountWithInsets(
+			undefined,
+			<ConsentPreferences
+				onRequestClose={() => {
+					/* closing writes nothing */
+				}}
+				open
+				presentation="sheet"
+			/>
+		);
+
+		// The sheet hugs the bottom edge instead, so it reserves nothing up top and
+		// the status bar band is the whole padding.
 		expect(layerStyle(tree.container()).paddingTop).toBe(28);
 
 		tree.unmount();

@@ -56,15 +56,16 @@ const MARK_STYLE = { height: MARK_SIZE, width: MARK_SIZE };
 /**
  * How the tab attaches, per presentation.
  *
- * Both are `align-self: flex-end`, at the card's own inset: 12 on the banner
- * (`margin-inline-end: .75rem`) and 16 on the sheet
- * (`right: var(--consent-dialog-card-padding-mobile)`, which is that sheet's
- * content padding). The banner variant gives up its bottom border and lifts 1px
- * into the card, so the card's hairline runs under the tab instead of across it.
+ * All three are `align-self: flex-end`, at the card's own inset: 12 on the banner
+ * (`margin-inline-end: .75rem`) and 16 on the two card surfaces, which is the web
+ * dialog's `--consent-dialog-card-padding` for the centred card and that sheet's
+ * own content padding for the bottom one. The banner variant gives up its bottom
+ * border and lifts 1px into the card, so the card's hairline runs under the tab
+ * instead of across it.
  *
- * The sheet carries no border of its own, so the modal variant needs no overlap
- * to hide a seam: it butts against the sheet's bottom edge with the top corners
- * squared and the top border gone, and that is the whole of it.
+ * The dialog card does carry a border and the sheet does not, so the dialog tab
+ * butts against the bottom edge with its top border gone, and the sheet needs no
+ * seam to hide at all. Same shape either way, which is why both hang below.
  */
 const ATTACHMENT: Record<
 	ConsentSurfacePresentation,
@@ -80,7 +81,16 @@ const ATTACHMENT: Record<
 		marginBottom: -1,
 		marginRight: 12,
 	}),
-	modal: (radius) => ({
+	dialog: (radius) => ({
+		alignSelf: 'flex-end',
+		borderBottomLeftRadius: radius,
+		borderBottomRightRadius: radius,
+		borderTopLeftRadius: 0,
+		borderTopRightRadius: 0,
+		borderTopWidth: 0,
+		marginRight: 16,
+	}),
+	sheet: (radius) => ({
 		alignSelf: 'flex-end',
 		borderBottomLeftRadius: radius,
 		borderBottomRightRadius: radius,
@@ -154,7 +164,7 @@ export const ConsentBrandingTag = ({
 					source={{ uri: selectBrandingMark(PixelRatio.get()) }}
 					style={MARK_STYLE}
 				/>
-				<Text style={parts.brandingLabel}>{WORDMARK}</Text>
+				<Text style={parts.brandingWordmark}>{WORDMARK}</Text>
 			</View>
 		</Pressable>
 	);

@@ -363,12 +363,16 @@ describe('banner action row', () => {
 			const style = nodeStyle(action);
 			const label = nodeStyle(action.firstElementChild as HTMLElement);
 
-			// Web strokes these rather than filling them: the card shows through.
+			// Web strokes these rather than filling them: the card shows through. The
+			// accent action carries a 2pt ring, which is web's 1px border plus the
+			// accent ring laid inside it, and the neutral one is a single hairline.
 			expect(style.backgroundColor).toBe(lightTheme.colors.surface);
-			expect(style.borderWidth).toBe(1);
+			expect(style.borderWidth).toBe(accent ? 2 : 1);
 			expect(style.borderColor).toBe(
 				accent ? lightTheme.colors.primary : lightTheme.colors.border
 			);
+			// Both sit off the card on the web's own smallest elevation.
+			expect(style.boxShadow).toBe('0 1px 2px 0 rgba(0, 0, 0, 0.05)');
 			expect(label.color).toBe(
 				accent ? lightTheme.colors.primary : lightTheme.colors.text
 			);

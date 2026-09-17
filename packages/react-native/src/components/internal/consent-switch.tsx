@@ -34,6 +34,29 @@ const SWITCH_DURATION = 150;
 const SWITCH_REDUCED_DURATION = 1;
 
 /**
+ * How big a thumb is when the subject cannot move it: 8.
+ *
+ * `--switch-thumb-size-disabled` on `.root-small` is `0.5rem` against the live
+ * control's `0.625rem`, its fill drops to `surface-hover`, and it loses its ring
+ * (`thumb-disabled { box-shadow: none }`). That smaller, flatter disc on a track
+ * faded to 40% is what a category the subject has no say in looks like: `Strictly
+ * Necessary` reads as pale on the web for that reason, not because web draws it in
+ * a colour of its own.
+ */
+const THUMB_SIZE_DISABLED = 8;
+
+/**
+ * The hole punched through the middle of the thumb: 4.
+ *
+ * `.thumb::before` is masked with `radial-gradient(circle farthest-side, #0000
+ * 1.95px, #000 2.05px)`, so the disc is really a ring: whatever the track behind it
+ * is, a 4pt dot of it shows through the middle of the thumb. React Native has no
+ * mask, so the dot is drawn as a child painted in the track's own colour, which is
+ * the only thing it can ever be seen as.
+ */
+const THUMB_HOLE = 4;
+
+/**
  * The tap target, which is larger than the track in both directions.
  *
  * The track is centred inside it, so the visible control keeps the web
@@ -119,13 +142,23 @@ export const ConsentSwitch = ({
 		}).start();
 	}, [position, reducedMotion, value]);
 
+	// The travel stays the web's own calculation, which reads the live thumb size
+	// even while a smaller disabled one is drawn, so an immovable category stops at
+	// exactly the point a movable one does.
+	const trackColor = value
+		? theme.colors.switchTrackOn
+		: theme.colors.switchTrack;
+	const size = disabled ? THUMB_SIZE_DISABLED : thumb;
+
 	const thumbStyle: ViewStyle = {
-		backgroundColor: theme.colors.switchThumb,
-		borderColor: theme.colors.border,
-		borderRadius: thumb / 2,
-		borderWidth: 1,
-		height: thumb,
-		width: thumb,
+		alignItems: 'center',
+		backgroundColor: disabled
+			? theme.colors.surfaceRaised
+			: theme.colors.switchThumb,
+		borderRadius: size / 2,
+		height: size,
+		justifyContent: 'center',
+		width: size,
 	};
 
 	return (
@@ -154,6 +187,11 @@ export const ConsentSwitch = ({
 					style={[
 						thumbStyle,
 						{
+							// `.thumb::after` spreads 1px of the border token around the disc,
+							// outside it, and only on a thumb the subject can move.
+							boxShadow: disabled
+								? undefined
+								: `0 0 0 1px ${theme.colors.border}`,
 							transform: [
 								{
 									translateX: position.interpolate({
@@ -164,7 +202,16 @@ export const ConsentSwitch = ({
 							],
 						},
 					]}
-				/>
+				>
+					<View
+						style={{
+							backgroundColor: trackColor,
+							borderRadius: THUMB_HOLE / 2,
+							height: THUMB_HOLE,
+							width: THUMB_HOLE,
+						}}
+					/>
+				</Animated.View>
 			</View>
 		</Pressable>
 	);

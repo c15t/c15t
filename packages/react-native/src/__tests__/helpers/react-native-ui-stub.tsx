@@ -292,7 +292,9 @@ const RECORDED_STYLE_KEYS = [
 	'marginRight',
 	'marginTop',
 	'maxHeight',
+	'maxWidth',
 	'minHeight',
+	'opacity',
 	'padding',
 	'paddingBottom',
 	'paddingTop',
@@ -552,9 +554,15 @@ export const Pressable = (props: PressablePropsStub): ReactElement => {
 			'data-rn-style': styleAttribute(props.style, { pressed: false }),
 			disabled,
 			href: isLink ? '#' : undefined,
+			// React Native hands a touch to the innermost responder, so a control
+			// nested in another one swallows it rather than bubbling it up: a switch
+			// inside an accordion row flips the switch and leaves the row shut. A DOM
+			// click bubbles by default, which would give the row the same tap, so the
+			// stand-in stops the propagation React Native never had.
 			onClick: disabled
 				? undefined
-				: () => {
+				: (event: { stopPropagation: () => void }) => {
+						event.stopPropagation();
 						props.onPressIn?.();
 						props.onPress?.(pressEvent());
 						props.onPressOut?.();

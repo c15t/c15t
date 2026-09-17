@@ -52,6 +52,17 @@ export interface ConsentDialogProps {
 	readonly onRequestClose: () => void;
 	/** Whether the dialog is open. */
 	readonly open: boolean;
+	/**
+	 * How the card is anchored.
+	 *
+	 * `dialog` centres it inside the overlay with a 16pt gutter on every side and
+	 * caps it at the web card's 448pt width, which is what the web surface does and
+	 * the default here. `sheet` drops it to the bottom edge with a grab handle
+	 * above it instead: a legitimate choice on a phone, and a host with a lot of
+	 * categories to reach may prefer the taller card, but it is not what the web
+	 * surface looks like.
+	 */
+	readonly presentation?: 'dialog' | 'sheet';
 	/** Per-part style overrides. */
 	readonly styles?: ConsentPartStyles;
 	/** Theme to render with, instead of the platform scheme. */
@@ -177,15 +188,18 @@ const ConsentDialogContent = ({
 			</ConsentSurfaceBody>
 			<ConsentSurfaceFooter>
 				{/*
-				 * The two decisions share a row in the accent, and the action that
-				 * writes the draft below takes the neutral outline, exactly as the
-				 * web sheet arranges them. Leaving the decisions out of a sheet that
-				 * owes a prompt meant a subject could not grant or deny everything
-				 * without flicking five switches.
+				 * The two decisions share a row in the neutral outline and the action
+				 * that writes the draft takes the accent below them, which is the split
+				 * `policy-actions.ts` draws for a preference surface: there
+				 * `primaryActions` defaults to `save`, so reject and accept stay neutral
+				 * together. Leaving the decisions out of a surface that owes a prompt
+				 * meant a subject could not grant or deny everything without flicking
+				 * five switches.
 				 */}
 				<View style={parts.row}>
 					<ConsentButton
 						disabled={busy}
+						kind="secondary"
 						label={copy.rejectAll}
 						onPress={() => {
 							void decide('reject');
@@ -194,6 +208,7 @@ const ConsentDialogContent = ({
 					/>
 					<ConsentButton
 						disabled={busy}
+						kind="secondary"
 						label={copy.acceptAll}
 						onPress={() => {
 							void decide('accept');
@@ -203,7 +218,6 @@ const ConsentDialogContent = ({
 				</View>
 				<ConsentButton
 					disabled={busy}
-					kind="secondary"
 					label={copy.save}
 					onPress={() => {
 						void save();
@@ -248,19 +262,20 @@ export const ConsentDialog = ({
 	onOpenPreferences,
 	onRequestClose,
 	open,
+	presentation = 'dialog',
 	styles,
 	theme,
 }: ConsentDialogProps): ReactNode => {
 	// Words only. The category list belongs to the sheet, and a shut sheet has
 	// none on screen.
 	const copy = useConsentSelector(selectConsentCopy, isConsentCopyEqual);
-	const surface = useConsentStyles({ styles, theme });
+	const surface = useConsentStyles({ presentation, styles, theme });
 
 	const branding = hideBranding ? undefined : (
 		<ConsentBrandingTag
 			label={copy.securedBy}
 			parts={surface.parts}
-			presentation="modal"
+			presentation={presentation}
 			radius={surface.theme.radius.surface}
 		/>
 	);
@@ -272,7 +287,7 @@ export const ConsentDialog = ({
 			label={copy.dialogTitle}
 			onRequestClose={onRequestClose}
 			open={open}
-			presentation="modal"
+			presentation={presentation}
 			styles={surface}
 		>
 			<ConsentDialogContent

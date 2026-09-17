@@ -312,16 +312,29 @@ describe('theme', () => {
 			/>
 		);
 
-		const card = requireRole(tree.container(), 'switch', 'Werbung')
+		// The switch sits in the trigger row, and the trigger row sits in the card.
+		const trigger = requireRole(tree.container(), 'switch', 'Werbung')
 			.parentElement as HTMLElement;
+		const card = trigger.parentElement as HTMLElement;
 
-		// `.item` is a card in its own border, not a row between two dividers.
+		// `.item` is a card in its own border, not a row between two dividers, and it
+		// carries nothing but that border.
 		expect(nodeStyle(card)).toMatchObject({
 			backgroundColor: lightTheme.colors.surface,
 			borderColor: lightTheme.colors.border,
 			borderRadius: lightTheme.radius.control,
 			borderWidth: 1,
+			flexDirection: 'column',
+		});
+
+		// `.triggerRow` is where the 8 of padding and the 4 step live, over the
+		// disclosure's `calc(icon + 0.25rem)` minimum. They have to sit there rather
+		// than on the card, because the description a tap reveals falls outside the
+		// row and still has to line up with the label above it.
+		expect(nodeStyle(trigger)).toMatchObject({
+			alignItems: 'center',
 			gap: 4,
+			minHeight: 24,
 			padding: 8,
 		});
 
@@ -350,29 +363,59 @@ describe('theme', () => {
 			borderTopColor: lightTheme.colors.border,
 			borderTopWidth: 1,
 			gap: 8,
+			paddingBottom: 16,
 			paddingHorizontal: 20,
-			paddingVertical: 16,
+			paddingTop: 16,
+		});
+
+		const dialog = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+		const dialogFooter = surfaceNode(dialog.container())
+			.lastElementChild as HTMLElement;
+
+		// The dialog's actions sit on the card itself with nothing above them: the
+		// composition renders them in a plain container, and the live surface measures
+		// `border-top-width: 0` over a transparent fill. What it does keep is the
+		// card's own 24 gutter, the footer's 16 above, and the run of the card padding
+		// below, so the row lines up with the heading and the list over it.
+		expect(nodeStyle(dialogFooter)).toMatchObject({
+			backgroundColor: lightTheme.colors.surface,
+			borderTopWidth: 0,
+			gap: 8,
+			paddingBottom: 24,
+			paddingHorizontal: 24,
+			paddingTop: 16,
 		});
 
 		const sheet = mountSurface(
 			<ConsentDialog
 				onRequestClose={vi.fn()}
 				open
+				presentation="sheet"
 			/>
 		);
 		const sheetFooter = surfaceNode(sheet.container())
 			.lastElementChild as HTMLElement;
 
-		// A sheet sits on the card at 16 all round with the shorter step.
+		// A bottom sheet runs to the screen edges, so it has no card gutter to take
+		// and keeps 16 all round. Same card fill and no rule either: the two are one
+		// card anchored two ways, and the host's `presentation` prop should not also
+		// restyle its footer.
 		expect(nodeStyle(sheetFooter)).toMatchObject({
 			backgroundColor: lightTheme.colors.surface,
-			borderTopWidth: 1,
+			borderTopWidth: 0,
 			gap: 8,
+			paddingBottom: 16,
 			paddingHorizontal: 16,
-			paddingVertical: 16,
+			paddingTop: 16,
 		});
 
 		banner.unmount();
+		dialog.unmount();
 		sheet.unmount();
 	});
 
