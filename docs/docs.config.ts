@@ -274,7 +274,7 @@ export default defineDocsConfig({
 					title: 'Embeds',
 				},
 				{
-					pages: ['google-tag-manager'],
+					pages: ['google-tag-manager', 'cloudflare-zaraz'],
 					slug: 'tag-managers',
 					title: 'Tag managers',
 				},

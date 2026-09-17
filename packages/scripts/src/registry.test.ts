@@ -105,6 +105,7 @@ import {
 } from './vendors/analytics/vercel-analytics';
 import { crisp, crispManifest } from './vendors/functional/crisp';
 import { intercom, intercomManifest } from './vendors/functional/intercom';
+import { cloudflareZaraz } from './vendors/tag-managers/cloudflare-zaraz';
 import {
 	googleTagManager,
 	googleTagManagerManifest,
@@ -161,6 +162,14 @@ const helperParityCases = {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
+	},
+	cloudflareZaraz: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: undefined,
+		},
+		script: cloudflareZaraz({ purposes: { measurement: ['analytics'] } }),
 	},
 	crisp: {
 		expected: {
@@ -530,7 +539,11 @@ describe('script integration registry', () => {
 	});
 
 	it('matches vendor manifest ids', () => {
-		const manifestVendors = vendorManifests.map((manifest) => manifest.vendor);
+		// Zaraz uses imperative readiness listeners, not a vendor manifest.
+		const manifestVendors = [
+			...vendorManifests.map((manifest) => manifest.vendor),
+			'cloudflare-zaraz',
+		];
 		const registryVendors = builtInScriptIntegrations.map(
 			(integration) => integration.vendor
 		);

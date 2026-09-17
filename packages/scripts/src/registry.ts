@@ -98,6 +98,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'necessary',
+		docsSlug: 'cloudflare-zaraz',
+		hint: 'Consent bridge for tools managed by Zaraz',
+		integrationCategory: 'tag-manager',
+		key: 'cloudflareZaraz',
+		label: 'Cloudflare Zaraz',
+		packageSubpath: 'cloudflare-zaraz',
+		vendor: 'cloudflare-zaraz',
+	},
+	{
+		consentCategory: 'necessary',
 		docsSlug: 'google-tag-manager',
 		hint: 'GTM container script',
 		integrationCategory: 'tag-manager',

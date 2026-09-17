@@ -191,6 +191,12 @@ type PosthogProbeWindow = Window & {
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
+		skipReason:
+			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',
+		tier: 'skip',
+		vendor: 'cloudflare-zaraz',
+	},
+	{
 		bootstrapCheck: () => {
 			const { dataLayer } = window;
 

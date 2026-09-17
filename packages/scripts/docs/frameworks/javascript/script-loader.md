@@ -46,6 +46,19 @@ The loader exposes `updateScripts`, `getLoadedScriptIds` and `dispose`.
 Unloading an element cannot reverse requests or code that already ran. Test
 revocation and vendor cleanup with [verification](../../guides/verify-consent.md).
 
+## Dispose integration resources
+
+Custom script configurations can use `onDispose(info)` to release event
+listeners or other resources. The loader calls it when a configuration is
+removed, replaced by a different object, or the loader is disposed, including
+configurations that never loaded. Keep configuration objects stable across
+updates if their resources should remain attached. Repeated loader disposal
+does not call the hook again.
+
+Consent revocation alone does not call `onDispose`. Use `onConsentChange` for
+vendor opt-out commands. Cleanup errors are reported through the loader's debug
+events and do not prevent other configurations from being cleaned up.
+
 ## Clear stored tracking data
 
 Script gating does not remove cookies or Web Storage entries that a script

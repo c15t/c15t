@@ -45,6 +45,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })",
 		importName: 'cloudflareWebAnalytics',
 	},
+	'cloudflare-zaraz': {
+		example:
+			"cloudflareZaraz({ purposes: { measurement: ['YOUR_ZARAZ_PURPOSE_ID'] } })",
+		importName: 'cloudflareZaraz',
+	},
 	crisp: {
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'crisp',

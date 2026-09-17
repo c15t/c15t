@@ -193,6 +193,16 @@ export interface Script {
 	 */
 	onConsentChange?: (info: ScriptCallbackInfo) => void;
 
+	/**
+	 * Release listeners and other resources when this configuration is removed,
+	 * replaced, or its loader is disposed. Called even if the script never loaded.
+	 * Consent revocation alone does not call this hook. It does not revoke vendor
+	 * consent or undo code that has already executed. Must be safe to call before
+	 * onLoad, including during server rendering.
+	 * @param info - The current consent state and script identity.
+	 */
+	onDispose?: (info: ScriptCallbackInfo) => void;
+
 	// ─────────────────────────────────────────────────────────────────────────
 	// IAB TCF Properties
 	// ─────────────────────────────────────────────────────────────────────────
@@ -295,6 +305,7 @@ export type ScriptLifecycleCallback =
 	| 'onBeforeLoad'
 	| 'onLoad'
 	| 'onConsentChange'
+	| 'onDispose'
 	| 'onError';
 
 export type ScriptDebugAction =

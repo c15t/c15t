@@ -45,7 +45,12 @@ export interface ScriptLoaderDebugEvent {
 	scriptId: string;
 	elementId?: string;
 	hasConsent?: boolean;
-	callback?: 'onLoad' | 'onError' | 'onConsentChange' | 'onBeforeLoad';
+	callback?:
+		| 'onLoad'
+		| 'onError'
+		| 'onConsentChange'
+		| 'onBeforeLoad'
+		| 'onDispose';
 	data?: Record<string, unknown>;
 	timestamp: number;
 }

@@ -33,6 +33,7 @@
 import { extractConsentNamesFromCondition } from '../../libs/has';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
+import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
 import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
@@ -237,10 +238,36 @@ export const createScriptLoader = function createScriptLoader(
 			})
 	);
 	const unsubscribe = kernel.subscribe(() => reconcile());
+	let disposed = false;
+	const disposeScript = (script: Script): void => {
+		if (!script.onDispose) {
+			return;
+		}
+		const snapshot = kernel.getSnapshot();
+		invokeCallback(
+			script,
+			'onDispose',
+			buildCallbackInfo(
+				script,
+				snapshot,
+				consentByScriptId.get(script.id) ?? false,
+				elementIds.resolve(script),
+				loadedElements.get(script.id) ?? undefined
+			),
+			emit
+		);
+	};
 
 	const handle: ScriptLoaderHandle = {
 		dispose() {
+			if (disposed) {
+				return;
+			}
+			disposed = true;
 			unsubscribe();
+			for (const { script } of normalized) {
+				disposeScript(script);
+			}
 			diagnostics?.dispose();
 			diagnostics = undefined;
 			if (typeof document === 'undefined') {
@@ -267,7 +294,11 @@ export const createScriptLoader = function createScriptLoader(
 			return Array.from(loadedElements.keys());
 		},
 		updateScripts(next: Script[]) {
+			if (disposed) {
+				return;
+			}
 			const nextIds = new Set(next.map((s) => s.id));
+			const nextScripts = new Set(next);
 			const snapshot = kernel.getSnapshot();
 			for (const { script } of normalized) {
 				if (!nextIds.has(script.id)) {
@@ -277,6 +308,9 @@ export const createScriptLoader = function createScriptLoader(
 					consentByScriptId.delete(script.id);
 					lastEvents.delete(script.id);
 					statuses.delete(script.id);
+				}
+				if (!nextScripts.has(script)) {
+					disposeScript(script);
 				}
 			}
 			normalized = normalizeScripts(next);

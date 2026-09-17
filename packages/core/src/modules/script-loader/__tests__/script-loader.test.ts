@@ -757,6 +757,78 @@ describe('script-loader: updateScripts swaps config', () => {
 });
 
 describe('script-loader: dispose', () => {
+	test('cleans up removed, replaced and pending configurations exactly once', () => {
+		const kernel = createConsentKernel();
+		const first = vi.fn();
+		const second = vi.fn();
+		const pending = vi.fn();
+		const script: Script = {
+			callbackOnly: true,
+			category: 'necessary',
+			id: 'bridge',
+			onDispose: first,
+		};
+		const loader = createScriptLoader({ kernel, scripts: [script] });
+		loader.updateScripts([script]);
+		expect(first).not.toHaveBeenCalled();
+		loader.updateScripts([
+			{ ...script, onDispose: second },
+			{
+				category: 'marketing',
+				id: 'pending',
+				onDispose: pending,
+				src: 'https://example.com/pending.js',
+			},
+		]);
+		expect(first).toHaveBeenCalledOnce();
+		loader.updateScripts([]);
+		expect(second).toHaveBeenCalledOnce();
+		expect(pending).toHaveBeenCalledOnce();
+		loader.dispose();
+		loader.dispose();
+		expect(second).toHaveBeenCalledOnce();
+		kernel.dispose();
+	});
+
+	test('cleans up callback-only resources and isolates cleanup failures', () => {
+		const kernel = createConsentKernel();
+		const cleanup = vi.fn();
+		const errors: string[] = [];
+		const loader = createScriptLoader({
+			kernel,
+			onDebug: (event) => {
+				if (event.action === 'callback_error') {
+					errors.push(event.scriptId);
+				}
+			},
+			scripts: [
+				{
+					callbackOnly: true,
+					category: 'necessary',
+					id: 'broken',
+					onDispose: () => {
+						throw new Error('cleanup failed');
+					},
+				},
+				{
+					callbackOnly: true,
+					category: 'necessary',
+					id: 'bridge',
+					onDispose: cleanup,
+				},
+			],
+		});
+		loader.dispose();
+		loader.dispose();
+		expect(cleanup).toHaveBeenCalledOnce();
+		expect(errors).toEqual(['broken']);
+		loader.updateScripts([
+			{ category: 'necessary', id: 'late', src: 'https://example.com/late.js' },
+		]);
+		expect(loader.getLoadedScriptIds()).toEqual([]);
+		kernel.dispose();
+	});
+
 	test('removes mounted elements and stops reacting to consent', () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true }),
