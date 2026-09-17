@@ -151,6 +151,51 @@ acknowledgement, not a consent record, so nothing is sent to the backend.
 subject's stored record. `logout()` detaches it and keeps consent on the c15t subject
 id, so signing out does not reset consent.
 
+## Start the device over
+
+`reset()` wipes consent and puts the device back in the state a first launch boots with.
+Use it for a "start over" affordance, for a subject who withdrew everything and has to
+answer again, and for a reviewer who needs the fresh-install state without reinstalling
+the app.
+
+```tsx
+import { useConsentActions } from '@c15t/react-native';
+
+const actions = useConsentActions();
+
+await actions.reset();
+```
+
+The prompt is owed again afterwards, so the banner or dialog returns: a wipe is not a
+recorded reject-everything, and the difference is the receipt. A recorded denial keeps
+`explicitChoice` and leaves `promptRequirement` at `none`, so nothing comes back and the
+subject has no way out of it. A wipe clears the receipt, and once the policy resolves
+again `useConsentStatus()` reads `promptRequirement: { kind: 'choice', reason: 'missing' }`
+and `activeUI: 'banner'`, exactly as it did before the subject was ever asked. In between,
+while the re-resolve is outstanding, it reads `policyPending: true` and `ready: false` with
+every optional category denied, which is the same answer an unreadable store and a device
+that has never been used both give.
+
+A wipe keeps three things:
+
+- the c15t subject id, because the backend files the audit history under it. Erasing what
+  the backend holds for that subject is a backend call; `reset()` only clears the device.
+- overrides and the GPC override, which are configuration. See
+  [overrides](/docs/frameworks/react-native/configuration#overrides).
+- the configured category scope, for the same reason.
+
+It deletes the stored snapshot and the queued offline writes rather than writing a denial
+over them, so a save that had not been delivered is dropped instead of replayed: it carried
+a decision the subject just withdrew. A save already on the wire cannot be recalled, and the
+promise does not wait for one. `reset()` resolves once the device is durable, and the policy
+re-resolves in the background the way a first launch does, so a banner that comes back can
+arrive a moment after the promise.
+
+The revision counter keeps counting up rather than restarting: a wipe is one committed
+mutation, so it publishes the revision the device was on plus one. On a binary older than
+this package, `reset()` rejects with `NativeBridgeError` naming a rebuild, because a
+JavaScript update cannot add a native method.
+
 ## Tracking needs two answers
 
 An advertising identifier takes two separate yeses. The subject's comes from c15t. The

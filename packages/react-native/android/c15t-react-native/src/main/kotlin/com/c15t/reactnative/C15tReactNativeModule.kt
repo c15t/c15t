@@ -183,6 +183,30 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 		}
 	}
 
+	override fun reset(promise: Promise) {
+		if (!ensureCore()) {
+			// Wiping is not something an unstarted SDK can report as done. Resolving
+			// here would tell a "delete my data" handler that the device is clean when
+			// the core never ran and nothing was deleted, which is the one reply a host
+			// cannot act on afterwards.
+			promise.reject(REJECT_NOT_BOOTSTRAPPED, C15tPayload.MESSAGE_NOT_BOOTSTRAPPED)
+			return
+		}
+		try {
+			// `C15t.reset()` is teardown, not a wipe, and the two names are the reason
+			// this goes through the kernel it means. See its KDoc.
+			val kernel = C15t.current
+			if (kernel == null) {
+				promise.reject(REJECT_NOT_BOOTSTRAPPED, C15tPayload.MESSAGE_NOT_BOOTSTRAPPED)
+				return
+			}
+			kernel.reset()
+			promise.resolve(null)
+		} catch (error: Exception) {
+			promise.reject(REJECT_RESET, error.message, error)
+		}
+	}
+
 	override fun addListener(eventName: String) {
 		listenerCount += 1
 	}
@@ -257,6 +281,7 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 		const val REJECT_REFRESH = "C15T_REFRESH_FAILED"
 		const val REJECT_IDENTIFY = "C15T_IDENTIFY_FAILED"
 		const val REJECT_LOGOUT = "C15T_LOGOUT_FAILED"
+		const val REJECT_RESET = "C15T_RESET_FAILED"
 		const val REJECT_NOT_BOOTSTRAPPED = "C15T_NOT_BOOTSTRAPPED"
 	}
 }

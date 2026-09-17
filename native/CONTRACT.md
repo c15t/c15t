@@ -154,9 +154,10 @@ whose every field already matches is a value change: the kernel counts an
 `/init` as a mutation each time it is folded, `revision-trace-*.json` carries the
 numbers the kernel produced, and both cores match them. And the revision a core
 *starts* from: hydration and bootstrap are mutations in some cores and not in
-others, and `reset()` installs a fresh baseline instead of moving one, so absolute
-revisions are still not comparable across the three implementations. What each
-step costs is comparable, and the fixture pins that.
+others, and `reset()` moves the revision the process is on rather than restarting
+the numbering a cold install begins with, so absolute revisions are still not
+comparable across the three implementations. What each step costs is comparable,
+and the fixture pins that.
 
 Native API (Swift and Kotlin, same shape)
 -----------------------------------------
@@ -174,6 +175,7 @@ Native API (Swift and Kotlin, same shape)
     identify(user) / logout()
     setOverrides({ country, region, language, test })
     flushPending()                    // retry the offline queue
+    reset()                           // wipe consent, keep the subject id
 
 `snapshot()` and `isAllowed()` must not touch the network, the disk, or a lock
 that can be held across either. They are called from ad SDKs on the main thread.
@@ -546,6 +548,82 @@ the reading the generator is pinned to, not the offset it encodes; the epoch is
 subtracted inside, as the web SDK subtracts it from `Date.now()`. Add a row to all
 three at once.
 
+Wiping consent (reset)
+----------------------
+
+`reset()` returns the device to the state a first launch is in. That is the whole
+requirement, and it exists for two reasons: a subject is entitled to withdraw every
+grant and decide again, and a reviewer holding a device has to be able to see what a
+new install looks like. iOS keeps the Keychain through an uninstall, so a reinstall is
+not a fresh install, and Android needs `pm clear`.
+
+The first-launch state and a recorded denial are not close. A recorded denial is an
+`explicitChoice` that says the subject answered: the evaluator finds a current receipt,
+owes nothing, and no surface comes back. A cleared device holds no receipt at all, so
+the choice prompt is owed again, the next init re-evaluates, and the banner or dialog
+returns. A wipe that stops at "deny everything and never ask again" is worse than no
+wipe at all, because the subject cannot undo it. So the rule, stated where a core can
+check it: after `reset()` the device holds no `explicitChoice`, no notice dismissal, no
+policy claim, and no queued save.
+
+What the core publishes, and what it keeps:
+
+    revision                                  current + 1
+    policyPending / ready                     true / false, the cold-start pair
+    promptRequirement / activeUI              none / none until the next init
+    effectivePermissions                      necessary only
+    explicitChoice, noticeDismissal, resolution, policySnapshotToken, location,
+    translations, optOutDirectives, restrictions, nextDeadline, error
+                                              absent, as a cold start leaves them
+    subject                                   kept, external id included
+    overrides, consentCategories, privacySignals   kept: configuration, not consent
+
+The kept list is load bearing. A host that pinned a country for QA, switched GPC on, or
+narrowed the category scope has configured the device rather than consented with it, and
+a wipe that un-pinned those would resolve a different policy than the one the app is set
+up to evaluate. The subject id stays for the reason "Subject identity" gives: the backend
+holds an audit history keyed to it, and dropping it locally orphans that history without
+erasing a byte of it. Erasure is a backend call and a separate API. `reset()` wipes the
+device and says so.
+
+Reset is a committed mutation, so the rule under "Revisions and error writes" covers it
+whole: one bump, one publication, observers and the paired event included. A core that
+installs the baseline without publishing it leaves every gate in the process pointing at
+a decision the device no longer remembers, so an analytics SDK keeps running against a
+consent that was just withdrawn, and the pump has no reason to announce anything.
+Publishing the baseline at the cold-start revision is the same mistake with a number
+attached: it hands a subscriber a snapshot older than the one it already holds, and in
+the Swift core it stops persistence for the rest of the session, because a write whose
+revision is not ahead of the last one is refused. Reset moves the current revision by
+one, and the next init continues from there.
+
+It is the one mutation whose own durable effect is a deletion, so it writes no envelope of
+its own. The snapshot key goes rather than getting a null written over it, and the queue
+goes the same way, because an empty queue as bytes is not the answer a first launch has.
+What is on disk when `reset()` finishes is the subject id and nothing else. The only
+envelope that appears afterwards is the one the init below writes, which is the envelope a
+first launch writes too, and nothing under it may carry a decision. A core's
+`hasStoredSnapshot` answer moves with the deletion for the reason the unreadable-envelope
+rule gives: a handshake that reports cached consent from a device that just wiped it
+misstates the subject's answer, not the state of the cache.
+
+Then it re-runs init, the way bootstrap does. A first launch does not sit at
+`policyPending` once the network answers, and a wipe that stopped at the baseline would
+leave the app sitting there until the next launch, with the subject withdrawn from
+everything and nothing asking for the decision they are entitled to make again.
+Re-resolving belongs to the wipe rather than to the caller: a bridge that calls
+`refresh()` after `reset()` hides a core that does not finish its own work, and every
+host would have to be told the order.
+
+Two things a reset does not do. It records nothing, so it sends nothing: there is no
+consent record to make and no queue entry to write, and the backend keeps the records it
+already holds. And it cannot recall a request already on its way. A save a delivery pass
+had handed to the transport may still land after the wipe, and the pass finds its entry
+gone when it settles. The bridge promise resolves once the local state is durable and
+does not wait on that request, because its outcome is not something a caller can act on.
+Undelivered entries go with the queue, which is the right answer: they carry a decision
+the subject just withdrew.
+
 React Native boundary
 ---------------------
 
@@ -560,6 +638,7 @@ New Architecture only. TurboModule plus Codegen, no legacy bridge, no
     refresh(): Promise<void>
     identify(externalId): Promise<void>
     logout(): Promise<void>
+    reset(): Promise<void>                      // wipe consent, keep the subject id
     addListener(eventName): void              // RNEventEmitter spec
     removeListeners(count): void
 
@@ -663,7 +742,7 @@ Conformance fixtures
 --------------------
 
 `native/protocol/*.json`, generated by `packages/react-native/scripts/` from the
-TypeScript kernel. Four kinds:
+TypeScript kernel. Five kinds:
 
 - `evaluation-*.json`  transport response plus stored records in, snapshot out.
 - `save-body-*.json`   transport response plus action in, exact request body out.
@@ -674,6 +753,11 @@ TypeScript kernel. Four kinds:
   produced for it out: one `{ step, revisionDelta, publications }` per step. This
   is the cross-core parity fixture. It pins what each step costs rather than the
   absolute revision, because that is the half the three implementations can share.
+- `reset-consent-*.json` a device with a recorded answer in, the wipe out: the
+  snapshot `reset()` publishes, what is left on disk under it, and the snapshot the
+  device answers with once the init it re-ran lands. The pair holds a device that had
+  accepted everything and a device that had recorded a denial, and their expected
+  answers are identical, which is the claim "Wiping consent (reset)" makes.
 
 An `input` is what a client actually sees, never a convenience shape a generator
 invented. Every fixture carries `now` (the fixed clock every side must use),
@@ -741,7 +825,7 @@ build against the same reality.
   `bun run --cwd packages/react-native generate:fixtures`, which is byte-stable:
   two runs produce the same bytes, so a diff in `native/protocol/` is always a
   real change and never a timestamp.
-- All four kinds are generated, and both native cores claim and run all four. Each
+- All five kinds are generated, and both native cores claim and run all five. Each
   runner keeps a set of the kinds it has a function for, derives its unclaimed count
   from that set, and fails when the count is not zero, so a kind goes unrun only by a
   branch nobody wrote. The web v3 record envelope that used to be reported unclaimed

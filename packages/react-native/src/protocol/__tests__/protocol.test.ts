@@ -59,6 +59,8 @@ const OVERRIDE_KEYS = ['country', 'gpc', 'language', 'region'].sort();
 const GPC_SIGNAL_KEYS = ['active', 'detected', 'override'].sort();
 
 const MANDATED_FIXTURES = [
+	'reset-consent-opt-in-grants',
+	'reset-consent-recorded-denial',
 	'revision-trace-error-writes',
 	'evaluation-eu-opt-in',
 	'evaluation-gpc-signal-present',
@@ -72,7 +74,12 @@ const MANDATED_FIXTURES = [
 
 interface FixtureFile {
 	id: string;
-	kind: 'evaluation' | 'native-envelope' | 'revision-trace' | 'save-body';
+	kind:
+		| 'evaluation'
+		| 'native-envelope'
+		| 'reset-consent'
+		| 'revision-trace'
+		| 'save-body';
 	protocolVersion: number;
 	description: string;
 	notes: string[];
@@ -95,7 +102,12 @@ interface IndexEntry {
 	bytes: number;
 	file: string;
 	id: string;
-	kind: 'evaluation' | 'native-envelope' | 'revision-trace' | 'save-body';
+	kind:
+		| 'evaluation'
+		| 'native-envelope'
+		| 'reset-consent'
+		| 'revision-trace'
+		| 'save-body';
 	protocolVersion: number;
 	sha256: string;
 }
@@ -148,6 +160,9 @@ const snapshotsIn = function snapshotsIn(
 			snapshots[key] = snapshot as Record<string, unknown>;
 		}
 	}
+	// `reset-consent` claims no top-level snapshot: it pins a baseline and a settled
+	// state, and both leave `revision` to the delta the case states. That pair gets its
+	// own test below rather than a widened loop that would have to forgive the omission.
 	return snapshots;
 };
 
@@ -285,6 +300,7 @@ describe('protocol fixtures', () => {
 			expect([
 				'evaluation',
 				'native-envelope',
+				'reset-consent',
 				'revision-trace',
 				'save-body',
 			]).toContain(fixture.kind);
@@ -366,6 +382,89 @@ describe('protocol fixtures', () => {
 			expect(optional.length).toBe(4);
 			expect(optional.every((value) => value === false)).toBe(true);
 		}
+	});
+
+	/**
+	 * A wipe is the one kind whose expected snapshots are written rather than replayed,
+	 * so the field set is checked here with the single documented omission made
+	 * explicit, and the two claims that only this kind makes -- the delta and the
+	 * deletion -- are checked next to it.
+	 */
+	test('a wipe leaves the mobile shape, one revision ahead, with nothing stored', () => {
+		const wipes = readFixtures().filter(
+			(fixture) => fixture.kind === 'reset-consent'
+		);
+
+		expect(wipes.map((fixture) => fixture.id).sort()).toEqual([
+			'reset-consent-opt-in-grants',
+			'reset-consent-recorded-denial',
+		]);
+
+		for (const fixture of wipes) {
+			const expected = fixture.expected as unknown as {
+				afterInit: { snapshot: Record<string, unknown> };
+				baseline: {
+					disk: Record<string, unknown>;
+					revisionDelta: number;
+					snapshot: Record<string, unknown>;
+				};
+			};
+
+			// The counter is deliberately absent: a wipe publishes the revision the
+			// device was on plus one, and `native/CONTRACT.md` refuses to compare the
+			// absolute numbering the implementations start from. Absent by rule, not by
+			// drift -- and the delta below is the half that is stateable.
+			expect(expected.baseline.snapshot.revision).toBeUndefined();
+			expect(expected.afterInit.snapshot.revision).toBeUndefined();
+			expect(expected.baseline.revisionDelta).toBe(1);
+
+			for (const snapshot of [
+				expected.baseline.snapshot,
+				expected.afterInit.snapshot,
+			]) {
+				expect(describeSnapshotWireDrift({ ...snapshot, revision: 1 })).toEqual(
+					[]
+				);
+				expect(snapshot.iab).toBeNull();
+				expect(snapshot.error).toBeNull();
+
+				const permissions = permissionsOf(snapshot);
+
+				expect(Object.keys(permissions).sort()).toEqual(PERMISSION_KEYS);
+				expect(permissions.necessary).toBe(true);
+			}
+
+			// The baseline is the deny-everything-optional reading a first launch
+			// answers with while policy is still out of reach.
+			const baselinePermissions = permissionsOf(expected.baseline.snapshot);
+
+			expect(
+				Object.entries(baselinePermissions)
+					.filter(([category]) => category !== 'necessary')
+					.every(([, value]) => value === false)
+			).toBe(true);
+			expect(expected.baseline.snapshot.policyPending).toBe(true);
+			expect(expected.baseline.snapshot.ready).toBe(false);
+			expect(expected.baseline.snapshot.explicitChoice).toBeNull();
+
+			// The deletion is what a reader cannot see in the snapshot, so it is pinned
+			// as its own expectation: the envelope and the queue are gone, and the
+			// subject key is the one thing that stays.
+			expect(expected.baseline.disk).toEqual({
+				envelope: false,
+				pendingSaves: false,
+				subject: true,
+			});
+		}
+
+		// The pair is the point of having two: a device that had accepted everything
+		// and a device that had refused everything have to be indistinguishable
+		// afterwards, or the wipe remembers what it deleted.
+		const [grants, denial] = wipes;
+
+		expect(JSON.stringify(denial?.expected)).toBe(
+			JSON.stringify(grants?.expected)
+		);
 	});
 
 	// The native cores own their stored envelope, so neither the kernel nor this file

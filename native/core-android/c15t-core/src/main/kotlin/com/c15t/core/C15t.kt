@@ -71,7 +71,19 @@ object C15t {
 		}
 	}
 
-	/** Replace the installed kernel. Intended for tests and host teardown. */
+	/**
+	 * Drop the installed kernel. Intended for tests and host teardown.
+	 *
+	 * This clears no consent. Nothing is deleted from storage, no snapshot is
+	 * republished, and the next [bootstrap] hydrates exactly what this one left
+	 * behind. A host that means "forget what this device decided" wants
+	 * [current]'s own method instead: `C15t.current?.reset()`, which wipes consent,
+	 * keeps the subject id, and re-resolves the policy.
+	 *
+	 * The two share a name and do not share a meaning. Unifying them is a rename and
+	 * therefore separate landing work; until then this is the sentence that keeps
+	 * someone from calling the wrong one at a "delete my data" button.
+	 */
 	fun reset() {
 		kernel.set(null)
 	}

@@ -190,6 +190,19 @@ public final class C15tReactNativeModule: RCTEventEmitter {
         }
     }
 
+    @objc(reset:reject:)
+    public func reset(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        switch handler.reset() {
+        case .success:
+            resolve(nil)
+        case let .failure(error):
+            reject(error.code, error.message, nil)
+        }
+    }
+
     // MARK: - Events
 
     public override func supportedEvents() -> [String]! {

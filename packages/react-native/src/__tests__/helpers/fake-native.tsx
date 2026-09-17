@@ -94,6 +94,8 @@ export interface FakeNativeModule extends NativeC15tTurboModule {
 	identifyCalls: string[];
 	/** Times `logout()` was called. */
 	logoutCalls: number;
+	/** Times `reset()` was called. */
+	resetCalls: number;
 	/** Times `getTrackingAuthorization()` was called. */
 	trackingReadCalls: number;
 	/** Times `requestTrackingAuthorization()` was called. */
@@ -219,6 +221,36 @@ export const createFakeNativeModule = function createFakeNativeModule(
 
 			return Promise.resolve(JSON.stringify({ status: trackingStatus }));
 		}),
+		reset: vi.fn(() => {
+			fake.resetCalls += 1;
+
+			// A wipe installs the state a first launch boots with: no receipt, the
+			// prompt owed again, optionals denied while policy is re-resolving. The
+			// subject id stays and the revision moves by one, like both cores do.
+			const current = typeof snapshot === 'string' ? buildSnapshot() : snapshot;
+
+			snapshot = buildSnapshot({
+				consentCategories: current.consentCategories,
+				effectivePermissions: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+					necessary: true,
+				},
+				explicitChoice: null,
+				location: current.location,
+				model: current.model,
+				policyPending: true,
+				policySnapshotToken: null,
+				promptRequirement: { kind: 'choice', reason: 'missing' },
+				ready: false,
+				revision: current.revision + 1,
+			});
+
+			return Promise.resolve();
+		}),
+		resetCalls: 0,
 		setBootstrap: (payload: unknown) => {
 			bootstrap = payload;
 		},

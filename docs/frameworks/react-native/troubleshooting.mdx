@@ -96,7 +96,8 @@ means the action applied locally and the payload is persisted for replay.
 ## Rejections and error codes
 
 Native rejections arrive as promise rejections from `commit`, `setOverrides`, `refresh`,
-`identify` and `logout`. They are configuration and wiring faults, not consent outcomes.
+`identify`, `logout` and `reset`. They are configuration and wiring faults, not consent
+outcomes.
 
 | Code | Means | Fix |
 | --- | --- | --- |
@@ -108,9 +109,12 @@ Native rejections arrive as promise rejections from `commit`, `setOverrides`, `r
 | `C15T_REFRESH_FAILED` | The core could not re-resolve policy. | Retry; a pending `snapshot.error` usually explains it. |
 | `C15T_IDENTIFY_FAILED` | The external id could not be attached. | Confirm the backend accepts the id and the subject is writable. |
 | `C15T_LOGOUT_FAILED` | The external id could not be detached. | Retry; consent is unaffected either way. |
+| `C15T_RESET_FAILED` | The wipe could not be applied. | Retry; the snapshot still holds the last good state. |
 
 `NativeBridgeError` is a different class of problem: a native payload that will not parse
-at all. The native build does not match the JavaScript package. Rebuild.
+at all, or a method the binary does not have. An over-the-air bundle can ship a
+`reset()` call against a binary that predates it, and the protocol handshake cannot catch
+an added method. The native build does not match the JavaScript package. Rebuild.
 
 Two error codes live on the snapshot rather than in a rejection, because a failed init
 must not throw into a render. `unsupported-contract` means the backend answered that it

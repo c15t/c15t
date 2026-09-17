@@ -1,0 +1,292 @@
+{
+	"description": "A device that accepted every category in scope under the Europe opt-in rule, then wiped. The receipt is gone, the choice prompt is owed again, and the device settles on what a device that was never asked settles on.",
+	"expected": {
+		"afterInit": {
+			"snapshot": {
+				"activeUI": "banner",
+				"consentCategories": null,
+				"effectivePermissions": {
+					"necessary": true,
+					"functionality": false,
+					"experience": false,
+					"measurement": false,
+					"marketing": false
+				},
+				"error": null,
+				"evaluatedAt": 1770000000000,
+				"explicitChoice": null,
+				"iab": null,
+				"location": {
+					"countryCode": "DE",
+					"regionCode": null
+				},
+				"model": "opt-in",
+				"nextDeadline": null,
+				"optOutDirectives": [],
+				"overrides": {
+					"country": "DE",
+					"gpc": null,
+					"language": "en",
+					"region": null
+				},
+				"policyPending": false,
+				"policySnapshotToken": "tok-europe-opt-in",
+				"privacySignals": {
+					"gpc": {
+						"active": false,
+						"detected": false,
+						"override": null
+					}
+				},
+				"promptRequirement": {
+					"kind": "choice",
+					"reason": "missing"
+				},
+				"ready": true,
+				"resolution": {
+					"fingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+					"policyId": "europe_opt_in",
+					"status": "matched"
+				},
+				"restrictions": {},
+				"subject": {
+					"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				}
+			}
+		},
+		"baseline": {
+			"disk": {
+				"envelope": false,
+				"pendingSaves": false,
+				"subject": true
+			},
+			"revisionDelta": 1,
+			"snapshot": {
+				"activeUI": "none",
+				"evaluatedAt": 1770000000000,
+				"error": null,
+				"explicitChoice": null,
+				"iab": null,
+				"location": null,
+				"model": "opt-in",
+				"nextDeadline": null,
+				"optOutDirectives": [],
+				"policyPending": true,
+				"policySnapshotToken": null,
+				"promptRequirement": {
+					"kind": "none"
+				},
+				"ready": false,
+				"resolution": {
+					"fingerprint": null,
+					"policyId": null,
+					"status": "unconfigured"
+				},
+				"restrictions": {},
+				"translations": null,
+				"consentCategories": null,
+				"effectivePermissions": {
+					"experience": false,
+					"functionality": false,
+					"marketing": false,
+					"measurement": false,
+					"necessary": true
+				},
+				"overrides": {
+					"country": null,
+					"gpc": null,
+					"language": "en",
+					"region": null
+				},
+				"privacySignals": {
+					"gpc": {
+						"active": false,
+						"detected": false,
+						"override": null
+					}
+				},
+				"subject": {
+					"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+				}
+			}
+		}
+	},
+	"id": "reset-consent-opt-in-grants",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": {
+				"categories": {
+					"experience": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"functionality": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"marketing": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"measurement": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					}
+				},
+				"version": 3
+			},
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "DE",
+					"regionCode": null
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+						"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+						"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+						"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": null,
+						"id": "europe_opt_in",
+						"model": "opt-in",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"rights": ["disclosure", "preferences"],
+						"scope": [
+							"experience",
+							"functionality",
+							"marketing",
+							"measurement"
+						],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 31536000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "europe_opt_in",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-europe-opt-in"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null,
+		"intent": {
+			"action": "all"
+		}
+	},
+	"kind": "reset-consent",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now. Both it and ready are native lifecycle facts, not kernel output: ready is latched by a hydrate() that found a stored envelope and by the first /init that lands a definitive answer, which is a negotiated contract header over a 200 body. Nothing stored plus a resolved init is therefore ready true, and only an init that was refused or never arrived leaves it false.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed.",
+		"a wipe is judged against one yardstick: the state a device that has never been used boots into. expected.baseline is that state, and every field of it is either installed by the wipe or kept by it, never carried over from whatever the device was doing.",
+		"installed: policyPending true, ready false, promptRequirement none, activeUI none, effectivePermissions necessary-only, evaluatedAt equal to input.now, and no explicitChoice, notice dismissal, policy claim, resolution, snapshot token, location, translations, opt-out directives, deadline, or error. A device that stops at a recorded denial instead would keep promptRequirement at none and no surface would ever come back, which is the one state a subject cannot get out of.",
+		"kept: the subject id, because native/CONTRACT.md refuses to orphan the audit history the backend holds against it; overrides and privacySignals, because a country pinned for QA and a GPC switch are configuration rather than consent; and the configured category scope. Consent categories are null here only because no fixture configures a narrower scope.",
+		"revision is not pinned. A wipe is a committed mutation, so it publishes the revision the device was on plus one, and native/CONTRACT.md refuses to compare the absolute numbering the three implementations start from. A core that restarts the numbering at the cold-start baseline fails anyway, because the revision it announces goes backwards.",
+		"revisionDelta is the one revision claim this kind can make. A wipe is a committed mutation, so it publishes current + 1, and a core that installs the baseline silently or restarts the numbering fails here.",
+		"baseline.disk is read at the baseline publication, before the init the wipe schedules has had a chance to write. That is the only moment the deletion is observable: the re-run init caches the policy it resolves, exactly as a first launch init does, so an envelope existing later is not by itself a failure. What must never exist again is the bytes the wipe started from.",
+		"baseline.snapshot.effectivePermissions is the deny-everything-optional reading, spelled the same way OFFLINE_DENY_ALL spells it. It is the half a recorded denial shares with a wipe, which is why nothing here stops at it: promptRequirement is the field that tells the two apart.",
+		"expected.afterInit is kernel output: the same /init served to a device with the same pinned identity, the same overrides, and no stored records at all. The wiped device has to settle on the same answer field for field, which is what makes the re-run init part of the wipe rather than something the caller is asked to remember.",
+		"the two fixtures of this kind carry different input.intent and identical expected halves. A device that had accepted everything and a device that had refused everything have to be indistinguishable after both wipe, or the wipe left a trace of what it deleted."
+	],
+	"protocolVersion": 1
+}

@@ -1,6 +1,6 @@
 {
 	"clock": 1770000000000,
-	"count": 23,
+	"count": 25,
 	"fixtures": [
 		{
 			"bytes": 6249,
@@ -179,6 +179,22 @@
 			"sha256": "cb44d7ef672117c2633faf16bfce36d5d28d300e4da32e374b53a84d843049b5"
 		},
 		{
+			"bytes": 11456,
+			"file": "reset-consent-opt-in-grants.json",
+			"id": "reset-consent-opt-in-grants",
+			"kind": "reset-consent",
+			"protocolVersion": 1,
+			"sha256": "7a018858d72b0b506f9ea957f4a5f8794c35e7f9445332750e153897920963e9"
+		},
+		{
+			"bytes": 11541,
+			"file": "reset-consent-recorded-denial.json",
+			"id": "reset-consent-recorded-denial",
+			"kind": "reset-consent",
+			"protocolVersion": 1,
+			"sha256": "d787855a30ac4eee8055e381db9691ea54610cfd94355824256c5ac6ac44345b"
+		},
+		{
 			"bytes": 13239,
 			"file": "revision-trace-error-writes.json",
 			"id": "revision-trace-error-writes",
@@ -188,7 +204,13 @@
 		}
 	],
 	"generatedBy": "packages/react-native/scripts/generate-protocol-fixtures.ts",
-	"kinds": ["evaluation", "native-envelope", "revision-trace", "save-body"],
+	"kinds": [
+		"evaluation",
+		"native-envelope",
+		"reset-consent",
+		"revision-trace",
+		"save-body"
+	],
 	"policyContractHeader": {
 		"name": "x-c15t-policy-contract",
 		"value": "1"

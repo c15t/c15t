@@ -100,6 +100,15 @@ public final class ConsentCore: @unchecked Sendable {
     private var noticeDismissal: NoticeDismissal?
     private var user: KernelUser?
     private var overrides = ConsentOverrides.default()
+    /// The overrides the host configured, as opposed to the ones the snapshot carries.
+    ///
+    /// They stop being the same value the moment an init lands: ``applyInit(_:)`` folds the
+    /// country and region the backend matched on into ``overrides``, which is what a save
+    /// has to be sent against. So that copy claims a geography the app never asked for,
+    /// and the host's own pin only survives on its own here. ``reset()`` needs the
+    /// distinction: a wipe deletes the policy resolution, and a location that came out of
+    /// it goes with it, while a country pinned for QA has to stay.
+    private var configuredOverrides = ConsentOverrides.default()
     private var detectedGPC = false
     /// Highest revision already written to the store, so a slow write of an older
     /// envelope cannot land on top of a newer one.
@@ -144,6 +153,7 @@ public final class ConsentCore: @unchecked Sendable {
             bootstrapped = true
             self.config = config
             self.overrides = config.overrides
+            self.configuredOverrides = config.overrides
             self.user = config.user
             self.queue = PendingSaveQueue(store: config.store, now: config.now)
             return true
@@ -787,6 +797,7 @@ public final class ConsentCore: @unchecked Sendable {
         let changed = lock.withLock { () -> Bool in
             guard self.overrides != overrides else { return false }
             self.overrides = overrides
+            self.configuredOverrides = overrides
             reevaluateLocked(now: (config?.now ?? Self.wallClock)())
             return true
         }
@@ -806,6 +817,101 @@ public final class ConsentCore: @unchecked Sendable {
     /// ``pendingSaveCount()``, and still announced by exactly one delivered event.
     public func flushPending() {
         schedule { await self.requestDeliveryPass(ownSend: nil) }
+    }
+
+    /// Wipe consent and return the device to the state a first launch is in.
+    ///
+    /// The snapshot installed here is ``ConsentSnapshot/coldStart``, and the difference
+    /// between it and a recorded denial is the whole point of the method. A denial is an
+    /// ``ExplicitChoice`` that says the subject answered, so ``PolicyEvaluator`` finds a
+    /// current receipt, owes nothing, and no prompt ever comes back. This installs no
+    /// receipt at all, so the choice is owed again and the banner returns once the init
+    /// below lands. `native/CONTRACT.md` states this under "Wiping consent (reset)".
+    ///
+    /// Three things it has to do that clearing the store does not cover:
+    ///
+    /// - Publish. This is a committed mutation, so it bumps the revision by one and goes
+    ///   out through ``onChange(_:)`` like any other mutation. Installing the baseline
+    ///   quietly would leave every ``gate(_:_:)`` in the process holding a decision the
+    ///   device no longer remembers, and restarting the numbering at the cold-start
+    ///   revision would hand each subscriber a snapshot older than the one it holds and
+    ///   switch persistence off for the session, because ``persistEnvelope()`` refuses a
+    ///   write that is not ahead of the last one.
+    /// - Leave no envelope behind. The deletion is the durable effect, so this is the one
+    ///   mutation that publishes without persisting. ``persistedRevision`` and
+    ///   ``restoredFromStore`` go with it: both answer "is consent on disk", and after a
+    ///   wipe the honest answer is no.
+    /// - Re-run init. A first launch does not sit at `policyPending` once the network
+    ///   answers, and stopping at the baseline would leave the app there until the next
+    ///   launch, with the subject withdrawn from everything and nothing asking them to
+    ///   decide again. A caller must not have to remember to refresh after this.
+    ///
+    /// What survives is configuration rather than consent: the subject id with its external
+    /// id, the overrides the host pinned, and the configured category scope. A host that pinned a
+    /// country for QA or switched GPC on would otherwise get a different policy resolved
+    /// than the one its app is configured to evaluate.
+    ///
+    /// A save a delivery pass had already handed to the transport can still land after the
+    /// queue is dropped, and that pass finds its entry gone when it settles. Nothing here
+    /// waits for it. The entries still queued carry a decision the subject just withdrew,
+    /// and the one already on the wire was current when it was made.
+    public func reset() {
+        let wired = lock.withLock { () -> (store: any ConsentStore, queue: PendingSaveQueue)? in
+            let now = (config?.now ?? Self.wallClock)()
+            resolvedPolicy = nil
+            policyWire = nil
+            noticeDismissal = nil
+            currentSnapshot = currentSnapshot.byApplying { draft in
+                // Every field a cold start leaves at its default is set here rather than
+                // carried over. A draft copy that forgets one keeps a withdrawn decision
+                // alive in a snapshot that claims to hold none, and that is the exact
+                // failure this method exists to prevent.
+                draft.policyPending = true
+                draft.ready = false
+                draft.model = .optIn
+                draft.activeUI = .none
+                draft.promptRequirement = .none
+                draft.effectivePermissions = .necessaryOnly
+                draft.explicitChoice = nil
+                draft.restrictions = [:]
+                draft.resolution = .pending
+                draft.policySnapshotToken = nil
+                draft.location = nil
+                draft.translations = nil
+                draft.optOutDirectives = []
+                draft.nextDeadline = nil
+                draft.error = nil
+                draft.evaluatedAt = now
+                if let identity {
+                    draft.subject = identity.snapshot(externalId: user?.externalId)
+                }
+                draft.consentCategories = config?.consentCategories
+                // The host's pins, not ``overrides``. See ``configuredOverrides``: the
+                // folded country came from the resolution this wipe is deleting, and
+                // keeping it would leave the answer one field off a first launch's.
+                draft.overrides = configuredOverrides
+                draft.privacySignals = PrivacySignals(
+                    gpc: GpcSignal.derive(
+                        override: configuredOverrides.gpc,
+                        detected: detectedGPCSignal
+                    )
+                )
+            }
+            persistedRevision = 0
+            restoredFromStore = false
+            guard let config, let queue else { return nil }
+            return (config.store, queue)
+        }
+        // Storage first, outside the lock, so nothing is announced about a device whose
+        // bytes are still there. A core that was never bootstrapped has no store and no
+        // queue to clear, and its in-memory state is already the baseline above.
+        if let wired {
+            wired.queue.clear()
+            wired.store.set(nil, for: StorageKey.snapshot)
+            wired.store.set(nil, for: StorageKey.pendingSaves)
+        }
+        publish(persist: false)
+        scheduleInit(attempt: 1)
     }
 
     /// Everything waiting to reach the backend.

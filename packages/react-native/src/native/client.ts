@@ -221,6 +221,14 @@ export interface ConsentClient {
 	 */
 	logout: () => Promise<void>;
 	/**
+	 * Wipe consent and go back to the state a first launch boots with.
+	 *
+	 * The choice prompt is owed again afterwards, so the banner or dialog comes
+	 * back: this is a withdrawal, not a recorded reject-everything. The c15t
+	 * subject id is kept.
+	 */
+	reset: () => Promise<void>;
+	/**
 	 * Detach from native events.
 	 *
 	 * @internal
@@ -763,6 +771,19 @@ export const createConsentClient = function createConsentClient(
 		logout: () => afterMutation(nativeModule.logout()),
 		refresh: () => afterMutation(nativeModule.refresh()),
 		requestTrackingAuthorization,
+		reset: async (): Promise<void> => {
+			// A JavaScript update can ship a bundle that calls a wipe the binary in
+			// the user's hand does not have, and the handshake cannot catch it:
+			// adding a method is additive. There is no safe stand-in for a wipe
+			// here, so this rejects and names the fix.
+			if (typeof nativeModule.reset !== 'function') {
+				throw new NativeBridgeError(
+					'@c15t/react-native cannot reset consent: this native build has no reset method. Rebuild the app so the binary matches this package; a JavaScript update cannot add it.'
+				);
+			}
+
+			await afterMutation(nativeModule.reset());
+		},
 		setOverrides: (overrides: NativeOverridesInput) =>
 			afterMutation(nativeModule.setOverrides(JSON.stringify(overrides))),
 		subscribe: <ResultType>(

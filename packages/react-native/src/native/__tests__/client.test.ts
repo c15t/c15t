@@ -615,6 +615,75 @@ describe('actions', () => {
 	});
 });
 
+describe('reset', () => {
+	test('leaves the readers with the state a first launch boots with', async () => {
+		const { client, fake } = makeClient({
+			snapshot: buildSnapshot({
+				effectivePermissions: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
+				},
+				explicitChoice: {
+					categories: {
+						marketing: {
+							basis: { fingerprint: 'fp-1', kind: 'choice-v1' },
+							confirmedAt: 1_770_000_000_000,
+							value: true,
+						},
+					},
+					version: 3,
+				},
+				policyPending: false,
+				promptRequirement: { kind: 'none' },
+				revision: 4,
+			}),
+		});
+
+		const ready = watch(client, (snapshot) => snapshot.ready);
+
+		await client.reset();
+
+		expect(fake.resetCalls).toBe(1);
+
+		const after = client.getSnapshot();
+
+		// A recorded denial would keep the receipt and stop asking. A wipe drops it,
+		// so the prompt is owed again and nothing is granted while policy comes back.
+		expect(after.explicitChoice).toBeNull();
+		expect(after.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+		expect(after.policyPending).toBe(true);
+		expect(after.revision).toBe(5);
+		// Identity is the one thing a wipe has no business touching: the backend
+		// holds the audit history under it.
+		expect(after.subject).toEqual({ subjectId: 'sub-1' });
+		expect(client.isAllowed('marketing')).toBe(false);
+		expect(client.isReady()).toBe(false);
+		// The wipe is a mutation, so the reader heard it from the resolved promise
+		// rather than waiting for a native event.
+		expect(ready.calls()).toBe(1);
+
+		ready.stop();
+	});
+
+	test('rejects a binary that predates the wipe', async () => {
+		const { client, fake } = makeClient();
+
+		// An over-the-air bundle can reach a binary without the method, and the
+		// protocol handshake cannot catch an addition. There is no safe stand-in for
+		// a wipe, so this has to fail rather than quietly do nothing.
+		delete (fake as Partial<FakeNativeModule>).reset;
+
+		await expect(client.reset()).rejects.toThrow(NativeBridgeError);
+		expect(fake.resetCalls).toBe(0);
+	});
+});
+
 describe('isAllowed', () => {
 	test('reads permissions off the snapshot, denying while pending', () => {
 		const { client, fake } = makeClient({

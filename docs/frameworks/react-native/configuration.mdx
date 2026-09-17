@@ -172,7 +172,8 @@ await actions.setOverrides({ country: 'DE', language: 'de' });
 
 Passed to `setOverrides`, omitted fields keep their current value and an explicit `null`
 clears one. The snapshot's `overrides` object always carries all four fields, with
-`language` never empty.
+`language` never empty. `reset()` keeps them: a country pinned for QA is not consent, so a
+wipe has no business clearing it.
 
 The `gpc` override is load bearing rather than decorative. It wins over the detected
 signal, which is what makes it an override, and the save path compares it against the
