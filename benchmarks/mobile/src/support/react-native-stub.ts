@@ -5,6 +5,11 @@
  * The package's own production lookup path runs unchanged: `TurboModuleRegistry`
  * hands back whatever was registered, and `NativeEventEmitter` records who is
  * listening so a measurement can assert a subscription really is live.
+ *
+ * Every name the package imports at module scope belongs here, including ones no
+ * measurement reads. A missing name fails the whole run at link time, and Vitest
+ * does not notice, so `link-check.ts` catches it by loading the package through
+ * the runner the bench scripts use.
  */
 
 // React Native's own API shape: animations report completion through a
@@ -140,6 +145,18 @@ export const Platform = {
 	select: <SelectedType>(
 		map: Record<string, SelectedType | undefined>
 	): SelectedType | undefined => map.ios ?? map.default,
+};
+
+/**
+ * `StatusBar`, read only for the Android top band.
+ *
+ * `useConsentSafeArea` falls back to `StatusBar.currentHeight` when the host
+ * forwards no measurement. The stub pins `Platform` to iOS, where React Native
+ * reports `null`, so that fallback lands on the floor the package reserves
+ * rather than a height invented for a platform this stub does not claim.
+ */
+export const StatusBar = {
+	currentHeight: null as number | null,
 };
 
 /**
