@@ -134,12 +134,22 @@ const DOMAIN = 'app.example.com';
  * They are constants and not generated because the expected snapshot and the
  * expected save body both carry the id, and a random one would make every
  * regeneration a diff.
+ *
+ * The ids below `california` and `europe` down to `notice` are the legacy UUID shape
+ * `native/CONTRACT.md` now calls a prerelease population, and a separate task replaces
+ * them. Anything added here is minted by the real generator instead, so it carries the
+ * `sub_` shape `packages/schema` accepts and a core that enforces the read-side ruling
+ * adopts it instead of discarding the identity.
  */
 const SUBJECT = {
 	/** The subject behind the California scenarios. */
 	california: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c02',
+	/** The California device on its first launch. */
+	californiaFirstLaunch: 'sub_111CP17G2b8XH3UdXwWqZZvDtD',
 	/** The subject behind the Europe scenarios, and most envelope cases. */
 	europe: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01',
+	/** The Europe device on its first launch. */
+	europeFirstLaunch: 'sub_111CP17G2VuBxuByVqaokUtDVc',
 	/** The subject with an active GPC signal. */
 	gpc: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03',
 	/** The subject on the no-match rule. */
@@ -295,7 +305,14 @@ interface StoredRecords {
 interface FixtureInput {
 	/** Evaluation clock. Every timestamp in `expected` is derived from it. */
 	now: number;
-	/** Whether hydration completed before the step under test. Maps to `ready`. */
+	/**
+	 * Whether `hydrate()` found a stored envelope before the step under test.
+	 *
+	 * This is the one hydration fact that latches `ready`, and it is the only one:
+	 * a hydrate that read nothing leaves the flag low no matter how far the step
+	 * runs. The subject id lives in its own slot, so a fixture can carry an
+	 * identity and still hydrate into nothing stored.
+	 */
 	hydrated: boolean;
 	/** The `/init` response to serve, verbatim. */
 	transport: InitTransport;
@@ -648,12 +665,47 @@ const initResponseFor = function initResponseFor(
 	);
 };
 
+/**
+ * Whether an `/init` response is the definitive answer the ready latch waits for.
+ *
+ * `native/CONTRACT.md` counts two ways to be told: an envelope at hydrate, and the
+ * first init that lands a definitive answer. Only a negotiated declaration over a
+ * readable body is that answer. The refused-declaration variant is a body the client
+ * has already been told is not evidence, so it tells the core nothing and leaves the
+ * flag exactly where it was.
+ */
+const isDefinitiveInit = function isDefinitiveInit(
+	transport: InitTransport
+): boolean {
+	return (
+		transport.status === 200 &&
+		transport.headers[C15T_POLICY_CONTRACT_HEADER] === CONTRACT_HEADER_VALUE
+	);
+};
+
+/**
+ * Derive `ready` instead of copying `hydrated`.
+ *
+ * Copying it reads the flag as "a stored envelope exists", which is the mistake
+ * `native/CONTRACT.md` calls out: a fresh install with nothing stored is stranded on
+ * `false` for its whole first session, so `GRANTED` is unreachable on the one launch
+ * a prompt is actually on screen and a listener waiting on readiness never resumes.
+ */
+const readyFor = function readyFor(
+	input: Pick<FixtureInput, 'hydrated' | 'transport'>
+): boolean {
+	return input.hydrated || isDefinitiveInit(input.transport);
+};
+
 const inputFor = function inputFor(
 	scenario: Scenario,
-	options: { records?: StoredRecords } = {}
+	options: { hydrated?: boolean; records?: StoredRecords } = {}
 ): FixtureInput {
 	return {
-		hydrated: true,
+		// Every scenario carries a stored subject, so the default is a returning
+		// device whose hydrate() found an envelope. A first launch has to say so, and
+		// then `ready` can only come from the response the transport serves.
+		hydrated: options.hydrated ?? true,
 		now: NOW,
 		// The app pins a language and nothing else: geo is what the backend resolves,
 		// and it reaches the client as `init.location`.
@@ -868,7 +920,7 @@ const NOTES = [
 	'there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See "Corrections to this contract" in native/CONTRACT.md.',
 	'revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.',
 	'optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.',
-	'evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.',
+	'evaluatedAt equals input.now. Both it and ready are native lifecycle facts, not kernel output: ready is latched by a hydrate() that found a stored envelope and by the first /init that lands a definitive answer, which is a negotiated contract header over a 200 body. Nothing stored plus a resolved init is therefore ready true, and only an init that was refused or never arrived leaves it false.',
 	'error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.',
 	'Any field this file does not mention must not be invented. Unknown wire values fail closed.',
 ];
@@ -878,8 +930,8 @@ const NOTES = [
  *
  * This is the mapping the native cores implement, written down once so the
  * fixtures and the TypeScript side cannot drift apart. `ready` and `error` are
- * native lifecycle facts the kernel does not model, so the caller supplies
- * `hydrated` and the error stays `null` for every fixture here.
+ * native lifecycle facts the kernel does not model, so the caller derives `ready`
+ * with {@link readyFor} and the error stays `null` for every fixture here.
  */
 /**
  * Spell every override member out.
@@ -945,7 +997,7 @@ const fixtureResolution = function fixtureResolution(
 
 const toFixtureSnapshot = function toFixtureSnapshot(
 	snapshot: KernelSnapshot,
-	hydrated: boolean
+	ready: boolean
 ): FixtureSnapshot {
 	const { overrides } = snapshot;
 	const { resolution } = snapshot;
@@ -970,7 +1022,7 @@ const toFixtureSnapshot = function toFixtureSnapshot(
 		policySnapshotToken: snapshot.policySnapshotToken,
 		privacySignals: fixturePrivacySignals(snapshot.privacySignals),
 		promptRequirement: { ...snapshot.promptRequirement },
-		ready: hydrated,
+		ready,
 		resolution: fixtureResolution(resolution),
 		restrictions: { ...snapshot.restrictions },
 		revision: snapshot.revision,
@@ -1058,7 +1110,7 @@ const evaluationFixture = function evaluationFixture(
 ): EvaluationFixture {
 	return {
 		description,
-		expected: { snapshot: toFixtureSnapshot(snapshot, input.hydrated) },
+		expected: { snapshot: toFixtureSnapshot(snapshot, readyFor(input)) },
 		id: `evaluation-${id}`,
 		input,
 		kind: 'evaluation',
@@ -1180,6 +1232,56 @@ const buildEvaluationFixtures =
 				dismissed.after
 			)
 		);
+
+		// The two launches every other fixture skips: nothing stored, so hydrate() has
+		// no envelope to find and `ready` can only arrive with the init response. A core
+		// that reads the flag as "a stored envelope exists" answers both `false` and
+		// strands the device in PENDING for the whole of its first session, which is the
+		// one session a prompt is on screen. The pinned subject id is not storage: the
+		// identity has its own slot, and native/CONTRACT.md keeps an envelope refusal from
+		// costing a device its identity. It is a `sub_` id, so nothing here reads as the
+		// refused-id case the Subject identity ruling sends to a first launch -- these two
+		// are a first launch because the envelope slot is empty, and for no other reason.
+		const freshCases: {
+			id: string;
+			description: string;
+			scenario: Scenario;
+			/** A first launch still pins its identity: the slot is separate from the envelope. */
+			subjectId: string;
+		}[] = [
+			{
+				description:
+					'The Europe opt-in rule on a device with nothing stored. Hydrate found no envelope, so the resolved init is the only thing that could raise `ready`; permissions still deny every optional category and the choice prompt is still owed. Fail closed and ready are not opposites, and the flag is what tells a host the answer has landed.',
+				id: 'eu-fresh-install',
+				scenario: EU_SCENARIO,
+				subjectId: SUBJECT.europeFirstLaunch,
+			},
+			{
+				description:
+					'The California opt-out rule on a device with nothing stored. The init resolves, so the first launch is ready, and the opt-out default leaves every optional category allowed: GRANTED on a launch with no stored envelope, which is exactly the state a core that latches `ready` on stored bytes cannot reach.',
+				id: 'us-ccpa-fresh-install',
+				scenario: CCPA_SCENARIO,
+				subjectId: SUBJECT.californiaFirstLaunch,
+			},
+		];
+		// Sequential for the same reason as the cases above: one kernel against the
+		// pinned clock at a time.
+		/* oxlint-disable no-await-in-loop -- sequential on purpose, see above */
+		for (const freshCase of freshCases) {
+			const freshInput = inputFor(freshCase.scenario, {
+				hydrated: false,
+				records: storedFor(freshCase.subjectId),
+			});
+			const fresh = await runFixture(freshInput);
+			fixtures.push(
+				evaluationFixture(
+					freshCase.id,
+					freshCase.description,
+					freshInput,
+					fresh.after
+				)
+			);
+		}
 		return fixtures;
 	};
 
@@ -1257,8 +1359,8 @@ const buildSaveBodyFixtures = async function buildSaveBodyFixtures(): Promise<
 					path: '/subjects',
 				},
 				savePayload: payload,
-				snapshotAfter: toFixtureSnapshot(after, input.hydrated),
-				snapshotBefore: toFixtureSnapshot(before, input.hydrated),
+				snapshotAfter: toFixtureSnapshot(after, readyFor(input)),
+				snapshotBefore: toFixtureSnapshot(before, readyFor(input)),
 			},
 			id: `save-body-${testCase.id}`,
 			input: {
@@ -1573,7 +1675,7 @@ const buildNativeEnvelopeFixtures =
 					: {
 							snapshot: toFixtureSnapshot(
 								testCase.after,
-								testCase.input.hydrated
+								readyFor(testCase.input)
 							),
 							write: {
 								decoded: 'itself' as const,
@@ -1834,6 +1936,40 @@ interface IndexEntry {
 	sha256: string;
 }
 
+/**
+ * Refuse a fixture whose hydration claim its own storage contradicts.
+ *
+ * `ready` is derived from `input.hydrated`, so that field is a claim the runner has to
+ * honour rather than a description of what happened. Two ways it can lie: a fixture
+ * that says `hydrate()` found an envelope while protected storage holds nothing latches
+ * `ready` on a fact no device backs, which is the mirror of the bug the derivation
+ * exists to keep visible; and a fixture that says nothing was found while it stores a
+ * choice or a dismissal describes a record with no envelope to live in.
+ *
+ * A pinned subject id is neither. Identity has its own slot, and `native/CONTRACT.md`
+ * keeps an envelope refusal from costing a device its identity, which is exactly what
+ * lets a first launch carry an id and still hydrate into nothing.
+ */
+const assertHydrationClaims = function assertHydrationClaims(
+	fixtures: readonly Fixture[]
+): void {
+	for (const fixture of fixtures) {
+		const { hydrated, storedRecords } = fixture.input;
+		const recordsInsideEnvelope =
+			storedRecords.choice !== null || storedRecords.noticeDismissal !== null;
+		if (!hydrated && recordsInsideEnvelope) {
+			throw new Error(
+				`${fixture.id}: input.hydrated is false but storedRecords carries a choice or a dismissal, which only exists inside a stored envelope.`
+			);
+		}
+		if (hydrated && !recordsInsideEnvelope && storedRecords.subject === null) {
+			throw new Error(
+				`${fixture.id}: input.hydrated is true but protected storage holds nothing, so hydrate() had no envelope to latch ready with. Say "hydrated": false and let the init response carry the flag.`
+			);
+		}
+	}
+};
+
 const sha256Of = function sha256Of(bytes: Uint8Array): string {
 	return createHash('sha256').update(bytes).digest('hex');
 };
@@ -1940,6 +2076,7 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 		process.argv.includes('--allow-protocol-change')
 	);
 	assertWiresReadable(fixtures);
+	assertHydrationClaims(fixtures);
 	for (const fixture of fixtures) {
 		writeFileSync(
 			resolve(outDir, `${fixture.id}.json`),

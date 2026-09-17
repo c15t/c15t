@@ -1,55 +1,35 @@
 {
-	"description": "A stored partial choice under the Europe opt-in rule keeps absent categories absent. Measurement carries the stored grant, marketing carries the stored denial, and functionality and experience take the opt-in default rather than an invented value.",
+	"description": "The California opt-out rule on a device with nothing stored. The init resolves, so the first launch is ready, and the opt-out default leaves every optional category allowed: GRANTED on a launch with no stored envelope, which is exactly the state a core that latches `ready` on stored bytes cannot reach.",
 	"expected": {
 		"snapshot": {
 			"activeUI": "none",
 			"consentCategories": null,
 			"effectivePermissions": {
 				"necessary": true,
-				"functionality": false,
-				"experience": false,
+				"functionality": true,
+				"experience": true,
 				"measurement": true,
-				"marketing": false
+				"marketing": true
 			},
 			"error": null,
 			"evaluatedAt": 1770000000000,
-			"explicitChoice": {
-				"categories": {
-					"marketing": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": false
-					},
-					"measurement": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": true
-					}
-				},
-				"version": 3
-			},
+			"explicitChoice": null,
 			"iab": null,
 			"location": {
-				"countryCode": "DE",
-				"regionCode": null
+				"countryCode": "US",
+				"regionCode": "CA"
 			},
-			"model": "opt-in",
-			"nextDeadline": 1801536000000,
+			"model": "opt-out",
+			"nextDeadline": null,
 			"optOutDirectives": [],
 			"overrides": {
-				"country": "DE",
+				"country": "US",
 				"gpc": null,
 				"language": "en",
-				"region": null
+				"region": "CA"
 			},
 			"policyPending": false,
-			"policySnapshotToken": "tok-europe-opt-in",
+			"policySnapshotToken": "tok-california-opt-out",
 			"privacySignals": {
 				"gpc": {
 					"active": false,
@@ -62,16 +42,14 @@
 			},
 			"ready": true,
 			"resolution": {
-				"fingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
-				"policyId": "europe_opt_in",
+				"fingerprint": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087",
+				"policyId": "california_opt_out",
 				"status": "matched"
 			},
-			"restrictions": {
-				"marketing": ["explicit-denial"]
-			},
+			"restrictions": {},
 			"revision": 1,
 			"subject": {
-				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+				"subjectId": "sub_111CP17G2b8XH3UdXwWqZZvDtD"
 			},
 			"translations": {
 				"language": "en",
@@ -90,9 +68,9 @@
 			}
 		}
 	},
-	"id": "evaluation-eu-partial-denials",
+	"id": "evaluation-us-ccpa-fresh-install",
 	"input": {
-		"hydrated": true,
+		"hydrated": false,
 		"now": 1770000000000,
 		"overrides": {
 			"country": null,
@@ -107,70 +85,50 @@
 			}
 		},
 		"storedRecords": {
-			"choice": {
-				"categories": {
-					"marketing": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": false
-					},
-					"measurement": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": true
-					}
-				},
-				"version": 3
-			},
+			"choice": null,
 			"noticeDismissal": null,
 			"subject": {
-				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+				"subjectId": "sub_111CP17G2b8XH3UdXwWqZZvDtD"
 			}
 		},
 		"transport": {
 			"body": {
 				"branding": "c15t",
-				"jurisdiction": "GDPR",
+				"jurisdiction": "CCPA",
 				"location": {
-					"countryCode": "DE",
-					"regionCode": null
+					"countryCode": "US",
+					"regionCode": "CA"
 				},
 				"policyResolution": {
 					"fingerprints": {
-						"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-						"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
-						"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
-						"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+						"choice": "f0a9519130a3c7706acc1dcb795f48eee79cfcde7de85e4384394583bd0db1b0",
+						"notice": "8d9a703452d973d7243cbba8bce68bd86d75d3edd7dff5b1e27d9e31dcb17cee",
+						"policy": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087",
+						"legacyMaterial": "071ca579036f43b53790c7d934ece26b9535eb394ef101f4e18c547acc7b82da"
 					},
-					"matchedBy": "country",
+					"matchedBy": "region",
 					"policy": {
 						"actions": {
-							"allowed": ["accept", "customize", "reject"],
-							"equivalent": [["accept", "reject"]],
-							"required": ["accept", "reject"]
+							"allowed": [],
+							"equivalent": [],
+							"required": []
 						},
 						"copyRevision": null,
-						"id": "europe_opt_in",
-						"model": "opt-in",
+						"id": "california_opt_out",
+						"model": "opt-out",
 						"preselectedCategories": [],
 						"privacySignals": {
 							"gpc": {
-								"denyCategories": []
+								"denyCategories": ["marketing", "measurement"]
 							}
 						},
-						"prompt": "choice",
+						"prompt": "none",
 						"proof": {
 							"storeIp": true,
 							"storeLanguage": true,
 							"storeUserAgent": true
 						},
-						"rights": ["disclosure", "preferences"],
+						"rights": ["disclosure", "opt-out", "preferences"],
 						"scope": [
 							"experience",
 							"functionality",
@@ -183,7 +141,7 @@
 							"noticeMs": 31536000000
 						}
 					},
-					"policyId": "europe_opt_in",
+					"policyId": "california_opt_out",
 					"status": "matched",
 					"version": 1
 				},
@@ -202,7 +160,7 @@
 						"rights": {}
 					}
 				},
-				"policySnapshotToken": "tok-europe-opt-in"
+				"policySnapshotToken": "tok-california-opt-out"
 			},
 			"headers": {
 				"x-c15t-policy-contract": "1"

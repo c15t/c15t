@@ -1,46 +1,26 @@
 {
-	"description": "A stored partial choice under the Europe opt-in rule keeps absent categories absent. Measurement carries the stored grant, marketing carries the stored denial, and functionality and experience take the opt-in default rather than an invented value.",
+	"description": "The Europe opt-in rule on a device with nothing stored. Hydrate found no envelope, so the resolved init is the only thing that could raise `ready`; permissions still deny every optional category and the choice prompt is still owed. Fail closed and ready are not opposites, and the flag is what tells a host the answer has landed.",
 	"expected": {
 		"snapshot": {
-			"activeUI": "none",
+			"activeUI": "banner",
 			"consentCategories": null,
 			"effectivePermissions": {
 				"necessary": true,
 				"functionality": false,
 				"experience": false,
-				"measurement": true,
+				"measurement": false,
 				"marketing": false
 			},
 			"error": null,
 			"evaluatedAt": 1770000000000,
-			"explicitChoice": {
-				"categories": {
-					"marketing": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": false
-					},
-					"measurement": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": true
-					}
-				},
-				"version": 3
-			},
+			"explicitChoice": null,
 			"iab": null,
 			"location": {
 				"countryCode": "DE",
 				"regionCode": null
 			},
 			"model": "opt-in",
-			"nextDeadline": 1801536000000,
+			"nextDeadline": null,
 			"optOutDirectives": [],
 			"overrides": {
 				"country": "DE",
@@ -58,7 +38,8 @@
 				}
 			},
 			"promptRequirement": {
-				"kind": "none"
+				"kind": "choice",
+				"reason": "missing"
 			},
 			"ready": true,
 			"resolution": {
@@ -66,12 +47,10 @@
 				"policyId": "europe_opt_in",
 				"status": "matched"
 			},
-			"restrictions": {
-				"marketing": ["explicit-denial"]
-			},
+			"restrictions": {},
 			"revision": 1,
 			"subject": {
-				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+				"subjectId": "sub_111CP17G2VuBxuByVqaokUtDVc"
 			},
 			"translations": {
 				"language": "en",
@@ -90,9 +69,9 @@
 			}
 		}
 	},
-	"id": "evaluation-eu-partial-denials",
+	"id": "evaluation-eu-fresh-install",
 	"input": {
-		"hydrated": true,
+		"hydrated": false,
 		"now": 1770000000000,
 		"overrides": {
 			"country": null,
@@ -107,30 +86,10 @@
 			}
 		},
 		"storedRecords": {
-			"choice": {
-				"categories": {
-					"marketing": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": false
-					},
-					"measurement": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": true
-					}
-				},
-				"version": 3
-			},
+			"choice": null,
 			"noticeDismissal": null,
 			"subject": {
-				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+				"subjectId": "sub_111CP17G2VuBxuByVqaokUtDVc"
 			}
 		},
 		"transport": {

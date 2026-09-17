@@ -311,12 +311,12 @@ class C15tPayloadTest {
 	 * The four objects the kernel owns the spelling of, asserted on the payload the bridge
 	 * hands JavaScript.
 	 *
-	 * The fixture runner in `native/core-android` proves this shape against 21 snapshots the
+	 * The fixture runner in `native/core-android` proves this shape against 23 snapshots the
 	 * TypeScript kernel wrote. This pins the artifact instead of the model, because the bug
 	 * lived here: the core's own encoder produced the body, its names rode along, and a JSON
 	 * string hides a rename from every type on the receiving side. The snapshot is built by
 	 * hand so all four objects are full at once -- a kernel with nothing stored answers nulls
-	 * for three of them, which is exactly the state that let four renames pass 21 fixtures.
+	 * for three of them, which is exactly the state that let four renames pass 23 fixtures.
 	 */
 	@Test
 	fun `the snapshot payload spells the kernel's four objects the kernel's way`() {

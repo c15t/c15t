@@ -422,17 +422,38 @@ class ProtocolFixtureTest {
 			// runner rather than the core.
 			json.decodeFromString(NoticeDismissal.serializer(), it.toString())
 		}
-		// A stored receipt reaches a relaunch through the envelope's snapshot, which
-		// is where this core keeps it. The policy wire stays out of the envelope on
-		// purpose: the fixture serves the policy from the transport, as a launch does.
-		val seeded = ConsentSnapshot(subject = ConsentSubject(id = subjectId), explicitChoice = choice)
-		backend.putSilently(
-			C15tStoreKeys.SNAPSHOT,
-			C15tJson.storage.encodeToString(
-				SnapshotEnvelope.serializer(),
-				SnapshotEnvelope(snapshot = seeded, evaluationPolicy = null, noticeDismissal = dismissal),
-			),
-		)
+		// `hydrated` says whether an envelope is in the snapshot slot before the core
+		// starts. A fixture that says false is a first launch: the identity slot is
+		// filled, because the contract keeps the two slots apart so that refusing an
+		// envelope never costs a device its identity, and the envelope slot is empty.
+		// Seeding one anyway would let hydration latch `ready` from bytes the fixture says
+		// are not there, and the init whose latch is under test would never be asked for it.
+		val hydrated = input["hydrated"]?.takeUnless { it is JsonNull }?.jsonPrimitive?.booleanOrNull ?: true
+		if (!hydrated && (choice != null || dismissal != null)) {
+			fail("$fixtureId: hydrated is false but storedRecords carries a record, which only exists inside an envelope")
+		}
+		if (hydrated) {
+			// A stored receipt reaches a relaunch through the envelope's snapshot, which
+			// is where this core keeps it. The policy wire stays out of the envelope on
+			// purpose: the fixture serves the policy from the transport, as a launch does.
+			val seeded = ConsentSnapshot(subject = ConsentSubject(id = subjectId), explicitChoice = choice)
+			backend.putSilently(
+				C15tStoreKeys.SNAPSHOT,
+				C15tJson.storage.encodeToString(
+					SnapshotEnvelope.serializer(),
+					SnapshotEnvelope(snapshot = seeded, evaluationPolicy = null, noticeDismissal = dismissal),
+				),
+			)
+		} else {
+			// The claim has to hold in the store or the fixture proves nothing: a seeded
+			// envelope would let hydration raise `ready` and the init whose latch is under
+			// test would never be asked to. Asserted rather than trusted, so a runner that
+			// starts seeding again fails loudly instead of passing empty.
+			assertTrue(
+				C15tStoreKeys.SNAPSHOT !in backend.keys,
+				"$fixtureId: hydrated is false but the snapshot slot holds bytes, so hydration and not the init would be what latches `ready`",
+			)
+		}
 		return wireRun(entry, input, backend, offline = false)
 	}
 
@@ -1154,6 +1175,11 @@ class ProtocolFixtureTest {
 				"restrictions.marketing" to EXPLICIT_DENIAL,
 			),
 			"evaluation-notice-dismissed" to emptyList<Pair<String, String>>(),
+			// A first launch with nothing stored. `ready` can only arrive with the init, and
+			// it does, on this build's own numbering. Listed with no rows because it matches
+			// the kernel outright.
+			"evaluation-eu-fresh-install" to emptyList<Pair<String, String>>(),
+			"evaluation-us-ccpa-fresh-install" to emptyList<Pair<String, String>>(),
 		).forEach { (fixture, fields) -> add(fixture, "expected.snapshot", *fields.toTypedArray()) }
 
 		// The snapshot a `native-envelope` write case stores is the same snapshot the

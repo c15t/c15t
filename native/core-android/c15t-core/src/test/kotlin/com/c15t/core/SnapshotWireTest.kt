@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
 /**
  * Pin the JSON the bridge hands JavaScript, key by key.
  *
- * The fixture runner checks this shape against 21 kernel-authored expectations, which
+ * The fixture runner checks this shape against 23 kernel-authored expectations, which
  * catches a rename only in a state a fixture happens to reach. This file checks the
  * emitted artifact directly: a state no fixture exercises still has to carry
  * `subjectId`, and the names the core keeps internally still have to stay out of it.

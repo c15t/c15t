@@ -361,6 +361,13 @@ final class ProtocolFixtureTests: XCTestCase {
     /// the contract negotiation is part of the run rather than a fixture that
     /// assumes it. Anything the input carries that this build cannot express is an
     /// error here, not a value dropped on the floor.
+    ///
+    /// `input.hydrated` decides whether the snapshot slot holds an envelope at all. A
+    /// fixture that says `false` is a first launch: the identity slot is filled and the
+    /// envelope slot is empty, which is the arrangement the contract keeps them in --
+    /// refusing an envelope must never cost a device its identity. Seeding an envelope
+    /// regardless would let `hydrate()` latch `ready` on bytes the fixture says are not
+    /// there, and the init whose latch is under test would never be asked to produce it.
     private func makeRun(entry: Index.Entry, input: JSONValue) throws -> Run {
         let store = InMemoryStore()
         let http = StubHTTP()
@@ -373,26 +380,37 @@ final class ProtocolFixtureTests: XCTestCase {
         guard let now = input["now"]?.intValue else {
             throw Failure.unsupported(fixture: entry.id, detail: "input.now is missing")
         }
-        var seeded = ConsentSnapshot(revision: 0)
-        if let choice = input["storedRecords"]?["choice"], !choice.isNull {
-            seeded = ConsentSnapshot(
-                revision: 0,
-                explicitChoice: try decode(ExplicitChoice.self, choice, entry)
+        if input["hydrated"]?.boolValue ?? true {
+            var seeded = ConsentSnapshot(revision: 0)
+            if let choice = input["storedRecords"]?["choice"], !choice.isNull {
+                seeded = ConsentSnapshot(
+                    revision: 0,
+                    explicitChoice: try decode(ExplicitChoice.self, choice, entry)
+                )
+            }
+            var dismissal: NoticeDismissal?
+            if let stored = input["storedRecords"]?["noticeDismissal"], !stored.isNull {
+                dismissal = try decode(NoticeDismissal.self, stored, entry)
+            }
+            // The policy wire stays out of the envelope on purpose: the fixture feeds
+            // the policy through the transport, which is what a relaunch does.
+            let envelope = StoredEnvelope(
+                snapshot: seeded,
+                noticeDismissal: dismissal,
+                policyResolution: nil,
+                storedAt: now
+            )
+            store.set(try C15tJSON.encode(envelope), for: StorageKey.snapshot)
+        } else {
+            // The claim has to hold in the store or the fixture proves nothing: a seeded
+            // envelope would let `hydrate()` raise `ready` and the init whose latch is
+            // under test would never be asked to. Asserted rather than trusted, so a
+            // runner that starts seeding again fails loudly instead of passing empty.
+            XCTAssertNil(
+                store.data(for: StorageKey.snapshot),
+                "\(entry.id): hydrated is false but the snapshot slot holds bytes, so hydration and not the init would be what latches `ready`"
             )
         }
-        var dismissal: NoticeDismissal?
-        if let stored = input["storedRecords"]?["noticeDismissal"], !stored.isNull {
-            dismissal = try decode(NoticeDismissal.self, stored, entry)
-        }
-        // The policy wire stays out of the envelope on purpose: the fixture feeds
-        // the policy through the transport, which is what a relaunch does.
-        let envelope = StoredEnvelope(
-            snapshot: seeded,
-            noticeDismissal: dismissal,
-            policyResolution: nil,
-            storedAt: now
-        )
-        store.set(try C15tJSON.encode(envelope), for: StorageKey.snapshot)
 
         return Run(core: ConsentCore(), config: config, http: http, store: store)
     }
@@ -1120,6 +1138,11 @@ final class ProtocolFixtureTests: XCTestCase {
         ("evaluation-eu-explicit-grants", "expected.snapshot", [.revision]),
         ("evaluation-eu-partial-denials", "expected.snapshot", [.revision]),
         ("evaluation-notice-dismissed", "expected.snapshot", [.revision]),
+        // A first launch has no envelope to hydrate, so `ready` can only arrive with the
+        // init -- and it does. The revision runs ahead here for the same reason as every
+        // other evaluation row: hydrate() takes one even from an empty store.
+        ("evaluation-eu-fresh-install", "expected.snapshot", [.revision]),
+        ("evaluation-us-ccpa-fresh-install", "expected.snapshot", [.revision]),
         ("save-body-all", "expected.snapshotBefore", [.revision]),
         ("save-body-all", "expected.snapshotAfter", [.revision]),
         ("save-body-necessary", "expected.snapshotBefore", [.revision]),
