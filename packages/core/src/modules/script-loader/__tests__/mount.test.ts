@@ -21,6 +21,7 @@ const makeDeps = function makeDeps(): {
 		},
 		getSnapshot: createConsentKernel().getSnapshot,
 		hasDebugListener: true,
+		isDisposed: () => false,
 		loadedElements: new Map(),
 		ownedScriptIds: new Set(),
 		retainedElements: new Map(),

@@ -95,6 +95,21 @@ describe('Zaraz consent bridge through the kernel and script loader', () => {
 		expect(onReady).toHaveBeenCalledOnce();
 	});
 
+	it.each([undefined, 'visible'])(
+		'synchronizes without a boolean modal property: %s',
+		(modal) => {
+			const { api } = installZaraz({ analytics: true });
+			Object.defineProperty(api, 'modal', { value: modal, writable: true });
+			const onReady = vi.fn();
+			mount(
+				cloudflareZaraz({ onReady, purposes: { measurement: ['analytics'] } })
+			);
+			expect(api.getAll()).toEqual({ analytics: false });
+			expect(api.modal).toBe(modal);
+			expect(onReady).toHaveBeenCalledOnce();
+		}
+	);
+
 	it('grants categories independently, sets before flushing, and revokes without flushing', async () => {
 		const { api, order } = installZaraz();
 		const onReady = vi.fn();

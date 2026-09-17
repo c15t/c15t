@@ -54,6 +54,13 @@ configurations that never loaded. Keep configuration objects stable across
 updates if their resources should remain attached. Repeated loader disposal
 does not call the hook again.
 
+A replacement object starts a fresh loading lifecycle even when it reuses the
+same script ID. Keep the same configuration object to preserve its resources.
+Duplicate references receive one cleanup per registration. Re-registering a
+removed object starts a new lifecycle. Updates requested from lifecycle
+callbacks run after the current pass; if several are requested, the latest
+configuration wins. Disposal stops further reconciliation.
+
 Consent revocation alone does not call `onDispose`. Use `onConsentChange` for
 vendor opt-out commands. Cleanup errors are reported through the loader's debug
 events and do not prevent other configurations from being cleaned up.

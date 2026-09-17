@@ -23,6 +23,8 @@ import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
  * closure capture and remain testable.
  */
 export interface MountDeps {
+	/** Stop lifecycle callbacks when disposal is requested during mounting. */
+	isDisposed: () => boolean;
 	/** Latest kernel state for callbacks completing after consent changes. */
 	getSnapshot: () => ConsentSnapshot;
 	/** Retained elements still observed after consent revocation. */
@@ -101,6 +103,9 @@ export const mountScript = function mountScript(
 			undefined
 		);
 		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
+		if (deps.isDisposed()) {
+			return;
+		}
 		invokeCallback(script, 'onLoad', info, deps.emit);
 		deps.loadedElements.set(script.id, null);
 		deps.emit({
@@ -198,6 +203,10 @@ export const mountScript = function mountScript(
 		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
 	}
 
+	if (deps.isDisposed()) {
+		return;
+	}
+
 	// Listeners only make sense on external scripts; inline scripts have
 	// no network event. Diagnostics still need events without user callbacks.
 	if (script.src) {
@@ -268,14 +277,21 @@ export const mountScript = function mountScript(
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
 	target.appendChild(element);
-	if (deps.loadedElements.get(script.id) !== element) {
+	if (deps.isDisposed() || deps.loadedElements.get(script.id) !== element) {
 		return;
 	}
 
 	if (!script.src && info) {
 		// Inline script: defer onLoad one tick so the browser parses
 		// before the callback observes side effects.
-		setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
+		setTimeout(() => {
+			if (
+				!deps.isDisposed() &&
+				deps.loadedElements.get(script.id) === element
+			) {
+				invokeCallback(script, 'onLoad', info, deps.emit);
+			}
+		}, 0);
 	}
 
 	deps.emit({
@@ -302,16 +318,20 @@ export const unmountScript = function unmountScript(
 	deps: MountDeps,
 	script: Script,
 	snapshot: ConsentSnapshot,
-	hasConsent: boolean
+	hasConsent: boolean,
+	removeConfiguration = false
 ): void {
-	const element = deps.loadedElements.get(script.id);
+	let element = deps.loadedElements.get(script.id);
+	if (element === undefined && removeConfiguration) {
+		element = deps.retainedElements.get(script.id);
+	}
 	if (element === undefined) {
 		return;
 	}
 
 	const elementId = deps.elementIds.resolve(script);
 
-	if (script.persistAfterConsentRevoked) {
+	if (script.persistAfterConsentRevoked && !removeConfiguration) {
 		if (element) {
 			deps.retainedElements.set(script.id, element);
 		}
@@ -409,6 +429,9 @@ export const flushPendingMounts = function flushPendingMounts(
 			}
 		}
 		for (const [target, entries] of byTarget) {
+			if (deps.isDisposed()) {
+				return;
+			}
 			// A previous target can execute inline code that revokes consent or
 			// replaces this loader's scripts. Never insert invalidated entries.
 			const elements = entries
@@ -437,13 +460,23 @@ export const flushPendingMounts = function flushPendingMounts(
 	}
 
 	for (const pending of batch) {
-		if (deps.loadedElements.get(pending.script.id) !== pending.element) {
+		if (
+			deps.isDisposed() ||
+			deps.loadedElements.get(pending.script.id) !== pending.element
+		) {
 			continue;
 		}
 		if (!pending.script.src && pending.info) {
 			const { info } = pending;
 			const { script } = pending;
-			setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
+			setTimeout(() => {
+				if (
+					!deps.isDisposed() &&
+					deps.loadedElements.get(script.id) === pending.element
+				) {
+					invokeCallback(script, 'onLoad', info, deps.emit);
+				}
+			}, 0);
 		}
 
 		deps.emit({

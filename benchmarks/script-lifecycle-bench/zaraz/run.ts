@@ -15,19 +15,29 @@ const out = resolve(
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/current/zaraz'
 );
 const baseRef = process.env.BENCH_BASE_REF ?? 'HEAD';
-const baseline = execFileSync(
-	'git',
-	['show', `${baseRef}:packages/core/src/modules/script-loader/index.ts`],
-	{ cwd: root, encoding: 'utf8' }
+const baseline = new Map(
+	['index.ts', 'mount.ts'].map((file) => {
+		const path = `packages/core/src/modules/script-loader/${file}`;
+		return [
+			resolve(root, path),
+			execFileSync('git', ['show', `${baseRef}:${path}`], {
+				cwd: root,
+				encoding: 'utf8',
+			}),
+		];
+	})
 );
 const baselinePlugin = {
 	name: 'baseline-script-loader',
 	setup(plugin: PluginBuild) {
 		plugin.onLoad(
-			// oxlint-disable-next-line require-unicode-regexp -- esbuild uses Go regular expressions.
-			{ filter: /packages\/core\/src\/modules\/script-loader\/index\.ts$/ },
-			() => ({
-				contents: baseline,
+			{
+				filter:
+					// oxlint-disable-next-line require-unicode-regexp -- esbuild uses Go regular expressions.
+					/packages\/core\/src\/modules\/script-loader\/(?:index|mount)\.ts$/,
+			},
+			(args) => ({
+				contents: baseline.get(args.path),
 				loader: 'ts',
 				resolveDir: resolve(root, 'packages/core/src/modules/script-loader'),
 			})
@@ -136,7 +146,7 @@ try {
 		date: new Date().toISOString(),
 		machine: { arch: arch(), cpu: cpus()[0]?.model, platform: platform() },
 		method:
-			'31 alternating samples per case, 5 warmups, 500 kernel consent updates per sample. Timing includes loader creation and disposal, excludes kernel creation. Baseline substitutes only script-loader/index.ts from the base ref; all other dependencies are identical. Zaraz API is a local fixture; no vendor network or edge execution is measured.',
+			'31 alternating samples per case, 5 warmups, 500 kernel consent updates per sample. Timing includes loader creation and disposal, excludes kernel creation. Baseline substitutes script-loader/index.ts and mount.ts from the base ref; all other dependencies are identical. Zaraz API is a local fixture; no vendor network or edge execution is measured.',
 		samples,
 		sizes,
 		summary,

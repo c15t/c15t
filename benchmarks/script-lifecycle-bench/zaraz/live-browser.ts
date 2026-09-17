@@ -3,6 +3,9 @@ import { policyRulePresets } from '../../../packages/core/src/index';
 import { createScriptLoader } from '../../../packages/core/src/modules/script-loader/index';
 import { cloudflareZaraz } from '../../../packages/scripts/src/vendors/tag-managers/cloudflare-zaraz';
 
+const lifecycle = new AbortController();
+const { signal } = lifecycle;
+
 const denied = {
 	experience: false,
 	functionality: false,
@@ -53,29 +56,26 @@ const loader = createScriptLoader({
 const measurementAllowed = () =>
 	kernel.getSnapshot().effectivePermissions.measurement;
 const savePermissions = async (measurement: boolean, marketing: boolean) => {
+	signal.throwIfAborted();
 	await client.save({ ...denied, marketing, measurement });
+	signal.throwIfAborted();
 };
-Object.defineProperty(window, 'c15tLab', {
-	value: {
-		apiReadyAtMount,
-		dispose: () => {
-			loader.dispose();
-			client.dispose();
-		},
-		events,
-		save: savePermissions,
-	},
-});
 
 // The page displays real API permissions and the counter written by Zaraz.
 const element = (id: string) => document.getElementById(id);
 const setText = (id: string, value: string) => {
+	if (signal.aborted) {
+		return;
+	}
 	const target = element(id);
 	if (target && target.textContent !== value) {
 		target.textContent = value;
 	}
 };
 const log = (message: string) => {
+	if (signal.aborted) {
+		return;
+	}
 	const item = document.createElement('li');
 	const time = document.createElement('time');
 	time.textContent = new Date().toLocaleTimeString([], { hour12: false });
@@ -92,6 +92,9 @@ let observedReady = false;
 let observedRuns = 0;
 const runs = () => window.__zarazMeasurementRuns ?? 0;
 const render = () => {
+	if (signal.aborted) {
+		return;
+	}
 	const ready = events.includes('ready');
 	setText(
 		'connection',
@@ -124,8 +127,18 @@ const render = () => {
 	}
 };
 const pause = (milliseconds: number) =>
-	new Promise<void>((resolve) => {
-		setTimeout(resolve, milliseconds);
+	new Promise<void>((resolve, reject) => {
+		signal.throwIfAborted();
+		const cancel = () => {
+			// oxlint-disable-next-line no-use-before-define -- The handler runs only after the timer is registered.
+			clearTimeout(timer);
+			reject(signal.reason);
+		};
+		const timer = setTimeout(() => {
+			signal.removeEventListener('abort', cancel);
+			resolve();
+		}, milliseconds);
+		signal.addEventListener('abort', cancel, { once: true });
 	});
 const save = async (allowed: boolean) => {
 	await savePermissions(allowed, false);
@@ -137,6 +150,7 @@ const save = async (allowed: boolean) => {
 	render();
 };
 const send = async () => {
+	signal.throwIfAborted();
 	log(
 		`Pageview sent to Zaraz with measurement ${measurementAllowed() ? 'allowed' : 'denied'}.`
 	);
@@ -202,22 +216,29 @@ const actions: Record<string, () => Promise<void> | void> = {
 	send,
 };
 Object.entries(actions).forEach(([id, action]) => {
-	element(id)?.addEventListener('click', async () => {
-		busy = true;
-		render();
-		try {
-			await action();
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			log(`ERROR: ${message}`);
-			setText('result', message);
-		} finally {
-			busy = false;
+	element(id)?.addEventListener(
+		'click',
+		async () => {
+			busy = true;
 			render();
-		}
-	});
+			try {
+				await action();
+			} catch (error) {
+				if (signal.aborted) {
+					return;
+				}
+				const message = error instanceof Error ? error.message : String(error);
+				log(`ERROR: ${message}`);
+				setText('result', message);
+			} finally {
+				busy = false;
+				render();
+			}
+		},
+		{ signal }
+	);
 });
-client.on('consent', () => {
+const unsubscribeConsent = client.on('consent', () => {
 	log(
 		`c15t consent saved. Measurement is ${measurementAllowed() ? 'allowed' : 'denied'}.`
 	);
@@ -227,8 +248,8 @@ log(
 	`c15t ${client.hasConsented() ? 'restored your saved choice' : 'started without a saved choice'}. Measurement is ${measurementAllowed() ? 'allowed' : 'denied'}. No pageview sent yet.`
 );
 render();
-setInterval(render, 200);
-setTimeout(() => {
+const renderInterval = setInterval(render, 200);
+const connectionTimeout = setTimeout(() => {
 	if (!observedReady) {
 		setText(
 			'result',
@@ -236,3 +257,22 @@ setTimeout(() => {
 		);
 	}
 }, 10000);
+
+Object.defineProperty(window, 'c15tLab', {
+	value: {
+		apiReadyAtMount,
+		dispose: () => {
+			if (signal.aborted) {
+				return;
+			}
+			lifecycle.abort();
+			clearInterval(renderInterval);
+			clearTimeout(connectionTimeout);
+			unsubscribeConsent();
+			loader.dispose();
+			client.dispose();
+		},
+		events,
+		save: savePermissions,
+	},
+});

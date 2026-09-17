@@ -3,7 +3,7 @@ import type { AllConsentNames, ConsentState, Script } from '@c15t/core';
 /** The Zaraz Consent API methods used by the bridge. */
 export interface ZarazConsentApi {
 	APIReady: boolean;
-	modal: boolean;
+	modal?: unknown;
 	getAll: () => Record<string, boolean>;
 	set: (permissions: Record<string, boolean>) => void;
 	sendQueuedEvents: () => void;
@@ -37,8 +37,6 @@ const isConsentApi = (api: unknown): api is ZarazConsentApi =>
 	api !== null &&
 	'APIReady' in api &&
 	api.APIReady === true &&
-	'modal' in api &&
-	typeof api.modal === 'boolean' &&
 	'getAll' in api &&
 	typeof api.getAll === 'function' &&
 	'set' in api &&
@@ -112,7 +110,7 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 			changed ||= previous[purpose] !== allowed;
 			granted ||= allowed && previous[purpose] !== true;
 		}
-		if (options.hideBuiltInModal !== false && api.modal) {
+		if (options.hideBuiltInModal !== false && api.modal === true) {
 			api.modal = false;
 		}
 		if (changed) {

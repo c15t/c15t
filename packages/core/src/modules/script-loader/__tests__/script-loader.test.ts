@@ -757,6 +757,210 @@ describe('script-loader: updateScripts swaps config', () => {
 });
 
 describe('script-loader: dispose', () => {
+	test('initializes a same-ID replacement after disposing the old configuration', () => {
+		const kernel = createConsentKernel();
+		const lifecycle: string[] = [];
+		const script: Script = {
+			callbackOnly: true,
+			category: 'necessary',
+			id: 'bridge',
+			onDispose: () => {
+				lifecycle.push('dispose');
+			},
+		};
+		const loader = createScriptLoader({ kernel, scripts: [script] });
+		loader.updateScripts([
+			{
+				...script,
+				onBeforeLoad: () => {
+					lifecycle.push('before');
+				},
+				onLoad: () => {
+					lifecycle.push('load');
+				},
+			},
+		]);
+		expect(lifecycle).toEqual(['dispose', 'before', 'load']);
+		loader.dispose();
+		kernel.dispose();
+	});
+
+	test('replaces owned DOM even when the previous script persists on revocation', () => {
+		const kernel = createConsentKernel();
+		const script: Script = {
+			category: 'necessary',
+			id: 'replace',
+			persistAfterConsentRevoked: true,
+			src: 'https://example.com/old.js',
+		};
+		const loader = createScriptLoader({ kernel, scripts: [script] });
+		loader.updateScripts([{ ...script, src: 'https://example.com/new.js' }]);
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]?.src).toBe('https://example.com/new.js');
+		loader.dispose();
+		kernel.dispose();
+	});
+
+	test('disposes duplicate references once per registration, including re-registration', () => {
+		const kernel = createConsentKernel();
+		const cleanup = vi.fn();
+		const script: Script = {
+			callbackOnly: true,
+			category: 'necessary',
+			id: 'duplicate',
+			onDispose: cleanup,
+		};
+		const loader = createScriptLoader({ kernel, scripts: [script, script] });
+		loader.updateScripts([]);
+		expect(cleanup).toHaveBeenCalledOnce();
+		loader.updateScripts([script, script]);
+		loader.dispose();
+		expect(cleanup).toHaveBeenCalledTimes(2);
+		kernel.dispose();
+	});
+
+	test.each(['onConsentChange', 'onDispose'] as const)(
+		'preserves an update requested by %s during removal',
+		(hookName) => {
+			const kernel = createConsentKernel();
+			const cleanup = vi.fn();
+			const finalLoad = vi.fn();
+			const script: Script = {
+				callbackOnly: true,
+				category: 'necessary',
+				id: 'old',
+				onDispose: cleanup,
+			};
+			const loader = createScriptLoader({ kernel, scripts: [script] });
+			script[hookName] = () => {
+				if (hookName === 'onDispose') {
+					cleanup();
+				}
+				loader.updateScripts([
+					{
+						callbackOnly: true,
+						category: 'necessary',
+						id: 'final',
+						onLoad: finalLoad,
+					},
+				]);
+			};
+			loader.updateScripts([]);
+			expect(cleanup).toHaveBeenCalledOnce();
+			expect(loader.getLoadedScriptIds()).toEqual(['final']);
+			expect(finalLoad).toHaveBeenCalledOnce();
+			loader.dispose();
+			kernel.dispose();
+		}
+	);
+
+	test.each(['onConsentChange', 'onDispose'] as const)(
+		'stops initialization when %s disposes during replacement',
+		(hookName) => {
+			const kernel = createConsentKernel();
+			const cleanup = vi.fn();
+			const nextLoad = vi.fn();
+			const script: Script = {
+				callbackOnly: true,
+				category: 'necessary',
+				id: 'old',
+				onDispose: cleanup,
+			};
+			const loader = createScriptLoader({ kernel, scripts: [script] });
+			script[hookName] = () => {
+				if (hookName === 'onDispose') {
+					cleanup();
+				}
+				loader.dispose();
+			};
+			loader.updateScripts([
+				{
+					callbackOnly: true,
+					category: 'necessary',
+					id: 'new',
+					onLoad: nextLoad,
+				},
+			]);
+			expect(cleanup).toHaveBeenCalledOnce();
+			expect(nextLoad).not.toHaveBeenCalled();
+			expect(loader.getLoadedScriptIds()).toEqual([]);
+			kernel.dispose();
+		}
+	);
+
+	test('applies an update requested during a consent reconciliation', () => {
+		const kernel = createConsentKernel();
+		const cleanup = vi.fn();
+		const script: Script = {
+			callbackOnly: true,
+			category: 'necessary',
+			id: 'old',
+			onDispose: cleanup,
+		};
+		const loader = createScriptLoader({ kernel, scripts: [script] });
+		script.onConsentChange = ({ hasConsent }) => {
+			if (hasConsent) {
+				loader.updateScripts([]);
+			}
+		};
+		void kernel.commands.save({ measurement: true });
+		expect(cleanup).toHaveBeenCalledOnce();
+		expect(loader.getLoadedScriptIds()).toEqual([]);
+		loader.dispose();
+		kernel.dispose();
+	});
+
+	test.each(['onBeforeLoad', 'onLoad'] as const)(
+		'stops mounting when %s disposes the loader',
+		(hookName) => {
+			const kernel = createConsentKernel();
+			const loader = createScriptLoader({ kernel, scripts: [] });
+			const cleanup = vi.fn();
+			const laterLoad = vi.fn();
+			loader.updateScripts([
+				{
+					callbackOnly: true,
+					category: 'necessary',
+					id: 'stop',
+					[hookName]: () => loader.dispose(),
+					onDispose: cleanup,
+				},
+				{
+					category: 'necessary',
+					id: 'later',
+					onLoad: laterLoad,
+					src: 'https://example.com/later.js',
+				},
+			]);
+			expect(cleanup).toHaveBeenCalledOnce();
+			expect(laterLoad).not.toHaveBeenCalled();
+			expect(head.children).toHaveLength(0);
+			expect(loader.getLoadedScriptIds()).toEqual([]);
+			kernel.dispose();
+		}
+	);
+
+	test('does not run a deferred inline onLoad after disposing its configuration', () => {
+		const kernel = createConsentKernel();
+		const onLoad = vi.fn();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'necessary',
+					id: 'inline',
+					onLoad,
+					textContent: 'void 0',
+				},
+			],
+		});
+		loader.updateScripts([]);
+		vi.runAllTimers();
+		expect(onLoad).not.toHaveBeenCalled();
+		loader.dispose();
+		kernel.dispose();
+	});
+
 	test('cleans up removed, replaced and pending configurations exactly once', () => {
 		const kernel = createConsentKernel();
 		const first = vi.fn();

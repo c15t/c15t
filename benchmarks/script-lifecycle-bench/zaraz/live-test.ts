@@ -10,6 +10,7 @@ declare global {
 	interface Window {
 		c15tLab: {
 			apiReadyAtMount: boolean;
+			dispose: () => void;
 			events: string[];
 			save: (measurement: boolean, marketing: boolean) => Promise<unknown>;
 		};
@@ -184,6 +185,31 @@ try {
 		fullPage: true,
 		path: '.benchmarks/current/zaraz/banner-mobile.png',
 	});
+	await page.getByTestId('consent-banner-reject-button').click();
+	await page.locator('#demo').click();
+	await page.waitForFunction(() =>
+		document
+			.getElementById('log')
+			?.textContent?.includes('Pageview sent to Zaraz with measurement denied')
+	);
+	await page.evaluate(() => {
+		window.c15tLab.dispose();
+		window.c15tLab.dispose();
+	});
+	const disposedContent = await page.locator('main').innerHTML();
+	await page.evaluate(() => {
+		window.__zarazMeasurementRuns = 99;
+		for (const id of ['demo', 'send', 'preferences', 'banner']) {
+			document.getElementById(id)?.dispatchEvent(new MouseEvent('click'));
+		}
+	});
+	await page.waitForTimeout(1200);
+	assert.equal(await page.locator('main').innerHTML(), disposedContent);
+	assert.equal((await state()).permissions.feGw, false);
+	checks.push(
+		'Disposal cancels the guided demo and prevents polling, clicks, or consent changes from updating the page'
+	);
+
 	assert.deepEqual(errors, []);
 	const report = {
 		browser: browser.version(),

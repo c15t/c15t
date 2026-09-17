@@ -25,20 +25,22 @@ stopped this. Verify actual tool activity after configuring your own zone.
 
 | Scenario | Base median | Head median | Base p95 | Head p95 |
 | --- | ---: | ---: | ---: | ---: |
-| Empty loader | 1.4 µs | 1.4 µs | 2.2 µs | 1.8 µs |
-| 50 callback-only scripts | 8.6 µs | 8.6 µs | 9.6 µs | 10.2 µs |
-| Two-purpose bridge | — | 1.8 µs | — | 2.6 µs |
+| Empty loader | 1.6 µs | 1.6 µs | 2.2 µs | 2.2 µs |
+| 50 callback-only scripts | 9.8 µs | 10.0 µs | 11.8 µs | 12.6 µs |
+| Two-purpose bridge | — | 2.0 µs | — | 2.8 µs |
 
 These are costs per kernel consent update, with loader creation and disposal
 amortized across 500 updates. Each case has five warmups and 31 samples; base
 and head run in alternating order in the same browser. The baseline substitutes
-only the changed script-loader runtime file; dependencies are identical.
+the changed script-loader `index.ts` and `mount.ts` files; other dependencies
+are identical.
 
-The bridge adds 1,602 minified bytes, 849 gzip bytes. The core disposal lifecycle
-adds 98 gzip bytes to the isolated loader bundle, from 5,219 to 5,317. Raw samples
+The bridge adds 1,567 minified bytes, 837 gzip bytes. The core disposal lifecycle
+adds 290 gzip bytes to the isolated loader bundle, from 5,219 to 5,509. Raw samples
 and build measurements are in `results.json`.
 
-The unchanged medians show no measured regression in these cases. This is a
+The empty-loader median is unchanged. The 50-callback median increased by
+0.2 µs, about 2%; its p95 increased by 0.8 µs, about 7%. This is a
 local microbenchmark using a Zaraz API fixture. It does not measure a vendor SDK,
 Cloudflare edge execution, LCP, INP, or a site-level speedup. The live probe uses
 Custom HTML, which still executes in the browser. A vendor-specific comparison
@@ -83,8 +85,8 @@ implements the Zaraz bridge; it does not ship Nuxt or Next script adapters.
 
 ## Validation
 
-- Core: 75 files, 1,071 tests passed.
-- Scripts: 74 files, 416 tests passed, including modal, teardown and mapping regressions.
+- Core: 75 files, 1,082 tests passed.
+- Scripts: 74 files, 418 tests passed, including modal, teardown and mapping regressions.
 - Repository tooling: 24 files, 185 tests passed.
 - CLI integration snippets: 3 tests passed.
 - Core/scripts builds and type checks passed, as did core test types and the
@@ -123,7 +125,9 @@ The page displays current c15t and Zaraz permissions, the actual tool counter,
 and an activity log. Use the cookie banner to accept or reject, send a pageview,
 or run the guided three-step check. The browser test also exercises the real
 banner buttons, the preferences dialog and the guided check. Mobile layout is
-checked at 390 pixels wide. Results are in `live-ui-results.json`.
+checked at 390 pixels wide. All 12 live checks passed, including disposal during the guided demo.
+Disposal stops polling, unsubscribes handlers and cancels pending demo pauses.
+Results are in `live-ui-results.json`.
 
 The interactive page bundles the browser UI as well as the bridge. Its page
 bundle size is not the standalone bridge measurement reported above.
