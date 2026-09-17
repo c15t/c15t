@@ -96,9 +96,9 @@ needs `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 
 Verified here: `bun run check-types` is clean, `bun run bundle` writes a release bundle
 for both platforms, `pod install` completes, and the Android app gets through Gradle
-configuration. Nobody has launched a simulator or an emulator from this fixture yet, so
-every box in the checklist below is still open, and the cold-start and airplane-mode steps
-need a human with a device.
+configuration. iOS has been built, installed and launched; [Device run](#device-run) says
+what that proved and what it could not. Android has never run, so the emulator half of the
+checklist below is still open.
 
 iOS resolves. `pod install` from `ios/`, with `DEVELOPER_DIR` set, prints:
 
@@ -149,6 +149,25 @@ Two more notes for anyone building natively from a checkout:
   and every `xcodebuild` call on this machine, because `xcode-select` points at Command
   Line Tools and CocoaPods reads an empty `xcodebuild -version` otherwise.
 
+## Device run
+
+iPhone 17 Pro on iOS 26.4, built by `xcodebuild` against `C15tBare.xcworkspace`, installed
+with `simctl`, talking to `examples/demo` serving `@c15t/backend` at
+`http://localhost:3000/api/self-host`. The app came up on the native core: the CORE panel
+read `native (TurboModule)`, the handshake reported protocol 1, and the banner rendered with
+copy from the backend, so `bootstrap()`, `snapshot()` and the subscription pump all held over
+the real bridge rather than only against the fake.
+
+Two things were only visible on a device. The banner's controls sat under the home indicator
+and a sheet's heading sat by the clock, which is what the inset work in the package fixed.
+Still open: this app's own top tab bar overlaps the status bar clock. That is fixture chrome
+rather than a consent surface, so the package's insets do not reach it.
+
+What this machine cannot do is drive a tap. It has both iOS runtimes and `simctl`, but no
+`Simulator.app` anywhere in the Xcode bundle, so the device boots headless and can only be
+observed through `simctl io screenshot`. Everything in the checklist that needs a finger
+needs a machine with the full Xcode app, or a real device.
+
 ## Fake core
 
 The example ships an in-JavaScript fake core (`src/c15t/fake-native.ts`) built only on
@@ -170,6 +189,11 @@ binary without the module offers it as the way past the build error.
 
 Run against the real core on a device or simulator. Do it with a backend you can
 stop, or the offline steps just look like latency.
+
+Steps 3 to 5 passed on iOS, run headless with the backend stopped and the app relaunched:
+the first frame carried `ready: true`, `policyPending: false`, a non-zero `revision`, and an
+`evaluatedAt` about an hour old. The stale timestamp is the proof that it was stored state,
+not a response that happened to be quick.
 
 Cached snapshot before any network:
 
@@ -195,7 +219,10 @@ Queued save replayed on relaunch:
 4. Kill the app.
 5. Turn the network back on and relaunch.
 6. Pass when the backend has exactly one save record for that action, with the same
-   category set that was chosen, and the snapshot's revision moves past the stored one.
+   category set that was chosen. Judge that from the backend rather than the revision:
+   `revision` is local, it bumps on every committed mutation, and one bootstrap commits
+   both a hydrate and a re-evaluate, so it moves past the stored number on an offline
+   relaunch that saved nothing.
 7. Fail when the record is missing, when the queue sent twice, or when the replayed
    body was rebuilt from the current policy instead of the payload that was queued.
 8. Repeat with two actions queued back to back. Both must arrive, in order, unchanged.
