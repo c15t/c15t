@@ -98,6 +98,12 @@ struct StoredEnvelope: Sendable, Codable, Equatable {
         case let .object(fields):
             for (key, item) in fields {
                 let keyPath = path.isEmpty ? key : "\(path).\(key)"
+                // A key holding null carries nothing that could be lost, so it is not a
+                // name this build lacks. The TypeScript kernel and the Kotlin core spell an
+                // absent optional as an explicit null where Swift omits the key, and reading
+                // that as unknown refuses the whole envelope: a stored choice becomes
+                // nothing stored, on every launch, with nothing on the snapshot to say why.
+                if case .null = item { continue }
                 paths.insert(keyPath)
                 collectKeyPaths(of: item, at: keyPath, into: &paths)
             }
