@@ -47,6 +47,7 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"!dist-types/**/__tests__/**",
 		"AGENTS.md",
 		"docs"
 	],

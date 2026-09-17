@@ -35,6 +35,10 @@
 		"src/styles",
 		"!src/styles/**/__tests__/**",
 		"!src/styles/**/*.test.ts",
+		"!src/primitives/**/__tests__/**",
+		"!src/primitives/**/*.test.ts",
+		"!dist-types/**/__tests__/**",
+		"!types/**/__tests__/**",
 		"types"
 	],
 	"type": "module",
