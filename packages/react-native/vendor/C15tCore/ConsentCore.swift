@@ -1400,7 +1400,9 @@ public final class ConsentCore: @unchecked Sendable {
                     // stays recorded for whoever takes the pass next, and the next launch,
                     // foreground, or reachability change answers it over a connection that
                     // exists at all.
-                    _ = report
+                    while !report.transportUnreachable, takeDeliveryPassRequest() {
+                        report = await runDeliveryPass()
+                    }
                     stoppedForUnreachableTransport = report.transportUnreachable
                 }
             }
