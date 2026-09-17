@@ -12,6 +12,7 @@ import {
 	ConsentGate,
 	ConsentReady,
 	ConsentPrompt,
+	useConsentDecision,
 	useIsAllowed,
 } from '@c15t/react-native';
 import type { ReactNode } from 'react';
@@ -54,15 +55,30 @@ const VendorInit = ({ category }: { readonly category: Category }) => {
 	);
 };
 
-/** Gate one category, and say plainly when it is closed. */
-export const GatedVendor = ({ category }: { readonly category: Category }) => (
-	<ConsentGate
-		category={category}
-		fallback={<Text muted>{category} gated off</Text>}
-	>
-		{() => <VendorInit category={category} />}
-	</ConsentGate>
-);
+/**
+ * Gate one category, and say which kind of closed this is.
+ *
+ * `ConsentGate` still decides what renders, and the decision read only labels the
+ * fallback, because the boolean alone answers `false` for two opposite cases: the
+ * subject refused, and the core has not decided yet. A runner watching a screen
+ * cannot tell those apart, and only one of them is supposed to fix itself.
+ */
+export const GatedVendor = ({ category }: { readonly category: Category }) => {
+	const decision = useConsentDecision(category);
+
+	return (
+		<ConsentGate
+			category={category}
+			fallback={
+				<Text
+					muted
+				>{`${category} gated off (${decision === 'pending' ? 'waiting on the core' : 'refused'})`}</Text>
+			}
+		>
+			{() => <VendorInit category={category} />}
+		</ConsentGate>
+	);
+};
 
 /** One category, on its own subscription, with its own render counter. */
 const PermissionLine = ({ category }: { readonly category: Category }) => {
@@ -133,6 +149,7 @@ export const GatingHint = () => (
 	<Hint>
 		Each line is its own subscription, so its counter only moves when that
 		category moves. The vendor below only appears while its category is allowed,
-		and disappears the moment it stops being allowed.
+		and disappears the moment it stops being allowed. While it is gone, the line
+		behind it says whether the subject refused or the core has not answered yet.
 	</Hint>
 );
