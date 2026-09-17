@@ -33,6 +33,9 @@ object C15tAndroid {
 	@Volatile
 	private var foregroundObserver: C15tForegroundObserver? = null
 
+	@Volatile
+	private var reachability: C15tReachability? = null
+
 	private val background = Executors.newSingleThreadExecutor { runnable ->
 		Thread(runnable, "c15t-io").apply { isDaemon = true }
 	}
@@ -48,6 +51,10 @@ object C15tAndroid {
 	 * @param observeForeground register the process-foreground observer that replays
 	 * the offline queue. Turn it off only if the host drives [C15t.flushPending] and
 	 * [C15t.refresh] itself.
+	 * @param observeReachability also replay the queue when the process gains a network.
+	 * This one needs `android.permission.ACCESS_NETWORK_STATE`, which belongs to the
+	 * host: without it the registration is refused and c15t carries on with the launch
+	 * and foreground replays, so declaring it buys a faster retry rather than correctness.
 	 */
 	fun install(
 		context: Context,
@@ -55,6 +62,7 @@ object C15tAndroid {
 		transport: C15tTransport? = null,
 		clock: Clock = Clock.SYSTEM,
 		observeForeground: Boolean = true,
+		observeReachability: Boolean = true,
 		logger: (KernelError) -> Unit = { error -> Log.w(TAG, "${error.code}: ${error.message}") },
 	) {
 		val appContext = context.applicationContext
@@ -75,6 +83,14 @@ object C15tAndroid {
 				val observer = C15tForegroundObserver()
 				foregroundObserver = observer
 				androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
+			}
+		}
+
+		if (observeReachability && reachability == null) {
+			onMainThread {
+				if (reachability == null) {
+					reachability = C15tReachability.register(appContext) { C15t.flushPending() }
+				}
 			}
 		}
 	}

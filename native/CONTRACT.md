@@ -358,6 +358,38 @@ Writes go through a pending queue:
 - Retry on the next launch, on foreground, and on reachability change.
 - Keep at most the newest 20 payloads, oldest dropped first.
 
+Platform lifecycle
+------------------
+
+The core starts no timer of its own, so a platform port owns the three moments where
+a stored answer can have gone stale with nothing asking about it.
+
+- **Launch.** Hydrate, then replay the pending queue. Both cores do this inside
+  `bootstrap`, before the first read is served.
+- **Foreground.** Replay the pending queue, then refresh policy. A device that spent
+  the night offline has a decision waiting to be delivered and possibly a notice that
+  has aged out, and an app has no reason to go and ask about either.
+- **Reachability.** Replay the pending queue when the process gains a network it did
+  not already have. Nothing else on this list is worth a round trip for: policy is
+  served fresh at launch and at foreground, and a link that came and went does not
+  change what the subject agreed to.
+
+A connectivity callback counts the network already up at registration as the state it
+started in, not as a gain. Replaying there races the launch replay, and a core that
+replays only the first genuine gain leaves a decision queued for the rest of a session
+spent online.
+
+The reachability leg is the one a platform may be denied, and the reason is literal:
+`ACCESS_NETWORK_STATE` on Android and the equivalent monitoring entitlement belong to
+the application, and an SDK that wrote them into every host's manifest would be
+spending the maintainer's privacy surface on the narrowest of the three legs. Where the
+platform refuses the registration, a core logs it once and carries on. Launch and
+foreground are never optional and never need a permission.
+
+Neither core may poll a clock instead. A core that wakes itself on a cadence invents a
+rhythm no policy asked for, and whatever it decides at an arbitrary minute is an answer
+the policy never gave.
+
 Subject identity
 ----------------
 
@@ -607,8 +639,12 @@ Kotlin core, as built
   `./gradlew :c15t-core:test --console=plain`.
 - `c15t-android` implements the storage and lifecycle ports: AndroidKeyStore
   encrypted storage with a `SharedPreferences` fallback, an `androidx.startup`
-  `Initializer` that calls `bootstrap()`, and a `ProcessLifecycleOwner` observer
-  that calls `flushPending()` and `refresh()`.
+  `Initializer` that calls `bootstrap()`, a `ProcessLifecycleOwner` observer
+  that calls `flushPending()` and `refresh()`, and a `ConnectivityManager`
+  callback that calls `flushPending()` on a gained network. The callback is the
+  one port that can be declined: without `ACCESS_NETWORK_STATE` in the host's
+  manifest the registration is refused, and `C15tReachability.register` logs it
+  and returns `null` rather than failing the install.
 - Measured on the development machine, release JVM: hydrate 25.4 us, policy
   evaluation 0.63 us, snapshot plus three `isAllowed` reads 0.04 us, save
   acknowledged without network 102 us. `./gradlew :c15t-core:bench` reproduces them.
@@ -830,6 +866,10 @@ Rules the plugin enforces at build time
   provider is observable in a diff against the same app with no plugin: the
   bare template already asks for INTERNET, so the plugin's write lands on a
   permission that is already there.
+- The plugin does not add `android.permission.ACCESS_NETWORK_STATE`. That
+  permission buys only the reachability leg of the queue replay, and a host that
+  wants the shorter retry declares it itself; the plugin writing it would trade
+  every host's manifest for one wake-up nobody asked for.
 - The root and app gradle files have `minSdk` and `compileSdk` raised to 24 and
   36, the floors in `native/core-android/gradle/libs.versions.toml`. Below them
   the manifest merger fails with a message that names neither c15t nor the
