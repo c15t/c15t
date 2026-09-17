@@ -66,6 +66,10 @@ if (isAllowed('measurement')) {
 
 While the policy is still resolving, or before the stored snapshot has hydrated, every optional category reads `false`. Nothing has to opt in to that behavior.
 
+## Gating a tracking feature
+
+Tracking needs two yeses. `useIsTrackingAllowed(category)` is true only when c15t consent is granted for that category and the platform puts no bar in front of it, which on iOS means App Tracking Transparency is authorized. A platform authorization is not consent: nothing an operating system reports turns a `denied` or `pending` category on. Read the platform half on its own with `useTrackingAuthorization()`, and ask for it with `requestTrackingAuthorization()` on the actions object, which is a prompt you own the timing of rather than something the SDK decides to show.
+
 ## Running the tests
 
 Three commands, run from this package directory:
