@@ -49,18 +49,14 @@ mobile, minus IAB:
 
     revision: number                  // monotonic, bumps on every mutation
     policyPending: boolean            // true until the first init resolves
-    ready: boolean                    // false until hydrate() completed
+    ready: boolean                    // false until hydrate() completed or the first init resolved
     model: 'opt-in' | 'opt-out' | 'none'
     activeUI: 'none' | 'banner' | 'dialog' | null
-    promptRequirement: { notice: boolean, acknowledge: boolean, purpose: 'initial'|'update'|null }
     effectivePermissions: { necessary, functionality, experience, measurement, marketing }  // all boolean
-    explicitChoice: { consents, action, actionAt } | null
     consentCategories: string[] | null
     restrictions: { [category]: string[] }
     resolution: { status, policyId, fingerprint }
     policySnapshotToken: string | null
-    subject: { id, externalId | null } | null
-    location: { country, region, language } | null
     overrides: { country | null, region | null, language, gpc | null }
     privacySignals: { gpc: { detected, override | null, active } }
     optOutDirectives: []
@@ -74,6 +70,29 @@ layer does not have to branch.
 
 `ready` and `policyPending` are the two flags a native SDK gate must consult.
 While either is unset, every optional category reads `false`.
+
+Four fields are deliberately missing from the list above: `promptRequirement`,
+`explicitChoice`, `subject`, and `location`. They are the kernel's own objects and
+they keep the kernel's own key names. `promptRequirement` is `{ kind, reason }`, not
+a notice/acknowledge/purpose triple. `subject` is keyed `subjectId`, not `id`.
+`location` is `{ countryCode, regionCode }`, not `country` and `region`.
+`explicitChoice` is the kernel's `ExplicitChoice`.
+
+The declaration is `NativeSnapshot` in `packages/react-native/src/protocol/snapshot.ts`,
+which imports all four types straight from `@c15t/core` and says plainly that it is the
+shape on the wire and that the JavaScript layer never derives it. The fixtures are
+generated from the TypeScript kernel, so where a native model and a fixture disagree
+about a key name, the fixture is right.
+
+A wire key name is not negotiable, and a fixture runner may not carry an
+accepted-differences entry for one. A renamed key is invisible to TypeScript, because
+the bridge hands JavaScript a JSON string: the declared type can say
+`subject.subjectId` while the device sends `subject.id`, and every app on that
+platform reads `undefined` with nothing failing anywhere. That is how this rule got
+written. A Kotlin build carried four renamed keys behind fixture tolerations, and on a
+device the subject printed as absent and the location printed as empty while all 21
+fixtures stayed green. Names inside the core and inside a stored envelope are the
+core's own business; the JSON a bridge emits is not.
 
 Revisions and error writes
 --------------------------
@@ -214,6 +233,15 @@ cached snapshot must be readable without any network. Store the last known
 snapshot so a cold start with no connectivity still answers `snapshot()` in the
 first synchronous call. First launch with nothing stored returns
 `ready: false, policyPending: true`, all optional categories `false`.
+
+That is a launch that has not been told yet, not a permanent state. `ready` means the
+core has been told: `hydrate()` completing with a stored envelope latches it, and so
+does the first init that lands a definitive answer, whether or not anything was ever
+stored. Only an init that failed or is still in flight leaves it low, which is what
+keeps a core with no connectivity fail-closed. Reading `ready` as "a stored envelope
+exists" strands a fresh install in `PENDING` for its whole first session, so `GRANTED`
+is unreachable on the launch a CMP most needs it, and a listener waiting on readiness
+never resumes.
 
 The stored envelope
 -------------------
