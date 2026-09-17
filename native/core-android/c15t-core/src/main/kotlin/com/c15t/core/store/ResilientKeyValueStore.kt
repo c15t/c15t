@@ -30,9 +30,13 @@ class ResilientKeyValueStore(
 	private val primary: KeyValueStore,
 	private val fallback: KeyValueStore,
 	private val onFallback: (Throwable) -> Unit = {},
+	private val onWriteFailure: (Throwable) -> Unit = {},
 ) : KeyValueStore {
 	@Volatile
 	private var degraded = false
+
+	@Volatile
+	private var reportedWriteFailure = false
 
 	/** `true` once [primary] has been given up on. */
 	val isDegraded: Boolean
@@ -68,6 +72,7 @@ class ResilientKeyValueStore(
 			return
 		} catch (error: Exception) {
 			if (!KeyLoss.isKeyUnavailable(error)) {
+				reportWriteFailure(error)
 				return
 			}
 			degrade(error)
@@ -83,6 +88,30 @@ class ResilientKeyValueStore(
 		} catch (_: Exception) {
 			// A flush that cannot reach disk has nothing left to report.
 		}
+	}
+
+	/**
+	 * Say once that a write was dropped.
+	 *
+	 * The value is not copied to [fallback] on purpose: an unavailable key means the
+	 * ciphertext is gone, which is the condition the contract names for unprotected
+	 * storage, while any other failure means a key that still works and records that
+	 * could yet be encrypted. Writing them in plaintext to clear a transient fault
+	 * would spend a privacy protection nobody decided to spend, so the answer is to
+	 * lose the write and make noise about it. Without this the device keeps showing a
+	 * banner on every launch and nothing on disk or in logcat ever says why.
+	 */
+	private fun reportWriteFailure(error: Throwable) {
+		if (reportedWriteFailure) {
+			return
+		}
+		synchronized(this) {
+			if (reportedWriteFailure) {
+				return
+			}
+			reportedWriteFailure = true
+		}
+		onWriteFailure(error)
 	}
 
 	private fun degrade(error: Throwable) {

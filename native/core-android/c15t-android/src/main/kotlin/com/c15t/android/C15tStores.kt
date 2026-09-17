@@ -55,6 +55,7 @@ object C15tStores {
 				),
 				fallback = fallback,
 				onFallback = ::warnOnce,
+				onWriteFailure = ::warnAboutDroppedWrite,
 			)
 		} catch (error: Throwable) {
 			warnOnce(error)
@@ -68,6 +69,16 @@ object C15tStores {
 				Log.w(TAG, "c15t could not read stored state for $key; serving deny-all", error)
 			},
 		)
+	}
+
+	/**
+	 * A write that encrypted fine but could not be written, or failed for a reason that
+	 * is not a dead key. The records stay in memory and the next launch starts from
+	 * nothing stored, which the contract accepts over putting them in the clear -- but
+	 * only if a field report can find it, so this is the one line that says so.
+	 */
+	private fun warnAboutDroppedWrite(error: Throwable) {
+		Log.e(TAG, "c15t could not write encrypted consent storage; this change will not survive a relaunch", error)
 	}
 
 	private fun warnOnce(error: Throwable) {

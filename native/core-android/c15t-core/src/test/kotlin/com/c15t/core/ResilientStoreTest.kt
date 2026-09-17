@@ -73,8 +73,13 @@ class ResilientStoreTest {
 
 	@Test
 	fun `a storage failure that is not key loss never reaches the caller`() {
+		var reports = 0
 		val fallback = InMemoryKeyValueStore()
-		val store = ResilientKeyValueStore(ThrowingStore(IllegalStateException("disk full")), fallback)
+		val store = ResilientKeyValueStore(
+			ThrowingStore(IllegalStateException("disk full")),
+			fallback,
+			onWriteFailure = { reports += 1 },
+		)
 
 		// A launch hook must not crash over storage, and nothing here may look like a
 		// successful save: the write is simply dropped.
@@ -82,6 +87,51 @@ class ResilientStoreTest {
 		assertNull(store.read(SNAPSHOT))
 		assertFalse(store.isDegraded)
 		assertTrue(fallback.keys.isEmpty())
+		assertEquals(1, reports, "a write that will not survive a relaunch has to be reported")
+	}
+
+	@Test
+	fun `a dropped write is reported once however often it is retried`() {
+		var reports = 0
+		val store = ResilientKeyValueStore(
+			ThrowingStore(IllegalStateException("disk full")),
+			InMemoryKeyValueStore(),
+			onWriteFailure = { reports += 1 },
+		)
+
+		repeat(5) { store.write(SNAPSHOT, "state") }
+
+		assertEquals(1, reports, "the log line a field report needs, without the four that repeat it")
+	}
+
+	@Test
+	fun `a dropped write does not spend the fallback's protection`() {
+		// The key still works here, so these records could be encrypted later. Writing
+		// them in the clear to clear a transient fault is a trade nobody has agreed to.
+		val counting = CountingStore(InMemoryKeyValueStore())
+		val store = ResilientKeyValueStore(
+			ThrowingStore(IllegalStateException("disk full")),
+			counting,
+			onWriteFailure = {},
+		)
+
+		store.write(SNAPSHOT, "state")
+
+		assertEquals(0, counting.writes)
+	}
+
+	@Test
+	fun `a key failure still spends the fallback without a dropped-write report`() {
+		var dropped = 0
+		val store = ResilientKeyValueStore(
+			BrokenKeyStore(),
+			InMemoryKeyValueStore(),
+			onWriteFailure = { dropped += 1 },
+		)
+
+		store.write(SNAPSHOT, "state")
+
+		assertEquals(0, dropped, "stepping down is the documented answer, not a dropped write")
 	}
 
 	private class BrokenKeyStore : KeyValueStore {
@@ -99,6 +149,26 @@ class ResilientStoreTest {
 			attempts += 1
 			throw KeyStoreException("key destroyed")
 		}
+	}
+
+	/** Records how often anything asked it to write. */
+	private class CountingStore(private val delegate: KeyValueStore) : KeyValueStore {
+		var writes = 0
+			private set
+
+		override fun read(key: String): String? = delegate.read(key)
+
+		override fun write(
+			key: String,
+			value: String?,
+		) {
+			writes += 1
+			delegate.write(key, value)
+		}
+
+		override fun keys(): Set<String> = delegate.keys()
+
+		override fun flush() = delegate.flush()
 	}
 
 	private class ThrowingStore(private val error: Throwable) : KeyValueStore {
