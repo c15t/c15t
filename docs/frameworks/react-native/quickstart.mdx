@@ -56,8 +56,7 @@ same values to JavaScript under `extra.c15t`.
     [
       "@c15t/react-native/expo-plugin",
       {
-        "backendURL": "https://consent.example.com",
-        "publicKey": "pk_live_7f3a9c"
+        "backendURL": "https://consent.example.com"
       }
     ]
   ]
@@ -65,9 +64,7 @@ same values to JavaScript under `extra.c15t`.
 ```
 
 `backendURL` is required in every mode except `offline`, and a base path is allowed so
-a same-origin deployment works unchanged. `publicKey` is a publishable key only: the
-plugin rejects anything shaped `sk_`, `secret_`, `private_` or `rk_`, because the value
-is published inside a public IPA and APK. See
+a same-origin deployment works unchanged. See
 [configuration](/docs/frameworks/react-native/configuration) for the other options.
 
 Generate the native projects and build a development client:

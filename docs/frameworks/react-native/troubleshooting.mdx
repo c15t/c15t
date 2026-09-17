@@ -150,8 +150,6 @@ resolved values rather than assuming the plugin fixed them.
 The config plugin refuses a build for a few configurations that cannot work, and each
 error names the parameter to change:
 
-- A `publicKey` shaped `sk_`, `secret_`, `private_` or `rk_`. Plugin values are published
-  inside the binary; keep the secret key on the backend.
 - `enableAppTrackingTransparency` without `trackingUsageDescription`. App Review rejects a
   generic string, so the plugin will not write a placeholder.
 - `privacyTrackingDomains` without ATT enabled, or a list that omits the backend host when
@@ -163,10 +161,11 @@ error names the parameter to change:
   c15t `<meta-data>` entries and the `androidx.startup` provider by hand and drop the
   plugin.
 
-Forcing GPC in an Android manifest needs care. `C15tAndroid.configFrom` reads
-`com.c15t.FORCE_GPC` as a string and parses it strictly, so a value Android types as a
-boolean reads as absent. If forcing the signal matters on a bare Android app, confirm the
-core saw it before relying on the manifest.
+An unquoted `android:value="true"` is typed as a boolean by the manifest parser, and a
+quoted `"true"` stays text. Both are read, along with `TRUE` and `1`, so a flag written by
+the config plugin and one typed by hand mean the same thing. A value that means neither
+reads as absent rather than as `false`, and for GPC those differ: absent is derived, a
+declaration is honoured. `useC15tBootstrap()` is how you confirm what the core saw.
 
 ## Reading state from a debug screen
 

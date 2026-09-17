@@ -8,9 +8,11 @@
  * platforms spell the same idea differently because the readers already did,
  * and a plugin that "cleaned that up" would write keys nothing reads.
  *
- * Two keys have no reader yet: the public client key on both platforms, and
- * the init URL override on iOS. The cores identify a project by backend URL,
- * so these are written for proxy routing and for support to read off a build.
+ * Every entry here must have a named reader on its platform, and
+ * `__tests__/native-key-readers.test.ts` fails the build when one does not.
+ * A key in an `Info.plist` or an `AndroidManifest.xml` looks like configuration
+ * to everyone who reads the build, and a value no code reads is a wrong
+ * promise rather than a spare knob, so neither table keeps one "for later".
  */
 
 /** Android `<meta-data>` names the plugin writes, in full. */
@@ -25,8 +27,6 @@ export const ANDROID_META = {
 	initUrl: 'com.c15t.INIT_URL',
 	/** c15t backend base URL, the value the core calls `portalUrl`. */
 	portalUrl: 'com.c15t.PORTAL_URL',
-	/** Publishable client key. Never a secret. */
-	publicKey: 'com.c15t.PUBLIC_KEY',
 } as const;
 
 /** iOS `Info.plist` keys, matching `C15tBridgeConfiguration.InfoPlistKey`. */
@@ -41,8 +41,6 @@ export const IOS_PLIST_KEY = {
 	gpc: 'com.c15t.gpc',
 	/** Overrides `${backendURL}/init`, for a proxied init route. */
 	initURL: 'com.c15t.backend.initUrl',
-	/** Publishable client key. Never a secret. */
-	publicKey: 'com.c15t.backend.publicKey',
 	/** One of the iOS bridge's own `TransportMode` raw values. */
 	transportMode: 'com.c15t.backend.mode',
 } as const;
@@ -98,11 +96,3 @@ export const PLUGIN_NAME = '@c15t/react-native/expo-plugin';
  */
 export const SK_AD_NETWORK_IDENTIFIER_PATTERN =
 	/^[a-z0-9]{10,11}\.skadnetwork$/iu;
-
-/**
- * Prefixes that mark a key as secret.
- *
- * Anything this shape has no business in an app binary, and the plugin refuses
- * it rather than ship a credential into a public IPA and an APK.
- */
-export const SECRET_KEY_PREFIX_PATTERN = /^(?<prefix>sk|secret|private|rk)_/iu;

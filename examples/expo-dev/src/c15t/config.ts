@@ -42,8 +42,6 @@ export interface FixtureConfig {
 	 * binary. Off by default so the example exercises the real bridge first.
 	 */
 	readonly forceFakeNative: boolean;
-	/** Publishable key the screens report. Publishable only, never a secret. */
-	readonly publicKey: string;
 	/** Period of the fake core's `isAllowed` sampler, in milliseconds. */
 	readonly sampleIntervalMs: number;
 }
@@ -53,7 +51,6 @@ const LOCAL_BACKEND = 'http://localhost:3000/api/self-host';
 export const config: FixtureConfig = {
 	backendURL: text(process.env.EXPO_PUBLIC_C15T_BACKEND_URL, LOCAL_BACKEND),
 	forceFakeNative: readFlag(process.env.EXPO_PUBLIC_C15T_FAKE_NATIVE) ?? false,
-	publicKey: text(process.env.EXPO_PUBLIC_C15T_PUBLIC_KEY, '(not configured)'),
 	sampleIntervalMs: asNumber(
 		process.env.EXPO_PUBLIC_C15T_SAMPLE_INTERVAL_MS,
 		1000

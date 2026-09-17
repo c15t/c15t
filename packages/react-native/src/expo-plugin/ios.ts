@@ -42,9 +42,6 @@ export const buildInfoPlistEntries = function buildInfoPlistEntries(
 	if (params.domain !== null) {
 		entries[IOS_PLIST_KEY.domain] = params.domain;
 	}
-	if (params.publicKey !== null) {
-		entries[IOS_PLIST_KEY.publicKey] = params.publicKey;
-	}
 	if (params.forceGPC) {
 		entries[IOS_PLIST_KEY.gpc] = true;
 	}

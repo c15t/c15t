@@ -56,6 +56,7 @@ these through `app.json`'s `ios.infoPlist`, which the plugin writes for you.
 | `com.c15t.backend.url` | string | Hosted project URL, or a self-hosted base URL. |
 | `com.c15t.backend.mode` | string | `hosted`, `self-hosted`, `offline` or `none`. Inferred from the URL when absent: a URL with no mode is `hosted`, no URL is `offline`. |
 | `com.c15t.backend.domain` | string | Value sent as the `domain` field of `POST /subjects`. |
+| `com.c15t.backend.initUrl` | string | URL used for `GET /init`, defaulting to `${com.c15t.backend.url}/init`. Set it when init resolves from a same-origin route while saves still go to the backend. |
 | `com.c15t.storage` | string | `keychain` (default), `file` or `memory`. |
 | `com.c15t.keychain.service` | string | Keychain service name. Defaults to `com.c15t.core`, which matches the core's own default so a core you install and one the bridge installs read the same items. |
 | `com.c15t.country` | string | Pin the country used for policy matching. |
@@ -91,18 +92,17 @@ Read by `C15tAndroid.configFrom` and the bridge's own bootstrap, from the applic
 | `com.c15t.FORCE_GPC` | Staged-build switch that forces GPC on. |
 | `com.c15t.reactnative.AUTO_BOOTSTRAP` | `false` opts out of the launch hook. Only written when you opt out. |
 
+An unquoted `android:value` is typed by the manifest parser, not by you: `true` arrives as
+a boolean and `1` as a number, while a quoted `"true"` stays text. Every key above is read
+whichever type it arrives as, so `true`, `TRUE` and `1` all force GPC on. A value that
+means neither yes nor no reads as absent, which is not the same as `false`: an absent GPC
+report is derived, a declared one is honoured.
+
 The `androidx.startup` provider that runs the hook ships in the library's own manifest
 and merges into yours. Registering it a second time, or registering the module by hand
 in `MainApplication`, in `ios/Podfile`, or in `android/app/build.gradle`, is a
 configuration error: autolinking and the plugin are the only two supported routes, and
 combining them yields two registrations.
-
-## Keys with no reader yet
-
-The plugin also writes `com.c15t.backend.publicKey`, `com.c15t.backend.initUrl` and
-`com.c15t.PUBLIC_KEY`. The cores identify a project by backend URL, so these are
-embedded for proxy routing and so support can read them off a build. No consent
-decision reads them. Treat them as diagnostics, not as configuration.
 
 ## Values JavaScript can read
 
@@ -118,7 +118,6 @@ const c15t = Constants.expoConfig?.extra?.c15t as {
 	backendURL: string | null;
 	initURL: string | null;
 	domain: string | null;
-	publicKey: string | null;
 	enableAppTrackingTransparency: boolean;
 } | undefined;
 ```
@@ -130,12 +129,13 @@ returns what the native side reported, including `nativeSdkVersion` and
 
 ## Expo plugin parameters
 
-`C15tPluginProps` accepts `backendURL`, `publicKey`, `initURL`, `domain`, `mode`,
+`C15tPluginProps` accepts `backendURL`, `initURL`, `domain`, `mode`,
 `enableAppTrackingTransparency`, `trackingUsageDescription`, `skAdNetworkIdentifiers`,
 `privacyTrackingDomains`, `forceGPC`, `autoBootstrap` and `skipNativeBuildCheck`.
 
 Everything in it is published inside the app binary, so nothing there may be a secret.
-The plugin rejects a `publicKey` shaped like one.
+There is no credential parameter to reach for: a c15t project is identified by its
+backend URL, and neither `/init` nor `/subjects` carries a key.
 
 App Tracking Transparency is opt-in and never implied.
 `NSUserTrackingUsageDescription` and `SKAdNetworkItems` are written only under

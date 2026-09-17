@@ -3,6 +3,7 @@ package com.c15t.reactnative
 import android.content.Context
 import android.content.pm.PackageManager
 import com.c15t.android.C15tAndroid
+import com.c15t.android.C15tManifestValue
 import com.c15t.core.C15t
 import com.c15t.core.NativeConfig
 import com.c15t.core.model.KernelOverrides
@@ -55,17 +56,18 @@ object C15tReactNativeBootstrap {
 	/** Whether the launch hook should bootstrap, honouring the host's opt-out. */
 	fun autoBootstrapEnabled(context: Context): Boolean = readFlag(context) != false
 
+	// The same reader the core uses for its own keys: the plugin writes `false`, a
+	// hand-edited manifest may write `"false"` or `0`, and an unreadable value must
+	// read as absent rather than as an opt-out nobody declared.
 	private fun readFlag(context: Context): Boolean? = try {
-		context.packageManager
-			.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-			.metaData
-			?.let { bundle ->
-				if (bundle.containsKey(META_AUTO_BOOTSTRAP)) {
-					bundle.getBoolean(META_AUTO_BOOTSTRAP)
-				} else {
-					null
-				}
-			}
+		C15tManifestValue.boolean(
+			C15tManifestValue.raw(
+				context.packageManager
+					.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+					.metaData,
+				META_AUTO_BOOTSTRAP,
+			)
+		)
 	} catch (error: PackageManager.NameNotFoundException) {
 		null
 	}

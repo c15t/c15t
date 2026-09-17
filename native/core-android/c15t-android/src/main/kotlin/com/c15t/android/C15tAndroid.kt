@@ -105,18 +105,19 @@ object C15tAndroid {
 			null
 		} ?: return null
 
-		val portalUrl = bundle.getString(META_PORTAL_URL)
-		if (portalUrl.isNullOrBlank()) {
-			return null
-		}
+		// Every value goes through `C15tManifestValue`, which reads whichever type the
+		// manifest parser chose. A hand-edited manifest and an Expo-generated one do not
+		// arrive as the same Java type, and a reader that names one of them honours only
+		// the app that happened to spell it that way.
+		val portalUrl = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_PORTAL_URL))
+			?: return null
 		// Absent stays absent. `false` is an answer and a missing key is not, and the
 		// core treats them differently when it derives the signal.
-		val gpc = bundle.getString(META_GPC)?.toBooleanStrictOrNull()
 		return NativeConfig(
-			portalUrl = portalUrl.trim(),
-			initUrl = bundle.getString(META_INIT_URL)?.takeIf { it.isNotBlank() },
-			domain = bundle.getString(META_DOMAIN)?.takeIf { it.isNotBlank() },
-			detectedGpc = gpc,
+			portalUrl = portalUrl,
+			initUrl = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_INIT_URL)),
+			domain = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_DOMAIN)),
+			detectedGpc = C15tManifestValue.boolean(C15tManifestValue.raw(bundle, META_GPC)),
 		)
 	}
 

@@ -14,7 +14,6 @@ import {
 } from './helpers';
 
 const BACKEND = 'https://consent.example.com';
-const PUBLIC_KEY = 'pk_live_7f3a9c';
 
 /**
  * Android's manifest placeholder for the application id, expanded when the
@@ -23,7 +22,7 @@ const PUBLIC_KEY = 'pk_live_7f3a9c';
  */
 const APPLICATION_ID_PLACEHOLDER = `${'$'}{applicationId}`;
 
-const STANDARD_PROPS = { backendURL: BACKEND, publicKey: PUBLIC_KEY };
+const STANDARD_PROPS = { backendURL: BACKEND };
 
 const readFixtureManifest = function readFixtureManifest() {
 	return AndroidConfig.Manifest.readAndroidManifestAsync(
@@ -49,7 +48,6 @@ describe('withC15t standard install', () => {
 		expect(applied.ios?.infoPlist).toStrictEqual({
 			ITSAppUsesNonExemptEncryption: false,
 			'com.c15t.backend.mode': 'hosted',
-			'com.c15t.backend.publicKey': PUBLIC_KEY,
 			'com.c15t.backend.url': BACKEND,
 		});
 	});
@@ -69,7 +67,6 @@ describe('withC15t standard install', () => {
 					minSupportedProtocolVersion: 1,
 					protocolVersion: 1,
 				},
-				publicKey: PUBLIC_KEY,
 			},
 			keepMe: true,
 		});
@@ -113,12 +110,6 @@ describe('withC15t standard install', () => {
 				$: {
 					'android:name': 'com.c15t.PORTAL_URL',
 					'android:value': BACKEND,
-				},
-			},
-			{
-				$: {
-					'android:name': 'com.c15t.PUBLIC_KEY',
-					'android:value': PUBLIC_KEY,
 				},
 			},
 		]);

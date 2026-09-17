@@ -69,9 +69,6 @@ export const buildMetaDataPairs = function buildMetaDataPairs(
 	if (params.domain !== null) {
 		pairs.push({ name: ANDROID_META.domain, value: params.domain });
 	}
-	if (params.publicKey !== null) {
-		pairs.push({ name: ANDROID_META.publicKey, value: params.publicKey });
-	}
 	if (params.forceGPC) {
 		pairs.push({ name: ANDROID_META.forceGpc, value: 'true' });
 	}

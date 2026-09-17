@@ -79,6 +79,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         autoBootstrap: Bool = true,
         transportMode: TransportMode = .offline,
         backendURL: URL? = nil,
+        initURL: URL? = nil,
         domain: String? = nil,
         storageMode: StorageMode = .keychain,
         keychainService: String = C15tBridgeConfiguration.defaultKeychainService,
@@ -89,6 +90,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         self.autoBootstrap = autoBootstrap
         self.transportMode = transportMode
         self.backendURL = backendURL
+        self.initURL = initURL
         self.domain = domain
         self.storageMode = storageMode
         self.keychainService = keychainService
@@ -102,6 +104,13 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
     public var transportMode: TransportMode
     /// Hosted project URL or self-hosted base URL, depending on `transportMode`.
     public var backendURL: URL?
+    /// The URL used for `GET /init`, or `nil` for `${backendURL}/init`.
+    ///
+    /// The override exists for a same-origin proxy that resolves init from its own
+    /// route while consent saves still go to the backend. It is honoured exactly the
+    /// way `@c15t/core` and the Android core honour theirs: the value is used as
+    /// given, and only an absent key falls back to `${backendURL}/init`.
+    public var initURL: URL?
     /// The `domain` field sent on `POST /subjects`.
     public var domain: String?
     public var storageMode: StorageMode
@@ -118,6 +127,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         public static let backendURL = "com.c15t.backend.url"
         public static let transportMode = "com.c15t.backend.mode"
         public static let domain = "com.c15t.backend.domain"
+        public static let initURL = "com.c15t.backend.initUrl"
         public static let storageMode = "com.c15t.storage"
         public static let keychainService = "com.c15t.keychain.service"
         public static let country = "com.c15t.country"
@@ -201,6 +211,12 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let url = (urlString?.isEmpty == false) ? URL(string: urlString!) : nil
 
+        // An empty string is a value that parses to nothing, so it stays absent, which
+        // is the same call `backendURL` makes about an empty string.
+        let initURLString = (infoPlist[InfoPlistKey.initURL] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let initURL = (initURLString?.isEmpty == false) ? URL(string: initURLString!) : nil
+
         let declaredMode = (infoPlist[InfoPlistKey.transportMode] as? String)
             .flatMap(TransportMode.parse(_:))
         // An unreadable mode string is an unreadable mode, not a request to go
@@ -219,6 +235,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
             autoBootstrap: (infoPlist[InfoPlistKey.autoBootstrap] as? Bool) ?? true,
             transportMode: mode,
             backendURL: url,
+            initURL: initURL,
             domain: infoPlist[InfoPlistKey.domain] as? String,
             storageMode: (infoPlist[InfoPlistKey.storageMode] as? String)
                 .flatMap(StorageMode.parse(_:)) ?? .keychain,
@@ -282,10 +299,10 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
             return OfflineTransport.offline()
         case .hosted:
             guard let backendURL else { return OfflineTransport.offline() }
-            return HostedTransport.hosted(projectURL: backendURL, domain: domain)
+            return HostedTransport(baseURL: backendURL, initURL: initURL, domain: domain)
         case .selfHosted:
             guard let backendURL else { return OfflineTransport.offline() }
-            return HostedTransport.selfHosted(baseURL: backendURL, domain: domain)
+            return HostedTransport(baseURL: backendURL, initURL: initURL, domain: domain)
         }
     }
 }

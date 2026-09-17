@@ -112,6 +112,49 @@ final class C15tBootstrapTests: XCTestCase {
         XCTAssertNotNil(configuration.makeTransport())
     }
 
+    func testInitURLOverrideReachesTheTransport() {
+        // The Expo plugin writes this key for a same-origin proxy that resolves init
+        // from its own route while saves still go to the backend. Reads of it have to
+        // agree with `@c15t/core` and Android, or the same `app.json` sends iOS to
+        // `${base}/init` and the proxy is silently bypassed on one platform only.
+        let configuration = C15tBridgeConfiguration.from(infoPlist: [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://consent.example.com",
+            C15tBridgeConfiguration.InfoPlistKey.initURL: "https://app.example.com/api/consent/init",
+        ])
+
+        let transport = configuration.makeTransport() as? HostedTransport
+        XCTAssertNotNil(transport, "a hosted backend must build a hosted transport")
+        XCTAssertEqual(transport?.initURL, URL(string: "https://app.example.com/api/consent/init"))
+        XCTAssertEqual(
+            transport?.baseURL,
+            URL(string: "https://consent.example.com"),
+            "the override moves init only; saves stay on the backend"
+        )
+    }
+
+    func testAbsentOrBlankInitURLKeepsTheDefaultRoute() {
+        let defaultURL = URL(string: "https://consent.example.com/init")
+
+        let absent = C15tBridgeConfiguration.from(infoPlist: [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://consent.example.com",
+        ])
+        XCTAssertEqual((absent.makeTransport() as? HostedTransport)?.initURL, defaultURL)
+
+        // The plugin never writes an empty value, but a hand-edited `Info.plist` can,
+        // and fetching "" is worse than fetching the route nobody overrode.
+        let blank = C15tBridgeConfiguration.from(infoPlist: [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://consent.example.com",
+            C15tBridgeConfiguration.InfoPlistKey.initURL: "   ",
+        ])
+        XCTAssertNil(blank.initURL, "a blank key is not an override")
+        XCTAssertEqual((blank.makeTransport() as? HostedTransport)?.initURL, defaultURL)
+
+        var selfHosted = absent
+        selfHosted.transportMode = .selfHosted
+        selfHosted.initURL = URL(string: "https://consent.example.com/api/init")
+        XCTAssertEqual((selfHosted.makeTransport() as? HostedTransport)?.initURL, URL(string: "https://consent.example.com/api/init"))
+    }
+
     func testUnreadableValuesFallBackToTheSafeOption() {
         let configuration = C15tBridgeConfiguration.from(infoPlist: [
             C15tBridgeConfiguration.InfoPlistKey.transportMode: "teleport",

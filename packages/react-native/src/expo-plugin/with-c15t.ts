@@ -40,8 +40,6 @@ export interface C15tExtraConfig {
 	initURL: string | null;
 	/** `domain` sent on subject writes, or `null`. */
 	domain: string | null;
-	/** Publishable client key, or `null`. */
-	publicKey: string | null;
 	/** Whether the binary carries the App Tracking Transparency keys. */
 	enableAppTrackingTransparency: boolean;
 	/** Protocol range this bundle speaks. */
@@ -58,7 +56,6 @@ const buildExtra = function buildExtra(
 		initURL: params.initURL,
 		mode: params.providerMode,
 		protocol: buildProtocolInfo(),
-		publicKey: params.publicKey,
 	};
 };
 

@@ -1,7 +1,4 @@
-import {
-	SECRET_KEY_PREFIX_PATTERN,
-	SK_AD_NETWORK_IDENTIFIER_PATTERN,
-} from './constants';
+import { SK_AD_NETWORK_IDENTIFIER_PATTERN } from './constants';
 import { C15tPluginError } from './errors';
 
 /**
@@ -60,7 +57,9 @@ export const PROVIDER_TRANSPORT_MODE: Record<
  * Parameters accepted by `@c15t/react-native/expo-plugin` in `app.json`.
  *
  * Everything here is published inside the app binary, so nothing here may be a
- * secret. The plugin rejects key shapes that look like one.
+ * secret. There is no credential parameter: the embedded cores identify a
+ * project by backend URL and send no key, so nothing here has anywhere to put
+ * one. See `native/CONTRACT.md`.
  */
 export interface C15tPluginProps {
 	/**
@@ -71,13 +70,12 @@ export interface C15tPluginProps {
 	 */
 	backendURL?: string;
 	/**
-	 * Publishable c15t client key.
+	 * URL used for `GET /init`, for a proxied init route.
 	 *
-	 * Optional: the cores identify a project by backend URL. It is embedded so a
-	 * proxy deployment can route on it and so support can read it off a build.
+	 * Defaults to `${backendURL}/init`. Set it when init resolves from a
+	 * same-origin route while consent saves still go to `backendURL`, which is
+	 * what `initURL` does in `@c15t/core`. Both embedded cores honour it.
 	 */
-	publicKey?: string;
-	/** Overrides `${backendURL}/init`, for a proxied init route. */
 	initURL?: string;
 	/** Value sent as the `domain` field of `POST /subjects`. */
 	domain?: string;
@@ -164,8 +162,6 @@ export interface ResolvedC15tParams {
 	readonly initURL: string | null;
 	/** `domain` sent on subject writes, or `null` to let the core derive it. */
 	readonly domain: string | null;
-	/** Publishable client key, or `null`. */
-	readonly publicKey: string | null;
 	/** App Tracking Transparency opt-in, resolved. */
 	readonly appTrackingTransparency: {
 		readonly enabled: boolean;
@@ -250,28 +246,6 @@ const normalizeMode = function normalizeMode(
 		);
 	}
 	return mode;
-};
-
-const normalizePublicKey = function normalizePublicKey(
-	publicKey: string | undefined
-): string | null {
-	if (publicKey === undefined) {
-		return null;
-	}
-	const trimmed = publicKey.trim();
-	if (trimmed === '') {
-		throw new C15tPluginError('publicKey is empty; remove it or give a value.');
-	}
-	if (/\s/u.test(trimmed)) {
-		throw new C15tPluginError('publicKey must not contain whitespace.');
-	}
-	if (SECRET_KEY_PREFIX_PATTERN.test(trimmed)) {
-		throw new C15tPluginError(
-			'publicKey looks like a secret key. Config plugin values are ' +
-				'published inside the app binary; keep the secret key on the backend.'
-		);
-	}
-	return trimmed;
 };
 
 const normalizeOptionalText = function normalizeOptionalText(
@@ -423,7 +397,6 @@ export const resolveParams = function resolveParams(
 		mode,
 		privacyTrackingDomains,
 		providerMode: PROVIDER_TRANSPORT_MODE[mode],
-		publicKey: normalizePublicKey(props.publicKey),
 		skipNativeBuildCheck: props.skipNativeBuildCheck ?? false,
 	};
 };

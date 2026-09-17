@@ -341,10 +341,6 @@ export const HomeScreen = ({
 					label="Backend"
 					value={<Text>{config.backendURL}</Text>}
 				/>
-				<Row
-					label="Publishable key"
-					value={<Text>{config.publicKey}</Text>}
-				/>
 			</Card>
 
 			<Card title="Snapshot">

@@ -54,14 +54,12 @@ const withC15tLocalCorePod: ConfigPlugin = (config) =>
  * JavaScript screens (through the `EXPO_PUBLIC_` copy, which Metro inlines). A value
  * already in the real environment wins over the file, which is how CI overrides it.
  *
- * Publishable keys only. Everything written here ends up in a public `.ipa` and
- * `.apk`, and the plugin refuses anything shaped like a secret.
+ * Everything written here ends up in a public `.ipa` and `.apk`, so nothing secret may
+ * appear. There is no key to configure either: a project is its backend URL.
  */
 const backendURL =
 	process.env.EXPO_PUBLIC_C15T_BACKEND_URL ??
 	'http://localhost:3000/api/self-host';
-
-const publicKey = process.env.EXPO_PUBLIC_C15T_PUBLIC_KEY;
 
 /** Truthy spellings that mean "off"; anything else present means on. */
 const isOff = (value: string | undefined): boolean =>
@@ -72,7 +70,6 @@ const c15tPluginProps: C15tPluginProps = {
 	// Self-hosted and hosted speak the same wire; the mode only decides where the
 	// core starts looking.
 	mode: backendURL.includes('c15t.com') ? 'hosted' : 'selfHosted',
-	...(publicKey === undefined || publicKey.length === 0 ? null : { publicKey }),
 };
 
 /**
@@ -127,7 +124,6 @@ const c15tExpoConfig = ({ config }: ConfigContext): ExpoConfig => ({
 		c15t: {
 			backendURL,
 			forceFakeNative: !isOff(process.env.EXPO_PUBLIC_C15T_FAKE_NATIVE),
-			publicKey: publicKey ?? '(not configured)',
 			sampleIntervalMs:
 				Number(process.env.EXPO_PUBLIC_C15T_SAMPLE_INTERVAL_MS) || 1000,
 		},

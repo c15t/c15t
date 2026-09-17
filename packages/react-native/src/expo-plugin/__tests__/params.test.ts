@@ -21,7 +21,6 @@ describe('resolveParams', () => {
 			initURL: null,
 			mode: 'hosted',
 			providerMode: 'hosted',
-			publicKey: null,
 			skipNativeBuildCheck: false,
 		});
 	});
@@ -69,23 +68,6 @@ describe('resolveParams', () => {
 		expect(() =>
 			resolveParams({ backendURL: BACKEND, mode: 'proxied' as never })
 		).toThrowError(/must be one of custom, hosted, offline, selfHosted/u);
-	});
-
-	it('refuses a key that looks like a secret', () => {
-		for (const publicKey of ['sk_live_123', 'secret_abc', 'RK_9']) {
-			expect(() =>
-				resolveParams({ backendURL: BACKEND, publicKey })
-			).toThrowError(/looks like a secret key/u);
-		}
-	});
-
-	it('refuses a public key that is empty or has a space in it', () => {
-		expect(() =>
-			resolveParams({ backendURL: BACKEND, publicKey: '  ' })
-		).toThrowError(/publicKey is empty/u);
-		expect(() =>
-			resolveParams({ backendURL: BACKEND, publicKey: 'pk live' })
-		).toThrowError(/must not contain whitespace/u);
 	});
 
 	it('refuses a domain with a space in it', () => {
