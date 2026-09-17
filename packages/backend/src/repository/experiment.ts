@@ -19,12 +19,13 @@
  * ## The median
  *
  * There is no portable `percentile_cont`: Postgres has it, MySQL does not,
- * SQLite does not. So `timeToDecisionMs` is read per arm, ordered, and the
- * median is taken in JavaScript. The read is capped at
- * `MEDIAN_SAMPLE_LIMIT` rows per arm — an experiment with more choices than
- * that has a median the first 50 000 sorted values already pin down to well
- * within the precision anyone reads a banner metric at, and an unbounded
- * scan is not something an API-key holder should be able to trigger.
+ * SQLite does not. So the median is two queries per arm: the group-by that
+ * produces the counts also counts the rows with a `timeToDecisionMs`, and a
+ * second query reads the one or two middle rows of that arm's ordered
+ * values with `limit … offset …`. The index on
+ * `(experimentId, experimentVariant)` finds the arm; the engine sorts the
+ * arm's values and returns only the middle. The result is exact for any arm
+ * size.
  */
 
 import { Effect } from 'effect';
@@ -34,15 +35,6 @@ import type { SqlError, Statement } from 'effect/unstable/sql';
 import { tenantScope } from '../db/tenant';
 import type { Tenant } from '../db/tenant';
 import { encoder } from '../db/values';
-
-/**
- * Rows of `timeToDecisionMs` read per arm for the median.
- *
- * Ordered ascending and truncated, so past the cap the median is over the
- * lowest values only. Documented on the route; a caller who needs an exact
- * figure over a larger arm narrows the window with `from` and `to`.
- */
-export const MEDIAN_SAMPLE_LIMIT = 50_000;
 
 /** Key used for rows whose `consentAction` or `uiSource` is null. */
 const UNKNOWN = 'unknown';
@@ -64,10 +56,24 @@ export interface VariantSummary {
 	readonly medianTimeToDecisionMs: number | null;
 }
 
-interface CountRow {
+/** One `(variant, action, surface)` group and its counts. */
+interface GroupRow {
 	readonly variant: string;
-	readonly bucket: string | null;
+	readonly action: string | null;
+	readonly surface: string | null;
+	/** Rows in the group. */
 	readonly total: number | string;
+	/** Rows in the group with a `timeToDecisionMs`. */
+	readonly timed: number | string;
+}
+
+/** Per-arm counts accumulated from the grouped rows. */
+interface ArmCounts {
+	readonly byAction: Record<string, number>;
+	readonly bySurface: Record<string, number>;
+	choices: number;
+	/** Rows with a `timeToDecisionMs`: the sample size behind the median. */
+	timed: number;
 }
 
 /**
@@ -97,8 +103,8 @@ const scope = Effect.fn('experiment.scope')(function* scope(
 		clauses.push(sql`${sql('c.givenAt')} <= ${encode(filters.to)}`);
 	}
 	if (filters.domain !== undefined) {
-		// Through the domain table rather than a join: the count queries group
-		// on consent columns only, and a subquery keeps them that way. Domains
+		// Through the domain table rather than a join: the count query groups
+		// on consent columns only, and a subquery keeps it that way. Domains
 		// are tenant-scoped too, so a name another tenant registered does not
 		// match here.
 		const domainTenant = yield* tenantScope('d');
@@ -110,46 +116,65 @@ const scope = Effect.fn('experiment.scope')(function* scope(
 	return sql.and(clauses);
 });
 
-const countBy = Effect.fn('experiment.countBy')(function* countBy(
-	column: 'consentAction' | 'uiSource',
+/**
+ * One grouped read per experiment: `(variant, action, surface)` with a row
+ * count and a count of the rows that carry a decision time. Both breakdowns
+ * and the median's sample size fall out of it in memory.
+ */
+const countArms = Effect.fn('experiment.countArms')(function* countArms(
 	where: Statement.Fragment
 ) {
 	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<CountRow>`
+	const rows = yield* sql<GroupRow>`
 		select ${sql('c.experimentVariant')} as ${sql('variant')},
-			${sql(`c.${column}`)} as ${sql('bucket')},
-			count(*) as ${sql('total')}
+			${sql('c.consentAction')} as ${sql('action')},
+			${sql('c.uiSource')} as ${sql('surface')},
+			count(*) as ${sql('total')},
+			count(${sql('c.timeToDecisionMs')}) as ${sql('timed')}
 		from ${sql('consent')} as ${sql('c')}
 		where ${where}
-		group by ${sql('c.experimentVariant')}, ${sql(`c.${column}`)}
+		group by ${sql('c.experimentVariant')}, ${sql('c.consentAction')},
+			${sql('c.uiSource')}
 	`;
-	const byVariant = new Map<string, Record<string, number>>();
+	const arms = new Map<string, ArmCounts>();
 	for (const row of rows) {
-		const buckets = byVariant.get(row.variant) ?? {};
-		buckets[row.bucket ?? UNKNOWN] = Number(row.total);
-		byVariant.set(row.variant, buckets);
+		const arm = arms.get(row.variant) ?? {
+			byAction: {},
+			bySurface: {},
+			choices: 0,
+			timed: 0,
+		};
+		const total = Number(row.total);
+		const action = row.action ?? UNKNOWN;
+		const surface = row.surface ?? UNKNOWN;
+		arm.byAction[action] = (arm.byAction[action] ?? 0) + total;
+		arm.bySurface[surface] = (arm.bySurface[surface] ?? 0) + total;
+		arm.choices += total;
+		arm.timed += Number(row.timed);
+		arms.set(row.variant, arm);
 	}
-	return byVariant;
+	return arms;
 });
 
-const medianOf = (sorted: readonly number[]): number | null => {
-	if (sorted.length === 0) {
-		return null;
-	}
-	const middle = Math.floor(sorted.length / 2);
-	const upper = sorted[middle];
-	const lower = sorted[middle - 1];
-	if (upper === undefined) {
-		return null;
-	}
-	return sorted.length % 2 === 1 || lower === undefined
-		? upper
-		: (lower + upper) / 2;
-};
-
+/**
+ * The exact median of one arm's `timeToDecisionMs`, given how many rows
+ * carry one.
+ *
+ * Reads only the middle of the ordered values: one row when the count is
+ * odd, the two either side of the middle when it is even, averaged.
+ */
 const medianTimeToDecision = Effect.fn('experiment.median')(
-	function* medianTimeToDecision(variant: string, where: Statement.Fragment) {
+	function* medianTimeToDecision(
+		variant: string,
+		where: Statement.Fragment,
+		samples: number
+	) {
+		if (samples === 0) {
+			return null;
+		}
 		const sql = yield* SqlClient.SqlClient;
+		const middle = samples % 2 === 1 ? 1 : 2;
+		const offset = Math.floor((samples - 1) / 2);
 		const rows = yield* sql<{ ms: number | string }>`
 			select ${sql('c.timeToDecisionMs')} as ${sql('ms')}
 			from ${sql('consent')} as ${sql('c')}
@@ -157,9 +182,13 @@ const medianTimeToDecision = Effect.fn('experiment.median')(
 				and ${sql('c.experimentVariant')} = ${variant}
 				and ${sql('c.timeToDecisionMs')} is not null
 			order by ${sql('c.timeToDecisionMs')} asc
-			limit ${MEDIAN_SAMPLE_LIMIT}
+			limit ${middle} offset ${offset}
 		`;
-		return medianOf(rows.map((row) => Number(row.ms)));
+		if (rows.length === 0) {
+			return null;
+		}
+		const sum = rows.reduce((total, row) => total + Number(row.ms), 0);
+		return sum / rows.length;
 	}
 );
 
@@ -179,18 +208,23 @@ export const summarizeExperiment = Effect.fn('experiment.summarize')(
 		readonly VariantSummary[]
 	> {
 		const where = yield* scope(experimentId, filters);
-		const byAction = yield* countBy('consentAction', where);
-		const bySurface = yield* countBy('uiSource', where);
+		const arms = yield* countArms(where);
 
-		const variants = [...byAction.keys()].sort();
 		const summaries: VariantSummary[] = [];
-		for (const variant of variants) {
-			const actions = byAction.get(variant) ?? {};
+		for (const variant of [...arms.keys()].sort()) {
+			const arm = arms.get(variant);
+			if (arm === undefined) {
+				continue;
+			}
 			summaries.push({
-				byAction: actions,
-				bySurface: bySurface.get(variant) ?? {},
-				choices: Object.values(actions).reduce((sum, n) => sum + n, 0),
-				medianTimeToDecisionMs: yield* medianTimeToDecision(variant, where),
+				byAction: arm.byAction,
+				bySurface: arm.bySurface,
+				choices: arm.choices,
+				medianTimeToDecisionMs: yield* medianTimeToDecision(
+					variant,
+					where,
+					arm.timed
+				),
 				variant,
 			});
 		}
