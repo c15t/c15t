@@ -140,6 +140,41 @@ if (!useCodegen) {
 
 def codegenOutputDir = layout.buildDirectory.dir('generated/source/c15t-codegen')
 
+// Kotlin, in whichever way this build compiles it.
+//
+// AGP 9 compiles Kotlin itself, and this repository's own build relies on that. A generated
+// React Native app turns it off (`android.builtInKotlin=false` in its gradle.properties) and
+// applies the Kotlin Android plugin to its app module only, so an autolinked library is left
+// with no Kotlin compiler: nothing builds src/main/kotlin, yet the app's generated
+// PackageList still names com.c15t.reactnative.C15tReactNativePackage, and the app dies in
+// javac with "cannot find symbol" on a class no task ever compiled. Applying the plugin here
+// is what makes the bridge build in an app as shipped by the template.
+//
+// Version-free, because the app owns that choice: the template puts
+// org.jetbrains.kotlin:kotlin-gradle-plugin on its root buildscript classpath, and a version
+// on this line would fight it. Built-in Kotlin defaults to on under AGP 9, so anything other
+// than an explicit opt-out means the compiler is already there.
+String builtInKotlin = (prop('android.builtInKotlin') ?: 'true').toString()
+if (builtInKotlin.equalsIgnoreCase('false') && !project.plugins.hasPlugin('org.jetbrains.kotlin.android')) {
+	try {
+		project.apply plugin: 'org.jetbrains.kotlin.android'
+	} catch (Exception failure) {
+		throw new GradleException(
+			'@c15t/react-native builds its Android bridge in Kotlin, and this build opted out of ' +
+				"AGP's built-in Kotlin (android.builtInKotlin=false) without putting the Kotlin " +
+				'Android plugin on the classpath. The React Native template does: add ' +
+				'org.jetbrains.kotlin:kotlin-gradle-plugin to the root buildscript classpath, or ' +
+				'drop android.builtInKotlin=false. Caused by: ' + failure.message,
+		)
+	}
+
+	// The android block below compiles Java to 17, and AGP fails the build when the Kotlin
+	// target disagrees, so both are pinned to the same level rather than left to defaults.
+	project.tasks.matching { it.name.endsWith('KotlinCompile') }.configureEach { task ->
+		task.kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
+	}
+}
+
 android {
 	compileSdk = compileSdkValue
 
