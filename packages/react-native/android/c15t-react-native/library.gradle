@@ -1,0 +1,230 @@
+// The React Native bridge library, applied by the two builds that need it: this module's own
+// build script, and a host app, which reaches it through ../build.gradle.kts because React
+// Native autolinks the package's `android` directory rather than this subdirectory.
+//
+// It is Groovy on purpose. A script applied with apply(from:) is compiled against a classpath
+// that does not contain AGP, so a Kotlin script here could not name LibraryExtension at all,
+// and a host app could not be asked to add it. Groovy resolves the Android DSL at runtime, so
+// the same file configures the library in both builds, against whichever AGP that build uses.
+//
+// `libraryDir` is the other consequence of the two builds: the sources live there in both,
+// while projectDir is this directory standalone and the package's `android` folder inside an
+// app. The manifest, sources, and consumer rules therefore take absolute paths, because AGP's
+// defaults would look next to projectDir and find nothing in an app build. A missing manifest
+// is the failure worth designing against: the androidx.startup entry that bootstraps the core
+// before the first JavaScript frame would quietly never be merged.
+
+import java.io.File
+
+def prop = { String name ->
+	def value = project.findProperty(name)
+	if (value == null) {
+		return null
+	}
+	String text = value.toString().trim()
+	return text.isEmpty() ? null : text
+}
+
+// Set by ../build.gradle.kts when a host app evaluates this as its own project.
+File libraryDir = project.ext.has('c15t.libraryDir') ? (File) project.ext.get('c15t.libraryDir') : projectDir
+
+String groupName = prop('c15t.core.group') ?: 'com.c15t'
+String coreVersion = prop('c15t.core.version') ?: '3.0.0-alpha.1'
+
+// Unset in a host app, where the version is not ours to choose: React Native's root plugin
+// forces com.facebook.react:react-android onto every project's every configuration
+// (DependencyUtils.configureDependencies), so the versionless coordinate resolves. Setting a
+// version here would fight the app.
+String reactNativeVersion = prop('c15t.reactNativeVersion')
+String reactNativeCoordinate =
+	reactNativeVersion == null ? 'com.facebook.react:react-android' : "com.facebook.react:react-android:$reactNativeVersion"
+
+// A host app sets these as root ext properties, as numbers, hence reading them as text.
+int compileSdkValue = prop('compileSdkVersion')?.toInteger() ?: 36
+int minSdkValue = prop('minSdkVersion')?.toInteger() ?: 24
+
+// The `@c15t/react-native` package root, which owns package.json and src/specs.
+File packageRoot = libraryDir.parentFile.parentFile
+File specRoot = new File(packageRoot, 'src/specs')
+File stubSpec = new File(packageRoot, 'android/c15t-spec/src/main/java/com/c15t/reactnative/NativeC15tSpec.java')
+
+String requestedSpecSource = prop('c15t.spec.source') ?: 'auto'
+
+// React Native's Codegen executor, wherever that build's install of React Native lives.
+List<File> candidateInstalls = [
+	new File(packageRoot, 'node_modules/react-native'),
+	packageRoot.parentFile ? new File(packageRoot.parentFile, 'node_modules/react-native') : null,
+	packageRoot.parentFile?.parentFile ? new File(packageRoot.parentFile.parentFile, 'node_modules/react-native') : null,
+	new File(rootProject.projectDir, 'node_modules/react-native'),
+	prop('c15t.reactNativeDir') ? file(prop('c15t.reactNativeDir')) : null,
+].findAll { it != null }
+
+// generate-codegen-artifacts.js is the CLI entry point; the executors under
+// scripts/codegen/ are modules with no argument parsing.
+File codegenScript = candidateInstalls
+	.collect { new File(it, 'scripts/generate-codegen-artifacts.js') }
+	.find { it.isFile() }
+
+// Whether Codegen runs here at all. The stand-in project only exists in this repository's
+// own build; a host app autolinks the bridge module and nothing else, so `auto` follows
+// whichever of the two is actually reachable.
+boolean specProjectAvailable = project.findProject(':c15t-spec') != null
+boolean useCodegen
+switch (requestedSpecSource) {
+	case 'codegen':
+		if (codegenScript == null) {
+			throw new GradleException(
+				"c15t.spec.source=codegen, but no React Native install was found. Point " +
+					"c15t.reactNativeDir at the react-native package, or use -Pc15t.spec.source=stub " +
+					"for the compileOnly stand-in.",
+			)
+		}
+		useCodegen = true
+		break
+	case 'stub':
+		useCodegen = false
+		break
+	case 'auto':
+		useCodegen = specProjectAvailable ? false : codegenScript != null
+		if (!useCodegen && !specProjectAvailable) {
+			throw new GradleException(
+				'Neither a React Native install nor the :c15t-spec stand-in is reachable, so ' +
+					'NativeC15tSpec cannot be resolved. Install dependencies, or point ' +
+					'c15t.reactNativeDir at the react-native package.',
+			)
+		}
+		break
+	default:
+		throw new GradleException("c15t.spec.source must be auto, codegen, or stub (got $requestedSpecSource)")
+}
+
+if (!useCodegen) {
+	logger.lifecycle(
+		'c15t-react-native: NativeC15tSpec compiles against the compileOnly stand-in in ' +
+			':c15t-spec, which is absent from the published AAR. -Pc15t.spec.source=codegen ' +
+			'compiles against Codegen output instead.',
+	)
+}
+
+def codegenOutputDir = layout.buildDirectory.dir('generated/source/c15t-codegen')
+
+android {
+	namespace = 'com.c15t.reactnative'
+	compileSdk = compileSdkValue
+
+	defaultConfig {
+		minSdk = minSdkValue
+		consumerProguardFiles new File(libraryDir, 'consumer-rules.pro').absolutePath
+	}
+
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
+	}
+
+	buildFeatures {
+		buildConfig = false
+	}
+
+	sourceSets {
+		main {
+			manifest.srcFile new File(libraryDir, 'src/main/AndroidManifest.xml').absolutePath
+			java.srcDirs = [new File(libraryDir, 'src/main/kotlin').absolutePath, new File(libraryDir, 'src/main/java').absolutePath]
+			kotlin.srcDirs = java.srcDirs
+		}
+		test {
+			java.srcDirs = [new File(libraryDir, 'src/test/kotlin').absolutePath, new File(libraryDir, 'src/test/java').absolutePath]
+			kotlin.srcDirs = java.srcDirs
+		}
+	}
+
+	lint {
+		warningsAsErrors = true
+		// Coordinates are pinned on purpose, so "a newer version exists" is noise, and the
+		// catalog suggestion asks for accessors that do not exist inside a host app.
+		disable.addAll(['GradleDependency', 'AndroidGradlePluginVersion', 'UseTomlInstead'])
+	}
+
+	testOptions {
+		unitTests {
+			// React Native classes are on the test classpath only so the module class can be
+			// loaded and inspected; no device and no React instance are involved.
+			returnDefaultValues = true
+		}
+	}
+}
+
+dependencies {
+	// The consent engine: an included build of native/core-android when c15t.core.fromSource is
+	// true (see settings.gradle.kts), or the published artifacts, which is what an app
+	// installing @c15t/react-native from npm gets.
+	implementation "$groupName:c15t-core:$coreVersion"
+	implementation "$groupName:c15t-android:$coreVersion"
+
+	implementation 'androidx.startup:startup-runtime:1.1.1'
+	compileOnly 'androidx.annotation:annotation:1.10.0'
+
+	// React Native comes from the host app, so it stays out of the published AAR's dependency
+	// list rather than pinning an app to one React Native version.
+	compileOnly reactNativeCoordinate
+
+	testImplementation reactNativeCoordinate
+	testImplementation 'junit:junit:4.13.2'
+
+	// Compile-only, so the stand-in never reaches a finished APK: two copies of
+	// NativeC15tSpec in one app is a duplicate-class failure.
+	if (!useCodegen) {
+		if (!project.findProject(':c15t-spec')) {
+			throw new GradleException(
+				'NativeC15tSpec should come from the :c15t-spec stand-in, but that project is not ' +
+					'part of this build. React Native autolinking links only the module under ' +
+					'android.sourceDir, so a host app must build against Codegen instead: check ' +
+					'that node_modules/react-native is installed.',
+			)
+		}
+		compileOnly project(':c15t-spec')
+		testImplementation project(':c15t-spec')
+	}
+}
+
+// The tests read the real Codegen input, so the bridge cannot quietly disagree with what an
+// app's generated spec will look like.
+tasks.withType(Test).configureEach {
+	systemProperty 'c15t.spec.file', new File(specRoot, 'NativeC15t.ts').absolutePath
+	systemProperty 'c15t.stub.spec.file', stubSpec.absolutePath
+}
+
+if (useCodegen) {
+	// The project Codegen reads package.json and node_modules from. For a host app that is the
+	// app; for this repository it is the package, whose hoisted node_modules resolve.
+	File codegenProjectRoot = prop('c15t.codegenProjectRoot') ? file(prop('c15t.codegenProjectRoot')) : packageRoot
+
+	def generate = tasks.register('generateC15tCodegen', Exec) {
+		group = 'build'
+		description = 'Generate NativeC15tSpec from src/specs/NativeC15t.ts with React Native Codegen.'
+		inputs.dir specRoot
+		inputs.file new File(codegenProjectRoot, 'package.json')
+		outputs.dir codegenOutputDir
+		doFirst {
+			codegenOutputDir.get().asFile.mkdirs()
+		}
+		// -s library generates the specs of the libraries reachable from -p, which is exactly
+		// the package.json codegenConfig entry (name C15tSpec, type modules, jsSrcsDir
+		// src/specs, android javaPackageName com.c15t.reactnative).
+		commandLine(
+			(prop('c15t.nodeExecutable') ?: 'node') as String,
+			codegenScript.absolutePath,
+			'--path', codegenProjectRoot.absolutePath,
+			'--targetPlatform', 'android',
+			'--outputPath', codegenOutputDir.get().asFile.absolutePath,
+			'--source', 'library',
+		)
+	}
+
+	tasks.matching { it.name.startsWith('compile') }.configureEach { dependsOn generate }
+
+	// A plain path, not a Provider: AGP 9 rejects provider-backed source directories unless
+	// android.sourceset.disallowProvider is turned off, which is not ours to set in an app.
+	// Recursive, because Codegen writes the Java under a package directory tree.
+	android.sourceSets.main.java.srcDir codegenOutputDir.get().asFile.absolutePath
+}

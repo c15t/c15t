@@ -60,8 +60,8 @@ mobile, minus IAB:
     policySnapshotToken: string | null
     subject: { id, externalId | null } | null
     location: { country, region, language } | null
-    overrides: { country | null, region | null, language, test | null }
-    privacySignals: { gpc: boolean, msa: boolean }
+    overrides: { country | null, region | null, language, gpc | null }
+    privacySignals: { gpc: { detected, override | null, active } }
     optOutDirectives: []
     translations: KernelTranslations | null
     nextDeadline: number | null
@@ -255,3 +255,21 @@ Swift core, as built
   raw `policyRules` rather than the `policyResolution` a client actually receives
   from `/init`. Neither native core can assert against them yet. Fix the generator
   to emit the wire shape and wire both native test suites to it.
+
+Corrections to this contract
+----------------------------
+
+The first draft of this file was wrong in two places, and both were caught by an
+implementation rather than by review. The TypeScript kernel is the authority, so
+the contract moved, not the kernel.
+
+- Overrides are `KernelOverrides`: `country`, `region`, `language`, and `gpc`.
+  There is no `test` override. Publisher test mode is a client option, not an
+  override, and it never reaches the save body. The `gpc` override is load
+  bearing: `decisionInputsMatchOverrides` in `@c15t/core` compares it against the
+  decision inputs remembered from the last init, and a save whose inputs no
+  longer match is rejected as stale. A native core that drops `gpc` cannot
+  produce a valid save body.
+- Privacy signals follow `KernelPrivacySignals`: `gpc` is an object with
+  `detected`, `override`, and `active`, and the evaluator honors `active`. There
+  is no `msa` signal anywhere in v3.

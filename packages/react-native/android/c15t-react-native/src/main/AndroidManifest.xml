@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools">
+
+	<application>
+		<!--
+			Starts c15t during Application.onCreate, which is before the React host
+			exists and so before the first JavaScript frame. A host that bootstraps c15t
+			itself either sets the flag to false or removes the entry with
+			tools:node="remove" on this meta-data.
+		-->
+		<provider
+			android:name="androidx.startup.InitializationProvider"
+			android:authorities="${applicationId}.androidx-startup"
+			android:exported="false"
+			tools:node="merge">
+			<meta-data
+				android:name="com.c15t.reactnative.C15tReactNativeInitializer"
+				android:value="androidx.startup" />
+		</provider>
+	</application>
+</manifest>
