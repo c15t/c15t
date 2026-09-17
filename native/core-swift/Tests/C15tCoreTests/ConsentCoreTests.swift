@@ -58,8 +58,8 @@ final class ConsentCoreTests: XCTestCase {
         let subject = try? XCTUnwrap(core.snapshot().subject)
         XCTAssertNotNil(subject)
         XCTAssertTrue(
-            SubjectIdentity.isUUIDv4(subject?.id ?? ""),
-            "subject id must be a generated UUID v4"
+            SubjectId.isValid(subject?.id ?? ""),
+            "subject id must be a sub_ id the backend accepts"
         )
         XCTAssertNotNil(store.data(for: StorageKey.subject))
         XCTAssertNil(subject?.externalId)
@@ -521,7 +521,7 @@ final class ConsentCoreTests: XCTestCase {
         ))
         let replaced = adopted.snapshot().subject?.id
         XCTAssertNotEqual(replaced, "6E9A1F2C-3B4D-5E6F-A7B8-C9D0E1F2A3B4")
-        XCTAssertTrue(SubjectIdentity.isUUIDv4(replaced ?? ""))
+        XCTAssertTrue(SubjectId.isValid(replaced ?? ""))
         XCTAssertNotEqual(generated, replaced)
     }
 

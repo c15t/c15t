@@ -514,8 +514,12 @@ public struct HostedTransport: C15tTransport {
         guard let body = C15tJSON.encode(.object(fields)) else {
             return .failure(.invalidPayload("identity body could not be encoded"))
         }
+        // Escaped defensively, because the id was read back from storage. The
+        // punctuation both id formats use stays literal: `encodeURIComponent` on the
+        // web leaves `-` and `_` alone, and encoding them here puts a path on the wire
+        // that no other c15t SDK sends.
         let encodedSubjectId = subjectId.addingPercentEncoding(
-            withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "-"))
+            withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "-_"))
         ) ?? subjectId
         do {
             let response = try await client.send(HTTPRequest(
