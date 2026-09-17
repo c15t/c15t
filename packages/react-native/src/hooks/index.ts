@@ -11,4 +11,6 @@ export { useConsentActions } from './use-consent-actions';
 export type { ConsentActions } from './use-consent-actions';
 export { useConsentSelector } from './use-consent-selector';
 export { useConsentStatus } from './use-consent-status';
+export { useConsentSafeArea } from './use-consent-safe-area';
+export type { ConsentSafeArea } from './use-consent-safe-area';
 export { useIsAllowed } from './use-is-allowed';

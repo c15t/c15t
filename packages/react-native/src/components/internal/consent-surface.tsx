@@ -11,6 +11,11 @@
  * its children out of the tree, which is what keeps a mounted-but-closed dialog
  * holding no consent subscription at all. A host that needs to read the snapshot
  * while the sheet is shut should use a hook, not these slots.
+ *
+ * Both presentations mount inside a layer whose padding already carries the
+ * safe-area bands, so nothing in here reads an inset. Keeping that in the resolved
+ * styles is what lets the banner lift its bottom edge out of the home indicator
+ * and a full-screen sheet keep its heading below the clock from one source.
  */
 
 import { createContext, useContext, useMemo } from 'react';
@@ -34,24 +39,8 @@ import { useModalA11y } from './use-modal-a11y';
 import { usePromptMotion } from './use-prompt-motion';
 import { useReducedMotion } from './use-reduced-motion';
 
-/** Keeps the layer out of the app's layout without swallowing sheet touches. */
-const BANNER_LAYER: ViewStyle = {
-	bottom: 0,
-	left: 0,
-	padding: 16,
-	position: 'absolute',
-	right: 0,
-};
-
 /** Fills the screen so the sheet can sit at its bottom edge. */
 const FILL: ViewStyle = { flex: 1 };
-
-/** Pushes the sheet to the bottom edge of the screen. */
-const SHEET_LAYER: ViewStyle = {
-	flex: 1,
-	justifyContent: 'flex-end',
-	paddingBottom: 24,
-};
 
 /** Which of the two presentations is being rendered. */
 export type ConsentSurfacePresentation = 'banner' | 'modal';
@@ -182,7 +171,7 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 		presentation,
 		styles,
 	} = props;
-	const { maxBodyHeight, parts, theme } = styles;
+	const { bannerLayer, maxBodyHeight, parts, sheetLayer, theme } = styles;
 	const reducedMotion = useReducedMotion();
 	const { motionStyle, rendered } = usePromptMotion(open, {
 		distance: theme.motion.enterDistance,
@@ -234,7 +223,7 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 		return (
 			<View
 				pointerEvents="box-none"
-				style={BANNER_LAYER}
+				style={bannerLayer}
 			>
 				<Animated.View style={motionStyle}>{sheet}</Animated.View>
 			</View>
@@ -257,7 +246,7 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 						style={StyleSheet.absoluteFill}
 					/>
 				)}
-				<View style={SHEET_LAYER}>
+				<View style={sheetLayer}>
 					<Animated.View style={motionStyle}>
 						<View style={parts.handle} />
 						{sheet}

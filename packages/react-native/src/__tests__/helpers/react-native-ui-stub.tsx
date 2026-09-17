@@ -41,6 +41,8 @@ export const uiState: {
 	window: { fontScale: number; height: number; scale: number; width: number };
 	/** Subscriptions handed to `AccessibilityInfo.addEventListener`. */
 	accessibilityListeners: Map<string, Set<Listener>>;
+	/** Value reported by `StatusBar.currentHeight`, in density-independent pixels. */
+	statusBarHeight: number | null;
 } = {
 	accessibilityListeners: new Map(),
 	announcements: [],
@@ -48,6 +50,7 @@ export const uiState: {
 	opened: [],
 	reduceMotion: false,
 	screenReader: false,
+	statusBarHeight: null,
 	window: { fontScale: 1, height: 844, scale: 3, width: 390 },
 };
 
@@ -127,6 +130,7 @@ export const resetUiStub = function resetUiStub(): void {
 	uiState.reduceMotion = false;
 	uiState.screenReader = false;
 	uiState.window = { fontScale: 1, height: 844, scale: 3, width: 390 };
+	uiState.statusBarHeight = null;
 	animationState.durations = [];
 	animationState.starts = 0;
 	animationState.jsDriverStarts = 0;
@@ -265,6 +269,10 @@ const RECORDED_STYLE_KEYS = [
 	'padding',
 	'paddingBottom',
 	'paddingTop',
+	'paddingHorizontal',
+	'paddingVertical',
+	'paddingLeft',
+	'paddingRight',
 	'position',
 	'right',
 	'rowGap',
@@ -839,6 +847,19 @@ export const Appearance = {
 	getColorScheme: (): 'dark' | 'light' | null => uiState.colorScheme,
 };
 
+/**
+ * Stand-in for `StatusBar`.
+ *
+ * `currentHeight` reads the recorded state through a getter so a test can move
+ * the band Android reports and rerender, which the real module cannot do since
+ * it snapshots the constant at import.
+ */
+export const StatusBar = {
+	get currentHeight(): number | null {
+		return uiState.statusBarHeight;
+	},
+};
+
 export const I18nManager = {
 	forceRTL: (): void => undefined,
 	isRTL: false,
@@ -911,4 +932,15 @@ export const setPlatformOS = function setPlatformOS(
 ): void {
 	platform.os = os;
 	Platform.OS = os;
+};
+
+/**
+ * Set the band Android reports for the status bar.
+ *
+ * @param height - Value `StatusBar.currentHeight` reports, or `null`.
+ */
+export const setStatusBarHeight = function setStatusBarHeight(
+	height: number | null
+): void {
+	uiState.statusBarHeight = height;
 };

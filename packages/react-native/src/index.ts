@@ -80,6 +80,8 @@ export { useConsentActions } from './hooks';
 export type { ConsentActions } from './hooks';
 export { useConsentSelector } from './hooks';
 export { useConsentStatus } from './hooks';
+export { useConsentSafeArea } from './hooks';
+export type { ConsentSafeArea } from './hooks';
 export { useIsAllowed } from './hooks';
 export {
 	denyAllSnapshot,
@@ -119,6 +121,7 @@ export {
 	useConsentClient,
 } from './provider';
 export type { C15tProviderProps } from './provider';
+export type { ConsentSafeAreaInsets } from './provider';
 
 // The Codegen spec is exported as types only. Importing it for values would
 // resolve the TurboModule at import time, which only works inside a React

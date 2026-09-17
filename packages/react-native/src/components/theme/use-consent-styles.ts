@@ -12,6 +12,8 @@ import { useMemo } from 'react';
 import { useColorScheme, useWindowDimensions } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
+import { useConsentSafeArea } from '../../hooks/use-consent-safe-area';
+import type { ConsentSafeArea } from '../../hooks/use-consent-safe-area';
 import { isConsentThemePart, MIN_TAP_TARGET } from './consent-theme-parts';
 import type {
 	ConsentPartStyles,
@@ -30,8 +32,20 @@ export interface ConsentStyles {
 	readonly fontScale: number;
 	/** Smallest height a control may take at this font scale. */
 	readonly controlMinHeight: number;
-	/** Height a scrollable body may reach before it has to scroll. */
+	/** Height a scrollable body may reach inside the safe area before it scrolls. */
 	readonly maxBodyHeight: number;
+	/** The bands in force, and whether the host measured them. */
+	readonly safeArea: ConsentSafeArea;
+	/**
+	 * The absolutely positioned layer a banner mounts in, with its bottom edge
+	 * lifted out of the bottom band and its sides narrowed to the side bands.
+	 */
+	readonly bannerLayer: ViewStyle;
+	/**
+	 * The full-screen layer a modal sheet is pushed to the bottom of, inset on
+	 * every band so the sheet's own chrome stays inside the safe area.
+	 */
+	readonly sheetLayer: ViewStyle;
 	/** Scheme the palette came from. */
 	readonly scheme: ConsentColorScheme;
 	/** Theme in force after the platform scheme and any host override. */
@@ -85,6 +99,7 @@ export const useConsentStyles = function useConsentStyles(
 ): ConsentStyles {
 	const scheme = resolveConsentColorScheme(useColorScheme());
 	const { fontScale, height } = useWindowDimensions();
+	const safeArea = useConsentSafeArea();
 	const { styles, theme } = options;
 
 	// A host theme is used exactly as given, including its colors: overriding
@@ -98,11 +113,15 @@ export const useConsentStyles = function useConsentStyles(
 	const resolvedTheme = theme ?? builtTheme;
 
 	const scaled = Math.min(Math.max(fontScale, 1), MAX_FONT_SCALE);
+	// The bands come off before the ratio is applied. A body sized against the
+	// whole window is sized including the strip under the home indicator, and the
+	// sheet that result pushes upward lands its own heading by the clock.
+	const safeHeight = Math.max(0, height - safeArea.top - safeArea.bottom);
 	// A surface that grows past the screen does not scroll, it hides its own
 	// footer. Large text takes the larger bite out of the screen.
 	const bodyHeight = Math.max(
 		MIN_BODY_HEIGHT,
-		Math.round(height * (scaled >= LARGE_TEXT_SCALE ? 0.34 : 0.46))
+		Math.round(safeHeight * (scaled >= LARGE_TEXT_SCALE ? 0.34 : 0.46))
 	);
 
 	return useMemo(() => {
@@ -111,6 +130,42 @@ export const useConsentStyles = function useConsentStyles(
 			MIN_TAP_TARGET,
 			Math.round(typography.label.lineHeight * scaled)
 		);
+
+		// The gutter a floating banner keeps off the screen edge, and the gap a
+		// bottom sheet keeps below itself. The bands are added outside both, so a
+		// measurement moves the surface and never its internal rhythm.
+		const gutter = spacing.l;
+
+		// The band is not the clearance. A swipe up at a home indicator starts
+		// inside the band and travels upward, so a control sitting just outside it
+		// is still in the gesture's path. The layer reserves a full interaction row
+		// past the band, which keeps the deepest control at least one control high
+		// above it on every device. The floor is the same minimum the theme already
+		// forces on a control, never a guess at one device's inset, so it behaves
+		// the same on a notched iPhone, an iPad with a 20-point band, and a phone
+		// that reports no band at all.
+		const bottomGutter = Math.max(gutter, MIN_TAP_TARGET);
+
+		const bannerLayer: ViewStyle = {
+			bottom: safeArea.bottom,
+			left: 0,
+			paddingBottom: bottomGutter,
+			paddingHorizontal: Math.max(gutter, safeArea.left, safeArea.right),
+			position: 'absolute',
+			right: 0,
+		};
+
+		// The sheet reaches the same floor by adding the band to its own bottom
+		// padding, so a measured band moves the sheet without touching the gap
+		// between its last control and its own rounded edge.
+		const sheetLayer: ViewStyle = {
+			flex: 1,
+			justifyContent: 'flex-end',
+			paddingBottom: spacing.xl + safeArea.bottom,
+			paddingLeft: safeArea.left,
+			paddingRight: safeArea.right,
+			paddingTop: safeArea.top,
+		};
 
 		const base: Record<string, ViewStyle & TextStyle> = {
 			banner: {
@@ -193,12 +248,17 @@ export const useConsentStyles = function useConsentStyles(
 		}
 
 		return {
+			bannerLayer,
 			controlMinHeight,
 			fontScale: scaled,
 			maxBodyHeight: bodyHeight,
 			parts,
+			safeArea,
 			scheme,
+			sheetLayer,
 			theme: resolvedTheme,
 		};
-	}, [bodyHeight, resolvedTheme, scaled, scheme, styles]);
+		// `bannerLayer` and `sheetLayer` are built inside: they move with
+		// `safeArea`, `bodyHeight`, and the theme, which are all listed.
+	}, [bodyHeight, resolvedTheme, safeArea, scaled, scheme, styles]);
 };

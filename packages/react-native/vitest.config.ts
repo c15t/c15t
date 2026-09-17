@@ -66,13 +66,13 @@ const config = mergeConfig(
 				// it out: the bridge code under test is the production code,
 				// unchanged, and the fake behaves like the registered module.
 				{
-					find: /^react-native$/,
+					find: /^react-native$/u,
 					replacement: resolve(
 						__dirname,
 						'./src/__tests__/helpers/react-native-stub.ts'
 					),
 				},
-				{ find: /^~$/, replacement: resolve(__dirname, './src') },
+				{ find: /^~$/u, replacement: resolve(__dirname, './src') },
 			],
 		},
 		test: {
