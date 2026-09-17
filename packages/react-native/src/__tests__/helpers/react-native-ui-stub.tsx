@@ -307,6 +307,8 @@ interface AccessibilityProps {
 	readonly accessibilityValue?: Record<string, unknown>;
 	readonly accessibilityViewIsModal?: boolean;
 	readonly accessible?: boolean;
+	/** The ARIA role React Native 0.77+ reads on `role`, separate from `accessibilityRole`. */
+	readonly role?: string;
 	readonly testID?: string;
 }
 
@@ -321,7 +323,12 @@ const triState = function triState(
 	return value ? 'true' : 'false';
 };
 
-/** Translate React Native accessibility props onto DOM aria attributes. */
+/**
+ * Translate React Native accessibility props onto DOM aria attributes.
+ *
+ * A stub that owes its own default role chains `props.role` in by hand; every other stub
+ * gets both props right from here, which is why they travel through one function.
+ */
 const ariaAttributes = function ariaAttributes(
 	props: AccessibilityProps
 ): Record<string, unknown> {
@@ -338,12 +345,15 @@ const ariaAttributes = function ariaAttributes(
 		'aria-selected': triState(state.selected),
 		'data-accessible': props.accessible === true ? 'true' : undefined,
 		'data-focusable': props.accessible === true ? 'true' : undefined,
+		// `data-rn-role` stays React Native's Android enum on purpose: it is the value a
+		// platform has to be able to name, and folding `role` into it would hide the
+		// difference between the two props from every test that reads this.
 		'data-rn-role': props.accessibilityRole,
 		'data-value':
 			props.accessibilityValue === undefined
 				? undefined
 				: JSON.stringify(props.accessibilityValue),
-		role: props.accessibilityRole,
+		role: props.role ?? props.accessibilityRole,
 	};
 };
 
@@ -379,7 +389,7 @@ const makeSurface = function makeSurface(
 				'data-rn-style': styleAttribute(props.style),
 				onClick: props.onPress,
 				ref,
-				role: props.accessibilityRole ?? role ?? undefined,
+				role: props.role ?? props.accessibilityRole ?? role ?? undefined,
 				tabIndex: props.tabIndex ?? (props.onPress ? 0 : undefined),
 			},
 			props.children
@@ -420,7 +430,6 @@ export const Text = (props: TextPropsStub): ReactElement =>
 			...ariaAttributes(props),
 			'data-rn-style': styleAttribute(props.style),
 			onClick: props.onPress,
-			role: props.accessibilityRole,
 		},
 		props.children
 	);
@@ -743,7 +752,6 @@ const makeAnimatedSurface = function makeAnimatedSurface(
 				}),
 				'data-rn-style': styleAttribute(props.style),
 				onClick: props.onPress,
-				role: props.accessibilityRole,
 			},
 			props.children
 		);

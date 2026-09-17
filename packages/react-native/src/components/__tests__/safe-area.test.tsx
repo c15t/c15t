@@ -31,7 +31,13 @@ import { ConsentBanner } from '../consent-banner';
 import { ConsentDialog } from '../consent-dialog';
 import { ConsentPreferences } from '../consent-preferences';
 import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
-import { nodeStyle, requireRole, tap, translatedSnapshot } from './harness';
+import {
+	nodeStyle,
+	requireRole,
+	surfaceNode,
+	tap,
+	translatedSnapshot,
+} from './harness';
 
 /** Portrait on a notched iPhone: a status bar band and a home indicator. */
 const PORTRAIT = { bottom: 34, left: 0, right: 0, top: 59 };
@@ -91,17 +97,7 @@ const mountWithInsets = function mountWithInsets(
 };
 
 /** The chrome of a banner or a sheet, as rendered. */
-const sheetNode = function sheetNode(root: HTMLElement): HTMLElement {
-	const sheet = root.querySelector<HTMLElement>(
-		'[data-rn-role="region"], [data-rn-role="dialog"]'
-	);
-
-	if (!sheet) {
-		throw new Error('expected a consent surface to be on screen');
-	}
-
-	return sheet;
-};
+const sheetNode = surfaceNode;
 
 /**
  * The resolved style of the layer a surface is positioned by.

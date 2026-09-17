@@ -207,12 +207,16 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 	const scrimLabel =
 		dismissLabel === undefined ? label : `${label}: ${dismissLabel}`;
 
+	// `role`, not `accessibilityRole`. The two props name different lists: `accessibilityRole`
+	// is Android's TalkBack enum, which has no region and no dialog, and a value outside it
+	// throws inside the view manager instead of being ignored. `role` is the ARIA union, read
+	// by React Native's shared C++ layer, where both of these exist.
 	const sheet = (
 		<View
 			{...containerProps}
 			accessibilityLabel={label}
-			accessibilityRole={presentation === 'modal' ? 'dialog' : 'region'}
 			ref={containerRef}
+			role={presentation === 'modal' ? 'dialog' : 'region'}
 			style={presentation === 'modal' ? parts.sheet : parts.banner}
 		>
 			<FrameContext.Provider value={frame}>{children}</FrameContext.Provider>

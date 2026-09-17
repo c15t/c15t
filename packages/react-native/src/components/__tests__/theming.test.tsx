@@ -48,6 +48,7 @@ import {
 	nodeStyle,
 	requireRole,
 	roleNodes,
+	surfaceNode,
 	translatedSnapshot,
 } from './harness';
 
@@ -155,7 +156,7 @@ describe('theme', () => {
 		const dark = mountSurface(<ConsentBanner />);
 
 		expect(
-			nodeStyle(requireRole(dark.container(), 'region', 'Deine Privatsphaere'))
+			nodeStyle(surfaceNode(dark.container(), 'Deine Privatsphaere'))
 				.backgroundColor
 		).toBe(darkTheme.colors.surface);
 		dark.unmount();
@@ -164,7 +165,7 @@ describe('theme', () => {
 		const light = mountSurface(<ConsentBanner />);
 
 		expect(
-			nodeStyle(requireRole(light.container(), 'region', 'Deine Privatsphaere'))
+			nodeStyle(surfaceNode(light.container(), 'Deine Privatsphaere'))
 				.backgroundColor
 		).toBe(lightTheme.colors.surface);
 		light.unmount();
@@ -186,7 +187,7 @@ describe('theme', () => {
 		);
 
 		expect(
-			nodeStyle(requireRole(tree.container(), 'region', 'Deine Privatsphaere'))
+			nodeStyle(surfaceNode(tree.container(), 'Deine Privatsphaere'))
 				.backgroundColor
 		).toBe('#123456');
 

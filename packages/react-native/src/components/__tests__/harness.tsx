@@ -163,6 +163,42 @@ export const requireRole = function requireRole(
 	return labelled[0] as HTMLElement;
 };
 
+/**
+ * The chrome a surface renders: its banner or its sheet, found by landmark.
+ *
+ * That landmark travels on React Native's `role` prop rather than `accessibilityRole`, so
+ * this cannot reuse {@link roleNodes}. When a caller names no label, the labelled node wins:
+ * React Native's own `Modal` is a dialog as well, and the sheet is the one that names itself.
+ *
+ * @param root - Rendered tree to search.
+ * @param label - Surface label to disambiguate by, when the tree can hold more than one.
+ * @returns The one chrome element, or a thrown assertion.
+ */
+export const surfaceNode = function surfaceNode(
+	root: HTMLElement,
+	label?: string
+): HTMLElement {
+	const matches = [
+		...root.querySelectorAll<HTMLElement>('[role="region"], [role="dialog"]'),
+	].filter(
+		(node) => label === undefined || node.getAttribute('aria-label') === label
+	);
+	const chosen =
+		matches.length > 1
+			? matches.filter((node) => node.hasAttribute('aria-label'))
+			: matches;
+
+	if (chosen.length !== 1) {
+		throw new Error(
+			`expected one consent surface${
+				label === undefined ? '' : ` labelled "${label}"`
+			}, saw ${chosen.length}`
+		);
+	}
+
+	return chosen[0] as HTMLElement;
+};
+
 /** Tap a control the way a subject would, and let React settle. */
 export const tap = function tap(node: HTMLElement): void {
 	flush(() => {
