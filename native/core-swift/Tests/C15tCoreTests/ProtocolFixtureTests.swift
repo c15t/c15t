@@ -19,11 +19,13 @@ final class ProtocolFixtureTests: XCTestCase {
     /// The task that owns aligning the native snapshot types with the kernel.
     ///
     /// `native/CONTRACT.md` "Corrections to this contract" settled the shape:
-    /// overrides carry `gpc` and no `test`, and privacy signals are a
-    /// detected / override / active triple. This build still carries the old
-    /// fields, so those paths are listed rather than weakened.
+    /// overrides carry `gpc` and no `test`, privacy signals are a detected /
+    /// override / active triple, and the overrides a decision was made against
+    /// come from the location `/init` served. This build matches all three, so
+    /// what is left in ``ledger`` is the standing-directive gap and the revision
+    /// numbering the contract has not picked a side on yet.
     private static let alignmentTask =
-        "native protocol alignment: ConsentOverrides.gpc, the PrivacySignals triple, and recording standing GPC directives"
+        "native protocol alignment: recording standing GPC directives, and the revision numbering a fixture pins"
 
     // MARK: - Locating the fixtures
 
@@ -274,13 +276,17 @@ final class ProtocolFixtureTests: XCTestCase {
         )
         store.set(try C15tJSON.encode(envelope), for: StorageKey.snapshot)
 
-        let reportedGPC = input["overrides"]?["gpc"]?.boolValue
-            ?? input["privacySignals"]?["gpc"]?["detected"]?.boolValue
+        // The fixture states the two GPC facts separately and they are not the same
+        // fact: `overrides.gpc` is what the app pinned, `privacySignals.gpc.detected`
+        // is what the device reported. Folding one into the other is what a boolean
+        // pair allowed, and it loses the distinction the evaluator needs.
+        let overrideGPC = input["overrides"]?["gpc"]?.boolValue
+        let detectedFromFixture = input["privacySignals"]?["gpc"]?["detected"]?.boolValue
         let overrides = ConsentOverrides(
             country: input["overrides"]?["country"]?.stringValue,
             region: input["overrides"]?["region"]?.stringValue,
             language: input["overrides"]?["language"]?.stringValue ?? "en",
-            test: nil
+            gpc: overrideGPC
         )
         var user: KernelUser?
         if let value = input["user"], !value.isNull {
@@ -317,7 +323,7 @@ final class ProtocolFixtureTests: XCTestCase {
             transport: Fixture.transport(http),
             overrides: overrides,
             user: user,
-            gpc: reportedGPC,
+            gpc: detectedFromFixture,
             now: clock.reading,
             initRetry: .disabled
         )
@@ -589,13 +595,13 @@ final class ProtocolFixtureTests: XCTestCase {
 
     /// The snapshot fields a fixture can assert on, by the name the fixture uses.
     ///
-    /// `signals` carries a trailing `*` because this build reports two keys the
-    /// fixture does not: `gpc` with the wrong shape, and an `msa` that does not
-    /// exist in v3.
+    /// Overrides and privacy signals are absent from this list. The first draft of
+    /// `native/CONTRACT.md` gave this build a `test` override and a `gpc`/`msa`
+    /// boolean pair, and its Corrections section retired both; the core now carries
+    /// `gpc` inside the overrides, a detected / override / active triple, and the
+    /// overrides the served location resolved, so every snapshot field under those
+    /// two paths matches the kernel and has no business being listed here.
     private enum Field: String {
-        case country = "overrides.country"
-        case region = "overrides.region"
-        case signals = "privacySignals*"
         case restrictionMarketing = "restrictions.marketing"
         case restrictionMeasurement = "restrictions.measurement"
         case revision = "revision"
@@ -607,22 +613,22 @@ final class ProtocolFixtureTests: XCTestCase {
     /// yet, and why. Nothing here is a fixture problem. Every row is a Swift defect
     /// with an owner, and the runner fails if a row stops reproducing.
     private static let ledger: [(fixture: String, root: String, fields: [Field])] = [
-        ("evaluation-eu-opt-in", "expected.snapshot", [.country, .signals, .revision]),
-        ("evaluation-us-ccpa-opt-out", "expected.snapshot", [.country, .region, .signals, .revision]),
-        ("evaluation-no-rule-matched", "expected.snapshot", [.country, .region, .signals, .revision]),
-        ("evaluation-gpc-signal-present", "expected.snapshot", [.country, .region, .signals, .directives, .restrictionMarketing, .restrictionMeasurement]),
-        ("evaluation-notice-pending", "expected.snapshot", [.country, .signals, .revision]),
-        ("evaluation-eu-explicit-grants", "expected.snapshot", [.country, .signals, .revision]),
-        ("evaluation-eu-partial-denials", "expected.snapshot", [.country, .signals, .revision]),
-        ("evaluation-notice-dismissed", "expected.snapshot", [.country, .signals, .revision]),
-        ("save-body-all", "expected.snapshotBefore", [.country, .signals, .revision]),
-        ("save-body-all", "expected.snapshotAfter", [.country, .signals, .revision]),
-        ("save-body-necessary", "expected.snapshotBefore", [.country, .signals, .revision]),
-        ("save-body-necessary", "expected.snapshotAfter", [.country, .signals, .revision]),
-        ("save-body-explicit-partial", "expected.snapshotBefore", [.country, .signals, .revision]),
-        ("save-body-explicit-partial", "expected.snapshotAfter", [.country, .signals, .revision]),
-        ("save-body-ccpa-gpc", "expected.snapshotBefore", [.country, .region, .signals, .directives, .restrictionMarketing, .restrictionMeasurement]),
-        ("save-body-ccpa-gpc", "expected.snapshotAfter", [.country, .region, .signals, .directives, .restrictionMarketing, .restrictionMeasurement, .deadline]),
+        ("evaluation-eu-opt-in", "expected.snapshot", [.revision]),
+        ("evaluation-us-ccpa-opt-out", "expected.snapshot", [.revision]),
+        ("evaluation-no-rule-matched", "expected.snapshot", [.revision]),
+        ("evaluation-gpc-signal-present", "expected.snapshot", [.directives, .restrictionMarketing, .restrictionMeasurement]),
+        ("evaluation-notice-pending", "expected.snapshot", [.revision]),
+        ("evaluation-eu-explicit-grants", "expected.snapshot", [.revision]),
+        ("evaluation-eu-partial-denials", "expected.snapshot", [.revision]),
+        ("evaluation-notice-dismissed", "expected.snapshot", [.revision]),
+        ("save-body-all", "expected.snapshotBefore", [.revision]),
+        ("save-body-all", "expected.snapshotAfter", [.revision]),
+        ("save-body-necessary", "expected.snapshotBefore", [.revision]),
+        ("save-body-necessary", "expected.snapshotAfter", [.revision]),
+        ("save-body-explicit-partial", "expected.snapshotBefore", [.revision]),
+        ("save-body-explicit-partial", "expected.snapshotAfter", [.revision]),
+        ("save-body-ccpa-gpc", "expected.snapshotBefore", [.directives, .restrictionMarketing, .restrictionMeasurement]),
+        ("save-body-ccpa-gpc", "expected.snapshotAfter", [.directives, .restrictionMarketing, .restrictionMeasurement, .deadline]),
     ]
 
     private static func divergences(for id: String) -> [Divergence] {
@@ -636,10 +642,6 @@ final class ProtocolFixtureTests: XCTestCase {
 
     private static func reason(for field: Field) -> String {
         switch field {
-        case .country, .region:
-            return reasonOverrides
-        case .signals:
-            return reasonSignals
         case .restrictionMarketing, .restrictionMeasurement:
             return reasonDirectiveRestriction
         case .revision:
@@ -650,17 +652,6 @@ final class ProtocolFixtureTests: XCTestCase {
             return reasonDeadline
         }
     }
-
-    /// `init.location` never becomes an override here. This build folds overrides
-    /// from a `resolvedOverrides` field the backend does not serve, while the kernel
-    /// derives country and region from the location the same response carries. Part
-    /// of ``alignmentTask``.
-    private static let reasonOverrides =
-        "ConsentOverrides still carries `test` and no `gpc`, and init.location is never folded into country/region."
-
-    /// The corrected shape is `gpc: { detected, override, active }` with no `msa`.
-    private static let reasonSignals =
-        "PrivacySignals is a gpc/msa boolean pair; the kernel reports a detected/override/active triple and has no msa."
 
     /// `JSONEncoder` cannot key a JSON object by an enum, so a
     /// `[OptionalConsentCategory: [RestrictionReason]]` comes out as a flat
@@ -690,4 +681,3 @@ final class ProtocolFixtureTests: XCTestCase {
     private static let reasonDeadline =
         "the core reports a choice expiry the kernel does not: nothing changes when it passes under an opt-out rule."
 }
-

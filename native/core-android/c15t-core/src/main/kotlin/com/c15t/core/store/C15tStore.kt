@@ -40,8 +40,19 @@ class C15tStore(
 		backend.write(C15tStoreKeys.SUBJECT, json.encodeToString(ConsentSubject.serializer(), subject))
 	}
 
-	/** Read the stored envelope, or `null` when absent or unparseable. */
-	fun readEnvelope(): SnapshotEnvelope? = tryDecode(C15tStoreKeys.SNAPSHOT, SnapshotEnvelope.serializer())
+	/**
+	 * Read the stored envelope, or `null` when absent or unparseable.
+	 *
+	 * Unparseable includes a payload from before the overrides and privacy signals
+	 * were corrected. The storage codec tolerates unknown keys so an additive field
+	 * costs nobody their stored consent, which would otherwise let `overrides.test`
+	 * and `privacySignals.msa` vanish quietly and leave a snapshot whose signals
+	 * disagree with the decisions inside it. [RetiredWireFields] turns that into a
+	 * read failure, and a read failure is deny-all.
+	 */
+	fun readEnvelope(): SnapshotEnvelope? = tryDecode(C15tStoreKeys.SNAPSHOT, SnapshotEnvelope.serializer()) { raw ->
+		RetiredWireFields.assertReadable(json, raw)
+	}
 
 	/** Persist [envelope] so the next cold start answers synchronously. */
 	fun writeEnvelope(envelope: SnapshotEnvelope) {
@@ -70,6 +81,7 @@ class C15tStore(
 	private fun <T : Any> tryDecode(
 		key: String,
 		deserializer: DeserializationStrategy<T>,
+		inspect: (String) -> Unit = {},
 	): T? {
 		val raw = try {
 			backend.read(key)
@@ -81,6 +93,7 @@ class C15tStore(
 			return null
 		}
 		return try {
+			inspect(raw)
 			json.decodeFromString(deserializer, raw)
 		} catch (error: Exception) {
 			onReadFailure(key, error)

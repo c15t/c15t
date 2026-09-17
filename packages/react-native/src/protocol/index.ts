@@ -19,6 +19,7 @@ export { defaultNativeOverrides } from './overrides';
 export type {
 	ConsentSnapshot,
 	NativeModel,
+	NativeGpcSignal,
 	NativePrivacySignals,
 	NativeSnapshotError,
 	SnapshotResolution,

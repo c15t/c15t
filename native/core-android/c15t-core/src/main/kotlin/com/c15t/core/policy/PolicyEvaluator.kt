@@ -75,7 +75,10 @@ object PolicyEvaluator {
 			choice.matchesFingerprint(policy.choiceFingerprint) &&
 			now - choice.actionAt <= policy.choiceMs
 
-		val gpcActive = snapshot.overrides.test == true || snapshot.privacySignals.gpc
+		// The snapshot's signal is already the override-merged view, so reading
+		// `active` is the whole rule. Reading `detected` here would let a device
+		// report override an app that turned GPC off.
+		val gpcActive = snapshot.privacySignals.gpc.active
 		val directiveCategories = if (gpcActive) {
 			snapshot.optOutDirectives
 				.filter { it.source == RESTRICTION_GPC }

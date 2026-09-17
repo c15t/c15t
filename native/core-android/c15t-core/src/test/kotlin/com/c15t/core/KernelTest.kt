@@ -176,7 +176,7 @@ class KernelTest {
 			)
 		)
 		val kernel = testKernel(
-			config = NativeConfig(portalUrl = "https://test.c15t.app", privacySignals = PrivacySignals(gpc = true)),
+			config = NativeConfig(portalUrl = "https://test.c15t.app", detectedGpc = true),
 			store = C15tStore(InMemoryKeyValueStore()),
 			transport = transport,
 		)
@@ -250,13 +250,25 @@ class KernelTest {
 		val kernel = testKernel(store = C15tStore(backend), clock = FixedClock(), transport = transport)
 		kernel.bootstrap()
 
-		kernel.setOverrides(KernelOverrides(country = "DE", test = true))
+		kernel.setOverrides(KernelOverrides(country = "DE", gpc = true))
 
 		assertEquals("DE", kernel.snapshot().overrides.country)
-		assertTrue(kernel.snapshot().overrides.test == true)
+		assertEquals(true, kernel.snapshot().overrides.gpc)
+		assertTrue(
+			kernel.snapshot().privacySignals.gpc.active,
+			"an override is the value the evaluator honors",
+		)
+		assertFalse(
+			kernel.snapshot().privacySignals.gpc.detected,
+			"the device never reported GPC; only the app did",
+		)
 		// The pinned context must reach the backend on the following init.
 		val last = transport.initRequests.last()
 		assertEquals("DE", last.overrides.country)
-		assertTrue(last.gpc || last.overrides.test == true)
+		assertTrue(
+			last.gpc,
+			"the merged signal the core honors is what goes to the backend, and an override is part of it",
+		)
+		assertEquals(true, last.overrides.gpc, "the override itself is forwarded unchanged")
 	}
 }

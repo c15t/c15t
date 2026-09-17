@@ -3,6 +3,8 @@ package com.c15t.core.transport
 import com.c15t.core.model.ConsentCategory
 import com.c15t.core.model.SavePayload
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -62,6 +64,13 @@ object SaveBodyBuilder {
 		put("type", "cookie_banner")
 		payload.uiSource?.let { put("uiSource", it.wireName) }
 		confirmedChoice(payload)?.let { put("choice", it) }
+		// The decision assertion goes on flat, not nested, and only when nothing
+		// else already binds the write to a policy revision. `buildDecisionAssertion`
+		// in `@c15t/core` returns nothing whenever a `policySnapshotToken` is
+		// present, because the token is the stronger claim.
+		for ((field, value) in decisionAssertion(payload)) {
+			put(field, value)
+		}
 	}
 
 	/** The complete explicit map: `necessary` plus every category with a receipt. */
@@ -114,5 +123,35 @@ object SaveBodyBuilder {
 			put("categories", JsonObject(categories))
 			put("version", 3)
 		}
+	}
+
+	/**
+	 * The flat `policyId`/`fingerprint`/`country`/`region`/`language`/`gpc` claim a
+	 * tokenless write carries, or an empty map when it must not be sent.
+	 *
+	 * Port of `buildDecisionAssertion`. A token already pins the write to a policy
+	 * revision, so the claim adds nothing beside it. A null `policyId` says "nothing
+	 * matched", which is a complete claim by itself; a non-null one has to bring the
+	 * fingerprint it vouches for. `gpc` belongs in here with the rest: the backend
+	 * recomputes the decision from these fields, and a save that dropped it reads as
+	 * a decision made against a stale policy.
+	 */
+	private fun decisionAssertion(payload: SavePayload): Map<String, JsonElement> {
+		val inputs = payload.decisionInputs ?: return emptyMap()
+		if (payload.policySnapshotToken != null) {
+			return emptyMap()
+		}
+		val policyId = inputs.policyId
+		if (policyId != null && (policyId.isBlank() || inputs.fingerprint == null)) {
+			return emptyMap()
+		}
+		return linkedMapOf(
+			"policyId" to (policyId?.let(::JsonPrimitive) ?: JsonNull),
+			"fingerprint" to (inputs.fingerprint?.let(::JsonPrimitive) ?: JsonNull),
+			"country" to (inputs.country?.let(::JsonPrimitive) ?: JsonNull),
+			"region" to (inputs.region?.let(::JsonPrimitive) ?: JsonNull),
+			"language" to JsonPrimitive(inputs.language),
+			"gpc" to JsonPrimitive(inputs.gpc),
+		)
 	}
 }

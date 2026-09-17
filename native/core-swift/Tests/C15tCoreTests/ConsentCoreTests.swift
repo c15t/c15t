@@ -622,7 +622,9 @@ final class ConsentCoreTests: XCTestCase {
         XCTAssertFalse(core.isAllowed(.marketing), "GPC wins over a grant")
         XCTAssertTrue(core.isAllowed(.measurement))
         XCTAssertEqual(core.snapshot().restrictions[.marketing], [.gpc])
-        XCTAssertTrue(core.snapshot().privacySignals.gpc)
+        XCTAssertTrue(core.snapshot().privacySignals.gpc.active)
+        XCTAssertTrue(core.snapshot().privacySignals.gpc.detected)
+        XCTAssertNil(core.snapshot().privacySignals.gpc.override)
         // The grant itself is untouched: masking a choice must not rewrite it, and
         // the payload the backend stores keeps what the subject said.
         XCTAssertEqual(core.snapshot().explicitChoice?.categories[.marketing]?.value, true)
@@ -768,7 +770,7 @@ final class ConsentCoreTests: XCTestCase {
                 fingerprint: "f"
             ),
             subject: SubjectSnapshot(id: "s", externalId: "e"),
-            overrides: ConsentOverrides(country: "DE", region: nil, language: "de", test: "run-7"),
+            overrides: ConsentOverrides(country: "DE", region: nil, language: "de", gpc: true),
             nextDeadline: 1_800_000_000_000,
             evaluatedAt: 1_758_100_000_000
         )

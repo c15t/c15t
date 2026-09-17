@@ -85,22 +85,72 @@ data class ConsentLocation(
 /**
  * Developer overrides that steer policy evaluation.
  *
- * [test] forces the GPC signal on regardless of what the device reports, which
- * is the mobile equivalent of the web SDK's `overrides.gpc`.
+ * [gpc] is the app's override, not a detection. It is load bearing: `@c15t/core`
+ * compares it against the decision inputs remembered from the last init and
+ * rejects a save whose inputs no longer match, so a save body without it cannot
+ * pass the backend's staleness check. Detection lives on [PrivacySignals.gpc].
+ *
+ * Publisher test mode is a client option rather than an override and never
+ * reaches a save body, so it has no member here. The first draft of
+ * `native/CONTRACT.md` invented a `test` field; [com.c15t.core.store.C15tStore]
+ * refuses an envelope that still carries one rather than guessing at it.
  */
 @Serializable
 data class KernelOverrides(
 	val country: String? = null,
 	val region: String? = null,
 	val language: String? = null,
-	val test: Boolean? = null,
+	val gpc: Boolean? = null,
 )
 
-/** Privacy signals the core knows about. */
+/**
+ * The `gpc` member of [PrivacySignals]: the Global Privacy Control signal in the
+ * three parts the kernel keeps apart.
+ *
+ * An evaluator reads [active]. [detected] and [override] exist so a host can tell
+ * why a signal is on, and so a write is not treated as stale just because a
+ * device started reporting GPC on its own.
+ *
+ * [active] is an output, never an input. A plain `copy` would let a caller set
+ * `active: true` beside `detected: false` and no override, which is a signal the
+ * two inputs do not support, so [withDetection] and [withOverride] are the only
+ * ways to change one. The kernel recomputes it on every read rather than trusting
+ * a stored copy, so an envelope that claims a signal is on while saying nothing
+ * detected it and nothing overrode it is answered with the value the other two
+ * support.
+ */
+@Serializable
+data class GpcSignal(
+	val detected: Boolean = false,
+	val override: Boolean? = null,
+	val active: Boolean = false,
+) {
+	/** Re-derive `active` from [override], keeping the reported detection. */
+	fun withOverride(override: Boolean?): GpcSignal = derive(override = override, detected = detected)
+
+	/** Re-derive `active` from [detected], keeping the app's override if any. */
+	fun withDetection(detected: Boolean): GpcSignal = derive(override = override, detected = detected)
+
+	companion object {
+		/** Derive the view the way `derivePrivacySignals` in `@c15t/core` does. */
+		fun derive(override: Boolean?, detected: Boolean): GpcSignal = GpcSignal(
+			detected = detected,
+			override = override,
+			active = override ?: detected,
+		)
+	}
+}
+
+/**
+ * Privacy signals the core honors, mirroring `KernelPrivacySignals`.
+ *
+ * There is no `msa` signal anywhere in v3. The first draft of
+ * `native/CONTRACT.md` carried one beside a boolean `gpc`; both are refused when
+ * a stored envelope is read.
+ */
 @Serializable
 data class PrivacySignals(
-	val gpc: Boolean = false,
-	val msa: Boolean = false,
+	val gpc: GpcSignal = GpcSignal.derive(override = null, detected = false),
 )
 
 /**

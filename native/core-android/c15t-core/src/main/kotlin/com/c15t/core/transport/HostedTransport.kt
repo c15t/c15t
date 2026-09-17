@@ -40,8 +40,10 @@ class HostedTransport(
 		headers.putAll(C15tProtocol.protocolHeaders(config.sdkVersion))
 		// The override travels on the adapter header the backend's shared
 		// extractor reads first, mirroring the web SDK.
-		context.overrides.test?.let { headers["x-c15t-gpc"] = if (it) "1" else "0" }
-		if (context.gpc && context.overrides.test == null) {
+		// The override travels as the application header and wins on the backend;
+		// the plain `sec-gpc` carries the merged signal the core honors.
+		context.overrides.gpc?.let { headers["x-c15t-gpc"] = if (it) "1" else "0" }
+		if (context.gpc && context.overrides.gpc == null) {
 			headers["sec-gpc"] = "1"
 		}
 		context.overrides.country?.let { headers["x-c15t-country"] = it }

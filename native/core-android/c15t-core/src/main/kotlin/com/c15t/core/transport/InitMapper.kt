@@ -26,7 +26,14 @@ data class MappedInit(
 	val subjectId: String? = null,
 	val location: ConsentLocation? = null,
 	val resolvedOverrides: KernelOverrides? = null,
-	val resolvedPrivacySignals: PrivacySignals? = null,
+	/**
+	 * GPC the backend resolved for this request, from `resolvedPrivacySignals.gpc`
+	 * or the `Sec-GPC` header. A detection, not an override: the app's own override
+	 * outranks it, and the merged value is what the evaluator honors.
+	 */
+	val resolvedGpcDetection: Boolean? = null,
+	/** Language of the served translation bundle, one input to the resolved overrides. */
+	val translationsLanguage: String? = null,
 	val policySnapshotToken: String? = null,
 	val translations: JsonObject? = null,
 	val error: KernelError? = null,
@@ -107,15 +114,17 @@ object InitMapper {
 					country = overrides.stringOrNull("country"),
 					region = overrides.stringOrNull("region"),
 					language = overrides.stringOrNull("language"),
-					test = overrides["gpc"]?.let { (it as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() },
+					gpc = overrides["gpc"]?.let { (it as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() },
 				)
 			},
-			resolvedPrivacySignals = (body?.get("resolvedPrivacySignals") as? JsonObject)?.let { signals ->
-				PrivacySignals(
-					gpc = signals["gpc"]?.let { (it as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() } ?: false,
-					msa = signals["msa"]?.let { (it as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() } ?: false,
-				)
+			// The wire serves `{ gpc: true }`, which is one detection. An `msa` key is
+			// not read: it does not exist in v3, and treating an unknown signal as a
+			// known one is the kind of invention the contract forbids.
+			resolvedGpcDetection = when (val value = (body?.get("resolvedPrivacySignals") as? JsonObject)?.get("gpc")) {
+				is JsonPrimitive -> value.contentOrNull?.toBooleanStrictOrNull()
+				else -> null
 			},
+			translationsLanguage = (body?.get("translations") as? JsonObject)?.stringOrNull("language"),
 			policySnapshotToken = body.stringOrNull("policySnapshotToken"),
 			translations = body?.get("translations") as? JsonObject,
 			error = error,

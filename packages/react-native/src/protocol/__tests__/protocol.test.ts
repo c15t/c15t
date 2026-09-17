@@ -12,8 +12,15 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { decisionInputsMatchOverrides } from '@c15t/core';
+import type { RememberedDecisionInputs } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
+import type {
+	CommitFailureReason,
+	NativeOverrides,
+	NativePrivacySignals,
+} from '../index';
 import {
 	defaultNativeOverrides,
 	describeProtocolMismatch,
@@ -69,6 +76,12 @@ const PERMISSION_KEYS = [
 	'measurement',
 	'necessary',
 ].sort();
+
+/** Field set of `NativeOverrides`, as `native/CONTRACT.md` lists it. */
+const OVERRIDE_KEYS = ['country', 'gpc', 'language', 'region'].sort();
+
+/** Field set of the `gpc` member of `NativePrivacySignals`. */
+const GPC_SIGNAL_KEYS = ['active', 'detected', 'override'].sort();
 
 const MANDATED_FIXTURES = [
 	'evaluation-eu-opt-in',
@@ -184,10 +197,34 @@ describe('native boundary constants', () => {
 	test('a device with no app context has no overrides and one language', () => {
 		expect(defaultNativeOverrides('de-DE')).toEqual({
 			country: null,
+			gpc: null,
 			language: 'de-DE',
 			region: null,
-			test: null,
 		});
+	});
+
+	test('overrides are the four kernel fields and no invented fifth', () => {
+		// `test` was a field the first draft of the contract invented. Publisher
+		// test mode is a client option, not an override, and it never reaches a
+		// save body, so a native core carrying it has one field too many.
+		expect(Object.keys(defaultNativeOverrides('en')).sort()).toEqual([
+			'country',
+			'gpc',
+			'language',
+			'region',
+		]);
+	});
+
+	test('the native failure vocabulary names an un-bootstrapped core', () => {
+		// Runtime cannot see a union, so this is the compile-time half: both native
+		// bridges send this exact string, and if the protocol ever drops it the
+		// assignment stops type-checking.
+		const fromAndroidBridge: CommitFailureReason = 'not-bootstrapped';
+		const fromIosBridge: CommitFailureReason = 'not-bootstrapped';
+		expect([fromAndroidBridge, fromIosBridge]).toEqual([
+			'not-bootstrapped',
+			'not-bootstrapped',
+		]);
 	});
 
 	test('the event set is the three names the contract allows', () => {
@@ -382,5 +419,157 @@ describe('protocol fixtures', () => {
 			const after = fixture.expected.snapshotAfter as { revision: number };
 			expect(after.revision).toBe(before.revision + 1);
 		}
+	});
+
+	test('save bodies carry gpc inside the decision inputs they assert', () => {
+		const saves = readFixtures().filter(
+			(fixture) => fixture.kind === 'save-body'
+		);
+		expect(saves.length).toBeGreaterThan(0);
+		for (const fixture of saves) {
+			const payload = fixture.expected.savePayload as {
+				decisionInputs?: Record<string, unknown>;
+			};
+			// The kernel's `rememberDecisionInputs` always writes `gpc`, and
+			// `buildDecisionAssertion` replays it, so a payload without the key is a
+			// save the backend cannot check for staleness.
+			expect(payload.decisionInputs).toBeDefined();
+			expect('gpc' in (payload.decisionInputs as object)).toBe(true);
+		}
+	});
+
+	test('overrides and privacy signals carry exactly the corrected fields', () => {
+		for (const snapshot of allSnapshots()) {
+			expect(Object.keys(snapshot.overrides as object).sort()).toEqual(
+				OVERRIDE_KEYS
+			);
+			const { gpc } = snapshot.privacySignals as NativePrivacySignals;
+			expect(Object.keys(gpc).sort()).toEqual(GPC_SIGNAL_KEYS);
+			expect(typeof gpc.detected).toBe('boolean');
+			expect(typeof gpc.active).toBe('boolean');
+			expect(gpc.override === null || typeof gpc.override === 'boolean').toBe(
+				true
+			);
+			// `active` is the value the evaluator honors, so it has to agree with
+			// the override-then-detection rule rather than be a third opinion.
+			expect(gpc.active).toBe(gpc.override ?? gpc.detected);
+		}
+	});
+});
+
+/**
+ * Dropping the `gpc` override is not cosmetic. `decisionInputsMatchOverrides` in
+ * `@c15t/core` compares the override against the inputs remembered from the last
+ * init, and a save whose inputs no longer match is rejected as stale, so a
+ * native save body without the field cannot pass the backend's check.
+ *
+ * The kernel is the authority here, which is why this test drives the real
+ * function rather than a reimplementation of it.
+ */
+describe('gpc override staleness', () => {
+	/**
+	 * Project a protocol override record into the kernel's override shape.
+	 *
+	 * The two spell "unset" differently and the difference is load bearing:
+	 * `NativeOverrides` carries an explicit `null` so the native cores serialize
+	 * every key, while `KernelOverrides` treats an absent property as unset and
+	 * compares only defined ones. Handing the kernel a `null` would make it see a
+	 * defined override that differs from the remembered value, so every save would
+	 * look stale. This is the mapping a caller has to make.
+	 */
+	const asKernelOverrides = function asKernelOverrides(
+		overrides: NativeOverrides
+	) {
+		return {
+			country: overrides.country ?? undefined,
+			gpc: overrides.gpc ?? undefined,
+			language: overrides.language,
+			region: overrides.region ?? undefined,
+		};
+	};
+
+	/** Project a protocol override record into remembered decision inputs. */
+	const rememberedFor = function rememberedFor(
+		overrides: NativeOverrides
+	): RememberedDecisionInputs {
+		return {
+			country: overrides.country,
+			gpc: overrides.gpc ?? undefined,
+			language: overrides.language,
+			region: overrides.region,
+		};
+	};
+
+	test('the protocol override record feeds the kernel comparison', () => {
+		const decided = rememberedFor(defaultNativeOverrides('en'));
+		expect(
+			decisionInputsMatchOverrides(
+				decided,
+				asKernelOverrides(defaultNativeOverrides('en'))
+			)
+		).toBe(true);
+	});
+
+	test('flipping the gpc override makes a remembered decision stale', () => {
+		const decided = rememberedFor(defaultNativeOverrides('en'));
+		const flipped: NativeOverrides = {
+			...defaultNativeOverrides('en'),
+			gpc: true,
+		};
+		expect(
+			decisionInputsMatchOverrides(decided, asKernelOverrides(flipped))
+		).toBe(false);
+	});
+
+	test('a signal detected after the decision does not make it stale', () => {
+		// Only a defined override is compared, so a device that starts reporting GPC
+		// mid-session changes the evaluation without invalidating the write. This is
+		// the distinction the old boolean pair could not express at all.
+		const decided = rememberedFor(defaultNativeOverrides('en'));
+		const detected: NativePrivacySignals = {
+			gpc: { active: true, detected: true, override: null },
+		};
+		expect(
+			decisionInputsMatchOverrides(
+				decided,
+				asKernelOverrides({
+					...defaultNativeOverrides('en'),
+					gpc: detected.gpc.override,
+				})
+			)
+		).toBe(true);
+	});
+
+	test('an override cleared back to unset leaves the decision standing', () => {
+		const pinned: NativeOverrides = {
+			...defaultNativeOverrides('en'),
+			gpc: true,
+		};
+		const decided = rememberedFor(pinned);
+		expect(
+			decisionInputsMatchOverrides(
+				decided,
+				asKernelOverrides(defaultNativeOverrides('en'))
+			)
+		).toBe(true);
+	});
+
+	test('country and region still fold into the same comparison', () => {
+		const decided = rememberedFor({
+			...defaultNativeOverrides('en'),
+			country: 'US',
+			region: 'CA',
+		});
+		expect(
+			decisionInputsMatchOverrides(
+				decided,
+				asKernelOverrides({
+					...defaultNativeOverrides('en'),
+					country: 'US',
+					gpc: false,
+					region: 'CA',
+				})
+			)
+		).toBe(false);
 	});
 });

@@ -241,7 +241,11 @@ class ProtocolFixtureTest {
 		)
 
 		val overrides = input["overrides"]?.jsonObject ?: fail("$fixtureId: no overrides")
-		val detected = input["privacySignals"]?.jsonObject?.get("gpc")?.jsonObject?.get("detected")?.jsonPrimitive?.booleanOrNull
+		// The fixture states the two GPC facts separately and they are not the same
+		// fact: `overrides.gpc` is what the app pinned, and
+		// `privacySignals.gpc.detected` is what the device reported. Feeding one as
+		// the other is what a boolean pair allowed.
+		val deviceDetection = input["privacySignals"]?.jsonObject?.get("gpc")?.jsonObject?.get("detected")?.jsonPrimitive?.booleanOrNull
 			?: fail("$fixtureId: privacySignals.gpc.detected is missing")
 		val config = NativeConfig(
 			portalUrl = "https://backend.example.com",
@@ -250,12 +254,9 @@ class ProtocolFixtureTest {
 				country = overrides["country"]?.jsonPrimitive?.contentOrNull,
 				region = overrides["region"]?.jsonPrimitive?.contentOrNull,
 				language = overrides["language"]?.jsonPrimitive?.contentOrNull,
-				// No `test` override exists in the corrected contract. Forcing GPC
-				// through it is exactly the bug the alignment task removes, so the
-				// runner reports the device signal where the kernel puts it.
-				test = null,
+				gpc = overrides["gpc"]?.jsonPrimitive?.booleanOrNull,
 			),
-			privacySignals = PrivacySignals(gpc = overrides["gpc"]?.jsonPrimitive?.booleanOrNull ?: detected),
+			detectedGpc = deviceDetection,
 		)
 
 		val transport = input["transport"]?.jsonObject ?: fail("$fixtureId: no transport")
@@ -521,19 +522,17 @@ class ProtocolFixtureTest {
 
 
 	/**
-	 * The task that owns aligning this core with the kernel's snapshot: overrides
-	 * carry `gpc` and no `test`, privacy signals are a detected / override /
-	 * active triple with no `msa`, `subject.id` is `subjectId`, location keys are
-	 * `countryCode`/`regionCode`, the prompt is `{ kind, reason }`, a receipt is a
-	 * per-category record, and the restriction vocabulary is the kernel's.
+	 * The task that owns aligning this core with the kernel's snapshot.
+	 *
+	 * The overrides and privacy-signal halves of that are done: `gpc` is an override
+	 * with no `test`, the signal is a detected / override / active triple with no
+	 * `msa`, and the overrides a decision was made against come from the location
+	 * `/init` served. What is left in [LEDGER] under this task is the snapshot's field
+	 * spellings and the standing-directive gap.
 	 */
-	const val ALIGNMENT_TASK = "the native protocol alignment task (corrected overrides, privacy signals, and snapshot field shapes)"
+	const val ALIGNMENT_TASK = "the native protocol alignment task (snapshot field spellings and standing GPC directives)"
 
 	// -- why each accepted difference exists ----------------------------------
-
-	const val OVERRIDES = "init.location is never folded into overrides: this build reads them from a resolvedOverrides field the backend does not serve, so the effective overrides the kernel reports are absent here."
-
-	const val SIGNALS = "PrivacySignals is a gpc/msa boolean pair; the kernel reports gpc as a detected/override/active triple and has no msa at all."
 
 	const val LOCATION = "ConsentLocation keys country/region; the /init wire keys them countryCode/regionCode."
 
@@ -570,10 +569,16 @@ class ProtocolFixtureTest {
 	private fun ledger(): List<Divergence> {
 		val rows = mutableListOf<Divergence>()
 
-		/** Fields every snapshot in these fixtures trips over, keys only. */
+		/**
+		 * Fields every snapshot in these fixtures trips over, keys only.
+		 *
+		 * `privacySignals` is gone from this list. The first draft of the contract gave
+		 * this build a `gpc`/`msa` boolean pair, and its Corrections section retired
+		 * both; the core now carries the detected / override / active triple, so those
+		 * paths match the kernel and have no business being listed.
+		 */
 		val shape = listOf(
 			"location*" to LOCATION,
-			"privacySignals*" to SIGNALS,
 			"promptRequirement*" to PROMPT,
 			"subject*" to SUBJECT,
 		)
@@ -585,36 +590,31 @@ class ProtocolFixtureTest {
 		}
 
 		listOf(
-			"evaluation-eu-opt-in" to listOf("overrides.country" to OVERRIDES),
-			"evaluation-us-ccpa-opt-out" to listOf("overrides.country" to OVERRIDES, "overrides.region" to OVERRIDES),
-			"evaluation-no-rule-matched" to listOf("activeUI" to NO_MATCH, "overrides.country" to OVERRIDES, "overrides.region" to OVERRIDES),
+			"evaluation-eu-opt-in" to emptyList<Pair<String, String>>(),
+			"evaluation-us-ccpa-opt-out" to emptyList<Pair<String, String>>(),
+			"evaluation-no-rule-matched" to listOf("activeUI" to NO_MATCH),
 			"evaluation-gpc-signal-present" to listOf(
 				"optOutDirectives" to DIRECTIVES,
-				"overrides.country" to OVERRIDES,
-				"overrides.region" to OVERRIDES,
 				"restrictions.marketing" to DIRECTIVE_RESTRICTION,
 				"restrictions.measurement" to DIRECTIVE_RESTRICTION,
 				"revision" to REVISION,
 			),
-			"evaluation-notice-pending" to listOf("overrides.country" to OVERRIDES),
+			"evaluation-notice-pending" to emptyList<Pair<String, String>>(),
 			"evaluation-eu-explicit-grants" to listOf(
 				"explicitChoice*" to CHOICE,
-				"overrides.country" to OVERRIDES,
 			),
 			"evaluation-eu-partial-denials" to listOf(
 				"explicitChoice*" to CHOICE,
-				"overrides.country" to OVERRIDES,
 				"restrictions.marketing" to EXPLICIT_DENIAL,
 			),
 			"evaluation-notice-dismissed" to listOf(
 				"activeUI" to DISMISSAL,
 				"nextDeadline" to DISMISSAL,
-				"overrides.country" to OVERRIDES,
 			),
 		).forEach { (fixture, fields) -> add(fixture, "expected.snapshot", *fields.toTypedArray()) }
 
-		val before = listOf("overrides.country" to OVERRIDES)
-		val after = listOf("explicitChoice*" to CHOICE, "overrides.country" to OVERRIDES)
+		val before = emptyList<Pair<String, String>>()
+		val after = listOf("explicitChoice*" to CHOICE)
 		listOf(
 			"save-body-all" to emptyList<Pair<String, String>>(),
 			"save-body-explicit-partial" to listOf("restrictions.measurement" to EXPLICIT_DENIAL),
@@ -632,8 +632,6 @@ class ProtocolFixtureTest {
 
 		val gpcBefore = listOf(
 			"optOutDirectives" to DIRECTIVES,
-			"overrides.country" to OVERRIDES,
-			"overrides.region" to OVERRIDES,
 			"restrictions.marketing" to DIRECTIVE_RESTRICTION,
 			"restrictions.measurement" to DIRECTIVE_RESTRICTION,
 			"revision" to REVISION,

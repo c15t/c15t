@@ -10,6 +10,8 @@ import com.c15t.core.model.KernelUser
 import com.c15t.core.model.ConfirmedCoverage
 import com.c15t.core.model.DecisionInputs
 import com.c15t.core.model.ExplicitChoice
+import com.c15t.core.model.GpcSignal
+import com.c15t.core.model.PrivacySignals
 import com.c15t.core.model.QueuedSave
 import com.c15t.core.model.SavePayload
 import com.c15t.core.policy.EvaluationPolicy
@@ -21,6 +23,7 @@ import com.c15t.core.store.C15tStore
 import com.c15t.core.store.PendingSaveQueue
 import com.c15t.core.store.SnapshotEnvelope
 import com.c15t.core.transport.C15tTransport
+import com.c15t.core.transport.MappedInit
 import com.c15t.core.transport.InitContext
 import com.c15t.core.transport.InitMapper
 import com.c15t.core.transport.SaveOutcome
@@ -75,6 +78,17 @@ class C15tKernel(
 	@Volatile
 	private var storedSnapshotFound = false
 
+	/**
+	 * GPC as the device and the backend report it, with no override applied.
+	 *
+	 * Kept apart from the override on purpose: the evaluator honors the merged
+	 * value, while the write-time staleness check compares only what the app
+	 * pinned. `null` means no signal has been reported yet, which is not the same
+	 * answer as `false`.
+	 */
+	@Volatile
+	private var detectedGpc: Boolean? = null
+
 	private val snapshotObservers = CopyOnWriteArrayList<WeakReference<(ConsentSnapshot) -> Unit>>()
 	private val strongObservers = CopyOnWriteArrayList<(ConsentSnapshot) -> Unit>()
 	private val errorObservers = CopyOnWriteArrayList<WeakReference<(KernelError) -> Unit>>()
@@ -98,6 +112,8 @@ class C15tKernel(
 
 		storedSnapshotFound = envelope != null
 
+		detectedGpc = config.detectedGpc
+
 		if (envelope == null) {
 			// First launch, or a payload this build cannot read: deny-all until an
 			// init resolves, with ready false so a host can tell the two apart.
@@ -105,7 +121,7 @@ class C15tKernel(
 				ConsentSnapshot.denyAll(subject, now).copy(
 					consentCategories = config.consentCategories?.map { it.wireName },
 					overrides = config.overrides,
-					privacySignals = config.privacySignals,
+					privacySignals = signalsFor(config.overrides),
 				)
 			)
 			synchronized(mutationLock) {
@@ -119,12 +135,15 @@ class C15tKernel(
 				evaluationPolicy = envelope.evaluationPolicy
 				noticeDismissal = envelope.noticeDismissal
 			}
+			val hydratedOverrides = merge(restored.overrides, config.overrides)
 			val hydrated = restored.copy(
 				ready = true,
 				subject = restored.subject?.copy(id = subject.id) ?: subject,
 				consentCategories = config.consentCategories?.map { it.wireName } ?: restored.consentCategories,
-				overrides = merge(restored.overrides, config.overrides),
-				privacySignals = config.privacySignals,
+				overrides = hydratedOverrides,
+				// A stored `active` is never trusted: it would keep a category denied
+				// after the signal that caused it is gone.
+				privacySignals = signalsFor(hydratedOverrides),
 			)
 			publishPure(PolicyEvaluator.evaluate(hydrated, envelope.evaluationPolicy, envelope.noticeDismissal, now))
 			persist()
@@ -433,13 +452,14 @@ class C15tKernel(
 	}
 
 	private fun runInit() {
+		var detected = detectedGpc
 		val current = state.get()
 		val outcome = try {
 			transport.init(
 				InitContext(
 					overrides = current.overrides,
 					subject = current.subject,
-					gpc = current.privacySignals.gpc || current.overrides.test == true,
+					gpc = GpcSignal.derive(override = current.overrides.gpc, detected = detected == true).active,
 				)
 			)
 		} catch (error: Exception) {
@@ -455,7 +475,9 @@ class C15tKernel(
 				base.subject?.copy(id = serverId) ?: ConsentSubject(id = serverId)
 			} ?: base.subject
 			evaluationPolicy = mapped.evaluationPolicy ?: evaluationPolicy
+			mapped.resolvedGpcDetection?.let { detected = it }
 			emitted = mapped.error
+			detectedGpc = detected
 
 			// A failed init while a definitive policy is already in force is a
 			// connectivity event, not a policy change. Re-latching the pending flag
@@ -473,8 +495,15 @@ class C15tKernel(
 					ready = if (mapped.policyPending) base.ready else true,
 					subject = subject,
 					location = mapped.location ?: base.location,
-					overrides = merge(base.overrides, mapped.resolvedOverrides),
-					privacySignals = mapped.resolvedPrivacySignals ?: base.privacySignals,
+					// The overrides the decision was actually made against, which is
+					// what the backend recomputes before it accepts a save.
+					// `mapResolvedOverrides` and the merge in `@c15t/core` fold the served
+					// location and translation language over the app's own overrides, so a
+					// device that pinned nothing still reports the country and region it
+					// was matched on. `gpc` survives from the app because `/init` serves a
+					// detection, not an override.
+					overrides = resolvedOverrides(base.overrides, mapped),
+					privacySignals = signalsFor(resolvedOverrides(base.overrides, mapped), detected),
 					policySnapshotToken = mapped.policySnapshotToken ?: base.policySnapshotToken,
 					translations = mapped.translations ?: base.translations,
 					error = mapped.error,
@@ -525,8 +554,13 @@ class C15tKernel(
 		for ((category, value) in intent.consentsByCategory) {
 			confirmed[category.wireName] = value
 		}
-		val subject = published.subject ?: resolveSubject()
-		val gpc = published.overrides.test ?: published.privacySignals.gpc
+	val subject = published.subject ?: resolveSubject()
+	// Derived rather than read off the snapshot, so the claim a write makes about
+	// its own decision inputs is the same value the evaluator honored.
+	val gpc = GpcSignal.derive(
+		override = published.overrides.gpc,
+		detected = detectedGpc == true,
+	).active
 		return SavePayload(
 			subjectId = subject.id,
 			subject = subject,
@@ -593,9 +627,42 @@ class C15tKernel(
 			country = patch.country ?: base.country,
 			region = patch.region ?: base.region,
 			language = patch.language ?: base.language,
-			test = patch.test ?: base.test,
+			gpc = patch.gpc ?: base.gpc,
 		)
 	}
+
+	/**
+	 * The overrides in force after an init, following `mapResolvedOverrides` and the
+	 * merge in `@c15t/core`: the served location and translation language win over
+	 * what the app pinned, and `gpc` is the app's own because `/init` serves a
+	 * detection rather than an override.
+	 */
+	private fun resolvedOverrides(
+		base: KernelOverrides,
+		mapped: MappedInit,
+	): KernelOverrides = KernelOverrides(
+		country = mapped.resolvedOverrides?.country
+			?: mapped.location?.country
+			?: base.country,
+		region = mapped.resolvedOverrides?.region
+			?: mapped.location?.region
+			?: base.region,
+		language = mapped.resolvedOverrides?.language
+			?: mapped.translationsLanguage
+			?: base.language,
+		gpc = mapped.resolvedOverrides?.gpc ?: base.gpc,
+	)
+
+	/**
+	 * The signal view the snapshot carries, derived rather than stored. The app's
+	 * override outranks the device, which is what makes it an override.
+	 */
+	private fun signalsFor(
+		overrides: KernelOverrides,
+		detected: Boolean? = detectedGpc,
+	): PrivacySignals = PrivacySignals(
+		gpc = GpcSignal.derive(override = overrides.gpc, detected = detected == true),
+	)
 
 	private fun notifySnapshot(snapshot: ConsentSnapshot) {
 		for (reference in snapshotObservers) {

@@ -8,7 +8,6 @@ import android.util.Log
 import com.c15t.core.C15t
 import com.c15t.core.NativeConfig
 import com.c15t.core.model.KernelError
-import com.c15t.core.model.PrivacySignals
 import com.c15t.core.spi.Clock
 import com.c15t.core.spi.TaskExecutor
 import com.c15t.core.transport.C15tTransport
@@ -110,12 +109,14 @@ object C15tAndroid {
 		if (portalUrl.isNullOrBlank()) {
 			return null
 		}
-		val gpc = bundle.getString(META_GPC)?.toBooleanStrictOrNull() ?: false
+		// Absent stays absent. `false` is an answer and a missing key is not, and the
+		// core treats them differently when it derives the signal.
+		val gpc = bundle.getString(META_GPC)?.toBooleanStrictOrNull()
 		return NativeConfig(
 			portalUrl = portalUrl.trim(),
 			initUrl = bundle.getString(META_INIT_URL)?.takeIf { it.isNotBlank() },
 			domain = bundle.getString(META_DOMAIN)?.takeIf { it.isNotBlank() },
-			privacySignals = PrivacySignals(gpc = gpc),
+			detectedGpc = gpc,
 		)
 	}
 

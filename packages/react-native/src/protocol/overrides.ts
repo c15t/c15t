@@ -1,10 +1,16 @@
 /**
- * Geographic, language and test overrides the app pins for policy
- * evaluation.
+ * Geographic, language, and GPC overrides the app pins for policy evaluation.
  *
  * Overrides never create a choice. They change which rule matches and which
  * translations are served, and the backend recomputes them before it accepts
  * a save, which is why they travel with every commit.
+ *
+ * `gpc` is the app's GPC override, not a detection. It is load bearing rather
+ * than decorative: `decisionInputsMatchOverrides` in `@c15t/core` compares it
+ * against the decision inputs remembered from the last init, and a save whose
+ * inputs no longer match is rejected as stale. A native save body that drops
+ * it cannot pass that check. Publisher test mode is a client option, not an
+ * override, and never reaches a save body.
  */
 
 /**
@@ -21,6 +27,10 @@ export const DEFAULT_NATIVE_LANGUAGE = 'en';
  * Every field is nullable except {@link NativeOverrides.language}: the
  * native core always resolves a language, falling back to the device locale,
  * because translations must resolve to one bundle.
+ *
+ * Mirrors `KernelOverrides` in `@c15t/core`, with the kernel's optional
+ * properties normalised to explicit `null` so the native cores serialize every
+ * key rather than leaving a JavaScript reader to branch on presence.
  */
 export interface NativeOverrides {
 	/** ISO 3166-1 alpha-2 country code, or `null` to let the backend detect. */
@@ -30,12 +40,13 @@ export interface NativeOverrides {
 	/** BCP 47 language tag in effect. Never empty. */
 	readonly language: string;
 	/**
-	 * Publisher test mode, or `null` when unset.
+	 * GPC override, or `null` when the app has none.
 	 *
-	 * A test run evaluates the draft policy configuration instead of the
-	 * published one, and its choices are never treated as audit evidence.
+	 * An override wins over the detected signal, which is what makes it an
+	 * override. Detection lives on
+	 * {@link NativePrivacySignals.gpc.detected}, not here.
 	 */
-	readonly test: string | null;
+	readonly gpc: boolean | null;
 }
 
 /**
@@ -46,7 +57,7 @@ export interface NativeOverridesInput {
 	readonly country?: string | null;
 	readonly region?: string | null;
 	readonly language?: string;
-	readonly test?: string | null;
+	readonly gpc?: boolean | null;
 }
 
 /**
@@ -58,5 +69,5 @@ export interface NativeOverridesInput {
 export const defaultNativeOverrides = function defaultNativeOverrides(
 	language: string
 ): NativeOverrides {
-	return { country: null, language, region: null, test: null };
+	return { country: null, gpc: null, language, region: null };
 };

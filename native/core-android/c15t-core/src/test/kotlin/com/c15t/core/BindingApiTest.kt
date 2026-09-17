@@ -48,7 +48,7 @@ class BindingApiTest {
 	fun `setOverrides with merge false replaces the record so a cleared field clears`() {
 		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()))
 		kernel.bootstrap()
-		kernel.setOverrides(KernelOverrides(country = "DE", region = "BE", language = "de", test = true))
+		kernel.setOverrides(KernelOverrides(country = "DE", region = "BE", language = "de", gpc = true))
 
 		// The shape a binding produces from `{ "region": null }`: everything else kept,
 		// the one field the app nulled actually gone.
@@ -57,6 +57,6 @@ class BindingApiTest {
 		val overrides = kernel.snapshot().overrides
 		assertEquals("DE", overrides.country)
 		assertNull(overrides.region)
-		assertNull(overrides.test)
+		assertNull(overrides.gpc)
 	}
 }

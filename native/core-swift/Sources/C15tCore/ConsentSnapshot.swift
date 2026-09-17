@@ -123,43 +123,163 @@ public struct LocationContext: Sendable, Codable, Equatable {
     }
 }
 
-/// Geographic, language, and publisher-test overrides that feed policy
-/// evaluation.
+/// Geographic, language, and GPC overrides that feed policy evaluation.
 ///
-/// `test` selects a draft policy configuration for a test run. It is a
-/// `String?` because that is what the protocol layer and the snapshot carry, and
-/// it is deliberately not a privacy-signal switch: GPC comes from
-/// ``CoreConfig/gpc``, which is the only place a native core can learn the signal.
+/// `gpc` is the app's override, not a detection. It is load bearing: the kernel
+/// compares it against the decision inputs remembered from the last init and
+/// rejects a save whose inputs no longer match, so a native save body without it
+/// cannot pass the backend's staleness check. Detection is a separate input
+/// (``CoreConfig/gpc``) and lands on ``PrivacySignals/gpc``.
+///
+/// Publisher test mode is a client option rather than an override, and never
+/// reaches a save body, so it has no place here. The first draft of
+/// `native/CONTRACT.md` invented a `test` field, and ``CodingKeys/test`` exists
+/// only to refuse an envelope that still carries one.
 public struct ConsentOverrides: Sendable, Codable, Equatable {
     public let country: String?
     public let region: String?
     public let language: String
-    public let test: String?
+    public let gpc: Bool?
 
-    public init(country: String?, region: String?, language: String, test: String?) {
+    public init(country: String?, region: String?, language: String, gpc: Bool? = nil) {
         self.country = country
         self.region = region
         self.language = language
-        self.test = test
+        self.gpc = gpc
+    }
+
+    /// `test` is declared only so ``init(from:)`` can see it. A decoder with a
+    /// synthesized key set never learns that an unknown key was in the data, so a
+    /// retired field would otherwise pass through unseen and be dropped in silence.
+    enum CodingKeys: String, CodingKey {
+        case country
+        case region
+        case language
+        case gpc
+        case test
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try RetiredEnvelope.reject(.test, ifPresentIn: container)
+        country = try container.decodeIfPresent(String.self, forKey: .country)
+        region = try container.decodeIfPresent(String.self, forKey: .region)
+        language = try container.decodeIfPresent(String.self, forKey: .language) ?? "en"
+        gpc = try container.decodeIfPresent(Bool.self, forKey: .gpc)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try RetiredEnvelope.write(country, forKey: .country, in: &container)
+        try RetiredEnvelope.write(region, forKey: .region, in: &container)
+        try container.encode(language, forKey: .language)
+        try RetiredEnvelope.write(gpc, forKey: .gpc, in: &container)
     }
 
     public static func `default`(language: String = "en") -> ConsentOverrides {
-        ConsentOverrides(country: nil, region: nil, language: language, test: nil)
+        ConsentOverrides(country: nil, region: nil, language: language, gpc: nil)
     }
 }
 
-/// Privacy signals the core knows about. `msa` has no native detector in this
-/// phase and is reported false rather than omitted.
-public struct PrivacySignals: Sendable, Codable, Equatable {
-    public let gpc: Bool
-    public let msa: Bool
+/// The Global Privacy Control signal, in the three parts the kernel keeps apart.
+///
+/// Reading ``active`` is the correct thing for an evaluator; ``detected`` and
+/// ``override`` exist so a host can tell why a signal is on. `active` is the
+/// override when the app set one, otherwise the detection.
+public struct GpcSignal: Sendable, Codable, Equatable {
+    /// What the device or the backend reported. There is no user-agent GPC flag
+    /// to read natively, so this is the host's report or what `/init` resolved.
+    public let detected: Bool
+    /// ``ConsentOverrides/gpc``, or `nil` when the app set none.
+    public let override: Bool?
+    /// The signal the evaluator honors.
+    public let active: Bool
 
-    public init(gpc: Bool, msa: Bool = false) {
-        self.gpc = gpc
-        self.msa = msa
+    public init(detected: Bool, override: Bool?) {
+        self.detected = detected
+        self.override = override
+        self.active = override ?? detected
     }
 
-    public static let none = PrivacySignals(gpc: false)
+    public static func derive(override: Bool?, detected: Bool) -> GpcSignal {
+        GpcSignal(detected: detected, override: override)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case detected
+        case override
+        case active
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(detected, forKey: .detected)
+        try RetiredEnvelope.write(override, forKey: .override, in: &container)
+        try container.encode(active, forKey: .active)
+    }
+
+    /// Decode the two inputs and recompute the third.
+    ///
+    /// `active` is an output, never an input: trusting a stored copy would keep a
+    /// category denied after the signal that caused it is gone, and would let an
+    /// envelope claim an `active` its own override and detection do not support.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        detected = try container.decodeIfPresent(Bool.self, forKey: .detected) ?? false
+        override = try container.decodeIfPresent(Bool.self, forKey: .override)
+        active = override ?? detected
+    }
+}
+
+/// Privacy signals the core honors, mirroring `KernelPrivacySignals`.
+///
+/// There is no `msa` signal anywhere in v3. The first draft of
+/// `native/CONTRACT.md` carried one as a boolean alongside a boolean `gpc`; both
+/// are refused on decode rather than guessed at.
+public struct PrivacySignals: Sendable, Codable, Equatable {
+    /// `msa` is declared only so ``init(from:)`` can refuse it.
+    enum CodingKeys: String, CodingKey {
+        case gpc
+        case msa
+    }
+
+    public let gpc: GpcSignal
+
+    public init(gpc: GpcSignal) {
+        self.gpc = gpc
+    }
+
+    public init(detected: Bool, override: Bool?) {
+        self.gpc = GpcSignal.derive(override: override, detected: detected)
+    }
+
+    public static let none = PrivacySignals(detected: false, override: nil)
+
+    /// Encode only the live key. `msa` is a coding key that exists to be refused on
+    /// the way in, and a synthesized encoder would look for a property behind it.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(gpc, forKey: .gpc)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try RetiredEnvelope.reject(.msa, ifPresentIn: container)
+        guard container.contains(.gpc) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.gpc,
+                DecodingError.Context(
+                    codingPath: container.codingPath,
+                    debugDescription: "privacySignals must carry gpc as a "
+                        + "detected / override / active object: \(RetiredEnvelope.guidance)"
+                )
+            )
+        }
+        // A boolean `gpc` is the retired shape. It fails here as the wrong type
+        // rather than being read as a detection, because `true` would have meant
+        // "active" and said nothing about whether the app or the device caused it.
+        gpc = try container.decode(GpcSignal.self, forKey: .gpc)
+    }
 }
 
 /// Subject identifiers carried on the snapshot. `id` is the c15t-generated

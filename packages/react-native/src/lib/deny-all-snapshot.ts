@@ -56,7 +56,7 @@ export const denyAllSnapshot = function denyAllSnapshot(
 		overrides: defaultNativeOverrides(DEFAULT_NATIVE_LANGUAGE),
 		policyPending: true,
 		policySnapshotToken: null,
-		privacySignals: { gpc: false, msa: false },
+		privacySignals: { gpc: { active: false, detected: false, override: null } },
 		promptRequirement: { kind: 'none' },
 		ready: false,
 		resolution: { fingerprint: null, policyId: null, status: 'failed' },

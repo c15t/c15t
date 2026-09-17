@@ -36,8 +36,17 @@ export type CommitIntent =
  *
  * `queued` is not a failure: the payload is persisted and replayed, so the
  * snapshot is already correct offline.
+ *
+ * `not-bootstrapped` is the native core refusing because no configuration was
+ * ever installed, which is a host wiring bug rather than a consent outcome.
+ * Both native bridges already report it; this union is what lets JavaScript
+ * name it.
  */
-export type CommitFailureReason = 'invalid-intent' | 'no-subject' | 'queued';
+export type CommitFailureReason =
+	| 'invalid-intent'
+	| 'no-subject'
+	| 'not-bootstrapped'
+	| 'queued';
 
 /**
  * Result of `commit(intent)`.

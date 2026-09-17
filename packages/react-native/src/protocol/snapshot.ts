@@ -53,13 +53,29 @@ export interface SnapshotResolution {
 /**
  * Privacy signals the native cores honor.
  *
- * `gpc` is the effective Global Privacy Control signal: the platform value
- * already merged with any app override. `msa` is reserved and always `false`
- * in this phase, held open so a later signal is an additive field.
+ * Mirrors `KernelPrivacySignals` in `@c15t/core`. The three members are not
+ * interchangeable and a gate must read `active`:
+ *
+ * - `detected` is what the device reported. On mobile there is no user-agent
+ *   flag to read, so this is the host app's report, or what `/init` resolved.
+ * - `override` is {@link NativeOverrides.gpc}, `null` when the app set none.
+ * - `active` is the value the evaluator honors: the override when set, else
+ *   the detection.
+ */
+export interface NativeGpcSignal {
+	/** Signal the device or backend reported. */
+	readonly detected: boolean;
+	/** Explicit override from {@link NativeOverrides.gpc}, or `null`. */
+	readonly override: boolean | null;
+	/** Signal the evaluator honors: the override when set, else the detection. */
+	readonly active: boolean;
+}
+
+/**
+ * Privacy signals the native cores honor.
  */
 export interface NativePrivacySignals {
-	readonly gpc: boolean;
-	readonly msa: boolean;
+	readonly gpc: NativeGpcSignal;
 }
 
 /**
@@ -112,7 +128,7 @@ export interface ConsentSnapshot {
 	readonly subject: ConsentSubject | null;
 	/** Geographic context reported by the backend. */
 	readonly location: LocationResponse | null;
-	/** Geographic, language and test overrides in effect. */
+	/** Geographic, language, and GPC overrides in effect. */
 	readonly overrides: NativeOverrides;
 	/** Effective privacy signals. */
 	readonly privacySignals: NativePrivacySignals;

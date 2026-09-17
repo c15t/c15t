@@ -311,7 +311,7 @@ public final class ConsentCore: @unchecked Sendable {
                 choice: choice,
                 noticeDismissal: noticeDismissal,
                 optOutDirectives: currentSnapshot.optOutDirectives,
-                gpcActive: activeGPC,
+                gpcActive: gpcSignal.active,
                 now: actionAt
             )
 
@@ -360,7 +360,7 @@ public final class ConsentCore: @unchecked Sendable {
                     country: overrides.country,
                     region: overrides.region,
                     language: overrides.language,
-                    gpc: activeGPC
+                    gpc: gpcSignal.active
                 ),
                 givenAt: actionAt
             )
@@ -458,7 +458,7 @@ public final class ConsentCore: @unchecked Sendable {
                 choice: currentSnapshot.explicitChoice,
                 noticeDismissal: noticeDismissal,
                 optOutDirectives: currentSnapshot.optOutDirectives,
-                gpcActive: activeGPC,
+                gpcActive: gpcSignal.active,
                 now: at
             )
             currentSnapshot = currentSnapshot.byApplying { draft in
@@ -667,12 +667,20 @@ public final class ConsentCore: @unchecked Sendable {
         lock.withLock { config?.transport }
     }
 
-    /// The GPC signal to honor: the host's report when it made one, otherwise what
-    /// the backend resolved. The snapshot's copy is an output of this, never an
-    /// input, so a stored value can never keep denying after the signal is gone.
-    /// Callers must already hold the lock.
-    private var activeGPC: Bool {
+    /// What the device reports, with no override applied: the host's report when
+    /// it made one, otherwise what the backend resolved. Callers must already
+    /// hold the lock.
+    private var detectedGPCSignal: Bool {
         config?.gpc ?? detectedGPC
+    }
+
+    /// The GPC signal to honor, in the detected / override / active shape the
+    /// kernel uses. The snapshot's copy is an output of this, never an input, so
+    /// a stored value can never keep denying after the signal is gone. An app
+    /// override wins over a detection, which is what makes it an override.
+    /// Callers must already hold the lock.
+    private var gpcSignal: GpcSignal {
+        GpcSignal.derive(override: overrides.gpc, detected: detectedGPCSignal)
     }
 
     /// Overrides in wire form. Callers must already hold the lock.
@@ -681,7 +689,7 @@ public final class ConsentCore: @unchecked Sendable {
             country: overrides.country,
             region: overrides.region,
             language: overrides.language,
-            gpc: activeGPC
+            gpc: gpcSignal.active
         )
     }
 
@@ -718,7 +726,7 @@ public final class ConsentCore: @unchecked Sendable {
             choice: currentSnapshot.explicitChoice,
             noticeDismissal: noticeDismissal,
             optOutDirectives: currentSnapshot.optOutDirectives,
-            gpcActive: activeGPC,
+            gpcActive: gpcSignal.active,
             now: now
         )
         currentSnapshot = currentSnapshot.byApplying { draft in
@@ -844,14 +852,26 @@ public final class ConsentCore: @unchecked Sendable {
             }
 
             var draft = ConsentSnapshot.Draft(current: currentSnapshot)
+            // The overrides a decision was actually made against, which is what the
+            // backend recomputes before it accepts a save. `mapResolvedOverrides`
+            // and the merge in `@c15t/core` fold the served location and translation
+            // language over the app's own overrides, so a device that pinned nothing
+            // still reports the country and region it was matched on. `gpc` survives
+            // from the app because `/init` never derives it.
             draft.overrides = ConsentOverrides(
-                country: response.resolvedOverrides?.country ?? overrides.country,
-                region: response.resolvedOverrides?.region ?? overrides.region,
-                language: response.resolvedOverrides?.language ?? overrides.language,
-                test: overrides.test
+                country: response.resolvedOverrides?.country
+                    ?? response.location?.countryCode
+                    ?? overrides.country,
+                region: response.resolvedOverrides?.region
+                    ?? response.location?.regionCode
+                    ?? overrides.region,
+                language: response.resolvedOverrides?.language
+                    ?? response.translations?.language
+                    ?? overrides.language,
+                gpc: response.resolvedOverrides?.gpc ?? overrides.gpc
             )
             overrides = draft.overrides
-            draft.privacySignals = PrivacySignals(gpc: activeGPC)
+            draft.privacySignals = PrivacySignals(gpc: gpcSignal)
             if let location = response.location { draft.location = location }
             if let translations = response.translations { draft.translations = translations }
             if let token = response.policySnapshotToken { draft.policySnapshotToken = token }
@@ -878,7 +898,7 @@ public final class ConsentCore: @unchecked Sendable {
                     choice: draft.explicitChoice,
                     noticeDismissal: noticeDismissal,
                     optOutDirectives: draft.optOutDirectives,
-                    gpcActive: activeGPC,
+                    gpcActive: gpcSignal.active,
                     now: nowMs
                 )
                 draft.effectivePermissions = evaluation.permissions
