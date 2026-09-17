@@ -244,6 +244,18 @@ or `PENDING` to `GRANTED`: `decision` is a function of the resolved policy and t
 user's c15t choice only. A device with ATT granted and consent denied is denied, and
 its advertising identifier stays unavailable.
 
+The two answers arrive on their own channel and a core answers them whether or not a
+core was ever bootstrapped, because what the operating system permits is not consent
+state. The status set is shared: `authorized`, `denied`, `not-determined`, `restricted`,
+`unsupported`. `unsupported` and `not-determined` must stay distinguishable, because a
+host reads the first as "this platform puts no bar here" and the second as "this subject
+is still owed a question", and collapsing them either switches measurement off on every
+Android device or reads a missing prompt as permission. Android reports `unsupported`
+and refuses a request: the advertising identifier belongs to Play services rather than
+to the framework, and the `AD_ID` grant that the manifest does carry is set by a Google
+dialog this app does not own, so reporting it as `denied` would make a consent claim the
+subject never made.
+
 Persistence
 -----------
 
