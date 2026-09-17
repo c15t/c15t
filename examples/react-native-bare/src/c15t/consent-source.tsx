@@ -3,6 +3,11 @@
  *
  * Two paths, both public API:
  *
+ * Both paths publish the app's measured safe-area bands, so the consent surfaces lay
+ * out against the same insets the header pads itself by. The fake path does it by
+ * nesting the package's provider inside the client context it publishes, which the
+ * provider is documented to accept without attaching a second time.
+ *
  * - `native` renders the package's `C15tProvider`, which reads the handshake from
  *   the Swift or Kotlin core in the binary. If the module is not there, the
  *   package throws with a message that names the cause, and this file catches it
@@ -35,6 +40,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import { useSafeAreaInsets } from '../safe-area';
 import { config } from './config';
 import { FakeNativeSdk } from './fake-native';
 import type { FakeNativeSession } from './fake-native';
@@ -177,12 +183,14 @@ export const ConsentSourceProvider = ({
 
 	const usingNative = fakeSession === null && nativeClient !== null;
 
+	const insets = useSafeAreaInsets();
+
 	return (
 		<ConsentSourceContext.Provider value={source}>
 			{usingNative ? (
 				// The provider is the documented entry point and the one that runs
 				// the protocol handshake, so the native path goes through it.
-				<C15tProvider>{children}</C15tProvider>
+				<C15tProvider safeAreaInsets={insets}>{children}</C15tProvider>
 			) : (
 				// A new key is a new subtree, which is what a relaunch does to the
 				// JavaScript side: every subscriber attaches to the new core.
@@ -190,7 +198,10 @@ export const ConsentSourceProvider = ({
 					key={fakeSession?.id ?? 0}
 					value={fakeClient}
 				>
-					{children}
+					{/* The nested provider inherits the fake client instead of attaching
+					    to the binary, and is the only way the measured insets reach the
+					    surfaces without a fake-core path of their own. */}
+					<C15tProvider safeAreaInsets={insets}>{children}</C15tProvider>
 				</ConsentClientContext.Provider>
 			)}
 		</ConsentSourceContext.Provider>

@@ -22,6 +22,22 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<!-- The demo's own scheme, so a reviewer at a shell can drive a consent journey
+	     with `xcrun simctl openurl <udid> c15t-demo://accept`. The verbs are listed in
+	     this app's README, and JavaScript answers them in src/deep-links. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.c15t.bare.demo</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>c15t-demo</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>

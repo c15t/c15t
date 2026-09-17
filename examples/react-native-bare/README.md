@@ -1,12 +1,14 @@
 # c15t React Native fixture (bare)
 
 A bare React Native 0.87 app on the New Architecture, wired to `@c15t/react-native`.
-It exists to be run, not to be looked at: one screen reports what the native consent
-kernel says, the rest of the buttons drive every action a subject can take, and the
-UI is as plain as the information it shows.
+It opens as an app: a privacy screen with one action, the banner and sheets the package
+draws over it, and a Diagnostics tab that starts closed and holds everything the kernel
+reports. The harness buttons that drive every action a subject can take live there, next
+to the snapshot, rather than on the first thing a viewer sees.
 
-It is a test fixture for the SDK in this repository. Nothing here is a starter kit or
-a design reference.
+It is a test fixture for the SDK in this repository. The chrome reads its colours, steps,
+and control heights from the package's own theme so the host screens and the consent
+surfaces are visibly one design, but nothing here is a starter kit.
 
 ## What it exercises
 
@@ -21,6 +23,15 @@ a design reference.
 - A fake native core that samples `isAllowed` on a timer, so the gating path can be
   watched without a device, a backend, or a rebuild. See
   [Fake core](#fake-core).
+- The `theme` prop and the light/dark/system control in the header, which is the only
+  way to see both palettes without leaving the app: the surfaces resolve a scheme from
+  `useColorScheme()` on their own, and a forced choice passes `lightTheme` or `darkTheme`
+  instead of a theme this app invented.
+- `safeAreaInsets` on `C15tProvider`, measured from React Native core in
+  `src/safe-area.ts`, so the surfaces and this app's own header lay out against the same
+  bands and nothing lands under a clock or a home indicator.
+- `c15t-demo://` links, which is how a consent journey is run on a machine that cannot
+  tap a screen. See [Drive it from a shell](#drive-it-from-a-shell).
 
 Only the public package entry point is imported. There are no imports from
 `packages/react-native/src`, so what breaks here breaks for a developer who installs
@@ -73,6 +84,79 @@ The default `http://localhost:3000/api/self-host` works on the iOS simulator and
 Android after `adb reverse`. The manifest already allows cleartext on debug builds;
 iOS ships `NSAllowsLocalNetworking`.
 
+## Drive it from a shell
+
+The app registers `c15t-demo://`, so a consent journey is one command in and one
+screenshot out. This exists because a Mac with no `Simulator.app` has no `simctl tap`, no
+`idb`, and no Maestro, which means the iOS half of this fixture cannot be driven any other
+way. Android takes the identical link through an intent filter, so a step written once
+runs on both platforms.
+
+```sh
+xcrun simctl openurl <udid> c15t-demo://accept
+adb -s emulator-5554 shell am start -a android.intent.action.VIEW -d 'c15t-demo://accept'
+
+xcrun simctl io <udid> screenshot after-accept.png
+adb -s emulator-5554 exec-out screencap -p > after-accept.png
+```
+
+iOS 26 does not hand a custom-scheme open to the app without asking. `simctl openurl`
+raises "Open in “c15t Bare”?" and the journey waits there for that tap; in a Simulator
+window with the keyboard attached, Return answers it. Where there is no finger for it, the
+same link goes in as a launch variable. It enters through the launch options, so
+JavaScript cannot tell it apart from a link the OS delivered, and the verbs are unchanged.
+
+```sh
+SIMCTL_CHILD_C15T_DEMO_LINK='c15t-demo://accept' \
+  xcrun simctl launch --terminate-running-process <udid> org.reactjs.native.example.C15tBare
+```
+
+Both platforms want the backend answering before a verb can do anything visible. Check it
+with `curl -s localhost:3000/api/self-host/init`, which should return JSON. When
+`examples/demo` is mid-build that route answers 500 instead, and the app sits on
+`Loading stored consent` with no banner for a verb to act on.
+
+The grammar is `c15t-demo://<verb>[/<argument>][?name=value[&name=value]]`. Quote the URL
+on Android: `?` and `&` belong to the shell otherwise.
+
+| Verb | What it calls |
+| --- | --- |
+| `accept` | `acceptAll()`, every category the policy scope offers |
+| `reject` | `rejectAll()`, strictly necessary only |
+| `save?experience=1&marketing=0` | `save()` with one boolean per category named; unmentioned categories keep their receipts, and a `save` that names none writes experience on, marketing off |
+| `dismiss` | closes any open sheet, then `dismissNotice()` |
+| `customize` | opens `ConsentDialog`, the path the banner's Customize button takes |
+| `preferences` | opens `ConsentPreferences`, with no prompt owed |
+| `scheme/light`, `scheme/dark`, `scheme/system` | forces that palette on every surface, or gives the choice back to the platform |
+| `identify?id=runner-42` | `identify()` |
+| `logout` | `logout()` |
+| `overrides?country=DE`, `overrides?country=` | `setOverrides()`, and an empty value clears it |
+| `refresh` | `refresh()`: re-resolve policy and retry the offline queue |
+| `reset` | see below |
+| `help` | prints this list on screen |
+
+Every verb answers with one line, and the app prints it on **Diagnostics** under **Demo
+links** next to the link it answered. A scripted run leaves behind a screenshot and
+nothing else, so the receipt belongs in the frame that proves the step. A verb that does
+not exist says so on screen, with the list, rather than doing nothing.
+
+Three things worth knowing:
+
+- The table is `DEMO_VERBS` in `src/deep-links/verbs.ts`: one row per verb, and the row is
+  the only place a verb is named, so the on-screen list and `help` cannot drift from it.
+- `reset` is a row already, and reports that the installed package has no such action.
+  When the SDK's reset consent action lands, wiring the verb is the one line that calls
+  it, and the documentation, the list, and the receipt all come along.
+- Android hands the launch link to JavaScript twice over a cold start, so an app answers a
+  given link once per JavaScript instance. That also means a Metro reload replays the link
+  that launched the app: kill it first when the next step starts from a clean run.
+
+The registration lives in three files, and all three are needed. `CFBundleURLTypes` in
+`ios/C15tBare/Info.plist` and the intent filter in `AndroidManifest.xml` are what make
+iOS and Android deliver the link at all, and `AppDelegate.swift` forwards it to
+`RCTLinkingManager`, which is what puts it in front of `Linking`. Drop the forward and the
+OS accepts the URL while the app stays silent, which looks exactly like a broken verb.
+
 To get back to a first-install prompt:
 
 ```sh
@@ -97,6 +181,7 @@ Run them from this directory, or from the root with `bun run --cwd examples/reac
 | `bun run pod-install` | `pod install` for `ios/` |
 | `bun run ios` / `bun run android` | Build and launch |
 | `bun run bundle` | Release bundle for both platforms into `.artifacts/` |
+| `bun run test` | Vitest over `src/`, which is the demo-link grammar and the verb table |
 | `bun run check-types` | `tsc --noEmit` |
 | `bun run lint` / `bun run fmt` | Oxlint and Oxfmt, from the repo presets |
 
@@ -185,8 +270,10 @@ the real bridge rather than only against the fake.
 
 Two things were only visible on a device. The banner's controls sat under the home indicator
 and a sheet's heading sat by the clock, which is what the inset work in the package fixed.
-Still open: this app's own top tab bar overlaps the status bar clock. That is fixture chrome
-rather than a consent surface, so the package's insets do not reach it.
+The fixture's own chrome wanted the same treatment and now has it: the header pads itself by
+the bands `src/safe-area.ts` measures (`StatusBar.currentHeight` on Android,
+`StatusBarManager.HEIGHT` on iOS, a documented floor beneath both), and the tab bar clears
+the clock on either platform with a banner on screen.
 
 What this machine cannot do is drive a tap. It has both iOS runtimes and `simctl`, but no
 `Simulator.app` anywhere in the Xcode bundle, so the device boots headless and can only be
@@ -244,7 +331,8 @@ the online toggle is off, and a restart that rebuilds the client from stored sta
 It is a fixture, not a second implementation. A green run in fake mode proves the
 JavaScript side: subscription counts, gating, prompt requirements, the offline queue.
 It proves nothing about Swift, Kotlin, Keychain, AndroidKeyStore, or Codegen, and the
-app prints a red strip across the top whenever it is active so a result cannot be
+app says so on screen whenever it is active: a `Fake core` badge under the header, and the
+CORE panel on **Diagnostics** reading `fake stub, not a device core`, so a result cannot be
 misread. The real core is the default; `C15T_FAKE_NATIVE=true` forces the fake, and a
 binary without the module offers it as the way past the build error.
 
