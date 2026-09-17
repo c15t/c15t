@@ -339,6 +339,54 @@ kernel has no stored-envelope path to derive it from. Everything else in a
 `native-envelope-*` file, the snapshot inside the envelope included, comes from a real
 kernel run.
 
+The pending save queue
+----------------------
+
+`save()` is a local commit with a delivery obligation attached, and the two facts
+must not be confused. `committed` asserts three things about this device: the
+receipts are applied to the snapshot, the snapshot is written to protected
+storage, and the queue holds the exact bytes that owe delivery. It never asserts
+that the backend has them, which no synchronous call can know. Delivery is a
+later fact, reported by the delivered event and by the error that replaced it,
+and the depth stays readable.
+
+Order is what makes the assertion honest. The queue write lands before the
+snapshot moves, and no branch answers committed without a durable entry behind
+it. A save that cannot take on the obligation answers not-ok with the reason and
+leaves the decision where it was, because a decision nothing remembers having to
+deliver is worse than a refusal the caller can act on. Where the write happens
+unlocked, the state move is guarded on the revision the payload was built from:
+if another mutation landed in the meantime, that one stands, the entry is
+withdrawn, and the caller is told to repeat against the current snapshot.
+
+Every failed send spends an attempt, including the first send of the save that
+queued the body. Without that, an attempt ceiling is reachable only by replays,
+and a body the transport refuses on the first try sits in the queue across every
+launch, replaying bytes nobody will accept.
+
+Age and attempt ceilings are enforced at the moment a delivery fails, never on
+read, so a live read cannot drop something its caller is about to send. Both
+ceilings release the entry, and a release has to be announced. A pass that
+reports only what it delivered leaves the caller to assume the rest is waiting,
+which is exactly the wrong assumption about a decision that has just stopped
+being owed.
+
+Whether to retry is decided by whether the same bytes could ever be accepted.
+The queue replays frozen bytes, so a `400 INPUT_VALIDATION_FAILED` or a contract
+declaration this build cannot speak says the same thing on the eleventh try as on
+the first, and the entry is dropped with the backend's reason named. A `503`, a
+timeout, a dropped socket, a rate limit, and `408`/`425` say nothing about the
+body, so the entry keeps its place. `401` and `403` are permanent for a body:
+the queue holds bodies and nothing else, and a credential that comes back later
+cannot rescue bytes the producer already refused on its own terms.
+
+The codes for these paths are the same strings in both cores, and the React
+Native boundary names each one: `not-bootstrapped`, `queue-write-failed`,
+`concurrent-change`, `transport-unavailable`, `save-rejected`,
+`save-undeliverable`. Adding one is a contract change, because it reaches
+JavaScript as a typed value, so the union in `packages/react-native/src/protocol`
+and both bridges move with it.
+
 Transports
 ----------
 
@@ -414,9 +462,29 @@ web SDK and both native cores have to produce ids a server cannot tell apart:
 - The `sub_` prefix.
 
 A queued payload carries the id that produced it, so a subject id never changes to
-fit a payload or a policy. A core reads back whatever it stored, in whatever
-format it was written, and does not mint a second identity for a payload it cannot
-parse.
+fit a payload or a policy. Frozen bytes stay frozen: a core that rewrites the id on
+a queued body has two records for one decision.
+
+The read side is the other half of the rule, and it does not say "adopt whatever
+was written". An id the producer will not accept is an identity this build cannot
+use, and the contract already says what bytes this build cannot use are worth:
+nothing, and indistinguishable from a fresh install. So a core that reads back a
+stored subject id failing `^sub_[1-9A-HJ-NP-Za-km-z]+$` adopts no identity. It
+treats the envelope as absent, comes up as a first launch, and emits
+`subject-id-unusable` so the host can see why a returning user is being asked
+again.
+
+Re-minting an id underneath a decision that survived is the rejected alternative.
+It splits one subject across two ids, leaves the earlier records attributed to an id
+no query returns, and re-prompts nobody, so nobody ever notices. Discarding the
+envelope re-prompts once and leaves one complete record, and it orphans nothing:
+every save made under a refused id was already rejected by the producer, so the
+backend holds no consent for it. The cost falls on installs written by a build that
+accepted the legacy UUID shape, which is a prerelease population and no more.
+
+Both cores emit `subject-id-unusable` on this path, and one conformance fixture per
+core holds the line: a stored envelope with a well-formed decision under a subject id
+the producer refuses must read exactly like a first launch, records and all.
 
 The encoding is pinned by a table of eight vectors -- twelve random bytes, a wall
 clock reading, and the id -- asserted identically in three places:
