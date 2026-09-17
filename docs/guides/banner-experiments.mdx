@@ -310,8 +310,10 @@ experiment: {
 `'dataLayer'` pushes `{ event, ...properties }` onto `window.dataLayer`, so a
 GTM container can fire a Custom Event trigger named `c15t_surface_shown` or
 `c15t_choice_recorded` and read the properties as Data Layer Variables.
-`'posthog'` calls `window.posthog.capture(name, properties)` and does nothing
-while PostHog is not on the page. Both are no-ops during server rendering.
+`'posthog'` calls `window.posthog.capture(name, properties)`. While PostHog
+is not on the page yet, for example under the loader's `after-consent` mode,
+the events are held and sent in order once it loads. Both targets are no-ops
+during server rendering.
 
 A function gets the camelCase event object. Pass several targets as an array.
 
@@ -344,12 +346,16 @@ prompt, which records no choice.
 | `experiment_id` | `experimentId` | yes | yes | yes |
 | `variant` | `variant` | yes | yes | yes |
 | `assigned_by` | `assignedBy` | `host` or `c15t` | `host` or `c15t` | `host` or `c15t` |
-| `surface` | `surface` | `banner` or `dialog` | `banner`, `dialog` or `widget` | `banner` or `dialog` |
+| `surface` | `surface` | `banner` or `dialog` | `banner`, `dialog`, `widget` or `none` | `banner`, `dialog` or `none` |
 | `shown_at` | `shownAt` | epoch ms | - | - |
 | `action_at` | `actionAt` | - | epoch ms | epoch ms |
 | `consent_action` | `consentAction` | - | `all`, `necessary` or `custom` | - |
 | `confirmed` | `confirmed` | - | categories the action confirmed | - |
 | `time_to_decision_ms` | `timeToDecisionMs` | - | ms from impression to action, when known | ms from impression to dismissal, when known |
+
+`surface: none` means the choice or dismissal was made programmatically,
+through `save()` or `dismissNotice()` with no prompt open, so it has no
+impression to count against and no `time_to_decision_ms`.
 
 ### What is sent
 
@@ -359,8 +365,31 @@ The receiving tool may add its own. PostHog attaches its `distinct_id` and
 super properties to every `capture`, and a GTM container forwards whatever
 user id it is configured with. An impression fires before any consent
 exists, so either treat the report as first-party, necessary-category
-telemetry under your own policy, or gate it with a function that checks
-`snapshot.effectivePermissions` before forwarding.
+telemetry under your own policy, or gate it with a function that reads the
+current permissions from your own runtime reference before forwarding. The
+event itself carries no permissions.
+
+```ts title="Only report once measurement is allowed"
+import { createConsentRuntime } from 'c15t/runtime';
+
+const runtime = createConsentRuntime({
+	// ...
+	experiment: {
+		id: 'banner-shape',
+		variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
+		reportTo: (event) => {
+			if (runtime.kernel.getSnapshot().effectivePermissions.measurement) {
+				window.dataLayer?.push({ event: event.name, ...event });
+			}
+		},
+	},
+});
+runtime.start();
+```
+
+Under an opt-in policy this drops the impression, since measurement is not
+yet allowed when the banner appears; only the choice gets through. Use it
+when the choice event alone is what your policy allows you to send.
 
 ### Read the results
 

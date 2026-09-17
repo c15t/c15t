@@ -148,5 +148,9 @@ explicitly in the project rather than expecting silence after denial. See
 
 Running a banner experiment? Set `reportTo: 'posthog'` on the `experiment`
 option and c15t captures `c15t_surface_shown` and `c15t_choice_recorded` with
-the arm, surface and decision through `window.posthog.capture`. See
+the arm, surface and decision through `window.posthog.capture`. With
+`loadMode: 'after-consent'` the banner impression happens before PostHog is
+on the page; c15t holds the events and sends them in order once the SDK
+loads, so a visitor who accepts still counts as an impression and a choice. A
+visitor who rejects never loads PostHog, so that impression is not sent. See
 [banner experiments](/docs/guides/banner-experiments#report-impressions-and-choices).
