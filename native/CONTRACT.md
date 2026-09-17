@@ -284,6 +284,82 @@ mutation that never reached the observers is a mutation JavaScript cannot learn
 about by any route except the paired `error` event -- which is the accident the
 iOS core had instead of the rule.
 
+What Codegen owns, and what does not
+------------------------------------
+
+Codegen generates one thing per platform: the abstract spec class on Android, the
+`NativeC15tSpec` protocol on iOS. Everything else on the boundary is hand-written -- the
+Kotlin module, the Swift module, and the Objective-C++ category carrying the conformance,
+the JavaScript name, and `getTurboModule:`. The split is forced rather than chosen.
+Codegen's iOS header opens with a directive that refuses to compile as plain
+Objective-C, so no Swift file can name the protocol or conform to it, and the Android
+class is generated per build into whichever module actually ran Codegen, so a linked
+library that runs none has no copy to compile against.
+
+A green build therefore proves nothing about the generated side on its own, and the
+hand-written side compiles against a description of it. Three things make that claim
+checkable:
+
+- This repository runs React Native's generator against its own spec.
+  `packages/react-native/android/codegen/generate-spec.mjs` calls `@react-native/codegen`
+  with library semantics -- library name, `jsSrcsDir`, and `javaPackageName` all from
+  `codegenConfig` -- and `-Pc15t.spec.source=codegen` swaps the spec module's source set
+  to what it writes. `react-native/scripts/generate-codegen-artifacts.js` is not that
+  path: it treats the folder as an app and emits under its own default package,
+  `com.facebook.fbreact.specs`, which is neither what `codegenConfig` declares nor what
+  the module is compiled in.
+- `packages/react-native/src/specs/__tests__/{android,ios}-spec-surface.test.ts` spawn
+  that same generator and compare its output to the hand-written side: module name,
+  method names, argument types, return types, the synchronous flag, and the JSON-string
+  payload convention. Their expectations come from `spec-contract.ts`, which reads the
+  TypeScript, so two hand-written files agreeing with each other while both drift from
+  the spec is still a failure. This is the check for what a build cannot see:
+  `removeListeners(Double)` and `removeListeners(double)` are two different overrides to a
+  Kotlin subclass and both compile, and a renamed selector surfaces as an unrecognized
+  selector on a user's JavaScript thread rather than a compile error.
+- CI runs both on a plain Linux runner, in `Mobile SDK (android-js)`: the Node check as
+  part of the package suite, the Gradle command as a step that fails when generation
+  wrote no file or when the spec class reached the AAR.
+
+The generated class stays `compileOnly` in every mode, because two copies of it in one app
+is a duplicate-class failure. Codegen mode changes what the spec module compiles, never
+what any published artifact carries, and the CI assertion against `classes.jar` is what
+keeps that from being a hope.
+
+Safe-area insets
+----------------
+
+The bridge does not carry them, and it is the wrong place for them. Nothing in
+`getBootstrap()`, the snapshot, or the three events names a screen band, and rule
+2 keeps the consent cores free of UI: a home indicator is not consent state, and
+neither core owns a window or a UI thread to read one from.
+
+The bands reach the surfaces from the app instead, through `C15tProvider`'s
+`safeAreaInsets`, which the provider publishes on a context and
+`useConsentSafeArea()` reads. The host measures rather than the bridge because
+React Native itself has no inset API worth calling one: `SafeAreaView` is
+deprecated and returns no numbers, and `StatusBar.currentHeight` is an Android
+status bar height snapshotted at import, so it misses the navigation bar and does
+not follow a rotation. `react-native-safe-area-context` is not a dependency
+either, and not only to keep the install small. Metro resolves every static
+`import` when it builds the bundle, so a conditional read of an optional peer
+from inside this package is a hard resolution failure for the hosts that did not
+install it, and the library needs its own provider at the app root regardless.
+An app holding any inset source hands the four numbers over and nothing else
+changes.
+
+A host that measures nothing still does not render its controls under a home
+indicator. `useConsentSafeArea()` then reports the 44-point interaction minimum
+the theme already enforces as the bottom band, which is wider than the widest
+home-indicator inset Apple ships, and takes `StatusBar.currentHeight` for the top
+band on Android. `ConsentSafeArea.measured` records which of the two a surface
+laid out against, so the gap between a reserved floor and a measurement is
+something a host can log rather than discover on a device.
+
+Rotation and the collapsing iOS home indicator are a re-render rather than a
+remount: the bands arrive as a value, the surfaces read them during render, and
+no inset is cached in a native subscriber that would need its own invalidation.
+
 Version handshake
 -----------------
 
@@ -502,13 +578,14 @@ A host app integrates two pods, both resolvable from this repository:
   `scripts/react-native-autolink.ts` now asserts both, because the bare fixture alone
   could never see this: Expo's `expoAutolinking.rnConfigCommand` never asks the
   community CLI anything.
-- `c15t.spec.source` is documented in the binding's `gradle.properties` as
-  `auto`/`stub`/`codegen`, but no build script reads it: `:c15t-spec` always compiles
-  the stand-in. So nothing in this repository has ever run RN's generator against
-  `src/specs/NativeC15t.ts`, and the claim that the stand-in matches Codegen output is
-  unverified. Setting the property to `codegen` now fails the build with an explicit
-  message instead of reporting a green run that never asked Codegen anything. Wiring a
-  real codegen task, and running it in CI, is open work.
+- `c15t.spec.source` is read by both build scripts. `auto` and `stub` compile the
+  hand-written stand-in in `:c15t-spec`; `codegen` runs `@react-native/codegen` over
+  `src/specs` through `android/codegen/generate-spec.mjs` and swaps that module's source
+  set to the result, so this repository does run RN's generator against its own spec, on
+  Linux, in CI. A host app has no `:c15t-spec` project, so there the bridge generates into
+  itself and `auto` resolves to generation rather than to a stand-in that is not linked.
+  Either source reaches the bridge as `compileOnly`, so no copy of the class enters the
+  AAR. An unrecognised value fails the build instead of quietly picking one.
 
 Expo config plugin, as built
 ----------------------------
@@ -522,15 +599,15 @@ default export is `withC15t` inside `createRunOncePlugin`, and
 tests drive. A standard install adds one `plugins` entry and nothing else:
 
     ["@c15t/react-native/expo-plugin", {
-      "backendURL": "https://consent.example.com",
-      "publicKey": "pk_live_7f3a9c"
+      "backendURL": "https://consent.example.com"
     }]
 
 `backendURL` is required in every mode but `offline`, and a base path is allowed
 so a same-origin deployment works unchanged. `mode` is `hosted`, `selfHosted`,
-`offline`, or `custom`. `publicKey` is a publishable key only: the plugin refuses
-anything shaped `sk_`, `secret_`, `private_`, or `rk_`, because the value lands
-in a public IPA and APK. `forceGPC` is for staged builds. `autoBootstrap`
+`offline`, or `custom`. There is no credential parameter: a project is identified
+by its backend URL, and neither core's `/init` nor its `/subjects` request carries
+a key, so the plugin has nowhere honest to put one. `forceGPC` is for staged
+builds. `autoBootstrap`
 defaults to `true`, and to `false` under `mode: 'custom'`, where leaving it on
 would race the host. `skipNativeBuildCheck` waives the Expo Go check for a
 harness that drives `expo start` in a container without opening Expo Go.
@@ -548,7 +625,6 @@ Android through `C15tAndroid` and `C15tReactNativeBootstrap`:
     com.c15t.backend.domain             com.c15t.DOMAIN
     com.c15t.gpc                        com.c15t.FORCE_GPC
     com.c15t.backend.initUrl            com.c15t.INIT_URL
-    com.c15t.backend.publicKey          com.c15t.PUBLIC_KEY
     com.c15t.reactnative.AutoBootstrap  com.c15t.reactnative.AUTO_BOOTSTRAP
 
 The two spellings differ because the readers already did, and a plugin that
@@ -557,18 +633,32 @@ bridge treats a missing key as "not configured" and has to parse an empty
 string. `AutoBootstrap` is written only in the opt-out case, since on is the
 bridge's own default.
 
-Two keys have no reader yet: `com.c15t.backend.publicKey` /
-`com.c15t.PUBLIC_KEY`, and iOS `com.c15t.backend.initUrl`. The cores identify a
-project by backend URL, so these are written for proxy routing and so support can
-read them off a build. The next bridge pass either adopts them or the plugin
-drops them.
+Android types the value, not the app: an unquoted `android:value="true"` reaches the
+meta-data bundle as a `Boolean` and an unquoted `1` as a `Long`, and only a quoted
+literal stays text. So every Android key here is read through `C15tManifestValue`,
+which takes the raw entry and accepts the boolean, the number, and the text spellings
+of each, with `true`/`false` case-insensitive and `1`/`0` allowed. A value that means
+neither reads as absent, never as `false`. A reader that named one type would honour
+whichever spelling the app happened to use, which is how the plugin's
+`com.c15t.FORCE_GPC` and a hand-written manifest nearly disagreed about a staged build.
+
+Every key in that table has a reader, and the rule is that it must. Both ends are
+greppable, so `native-key-readers.test.ts` in `packages/react-native` reads the
+reader sources and fails the build when the plugin writes a key no constant names.
+An unread key is not a spare knob: it is a wrong promise carried inside a shipped
+binary, and the app looks configured while one platform runs something else.
+`com.c15t.backend.publicKey` / `com.c15t.PUBLIC_KEY` were exactly that and are
+gone; iOS `com.c15t.backend.initUrl` was a silent wrong-backend bug, since Android
+honoured its `com.c15t.INIT_URL` and iOS kept building `${base}/init`, and the
+bridge now passes it to `HostedTransport` the way `@c15t/core` and Android do:
+the value is used as given, and only an absent key takes the default.
 
 `mode` is spelled three ways on purpose. `custom` is the iOS bridge's `none` and
 no androidx.startup initializer on Android. `offline` embeds no backend URL at
 all. `selfHosted` reaches JavaScript as `hosted`, because
 `ProviderTransportKind` in `@c15t/core` has no self-hosted kind. JavaScript reads
 the same values from `extra.c15t`: `backendURL`, `initURL`, `domain`,
-`publicKey`, `mode`, `enableAppTrackingTransparency`, and the `protocol` range.
+`mode`, `enableAppTrackingTransparency`, and the `protocol` range.
 There is no second config source.
 
 Rules the plugin enforces at build time

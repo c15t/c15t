@@ -43,16 +43,16 @@ cp .env.example .env
 `.env` is ignored; `.env.example` is the committed template. The Expo CLI loads it
 before it evaluates `app.config.ts`, so one file feeds both halves:
 
-- `app.config.ts` passes `backendURL` and `publicKey` to the config plugin, which writes
+- `app.config.ts` passes `backendURL` to the config plugin, which writes
   `com.c15t.backend.url` / `com.c15t.backend.mode` into `ios/Info.plist` and
   `com.c15t.PORTAL_URL` into `AndroidManifest.xml` at prebuild time.
 - The `EXPO_PUBLIC_` copies are inlined into the JavaScript bundle and drive what the
   screens report and which core the app attaches to.
 
 Only the `EXPO_PUBLIC_` prefix survives into the bundle, and that is the warning: those
-strings are in the shipped app. Publishable keys only. The plugin rejects anything
-shaped `sk_`, `secret_`, `private_`, or `rk_` rather than embedding it in a public
-`.ipa` and `.apk`.
+strings are in the shipped app, so nothing secret may use the prefix. There is no key
+to configure: a project is its backend URL, and neither the plugin nor the embedded
+cores carry a credential.
 
 The core reads its backend from the native keys, not from `.env`. After changing the
 URL, run `bun run prebuild` again; a running binary keeps the value it was built with.

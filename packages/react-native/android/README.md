@@ -10,7 +10,8 @@ took, and reports results as the JSON in `../src/protocol`.
 | Path | What it is |
 | --- | --- |
 | `c15t-react-native/` | The bridge library: module, package, event pump, payload codec, bootstrap |
-| `c15t-spec/` | A `compileOnly` stand-in for Codegen's `NativeC15tSpec`. Never shipped |
+| `c15t-spec/` | Where the bridge gets a `NativeC15tSpec` to compile against: the hand-written stand-in, or Codegen's own output when asked for it. Never shipped |
+| `codegen/generate-spec.mjs` | The one script that runs `@react-native/codegen` over `../src/specs`, shared by both Gradle builds and the drift check |
 
 The consent engine is not copied here. It is either the included build of
 `native/core-android` or the published `com.c15t` artifacts, selected by a property.
@@ -47,11 +48,17 @@ frame quietly never gets merged.
 ./gradlew :c15t-react-native:test                  # unit tests only
 ./gradlew :c15t-react-native:assembleRelease       # the AAR
 ./gradlew build -Pc15t.core.fromSource=false       # against the published core artifacts
+
+# React Native's own generator, then compile the spec module against its output
+./gradlew -Pc15t.spec.source=codegen :c15t-spec:assembleRelease
 ```
 
 JDK 17 and an Android SDK are required. `local.properties` holds `sdk.dir` and is gitignored;
 `ANDROID_HOME` works too. AGP 9 is required: the module compiles Kotlin through AGP's built-in
 Kotlin support, which is the AGP React Native 0.87's own Gradle plugin is built against.
+`codegen` mode needs `node` on `PATH` and a `react-native` install to resolve
+`@react-native/codegen` from, which the package's own devDependency satisfies inside this
+repository.
 
 ## Properties
 
@@ -60,21 +67,42 @@ Kotlin support, which is the AGP React Native 0.87's own Gradle plugin is built 
 | `c15t.core.fromSource` | `true` | `false` resolves `com.c15t:c15t-core` and `c15t-android` from the repository instead of building `native/core-android` as an included build. This is what a CI or release build wants once the core ships |
 | `c15t.core.version` | package version | The version of those published artifacts |
 | `c15t.core.group` | `com.c15t` | Their Maven group |
-| `c15t.spec.source` | `auto` | `auto` and `stub` both compile the `:c15t-spec` stand-in in this standalone build. `codegen` is accepted by no build script yet and fails the build outright, so nothing is generated from `src/specs/NativeC15t.ts` here and the host app's own Codegen remains the only real generator |
+| `c15t.spec.source` | `auto` | Where `NativeC15tSpec` comes from. `auto` and `stub` compile the hand-written stand-in in `:c15t-spec`. `codegen` runs `@react-native/codegen` over `../src/specs` into `:c15t-spec/build/generated/c15t-spec` and swaps that module's source set to the result, so the build compiles against React Native's real generator output instead of a description of it. In a host app there is no `:c15t-spec` project, so `codegen` generates into the bridge module instead, and `auto` generates there rather than failing. An unrecognised value fails the build |
 | `c15t.reactNativeVersion` | unset | Only for the standalone build. A host app leaves it unset and React Native's root plugin supplies the version, having forced `com.facebook.react:react-android` onto every configuration |
 | `c15t.reactNativeDir`, `c15t.codegenProjectRoot`, `c15t.nodeExecutable` | probed | Point Codegen at an install Gradle cannot infer |
 
-Codegen output is a `compileOnly` input: `NativeC15tSpec` is generated per app build, and a
-second copy of it in the APK is a duplicate-class failure. `C15tModuleSurfaceTest` reads
-`../src/specs/NativeC15t.ts` directly and fails if the stand-in or the module no longer matches
-it, so the stand-in cannot drift quietly.
+### Generated, hand-written, and how the two stay honest
+
+Codegen owns one file here: `NativeC15tSpec`. Everything else in this directory is
+hand-written and compiles against that spec through a `compileOnly` edge, because the class is
+generated per app build and a second copy in one APK is a duplicate-class failure. `codegen`
+mode does not change that: generated output lands in `:c15t-spec/build/` and goes no further.
+The published bridge AAR contains no `NativeC15tSpec` entry in either mode, and CI asserts it
+by unzipping `classes.jar`.
+
+Two checks hold the hand-written side to the generated one, and they grade different things:
+
+- `C15tModuleSurfaceTest` reflects over the compiled Kotlin module and reads
+  `../src/specs/NativeC15t.ts`, so the module implements the surface the TypeScript declares.
+- `../src/specs/__tests__/android-spec-surface.test.ts` runs the same generator the Gradle
+  command runs, then compares the emitted Java to the stand-in method by method: module name,
+  argument types, return types, `@ReactMethod`, the synchronous flag, and the JSON-string
+  payload convention. `removeListeners(Double)` and `removeListeners(double)` are two
+  different overrides to a Kotlin subclass and both compile green, which is the drift that
+  passes a build here and fails in someone's app.
+
+Both run in CI's `Mobile SDK (android-js)` job on a plain Linux runner. The Node check is part
+of the package test suite; the Gradle command is a step of its own that fails if generation
+produces nothing, or if the spec reaches the AAR.
 
 ## Configuration
 
 The core reads its backend from `AndroidManifest.xml` meta-data (see
 [`native/core-android`](../../../native/core-android)): `com.c15t.PORTAL_URL`,
 `com.c15t.INIT_URL`, `com.c15t.DOMAIN`, `com.c15t.FORCE_GPC`. Without a portal URL nothing
-installs, and the module answers with the deny-all snapshot.
+installs, and the module answers with the deny-all snapshot. Each is read whichever type
+the manifest parser gave it, so a bare `true` and a quoted `"true"` mean the same thing;
+`true`, `TRUE`, and `1` all count, and anything else reads as absent.
 
 An app that calls `C15t.bootstrap` itself opts out of the launch hook:
 

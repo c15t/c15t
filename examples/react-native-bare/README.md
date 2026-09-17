@@ -47,8 +47,8 @@ Android has no mode key; it infers the transport from which keys are present. An
 absent key means "not configured", so leave a value out rather than setting it to an
 empty string. `examples/expo-dev` gets the same keys written by the config plugin.
 
-Any publishable key you add goes in `.env` and in `com.c15t.backend.publicKey` /
-`com.c15t.PUBLIC_KEY`. Never a secret key: both land in a public `.ipa` and `.apk`.
+There is no key to add. A c15t project is identified by its backend URL, and neither
+`/init` nor `/subjects` carries a credential, so nothing here takes one.
 
 For a local backend, `examples/demo` serves one at `/api/self-host`:
 

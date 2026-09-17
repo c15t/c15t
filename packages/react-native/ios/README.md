@@ -45,6 +45,26 @@ module also compares itself against `@protocol(NativeC15tSpec)` once per process
 logs the difference, so drift is named in the console rather than arriving as an
 unrecognized selector on the JavaScript thread.
 
+Generation is not an app-side privilege. Both sides of that check come from one Node
+script, `../android/codegen/generate-spec.mjs`, which is the same file the Android Gradle
+build runs and the drift check spawns, so nothing here is graded against a second
+implementation of generation:
+
+```sh
+# from packages/react-native/ios
+node ../android/codegen/generate-spec.mjs --platform ios --output /tmp/c15t-spec
+```
+
+That writes the generated `C15tSpec/C15tSpec.h` protocol and the `RCTModuleProviders` glue
+straight from `codegenConfig`, so the header the hand-written category is held to is
+readable on any machine holding Node and this package's `react-native` devDependency, Linux
+included. That is where CI runs it, in the `Mobile SDK (android-js)` job. The expectations
+themselves live in `src/specs/__tests__/spec-contract.ts`, shared with the Android check, so
+both platforms are graded against one reading of the TypeScript.
+
+`ios/support/` holding only `gen-xcodeproj.rb` is deliberate. The generator belongs to the
+package, not to one platform, and three consumers have to reach one file.
+
 ## Startup order
 
 `C15tReactNativeRuntimeInitializer.mm` runs a `__attribute__((constructor))` at image
@@ -65,6 +85,7 @@ Read by `C15tBridgeConfiguration.from(infoPlist:)`. Expo apps set these through
 | `com.c15t.backend.url` | Hosted project URL, or a self-hosted base URL. |
 | `com.c15t.backend.mode` | `hosted`, `self-hosted`, `offline`, `none`. Inferred from the URL when absent. |
 | `com.c15t.backend.domain` | Domain sent with each request. |
+| `com.c15t.backend.initUrl` | URL for `GET /init`, defaulting to `${com.c15t.backend.url}/init`. For a same-origin proxy route. |
 | `com.c15t.storage` | `keychain` (default) or `file`. |
 | `com.c15t.keychain.service` | Keychain service name, default `com.c15t.core`. |
 | `com.c15t.country`, `com.c15t.region`, `com.c15t.language` | Override geo/locale detection. |
@@ -115,6 +136,13 @@ The xcodeproj builds the wire layer and the core only. `ReactNative/` needs the
 `NativeC15tSpec` protocol Codegen generates into the host app's `ReactCodegen` pod, so
 it compiles inside an app build and nowhere else. Regenerate the project with
 `cd ios && GEM_HOME=/opt/homebrew/Cellar/cocoapods/1.17.0/libexec ruby support/gen-xcodeproj.rb`.
+
+The protocol does not need an app to read, though. From this directory, `node
+../android/codegen/generate-spec.mjs --platform ios --output /tmp/c15t-spec` writes what the
+generator emits for `src/specs`, and
+`src/specs/__tests__/ios-spec-surface.test.ts` fails when the hand-written selectors under
+`ReactNative/` stop matching it. That check is the acceptance path for this half on a Linux
+runner; the app build below is the one that proves the protocol compiles.
 
 Those three cover the wire layer. The React-linked half compiles only inside an app, so
 its acceptance path runs in `examples/react-native-bare/ios`:
