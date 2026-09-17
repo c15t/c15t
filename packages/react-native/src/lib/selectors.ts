@@ -62,6 +62,76 @@ export const isCategoryAllowed = function isCategoryAllowed(
 };
 
 /**
+ * Why a category is or is not allowed, in the three states a host has to tell apart.
+ *
+ * A boolean answers `false` for both a subject who refused and a policy that has not
+ * resolved. Those need opposite handling: a refused category stays off, an unresolved
+ * one stays off *and keeps listening*. `pending` is the state that distinction needs,
+ * and it is the same three states `native/CONTRACT.md` makes the native gates report,
+ * so a JavaScript host and a Kotlin or Swift host reading one category agree.
+ */
+export type ConsentDecision = 'granted' | 'denied' | 'pending';
+
+/**
+ * Whether a snapshot is in a state that answers for a permission.
+ *
+ * The two lifecycle flags stay separate fields on the snapshot because the evaluator
+ * and the wire need them apart. This is the pair a host reads as one question, and it
+ * is computed rather than stored so it cannot contradict the flags it comes from.
+ *
+ * @param snapshot - Snapshot to read.
+ * @returns `true` once hydration finished and the first init resolved a policy.
+ */
+export const isSnapshotReady = function isSnapshotReady(
+	snapshot: ConsentSnapshot
+): boolean {
+	return snapshot.ready && !snapshot.policyPending;
+};
+
+/**
+ * Why a category may or may not run.
+ *
+ * Read off the same snapshot the UI is rendering, so a gate cannot disagree with what
+ * the user is looking at. `necessary` is `granted` because it is not something anyone
+ * gets to take away, and it does not wait on the lifecycle. Otherwise an unresolved
+ * snapshot is `pending`: the device has not been told yet, so the `false` sitting in
+ * `effectivePermissions` is not a refusal and must not end the wait.
+ *
+ * This agrees with {@link isCategoryAllowed} by construction. A category that reads
+ * `false` here is the same category that reads `false` there, which is what lets a
+ * caller that only cares about "may I run" keep using the boolean.
+ *
+ * @example
+ * ```tsx
+ * const decision = useConsentDecision('measurement');
+ *
+ * useEffect(() => {
+ *     if (decision === 'granted') measurementSdk.init();
+ * }, [decision]);
+ * ```
+ *
+ * @param snapshot - Snapshot to read.
+ * @param category - Category to answer for.
+ * @returns `granted`, `denied`, or `pending`.
+ */
+export const categoryDecision = function categoryDecision(
+	snapshot: ConsentSnapshot,
+	category: AllConsentNames
+): ConsentDecision {
+	if (category === 'necessary') {
+		return 'granted';
+	}
+
+	if (!isSnapshotReady(snapshot)) {
+		return 'pending';
+	}
+
+	return snapshot.effectivePermissions[category] === true
+		? 'granted'
+		: 'denied';
+};
+
+/**
  * Select the lifecycle slice of a snapshot.
  *
  * The result is a fresh object, so pair it with {@link isConsentStatusEqual} or

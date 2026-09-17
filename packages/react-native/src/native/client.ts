@@ -18,7 +18,12 @@
 import type { AllConsentNames } from '@c15t/core';
 
 import { denyAllSnapshot } from '../lib/deny-all-snapshot';
-import { isCategoryAllowed } from '../lib/selectors';
+import type { ConsentDecision } from '../lib/selectors';
+import {
+	categoryDecision,
+	isCategoryAllowed,
+	isSnapshotReady,
+} from '../lib/selectors';
 import {
 	describeSnapshotWireDrift,
 	isProtocolVersionSupported,
@@ -74,6 +79,30 @@ export interface ConsentClient {
 	 *   the payload cannot be parsed and no earlier one exists.
 	 */
 	getSnapshot: () => ConsentSnapshot;
+	/**
+	 * Whether a category may run right now.
+	 *
+	 * @param category - Category to check.
+	 * @returns `true` when the snapshot allows it.
+	 */
+	/**
+	 * Why a category may or may not run, in the three states a host has to separate.
+	 *
+	 * `pending` while the native core has not been told yet, which is the state that
+	 * tells an SDK to keep listening instead of giving up. Read off the same snapshot
+	 * {@link ConsentClient.getSnapshot} returns, so the answer cannot disagree with
+	 * what the consent UI is showing.
+	 *
+	 * @param category - Category to answer for.
+	 * @returns `'granted'`, `'denied'`, or `'pending'`.
+	 */
+	decision: (category: AllConsentNames) => ConsentDecision;
+	/**
+	 * Whether a permission can be read as an answer rather than a placeholder.
+	 *
+	 * @returns `true` once hydration finished and the first init resolved a policy.
+	 */
+	isReady: () => boolean;
 	/**
 	 * Whether a category may run right now.
 	 *
@@ -535,6 +564,8 @@ export const createConsentClient = function createConsentClient(
 	return {
 		bootstrap,
 		commit,
+		decision: (category: AllConsentNames) =>
+			categoryDecision(currentSnapshot(), category),
 		dismissNotice: () => {
 			nativeModule.dismissNotice();
 			stale = true;
@@ -549,6 +580,7 @@ export const createConsentClient = function createConsentClient(
 			afterMutation(nativeModule.identify(externalId)),
 		isAllowed: (category: AllConsentNames) =>
 			isCategoryAllowed(currentSnapshot(), category),
+		isReady: () => isSnapshotReady(currentSnapshot()),
 		logout: () => afterMutation(nativeModule.logout()),
 		refresh: () => afterMutation(nativeModule.refresh()),
 		setOverrides: (overrides: NativeOverridesInput) =>

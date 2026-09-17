@@ -82,20 +82,22 @@ export { useConsentSelector } from './hooks';
 export { useConsentStatus } from './hooks';
 export { useConsentSafeArea } from './hooks';
 export type { ConsentSafeArea } from './hooks';
-export { useIsAllowed } from './hooks';
+export { useConsentDecision, useIsAllowed } from './hooks';
 export {
 	denyAllSnapshot,
 	INVALID_NATIVE_SNAPSHOT_CODE,
 } from './lib/deny-all-snapshot';
 export {
+	categoryDecision,
 	isCategoryAllowed,
 	isConsentStatusEqual,
+	isSnapshotReady,
 	isPromptOwed,
 	isStatusPromptOwed,
 	selectConsentStatus,
 	shallowEqual,
 } from './lib/selectors';
-export type { ConsentStatus } from './lib/selectors';
+export type { ConsentDecision, ConsentStatus } from './lib/selectors';
 export {
 	C15tProtocolMismatchError,
 	createConsentClient,

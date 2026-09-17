@@ -8,6 +8,7 @@
 export { useC15tBootstrap } from './use-c15t-bootstrap';
 export { useConsent } from './use-consent';
 export { useConsentActions } from './use-consent-actions';
+export { useConsentDecision } from './use-consent-decision';
 export type { ConsentActions } from './use-consent-actions';
 export { useConsentSelector } from './use-consent-selector';
 export { useConsentStatus } from './use-consent-status';

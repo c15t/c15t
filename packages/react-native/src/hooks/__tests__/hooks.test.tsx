@@ -31,6 +31,7 @@ import { C15tProvider } from '../../provider/c15t-provider';
 import { useConsent } from '../use-consent';
 import type { ConsentActions } from '../use-consent-actions';
 import { useConsentActions } from '../use-consent-actions';
+import { useConsentDecision } from '../use-consent-decision';
 import { useConsentSelector } from '../use-consent-selector';
 import { useConsentStatus } from '../use-consent-status';
 import { useIsAllowed } from '../use-is-allowed';
@@ -68,6 +69,16 @@ const AllowedProbe = (): ReactNode => {
 	});
 
 	return <span>{allowed ? 'allowed' : 'blocked'}</span>;
+};
+
+const DecisionProbe = (): ReactNode => {
+	const decision = useConsentDecision('marketing');
+
+	useEffect(() => {
+		countCommit('decision');
+	});
+
+	return <span>{decision}</span>;
 };
 
 const StatusProbe = (): ReactNode => {
@@ -386,5 +397,75 @@ describe('wiring', () => {
 				captureErrorMessage(() => renderToStaticMarkup(<Missing />))
 			).toContain('<C15tProvider>');
 		}
+	});
+});
+
+describe('useConsentDecision', () => {
+	test('tells an unresolved policy apart from a refusal, then from a grant', () => {
+		// The same three snapshots the boolean probe renders as `blocked` twice.
+		const tree = mount(
+			<DecisionProbe />,
+			buildSnapshot({
+				effectivePermissions: MARKETING_GRANTED,
+				policyPending: true,
+			})
+		);
+
+		expect(tree.text()).toBe('pending');
+
+		flush(() => {
+			fake.pushSnapshot(
+				buildSnapshot({
+					effectivePermissions: MARKETING_GRANTED,
+					policyPending: false,
+					revision: 2,
+				})
+			);
+		});
+
+		expect(tree.text()).toBe('granted');
+
+		flush(() => {
+			fake.pushSnapshot(
+				buildSnapshot({
+					effectivePermissions: { ...MARKETING_GRANTED, marketing: false },
+					revision: 3,
+				})
+			);
+		});
+
+		expect(tree.text()).toBe('denied');
+
+		tree.unmount();
+	});
+
+	test('does not rerender for an event whose decision is unchanged', () => {
+		const tree = mount(<DecisionProbe />);
+
+		expect(tree.text()).toBe('denied');
+		expect(commitsOf('decision')).toBe(1);
+
+		// A policy re-resolution that leaves the watched category alone.
+		flush(() => {
+			fake.pushSnapshot(
+				buildSnapshot({
+					effectivePermissions: { ...MARKETING_GRANTED, marketing: false },
+					revision: 7,
+				})
+			);
+		});
+
+		expect(commitsOf('decision')).toBe(1);
+
+		flush(() => {
+			fake.pushSnapshot(
+				buildSnapshot({ effectivePermissions: MARKETING_GRANTED, revision: 8 })
+			);
+		});
+
+		expect(commitsOf('decision')).toBe(2);
+		expect(tree.text()).toBe('granted');
+
+		tree.unmount();
 	});
 });

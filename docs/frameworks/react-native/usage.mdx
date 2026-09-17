@@ -38,6 +38,7 @@ Every hook reads the native snapshot or forwards an action. None of them hold st
 | Hook | Returns | Rerenders when |
 | --- | --- | --- |
 | `useIsAllowed(category)` | `boolean` | that one category flips |
+| `useConsentDecision(category)` | `'granted' \| 'denied' \| 'pending'` | that one category's answer moves |
 | `useConsentStatus()` | `{ ready, policyPending, activeUI, promptRequirement }` | one of those four fields moves |
 | `useConsentSelector(selector, equals?)` | whatever `selector` returns | the selected value changes under `equals` |
 | `useConsentActions()` | a stable `ConsentActions` object | never, the object is stable |
@@ -58,6 +59,41 @@ export function PersonalisedAds({ children }: { children: ReactNode }) {
 
 `useConsent()` rerenders on changes your screen does not care about. Reach for it only
 in a surface that genuinely reads several slices, such as a preference center.
+
+## Pending is not a refusal
+
+`useIsAllowed` answers `false` twice for two different reasons: the subject refused, or
+the policy has not resolved yet. Rendering nothing is usually right in both cases.
+Starting a vendor SDK imperatively is not, because those two answers need opposite
+handling. A refused category stays off. An unresolved one stays off *and keeps
+listening*, because waiting on an unknown is the violation a CMP exists to prevent, and
+giving up on it switches off a category the subject was about to grant.
+
+`useConsentDecision` answers `'pending'` for the second case:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentDecision } from '@c15t/react-native';
+
+export function Attribution() {
+	const decision = useConsentDecision('measurement');
+
+	useEffect(() => {
+		// `pending` is not a promise that an answer is coming: a first launch with
+		// no network stays pending for the life of the process. Bound the wait
+		// yourself if you cannot afford it.
+		if (decision === 'granted') measurementSdk.init();
+	}, [decision]);
+
+	return null;
+}
+```
+
+The three answers come from the snapshot the consent UI is rendering, so a gate cannot
+disagree with what the user is looking at. The native cores expose the same three states
+to Swift and Kotlin callers, which is what lets an SDK initialized in
+`Application.onCreate` or `AppDelegate` make the same call as one initialized in a
+component.
 
 Pass `useConsentSelector` a selector that outlives the render. Hoist it to module scope
 or wrap it in `useCallback`; an inline arrow is new every render and makes React

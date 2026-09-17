@@ -627,3 +627,36 @@ describe('isAllowed', () => {
 		expect(client.isAllowed('functionality')).toBe(true);
 	});
 });
+
+describe('decision and isReady', () => {
+	test('calls an unresolved policy pending rather than a refusal', () => {
+		const { client, fake } = makeClient({
+			snapshot: buildSnapshot({ policyPending: true }),
+		});
+
+		expect(client.isReady()).toBe(false);
+		expect(client.decision('necessary')).toBe('granted');
+		expect(client.decision('functionality')).toBe('pending');
+
+		fake.pushSnapshot(buildSnapshot({ policyPending: false, revision: 2 }));
+
+		expect(client.isReady()).toBe(true);
+		expect(client.decision('functionality')).toBe('granted');
+		expect(client.decision('marketing')).toBe('denied');
+	});
+
+	test('answers from the snapshot alone, with no extra bridge read', () => {
+		const { client, fake } = makeClient();
+
+		client.getSnapshot();
+		const before = fake.snapshotCalls;
+
+		client.decision('marketing');
+		client.decision('measurement');
+		client.isReady();
+
+		// The pull is shared with every other read, so a host that polls a decision
+		// from a render path costs nothing beyond the read it already paid for.
+		expect(fake.snapshotCalls).toBe(before);
+	});
+});

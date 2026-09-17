@@ -12,8 +12,10 @@ import {
 	denyAllSnapshot,
 } from '../deny-all-snapshot';
 import {
+	categoryDecision,
 	isCategoryAllowed,
 	isConsentStatusEqual,
+	isSnapshotReady,
 	isPromptOwed,
 	isStatusPromptOwed,
 	selectConsentStatus,
@@ -160,5 +162,94 @@ describe('denyAllSnapshot', () => {
 
 	test('defaults the revision to zero', () => {
 		expect(denyAllSnapshot('nothing stored').revision).toBe(0);
+	});
+});
+
+const ALL_CATEGORIES = [
+	'experience',
+	'functionality',
+	'marketing',
+	'measurement',
+	'necessary',
+] as const;
+
+describe('categoryDecision', () => {
+	test('grants necessary before the core has been told anything', () => {
+		expect(categoryDecision(denyAllSnapshot('test'), 'necessary')).toBe(
+			'granted'
+		);
+	});
+
+	test('reports pending, not denied, while the core is not ready', () => {
+		// The distinction the type exists for: `false` in an unresolved snapshot is
+		// not a refusal, and a host that reads it as one stops listening for a
+		// category that is about to be granted.
+		const snapshot = buildSnapshot({
+			effectivePermissions: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			ready: false,
+		});
+
+		expect(categoryDecision(snapshot, 'marketing')).toBe('pending');
+	});
+
+	test('reports pending while the first policy resolution is outstanding', () => {
+		const snapshot = buildSnapshot({
+			effectivePermissions: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			policyPending: true,
+		});
+
+		expect(categoryDecision(snapshot, 'measurement')).toBe('pending');
+	});
+
+	test('separates a grant from a refusal once resolved', () => {
+		const snapshot = buildSnapshot();
+
+		expect(categoryDecision(snapshot, 'functionality')).toBe('granted');
+		expect(categoryDecision(snapshot, 'marketing')).toBe('denied');
+	});
+
+	test('agrees with the boolean for every category and lifecycle state', () => {
+		const lifecycles = [
+			{},
+			{ policyPending: true },
+			{ ready: false },
+			{ policyPending: true, ready: false },
+		];
+
+		for (const lifecycle of lifecycles) {
+			const snapshot = buildSnapshot(lifecycle);
+
+			for (const category of ALL_CATEGORIES) {
+				expect(categoryDecision(snapshot, category) === 'granted').toBe(
+					isCategoryAllowed(snapshot, category)
+				);
+			}
+		}
+	});
+});
+
+describe('isSnapshotReady', () => {
+	test('needs hydration and a resolved policy', () => {
+		expect(isSnapshotReady(buildSnapshot())).toBe(true);
+		expect(isSnapshotReady(buildSnapshot({ ready: false }))).toBe(false);
+		expect(isSnapshotReady(buildSnapshot({ policyPending: true }))).toBe(false);
+	});
+
+	test('is false for the cold-start snapshot', () => {
+		// The snapshot a fresh install with nothing stored answers with, and the one
+		// an unreadable bridge payload falls back to.
+		expect(isSnapshotReady(denyAllSnapshot('test'))).toBe(false);
 	});
 });
