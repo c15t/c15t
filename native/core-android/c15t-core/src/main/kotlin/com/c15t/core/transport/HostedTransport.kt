@@ -63,10 +63,39 @@ class HostedTransport(
 			body = json.encodeToString(JsonElement.serializer(), body),
 		)
 		return when (val outcome = send(request)) {
-			is TransportOutcome.Success -> SaveOutcome.Delivered
+			is TransportOutcome.Success -> deliveredOrWrongContract(outcome)
 			is TransportOutcome.HttpFailure -> SaveOutcome.Rejected(outcome.status)
 			is TransportOutcome.NetworkFailure -> SaveOutcome.Unavailable(outcome.message)
 		}
+	}
+
+	/**
+	 * Whether a `2xx` from `/subjects` means the body was accepted.
+	 *
+	 * A producer that declares a policy contract this build does not speak is a
+	 * configuration error, and it is checked before the answer is believed: the same
+	 * header makes the next launch's `/init` unusable, so an entry the queue keeps
+	 * holding is a body the producer will never read the way this build wrote it.
+	 * The queue's permanent-rejection rule drops it rather than queueing it forever.
+	 *
+	 * Only a `2xx` is examined this way. A `4xx` already says what the producer thought
+	 * of the body, and the status is the more specific answer.
+	 */
+	private fun deliveredOrWrongContract(outcome: TransportOutcome.Success): SaveOutcome {
+		val declaration = ProducerContract.fromHeader(outcome.header(C15tProtocol.POLICY_CONTRACT_HEADER))
+		if (declaration is ProducerContract.Declared && declaration.version != C15tProtocol.POLICY_CONTRACT_VERSION) {
+			return SaveOutcome.UnsupportedContract(
+				declared = declaration.version.toString(),
+				expected = C15tProtocol.POLICY_CONTRACT_VERSION,
+			)
+		}
+		if (declaration is ProducerContract.Unreadable) {
+			return SaveOutcome.UnsupportedContract(
+				declared = outcome.header(C15tProtocol.POLICY_CONTRACT_HEADER),
+				expected = C15tProtocol.POLICY_CONTRACT_VERSION,
+			)
+		}
+		return SaveOutcome.Delivered
 	}
 
 	override fun identify(

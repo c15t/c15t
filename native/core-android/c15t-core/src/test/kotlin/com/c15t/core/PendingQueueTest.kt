@@ -65,7 +65,10 @@ class PendingQueueTest {
 		kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.MEASUREMENT to true)))
 
 		val attempted = transport.saveRequests.single()
-		val before = json.encodeToString(attempted)
+		// Compared on the payload, not the queue row: the row carries how many times these
+		// bytes have already been tried, which is bookkeeping this build writes and the
+		// backend never sees.
+		val before = json.encodeToString(attempted.payload)
 
 		transport.respondSave(SaveOutcome.Delivered)
 		val flushed = kernel.flushPending()
@@ -75,7 +78,7 @@ class PendingQueueTest {
 		val replayed = transport.saveRequests.last()
 		assertEquals(
 			before,
-			json.encodeToString(replayed),
+			json.encodeToString(replayed.payload),
 			"a replay resubmits identical receipts, including the original action time",
 		)
 		assertEquals(attempted.id, replayed.id, "the same queue entry, not a rebuilt one")
@@ -96,7 +99,7 @@ class PendingQueueTest {
 		kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.MEASUREMENT to false)))
 
 		assertEquals(2, transport.saveRequests.size, "both commits must be queued, not superseded")
-		val attempted = transport.saveRequests.map { json.encodeToString(it) }
+		val attempted = transport.saveRequests.map { json.encodeToString(it.payload) }
 
 		transport.respondSave(SaveOutcome.Delivered)
 		val flushed = kernel.flushPending()
@@ -105,7 +108,7 @@ class PendingQueueTest {
 		assertEquals(0, flushed.remaining)
 		assertEquals(
 			attempted,
-			transport.saveRequests.drop(2).map { json.encodeToString(it) },
+			transport.saveRequests.drop(2).map { json.encodeToString(it.payload) },
 			"both arrive, in the order they were made, with the receipts they were queued with",
 		)
 		assertFalse(
@@ -134,7 +137,7 @@ class PendingQueueTest {
 		kernel.save(CommitIntent.All)
 
 		val queued = transport.saveRequests.single()
-		val before = json.encodeToString(queued)
+		val before = json.encodeToString(queued.payload)
 		assertEquals("token-old", queued.payload.policySnapshotToken)
 		assertEquals("choice-fp-old", assertNotNull(queued.payload.choice?.fingerprint))
 		assertEquals("us-ca", queued.payload.decisionInputs?.policyId)
@@ -161,7 +164,11 @@ class PendingQueueTest {
 		assertEquals(1, kernel.flushPending().delivered)
 
 		val replayed = transport.saveRequests.last().payload
-		assertEquals(before, json.encodeToString(transport.saveRequests.last()), "a queued payload is immutable")
+		assertEquals(
+			before,
+			json.encodeToString(transport.saveRequests.last().payload),
+			"a queued payload is immutable",
+		)
 		assertEquals("token-old", replayed.policySnapshotToken, "the new token must not leak into the old write")
 		assertEquals("choice-fp-old", replayed.choice?.fingerprint)
 		assertEquals("us-ca", replayed.decisionInputs?.policyId)

@@ -1,5 +1,6 @@
 package com.c15t.core
 
+import com.c15t.core.model.KernelError
 import com.c15t.core.model.KernelUser
 import com.c15t.core.model.ConsentSubject
 import com.c15t.core.model.QueuedSave
@@ -135,6 +136,51 @@ class RecordingHttpClient(
 	}
 }
 
+/**
+ * A store that accepts writes to one key and keeps nothing, which is what a host store
+ * does once it has given up on its key: [com.c15t.core.store.ResilientKeyValueStore]
+ * reports the failure and returns rather than throwing out of a launch hook.
+ *
+ * The point is that the caller above gets no exception. Everything that believes the write
+ * landed believes it for the same reason the host gave, so the only thing that can catch
+ * this is reading the bytes back.
+ */
+class VanishingKeyValueStore(
+	private val victim: String,
+	/** Shared with the transport double, so one test can order disk against wire. */
+	private val eventLog: MutableList<String> = mutableListOf(),
+) : KeyValueStore {
+	private val data = LinkedHashMap<String, String>()
+
+	/** What the store actually holds, which is the honest measure of what was written. */
+	val storedKeys: Set<String>
+		get() = data.keys.toSet()
+
+	/** The order reads and writes happened in. */
+	val events: List<String>
+		get() = eventLog.toList()
+
+	override fun read(key: String): String? {
+		eventLog += "read:$key"
+		return data[key]
+	}
+
+	override fun write(
+		key: String,
+		value: String?,
+	) {
+		eventLog += if (value == null) "delete:$key" else "write:$key"
+		if (key == victim) {
+			return
+		}
+		if (value == null) {
+			data.remove(key)
+		} else {
+			data[key] = value
+		}
+	}
+}
+
 /** Clock the tests advance by hand, so expiry and deadlines are exact. */
 class FixedClock(start: Long = 1_700_000_000_000L) : Clock {
 	var now: Long = start
@@ -153,6 +199,14 @@ fun testKernel(
 	store: C15tStore,
 	clock: FixedClock = FixedClock(),
 	transport: C15tTransport = C15tTransport.NONE,
+	/**
+	 * Where init and delivery run. Left null it means inline, which is what makes ordering
+	 * observable; a test that needs a real hand-off -- a send whose answer this thread
+	 * cannot see -- passes an executor of its own.
+	 */
+	executor: TaskExecutor? = null,
+	/** Receives every error the core emits, so a test can assert on the codes. */
+	logger: (KernelError) -> Unit = {},
 ): C15tKernel {
 	var sequence = 0
 	val nextId: () -> String = {
@@ -166,11 +220,12 @@ fun testKernel(
 		transport = transport,
 		// Inline execution makes ordering observable: a save's disk write and its
 		// delivery are finished by the time the call returns.
-		executor = TaskExecutor.DIRECT,
+		executor = executor ?: TaskExecutor.DIRECT,
 		// Deterministic ids on both seams, so a replay assertion can compare queue
 		// entries and an identity assertion can compare subjects.
 		subjectIdGenerator = nextId,
 		queueIdGenerator = nextId,
+		logger = logger,
 	)
 }
 

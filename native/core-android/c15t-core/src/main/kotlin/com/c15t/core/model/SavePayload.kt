@@ -45,4 +45,13 @@ data class QueuedSave(
 	val id: String,
 	val queuedAt: Long,
 	val payload: SavePayload,
+	/**
+	 * Sends of these exact bytes that the backend did not accept.
+	 *
+	 * Local bookkeeping only: it never reaches the wire, because the queue stores the
+	 * request body inside [payload] and the body is what stays frozen. An entry written by
+	 * an older build reads as zero, which is the honest reading -- nothing has been tried
+	 * under this build.
+	 */
+	val attempts: Int = 0,
 )

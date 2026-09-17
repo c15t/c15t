@@ -21,6 +21,7 @@ import com.c15t.core.policy.PolicyEvaluator
 import com.c15t.core.spi.Clock
 import com.c15t.core.spi.TaskExecutor
 import com.c15t.core.store.C15tStore
+import com.c15t.core.store.FailedAttempt
 import com.c15t.core.store.PendingSaveQueue
 import com.c15t.core.store.SnapshotEnvelope
 import com.c15t.core.transport.C15tTransport
@@ -36,6 +37,24 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
+/**
+ * The answer of one send of a queued body.
+ *
+ * [Reached] is the only case that lets a caller stop owing the body, and it is a claim
+ * about storage rather than about the network: the entry is gone from disk. A `save()` that
+ * has not been answered at all is a `null` in an atomic, not a case here -- see
+ * [C15tKernel.save].
+ */
+private sealed interface Delivery {
+	/** The backend accepted the body and the queue released the entry. */
+	data object Reached : Delivery
+
+	/** No reachable sender. The entry keeps its place, and a pass should stop trying. */
+	data class Unreachable(val error: KernelError) : Delivery
+
+	/** The producer answered, and did not accept. */
+	data class Refused(val attempt: FailedAttempt, val error: KernelError) : Delivery
+}
 /**
  * The consent engine.
  *
@@ -323,15 +342,46 @@ class C15tKernel(
 	/**
 	 * Record a consent decision.
 	 *
-	 * The order is the contract's: capture the action time once, update permissions
-	 * in memory, persist the payload, and only then put it on the wire. A host that
-	 * loses connectivity here still gates correctly, because the local commit never
-	 * depends on the response.
+	 * Order is the whole contract here. The queue write lands first, the snapshot moves
+	 * second, and no branch answers ok without a durable entry behind it, because
+	 * [CommitResult.ok] claims three device-side facts: the receipts are applied, the
+	 * snapshot is stored, and the queue holds the exact bytes that owe delivery. It never
+	 * claims the backend has them, which no synchronous call on this thread could know.
+	 *
+	 * A save that cannot take on the delivery obligation answers not-ok with the reason
+	 * and changes nothing at all -- no snapshot move, no snapshot write, no request, no
+	 * observer callback. A decision nothing remembers having to deliver is worse than a
+	 * refusal the caller can act on.
+	 *
+	 * What makes the two steps atomic is [mutationLock], and it is worth being precise
+	 * about how. [PendingSaveQueue] does its own read-modify-write on [store] and takes no
+	 * lock of ours, so the enqueue deliberately happens *outside* the critical section: a
+	 * disk write must not hold the lock every other mutation path waits on, and must not
+	 * hold it while the store is being read either, which is what would let a slow keychain
+	 * stall a snapshot read. The state move that follows is then taken as a guarded swap:
+	 * still under the lock, the snapshot is installed only if it is the very snapshot this
+	 * body was built from. If another mutation landed during the write, that one stands,
+	 * this body is withdrawn from the queue rather than replayed over it, and the caller is
+	 * told to repeat against the current snapshot. A swap is atomic precisely because the
+	 * reference is only ever replaced inside the lock, so there is no window in which a
+	 * reader or a competing writer sees a queue entry whose snapshot was never installed,
+	 * or an installed snapshot with no entry behind it.
+	 *
+	 * Delivery is a later fact than any of this. It arrives as a drained queue, or as an
+	 * error event carrying `save-rejected`, `save-undeliverable`, or
+	 * `transport-unavailable`. See [CommitResult.delivered] for the one case where this
+	 * call can report it.
+	 *
+	 * @returns [CommitResult.ok] is true only for a committed decision; on a refusal
+	 * [CommitResult.failure] names which of `queue-write-failed` or `concurrent-change`
+	 * stopped it, and `not-bootstrapped` comes from the [C15t] facade in front of this
+	 * kernel.
 	 */
 	fun save(intent: CommitIntent): CommitResult {
 		// Captured once, before any disk or network call, and reused by every
 		// replay so the backend derives the same consent id.
 		val actionAt = clock.nowMillis()
+		var base: ConsentSnapshot
 		var published: ConsentSnapshot
 		var policy: EvaluationPolicy?
 		// The surface the subject acted on, read before the commit rewrites it.
@@ -342,6 +392,7 @@ class C15tKernel(
 
 		synchronized(mutationLock) {
 			val current = state.get()
+			base = current
 			surfaceAtAction = current.activeUI
 			policy = evaluationPolicy
 			val intentConsents = intent.consentsByCategory
@@ -371,15 +422,51 @@ class C15tKernel(
 				noticeDismissal = noticeDismissal,
 				now = actionAt,
 			)
-			state.set(published)
 		}
 
+		// Built from the snapshot computed above, which is a value: the frozen body is the
+		// one that revision describes, and building it here keeps the subject resolution and
+		// its storage write off the lock, as the class requires.
 		val payload = buildSavePayload(published, policy, intent, actionAt, surfaceAtAction)
+
+		// Obligation first, state second. A process that dies at this point already has
+		// the action on disk, and a save that gets no further than here promised nothing.
 		val entry = queue.enqueue(payload, actionAt)
+			?: return refusedCommit(
+				code = "queue-write-failed",
+				message = "c15t: the pending save could not be persisted, so the decision was " +
+					"not recorded and nothing was sent",
+			)
+
+		// The guarded swap, for the reason given above.
+		val applied = synchronized(mutationLock) {
+			if (state.get() !== base) {
+				false
+			} else {
+				state.set(published)
+				true
+			}
+		}
+		if (!applied) {
+			// Withdraw. Replaying this body would deliver a decision the device has already
+			// moved past, and the later mutation carries its own, newer receipts.
+			queue.complete(entry.id)
+			return refusedCommit(
+				code = "concurrent-change",
+				message = "c15t: consent state changed while this save was being recorded, so it " +
+					"was withdrawn. Repeat the action against the current snapshot",
+			)
+		}
+
 		persist()
 
-		var delivered = false
-		background.execute { delivered = deliver(entry) }
+		// The first send is not joined. What this thread may claim about it is whatever the
+		// atomic holds at this instant and nothing more: `null` behind a pool, and the
+		// settled answer only where the host's executor ran the send before returning.
+		val firstSend = AtomicReference<Delivery>()
+		background.execute { firstSend.set(deliver(entry)) }
+		val delivered = firstSend.get() === Delivery.Reached
+
 		val result = CommitResult(
 			ok = true,
 			revision = published.revision,
@@ -389,6 +476,31 @@ class C15tKernel(
 		)
 		notifySnapshot(published)
 		return result
+	}
+
+	/**
+	 * A save that changed nothing, announced and then refused.
+	 *
+	 * Refusals are emitted rather than only returned: a host that renders a banner and
+	 * never reads the return value has no other way to learn that the subject's tap was
+	 * dropped. The snapshot observers deliberately get nothing, because the snapshot did
+	 * not move.
+	 */
+	private fun refusedCommit(
+		code: String,
+		message: String,
+	): CommitResult {
+		val error = KernelError(code = code, message = message)
+		emitError(error)
+		val current = state.get()
+		return CommitResult(
+			ok = false,
+			revision = current.revision,
+			confirmed = emptyMap(),
+			queued = false,
+			delivered = false,
+			error = error,
+		)
 	}
 
 	/** Close the first-layer prompt without recording a choice. */
@@ -495,7 +607,12 @@ class C15tKernel(
 	 * Replay the offline queue, oldest first, each payload unchanged.
 	 *
 	 * Stops at the first entry the backend could not be reached for, since trying
-	 * the rest on a dead connection wastes battery.
+	 * the rest on a dead connection wastes battery. Entries this pass never sent keep the
+	 * attempt count they had: an attempt is spent by a send, not by a pass that skipped
+	 * them.
+	 *
+	 * Each entry settles by the same rules as the first send of a save, including which
+	 * refusals are permanent and which releases get announced.
 	 */
 	fun flushPending(): FlushResult {
 		val pending = queue.pending()
@@ -503,34 +620,29 @@ class C15tKernel(
 			return FlushResult(delivered = 0, remaining = 0)
 		}
 		var delivered = 0
-		var error: KernelError? = null
+		var lastError: KernelError? = null
 		for (entry in pending) {
-			when (val outcome = transport.save(entry)) {
-				is SaveOutcome.Delivered -> {
-					queue.complete(entry.id)
-					delivered += 1
-				}
+			// Every entry goes through the same settle rules as a save's first send, so a
+			// replay cannot decide permanence, attempts, or announcements differently.
+			when (val delivery = deliver(entry)) {
+				Delivery.Reached -> delivered += 1
 
-				is SaveOutcome.Rejected -> {
-					error = KernelError(
-						code = "save-rejected",
-						message = "c15t: /subjects responded ${outcome.status}; the payload stays queued",
-					)
-				}
+				is Delivery.Unreachable -> return FlushResult(
+					delivered = delivered,
+					remaining = queue.pending().size,
+					// The entry that could not be reached spent its attempt; the ones this
+					// pass never sent did not, because nothing was sent for them.
+					error = lastError ?: delivery.error,
+				)
 
-				is SaveOutcome.Unavailable -> {
-					return FlushResult(
-						delivered = delivered,
-						remaining = pending.size - delivered,
-						error = error ?: KernelError("save-unavailable", outcome.message),
-					)
-				}
+				is Delivery.Refused -> lastError = delivery.error
+
 			}
 		}
 		return FlushResult(
 			delivered = delivered,
 			remaining = queue.pending().size,
-			error = error,
+			error = lastError,
 		)
 	}
 
@@ -647,24 +759,147 @@ class C15tKernel(
 		notifySnapshot(published)
 	}
 
-	private fun deliver(entry: QueuedSave): Boolean = when (val outcome = transport.save(entry)) {
-		is SaveOutcome.Delivered -> {
-			queue.complete(entry.id)
-			true
-		}
+	/**
+	 * Send one queued body once, and settle what the answer means for the queue.
+	 *
+	 * A delivered answer is a claim about storage rather than about the network: the entry is
+	 * gone from disk, which is the only thing that lets a caller stop owing this body.
+	 */
+	private fun deliver(entry: QueuedSave): Delivery {
+		return when (val outcome = transport.save(entry)) {
+			is SaveOutcome.Delivered -> {
+				if (queue.complete(entry.id)) {
+					Delivery.Reached
+				} else {
+					// Accepted, and still on disk. Keep the obligation: the next replay sends
+					// the same frozen bytes and the backend dedupes on the receipts inside
+					// them, which beats forgetting a decision recorded nowhere else.
+					val error = KernelError(
+						code = "queue-write-failed",
+						message = "c15t: the backend accepted a queued consent save but the queue " +
+							"could not release it, so the same bytes will be sent again",
+					)
+					emitError(error)
+					Delivery.Refused(FailedAttempt.Retrying, error)
+				}
+			}
 
-		is SaveOutcome.Rejected -> {
-			emitError(
-				KernelError(
-					code = "save-rejected",
-					message = "c15t: /subjects responded ${outcome.status}; the payload stays queued",
+			is SaveOutcome.Unavailable -> {
+				// Nothing about the body was refused, so nothing here is permanent. The entry
+				// keeps its place with one attempt spent, and the fact that an obligation
+				// currently has no reachable sender gets said out loud rather than left
+				// invisible -- `CommitResult` cannot see it from here.
+				val error = announceFailedAttempt(entry, outcome, "transport-unavailable")
+				Delivery.Unreachable(error)
+			}
+
+			else -> {
+				val permanent = outcome.isPermanentlyRejected
+				val error = if (permanent) {
+					// The producer refused these bytes on their own terms, and frozen bytes
+					// earn the same answer every time, so the entry leaves and the reason is
+					// named rather than occupying a slot until it expires.
+					queue.complete(entry.id)
+					refusedSave(entry, outcome).also(::emitError)
+				} else {
+					// A status the producer answered with, and not a permanent one: the entry
+					// is still owed, so the announcement is about this attempt.
+					announceFailedAttempt(entry, outcome, "http-status")
+				}
+				Delivery.Refused(
+					attempt = if (permanent) FailedAttempt.AlreadyGone else FailedAttempt.Retrying,
+					error = error,
 				)
-			)
-			false
+			}
 		}
-
-		is SaveOutcome.Unavailable -> false
 	}
+
+	/**
+	 * Spend one attempt on a send that did not land, and announce the result.
+	 *
+	 * Every failed send spends an attempt, including the very first send of the save that
+	 * queued the body. Without that, the attempt ceiling is reachable only by replays, so a
+	 * body the transport refuses on the first try sits in the queue across every launch,
+	 * replaying bytes nobody will accept.
+	 *
+	 * @param notice the code to announce while the entry is still owed. A release is always
+	 * announced as `save-undeliverable` instead, because at that point the caller's question
+	 * is no longer "why did this try fail" but "why is this no longer being tried".
+	 * @returns the error that was announced, so a caller that also reports per pass does not
+	 * have to invent a second, different sentence for the same failure.
+	 */
+	private fun announceFailedAttempt(
+		entry: QueuedSave,
+		outcome: SaveOutcome,
+		notice: String,
+	): KernelError {
+		val attempt = queue.recordFailedAttempt(entry.id, clock.nowMillis())
+		val error = if (attempt.dropsEntry) {
+			undeliverableSave(entry, outcome, attempt)
+		} else {
+			KernelError(
+				code = notice,
+				message = "c15t: a queued consent save did not reach the backend ($outcome), so " +
+					"it stays queued for a later attempt",
+			)
+		}
+		emitError(error)
+		return error
+	}
+
+	/** The announcement for a body the producer refused on terms the body itself causes. */
+	private fun refusedSave(
+		entry: QueuedSave,
+		outcome: SaveOutcome,
+	): KernelError {
+		val why = when (outcome) {
+			is SaveOutcome.Rejected -> "HTTP ${outcome.status}"
+			is SaveOutcome.UnsupportedContract ->
+				"policy contract ${outcome.declared ?: "unreadable"} against this build's " +
+					"${outcome.expected}"
+
+			else -> outcome.toString()
+		}
+		return KernelError(
+			code = "save-rejected",
+			message = "c15t: the backend refused a queued consent save for " +
+				"${entry.payload.subjectId} ($why), so it was dropped and will not be retried",
+		)
+	}
+
+	/**
+	 * The announcement for an obligation the queue released with its body never accepted.
+	 *
+	 * Both roads reach it: a save whose very first send spent the last attempt, and a replay
+	 * that ran a body out. One message builder keeps the two from drifting apart, because
+	 * after this point nothing on the device remembers that the decision owed anyone
+	 * anything, and a host that is not told has no way to learn it.
+	 */
+	private fun undeliverableSave(
+		entry: QueuedSave,
+		outcome: SaveOutcome,
+		attempt: FailedAttempt,
+	): KernelError {
+		val reason = when (attempt) {
+			is FailedAttempt.DroppedAfterAttempts ->
+				"it was refused ${attempt.attempts} times, which is the ceiling of " +
+					"${PendingSaveQueue.MAX_ATTEMPTS} attempts"
+
+			is FailedAttempt.DroppedAsTooOld ->
+				"it waited longer than the queue's ${PendingSaveQueue.MAX_AGE_MS / 86_400_000L} " +
+					"day retention window"
+
+			FailedAttempt.Retrying,
+			FailedAttempt.AlreadyGone,
+			-> "it left the queue unaccepted"
+		}
+		return KernelError(
+			code = "save-undeliverable",
+			message = "c15t: a queued consent save for ${entry.payload.subjectId} was dropped " +
+				"because $reason. Last backend answer: $outcome",
+		)
+	}
+
 
 	private fun buildSavePayload(
 		published: ConsentSnapshot,

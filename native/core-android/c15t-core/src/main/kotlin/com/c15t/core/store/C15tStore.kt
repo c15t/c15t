@@ -69,9 +69,24 @@ class C15tStore(
 	fun readPending(): List<QueuedSave> =
 		tryDecode(C15tStoreKeys.PENDING, PendingQueue.serializer(), queueJson)?.entries ?: emptyList()
 
-	/** Replace the whole offline write queue. */
-	fun writePending(entries: List<QueuedSave>) {
-		backend.write(C15tStoreKeys.PENDING, queueJson.encodeToString(PendingQueue.serializer(), PendingQueue(entries)))
+	/**
+	 * Replace the whole offline write queue, and report whether the bytes came back.
+	 *
+	 * The read-back is the only durability signal this seam offers. [KeyValueStore.write]
+	 * returns `Unit`, and a host store is allowed to swallow a failed write rather than
+	 * throw out of a launch hook -- [ResilientKeyValueStore] does exactly that once it has
+	 * given up on its key. Without the read-back, a caller above cannot tell a queue that
+	 * wrote from a queue that quietly did not, which is the difference between a save that
+	 * owes delivery and a save that only believes it does.
+	 *
+	 * Comparison is on the plaintext that went in, not on the stored blob: an encrypted
+	 * store returns ciphertext, and it is the round trip through decryption that is being
+	 * proven.
+	 */
+	fun writePending(entries: List<QueuedSave>): Boolean {
+		val raw = queueJson.encodeToString(PendingQueue.serializer(), PendingQueue(entries))
+		backend.write(C15tStoreKeys.PENDING, raw)
+		return backend.read(C15tStoreKeys.PENDING) == raw
 	}
 
 	/** Drop stored consent state, keeping the subject id so identity survives. */
