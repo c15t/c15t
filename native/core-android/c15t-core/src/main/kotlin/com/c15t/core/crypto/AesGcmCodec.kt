@@ -1,7 +1,6 @@
 package com.c15t.core.crypto
 
 import com.c15t.core.spi.SymmetricKeyProvider
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 
@@ -20,14 +19,23 @@ import javax.crypto.spec.GCMParameterSpec
  */
 class AesGcmCodec(
 	private val keyProvider: SymmetricKeyProvider,
-	private val random: SecureRandom = SecureRandom(),
 ) {
 	/** Encrypt [plaintext] into a self-describing blob. */
 	fun encrypt(plaintext: ByteArray): ByteArray {
-		val iv = ByteArray(IV_LENGTH_BYTES).also(random::nextBytes)
+		// The cipher picks the IV and hands it back. Handing AndroidKeyStore an
+		// IV of our own is rejected outright -- a key created under the default
+		// randomized-encryption policy answers `cipher.init` with
+		// `InvalidAlgorithmParameterException: Caller-provided IV not permitted`,
+		// which is not a key failure, so every encrypt fails the same way and no
+		// blob is ever written. An ordinary JCE key takes either path, so letting
+			// the provider choose is the only shape that works on both.
 		val cipher = Cipher.getInstance(TRANSFORMATION)
-		cipher.init(Cipher.ENCRYPT_MODE, keyProvider.key(), GCMParameterSpec(TAG_LENGTH_BITS, iv))
+		cipher.init(Cipher.ENCRYPT_MODE, keyProvider.key())
 		cipher.updateAAD(AAD)
+		val iv = requireNotNull(cipher.iv) { "the cipher offered no IV to frame the blob with" }
+		require(iv.size == IV_LENGTH_BYTES) {
+			"the cipher chose a ${iv.size}-byte IV and the blob frames $IV_LENGTH_BYTES"
+		}
 		val body = cipher.doFinal(plaintext)
 		val out = ByteArray(HEADER_LENGTH + IV_LENGTH_BYTES + body.size)
 		out[0] = MAGIC

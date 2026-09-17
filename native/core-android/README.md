@@ -74,6 +74,14 @@ to a key the platform can revoke. It lives in its own `c15t.subject` preference 
 `SubjectPreservingStore` routes reads and writes so the rest of the core cannot tell the
 difference.
 
+The cipher chooses the GCM IV and the codec reads it back with `cipher.iv`, because an
+AndroidKeyStore key created under the default randomized-encryption policy rejects a
+caller-supplied IV on encrypt. Decryption always supplies the IV from the blob header,
+which the platform permits. A write that fails for a reason that is not key loss is
+logged once and dropped: the records stay in memory for the rest of the process, and
+`SharedPreferences` is the answer to a key that cannot come back, not to a write that
+merely failed.
+
 ## Verification here
 
 Unit tests cover the behaviour that would otherwise be checked by hand on a device:
