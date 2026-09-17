@@ -132,11 +132,39 @@ export const parseSwiftBench = function parseSwiftBench(
 };
 
 /** Bench label to harness row id, for Kotlin. */
+/**
+ * The Kotlin bench prints the cold bootstrap from forked JVMs rather than from its
+ * warm loop, and the span it measures is the contract's own: `bootstrap()` to the first
+ * synchronous `snapshot()`. It lands on the same key the Swift cold row uses because
+ * the two benches are parsed into separate metric maps, which is how the Kotlin hydrate
+ * row is routed today too.
+ */
 const KOTLIN_LABELS: Record<string, string> = {
+	'bootstrap() to first snapshot(), cold': 'native_bootstrap_cold_us',
 	'hydrate from store': 'native_hydrate_envelope_us',
 	'policy evaluation': 'native_policy_evaluation_us',
 	'save-acknowledge-without-network': 'native_commit_ack_us',
 	'snapshot() + 3 x isAllowed()': 'native_snapshot_read_us',
+};
+
+/**
+ * The number of samples behind one Kotlin number.
+ *
+ * The header count describes the bench's warm loop. A spread that came from forked JVMs
+ * instead prints its own count on its own line, and that count wins: reporting the
+ * loop's 3000 behind fifteen processes would overstate the evidence for the row.
+ *
+ * @param sampleLine - The line the median came out of.
+ * @param headerCount - The `measured=` count from the bench header.
+ * @returns The line's own count when it carries one, otherwise the header's.
+ */
+const sampleCount = function sampleCount(
+	sampleLine: string,
+	headerCount: number
+): number {
+	return (
+		number(/(?:^|\s)n=(?<n>\d+)/u.exec(sampleLine)?.groups?.n) ?? headerCount
+	);
 };
 
 /**
@@ -174,7 +202,7 @@ export const parseKotlinBench = function parseKotlinBench(
 
 		metrics[id] = {
 			detail: envelope ? `bench envelope ${envelope} B` : undefined,
-			samples,
+			samples: sampleCount(sample, samples),
 			value: median,
 		};
 

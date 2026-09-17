@@ -62,6 +62,26 @@ const KOTLIN_OUTPUT = `c15t-core benchmarks
     median=190.83 us  p95=243.88 us  min=175.67 us  (budget 50 ms)
     ok
 
+  bootstrap() to first snapshot(), cold
+    n=15  median=4964.17 us  p95=5698.75 us  min=4787.04 us  (median of 15 fresh JVMs, one bootstrap each; envelope is 9053 bytes; contract budget is 15 ms)
+    ok
+    first snapshot after a cold bootstrap: ready=true policyPending=false marketing=false
+
+all measured budgets met
+`;
+
+/** The same run on a machine where the cold samples could not be forked. */
+const KOTLIN_OUTPUT_NO_COLD = `c15t-core benchmarks
+  jvm=17.0.20+0 cores=18
+  warmup=500 measured=3000  medians in microseconds
+
+  hydrate from store
+    median=31.67 us  p95=43.08 us  min=27.79 us  (envelope is 9053 bytes; contract budget is 3 ms)
+    ok
+
+  bootstrap() to first snapshot(), cold (not measured)
+    java.home does not name a runnable java binary
+
 all measured budgets met
 `;
 
@@ -106,6 +126,7 @@ describe('parseKotlinBench', () => {
 
 		expect(Object.keys(metrics).sort()).toEqual(
 			[
+				'native_bootstrap_cold_us',
 				'native_commit_ack_us',
 				'native_hydrate_envelope_us',
 				'native_policy_evaluation_us',
@@ -113,6 +134,54 @@ describe('parseKotlinBench', () => {
 				'native_snapshot_read_us',
 			].sort()
 		);
+	});
+
+	it('reads the cold bootstrap in microseconds with its own sample count', () => {
+		const metrics = parseKotlinBench(KOTLIN_OUTPUT);
+
+		expect(metrics.native_bootstrap_cold_us?.value).toBe(4964.17);
+		// The header says 3000 because that is the warm loop. A spread from forked JVMs
+		// carries its own count, and reporting 3000 here would overstate the evidence.
+		expect(metrics.native_bootstrap_cold_us?.samples).toBe(15);
+	});
+
+	it('carries the cold envelope size so the number stays interpretable', () => {
+		const metrics = parseKotlinBench(KOTLIN_OUTPUT);
+
+		expect(metrics.native_bootstrap_cold_us?.detail).toContain('9053');
+	});
+
+	it('leaves the cold metric absent when the bench did not print it', () => {
+		const metrics = parseKotlinBench(KOTLIN_OUTPUT_NO_COLD);
+
+		expect(metrics.native_bootstrap_cold_us).toBeUndefined();
+		// The rows the run did produce must survive the missing one.
+		expect(metrics.native_hydrate_envelope_us?.value).toBe(31.67);
+	});
+
+	it('does not read the not-measured heading as the cold label', () => {
+		// The bench prints "(not measured)" on the heading on purpose: an exact label
+		// match would otherwise hand the row a line with no median on it.
+		expect(
+			parseKotlinBench(KOTLIN_OUTPUT_NO_COLD).native_bootstrap_cold_us
+		).toBeUndefined();
+	});
+
+	it('keeps the warm loop count for a label that prints no count of its own', () => {
+		const metrics = parseKotlinBench(KOTLIN_OUTPUT);
+
+		expect(metrics.native_hydrate_envelope_us?.samples).toBe(3000);
+	});
+
+	it('returns nothing rather than a zero when the cold label has no number under it', () => {
+		const metrics = parseKotlinBench(
+			KOTLIN_OUTPUT.replace(
+				'    n=15  median=4964.17 us',
+				'    n=15  (the bench died mid-line'
+			)
+		);
+
+		expect(metrics.native_bootstrap_cold_us).toBeUndefined();
 	});
 
 	it('maps a stable object identity onto one snapshot object', () => {

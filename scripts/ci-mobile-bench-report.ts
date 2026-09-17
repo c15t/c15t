@@ -96,11 +96,13 @@ export interface MobileBenchSummary {
  * Rows each mobile leg must produce a number for.
  *
  * Two kinds of row stay out of every list, and both are the harness saying so rather
- * than a gap in CI: `ios_binding_bytes` and `kotlin_bootstrap_to_snapshot_cold_ms` are
- * structurally unmeasurable (see `benchmarks/mobile/README.md`), and the three idle rows
- * are budget-gated but not required, because a shared runner's quiet window is not
- * quiet. Everything else the leg's toolchain provisions is required, so a parser that
- * stops matching a bench's output fails the run instead of shrinking the table.
+ * than a gap in CI: `ios_binding_bytes` is structurally unmeasurable (see
+ * `benchmarks/mobile/README.md`), and four rows are budget-gated but not required,
+ * because a shared runner's quiet window is not quiet. Three are the idle rows; the
+ * fourth is `kotlin_bootstrap_to_snapshot_cold_ms`, which medians over forked JVMs and
+ * so measures the runner's load as much as the kernel's startup. Everything else the
+ * leg's toolchain provisions is required, so a parser that stops matching a bench's
+ * output fails the run instead of shrinking the table.
  *
  * The JavaScript timing rows, including the app-level ones (a fresh process reading its
  * first consent, a stored envelope becoming an answer, the banner becoming

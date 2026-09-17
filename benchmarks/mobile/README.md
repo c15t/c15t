@@ -33,7 +33,7 @@ and prints every number it can, and does not fail when it cannot.
 
 | # | Axis | Rows that measure it | In CI |
 | --- | --- | --- | --- |
-| 1 | Cold-start overhead | `cold_start_js_to_first_consent_ms` (fresh process: entry evaluation plus the first handshake), `cold_start_overhead_ms` and `bootstrap_to_snapshot_cold_ms` (read path in a warm process), `native_bootstrap_to_snapshot_cold_ms`, `kotlin_bootstrap_to_snapshot_cold_ms` | JS rows: measured on both legs, required on the Android+JS leg. Swift row: iOS leg, required. Kotlin row: never measured, see below |
+| 1 | Cold-start overhead | `cold_start_js_to_first_consent_ms` (fresh process: entry evaluation plus the first handshake), `cold_start_overhead_ms` and `bootstrap_to_snapshot_cold_ms` (read path in a warm process), `native_bootstrap_to_snapshot_cold_ms`, `kotlin_bootstrap_to_snapshot_cold_ms` | JS rows: measured on both legs, required on the Android+JS leg. Swift row: iOS leg, required. Kotlin row: Android leg, budget-gated and reported, not required, because it medians over forked JVMs and reads the runner's load |
 | 2 | Cached consent available | `cached_consent_available_ms` (envelope read off disk to a readable answer), `js_hydrate_envelope_ms` (decode alone), `native_hydrate_envelope_ms`, `kotlin_hydrate_envelope_ms` | JS rows: measured on both legs, required on the Android+JS leg. Native rows: their own leg, required |
 | 3 | Consent UI interactive | `consent_ui_mount_to_interactive_ms`, `consent_ui_remount_to_interactive_ms`, `consent_ui_open_to_interactive_ms` | Measured on both legs, required on the Android+JS leg. Mounted under `react-test-renderer`, so this is the React half of interactivity and it is required as that |
 | 4 | Consent action latency | `consent_ui_action_to_commit_ms` (tap on the rendered control to the intent reaching the module), `commit_ack_no_network_ms`, `native_commit_ack_no_network_ms`, `native_commit_ack_disk_ms`, `kotlin_commit_ack_no_network_ms` | JS and Kotlin rows: required on the Android+JS leg. Swift rows: iOS leg, required. The UI row is measured on both legs and required on the Android+JS one |
@@ -155,8 +155,6 @@ from inside `benchmarks/mobile`.
 - **`ios_binding_bytes`.** The TurboModule binding compiles against React Native
   headers, which exist only after a `pod install` in a host app. It needs a CocoaPods
   step in a job that already has Xcode.
-- **A cold Kotlin bootstrap.** The JVM bench warms the kernel before sampling, and a
-  cold number needs one fresh JVM per sample, the way the JavaScript row does.
 - **Idle cost of the native core on a device.** The idle rows read the JavaScript
   process on the machine running the bench. On-device CPU and memory need the same
   device job as the launch numbers.

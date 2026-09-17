@@ -111,9 +111,10 @@ comparisons, and publishes `mobile-summary.json` and a markdown table to the
 step summary and the evidence artifact. Each leg declares its own required
 rows: the Swift leg takes the `swift-core` rows and the iOS slice bytes, the
 Android leg takes the `kotlin-core` rows, the JS boundary and the Android class
-bytes. The idle rows are reported and budget-gated but never required, and
-`ios_binding_bytes` and `kotlin_bootstrap_to_snapshot_cold_ms` stay unmeasured
-by design. The Kotlin bench needs a warm Gradle run first, because the harness
+bytes. The idle rows and the cold Kotlin bootstrap are reported and budget-gated
+but never required: the first three watch a quiet process, and the fourth medians
+over forked JVMs, so all four read the runner's load. `ios_binding_bytes` alone
+stays unmeasured by design. The Kotlin bench needs a warm Gradle run first, because the harness
 invokes Gradle with `--offline`, and the harness needs Xcode at
 `/Applications/Xcode.app`, which the Xcode step links when the image installs a
 versioned bundle. The SDK's vitest suite runs here too, on Linux, next to the

@@ -130,8 +130,9 @@ export const nativeRows = function nativeRows(
 		)
 	);
 
-	// Kotlin core. A cold first touch needs one fresh JVM per sample, which the JVM
-	// bench does not do, so that row says so instead of borrowing the Swift number.
+	// Kotlin core. Its cold row prints its own number: the bench forks one JVM per
+	// sample precisely because a warm loop cannot produce a cold one, so the row reads
+	// that number rather than standing on a reason.
 	rows.push(
 		makeRow(
 			ROWS.kotlinHydrate,
@@ -168,11 +169,11 @@ export const nativeRows = function nativeRows(
 		)
 	);
 	rows.push(
-		makeRow(ROWS.kotlinBootstrapCold, budgets, {
-			reason:
-				kotlin.unavailable ??
-				'the JVM bench warms the kernel before sampling; a cold number needs one fresh JVM per sample',
-		})
+		makeRow(
+			ROWS.kotlinBootstrapCold,
+			budgets,
+			kotlinMetric('native_bootstrap_cold_us', 'ms')
+		)
 	);
 
 	return rows;
