@@ -1,6 +1,7 @@
 package com.c15t.core
 
 import com.c15t.core.model.ConsentCategory
+import com.c15t.core.model.ConsentDecision
 import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.KernelError
 import com.c15t.core.model.KernelOverrides
@@ -22,8 +23,13 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * ```kotlin
  * C15t.bootstrap(config, store, clock, transport, null)
- * if (C15t.isAllowed(ConsentCategory.MEASUREMENT)) {
- *     // safe to initialise the measurement SDK
+ * when (C15t.decision(ConsentCategory.MEASUREMENT)) {
+ *     ConsentDecision.GRANTED -> measurementSdk.init()
+ *     ConsentDecision.DENIED -> Unit
+ *     // Not answered yet: stay off, and switch on when the answer says so.
+ *     ConsentDecision.PENDING -> C15t.gateDecision(ConsentCategory.MEASUREMENT) { decision ->
+ *         if (decision == ConsentDecision.GRANTED) measurementSdk.init()
+ *     }
  * }
  * C15t.save(CommitIntent.All)
  * ```
@@ -76,11 +82,64 @@ object C15t {
 	/** Whether [category] may run; false for every optional category until ready. */
 	fun isAllowed(category: ConsentCategory): Boolean = kernel.get()?.isAllowed(category) ?: !category.optional
 
+	/**
+	 * Why [category] is or is not allowed, in the three states a host SDK can act on.
+	 *
+	 * Before [bootstrap] this answers [ConsentDecision.PENDING] for an optional
+	 * category rather than [ConsentDecision.DENIED], which is the whole point of the
+	 * type: an ad SDK that starts ahead of c15t has not been refused, it has not been
+	 * answered, and it has to keep listening. Only a resolved policy plus a subject
+	 * refusal produces `DENIED`.
+	 *
+	 * One read of memory, with no fallback that touches storage. See
+	 * [C15tKernel.decision].
+	 */
+	fun decision(category: ConsentCategory): ConsentDecision = kernel.get()?.decision(category)
+		?: if (category.optional) ConsentDecision.PENDING else ConsentDecision.GRANTED
+
+	/**
+	 * Whether the core has hydrated and the first init has resolved, so a decision is
+	 * an answer rather than a placeholder.
+	 *
+	 * `false` before [bootstrap].
+	 */
+	fun isReady(): Boolean = kernel.get()?.isReady() ?: false
+
 	/** Observe one category's permission, starting immediately. */
 	fun gate(
 		category: ConsentCategory,
 		onChange: (Boolean) -> Unit,
 	): Subscription = kernel.get()?.gate(category, onChange) ?: Subscription { onChange(false) }
+
+	/**
+	 * Observe one category's [ConsentDecision], starting immediately: the contract's
+	 * decision-carrying `gate`.
+	 *
+	 * Fires at registration with the decision as it stands, including one reached long
+	 * before the call, then on every published change; the returned handle cancels.
+	 * Before [bootstrap] there is nothing to observe, so it gives the pre-bootstrap
+	 * answer once, hands back a handle with nothing left to cancel, and goes quiet.
+	 *
+	 * The immediate call is deliberate and not a copy of the boolean [gate]'s shape:
+	 * that one builds its pre-bootstrap answer into the handle, so a host with no
+	 * kernel installed hears nothing until it closes. Registration must never be
+	 * silence, so this answers on the calling thread before it returns.
+	 *
+	 * Named rather than an overload of [gate] because both callback types erase to
+	 * `Function1`, which Kotlin cannot declare as two methods. See
+	 * [C15tKernel.gateDecision].
+	 */
+	fun gateDecision(
+		category: ConsentCategory,
+		onDecision: (ConsentDecision) -> Unit,
+	): Subscription {
+		val active = kernel.get()
+		if (active == null) {
+			onDecision(decision(category))
+			return Subscription {}
+		}
+		return active.gateDecision(category, onDecision)
+	}
 
 	/** Observe every snapshot change, held weakly. */
 	fun onChange(observer: (ConsentSnapshot) -> Unit): Subscription =

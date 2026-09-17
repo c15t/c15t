@@ -297,6 +297,40 @@ data class ConsentSnapshot(
 		return effectivePermissions[category]
 	}
 
+	/**
+	 * Whether this snapshot is in a state that answers for a decision: hydrated, and
+	 * with the first policy resolution folded in.
+	 *
+	 * The two flags stay separate fields because the evaluator and the wire need them
+	 * apart. This is the pair a host SDK reads as one question, and it is computed
+	 * rather than stored so it cannot contradict the flags it comes from.
+	 */
+	val isReady: Boolean
+		get() = ready && !policyPending
+
+	/**
+	 * Why [category] may or may not run, as the three states a native SDK gate
+	 * reports.
+	 *
+	 * Derived from this snapshot and nothing else, so a gate can never disagree with
+	 * the state the UI is showing. [ConsentDecision.PENDING] is what [isReady] false
+	 * answers for every optional category: the device has not been told yet, so the
+	 * `false` in [effectivePermissions] is not a refusal and must not end the wait.
+	 */
+	fun decision(category: ConsentCategory): ConsentDecision {
+		if (!category.optional) {
+			return ConsentDecision.GRANTED
+		}
+		if (!isReady) {
+			return ConsentDecision.PENDING
+		}
+		return if (effectivePermissions[category]) {
+			ConsentDecision.GRANTED
+		} else {
+			ConsentDecision.DENIED
+		}
+	}
+
 	companion object {
 		/** The snapshot a cold start with nothing stored answers with. */
 		fun denyAll(subject: ConsentSubject? = null, now: Long = 0): ConsentSnapshot = ConsentSnapshot(

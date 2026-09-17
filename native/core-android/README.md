@@ -19,19 +19,50 @@ The split is the point. Every decision the SDK makes about consent lives in
 `c15t-core` and is exercised on a plain JVM, so nothing about policy behaviour depends
 on having a device.
 
-`c15t-core` mirrors the Swift API names from the contract: `bootstrap`, `snapshot`,
-`isAllowed`, `gate`, `onChange`, `save`, `dismissNotice`, `refresh`, `identify`,
-`logout`, `setOverrides`, `flushPending`.
+`c15t-core` mirrors the API names from the contract: `bootstrap`, `snapshot`,
+`isAllowed`, `decision`, `isReady`, `gate`, `onChange`, `save`, `dismissNotice`,
+`refresh`, `identify`, `logout`, `setOverrides`, `flushPending`.
+
+One name differs. The contract's decision-carrying `gate` is `gateDecision` here, because
+Kotlin erases `(Boolean) -> Unit` and `(ConsentDecision) -> Unit` to the same `Function1`,
+so the two are not two JVM methods and the overload cannot be declared. The boolean
+`gate` keeps its name and its behaviour: it is what the React Native bridge forwards.
+Swift keeps a single `gate`, where closure types are part of the signature.
 
 ### Hot path
 
-`snapshot()` and `isAllowed()` are a single volatile read of an immutable
-`ConsentSnapshot`: no lock, no disk, no allocation, and the same instance until
-something changes. Ad SDKs call them from the main thread while a save is in flight.
+`snapshot()`, `isAllowed()`, `decision()`, and `isReady()` are a single volatile read of
+an immutable `ConsentSnapshot`: no lock, no disk, no allocation, and the same instance
+until something changes. Ad SDKs call them from the main thread while a save is in
+flight.
 
 Anything unparseable fails closed: `policyPending` true and every optional category
 false. That covers an unreadable policy resolution, an unknown category, a producer on
 another policy contract, and a stored envelope this build cannot decode.
+
+### Native SDK gating
+
+The reason the core is native is that an analytics or advertising SDK initializes before
+the bundle exists and asks whether it may start. `isAllowed` answers `false` both for a
+subject who refused and for a policy that has not resolved, and those need opposite
+handling, so `decision(category)` reports why:
+
+| State | When |
+| --- | --- |
+| `GRANTED` | `necessary`, always. Or `isReady()` and the permission is true. |
+| `DENIED` | `isReady()` and the permission is false. |
+| `PENDING` | Not `isReady()` yet: not hydrated, or the first init has not resolved. |
+
+`gateDecision(category) { decision -> }` is the same answer observed instead of read: it
+fires at registration with the decision as it stands, including one reached long before
+the call, fires again on every published change, and goes quiet when the handle closes.
+`isReady()` means hydrated *and* the first policy resolution folded in.
+
+`PENDING` is not a promise that an answer is coming. A first launch with no network stays
+`PENDING` for the life of the process, which is the safe answer. A host that cannot wait
+that long bounds the wait itself: the core grows no timeout, because whatever number it
+picked would become an answer the policy never gave. Nothing outside the resolved policy
+and the subject's c15t choice moves a category to `GRANTED`.
 
 ## Commands
 
@@ -86,10 +117,13 @@ merely failed.
 
 Unit tests cover the behaviour that would otherwise be checked by hand on a device:
 cold start with an empty store, hydration without a network read, fail-closed on every
-unparseable input, `isAllowed` deny-all while `policyPending`, the queue persisting a
-payload before the request and replaying it unchanged after a failure, a later init not
-rewriting a queued payload, the newest-20 cap, the protocol headers, and the storage
-step-down when the platform key dies.
+unparseable input, `isAllowed` deny-all while `policyPending`, `decision` answering
+`PENDING` rather than `DENIED` for every unresolved state including before `bootstrap`,
+a gate registered after the answer landed still being told that answer, and a refusal
+that does not degrade back to `PENDING` when the network drops. The queue has its own
+coverage: a payload persisted before the request and replayed unchanged after a failure,
+a later init that does not rewrite a queued payload, and the newest-20 cap, alongside the
+protocol headers and the storage step-down when the platform key dies.
 
 Instrumented tests are not part of this phase: no emulator is available in the
 development environment, so `c15t-android` is verified by JVM unit tests plus

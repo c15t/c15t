@@ -2,6 +2,7 @@ package com.c15t.core
 
 import com.c15t.core.model.ActiveUI
 import com.c15t.core.model.ConsentCategory
+import com.c15t.core.model.ConsentDecision
 import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.ConsentSubject
 import com.c15t.core.model.KernelError
@@ -40,9 +41,9 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * One immutable [ConsentSnapshot] is the whole state, held in an
  * [AtomicReference] and replaced on every mutation. That shape is the contract's
- * central performance rule: [snapshot] and [isAllowed] are a single volatile read
- * with no lock, no disk, and no allocation, which is what lets an ad SDK call them
- * from the main thread while a save is in flight.
+ * central performance rule: [snapshot], [isAllowed], [decision], and [isReady] are a
+ * single volatile read with no lock, no disk, and no allocation, which is what lets an
+ * ad SDK call them from the main thread while a save is in flight.
  *
  * Mutation paths hold [mutationLock] only while they compute the next snapshot in
  * memory. Persistence and network always happen after the lock is released.
@@ -207,16 +208,67 @@ class C15tKernel(
 	 *
 	 * The observer is held strongly for as long as the returned handle is open, so
 	 * a caller that keeps only the handle still gets callbacks.
+	 *
+	 * This is the boolean surface the React Native bridge forwards. A host that has to
+	 * tell a refusal apart from an unresolved policy wants [gateDecision] instead.
 	 */
 	fun gate(
 		category: ConsentCategory,
 		onChange: (Boolean) -> Unit,
-	): Subscription {
-		val observer: (ConsentSnapshot) -> Unit = { onChange(it.isAllowed(category)) }
-		strongObservers += observer
-		onChange(state.get().isAllowed(category))
-		return Subscription { strongObservers.remove(observer) }
-	}
+	): Subscription = gateOn(read = { it.isAllowed(category) }, emit = onChange)
+
+	/**
+	 * Call [onDecision] now with the current [ConsentDecision] for [category], then
+	 * again on every published change, with the returned handle cancelling. This is
+	 * the contract's decision-carrying `gate`.
+	 *
+	 * The rules are the boolean [gate]'s, plus the one that matters to a late starter:
+	 * registering never produces silence. An analytics SDK that initializes two
+	 * seconds into the launch, long after the policy resolved, is told at registration
+	 * the decision it would otherwise have had to go and read. A listener that saw
+	 * [ConsentDecision.PENDING] keeps the handle open and hears the answer land, in
+	 * either direction.
+	 *
+	 * "Every published change" means what the boolean gate means: one callback per
+	 * snapshot the core publishes, whichever way the decision moved, so a listener
+	 * registered during a long offline stretch can be told `PENDING` more than once. A
+	 * host that acts on the transition rather than the value keeps its own last
+	 * decision and compares.
+	 *
+	 * It carries a different name rather than being a second `gate` overload because
+	 * Kotlin erases both `(Boolean) -> Unit` and `(ConsentDecision) -> Unit` to
+	 * `Function1`, so two overloads are not two JVM methods: the declaration fails to
+	 * compile, and a Kotlin/Java host could not call either one. The name keeps the
+	 * contract's verb so the two surfaces still read as the same call with a richer
+	 * answer, and Swift keeps a single `gate`, where the closure types are part of the
+	 * signature and the overload does exist.
+	 */
+	fun gateDecision(
+		category: ConsentCategory,
+		onDecision: (ConsentDecision) -> Unit,
+	): Subscription = gateOn(read = { it.decision(category) }, emit = onDecision)
+
+	/**
+	 * Why [category] is or is not allowed, in the three states a host SDK can act on.
+	 *
+	 * The same single-read rule as [snapshot] and [isAllowed]: one read of the
+	 * [AtomicReference], no disk, no network, and no lock that can be held across
+	 * either. Ad SDKs call this from the main thread inside `Application.onCreate`,
+	 * and blocking there is an ANR the store files against the host app.
+	 */
+	fun decision(category: ConsentCategory): ConsentDecision = state.get().decision(category)
+
+	/**
+	 * Whether a decision can be read as an answer: [bootstrap] hydrated a state and
+	 * the first init has resolved a policy the core can represent.
+	 *
+	 * `false` means [decision] answers `PENDING` for every optional category. Like
+	 * [decision] this is one read of memory, and the core adds no timeout to it: a
+	 * device that never reaches the network stays `false` for the life of the
+	 * process, and a number invented here would become an answer the policy never
+	 * gave.
+	 */
+	fun isReady(): Boolean = state.get().isReady
 
 	/** Observe every snapshot change. The lambda is held weakly, per the contract. */
 	fun onChange(observer: (ConsentSnapshot) -> Unit): Subscription {
@@ -615,6 +667,23 @@ class C15tKernel(
 			return emptyMap()
 		}
 		return if (now - choice.actionAt <= policy.choiceMs) choice.consents else emptyMap()
+	}
+
+	/**
+	 * Register [read] against every published snapshot, delivering it through [emit],
+	 * then deliver the current value once.
+	 *
+	 * Both gates share this so the registration, the immediate read, and the
+	 * cancellation cannot drift apart between the boolean and the decision surface.
+	 */
+	private fun <ValueType> gateOn(
+		read: (ConsentSnapshot) -> ValueType,
+		emit: (ValueType) -> Unit,
+	): Subscription {
+		val observer: (ConsentSnapshot) -> Unit = { emit(read(it)) }
+		strongObservers += observer
+		emit(read(state.get()))
+		return Subscription { strongObservers.remove(observer) }
 	}
 
 	private fun publishPure(snapshot: ConsentSnapshot) {

@@ -45,6 +45,8 @@ class ModuleBoundaryTest {
 			"bootstrap",
 			"snapshot",
 			"isAllowed",
+			"decision",
+			"isReady",
 			"gate",
 			"onChange",
 			"save",
