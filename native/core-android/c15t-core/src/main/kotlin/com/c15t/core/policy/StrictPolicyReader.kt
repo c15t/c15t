@@ -109,12 +109,13 @@ object StrictPolicyReader {
 		val prompt = PolicyPrompt.fromWireName(policy.stringOrNull("prompt"))
 			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
 
-		val scope = readCategories(policy["categories"], ALL_OPTIONAL)
+		// The wire key is `scope`; `categories` is a save-body field and never appears here.
+		val scope = readCategories(policy["scope"], ALL_OPTIONAL)
 			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val rawScopeMode = policy.stringOrNull("scopeMode")
 		val scopeMode = when {
-			rawScopeMode == null && (policy["categories"] == null || policy["categories"].isWildcard()) -> ScopeMode.PERMISSIVE
+			rawScopeMode == null && (policy["scope"] == null || policy["scope"].isWildcard()) -> ScopeMode.PERMISSIVE
 			rawScopeMode == null -> return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
 			else -> ScopeMode.fromWireName(rawScopeMode) ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
 		}

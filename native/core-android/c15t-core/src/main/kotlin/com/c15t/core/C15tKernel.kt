@@ -1,5 +1,6 @@
 package com.c15t.core
 
+import com.c15t.core.model.ActiveUI
 import com.c15t.core.model.ConsentCategory
 import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.ConsentSubject
@@ -214,9 +215,15 @@ class C15tKernel(
 		val actionAt = clock.nowMillis()
 		var published: ConsentSnapshot
 		var policy: EvaluationPolicy?
+		// The surface the subject acted on, read before the commit rewrites it.
+		// `uiSource` records where the decision was made, so a save that clears the
+		// prompt must not report "no surface": `buildSubjectPostBody` in `@c15t/core`
+		// reads the pre-commit `activeUI` for the same reason.
+		var surfaceAtAction: ActiveUI? = null
 
 		synchronized(mutationLock) {
 			val current = state.get()
+			surfaceAtAction = current.activeUI
 			policy = evaluationPolicy
 			val intentConsents = intent.consentsByCategory
 			val prior = stillValid(current.explicitChoice, policy, actionAt)
@@ -248,7 +255,7 @@ class C15tKernel(
 			state.set(published)
 		}
 
-		val payload = buildSavePayload(published, policy, intent, actionAt)
+		val payload = buildSavePayload(published, policy, intent, actionAt, surfaceAtAction)
 		val entry = queue.enqueue(payload, actionAt)
 		persist()
 
@@ -512,6 +519,7 @@ class C15tKernel(
 		policy: EvaluationPolicy?,
 		intent: CommitIntent,
 		actionAt: Long,
+		surfaceAtAction: ActiveUI?,
 	): SavePayload {
 		val confirmed = LinkedHashMap<String, Boolean>(intent.consentsByCategory.size)
 		for ((category, value) in intent.consentsByCategory) {
@@ -530,7 +538,7 @@ class C15tKernel(
 			// object is reconstructed from it rather than held separately.
 			user = published.subject?.externalId?.let { KernelUser(externalId = it) },
 			model = published.model,
-			uiSource = published.activeUI,
+			uiSource = surfaceAtAction,
 			consentAction = intent.action,
 			policySnapshotToken = published.policySnapshotToken,
 			decisionInputs = DecisionInputs(

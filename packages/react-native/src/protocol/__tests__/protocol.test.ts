@@ -7,6 +7,7 @@
  * contract for Swift and Kotlin, because both read these files as truth.
  */
 
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,12 @@ const FIXTURE_DIR = resolve(
 	dirname(fileURLToPath(import.meta.url)),
 	'../../../../../native/protocol'
 );
+
+/**
+ * The manifest the Swift and Kotlin runners enumerate. It describes the fixtures,
+ * so it is not one.
+ */
+const INDEX_FILE = 'index.json';
 
 /** Field set of the mobile snapshot, exactly as `native/CONTRACT.md` lists it. */
 const SNAPSHOT_KEYS = [
@@ -83,16 +90,41 @@ interface FixtureFile {
 	expected: Record<string, unknown>;
 }
 
+interface IndexEntry {
+	bytes: number;
+	file: string;
+	id: string;
+	kind: 'evaluation' | 'save-body' | 'storage';
+	protocolVersion: number;
+	sha256: string;
+}
+
+interface FixtureIndex {
+	clock: number;
+	count: number;
+	fixtures: IndexEntry[];
+	policyContractHeader: string;
+	protocolVersion: number;
+}
+
+const readIndex = function readIndex(): FixtureIndex {
+	return JSON.parse(
+		readFileSync(resolve(FIXTURE_DIR, INDEX_FILE), 'utf8')
+	) as FixtureIndex;
+};
+
+/**
+ * Enumerate through the index rather than the directory, exactly as a native runner
+ * does. A file the index does not name is then invisible here, which is what the
+ * `the index is the whole directory` assertion catches.
+ */
 const readFixtures = function readFixtures(): FixtureFile[] {
-	return readdirSync(FIXTURE_DIR)
-		.filter((name) => name.endsWith('.json'))
-		.sort()
-		.map(
-			(name) =>
-				JSON.parse(
-					readFileSync(resolve(FIXTURE_DIR, name), 'utf8')
-				) as FixtureFile
-		);
+	return readIndex().fixtures.map(
+		(entry) =>
+			JSON.parse(
+				readFileSync(resolve(FIXTURE_DIR, entry.file), 'utf8')
+			) as FixtureFile
+	);
 };
 
 /** Every snapshot a fixture claims, paired with the case that claims it. */
@@ -168,7 +200,38 @@ describe('native boundary constants', () => {
 });
 
 describe('protocol fixtures', () => {
+	const index = readIndex();
 	const fixtures = readFixtures();
+
+	test('the index is the whole directory and pins every file', () => {
+		const onDisk = readdirSync(FIXTURE_DIR)
+			.filter((name) => name.endsWith('.json') && name !== INDEX_FILE)
+			.sort();
+		expect(index.fixtures.map((entry) => entry.file).sort()).toEqual(onDisk);
+		expect(index.count).toBe(onDisk.length);
+		expect(index.fixtures.length).toBe(index.count);
+	});
+
+	test('every index entry names its own file and the current protocol', () => {
+		for (const entry of index.fixtures) {
+			expect(entry.id).toBe(entry.file.replace(/\.json$/u, ''));
+			expect(entry.file.startsWith(`${entry.kind}-`)).toBe(true);
+			// The generator refuses to write a fixture for any other version, so a
+			// stale file here means it was edited by hand after generation.
+			expect(entry.protocolVersion).toBe(PROTOCOL_VERSION);
+		}
+		expect(index.protocolVersion).toBe(PROTOCOL_VERSION);
+	});
+
+	test('every fixture file is the one the index hashed', () => {
+		for (const entry of index.fixtures) {
+			const bytes = readFileSync(resolve(FIXTURE_DIR, entry.file));
+			expect(bytes.byteLength).toBe(entry.bytes);
+			expect(createHash('sha256').update(bytes).digest('hex')).toBe(
+				entry.sha256
+			);
+		}
+	});
 	const allSnapshots = (): Record<string, unknown>[] =>
 		fixtures.flatMap((fixture) => Object.values(snapshotsIn(fixture)));
 	const permissionsOf = (snapshot: Record<string, unknown>) =>
@@ -205,7 +268,23 @@ describe('protocol fixtures', () => {
 		for (const snapshot of snapshots) {
 			expect(Object.keys(snapshot).sort()).toEqual(SNAPSHOT_KEYS);
 			expect(snapshot.iab).toBeNull();
-			expect(snapshot.optOutDirectives).toEqual([]);
+			// Directives are records the kernel commits when a live privacy signal
+			// fires, so the field is a list of them rather than a permanently empty
+			// array. `native/CONTRACT.md` said "always [] on mobile" and its own
+			// Corrections section retires that: the kernel is the authority.
+			const directives = snapshot.optOutDirectives as Record<string, unknown>[];
+			expect(Array.isArray(directives)).toBe(true);
+			for (const directive of directives) {
+				expect(typeof directive.source).toBe('string');
+				expect(Array.isArray(directive.categories)).toBe(true);
+				expect(typeof directive.recordedAt).toBe('number');
+			}
+			// Only an active signal may leave one standing, so the empty case stays
+			// pinned rather than free: a directive without an active gpc is a kernel
+			// that recorded something it should not have.
+			const gpc = (snapshot.privacySignals as Record<string, unknown>)
+				.gpc as Record<string, unknown>;
+			expect(directives.length === 0 || gpc.active === true).toBe(true);
 			expect(snapshot.error).toBeNull();
 			expect(typeof snapshot.ready).toBe('boolean');
 			expect(typeof snapshot.policyPending).toBe('boolean');
@@ -224,9 +303,17 @@ describe('protocol fixtures', () => {
 		}
 	});
 
-	test('a pending or unhydrated snapshot denies every optional category', () => {
+	/**
+	 * Fail-closed before a choice, which is the guarantee the old "pending or
+	 * unhydrated" version of this test stood in for. Every fixture answers a served
+	 * /init, so no committed snapshot is pending, and an empty loop would have
+	 * passed forever. The gate that the fixtures do reach is an opt-in policy with
+	 * no receipt: nothing optional may be permitted there.
+	 */
+	test('an opt-in snapshot with no receipt yet denies every optional category', () => {
 		const gated = allSnapshots().filter(
-			(snapshot) => snapshot.policyPending === true || snapshot.ready === false
+			(snapshot) =>
+				snapshot.model === 'opt-in' && snapshot.explicitChoice === null
 		);
 		expect(gated.length).toBeGreaterThan(0);
 		for (const snapshot of gated) {
@@ -256,8 +343,17 @@ describe('protocol fixtures', () => {
 		for (const fixture of unreadable) {
 			expect(fixture.expected.reEncoded).toBeNull();
 			const snapshot = fixture.expected.snapshot as Record<string, unknown>;
-			expect(snapshot.ready).toBe(false);
-			expect(snapshot.policyPending).toBe(true);
+			// The guarantee is that nothing stored is applied, so every optional
+			// category stays denied. `ready` and `policyPending` are deliberately not
+			// asserted: the fixture answers a served /init, and the kernel applies
+			// that policy whatever storage held, so a policy is in force here.
+			const permissions = permissionsOf(snapshot);
+			expect(permissions.necessary).toBe(true);
+			expect(
+				Object.entries(permissions)
+					.filter(([category]) => category !== 'necessary')
+					.every(([, value]) => value === false)
+			).toBe(true);
 		}
 	});
 

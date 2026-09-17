@@ -1,0 +1,133 @@
+{
+	"clock": 1770000000000,
+	"count": 15,
+	"fixtures": [
+		{
+			"bytes": 5981,
+			"file": "evaluation-eu-opt-in.json",
+			"id": "evaluation-eu-opt-in",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "c8f9026f3e57b8d41cdc471764f5ffaf36f0a0c78b8ab0a6140adc88a1f812be"
+		},
+		{
+			"bytes": 5912,
+			"file": "evaluation-us-ccpa-opt-out.json",
+			"id": "evaluation-us-ccpa-opt-out",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "0ed121beb63596abd5576df862acc1c8a8fe8d7e9fcae85c9e4d3d4a6bc68f12"
+		},
+		{
+			"bytes": 4656,
+			"file": "evaluation-no-rule-matched.json",
+			"id": "evaluation-no-rule-matched",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "9fcf9feea63b5c2241ac620fbcd361301fdda6031b094be68f5149aa4bfe2408"
+		},
+		{
+			"bytes": 6163,
+			"file": "evaluation-gpc-signal-present.json",
+			"id": "evaluation-gpc-signal-present",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "929fade96c608f595833b47f1143ae0747ea162375dd2c15f67d926ac36454db"
+		},
+		{
+			"bytes": 5848,
+			"file": "evaluation-notice-pending.json",
+			"id": "evaluation-notice-pending",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "83b68d4ee4292e096b8145a09ec9da366bd058adf1fdeafc0a382077e415972d"
+		},
+		{
+			"bytes": 7922,
+			"file": "evaluation-eu-explicit-grants.json",
+			"id": "evaluation-eu-explicit-grants",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "e91c941911b8fb68f99928e545b85c309a159e270e31d537953d1b790231b6e2"
+		},
+		{
+			"bytes": 7096,
+			"file": "evaluation-eu-partial-denials.json",
+			"id": "evaluation-eu-partial-denials",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "75f16146c79a9fb7c7021e844d24fca83bc42eca8ff6d1974c91ce2581fca431"
+		},
+		{
+			"bytes": 6029,
+			"file": "evaluation-notice-dismissed.json",
+			"id": "evaluation-notice-dismissed",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "b1ce0010937d241078e596b2939dc2302d95460b623026f00ff3c07419f8fa05"
+		},
+		{
+			"bytes": 12939,
+			"file": "save-body-all.json",
+			"id": "save-body-all",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "013a112fc59d45307e1b9d29c79d06b003044738371a164df368797f9282aceb"
+		},
+		{
+			"bytes": 13081,
+			"file": "save-body-necessary.json",
+			"id": "save-body-necessary",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "665c12442ff6ea51011b2fdfa79641fac43dee5484c50d154a219da76f811a1d"
+		},
+		{
+			"bytes": 11572,
+			"file": "save-body-explicit-partial.json",
+			"id": "save-body-explicit-partial",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "f8e288b82b9a591498c02a085a2b3c69a9b09745cf1a434d51fd9ec0cda0be08"
+		},
+		{
+			"bytes": 13363,
+			"file": "save-body-ccpa-gpc.json",
+			"id": "save-body-ccpa-gpc",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "f564d13613e8f10eb98140fc98ae2d9cd31f80079b7b59309479443bc3b97c2d"
+		},
+		{
+			"bytes": 11568,
+			"file": "storage-explicit-grants.json",
+			"id": "storage-explicit-grants",
+			"kind": "storage",
+			"protocolVersion": 1,
+			"sha256": "41a49223db1b6308717c0d55b256892651edae57c21237e7b50202c40ca68af7"
+		},
+		{
+			"bytes": 9505,
+			"file": "storage-partial-denials.json",
+			"id": "storage-partial-denials",
+			"kind": "storage",
+			"protocolVersion": 1,
+			"sha256": "5ba859a1ea2106ac37ec41526ee86eb111cd9b41a4130b6c0fa852b2aee8ddc4"
+		},
+		{
+			"bytes": 7200,
+			"file": "storage-invalid-record.json",
+			"id": "storage-invalid-record",
+			"kind": "storage",
+			"protocolVersion": 1,
+			"sha256": "b5127e3a191ed0ce356a4bc21adf95b3de7c6beb72ff39c620048797f7b1e39d"
+		}
+	],
+	"generatedBy": "packages/react-native/scripts/generate-protocol-fixtures.ts",
+	"kinds": ["evaluation", "save-body", "storage"],
+	"policyContractHeader": {
+		"name": "x-c15t-policy-contract",
+		"value": "1"
+	},
+	"protocolVersion": 1
+}

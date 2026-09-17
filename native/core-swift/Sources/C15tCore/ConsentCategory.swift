@@ -193,3 +193,24 @@ public enum PromptReason: String, Sendable, Codable {
     case expired
     case policyChanged = "policy-changed"
 }
+
+/// A `CodingKey` that carries a consent category name verbatim.
+///
+/// Only needed because `CodingKeyRepresentable` wants a concrete key type; the
+/// name is the wire key, with no integer form.
+public struct CategoryCodingKey: CodingKey, Hashable {
+    public let stringValue: String
+    public var intValue: Int? { nil }
+
+    public init?(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    public init?(intValue: Int) {
+        nil
+    }
+
+    init(_ name: String) {
+        stringValue = name
+    }
+}

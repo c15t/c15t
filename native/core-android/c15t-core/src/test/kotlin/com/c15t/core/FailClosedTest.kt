@@ -54,7 +54,7 @@ class FailClosedTest {
 	@Test
 	fun `an unknown category name in scope fails closed`() {
 		val kernel = bootstrapWith(
-			initBody(categories = """["measurement","something-invented"]"""),
+			initBody(scope = """["measurement","something-invented"]"""),
 		)
 		assertDenyAll(kernel)
 		assertNotNull(kernel.snapshot().error, "the host must be told why nothing is granted")

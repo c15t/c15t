@@ -431,7 +431,24 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         try container.encode(effectivePermissions, forKey: .effectivePermissions)
         try container.encodeIfPresent(explicitChoice, forKey: .explicitChoice)
         try container.encodeIfPresent(consentCategories, forKey: .consentCategories)
-        try container.encode(restrictions, forKey: .restrictions)
+        // `restrictions` is keyed by an enum, and Swift encodes such a dictionary as
+        // one flat array of alternating keys and values. The protocol says an object,
+        // so key it by the category name here or JavaScript cannot read the field.
+        // Sorted so a stored snapshot does not depend on dictionary order.
+        var restrictionsContainer = container.nestedContainer(
+            keyedBy: CategoryCodingKey.self,
+            forKey: .restrictions
+        )
+        for category in OptionalConsentCategory.allCases
+            .sorted { $0.rawValue < $1.rawValue }
+        {
+            if let reasons = restrictions[category] {
+                try restrictionsContainer.encode(
+                    reasons,
+                    forKey: CategoryCodingKey(category.rawValue)
+                )
+            }
+        }
         try container.encode(resolution, forKey: .resolution)
         try container.encodeIfPresent(policySnapshotToken, forKey: .policySnapshotToken)
         try container.encodeIfPresent(subject, forKey: .subject)
@@ -472,10 +489,26 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
             [ConsentCategory].self,
             forKey: .consentCategories
         )
-        restrictions = try container.decode(
-            [OptionalConsentCategory: [RestrictionReason]].self,
+        // Reads the object form `encode(to:)` writes. An older snapshot that still
+        // holds the flat array fails here, and the store treats an unreadable
+        // envelope as nothing stored, which is the deny-all direction.
+        let restrictionKeys = try container.decode(
+            [String: [RestrictionReason]].self,
             forKey: .restrictions
         )
+        var parsedRestrictions: [OptionalConsentCategory: [RestrictionReason]] = [:]
+        for (name, reasons) in restrictionKeys {
+            guard let category = OptionalConsentCategory(rawValue: name) else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: [CategoryCodingKey(name)],
+                        debugDescription: "\(name) is not an optional consent category"
+                    )
+                )
+            }
+            parsedRestrictions[category] = reasons
+        }
+        restrictions = parsedRestrictions
         resolution = try container.decode(PolicyResolutionInfo.self, forKey: .resolution)
         policySnapshotToken = try container.decodeIfPresent(
             String.self,

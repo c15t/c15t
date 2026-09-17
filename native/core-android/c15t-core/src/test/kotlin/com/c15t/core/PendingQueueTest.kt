@@ -113,7 +113,7 @@ class PendingQueueTest {
 				body = initBody(
 					policyId = "eu-standard",
 					model = "\"opt-out\"",
-					categories = """["measurement"]""",
+					scope = """["measurement"]""",
 					scopeMode = "\"strict\"",
 					policySnapshotToken = "token-new",
 					choiceFingerprint = "choice-fp-new",

@@ -169,7 +169,7 @@ class KernelTest {
 		val transport = RecordingTransport().respondInit(
 			initSuccess(
 				body = initBody(
-					categories = """["measurement","marketing"]""",
+					scope = """["measurement","marketing"]""",
 					scopeMode = "\"strict\"",
 					gpcDenyCategories = """["marketing"]""",
 				),
@@ -187,7 +187,7 @@ class KernelTest {
 		assertFalse(kernel.isAllowed(ConsentCategory.MARKETING), "an active GPC signal denies it")
 		assertFalse(kernel.isAllowed(ConsentCategory.FUNCTIONALITY), "outside a strict scope")
 		assertEquals(listOf("gpc"), kernel.snapshot().restrictions["marketing"])
-		assertEquals(listOf("out-of-scope"), kernel.snapshot().restrictions["functionality"])
+		assertEquals(listOf("strict-scope"), kernel.snapshot().restrictions["functionality"])
 	}
 
 	@Test

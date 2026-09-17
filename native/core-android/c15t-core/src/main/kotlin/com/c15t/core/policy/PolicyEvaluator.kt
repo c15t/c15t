@@ -17,7 +17,7 @@ import com.c15t.core.model.PromptRequirement
  */
 object PolicyEvaluator {
 	/** Restriction reason for a category the policy governs outside its scope. */
-	const val RESTRICTION_OUT_OF_SCOPE = "out-of-scope"
+	const val RESTRICTION_STRICT_SCOPE = "strict-scope"
 
 	/** Restriction reason for a category denied by an active GPC signal. */
 	const val RESTRICTION_GPC = "gpc"
@@ -98,7 +98,7 @@ object PolicyEvaluator {
 			} else if (policy.scopeMode == ScopeMode.STRICT) {
 				// A strict scope withholds everything it does not name.
 				allowed = false
-				reasons += RESTRICTION_OUT_OF_SCOPE
+				reasons += RESTRICTION_STRICT_SCOPE
 			} else {
 				// Permissive: the policy simply does not govern this category, so it
 				// follows its model default without a prompt.

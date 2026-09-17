@@ -1,12 +1,6 @@
 {
 	"description": "Germany with only the California rule configured resolves to no-match. The evaluator falls back to the safe opt-in rule, denies every optional category, and still reports a rule the user can be shown.",
 	"expected": {
-		"policyResolution": {
-			"fingerprint": null,
-			"policyId": null,
-			"status": "no-match",
-			"matchedBy": null
-		},
 		"snapshot": {
 			"activeUI": "banner",
 			"consentCategories": null,
@@ -21,21 +15,27 @@
 			"evaluatedAt": 1770000000000,
 			"explicitChoice": null,
 			"iab": null,
-			"location": null,
+			"location": {
+				"countryCode": "DE",
+				"regionCode": "BE"
+			},
 			"model": "opt-in",
 			"nextDeadline": null,
 			"optOutDirectives": [],
 			"overrides": {
 				"country": "DE",
+				"gpc": null,
 				"language": "en",
-				"region": "BE",
-				"test": null
+				"region": "BE"
 			},
 			"policyPending": false,
 			"policySnapshotToken": null,
 			"privacySignals": {
-				"gpc": false,
-				"msa": false
+				"gpc": {
+					"active": false,
+					"detected": false,
+					"override": null
+				}
 			},
 			"promptRequirement": {
 				"kind": "choice",
@@ -48,106 +48,97 @@
 				"status": "no-match"
 			},
 			"restrictions": {},
-			"revision": 0,
+			"revision": 1,
 			"subject": {
-				"subjectId": "sub-nomatch-1"
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c04"
 			},
-			"translations": null
+			"translations": {
+				"language": "en",
+				"translations": {
+					"common": {
+						"acceptAll": "Accept all",
+						"customize": "Customize",
+						"rejectAll": "Reject all",
+						"save": "Save"
+					},
+					"consentManagerDialog": {},
+					"consentTypes": {},
+					"cookieBanner": {},
+					"rights": {}
+				}
+			}
 		}
 	},
 	"id": "evaluation-no-rule-matched",
 	"input": {
-		"geo": {
-			"country": "DE",
-			"region": "BE"
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
 		},
-		"gpc": false,
-		"language": "en",
-		"policyRules": [
-			{
-				"id": "california_opt_out",
-				"match": {
-					"regions": [
-						{
-							"country": "US",
-							"region": "CA"
-						}
-					]
-				},
-				"model": "opt-out",
-				"privacySignals": {
-					"gpc": {
-						"denyCategories": ["marketing", "measurement"]
-					}
-				},
-				"prompt": "none",
-				"proof": {
-					"storeIp": true,
-					"storeLanguage": true,
-					"storeUserAgent": true
-				},
-				"review": {
-					"assumptions": [
-						"The referenced GPC specification is the W3C Working Draft of 11 June 2026, not a final Recommendation.",
-						"A user-enabled GPC signal is honored as an opt-out of sale and sharing; it never creates consent.",
-						"Mapping GPC to marketing and measurement is a conservative product default and must be checked against actual processing purposes. Not all measurement is sale or sharing.",
-						"Removing the browser signal is not a withdrawal of a recorded opt-out.",
-						"No first-layer prompt. Disclosure, preferences and the opt-out right stay reachable without a visible banner.",
-						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
-						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
-						"Equivalent default prominence for accept and reject is a c15t product invariant.",
-						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
-					],
-					"reviewBy": "2026-12-15",
-					"reviewedOn": "2026-09-08",
-					"sources": [
-						"https://oag.ca.gov/privacy/ccpa",
-						"https://www.w3.org/TR/2026/WD-gpc-20260611/"
-					],
-					"status": "reviewed"
-				},
-				"validity": {
-					"choiceDays": 365,
-					"noticeDays": 365
-				},
-				"rights": ["preferences"],
-				"legacyMaterial": {
-					"input": {
-						"consent": {
-							"expiryDays": 365,
-							"gpc": true,
-							"scopeMode": "permissive"
-						},
-						"model": "opt-out",
-						"proof": {
-							"storeIp": true,
-							"storeLanguage": true,
-							"storeUserAgent": true
-						},
-						"ui": {
-							"mode": "none"
-						}
-					},
-					"policyFingerprint": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087"
-				}
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
 			}
-		],
-		"policySnapshotToken": null,
+		},
 		"storedRecords": {
-			"now": 1770000000000,
+			"choice": null,
+			"noticeDismissal": null,
 			"subject": {
-				"subjectId": "sub-nomatch-1"
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c04"
 			}
 		},
-		"user": null,
-		"hydrated": true
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "DE",
+					"regionCode": "BE"
+				},
+				"policyResolution": {
+					"policy": null,
+					"status": "no-match",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				}
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null
 	},
 	"kind": "evaluation",
 	"notes": [
 		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
-		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation, so the pinned numbers are the reference numbering.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
 		"evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.",
-		"error is null in every fixture: no fixture exercises a transport failure.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
 		"Any field this file does not mention must not be invented. Unknown wire values fail closed."
 	],
 	"protocolVersion": 1

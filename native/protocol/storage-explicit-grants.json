@@ -11,7 +11,7 @@
 								"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 								"kind": "choice-v1"
 							},
-							"confirmedAt": 1769999999000,
+							"confirmedAt": 1770000000000,
 							"value": true
 						},
 						"functionality": {
@@ -19,7 +19,7 @@
 								"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 								"kind": "choice-v1"
 							},
-							"confirmedAt": 1769999999000,
+							"confirmedAt": 1770000000000,
 							"value": true
 						},
 						"marketing": {
@@ -27,7 +27,7 @@
 								"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 								"kind": "choice-v1"
 							},
-							"confirmedAt": 1769999999000,
+							"confirmedAt": 1770000000000,
 							"value": true
 						},
 						"measurement": {
@@ -35,18 +35,18 @@
 								"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 								"kind": "choice-v1"
 							},
-							"confirmedAt": 1769999999000,
+							"confirmedAt": 1770000000000,
 							"value": true
 						}
 					},
 					"version": 3
 				},
 				"subject": {
-					"subjectId": "sub-eu-1"
+					"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
 				}
 			}
 		},
-		"reEncoded": "{\"categories\":{\"experience\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true},\"functionality\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true},\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true}},\"subject\":{\"subjectId\":\"sub-eu-1\"},\"version\":3}",
+		"reEncoded": "{\"categories\":{\"experience\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"functionality\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true}},\"subject\":{\"subjectId\":\"6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01\"},\"version\":3}",
 		"snapshot": {
 			"activeUI": "none",
 			"consentCategories": null,
@@ -66,7 +66,7 @@
 							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 							"kind": "choice-v1"
 						},
-						"confirmedAt": 1769999999000,
+						"confirmedAt": 1770000000000,
 						"value": true
 					},
 					"functionality": {
@@ -74,7 +74,7 @@
 							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 							"kind": "choice-v1"
 						},
-						"confirmedAt": 1769999999000,
+						"confirmedAt": 1770000000000,
 						"value": true
 					},
 					"marketing": {
@@ -82,7 +82,7 @@
 							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 							"kind": "choice-v1"
 						},
-						"confirmedAt": 1769999999000,
+						"confirmedAt": 1770000000000,
 						"value": true
 					},
 					"measurement": {
@@ -90,28 +90,34 @@
 							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 							"kind": "choice-v1"
 						},
-						"confirmedAt": 1769999999000,
+						"confirmedAt": 1770000000000,
 						"value": true
 					}
 				},
 				"version": 3
 			},
 			"iab": null,
-			"location": null,
+			"location": {
+				"countryCode": "DE",
+				"regionCode": null
+			},
 			"model": "opt-in",
-			"nextDeadline": 1801535999000,
+			"nextDeadline": 1801536000000,
 			"optOutDirectives": [],
 			"overrides": {
 				"country": "DE",
+				"gpc": null,
 				"language": "en",
-				"region": null,
-				"test": null
+				"region": null
 			},
 			"policyPending": false,
 			"policySnapshotToken": "tok-europe-opt-in",
 			"privacySignals": {
-				"gpc": false,
-				"msa": false
+				"gpc": {
+					"active": false,
+					"detected": false,
+					"override": null
+				}
 			},
 			"promptRequirement": {
 				"kind": "none"
@@ -123,216 +129,181 @@
 				"status": "matched"
 			},
 			"restrictions": {},
-			"revision": 0,
+			"revision": 1,
 			"subject": {
-				"subjectId": "sub-eu-1"
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
 			},
-			"translations": null
+			"translations": {
+				"language": "en",
+				"translations": {
+					"common": {
+						"acceptAll": "Accept all",
+						"customize": "Customize",
+						"rejectAll": "Reject all",
+						"save": "Save"
+					},
+					"consentManagerDialog": {},
+					"consentTypes": {},
+					"cookieBanner": {},
+					"rights": {}
+				}
+			}
 		}
 	},
 	"id": "storage-explicit-grants",
 	"input": {
-		"geo": {
-			"country": "DE",
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
 			"region": null
 		},
-		"gpc": false,
-		"language": "en",
-		"policyRules": [
-			{
-				"id": "europe_opt_in",
-				"match": {
-					"countries": [
-						"AX",
-						"GF",
-						"GP",
-						"MQ",
-						"MF",
-						"RE",
-						"YT",
-						"AT",
-						"BE",
-						"BG",
-						"HR",
-						"CY",
-						"CZ",
-						"DK",
-						"EE",
-						"FI",
-						"FR",
-						"DE",
-						"GR",
-						"HU",
-						"IE",
-						"IT",
-						"LV",
-						"LT",
-						"LU",
-						"MT",
-						"NL",
-						"PL",
-						"PT",
-						"RO",
-						"SK",
-						"SI",
-						"ES",
-						"SE",
-						"IS",
-						"LI",
-						"NO",
-						"GB",
-						"GI"
-					],
-					"fallback": true
-				},
-				"model": "opt-in",
-				"prompt": "choice",
-				"proof": {
-					"storeIp": true,
-					"storeLanguage": true,
-					"storeUserAgent": true
-				},
-				"review": {
-					"assumptions": [
-						"Optional categories stay denied until an explicit choice; consent is never inferred from inactivity.",
-						"Covers consent-requiring processing in the EEA, UK and Gibraltar, including separately geocoded EU territories. National analytics exemptions need separate scoped configurations.",
-						"Used as the geo fallback so an unknown location gets the strictest configured behavior.",
-						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
-						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
-						"Equivalent default prominence for accept and reject is a c15t product invariant.",
-						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
-					],
-					"reviewBy": "2026-12-15",
-					"reviewedOn": "2026-09-08",
-					"sources": [
-						"https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/",
-						"https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf",
-						"https://www.gra.gi/uploads/documents/data-protection/Documents/Guidance/GN28%20Cookies.pdf"
-					],
-					"status": "reviewed"
-				},
-				"validity": {
-					"choiceDays": 365
-				},
-				"legacyMaterial": {
-					"input": {
-						"consent": {
-							"expiryDays": 365,
-							"scopeMode": "permissive"
-						},
-						"model": "opt-in",
-						"proof": {
-							"storeIp": true,
-							"storeLanguage": true,
-							"storeUserAgent": true
-						},
-						"ui": {
-							"banner": {
-								"allowedActions": ["accept", "reject", "customize"],
-								"direction": "row",
-								"layout": [["reject", "accept"], ["customize"]],
-								"primaryActions": ["customize"]
-							},
-							"dialog": {
-								"allowedActions": ["accept", "reject", "customize"],
-								"direction": "row",
-								"layout": [["reject", "accept"], ["customize"]],
-								"primaryActions": ["customize"]
-							},
-							"mode": "banner"
-						}
-					},
-					"policyFingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
-				}
-			},
-			{
-				"id": "california_opt_out",
-				"match": {
-					"regions": [
-						{
-							"country": "US",
-							"region": "CA"
-						}
-					]
-				},
-				"model": "opt-out",
-				"privacySignals": {
-					"gpc": {
-						"denyCategories": ["marketing", "measurement"]
-					}
-				},
-				"prompt": "none",
-				"proof": {
-					"storeIp": true,
-					"storeLanguage": true,
-					"storeUserAgent": true
-				},
-				"review": {
-					"assumptions": [
-						"The referenced GPC specification is the W3C Working Draft of 11 June 2026, not a final Recommendation.",
-						"A user-enabled GPC signal is honored as an opt-out of sale and sharing; it never creates consent.",
-						"Mapping GPC to marketing and measurement is a conservative product default and must be checked against actual processing purposes. Not all measurement is sale or sharing.",
-						"Removing the browser signal is not a withdrawal of a recorded opt-out.",
-						"No first-layer prompt. Disclosure, preferences and the opt-out right stay reachable without a visible banner.",
-						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
-						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
-						"Equivalent default prominence for accept and reject is a c15t product invariant.",
-						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
-					],
-					"reviewBy": "2026-12-15",
-					"reviewedOn": "2026-09-08",
-					"sources": [
-						"https://oag.ca.gov/privacy/ccpa",
-						"https://www.w3.org/TR/2026/WD-gpc-20260611/"
-					],
-					"status": "reviewed"
-				},
-				"validity": {
-					"choiceDays": 365,
-					"noticeDays": 365
-				},
-				"rights": ["preferences"],
-				"legacyMaterial": {
-					"input": {
-						"consent": {
-							"expiryDays": 365,
-							"gpc": true,
-							"scopeMode": "permissive"
-						},
-						"model": "opt-out",
-						"proof": {
-							"storeIp": true,
-							"storeLanguage": true,
-							"storeUserAgent": true
-						},
-						"ui": {
-							"mode": "none"
-						}
-					},
-					"policyFingerprint": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087"
-				}
-			}
-		],
-		"policySnapshotToken": "tok-europe-opt-in",
-		"storedRecords": {
-			"now": 1770000000000,
-			"subject": {
-				"subjectId": "sub-eu-1"
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
 			}
 		},
+		"storedRecords": {
+			"choice": {
+				"categories": {
+					"experience": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"functionality": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"marketing": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"measurement": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					}
+				},
+				"version": 3
+			},
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "DE",
+					"regionCode": null
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+						"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+						"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+						"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": null,
+						"id": "europe_opt_in",
+						"model": "opt-in",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"rights": ["disclosure", "preferences"],
+						"scope": [
+							"experience",
+							"functionality",
+							"marketing",
+							"measurement"
+						],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 31536000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "europe_opt_in",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-europe-opt-in"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
 		"user": null,
-		"storedEnvelope": "{\"categories\":{\"experience\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true},\"functionality\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true},\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1769999999000,\"value\":true}},\"subject\":{\"subjectId\":\"sub-eu-1\"},\"version\":3}"
+		"storedEnvelope": "{\"categories\":{\"experience\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"functionality\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true}},\"subject\":{\"subjectId\":\"6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01\"},\"version\":3}"
 	},
 	"kind": "storage",
 	"notes": [
 		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
-		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation, so the pinned numbers are the reference numbering.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
 		"evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.",
-		"error is null in every fixture: no fixture exercises a transport failure.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
 		"Any field this file does not mention must not be invented. Unknown wire values fail closed.",
 		"storedEnvelope is the exact string read from protected storage. Decoding it must yield expected.decode, and re-encoding that record must produce expected.reEncoded: the same string, with version, subject, and categories in that order and categories in functionality, experience, measurement, marketing order.",
 		"expected.decode.records is what feeds the hydration boundary. Hydration never creates a choice and never re-stamps a confirmation time.",
-		"When decode fails, apply nothing and keep the in-memory records. expected.snapshot is the deny-all pending snapshot, not a guess at what the bytes meant."
+		"storedRecords mirrors the decoded envelope, so a runner can reach the snapshot without a codec of its own. When decode fails, storedRecords is what is left, which is nothing.",
+		"When decode fails, apply nothing and keep the in-memory records. expected.snapshot is the deny-all snapshot, not a guess at what the bytes meant."
 	],
 	"protocolVersion": 1
 }

@@ -315,6 +315,11 @@ public final class ConsentCore: @unchecked Sendable {
                 now: actionAt
             )
 
+            // The surface the subject acted on, read before the commit rewrites it.
+            // `uiSource` records where the decision was made, so a save that clears
+            // the prompt must not report "no surface": `buildSubjectPostBody` reads
+            // the pre-commit `activeUI` for the same reason.
+            let surfaceAtAction = currentSnapshot.activeUI
             let next = currentSnapshot.byApplying { draft in
                 draft.explicitChoice = choice
                 draft.effectivePermissions = evaluation.permissions
@@ -346,7 +351,7 @@ public final class ConsentCore: @unchecked Sendable {
                 overrides: wireOverrides,
                 user: user,
                 model: resolved.policy.model,
-                uiSource: next.activeUI,
+                uiSource: surfaceAtAction,
                 consentAction: action,
                 policySnapshotToken: next.policySnapshotToken,
                 decisionInputs: DecisionInputs(

@@ -176,7 +176,7 @@ fun initBody(
 	policyId: String = "us-ca",
 	model: String = "\"opt-in\"",
 	prompt: String = "\"choice\"",
-	categories: String? = null,
+	scope: String? = null,
 	scopeMode: String? = "\"permissive\"",
 	choiceMs: Long = 30L * 24 * 60 * 60 * 1000,
 	noticeMs: Long = 180L * 24 * 60 * 60 * 1000,
@@ -191,7 +191,7 @@ fun initBody(
 		add("\"id\":\"$policyId\"")
 		add("\"model\":$model")
 		add("\"prompt\":$prompt")
-		categories?.let { add("\"categories\":$it") }
+		scope?.let { add("\"scope\":$it") }
 		scopeMode?.let { add("\"scopeMode\":$it") }
 		add("\"validity\":{\"choiceMs\":$choiceMs,\"noticeMs\":$noticeMs}")
 		gpcDenyCategories?.let { add("\"privacySignals\":{\"gpc\":{\"denyCategories\":$it}}") }

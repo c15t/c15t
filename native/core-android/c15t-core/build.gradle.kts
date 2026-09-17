@@ -16,6 +16,18 @@ dependencies {
 	testImplementation(libs.kotlin.test)
 }
 
+// The conformance suite prints the fixture files it opened, one per line, so a CI
+// log names the fixtures that were checked instead of only a count. Failures print
+// their diff, and a skipped fixture says which task owns the fix.
+tasks.withType<Test>().configureEach {
+	testLogging {
+		events("failed", "skipped")
+		exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+		showExceptions = true
+		showStandardStreams = true
+	}
+}
+
 // The benchmark lives in its own source set so it never ships in the library
 // artifact and cannot be reached from a host app's classpath.
 val benchSource = sourceSets.create("bench")
