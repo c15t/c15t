@@ -6,6 +6,7 @@ const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
 const SPECIFIER_REGEXES = [
 	/(?<capture1>from\s+['"])(?<capture2>[^'"]+)(?<capture3>['"])/gu,
 	/(?<capture1>import\(\s*['"])(?<capture2>[^'"]+)(?<capture3>['"]\s*\))/gu,
+	/(?<capture1>\bimport\s*['"])(?<capture2>[^'"]+)(?<capture3>['"])/gu,
 ];
 
 const discoverPackageTargets = async function discoverPackageTargets() {
@@ -112,12 +113,8 @@ const toExplicitRelativeSpecifier = function toExplicitRelativeSpecifier(
 		relativePath = `./${relativePath}`;
 	}
 
-	if (relativePath.endsWith('/index.d.ts')) {
-		return relativePath.slice(0, -'/index.d.ts'.length);
-	}
-
 	if (relativePath.endsWith('.d.ts')) {
-		return relativePath.slice(0, -'.d.ts'.length);
+		return `${relativePath.slice(0, -'.d.ts'.length)}.js`;
 	}
 
 	return relativePath;
@@ -162,7 +159,7 @@ const resolveDeclarationTarget = async function resolveDeclarationTarget(
 	const resolvedBasePath = path.resolve(path.dirname(fromFilePath), specifier);
 	const candidatePaths = [
 		resolvedBasePath,
-		`${resolvedBasePath}.d.ts`,
+		`${resolvedBasePath.replace(/\.js$/u, '')}.d.ts`,
 		path.join(resolvedBasePath, 'index.d.ts'),
 	];
 
