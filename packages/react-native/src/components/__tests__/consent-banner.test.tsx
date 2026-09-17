@@ -348,8 +348,12 @@ describe('banner action row', () => {
 
 		const style = nodeStyle(customize);
 
-		expect(style.flexGrow).toBe(1);
-		expect(style.flexBasis).toBe(0);
+		// The action on a row of its own fills it because the footer's column
+		// stretches its children, not because it grows. A zero flex basis inside
+		// that column resolves as a height of nothing, which is how a save action
+		// came to draw as an empty outline with its label painted underneath it.
+		expect(style.flexGrow ?? 0).toBe(0);
+		expect(style.flexBasis ?? 'auto').toBe('auto');
 		expect(touchHeight(customize)).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
 
 		tree.unmount();

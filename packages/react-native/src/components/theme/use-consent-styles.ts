@@ -73,6 +73,19 @@ const LARGE_TEXT_SCALE = 1.6;
 /** Below this, a body cannot hold a heading and one row at all. */
 const MIN_BODY_HEIGHT = 148;
 
+/**
+ * The height of the "Secured by c15t" tab, which shares the wrapper a card is
+ * mounted in rather than the card itself.
+ *
+ * `min-height: 1.75rem` on `.brandingTag`. It has to come off the height a card
+ * is allowed, or the wrapper the two share is taller than the overlay that
+ * centres it and the card is pushed off the top of the screen.
+ */
+const BRANDING_TAG_HEIGHT = 28;
+
+/** The grab handle above a bottom sheet, from the `handle` part. */
+const SHEET_HANDLE_HEIGHT = 4;
+
 /** Flatten a `StyleProp` the way `StyleSheet.flatten` would, without the call. */
 const flatten = function flatten(
 	style: StyleProp<ViewStyle | TextStyle>
@@ -374,7 +387,24 @@ export const useConsentStyles = function useConsentStyles(
 		// sheet and the banner stay on 16, which is what they were measured at. The
 		// card itself pads nothing: each band carries its own, the way the web's
 		// header, content, and footer do, so the footer rule runs edge to edge.
+		const centered = presentation === 'dialog';
 		const cardPadding = presentation === 'dialog' ? spacing.l : spacing.m;
+
+		// The tallest a card may stand. The overlay centres what it is given, so a
+		// card that resolves taller than the space between the gutters is not
+		// clipped, it is pushed up: measured on a 411x914 device, a card whose only
+		// bound was its content came back 1090 tall and painted its heading over the
+		// status bar clock. A cap is also what the web card has -- 370x499 inside an
+		// 872 viewport, with the list scrolling under a header and a footer that stay
+		// put -- and the tab the card shares its wrapper with has to come off the
+		// allowance, or the wrapper overflows by exactly those 28.
+		const cardMaxHeight = Math.max(
+			MIN_BODY_HEIGHT,
+			safeHeight -
+				(centered ? gutter * 2 : gutter) -
+				BRANDING_TAG_HEIGHT -
+				(presentation === 'sheet' ? SHEET_HANDLE_HEIGHT : 0)
+		);
 
 		const bannerLayer: ViewStyle = {
 			bottom: safeArea.bottom,
@@ -393,7 +423,6 @@ export const useConsentStyles = function useConsentStyles(
 		// pushed to its bottom edge, which is what the web root does: pad 16 all
 		// round and centre. A notch is against that gutter rather than added to it,
 		// because a card 448 wide at most has no reason to slide under one.
-		const centered = presentation === 'dialog';
 		const sideGutter = Math.max(gutter, safeArea.left, safeArea.right);
 
 		const sheetLayer: ViewStyle = {
@@ -435,7 +464,7 @@ export const useConsentStyles = function useConsentStyles(
 				boxShadow: TAG_SHADOW,
 				flexDirection: 'row',
 				gap: 6,
-				minHeight: 28,
+				minHeight: BRANDING_TAG_HEIGHT,
 				paddingBottom: TAG_PADDING_VERTICAL,
 				paddingHorizontal: 10,
 				paddingTop: TAG_PADDING_VERTICAL,
@@ -565,9 +594,6 @@ export const useConsentStyles = function useConsentStyles(
 				borderRadius: radius.control,
 				borderWidth: HAIRLINE + 1,
 				boxShadow: SHADOW_SM,
-				flexBasis: 0,
-				flexGrow: 1,
-				flexShrink: 1,
 				justifyContent: 'center',
 				paddingHorizontal: BUTTON_PADDING_HORIZONTAL - HAIRLINE,
 				paddingVertical: BUTTON_PADDING_VERTICAL - HAIRLINE,
@@ -597,9 +623,6 @@ export const useConsentStyles = function useConsentStyles(
 				borderRadius: radius.control,
 				borderWidth: HAIRLINE,
 				boxShadow: SHADOW_SM,
-				flexBasis: 0,
-				flexGrow: 1,
-				flexShrink: 1,
 				justifyContent: 'center',
 				paddingHorizontal: BUTTON_PADDING_HORIZONTAL,
 				paddingVertical: BUTTON_PADDING_VERTICAL,
@@ -618,6 +641,7 @@ export const useConsentStyles = function useConsentStyles(
 				borderWidth: presentation === 'dialog' ? HAIRLINE : 0,
 				boxShadow: presentation === 'dialog' ? SHADOW_SM : undefined,
 				flexDirection: 'column',
+				maxHeight: cardMaxHeight,
 				maxWidth: presentation === 'dialog' ? DIALOG_MAX_WIDTH : undefined,
 				overflow: 'hidden',
 			},
@@ -666,6 +690,7 @@ export const useConsentStyles = function useConsentStyles(
 		presentation,
 		resolvedTheme,
 		safeArea,
+		safeHeight,
 		scaled,
 		scheme,
 		styles,

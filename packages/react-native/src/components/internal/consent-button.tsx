@@ -14,6 +14,22 @@ import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
 import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
 
+/**
+ * The share of a row a control takes when it sits in one.
+ *
+ * Two decisions side by side have to be the same width, which is a `1fr 1fr`
+ * track on web and `flex-grow` over a zero basis here. It belongs on the row's
+ * children and nowhere else: in the footer's own column the same pair of
+ * properties makes `flex-basis: 0` the button's height, which is what left a
+ * save action 18pt tall with no room for its label, and the grow left of it
+ * feeds back into the card's own measure.
+ */
+export const CONSENT_BUTTON_ROW_ITEM: ViewStyle = {
+	flexBasis: 0,
+	flexGrow: 1,
+	flexShrink: 1,
+};
+
 /** How a button is dressed. */
 export type ConsentButtonKind = 'link' | 'primary' | 'secondary';
 

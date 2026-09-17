@@ -19,7 +19,10 @@ import {
 	selectConsentCategoryRows,
 	useCategorySelection,
 } from './internal/categories';
-import { ConsentButton } from './internal/consent-button';
+import {
+	CONSENT_BUTTON_ROW_ITEM,
+	ConsentButton,
+} from './internal/consent-button';
 import { ConsentCategoryRow } from './internal/consent-category-row';
 import {
 	ConsentSurface,
@@ -195,6 +198,7 @@ const ConsentPreferencesContent = ({
 							void decide('reject');
 						}}
 						parts={parts}
+						style={CONSENT_BUTTON_ROW_ITEM}
 					/>
 					<ConsentButton
 						disabled={busy}
@@ -204,6 +208,7 @@ const ConsentPreferencesContent = ({
 							void decide('accept');
 						}}
 						parts={parts}
+						style={CONSENT_BUTTON_ROW_ITEM}
 					/>
 				</View>
 				<ConsentButton

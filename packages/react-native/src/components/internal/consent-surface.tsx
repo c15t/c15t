@@ -19,7 +19,7 @@
  * and a full-screen sheet keep its heading below the clock from one source.
  */
 
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
 	Animated,
@@ -122,17 +122,48 @@ export const ConsentSurfaceBody = ({
 	children,
 }: ConsentSurfaceSlotProps): ReactNode => {
 	const { maxBodyHeight, parts } = useConsentSurfaceFrame();
+	// What the list asks for, as the list itself reports it. Nothing above this
+	// point can know it: the card is content-sized, and a scroll view that is
+	// asked to size itself reports something other than what it draws.
+	const [contentHeight, setContentHeight] = useState(0);
+	// Only a list that cannot fit gets a scroll container. Web does the same
+	// thing in CSS -- the dialog's content scrolls past a maximum height and is
+	// just a box below it -- and on React Native the difference is not cosmetic:
+	// a scroll view that never scrolls still takes part in measuring the card,
+	// which came back 135pt taller than its own bands on a 411x914 device and
+	// left that much empty card under the last action.
+	const scrolling = contentHeight > maxBodyHeight;
+	// Before the first layout pass there is nothing to size from, and the list is
+	// left to its own height for that frame.
+	let bodyHeight: number | undefined;
+
+	if (contentHeight > 0) {
+		bodyHeight = scrolling ? maxBodyHeight : contentHeight;
+	}
 
 	return (
 		<ScrollView
 			keyboardShouldPersistTaps="handled"
-			style={[parts.scroll, { maxHeight: maxBodyHeight }]}
+			scrollEnabled={scrolling}
+			style={[parts.scroll, { height: bodyHeight }]}
 		>
 			{/*
-			 * A plain wrapper rather than `contentContainerStyle`, so the list's own
-			 * rhythm is a restylable part the way every other rhythm here is.
+			 * The wrapper doubles as the measure. It is a plain `View` rather than
+			 * `contentContainerStyle` so the list's own rhythm stays a restylable
+			 * part the way every other rhythm here is, and its height is the list.
 			 */}
-			<View style={parts.scrollContent}>{children}</View>
+			<View
+				onLayout={(event) => {
+					const next = Math.round(event.nativeEvent.layout.height);
+
+					// Returning the same number bails out of the render, so a layout
+					// pass over an unchanged list cannot ping-pong the surface.
+					setContentHeight((previous) => (previous === next ? previous : next));
+				}}
+				style={parts.scrollContent}
+			>
+				{children}
+			</View>
 		</ScrollView>
 	);
 };

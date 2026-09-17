@@ -18,7 +18,10 @@ import { useConsentStatus } from '../hooks/use-consent-status';
 import { isStatusPromptOwed } from '../lib/selectors';
 import { ConsentDialog } from './consent-dialog';
 import { ConsentBrandingTag } from './internal/branding-tag';
-import { ConsentButton } from './internal/consent-button';
+import {
+	CONSENT_BUTTON_ROW_ITEM,
+	ConsentButton,
+} from './internal/consent-button';
 import {
 	ConsentSurface,
 	ConsentSurfaceBody,
@@ -142,12 +145,14 @@ export const ConsentBanner = ({
 									actions.dismissNotice();
 								}}
 								parts={parts}
+								style={CONSENT_BUTTON_ROW_ITEM}
 							/>
 							<ConsentButton
 								kind="secondary"
 								label={copy.customize}
 								onPress={customize}
 								parts={parts}
+								style={CONSENT_BUTTON_ROW_ITEM}
 							/>
 						</View>
 					) : (
@@ -169,6 +174,7 @@ export const ConsentBanner = ({
 										void actions.rejectAll();
 									}}
 									parts={parts}
+									style={CONSENT_BUTTON_ROW_ITEM}
 								/>
 								<ConsentButton
 									kind="secondary"
@@ -177,6 +183,7 @@ export const ConsentBanner = ({
 										void actions.acceptAll();
 									}}
 									parts={parts}
+									style={CONSENT_BUTTON_ROW_ITEM}
 								/>
 							</View>
 							<ConsentButton
