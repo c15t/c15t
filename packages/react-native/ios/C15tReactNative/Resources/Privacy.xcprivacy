@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Privacy manifest for the C15tReactNative binary.
+
+  The consent core reads and writes its own Keychain items and, when a host app
+  opts into the file store, files it owns. It uses no API in Apple's
+  required-reason list: Keychain Services, FileManager, and URLSession are not
+  required-reason APIs, and this binary never touches UserDefaults.
+
+  The manifest stays empty for tracking and collection on purpose. Consent
+  receipts are collected data, but which categories a given integration records
+  is the integrator's configuration, not this binary's, so the App Privacy report
+  belongs to the app that owns those records. See ios/README.md.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>

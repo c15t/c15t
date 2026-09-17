@@ -104,6 +104,9 @@ public final class ConsentCore: @unchecked Sendable {
     /// Highest revision already written to the store, so a slow write of an older
     /// envelope cannot land on top of a newer one.
     private var persistedRevision = 0
+    /// Whether the last ``hydrate()`` found an envelope on disk. Backs
+    /// ``hasStoredSnapshot``, which a binding layer reports in its handshake.
+    private var restoredFromStore = false
     private var inFlightWork = 0
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
     /// Strong holds on per-category gate subscriptions, keyed by identity. The
@@ -152,6 +155,32 @@ public final class ConsentCore: @unchecked Sendable {
     /// Whether ``bootstrap(_:)`` has taken effect.
     public var isBootstrapped: Bool {
         lock.withLock { bootstrapped }
+    }
+
+    /// The overrides in force, whether or not a policy has resolved.
+    ///
+    /// A binding layer merges a partial override document against this rather than
+    /// against ``ConsentSnapshot/overrides``, because the snapshot only carries the
+    /// context a policy was evaluated against: while ``ConsentSnapshot/policyPending``
+    /// is set, nothing has been evaluated, and merging against a snapshot that has not
+    /// caught up would drop the values an earlier call set.
+    public var currentOverrides: ConsentOverrides {
+        lock.withLock { overrides }
+    }
+
+    /// Whether consent state exists on disk: either hydration restored an envelope
+    /// or this session has persisted one since.
+    ///
+    /// A binding layer reports this in its handshake so JavaScript can tell "cold
+    /// install, nothing stored" apart from "returning user, cached consent", which
+    /// is the difference between showing a banner at first frame and waiting for the
+    /// network to say the same thing. Reads stay synchronous either way.
+    ///
+    /// Deliberately not the same as ``ConsentSnapshot/ready``: `ready` says hydration
+    /// completed against a store, and stays `false` for the whole session after a
+    /// cold hydrate even once the first save has been written.
+    public var hasStoredSnapshot: Bool {
+        lock.withLock { restoredFromStore || persistedRevision > 0 }
     }
 
     // MARK: - Reads
@@ -538,6 +567,7 @@ public final class ConsentCore: @unchecked Sendable {
 
         let restored = lock.withLock { () -> ConsentSnapshot in
             self.identity = identity
+            self.restoredFromStore = envelope != nil
 
             var draft = ConsentSnapshot.Draft(current: envelope?.snapshot ?? .coldStart)
             draft.subject = identity.snapshot(externalId: self.user?.externalId)
