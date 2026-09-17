@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { Pressable, Text } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
+import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
 import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
 
 /** How a button is dressed. */
@@ -34,6 +35,32 @@ const LABEL_PART: Record<
 	link: 'captionLink',
 	primary: 'primaryLabel',
 	secondary: 'secondaryLabel',
+};
+
+/**
+ * What a kind needs that its theme part cannot carry.
+ *
+ * `captionLink` is both the container and the label of a link, so anything that is
+ * true of a box but wrong for a run of text has to live here rather than in the
+ * part: a `minHeight` on the label would lengthen the text, and `alignItems` on it
+ * would do nothing. The link reads as plain text, so it is the one control that
+ * stops short of a tap target when nothing stretches it.
+ *
+ * This is also why `Customize` used to ride above `Reject All` instead of beside it.
+ * The actions row stretches its items, so the link's box grew to the row's height
+ * while its label stayed at the top of that box. Centring the content puts the label
+ * on the same middle line as the button it shares a row with, and costs nothing when
+ * the link wraps onto a line of its own.
+ */
+const CONTAINER_EXTRA: Record<ConsentButtonKind, ViewStyle> = {
+	link: {
+		alignItems: 'center',
+		flexShrink: 0,
+		justifyContent: 'center',
+		minHeight: MIN_TAP_TARGET,
+	},
+	primary: {},
+	secondary: {},
 };
 
 /** Props for {@link ConsentButton}. */
@@ -93,7 +120,7 @@ export const ConsentButton = ({
 		accessibilityState={{ disabled }}
 		disabled={disabled}
 		onPress={onPress}
-		style={[parts[CONTAINER_PART[kind]], style]}
+		style={[parts[CONTAINER_PART[kind]], CONTAINER_EXTRA[kind], style]}
 	>
 		<Text style={parts[LABEL_PART[kind]]}>{label}</Text>
 	</Pressable>

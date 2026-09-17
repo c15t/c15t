@@ -255,13 +255,16 @@ const flattenStyle = function flattenStyle(
  * what the stand-in does not model.
  */
 const RECORDED_STYLE_KEYS = [
+	'alignItems',
 	'backgroundColor',
 	'bottom',
 	'color',
 	'flex',
 	'flexDirection',
+	'flexShrink',
 	'fontWeight',
 	'gap',
+	'justifyContent',
 	'left',
 	'marginTop',
 	'maxHeight',

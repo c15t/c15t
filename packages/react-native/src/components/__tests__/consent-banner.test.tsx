@@ -15,6 +15,7 @@ import {
 } from '../../__tests__/helpers/react-native-stub';
 import { resetConsentClient } from '../../native/client';
 import { ConsentBanner } from '../consent-banner';
+import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
 import {
 	CONTROL_ROLES,
 	mountSurface,
@@ -290,6 +291,39 @@ describe('ConsentBanner', () => {
 		}
 
 		expect(uiState.announcements).toContain('Deine Privatsphaere');
+
+		tree.unmount();
+	});
+});
+
+describe('banner action row', () => {
+	// The Customize link is a run of text, so it is the one control in the row with no
+	// background to size it. The row stretches its items, which grew the link's box to
+	// the row's height and left the label at the top of it: on a real device Customize
+	// rode above Reject All rather than beside it, and wrapped onto a line of its own
+	// the tap area fell under the floor the theme enforces everywhere else.
+	test('centres the link on the row it shares with a button', () => {
+		const tree = mountSurface(<ConsentBanner />);
+		const link = nodeStyle(requireRole(tree.container(), 'link', 'Auswahlen'));
+
+		expect(link.justifyContent).toBe('center');
+		expect(link.alignItems).toBe('center');
+		expect(link.flexShrink).toBe(0);
+		expect(link.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+
+		tree.unmount();
+	});
+
+	// The two real buttons own their vertical centreing through their part styles, so a
+	// fix aimed at the link must not leak into them.
+	test('leaves the button kinds to their part styles', () => {
+		const tree = mountSurface(<ConsentBanner />);
+		const accept = nodeStyle(
+			requireRole(tree.container(), 'button', 'Alle akzeptieren')
+		);
+
+		expect(accept.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		expect(accept.flexShrink).toBeNull();
 
 		tree.unmount();
 	});
