@@ -41,9 +41,14 @@ const ROW_ORDER: readonly AllConsentNames[] = [
 /**
  * Which categories to list.
  *
- * `consentCategories` narrows the scope when the app declared one. A name the
- * core does not recognise is dropped rather than rendered, because a row it will
- * not accept is a row that cannot be honoured.
+ * The native core decides the list the surfaces render: `necessary`, then the
+ * resolved policy scope narrowed by the app's declared scope, which is the same
+ * set the web dialog derives from the policy. This function only puts those
+ * names in display order and drops any the vocabulary does not know, because a
+ * row it will not accept is a row that cannot be honoured. A snapshot from a
+ * core with no configuration yet carries `null`, where the full vocabulary is
+ * the safe reading: it is what the core itself falls back to before any policy
+ * resolves.
  *
  * @param snapshot - Snapshot to read.
  * @returns Categories in display order.
@@ -51,13 +56,13 @@ const ROW_ORDER: readonly AllConsentNames[] = [
 const scopeFor = function scopeFor(
 	snapshot: ConsentSnapshot
 ): readonly AllConsentNames[] {
-	const declared = snapshot.consentCategories;
+	const decided = snapshot.consentCategories;
 
-	if (declared === null || declared.length === 0) {
+	if (decided === null || decided.length === 0) {
 		return ROW_ORDER;
 	}
 
-	return ROW_ORDER.filter((category) => declared.includes(category));
+	return ROW_ORDER.filter((category) => decided.includes(category));
 };
 
 /**

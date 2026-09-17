@@ -142,8 +142,8 @@ final class ResetTests: XCTestCase {
         XCTAssertEqual(after.overrides.language, "de")
         XCTAssertEqual(
             after.consentCategories,
-            [ConsentCategory.marketing],
-            "the host's category scope survives the wipe"
+            [.necessary, .marketing],
+            "the host's category scope survives the wipe; the list is recomputed against the fallback rule, since the policy that narrowed it is gone"
         )
     }
 

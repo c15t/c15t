@@ -113,7 +113,13 @@ export interface ConsentSnapshot {
 	readonly effectivePermissions: ConsentState;
 	/** Latest per-category receipts. Only accept, reject and save write it. */
 	readonly explicitChoice: ExplicitChoice | null;
-	/** Categories in play. `null` uses the full policy scope. */
+	/**
+	 * Categories the consent surfaces list: `necessary` first, then the categories
+	 * of the resolved policy scope the app's declared scope survives. The native
+	 * core decides this list the way the web dialog decides its own, so a name the
+	 * policy does not govern is never rendered. `null` only while no configuration
+	 * has been installed, where the UI lists every category it knows.
+	 */
 	readonly consentCategories: readonly AllConsentNames[] | null;
 	/** Categories denied regardless of grants, with the reason. */
 	readonly restrictions: Partial<
