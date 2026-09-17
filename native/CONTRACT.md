@@ -37,7 +37,8 @@ Rules that hold everywhere
    resolution serves `policyPending: true` with every optional category denied,
    and never invents a permission.
 6. Never read or write IDFV, ADID, or any persistent device identifier for
-   identity. The subject id is a generated UUID owned by c15t.
+   identity. The subject id is a c15t-generated `sub_` identifier, described under
+   Subject identity.
 
 State model
 -----------
@@ -250,10 +251,39 @@ Writes go through a pending queue:
 Subject identity
 ----------------
 
-Generate a UUID v4 at first launch, store it in the same protected storage as the
-records, and send it as the subject id. Do not derive it from any hardware
+Generate the subject id at first launch, store it in the same protected storage as
+the records, and send it as the subject id. Do not derive it from any hardware
 identifier. If the app is reinstalled, the store is gone and the subject starts
 fresh, which matches the web SDK when storage is cleared.
+
+The format is the one the backend validates, so a core that invents its own gets
+every save rejected: `packages/schema/src/api/subject/post.ts` requires
+`^sub_[1-9A-HJ-NP-Za-km-z]+$`. Build it as
+`packages/core/src/libs/generate-subject-id.ts` does, byte for byte, because the
+web SDK and both native cores have to produce ids a server cannot tell apart:
+
+- 20 bytes: the big-endian signed 64-bit count of milliseconds since
+  `1_700_000_000_000`, then 12 cryptographically random bytes. The offset may be
+  negative on a clock set before the epoch, and is encoded as two's complement
+  like any other signed value.
+- Base58 over all 20 bytes with the Bitcoin alphabet
+  `123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz`, one `1` prepended
+  per leading zero byte.
+- The `sub_` prefix.
+
+A queued payload carries the id that produced it, so a subject id never changes to
+fit a payload or a policy. A core reads back whatever it stored, in whatever
+format it was written, and does not mint a second identity for a payload it cannot
+parse.
+
+The encoding is pinned by a table of eight vectors -- twelve random bytes, a wall
+clock reading, and the id -- asserted identically in three places:
+`packages/core/src/libs/__tests__/generate-subject-id.vectors.test.ts`,
+`native/core-android/.../SubjectIdGeneratorTest.kt`, and
+`native/core-swift/Tests/C15tCoreTests/SubjectIdTests.swift`. The clock column is
+the reading the generator is pinned to, not the offset it encodes; the epoch is
+subtracted inside, as the web SDK subtracts it from `Date.now()`. Add a row to all
+three at once.
 
 React Native boundary
 ---------------------
@@ -391,7 +421,9 @@ invented. Every fixture carries `now` (the fixed clock every side must use),
 `policyRules`), the `storedRecords` protected storage holds at start, the device's
 `overrides` and `privacySignals`, and `user`. A `save-body-*` input adds the
 `intent`. Nothing is derived from a random value: the subject id is always
-supplied, and it is a UUID v4 because the Swift core refuses any other identity.
+supplied, so no fixture depends on a CSPRNG. The fixtures carry a UUID v4, the
+shape an install minted before this format existed, which every core still has to
+hydrate. An id a device mints itself uses the base58 shape under "Subject identity".
 
 An `expected` is what the kernel produced for that input. It is not hand-written,
 with the single exception named in "The stored envelope". `evaluation-*` pin
@@ -472,7 +504,7 @@ Kotlin core, as built
   acknowledged without network 102 us. `./gradlew :c15t-core:bench` reproduces them.
 - Losing the keystore key keeps the subject id. It lives in its own plain
   `c15t.subject` preference file, outside the encrypted records, because it is a
-  random UUID and carries nothing sensitive. `SubjectPreservingStore` routes it
+  random identifier the SDK owns and carries nothing sensitive. `SubjectPreservingStore` routes it
   there and migrates installs that had it encrypted, once and idempotently. When
   a key dies, `ResilientKeyValueStore` deletes the blobs it can no longer open,
   warns once, and serves deny-all with `policyPending: true`. The SPI exposes
