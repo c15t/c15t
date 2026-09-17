@@ -20,6 +20,7 @@ import com.c15t.core.transport.C15tTransport
 import com.c15t.core.transport.HostedTransport
 import com.c15t.core.transport.SaveOutcome
 import com.c15t.core.transport.TransportOutcome
+import com.c15t.core.wire.SnapshotWire
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -69,6 +70,75 @@ class ProtocolFixtureTest {
 
 	/** Observed differences, accumulated per fixture and judged once per index. */
 	private val recorded = LinkedHashMap<String, MutableList<Diff>>()
+
+	/**
+	 * The rule `native/CONTRACT.md` states, enforced on the excuse list itself.
+	 *
+	 * A wire key name is not something a build may differ about. The snapshot crosses to
+	 * JavaScript as a JSON string, so a renamed key fails no type check, no compile, and
+	 * no test on the receiving side: the app reads `undefined` and the consent screen
+	 * prints an empty subject. Four keys drifted exactly that way here, each one sitting
+	 * behind a row of the kind this rejects.
+	 *
+	 * A row is still free to name `activeUI`, `nextDeadline`, or `revision` until the
+	 * core agrees with the kernel -- those are behaviour, they are visible to whoever
+	 * owns the task, and the runner fails on anything they do not cover. Inside the four
+	 * objects the kernel owns the spelling of, nothing is covered.
+	 *
+	 * This reads [ledger] rather than [LEDGER] so `FIXTURE_LEDGER=off`, which exists to
+	 * prove the runner can fail, cannot blind it, and it checks itself against a planted
+	 * row so it cannot pass by having forgotten how to match.
+	 */
+	@Test
+	fun `no accepted differences row names a kernel owned key`() {
+		val offenders = kernelOwnedRows(ledger())
+		assertTrue(
+			offenders.isEmpty(),
+			"LEDGER carries ${offenders.size} row(s) inside an object the kernel owns the key names of:\n" +
+				offenders.joinToString("\n") { "  $it" } +
+				"\nA wire key name is not an accepted difference. [SnapshotWire] is where a Kotlin spelling " +
+				"becomes the kernel's; the core's own names stay in the stored envelope.",
+		)
+
+		val planted = kernelOwnedRows(
+			listOf(
+				Divergence("a-fixture", "expected.snapshot.subject.id", "the core keys it id"),
+				Divergence("a-fixture", "expected.snapshot.explicitChoice*", "the core carries consents"),
+				Divergence("a-fixture", "expected.snapshotAfter.location.country", "the core keys it country"),
+				Divergence("a-fixture", "expected.snapshot.promptRequirement", "a triple, not kind/reason"),
+			),
+		)
+		assertEquals(
+			4,
+			planted.size,
+			"the guard stopped matching accepted-differences rows that name a kernel-owned key, " +
+				"which makes it a guard in name only",
+		)
+	}
+
+	/**
+	 * Name every row in [rows] that reaches into an object the kernel owns the spelling
+	 * of, including one that stops at the object with a trailing wildcard.
+	 */
+	private fun kernelOwnedRows(rows: List<Divergence>): List<String> {
+		val retiredNames = SnapshotWire.RETIRED_WIRE_OBJECT_KEYS
+		return rows.mapNotNull { row ->
+			val segments = row.path.removeSuffix("*").split('.', '[', ']')
+			val index = segments.indexOfFirst { SnapshotWire.KERNEL_OBJECT_KEYS.containsKey(it) }
+			if (index < 0) {
+				return@mapNotNull null
+			}
+			val owned = segments[index]
+			val child = segments.getOrNull(index + 1)
+			val detail = when {
+				child == null -> "names the object itself"
+				child in retiredNames.getOrDefault(owned, emptySet()) ->
+					"names `${owned}.${child}`, which the kernel does not use here"
+				else -> "descends into `${owned}`"
+			}
+			"${row.fixture}: `${row.path}` $detail"
+		}
+	}
 
 	@Test
 	fun `index describes the whole directory and this build`() {
@@ -165,7 +235,7 @@ class ProtocolFixtureTest {
 		val run = makeRun(entry, fixtureInput)
 		run.kernel.bootstrap()
 		val expected = fixture["expected"]?.jsonObject?.get("snapshot") ?: fail("${id(entry)}: no expected.snapshot")
-		record(id(entry), "expected.snapshot", expected, C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), run.kernel.snapshot()))
+		record(id(entry), "expected.snapshot", expected, SnapshotWire.toJsonElement(run.kernel.snapshot()))
 	}
 
 	private fun runSaveBody(directory: File, entry: JsonObject) {
@@ -178,7 +248,7 @@ class ProtocolFixtureTest {
 			id(entry),
 			"expected.snapshotBefore",
 			expected["snapshotBefore"] ?: fail("${id(entry)}: no snapshotBefore"),
-			C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), run.kernel.snapshot()),
+			SnapshotWire.toJsonElement(run.kernel.snapshot()),
 		)
 
 		val intent = commitIntent(entry, fixtureInput["intent"]?.jsonObject ?: fail("${id(entry)}: no intent"))
@@ -188,7 +258,7 @@ class ProtocolFixtureTest {
 			id(entry),
 			"expected.snapshotAfter",
 			expected["snapshotAfter"] ?: fail("${id(entry)}: no snapshotAfter"),
-			C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), run.kernel.snapshot()),
+			SnapshotWire.toJsonElement(run.kernel.snapshot()),
 		)
 
 		val request = run.http.requests.lastOrNull { it.method == "POST" }
@@ -562,7 +632,7 @@ class ProtocolFixtureTest {
 				fixtureId,
 				"expected.snapshot",
 				want,
-				C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), decoded.snapshot),
+				SnapshotWire.toJsonElement(decoded.snapshot),
 			)
 		}
 		if (decoded.snapshot != run.kernel.snapshot()) {
@@ -644,7 +714,7 @@ class ProtocolFixtureTest {
 		run.kernel.bootstrap()
 		val snapshot = run.kernel.snapshot()
 		return Relaunch(
-			snapshot = C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), snapshot),
+			snapshot = SnapshotWire.toJsonElement(snapshot),
 			decision = buildJsonObject {
 				put(
 					"allowed",
@@ -1014,21 +1084,19 @@ class ProtocolFixtureTest {
 	 *
 	 * The overrides and privacy-signal halves of that are done: `gpc` is an override
 	 * with no `test`, the signal is a detected / override / active triple with no
-	 * `msa`, and the overrides a decision was made against come from the location
-	 * `/init` served. What is left in [LEDGER] under this task is the snapshot's field
-	 * spellings and the standing-directive gap.
+	 * `msa`, and the overrides a decision was made against come from the `/init` response.
+	 * The snapshot's four kernel-owned objects are spelled the way the kernel spells
+	 * them by [SnapshotWire], so nothing left in [LEDGER] is a key name. What remains
+	 * is the standing-directive gap and the evaluator answers that disagree with the
+	 * kernel's.
+	 *
+	 * A wire key name is not negotiable: [no_accepted_differences_row_names_a_kernel_owned_key]
+	 * is what keeps that from decaying back into a fixture that passes while an app reads
+	 * `undefined`.
 	 */
-	const val ALIGNMENT_TASK = "the native protocol alignment task (snapshot field spellings and standing GPC directives)"
+	const val ALIGNMENT_TASK = "the native protocol alignment task (standing GPC directives and evaluator answers)"
 
 	// -- why each accepted difference exists ----------------------------------
-
-	const val LOCATION = "ConsentLocation keys country/region; the /init wire keys them countryCode/regionCode."
-
-	const val PROMPT = "PromptRequirement is a notice/acknowledge/purpose triple; the wire and the kernel carry { kind, reason }."
-
-	const val SUBJECT = "ConsentSnapshot keys subject.id; every c15t wire surface keys it subjectId."
-
-	const val CHOICE = "ExplicitChoice is consents/action/actionAt/fingerprint; the kernel carries one receipt per category with its own confirmedAt and proof basis."
 
 	const val REVISION = "hydration and bootstrap each count as a mutation here, so this build runs ahead of the kernel, which numbers committed state changes only. The contract has to pick one numbering."
 
@@ -1037,10 +1105,6 @@ class ProtocolFixtureTest {
 	const val DIRECTIVE_RESTRICTION = "the kernel also charges a category denied by a recorded directive with an opt-out-directive reason; because this build records no directive, its reason list is one short of the kernel's."
 
 	const val EXPLICIT_DENIAL = "the kernel records an explicit denial as an explicit-denial restriction; this build denies the category but reports no reason, so the permission agrees and the reason map is empty."
-
-	const val DISMISSAL = "the core keys a notice dismissal to the choice fingerprint, while the kernel keys it to the notice fingerprint, so a dismissal stored in the kernel's format is not recognised: the prompt stays owed and the notice deadline is never reported."
-
-	const val NO_MATCH = "when /init serves status no-match this build reports no prompt, while the kernel falls back to its default banner."
 
 	const val DEADLINE_OVER = "the core reports a choice expiry the kernel does not: under this policy nothing changes when that deadline passes, so the kernel leaves nextDeadline unset."
 
@@ -1058,21 +1122,18 @@ class ProtocolFixtureTest {
 		val rows = mutableListOf<Divergence>()
 
 		/**
-		 * Fields every snapshot in these fixtures trips over, keys only.
+		 * One row per named field, and never a whole subtree this build "spells differently".
 		 *
-		 * `privacySignals` is gone from this list. The first draft of the contract gave
-		 * this build a `gpc`/`msa` boolean pair, and its Corrections section retired
-		 * both; the core now carries the detected / override / active triple, so those
-		 * paths match the kernel and have no business being listed.
+		 * The rows that used to go on every snapshot -- `location*`, `promptRequirement*`,
+		 * `subject*`, and the `explicitChoice*` rows scattered below -- were accepted
+		 * differences for key names, which `native/CONTRACT.md` forbids. The bridge hands
+		 * JavaScript a JSON string, so a renamed key fails nothing on the JavaScript side,
+		 * which is how four of them drifted here. [SnapshotWire] owns the objects it
+		 * re-spells, so a difference under one of them is a failure, and the guard in
+		 * [no_accepted_differences_row_names_a_kernel_owned_key] keeps it that way.
 		 */
-		val shape = listOf(
-			"location*" to LOCATION,
-			"promptRequirement*" to PROMPT,
-			"subject*" to SUBJECT,
-		)
-
 		fun add(fixture: String, root: String, vararg fields: Pair<String, String>) {
-			(fields.toList() + shape).forEach { (field, reason) ->
+			fields.forEach { (field, reason) ->
 				rows += Divergence(fixture, "$root.$field", reason)
 			}
 		}
@@ -1080,7 +1141,7 @@ class ProtocolFixtureTest {
 		listOf(
 			"evaluation-eu-opt-in" to emptyList<Pair<String, String>>(),
 			"evaluation-us-ccpa-opt-out" to emptyList<Pair<String, String>>(),
-			"evaluation-no-rule-matched" to listOf("activeUI" to NO_MATCH),
+			"evaluation-no-rule-matched" to emptyList<Pair<String, String>>(),
 			"evaluation-gpc-signal-present" to listOf(
 				"optOutDirectives" to DIRECTIVES,
 				"restrictions.marketing" to DIRECTIVE_RESTRICTION,
@@ -1088,38 +1149,30 @@ class ProtocolFixtureTest {
 				"revision" to REVISION,
 			),
 			"evaluation-notice-pending" to emptyList<Pair<String, String>>(),
-			"evaluation-eu-explicit-grants" to listOf(
-				"explicitChoice*" to CHOICE,
-			),
+			"evaluation-eu-explicit-grants" to emptyList<Pair<String, String>>(),
 			"evaluation-eu-partial-denials" to listOf(
-				"explicitChoice*" to CHOICE,
 				"restrictions.marketing" to EXPLICIT_DENIAL,
 			),
-			"evaluation-notice-dismissed" to listOf(
-				"activeUI" to DISMISSAL,
-				"nextDeadline" to DISMISSAL,
-			),
+			"evaluation-notice-dismissed" to emptyList<Pair<String, String>>(),
 		).forEach { (fixture, fields) -> add(fixture, "expected.snapshot", *fields.toTypedArray()) }
 
 		// The snapshot a `native-envelope` write case stores is the same snapshot the
 		// evaluation fixtures assert after the same action, so it trips the same
-		// spellings. The read cases carry no rows: their bytes have to yield nothing, and
-		// they are checked field for field against an empty store instead.
+		// evaluator answers. The read cases carry no rows: their bytes have to yield
+		// nothing, and they are checked field for field against an empty store instead.
 		listOf(
-			"native-envelope-opt-in-grants" to listOf("explicitChoice*" to CHOICE),
+			"native-envelope-opt-in-grants" to emptyList<Pair<String, String>>(),
 			"native-envelope-partial-denials" to listOf(
-				"explicitChoice*" to CHOICE,
 				"restrictions.marketing" to EXPLICIT_DENIAL,
 			),
 			"native-envelope-notice-dismissed" to emptyList<Pair<String, String>>(),
 			"native-envelope-opt-out-grants" to listOf(
-				"explicitChoice*" to CHOICE,
 				"nextDeadline" to DEADLINE_OVER,
 			),
 		).forEach { (fixture, fields) -> add(fixture, "expected.snapshot", *fields.toTypedArray()) }
 
 		val before = emptyList<Pair<String, String>>()
-		val after = listOf("explicitChoice*" to CHOICE)
+		val after = emptyList<Pair<String, String>>()
 		listOf(
 			"save-body-all" to emptyList<Pair<String, String>>(),
 			"save-body-explicit-partial" to listOf("restrictions.measurement" to EXPLICIT_DENIAL),
@@ -1146,7 +1199,7 @@ class ProtocolFixtureTest {
 			"save-body-ccpa-gpc",
 			"expected.snapshotAfter",
 			*(
-				listOf("explicitChoice*" to CHOICE, "nextDeadline" to DEADLINE_OVER) + gpcBefore
+				listOf("nextDeadline" to DEADLINE_OVER) + gpcBefore
 			).toTypedArray(),
 		)
 		return rows

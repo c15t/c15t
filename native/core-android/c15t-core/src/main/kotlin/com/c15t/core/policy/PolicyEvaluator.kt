@@ -56,13 +56,24 @@ object PolicyEvaluator {
 		}
 
 		if (policy == null) {
-			// No-match, unconfigured, or a failed resolution: the safe opt-in
-			// fallback denies every optional category until an explicit grant, and
-			// shows nothing because there is no policy to prompt for.
+			// No-match or unconfigured. The kernel does not answer these with an empty
+			// screen: `resolveEffectivePolicy` substitutes a safe opt-in rule that asks
+			// for a choice, so the subject is prompted and every optional category stays
+			// denied until they answer. Hiding the first layer here leaves a device with
+			// no way to grant anything, which turns a temporary deny-all into a permanent
+			// one. `resolution` still reports `no-match`, because the fallback is never
+			// presented as a policy the backend matched.
+			//
+			// A `failed` resolution never reaches this branch: it keeps `policyPending`
+			// set and answers like a cold start, which is the one exception rule 5 names.
 			return snapshot.copy(
 				model = ConsentModel.OPT_IN,
-				activeUI = ActiveUI.NONE,
-				promptRequirement = PromptRequirement.NONE,
+				activeUI = ActiveUI.BANNER,
+				promptRequirement = PromptRequirement(
+					notice = true,
+					acknowledge = true,
+					purpose = PromptPurpose.INITIAL,
+				),
 				effectivePermissions = ConsentState.DENY_ALL,
 				restrictions = emptyMap(),
 				nextDeadline = null,
@@ -124,7 +135,7 @@ object PolicyEvaluator {
 		}
 
 		val noticeCurrent = noticeDismissal != null &&
-			noticeDismissal.covers(policy.choiceFingerprint, now, policy.noticeMs)
+			noticeDismissal.covers(policy.noticeFingerprint, now, policy.noticeMs)
 
 		val owesChoice = policy.prompt == PolicyPrompt.CHOICE && !choiceCurrent
 		// A current choice receipt covers the notice too, which is what lets

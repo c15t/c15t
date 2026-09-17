@@ -101,6 +101,9 @@ object StrictPolicyReader {
 		val fingerprints = root["fingerprints"] as? JsonObject
 		val choiceFingerprint = fingerprints.stringOrNull("choice") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
 		val policyFingerprint = fingerprints.stringOrNull("policy") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+		// `policyFingerprintsSchema` in `@c15t/schema` requires all three; only
+		// `legacyMaterial` is optional. A notice dismissal is judged against this one.
+		val noticeFingerprint = fingerprints.stringOrNull("notice") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val model = ConsentModel.fromWireName(policy.stringOrNull("model"))
 			// `iab` and any future model are unrepresentable here.
@@ -145,6 +148,7 @@ object StrictPolicyReader {
 				gpcDenyCategories = gpcDeny,
 				choiceFingerprint = choiceFingerprint,
 				policyFingerprint = policyFingerprint,
+				noticeFingerprint = noticeFingerprint,
 			)
 		)
 	}

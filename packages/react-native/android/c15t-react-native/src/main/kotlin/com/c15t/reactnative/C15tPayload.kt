@@ -8,6 +8,7 @@ import com.c15t.core.model.KernelError
 import com.c15t.core.model.KernelOverrides
 import com.c15t.core.store.C15tJson
 import com.c15t.core.transport.C15tProtocol
+import com.c15t.core.wire.SnapshotWire
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -136,8 +137,19 @@ object C15tPayload {
 	/**
 	 * The `ConsentSnapshot` wire form.
 	 *
-	 * The core's own encoder produces the body, so the wire and the stored envelope
-	 * cannot drift apart. Two fields are then conformed to the JavaScript types, both
+	 * [SnapshotWire] produces the body, so the four objects the kernel owns the key names
+	 * of -- `subject`, `location`, `promptRequirement`, `explicitChoice` -- go out with the
+	 * kernel's spelling rather than this core's. The boundary is a JSON string, so a key
+	 * renamed on this side is invisible to the TypeScript that reads it: the declared type
+	 * says `subject.subjectId`, the device sends `subject.id`, and the app reads
+	 * `undefined` with nothing failing anywhere.
+	 *
+	 * The stored envelope therefore disagrees with this payload on exactly those four
+	 * objects, deliberately: the envelope is the device's own format and an installed app
+	 * has to keep reading the bytes it wrote before the upgrade, while this is the kernel's
+	 * format because it crosses into JavaScript as text. Do not "fix" the disagreement.
+	 *
+	 * Two fields are then conformed to the JavaScript types, both
 	 * because the kernel models them more loosely than the protocol does:
 	 * `overrides.language` is never null on the wire, since the protocol resolves to
 	 * exactly one translation bundle and a missing language falls back to the device
@@ -154,8 +166,7 @@ object C15tPayload {
 		snapshot: ConsentSnapshot,
 		fallbackLanguage: String = DEFAULT_LANGUAGE,
 	): String {
-		val encoded = C15tJson.storage.encodeToString(ConsentSnapshot.serializer(), snapshot)
-		val wire = C15tJson.wire.parseToJsonElement(encoded).jsonObject
+		val wire = SnapshotWire.toJsonElement(snapshot)
 		val overrides = wire["overrides"] as? JsonObject ?: JsonObject(emptyMap())
 		val language = optString(overrides["language"]) ?: fallbackLanguage.ifBlank { DEFAULT_LANGUAGE }
 

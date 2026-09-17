@@ -61,4 +61,16 @@ data class EvaluationPolicy(
 	val choiceFingerprint: String,
 	/** Exact-behavior fingerprint of the rule. */
 	val policyFingerprint: String,
+	/**
+	 * Notice-prompt fingerprint a notice dismissal binds to.
+	 *
+	 * `policyFingerprints.notice` on the wire, and not the choice one: the two cover
+	 * different surfaces, so a dismissal the web SDK recorded against the notice has to
+	 * be recognised here or the banner comes back for a subject who dismissed it. The
+	 * default is not a guess at a missing field -- this lives in the stored envelope,
+	 * which carries no format version, and refusing an envelope costs a device its whole
+	 * consent state. An envelope written before this key existed therefore keeps the
+	 * answer it used to give until the next `/init` serves the real one.
+	 */
+	val noticeFingerprint: String = choiceFingerprint,
 )

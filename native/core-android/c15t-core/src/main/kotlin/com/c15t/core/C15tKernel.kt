@@ -363,7 +363,7 @@ class C15tKernel(
 			val current = state.get()
 			noticeDismissal = NoticeDismissal(
 				dismissedAt = now,
-				fingerprint = evaluationPolicy?.choiceFingerprint ?: "",
+				fingerprint = evaluationPolicy?.noticeFingerprint ?: "",
 			)
 			published = PolicyEvaluator.evaluate(
 				snapshot = current.copy(revision = current.revision + 1),

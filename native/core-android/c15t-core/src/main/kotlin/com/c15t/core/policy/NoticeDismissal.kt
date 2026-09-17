@@ -14,7 +14,13 @@ data class NoticeDismissal(
 	val dismissedAt: Long,
 	val fingerprint: String,
 ) {
-	/** `true` when the dismissal still covers the policy it was made against. */
+	/**
+	 * `true` when the dismissal still covers the notice it was made against.
+	 *
+	 * [fingerprint] is the notice-prompt fingerprint, never the choice one: the two
+	 * surfaces change on different rules, and a dismissal compared against the wrong
+	 * one asks a subject to dismiss a banner they already dismissed.
+	 */
 	fun covers(
 		fingerprint: String?,
 		now: Long,

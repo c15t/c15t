@@ -13,6 +13,7 @@ import com.c15t.core.store.C15tJson
 import com.c15t.core.store.C15tStore
 import com.c15t.core.store.C15tStoreKeys
 import com.c15t.core.store.SnapshotEnvelope
+import com.c15t.core.wire.SnapshotWire
 import com.c15t.core.transport.SaveOutcome
 import com.c15t.core.transport.TransportOutcome
 import kotlinx.serialization.json.Json
@@ -99,6 +100,72 @@ class KernelTest {
 		// afterwards, and it never blocks the snapshot.
 		assertEquals(1, coldTransport.initRequests.size)
 		assertTrue(coldBackend.events.indexOf("read:${C15tStoreKeys.SNAPSHOT}") < coldBackend.events.indexOf("read:${C15tStoreKeys.PENDING}"))
+	}
+
+	/**
+	 * A resolution that matched no rule is a definitive answer with no rule attached,
+	 * and the kernel answers it with the safe opt-in fallback: everything denied, and
+	 * the subject asked. Hiding the first layer here is the tempting reading of "there
+	 * is no policy to prompt for", and it strands the device -- there is no way to grant
+	 * anything, so the deny-all becomes permanent.
+	 */
+	@Test
+	fun `a policy that matched no rule still shows the default banner`() {
+		val transport = RecordingTransport().respondInit(
+			initSuccess(body = """{"policyResolution":{"version":1,"status":"no-match","policy":null}}"""),
+		)
+		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()), transport = transport)
+		kernel.bootstrap()
+
+		val snapshot = kernel.snapshot()
+		assertFalse(snapshot.policyPending, "no-match is a definitive answer, not a wait")
+		assertEquals(PolicyResolution.STATUS_NO_MATCH, snapshot.resolution.status)
+		assertEquals(ActiveUI.BANNER, snapshot.activeUI)
+		assertTrue(snapshot.promptRequirement.acknowledge, "the fallback owes a choice")
+		for (category in ConsentCategory.OPTIONAL) {
+			assertFalse(kernel.isAllowed(category), "$category stays denied under the fallback")
+		}
+		assertEquals(
+			json.parseToJsonElement("""{"kind":"choice","reason":"missing"}"""),
+			SnapshotWire.toJsonElement(snapshot).getValue("promptRequirement"),
+			"the fallback reaches JavaScript as the kernel's prompt pair",
+		)
+	}
+
+	/**
+	 * A notice dismissal binds to the notice-prompt fingerprint.
+	 *
+	 * The web SDK stores the notice fingerprint, the choice receipt stores the choice
+	 * one, and comparing either record against the other's fingerprint asks a subject to
+	 * dismiss a banner they already dismissed -- on a relaunch, forever. The relaunch is
+	 * the half worth pinning: the record is only ever read back out of an envelope.
+	 */
+	@Test
+	fun `a notice dismissal survives a relaunch`() {
+		val clock = FixedClock()
+		val store = C15tStore(InMemoryKeyValueStore())
+		val transport = RecordingTransport().respondInit(initSuccess(body = initBody(prompt = "\"notice\"")))
+		val warm = testKernel(store = store, clock = clock, transport = transport)
+		warm.bootstrap()
+		assertTrue(warm.snapshot().promptRequirement.notice, "a notice-only policy owes the first layer")
+		assertFalse(warm.snapshot().promptRequirement.acknowledge, "and nothing else")
+
+		warm.dismissNotice()
+		assertFalse(warm.snapshot().promptRequirement.notice, "the dismissal just made closes it")
+		assertEquals(ActiveUI.NONE, warm.snapshot().activeUI)
+
+		val envelope = assertNotNull(store.readEnvelope(), "the dismissal has to survive the process")
+		val coldBackend = InMemoryKeyValueStore()
+		coldBackend.putSilently(C15tStoreKeys.SNAPSHOT, C15tJson.storage.encodeToString(envelope))
+		coldBackend.putSilently(
+			C15tStoreKeys.SUBJECT,
+			"""{"id":"${assertNotNull(envelope.snapshot.subject).id}"}""",
+		)
+		val cold = testKernel(store = C15tStore(coldBackend), clock = clock, transport = RecordingTransport())
+		cold.bootstrap()
+
+		assertFalse(cold.snapshot().promptRequirement.notice, "a subject does not dismiss the same notice twice")
+		assertEquals(ActiveUI.NONE, cold.snapshot().activeUI)
 	}
 
 	@Test

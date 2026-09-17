@@ -3,11 +3,18 @@ package com.c15t.reactnative
 import com.c15t.core.CommitIntent
 import com.c15t.core.CommitResult
 import com.c15t.core.NativeConfig
+import com.c15t.core.model.ConsentAction
 import com.c15t.core.model.ConsentCategory
+import com.c15t.core.model.ConsentLocation
 import com.c15t.core.model.ConsentSnapshot
+import com.c15t.core.model.ConsentSubject
+import com.c15t.core.model.ExplicitChoice
 import com.c15t.core.model.KernelOverrides
 import com.c15t.core.model.KernelError
+import com.c15t.core.model.PromptPurpose
+import com.c15t.core.model.PromptRequirement
 import com.c15t.core.store.C15tStore
+import com.c15t.core.wire.SnapshotWire
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -298,6 +305,118 @@ class C15tPayloadTest {
 		val overrides = snapshot["overrides"]!!.jsonObject
 		assertFalse("a retired name never reaches JavaScript", overrides.containsKey("test"))
 		assertTrue("and the live override set still carries every key", overrides.containsKey("gpc"))
+	}
+
+	/**
+	 * The four objects the kernel owns the spelling of, asserted on the payload the bridge
+	 * hands JavaScript.
+	 *
+	 * The fixture runner in `native/core-android` proves this shape against 21 snapshots the
+	 * TypeScript kernel wrote. This pins the artifact instead of the model, because the bug
+	 * lived here: the core's own encoder produced the body, its names rode along, and a JSON
+	 * string hides a rename from every type on the receiving side. The snapshot is built by
+	 * hand so all four objects are full at once -- a kernel with nothing stored answers nulls
+	 * for three of them, which is exactly the state that let four renames pass 21 fixtures.
+	 */
+	@Test
+	fun `the snapshot payload spells the kernel's four objects the kernel's way`() {
+		val payload = parse(C15tPayload.snapshot(richSnapshot(), fallbackLanguage = "de"))
+
+		val subject = payload["subject"]!!.jsonObject
+		assertEquals("sub_01H", subject["subjectId"]!!.jsonPrimitive.content)
+		assertEquals("user-42", subject["externalId"]!!.jsonPrimitive.content)
+
+		val location = payload["location"]!!.jsonObject
+		assertEquals("DE", location["countryCode"]!!.jsonPrimitive.content)
+		assertEquals("BE", location["regionCode"]!!.jsonPrimitive.content)
+		assertFalse("the language in effect belongs to overrides, not location", location.containsKey("language"))
+
+		val prompt = payload["promptRequirement"]!!.jsonObject
+		assertEquals(setOf("kind", "reason"), prompt.keys)
+		assertEquals("choice", prompt["kind"]!!.jsonPrimitive.content)
+		assertEquals("missing", prompt["reason"]!!.jsonPrimitive.content)
+
+		val choice = payload["explicitChoice"]!!.jsonObject
+		assertEquals(setOf("version", "categories"), choice.keys)
+		assertEquals(3L, choice["version"]!!.jsonPrimitive.content.toLong())
+		val receipt = choice["categories"]!!.jsonObject["measurement"]!!.jsonObject
+		assertEquals(setOf("value", "confirmedAt", "basis"), receipt.keys)
+		assertTrue(receipt["value"]!!.jsonPrimitive.boolean)
+		assertEquals(ACTION_AT.toString(), receipt["confirmedAt"]!!.jsonPrimitive.content)
+		val basis = receipt["basis"]!!.jsonObject
+		assertEquals("choice-v1", basis["kind"]!!.jsonPrimitive.content)
+		assertEquals(CHOICE_FINGERPRINT, basis["fingerprint"]!!.jsonPrimitive.content)
+
+		// The bridge rewrites `overrides` after the projection; it must not undo it.
+		assertEquals("de", payload["overrides"]!!.jsonObject["language"]!!.jsonPrimitive.content)
+		assertNoCoreSpellings(payload)
+	}
+
+	@Test
+	fun `no core spelling of those four objects survives the bridge`() {
+		val emitted = C15tPayload.snapshot(richSnapshot())
+
+		// Presence proves a rename landed; this is the half that would have failed the
+		// build when the four drifted, because a payload carrying both the old key and the
+		// new one still reads fine in TypeScript.
+		assertNoCoreSpellings(parse(emitted))
+
+		// Three retired names are unique to the core's spelling anywhere on this payload, so
+		// they are worth a string check that catches them at any depth. `country`, `region`,
+		// `language` and `fingerprint` are not: `overrides` legitimately carries the first
+		// three, and the kernel's own choice basis carries the last.
+		for (retired in listOf("\"consents\"", "\"actionAt\"", "\"acknowledge\"")) {
+			assertFalse("$retired is what this core calls it, not the wire", emitted.contains(retired))
+		}
+	}
+
+	/**
+	 * Assert that none of the four kernel-owned objects carries a name this core uses
+	 * internally for it.
+	 *
+	 * One level deep, on purpose: the kernel's `choice-v1` basis has a `fingerprint` of its
+	 * own, and a deeper walk would have to know every object the kernel owns to tell that
+	 * from drift.
+	 */
+	private fun assertNoCoreSpellings(payload: JsonObject) {
+		SnapshotWire.RETIRED_WIRE_OBJECT_KEYS.forEach { (name, retired) ->
+			val value = payload[name]
+			if (value == null || value is JsonNull) {
+				return@forEach
+			}
+			val carried = value.jsonObject.keys.intersect(retired)
+			assertTrue(
+				"$name carries ${carried.sorted()}, which is what this core calls them internally",
+				carried.isEmpty(),
+			)
+		}
+	}
+
+	/** A snapshot with every kernel-owned object filled in, which a cold kernel never is. */
+	private fun richSnapshot(): ConsentSnapshot = ConsentSnapshot(
+		revision = 5,
+		policyPending = false,
+		ready = true,
+		promptRequirement = PromptRequirement(
+			notice = true,
+			acknowledge = true,
+			purpose = PromptPurpose.INITIAL,
+		),
+		explicitChoice = ExplicitChoice(
+			consents = mapOf("measurement" to true, "marketing" to false),
+			action = ConsentAction.CUSTOM,
+			actionAt = ACTION_AT,
+			fingerprint = CHOICE_FINGERPRINT,
+		),
+		subject = ConsentSubject(id = "sub_01H", externalId = "user-42"),
+		location = ConsentLocation(country = "DE", region = "BE", language = "de"),
+		overrides = KernelOverrides(country = "DE", region = "BE", language = "de"),
+		evaluatedAt = ACTION_AT,
+	)
+
+	private companion object {
+		const val ACTION_AT = 1_770_000_000_000L
+		const val CHOICE_FINGERPRINT = "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9"
 	}
 
 	private fun applied(

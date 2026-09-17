@@ -2,8 +2,13 @@ package com.c15t.core
 
 import com.c15t.core.crypto.AesGcmCodec
 import com.c15t.core.model.ConsentSnapshot
+import com.c15t.core.model.ConsentCategory
 import com.c15t.core.model.ConsentSubject
+import com.c15t.core.model.ConsentModel
+import com.c15t.core.policy.EvaluationPolicy
 import com.c15t.core.policy.NoticeDismissal
+import com.c15t.core.policy.PolicyPrompt
+import com.c15t.core.policy.ScopeMode
 import com.c15t.core.store.C15tJson
 import com.c15t.core.store.C15tStore
 import com.c15t.core.store.C15tStoreKeys
@@ -56,6 +61,43 @@ class StorageTest {
 		assertTrue("\"iab\":null" in raw, "the reserved IAB slot must serialize as null, got: $raw")
 		assertNull(decoded.evaluationPolicy)
 		assertNotNull(decoded.noticeDismissal)
+	}
+
+	/**
+	 * `EvaluationPolicy` grew a `noticeFingerprint`, and the envelope carries no format
+	 * version to record that in -- `AesGcmCodec`'s version byte gates the framing, not
+	 * the fields. So the old shape has to keep decoding: an unreadable envelope is
+	 * indistinguishable from a fresh install, and the subject would lose every grant
+	 * they ever gave because this build added a key.
+	 */
+	@Test
+	fun `an envelope written before the notice fingerprint existed still decodes`() {
+		val policy = EvaluationPolicy(
+			id = "pol_1",
+			model = ConsentModel.OPT_IN,
+			prompt = PolicyPrompt.NOTICE,
+			scope = listOf(ConsentCategory.MEASUREMENT),
+			scopeMode = ScopeMode.STRICT,
+			choiceMs = 1_000L,
+			noticeMs = 1_000L,
+			choiceFingerprint = "choice-fp-1",
+			policyFingerprint = "policy-fp-1",
+			noticeFingerprint = "notice-fp-1",
+		)
+		val envelope = SnapshotEnvelope(
+			snapshot = ConsentSnapshot(revision = 3, policyPending = false, ready = true),
+			evaluationPolicy = policy,
+		)
+		val raw = C15tJson.storage.encodeToString(SnapshotEnvelope.serializer(), envelope)
+		val retired = ""","noticeFingerprint":"notice-fp-1""""
+		assertTrue(retired in raw, "the current build is expected to write the key: $raw")
+
+		val decoded = C15tJson.storage.decodeFromString(SnapshotEnvelope.serializer(), raw.replace(retired, ""))
+		assertEquals(
+			"choice-fp-1",
+			assertNotNull(decoded.evaluationPolicy).noticeFingerprint,
+			"a missing key falls back to the answer this build used to give, not to a refused envelope",
+		)
 	}
 
 	@Test

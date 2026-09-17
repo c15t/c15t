@@ -185,6 +185,9 @@ fun initBody(
 	noticeMs: Long = 180L * 24 * 60 * 60 * 1000,
 	choiceFingerprint: String = "choice-fp-1",
 	policyFingerprint: String = "policy-fp-1",
+	// `policyFingerprintsSchema` requires all three, so a body that answers only two
+	// is not a body the reader may accept. A notice dismissal binds to this one.
+	noticeFingerprint: String = "notice-fp-1",
 	gpcDenyCategories: String? = null,
 	policySnapshotToken: String? = "snap-1",
 	includePolicyResolution: Boolean = true,
@@ -205,7 +208,10 @@ fun initBody(
 		add("\"status\":\"matched\"")
 		add("\"policyId\":\"$policyId\"")
 		add("\"matchedBy\":\"country\"")
-		add("\"fingerprints\":{\"policy\":\"$policyFingerprint\",\"choice\":\"$choiceFingerprint\"}")
+		add(
+			"\"fingerprints\":{\"policy\":\"$policyFingerprint\"," +
+				"\"choice\":\"$choiceFingerprint\",\"notice\":\"$noticeFingerprint\"}",
+		)
 		add("\"policy\":$policy")
 	}.joinToString(",", prefix = "{", postfix = "}")
 
