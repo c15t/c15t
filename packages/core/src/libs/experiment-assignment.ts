@@ -9,7 +9,7 @@
  * stable key: the hydrated subject id when one exists, else a random key
  * kept in the record.
  */
-import type { ConsentKernel } from '../types';
+import type { ConsentKernel, ConsentSnapshot } from '../types';
 import { getRawCookieValue, setCookie } from './cookie';
 import type { StorageConfig } from './cookie';
 import { assignExperimentVariant, validateExperiment } from './experiment';
@@ -213,15 +213,28 @@ export interface ExperimentController {
 }
 
 /**
+ * What identifies a policy for validation: the rule id and the choice
+ * fingerprint, which covers the model, prompt and required actions the
+ * presentation diagnostics depend on.
+ */
+const policyKey = function policyKey(snapshot: ConsentSnapshot): string {
+	return `${snapshot.policyRule.id}\n${snapshot.evaluationPolicy.choice.fingerprint}`;
+};
+
+/**
  * Validate an experiment and prepare its assignment.
  *
  * Construction validates every arm under the kernel's current policy rule
  * — the safe fallback while nothing is resolved — and throws for an
  * unacknowledged arm with diagnostics, so a misconfiguration fails at
- * provider construction. Every later `init:applied` re-validates once per
- * policy id; a rejection then is reported and the arm is cleared so the
- * base presentation renders. A host-resolved `variant` is recorded on the
- * kernel at once; built-in assignment waits for {@link ExperimentController.assign}.
+ * provider construction. Every later policy is validated once, from the
+ * kernel's snapshot subscription, which runs before the commit that
+ * changed the policy emits `surface:shown`: an impression is never stamped
+ * with an arm the policy rejects. A rejection is reported and the arm is
+ * cleared so the base presentation renders; it is remembered per policy,
+ * so a policy that accepted the arm restores it when it returns. A
+ * host-resolved `variant` is recorded on the kernel at once; built-in
+ * assignment waits for {@link ExperimentController.assign}.
  *
  * @param options - Experiment, kernel and reporting configuration.
  * @returns The controller.
@@ -245,41 +258,70 @@ export const createExperimentController = function createExperimentController(
 	const validateOptions: ValidateExperimentOptions = {
 		actionAppearance: options.actionAppearance,
 		presentation: options.presentation,
+		theme: options.theme,
 	};
-	const validated = new Set<string>();
+	/** Whether each policy seen so far rejected the experiment. */
+	const rejectedByPolicy = new Map<string, boolean>();
+	let lastPolicy: ConsentSnapshot['policyRule'] | null = null;
 	let rejected = false;
-	const validate = function validate(throwing: boolean): void {
-		const { policyRule } = kernel.getSnapshot();
-		if (validated.has(policyRule.id)) {
-			return;
-		}
-		validated.add(policyRule.id);
-		let diagnostics: ExperimentDiagnostics;
+	/** The arm this browser runs whenever the policy accepts it. */
+	let current: ExperimentAssignment | null =
+		experiment.variant === undefined
+			? null
+			: assignExperimentVariant(experiment, '');
+
+	const apply = function apply(): void {
+		kernel.set.experiment(rejected ? null : current);
+	};
+
+	const validateOnce = function validateOnce(
+		snapshot: ConsentSnapshot,
+		throwing: boolean
+	): boolean {
+		const { policyRule } = snapshot;
 		try {
-			diagnostics = validateExperiment(experiment, policyRule, validateOptions);
+			const diagnostics = validateExperiment(
+				experiment,
+				policyRule,
+				validateOptions
+			);
+			if (Object.keys(diagnostics).length > 0) {
+				warn(
+					`c15t experiment "${experiment.id}": running with acknowledged presentation diagnostics under policy "${policyRule.id}".`,
+					diagnostics
+				);
+			}
+			return false;
 		} catch (failure) {
 			if (throwing) {
 				throw failure;
 			}
-			rejected = true;
 			error(failure instanceof Error ? failure : new Error(String(failure)));
-			kernel.set.experiment(null);
-			return;
-		}
-		if (Object.keys(diagnostics).length > 0) {
-			warn(
-				`c15t experiment "${experiment.id}": running with acknowledged presentation diagnostics under policy "${policyRule.id}".`,
-				diagnostics
-			);
+			return true;
 		}
 	};
 
-	validate(true);
-	if (experiment.variant !== undefined) {
-		kernel.set.experiment(assignExperimentVariant(experiment, ''));
-	}
-	const unsubscribe = kernel.events.on('init:applied', () => {
-		validate(false);
+	const validate = function validate(
+		snapshot: ConsentSnapshot,
+		throwing: boolean
+	): void {
+		if (snapshot.policyRule === lastPolicy) {
+			return;
+		}
+		lastPolicy = snapshot.policyRule;
+		const key = policyKey(snapshot);
+		let outcome = rejectedByPolicy.get(key);
+		if (outcome === undefined) {
+			outcome = validateOnce(snapshot, throwing);
+			rejectedByPolicy.set(key, outcome);
+		}
+		rejected = outcome;
+		apply();
+	};
+
+	validate(kernel.getSnapshot(), true);
+	const unsubscribe = kernel.subscribe((snapshot) => {
+		validate(snapshot, false);
 	});
 	let assigned: ExperimentAssignment | null = null;
 	return {
@@ -294,9 +336,8 @@ export const createExperimentController = function createExperimentController(
 			});
 			writeStoredExperimentAssignment(record, options.storageConfig);
 			assigned = assignment;
-			if (!rejected) {
-				kernel.set.experiment(assignment);
-			}
+			current = assignment;
+			apply();
 			return assignment;
 		},
 		dispose() {

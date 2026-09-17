@@ -73,6 +73,23 @@ describe('assignExperimentVariant', () => {
 	});
 });
 
+describe('assignExperimentVariant weights', () => {
+	it('falls back to equal weights when every weight is zero', () => {
+		const zero: ConsentExperiment = {
+			...experiment,
+			weights: { bar: 0, floating: 0 },
+		};
+		const seen = new Set<string>();
+		for (let index = 0; index < 200; index += 1) {
+			const key = `sub_${index}`;
+			const assignment = assignExperimentVariant(zero, key);
+			expect(assignment).toEqual(assignExperimentVariant(experiment, key));
+			seen.add(assignment.variant);
+		}
+		expect([...seen].sort()).toEqual(['bar', 'floating']);
+	});
+});
+
 describe('resolveExperimentPresentation', () => {
 	it('merges the arm over the base per surface, arm wins', () => {
 		const resolved = resolveExperimentPresentation(
