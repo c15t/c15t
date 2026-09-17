@@ -2,11 +2,11 @@
  * Gate one category.
  */
 
-import type { AllConsentNames } from '@c15t/core';
 import { useCallback } from 'react';
 
 import { isCategoryAllowed } from '../lib/selectors';
 import type { ConsentSnapshot } from '../protocol';
+import type { AllConsentNames } from '../protocol/vocabulary';
 import { useConsentSelector } from './use-consent-selector';
 
 /**

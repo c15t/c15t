@@ -4,7 +4,9 @@
  *
  * Everything here is types and constants. There is no runtime consent logic
  * in this package on purpose — the Swift and Kotlin cores own consent state,
- * and the JavaScript layer renders it.
+ * and the JavaScript layer renders it. The names it renders are this package's
+ * own: see `./vocabulary`, which holds them instead of importing the web
+ * kernel, and is checked against that kernel by the vocabulary tests.
  */
 
 export type { BootstrapPayload } from './bootstrap';
@@ -32,6 +34,40 @@ export type {
 	NativeSnapshotError,
 	SnapshotResolution,
 } from './snapshot';
+export type {
+	AllConsentNames,
+	CategoryDecision,
+	ChoiceBasis,
+	ConsentState,
+	ConsentSubject,
+	ExplicitChoice,
+	KernelActiveUI,
+	KernelCookieBannerCopy,
+	KernelCookieBannerCopyPartial,
+	KernelCommonCopy,
+	KernelCommonCopyPartial,
+	KernelModel,
+	KernelTranslationBundle,
+	KernelTranslationGroups,
+	KernelTranslationGroupsPartial,
+	KernelTranslationPair,
+	KernelTranslationPairPartial,
+	KernelTranslations,
+	LocationResponse,
+	OptionalConsentCategory,
+	PolicyResolutionStatus,
+	PromptReason,
+	PromptRequirement,
+	RestrictionReason,
+} from './vocabulary';
+export {
+	ACTIVE_SURFACES,
+	CONSENT_CATEGORIES,
+	NATIVE_MODELS,
+	OPTIONAL_CONSENT_CATEGORIES,
+	PROMPT_REASONS,
+	RESTRICTION_REASONS,
+} from './vocabulary';
 export {
 	describeProtocolMismatch,
 	isProtocolVersionSupported,

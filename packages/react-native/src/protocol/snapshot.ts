@@ -9,6 +9,7 @@
  * the JavaScript layer never derives it.
  */
 
+import type { NativeOverrides } from './overrides';
 import type {
 	AllConsentNames,
 	ConsentState,
@@ -19,12 +20,10 @@ import type {
 	KernelTranslations,
 	LocationResponse,
 	OptionalConsentCategory,
-	PolicyResolution,
+	PolicyResolutionStatus,
 	PromptRequirement,
 	RestrictionReason,
-} from '@c15t/core';
-
-import type { NativeOverrides } from './overrides';
+} from './vocabulary';
 
 /**
  * Consent model enforced on device.
@@ -43,7 +42,7 @@ export type NativeModel = Exclude<KernelModel, 'iab'>;
  */
 export interface SnapshotResolution {
 	/** Resolution outcome, shared with the kernel's vocabulary. */
-	readonly status: PolicyResolution['status'];
+	readonly status: PolicyResolutionStatus;
 	/** Identifier of the matched policy, `null` when nothing matched. */
 	readonly policyId: string | null;
 	/** Fingerprint of the matched rule, `null` when nothing matched. */

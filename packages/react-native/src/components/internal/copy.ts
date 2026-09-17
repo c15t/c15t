@@ -8,9 +8,11 @@
  * has a fallback and the resolver is total.
  */
 
-import type { AllConsentNames, KernelTranslations } from '@c15t/core';
-
 import type { ConsentSnapshot } from '../../protocol';
+import type {
+	AllConsentNames,
+	KernelTranslations,
+} from '../../protocol/vocabulary';
 
 /** Title and description pair for one consent category. */
 export interface ConsentCategoryCopy {

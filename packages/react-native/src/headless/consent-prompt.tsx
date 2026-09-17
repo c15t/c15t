@@ -2,13 +2,13 @@
  * Prompt surface slot for apps that bring their own UI.
  */
 
-import type { KernelActiveUI, PromptRequirement } from '@c15t/core';
 import type { ReactNode } from 'react';
 
 import type { ConsentActions } from '../hooks/use-consent-actions';
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentStatus } from '../hooks/use-consent-status';
 import { isStatusPromptOwed } from '../lib/selectors';
+import type { KernelActiveUI, PromptRequirement } from '../protocol/vocabulary';
 
 /**
  * What the prompt slot hands its children.

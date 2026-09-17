@@ -14,9 +14,12 @@ import { afterAll, describe, expect, it } from 'vitest';
 import {
 	allowedCommonJsArtifacts,
 	getBlockedReason,
+	kernelFreePackages,
 	runPack,
+	scanKernelFreePackage,
 	scanPublishedLicenses,
 } from './check-publish-artifacts';
+import type { PackageManifest } from './manifest-utils';
 import { hostReadPaths } from './react-native-autolink';
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), '..');
@@ -347,6 +350,203 @@ describe('allowedCommonJsArtifacts', () => {
 			for (const path of paths) {
 				expect(requireTargets.has(path), path).toBe(true);
 			}
+		}
+	});
+});
+describe('packages that must stay clear of the consent kernel', () => {
+	const workDir = mkdtempSync(join(tmpdir(), 'c15t-kernel-free-'));
+
+	afterAll(() => {
+		rmSync(workDir, { force: true, recursive: true });
+	});
+
+	/**
+	 * A packed `@c15t/react-native`, with the build output under discussion.
+	 *
+	 * The name matters: the guard only applies to the packages `kernelFreePackages`
+	 * names, so every fixture here has to be the real name to be a fixture at all.
+	 */
+	const kernelFreeFixture = function kernelFreeFixture(
+		name: string,
+		files: Record<string, string>,
+		dependencies: Record<string, string> = {}
+	) {
+		const packageDir = join(workDir, name);
+
+		makeTree(packageDir, {
+			...files,
+			'package.json': JSON.stringify({
+				dependencies,
+				name: '@c15t/react-native',
+				version: '0.0.0',
+			}),
+		});
+
+		return packageDir;
+	};
+
+	/** Run the guard over a fixture directory as npm would see it. */
+	const scan = function scan(
+		packageDir: string,
+		packedFilePaths: string[]
+	): { path: string; reason: string }[] {
+		const manifest = JSON.parse(
+			readFileSync(join(packageDir, 'package.json'), 'utf8')
+		) as PackageManifest;
+
+		return scanKernelFreePackage(
+			packageDir,
+			'@c15t/react-native',
+			manifest,
+			new Set(packedFilePaths)
+		);
+	};
+
+	// The original bug: one line in `dependencies`, and every host app on every
+	// platform installs a browser consent engine it never runs.
+	it('reds on the kernel in the published dependencies', () => {
+		const packageDir = kernelFreeFixture(
+			'dependency',
+			{ 'dist/index.js': 'export const x = 1;\n' },
+			{ '@c15t/core': '^3.0.0' }
+		);
+
+		expect(scan(packageDir, ['dist/index.js', 'package.json'])).toEqual([
+			{
+				path: 'dependencies.@c15t/core',
+				reason: expect.stringContaining('published dependency'),
+				size: 0,
+			},
+		]);
+	});
+
+	it('reds a runtime import of the kernel under dist', () => {
+		const packageDir = kernelFreeFixture('runtime', {
+			'dist/index.js':
+				"import { CONSENT_CATEGORIES } from '@c15t/core/consent-categories';\nexport const order = CONSENT_CATEGORIES;\n",
+		});
+
+		const issues = scan(packageDir, ['dist/index.js']);
+
+		expect(issues.map(({ path }) => path)).toStrictEqual(['dist/index.js']);
+		expect(issues[0]?.reason).toContain('build output');
+	});
+
+	// Declarations are the half a manifest cannot tell you about. `types` points here,
+	// so a specifier that survives the build is a consumer's `tsc` failure, whatever
+	// the dependency list says.
+	it('reds a declaration that re-exports the kernel', () => {
+		const packageDir = kernelFreeFixture('declarations', {
+			'dist-types/index.d.ts':
+				"export type { ConsentState } from '@c15t/core';\nexport type { ConsentSnapshot } from './protocol/snapshot';\n",
+			'dist/index.js': 'export const x = 1;\n',
+		});
+
+		expect(
+			scan(packageDir, ['dist-types/index.d.ts', 'dist/index.js']).map(
+				({ path }) => path
+			)
+		).toStrictEqual(['dist-types/index.d.ts']);
+	});
+
+	// The other half of the rule: these declarations document a wire that is defined
+	// against the kernel, and a file that cannot name that is harder to review, not
+	// cleaner. Only reaching for the package is drift.
+	it('leaves prose about the kernel alone', () => {
+		const packageDir = kernelFreeFixture('prose', {
+			'dist-types/protocol/vocabulary.d.ts':
+				"/**\n * Mirrors `CONSENT_CATEGORIES` in `@c15t/core`.\n *\n * @example\n * ```ts\n * // import { CONSENT_CATEGORIES } from '@c15t/core/consent-categories';\n * ```\n */\nexport declare const CONSENT_CATEGORIES: readonly string[];\n",
+		});
+
+		expect(
+			scan(packageDir, ['dist-types/protocol/vocabulary.d.ts'])
+		).toStrictEqual([]);
+	});
+
+	// The bundled Expo config plugin entry is one file with its imports inlined, so
+	// the specifier patterns would find nothing even if the kernel were in there.
+	it('reds the bundled entry by package name, where no specifier survives', () => {
+		const packageDir = kernelFreeFixture('bundled', {
+			'dist/expo-plugin/index.cjs':
+				'"use strict";\nconst __module = "@c15t/core";\nmodule.exports = __module;\n',
+		});
+
+		expect(
+			scan(packageDir, ['dist/expo-plugin/index.cjs']).map(({ path }) => path)
+		).toStrictEqual(['dist/expo-plugin/index.cjs']);
+	});
+
+	it('says nothing about a package that is allowed to depend on the kernel', () => {
+		const packageDir = join(workDir, 'web-package');
+
+		makeTree(packageDir, {
+			'package.json': JSON.stringify({
+				dependencies: { '@c15t/core': 'workspace:*' },
+				name: '@c15t/react',
+				version: '0.0.0',
+			}),
+		});
+
+		const manifest = JSON.parse(
+			readFileSync(join(packageDir, 'package.json'), 'utf8')
+		) as PackageManifest;
+
+		expect(
+			scanKernelFreePackage(
+				packageDir,
+				'@c15t/react',
+				manifest,
+				new Set(['dist/index.js'])
+			)
+		).toStrictEqual([]);
+	});
+
+	it('says nothing about a clean build', () => {
+		const packageDir = kernelFreeFixture('clean', {
+			'dist-types/index.d.ts':
+				"export type { ConsentSnapshot } from './protocol/snapshot';\n",
+			'dist/index.js': "export * from './protocol/vocabulary';\n",
+		});
+
+		expect(
+			scan(packageDir, [
+				'dist-types/index.d.ts',
+				'dist/index.js',
+				'package.json',
+			])
+		).toStrictEqual([]);
+	});
+
+	// The published packages, read straight from the checkout. The manifest is the
+	// contract an installer obeys, and the kernel has to stay reachable as a
+	// devDependency, or the fixture generator and the vocabulary oracle go quiet and
+	// the leak is "fixed" by deleting the thing that would have caught the next one.
+	it('holds every published package to both halves of the rule', () => {
+		for (const packageName of Object.keys(kernelFreePackages)) {
+			const manifestPath = join(
+				ROOT,
+				'packages',
+				packageName.split('/')[1] as string,
+				'package.json'
+			);
+			const manifest = JSON.parse(
+				readFileSync(manifestPath, 'utf8')
+			) as PackageManifest & { devDependencies?: Record<string, string> };
+
+			expect(manifest.name, manifestPath).toBe(packageName);
+
+			for (const field of [
+				'dependencies',
+				'peerDependencies',
+				'optionalDependencies',
+			] as const) {
+				expect(
+					manifest[field] ?? {},
+					`@c15t/core must not appear in ${field} of ${packageName}`
+				).not.toHaveProperty('@c15t/core');
+			}
+
+			expect(manifest.devDependencies).toHaveProperty('@c15t/core');
 		}
 	});
 });

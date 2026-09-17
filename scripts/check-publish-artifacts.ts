@@ -93,6 +93,205 @@ const distBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
 	},
 ];
 
+/**
+ * The consent kernel a mobile app must never be asked to install.
+ *
+ * `@c15t/core` is the browser engine: it owns consent state, storage, script
+ * gating, and callbacks in JavaScript. `@c15t/react-native` renders the state the
+ * Swift and Kotlin cores own instead, so the kernel is the oracle its tests and
+ * fixture generator run against, not a package a phone build resolves.
+ */
+const KERNEL_PACKAGE = '@c15t/core';
+
+/**
+ * Packages that must publish a surface free of the JavaScript consent kernel.
+ *
+ * The value says why and lands in the failure line, because the answer is not
+ * obvious from a package that imports nothing: this one has to *not* depend on a
+ * package most of the workspace does, and that is a rule in `native/CONTRACT.md`
+ * rather than a missing import somebody forgot to delete.
+ */
+export const kernelFreePackages: Record<string, string> = {
+	'@c15t/react-native':
+		'its consent kernel is native, so the JavaScript kernel is a test oracle here',
+};
+
+/** Module specifiers, the only way one file reaches another package. */
+const SPECIFIER_PATTERNS = [
+	/from\s+['"](?<specifier>[^'"]+)['"]/gu,
+	/import\(\s*['"](?<specifier>[^'"]+)['"]\s*\)/gu,
+	/import\s+['"](?<specifier>[^'"]+)['"]/gu,
+	/require\(\s*['"](?<specifier>[^'"]+)['"]\s*\)/gu,
+];
+
+/** Whether a module specifier reaches the kernel, whole or by subpath. */
+const isKernelSpecifier = function isKernelSpecifier(
+	specifier: string | undefined
+): boolean {
+	return (
+		specifier === KERNEL_PACKAGE ||
+		(specifier?.startsWith(`${KERNEL_PACKAGE}/`) ?? false)
+	);
+};
+
+/** The manifest sections that put a package in a consumer's install. */
+const INSTALLER_FIELDS = [
+	'dependencies',
+	'peerDependencies',
+	'optionalDependencies',
+] as const satisfies readonly (keyof PackageManifest)[];
+
+/**
+ * Blank out every comment in a source file, leaving its strings alone.
+ *
+ * A declaration file documents the kernel it was modelled on, and an `@example` may
+ * show an import from it. Neither is a dependency, and a guard that reported them
+ * would be switched off by the next release that got blocked on prose. This walks the
+ * text the way a lexer does rather than matching a pattern, because only code decides
+ * what a file imports, and a pattern cannot tell a comment's quotes from code's.
+ *
+ * @param code - The contents of a built file.
+ * @returns The same text with comment bodies replaced by nothing.
+ */
+export const withoutComments = function withoutComments(code: string): string {
+	let out = '';
+	let index = 0;
+
+	while (index < code.length) {
+		const character = code[index];
+		const next = code[index + 1];
+
+		if (character === '/' && next === '*') {
+			const closed = code.indexOf('*/', index + 2);
+			index = closed < 0 ? code.length : closed + 2;
+			continue;
+		}
+
+		if (character === '/' && next === '/') {
+			const newline = code.indexOf('\n', index);
+			index = newline < 0 ? code.length : newline;
+			continue;
+		}
+
+		if (character === '"' || character === "'" || character === '`') {
+			const opened = index;
+			index += 1;
+
+			while (index < code.length) {
+				if (code[index] === '\\') {
+					index += 2;
+					continue;
+				}
+				if (code[index] === character) {
+					index += 1;
+					break;
+				}
+				index += 1;
+			}
+
+			out += code.slice(opened, index);
+			continue;
+		}
+
+		out += character ?? '';
+		index += 1;
+	}
+
+	return out;
+};
+
+/**
+ * Refuse a published artifact that still reaches for the JavaScript consent kernel.
+ *
+ * Three shapes, because the leak has three ways to happen and only the first is
+ * visible to a manifest reader:
+ *
+ * 1. A dependency entry, which every installer of the package obeys.
+ * 2. A module specifier under `dist/`, which is a runtime import on a phone.
+ * 3. A module specifier under `dist-types/`, which is a `tsc` failure in an app
+ *    that installed exactly what the manifest offered.
+ *
+ * A doc comment that names the kernel in prose is not a leak, and the declarations
+ * would be worse without it: the wire shapes they document are defined against that
+ * kernel, and a build that cannot say so cannot be reviewed. So this reads module
+ * specifiers rather than scanning for the package name.
+ *
+ * The one bundled output is the exception, because bundling inlines the imports and
+ * leaves a specifier pattern nothing to find. For that file the raw name is the
+ * check, and it is the right check: a bundled entry that mentions the kernel has
+ * either imported it or reached above the package for it.
+ *
+ * @param packageDir - The package whose tarball is being judged.
+ * @param packageName - The name npm packed it under.
+ * @param manifest - That package's manifest.
+ * @param packedFilePaths - Every path in the tarball.
+ * @returns Every published surface that still names the kernel.
+ */
+export const scanKernelFreePackage = function scanKernelFreePackage(
+	packageDir: string,
+	packageName: string,
+	manifest: PackageManifest,
+	packedFilePaths: Set<string>
+): { path: string; size: number; reason: string }[] {
+	const why = kernelFreePackages[packageName];
+
+	if (why === undefined) {
+		return [];
+	}
+
+	const issues: { path: string; size: number; reason: string }[] = [];
+
+	for (const field of INSTALLER_FIELDS) {
+		const declared = manifest[field] as Record<string, string> | undefined;
+
+		if (declared && KERNEL_PACKAGE in declared) {
+			issues.push({
+				path: `${field}.${KERNEL_PACKAGE}`,
+				reason: `${KERNEL_PACKAGE} is a published dependency (${why})`,
+				size: 0,
+			});
+		}
+	}
+
+	const bundled = new Set(allowedCommonJsArtifacts[packageName]);
+	const builtOutput = /^dist(?:-types)?\/.*\.(?:c|m)?js$/u;
+
+	for (const path of [...packedFilePaths].sort()) {
+		if (!builtOutput.test(path) && !path.endsWith('.d.ts')) {
+			continue;
+		}
+
+		const filePath = join(packageDir, path);
+
+		if (!existsSync(filePath)) {
+			continue;
+		}
+
+		const content = readFileSync(filePath, 'utf8');
+		// Comments go first: what a file documents about the kernel is not what it
+		// imports from it, and the difference is the whole reason this reads
+		// specifiers instead of searching for a package name.
+		const code = withoutComments(content);
+		const importsKernel = bundled.has(path)
+			? code.includes(KERNEL_PACKAGE)
+			: SPECIFIER_PATTERNS.some((pattern) =>
+					[...code.matchAll(pattern)].some((match) =>
+						isKernelSpecifier(match.groups?.specifier)
+					)
+				);
+
+		if (importsKernel) {
+			issues.push({
+				path,
+				reason: `${KERNEL_PACKAGE} is reachable from published build output (${why})`,
+				size: content.length,
+			});
+		}
+	}
+
+	return issues;
+};
+
 const requiredPackedFilesByPackage: Record<string, string[]> = {
 	'@c15t/backend': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/cli': ['AGENTS.md', 'docs/README.md'],
@@ -537,6 +736,14 @@ const main = function main(): void {
 			...scanUiComponentStyleArtifacts(packageDir, packed.name, packedFilePaths)
 		);
 		blockedFiles.push(...scanPublishedLicenses(packageDir, packedFilePaths));
+		blockedFiles.push(
+			...scanKernelFreePackage(
+				packageDir,
+				packed.name,
+				manifest,
+				packedFilePaths
+			)
+		);
 
 		if (blockedFiles.length > 0) {
 			offenders.push({

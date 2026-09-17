@@ -4,17 +4,17 @@
  * These are the only functions in this package that decide anything about a
  * permission, and they decide nothing: they read `effectivePermissions` and
  * apply the two lifecycle flags. The native cores own the state, and
- * `@c15t/core` is imported here for its types and constant tables, never as a
- * second kernel.
+ * Nothing here evaluates policy: the vocabulary comes from
+ * `../protocol/vocabulary`, and the Swift and Kotlin cores own the state that
+ * produced the numbers.
  */
 
+import type { ConsentSnapshot } from '../protocol';
 import type {
 	AllConsentNames,
 	KernelActiveUI,
 	PromptRequirement,
-} from '@c15t/core';
-
-import type { ConsentSnapshot } from '../protocol';
+} from '../protocol/vocabulary';
 
 /**
  * The lifecycle slice a gate needs before it trusts a permission.

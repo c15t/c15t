@@ -47,6 +47,14 @@ Every hook reads the native snapshot or forwards an action. None of them hold st
 | `useIsTrackingAllowed(category)` | `boolean` | consent for that category or the platform tracking answer moves |
 | `useTrackingAuthorization()` | `'authorized' \| 'denied' \| 'not-determined' \| 'restricted' \| 'unsupported'` | a tracking request resolves |
 
+Every type those hooks trade in is exported from `@c15t/react-native`: `ConsentSnapshot`,
+`ConsentActions`, `ConsentGateProps`, `ConsentPromptState`, and the vocabulary behind them
+(`AllConsentNames`, `OptionalConsentCategory`, `ConsentState`, `PromptRequirement`,
+`RestrictionReason`). `CONSENT_CATEGORIES` and `OPTIONAL_CONSENT_CATEGORIES` are exported
+too, for a preference center that renders whatever categories exist rather than naming
+four. They are the same names and the same order the native cores and the web kernel use,
+and a test in this repository fails if the three ever disagree.
+
 `necessary` is always allowed. Every optional category reads `false` while hydration or
 the first policy resolution is outstanding, so `useIsAllowed` needs no loading branch.
 

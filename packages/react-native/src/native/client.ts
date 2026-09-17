@@ -15,8 +15,6 @@
  *    consent change that does not touch a component cannot rerender it.
  */
 
-import type { AllConsentNames } from '@c15t/core';
-
 import { denyAllSnapshot } from '../lib/deny-all-snapshot';
 import type { ConsentDecision } from '../lib/selectors';
 import {
@@ -40,6 +38,7 @@ import type {
 	NativeOverridesInput,
 	TrackingAuthorization,
 } from '../protocol';
+import type { AllConsentNames } from '../protocol/vocabulary';
 import { NativeBridgeError } from './bridge-error';
 import { getNativeC15t, getNativeC15tEvents } from './module';
 import type {
