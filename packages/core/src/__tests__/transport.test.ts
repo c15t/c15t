@@ -979,6 +979,44 @@ describe('kernel transport: failed save replay', () => {
 		kernel.dispose();
 	});
 
+	test('queued saves replay with the original timeToDecisionMs', async () => {
+		vi.useFakeTimers({ now: 1_700_000_000_000 });
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			transport: { save: saveSpy },
+		});
+
+		// Init marks the kernel live, so the visible banner is an impression.
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().surfaceShownAt.banner).toBe(1_700_000_000_000);
+
+		vi.setSystemTime(1_700_000_003_000);
+		const pendingSave = kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(0);
+		await pendingSave;
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(stored[0].payload.timeToDecisionMs).toBe(3000);
+
+		vi.setSystemTime(1_700_000_060_000);
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+		});
+		expect(saveSpy.mock.calls[1]?.[0]).toMatchObject({
+			givenAt: 1_700_000_003_000,
+			timeToDecisionMs: 3000,
+			uiSource: 'banner',
+		});
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
 	test('queued no-match saves retain the action inputs after init changes location', async () => {
 		const saveSpy = vi
 			.fn<NonNullable<KernelTransport['save']>>()

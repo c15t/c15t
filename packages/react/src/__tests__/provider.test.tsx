@@ -296,6 +296,67 @@ test('separates explicit actions from effective permission changes', async () =>
 	expect(save).toHaveBeenCalledTimes(2);
 });
 
+test('onSurfaceShown fires for a prefetched banner without init and for an opened dialog', async () => {
+	const onSurfaceShown = vi.fn();
+	const init = vi.fn(() => Promise.resolve({}));
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onSurfaceShown },
+				mode: custom({ init }),
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	// The prepared branch hydrates and marks the kernel live; no init runs.
+	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
+	expect(init).not.toHaveBeenCalled();
+	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+		surface: 'banner',
+	});
+	expect(onSurfaceShown.mock.calls[0]?.[0]).not.toHaveProperty('type');
+	expect(kernel.getSnapshot().surfaceShownAt.banner).not.toBeNull();
+
+	kernel.set.activeUI('dialog');
+	expect(onSurfaceShown).toHaveBeenCalledTimes(2);
+	expect(onSurfaceShown.mock.calls[1]?.[0]).toMatchObject({
+		surface: 'dialog',
+	});
+});
+
+test('onSurfaceShown fires once init resolves the policy', async () => {
+	const onSurfaceShown = vi.fn();
+	const prepared = policyFixture();
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				prepared.initialPolicyResolution
+			),
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onSurfaceShown },
+				mode: custom({ init }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
+	expect(init).toHaveBeenCalledTimes(1);
+	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+		surface: 'banner',
+	});
+});
+
 test('uses current callback props without replacing the kernel', async () => {
 	const first = vi.fn();
 	const second = vi.fn();

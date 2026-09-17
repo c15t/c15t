@@ -132,15 +132,17 @@ export const createRuntime = function createRuntime(
 	let started = false;
 	let live = false;
 	/**
-	 * Whether the kernel, not the adapter, last hid each surface: a derived
-	 * `activeUI` change (a save clearing the prompt) rather than an explicit
-	 * `set.activeUI`. An adapter restoring such a surface is not a new
-	 * impression.
+	 * The surface the kernel, not the adapter, hid in the last commit: a
+	 * derived `activeUI` change (a save clearing the prompt) rather than an
+	 * explicit `set.activeUI`, together with the snapshot that hide produced.
+	 * An adapter restoring that surface as the very next state change is not
+	 * a new impression. Any other commit clears it, so a later derived
+	 * re-show (an expired choice, a refresh, a re-init) counts again.
 	 */
-	const hiddenBySave: Record<PromptSurface, boolean> = {
-		banner: false,
-		dialog: false,
-	};
+	let hiddenBySave: {
+		snapshot: ConsentSnapshot;
+		surface: PromptSurface;
+	} | null = null;
 	let disposed = false;
 	let generation = 0;
 	let forwardedDirectives: Set<string> | undefined;
@@ -207,19 +209,22 @@ export const createRuntime = function createRuntime(
 		const surface = snapshot.activeUI;
 		// A save derives `activeUI` to `none` in the same commit that clears
 		// the prompt. An adapter that keeps its preference dialog open for the
-		// save then restores `dialog` a tick later; the visitor never saw it
-		// close. That restore is not a new impression. A surface the visitor
-		// reopens after the kernel hid it for real is.
+		// save then restores `dialog` with an explicit `set.activeUI` before
+		// anything else commits; the visitor never saw it close. That restore
+		// is not a new impression. A surface the visitor reopens after the
+		// kernel hid it for real is, and so is a surface the kernel derives
+		// back into view later (an expired choice, a refresh, a re-init).
 		const restoredAfterSave =
-			isPromptSurface(surface) &&
-			surface !== current.activeUI &&
-			hiddenBySave[surface];
-		if (isPromptSurface(current.activeUI) && current.activeUI !== surface) {
-			hiddenBySave[current.activeUI] = patch.activeUI === undefined;
-		}
-		if (isPromptSurface(surface)) {
-			hiddenBySave[surface] = false;
-		}
+			hiddenBySave !== null &&
+			hiddenBySave.snapshot === current &&
+			hiddenBySave.surface === surface &&
+			patch.activeUI === surface;
+		hiddenBySave =
+			isPromptSurface(current.activeUI) &&
+			current.activeUI !== surface &&
+			patch.activeUI === undefined
+				? { snapshot, surface: current.activeUI }
+				: null;
 		if (
 			live &&
 			isPromptSurface(surface) &&

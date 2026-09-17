@@ -357,6 +357,12 @@ export interface KernelConfig {
 	/**
 	 * Marks the policy as pending transport initialization.
 	 * Suppresses `activeUI` until init completes.
+	 *
+	 * `init()` marks the kernel live before `transport.init` resolves, so a
+	 * kernel built without an initial policy resolution shows the fallback
+	 * banner and records its impression (`surface:shown`) at once. Headless
+	 * callers that wait for the transport's policy should pass `true` so no
+	 * impression is recorded before the policy arrives.
 	 */
 	initialPolicyPending?: boolean;
 	/**

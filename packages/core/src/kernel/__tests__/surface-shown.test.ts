@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
+	DAY,
 	matchedResolution,
 	NOW,
 	optInRule,
@@ -122,6 +123,47 @@ describe('surface:shown', () => {
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 9000);
 		kernel.set.activeUI('dialog');
 		expect(shown).toHaveLength(3);
+	});
+
+	test('a banner shown again after the choice expires is a new impression', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const save = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optInRule({
+					categories: ['marketing', 'measurement'],
+					validity: { choiceDays: 1 },
+				})
+			),
+			now: NOW,
+			transport: { save },
+		});
+		disposers.push(kernel.dispose);
+		const shown: SurfaceShown[] = [];
+		kernel.events.on('surface:shown', (event) => shown.push(event));
+		await kernel.commands.init();
+		expect(shown).toHaveLength(1);
+
+		// The save hides the banner without an explicit `set.activeUI`.
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 1000);
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getSnapshot().nextDeadline).toBe(NOW + 1000 + DAY);
+
+		// The choice lapses and the deadline re-evaluation shows the banner
+		// again: the visitor is asked afresh, so this is a fresh impression.
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2 * DAY);
+		kernel.refresh(NOW + 2 * DAY);
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'expired',
+		});
+		expect(shown).toHaveLength(2);
+		expect(shown[1]).toMatchObject({
+			shownAt: NOW + 2 * DAY,
+			surface: 'banner',
+		});
 	});
 
 	test('a choice carries the time from the impression to the action', async () => {
