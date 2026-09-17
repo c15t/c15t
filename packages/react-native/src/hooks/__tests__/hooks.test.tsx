@@ -26,7 +26,7 @@ import type {
 } from '../../__tests__/helpers/fake-native';
 import { resetNativeStub } from '../../__tests__/helpers/react-native-stub';
 import { resetConsentClient } from '../../native/client';
-import type { ConsentSnapshot } from '../../protocol';
+import type { ConsentSnapshot, TrackingAuthorization } from '../../protocol';
 import { C15tProvider } from '../../provider/c15t-provider';
 import { useConsent } from '../use-consent';
 import type { ConsentActions } from '../use-consent-actions';
@@ -35,6 +35,8 @@ import { useConsentDecision } from '../use-consent-decision';
 import { useConsentSelector } from '../use-consent-selector';
 import { useConsentStatus } from '../use-consent-status';
 import { useIsAllowed } from '../use-is-allowed';
+import { useIsTrackingAllowed } from '../use-is-tracking-allowed';
+import { useTrackingAuthorization } from '../use-tracking-authorization';
 
 /** The default permissions, with marketing granted. */
 const MARKETING_GRANTED: ConsentState = {
@@ -79,6 +81,37 @@ const DecisionProbe = (): ReactNode => {
 	});
 
 	return <span>{decision}</span>;
+};
+
+const TrackingAllowedProbe = (): ReactNode => {
+	const allowed = useIsTrackingAllowed('marketing');
+
+	useEffect(() => {
+		countCommit('tracking');
+	});
+
+	return <span>{allowed ? 'allowed' : 'blocked'}</span>;
+};
+
+const TrackingAuthorizationProbe = (): ReactNode => {
+	const authorization = useTrackingAuthorization();
+
+	useEffect(() => {
+		countCommit('authorization');
+	});
+
+	return <span>{authorization}</span>;
+};
+
+/** Renders nothing, and leaves its stable actions object where a test can reach it. */
+const ActionsRequestProbe = (): ReactNode => {
+	const actions = useConsentActions();
+
+	useEffect(() => {
+		probe.actions.push(actions);
+	});
+
+	return null;
 };
 
 const StatusProbe = (): ReactNode => {
@@ -140,14 +173,36 @@ const capturedActions = function capturedActions(): ConsentActions {
 	return actions;
 };
 
+/**
+ * Reach the actions object a request probe rendered with.
+ *
+ * The provider hands the same object to every consumer, so any probe that
+ * captured one can hand a test the platform request.
+ */
+const capturedRequestActions =
+	function capturedRequestActions(): ConsentActions {
+		return capturedActions();
+	};
+
 let fake: FakeNativeModule;
 
-/** Render children under a provider over a fresh native core. */
+/**
+ * Render children under a provider over a fresh native core.
+ *
+ * `trackingArm` is served before the first read, because the client caches the
+ * platform answer after it: setting it later would describe a prompt that already
+ * happened rather than the state the tree mounted in.
+ */
 const mount = function mount(
 	children: ReactNode,
-	snapshot?: ConsentSnapshot
+	snapshot?: ConsentSnapshot,
+	trackingArm?: TrackingAuthorization
 ): RenderHandle {
 	fake = createFakeNativeModule(snapshot === undefined ? {} : { snapshot });
+
+	if (trackingArm !== undefined) {
+		fake.setTrackingAuthorization(trackingArm);
+	}
 
 	probe.actions = [];
 	probe.counts = {};
@@ -465,6 +520,152 @@ describe('useConsentDecision', () => {
 
 		expect(commitsOf('decision')).toBe(2);
 		expect(tree.text()).toBe('granted');
+
+		tree.unmount();
+	});
+});
+
+/**
+ * The platform half of a tracking gate, seen from a component.
+ *
+ * The consent half is covered by `useIsAllowed` and `useConsentDecision`; what
+ * belongs here is that both answers are read, that neither one is allowed to
+ * speak for the other, and that the Apple dialog is a thing the host asks for
+ * rather than something that happens to it.
+ */
+describe('useIsTrackingAllowed', () => {
+	test('holds a granted category off while the platform has not answered', () => {
+		const tree = mount(
+			<TrackingAllowedProbe />,
+			buildSnapshot({ effectivePermissions: MARKETING_GRANTED }),
+			'not-determined'
+		);
+
+		// The subject granted marketing, and the platform has not been asked. That is
+		// the state an analytics SDK must not read as a yes.
+		expect(tree.text()).toBe('blocked');
+		expect(commitsOf('tracking')).toBe(1);
+
+		tree.unmount();
+	});
+
+	test('opens only when the subject granted and the platform authorized', async () => {
+		const tree = mount(
+			<>
+				<TrackingAllowedProbe />
+				<ActionsRequestProbe />
+			</>,
+			buildSnapshot({ effectivePermissions: MARKETING_GRANTED }),
+			'not-determined'
+		);
+
+		expect(tree.text()).toBe('blocked');
+
+		fake.setTrackingAuthorization('authorized');
+		await capturedRequestActions().requestTrackingAuthorization();
+		await flushPromises();
+
+		expect(tree.text()).toBe('allowed');
+		expect(commitsOf('tracking')).toBe(2);
+
+		tree.unmount();
+	});
+
+	test('stays blocked for a refused category however the platform answered', async () => {
+		const tree = mount(
+			<>
+				<TrackingAllowedProbe />
+				<ActionsRequestProbe />
+			</>,
+			buildSnapshot({
+				effectivePermissions: { ...MARKETING_GRANTED, marketing: false },
+			}),
+			'not-determined'
+		);
+
+		fake.setTrackingAuthorization('authorized');
+		await capturedRequestActions().requestTrackingAuthorization();
+		await flushPromises();
+
+		// Apple said yes to a subject who said no. The category stays off, and the
+		// component does not even rerender, because nothing it reads moved.
+		expect(tree.text()).toBe('blocked');
+		expect(commitsOf('tracking')).toBe(1);
+
+		tree.unmount();
+	});
+
+	test('stays blocked for an unresolved policy with the platform authorized', async () => {
+		const tree = mount(
+			<>
+				<TrackingAllowedProbe />
+				<ActionsRequestProbe />
+			</>,
+			buildSnapshot({
+				effectivePermissions: MARKETING_GRANTED,
+				policyPending: true,
+			}),
+			'not-determined'
+		);
+
+		fake.setTrackingAuthorization('authorized');
+		await capturedRequestActions().requestTrackingAuthorization();
+		await flushPromises();
+
+		expect(tree.text()).toBe('blocked');
+
+		flush(() => {
+			fake.pushSnapshot(
+				buildSnapshot({
+					effectivePermissions: MARKETING_GRANTED,
+					policyPending: false,
+					revision: 4,
+				})
+			);
+		});
+
+		// The policy resolving is the event that was waiting for, and it is the only
+		// one that was ever going to be.
+		expect(tree.text()).toBe('allowed');
+
+		tree.unmount();
+	});
+});
+
+describe('useTrackingAuthorization', () => {
+	test('reports the platform arm and nothing else', () => {
+		const tree = mount(<TrackingAuthorizationProbe />);
+
+		expect(tree.text()).toBe('unsupported');
+
+		tree.unmount();
+	});
+
+	test('rerenders when a request answers, and not before', async () => {
+		const tree = mount(
+			<>
+				<TrackingAuthorizationProbe />
+				<ActionsRequestProbe />
+			</>
+		);
+
+		expect(tree.text()).toBe('unsupported');
+		expect(commitsOf('authorization')).toBe(1);
+
+		fake.setTrackingAuthorization('denied');
+		await capturedRequestActions().requestTrackingAuthorization();
+		await flushPromises();
+
+		expect(tree.text()).toBe('denied');
+		expect(commitsOf('authorization')).toBe(2);
+
+		// A consent change is not a platform change, and the component watching the
+		// platform stays put through one.
+		flush(() => {
+			fake.pushSnapshot(buildSnapshot({ revision: 9 }));
+		});
+
+		expect(commitsOf('authorization')).toBe(2);
 
 		tree.unmount();
 	});

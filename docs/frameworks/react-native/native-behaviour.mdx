@@ -204,6 +204,46 @@ Three consequences worth stating plainly:
 - Gating JavaScript-rendered functionality is not the same as putting a vendor behind
   consent. The vendor's own initialization is the request.
 
+## Tracking authorization is a second gate
+
+The bridge answers two questions about tracking and keeps both away from consent.
+`getTrackingAuthorization()` reports the arm the platform holds right now. It is
+synchronous, reads no disk and no network, and requests nothing.
+`requestTrackingAuthorization()` asks, and only when a host calls it. The combined answer
+a caller should gate on is `isTrackingAllowed(category)`, which is consent and platform
+together.
+
+On iOS the read is Apple's `trackingAuthorizationStatus` and the request is Apple's
+dialog. Both start by checking `NSUserTrackingUsageDescription`, the same key Apple
+checks. A binary without it cannot show a dialog, and asking anyway costs the one prompt
+an install ever gets and returns `denied` with no explanation, so the bridge refuses with
+`C15T_TRACKING_NOT_CONFIGURED` instead. For the same reason a read reports `unsupported`
+rather than Apple's silent `denied`: holding every optional category off on a device
+whose host never asked for Apple tracking would be an analytics bug, not a privacy win.
+
+Android always reports `unsupported`, and its request rejects with
+`C15T_TRACKING_UNSUPPORTED`. The advertising identifier there sits behind Google Play
+services' own consent surface, which this package does not depend on, and the platform has
+no equivalent question to answer. Inventing one would report either a platform yes or a
+platform no, and neither is true. A caller has to be able to tell "there is no such
+question here" from "the subject has not been asked yet", which is what the separate
+`not-determined` arm is for: it means a prompt still belongs somewhere, and `unsupported`
+means the platform adds no bar and the subject's choice decides alone.
+
+Two arms clear the platform half, `authorized` and `unsupported`. Apple resolves the
+prompt at most once per install, so a later request resolves with the answer on the
+device, and Apple does not tell a running process that the subject changed the answer in
+Settings, so a read moves after a request or on the next launch and nowhere in between.
+
+None of it moves a consent decision. `decision`, `isAllowed`, and the snapshot are a
+function of the resolved policy and the subject's c15t choice, with no tracking arm among
+the inputs: `granted` with ATT denied stays denied, and `pending` with ATT authorized
+stays pending. The combination is one function per side, `isTrackingPermitted` in
+JavaScript and `C15tTrackingGate.mayTrack(decision:authorization:)` for a Swift caller
+that gates outside React, and both are asserted against every arm rather than left to the
+caller to remember. A Kotlin caller has nothing to combine: `C15t.isAllowed(category)` is
+already the whole answer on a platform that asks nothing.
+
 ## Offline writes
 
 Every write is persisted before the request, not after, and replayed on the next launch,

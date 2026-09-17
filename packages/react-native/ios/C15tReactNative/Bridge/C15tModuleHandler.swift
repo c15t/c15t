@@ -52,6 +52,23 @@ public struct C15tBridgeError: Error, Equatable, Sendable {
         )
     }
 
+    /// The build carries no `NSUserTrackingUsageDescription`, so Apple has no prompt to
+    /// show and the request was refused before it was made.
+    ///
+    /// The message names the plugin parameter that writes the key, because a host that
+    /// hits this asked for a prompt on a build that cannot show one, and the failure it
+    /// would have seen instead is a silent `denied`.
+    public static let trackingNotConfigured = C15tBridgeError(
+        code: "C15T_TRACKING_NOT_CONFIGURED",
+        message: "This build carries no NSUserTrackingUsageDescription, so the App Tracking Transparency prompt cannot be shown and nothing was asked. Set enableAppTrackingTransparency and trackingUsageDescription on the c15t Expo plugin (or write the key yourself) and rebuild; without the key Apple suppresses the dialog and records the answer as denied without telling you. Nothing about consent changed."
+    )
+
+    /// This platform, or this OS, has no App Tracking Transparency to ask.
+    public static let trackingUnsupported = C15tBridgeError(
+        code: "C15T_TRACKING_UNSUPPORTED",
+        message: "This platform has no App Tracking Transparency, so there was nothing to ask. Tracking readiness reads as unsupported here, which means the platform adds no gate and the c15t decision alone decides; on Android that is permanent, because the advertising identifier sits behind Google Play services rather than a system prompt."
+    )
+
     /// The core refused to re-resolve policy.
     public static let refreshFailed = C15tBridgeError(
         code: "C15T_REFRESH_FAILED",
@@ -78,8 +95,29 @@ public struct C15tModuleHandler {
     /// call count instead of touching `Info.plist`.
     public let startCore: @Sendable () -> Bool
 
-    public init(startCore: @escaping @Sendable () -> Bool = { C15tReactNativeBootstrap.start() }) {
+    /// Reads Apple's tracking answer.
+    ///
+    /// Injectable for the same reason as `startCore`: the four platform states cannot be
+    /// produced on a test machine, and the mapping that turns them into arms is the part
+    /// worth pinning.
+    public let trackingPlatformStatus: @Sendable () -> C15tTrackingPlatformStatus?
+
+    /// Whether this binary carries a prompt string.
+    public let trackingPromptStringPresent: @Sendable () -> Bool
+
+    /// Shows Apple's dialog. Reached only when ``C15tTrackingGate`` said `.prompt`.
+    public let trackingPrompt: @Sendable (@escaping (C15tTrackingPlatformStatus?) -> Void) -> Void
+
+    public init(
+        startCore: @escaping @Sendable () -> Bool = { C15tReactNativeBootstrap.start() },
+        trackingPlatformStatus: @escaping @Sendable () -> C15tTrackingPlatformStatus? = { C15tTracking.platformStatus() },
+        trackingPromptStringPresent: @escaping @Sendable () -> Bool = { C15tTracking.promptStringPresent() },
+        trackingPrompt: @escaping @Sendable (@escaping (C15tTrackingPlatformStatus?) -> Void) -> Void = { completion in C15tTracking.requestPrompt(completion: completion) }
+    ) {
         self.startCore = startCore
+        self.trackingPlatformStatus = trackingPlatformStatus
+        self.trackingPromptStringPresent = trackingPromptStringPresent
+        self.trackingPrompt = trackingPrompt
     }
 
     /// The `getBootstrap()` payload.
@@ -99,6 +137,58 @@ public struct C15tModuleHandler {
     public func snapshotPayload() -> String {
         ensureCore()
         return C15tPayload.snapshot(C15t.snapshot(), fallbackLanguage: deviceLanguage)
+    }
+
+    /// The `getTrackingAuthorization()` payload.
+    ///
+    /// No `ensureCore()` here, unlike every other read: the platform answer is not consent
+    /// state and does not depend on a core existing. Starting one to answer a question
+    /// about a dialog would be a side effect nobody asked for, and a host running with no
+    /// backend still deserves the honest platform answer.
+    public func trackingAuthorizationPayload() -> String {
+        C15tPayload.trackingAuthorization(
+            C15tTrackingGate.authorization(
+                platform: trackingPlatformStatus(),
+                promptStringPresent: trackingPromptStringPresent()
+            )
+        )
+    }
+
+    /// Ask the platform, or refuse before the question is ever made.
+    ///
+    /// The gate decides, and the only branch left here is which rejection to hand back.
+    /// That ordering is the requirement: calling Apple without a prompt string shows
+    /// nothing, records `denied` on the install permanently, and tells the caller nothing,
+    /// so a refusal that names the missing key is the only answer the host can act on.
+    ///
+    /// Nothing here touches the snapshot, and nothing here can. A platform answer is not a
+    /// consent decision, so a request that resolves `authorized` leaves every category
+    /// exactly where the subject left it.
+    public func requestTrackingAuthorization(
+        _ completion: @escaping (Result<C15tTrackingAuthorization, C15tBridgeError>) -> Void
+    ) {
+        let promptStringPresent = trackingPromptStringPresent()
+
+        switch C15tTrackingGate.request(
+            platform: trackingPlatformStatus(),
+            promptStringPresent: promptStringPresent
+        ) {
+        case let .answered(status):
+            completion(.success(status))
+        case let .refused(refusal):
+            completion(.failure(refusal == .noPromptString ? .trackingNotConfigured : .trackingUnsupported))
+        case .prompt:
+            trackingPrompt { answered in
+                guard let answered else {
+                    // ATT was there when the gate checked and is not reporting now. That is
+                    // not an answer, and `unsupported` would read as permission, so it is
+                    // a failure.
+                    completion(.failure(.trackingUnsupported))
+                    return
+                }
+                completion(.success(C15tTrackingGate.authorization(platform: answered, promptStringPresent: true)))
+            }
+        }
     }
 
     /// Apply a consent action, returning the `CommitResult` payload.

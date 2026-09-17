@@ -24,10 +24,12 @@ import {
 	isCategoryAllowed,
 	isSnapshotReady,
 } from '../lib/selectors';
+import { isTrackingPermitted } from '../lib/tracking';
 import {
 	describeSnapshotWireDrift,
 	isProtocolVersionSupported,
 	NATIVE_EVENT_NAMES,
+	parseTrackingAuthorization,
 } from '../protocol';
 import type {
 	BootstrapPayload,
@@ -36,6 +38,7 @@ import type {
 	ConsentSnapshot,
 	NativeEventName,
 	NativeOverridesInput,
+	TrackingAuthorization,
 } from '../protocol';
 import { NativeBridgeError } from './bridge-error';
 import { getNativeC15t, getNativeC15tEvents } from './module';
@@ -110,6 +113,70 @@ export interface ConsentClient {
 	 * @returns `true` when the snapshot allows it.
 	 */
 	isAllowed: (category: AllConsentNames) => boolean;
+	/**
+	 * What the platform says about tracking, for the category an SDK is about to
+	 * start.
+	 *
+	 * A read of state the operating system already holds, so it is synchronous and
+	 * answers on the same thread as {@link ConsentClient.isAllowed}. The answer is
+	 * read once and then cached: Apple resolves it at launch, so a subject who
+	 * changes the setting in the Settings app is not heard by a running process,
+	 * and reading the bridge again on every render would return what the first read
+	 * returned.
+	 *
+	 * This is never a consent answer. `unsupported` means the platform asks nothing
+	 * of this build, which is Android's answer always and iOS's when the binary
+	 * carries no `NSUserTrackingUsageDescription`.
+	 *
+	 * @returns The arm the native core reported, or `denied` when it reported
+	 *   nothing this build can name.
+	 */
+	getTrackingAuthorization: () => TrackingAuthorization;
+	/**
+	 * Ask the platform for tracking authorization.
+	 *
+	 * Nothing in this package calls it. It belongs after the consent UI has been
+	 * answered, because a platform prompt that arrives before the subject has been
+	 * told anything is the rejection Apple writes back to the developer, and it is
+	 * the ordering the ATT prompt string exists to serve.
+	 *
+	 * The iOS prompt is shown at most once per install: afterwards this resolves
+	 * with the answer already on the device. It rejects with
+	 * `C15T_TRACKING_NOT_CONFIGURED` on an iOS build that carries no
+	 * `NSUserTrackingUsageDescription`, because Apple then suppresses the dialog and
+	 * records the answer as denied without telling the host why, and with
+	 * `C15T_TRACKING_UNSUPPORTED` on Android, where there is nothing to ask.
+	 *
+	 * @returns The arm the platform reported after the request settled.
+	 */
+	requestTrackingAuthorization: () => Promise<TrackingAuthorization>;
+	/**
+	 * Whether tracking behaviour may run for one category.
+	 *
+	 * Both halves have to say yes: the c15t decision for `category` must be
+	 * `granted`, and the platform must not be holding tracking back. Neither half
+	 * moves the other. A device with ATT authorized and the category denied is
+	 * denied, and a policy that has not resolved stays `pending` no matter what
+	 * Apple reported. See {@link isTrackingPermitted}.
+	 *
+	 * `necessary` is not a tracking category and returns `true`, exactly as
+	 * {@link ConsentClient.decision} reports it as granted.
+	 *
+	 * @param category - Category the caller wants to run.
+	 * @returns `true` when consent and the platform both allow it.
+	 */
+	isTrackingAllowed: (category: AllConsentNames) => boolean;
+	/**
+	 * Register interest in the platform tracking answer.
+	 *
+	 * The native cores push no tracking event, because there is nothing to push:
+	 * the answer moves when the host asks for it and when the process relaunches.
+	 * This exists so a hook can rerender on the request rather than poll the
+	 * bridge.
+	 *
+	 * @internal
+	 */
+	subscribeTracking: (onTrackingChange: () => void) => () => void;
 	/**
 	 * Register interest in one slice of the snapshot.
 	 *
@@ -410,6 +477,17 @@ export const createConsentClient = function createConsentClient(
 	/** Native event subscriptions, held for the life of the client. */
 	let eventSubscriptions: NativeEventSubscription[] = [];
 
+	/**
+	 * Platform tracking arm, read once per process. See
+	 * {@link ConsentClient.getTrackingAuthorization} for why a second read is
+	 * wasted work rather than merely cheap.
+	 */
+	let tracking: TrackingAuthorization | null = null;
+	/** Consumers that watch the platform answer and no slice of the snapshot. */
+	const trackingSubscribers = new Set<() => void>();
+	/** Keeps the missing-surface warning to one line per client. */
+	const missingTrackingSurface = { value: false };
+
 	const subscribers = new Set<Subscriber<unknown>>();
 
 	/** Pull from native and decode only when the bytes actually changed. */
@@ -532,6 +610,96 @@ export const createConsentClient = function createConsentClient(
 		return value;
 	};
 
+	/**
+	 * Say once that the binary predates the tracking surface.
+	 *
+	 * A JavaScript-only update can ship a bundle that calls a method the binary in
+	 * the user's hand does not have, and the protocol handshake cannot catch it:
+	 * adding a method is an additive change. Failing closed is the answer that is
+	 * safe to be wrong about, because the alternative reads "the native build could
+	 * not tell me" as "the platform asks nothing of us" and starts tracking on a
+	 * device where nobody was asked.
+	 */
+	const warnTrackingSurfaceMissing =
+		function warnTrackingSurfaceMissing(): void {
+			if (missingTrackingSurface.value || isProduction()) {
+				return;
+			}
+
+			missingTrackingSurface.value = true;
+			console.warn(
+				'c15t ConsentClient: this native build has no tracking authorization methods, so tracking is treated as denied. Rebuild the app: a JavaScript update cannot add a native method.',
+				'Rebuilding is the fix. Until then `isTrackingAllowed` answers false and `requestTrackingAuthorization` rejects.'
+			);
+		};
+
+	/** The platform arm, pulled from native at most once. */
+	const currentTracking = function currentTracking(): TrackingAuthorization {
+		if (tracking !== null) {
+			return tracking;
+		}
+
+		if (typeof nativeModule.getTrackingAuthorization !== 'function') {
+			warnTrackingSurfaceMissing();
+
+			// Left uncached on purpose: a host that rebuilds recovers without a
+			// reset hook, and a warning that never repeats already covers the noise.
+			return 'denied';
+		}
+
+		tracking = parseTrackingAuthorization(
+			nativeModule.getTrackingAuthorization()
+		);
+
+		return tracking;
+	};
+
+	/** Tell the consumers that watch the platform answer and nothing else. */
+	const notifyTracking = function notifyTracking(): void {
+		for (const onTrackingChange of [...trackingSubscribers]) {
+			onTrackingChange();
+		}
+	};
+
+	/**
+	 * Forward the platform request.
+	 *
+	 * The rejection carries the reason from the native side, which is where the
+	 * difference between "this build cannot prompt" and "Android has no such
+	 * question" lives.
+	 */
+	const requestTrackingAuthorization =
+		async function requestTrackingAuthorization(): Promise<TrackingAuthorization> {
+			if (typeof nativeModule.requestTrackingAuthorization !== 'function') {
+				warnTrackingSurfaceMissing();
+
+				throw new NativeBridgeError(
+					'@c15t/react-native cannot request tracking authorization: this native build has no requestTrackingAuthorization method. Rebuild the app so the binary matches this package; a JavaScript update cannot add it.'
+				);
+			}
+
+			try {
+				tracking = parseTrackingAuthorization(
+					await nativeModule.requestTrackingAuthorization()
+				);
+			} catch (error: unknown) {
+				// Whether the prompt appeared is unknown from here, so drop the cached
+				// arm and let the next read ask the platform rather than trust a stale
+				// one.
+				tracking = null;
+
+				throw error;
+			}
+
+			// Deliberately no `stale = true` and no snapshot notify. The platform
+			// answer is not consent: a prompt that changed nothing about any category
+			// must not reach a tree that subscribed to categories, and the consent
+			// decision a subscriber reads has to be identical before and after.
+			notifyTracking();
+
+			return tracking;
+		};
+
 	// Attach for the life of the client, not the life of a subscription. The
 	// pull is still skipped while nothing is mounted, so an idle tree costs no
 	// bridge reads, but a read made after a native-only change sees the change
@@ -574,15 +742,28 @@ export const createConsentClient = function createConsentClient(
 				notify();
 			}
 		},
-		dispose: stopListening,
+		dispose: (): void => {
+			stopListening();
+			trackingSubscribers.clear();
+		},
 		getSnapshot: currentSnapshot,
+		getTrackingAuthorization: currentTracking,
 		identify: (externalId: string) =>
 			afterMutation(nativeModule.identify(externalId)),
 		isAllowed: (category: AllConsentNames) =>
 			isCategoryAllowed(currentSnapshot(), category),
 		isReady: () => isSnapshotReady(currentSnapshot()),
+		isTrackingAllowed: (category: AllConsentNames): boolean =>
+			// `necessary` is not a tracking behaviour, so the platform gate does not
+			// apply to it and it reads the same way `decision` reads it: granted.
+			category === 'necessary' ||
+			isTrackingPermitted(
+				categoryDecision(currentSnapshot(), category),
+				currentTracking()
+			),
 		logout: () => afterMutation(nativeModule.logout()),
 		refresh: () => afterMutation(nativeModule.refresh()),
+		requestTrackingAuthorization,
 		setOverrides: (overrides: NativeOverridesInput) =>
 			afterMutation(nativeModule.setOverrides(JSON.stringify(overrides))),
 		subscribe: <ResultType>(
@@ -604,6 +785,13 @@ export const createConsentClient = function createConsentClient(
 
 			return () => {
 				subscribers.delete(subscriber);
+			};
+		},
+		subscribeTracking: (onTrackingChange: () => void): (() => void) => {
+			trackingSubscribers.add(onTrackingChange);
+
+			return () => {
+				trackingSubscribers.delete(onTrackingChange);
 			};
 		},
 	};

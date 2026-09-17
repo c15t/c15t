@@ -5,7 +5,11 @@
 import type { OptionalConsentCategory } from '@c15t/core';
 import { useMemo } from 'react';
 
-import type { CommitResult, NativeOverridesInput } from '../protocol';
+import type {
+	CommitResult,
+	NativeOverridesInput,
+	TrackingAuthorization,
+} from '../protocol';
 import { useConsentClient } from '../provider/consent-context';
 
 /**
@@ -65,6 +69,25 @@ export interface ConsentActions {
 	 */
 	logout: () => Promise<void>;
 	/**
+	 * Ask the platform for tracking authorization.
+	 *
+	 * Nothing in this package calls it, and nothing in this package can: the
+	 * platform prompt belongs after your own consent UI, so that the system dialog
+	 * is never the first thing a subject reads about tracking. Call it once the
+	 * subject has answered, and read the answer with
+	 * {@link useIsTrackingAllowed} rather than from this promise alone.
+	 *
+	 * Apple shows the dialog at most once per install; afterwards this resolves with
+	 * the answer already on the device. It rejects with
+	 * `C15T_TRACKING_NOT_CONFIGURED` on an iOS build whose `Info.plist` carries no
+	 * `NSUserTrackingUsageDescription`, where the system dialog is suppressed and the
+	 * answer comes back denied without a word, and with `C15T_TRACKING_UNSUPPORTED` on
+	 * Android, where there is no platform question to ask.
+	 *
+	 * @returns The platform arm after the request settled.
+	 */
+	requestTrackingAuthorization: () => Promise<TrackingAuthorization>;
+	/**
 	 * Pin country, region, language, or publisher test mode.
 	 *
 	 * Useful for a debug menu and for review-gated builds that must evaluate a
@@ -95,6 +118,7 @@ export const useConsentActions = function useConsentActions(): ConsentActions {
 			logout: () => client.logout(),
 			refresh: () => client.refresh(),
 			rejectAll: () => client.commit({ action: 'necessary' }),
+			requestTrackingAuthorization: () => client.requestTrackingAuthorization(),
 			save: (
 				consents?: Readonly<Partial<Record<OptionalConsentCategory, boolean>>>
 			) => client.commit({ action: 'explicit', consents: consents ?? {} }),

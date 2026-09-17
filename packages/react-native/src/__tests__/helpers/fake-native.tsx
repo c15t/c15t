@@ -14,7 +14,7 @@ import { vi } from 'vitest';
 
 import type { NativeC15tTurboModule } from '../../native/module';
 import { NATIVE_C15T_MODULE_NAME } from '../../protocol';
-import type { ConsentSnapshot } from '../../protocol';
+import type { ConsentSnapshot, TrackingAuthorization } from '../../protocol';
 import { emitNativeEvent, setNativeModule } from './react-native-stub';
 
 // React only permits `act` when the environment says a test drives it.
@@ -94,10 +94,18 @@ export interface FakeNativeModule extends NativeC15tTurboModule {
 	identifyCalls: string[];
 	/** Times `logout()` was called. */
 	logoutCalls: number;
+	/** Times `getTrackingAuthorization()` was called. */
+	trackingReadCalls: number;
+	/** Times `requestTrackingAuthorization()` was called. */
+	trackingRequestCalls: number;
 	/** Serve a new snapshot and emit the `snapshot` event for it. */
 	pushSnapshot: (snapshot: ConsentSnapshot) => void;
 	/** Serve unreadable text as the next snapshot payload. */
 	pushUnreadableSnapshot: (raw: string) => void;
+	/** Serve a different platform tracking arm from the next read. */
+	setTrackingAuthorization: (status: TrackingAuthorization) => void;
+	/** Make the next tracking request reject, the way a build without the plist key does. */
+	rejectTrackingRequestWith: (code: string, message: string) => void;
 	/** Replace the bootstrap payload served by the next handshake. */
 	setBootstrap: (payload: unknown) => void;
 	/** Make `commit()` resolve with text that is not a `CommitResult`. */
@@ -118,6 +126,12 @@ export const createFakeNativeModule = function createFakeNativeModule(
 ): FakeNativeModule {
 	let snapshot: ConsentSnapshot | string = options.snapshot ?? buildSnapshot();
 	let bootstrap: unknown = options.bootstrap ?? FAKE_BOOTSTRAP;
+	let trackingStatus: TrackingAuthorization = 'unsupported';
+	let trackingRequestReply: {
+		readonly code?: string;
+		readonly message?: string;
+		readonly status?: TrackingAuthorization;
+	} = { status: 'unsupported' };
 	let commitReply = JSON.stringify({
 		confirmed: [],
 		ok: true,
@@ -152,6 +166,11 @@ export const createFakeNativeModule = function createFakeNativeModule(
 
 			return typeof snapshot === 'string' ? snapshot : JSON.stringify(snapshot);
 		}),
+		getTrackingAuthorization: vi.fn(() => {
+			fake.trackingReadCalls += 1;
+
+			return JSON.stringify({ status: trackingStatus });
+		}),
 		identify: vi.fn((externalId: string) => {
 			fake.identifyCalls.push(externalId);
 
@@ -181,7 +200,25 @@ export const createFakeNativeModule = function createFakeNativeModule(
 			return Promise.resolve();
 		}),
 		refreshCalls: 0,
+		rejectTrackingRequestWith: (code: string, message: string) => {
+			trackingRequestReply = { code, message };
+		},
 		removeListeners: vi.fn(),
+		requestTrackingAuthorization: vi.fn(() => {
+			fake.trackingRequestCalls += 1;
+
+			if (trackingRequestReply.code !== undefined) {
+				return Promise.reject(
+					Object.assign(new Error(trackingRequestReply.message ?? ''), {
+						code: trackingRequestReply.code,
+					})
+				);
+			}
+
+			trackingStatus = trackingRequestReply.status ?? trackingStatus;
+
+			return Promise.resolve(JSON.stringify({ status: trackingStatus }));
+		}),
 		setBootstrap: (payload: unknown) => {
 			bootstrap = payload;
 		},
@@ -190,7 +227,13 @@ export const createFakeNativeModule = function createFakeNativeModule(
 
 			return Promise.resolve();
 		}),
+		setTrackingAuthorization: (status: TrackingAuthorization) => {
+			trackingStatus = status;
+			trackingRequestReply = { status };
+		},
 		snapshotCalls: 0,
+		trackingReadCalls: 0,
+		trackingRequestCalls: 0,
 	};
 
 	setNativeModule(NATIVE_C15T_MODULE_NAME, fake);

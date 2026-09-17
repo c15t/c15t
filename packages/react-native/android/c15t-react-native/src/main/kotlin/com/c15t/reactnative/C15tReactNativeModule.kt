@@ -64,6 +64,28 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 		return C15tPayload.snapshot(C15t.snapshot(), fallbackLanguage = deviceLanguage())
 	}
 
+	/**
+	 * The platform tracking answer.
+	 *
+	 * No [ensureCore] here, unlike every other read: this reports what the operating
+	 * system thinks about tracking, which is not consent state and does not depend on a
+	 * core existing. Starting one to answer it would be a side effect nobody asked for.
+	 */
+	override fun getTrackingAuthorization(): String =
+		C15tPayload.trackingAuthorization(C15tTracking.status)
+
+	/**
+	 * Reject, always. Android has no tracking prompt for this module to show, so a
+	 * resolution would report a dialog no user ever saw.
+	 *
+	 * See the KDoc on [C15tTracking] for what Android can and cannot answer about the
+	 * advertising identifier, and for why [C15tTrackingAuthorization.UNSUPPORTED] from
+	 * [getTrackingAuthorization] is not the same statement as "not determined yet".
+	 */
+	override fun requestTrackingAuthorization(promise: Promise) {
+		promise.reject(C15tTracking.REJECT_UNSUPPORTED, C15tTracking.MESSAGE_UNSUPPORTED)
+	}
+
 	override fun commit(
 		intent: String,
 		promise: Promise,

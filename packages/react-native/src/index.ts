@@ -83,10 +83,15 @@ export { useConsentStatus } from './hooks';
 export { useConsentSafeArea } from './hooks';
 export type { ConsentSafeArea } from './hooks';
 export { useConsentDecision, useIsAllowed } from './hooks';
+export { useIsTrackingAllowed, useTrackingAuthorization } from './hooks';
 export {
 	denyAllSnapshot,
 	INVALID_NATIVE_SNAPSHOT_CODE,
 } from './lib/deny-all-snapshot';
+export {
+	isPlatformTrackingSatisfied,
+	isTrackingPermitted,
+} from './lib/tracking';
 export {
 	categoryDecision,
 	isCategoryAllowed,

@@ -17,6 +17,14 @@ export type {
 export type { NativeOverrides, NativeOverridesInput } from './overrides';
 export { defaultNativeOverrides } from './overrides';
 export type {
+	TrackingAuthorization,
+	TrackingAuthorizationPayload,
+} from './tracking';
+export {
+	parseTrackingAuthorization,
+	TRACKING_AUTHORIZATION_STATUSES,
+} from './tracking';
+export type {
 	ConsentSnapshot,
 	NativeModel,
 	NativeGpcSignal,

@@ -62,6 +62,28 @@ export interface Spec extends TurboModule {
 	 * reset on sign-out.
 	 */
 	logout: () => Promise<void>;
+	/**
+	 * Platform tracking authorization as a JSON-encoded
+	 * `TrackingAuthorizationPayload`.
+	 *
+	 * Synchronous: it reads a state the OS already holds and touches no disk and
+	 * no network. It is never an answer about consent, and it reports
+	 * `unsupported` where the platform has no tracking gate for this build to
+	 * satisfy: on Android always, and on iOS when the build carries no
+	 * `NSUserTrackingUsageDescription`. It requests nothing.
+	 */
+	getTrackingAuthorization: () => string;
+	/**
+	 * Ask the platform for tracking authorization, resolving with a JSON-encoded
+	 * `TrackingAuthorizationPayload`.
+	 *
+	 * Never called by this package. A host calls it, after its own consent UI, so
+	 * the platform prompt is never the first thing a subject reads. On iOS it
+	 * rejects when the build carries no `NSUserTrackingUsageDescription`, because
+	 * Apple then suppresses the dialog and reports the answer back as denied
+	 * without saying why; on Android it rejects because there is nothing to ask.
+	 */
+	requestTrackingAuthorization: () => Promise<string>;
 	/** Register interest in an event; required by the event-emitter spec. */
 	addListener: (eventName: string) => void;
 	/** Report the number of live listeners; required by the emitter spec. */

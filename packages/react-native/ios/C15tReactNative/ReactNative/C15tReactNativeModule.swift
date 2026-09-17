@@ -75,6 +75,16 @@ public final class C15tReactNativeModule: RCTEventEmitter {
         return handler.snapshotPayload()
     }
 
+    /// The platform tracking answer.
+    ///
+    /// No `followCore()`: this reads Apple, not the consent core, and the answer is the
+    /// same whether or not a core was ever started. It is also not a consent read, and a
+    /// host that treats it as one gets a category the subject never granted.
+    @objc(getTrackingAuthorization)
+    public func getTrackingAuthorization() -> String {
+        handler.trackingAuthorizationPayload()
+    }
+
     // MARK: - Async commands
 
     @objc(commit:resolve:reject:)
@@ -133,6 +143,32 @@ public final class C15tReactNativeModule: RCTEventEmitter {
             resolve(nil)
         case let .failure(error):
             reject(error.code, error.message, nil)
+        }
+    }
+
+    /// Ask Apple for tracking authorization.
+    ///
+    /// Nothing in this module calls it, and nothing else in the package does: the prompt
+    /// belongs after the host's own consent UI, so that the system dialog is never the
+    /// first thing a subject reads about tracking. It rejects when the build carries no
+    /// prompt string, because Apple would then show nothing and spend the install's one
+    /// dialog on a `denied` nobody chose.
+    ///
+    /// Resolves off Apple's callback, which is not the calling thread. Rationale: the
+    /// promise blocks dispatch, and the alternative is a second hop that could queue behind
+    /// the presentation this is waiting on.
+    @objc(requestTrackingAuthorization:reject:)
+    public func requestTrackingAuthorization(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        handler.requestTrackingAuthorization { result in
+            switch result {
+            case let .success(status):
+                resolve(C15tPayload.trackingAuthorization(status))
+            case let .failure(error):
+                reject(error.code, error.message, nil)
+            }
         }
     }
 

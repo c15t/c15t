@@ -70,6 +70,12 @@ public abstract class NativeC15tSpec extends ReactContextBaseJavaModule implemen
 	@ReactMethod
 	public abstract void logout(Promise promise);
 
+	@ReactMethod(isBlockingSynchronousMethod = true)
+	public abstract String getTrackingAuthorization();
+
+	@ReactMethod
+	public abstract void requestTrackingAuthorization(Promise promise);
+
 	@ReactMethod
 	public abstract void addListener(String eventName);
 

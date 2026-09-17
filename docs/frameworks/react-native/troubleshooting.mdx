@@ -161,6 +161,14 @@ error names the parameter to change:
   c15t `<meta-data>` entries and the `androidx.startup` provider by hand and drop the
   plugin.
 
+A build that passes those checks can still decline to prompt at runtime.
+`requestTrackingAuthorization()` rejects with `C15T_TRACKING_NOT_CONFIGURED` on a binary
+that carries no `NSUserTrackingUsageDescription`, the same missing key the plugin refuses
+above, reached by a host that wrote its `Info.plist` by hand. The bridge refuses instead of
+asking, because Apple shows no dialog without that string and records the answer as denied,
+which spends the one prompt an install ever gets. `useTrackingAuthorization()` answers
+`unsupported` for that same build, and Android answers it for every build.
+
 An unquoted `android:value="true"` is typed as a boolean by the manifest parser, and a
 quoted `"true"` stays text. Both are read, along with `TRUE` and `1`, so a flag written by
 the config plugin and one typed by hand mean the same thing. A value that means neither

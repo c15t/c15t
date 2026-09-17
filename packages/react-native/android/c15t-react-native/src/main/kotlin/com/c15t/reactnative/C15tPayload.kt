@@ -248,6 +248,19 @@ object C15tPayload {
 		},
 	)
 
+	/**
+	 * The `TrackingAuthorizationPayload` both tracking calls resolve with.
+	 *
+	 * One field, because the arm is the whole answer. There is no consent field here and
+	 * there never will be: this carries what the platform said, and on Android what it
+	 * says is that it has no question.
+	 */
+	fun trackingAuthorization(status: C15tTrackingAuthorization): String = encode(
+		buildJsonObject {
+			put("status", status.wireValue)
+		},
+	)
+
 	/** A `snapshot` event: the new revision and the dirty flag, nothing else. */
 	fun snapshotEvent(revision: Long): String = encode(
 		buildJsonObject {

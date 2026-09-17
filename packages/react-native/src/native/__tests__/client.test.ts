@@ -23,6 +23,7 @@ import {
 	resetNativeStub,
 } from '../../__tests__/helpers/react-native-stub';
 import { shallowEqual } from '../../lib/selectors';
+import { TRACKING_AUTHORIZATION_STATUSES } from '../../protocol';
 import type { ConsentSnapshot } from '../../protocol';
 import { NativeBridgeError } from '../bridge-error';
 import {
@@ -32,6 +33,7 @@ import {
 } from '../client';
 import type { ConsentClient } from '../client';
 import { getNativeC15tEvents } from '../module';
+import type { NativeC15tTurboModule } from '../module';
 import { C15tProtocolMismatchError } from '../protocol-mismatch-error';
 
 /** Build a client over a fresh fake module. */
@@ -658,5 +660,234 @@ describe('decision and isReady', () => {
 		// The pull is shared with every other read, so a host that polls a decision
 		// from a render path costs nothing beyond the read it already paid for.
 		expect(fake.snapshotCalls).toBe(before);
+	});
+});
+
+/**
+ * The invariant the whole ATT surface rests on, checked on the client rather
+ * than on the pure helper: reading or requesting the platform answer must not
+ * move a consent answer. The arms come from the wire table, so a fifth arm added
+ * on either side is graded here against the same three expectations.
+ */
+describe('tracking authorization', () => {
+	/** Marketing granted by the subject, which is the case a platform answer
+	 *  would be useful to override if overriding it were allowed. */
+	const granted = {
+		experience: false,
+		functionality: true,
+		marketing: true,
+		measurement: false,
+		necessary: true,
+	};
+
+	/** The same subject, refusing marketing. */
+	const refused = { ...granted, marketing: false };
+
+	test.each(TRACKING_AUTHORIZATION_STATUSES)(
+		'a `%s` platform answer leaves a granted decision granted',
+		(arm) => {
+			const { client, fake } = makeClient({
+				snapshot: buildSnapshot({ effectivePermissions: granted }),
+			});
+			fake.setTrackingAuthorization(arm);
+
+			expect(client.decision('marketing')).toBe('granted');
+			expect(client.isAllowed('marketing')).toBe(true);
+			expect(client.isReady()).toBe(true);
+			// The platform half can only ever take permission away, never add it.
+			expect(client.isTrackingAllowed('marketing')).toBe(
+				arm === 'authorized' || arm === 'unsupported'
+			);
+		}
+	);
+
+	test.each(TRACKING_AUTHORIZATION_STATUSES)(
+		'a `%s` platform answer leaves a refused decision refused',
+		(arm) => {
+			const { client, fake } = makeClient({
+				snapshot: buildSnapshot({ effectivePermissions: refused }),
+			});
+			fake.setTrackingAuthorization(arm);
+
+			// The contract's own sentence: a device with ATT granted and consent
+			// denied is denied.
+			expect(client.decision('marketing')).toBe('denied');
+			expect(client.isAllowed('marketing')).toBe(false);
+			expect(client.isTrackingAllowed('marketing')).toBe(false);
+		}
+	);
+
+	test.each(TRACKING_AUTHORIZATION_STATUSES)(
+		'a `%s` platform answer leaves an unresolved policy pending',
+		(arm) => {
+			const { client, fake } = makeClient({
+				snapshot: buildSnapshot({
+					effectivePermissions: granted,
+					policyPending: true,
+				}),
+			});
+			fake.setTrackingAuthorization(arm);
+
+			// An OS prompt is not the event that ends a wait, so `pending` has to
+			// survive it in both directions.
+			expect(client.decision('marketing')).toBe('pending');
+			expect(client.isAllowed('marketing')).toBe(false);
+			expect(client.isTrackingAllowed('marketing')).toBe(false);
+		}
+	);
+
+	test.each(TRACKING_AUTHORIZATION_STATUSES)(
+		'answers `necessary` without reading the platform for `%s`',
+		(arm) => {
+			const { client, fake } = makeClient({
+				snapshot: buildSnapshot({ effectivePermissions: refused }),
+			});
+			fake.setTrackingAuthorization(arm);
+
+			// Necessary is not a tracking behaviour, so ATT has nothing to say about
+			// it. The short circuit is also the reason a host that never gates
+			// tracking pays no bridge read.
+			expect(client.isTrackingAllowed('necessary')).toBe(true);
+			expect(fake.trackingReadCalls).toBe(0);
+		}
+	);
+
+	test('reads the platform answer once per process', () => {
+		const { client, fake } = makeClient();
+
+		expect(client.getTrackingAuthorization()).toBe('unsupported');
+		client.isTrackingAllowed('marketing');
+		client.getTrackingAuthorization();
+
+		// Apple resolves the answer at launch, so a second read could only return
+		// what the first one did, from across the bridge.
+		expect(fake.trackingReadCalls).toBe(1);
+	});
+
+	test('changes nothing about consent when the platform answers', async () => {
+		const { client, fake } = makeClient({
+			snapshot: buildSnapshot({ effectivePermissions: refused }),
+		});
+		fake.setTrackingAuthorization('not-determined');
+
+		expect(client.isTrackingAllowed('marketing')).toBe(false);
+
+		const { snapshotCalls } = fake;
+		const { revision } = client.getSnapshot();
+
+		// The subject tapped Allow on the Apple dialog for a category they had
+		// already refused in the app's own UI.
+		fake.setTrackingAuthorization('authorized');
+		await expect(client.requestTrackingAuthorization()).resolves.toBe(
+			'authorized'
+		);
+
+		expect(client.decision('marketing')).toBe('denied');
+		expect(client.isAllowed('marketing')).toBe(false);
+		expect(client.isTrackingAllowed('marketing')).toBe(false);
+		expect(client.getSnapshot().effectivePermissions.marketing).toBe(false);
+
+		// And the tree that subscribed to consent hears nothing at all: the snapshot
+		// was neither pulled nor reported as moved.
+		expect(fake.snapshotCalls).toBe(snapshotCalls);
+		expect(client.getSnapshot().revision).toBe(revision);
+		expect(fake.commitIntents).toHaveLength(0);
+	});
+
+	test('notifies tracking subscribers and nothing else', async () => {
+		const { client, fake } = makeClient();
+		const onTracking = vi.fn();
+		const seen = watch(client, (snapshot) => snapshot.revision);
+
+		const stop = client.subscribeTracking(onTracking);
+		fake.setTrackingAuthorization('authorized');
+		await client.requestTrackingAuthorization();
+
+		expect(onTracking).toHaveBeenCalledTimes(1);
+		expect(seen.calls()).toBe(0);
+
+		stop();
+		fake.setTrackingAuthorization('denied');
+		await client.requestTrackingAuthorization();
+
+		expect(onTracking).toHaveBeenCalledTimes(1);
+	});
+
+	test('drops tracking subscribers with the client', async () => {
+		const { client, fake } = makeClient();
+		const onTracking = vi.fn();
+
+		client.subscribeTracking(onTracking);
+		client.dispose();
+
+		fake.setTrackingAuthorization('authorized');
+		await client.requestTrackingAuthorization();
+
+		expect(onTracking).not.toHaveBeenCalled();
+	});
+
+	test('re-reads the platform after a rejected request', async () => {
+		const { client, fake } = makeClient();
+		fake.setTrackingAuthorization('not-determined');
+
+		expect(client.getTrackingAuthorization()).toBe('not-determined');
+
+		fake.rejectTrackingRequestWith(
+			'C15T_TRACKING_NOT_CONFIGURED',
+			'no prompt string'
+		);
+
+		await expect(client.requestTrackingAuthorization()).rejects.toThrow(
+			'no prompt string'
+		);
+
+		const reads = fake.trackingReadCalls;
+
+		// Whether the dialog appeared is unknown from the rejection alone, so the
+		// cached arm is dropped rather than trusted.
+		expect(client.getTrackingAuthorization()).toBe('not-determined');
+		expect(fake.trackingReadCalls).toBeGreaterThan(reads);
+	});
+
+	test('fails closed on a native build with no tracking surface', async () => {
+		// A JavaScript update can carry a call the installed binary does not have,
+		// and the protocol handshake cannot see it: adding a method is additive.
+		const fake = createFakeNativeModule({
+			snapshot: buildSnapshot({ effectivePermissions: granted }),
+		});
+		const stale = {
+			...fake,
+			getTrackingAuthorization: undefined,
+			requestTrackingAuthorization: undefined,
+		} as unknown as NativeC15tTurboModule;
+		const client = createConsentClient(stale, getNativeC15tEvents());
+
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		expect(client.decision('marketing')).toBe('granted');
+		expect(client.getTrackingAuthorization()).toBe('denied');
+		expect(client.isTrackingAllowed('marketing')).toBe(false);
+
+		client.getTrackingAuthorization();
+		expect(warn).toHaveBeenCalledTimes(1);
+		warn.mockRestore();
+
+		await expect(client.requestTrackingAuthorization()).rejects.toBeInstanceOf(
+			NativeBridgeError
+		);
+	});
+
+	test('treats an arm it does not know as denied rather than unsupported', () => {
+		const { client, fake } = makeClient({
+			snapshot: buildSnapshot({ effectivePermissions: granted }),
+		});
+		fake.getTrackingAuthorization.mockReturnValue(
+			JSON.stringify({ status: 'probably-fine' })
+		);
+
+		// `unsupported` lets tracking through without a platform yes, so a payload
+		// nobody understood must never land on it.
+		expect(client.getTrackingAuthorization()).toBe('denied');
+		expect(client.isTrackingAllowed('marketing')).toBe(false);
 	});
 });

@@ -44,6 +44,8 @@ Every hook reads the native snapshot or forwards an action. None of them hold st
 | `useConsentActions()` | a stable `ConsentActions` object | never, the object is stable |
 | `useC15tBootstrap()` | `BootstrapPayload` | never, it is read once at mount |
 | `useConsent()` | the whole `ConsentSnapshot` | every native change |
+| `useIsTrackingAllowed(category)` | `boolean` | consent for that category or the platform tracking answer moves |
+| `useTrackingAuthorization()` | `'authorized' \| 'denied' \| 'not-determined' \| 'restricted' \| 'unsupported'` | a tracking request resolves |
 
 `necessary` is always allowed. Every optional category reads `false` while hydration or
 the first policy resolution is outstanding, so `useIsAllowed` needs no loading branch.
@@ -140,6 +142,89 @@ acknowledgement, not a consent record, so nothing is sent to the backend.
 `identify(externalId)` attaches an id from your own account system and loads that
 subject's stored record. `logout()` detaches it and keeps consent on the c15t subject
 id, so signing out does not reset consent.
+
+## Tracking needs two answers
+
+An advertising identifier takes two separate yeses. The subject's comes from c15t. The
+device's comes from the platform: App Tracking Transparency on iOS, and nothing on
+Android, where the identifier sits behind Google Play services' own consent surface
+rather than anything this package reads.
+
+`useIsTrackingAllowed(category)` is `true` only when both are in. Consent granted on a
+device where Apple says no is `false`, and ATT authorized for a category the subject
+refused is `false`. This is the hook an analytics or ad SDK gates on, because either
+half read alone is wrong in a different direction.
+
+```tsx
+import { useEffect } from 'react';
+import { useIsTrackingAllowed } from '@c15t/react-native';
+
+export function Attribution() {
+	const allowed = useIsTrackingAllowed('measurement');
+
+	useEffect(() => {
+		if (allowed) adSdk.enableAttribution();
+	}, [allowed]);
+
+	return null;
+}
+```
+
+Read the platform half on its own with `useTrackingAuthorization()`. Two of its arms are
+instructions to do opposite things, so keep them apart:
+
+| Arm | Means |
+| --- | --- |
+| `authorized` | Apple said yes. |
+| `denied` | Apple said no, or a parental control did. |
+| `restricted` | A device policy decides, and no app can change it. |
+| `not-determined` | Nobody has been asked yet. This is where a prompt still belongs. |
+| `unsupported` | The platform asks nothing of this build: Android always, and iOS without a prompt string. |
+
+`authorized` and `unsupported` satisfy the platform half. `denied`, `restricted`, and
+`not-determined` hold it off.
+
+### Asking the platform
+
+Nothing calls the system prompt for you, and that is deliberate. Apple's dialog is the
+first thing a subject reads about tracking if you show it at launch, before anyone has
+said what is tracked and why, which is the case App Review rejects. Your consent UI is
+where tracking gets explained, so the prompt goes after it:
+
+```tsx
+// In the preference center's submit handler, once the choice is recorded.
+const onFinish = useCallback(async () => {
+	await actions.save({ measurement: true });
+
+	try {
+		// The subject knows by now, so Apple may ask.
+		await actions.requestTrackingAuthorization();
+	} catch {
+		// Either this build cannot ask or this platform has nothing to ask.
+		// Both mean the platform answer is already final.
+	}
+}, [actions]);
+```
+
+Apple shows the dialog at most once per install, and a later call resolves with the
+answer already on the device. The call rejects with:
+
+- `C15T_TRACKING_NOT_CONFIGURED` on an iOS build whose `Info.plist` carries no
+  `NSUserTrackingUsageDescription`. Apple suppresses the dialog there and reports the
+  answer back as denied without saying why, so the bridge refuses instead of spending
+  the one prompt an install gets for nothing. The Expo plugin writes that key under
+  `enableAppTrackingTransparency`, described in
+  [configuration](/docs/frameworks/react-native/configuration).
+- `C15T_TRACKING_UNSUPPORTED` on Android, where there is no platform question to ask.
+
+### What no platform answer changes
+
+A tracking arm never moves a consent decision. `useConsentDecision` and `useIsAllowed`
+read the snapshot alone, so `marketing` refused on a device with ATT authorized is still
+`denied`, and a policy that has not resolved is still `pending` however Apple answered.
+The two answers meet in one exported function,
+`isTrackingPermitted(decision, authorization)`, and both native cores are held to the
+same rule by [native behaviour](/docs/frameworks/react-native/native-behaviour).
 
 ## Built-in surfaces
 

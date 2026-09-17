@@ -12,6 +12,8 @@ export { useConsentDecision } from './use-consent-decision';
 export type { ConsentActions } from './use-consent-actions';
 export { useConsentSelector } from './use-consent-selector';
 export { useConsentStatus } from './use-consent-status';
+export { useIsTrackingAllowed } from './use-is-tracking-allowed';
+export { useTrackingAuthorization } from './use-tracking-authorization';
 export { useConsentSafeArea } from './use-consent-safe-area';
 export type { ConsentSafeArea } from './use-consent-safe-area';
 export { useIsAllowed } from './use-is-allowed';

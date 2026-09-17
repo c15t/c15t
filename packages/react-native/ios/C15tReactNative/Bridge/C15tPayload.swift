@@ -201,6 +201,17 @@ public enum C15tPayload {
         ])
     }
 
+    /// The `TrackingAuthorizationPayload` both tracking calls resolve with.
+    ///
+    /// One field, because the arm is the whole answer. There is no consent field here and
+    /// there never will be: the payload describes what the platform said, and a host that
+    /// wants to know whether it may track has to ask c15t as well.
+    public static func trackingAuthorization(
+        _ status: C15tTrackingAuthorization
+    ) -> String {
+        encode(["status": .string(status.rawValue)])
+    }
+
     /// A `snapshot` event: the new revision and the dirty flag, nothing else.
     public static func snapshotEvent(revision: Int) -> String {
         encode([
