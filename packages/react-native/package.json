@@ -49,6 +49,11 @@
 			"react-native": "./dist/index.js",
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
+		},
+		"./expo-plugin": {
+			"types": "./dist-types/expo-plugin/index.d.ts",
+			"import": "./dist/expo-plugin/index.js",
+			"default": "./dist/expo-plugin/index.js"
 		}
 	},
 	"publishConfig": {
@@ -66,13 +71,17 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@c15t/core": "workspace:*"
+		"@c15t/core": "workspace:*",
+		"@expo/config-plugins": "57.0.9"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@react-native/codegen": "0.87.1",
+		"@types/react-dom": "19.2.3",
+		"jsdom": "25.0.1",
 		"react": "19.2.7",
+		"react-dom": "19.2.7",
 		"react-native": "0.87.1",
 		"typescript": "7.0.2"
 	},
