@@ -1,4 +1,5 @@
 ---
+"c15t": minor
 "@c15t/core": minor
 "@c15t/react-native": patch
 ---
