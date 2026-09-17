@@ -1073,9 +1073,10 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 				: createProviderKernel({ ...options, enabled: false }),
 			// Validates every arm now, so a misconfigured experiment throws at
 			// mount rather than on the visitor's first paint. A borrowed
-			// runtime already owns its experiment.
+			// runtime already owns its experiment, and a disabled provider
+			// runs none, the same as the core runtime.
 			experiment:
-				props.runtime || !options.experiment
+				props.runtime || !options.experiment || !enabled
 					? null
 					: createExperimentController({
 							experiment: options.experiment,

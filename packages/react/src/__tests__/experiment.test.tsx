@@ -176,6 +176,45 @@ test('an arm theme reaches the injected tokens and useResolvedTheme()', async ()
 	}
 });
 
+test('a disabled provider builds no experiment controller', async () => {
+	const onUncaughtError = vi.fn();
+	const container = document.createElement('div');
+	document.body.append(container);
+	const view = createRoot(container, { onUncaughtError });
+	try {
+		view.render(
+			<ConsentProvider
+				options={{
+					enabled: false,
+					// Unacknowledged diagnostics: an enabled provider throws here.
+					experiment: {
+						id: 'banner-shape',
+						variants: { loud: { prompt: { primaryActions: ['accept'] } } },
+					},
+					mode: Object.assign(
+						() => ({ save: vi.fn().mockResolvedValue({ ok: true }) }),
+						{ kind: 'custom' as const }
+					),
+					persistence: false,
+					prefetch: { initialPolicyResolution: resolution },
+				}}
+			>
+				<Probe />
+			</ConsentProvider>
+		);
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector('[data-testid="experiment"]')?.textContent
+			).toBe('null')
+		);
+		expect(onUncaughtError).not.toHaveBeenCalled();
+		expect(localStorage.getItem(EXPERIMENT_STORAGE_KEY)).toBeNull();
+	} finally {
+		view.unmount();
+		container.remove();
+	}
+});
+
 test('a @c15t/ui Theme is a valid experiment arm theme', () => {
 	expectTypeOf<Theme>().toMatchTypeOf<ExperimentArmTheme>();
 });
