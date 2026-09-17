@@ -2,12 +2,12 @@
  * Gate one category on why it is closed, not just on whether.
  */
 
-import type { AllConsentNames } from '@c15t/core';
 import { useCallback } from 'react';
 
 import type { ConsentDecision } from '../lib/selectors';
 import { categoryDecision } from '../lib/selectors';
 import type { ConsentSnapshot } from '../protocol';
+import type { AllConsentNames } from '../protocol/vocabulary';
 import { useConsentSelector } from './use-consent-selector';
 
 /**

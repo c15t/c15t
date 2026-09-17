@@ -2,11 +2,12 @@
  * The JavaScript an app actually carries because c15t is installed.
  *
  * `measure/bundle.ts` counts the bytes `packages/react-native/dist` ships, which is
- * the right number for the tarball and the wrong one for "bundle-size impact". The
- * built barrel re-exports `lib/deny-all-snapshot.js`, that file imports
- * `@c15t/core/consent-categories`, and an app's bundler follows every edge: each
- * module reachable from the entry is in the bundle, whatever package it lives in,
- * and no amount of `import type` keeps one out.
+ * the right number for the tarball and the wrong one for "bundle-size impact". An
+ * app's bundler follows every edge out of the entry: each module it reaches is in
+ * the bundle, whatever package it lives in, and no amount of `import type` keeps
+ * one out. Behind `@c15t/core/consent-categories` sits the kernel, the schema, and
+ * the translations, so the edge worth measuring is the one this package no longer
+ * has.
  *
  * So this walks the built module graph from the entry and hands back the files the
  * c15t packages contribute. It reads import statements rather than loading modules,
@@ -80,7 +81,7 @@ const splitSpecifier = function splitSpecifier(spec: string): {
  * @param workspaceRoot - Repository root, where the workspace packages live.
  * @returns Absolute path, or `undefined` when nothing on disk answers the specifier.
  */
-const resolveWorkspaceEntry = function resolveWorkspaceEntry(
+export const resolveWorkspaceEntry = function resolveWorkspaceEntry(
 	packageName: string,
 	subpath: string,
 	workspaceRoot: string

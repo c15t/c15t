@@ -2,12 +2,12 @@
  * Declarative category gate for apps that bring their own UI.
  */
 
-import type { AllConsentNames } from '@c15t/core';
 import type { ReactNode } from 'react';
 
 import type { ConsentActions } from '../hooks/use-consent-actions';
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useIsAllowed } from '../hooks/use-is-allowed';
+import type { AllConsentNames } from '../protocol/vocabulary';
 
 /**
  * What the gate hands its children.

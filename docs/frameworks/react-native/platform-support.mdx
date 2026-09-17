@@ -46,6 +46,14 @@ measured against, not additional floors.
 built against that line. There is no `expo` peer dependency: an Expo app gets the version
 its SDK ships, and that SDK must carry a React Native release at or above 0.81.
 
+The JavaScript consent kernel is not a dependency either. `@c15t/core` is what the web
+packages run: it keeps consent state in JavaScript, gates scripts, and reads the DOM, none
+of which a phone build does. The category names, snapshot shape and save-body shape this
+package renders ship with it, so an app installs no browser consent engine, and the type
+declaration it compiles against names nothing a bundler has to resolve. Inside this
+repository `@c15t/core` stays a development dependency, because it is the reference the
+drift tests and the protocol fixtures are graded against.
+
 Node needs to be 20.19 or newer, 22.12 or newer, or 24 or newer. Expo resolves a config
 plugin with `require()`, and that set is the floor `@expo/require-utils` names for its
 own resolution. The plugin entry ships a bundled CommonJS file under the `require`

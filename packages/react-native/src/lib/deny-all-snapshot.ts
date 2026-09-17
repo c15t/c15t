@@ -7,14 +7,13 @@
  * optional category denied, and an `error` that says why.
  */
 
-import type { ConsentState } from '@c15t/core';
-import { CONSENT_CATEGORIES } from '@c15t/core/consent-categories';
-
 import type { ConsentSnapshot } from '../protocol';
 import {
 	DEFAULT_NATIVE_LANGUAGE,
 	defaultNativeOverrides,
 } from '../protocol/overrides';
+import type { ConsentState } from '../protocol/vocabulary';
+import { CONSENT_CATEGORIES } from '../protocol/vocabulary';
 
 /**
  * Error code carried by a fail-closed snapshot built in JavaScript.

@@ -2,9 +2,9 @@
  * Gate one category on consent and on the platform together.
  */
 
-import type { AllConsentNames } from '@c15t/core';
 import { useCallback, useSyncExternalStore } from 'react';
 
+import type { AllConsentNames } from '../protocol/vocabulary';
 import { useConsentClient } from '../provider/consent-context';
 
 /**

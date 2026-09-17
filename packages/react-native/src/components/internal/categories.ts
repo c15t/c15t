@@ -8,11 +8,14 @@
  * them into rows and holds the switches until the subject saves.
  */
 
-import type { AllConsentNames, OptionalConsentCategory } from '@c15t/core';
-import { OPTIONAL_CONSENT_CATEGORIES } from '@c15t/core/consent-categories';
 import { useCallback, useState } from 'react';
 
 import type { ConsentSnapshot } from '../../protocol';
+import type {
+	AllConsentNames,
+	OptionalConsentCategory,
+} from '../../protocol/vocabulary';
+import { OPTIONAL_CONSENT_CATEGORIES } from '../../protocol/vocabulary';
 import { resolveConsentCopy } from './copy';
 
 /** One row in a category list. */

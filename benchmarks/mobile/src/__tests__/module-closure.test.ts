@@ -4,11 +4,12 @@
  * follow the real entry, resolve every edge it claims to follow, and leave the
  * packages an app was going to carry anyway out of the total.
  *
- * It is also the only thing that keeps the boundary narrow. A `import type` costs
- * nothing, so the type surface of `@c15t/core` can grow freely here, while one
- * runtime import to its barrel puts the kernel, the schema, and the translations
- * back into every app. That edge has no compiler error and no failing test anywhere
- * else, so the expected file list below is what fails instead.
+ * It is also what keeps the boundary narrow. An `import type` costs nothing, so the
+ * type surface of `@c15t/core` can grow freely here, while one runtime import to it
+ * puts the kernel, the schema, and the translations back into every app. That edge
+ * earns no compiler error, so the expected file list below is what fails instead:
+ * the entry reaches nothing outside its own package, and the walk is still priced
+ * against the subpath in case somebody puts the edge back.
  */
 
 import { existsSync, statSync } from 'node:fs';
@@ -17,7 +18,10 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { REPO_ROOT } from '../measure/native';
-import { walkModuleClosure } from '../support/module-closure';
+import {
+	resolveWorkspaceEntry,
+	walkModuleClosure,
+} from '../support/module-closure';
 
 const DIST_DIR = join(REPO_ROOT, 'packages', 'react-native', 'dist');
 const ENTRY = join(DIST_DIR, 'index.js');
@@ -39,19 +43,17 @@ describe('walking the built entry', () => {
 		expect(own.length).toBeGreaterThan(0);
 	});
 
-	it('takes only the category vocabulary from @c15t/core', () => {
-		// The barrel is the expensive edge: it drags the kernel, the schema, and the
-		// translations in behind two string arrays. The boundary is allowed to read
-		// exactly one module instead, and nothing else from this package.
+	it('takes nothing from @c15t/core, because the vocabulary is local now', () => {
+		// The barrel was the expensive edge and the category subpath was the cheap
+		// one, allowed here for years. The package owns both category tables itself
+		// now, so there is no permitted file left in `@c15t/core`: whatever the walk
+		// reaches here is an edge somebody put back.
 		const core = closure.files
 			.filter((file) => file.startsWith(join(REPO_ROOT, 'packages', 'core')))
 			.map((file) => relative(REPO_ROOT, file))
 			.sort();
 
-		expect(core).toEqual([
-			'packages/core/dist/consent-categories.js',
-			'packages/core/dist/consent-record/types.js',
-		]);
+		expect(core).toEqual([]);
 	});
 
 	it('carries no other c15t package, because nothing reaches them now', () => {
@@ -63,7 +65,9 @@ describe('walking the built entry', () => {
 			}
 		}
 
-		expect([...packages].sort()).toEqual(['core', 'react-native']);
+		// `core` belongs here for exactly as long as the entry reaches it, and it is
+		// the whole assertion: one package in the closure is the boundary holding.
+		expect([...packages].sort()).toEqual(['react-native']);
 	});
 
 	it('counts each file once, and only files', () => {
@@ -89,12 +93,27 @@ describe('walking the built entry', () => {
 	});
 
 	it('follows subpath exports, not just the package root', () => {
-		// `@c15t/core/consent-categories` is not the package's main entry, and the
-		// file it resolves to sits under a directory the subpath does not mention.
-		// An app's bundle pays for it, so a walk that only followed main entries
-		// would report a closure with the categories missing from it.
-		expect(closure.files.map((file) => relative(REPO_ROOT, file))).toContain(
-			'packages/core/dist/consent-record/types.js'
+		// The entry no longer takes this edge, so the live closure cannot prove the
+		// walker reads subpaths at all. It still has to be able to price one: the
+		// file `@c15t/core/consent-categories` resolves to pulls a graph that sits
+		// under directories the subpath never names, and a walk that stopped at main
+		// entries would report an edge put back as two string arrays.
+		const subpathEntry = resolveWorkspaceEntry(
+			'@c15t/core',
+			'./consent-categories',
+			REPO_ROOT
 		);
+
+		if (subpathEntry === undefined) {
+			throw new Error(
+				'@c15t/core/consent-categories resolves to nothing, so the walk has no subpath left to be priced against'
+			);
+		}
+
+		const behind = walkModuleClosure(subpathEntry, REPO_ROOT).files.map(
+			(file) => relative(REPO_ROOT, file)
+		);
+
+		expect(behind).toContain('packages/core/dist/consent-record/types.js');
 	});
 });

@@ -2,7 +2,6 @@
  * Forward subject decisions to the native core.
  */
 
-import type { OptionalConsentCategory } from '@c15t/core';
 import { useMemo } from 'react';
 
 import type {
@@ -10,6 +9,7 @@ import type {
 	NativeOverridesInput,
 	TrackingAuthorization,
 } from '../protocol';
+import type { OptionalConsentCategory } from '../protocol/vocabulary';
 import { useConsentClient } from '../provider/consent-context';
 
 /**
