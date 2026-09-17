@@ -89,6 +89,29 @@ public final class C15t: @unchecked Sendable {
         return current.isAllowed(category)
     }
 
+    /// Why `category` may run, answered from the running core, or from a cold-start
+    /// snapshot when none is installed.
+    ///
+    /// With no core this is the same deny-all shape ``snapshot()`` serves: `necessary`
+    /// `granted`, every optional category `pending`. That is `pending` rather than
+    /// `denied` on purpose. An app that forgot to install a core is not a subject who
+    /// refused, and a host that keeps listening is the outcome the contract wants; the
+    /// category stays switched off either way.
+    ///
+    /// - Parameter category: The category to answer for, `necessary` included.
+    /// - Returns: The running core's decision, or the cold-start decision.
+    public static func decision(for category: ConsentCategory) -> ConsentDecision {
+        guard let current else {
+            return ConsentDecision(snapshot: .coldStart, category: category)
+        }
+        return current.decision(for: category)
+    }
+
+    /// Whether the running core has a final answer, or `false` with no core.
+    public static func isReady() -> Bool {
+        current?.isReady() ?? false
+    }
+
     /// Whether the running core has consent on disk, or `false` with no core.
     public static var hasStoredSnapshot: Bool {
         current?.hasStoredSnapshot ?? false

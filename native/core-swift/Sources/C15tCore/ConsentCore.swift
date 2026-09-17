@@ -110,8 +110,11 @@ public final class ConsentCore: @unchecked Sendable {
     private var inFlightWork = 0
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
     /// Strong holds on per-category gate subscriptions, keyed by identity. The
-    /// observer set itself stays weak, as the contract requires.
-    private var gateSubscriptions: [ObjectIdentifier: GateSubscription] = [:]
+    /// observer set itself stays weak, as the contract requires. Holds both gate
+    /// flavours: the boolean one ``gate(_:_:)`` and the decision-carrying
+    /// ``ConsentCore/gate(_:_:)`` overload, whose only owner would otherwise be a
+    /// closure no one else retains.
+    private var gateSubscriptions: [ObjectIdentifier: any SnapshotObserver] = [:]
 
     // MARK: - Collaborators
 
@@ -205,6 +208,40 @@ public final class ConsentCore: @unchecked Sendable {
         }
     }
 
+    /// Whether a real answer exists: the core has been told, either by hydration
+    /// restoring an envelope or by the first init resolving a policy this build could
+    /// read, and that policy is in force.
+    ///
+    /// The two flags a gate must consult, combined into the question a host asks first:
+    /// ``ConsentCore/decision(for:)`` says what is permitted, and this says whether
+    /// that answer is final yet or still `pending`. Synchronous, one read of in-memory
+    /// state, no disk, no network, and no lock held across either, because ad SDKs call
+    /// it from `applicationDidFinishLaunching` and a block there is a watchdog kill the
+    /// host app takes.
+    public func isReady() -> Bool {
+        lock.withLock { currentSnapshot.ready && !currentSnapshot.policyPending }
+    }
+
+    /// Why `category` may or may not run, for a host app's own Swift code.
+    ///
+    /// This is the answer an analytics or advertising SDK needs when it starts before
+    /// the React Native bundle exists, and it is a public API in its own right rather
+    /// than a detail behind the bridge. ``isAllowed(_:)`` cannot carry it: `false` means
+    /// both "the subject refused" and "nothing has resolved", and those need opposite
+    /// handling. See ``ConsentDecision`` for what each case obliges the caller to do.
+    ///
+    /// Derived from ``snapshot()`` and nothing else, so the gate can never disagree with
+    /// the state the UI is showing, and no platform authorization can move a category
+    /// from `pending` or `denied` to `granted`. Same hot-path rule as ``isAllowed(_:)``:
+    /// one read of in-memory state.
+    ///
+    /// - Parameter category: The category to answer for, `necessary` included.
+    /// - Returns: `.granted`, `.denied`, or `.pending` for the current snapshot.
+    public func decision(for category: ConsentCategory) -> ConsentDecision {
+        lock.withLock { ConsentDecision(snapshot: currentSnapshot, category: category) }
+    }
+
+
     /// Watch one category. Fires with the current value immediately, then on every
     /// change to that category.
     ///
@@ -233,6 +270,57 @@ public final class ConsentCore: @unchecked Sendable {
             currentSnapshot.effectivePermissions.value(for: category)
         }
         onChange(allowed)
+        return registration
+    }
+
+    /// Watch one category as a ``ConsentDecision``, and keep watching it.
+    ///
+    /// The rules the boolean ``gate(_:_:)`` already has, plus the one that matters to a
+    /// late starter: a listener registered after the decision has been reached still
+    /// receives that decision rather than silence, so an SDK that initializes two
+    /// seconds into the launch does not have to know what it missed. The callback fires
+    /// at registration with the current decision, again on every change of decision, and
+    /// ``ConsentSubscription/cancel()`` on the returned handle ends it.
+    ///
+    /// `pending` is a real delivery, not a placeholder: a listener that hears it must
+    /// stay registered, because the same handle is what tells it the answer. A host that
+    /// only ever wants to start something reads ``decision(for:)`` once and registers
+    /// only when that answer is `pending`.
+    ///
+    /// Delivery runs on whichever queue published the change, off the main thread unless
+    /// the host arranges otherwise.
+    ///
+    /// - Parameters:
+    ///   - category: The category to watch. Takes `necessary`, which always answers
+    ///     `granted`, so that a gate written over every category needs no special case.
+    ///   - onChange: Called with the current decision, then with each new one.
+    /// - Returns: A handle that cancels the subscription.
+    @discardableResult
+    public func gate(
+        _ category: ConsentCategory,
+        _ onChange: @escaping @Sendable (ConsentDecision) -> Void
+    ) -> ConsentSubscription {
+        let subscription = DecisionGateSubscription(category: category, onChange: onChange)
+        // Register before the first read, in that order: a change that lands between
+        // the two is delivered by the observer, and the seed below then stands down
+        // rather than putting an older decision on the end of the callback's sequence.
+        // Missing a change would leave an SDK switched off with nothing left listening,
+        // which is the failure this gate exists to prevent, so the possible cost here
+        // is one redundant delivery instead.
+        let registration = observers.add(subscription)
+        let key = ObjectIdentifier(subscription)
+        registration.addHandler { [weak self] in
+            guard let self else { return }
+            self.lock.withLock {
+                self.gateSubscriptions.removeValue(forKey: key)
+                ()
+            }
+        }
+        lock.withLock { gateSubscriptions[key] = subscription }
+        let current = lock.withLock {
+            ConsentDecision(snapshot: currentSnapshot, category: category)
+        }
+        subscription.deliverInitial(current)
         return registration
     }
 
@@ -556,6 +644,10 @@ public final class ConsentCore: @unchecked Sendable {
     // MARK: - Hydration
 
     /// Restore the stored envelope and make it answerable.
+    ///
+    /// An envelope here is what sets ``ConsentSnapshot/ready`` during hydration. A
+    /// first launch finds none and stays not-ready until the first init resolves, which
+    /// ``applyInit`` does in its resolved branch.
     ///
     /// Reads the cache once, synchronously, and re-runs the evaluator against the
     /// current clock. Re-evaluating is the difference between a cached snapshot and
@@ -889,6 +981,14 @@ public final class ConsentCore: @unchecked Sendable {
                 self.resolvedPolicy = resolved
                 policyWire = response.policyResolution
                 draft.policyPending = false
+                // `ready` means the core has been told, not that a file was there to
+                // read. Hydration is one way to be told; a first init that resolved is
+                // the other, and without it a fresh install would answer `pending` for
+                // the whole of the launch that most needs an answer. Only the `.resolved`
+                // branch raises it: a failed init leaves the flag where it was, so a
+                // device that has never been told stays fail-closed and a device that
+                // lost signal keeps the snapshot the contract says it may serve.
+                draft.ready = true
                 draft.resolution = resolved.resolution
                 draft.model = resolved.policy.model
                 draft.error = nil
@@ -1038,6 +1138,54 @@ public final class ConsentCore: @unchecked Sendable {
             }
             if changed {
                 onChange(value)
+            }
+        }
+    }
+
+    /// Keeps a per-category decision gate alive for as long as its registration, and
+    /// keeps its callback in order.
+    ///
+    /// The decision is what changed, not the snapshot: a revision that rewrites the
+    /// prompt or the location without moving this category's permission must not wake a
+    /// gate. One lock over the last delivered decision, held for the comparison alone,
+    /// which is what makes the registration seed and a concurrent publication unable to
+    /// arrive out of order.
+    private final class DecisionGateSubscription: SnapshotObserver, @unchecked Sendable {
+        private let category: ConsentCategory
+        private let onChange: @Sendable (ConsentDecision) -> Void
+        private let stateLock = Lock()
+        private var lastDecision: ConsentDecision?
+
+        init(
+            category: ConsentCategory,
+            onChange: @escaping @Sendable (ConsentDecision) -> Void
+        ) {
+            self.category = category
+            self.onChange = onChange
+        }
+
+        /// Deliver the decision in force at registration, unless a publication already
+        /// delivered a newer one while the registration was being wired up.
+        func deliverInitial(_ decision: ConsentDecision) {
+            let shouldDeliver = stateLock.withLock {
+                guard lastDecision == nil else { return false }
+                lastDecision = decision
+                return true
+            }
+            if shouldDeliver {
+                onChange(decision)
+            }
+        }
+
+        func consentDidChange(_ snapshot: ConsentSnapshot) {
+            let decision = ConsentDecision(snapshot: snapshot, category: category)
+            let changed = stateLock.withLock {
+                let previous = lastDecision
+                lastDecision = decision
+                return previous != decision
+            }
+            if changed {
+                onChange(decision)
             }
         }
     }
