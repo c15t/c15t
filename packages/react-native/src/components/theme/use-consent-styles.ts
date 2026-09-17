@@ -114,6 +114,14 @@ export const CONSENT_SWITCH_GEOMETRY = {
  */
 const BANNER_SHADOW = '0 8px 24px rgba(0, 0, 0, 0.12)';
 
+/**
+ * The branding tab's elevation: the web tag's `0 1px 2px rgb(15 23 42 / 0.12)`.
+ *
+ * The other half of the web shadow is `inset 0 1px 0 rgb(255 255 255 / 0.16)`,
+ * which is the drop the tag carries on its own part below.
+ */
+const TAG_SHADOW = '0 1px 2px rgba(15, 23, 42, 0.12)';
+
 /** The web card border: one hairline in the border token, on both surfaces. */
 const HAIRLINE = 1;
 
@@ -284,6 +292,38 @@ export const useConsentStyles = function useConsentStyles(
 				paddingBottom: 0,
 				paddingHorizontal: 0,
 				paddingTop: spacing.m,
+			},
+			// The "Secured by c15t" tab. Every measurement here is `.brandingTag`:
+			// `min-height 1.75rem`, `padding .28125rem .625rem`, `gap .375rem`, and a
+			// `0.6875rem` label at `line-height: 1`, which is why the line height is the
+			// size rather than a step on the type scale. Which corners stay round, and
+			// which edge loses its border, depends on the card it is welded to, so that
+			// half lives with the tab.
+			branding: {
+				alignItems: 'center',
+				backgroundColor: colors.primary,
+				borderColor: colors.primaryBorder,
+				borderRadius: radius.surface,
+				// React Native cannot draw an inset shadow. At this size a 1px
+				// translucent white top border reads the same as the web's
+				// `inset 0 1px 0 rgb(255 255 255 / 0.16)`, so that is what stands in.
+				borderTopColor: 'rgba(255, 255, 255, 0.16)',
+				borderWidth: HAIRLINE,
+				boxShadow: TAG_SHADOW,
+				flexDirection: 'row',
+				gap: 6,
+				minHeight: 28,
+				paddingBottom: 4.5,
+				paddingHorizontal: 10,
+				paddingTop: 4.5,
+				// Above the card, so the card's own fill cannot paint over the 1px the
+				// tab overlaps it by. The web rule carries the same value.
+				zIndex: 2,
+			},
+			brandingLabel: {
+				color: colors.onPrimary,
+				fontSize: 11,
+				lineHeight: 11,
 			},
 			caption: textStyle(typography.caption, colors.textMuted),
 			captionLink: textStyle(typography.caption, colors.text),

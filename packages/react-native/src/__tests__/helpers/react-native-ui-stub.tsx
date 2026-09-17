@@ -252,14 +252,24 @@ const flattenStyle = function flattenStyle(
  *
  * Held to the handful of facts that actually distinguish one render from
  * another, which keeps the recorded attribute small and the reader honest about
- * what the stand-in does not model.
+ * what the stand-in does not model. The corner radii, the negative margin and
+ * `zIndex` are here because they are the whole of the branding tab: which two
+ * corners stay round and which edge gives up its border is the only difference
+ * between the banner and the sheet variant, and the tab has to outrank the card
+ * it overlaps or the card's fill paints over it.
  */
 const RECORDED_STYLE_KEYS = [
 	'alignItems',
+	'alignSelf',
 	'backgroundColor',
+	'borderBottomLeftRadius',
+	'borderBottomRightRadius',
+	'borderBottomWidth',
 	'borderColor',
 	'borderRadius',
 	'borderTopColor',
+	'borderTopLeftRadius',
+	'borderTopRightRadius',
 	'borderTopWidth',
 	'borderWidth',
 	'bottom',
@@ -276,6 +286,9 @@ const RECORDED_STYLE_KEYS = [
 	'height',
 	'justifyContent',
 	'left',
+	'lineHeight',
+	'marginBottom',
+	'marginRight',
 	'marginTop',
 	'maxHeight',
 	'minHeight',
@@ -291,6 +304,7 @@ const RECORDED_STYLE_KEYS = [
 	'rowGap',
 	'top',
 	'width',
+	'zIndex',
 ] as const;
 
 const styleAttribute = function styleAttribute(
@@ -407,6 +421,28 @@ const makeSurface = function makeSurface(
 
 	return forwardRef<unknown, ViewPropsStub>(renderSurface);
 };
+
+/** Props the image stub accepts. */
+interface ImagePropsStub extends AccessibilityProps {
+	readonly resizeMode?: string;
+	readonly source?: number | { readonly uri?: string };
+	readonly style?: StyleValue;
+}
+
+/**
+ * `Image` records which raster it was handed instead of decoding one.
+ *
+ * A `data:` URI has no network path and jsdom has no native decoder, so nothing
+ * here could paint even if it tried. The question a test can answer, and the one
+ * the branding marks care about, is whether the right scale was chosen.
+ */
+export const Image = (props: ImagePropsStub): ReactElement =>
+	createElement('img', {
+		...ariaAttributes(props),
+		'data-rn-source':
+			typeof props.source === 'object' ? props.source.uri : undefined,
+		'data-rn-style': styleAttribute(props.style),
+	});
 
 export const View = makeSurface('div');
 export const SafeAreaView = makeSurface('div');

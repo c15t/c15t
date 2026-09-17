@@ -217,6 +217,12 @@ describe('theme', () => {
 		expect(lightTheme.colors.surfaceRaised).toBe('#FAFAFA');
 		expect(darkTheme.colors.primary).toBe('#6685FF');
 
+		// The branding tab is filled with the accent, so web outlines it with the
+		// accent 14% toward black. React Native has no `color-mix` to run at render,
+		// so the resolved literal is the token: 0.86 of each channel.
+		expect(lightTheme.colors.primaryBorder).toBe('#2C4FDB');
+		expect(darkTheme.colors.primaryBorder).toBe('#5872DB');
+
 		// 4 8 16 24 32, the web step scale.
 		expect(lightTheme.spacing).toEqual({ l: 24, m: 16, s: 8, xl: 32, xs: 4 });
 		expect(lightTheme.radius).toEqual({ control: 8, surface: 12 });
@@ -422,6 +428,36 @@ describe('theme', () => {
 		expect(trackStyle().backgroundColor).toBe(lightTheme.colors.switchTrackOn);
 
 		tree.unmount();
+	});
+
+	test('the branding tab is the web tag, and a host can restyle it', () => {
+		const tree = mountSurface(<ConsentBanner />);
+
+		// `0.6875rem` at `line-height: 1`, so the line box is the font size rather
+		// than a step on the type scale. It is the one piece of text in a consent
+		// surface that is not the subject's own language.
+		expect(textStyleOf(tree, 'Secured by')).toEqual(
+			expect.objectContaining({
+				color: lightTheme.colors.onPrimary,
+				fontSize: 11,
+				lineHeight: 11,
+			})
+		);
+
+		expect(
+			nodeStyle(roleNodes(tree.container(), 'link')[0] as HTMLElement).gap
+		).toBe(6);
+		tree.unmount();
+
+		const styled = mountSurface(
+			<ConsentBanner styles={{ branding: { backgroundColor: '#010203' } }} />
+		);
+
+		expect(
+			nodeStyle(roleNodes(styled.container(), 'link')[0] as HTMLElement)
+				.backgroundColor
+		).toBe('#010203');
+		styled.unmount();
 	});
 
 	test('a host theme replaces the palette wholesale', () => {

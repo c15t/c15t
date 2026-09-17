@@ -13,6 +13,7 @@ import { Text, View } from 'react-native';
 
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentSelector } from '../hooks/use-consent-selector';
+import { ConsentBrandingTag } from './internal/branding-tag';
 import {
 	isConsentCategoryRowsEqual,
 	selectConsentCategoryRows,
@@ -35,6 +36,14 @@ import { useConsentStyles } from './theme/use-consent-styles';
 
 /** Props for {@link ConsentPreferences}. */
 export interface ConsentPreferencesProps {
+	/**
+	 * Hide the "Secured by c15t" tab.
+	 *
+	 * Off by default, which is what the web surfaces do: the tab is what tells a
+	 * subject who is holding their consent, and a plan that has already paid for
+	 * removing it is the only reason to.
+	 */
+	readonly hideBranding?: boolean;
 	/** Called when the subject closes the centre, saved or not. */
 	readonly onRequestClose: () => void;
 	/** Whether the centre is open. */
@@ -228,6 +237,7 @@ const ConsentPreferencesContent = ({
  * @returns The centre while it is open or animating out.
  */
 export const ConsentPreferences = ({
+	hideBranding = false,
 	onRequestClose,
 	open,
 	styles,
@@ -236,8 +246,18 @@ export const ConsentPreferences = ({
 	const copy = useConsentSelector(selectConsentCopy, isConsentCopyEqual);
 	const surface = useConsentStyles({ styles, theme });
 
+	const branding = hideBranding ? undefined : (
+		<ConsentBrandingTag
+			label={copy.securedBy}
+			parts={surface.parts}
+			presentation="modal"
+			radius={surface.theme.radius.surface}
+		/>
+	);
+
 	return (
 		<ConsentSurface
+			branding={branding}
 			dismissLabel={copy.dismiss}
 			label={copy.preferences}
 			onRequestClose={onRequestClose}

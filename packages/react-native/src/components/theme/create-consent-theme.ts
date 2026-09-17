@@ -33,6 +33,16 @@ export interface ConsentThemeColors {
 	readonly primary: string;
 	/** Text on a filled {@link ConsentThemeColors.primary}, for a host that fills one. */
 	readonly onPrimary: string;
+	/**
+	 * The outline of a control drawn in the accent: the branding tab, whose fill is
+	 * already the accent and so needs an edge darker than itself to read.
+	 *
+	 * Web asks for `color-mix(in srgb, var(--c15t-primary), black 14%)`, which is
+	 * the accent at 86% against black. React Native has no colour function to run at
+	 * render, so each scheme ships the literal that mix resolves to: `#335CFF` to
+	 * `#2C4FDB`, and the dark accent `#6685FF` to `#5872DB`.
+	 */
+	readonly primaryBorder: string;
 	/** Focus and selected outline. */
 	readonly focus: string;
 	/** Off-state switch track. */
@@ -199,6 +209,7 @@ const lightColors: ConsentThemeColors = {
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.5)',
 	primary: '#335CFF',
+	primaryBorder: '#2C4FDB',
 	surface: '#FFFFFF',
 	surfaceRaised: '#FAFAFA',
 	switchThumb: '#FFFFFF',
@@ -214,6 +225,7 @@ const darkColors: ConsentThemeColors = {
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.7)',
 	primary: '#6685FF',
+	primaryBorder: '#5872DB',
 	surface: '#121212',
 	surfaceRaised: '#1A1A1A',
 	switchThumb: '#EDEDED',

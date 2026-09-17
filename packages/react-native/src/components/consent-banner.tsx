@@ -17,6 +17,7 @@ import { useConsentSelector } from '../hooks/use-consent-selector';
 import { useConsentStatus } from '../hooks/use-consent-status';
 import { isStatusPromptOwed } from '../lib/selectors';
 import { ConsentDialog } from './consent-dialog';
+import { ConsentBrandingTag } from './internal/branding-tag';
 import { ConsentButton } from './internal/consent-button';
 import {
 	ConsentSurface,
@@ -31,6 +32,14 @@ import { useConsentStyles } from './theme/use-consent-styles';
 
 /** Props for {@link ConsentBanner}. */
 export interface ConsentBannerProps {
+	/**
+	 * Hide the "Secured by c15t" tab.
+	 *
+	 * Off by default, which is what the web surfaces do: the tab is what tells a
+	 * subject who is holding their consent, and a plan that has already paid for
+	 * removing it is the only reason to.
+	 */
+	readonly hideBranding?: boolean;
 	/**
 	 * Open the app's own finer controls.
 	 *
@@ -63,6 +72,7 @@ export interface ConsentBannerProps {
  * @returns The banner while a prompt is owed, and nothing otherwise.
  */
 export const ConsentBanner = ({
+	hideBranding = false,
 	onCustomize,
 	styles,
 	theme,
@@ -93,9 +103,19 @@ export const ConsentBanner = ({
 
 	const { parts } = surface;
 
+	const branding = hideBranding ? undefined : (
+		<ConsentBrandingTag
+			label={copy.securedBy}
+			parts={parts}
+			presentation="banner"
+			radius={surface.theme.radius.surface}
+		/>
+	);
+
 	return (
 		<>
 			<ConsentSurface
+				branding={branding}
 				dismissLabel={copy.dismiss}
 				label={title}
 				open={owed && !customizing}

@@ -185,6 +185,14 @@ export const ConsentSurfaceFooter = ({
 /** Props for {@link ConsentSurface}. */
 export interface ConsentSurfaceProps {
 	/**
+	 * The branding tab, rendered against the card rather than inside it.
+	 *
+	 * Both cards clip, so a tab passed as ordinary content would be cut off at the
+	 * edge it is supposed to merge into. The surface puts it above the card for a
+	 * banner and below it for a sheet, which is what the two web variants do.
+	 */
+	readonly branding?: ReactNode;
+	/**
 	 * The sheet content, using the slot components.
 	 *
 	 * Kept out of the tree while the surface is closed, so nothing it subscribes
@@ -213,6 +221,7 @@ export interface ConsentSurfaceProps {
  */
 export const ConsentSurface = (props: ConsentSurfaceProps) => {
 	const {
+		branding,
 		children,
 		dismissLabel,
 		label,
@@ -279,7 +288,10 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 				pointerEvents="box-none"
 				style={bannerLayer}
 			>
-				<Animated.View style={motionStyle}>{sheet}</Animated.View>
+				<Animated.View style={motionStyle}>
+					{branding ?? null}
+					{sheet}
+				</Animated.View>
 			</View>
 		);
 	}
@@ -304,6 +316,7 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 					<Animated.View style={motionStyle}>
 						<View style={parts.handle} />
 						{sheet}
+						{branding ?? null}
 					</Animated.View>
 				</View>
 			</KeyboardAvoidingView>

@@ -287,8 +287,16 @@ describe('ConsentDialog', () => {
 		expect(onOpenPreferences).toHaveBeenCalledTimes(1);
 		withEntry.unmount();
 
+		// The sheet's remaining link is the branding tab, which every surface carries
+		// unless the host asks otherwise. Asserting "no links at all" would have been
+		// true only while the sheet had exactly one kind of link, and what this case
+		// is actually about is the entry point: absent here, present above.
 		const withoutEntry = mountDialog();
-		expect(roleNodes(withoutEntry.container(), 'link')).toEqual([]);
+		expect(
+			roleNodes(withoutEntry.container(), 'link').map((node) =>
+				node.getAttribute('aria-label')
+			)
+		).toEqual(['Secured by c15t']);
 		withoutEntry.unmount();
 	});
 
