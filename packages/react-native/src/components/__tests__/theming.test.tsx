@@ -34,7 +34,10 @@ import {
 	ConsentSurfaceHeader,
 } from '../internal/consent-surface';
 import type { ConsentPartStyles } from '../theme/consent-theme-parts';
-import { isConsentThemePart } from '../theme/consent-theme-parts';
+import {
+	isConsentThemePart,
+	MIN_TAP_TARGET,
+} from '../theme/consent-theme-parts';
 import {
 	createConsentTheme,
 	darkTheme,
@@ -44,6 +47,7 @@ import {
 import type { ConsentTheme } from '../theme/create-consent-theme';
 import { useConsentStyles } from '../theme/use-consent-styles';
 import {
+	hitSlop,
 	mountSurface,
 	nodeStyle,
 	requireRole,
@@ -328,13 +332,19 @@ describe('theme', () => {
 		});
 
 		// `.triggerRow` is where the 8 of padding and the 4 step live, over the
-		// disclosure's `calc(icon + 0.25rem)` minimum. They have to sit there rather
+		// disclosure's `calc(icon + 0.25rem)` floor. They have to sit there rather
 		// than on the card, because the description a tap reveals falls outside the
 		// row and still has to line up with the label above it.
+		//
+		// That web floor is 24 on a content box and React Native reads `minHeight` as
+		// the border box, so the part has to carry the padding with it: 24 + 8 + 8,
+		// which is what lands the closed card on the web's 42. The 24 this assertion
+		// used to pin was the web's number dropped onto the wrong box, and it let the
+		// row draw 36 with the disclosure paying for it.
 		expect(nodeStyle(trigger)).toMatchObject({
 			alignItems: 'center',
 			gap: 4,
-			minHeight: 24,
+			minHeight: 40,
 			padding: 8,
 		});
 
@@ -346,6 +356,63 @@ describe('theme', () => {
 		expect(list.children.length).toBe(5);
 
 		tree.unmount();
+	});
+
+	test('the row reaches the tap floor without drawing it', () => {
+		// The default row: 40 drawn, and slop on the press for the 4pt the fingertip
+		// still short of the platform minimum.
+		const plain = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+		const plainSlop = hitSlop(
+			requireRole(plain.container(), 'button', 'Werbung')
+		);
+
+		expect(40 + plainSlop.top + plainSlop.bottom).toBeGreaterThanOrEqual(
+			MIN_TAP_TARGET
+		);
+
+		plain.unmount();
+
+		// A host that already sets a row past the floor through `categoryTrigger` has paid
+		// for the fingertip itself, so the row has to stop reaching past its box: slop
+		// derived from a hardcoded inset would overlap whatever the host put there.
+		const tall = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+				styles={{ categoryTrigger: { minHeight: 56 } }}
+			/>
+		);
+
+		expect(hitSlop(requireRole(tall.container(), 'button', 'Werbung'))).toEqual(
+			{ bottom: 0, left: 0, right: 0, top: 0 }
+		);
+
+		tall.unmount();
+
+		// Three times the default text, where the label's own line box is 52.5 and well
+		// past the disclosure's 24. The drawn row follows the text instead of holding
+		// the design's height and clipping the label, and needs no slop either.
+		setFontScale(3);
+
+		const large = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+		const row = requireRole(large.container(), 'button', 'Werbung');
+
+		expect(Number(nodeStyle(row).minHeight) - 16).toBeGreaterThanOrEqual(
+			17.5 * 3
+		);
+		expect(hitSlop(row)).toEqual({ bottom: 0, left: 0, right: 0, top: 0 });
+
+		large.unmount();
 	});
 
 	test('each footer keeps the rhythm of its own surface', () => {
@@ -464,9 +531,18 @@ describe('theme', () => {
 		});
 
 		// The visible control is small; the finger still gets the platform minimum.
-		expect(
-			nodeStyle(requireRole(tree.container(), 'switch', 'Werbung')).height
-		).toBe(44);
+		// It reaches that minimum through its hit area now rather than a 44pt box laid
+		// around the track. That box was the same size of touch target, but it drew: a
+		// row is only as tall as the tallest thing inside it, so the card around this
+		// control measured 60 instead of the web's 42.
+		const control = requireRole(tree.container(), 'switch', 'Werbung');
+
+		expect(nodeStyle(control).height ?? null).toBeNull();
+
+		const slop = hitSlop(control);
+
+		expect(16 + slop.top + slop.bottom).toBe(MIN_TAP_TARGET);
+		expect(28 + slop.left + slop.right).toBe(MIN_TAP_TARGET);
 
 		expect(trackStyle().backgroundColor).toBe(lightTheme.colors.switchTrack);
 

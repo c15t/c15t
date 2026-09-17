@@ -281,14 +281,14 @@ export const App = () => {
 					</ErrorBoundary>
 				</View>
 
-				{/* Customize opens the consent manager, the way it does on the web, and the
-				    manager's own preference link hands over to the standing centre. */}
+				{/* Customize opens the consent manager, the way it does on the web. The
+				    manager stops at the three actions the web dialog offers; the way into the
+				    standing preference centre is the app's own button on each screen. */}
 				<ConsentBanner
 					onCustomize={openDialog}
 					theme={theme}
 				/>
 				<ConsentDialog
-					onOpenPreferences={openPreferences}
 					onRequestClose={() => {
 						setDialogOpen(false);
 					}}
