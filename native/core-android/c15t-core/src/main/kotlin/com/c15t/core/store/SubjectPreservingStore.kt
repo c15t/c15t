@@ -5,14 +5,14 @@ import com.c15t.core.spi.KeyValueStore
 /**
  * Keeps the subject id out of the storage that encryption protects.
  *
- * The subject id is a random UUID v4 that c15t generates itself: it is not sensitive
- * and it is not a hardware identifier, so encrypting it buys nothing while costing
- * everything. As long as it sat in the same slot as the consent records, a lost
- * AndroidKeyStore key took the identity with it, and the next launch resolved a fresh
- * id. Every consent record the backend holds against the old id was then orphaned, so
- * audit continuity broke exactly when the device was already in trouble. Here the id
- * goes to [identity], which no key protects and therefore no key reset can destroy,
- * while [records] keeps carrying the encrypted consent state.
+ * The subject id is a random `sub_` id that c15t generates itself: it is not
+ * sensitive and it is not a hardware identifier, so encrypting it buys nothing while
+ * costing everything. As long as it sat in the same slot as the consent records, a
+ * lost AndroidKeyStore key took the identity with it, and the next launch resolved a
+ * fresh id. Every consent record the backend holds against the old id was then
+ * orphaned, so audit continuity broke exactly when the device was already in
+ * trouble. Here the id goes to [identity], which no key protects and therefore no
+ * key reset can destroy, while [records] keeps carrying the encrypted consent state.
  *
  * It also migrates. Before this layout, the id lived inside [records]; installs that
  * upgraded from those keep the id they have rather than adopting a new one, because

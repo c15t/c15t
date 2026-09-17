@@ -121,7 +121,7 @@ class KeyLossIdentityTest {
 		// Inline execution keeps hydration inside bootstrap(), so one launch reads as
 		// one synchronous block and the assertions cannot race a background thread.
 		executor = TaskExecutor.DIRECT,
-		idGenerator = {
+		subjectIdGenerator = {
 			idsMinted += 1
 			"subject-$idsMinted"
 		},

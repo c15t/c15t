@@ -59,11 +59,23 @@ class C15tKernel(
 	private val clock: Clock = Clock.SYSTEM,
 	private val transport: C15tTransport = C15tTransport.NONE,
 	executor: TaskExecutor? = null,
-	private val idGenerator: () -> String = { UUID.randomUUID().toString() },
+	subjectIdGenerator: (() -> String)? = null,
+	private val queueIdGenerator: () -> String = { UUID.randomUUID().toString() },
 	private val logger: (KernelError) -> Unit = {},
 ) {
 	private val background: TaskExecutor = executor
 		?: TaskExecutor { task -> backgroundPool.execute(task) }
+
+	/**
+	 * Mints the c15t-owned subject id, in the `sub_` format the backend validates.
+	 *
+	 * Separate from [queueIdGenerator] on purpose: a subject id travels and has to
+	 * satisfy `subjectIdSchema` in `@c15t/schema`, while a queue entry id is a local
+	 * row id that never reaches the wire. The default follows the injected [clock],
+	 * so a test that pins time gets ids it can predict.
+	 */
+	private val subjectIdGenerator: () -> String = subjectIdGenerator
+		?: SubjectIdGenerator(clock = clock)::generate
 
 	private val state = AtomicReference(ConsentSnapshot.denyAll())
 	private val mutationLock = Any()
@@ -93,7 +105,7 @@ class C15tKernel(
 	private val strongObservers = CopyOnWriteArrayList<(ConsentSnapshot) -> Unit>()
 	private val errorObservers = CopyOnWriteArrayList<WeakReference<(KernelError) -> Unit>>()
 
-	private val queue = PendingSaveQueue(store, config.maxPendingSaves, idGenerator)
+	private val queue = PendingSaveQueue(store, config.maxPendingSaves, queueIdGenerator)
 
 	/**
 	 * Load stored state, adopt the subject id, then kick a flush and an init.
@@ -324,7 +336,7 @@ class C15tKernel(
 		var subject: ConsentSubject
 		synchronized(mutationLock) {
 			val current = state.get()
-			subject = (current.subject ?: ConsentSubject(idGenerator())).let {
+			subject = (current.subject ?: ConsentSubject(subjectIdGenerator())).let {
 				it.copy(externalId = user.externalId)
 			}
 			published = current.copy(
@@ -352,7 +364,7 @@ class C15tKernel(
 		var subject: ConsentSubject
 		synchronized(mutationLock) {
 			val current = state.get()
-			subject = (current.subject ?: ConsentSubject(idGenerator())).copy(externalId = null)
+			subject = (current.subject ?: ConsentSubject(subjectIdGenerator())).copy(externalId = null)
 			published = current.copy(subject = subject, revision = current.revision + 1)
 			state.set(published)
 		}
@@ -445,8 +457,11 @@ class C15tKernel(
 
 	private fun resolveSubject(): ConsentSubject {
 		store.readSubject()?.let { return it }
-		// A UUID v4 owned by c15t. Never derived from a hardware identifier.
-		val created = ConsentSubject(id = idGenerator())
+		// Owned by c15t and minted by SubjectIdGenerator. Never derived from a
+		// hardware identifier. A stored id is adopted exactly as it is, including the
+		// UUIDs older installs wrote: minting a fresh one here would orphan every
+		// record the backend already holds against the id in storage.
+		val created = ConsentSubject(id = subjectIdGenerator())
 		store.writeSubject(created)
 		return created
 	}

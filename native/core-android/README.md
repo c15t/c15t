@@ -69,8 +69,8 @@ the Initializer with `tools:node="remove"` on its manifest entry.
 Persistence writes one AES/GCM blob per key under `noBackupFilesDir`, keyed
 `com.c15t.snapshot` and `com.c15t.pending`. The AES key is an AndroidKeyStore alias and
 never enters the Java heap. The subject id is the one thing kept off that path: it is a
-random UUID c15t generates itself, so encrypting it protects nothing while tying it to a
-key the platform can revoke. It lives in its own `c15t.subject` preference file, and
+random `sub_` id c15t generates itself, so encrypting it protects nothing while tying it
+to a key the platform can revoke. It lives in its own `c15t.subject` preference file, and
 `SubjectPreservingStore` routes reads and writes so the rest of the core cannot tell the
 difference.
 

@@ -19,6 +19,11 @@ import java.util.UUID
 class PendingSaveQueue(
 	private val store: C15tStore,
 	private val limit: Int = DEFAULT_LIMIT,
+	/**
+	 * Row ids for [QueuedSave]. A UUID stays right here: an entry keys a local row
+	 * and never goes on the wire, so it is not held to the `sub_` format the backend
+	 * requires of a subject id.
+	 */
 	private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
 	/**

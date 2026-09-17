@@ -155,6 +155,10 @@ fun testKernel(
 	transport: C15tTransport = C15tTransport.NONE,
 ): C15tKernel {
 	var sequence = 0
+	val nextId: () -> String = {
+		sequence += 1
+		"%08d-0000-4000-8000-000000000000".format(sequence)
+	}
 	return C15tKernel(
 		config = config,
 		store = store,
@@ -163,11 +167,10 @@ fun testKernel(
 		// Inline execution makes ordering observable: a save's disk write and its
 		// delivery are finished by the time the call returns.
 		executor = TaskExecutor.DIRECT,
-		// Deterministic ids, so a replay assertion can compare queue entries.
-		idGenerator = {
-			sequence += 1
-			"%08d-0000-4000-8000-000000000000".format(sequence)
-		},
+		// Deterministic ids on both seams, so a replay assertion can compare queue
+		// entries and an identity assertion can compare subjects.
+		subjectIdGenerator = nextId,
+		queueIdGenerator = nextId,
 	)
 }
 

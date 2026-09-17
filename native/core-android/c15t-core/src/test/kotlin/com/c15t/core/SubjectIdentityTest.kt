@@ -30,11 +30,8 @@ import kotlin.test.assertTrue
 class SubjectIdentityTest {
 	private val timeline = mutableListOf<String>()
 
-	/**
-	 * The kernel hands one generator to both the subject and the pending-save queue, so
-	 * these tests compare the counter across launches instead of expecting a total.
-	 */
-	private var idsGenerated = 0
+	/** How many times the core reached for a new subject id. */
+	private var subjectIdsMinted = 0
 
 	private var warnings = 0
 
@@ -54,7 +51,7 @@ class SubjectIdentityTest {
 			protectedStore.heldKeys.containsAll(setOf(C15tStoreKeys.SNAPSHOT, C15tStoreKeys.PENDING)),
 			"records live in protected storage while the key works, got ${protectedStore.heldKeys}",
 		)
-		val mintedFirstLaunch = idsGenerated
+		val mintedFirstLaunch = subjectIdsMinted
 
 		protectedStore.destroyKey()
 
@@ -68,7 +65,7 @@ class SubjectIdentityTest {
 		)
 		assertEquals(
 			mintedFirstLaunch,
-			idsGenerated,
+			subjectIdsMinted,
 			"the relaunch after a key loss mints nothing, because it inherits the stored id",
 		)
 		assertEquals(
@@ -100,7 +97,7 @@ class SubjectIdentityTest {
 
 		kernel(store).bootstrap()
 
-		assertEquals(1, idsGenerated, "one id for the whole install")
+		assertEquals(1, subjectIdsMinted, "one id for the whole install")
 		assertEquals("00000001-0000-4000-8000-000000000000", assertNotNull(store.readSubject()).id)
 		assertEquals(listOf(C15tStoreKeys.SUBJECT), identity.keys.toList(), "exactly one id, in plain storage")
 		assertFalse(
@@ -120,7 +117,7 @@ class SubjectIdentityTest {
 
 		kernel(store).bootstrap()
 
-		assertEquals(0, idsGenerated, "an upgrade adopts the id it found instead of replacing it")
+		assertEquals(0, subjectIdsMinted, "an upgrade adopts the id it found instead of replacing it")
 		assertEquals("subject-legacy", assertNotNull(store.readSubject()).id)
 		assertEquals("subject-legacy", assertNotNull(plainSubject(identity)).id)
 		assertFalse(protectedStore.heldKeys.contains(C15tStoreKeys.SUBJECT), "one copy of the id is left")
@@ -176,7 +173,24 @@ class SubjectIdentityTest {
 		assertEquals("subject-alone", assertNotNull(store.readSubject()).id)
 		kernel(store).bootstrap()
 		assertEquals("subject-alone", assertNotNull(store.readSubject()).id)
-		assertEquals(0, idsGenerated, "an existing id is adopted, not replaced")
+		assertEquals(0, subjectIdsMinted, "an existing id is adopted, not replaced")
+	}
+
+	@Test
+	fun `an id stored by an older build is loaded untouched even though it is not a sub id`() {
+		// Installs from before the sub_ format carry a UUID subject id, and the
+		// protocol fixtures pin those bytes. Hydration must not inspect the shape it
+		// now generates: replacing an id the backend already has records against is a
+		// worse answer than sending one the schema rejects.
+		val legacy = "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+		val store = C15tStore(plainStore())
+		store.writeSubject(ConsentSubject(id = legacy))
+
+		val launch = kernel(store).apply { bootstrap() }
+
+		assertEquals(legacy, assertNotNull(store.readSubject()).id)
+		assertEquals(legacy, assertNotNull(launch.snapshot().subject).id, "the id on the snapshot too")
+		assertEquals(0, subjectIdsMinted, "a stored id is never repaired into a new one")
 	}
 
 	// -- harness --------------------------------------------------------------
@@ -199,9 +213,9 @@ class SubjectIdentityTest {
 		// Inline execution keeps ordering observable: hydration is finished by the time
 		// bootstrap returns, so the timeline reads as a sequence of launches.
 		executor = TaskExecutor.DIRECT,
-		idGenerator = {
-			idsGenerated += 1
-			"%08d-0000-4000-8000-000000000000".format(idsGenerated)
+		subjectIdGenerator = {
+			subjectIdsMinted += 1
+			"%08d-0000-4000-8000-000000000000".format(subjectIdsMinted)
 		},
 	)
 

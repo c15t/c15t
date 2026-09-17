@@ -65,8 +65,11 @@ data class PolicyResolution(
 /**
  * Subject identifiers.
  *
- * [id] is the c15t-owned UUID v4 generated at first launch. It is never derived
- * from IDFV, ADID, or any other hardware identifier.
+ * [id] is the c15t-owned id minted at first launch by `SubjectIdGenerator`, in the
+ * `sub_` format the backend's `subjectIdSchema` accepts. An install that predates
+ * that format keeps the UUID it stored: the id is an identifier, and a stored one is
+ * never rewritten. It is never derived from IDFV, ADID, or any other hardware
+ * identifier.
  */
 @Serializable
 data class ConsentSubject(
