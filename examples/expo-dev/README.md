@@ -105,14 +105,13 @@ need `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` on this machine,
 Nobody has launched a simulator or an emulator from this fixture, and no Gradle build has
 run, so the checklist below is entirely open.
 
-One difference from the bare app is worth knowing before you spend time on a build
-failure. `@c15t/react-native` breaks `react-native config` for Android: the CLI cannot
-find a namespace or a `package` attribute for it and exits non-zero, which stops the bare
-template's Gradle configuration cold. The reason and the fix are written up in
-[examples/react-native-bare](../react-native-bare#native-build-status). This app does not
-hit it by default because prebuild wires autolinking through `expoAutolinking.rnConfigCommand`,
-and reaches the community CLI only when `EXPO_USE_COMMUNITY_AUTOLINKING=1` is set. If you
-set that variable, expect the same configuration failure here.
+Android autolinking here runs `expo-modules-autolinking`, not `@react-native-community/cli`,
+which is what `expoAutolinking.rnConfigCommand` in the generated Podfile wires. So this app
+never asked the question the bare app used to fail on, and it stays that way: the community
+autolinking branch (`EXPO_USE_COMMUNITY_AUTOLINKING=1`) needs `@react-native-community/cli`,
+which this fixture does not depend on. The bare app is where the community CLI's answer about
+this package gets exercised, on CI, by `bun run check:react-native-autolink`; see
+[examples/react-native-bare](../react-native-bare#native-build-status).
 
 ## Fake core
 
