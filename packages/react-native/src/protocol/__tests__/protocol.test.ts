@@ -91,24 +91,36 @@ const MANDATED_FIXTURES = [
 	'evaluation-notice-dismissed',
 	'evaluation-us-ccpa-opt-out',
 	'save-body-explicit-partial',
-	'storage-explicit-grants',
+	'native-envelope-opt-in-grants',
+	'native-envelope-unknown-field',
 ];
 
 interface FixtureFile {
 	id: string;
-	kind: 'evaluation' | 'revision-trace' | 'save-body' | 'storage';
+	kind: 'evaluation' | 'native-envelope' | 'revision-trace' | 'save-body';
 	protocolVersion: number;
 	description: string;
 	notes: string[];
 	input: Record<string, unknown>;
 	expected: Record<string, unknown>;
+	/** Present on `native-envelope`, which owns a field set rather than a snapshot. */
+	fields?: {
+		carriers: Record<string, string>;
+		expect: unknown;
+		key: string;
+		loadBearing: boolean;
+		requiredBy: string[];
+		role: string;
+	}[];
+	/** Present on `native-envelope`: the core whose layout the contract documents. */
+	reference?: { core: string; keyOrder: string; why: string };
 }
 
 interface IndexEntry {
 	bytes: number;
 	file: string;
 	id: string;
-	kind: 'evaluation' | 'revision-trace' | 'save-body' | 'storage';
+	kind: 'evaluation' | 'native-envelope' | 'revision-trace' | 'save-body';
 	protocolVersion: number;
 	sha256: string;
 }
@@ -145,19 +157,23 @@ const readFixtures = function readFixtures(): FixtureFile[] {
 const snapshotsIn = function snapshotsIn(
 	fixture: FixtureFile
 ): Record<string, Record<string, unknown>> {
-	if (fixture.kind === 'evaluation' || fixture.kind === 'storage') {
-		return { snapshot: fixture.expected.snapshot as Record<string, unknown> };
-	}
 	if (fixture.kind === 'revision-trace') {
 		// The trace fixture asserts a revision trace, not a snapshot. Its snapshot is
 		// the one each core starts from, which `native/CONTRACT.md` refuses to compare
 		// across implementations.
 		return {};
 	}
-	return {
-		snapshotAfter: fixture.expected.snapshotAfter as Record<string, unknown>,
-		snapshotBefore: fixture.expected.snapshotBefore as Record<string, unknown>,
-	};
+	// Driven by what the fixture actually claims. A `native-envelope` read case asserts
+	// no snapshot at all -- its bytes are supposed to yield nothing -- and a hard-coded
+	// per-kind shape would turn that into `undefined` under every snapshot assertion.
+	const snapshots: Record<string, Record<string, unknown>> = {};
+	for (const key of ['snapshot', 'snapshotAfter', 'snapshotBefore'] as const) {
+		const snapshot = fixture.expected[key];
+		if (snapshot !== null && typeof snapshot === 'object') {
+			snapshots[key] = snapshot as Record<string, unknown>;
+		}
+	}
+	return snapshots;
 };
 
 describe('protocol handshake', () => {
@@ -293,9 +309,9 @@ describe('protocol fixtures', () => {
 		for (const fixture of fixtures) {
 			expect([
 				'evaluation',
+				'native-envelope',
 				'revision-trace',
 				'save-body',
-				'storage',
 			]).toContain(fixture.kind);
 			expect(fixture.id.startsWith(`${fixture.kind}-`)).toBe(true);
 			expect(fixture.description.length).toBeGreaterThan(30);
@@ -374,32 +390,100 @@ describe('protocol fixtures', () => {
 		}
 	});
 
-	test('a readable storage envelope round-trips to the same string', () => {
-		const readable = readFixtures()
-			.filter((fixture) => fixture.kind === 'storage')
-			.filter((fixture) => (fixture.expected.decode as { ok: boolean }).ok);
-		expect(readable.length).toBeGreaterThan(0);
-		for (const fixture of readable) {
-			expect(fixture.expected.reEncoded).toBe(fixture.input.storedEnvelope);
+	// The native cores own their stored envelope, so neither the kernel nor this file
+	// can run their codec. What this side can hold fixed is the claim the two runners
+	// are handed: one named owner per fact, one stated authority when the cores
+	// disagree, and an unreadable case that says "nothing stored" in every field that
+	// means it. A generator that quietly stopped carrying one of those would fail here
+	// rather than in two suites that only notice once a device is involved.
+	test('a stored envelope names one owner per fact and one authority', () => {
+		const envelopes = readFixtures().filter(
+			(fixture) => fixture.kind === 'native-envelope'
+		);
+		expect(envelopes.length).toBeGreaterThan(0);
+		for (const fixture of envelopes) {
+			// Swift and Kotlin encode independently, so nothing here may pin a byte
+			// layout. Instead the file says which core's layout the contract documents,
+			// and without that a disagreement has no authority to settle it.
+			expect(['swift', 'kotlin']).toContain(fixture.reference?.core);
+			expect((fixture.reference?.why ?? '').length).toBeGreaterThan(20);
+
+			const fields = fixture.fields ?? [];
+			expect(fields.length).toBeGreaterThan(0);
+			for (const field of fields) {
+				// A core with no carrier for a fact does not carry it, which is a
+				// documented difference. A core cannot be required to write one.
+				expect(Object.keys(field.carriers).length).toBeGreaterThan(0);
+				for (const core of field.requiredBy) {
+					expect(Object.keys(field.carriers)).toContain(core);
+				}
+				expect(field.role.length).toBeGreaterThan(10);
+			}
+
+			// The snapshot and the policy it was judged against are the two facts a cold
+			// start cannot rebuild, so both cores have to keep both. The policy is the
+			// whole reason a cached grant stays a grant instead of becoming a prompt.
+			for (const key of ['snapshot', 'policy']) {
+				const field = fields.find((candidate) => candidate.key === key);
+				expect(field?.loadBearing).toBe(true);
+				expect([...(field?.requiredBy ?? [])].sort()).toEqual([
+					'kotlin',
+					'swift',
+				]);
+			}
 		}
 	});
 
-	test('an unreadable storage envelope applies nothing and stays deny-all', () => {
+	test('every envelope write case claims a round trip it can be held to', () => {
+		// Split by what a fixture claims rather than by a branch inside one loop: a case
+		// that forgot to say which of the two it is then lands in neither list, and the
+		// counts below notice, instead of falling quietly into an else.
+		const writes = readFixtures()
+			.filter((fixture) => fixture.kind === 'native-envelope')
+			.filter((fixture) => fixture.expected.write !== undefined);
+		expect(writes.length).toBeGreaterThan(0);
+		for (const fixture of writes) {
+			const write = fixture.expected.write as Record<string, unknown>;
+			expect(write.decoded).toBe('itself');
+			expect(write.storedSnapshotMatchesLive).toBe(true);
+			expect(fixture.expected.snapshot).toBeDefined();
+		}
+	});
+
+	test('an unreadable native envelope stores nothing and denies everything', () => {
 		const unreadable = readFixtures()
-			.filter((fixture) => fixture.kind === 'storage')
-			.filter((fixture) => !(fixture.expected.decode as { ok: boolean }).ok);
+			.filter((fixture) => fixture.kind === 'native-envelope')
+			.filter(
+				(fixture) =>
+					(fixture.expected.read as { decoded?: boolean } | undefined)
+						?.decoded === false
+			);
 		expect(unreadable.length).toBeGreaterThan(0);
+		// Each defect breaks the envelope a different way, so a generator that stopped
+		// emitting one leaves a hole neither native runner can report. Reading the kinds
+		// off `input.defect` is also what forces an unreadable case to break the bytes on
+		// purpose: a case that declared `read` with no defect would drop a kind here.
+		const defects = unreadable
+			.map((fixture) => (fixture.input.defect as { kind: string }).kind)
+			.sort();
+		for (const kind of [
+			'foreign-wire',
+			'pre-correction',
+			'truncate',
+			'unknown-field',
+		]) {
+			expect(defects).toContain(kind);
+		}
 		for (const fixture of unreadable) {
-			expect(fixture.expected.reEncoded).toBeNull();
-			const snapshot = fixture.expected.snapshot as Record<string, unknown>;
-			// The guarantee is that nothing stored is applied, so every optional
-			// category stays denied. `ready` and `policyPending` are deliberately not
-			// asserted: the fixture answers a served /init, and the kernel applies
-			// that policy whatever storage held, so a policy is in force here.
-			const permissions = permissionsOf(snapshot);
-			expect(permissions.necessary).toBe(true);
+			const read = fixture.expected.read as Record<string, unknown>;
+			expect(read.stored).toBe(false);
+			expect(read.identicalToFreshInstall).toBe(true);
+			const { decision } = fixture.expected.relaunch as {
+				decision: { allowed: Record<string, unknown> };
+			};
+			expect(decision.allowed.necessary).toBe(true);
 			expect(
-				Object.entries(permissions)
+				Object.entries(decision.allowed)
 					.filter(([category]) => category !== 'necessary')
 					.every(([, value]) => value === false)
 			).toBe(true);

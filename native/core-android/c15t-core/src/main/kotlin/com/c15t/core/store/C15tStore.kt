@@ -30,6 +30,11 @@ object C15tStoreKeys {
 class C15tStore(
 	private val backend: KeyValueStore,
 	private val json: Json = C15tJson.storage,
+	/**
+	 * Codec for the offline queue alone. It tolerates unknown keys, which is the opposite
+	 * of [json]; see [C15tJson.queue] for why that asymmetry is on purpose.
+	 */
+	private val queueJson: Json = C15tJson.queue,
 	private val onReadFailure: (String, Throwable) -> Unit = { _, _ -> },
 ) {
 	/** Read the stored subject, or `null` when absent or unparseable. */
@@ -43,12 +48,13 @@ class C15tStore(
 	/**
 	 * Read the stored envelope, or `null` when absent or unparseable.
 	 *
-	 * Unparseable includes a payload from before the overrides and privacy signals
-	 * were corrected. The storage codec tolerates unknown keys so an additive field
-	 * costs nobody their stored consent, which would otherwise let `overrides.test`
-	 * and `privacySignals.msa` vanish quietly and leave a snapshot whose signals
-	 * disagree with the decisions inside it. [RetiredWireFields] turns that into a
-	 * read failure, and a read failure is deny-all.
+	 * Unparseable covers a truncated write, a payload from a newer build, a document
+	 * from another codec, and anything carrying a key this build does not model --
+	 * [RetiredWireFields] names the retired ones, and the storage codec refuses any
+	 * other unknown key rather than dropping it on the next write. Either way a read
+	 * failure is deny-all, and the device answers exactly as it would with an empty
+	 * slot. The subject id lives under its own key, so this does not cost the device
+	 * its identity.
 	 */
 	fun readEnvelope(): SnapshotEnvelope? = tryDecode(C15tStoreKeys.SNAPSHOT, SnapshotEnvelope.serializer()) { raw ->
 		RetiredWireFields.assertReadable(json, raw)
@@ -61,11 +67,11 @@ class C15tStore(
 
 	/** Read the offline write queue; an unparseable queue reads as empty. */
 	fun readPending(): List<QueuedSave> =
-		tryDecode(C15tStoreKeys.PENDING, PendingQueue.serializer())?.entries ?: emptyList()
+		tryDecode(C15tStoreKeys.PENDING, PendingQueue.serializer(), queueJson)?.entries ?: emptyList()
 
 	/** Replace the whole offline write queue. */
 	fun writePending(entries: List<QueuedSave>) {
-		backend.write(C15tStoreKeys.PENDING, json.encodeToString(PendingQueue.serializer(), PendingQueue(entries)))
+		backend.write(C15tStoreKeys.PENDING, queueJson.encodeToString(PendingQueue.serializer(), PendingQueue(entries)))
 	}
 
 	/** Drop stored consent state, keeping the subject id so identity survives. */
@@ -81,6 +87,7 @@ class C15tStore(
 	private fun <T : Any> tryDecode(
 		key: String,
 		deserializer: DeserializationStrategy<T>,
+		json: Json = this.json,
 		inspect: (String) -> Unit = {},
 	): T? {
 		val raw = try {

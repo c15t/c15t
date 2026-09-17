@@ -16,6 +16,7 @@ import com.c15t.core.store.C15tStore
 import com.c15t.core.store.C15tStoreKeys
 import com.c15t.core.store.SnapshotEnvelope
 import com.c15t.core.transport.C15tProtocol
+import com.c15t.core.transport.C15tTransport
 import com.c15t.core.transport.HostedTransport
 import com.c15t.core.transport.SaveOutcome
 import com.c15t.core.transport.TransportOutcome
@@ -107,7 +108,6 @@ class ProtocolFixtureTest {
 		val directory = fixtureDirectory()
 		val index = readIndex(directory)
 		val ran = mutableListOf<String>()
-		val unclaimed = mutableListOf<String>()
 		for (entry in index.fixtures) {
 			when (entry["kind"]!!.jsonPrimitive.content) {
 				"evaluation" -> {
@@ -125,26 +125,35 @@ class ProtocolFixtureTest {
 					ran += entry["id"]!!.jsonPrimitive.content
 				}
 
-				"storage" -> {
-					// The web v3 record envelope is not the format this core writes:
-					// it persists a SnapshotEnvelope in its own shape. Claiming these
-					// would mean asserting a codec the contract does not share, so
-					// they are reported rather than passed.
-					unclaimed += entry["id"]!!.jsonPrimitive.content
+				"native-envelope" -> {
+					runNativeEnvelope(directory, entry)
+					ran += entry["id"]!!.jsonPrimitive.content
 				}
 
 				else -> fail("${entry["id"]}: kind ${entry["kind"]} has no runner here. Add one instead of skipping it.")
 			}
 		}
-		val report = buildString {
-			append("Protocol fixtures: ran ${ran.size} of ${index.fixtures.size} from $INDEX_FILE")
-			if (unclaimed.isNotEmpty()) {
-				append("; ${unclaimed.size} unclaimed (${unclaimed.joinToString(", ")}) — the Kotlin envelope is not the web v3 codec")
-			}
-		}
-		println(report)
+		// The count comes from the kinds this file claims rather than from a list of
+		// excuses, so it is zero by construction and stays zero only while every kind in
+		// the index has a branch above.
+		val unclaimed = index.fixtures
+			.filterNot { CLAIMED_KINDS.contains(it["kind"]!!.jsonPrimitive.content) }
+			.map { it["id"]!!.jsonPrimitive.content }
+		println(
+			buildString {
+				append("Protocol fixtures: ran ${ran.size} of ${index.fixtures.size} from $INDEX_FILE; ${unclaimed.size} unclaimed")
+				if (unclaimed.isNotEmpty()) {
+					append(" (${unclaimed.joinToString(", ")})")
+				}
+			},
+		)
 		ran.forEach { println("  ran $it") }
 		assertEquals(index.fixtures.size, ran.size + unclaimed.size, "the runner accounted for fewer fixtures than the index lists")
+		assertTrue(
+			unclaimed.isEmpty(),
+			"$INDEX_FILE holds ${unclaimed.joinToString(", ")}, which no runner here claims. " +
+				"A fixture nobody runs is a fixture that cannot fail.",
+		)
 		judge(index)
 	}
 
@@ -313,6 +322,9 @@ class ProtocolFixtureTest {
 		val kernel: C15tKernel,
 		val http: RecordingHttpClient,
 		val initScript: ArrayDeque<HttpResponse>,
+		/** The slot the core persists to, so a fixture can read the bytes it wrote. */
+		val backend: InMemoryKeyValueStore,
+		val store: C15tStore,
 	)
 
 	/**
@@ -324,18 +336,21 @@ class ProtocolFixtureTest {
 	 */
 	private fun makeRun(entry: JsonObject, input: JsonObject): Run {
 		val fixtureId = id(entry)
-		val now = input["now"]?.jsonPrimitive?.longOrNull ?: fail("$fixtureId: input.now is missing")
 		val stored = input["storedRecords"]?.jsonObject ?: fail("$fixtureId: no storedRecords")
 		val subjectId = stored["subject"]?.jsonObject?.get("subjectId")?.jsonPrimitive?.contentOrNull
 			?: fail("$fixtureId: storedRecords.subject.subjectId is missing. A fixture that lets the core invent an identity is not deterministic.")
 
 		val backend = InMemoryKeyValueStore()
-		val store = C15tStore(backend)
 		backend.putSilently(C15tStoreKeys.SUBJECT, C15tJson.storage.encodeToString(ConsentSubject.serializer(), ConsentSubject(id = subjectId)))
 
 		val choice = stored["choice"]?.takeUnless { it is JsonNull }?.let { storedChoice(fixtureId, it) }
 		val dismissal = stored["noticeDismissal"]?.takeUnless { it is JsonNull }?.let {
-			C15tJson.storage.decodeFromString(NoticeDismissal.serializer(), it.toString())
+			// The fixture's stored records are the web document, which carries keys this
+			// core does not model -- a dismissal there has a `version`. It arrives through
+			// the lenient reader on purpose: the strict one belongs to bytes this build
+			// wrote itself, and policing a hand-off from another platform would fail the
+			// runner rather than the core.
+			json.decodeFromString(NoticeDismissal.serializer(), it.toString())
 		}
 		// A stored receipt reaches a relaunch through the envelope's snapshot, which
 		// is where this core keeps it. The policy wire stays out of the envelope on
@@ -348,7 +363,26 @@ class ProtocolFixtureTest {
 				SnapshotEnvelope(snapshot = seeded, evaluationPolicy = null, noticeDismissal = dismissal),
 			),
 		)
+		return wireRun(entry, input, backend, offline = false)
+	}
 
+	/**
+	 * Wire a core to the fixture input over a store the caller already filled.
+	 *
+	 * [offline] is a phone in a tunnel: the transport answers nothing, so whatever a
+	 * boot produces can only have come out of the store. That is the only arrangement
+	 * that proves an envelope carries enough to decide on its own. The HTTP double
+	 * fails a request rather than serving the scripted `/init`, because a relaunch that
+	 * quietly reached the backend would pass while testing nothing.
+	 */
+	private fun wireRun(
+		entry: JsonObject,
+		input: JsonObject,
+		backend: InMemoryKeyValueStore,
+		offline: Boolean,
+	): Run {
+		val fixtureId = id(entry)
+		val now = input["now"]?.jsonPrimitive?.longOrNull ?: fail("$fixtureId: input.now is missing")
 		val overrides = input["overrides"]?.jsonObject ?: fail("$fixtureId: no overrides")
 		// The fixture states the two GPC facts separately and they are not the same
 		// fact: `overrides.gpc` is what the app pinned, and
@@ -368,37 +402,44 @@ class ProtocolFixtureTest {
 			detectedGpc = deviceDetection,
 		)
 
-		val transport = input["transport"]?.jsonObject ?: fail("$fixtureId: no transport")
 		val initScript = ArrayDeque<HttpResponse>()
-		initScript += initResponseOf(fixtureId, transport)
-		val http = RecordingHttpClient { request ->
-			when (request.method) {
-				"GET" -> initScript.removeFirstOrNull()
-					?: fail("$fixtureId: the core asked for /init with nothing left scripted")
+		val http = if (offline) {
+			RecordingHttpClient { request ->
+				fail("$fixtureId: the core sent ${request.method} with no backend scripted. The envelope has to answer on its own.")
+			}
+		} else {
+			val transport = input["transport"]?.jsonObject ?: fail("$fixtureId: no transport")
+			initScript += initResponseOf(fixtureId, transport)
+			RecordingHttpClient { request ->
+				when (request.method) {
+					"GET" -> initScript.removeFirstOrNull()
+						?: fail("$fixtureId: the core asked for /init with nothing left scripted")
 
-				else -> HttpResponse(200, emptyMap(), "{}")
+					else -> HttpResponse(200, emptyMap(), "{}")
+				}
 			}
 		}
 		val clock = FixedClock(now)
+		val store = C15tStore(backend)
 		val kernel = C15tKernel(
 			config = config,
 			store = store,
 			clock = clock,
 			// The real transport, so the assertion covers headers and the built body
 			// and not a double's idea of them.
-			transport = HostedTransport(http = http, config = config, clock = clock),
+			transport = if (offline) C15tTransport.NONE else HostedTransport(http = http, config = config, clock = clock),
 			executor = TaskExecutor.DIRECT,
 		)
-		return Run(kernel = kernel, http = http, initScript = initScript)
+		return Run(kernel = kernel, http = http, initScript = initScript, backend = backend, store = store)
 	}
 
 	/**
 	 * Translate a kernel receipt map into this core's [ExplicitChoice].
 	 *
-	 * The stored-record format is not shared across platforms — that is why the
-	 * `storage-*` fixtures are unclaimed — so the runner converts. Every receipt in
-	 * a fixture shares one confirmation time and one basis fingerprint, which is
-	 * what this shape can hold.
+	 * `storedRecords` is what the web SDK keeps, and neither native core stores it in
+	 * that shape: this core keeps receipts inside the envelope's snapshot. So the
+	 * runner converts on the way in. Every receipt in a fixture shares one confirmation
+	 * time and one basis fingerprint, which is what this shape can hold.
 	 */
 	private fun storedChoice(fixtureId: String, element: JsonElement): ExplicitChoice {
 		val categories = element.jsonObject["categories"]?.jsonObject ?: fail("$fixtureId: storedRecords.choice has no categories")
@@ -442,6 +483,325 @@ class ProtocolFixtureTest {
 
 			else -> fail("${id(entry)}: intent.action ${intent["action"]} is unknown")
 		}
+
+	// -- stored envelopes -----------------------------------------------------
+
+	/**
+	 * Run a `native-envelope` fixture.
+	 *
+	 * Every case of this kind starts the same way: a core boots over the fixture input,
+	 * takes the action, and writes its envelope. The bytes under test have to be the
+	 * core's own, because a hand-written envelope would only prove that this runner and
+	 * this core agree about a shape nothing is ever stored in.
+	 *
+	 * Then the two directions split. A write case reads its own bytes back and asks
+	 * whether the envelope carries the fields the contract says it carries, and whether a
+	 * relaunch that reaches no backend still answers from those bytes. A read case breaks
+	 * them first and asks whether a relaunch answers the way an empty store does. Reading
+	 * an envelope halfway would answer like a returning user, which is a permission
+	 * invented out of garbage.
+	 *
+	 * Nothing here compares serialized bytes. Kotlin keeps two of these facts under
+	 * different names than Swift and encrypts the blob it writes, so the fixture pins the
+	 * field set and the values and names Swift as the layout reference.
+	 */
+	private fun runNativeEnvelope(
+		directory: File,
+		entry: JsonObject,
+	) {
+		val fixtureId = id(entry)
+		val fixture = readFixture(directory, entry)
+		val fixtureInput = fixture["input"]?.jsonObject ?: fail("$fixtureId: no input")
+		val expected = fixture["expected"]?.jsonObject ?: fail("$fixtureId: no expected")
+		val subjectId = fixtureInput["storedRecords"]?.jsonObject?.get("subject")?.jsonObject
+			?.get("subjectId")?.jsonPrimitive?.contentOrNull
+			?: fail("$fixtureId: storedRecords.subject.subjectId is missing")
+
+		val run = makeRun(entry, fixtureInput)
+		run.kernel.bootstrap()
+		val action = fixtureInput["action"]?.takeUnless { it is JsonNull }?.jsonObject
+		if (action != null) {
+			if (action["action"]?.jsonPrimitive?.content == "dismiss-notice") {
+				run.kernel.dismissNotice()
+			} else {
+				run.kernel.save(commitIntent(entry, action))
+			}
+		}
+
+		val written = run.backend.read(C15tStoreKeys.SNAPSHOT)
+		if (written == null) {
+			record(fixtureId, "expected.write", "the core never wrote anything under ${C15tStoreKeys.SNAPSHOT}")
+			return
+		}
+
+		// Reading back and writing again must be the identity on the core's own bytes.
+		// Anything the round trip drops is a field the next launch never sees.
+		val decoded = run.store.readEnvelope()
+		if (decoded == null) {
+			record(
+				fixtureId,
+				"expected.write.decoded",
+				"the core wrote an envelope its own decoder refuses, so nothing about its contents can be checked",
+			)
+			return
+		}
+		val rewritten = C15tJson.storage.encodeToString(SnapshotEnvelope.serializer(), decoded)
+		if (rewritten != written) {
+			record(
+				fixtureId,
+				"expected.write.decoded",
+				"decoding the envelope and storing it again turned ${written.length} characters into ${rewritten.length}; " +
+					"the next relaunch loses whatever that rewrite dropped",
+			)
+		}
+
+		recordEnvelopeFields(fixtureId, fixture, written)
+
+		expected["snapshot"]?.let { want ->
+			record(
+				fixtureId,
+				"expected.snapshot",
+				want,
+				C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), decoded.snapshot),
+			)
+		}
+		if (decoded.snapshot != run.kernel.snapshot()) {
+			record(
+				fixtureId,
+				"expected.write.storedSnapshotMatchesLive",
+				"the envelope holds revision ${decoded.snapshot.revision} while the session is on ${run.kernel.snapshot().revision}: " +
+					"a cold start would answer with state the running core has already left behind",
+			)
+		}
+
+		val defect = fixtureInput["defect"]?.takeUnless { it is JsonNull }?.jsonObject
+		val bytes = defect?.let { defectiveBytes(fixtureId, it, written) } ?: written
+		val cold = relaunch(entry, fixtureInput, subjectId, bytes)
+		expected["relaunch"]?.jsonObject?.get("decision")?.let { want ->
+			record(fixtureId, "expected.relaunch.decision", want, cold.decision)
+		}
+
+		val read = expected["read"]?.takeUnless { it is JsonNull }?.jsonObject ?: return
+		// `stored: false` is `decoded: false` seen from the other side. A core that
+		// refuses an envelope still persists the deny-all snapshot it settled on, so
+		// whether the bytes decoded is the only observation that tells refusal from read.
+		if (decodes(bytes)) {
+			record(
+				fixtureId,
+				"expected.read.decoded",
+				"the core decoded bytes the fixture says are unreadable, so whatever it restored came from a shape the contract does not have",
+			)
+		}
+		val fresh = relaunch(entry, fixtureInput, subjectId, bytes = null)
+		if (!matches(fresh.snapshot, cold.snapshot)) {
+			record(
+				fixtureId,
+				"expected.read.identicalToFreshInstall",
+				"unreadable bytes left the core answering something an empty store does not: " +
+					describeDifference(fresh.snapshot, cold.snapshot),
+			)
+		}
+	}
+
+	/** A cold start over [bytes], plus what it answers. */
+	private class Relaunch(
+		val snapshot: JsonElement,
+		/**
+		 * What a gate on the device is told, category by category.
+		 *
+		 * Read through `isAllowed` rather than the snapshot's permission map, because that
+		 * is the call an ad SDK actually makes and it is the stricter of the two while a
+		 * policy is outstanding.
+		 */
+		val decision: JsonElement,
+	)
+
+	/**
+	 * Boot a core over [bytes] with nothing on the other end of the transport.
+	 *
+	 * With no answer coming, the snapshot can only be the one the envelope supplied,
+	 * which is the only thing an envelope is for. `bytes = null` is the same device with
+	 * an empty store, and the two are supposed to be indistinguishable when the bytes are
+	 * unreadable. The subject id gets seeded in both because it has its own slot: refusing
+	 * an envelope must not cost a device its identity, and sharing one id is what makes
+	 * the comparison about consent rather than about ids.
+	 */
+	private fun relaunch(
+		entry: JsonObject,
+		input: JsonObject,
+		subjectId: String,
+		bytes: String?,
+	): Relaunch {
+		val backend = InMemoryKeyValueStore()
+		backend.putSilently(
+			C15tStoreKeys.SUBJECT,
+			C15tJson.storage.encodeToString(ConsentSubject.serializer(), ConsentSubject(id = subjectId)),
+		)
+		if (bytes != null) {
+			backend.putSilently(C15tStoreKeys.SNAPSHOT, bytes)
+		}
+		val run = wireRun(entry, input, backend, offline = true)
+		run.kernel.bootstrap()
+		val snapshot = run.kernel.snapshot()
+		return Relaunch(
+			snapshot = C15tJson.storage.encodeToJsonElement(ConsentSnapshot.serializer(), snapshot),
+			decision = buildJsonObject {
+				put(
+					"allowed",
+					buildJsonObject {
+						ConsentCategory.entries.forEach { category ->
+							put(category.wireName, snapshot.isAllowed(category))
+						}
+					},
+				)
+				put("policyPending", snapshot.policyPending)
+				put("ready", snapshot.ready)
+			},
+		)
+	}
+
+	/** Whether the core's own reader accepts [bytes] as an envelope. */
+	private fun decodes(bytes: String): Boolean =
+		C15tStore(InMemoryKeyValueStore(mapOf(C15tStoreKeys.SNAPSHOT to bytes))).readEnvelope() != null
+
+	/**
+	 * Check the stored field set against the field set the fixture declares.
+	 *
+	 * The names come from the fixture's `carriers` map rather than from literals here, so
+	 * the shared file owns the field set and this runner contributes only the spelling
+	 * this core happens to use. A field with no entry for this core is one it does not
+	 * carry at all, which `native/CONTRACT.md` records as a difference between the two
+	 * implementations rather than a defect.
+	 *
+	 * Values, not key presence: this core writes every key every time, so a key sitting
+	 * there holding null proves nothing about whether the fact made it to disk.
+	 */
+	private fun recordEnvelopeFields(
+		fixtureId: String,
+		fixture: JsonObject,
+		raw: String,
+	) {
+		val stored = json.parseToJsonElement(raw).jsonObject
+		fixture["fields"]?.jsonArray?.forEach { element ->
+			val field = element.jsonObject
+			val key = field["key"]?.jsonPrimitive?.contentOrNull ?: return@forEach
+			val name = field["carriers"]?.jsonObject?.get("kotlin")?.jsonPrimitive?.contentOrNull ?: return@forEach
+			val expect = field["expect"] ?: return@forEach
+			val path = "expected.fields.$key"
+			val required = field["requiredBy"]?.jsonArray?.any { it.jsonPrimitive.content == "kotlin" } == true
+			val value = stored[name]
+			val wantsEmpty = expect is JsonPrimitive && expect.isString && expect.content == "empty"
+			if (required && value == null && !wantsEmpty) {
+				record(fixtureId, path, "the envelope carries no `$name` key, which the fixture says this core always writes")
+				return@forEach
+			}
+			when {
+				expect is JsonPrimitive && expect.isString && expect.content == "present" -> if (value == null || value is JsonNull) {
+					record(fixtureId, path, "expected a `$name` the core actually filled in, and the envelope holds ${render(value)}")
+				}
+
+				wantsEmpty -> if (value != null && value !is JsonNull) {
+					record(fixtureId, path, "expected `$name` to be absent or null, and the envelope holds ${render(value)}")
+				}
+
+				!matches(expect, value) -> record(
+					fixtureId,
+					path,
+					"expected ${render(expect)}, and the envelope holds ${render(value)}",
+				)
+			}
+		}
+	}
+
+	/**
+	 * Break a valid envelope the way the named defect describes.
+	 *
+	 * The defects are operations rather than literal bytes because a base envelope is only
+	 * valid for the core that wrote it, and that core is the one under test. Only
+	 * `foreign-wire` ships bytes, and it ships someone else's.
+	 */
+	private fun defectiveBytes(
+		fixtureId: String,
+		defect: JsonObject,
+		written: String,
+	): String =
+		when (defect["kind"]?.jsonPrimitive?.content) {
+			"unknown-field" -> {
+				val name = defect["addField"]?.jsonPrimitive?.contentOrNull
+					?: fail("$fixtureId: an unknown-field defect names no field")
+				val root = json.parseToJsonElement(written).jsonObject
+				JsonObject(root.toMutableMap().apply { put(name, defect["value"] ?: JsonNull) }).toString()
+			}
+
+			// Everything from the last comma onwards is gone: a writer interrupted
+			// halfway through its final field. What is left is a prefix of a real grant,
+			// which is exactly the trap.
+			"truncate" -> {
+				val cut = written.lastIndexOf(',').takeIf { it > 0 }
+					?: fail("$fixtureId: the envelope this core wrote holds no comma, so there is no write to cut short here")
+				written.substring(0, cut)
+			}
+
+			// The same facts in the shape the first draft of `native/CONTRACT.md`
+			// described: `test` as an override, and `gpc`/`msa` as a boolean pair.
+			"pre-correction" -> {
+				val root = json.parseToJsonElement(written).jsonObject
+				val snapshot = root["snapshot"]?.jsonObject
+					?: fail("$fixtureId: the envelope this core wrote holds no snapshot object")
+				val overrides = snapshot["overrides"]?.jsonObject ?: JsonObject(emptyMap())
+				val active = snapshot["privacySignals"]?.jsonObject?.get("gpc")?.jsonObject?.get("active")
+				JsonObject(
+					root.toMutableMap().apply {
+						put(
+							"snapshot",
+							buildJsonObject {
+								snapshot.forEach { (name, value) ->
+									if (name != "overrides" && name != "privacySignals") {
+										put(name, value)
+									}
+								}
+								put(
+									"overrides",
+									buildJsonObject {
+										put("country", overrides["country"] ?: JsonNull)
+										put("gpc", overrides["gpc"] ?: JsonNull)
+										put("language", overrides["language"] ?: JsonPrimitive("en"))
+										put("region", overrides["region"] ?: JsonNull)
+										put("test", JsonPrimitive(false))
+									},
+								)
+								put(
+									"privacySignals",
+									buildJsonObject {
+										put("gpc", active ?: JsonPrimitive(false))
+										put("msa", JsonPrimitive(false))
+									},
+								)
+							},
+						)
+					},
+				).toString()
+			}
+
+			"foreign-wire" -> defect["envelope"]?.jsonPrimitive?.contentOrNull
+				?: fail("$fixtureId: a foreign-wire defect carries no envelope")
+
+			else -> fail("$fixtureId: defect ${defect["kind"]} has no runner here")
+		}
+
+	/** Name what two snapshots disagree about, for a failure message. */
+	private fun describeDifference(
+		expected: JsonElement,
+		actual: JsonElement,
+	): String {
+		val diffs = mutableListOf<Diff>()
+		collect(expected, actual, "snapshot", emptySet(), diffs)
+		return if (diffs.isEmpty()) {
+			"the two differ somewhere the walker cannot see"
+		} else {
+			diffs.joinToString("; ") { "${it.path}: ${it.detail}" }
+		}
+	}
 
 	// -- index and file access ------------------------------------------------
 
@@ -500,6 +860,15 @@ class ProtocolFixtureTest {
 	) {
 		val diffs = recorded.getOrPut(fixtureId) { mutableListOf() }
 		collect(expected, actual, path, extraFieldsAllowedUnder, diffs)
+	}
+
+	/** Record something the core did that has no expected value to diff against. */
+	private fun record(
+		fixtureId: String,
+		path: String,
+		detail: String,
+	) {
+		recorded.getOrPut(fixtureId) { mutableListOf() } += Diff(path, detail)
 	}
 
 	private fun collect(
@@ -629,6 +998,16 @@ class ProtocolFixtureTest {
 	private companion object {
 		const val INDEX_FILE = "index.json"
 
+		/**
+		 * Every fixture kind this file has a function for.
+		 *
+		 * This sits next to the dispatch on purpose. The dispatch fails on a kind it has
+		 * no branch for rather than skipping it, so the only way to grow this set is to
+		 * write the runner, and the unclaimed count can then only be non-zero when a kind
+		 * was added to one place and not the other.
+		 */
+		val CLAIMED_KINDS: Set<String> = setOf("evaluation", "native-envelope", "revision-trace", "save-body")
+
 
 	/**
 	 * The task that owns aligning this core with the kernel's snapshot.
@@ -719,6 +1098,23 @@ class ProtocolFixtureTest {
 			"evaluation-notice-dismissed" to listOf(
 				"activeUI" to DISMISSAL,
 				"nextDeadline" to DISMISSAL,
+			),
+		).forEach { (fixture, fields) -> add(fixture, "expected.snapshot", *fields.toTypedArray()) }
+
+		// The snapshot a `native-envelope` write case stores is the same snapshot the
+		// evaluation fixtures assert after the same action, so it trips the same
+		// spellings. The read cases carry no rows: their bytes have to yield nothing, and
+		// they are checked field for field against an empty store instead.
+		listOf(
+			"native-envelope-opt-in-grants" to listOf("explicitChoice*" to CHOICE),
+			"native-envelope-partial-denials" to listOf(
+				"explicitChoice*" to CHOICE,
+				"restrictions.marketing" to EXPLICIT_DENIAL,
+			),
+			"native-envelope-notice-dismissed" to emptyList<Pair<String, String>>(),
+			"native-envelope-opt-out-grants" to listOf(
+				"explicitChoice*" to CHOICE,
+				"nextDeadline" to DEADLINE_OVER,
 			),
 		).forEach { (fixture, fields) -> add(fixture, "expected.snapshot", *fields.toTypedArray()) }
 

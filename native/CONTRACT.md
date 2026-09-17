@@ -156,6 +156,78 @@ snapshot so a cold start with no connectivity still answers `snapshot()` in the
 first synchronous call. First launch with nothing stored returns
 `ready: false, policyPending: true`, all optional categories `false`.
 
+The stored envelope
+-------------------
+
+The envelope is the one piece of state a device keeps for itself, and the kernel has
+no equivalent to generate it from: the web SDK writes a v3 consent record to
+`localStorage` or a cookie, and neither native core reads or writes that document.
+So the envelope is pinned by `native-envelope-*` fixtures, which name the facts and
+their values and deliberately do not name a byte layout -- Swift and Kotlin encode
+independently, and a pinned layout would let exactly one of them pass while the other
+could only fail. Each fixture carries `reference.core` naming the implementation
+whose layout this file documents, which is Swift: a sorted-keys `JSONEncoder` makes
+its layout a plain function of the value. Where the two cores disagree about how a
+fact is spelled, that core is the reference and the other one moves.
+
+Both cores keep the envelope under `com.c15t.snapshot` and the subject id in its own
+slot, so refusing an envelope never costs a device its identity. What each writes:
+
+- Swift stores plain JSON under `StoredEnvelope`: `version` (this build reads `1` and
+  nothing else), `storedAt` in epoch milliseconds, `snapshot`, `noticeDismissal`, and
+  `policyResolution`.
+- Kotlin stores a `SnapshotEnvelope` in the encrypted blob: `snapshot`,
+  `evaluationPolicy`, and `noticeDismissal`. It carries no format version of its own
+  and no write time. `AesGcmCodec` puts a version byte in the blob header, which
+  gates the framing rather than the fields, so an envelope-level change has nowhere
+  to be recorded. That is a gap in the Kotlin core, not a decision.
+
+Three facts carry `loadBearing: true`, meaning the answer the device gives changes if
+the field is lost or wrong. Two of them decide what is allowed and one decides what the
+subject is asked, which is the half a snapshot on its own cannot carry:
+
+- `snapshot` is the last derived answer, kept so a cold start returns `snapshot()` on
+  the first synchronous call with no network and no re-derivation.
+- The policy the receipts were judged against -- `policyResolution` in Swift,
+  `evaluationPolicy` in Kotlin -- lets hydration re-run the evaluator against the
+  rules the subject actually chose under, at the current clock. Without it a relaunch
+  cannot trust its own snapshot until `/init` answers, and a cached grant turns back
+  into a prompt.
+- `noticeDismissal` is a record and not a permission: it decides whether the notice is
+  still owed, so it travels beside the snapshot instead of being folded into it.
+  Losing it does not grant anything; it asks the question again.
+
+`version` gates readability rather than the decision, and `storedAt` is diagnostics
+and the newest-writer-wins check. Neither changes an answer by itself, so both are
+`loadBearing: false`, and both are Swift-only carriers today.
+
+**An envelope this build cannot read is indistinguishable from a fresh install.**
+`ready: false`, `policyPending: true`, every optional category `false`, and nothing
+from the bytes applied. That identity is the point: there is no partial read, because
+half an envelope answers like a returning user, and a permission assembled out of
+garbage is indistinguishable from one the subject actually gave. It covers:
+
+- a key this build does not model. Swift refuses any key path its own encoder cannot
+  reproduce from the decoded value, which needs no list of names to keep current.
+  Kotlin's storage codec rejects unknown keys outright. Neither tolerates an unknown
+  field and rewrites it away, because that rewrite is the launch where the field
+  silently disappears while every number on the snapshot still looks healthy.
+- a write that stopped partway through, which leaves a prefix of a real grant -- the
+  one shape most likely to read as valid.
+- a document from before the corrections below: `overrides.test`, or `privacySignals`
+  as a boolean `gpc`/`msa` pair.
+- a document from another codec entirely, including a genuine web v3 envelope.
+
+Whether the bytes decoded is the only observation that separates a refusal from a
+read. A core that refuses an envelope still persists the deny-all snapshot it settled
+on, so "nothing stored" has to be read off the decoder and never off the store.
+
+The one expectation in this kind that is not kernel output is the offline deny-all
+decision the read cases assert. It is written out in the generator, because the
+kernel has no stored-envelope path to derive it from. Everything else in a
+`native-envelope-*` file, the snapshot inside the envelope included, comes from a real
+kernel run.
+
 Transports
 ----------
 
@@ -224,11 +296,13 @@ Conformance fixtures
 --------------------
 
 `native/protocol/*.json`, generated by `packages/react-native/scripts/` from the
-TypeScript kernel. Three kinds:
+TypeScript kernel. Four kinds:
 
 - `evaluation-*.json`  transport response plus stored records in, snapshot out.
 - `save-body-*.json`   transport response plus action in, exact request body out.
-- `storage-*.json`     serialized envelope round-trip.
+- `native-envelope-*.json` an action in, the stored field set and the offline
+  decision out. This is the one kind the kernel does not produce; see "The stored
+  envelope" above.
 - `revision-trace-*.json` a mutation sequence in, the revision trace the kernel
   produced for it out: one `{ step, revisionDelta, publications }` per step. This
   is the cross-core parity fixture. It pins what each step costs rather than the
@@ -243,12 +317,13 @@ invented. Every fixture carries `now` (the fixed clock every side must use),
 `intent`. Nothing is derived from a random value: the subject id is always
 supplied, and it is a UUID v4 because the Swift core refuses any other identity.
 
-An `expected` is what the kernel produced for that input. It is not hand-written.
-`evaluation-*` and `storage-*` pin `snapshot`, the subset of the mobile snapshot
-named above. `save-body-*` pin `snapshotBefore`, `snapshotAfter`, the `savePayload`
-the core must hold, and `request`: the exact `method`, `path`, `headers`, and `body`
-the backend receives, including the `x-c15t-policy-contract` value. `storage-*` pin
-`decode`, `reEncoded`, and the snapshot.
+An `expected` is what the kernel produced for that input. It is not hand-written,
+with the single exception named in "The stored envelope". `evaluation-*` pin
+`snapshot`, the subset of the mobile snapshot named above. `save-body-*` pin
+`snapshotBefore`, `snapshotAfter`, the `savePayload` the core must hold, and
+`request`: the exact `method`, `path`, `headers`, and `body` the backend receives,
+including the `x-c15t-policy-contract` value. `native-envelope-*` pin `write`,
+`relaunch`, the field set in `fields`, and for a read case `read`.
 
 `index.json` lists every fixture with `id`, `kind`, `protocolVersion`, `file`,
 `bytes`, and `sha256`, plus the shared `clock`, `count`, `protocolVersion`, and
@@ -297,12 +372,12 @@ build against the same reality.
   `bun run --cwd packages/react-native generate:fixtures`, which is byte-stable:
   two runs produce the same bytes, so a diff in `native/protocol/` is always a
   real change and never a timestamp.
-- All four kinds are generated. `evaluation-*`, `save-body-*`, and
-  `revision-trace-*` are claimed and run by both native cores. `storage-*` are
-  claimed by neither: they pin the web v3 envelope codec, which no native core
-  implements. Both runners report them as unclaimed by name rather than dropping
-  them from the count, and a kind with no runner in a core fails that core's run
-  rather than being skipped, which is what keeps the parity fixture parity.
+- All four kinds are generated, and both native cores claim and run all four. Each
+  runner keeps a set of the kinds it has a function for, derives its unclaimed count
+  from that set, and fails when the count is not zero, so a kind goes unrun only by a
+  branch nobody wrote. The web v3 record envelope that used to be reported unclaimed
+  here is not a format either native core speaks; its codec stays covered in
+  `packages/core`, where it lives.
 
 Kotlin core, as built
 ---------------------
@@ -355,8 +430,8 @@ Swift core, as built
 - `Tests/C15tCoreTests/ProtocolFixtureTests.swift` runs the shared fixtures: it
   enumerates `index.json`, verifies every hash and `protocolVersion`, dispatches on
   `kind`, and diffs the produced snapshot against `expected` recursively, so a
-  mismatch names the field and both values. It claims 13 of 16 fixtures; the three
-  `storage-*` cases are reported unclaimed.
+  mismatch names the field and both values. It claims every entry in `index.json`;
+  an unclaimed entry fails the run.
 - Fixed while wiring the revision trace: the unsupported-contract branch of
   `reportInitFailure` wrote `error` and announced the new revision on the core's own
   event hub, but never called `publish()`. The React Native pump is fed by

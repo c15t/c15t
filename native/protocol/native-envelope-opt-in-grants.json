@@ -1,57 +1,43 @@
 {
-	"description": "A partial stored record keeps absent categories absent. Measurement is allowed, marketing is denied, functionality and experience take the opt-in default, and re-encoding must not write the categories the subject never touched.",
+	"description": "An accept-all under a Europe opt-in rule stores the resolved policy and the receipts beside it, and a relaunch that reaches no backend still allows every optional category from those bytes alone.",
 	"expected": {
-		"decode": {
-			"ok": true,
-			"records": {
-				"choice": {
-					"categories": {
-						"marketing": {
-							"basis": {
-								"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-								"kind": "choice-v1"
-							},
-							"confirmedAt": 1770000000000,
-							"value": false
-						},
-						"measurement": {
-							"basis": {
-								"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-								"kind": "choice-v1"
-							},
-							"confirmedAt": 1770000000000,
-							"value": true
-						}
-					},
-					"version": 3
-				},
-				"subject": {
-					"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c06"
-				}
-			}
-		},
-		"reEncoded": "{\"categories\":{\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":false},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true}},\"subject\":{\"subjectId\":\"6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c06\"},\"version\":3}",
 		"snapshot": {
 			"activeUI": "none",
 			"consentCategories": null,
 			"effectivePermissions": {
 				"necessary": true,
-				"functionality": false,
-				"experience": false,
+				"functionality": true,
+				"experience": true,
 				"measurement": true,
-				"marketing": false
+				"marketing": true
 			},
 			"error": null,
 			"evaluatedAt": 1770000000000,
 			"explicitChoice": {
 				"categories": {
+					"experience": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"functionality": {
+						"basis": {
+							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
 					"marketing": {
 						"basis": {
 							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
 							"kind": "choice-v1"
 						},
 						"confirmedAt": 1770000000000,
-						"value": false
+						"value": true
 					},
 					"measurement": {
 						"basis": {
@@ -96,12 +82,10 @@
 				"policyId": "europe_opt_in",
 				"status": "matched"
 			},
-			"restrictions": {
-				"marketing": ["explicit-denial"]
-			},
-			"revision": 1,
+			"restrictions": {},
+			"revision": 2,
 			"subject": {
-				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c06"
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
 			},
 			"translations": {
 				"language": "en",
@@ -118,9 +102,82 @@
 					"rights": {}
 				}
 			}
+		},
+		"write": {
+			"decoded": "itself",
+			"storedSnapshotMatchesLive": true
+		},
+		"relaunch": {
+			"decision": {
+				"allowed": {
+					"necessary": true,
+					"functionality": true,
+					"experience": true,
+					"measurement": true,
+					"marketing": true
+				},
+				"policyPending": false,
+				"ready": true
+			},
+			"offline": true
 		}
 	},
-	"id": "storage-partial-denials",
+	"fields": [
+		{
+			"carriers": {
+				"kotlin": "snapshot",
+				"swift": "snapshot"
+			},
+			"expect": "present",
+			"key": "snapshot",
+			"loadBearing": true,
+			"requiredBy": ["swift", "kotlin"],
+			"role": "the last derived snapshot, so a cold start answers snapshot() on the first synchronous call with no network and no re-derivation"
+		},
+		{
+			"carriers": {
+				"kotlin": "evaluationPolicy",
+				"swift": "policyResolution"
+			},
+			"expect": "present",
+			"key": "policy",
+			"loadBearing": true,
+			"requiredBy": ["swift", "kotlin"],
+			"role": "the policy the stored receipts were judged against. Without it a relaunch has to reach the backend before it can answer at all, which turns a cached grant back into a prompt"
+		},
+		{
+			"carriers": {
+				"kotlin": "noticeDismissal",
+				"swift": "noticeDismissal"
+			},
+			"expect": "empty",
+			"key": "noticeDismissal",
+			"loadBearing": true,
+			"requiredBy": ["swift", "kotlin"],
+			"role": "a record and not a permission: it decides whether the notice is still owed, so it is stored beside the snapshot rather than folded into it"
+		},
+		{
+			"carriers": {
+				"swift": "version"
+			},
+			"expect": 1,
+			"key": "version",
+			"loadBearing": false,
+			"requiredBy": ["swift"],
+			"role": "the envelope format version. It gates readability rather than the decision: an envelope at any other number is unreadable here and is therefore ignored"
+		},
+		{
+			"carriers": {
+				"swift": "storedAt"
+			},
+			"expect": 1770000000000,
+			"key": "storedAt",
+			"loadBearing": false,
+			"requiredBy": ["swift"],
+			"role": "epoch milliseconds of the write, for diagnostics and the newest-writer-wins check. Kotlin records no write time at all, which native/CONTRACT.md carries as a known gap"
+		}
+	],
+	"id": "native-envelope-opt-in-grants",
 	"input": {
 		"hydrated": true,
 		"now": 1770000000000,
@@ -137,30 +194,10 @@
 			}
 		},
 		"storedRecords": {
-			"choice": {
-				"categories": {
-					"marketing": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": false
-					},
-					"measurement": {
-						"basis": {
-							"fingerprint": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
-							"kind": "choice-v1"
-						},
-						"confirmedAt": 1770000000000,
-						"value": true
-					}
-				},
-				"version": 3
-			},
+			"choice": null,
 			"noticeDismissal": null,
 			"subject": {
-				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c06"
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
 			}
 		},
 		"transport": {
@@ -240,9 +277,11 @@
 			"status": 200
 		},
 		"user": null,
-		"storedEnvelope": "{\"categories\":{\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":false},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true}},\"subject\":{\"subjectId\":\"6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c06\"},\"version\":3}"
+		"action": {
+			"action": "all"
+		}
 	},
-	"kind": "storage",
+	"kind": "native-envelope",
 	"notes": [
 		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
 		"transport is the /init response to serve, headers included. Answer it once, before any save.",
@@ -254,10 +293,19 @@
 		"evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.",
 		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
 		"Any field this file does not mention must not be invented. Unknown wire values fail closed.",
-		"storedEnvelope is the exact string read from protected storage. Decoding it must yield expected.decode, and re-encoding that record must produce expected.reEncoded: the same string, with version, subject, and categories in that order and categories in functionality, experience, measurement, marketing order.",
-		"expected.decode.records is what feeds the hydration boundary. Hydration never creates a choice and never re-stamps a confirmation time.",
-		"storedRecords mirrors the decoded envelope, so a runner can reach the snapshot without a codec of its own. When decode fails, storedRecords is what is left, which is nothing.",
-		"When decode fails, apply nothing and keep the in-memory records. expected.snapshot is the deny-all snapshot, not a guess at what the bytes meant."
+		"this kind pins what a stored consent snapshot looks like on a device. The kernel has no such format: Swift writes a StoredEnvelope as plain JSON and Kotlin writes a SnapshotEnvelope into an encrypted blob, so expected.snapshot is the only kernel-derived half of this file.",
+		"reference.core names the implementation whose layout native/CONTRACT.md documents. A disagreement about how a fact is spelled is settled by that core and the other one moves, which is why nothing here pins a byte layout: the other core could only fail rather than disagree.",
+		"fields is the stored field set. fields[].key is a neutral label and never a name either core writes; carriers holds each core name for the fact, and a core with no entry there does not carry it at all. requiredBy lists the cores that must write it.",
+		"fields[].loadBearing is true where a consent decision changes if the field is lost or wrong. expect is present (a non-null value), empty (null or absent), or a literal the decoded value must equal. Compare the decoded value and not the serialized key, because Kotlin writes every key every time and key presence alone proves nothing.",
+		"relaunch.offline means start a second core over the bytes the first one wrote, with no backend to answer. That is the case a phone in a tunnel is in, and it is the only case that proves the envelope carries enough to answer on its own.",
+		"read.identicalToFreshInstall means the defective bytes have to leave the core answering exactly what an empty store leaves it answering, field for field, revision included. A half-decoded envelope answers like a returning user, and that is the thing this forbids.",
+		"a defect is applied to the bytes the core itself just wrote, so the base envelope is always valid for the core that wrote it. Only the named defect may make it unreadable; a base that never decoded in the first place makes the fixture meaningless rather than passing.",
+		"every read case starts from an accept-all, so the bytes really do hold a marketing grant. Denying everything is then the observable difference between failing closed and reading what is there."
 	],
-	"protocolVersion": 1
+	"protocolVersion": 1,
+	"reference": {
+		"core": "swift",
+		"keyOrder": "alphabetical",
+		"why": "Swift writes its envelope with a sorted-keys JSON encoder, so its layout is a plain function of the value and the one native/CONTRACT.md documents field by field. Kotlin encrypts its blob and keys two of these facts differently. Where the two disagree about how a fact is spelled, this core is the reference and the other moves."
+	}
 }

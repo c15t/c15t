@@ -48,6 +48,59 @@ struct StoredEnvelope: Sendable, Codable, Equatable {
             return nil
         }
         guard envelope.version == currentVersion else { return nil }
+        guard carriesNothingUnknown(data, encodedAs: envelope) else { return nil }
         return envelope
+    }
+
+    /// Whether the bytes hold only fields the typed envelope can give back.
+    ///
+    /// A synthesized decoder ignores a key it does not model, and that is the one way
+    /// an envelope gets read partly. Something stores a field this build has never
+    /// seen; the core restores every other field and answers as though nothing were
+    /// wrong; the next publish rewrites the envelope without the field it dropped. On
+    /// a device that means the newest thing the subject decided can disappear while
+    /// every number on the snapshot still looks healthy.
+    ///
+    /// Encoding what was decoded is the check that needs no list of names to keep
+    /// current: every key path in the input has to come back out of the typed value,
+    /// and a path that does not is a name this build does not have. Refusing the whole
+    /// envelope is then the same decision the retired fields already make, and
+    /// `native/CONTRACT.md` says why guessing is the wrong half.
+    ///
+    /// Arrays contribute one path rather than a path per index, so a difference in
+    /// length cannot report itself as an unknown field.
+    private static func carriesNothingUnknown(
+        _ data: Data,
+        encodedAs envelope: StoredEnvelope
+    ) -> Bool {
+        guard let stored = C15tJSON.parse(data),
+              let roundTripped = C15tJSON.parse((try? C15tJSON.encode(envelope)) ?? Data())
+        else { return false }
+        var known = Set<String>()
+        collectKeyPaths(of: roundTripped, at: "", into: &known)
+        var requested = Set<String>()
+        collectKeyPaths(of: stored, at: "", into: &requested)
+        return known.isSuperset(of: requested)
+    }
+
+    private static func collectKeyPaths(
+        of value: JSONValue,
+        at path: String,
+        into paths: inout Set<String>
+    ) {
+        switch value {
+        case .null, .bool, .integer, .number, .string:
+            return
+        case let .array(items):
+            for item in items {
+                collectKeyPaths(of: item, at: "\(path)[]", into: &paths)
+            }
+        case let .object(fields):
+            for (key, item) in fields {
+                let keyPath = path.isEmpty ? key : "\(path).\(key)"
+                paths.insert(keyPath)
+                collectKeyPaths(of: item, at: keyPath, into: &paths)
+            }
+        }
     }
 }

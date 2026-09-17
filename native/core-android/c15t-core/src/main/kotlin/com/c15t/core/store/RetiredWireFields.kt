@@ -15,12 +15,14 @@ import kotlinx.serialization.json.contentOrNull
  * boolean `gpc` cannot say whether the app or the device caused it. Serving a
  * permission derived from a guessed field is what contract rule 5 forbids.
  *
- * The storage codec tolerates unknown keys because an additive field must not cost
- * a device its stored consent, so the retired names have to be looked for by hand.
- * [assertReadable] throws, and [C15tStore] turns that into `null`, which the kernel
- * answers with deny-all and `policyPending` until the next `/init` resolves a real
- * policy. The subject id lives in its own preference key, so this does not cost the
- * device its identity.
+ * The storage codec refuses any key it does not model, so these names are already
+ * unreadable on shape alone. [assertReadable] stays because the failure has to say
+ * which build wrote the payload and why it is being dropped rather than name an
+ * unexpected token, and because it catches the retired shape one step earlier, before
+ * a decoder has decided which half of the object to keep. It throws, and [C15tStore]
+ * turns that into `null`, which the kernel answers with deny-all and `policyPending`
+ * until the next `/init` resolves a real policy. The subject id lives in its own
+ * preference key, so this does not cost the device its identity.
  *
  * The write queue is deliberately not screened. A queued payload's retired
  * `overrides.test` never reached the wire, and the queued `decisionInputs.gpc` is

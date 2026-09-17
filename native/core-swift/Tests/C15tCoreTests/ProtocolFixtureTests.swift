@@ -117,7 +117,6 @@ final class ProtocolFixtureTests: XCTestCase {
     func testEveryFixtureMatchesTheKernel() async throws {
         let index = try loadIndex()
         var ran: [String] = []
-        var unclaimed: [String] = []
 
         for entry in index.fixtures {
             switch entry.kind {
@@ -130,23 +129,24 @@ final class ProtocolFixtureTests: XCTestCase {
             case "revision-trace":
                 try await runRevisionTrace(entry)
                 ran.append(entry.id)
-            case "storage":
-                // The web v3 record envelope is not the format either native core
-                // writes: Swift stores a ``StoredEnvelope`` and Kotlin an encrypted
-                // blob of its own. Claiming these would mean asserting against a
-                // codec the contract does not share, so they are reported rather
-                // than passed.
-                unclaimed.append(entry.id)
+            case "native-envelope":
+                try await runNativeEnvelope(entry)
+                ran.append(entry.id)
             default:
                 XCTFail("\(entry.id): kind \"\(entry.kind)\" has no runner here. Add one instead of skipping it.")
             }
         }
 
+        // Derived from the kinds this file claims rather than from a list of excuses,
+        // so the count is zero by construction and stays zero only while every kind in
+        // the index has a branch above.
+        let unclaimed = index.fixtures
+            .filter { !Self.claimedKinds.contains($0.kind) }
+            .map(\.id)
         print(
-            "Protocol fixtures: ran \(ran.count) of \(index.count) from index.json"
-                + (unclaimed.isEmpty
-                    ? ""
-                    : "; \(unclaimed.count) unclaimed (\(unclaimed.joined(separator: ", ")) — native envelope formats are not the web v3 codec)")
+            "Protocol fixtures: ran \(ran.count) of \(index.count) from index.json; "
+                + "\(unclaimed.count) unclaimed"
+                + (unclaimed.isEmpty ? "" : " (\(unclaimed.joined(separator: ", ")))")
         )
         for id in ran {
             print("  ran \(id)")
@@ -156,6 +156,10 @@ final class ProtocolFixtureTests: XCTestCase {
             ran.count + unclaimed.count,
             index.count,
             "the runner accounted for \(ran.count + unclaimed.count) fixtures but the index lists \(index.count)"
+        )
+        XCTAssertTrue(
+            unclaimed.isEmpty,
+            "index.json holds \(unclaimed.joined(separator: ", ")), which no runner here claims. A fixture nobody runs is a fixture that cannot fail."
         )
     }
 
@@ -345,6 +349,10 @@ final class ProtocolFixtureTests: XCTestCase {
         let core: ConsentCore
         let config: CoreConfig
         let http: StubHTTP
+        /// What the core has written by the time it is idle. The envelope fixtures
+        /// read the stored bytes back out of here rather than trusting that a write
+        /// happened.
+        let store: InMemoryStore
     }
 
     /// Build a core that has been handed exactly the fixture input.
@@ -354,19 +362,17 @@ final class ProtocolFixtureTests: XCTestCase {
     /// assumes it. Anything the input carries that this build cannot express is an
     /// error here, not a value dropped on the floor.
     private func makeRun(entry: Index.Entry, input: JSONValue) throws -> Run {
+        let store = InMemoryStore()
+        let http = StubHTTP()
+        guard let bootstrapTransport = input["transport"] else {
+            throw Failure.unsupported(fixture: entry.id, detail: "input.transport is missing")
+        }
+        http.enqueueInit(try Self.initResponse(from: bootstrapTransport, entry: entry))
+        let config = try makeConfig(entry: entry, input: input, store: store, http: http)
+
         guard let now = input["now"]?.intValue else {
             throw Failure.unsupported(fixture: entry.id, detail: "input.now is missing")
         }
-        let store = InMemoryStore()
-
-        guard let subjectId = input["storedRecords"]?["subject"]?["subjectId"]?.stringValue else {
-            throw Failure.unsupported(
-                fixture: entry.id,
-                detail: "storedRecords.subject.subjectId is missing. A fixture that lets the core generate an identity is not deterministic."
-            )
-        }
-        store.set(Data("{\"id\":\"\(subjectId)\"}".utf8), for: StorageKey.subject)
-
         var seeded = ConsentSnapshot(revision: 0)
         if let choice = input["storedRecords"]?["choice"], !choice.isNull {
             seeded = ConsentSnapshot(
@@ -388,6 +394,33 @@ final class ProtocolFixtureTests: XCTestCase {
         )
         store.set(try C15tJSON.encode(envelope), for: StorageKey.snapshot)
 
+        return Run(core: ConsentCore(), config: config, http: http, store: store)
+    }
+
+    /// Wire a core to the device half of a fixture: identity, overrides, signals,
+    /// clock, and the store it boots over.
+    ///
+    /// The first launch and a relaunch share this, so the only difference between
+    /// them is the store's contents and whether anything answers the transport. A
+    /// nil `http` is the offline case, which is what forces a core to answer out of
+    /// its own envelope.
+    private func makeConfig(
+        entry: Index.Entry,
+        input: JSONValue,
+        store: InMemoryStore,
+        http: StubHTTP?
+    ) throws -> CoreConfig {
+        guard let now = input["now"]?.intValue else {
+            throw Failure.unsupported(fixture: entry.id, detail: "input.now is missing")
+        }
+        guard let subjectId = input["storedRecords"]?["subject"]?["subjectId"]?.stringValue else {
+            throw Failure.unsupported(
+                fixture: entry.id,
+                detail: "storedRecords.subject.subjectId is missing. A fixture that lets the core generate an identity is not deterministic."
+            )
+        }
+        store.set(Data("{\"id\":\"\(subjectId)\"}".utf8), for: StorageKey.subject)
+
         // The fixture states the two GPC facts separately and they are not the same
         // fact: `overrides.gpc` is what the app pinned, `privacySignals.gpc.detected`
         // is what the device reported. Folding one into the other is what a boolean
@@ -404,24 +437,366 @@ final class ProtocolFixtureTests: XCTestCase {
         if let value = input["user"], !value.isNull {
             user = try decode(KernelUser.self, value, entry)
         }
-
-        let http = StubHTTP()
-        guard let bootstrapTransport = input["transport"] else {
-            throw Failure.unsupported(fixture: entry.id, detail: "input.transport is missing")
-        }
-        http.enqueueInit(try Self.initResponse(from: bootstrapTransport, entry: entry))
-
         let clock = TestClock(now)
-        let config = CoreConfig(
+        return CoreConfig(
             store: store,
-            transport: Fixture.transport(http),
+            transport: http.map { Fixture.transport($0) },
             overrides: overrides,
             user: user,
             gpc: detectedFromFixture,
             now: clock.reading,
             initRetry: .disabled
         )
-        return Run(core: ConsentCore(), config: config, http: http)
+    }
+
+    // MARK: - Stored envelopes
+
+    /// Every fixture kind this runner has a function for.
+    ///
+    /// This sits next to the dispatch on purpose. The dispatch fails on a kind it has
+    /// no branch for rather than skipping it, so the only way to grow this list is to
+    /// write the runner, and the unclaimed count below can only be non-zero when a
+    /// kind was added to one place and not the other.
+    private static let claimedKinds: Set<String> = [
+        "evaluation", "native-envelope", "revision-trace", "save-body",
+    ]
+
+    /// Run a `native-envelope` fixture.
+    ///
+    /// Every case of this kind starts the same way: a core boots over the fixture
+    /// input, takes the action, and writes its envelope. The bytes under test have to
+    /// be the core's own, because a hand-written envelope would only prove that this
+    /// runner and this core agree about a shape nothing is ever stored in.
+    ///
+    /// Then the two directions split. A write case reads its own bytes back through
+    /// its own decoder and asks whether the envelope carries the fields the contract
+    /// says it carries, and whether a relaunch with no backend left answers with the
+    /// stored decision. A read case breaks the bytes first and asks whether a relaunch
+    /// answers the way an empty store does. Reading an envelope halfway would answer
+    /// like a returning user, which is a permission invented out of garbage.
+    private func runNativeEnvelope(_ entry: Index.Entry) async throws {
+        let fixture = try loadFixture(entry)
+        guard let input = fixture["input"] else {
+            throw Failure.unsupported(fixture: entry.id, detail: "no input")
+        }
+        guard let expected = fixture["expected"] else {
+            throw Failure.unsupported(fixture: entry.id, detail: "no expected")
+        }
+        guard let subjectId = input["storedRecords"]?["subject"]?["subjectId"]?.stringValue else {
+            throw Failure.unsupported(fixture: entry.id, detail: "storedRecords.subject.subjectId is missing")
+        }
+
+        let run = try makeRun(entry: entry, input: input)
+        await run.core.bootstrapAndSettle(run.config)
+        if let action = input["action"], !action.isNull {
+            if action["action"]?.stringValue == "dismiss-notice" {
+                run.core.dismissNotice()
+            } else {
+                run.core.save(try commitIntent(entry: entry, action))
+            }
+            await run.core.waitUntilIdle()
+        }
+        guard let written = run.store.data(for: StorageKey.snapshot) else {
+            record(
+                for: entry,
+                path: "expected.write",
+                detail: "the core never wrote anything under \(StorageKey.snapshot)"
+            )
+            return
+        }
+
+        // Reading back and writing again has to be the identity on the core's own
+        // bytes. Anything the round trip drops is a field the next launch never sees.
+        guard let decoded = StoredEnvelope.decode(written) else {
+            record(
+                for: entry,
+                path: "expected.write.decoded",
+                detail: "the core wrote an envelope that its own decoder refuses, so no expectation about its contents can be checked"
+            )
+            return
+        }
+        if let rewritten = try? C15tJSON.encode(decoded), rewritten != written {
+            record(
+                for: entry,
+                path: "expected.write.decoded",
+                detail: "decoding the envelope and storing it again turned \(written.count) bytes into \(rewritten.count); the next relaunch loses whatever the rewrite dropped"
+            )
+        }
+
+        try recordEnvelopeFields(for: entry, fixture: fixture, raw: written)
+
+        if let expectedSnapshot = expected["snapshot"] {
+            record(
+                for: entry,
+                path: "expected.snapshot",
+                expected: expectedSnapshot,
+                actual: try value(of: decoded.snapshot, entry: entry)
+            )
+        }
+        let live = run.core.snapshot()
+        if decoded.snapshot != live {
+            record(
+                for: entry,
+                path: "expected.write.storedSnapshotMatchesLive",
+                detail: "the envelope holds revision \(decoded.snapshot.revision) while the session is on \(live.revision): a cold start would answer with state the running core has already left behind"
+            )
+        }
+
+        let defect = input["defect"]
+        let bytes = try defect.flatMap {
+            try Self.defectiveBytes($0, from: written, entry: entry)
+        } ?? written
+        let offline = try await relaunch(
+            entry: entry,
+            input: input,
+            subjectId: subjectId,
+            bytes: bytes
+        )
+        if let decision = expected["relaunch"]?["decision"] {
+            record(
+                for: entry,
+                path: "expected.relaunch.decision",
+                expected: decision,
+                actual: offline.decision
+            )
+        }
+
+        guard expected["read"].map({ !$0.isNull }) ?? false else { return }
+        // `stored: false` is the same claim as `decoded: false` seen from the other
+        // side: hydration restored nothing, so the core behaves as though the item
+        // were empty. `hasStoredSnapshot` cannot carry it, because hydrating over
+        // unreadable bytes still persists the deny-all snapshot it settled on.
+        if StoredEnvelope.decode(bytes) != nil {
+            record(
+                for: entry,
+                path: "expected.read.decoded",
+                detail: "the core decoded bytes the fixture says are unreadable, so whatever it restored came from a shape the contract does not have"
+            )
+        }
+        let fresh = try await relaunch(
+            entry: entry,
+            input: input,
+            subjectId: subjectId,
+            bytes: nil
+        )
+        if !matches(offline.snapshot, fresh.snapshot) {
+            record(
+                for: entry,
+                path: "expected.read.identicalToFreshInstall",
+                detail: "unreadable bytes left the core answering something an empty store does not: \(difference(between: fresh.snapshot, and: offline.snapshot))"
+            )
+        }
+    }
+
+    /// A core booted over `bytes` with nothing on the other end of the transport.
+    ///
+    /// Passing no `StubHTTP` at all is the point: with no answer coming, the snapshot
+    /// can only be the one the envelope supplied, which is the only thing an envelope
+    /// is for. `bytes: nil` is the same device with an empty store, and the two are
+    /// supposed to be indistinguishable when the bytes are unreadable.
+    private func relaunch(
+        entry: Index.Entry,
+        input: JSONValue,
+        subjectId: String,
+        bytes: Data?
+    ) async throws -> Relaunch {
+        let store = InMemoryStore()
+        if let bytes {
+            store.set(bytes, for: StorageKey.snapshot)
+        }
+        let config = try makeConfig(entry: entry, input: input, store: store, http: nil)
+        let core = ConsentCore()
+        await core.bootstrapAndSettle(config)
+        return Relaunch(core: core, snapshot: try snapshotJSON(core))
+    }
+
+    /// A relaunch, plus what it answers.
+    private struct Relaunch {
+        let core: ConsentCore
+        let snapshot: JSONValue
+
+        /// What a gate on the device is told, category by category.
+        ///
+        /// Read through `isAllowed` rather than the snapshot's permission map, because
+        /// that is the call an ad SDK actually makes and it is the stricter of the two
+        /// while a policy is outstanding.
+        var decision: JSONValue {
+            var allowed: [String: JSONValue] = [:]
+            for category in ConsentCategory.allCases {
+                allowed[category.rawValue] = .bool(core.isAllowed(category))
+            }
+            let state = core.snapshot()
+            return .object([
+                "allowed": .object(allowed),
+                "policyPending": .bool(state.policyPending),
+                "ready": .bool(state.ready),
+            ])
+        }
+    }
+
+    /// Check the stored field set against the field set the fixture declares.
+    ///
+    /// The names come from the fixture's `carriers` map rather than from literals
+    /// here, so the shared file owns the field set and this runner only contributes
+    /// the spelling this core happens to use. A field with no entry for this core is
+    /// one it does not carry at all, which `native/CONTRACT.md` records as a
+    /// difference between the two implementations rather than a defect.
+    private func recordEnvelopeFields(
+        for entry: Index.Entry,
+        fixture: JSONValue,
+        raw: Data
+    ) throws {
+        let stored = try Self.jsonObject(raw, entry: entry)
+        for field in fixture["fields"]?.arrayValue ?? [] {
+            guard let key = field["key"]?.stringValue,
+                  let name = field["carriers"]?["swift"]?.stringValue,
+                  let expect = field["expect"]
+            else { continue }
+            let path = "expected.fields.\(key)"
+            let required = field["requiredBy"]?.arrayValue?.contains {
+                $0.stringValue == "swift"
+            } ?? false
+            let value = stored[name]
+            // A field the fixture expects to be empty may legitimately be missing.
+            // `Codable`'s synthesized encoder drops a nil property rather than
+            // writing `"field":null`, so demanding the key back would test the
+            // encoder's optionality instead of the contract.
+            if required, value == nil, expect != .string("empty") {
+                record(
+                    for: entry,
+                    path: path,
+                    detail: "the envelope carries no `\(name)` key, which the fixture says this core always writes"
+                )
+                continue
+            }
+            switch expect {
+            case .string("present"):
+                if value == nil || value?.isNull == true {
+                    record(
+                        for: entry,
+                        path: path,
+                        detail: "expected a `\(name)` the core actually filled in, and the envelope holds \(value.map { render($0) } ?? "nothing")"
+                    )
+                }
+            case .string("empty"):
+                if let value, !value.isNull {
+                    record(
+                        for: entry,
+                        path: path,
+                        detail: "expected `\(name)` to be absent or null, and the envelope holds \(render(value))"
+                    )
+                }
+            default:
+                if !matches(expect, value ?? .null) {
+                    record(
+                        for: entry,
+                        path: path,
+                        detail: "expected \(render(expect)), and the envelope holds \(value.map { render($0) } ?? "nothing")"
+                    )
+                }
+            }
+        }
+    }
+
+    /// Break a valid envelope the way the named defect describes.
+    ///
+    /// The defects are operations rather than literal bytes because the base envelope
+    /// is only valid for the core that wrote it, and that core is the one being
+    /// tested. Only `foreign-wire` ships bytes, and it ships someone else's.
+    private static func defectiveBytes(
+        _ defect: JSONValue,
+        from written: Data,
+        entry: Index.Entry
+    ) throws -> Data {
+        switch defect["kind"]?.stringValue {
+        case "unknown-field":
+            var tree = try jsonObject(written, entry: entry)
+            guard let name = defect["addField"]?.stringValue else {
+                throw Failure.unsupported(fixture: entry.id, detail: "an unknown-field defect names no field")
+            }
+            tree[name] = defect["value"] ?? .bool(true)
+            return try encodeValue(.object(tree), entry: entry)
+
+        case "truncate":
+            // Everything from the last comma onwards is gone: a writer interrupted
+            // halfway through its final field. What is left is a prefix of a real
+            // grant, which is exactly the trap.
+            guard let cut = written.lastIndex(of: UInt8(ascii: ",")) else {
+                throw Failure.unsupported(
+                    fixture: entry.id,
+                    detail: "the envelope this core wrote holds no comma, so there is no write to cut short here"
+                )
+            }
+            return Data(written[..<cut])
+
+        case "pre-correction":
+            // The same facts in the shape the first draft of native/CONTRACT.md
+            // described: `test` as an override, and `gpc`/`msa` as a boolean pair.
+            var tree = try jsonObject(written, entry: entry)
+            var snapshot = tree["snapshot"]?.objectValue ?? [:]
+            let overrides = snapshot["overrides"]?.objectValue ?? [:]
+            snapshot["overrides"] = .object([
+                "country": overrides["country"] ?? .null,
+                "gpc": .bool(overrides["gpc"]?.boolValue ?? false),
+                "language": overrides["language"] ?? .string("en"),
+                "region": overrides["region"] ?? .null,
+                "test": .bool(false),
+            ])
+            let active = snapshot["privacySignals"]?["gpc"]?["active"]?.boolValue ?? false
+            snapshot["privacySignals"] = .object([
+                "gpc": .bool(active),
+                "msa": .bool(false),
+            ])
+            tree["snapshot"] = .object(snapshot)
+            return try encodeValue(.object(tree), entry: entry)
+
+        case "foreign-wire":
+            guard let text = defect["envelope"]?.stringValue else {
+                throw Failure.unsupported(fixture: entry.id, detail: "a foreign-wire defect carries no envelope")
+            }
+            return Data(text.utf8)
+
+        case let other:
+            throw Failure.unsupported(
+                fixture: entry.id,
+                detail: "defect \(other.map { "\($0)" } ?? "nil") has no runner here"
+            )
+        }
+    }
+
+    private static func jsonObject(_ data: Data, entry: Index.Entry) throws -> [String: JSONValue] {
+        guard let parsed = C15tJSON.parse(data), case let .object(fields) = parsed else {
+            throw Failure.unsupported(fixture: entry.id, detail: "the stored envelope is not a JSON object")
+        }
+        return fields
+    }
+
+    private static func encodeValue(_ value: JSONValue, entry: Index.Entry) throws -> Data {
+        guard let data = C15tJSON.encode(value) else {
+            throw Failure.unsupported(fixture: entry.id, detail: "the envelope would not encode")
+        }
+        return data
+    }
+
+    private func value(of snapshot: ConsentSnapshot, entry: Index.Entry) throws -> JSONValue {
+        guard let data = try? C15tJSON.encode(snapshot), let value = C15tJSON.parse(data) else {
+            throw Failure.unsupported(fixture: entry.id, detail: "the stored snapshot did not serialize to JSON")
+        }
+        return value
+    }
+
+    /// Name what two snapshots disagree about, for a failure message.
+    private func difference(between expected: JSONValue, and actual: JSONValue) -> String {
+        var diffs: [Diff] = []
+        collectDiffs(
+            expected: expected,
+            actual: actual,
+            path: "snapshot",
+            extraFieldsAllowedUnder: [],
+            into: &diffs
+        )
+        guard !diffs.isEmpty else { return "the two differ somewhere the walker cannot see" }
+        return diffs.map { "\($0.path): \($0.detail)" }.joined(separator: "; ")
     }
 
     private func snapshotJSON(_ core: ConsentCore) throws -> JSONValue {
@@ -753,6 +1128,14 @@ final class ProtocolFixtureTests: XCTestCase {
         ("save-body-explicit-partial", "expected.snapshotAfter", [.revision]),
         ("save-body-ccpa-gpc", "expected.snapshotBefore", [.directives, .restrictionMarketing, .restrictionMeasurement]),
         ("save-body-ccpa-gpc", "expected.snapshotAfter", [.directives, .restrictionMarketing, .restrictionMeasurement, .deadline]),
+        // The stored snapshot of a `native-envelope` write case is the same snapshot
+        // an evaluation fixture asserts after the same action, so it runs one ahead
+        // for the same reason. The read cases assert no snapshot: their bytes are
+        // supposed to yield nothing, and they are checked against an empty store.
+        ("native-envelope-opt-in-grants", "expected.snapshot", [.revision]),
+        ("native-envelope-partial-denials", "expected.snapshot", [.revision]),
+        ("native-envelope-notice-dismissed", "expected.snapshot", [.revision]),
+        ("native-envelope-opt-out-grants", "expected.snapshot", [.deadline, .revision]),
     ]
 
     private static func divergences(for id: String) -> [Divergence] {

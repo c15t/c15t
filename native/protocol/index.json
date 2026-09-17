@@ -1,6 +1,6 @@
 {
 	"clock": 1770000000000,
-	"count": 16,
+	"count": 21,
 	"fixtures": [
 		{
 			"bytes": 5981,
@@ -99,28 +99,68 @@
 			"sha256": "f564d13613e8f10eb98140fc98ae2d9cd31f80079b7b59309479443bc3b97c2d"
 		},
 		{
-			"bytes": 11568,
-			"file": "storage-explicit-grants.json",
-			"id": "storage-explicit-grants",
-			"kind": "storage",
+			"bytes": 11627,
+			"file": "native-envelope-opt-in-grants.json",
+			"id": "native-envelope-opt-in-grants",
+			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "41a49223db1b6308717c0d55b256892651edae57c21237e7b50202c40ca68af7"
+			"sha256": "3044385f6570fa0d9164fe737648e04e06097e18d646020c81228a2741cb298f"
 		},
 		{
-			"bytes": 9505,
-			"file": "storage-partial-denials.json",
-			"id": "storage-partial-denials",
-			"kind": "storage",
+			"bytes": 11299,
+			"file": "native-envelope-partial-denials.json",
+			"id": "native-envelope-partial-denials",
+			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "5ba859a1ea2106ac37ec41526ee86eb111cd9b41a4130b6c0fa852b2aee8ddc4"
+			"sha256": "9e5f9f65df3acb5f83b1b8759472362b90ee14eef24d3dfa89b96e410bc2f7b5"
 		},
 		{
-			"bytes": 7200,
-			"file": "storage-invalid-record.json",
-			"id": "storage-invalid-record",
-			"kind": "storage",
+			"bytes": 10567,
+			"file": "native-envelope-notice-dismissed.json",
+			"id": "native-envelope-notice-dismissed",
+			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "b5127e3a191ed0ce356a4bc21adf95b3de7c6beb72ff39c620048797f7b1e39d"
+			"sha256": "331ac10d8694ddad7d8d71b32a872a69bedbf4a72b4af14c2cdb95a5acc9dd2f"
+		},
+		{
+			"bytes": 11610,
+			"file": "native-envelope-opt-out-grants.json",
+			"id": "native-envelope-opt-out-grants",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "c9b3ac186687a300435a06fb317ecf67384d75851249f55b6b51148d1aa0a6d9"
+		},
+		{
+			"bytes": 9383,
+			"file": "native-envelope-unknown-field.json",
+			"id": "native-envelope-unknown-field",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "45589fc6c02de1a11ffbfd586b4d7aa015a14fc2e78643ec261fd7c31c53090c"
+		},
+		{
+			"bytes": 9319,
+			"file": "native-envelope-truncated-write.json",
+			"id": "native-envelope-truncated-write",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "73f5668f543faaa064a5596f2cd0986c4a16078975c69ee990c18c6a98a5ffae"
+		},
+		{
+			"bytes": 9372,
+			"file": "native-envelope-pre-correction-shape.json",
+			"id": "native-envelope-pre-correction-shape",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "0ee8bd76c302a9244bdabac304ce758784440884b32d0d179819a544a7220d8b"
+		},
+		{
+			"bytes": 10237,
+			"file": "native-envelope-foreign-wire.json",
+			"id": "native-envelope-foreign-wire",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "1ee9c2207466c888051c2bed8c9b2cd19a34b90cbc5c7eef31651a7e44d5d6a0"
 		},
 		{
 			"bytes": 12965,
@@ -132,7 +172,7 @@
 		}
 	],
 	"generatedBy": "packages/react-native/scripts/generate-protocol-fixtures.ts",
-	"kinds": ["evaluation", "revision-trace", "save-body", "storage"],
+	"kinds": ["evaluation", "native-envelope", "revision-trace", "save-body"],
 	"policyContractHeader": {
 		"name": "x-c15t-policy-contract",
 		"value": "1"

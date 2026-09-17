@@ -1,0 +1,215 @@
+{
+	"description": "The web v3 consent-record envelope written into native protected storage. It is a real c15t format and not this one, so a native core that read it would be granting consent out of a codec it has never written and cannot re-derive.",
+	"expected": {
+		"read": {
+			"decoded": false,
+			"identicalToFreshInstall": true,
+			"stored": false
+		},
+		"relaunch": {
+			"decision": {
+				"allowed": {
+					"experience": false,
+					"functionality": false,
+					"marketing": false,
+					"measurement": false,
+					"necessary": true
+				},
+				"policyPending": true,
+				"ready": false
+			},
+			"offline": true
+		}
+	},
+	"fields": [
+		{
+			"carriers": {
+				"kotlin": "snapshot",
+				"swift": "snapshot"
+			},
+			"expect": "present",
+			"key": "snapshot",
+			"loadBearing": true,
+			"requiredBy": ["swift", "kotlin"],
+			"role": "the last derived snapshot, so a cold start answers snapshot() on the first synchronous call with no network and no re-derivation"
+		},
+		{
+			"carriers": {
+				"kotlin": "evaluationPolicy",
+				"swift": "policyResolution"
+			},
+			"expect": "present",
+			"key": "policy",
+			"loadBearing": true,
+			"requiredBy": ["swift", "kotlin"],
+			"role": "the policy the stored receipts were judged against. Without it a relaunch has to reach the backend before it can answer at all, which turns a cached grant back into a prompt"
+		},
+		{
+			"carriers": {
+				"kotlin": "noticeDismissal",
+				"swift": "noticeDismissal"
+			},
+			"expect": "empty",
+			"key": "noticeDismissal",
+			"loadBearing": true,
+			"requiredBy": ["swift", "kotlin"],
+			"role": "a record and not a permission: it decides whether the notice is still owed, so it is stored beside the snapshot rather than folded into it"
+		},
+		{
+			"carriers": {
+				"swift": "version"
+			},
+			"expect": 1,
+			"key": "version",
+			"loadBearing": false,
+			"requiredBy": ["swift"],
+			"role": "the envelope format version. It gates readability rather than the decision: an envelope at any other number is unreadable here and is therefore ignored"
+		},
+		{
+			"carriers": {
+				"swift": "storedAt"
+			},
+			"expect": 1770000000000,
+			"key": "storedAt",
+			"loadBearing": false,
+			"requiredBy": ["swift"],
+			"role": "epoch milliseconds of the write, for diagnostics and the newest-writer-wins check. Kotlin records no write time at all, which native/CONTRACT.md carries as a known gap"
+		}
+	],
+	"id": "native-envelope-foreign-wire",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": null,
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "DE",
+					"regionCode": null
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+						"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+						"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+						"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": null,
+						"id": "europe_opt_in",
+						"model": "opt-in",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"rights": ["disclosure", "preferences"],
+						"scope": [
+							"experience",
+							"functionality",
+							"marketing",
+							"measurement"
+						],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 31536000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "europe_opt_in",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-europe-opt-in"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null,
+		"action": {
+			"action": "all"
+		},
+		"defect": {
+			"envelope": "{\"categories\":{\"experience\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"functionality\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"marketing\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true},\"measurement\":{\"basis\":{\"fingerprint\":\"a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9\",\"kind\":\"choice-v1\"},\"confirmedAt\":1770000000000,\"value\":true}},\"subject\":{\"subjectId\":\"6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01\"},\"version\":3}",
+			"kind": "foreign-wire",
+			"source": "the web SDK consent-record envelope (v3 record format)"
+		}
+	},
+	"kind": "native-envelope",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed.",
+		"this kind pins what a stored consent snapshot looks like on a device. The kernel has no such format: Swift writes a StoredEnvelope as plain JSON and Kotlin writes a SnapshotEnvelope into an encrypted blob, so expected.snapshot is the only kernel-derived half of this file.",
+		"reference.core names the implementation whose layout native/CONTRACT.md documents. A disagreement about how a fact is spelled is settled by that core and the other one moves, which is why nothing here pins a byte layout: the other core could only fail rather than disagree.",
+		"fields is the stored field set. fields[].key is a neutral label and never a name either core writes; carriers holds each core name for the fact, and a core with no entry there does not carry it at all. requiredBy lists the cores that must write it.",
+		"fields[].loadBearing is true where a consent decision changes if the field is lost or wrong. expect is present (a non-null value), empty (null or absent), or a literal the decoded value must equal. Compare the decoded value and not the serialized key, because Kotlin writes every key every time and key presence alone proves nothing.",
+		"relaunch.offline means start a second core over the bytes the first one wrote, with no backend to answer. That is the case a phone in a tunnel is in, and it is the only case that proves the envelope carries enough to answer on its own.",
+		"read.identicalToFreshInstall means the defective bytes have to leave the core answering exactly what an empty store leaves it answering, field for field, revision included. A half-decoded envelope answers like a returning user, and that is the thing this forbids.",
+		"a defect is applied to the bytes the core itself just wrote, so the base envelope is always valid for the core that wrote it. Only the named defect may make it unreadable; a base that never decoded in the first place makes the fixture meaningless rather than passing.",
+		"every read case starts from an accept-all, so the bytes really do hold a marketing grant. Denying everything is then the observable difference between failing closed and reading what is there."
+	],
+	"protocolVersion": 1,
+	"reference": {
+		"core": "swift",
+		"keyOrder": "alphabetical",
+		"why": "Swift writes its envelope with a sorted-keys JSON encoder, so its layout is a plain function of the value and the one native/CONTRACT.md documents field by field. Kotlin encrypts its blob and keys two of these facts differently. Where the two disagree about how a fact is spelled, this core is the reference and the other moves."
+	}
+}

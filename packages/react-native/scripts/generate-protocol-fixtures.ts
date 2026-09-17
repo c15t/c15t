@@ -21,8 +21,13 @@
  * - `evaluation-*.json` — init response plus stored records in, snapshot out.
  * - `save-body-*.json` — the same plus a commit, and the exact `POST /subjects`
  *   request (headers and body) the kernel puts on the wire.
- * - `storage-*.json` — serialized consent-record envelope round-trip: decode,
- *   re-encode, and the snapshot the decoded records produce.
+ * - `native-envelope-*.json` — what a native core keeps on the device: the field
+ *   set its stored envelope must carry, the snapshot inside it, and the decision
+ *   a relaunch with no backend has to reach from those bytes alone. The unreadable
+ *   cases — an unrecognised field, a write cut short, a retired field shape, a
+ *   foreign envelope — all have to read as nothing stored.
+ * - `revision-trace-*.json` — a mutation sequence in, the revision and publication
+ *   trace the kernel produced for it out. The cross-core parity fixture.
  * - `index.json` — every fixture's id, kind, protocolVersion, and SHA-256, so a
  *   runner enumerates fixtures instead of hard-coding names and can prove it read
  *   the bytes this script wrote.
@@ -37,6 +42,16 @@
  *
  * IAB TCF is out of scope: no TC string, no GVL, and the snapshot `iab` slot is
  * emitted as `null`.
+ *
+ * Stored envelopes are the one thing here the kernel does not produce, because it has
+ * no stored-envelope path to derive one from. Swift and Kotlin encode independently,
+ * so `native-envelope-*` pins the field set and the values each core has to keep, and
+ * names the reference implementation for any disagreement about spelling. It never
+ * pins one core's byte layout, because the other core would have to fail rather than
+ * disagree. The snapshot inside an envelope is still kernel output; the deny-all
+ * decision an unreadable one has to leave behind is written out below rather than
+ * computed, and `OFFLINE_DENY_ALL` is the only hand-written expectation this script
+ * emits.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -60,7 +75,6 @@ import {
 	policyRulePresets,
 	readPolicyResolutionWire,
 	resolvePolicyRules,
-	validateExplicitChoice,
 	writePolicyResolutionWire,
 } from '@c15t/core';
 import type {
@@ -124,7 +138,7 @@ const DOMAIN = 'app.example.com';
 const SUBJECT = {
 	/** The subject behind the California scenarios. */
 	california: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c02',
-	/** The subject behind the Europe and storage scenarios. */
+	/** The subject behind the Europe scenarios, and most envelope cases. */
 	europe: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01',
 	/** The subject with an active GPC signal. */
 	gpc: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c03',
@@ -132,12 +146,6 @@ const SUBJECT = {
 	noMatch: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c04',
 	/** The subject on the notice-only rule. */
 	notice: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c05',
-	/** The subject whose envelope carries an unreadable receipt. */
-	storageInvalid: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c07',
-	/** The subject whose envelope carries a partial grant. */
-	storagePartial: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c06',
-	/** Fallback when a stored envelope names no subject at all. */
-	unattributed: '6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c08',
 } as const;
 
 /**
@@ -338,19 +346,124 @@ interface SaveBodyFixture {
 	};
 }
 
-interface StorageFixture {
+/** The two native cores, named the way `native/CONTRACT.md` names them. */
+const NATIVE_CORES = ['swift', 'kotlin'] as const;
+
+/** One of the native cores that owns a stored envelope. */
+type NativeCore = (typeof NATIVE_CORES)[number];
+
+/**
+ * One fact a stored envelope has to hold, described once for both cores.
+ *
+ * The two cores are separate implementations of the same idea, and they spell
+ * parts of it differently: Swift keeps the raw policy wire under
+ * `policyResolution`, Kotlin keeps a typed `EvaluationPolicy` under
+ * `evaluationPolicy`, and only Swift records a format version and a write time.
+ * So a field is named by what it is for (`key`, a label neither core writes), and
+ * `carriers` gives each core its own name for it. A core whose name is absent does
+ * not carry the fact at all, which `native/CONTRACT.md` records as a difference
+ * rather than a defect.
+ */
+interface NativeEnvelopeField {
+	/** Where each core keeps the fact. Omitted for a core that does not keep it. */
+	readonly carriers: Partial<Record<NativeCore, string>>;
+	/** `'present'`, `'empty'`, or a literal the decoded value must equal. */
+	readonly expect: 'empty' | 'present' | boolean | number | string;
+	/** `true` when a consent decision changes if this field is lost or wrong. */
+	readonly loadBearing: boolean;
+	/** Cores that must write the field. Others may omit it entirely. */
+	readonly requiredBy: readonly NativeCore[];
+	/** Neutral label for the fact, never a name either core writes. */
+	readonly key: string;
+	/** Why the fact is in the envelope at all. */
+	readonly role: string;
+}
+
+/** The implementation whose envelope layout `native/CONTRACT.md` documents. */
+interface NativeEnvelopeReference {
+	readonly core: NativeCore;
+	/** How that core orders keys, which is the only byte-level claim made here. */
+	readonly keyOrder: 'alphabetical';
+	readonly why: string;
+}
+
+/** The action a write fixture asks the core to take before it stores anything. */
+type NativeEnvelopeAction =
+	| CommitIntent
+	| { readonly action: 'dismiss-notice' };
+
+/**
+ * The defect a read fixture introduces, applied to bytes its own core just wrote.
+ *
+ * Stated as an operation rather than as a literal string because the two cores
+ * write different bytes: the base envelope is only valid for the core that wrote
+ * it, so the runner produces it and then breaks it the same way. Only
+ * `foreign-wire` ships the bytes, because those come from a third surface that
+ * neither core wrote and both must refuse.
+ */
+type NativeEnvelopeDefect =
+	| {
+			/** A field neither the format nor this build names. */
+			readonly addField: string;
+			readonly kind: 'unknown-field';
+			readonly value: boolean;
+	  }
+	/** Everything from the last comma of the envelope onwards is gone. */
+	| { readonly kind: 'truncate' }
+	/** The snapshot rewritten into the shape the first contract draft described. */
+	| { readonly kind: 'pre-correction' }
+	| {
+			readonly envelope: string;
+			readonly kind: 'foreign-wire';
+			readonly source: string;
+	  };
+
+/**
+ * What the core answers when it boots over stored bytes and reaches no backend.
+ *
+ * This is the whole reason an envelope exists: a phone in a tunnel still has to
+ * honour the decision the subject already made, and a phone whose bytes are
+ * unreadable still has to deny. Both halves are read offline so no transport
+ * result can stand in for the envelope's own content.
+ */
+interface NativeEnvelopeRelaunch {
+	readonly decision: {
+		readonly allowed: Record<AllConsentNames, boolean>;
+		readonly policyPending: boolean;
+		readonly ready: boolean;
+	};
+	readonly offline: true;
+}
+
+interface NativeEnvelopeFixture {
 	protocolVersion: number;
-	kind: 'storage';
+	kind: 'native-envelope';
 	id: string;
 	description: string;
 	notes: string[];
-	input: FixtureInput & { storedEnvelope: string };
+	/** Which core settles a disagreement about how a fact is spelled. */
+	reference: NativeEnvelopeReference;
+	/** The stored field set, in the order a reader should walk it. */
+	fields: NativeEnvelopeField[];
+	input: FixtureInput & {
+		action?: NativeEnvelopeAction;
+		defect?: NativeEnvelopeDefect;
+	};
 	expected: {
-		decode:
-			| { ok: true; records: { subject: unknown; choice: unknown } }
-			| { ok: false; issues: unknown };
-		reEncoded: string | null;
-		snapshot: FixtureSnapshot;
+		/** The snapshot inside the envelope. Kernel-derived, so a real expectation. */
+		snapshot?: FixtureSnapshot;
+		/** Present on the read cases: the bytes must yield nothing. */
+		read?: {
+			decoded: false;
+			identicalToFreshInstall: true;
+			stored: false;
+		};
+		relaunch: NativeEnvelopeRelaunch;
+		/** Present on the write cases: the bytes must read back as themselves. */
+		write?: {
+			decoded: 'itself';
+			storedSnapshotMatchesLive: true;
+		};
 	};
 }
 
@@ -415,7 +528,7 @@ interface RevisionTraceFixture {
 type Fixture =
 	| EvaluationFixture
 	| SaveBodyFixture
-	| StorageFixture
+	| NativeEnvelopeFixture
 	| RevisionTraceFixture;
 
 /** What a scenario holds that a client never sees. */
@@ -1169,6 +1282,14 @@ interface StoredEnvelope {
 	version: 3;
 }
 
+/**
+ * Write the web consent-record envelope.
+ *
+ * Neither native core writes this shape, which is exactly why it survives here: it
+ * is the bytes one c15t surface stores and another must refuse. Producing it from
+ * the real v3 codec rather than typing it by hand keeps the refusal honest — the
+ * fixture hands over a genuine web envelope, not a guess at one.
+ */
 const encodeEnvelope = function encodeEnvelope(
 	envelope: StoredEnvelope
 ): string {
@@ -1179,158 +1300,310 @@ const encodeEnvelope = function encodeEnvelope(
 	});
 };
 
-const STORAGE_NOTES = [
+// -- Native stored envelopes ------------------------------------------------
+
+/**
+ * The envelope format version the reference core stamps.
+ *
+ * Swift declares a number and Kotlin carries none, so this is pinned against the
+ * reference core and carried as a gap in `native/CONTRACT.md` rather than demanded
+ * of both. It gates readability, not a decision: an envelope at any other number is
+ * unreadable, and an unreadable envelope is nothing stored.
+ */
+const ENVELOPE_FORMAT_VERSION = 1;
+
+/** The field a read fixture adds when it wants one this build cannot name. */
+const UNRECOGNISED_ENVELOPE_FIELD = 'com.c15t.experiment';
+
+/**
+ * What a core that reaches no backend answers with.
+ *
+ * `native/CONTRACT.md` states this under "The stored envelope" rather than leaving it
+ * to each core: nothing resolved, every optional category denied, and `ready` false so a
+ * host can tell a cold install apart from a denied one. It is not kernel output,
+ * because the kernel in this harness always gets a transport answer; an offline
+ * relaunch is a native-only case, and this is the one place in the file where an
+ * expectation is written down instead of produced by running something.
+ */
+const OFFLINE_DENY_ALL: Record<AllConsentNames, boolean> = {
+	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
+};
+
+/** The implementation whose stored layout the contract documents. */
+const ENVELOPE_REFERENCE: NativeEnvelopeReference = {
+	core: 'swift',
+	keyOrder: 'alphabetical',
+	why: 'Swift writes its envelope with a sorted-keys JSON encoder, so its layout is a plain function of the value and the one native/CONTRACT.md documents field by field. Kotlin encrypts its blob and keys two of these facts differently. Where the two disagree about how a fact is spelled, this core is the reference and the other moves.',
+};
+
+const ENVELOPE_NOTES = [
 	...NOTES,
-	'storedEnvelope is the exact string read from protected storage. Decoding it must yield expected.decode, and re-encoding that record must produce expected.reEncoded: the same string, with version, subject, and categories in that order and categories in functionality, experience, measurement, marketing order.',
-	'expected.decode.records is what feeds the hydration boundary. Hydration never creates a choice and never re-stamps a confirmation time.',
-	'storedRecords mirrors the decoded envelope, so a runner can reach the snapshot without a codec of its own. When decode fails, storedRecords is what is left, which is nothing.',
-	'When decode fails, apply nothing and keep the in-memory records. expected.snapshot is the deny-all snapshot, not a guess at what the bytes meant.',
+	'this kind pins what a stored consent snapshot looks like on a device. The kernel has no such format: Swift writes a StoredEnvelope as plain JSON and Kotlin writes a SnapshotEnvelope into an encrypted blob, so expected.snapshot is the only kernel-derived half of this file.',
+	'reference.core names the implementation whose layout native/CONTRACT.md documents. A disagreement about how a fact is spelled is settled by that core and the other one moves, which is why nothing here pins a byte layout: the other core could only fail rather than disagree.',
+	'fields is the stored field set. fields[].key is a neutral label and never a name either core writes; carriers holds each core name for the fact, and a core with no entry there does not carry it at all. requiredBy lists the cores that must write it.',
+	'fields[].loadBearing is true where a consent decision changes if the field is lost or wrong. expect is present (a non-null value), empty (null or absent), or a literal the decoded value must equal. Compare the decoded value and not the serialized key, because Kotlin writes every key every time and key presence alone proves nothing.',
+	'relaunch.offline means start a second core over the bytes the first one wrote, with no backend to answer. That is the case a phone in a tunnel is in, and it is the only case that proves the envelope carries enough to answer on its own.',
+	'read.identicalToFreshInstall means the defective bytes have to leave the core answering exactly what an empty store leaves it answering, field for field, revision included. A half-decoded envelope answers like a returning user, and that is the thing this forbids.',
+	'a defect is applied to the bytes the core itself just wrote, so the base envelope is always valid for the core that wrote it. Only the named defect may make it unreadable; a base that never decoded in the first place makes the fixture meaningless rather than passing.',
+	'every read case starts from an accept-all, so the bytes really do hold a marketing grant. Denying everything is then the observable difference between failing closed and reading what is there.',
 ];
 
-const buildStorageFixtures = async function buildStorageFixtures(): Promise<
-	StorageFixture[]
-> {
-	const grants = await runFixture(inputFor(EU_SCENARIO), {
-		intent: { action: 'all' },
-	});
-	if (!grants.payload) {
-		throw new Error('No save payload captured for the grants fixture.');
-	}
-	const partial = await runFixture(inputFor(EU_SCENARIO), {
-		intent: {
-			action: 'explicit',
-			consents: { marketing: false, measurement: true },
-		},
-	});
-	if (!partial.payload) {
-		throw new Error('No save payload captured for the partial fixture.');
-	}
-
-	const cases: {
-		id: string;
-		description: string;
-		envelope: StoredEnvelope;
-		scenario: Scenario;
-	}[] = [
+/**
+ * The stored field set, with the dismissal expectation set per case.
+ *
+ * This is a description of a format rather than kernel output, and it belongs here
+ * rather than in either runner so the two cannot each grow their own idea of what an
+ * envelope holds. A change to it is a change to `native/CONTRACT.md`, which records
+ * the same field set in prose.
+ */
+const envelopeFieldsFor = function envelopeFieldsFor(
+	noticeDismissal: 'empty' | 'present'
+): NativeEnvelopeField[] {
+	return [
 		{
-			description:
-				'A complete opt-in grant round-trips: four receipts with the Europe choice fingerprint decode, hydrate, and re-encode to the same string, and the snapshot shows every optional category allowed with no prompt owed.',
-			envelope: {
-				categories: grants.payload.choice.categories,
-				subject: { subjectId: SUBJECT.europe },
-				version: 3,
-			},
-			id: 'explicit-grants',
-			scenario: EU_SCENARIO,
+			carriers: { kotlin: 'snapshot', swift: 'snapshot' },
+			expect: 'present',
+			key: 'snapshot',
+			loadBearing: true,
+			requiredBy: ['swift', 'kotlin'],
+			role: 'the last derived snapshot, so a cold start answers snapshot() on the first synchronous call with no network and no re-derivation',
 		},
 		{
-			description:
-				'A partial stored record keeps absent categories absent. Measurement is allowed, marketing is denied, functionality and experience take the opt-in default, and re-encoding must not write the categories the subject never touched.',
-			envelope: {
-				categories: partial.payload.choice.categories,
-				subject: { subjectId: SUBJECT.storagePartial },
-				version: 3,
+			carriers: {
+				kotlin: 'evaluationPolicy',
+				swift: 'policyResolution',
 			},
-			id: 'partial-denials',
-			scenario: {
-				...EU_SCENARIO,
-				storedRecords: storedFor(SUBJECT.storagePartial),
-			},
+			expect: 'present',
+			key: 'policy',
+			loadBearing: true,
+			requiredBy: ['swift', 'kotlin'],
+			role: 'the policy the stored receipts were judged against. Without it a relaunch has to reach the backend before it can answer at all, which turns a cached grant back into a prompt',
+		},
+		{
+			carriers: { kotlin: 'noticeDismissal', swift: 'noticeDismissal' },
+			expect: noticeDismissal,
+			key: 'noticeDismissal',
+			loadBearing: true,
+			requiredBy: ['swift', 'kotlin'],
+			role: 'a record and not a permission: it decides whether the notice is still owed, so it is stored beside the snapshot rather than folded into it',
+		},
+		{
+			carriers: { swift: 'version' },
+			expect: ENVELOPE_FORMAT_VERSION,
+			key: 'version',
+			loadBearing: false,
+			requiredBy: ['swift'],
+			role: 'the envelope format version. It gates readability rather than the decision: an envelope at any other number is unreadable here and is therefore ignored',
+		},
+		{
+			carriers: { swift: 'storedAt' },
+			expect: NOW,
+			key: 'storedAt',
+			loadBearing: false,
+			requiredBy: ['swift'],
+			role: 'epoch milliseconds of the write, for diagnostics and the newest-writer-wins check. Kotlin records no write time at all, which native/CONTRACT.md carries as a known gap',
 		},
 	];
-	const readable: StorageFixture[] = [];
-	for (const testCase of cases) {
-		const serialized = encodeEnvelope(testCase.envelope);
-		const decoded = validateExplicitChoice(JSON.parse(serialized), NOW);
-		if (!decoded.ok) {
-			throw new Error(
-				`${testCase.id} failed to decode: ${JSON.stringify(decoded.issues)}`
-			);
+};
+
+/**
+ * Build the stored-envelope fixtures.
+ *
+ * Two directions. A write case boots a core, has it store a real decision, and asks
+ * what the bytes must hold; a read case does the same and then breaks those bytes
+ * before a second core reads them. Both end the same way, offline, because that is
+ * the only moment the envelope itself is what is being tested.
+ */
+const buildNativeEnvelopeFixtures =
+	async function buildNativeEnvelopeFixtures(): Promise<
+		NativeEnvelopeFixture[]
+	> {
+		const grants = await runFixture(inputFor(EU_SCENARIO), {
+			intent: { action: 'all' },
+		});
+		if (!grants.payload) {
+			throw new Error('No save payload captured for the envelope fixtures.');
 		}
-		const input = {
-			...inputFor(testCase.scenario, {
-				records: storedFor(
-					testCase.envelope.subject?.subjectId ?? SUBJECT.unattributed,
-					{ choice: decoded.record }
-				),
-			}),
-			storedEnvelope: serialized,
-		};
-		const { after } = await runFixture(input);
-		const reEncoded = encodeEnvelope({
-			categories: decoded.record.categories,
-			subject: testCase.envelope.subject,
+		const partial = await runFixture(inputFor(EU_SCENARIO), {
+			intent: {
+				action: 'explicit',
+				consents: { marketing: false, measurement: true },
+			},
+		});
+		const dismissed = await runFixture(inputFor(NOTICE_SCENARIO), {
+			dismiss: true,
+		});
+		const optOut = await runFixture(inputFor(CCPA_SCENARIO), {
+			intent: { action: 'all' },
+		});
+
+		// A genuine web envelope, produced by the v3 codec and stored by neither
+		// native core. The refusal is only worth pinning if the bytes are real.
+		const foreignWire = encodeEnvelope({
+			categories: grants.payload.choice.categories,
+			subject: { subjectId: SUBJECT.europe },
 			version: 3,
 		});
-		if (reEncoded !== serialized) {
-			throw new Error(
-				`${testCase.id} did not round-trip: ${serialized} became ${reEncoded}`
-			);
-		}
-		readable.push({
-			description: testCase.description,
-			expected: {
-				decode: {
-					ok: true,
-					records: {
-						choice: decoded.record,
-						subject: testCase.envelope.subject ?? null,
+
+		/** Every read case starts here, so the bytes hold a real grant to lose. */
+		const grantedInput = (): FixtureInput => ({
+			...inputFor(EU_SCENARIO),
+			action: { action: 'all' },
+		});
+
+		const cases: {
+			after: KernelSnapshot;
+			description: string;
+			id: string;
+			input: NativeEnvelopeFixture['input'];
+			noticeDismissal: 'empty' | 'present';
+			read: boolean;
+		}[] = [
+			{
+				after: grants.after,
+				description:
+					'An accept-all under a Europe opt-in rule stores the resolved policy and the receipts beside it, and a relaunch that reaches no backend still allows every optional category from those bytes alone.',
+				id: 'native-envelope-opt-in-grants',
+				input: { ...inputFor(EU_SCENARIO), action: { action: 'all' } },
+				noticeDismissal: 'empty',
+				read: false,
+			},
+			{
+				after: partial.after,
+				description:
+					'A partial save stores exactly the two categories the subject touched. The relaunch keeps measurement allowed and marketing denied, and takes the opt-in default for the two the subject never looked at.',
+				id: 'native-envelope-partial-denials',
+				input: {
+					...inputFor(EU_SCENARIO),
+					action: {
+						action: 'explicit',
+						consents: { marketing: false, measurement: true },
 					},
 				},
-				reEncoded: serialized,
-				snapshot: toFixtureSnapshot(after, input.hydrated),
+				noticeDismissal: 'empty',
+				read: false,
 			},
-			id: `storage-${testCase.id}`,
-			input,
-			kind: 'storage',
-			notes: STORAGE_NOTES,
-			protocolVersion: PROTOCOL_VERSION,
-		});
-	}
+			{
+				after: dismissed.after,
+				description:
+					'Dismissing a notice-only prompt is a record and not a permission, so the dismissal is stored beside the snapshot and a relaunch with no backend still knows the notice was closed.',
+				id: 'native-envelope-notice-dismissed',
+				input: {
+					...inputFor(NOTICE_SCENARIO),
+					action: { action: 'dismiss-notice' },
+				},
+				noticeDismissal: 'present',
+				read: false,
+			},
+			{
+				after: optOut.after,
+				description:
+					'The same accept-all under a California opt-out rule, stored and read back offline. The opt-out policy travels with the receipts, so a relaunch cannot mistake a cached decision for a pending one.',
+				id: 'native-envelope-opt-out-grants',
+				input: { ...inputFor(CCPA_SCENARIO), action: { action: 'all' } },
+				noticeDismissal: 'empty',
+				read: false,
+			},
+			{
+				after: grants.after,
+				description: `A valid envelope with one field this build does not recognise: \`${UNRECOGNISED_ENVELOPE_FIELD}\`. Reading it partly would restore the grant inside it, so the whole envelope is dropped, nothing is applied, and the answer is identical to a fresh install.`,
+				id: 'native-envelope-unknown-field',
+				input: {
+					...grantedInput(),
+					defect: {
+						addField: UNRECOGNISED_ENVELOPE_FIELD,
+						kind: 'unknown-field',
+						value: true,
+					},
+				},
+				noticeDismissal: 'empty',
+				read: true,
+			},
+			{
+				after: grants.after,
+				description:
+					'A valid envelope with everything from the last comma onwards missing, the way an interrupted write leaves it. These bytes are a prefix of a real grant, which is precisely why a reader that repairs what it can parse is the wrong reader.',
+				id: 'native-envelope-truncated-write',
+				input: { ...grantedInput(), defect: { kind: 'truncate' } },
+				noticeDismissal: 'empty',
+				read: true,
+			},
+			{
+				after: grants.after,
+				description:
+					'A valid envelope whose snapshot has been rewritten into the shape the first draft of native/CONTRACT.md described: overrides.test, a boolean privacySignals.gpc, and privacySignals.msa. Those names model nothing this build has, so the grant sitting next to them is not evidence.',
+				id: 'native-envelope-pre-correction-shape',
+				input: { ...grantedInput(), defect: { kind: 'pre-correction' } },
+				noticeDismissal: 'empty',
+				read: true,
+			},
+			{
+				after: grants.after,
+				description:
+					'The web v3 consent-record envelope written into native protected storage. It is a real c15t format and not this one, so a native core that read it would be granting consent out of a codec it has never written and cannot re-derive.',
+				id: 'native-envelope-foreign-wire',
+				input: {
+					...grantedInput(),
+					defect: {
+						envelope: foreignWire,
+						kind: 'foreign-wire',
+						source: 'the web SDK consent-record envelope (v3 record format)',
+					},
+				},
+				noticeDismissal: 'empty',
+				read: true,
+			},
+		];
 
-	// A stored envelope whose confirmation time is in the future must fail
-	// closed: nothing is applied, and the snapshot is the deny-all one.
-	const brokenEnvelope: StoredEnvelope = {
-		categories: {
-			marketing: {
-				basis: { fingerprint: 'fp-europe-choice', kind: 'choice-v1' },
-				confirmedAt: NOW + 60_000,
-				value: true,
+		return cases.map((testCase) => ({
+			description: testCase.description,
+			expected: {
+				...(testCase.read
+					? {
+							read: {
+								decoded: false as const,
+								identicalToFreshInstall: true as const,
+								stored: false as const,
+							},
+						}
+					: {
+							snapshot: toFixtureSnapshot(
+								testCase.after,
+								testCase.input.hydrated
+							),
+							write: {
+								decoded: 'itself' as const,
+								storedSnapshotMatchesLive: true as const,
+							},
+						}),
+				relaunch: {
+					decision: testCase.read
+						? {
+								allowed: { ...OFFLINE_DENY_ALL },
+								policyPending: true,
+								ready: false,
+							}
+						: {
+								allowed: { ...testCase.after.effectivePermissions },
+								policyPending: false,
+								ready: true,
+							},
+					offline: true as const,
+				},
 			},
-		},
-		subject: { subjectId: SUBJECT.storageInvalid },
-		version: 3,
+			fields: envelopeFieldsFor(testCase.noticeDismissal),
+			id: testCase.id,
+			input: testCase.input,
+			kind: 'native-envelope',
+			notes: ENVELOPE_NOTES,
+			protocolVersion: PROTOCOL_VERSION,
+			reference: ENVELOPE_REFERENCE,
+		}));
 	};
-	const brokenSerialized = encodeEnvelope(brokenEnvelope);
-	const brokenDecoded = validateExplicitChoice(
-		JSON.parse(brokenSerialized),
-		NOW
-	);
-	if (brokenDecoded.ok) {
-		throw new Error('A future confirmation time must not decode.');
-	}
-	const brokenInput = {
-		...inputFor(EU_SCENARIO, { records: storedFor(SUBJECT.storageInvalid) }),
-		storedEnvelope: brokenSerialized,
-	};
-	const broken = await runFixture(brokenInput);
-	const fixtures: StorageFixture[] = [...readable];
-	fixtures.push({
-		description:
-			'A stored receipt confirmed in the future is unreadable. The decode fails, no record is applied, and the snapshot is the deny-all opt-in one with a choice prompt still owed.',
-		expected: {
-			decode: { issues: brokenDecoded.issues, ok: false },
-			reEncoded: null,
-			snapshot: toFixtureSnapshot(broken.after, brokenInput.hydrated),
-		},
-		id: 'storage-invalid-record',
-		input: brokenInput,
-		kind: 'storage',
-		notes: STORAGE_NOTES,
-		protocolVersion: PROTOCOL_VERSION,
-	});
-	return fixtures;
-};
 
 // -- Guards -----------------------------------------------------------------
 
@@ -1653,7 +1926,7 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 		fixtures = [
 			...(await buildEvaluationFixtures()),
 			...(await buildSaveBodyFixtures()),
-			...(await buildStorageFixtures()),
+			...(await buildNativeEnvelopeFixtures()),
 		];
 		// Last, because the trace drives the same kernel through a sequence and a
 		// half-finished save from here would land inside the next generation pass.
