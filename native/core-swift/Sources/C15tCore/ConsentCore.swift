@@ -978,7 +978,16 @@ public final class ConsentCore: @unchecked Sendable {
                     draft.error = error.info
                 }
             }
-            events.emit(.snapshot(revision: snapshot().revision))
+            // `error` is a snapshot field, so this is a committed change like every
+            // other one, and ``publish(persist:)`` is the one path that announces it:
+            // the revision event, the snapshot observers, and the envelope write
+            // together. Emitting a `.snapshot` event alone announces a revision to a
+            // listener list the bridge is not on -- `C15tCoreSubscriber` feeds the
+            // React Native pump from `onChange`, not from the event hub -- so the new
+            // revision would never reach JavaScript, and a relaunch would forget a
+            // misconfiguration that has not changed. The pair is the rule: see
+            // "Revisions and error writes" in `native/CONTRACT.md`.
+            publish(persist: true)
             return
         }
 

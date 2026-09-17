@@ -120,6 +120,11 @@ class ProtocolFixtureTest {
 					ran += entry["id"]!!.jsonPrimitive.content
 				}
 
+				"revision-trace" -> {
+					runRevisionTrace(directory, entry)
+					ran += entry["id"]!!.jsonPrimitive.content
+				}
+
 				"storage" -> {
 					// The web v3 record envelope is not the format this core writes:
 					// it persists a SnapshotEnvelope in its own shape. Claiming these
@@ -202,9 +207,113 @@ class ProtocolFixtureTest {
 		)
 	}
 
+	/**
+	 * Replay a mutation sequence and compare the revision trace it leaves.
+	 *
+	 * Two numbers per step, from two independent observations of the core: how much
+	 * the revision moved, and how many times the snapshot observers were woken. The
+	 * second is the half a revision cannot prove. A core that bumps the counter and
+	 * never tells the observers has produced exactly the trace the kernel produced
+	 * while the React Native pump -- which reads `onChange`, not the event hub --
+	 * never hears that anything changed. `native/CONTRACT.md` calls that pair
+	 * "Revisions and error writes", and this fixture is what enforces it on both
+	 * cores, which is why it lives here rather than in a per-core unit test.
+	 *
+	 * The observer attaches after bootstrap has settled, because hydration and
+	 * bootstrap are mutations in some cores and not in others. That is also why the
+	 * fixture pins deltas and not absolute revisions.
+	 */
+	private fun runRevisionTrace(directory: File, entry: JsonObject) {
+		val fixtureId = id(entry)
+		val fixture = readFixture(directory, entry)
+		val fixtureInput = fixture["input"]?.jsonObject ?: fail("$fixtureId: no input")
+		val steps = fixtureInput["steps"]?.jsonArray ?: fail("$fixtureId: no input.steps")
+		val expected = fixture["expected"]?.jsonObject?.get("trace")?.jsonArray
+			?: fail("$fixtureId: no expected.trace")
+		val run = makeRun(entry, fixtureInput)
+		run.kernel.bootstrap()
+
+		var publications = 0
+		// The core holds snapshot observers weakly, so the lambda needs an owner for
+		// as long as the trace runs.
+		val observer: (ConsentSnapshot) -> Unit = { publications += 1 }
+		val subscription = run.kernel.onChange(observer)
+		var scriptedInits = 1
+		val observed = steps.map { element ->
+			val step = element.jsonObject
+			val name = step["step"]?.jsonPrimitive?.contentOrNull ?: fail("$fixtureId: a step has no name")
+			val before = run.kernel.snapshot().revision
+			publications = 0
+			when (step["op"]?.jsonPrimitive?.content) {
+				"init" -> {
+					val transport = step["transport"]?.jsonObject
+						?: fail("$fixtureId: step $name is an init with no transport")
+					run.initScript += initResponseOf(fixtureId, transport)
+					scriptedInits += 1
+					run.kernel.refresh()
+				}
+
+				"save" -> run.kernel.save(
+					commitIntent(entry, step["intent"]?.jsonObject ?: fail("$fixtureId: step $name has no intent"))
+				)
+
+				"dismiss-notice" -> run.kernel.dismissNotice()
+
+				else -> fail("$fixtureId: step $name has op ${step["op"]}, which has no runner here")
+			}
+			buildJsonObject {
+				put("publications", publications)
+				put("revisionDelta", run.kernel.snapshot().revision - before)
+				put("step", name)
+			}
+		}
+		subscription.close()
+
+		// A step whose init never arrived would still score whatever the previous
+		// response left behind, so the script and the requests have to line up.
+		assertEquals(
+			scriptedInits,
+			run.http.requests.count { it.method == "GET" },
+			"$fixtureId: the core made ${run.http.requests.count { it.method == "GET" }} init requests for a script of $scriptedInits",
+		)
+		record(fixtureId, "expected.trace", JsonArray(expected), JsonArray(observed))
+	}
+
+	/**
+	 * Turn a fixture `transport` into the response the HTTP double serves.
+	 *
+	 * Status and headers pass through untouched, because the contract declaration is
+	 * the thing under test in the revision trace: a body served under a contract this
+	 * build does not speak is not evidence, and a runner that normalised the header
+	 * away would hide that.
+	 */
+	private fun initResponseOf(fixtureId: String, transport: JsonObject): HttpResponse {
+		val status = transport["status"]?.jsonPrimitive?.intOrNull ?: 200
+		check(status == 200) { "$fixtureId: a non-200 init needs a scripted failure path, which no fixture exercises" }
+		val headers = transport["headers"]?.jsonObject
+			?.mapValues { (name, value) ->
+				value.jsonPrimitive.contentOrNull ?: fail("$fixtureId: transport.headers.$name is not a string")
+			}
+			?: emptyMap()
+		val body = transport["body"]?.toString() ?: fail("$fixtureId: transport.body is missing")
+		return HttpResponse(status, headers, body)
+	}
+
 	// -- running one fixture --------------------------------------------------
 
-	private class Run(val kernel: C15tKernel, val http: RecordingHttpClient)
+	/**
+	 * A core wired to a fixture, plus the `/init` responses its transport still owes.
+	 *
+	 * The single-step fixtures script one response and the core asks once. A revision
+	 * trace adds one per init step, and an ask with nothing left scripted is a
+	 * failure rather than a silent repeat: a step that never reached the transport
+	 * would score a publication the core did not earn.
+	 */
+	private class Run(
+		val kernel: C15tKernel,
+		val http: RecordingHttpClient,
+		val initScript: ArrayDeque<HttpResponse>,
+	)
 
 	/**
 	 * Wire a core to exactly the fixture input.
@@ -260,12 +369,13 @@ class ProtocolFixtureTest {
 		)
 
 		val transport = input["transport"]?.jsonObject ?: fail("$fixtureId: no transport")
-		val status = transport["status"]?.jsonPrimitive?.intOrNull ?: 200
-		val headers = transport["headers"]?.jsonObject?.mapValues { it.value.jsonPrimitive.content } ?: emptyMap()
-		val body = transport["body"]?.toString() ?: fail("$fixtureId: no transport.body")
+		val initScript = ArrayDeque<HttpResponse>()
+		initScript += initResponseOf(fixtureId, transport)
 		val http = RecordingHttpClient { request ->
 			when (request.method) {
-				"GET" -> HttpResponse(status, headers, body)
+				"GET" -> initScript.removeFirstOrNull()
+					?: fail("$fixtureId: the core asked for /init with nothing left scripted")
+
 				else -> HttpResponse(200, emptyMap(), "{}")
 			}
 		}
@@ -279,8 +389,7 @@ class ProtocolFixtureTest {
 			transport = HostedTransport(http = http, config = config, clock = clock),
 			executor = TaskExecutor.DIRECT,
 		)
-		check(status == 200) { "$fixtureId: a non-200 init needs a scripted failure path, which no fixture exercises" }
-		return Run(kernel = kernel, http = http)
+		return Run(kernel = kernel, http = http, initScript = initScript)
 	}
 
 	/**

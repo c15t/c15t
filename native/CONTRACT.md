@@ -74,6 +74,56 @@ layer does not have to branch.
 `ready` and `policyPending` are the two flags a native SDK gate must consult.
 While either is unset, every optional category reads `false`.
 
+Revisions and error writes
+--------------------------
+
+One committed mutation is one revision bump and one publication. The two are not
+independent knobs, and a core that splits them breaks the boundary in a way no
+single core can see from its own tests.
+
+A committed mutation is one `/init` response folded, one consent commit accepted,
+one notice dismissal recorded, and one identity change. Each of them bumps
+`revision` by exactly one, and is published exactly once through the core's whole
+publication path: the snapshot event, every registered snapshot observer, and the
+envelope write. Not a subset of those three. A core may report several mutations
+from one operation (hydrate and then re-evaluate), and it may do nothing at all
+when nothing arrives, but it may not bump without publishing or publish without
+bumping.
+
+**An error is snapshot state, so it travels on a revision.** `error` is a field
+of the snapshot the way `model` and `location` are, and that settles the question
+the first draft of this file left open: there is no revision-free write. A core
+that records `unsupported-contract` has committed a change, and that change
+reaches JavaScript on the `snapshot` event, from the observers, in the persisted
+envelope. The paired `error` event is a convenience for a host that wants the
+code without pulling a snapshot. It is never the only route, and nothing may rely
+on it rescuing a snapshot event that was dropped.
+
+That reliance is what makes the pair load-bearing rather than tidy. The pump
+dedups by revision: it drops a `snapshot` event whose revision it has already
+announced, and `client.ts` returns early when a snapshot event carries the
+revision it already holds. A mutation that bumps without publishing is therefore
+invisible to JavaScript twice over, and a snapshot event with an unchanged
+revision is discarded twice over. The rule is what lets the pump dedup by
+revision and stay correct.
+
+The rejected alternative was to declare error writes revision-free and forbid the
+bridge from carrying an error on a `snapshot` event at all. It fails on the
+observers: an error write that is not a mutation would still be a publication, so
+every repeated error would wake every subscriber for nothing, and "exactly one
+event per committed change" would need an exception per error path. It also is
+not what the kernel does -- `@c15t/core` folds a refused `/init` into a committed
+patch like any other.
+
+Two things this rule deliberately does not decide. Whether a re-served response
+whose every field already matches is a value change: the kernel counts an
+`/init` as a mutation each time it is folded, `revision-trace-*.json` carries the
+numbers the kernel produced, and both cores match them. And the revision a core
+*starts* from: hydration and bootstrap are mutations in some cores and not in
+others, and `reset()` installs a fresh baseline instead of moving one, so absolute
+revisions are still not comparable across the three implementations. What each
+step costs is comparable, and the fixture pins that.
+
 Native API (Swift and Kotlin, same shape)
 -----------------------------------------
 
@@ -156,6 +206,12 @@ module never sends a snapshot the JavaScript side already holds: it emits the ne
 subscriber needs it. Selector subscriptions in `@c15t/react-native` compare the
 selected value and rerender only on a change.
 
+That dedup is only safe because of "Revisions and error writes" above. The pump is
+fed by the core's snapshot observers, not by the core's own event hub, so a
+mutation that never reached the observers is a mutation JavaScript cannot learn
+about by any route except the paired `error` event -- which is the accident the
+iOS core had instead of the rule.
+
 Version handshake
 -----------------
 
@@ -173,6 +229,10 @@ TypeScript kernel. Three kinds:
 - `evaluation-*.json`  transport response plus stored records in, snapshot out.
 - `save-body-*.json`   transport response plus action in, exact request body out.
 - `storage-*.json`     serialized envelope round-trip.
+- `revision-trace-*.json` a mutation sequence in, the revision trace the kernel
+  produced for it out: one `{ step, revisionDelta, publications }` per step. This
+  is the cross-core parity fixture. It pins what each step costs rather than the
+  absolute revision, because that is the half the three implementations can share.
 
 An `input` is what a client actually sees, never a convenience shape a generator
 invented. Every fixture carries `now` (the fixed clock every side must use),
@@ -237,10 +297,12 @@ build against the same reality.
   `bun run --cwd packages/react-native generate:fixtures`, which is byte-stable:
   two runs produce the same bytes, so a diff in `native/protocol/` is always a
   real change and never a timestamp.
-- All three kinds exist and are generated. `evaluation-*` and `save-body-*` are
-  claimed and run by both native cores. `storage-*` are claimed by neither: they
-  pin the web v3 envelope codec, which no native core implements. Both runners
-  report them as unclaimed by name rather than dropping them from the count.
+- All four kinds are generated. `evaluation-*`, `save-body-*`, and
+  `revision-trace-*` are claimed and run by both native cores. `storage-*` are
+  claimed by neither: they pin the web v3 envelope codec, which no native core
+  implements. Both runners report them as unclaimed by name rather than dropping
+  them from the count, and a kind with no runner in a core fails that core's run
+  rather than being skipped, which is what keeps the parity fixture parity.
 
 Kotlin core, as built
 ---------------------
@@ -264,6 +326,12 @@ Kotlin core, as built
   a key dies, `ResilientKeyValueStore` deletes the blobs it can no longer open,
   warns once, and serves deny-all with `policyPending: true`. The SPI exposes
   `KeyValueStore.keys()` for that purge only, and defaults to `emptySet()`.
+- Every mutation in `C15tKernel` already ended in `persist()` and
+  `notifySnapshot()` together, including the failed-init path that records
+  `unsupported-contract`, so this core needed no change to satisfy "Revisions and
+  error writes". `ProtocolFixtureTest` runs the revision trace to keep it that way:
+  the same four steps, the same two numbers per step, the same expectations the
+  Swift runner reads.
 
 Swift core, as built
 --------------------
@@ -287,8 +355,17 @@ Swift core, as built
 - `Tests/C15tCoreTests/ProtocolFixtureTests.swift` runs the shared fixtures: it
   enumerates `index.json`, verifies every hash and `protocolVersion`, dispatches on
   `kind`, and diffs the produced snapshot against `expected` recursively, so a
-  mismatch names the field and both values. It claims 12 of 15 fixtures; the three
+  mismatch names the field and both values. It claims 13 of 16 fixtures; the three
   `storage-*` cases are reported unclaimed.
+- Fixed while wiring the revision trace: the unsupported-contract branch of
+  `reportInitFailure` wrote `error` and announced the new revision on the core's own
+  event hub, but never called `publish()`. The React Native pump is fed by
+  `onChange`, not by that hub, so iOS bumped the revision with no observer
+  notification and no envelope write: the error write was committed and unpublished,
+  exactly what "Revisions and error writes" forbids. It goes through `publish` now.
+  The `revision-trace-*` fixture is what catches it, and only on the `publications`
+  column: the revision deltas agree either way, which is why the fixture observes
+  both.
 - Fixed while wiring the fixtures: `save()` reported `uiSource` from the snapshot
   published after the commit, so a save made from the dialog after the banner had
   already cleared said `banner`. The surface the subject acted on is now captured
@@ -429,12 +506,21 @@ Rules the plugin enforces at build time
   `${applicationId}.androidx-startup` pointing at
   `com.c15t.reactnative.C15tReactNativeInitializer`, so the core is hydrated
   before the first Activity exists. Starting it twice is harmless, since
-  `C15t.bootstrap` ignores the second call.
+  `C15t.bootstrap` ignores the second call. In an SDK 57 prebuild only the
+  provider is observable in a diff against the same app with no plugin: the
+  bare template already asks for INTERNET, so the plugin's write lands on a
+  permission that is already there.
 - The root and app gradle files have `minSdk` and `compileSdk` raised to 24 and
   36, the floors in `native/core-android/gradle/libs.versions.toml`. Below them
   the manifest merger fails with a message that names neither c15t nor the
   number. Only literal values are touched, never `targetSdkVersion` or a
-  `rootProject.ext` indirection.
+  `rootProject.ext` indirection. That carve-out now swallows the whole rule: an
+  SDK 57 template writes no literal SDK number anywhere, because
+  `app/build.gradle` reads `rootProject.ext.compileSdkVersion` and the
+  `expo-root-project` Gradle plugin supplies it at build time. So the raise
+  never fires on a current template, and nothing here has measured what that
+  plugin resolves. Checking the floors against the resolved values, or dropping
+  this step, is open work.
 - Expo Go fails the build with a message rather than failing at runtime. The
   check stays quiet when an `EAS_BUILD*` variable is set, when the command is a
   native one (`prebuild`, `run:`, `build`, `config`, `doctor`), or when an `ios/`
@@ -450,15 +536,45 @@ Rules the plugin enforces at build time
   `extra.c15t.protocol`, which is what `getBootstrap()`'s `protocolVersion` gets
   checked against in the version handshake above.
 
-Open question left by the plugin
---------------------------------
+How Expo loads the plugin
+-------------------------
 
-The plugin builds ESM only, to `dist/expo-plugin/index.js`, while
-`@expo/config-plugins` is CommonJS and Expo resolves plugins with `require`. That
-holds on a Node new enough to `require()` an ES module and nowhere else. A second
-CommonJS build target for this entry would settle it, which means touching
-`rslib.config.ts` and the package's build scripts. Nothing has run the plugin
-against a real `expo prebuild` yet.
+`@expo/config-plugins` is CommonJS, and `@expo/require-utils` hands a plugin
+specifier to Node's CommonJS resolver, then `require()`s whichever file comes
+back. Resolution takes the first matching condition in `exports`, so
+`./expo-plugin` lists `require` ahead of `import` and points it at
+`dist/expo-plugin/index.cjs`: one bundled CommonJS file from a second `rslib`
+entry with `bundle: true` and `format: 'cjs'`, which `autoExtension` names
+`.cjs` because the package declares `"type": "module"`.
+
+Bundling is the load-bearing half, not the extension. An unbundled CommonJS tree
+fails the way the ESM tree did: the entry itself loads, then the real `require`
+of its `./constants.js` sibling throws `ERR_REQUIRE_ESM`. That is the exact error
+a real `expo config` produced before this was settled, and it is why the entry is
+`bundle: true` while the rest of the package stays bundleless.
+`@expo/config-plugins` stays external, so the plugin registers its mods through
+the host's own `withMod` rather than a second copy of the library.
+
+Node versions that are safe: `require()` of an ES module is unflagged on
+Node 20.19+, 22.12+, and 24+, and `@expo/require-utils` names that same set as
+its own floor. On anything older, and on any of those with
+`--no-experimental-require-module`, only a CommonJS entry loads. Metro and every
+bundler still take the `import` condition, and nothing outside
+`src/expo-plugin/` imports it, so the ES module entry stays the public one for
+the app bundle.
+
+Proven against a generated project rather than a unit harness: Expo SDK 57.0.23,
+`expo` CLI 57.0.25, `@expo/config-plugins` 57.0.9, in a `create-expo-app` blank
+template under /tmp. `expo config --type prebuild` loaded the plugin on Node
+24.21.0, 22.22.2, and 20.19.6, and again on 24.21.0 with
+`--no-experimental-require-module`; the same run on the ESM-only build threw
+`ERR_REQUIRE_ESM` under that flag. `expo prebuild --platform ios --no-install`
+and `--platform android --no-install` both finished clean, and the `Info.plist`,
+`PrivacyInfo.xcprivacy`, and `AndroidManifest.xml` they wrote carry the keys
+above, including the `mode: 'custom'` shape: `com.c15t.backend.mode` of `none`,
+both auto-bootstrap keys `false`, and no androidx.startup provider at all. The
+privacy manifest is the plugin's doing and not the template's, since the same
+template with no plugin writes no `PrivacyInfo.xcprivacy`.
 
 Corrections to this contract
 ----------------------------
@@ -486,6 +602,9 @@ the contract moved, not the kernel.
 - `revision` is a monotonic counter over committed mutations, not a count of the
   steps a runner took. An active privacy signal commits a directive during init, so
   that fixture is already at 2 where the others reach 1. It is not comparable
-  across the three implementations yet, because hydration and bootstrap are
-  mutations in some cores and not in others. Pin the number a fixture states; do not
-  derive it from how many calls the runner made.
+  across the three implementations, because hydration and bootstrap are mutations in
+  some cores and not in others, and the absolute number a fixture states is therefore
+  each core's own business. Pin the number a fixture states; do not derive it from
+  how many calls the runner made. What *is* comparable is the cost of a step, and
+  `revision-trace-*.json` pins that per step; "Revisions and error writes" is the
+  rule it pins.

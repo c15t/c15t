@@ -127,6 +127,9 @@ final class ProtocolFixtureTests: XCTestCase {
             case "save-body":
                 try await runSaveBody(entry)
                 ran.append(entry.id)
+            case "revision-trace":
+                try await runRevisionTrace(entry)
+                ran.append(entry.id)
             case "storage":
                 // The web v3 record envelope is not the format either native core
                 // writes: Swift stores a ``StoredEnvelope`` and Kotlin an encrypted
@@ -157,6 +160,115 @@ final class ProtocolFixtureTests: XCTestCase {
     }
 
     // MARK: - Per-kind runners
+
+    /// Replay a mutation sequence and compare the revision trace it leaves.
+    ///
+    /// Two numbers per step, from two independent observations of the core: how
+    /// much the revision moved, and how many times the snapshot observers were
+    /// woken. The second one is the half a revision cannot prove. A core that bumps
+    /// the counter and never tells the observers has produced exactly the trace the
+    /// kernel produced, while the React Native pump -- which reads `onChange`, not
+    /// the event hub -- never hears that anything changed, which is the
+    /// unsupported-contract bug this fixture was written to keep fixed.
+    ///
+    /// The observer attaches after bootstrap has settled, because hydration and
+    /// bootstrap are mutations in some cores and not in others. That is also why the
+    /// fixture pins deltas and not absolute revisions: `native/CONTRACT.md` refuses
+    /// to compare the numbering a core starts from.
+    private func runRevisionTrace(_ entry: Index.Entry) async throws {
+        let fixture = try loadFixture(entry)
+        guard let input = fixture["input"],
+              let steps = input["steps"]?.arrayValue,
+              let expected = fixture["expected"]?["trace"]?.arrayValue
+        else {
+            throw Failure.unsupported(fixture: entry.id, detail: "no input.steps or expected.trace")
+        }
+        let run = try makeRun(entry: entry, input: input)
+        await run.core.bootstrapAndSettle(run.config)
+
+        let witness = RevisionWitness()
+        let subscription = run.core.onChange(witness)
+        var observations: [JSONValue] = []
+        var initResponses = 1
+        for step in steps {
+            let op = step["op"]?.stringValue
+            let before = run.core.snapshot().revision
+            witness.reset()
+            switch op {
+            case "init":
+                guard let transport = step["transport"] else {
+                    throw Failure.unsupported(
+                        fixture: entry.id,
+                        detail: "step \(step["step"]?.stringValue ?? "?") is an init with no transport"
+                    )
+                }
+                run.http.enqueueInit(try Self.initResponse(from: transport, entry: entry))
+                initResponses += 1
+                run.core.refresh()
+                await run.core.waitUntilIdle()
+            case "save":
+                run.core.save(try commitIntent(entry: entry, step["intent"] ?? .null))
+                await run.core.waitUntilIdle()
+            case "dismiss-notice":
+                run.core.dismissNotice()
+                await run.core.waitUntilIdle()
+            case let other:
+                throw Failure.unsupported(
+                    fixture: entry.id,
+                    detail: "op \(other.map { "\($0)" } ?? "nil") has no runner here"
+                )
+            }
+            observations.append(
+                .object([
+                    "publications": .integer(Int64(witness.count)),
+                    "revisionDelta": .integer(Int64(run.core.snapshot().revision - before)),
+                    "step": .string(step["step"]?.stringValue ?? ""),
+                ])
+            )
+        }
+        subscription.cancel()
+
+        // A step whose init never arrived would score a publication the core did not
+        // earn, so the script and the requests have to line up.
+        XCTAssertEqual(
+            run.http.recordedInitRequests.count,
+            initResponses,
+            "\(entry.id): the core made \(run.http.recordedInitRequests.count) init requests for a script of \(initResponses). A step that did not reach the transport makes the trace meaningless."
+        )
+        record(
+            for: entry,
+            path: "expected.trace",
+            expected: .array(expected),
+            actual: .array(observations)
+        )
+    }
+
+    /// Counts snapshot publications, which is all a trace needs from an observer.
+    ///
+    /// Held strongly by the caller: the core's observer set is weak, so an observer
+    /// nobody owns stops being an observer.
+    private final class RevisionWitness: SnapshotObserver, @unchecked Sendable {
+        private let lock = NSLock()
+        private var publications = 0
+
+        var count: Int {
+            lock.lock()
+            defer { lock.unlock() }
+            return publications
+        }
+
+        func reset() {
+            lock.lock()
+            publications = 0
+            lock.unlock()
+        }
+
+        func consentDidChange(_ snapshot: ConsentSnapshot) {
+            lock.lock()
+            publications += 1
+            lock.unlock()
+        }
+    }
 
     private func runEvaluation(_ entry: Index.Entry) async throws {
         let fixture = try loadFixture(entry)
@@ -293,29 +405,11 @@ final class ProtocolFixtureTests: XCTestCase {
             user = try decode(KernelUser.self, value, entry)
         }
 
-        guard let transport = input["transport"], let body = transport["body"],
-              let bodyData = C15tJSON.encode(body)
-        else {
-            throw Failure.unsupported(fixture: entry.id, detail: "input.transport.body is missing")
-        }
-        var headers: [String: String] = [:]
-        for (name, value) in transport["headers"]?.objectValue ?? [:] {
-            guard let text = value.stringValue else {
-                throw Failure.unsupported(
-                    fixture: entry.id,
-                    detail: "input.transport.headers.\(name) is not a string"
-                )
-            }
-            headers[name] = text
-        }
         let http = StubHTTP()
-        http.enqueueInit(
-            HTTPResponse(
-                status: Int(transport["status"]?.intValue ?? 200),
-                headers: headers,
-                body: bodyData
-            )
-        )
+        guard let bootstrapTransport = input["transport"] else {
+            throw Failure.unsupported(fixture: entry.id, detail: "input.transport is missing")
+        }
+        http.enqueueInit(try Self.initResponse(from: bootstrapTransport, entry: entry))
 
         let clock = TestClock(now)
         let config = CoreConfig(
@@ -335,6 +429,36 @@ final class ProtocolFixtureTests: XCTestCase {
             throw Failure.unsupported(fixture: "core", detail: "the snapshot did not serialize to JSON")
         }
         return value
+    }
+
+    /// Turn a fixture `transport` into the response a transport double serves.
+    ///
+    /// Status and headers go through untouched, because the contract declaration is
+    /// the thing under test in the revision trace: a body served under a contract
+    /// this build does not speak is not evidence, and a runner that normalised the
+    /// header away would hide that.
+    private static func initResponse(
+        from transport: JSONValue,
+        entry: Index.Entry
+    ) throws -> HTTPResponse {
+        guard let body = transport["body"], let bodyData = C15tJSON.encode(body) else {
+            throw Failure.unsupported(fixture: entry.id, detail: "transport.body is missing")
+        }
+        var headers: [String: String] = [:]
+        for (name, value) in transport["headers"]?.objectValue ?? [:] {
+            guard let text = value.stringValue else {
+                throw Failure.unsupported(
+                    fixture: entry.id,
+                    detail: "transport.headers.\(name) is not a string"
+                )
+            }
+            headers[name] = text
+        }
+        return HTTPResponse(
+            status: Int(transport["status"]?.intValue ?? 200),
+            headers: headers,
+            body: bodyData
+        )
     }
 
     private func commitIntent(entry: Index.Entry, _ intent: JSONValue) throws -> CommitIntent {

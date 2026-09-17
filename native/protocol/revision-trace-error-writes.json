@@ -1,0 +1,396 @@
+{
+	"description": "A commit, a re-served init, and a policy contract the SDK does not speak, twice. The commit and the refused contract each cost one revision and one publication; the init that changed nothing and the repeated error cost nothing.",
+	"expected": {
+		"trace": [
+			{
+				"publications": 1,
+				"revisionDelta": 1,
+				"step": "save-all"
+			},
+			{
+				"publications": 1,
+				"revisionDelta": 1,
+				"step": "init-resolved-again"
+			},
+			{
+				"publications": 1,
+				"revisionDelta": 1,
+				"step": "init-unsupported-contract"
+			},
+			{
+				"publications": 1,
+				"revisionDelta": 1,
+				"step": "init-unsupported-contract-again"
+			}
+		]
+	},
+	"id": "revision-trace-error-writes",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": null,
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "6f1d2c3a-8b4e-4a7f-9c21-0d5e7a9b1c01"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "DE",
+					"regionCode": null
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+						"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+						"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+						"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": null,
+						"id": "europe_opt_in",
+						"model": "opt-in",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"rights": ["disclosure", "preferences"],
+						"scope": [
+							"experience",
+							"functionality",
+							"marketing",
+							"measurement"
+						],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 31536000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "europe_opt_in",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-europe-opt-in"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null,
+		"steps": [
+			{
+				"intent": {
+					"action": "all"
+				},
+				"op": "save",
+				"step": "save-all"
+			},
+			{
+				"op": "init",
+				"step": "init-resolved-again",
+				"transport": {
+					"body": {
+						"branding": "c15t",
+						"jurisdiction": "GDPR",
+						"location": {
+							"countryCode": "DE",
+							"regionCode": null
+						},
+						"policyResolution": {
+							"fingerprints": {
+								"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+								"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+								"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+								"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+							},
+							"matchedBy": "country",
+							"policy": {
+								"actions": {
+									"allowed": ["accept", "customize", "reject"],
+									"equivalent": [["accept", "reject"]],
+									"required": ["accept", "reject"]
+								},
+								"copyRevision": null,
+								"id": "europe_opt_in",
+								"model": "opt-in",
+								"preselectedCategories": [],
+								"privacySignals": {
+									"gpc": {
+										"denyCategories": []
+									}
+								},
+								"prompt": "choice",
+								"proof": {
+									"storeIp": true,
+									"storeLanguage": true,
+									"storeUserAgent": true
+								},
+								"rights": ["disclosure", "preferences"],
+								"scope": [
+									"experience",
+									"functionality",
+									"marketing",
+									"measurement"
+								],
+								"scopeMode": "permissive",
+								"validity": {
+									"choiceMs": 31536000000,
+									"noticeMs": 31536000000
+								}
+							},
+							"policyId": "europe_opt_in",
+							"status": "matched",
+							"version": 1
+						},
+						"translations": {
+							"language": "en",
+							"translations": {
+								"common": {
+									"acceptAll": "Accept all",
+									"customize": "Customize",
+									"rejectAll": "Reject all",
+									"save": "Save"
+								},
+								"consentManagerDialog": {},
+								"consentTypes": {},
+								"cookieBanner": {},
+								"rights": {}
+							}
+						},
+						"policySnapshotToken": "tok-europe-opt-in"
+					},
+					"headers": {
+						"x-c15t-policy-contract": "1"
+					},
+					"status": 200
+				}
+			},
+			{
+				"op": "init",
+				"step": "init-unsupported-contract",
+				"transport": {
+					"body": {
+						"branding": "c15t",
+						"jurisdiction": "GDPR",
+						"location": {
+							"countryCode": "DE",
+							"regionCode": null
+						},
+						"policyResolution": {
+							"fingerprints": {
+								"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+								"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+								"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+								"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+							},
+							"matchedBy": "country",
+							"policy": {
+								"actions": {
+									"allowed": ["accept", "customize", "reject"],
+									"equivalent": [["accept", "reject"]],
+									"required": ["accept", "reject"]
+								},
+								"copyRevision": null,
+								"id": "europe_opt_in",
+								"model": "opt-in",
+								"preselectedCategories": [],
+								"privacySignals": {
+									"gpc": {
+										"denyCategories": []
+									}
+								},
+								"prompt": "choice",
+								"proof": {
+									"storeIp": true,
+									"storeLanguage": true,
+									"storeUserAgent": true
+								},
+								"rights": ["disclosure", "preferences"],
+								"scope": [
+									"experience",
+									"functionality",
+									"marketing",
+									"measurement"
+								],
+								"scopeMode": "permissive",
+								"validity": {
+									"choiceMs": 31536000000,
+									"noticeMs": 31536000000
+								}
+							},
+							"policyId": "europe_opt_in",
+							"status": "matched",
+							"version": 1
+						},
+						"translations": {
+							"language": "en",
+							"translations": {
+								"common": {
+									"acceptAll": "Accept all",
+									"customize": "Customize",
+									"rejectAll": "Reject all",
+									"save": "Save"
+								},
+								"consentManagerDialog": {},
+								"consentTypes": {},
+								"cookieBanner": {},
+								"rights": {}
+							}
+						},
+						"policySnapshotToken": "tok-europe-opt-in"
+					},
+					"headers": {
+						"x-c15t-policy-contract": "2"
+					},
+					"status": 200
+				}
+			},
+			{
+				"op": "init",
+				"step": "init-unsupported-contract-again",
+				"transport": {
+					"body": {
+						"branding": "c15t",
+						"jurisdiction": "GDPR",
+						"location": {
+							"countryCode": "DE",
+							"regionCode": null
+						},
+						"policyResolution": {
+							"fingerprints": {
+								"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+								"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+								"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969",
+								"legacyMaterial": "7d6f3c71d9c6c6dae0730bd6cfec93f79dbdee423f854ae0efd43e974b657230"
+							},
+							"matchedBy": "country",
+							"policy": {
+								"actions": {
+									"allowed": ["accept", "customize", "reject"],
+									"equivalent": [["accept", "reject"]],
+									"required": ["accept", "reject"]
+								},
+								"copyRevision": null,
+								"id": "europe_opt_in",
+								"model": "opt-in",
+								"preselectedCategories": [],
+								"privacySignals": {
+									"gpc": {
+										"denyCategories": []
+									}
+								},
+								"prompt": "choice",
+								"proof": {
+									"storeIp": true,
+									"storeLanguage": true,
+									"storeUserAgent": true
+								},
+								"rights": ["disclosure", "preferences"],
+								"scope": [
+									"experience",
+									"functionality",
+									"marketing",
+									"measurement"
+								],
+								"scopeMode": "permissive",
+								"validity": {
+									"choiceMs": 31536000000,
+									"noticeMs": 31536000000
+								}
+							},
+							"policyId": "europe_opt_in",
+							"status": "matched",
+							"version": 1
+						},
+						"translations": {
+							"language": "en",
+							"translations": {
+								"common": {
+									"acceptAll": "Accept all",
+									"customize": "Customize",
+									"rejectAll": "Reject all",
+									"save": "Save"
+								},
+								"consentManagerDialog": {},
+								"consentTypes": {},
+								"cookieBanner": {},
+								"rights": {}
+							}
+						},
+						"policySnapshotToken": "tok-europe-opt-in"
+					},
+					"headers": {
+						"x-c15t-policy-contract": "2"
+					},
+					"status": 200
+				}
+			}
+		]
+	},
+	"kind": "revision-trace",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now, and ready equals input.hydrated. Both are native lifecycle facts, not kernel output.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed.",
+		"the trace starts after bootstrap has settled: hydration and bootstrap are mutations in some cores and not in others, so the anchor is the settled snapshot and the absolute revision a core reports is its own business. What every core must reproduce is what each step costs.",
+		"revisionDelta is the change in snapshot.revision across the step, and publications counts the snapshot listeners it woke. A committed change bumps the revision exactly once and publishes exactly once; a write that changes the committed value nowhere bumps nothing and publishes nothing. See \"Revisions and error writes\" in native/CONTRACT.md.",
+		"two of these steps are the same answer twice on purpose. Re-serving an init that changed nothing, and re-reporting an error the snapshot already carries, are not new changes: a bridge that dedups by revision has to be able to treat them as noise.",
+		"an unsupported-contract response is refused from its header, before the body is read. The body here is the ordinary Europe one, which is the point: a core that reached into it would be reading a wire it has already been told is not evidence.",
+		"expected.trace is not about which fields the error write touches. Swift, Kotlin, and the kernel write different fields for a refused contract; what they must not disagree about is whether the write was a change at all."
+	],
+	"protocolVersion": 1
+}

@@ -71,6 +71,7 @@ import type {
 	ExplicitChoice,
 	HydrationRecords,
 	InitOutput,
+	InitResponse,
 	JurisdictionCode,
 	KernelActiveUI,
 	KernelModel,
@@ -353,7 +354,69 @@ interface StorageFixture {
 	};
 }
 
-type Fixture = EvaluationFixture | SaveBodyFixture | StorageFixture;
+/** What one step of a mutation sequence asks a core to do. */
+type TraceStep =
+	/** Deliver `/init`, the way a later refresh or a reconnected device does. */
+	| {
+			readonly op: 'init';
+			readonly step: string;
+			readonly transport: InitTransport;
+	  }
+	/** Commit a consent action. */
+	| {
+			readonly op: 'save';
+			readonly step: string;
+			readonly intent: CommitIntent;
+	  }
+	/** Close the current notice. */
+	| { readonly op: 'dismiss-notice'; readonly step: string };
+
+/**
+ * One step, as observed from outside the core.
+ *
+ * Both numbers come from watching the kernel, not from reasoning about it:
+ * `revisionDelta` is the change in `snapshot.revision` across the step, and
+ * `publications` counts the snapshot listeners the step woke. They are expected
+ * to agree on every step (a published change is a bumped revision), and stating
+ * both is what makes a core that bumps without publishing, or publishes without
+ * bumping, show up as a mismatch rather than a passing run.
+ */
+interface TraceObservation {
+	readonly publications: number;
+	readonly revisionDelta: number;
+	readonly step: string;
+}
+
+/**
+ * A mutation sequence with the revision trace the kernel produced for it.
+ *
+ * This is the one fixture kind that pins a number the three implementations
+ * cannot share absolutely: `native/CONTRACT.md` says hydration and bootstrap are
+ * mutations in some cores and not in others, so a core's absolute revision is its
+ * own. What all three must agree on is what each step costs, which is what this
+ * fixture measures. See "Revisions and error writes" in `native/CONTRACT.md`.
+ */
+interface RevisionTraceFixture {
+	protocolVersion: number;
+	kind: 'revision-trace';
+	id: string;
+	description: string;
+	notes: string[];
+	input: Omit<FixtureInput, 'transport'> & {
+		/** The `/init` bootstrap serves, before any step runs. */
+		transport: InitTransport;
+		steps: TraceStep[];
+	};
+	expected: {
+		trace: TraceObservation[];
+	};
+}
+
+type Fixture =
+	| EvaluationFixture
+	| SaveBodyFixture
+	| StorageFixture
+	| RevisionTraceFixture;
 
 /** What a scenario holds that a client never sees. */
 interface Scenario {
@@ -431,6 +494,47 @@ const transportFor = function transportFor(
 	};
 };
 
+/**
+ * A policy contract declaration this client does not speak.
+ *
+ * Any number above `POLICY_CONTRACT_VERSION` would do; the smallest one above it
+ * is the honest shape of the accident, which is a backend one revision ahead of
+ * the SDK in the binary. Every client refuses it the same way: the declaration is
+ * read before the body, and a body under an unknown contract is not evidence.
+ */
+const UNSPOKEN_CONTRACT_HEADER_VALUE = '2';
+
+/** The same `/init` body, served by a producer this client cannot talk to. */
+const unspeakingTransportFor = function unspeakingTransportFor(
+	body: InitResponseBody
+): InitTransport {
+	return {
+		body,
+		headers: {
+			[C15T_POLICY_CONTRACT_HEADER]: UNSPOKEN_CONTRACT_HEADER_VALUE,
+		},
+		status: 200,
+	};
+};
+
+/**
+ * Fold an `InitTransport` into the response a client hands its kernel.
+ *
+ * The contract declaration is read out of the fixture's own headers rather than
+ * assumed, so a fixture that wants a negotiated producer and one that wants a
+ * refused producer travel through the same code.
+ */
+const initResponseFor = function initResponseFor(
+	transport: InitTransport
+): InitResponse {
+	const declared = transport.headers[C15T_POLICY_CONTRACT_HEADER];
+	return mapInitOutputToInitResponse(
+		transport.body,
+		{},
+		{ producerContract: declared === undefined ? undefined : Number(declared) }
+	);
+};
+
 const inputFor = function inputFor(
 	scenario: Scenario,
 	options: { records?: StoredRecords } = {}
@@ -491,6 +595,57 @@ const saveInputFor = function saveInputFor(intent: CommitIntent): SaveInput {
 };
 
 /**
+ * Build a kernel over a transport double, with nothing injected but the device.
+ *
+ * Both harnesses -- the single-step fixtures and the revision trace -- go through
+ * here, so the two cannot drift into different definitions of "the same input".
+ * Policy, records, and overrides all arrive the way they arrive on device, which
+ * is what makes the kernel's own revision numbering the number under test.
+ *
+ * @param input - Device state the kernel starts from.
+ * @param init - What `/init` answers, called on every init including a retry.
+ * @returns The kernel, and the save payloads it put on the wire.
+ */
+const kernelFor = function kernelFor(
+	input: Pick<
+		FixtureInput,
+		'now' | 'overrides' | 'privacySignals' | 'storedRecords' | 'user'
+	>,
+	init: () => Promise<InitResponse>
+): {
+	kernel: ReturnType<typeof createConsentKernel>;
+	payloads: SavePayload[];
+} {
+	const payloads: SavePayload[] = [];
+	const initialOverrides: KernelOverrides = {
+		language: input.overrides.language ?? DEFAULT_NATIVE_LANGUAGE,
+	};
+	if (input.overrides.gpc !== null) {
+		initialOverrides.gpc = input.overrides.gpc;
+	}
+	return {
+		kernel: createConsentKernel({
+			initialOverrides,
+			initialPolicyPending: true,
+			initialPrivacySignals: {
+				gpc: input.privacySignals.gpc.detected ?? false,
+			},
+			initialRecords: hydrationFor(input.storedRecords),
+			initialUser: input.user ?? undefined,
+			now: input.now,
+			transport: {
+				init,
+				save: (payload) => {
+					payloads.push(payload);
+					return Promise.resolve({ ok: true, subjectId: payload.subjectId });
+				},
+			},
+		}),
+		payloads,
+	};
+};
+
+/**
  * Replay a fixture input against the real kernel.
  *
  * The policy arrives the way it arrives on device: through the init command, fed
@@ -511,35 +666,10 @@ const runFixture = async function runFixture(
 	after: KernelSnapshot;
 	payload: SavePayload | null;
 }> {
-	const response = mapInitOutputToInitResponse(
-		input.transport.body,
-		{},
-		{
-			producerContract: Number(CONTRACT_HEADER_VALUE),
-		}
+	const response = initResponseFor(input.transport);
+	const { kernel, payloads } = kernelFor(input, () =>
+		Promise.resolve(response)
 	);
-	const payloads: SavePayload[] = [];
-	const initialOverrides: KernelOverrides = {
-		language: input.overrides.language ?? DEFAULT_NATIVE_LANGUAGE,
-	};
-	if (input.overrides.gpc !== null) {
-		initialOverrides.gpc = input.overrides.gpc;
-	}
-	const kernel = createConsentKernel({
-		initialOverrides,
-		initialPolicyPending: true,
-		initialPrivacySignals: { gpc: input.privacySignals.gpc.detected ?? false },
-		initialRecords: hydrationFor(input.storedRecords),
-		initialUser: input.user ?? undefined,
-		now: input.now,
-		transport: {
-			init: () => Promise.resolve(response),
-			save: (payload) => {
-				payloads.push(payload);
-				return Promise.resolve({ ok: true, subjectId: payload.subjectId });
-			},
-		},
-	});
 	await kernel.commands.init();
 	const before = kernel.getSnapshot();
 	let payload: SavePayload | null = null;
@@ -558,6 +688,61 @@ const runFixture = async function runFixture(
 		throw new Error('Fixture produced an IAB model, which is out of scope.');
 	}
 	return { after, before, payload };
+};
+
+/**
+ * Run a mutation sequence and record what each step cost the kernel.
+ *
+ * The two numbers come from two independent observations of the same run: the
+ * revision the snapshot carries afterwards, and the count of snapshot listeners
+ * the step woke. Nothing here computes what the trace "should" be -- the kernel
+ * decides that by running, which is the whole reason the fixture exists.
+ *
+ * The transport answers whatever the current step says it should, which is also
+ * what a retry sees: an init the kernel retries internally gets the same
+ * declaration again, exactly as a device re-asking the same backend would.
+ *
+ * @param input - The device state, the bootstrap response, and the steps.
+ * @returns One observation per step, in order.
+ */
+const runTraceFixture = async function runTraceFixture(
+	input: RevisionTraceFixture['input']
+): Promise<TraceObservation[]> {
+	let serving = initResponseFor(input.transport);
+	const { kernel } = kernelFor(input, () => Promise.resolve(serving));
+	await kernel.commands.init();
+
+	// Attached after bootstrap, so a publication belongs to a step and never to
+	// the hydration some other core counts as its own mutation.
+	let publications = 0;
+	kernel.subscribe(() => {
+		publications += 1;
+	});
+	let { revision } = kernel.getSnapshot();
+
+	const trace: TraceObservation[] = [];
+	/* oxlint-disable no-await-in-loop -- sequential on purpose; one clock for all */
+	for (const step of input.steps) {
+		if (step.op === 'init') {
+			serving = initResponseFor(step.transport);
+			await kernel.commands.init();
+		} else if (step.op === 'save') {
+			await kernel.commands.save(saveInputFor(step.intent), {
+				actionAt: input.now,
+			});
+		} else {
+			await kernel.commands.dismissNotice();
+		}
+		const next = kernel.getSnapshot().revision;
+		trace.push({
+			publications,
+			revisionDelta: next - revision,
+			step: step.step,
+		});
+		publications = 0;
+		revision = next;
+	}
+	return trace;
 };
 
 // -- Projection -------------------------------------------------------------
@@ -1149,6 +1334,62 @@ const buildStorageFixtures = async function buildStorageFixtures(): Promise<
 
 // -- Guards -----------------------------------------------------------------
 
+const TRACE_NOTES = [
+	...NOTES,
+	'the trace starts after bootstrap has settled: hydration and bootstrap are mutations in some cores and not in others, so the anchor is the settled snapshot and the absolute revision a core reports is its own business. What every core must reproduce is what each step costs.',
+	'revisionDelta is the change in snapshot.revision across the step, and publications counts the snapshot listeners it woke. A committed change bumps the revision exactly once and publishes exactly once; a write that changes the committed value nowhere bumps nothing and publishes nothing. See "Revisions and error writes" in native/CONTRACT.md.',
+	'two of these steps are the same answer twice on purpose. Re-serving an init that changed nothing, and re-reporting an error the snapshot already carries, are not new changes: a bridge that dedups by revision has to be able to treat them as noise.',
+	'an unsupported-contract response is refused from its header, before the body is read. The body here is the ordinary Europe one, which is the point: a core that reached into it would be reading a wire it has already been told is not evidence.',
+	'expected.trace is not about which fields the error write touches. Swift, Kotlin, and the kernel write different fields for a refused contract; what they must not disagree about is whether the write was a change at all.',
+];
+
+/**
+ * Build the revision trace for a backend that refuses to be understood.
+ *
+ * The sequence is the one a misconfigured app actually walks into: it starts with
+ * a working backend, a save lands, the producer is then upgraded past what the
+ * shipped binary speaks, and every later init is refused. Whether the error write
+ * is a revision-bearing change decides whether JavaScript hears about it at all,
+ * because the bridge pump drops a `snapshot` event whose revision it has already
+ * announced.
+ */
+const buildRevisionTraceFixtures =
+	async function buildRevisionTraceFixtures(): Promise<RevisionTraceFixture[]> {
+		const scenario = EU_SCENARIO;
+		const resolved = transportFor(initBodyFor(scenario));
+		const refused = unspeakingTransportFor(initBodyFor(scenario));
+		const input: RevisionTraceFixture['input'] = {
+			...inputFor(scenario),
+			steps: [
+				{
+					intent: { action: 'all' },
+					op: 'save',
+					step: 'save-all',
+				},
+				{ op: 'init', step: 'init-resolved-again', transport: resolved },
+				{ op: 'init', step: 'init-unsupported-contract', transport: refused },
+				{
+					op: 'init',
+					step: 'init-unsupported-contract-again',
+					transport: refused,
+				},
+			],
+			transport: resolved,
+		};
+		return [
+			{
+				description:
+					'A commit, a re-served init, and a policy contract the SDK does not speak, twice. The commit and the refused contract each cost one revision and one publication; the init that changed nothing and the repeated error cost nothing.',
+				expected: { trace: await runTraceFixture(input) },
+				id: 'revision-trace-error-writes',
+				input,
+				kind: 'revision-trace',
+				notes: TRACE_NOTES,
+				protocolVersion: PROTOCOL_VERSION,
+			},
+		];
+	};
+
 /** Name of the index a native runner enumerates. */
 const INDEX_FILE = 'index.json';
 
@@ -1241,6 +1482,25 @@ const withoutVersion = function withoutVersion(
 };
 
 /**
+ * Every `/init` response a fixture serves.
+ *
+ * A single-step fixture serves one. A revision trace serves one per step, plus the
+ * bootstrap response the sequence starts from.
+ */
+const transportsIn = function transportsIn(fixture: Fixture): InitTransport[] {
+	const { input } = fixture;
+	if (!('steps' in input)) {
+		return [input.transport];
+	}
+	return [
+		input.transport,
+		...input.steps.flatMap((step) =>
+			step.op === 'init' ? [step.transport] : []
+		),
+	];
+};
+
+/**
  * Prove that every init body this run produced is a wire a client takes.
  *
  * The bodies are built from the producer-side resolver, but a native core reads
@@ -1253,29 +1513,39 @@ const assertWiresReadable = function assertWiresReadable(
 	const contractVersion = Number(CONTRACT_HEADER_VALUE);
 	const seen = new Set<string>();
 	for (const fixture of fixtures) {
-		const { policyResolution } = fixture.input.transport.body;
-		if (policyResolution.version !== contractVersion) {
-			throw new Error(
-				`${fixture.id}: the init body declares policy contract ${String(policyResolution.version)}, but the response header declares ${CONTRACT_HEADER_VALUE}.`
-			);
-		}
-		const wire = stableStringify(policyResolution);
-		if (seen.has(wire)) {
-			continue;
-		}
-		seen.add(wire);
-		// The strict reader is the same one `applyInitResponse` runs on a live
-		// response. Anything it refuses or rewrites makes the fixture a wire no
-		// client can actually consume. The wire carries the contract version and a
-		// resolution does not repeat it, so the version is dropped before comparing.
-		const read = readPolicyResolutionWire(policyResolution);
-		if (
-			stableStringify(read) !==
-			stableStringify(withoutVersion(policyResolution))
-		) {
-			throw new Error(
-				`${fixture.id}: the strict client reader does not reproduce the resolution the producer served. The fixture body is not a wire a client can consume.`
-			);
+		for (const transport of transportsIn(fixture)) {
+			// A response whose declaration this client refuses never reaches a reader at
+			// all, which is the rule under test in the revision trace. Asking a client
+			// reader to consume it would assert the opposite of the contract.
+			if (
+				transport.headers[C15T_POLICY_CONTRACT_HEADER] !== CONTRACT_HEADER_VALUE
+			) {
+				continue;
+			}
+			const { policyResolution } = transport.body;
+			if (policyResolution.version !== contractVersion) {
+				throw new Error(
+					`${fixture.id}: the init body declares policy contract ${String(policyResolution.version)}, but the response header declares ${CONTRACT_HEADER_VALUE}.`
+				);
+			}
+			const wire = stableStringify(policyResolution);
+			if (seen.has(wire)) {
+				continue;
+			}
+			seen.add(wire);
+			// The strict reader is the same one `applyInitResponse` runs on a live
+			// response. Anything it refuses or rewrites makes the fixture a wire no
+			// client can actually consume. The wire carries the contract version and a
+			// resolution does not repeat it, so the version is dropped before comparing.
+			const read = readPolicyResolutionWire(policyResolution);
+			if (
+				stableStringify(read) !==
+				stableStringify(withoutVersion(policyResolution))
+			) {
+				throw new Error(
+					`${fixture.id}: the strict client reader does not reproduce the resolution the producer served. The fixture body is not a wire a client can consume.`
+				);
+			}
 		}
 	}
 };
@@ -1385,6 +1655,9 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 			...(await buildSaveBodyFixtures()),
 			...(await buildStorageFixtures()),
 		];
+		// Last, because the trace drives the same kernel through a sequence and a
+		// half-finished save from here would land inside the next generation pass.
+		fixtures.push(...(await buildRevisionTraceFixtures()));
 	} finally {
 		Date.now = realDateNow;
 	}

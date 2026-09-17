@@ -1,6 +1,6 @@
 {
 	"clock": 1770000000000,
-	"count": 15,
+	"count": 16,
 	"fixtures": [
 		{
 			"bytes": 5981,
@@ -121,10 +121,18 @@
 			"kind": "storage",
 			"protocolVersion": 1,
 			"sha256": "b5127e3a191ed0ce356a4bc21adf95b3de7c6beb72ff39c620048797f7b1e39d"
+		},
+		{
+			"bytes": 12965,
+			"file": "revision-trace-error-writes.json",
+			"id": "revision-trace-error-writes",
+			"kind": "revision-trace",
+			"protocolVersion": 1,
+			"sha256": "d20ad445d461bead50133e7426f27b56dc7fa9694e2b40869567cb6ca9ecc2cd"
 		}
 	],
 	"generatedBy": "packages/react-native/scripts/generate-protocol-fixtures.ts",
-	"kinds": ["evaluation", "save-body", "storage"],
+	"kinds": ["evaluation", "revision-trace", "save-body", "storage"],
 	"policyContractHeader": {
 		"name": "x-c15t-policy-contract",
 		"value": "1"

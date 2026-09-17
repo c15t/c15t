@@ -359,6 +359,49 @@ describe('subscriptions', () => {
 
 		errors.stop();
 	});
+
+	/**
+	 * `native/CONTRACT.md` "Revisions and error writes": an error is snapshot state,
+	 * so a core that records one has committed a change and must announce it on a new
+	 * revision. `native/protocol/revision-trace-error-writes.json` pins that both
+	 * native cores publish the refused-contract write; this pins the other half, that
+	 * a revision-bearing snapshot event is enough for JavaScript to learn it. The
+	 * paired `error` event is deliberately absent here: it is a convenience, and the
+	 * client must not need it.
+	 */
+	test('learns an unsupported-contract error from the snapshot event alone', () => {
+		const { client, fake } = makeClient();
+		const codes = watch(client, (snapshot) => snapshot.error?.code ?? null);
+
+		// The iOS core's shape after a refused contract: deny-all, policy still
+		// pending, the error recorded, and a revision bumped by the write.
+		fake.getSnapshot.mockReturnValue(
+			JSON.stringify(
+				buildSnapshot({
+					effectivePermissions: {
+						experience: false,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						necessary: true,
+					},
+					error: {
+						code: 'unsupported-contract',
+						message: 'backend declares policy contract 2',
+					},
+					policyPending: true,
+					revision: 4,
+				})
+			)
+		);
+
+		emitNativeEvent('snapshot', JSON.stringify({ revision: 4 }));
+
+		expect(codes.calls()).toBe(1);
+		expect(client.getSnapshot().error?.code).toBe('unsupported-contract');
+
+		codes.stop();
+	});
 });
 
 describe('actions', () => {

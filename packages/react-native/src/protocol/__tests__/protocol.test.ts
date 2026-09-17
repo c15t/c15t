@@ -84,6 +84,7 @@ const OVERRIDE_KEYS = ['country', 'gpc', 'language', 'region'].sort();
 const GPC_SIGNAL_KEYS = ['active', 'detected', 'override'].sort();
 
 const MANDATED_FIXTURES = [
+	'revision-trace-error-writes',
 	'evaluation-eu-opt-in',
 	'evaluation-gpc-signal-present',
 	'evaluation-no-rule-matched',
@@ -95,7 +96,7 @@ const MANDATED_FIXTURES = [
 
 interface FixtureFile {
 	id: string;
-	kind: 'evaluation' | 'save-body' | 'storage';
+	kind: 'evaluation' | 'revision-trace' | 'save-body' | 'storage';
 	protocolVersion: number;
 	description: string;
 	notes: string[];
@@ -107,7 +108,7 @@ interface IndexEntry {
 	bytes: number;
 	file: string;
 	id: string;
-	kind: 'evaluation' | 'save-body' | 'storage';
+	kind: 'evaluation' | 'revision-trace' | 'save-body' | 'storage';
 	protocolVersion: number;
 	sha256: string;
 }
@@ -146,6 +147,12 @@ const snapshotsIn = function snapshotsIn(
 ): Record<string, Record<string, unknown>> {
 	if (fixture.kind === 'evaluation' || fixture.kind === 'storage') {
 		return { snapshot: fixture.expected.snapshot as Record<string, unknown> };
+	}
+	if (fixture.kind === 'revision-trace') {
+		// The trace fixture asserts a revision trace, not a snapshot. Its snapshot is
+		// the one each core starts from, which `native/CONTRACT.md` refuses to compare
+		// across implementations.
+		return {};
 	}
 	return {
 		snapshotAfter: fixture.expected.snapshotAfter as Record<string, unknown>,
@@ -284,7 +291,12 @@ describe('protocol fixtures', () => {
 	test('each file is named after its kind and describes itself', () => {
 		expect(fixtures.length).toBeGreaterThan(0);
 		for (const fixture of fixtures) {
-			expect(['evaluation', 'save-body', 'storage']).toContain(fixture.kind);
+			expect([
+				'evaluation',
+				'revision-trace',
+				'save-body',
+				'storage',
+			]).toContain(fixture.kind);
 			expect(fixture.id.startsWith(`${fixture.kind}-`)).toBe(true);
 			expect(fixture.description.length).toBeGreaterThan(30);
 			expect(fixture.notes.length).toBeGreaterThan(0);
