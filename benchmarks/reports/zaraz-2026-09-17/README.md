@@ -47,6 +47,11 @@ Custom HTML, which still executes in the browser. A vendor-specific comparison
 requires the same events and destination through both its direct SDK and a
 supported Zaraz server-side tool.
 
+The existing browser lifecycle comparison also passed all 12 budgets across
+six scenarios against the same v3 base. See `lifecycle-comparison.md` for the
+paired measurements. An initial run alongside Local CI failed five timing
+budgets; the rerun with those checks idle passed without changing code or budgets.
+
 ## Reproduce
 
 From the repository root, with workspace dependencies installed:
