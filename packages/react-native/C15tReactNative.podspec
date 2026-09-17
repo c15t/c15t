@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.version      = package["version"]
   s.summary      = package["description"]
   s.homepage     = package["repository"]["url"]
-  s.license      = { :type => "Apache-2.0", :file => "../../LICENSE" }
+  s.license      = { :type => "Apache-2.0", :file => "../../LICENSE.md" }
   s.authors      = { "c15t" => "https://c15t.com" }
   s.source       = { :git => "https://github.com/c15t/c15t.git", :tag => "react-native@#{s.version}" }
 

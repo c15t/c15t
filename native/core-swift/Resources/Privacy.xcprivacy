@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		The consent kernel neither tracks nor fingerprints. Consent state stays in the
+		Keychain until a save is sent, and the kernel reads no required-reason API: no
+		file timestamps, no system boot time, no disk-space probes. What a host app
+		collects by sending consent records to its own backend is the host's to declare
+		in its app-level manifest, which this one cannot know.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>

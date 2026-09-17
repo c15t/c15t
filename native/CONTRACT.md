@@ -259,6 +259,38 @@ Swift core, as built
   from `/init`. Neither native core can assert against them yet. Fix the generator
   to emit the wire shape and wire both native test suites to it.
 
+iOS packaging, as built
+-----------------------
+
+A host app integrates two pods, both resolvable from this repository:
+
+    platform :ios, '16.4'
+
+    pod 'C15tCore',         :path => '../native/core-swift'
+    pod 'C15tReactNative',  :path => '../packages/react-native'
+
+- `C15tCore.podspec` mirrors `Package.swift`: the iOS 16.4 floor, `Sources/C15tCore`
+  only, and `Resources/Privacy.xcprivacy` in a `C15tCore` resource bundle, the same
+  shape the binding's podspec uses. `C15tCoreBench` is an executable and has no pod
+  product. The app must declare iOS 16.4, which is above RN 0.87's own 15.1 floor.
+- `packages/react-native/package.json` needs
+  `codegenConfig.ios.modules.C15t.className = "C15tReactNativeModule"`, because RN
+  0.87 resolves TurboModules through generated `RCTModuleProviders`. Verified by
+  running RN's own generator against this package: it emits
+  `@"C15t": @"C15tReactNativeModule", // @c15t/react-native`.
+- `com.c15t.reactnative.AutoBootstrap = false` in `Info.plist` skips the constructor
+  that starts the core before React Native initializes. An app that does that must
+  call `C15tReactNativeRuntime.install(core:)` or `startCore()` itself, before the
+  React host starts, or the module reads an empty deny-all store.
+- Resolution is proven, not parsed: `pod install` in a throwaway RN 0.87.1 app under
+  /tmp installed 85 pods including both c15t pods from those paths, under
+  CocoaPods 1.17.0 and `DEVELOPER_DIR` pointing at Xcode 27.
+- Open blocker owned by the binding package, not the cores: RN's codegen loads a
+  library's `react-native.config.js` with `require`, and that file is CommonJS in a
+  package declaring `"type": "module"`, so codegen run in library mode dies with
+  `module is not defined in ES module scope`. App-mode codegen with a real autolinking
+  step reads the config from `autolinking.json` and is unaffected.
+
 Expo config plugin, as built
 ----------------------------
 
