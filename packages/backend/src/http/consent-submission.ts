@@ -622,6 +622,15 @@ export interface AttributionFields {
  */
 const ATTRIBUTION_TEXT_MAX = 128;
 
+/**
+ * Largest `timeToDecisionMs` stored on its column.
+ *
+ * The column is `integer`, which is a signed 32-bit `int` on MySQL and
+ * Postgres. A larger value would fail the whole consent insert there, so it
+ * is dropped here instead; about 24 days is far past any real decision.
+ */
+const TIME_TO_DECISION_MAX_MS = 2_147_483_647;
+
 const attributionText = (value: unknown): string | undefined =>
 	typeof value === 'string' &&
 	value.length > 0 &&
@@ -639,6 +648,11 @@ const attributionText = (value: unknown): string | undefined =>
  * Anything malformed is dropped, never rejected: attribution is analytics,
  * and a consent save must not fail over it. A value that is missing here is
  * still in `metadata` for the audit trail.
+ *
+ * The id and the arm are kept together or dropped together. The summary
+ * filters on `experimentVariant is not null`, so an id without an arm would
+ * be a row no report ever counts, and an arm without an id belongs to no
+ * experiment.
  */
 const attributionFields = (
 	metadata: Record<string, unknown> | undefined
@@ -648,12 +662,19 @@ const attributionFields = (
 		experiment !== null && typeof experiment === 'object'
 			? (experiment as Record<string, unknown>)
 			: undefined;
+	const experimentId = attributionText(arm?.id);
+	const experimentVariant = attributionText(arm?.variant);
+	const complete =
+		experimentId !== undefined && experimentVariant !== undefined;
 	const ms = metadata?.timeToDecisionMs;
 	return {
-		experimentId: attributionText(arm?.id),
-		experimentVariant: attributionText(arm?.variant),
+		experimentId: complete ? experimentId : undefined,
+		experimentVariant: complete ? experimentVariant : undefined,
 		timeToDecisionMs:
-			typeof ms === 'number' && Number.isSafeInteger(ms) && ms >= 0
+			typeof ms === 'number' &&
+			Number.isInteger(ms) &&
+			ms >= 0 &&
+			ms <= TIME_TO_DECISION_MAX_MS
 				? ms
 				: undefined,
 	};
