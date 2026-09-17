@@ -6,13 +6,10 @@
 
 import * as v from 'valibot';
 
-/** An ISO 8601 date or timestamp `Date.parse` accepts. */
-const isoDateSchema = v.pipe(
-	v.string(),
-	v.check(
-		(value) => !Number.isNaN(Date.parse(value)),
-		'Expected an ISO 8601 date or timestamp'
-	)
+/** An ISO 8601 date (`2026-09-30`) or timestamp (`2026-09-30T23:59:59Z`). */
+const isoDateOrTimestampSchema = v.union(
+	[v.pipe(v.string(), v.isoDate()), v.pipe(v.string(), v.isoTimestamp())],
+	'Expected an ISO 8601 date or timestamp'
 );
 
 /**
@@ -21,23 +18,53 @@ const isoDateSchema = v.pipe(
 export const experimentSummaryQuerySchema = v.object({
 	/** Only consents recorded for this domain name. */
 	domain: v.optional(
-		v.pipe(v.string(), v.minLength(1), v.examples(['example.com']))
+		v.pipe(
+			v.string(),
+			v.minLength(1),
+			v.description('Only consents recorded for this domain name.'),
+			v.examples(['example.com'])
+		)
 	),
-	/** Only consents given at or after this instant. */
+	/**
+	 * Only consents given at or after this instant. A date without a time
+	 * means the start of that day, UTC.
+	 */
 	from: v.optional(
-		v.pipe(isoDateSchema, v.examples(['2026-09-01', '2026-09-01T00:00:00Z']))
+		v.pipe(
+			isoDateOrTimestampSchema,
+			v.description(
+				'Only consents given at or after this instant. A date without a ' +
+					'time means the start of that day, UTC. Must not be later than `to`.'
+			),
+			v.examples(['2026-09-01', '2026-09-01T00:00:00Z'])
+		)
 	),
-	/** Only consents given at or before this instant. */
-	to: v.optional(v.pipe(isoDateSchema, v.examples(['2026-09-30T23:59:59Z']))),
+	/**
+	 * Only consents given at or before this instant. A date without a time
+	 * means the end of that day, UTC, so `to=2026-09-30` includes the 30th.
+	 */
+	to: v.optional(
+		v.pipe(
+			isoDateOrTimestampSchema,
+			v.description(
+				'Only consents given at or before this instant. A date without a ' +
+					'time means the end of that day, UTC, so `2026-09-30` includes ' +
+					'the whole of the 30th.'
+			),
+			v.examples(['2026-09-30', '2026-09-30T23:59:59Z'])
+		)
+	),
 });
 
 /**
  * One arm of an experiment, as the summary reports it.
  */
 export const experimentVariantSummarySchema = v.object({
-	/** Consents recorded under this arm, `byAction` and `bySurface` summed. */
+	/** Consents per `consentAction` (`all`, `necessary`, `custom`, …). */
 	byAction: v.record(v.string(), v.number()),
+	/** Consents per `uiSource` (`banner`, `dialog`, `widget`, …). */
 	bySurface: v.record(v.string(), v.number()),
+	/** Consents recorded under this arm, `byAction` and `bySurface` summed. */
 	choices: v.pipe(v.number(), v.integer(), v.minValue(0)),
 	/**
 	 * Median `timeToDecisionMs` over the choices that carried one, or `null`

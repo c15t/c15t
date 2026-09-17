@@ -441,7 +441,7 @@ curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-
 {
 	"experimentId": "banner-shape",
 	"from": "2026-09-01T00:00:00.000Z",
-	"to": "2026-09-30T00:00:00.000Z",
+	"to": "2026-09-30T23:59:59.999Z",
 	"variants": [
 		{
 			"variant": "bar",
@@ -461,18 +461,21 @@ curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-
 }
 ```
 
-`from` and `to` accept any ISO 8601 date or timestamp and filter on the
-consent's `givenAt`; `domain` narrows to one domain name. An experiment id no
-consent carries returns `variants: []`. The `@c15t/node-sdk` client exposes
-the same call as `client.experiments.summary(id, { from, to, domain })`.
+`from` and `to` accept an ISO 8601 date or timestamp and filter on the
+consent's `givenAt`, both ends inclusive. A date without a time is the whole
+of that day in UTC: `from=2026-09-01` starts at midnight and `to=2026-09-30`
+runs to the end of the 30th, so the example above covers all of September. A
+`from` later than `to` is a 400. `domain` narrows to one domain name. An
+experiment id no consent carries returns `variants: []`. The
+`@c15t/node-sdk` client exposes the same call as
+`client.experiments.summary(id, { from, to, domain })`.
 
 The summary counts choices only. Impressions and notice dismissals never
 reach the backend, so it cannot give you an opt-in rate on its own: the
 denominator comes from the `c15t_surface_shown` events `reportTo` sends to
 your analytics. Use the summary to check the split of actions and surfaces
 per arm, and the median time to decision, against what your analytics tool
-reports. The median is computed from the lowest 50,000 `timeToDecisionMs`
-values per arm; narrow the window if an arm has more choices than that.
+reports.
 
 ## Try it
 

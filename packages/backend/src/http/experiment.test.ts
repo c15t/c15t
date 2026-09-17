@@ -226,6 +226,70 @@ for (const engine of ENGINES) {
 			});
 		});
 
+		it('reads the exact median from the middle of the ordered values', async () => {
+			// Seven and six samples, spread so that any median taken from a
+			// prefix or a suffix of the ordered values is far from the real one.
+			const odd = [3000, 1, 2000, 100, 2, 1000, 3];
+			const even = [1000, 1, 150, 2, 900, 50];
+			await runtime.runPromise(
+				Effect.gen(function* seedSamples() {
+					const sql = yield* SqlClient.SqlClient;
+					const encode = yield* encoder;
+					const now = new Date(T0);
+					yield* sql`insert into ${sql('domain')} ${sql.insert(
+						encodeRow(encode, {
+							createdAt: now,
+							id: 'dom_1',
+							name: 'example.com',
+							updatedAt: now,
+						})
+					)}`;
+					yield* sql`insert into ${sql('subject')} ${sql.insert(
+						encodeRow(encode, { createdAt: now, id: 'sub_1', updatedAt: now })
+					)}`;
+					const arms = [
+						['odd', odd],
+						['even', even],
+					] as const;
+					for (const [variant, samples] of arms) {
+						for (const [index, ms] of samples.entries()) {
+							yield* sql`insert into ${sql('consent')} ${sql.insert(
+								encodeRow(encode, {
+									consentAction: 'all',
+									domainId: 'dom_1',
+									experimentId: 'banner-shape',
+									experimentVariant: variant,
+									givenAt: now,
+									id: `cns_${variant}_${index}`,
+									purposeIds: '[]',
+									subjectId: 'sub_1',
+									tenantId: null,
+									timeToDecisionMs: ms,
+									uiSource: 'banner',
+								})
+							)}`;
+						}
+					}
+				})
+			);
+
+			const body = await summary();
+			assert.deepStrictEqual(
+				body.variants.map(
+					(arm: { variant: string; medianTimeToDecisionMs: number }) => [
+						arm.variant,
+						arm.medianTimeToDecisionMs,
+					]
+				),
+				[
+					// 1, 2, 50, 150, 900, 1000: the two middle values, averaged.
+					['even', 100],
+					// 1, 2, 3, 100, 1000, 2000, 3000: the fourth value.
+					['odd', 100],
+				]
+			);
+		});
+
 		it('narrows to a window on givenAt', async () => {
 			await seed();
 			const from = new Date(T0 + HOUR).toISOString();
@@ -248,6 +312,48 @@ for (const engine of ENGINES) {
 					.choices,
 				5
 			);
+		});
+
+		it('treats a date-only `to` as the end of that day', async () => {
+			await seed();
+			// cns_5 is three hours after T0, on the same UTC day. A `to` that
+			// stopped at midnight would leave it out.
+			const day = new Date(T0).toISOString().slice(0, 10);
+			const body = await summary(`?to=${day}`);
+
+			assert.strictEqual(body.to, `${day}T23:59:59.999Z`);
+			assert.strictEqual(
+				body.variants.find((arm: { variant: string }) => arm.variant === 'bar')
+					.choices,
+				6
+			);
+
+			const from = await summary(`?from=${day}`);
+			assert.strictEqual(from.from, `${day}T00:00:00.000Z`);
+		});
+
+		it('rejects a window that ends before it starts', async () => {
+			const response = await app.request(
+				`/experiments/banner-shape/summary?from=${new Date(
+					T0 + HOUR
+				).toISOString()}&to=${new Date(T0).toISOString()}`,
+				authed
+			);
+			assert.strictEqual(response.status, 400);
+			const body = await response.json();
+			assert.strictEqual(body.cause.code, 'INPUT_VALIDATION_FAILED');
+			assert.match(body.message, /from must not be later than to/u);
+		});
+
+		it('rejects an empty domain', async () => {
+			const response = await app.request(
+				'/experiments/banner-shape/summary?domain=',
+				authed
+			);
+			assert.strictEqual(response.status, 400);
+			const body = await response.json();
+			assert.strictEqual(body.cause.code, 'INPUT_VALIDATION_FAILED');
+			assert.match(body.message, /domain/u);
 		});
 
 		it('narrows to one domain', async () => {
@@ -288,6 +394,20 @@ for (const engine of ENGINES) {
 			assert.strictEqual(response.status, 400);
 			const body = await response.json();
 			assert.strictEqual(body.cause.code, 'INPUT_VALIDATION_FAILED');
+			assert.match(
+				body.message,
+				/from: Expected an ISO 8601 date or timestamp/u
+			);
+		});
+
+		it('lists the query parameters in the OpenAPI document', async () => {
+			const spec = await (await app.request('/spec.json')).json();
+			const operation = spec.paths['/experiments/{id}/summary'].get;
+			const names = operation.parameters.map(
+				(parameter: { in: string; name: string }) =>
+					`${parameter.in}:${parameter.name}`
+			);
+			assert.includeMembers(names, ['query:domain', 'query:from', 'query:to']);
 		});
 
 		it('sees only its own tenant', async () => {
