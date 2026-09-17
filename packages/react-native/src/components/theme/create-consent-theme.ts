@@ -26,14 +26,13 @@ export interface ConsentThemeColors {
 	readonly text: string;
 	/** Secondary text, such as a category description. */
 	readonly textMuted: string;
-	/** Accent: the outline and label of the primary actions, and the switch track when on. */
+	/**
+	 * Accent: the outline and label of the two decision actions, and the switch
+	 * track when on. Nothing in the built-in surfaces fills with it.
+	 */
 	readonly primary: string;
-	/** Text on a filled {@link ConsentThemeColors.primary}. */
+	/** Text on a filled {@link ConsentThemeColors.primary}, for a host that fills one. */
 	readonly onPrimary: string;
-	/** Background of the outlined secondary buttons, which sit on the card surface. */
-	readonly secondary: string;
-	/** Text on {@link ConsentThemeColors.secondary}. */
-	readonly onSecondary: string;
 	/** Focus and selected outline. */
 	readonly focus: string;
 	/** Off-state switch track. */
@@ -68,11 +67,26 @@ export interface ConsentTypeStyle {
 	readonly weight: '500' | '600' | '400';
 }
 
-/** Type scale. `Text` applies the platform font scale on its own. */
+/**
+ * Type scale. `Text` applies the platform font scale on its own.
+ *
+ * The banner and the sheet do not share a pairing, so the scale carries both:
+ * a banner heading is larger than its copy (`1rem` over `0.875rem` in
+ * `prompt.module.css`) and a sheet heading is smaller than its copy (`sm`
+ * semibold over `base` in `panel.module.css`). One shared pair can only be
+ * right about one of them.
+ */
 export interface ConsentThemeTypography {
-	/** Surface title. */
+	/** Banner heading: 16/24 medium, larger than the copy under it. */
+	readonly bannerTitle: ConsentTypeStyle;
+	/**
+	 * Small copy: 14/20 regular. The banner body, and the category description
+	 * inside a sheet, which is the same `0.875rem` in `accordion.module.css`.
+	 */
+	readonly bannerBody: ConsentTypeStyle;
+	/** Sheet title: 14 semibold, smaller than the body under it. */
 	readonly title: ConsentTypeStyle;
-	/** Body copy and category descriptions. */
+	/** Body copy of a sheet. */
 	readonly body: ConsentTypeStyle;
 	/** Button label. */
 	readonly label: ConsentTypeStyle;
@@ -163,6 +177,8 @@ const baseSpacing: ConsentThemeSpacing = {
 const baseRadius: ConsentThemeRadius = { control: 8, surface: 12 };
 
 const baseTypography: ConsentThemeTypography = {
+	bannerBody: { fontSize: 14, lineHeight: 20, weight: '400' },
+	bannerTitle: { fontSize: 16, lineHeight: 24, weight: '500' },
 	body: { fontSize: 16, lineHeight: 24, weight: '400' },
 	caption: { fontSize: 13, lineHeight: 18, weight: '400' },
 	label: { fontSize: 14, lineHeight: 18, weight: '500' },
@@ -181,10 +197,8 @@ const lightColors: ConsentThemeColors = {
 	border: '#E5E5E5',
 	focus: '#335CFF',
 	onPrimary: '#FFFFFF',
-	onSecondary: '#1A1A1A',
 	overlay: 'rgba(0, 0, 0, 0.5)',
 	primary: '#335CFF',
-	secondary: '#FFFFFF',
 	surface: '#FFFFFF',
 	surfaceRaised: '#FAFAFA',
 	switchThumb: '#FFFFFF',
@@ -198,10 +212,8 @@ const darkColors: ConsentThemeColors = {
 	border: '#333333',
 	focus: '#6685FF',
 	onPrimary: '#FFFFFF',
-	onSecondary: '#EDEDED',
 	overlay: 'rgba(0, 0, 0, 0.7)',
 	primary: '#6685FF',
-	secondary: '#121212',
 	surface: '#121212',
 	surfaceRaised: '#1A1A1A',
 	switchThumb: '#EDEDED',

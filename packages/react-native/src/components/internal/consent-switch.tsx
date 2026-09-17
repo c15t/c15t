@@ -12,7 +12,7 @@
  * the smaller visual does not cost anybody a reliable tap.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
@@ -87,8 +87,10 @@ export const ConsentSwitch = ({
 	// `DimensionValue` also admits percentages, which have no fixed meaning here,
 	// so anything that is not a plain number falls back to the geometry the part
 	// was built with rather than turning the travel into NaN.
-	const points = (value: unknown, fallback: number): number =>
-		typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+	const points = (candidate: unknown, fallback: number): number =>
+		typeof candidate === 'number' && Number.isFinite(candidate)
+			? candidate
+			: fallback;
 	// The thumb stops one pad short of each end of the track, so a host that
 	// widens the track through the part moves the end of the travel with it.
 	const travel = Math.max(
@@ -96,11 +98,22 @@ export const ConsentSwitch = ({
 		points(track.width, width) - thumb - 2 * points(track.padding, padding)
 	);
 
-	const position = useRef(new Animated.Value(value ? 1 : 0)).current;
+	// One value for the life of the control, and it starts at zero rather than at
+	// `value`: the memo may not read `value` without taking it as a dependency,
+	// and a ref read here would be a ref read during render. The effect below
+	// parks it on the real position with no animation the first time through, so
+	// a category that was already on does not slide its thumb as the sheet opens.
+	const position = useMemo(() => new Animated.Value(0), []);
+	const primed = useRef(false);
 
 	useEffect(() => {
+		const first = !primed.current;
+
+		primed.current = true;
+
 		Animated.timing(position, {
-			duration: reducedMotion ? SWITCH_REDUCED_DURATION : SWITCH_DURATION,
+			duration:
+				first || reducedMotion ? SWITCH_REDUCED_DURATION : SWITCH_DURATION,
 			toValue: value ? 1 : 0,
 			useNativeDriver: true,
 		}).start();

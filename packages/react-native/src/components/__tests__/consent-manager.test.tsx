@@ -215,6 +215,70 @@ describe('ConsentDialog', () => {
 		tree.unmount();
 	});
 
+	test('accept all writes the whole grant and abandons the draft', async () => {
+		// The label promises everything, so the switches the subject had been
+		// flicking are dropped rather than carried into the decision: the write is
+		// the blanket grant and nothing else.
+		const onRequestClose = vi.fn();
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={onRequestClose}
+				open
+			/>
+		);
+
+		tap(requireRole(tree.container(), 'switch', 'Messung'));
+		tap(requireRole(tree.container(), 'button', 'Alle akzeptieren'));
+		await flushPromises();
+
+		expect(tree.fake.commitIntents).toEqual(['{"action":"all"}']);
+		expect(onRequestClose).toHaveBeenCalledTimes(1);
+
+		tree.unmount();
+	});
+
+	test('reject all writes the minimum and closes the sheet', async () => {
+		const onRequestClose = vi.fn();
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={onRequestClose}
+				open
+			/>
+		);
+
+		tap(requireRole(tree.container(), 'switch', 'Messung'));
+		tap(requireRole(tree.container(), 'button', 'Alle ablehnen'));
+		await flushPromises();
+
+		expect(tree.fake.commitIntents).toEqual(['{"action":"necessary"}']);
+		expect(onRequestClose).toHaveBeenCalledTimes(1);
+
+		tree.unmount();
+	});
+
+	test('a decision the core rejects leaves the draft where it was', async () => {
+		const onRequestClose = vi.fn();
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={onRequestClose}
+				open
+			/>
+		);
+
+		tree.fake.failCommitWith('the core replied with prose');
+		tap(requireRole(tree.container(), 'switch', 'Werbung'));
+		tap(requireRole(tree.container(), 'button', 'Alle akzeptieren'));
+		await flushPromises();
+
+		// The draft survives a failed decision, so the subject is not sent back
+		// through switches they already set.
+		expect(tree.text()).toContain('Zustimmung verwalten');
+		expect(checked(tree, 'Werbung')).toBe('true');
+		expect(onRequestClose).not.toHaveBeenCalled();
+
+		tree.unmount();
+	});
+
 	test('offers the host preference centre only when it has one', () => {
 		const onOpenPreferences = vi.fn();
 		const withEntry = mountDialog(translatedSnapshot(), { onOpenPreferences });
@@ -274,6 +338,26 @@ describe('ConsentPreferences', () => {
 		tap(requireRole(tree.container(), 'button', 'Schliessen'));
 
 		expect(tree.fake.commitIntents).toEqual([]);
+		expect(onRequestClose).toHaveBeenCalledTimes(1);
+
+		tree.unmount();
+	});
+
+	test('a standing grant can be rewritten without the switches', async () => {
+		// The centre opens long after the prompt was answered, and the same two
+		// decisions the web manager offers have to be reachable from here too.
+		const onRequestClose = vi.fn();
+		const tree = mountSurface(
+			<ConsentPreferences
+				onRequestClose={onRequestClose}
+				open
+			/>
+		);
+
+		tap(requireRole(tree.container(), 'button', 'Alle akzeptieren'));
+		await flushPromises();
+
+		expect(tree.fake.commitIntents).toEqual(['{"action":"all"}']);
 		expect(onRequestClose).toHaveBeenCalledTimes(1);
 
 		tree.unmount();

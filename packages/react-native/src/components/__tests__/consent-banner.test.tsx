@@ -368,8 +368,10 @@ describe('banner action row', () => {
 			expect(label.fontWeight).toBe('500');
 		};
 
+		// Both decisions carry the accent and only the detour below them is
+		// neutral, which is how the web banner reads at a glance.
 		outlined('Alle akzeptieren', true);
-		outlined('Alle ablehnen', false);
+		outlined('Alle ablehnen', true);
 		outlined('Auswahlen', false);
 
 		tree.unmount();

@@ -116,6 +116,36 @@ const BANNER_SHADOW = '0 8px 24px rgba(0, 0, 0, 0.12)';
 const HAIRLINE = 1;
 
 /**
+ * The banner footer's left and right inset: 20.
+ *
+ * `prompt.module.css` pads `.footer` `1rem 1.25rem`, so the band is 16 deep and
+ * 20 in from the card edge, which is 4 wider than the header above it. The
+ * measurement agrees: card border to button border is 46 image px at dsf 2.
+ * 20 is not a step on the 4/8/16/24/32 scale, so it stays its own constant
+ * rather than bending the scale, which every other rhythm reads from.
+ */
+export const BANNER_FOOTER_PADDING_HORIZONTAL = 20;
+
+/**
+ * A button's vertical padding: 10.
+ *
+ * `button.module.css` pads `0.625rem 1rem`. It only decides the height when the
+ * label plus this padding beats `MIN_TAP_TARGET`, which on a phone it does not,
+ * so a control still lands at 44 and the padding is what a large system font
+ * grows the button from.
+ */
+const BUTTON_PADDING_VERTICAL = 10;
+
+/**
+ * The gap between two category cards: 12.
+ *
+ * `accordion.module.css` stacks `.item`s with `--accordion-stack-gap`, which is
+ * `0.75rem`. The cards are separated rather than divided, so the gap belongs to
+ * the list and not to a row, which is why it lives on the scroll content.
+ */
+const CATEGORY_STACK_GAP = 12;
+
+/**
  * A text style, from a type token and a colour.
  *
  * A theme spells its weight `weight` because that is the shorter name in a type
@@ -150,6 +180,14 @@ const textStyle = function textStyle(
  */
 export const useConsentStyles = function useConsentStyles(
 	options: {
+		/**
+		 * Which surface is asking, because the type roles differ.
+		 *
+		 * A banner reads `bannerTitle` over `bannerBody` and a sheet reads `title`
+		 * over `body`. Defaults to a sheet, which is the pair the scale had before
+		 * the banner roles existed.
+		 */
+		readonly presentation?: 'banner' | 'modal';
 		readonly styles?: ConsentPartStyles;
 		readonly theme?: ConsentTheme;
 	} = {}
@@ -157,7 +195,7 @@ export const useConsentStyles = function useConsentStyles(
 	const scheme = resolveConsentColorScheme(useColorScheme());
 	const { fontScale, height } = useWindowDimensions();
 	const safeArea = useConsentSafeArea();
-	const { styles, theme } = options;
+	const { presentation = 'modal', styles, theme } = options;
 
 	// A host theme is used exactly as given, including its colors: overriding
 	// only the palette would make `createConsentTheme` surprising. Built in a
@@ -183,6 +221,12 @@ export const useConsentStyles = function useConsentStyles(
 
 	return useMemo(() => {
 		const { colors, radius, spacing, typography } = resolvedTheme;
+		// The banner heading is larger than its copy and the sheet heading is
+		// smaller than its, so the roles are picked here rather than in a part.
+		const titleType =
+			presentation === 'banner' ? typography.bannerTitle : typography.title;
+		const bodyType =
+			presentation === 'banner' ? typography.bannerBody : typography.body;
 		const controlMinHeight = Math.max(
 			MIN_TAP_TARGET,
 			Math.round(typography.label.lineHeight * scaled)
@@ -241,23 +285,37 @@ export const useConsentStyles = function useConsentStyles(
 			},
 			caption: textStyle(typography.caption, colors.textMuted),
 			captionLink: textStyle(typography.caption, colors.text),
-			categoryDescription: textStyle(typography.body, colors.textMuted),
+			// `accordion.module.css` paints the description at `0.875rem` too, so a
+			// category row and the banner body read from one small-copy role.
+			categoryDescription: textStyle(typography.bannerBody, colors.textMuted),
+			// One bordered card per category, not a divided list: `.item` is a 1px
+			// border in the border token with `.triggerRow` padded by `space-sm`.
+			// The radius is the accordion's own `radius-md`, which measures 8 rather
+			// than the 12 a dialog card carries.
 			categoryRow: {
 				alignItems: 'center',
+				backgroundColor: colors.surface,
+				borderColor: colors.border,
+				borderRadius: radius.control,
+				borderWidth: HAIRLINE,
 				flexDirection: 'row',
-				gap: spacing.m,
-				paddingVertical: spacing.m,
+				gap: spacing.xs,
+				padding: spacing.s,
 			},
+			// The web title sits at 14 too, and drops to the inherited weight:
+			// `.trigger` asks for `--c15t-font-weight-regular`, which the token map
+			// never emits, so the declaration is invalid and the row inherits 400.
+			// The medium stays because the row keeps no disclosure icon to say "this
+			// is the heading", which leaves weight as the one cue that is not colour.
 			categoryTitle: textStyle(typography.label, colors.text),
-			description: textStyle(typography.body, colors.textMuted),
-			// The band a footer sits on, and the step between its action rows, are
-			// facts about the presentation. `ConsentSurfaceFooter` adds them under
-			// this part, so a host override here still wins.
+			description: textStyle(bodyType, colors.textMuted),
+			// The band, the rule above it, the padding, and the step between the
+			// action rows are all facts about the presentation rather than the
+			// theme. `ConsentSurfaceFooter` adds them under this part, so a host
+			// override here still wins.
 			footer: {
 				alignItems: 'stretch',
 				flexDirection: 'column',
-				paddingHorizontal: spacing.m,
-				paddingVertical: spacing.m,
 			},
 			handle: {
 				alignSelf: 'center',
@@ -284,7 +342,7 @@ export const useConsentStyles = function useConsentStyles(
 				justifyContent: 'center',
 				minHeight: controlMinHeight,
 				paddingHorizontal: spacing.m,
-				paddingVertical: spacing.s,
+				paddingVertical: BUTTON_PADDING_VERTICAL,
 			},
 			primaryLabel: {
 				...textStyle(typography.label, colors.primary),
@@ -292,6 +350,10 @@ export const useConsentStyles = function useConsentStyles(
 			},
 			row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.m },
 			scroll: { flexGrow: 0, flexShrink: 1, paddingHorizontal: spacing.m },
+			// The list of category cards. The separation lives here because the
+			// stack gap belongs between the cards, where a row's own padding would
+			// also put one above the footer.
+			scrollContent: { gap: CATEGORY_STACK_GAP },
 			secondaryButton: {
 				alignItems: 'center',
 				backgroundColor: colors.surface,
@@ -304,7 +366,7 @@ export const useConsentStyles = function useConsentStyles(
 				justifyContent: 'center',
 				minHeight: controlMinHeight,
 				paddingHorizontal: spacing.m,
-				paddingVertical: spacing.s,
+				paddingVertical: BUTTON_PADDING_VERTICAL,
 			},
 			secondaryLabel: {
 				...textStyle(typography.label, colors.text),
@@ -328,7 +390,7 @@ export const useConsentStyles = function useConsentStyles(
 				padding: CONSENT_SWITCH_GEOMETRY.padding,
 				width: CONSENT_SWITCH_GEOMETRY.width,
 			},
-			title: textStyle(typography.title, colors.text),
+			title: textStyle(titleType, colors.text),
 		};
 
 		const parts = { ...base } as ConsentResolvedParts;
@@ -354,5 +416,13 @@ export const useConsentStyles = function useConsentStyles(
 		};
 		// `bannerLayer` and `sheetLayer` are built inside: they move with
 		// `safeArea`, `bodyHeight`, and the theme, which are all listed.
-	}, [bodyHeight, resolvedTheme, safeArea, scaled, scheme, styles]);
+	}, [
+		bodyHeight,
+		presentation,
+		resolvedTheme,
+		safeArea,
+		scaled,
+		scheme,
+		styles,
+	]);
 };

@@ -37,6 +37,7 @@ import type {
 	ConsentThemeColors,
 	ConsentThemeSpacing,
 } from '../theme/create-consent-theme';
+import { BANNER_FOOTER_PADDING_HORIZONTAL } from '../theme/use-consent-styles';
 import type { ConsentStyles } from '../theme/use-consent-styles';
 import { useAnnounceOnOpen } from './use-announce-on-open';
 import { useModalA11y } from './use-modal-a11y';
@@ -119,7 +120,11 @@ export const ConsentSurfaceBody = ({
 			keyboardShouldPersistTaps="handled"
 			style={[parts.scroll, { maxHeight: maxBodyHeight }]}
 		>
-			{children}
+			{/*
+			 * A plain wrapper rather than `contentContainerStyle`, so the list's own
+			 * rhythm is a restylable part the way every other rhythm here is.
+			 */}
+			<View style={parts.scrollContent}>{children}</View>
 		</ScrollView>
 	);
 };
@@ -127,23 +132,30 @@ export const ConsentSurfaceBody = ({
 /**
  * What the footer earns from the surface it sits in.
  *
- * Web treats the two differently: a banner puts its actions on the muted surface
- * with a hairline along the top edge and a full step between the two action rows,
- * and a sheet puts them on the card with the hairline only and a half step. That
- * is a fact about the presentation rather than about a theme, so it goes on under
- * the resolved part, where a host override still wins.
+ * The two are measured apart rather than inferred from one another. A banner puts
+ * its actions on the muted band with a hairline along its top edge, 16 deep and
+ * 20 in from the card (`1rem 1.25rem` on `.footer`), with a full step between the
+ * two action rows (`1rem` on `.actionRoot`). A sheet leaves them on the card with
+ * a hairline only, 16 all round (`--consent-dialog-card-padding-mobile`,
+ * `--consent-dialog-footer-padding-y`) and a half step (`--consent-dialog-footer-gap`).
+ *
+ * All of that is a fact about the presentation rather than about a theme, so it
+ * goes on under the resolved `footer` part, where a host override still wins.
  */
 const footerChrome = function footerChrome(
 	colors: ConsentThemeColors,
 	presentation: ConsentSurfacePresentation,
 	spacing: ConsentThemeSpacing
 ): ViewStyle {
+	const banner = presentation === 'banner';
+
 	return {
-		backgroundColor:
-			presentation === 'banner' ? colors.surfaceRaised : colors.surface,
+		backgroundColor: banner ? colors.surfaceRaised : colors.surface,
 		borderTopColor: colors.border,
 		borderTopWidth: 1,
-		gap: presentation === 'banner' ? spacing.m : spacing.s,
+		gap: banner ? spacing.m : spacing.s,
+		paddingHorizontal: banner ? BANNER_FOOTER_PADDING_HORIZONTAL : spacing.m,
+		paddingVertical: spacing.m,
 	};
 };
 

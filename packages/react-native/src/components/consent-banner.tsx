@@ -70,7 +70,9 @@ export const ConsentBanner = ({
 	const actions = useConsentActions();
 	const status = useConsentStatus();
 	const copy = useConsentSelector(selectConsentCopy, isConsentCopyEqual);
-	const surface = useConsentStyles({ styles, theme });
+	// The banner's own type roles: its heading is larger than the copy under it,
+	// which is the opposite of the sheet this component can open.
+	const surface = useConsentStyles({ presentation: 'banner', styles, theme });
 	const [customizing, setCustomizing] = useState(false);
 
 	const notice = status.promptRequirement.kind === 'notice';
@@ -131,15 +133,16 @@ export const ConsentBanner = ({
 					) : (
 						<>
 							{/*
-							 * The two decisions share a row at equal width and customize takes the row
-							 * below them, as it does on the web. With all three in one flex row they
-							 * grew from the same line and the labels decided the arithmetic: measured on
-							 * a device, reject came out 724px wide against customize's 167, which left
-							 * the tertiary action reading as a caption rather than a control.
+							 * The two decisions share a row at equal width, both in the accent, and
+							 * customize takes the row below them in the neutral outline, as it does on
+							 * the web. That split is what tells a decision from a detour before a
+							 * subject reads either label. With all three in one flex row the labels
+							 * decided the arithmetic instead: measured on a device, reject came out
+							 * 724px wide against customize's 167, which left the tertiary action
+							 * reading as a caption rather than a control.
 							 */}
 							<View style={parts.row}>
 								<ConsentButton
-									kind="secondary"
 									label={copy.rejectAll}
 									onPress={() => {
 										void actions.rejectAll();
