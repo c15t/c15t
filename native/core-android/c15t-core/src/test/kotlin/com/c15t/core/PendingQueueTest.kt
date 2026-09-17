@@ -83,6 +83,38 @@ class PendingQueueTest {
 	}
 
 	@Test
+	fun `two payloads queued back to back fly oldest first, unchanged`() {
+		// A device that commits twice with no network is the common case -- accept on
+		// the banner, then tune purposes -- and it is where a queue goes wrong: sending
+		// only the newest, or rebuilding a payload from the state of the moment, both
+		// leave the audit trail describing a choice nobody made.
+		val transport = RecordingTransport().respondSave(SaveOutcome.Unavailable("offline"))
+		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()), transport = transport)
+		kernel.bootstrap()
+
+		kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.MEASUREMENT to true)))
+		kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.MEASUREMENT to false)))
+
+		assertEquals(2, transport.saveRequests.size, "both commits must be queued, not superseded")
+		val attempted = transport.saveRequests.map { json.encodeToString(it) }
+
+		transport.respondSave(SaveOutcome.Delivered)
+		val flushed = kernel.flushPending()
+
+		assertEquals(2, flushed.delivered)
+		assertEquals(0, flushed.remaining)
+		assertEquals(
+			attempted,
+			transport.saveRequests.drop(2).map { json.encodeToString(it) },
+			"both arrive, in the order they were made, with the receipts they were queued with",
+		)
+		assertFalse(
+			kernel.snapshot().explicitChoice?.consents?.get("measurement") == true,
+			"the newer commit still wins locally",
+		)
+	}
+
+	@Test
 	fun `a newer init does not rewrite a queued payload`() {
 		val transport = RecordingTransport().respondSave(SaveOutcome.Unavailable("offline"))
 		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()), transport = transport)
