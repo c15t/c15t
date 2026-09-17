@@ -71,6 +71,20 @@ layer does not have to branch.
 `ready` and `policyPending` are the two flags a native SDK gate must consult.
 While either is unset, every optional category reads `false`.
 
+Both flags latch. Once a device has been told, a later refresh that fails, times out, or
+comes back rejected does not take that back: the core keeps serving the last answer it
+could represent, and a host that already heard `GRANTED` is not told the subject
+refused. A core that un-readies on a bad refresh turns a grant into a retraction, and a
+consent UI that was telling the truth starts flashing a prompt nobody asked for.
+
+Rule 5 is the one exception, and only there, because the core genuinely cannot represent
+the answer any more: a policy resolution it cannot parse serves `policyPending: true`
+with every optional category denied, including one it had granted. That lands on
+`PENDING` rather than `DENIED` deliberately. `DENIED` reads as the subject's own answer
+and invites a host to stop listening, which would make the category unrecoverable when
+the next resolution parses; `PENDING` keeps the host listening so the answer returns by
+itself.
+
 Four fields are deliberately missing from the list above: `promptRequirement`,
 `explicitChoice`, `subject`, and `location`. They are the kernel's own objects and
 they keep the kernel's own key names. `promptRequirement` is `{ kind, reason }`, not
@@ -193,10 +207,20 @@ with the state the UI is showing:
 - Otherwise `GRANTED` where `isAllowed` is true, `DENIED` where it is false.
 
 The decision-carrying `gate` keeps the boolean one's rules: the callback fires at
-registration with the current decision, again on every change, and the returned handle
-cancels it. Add one rule that matters to a late starter: a listener registered after
-the decision has been reached still receives that decision rather than silence, so an
-SDK that initializes two seconds into the launch does not have to know what it missed.
+registration with the current decision, again whenever the decision for that category
+changes, and the returned handle cancels it. Add one rule that matters to a late
+starter: a listener registered after the decision has been reached still receives that
+decision rather than silence, so an SDK that initializes two seconds into the launch
+does not have to know what it missed.
+
+"Whenever the decision changes" is a dedupe, and it is the whole reason this gate
+carries a decision instead of a boolean. A device that publishes five snapshots while
+the answer stays `PENDING` delivers one `PENDING`, not five: a host acts on the
+transition, so each repeat makes it wonder whether its `init` is idempotent, and the
+core cannot know that it is. A decision that moves away and back fires again, which is
+correct, and a host that must act exactly once still guards its own action. The boolean
+`gate` predates this one and keeps its per-snapshot fan-out; narrowing that is a
+separate decision from adding this API.
 
 `decision` and `isReady` hold the same line as `snapshot` and `isAllowed`: one read of
 in-memory state, no disk, no network, no lock held across either. Ad SDKs call these
