@@ -24,6 +24,11 @@
 
 #import <Foundation/Foundation.h>
 
+// The generated Swift interface declares the TurboModule, whose superclass is
+// RCTEventEmitter, so React has to be visible before that header is read. Any file that
+// imports the Swift interface needs this; the constructor below does not use it itself.
+#import <React/RCTEventEmitter.h>
+
 #import "C15tReactNative-Swift.h"
 
 __attribute__((constructor)) static void C15tReactNativeStartCoreEarly(void) {

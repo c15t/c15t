@@ -36,12 +36,24 @@ Pod::Spec.new do |s|
 
   s.frameworks = "Foundation", "Security"
 
-  # RCTEventEmitter, RCTBridgeModule, and the promise blocks. The generated
-  # `NativeC15tSpec` protocol lives in the app's `ReactCodegen` pod, which every React
-  # Native app build has: it is generated during that app's `pod install`, which is why
-  # it is reached through the header search paths below rather than declared as a
-  # dependency. A published pod cannot depend on an artifact only an app build creates.
+  # RCTEventEmitter, RCTBridgeModule, and the promise blocks.
   s.dependency "React-Core"
+
+  # Codegen generates the `NativeC15tSpec` protocol and the `NativeC15tSpecJSI` glue that
+  # the module provider returns, and it writes both into the `ReactCodegen` pod of the app
+  # being built. That pod is created by the same `pod install` that resolves this podspec,
+  # which is why a published library survives naming it: `install_modules_dependencies`,
+  # the helper in `react-native/scripts/cocoapods/new_architecture.rb` that every
+  # third-party library podspec is pointed at, adds this exact dependency. Declaring it
+  # rather than hand-writing a search path also gives the build ordering, since
+  # `ReactCodegen` has to be compiled before this pod can include its headers.
+  #
+  # The rest of the block is the include tree that umbrella header pulls in.
+  s.dependency "ReactCodegen"
+  s.dependency "ReactCommon/turbomodule/core"
+  s.dependency "RCTRequired"
+  s.dependency "RCTTypeSafety"
+  s.dependency "React-bridging"
 
   if core_version && !core_version.empty?
     s.dependency "C15tCore", core_version
@@ -49,15 +61,20 @@ Pod::Spec.new do |s|
     s.dependency "C15tCore"
   end
 
+  # No `HEADER_SEARCH_PATHS` here on purpose. CocoaPods puts the headers of every declared
+  # dependency under `${PODS_ROOT}/Headers/Public`, which is already on the include path
+  # for this pod, and `ReactCodegen.podspec` keeps `header_mappings_dir` at `./`, so the
+  # `C15tSpec` subdirectory the import names is the layout on disk. The four entries that
+  # used to sit here were dead: two pointed at `Pods/Build/Products`, a directory nothing
+  # writes, one pointed three levels above the app at a `build/generated/ios` that does
+  # not exist there, and one pointed at the build products directory of
+  # `ReactCodegen`, which holds only `libReactCodegen.a`.
   s.pod_target_xcconfig = {
     "DEFINES_MODULE" => "YES",
     "SWIFT_OBJC_INTERFACE_HEADER_NAME" => "C15tReactNative-Swift.h",
-    "HEADER_SEARCH_PATHS" => [
-      "\"${PODS_ROOT}/Build/Products/Debug-iphonesimulator\"",
-      "\"${PODS_ROOT}/Build/Products/Debug-iphoneos\"",
-      "\"$(PODS_ROOT)/../../../build/generated/ios\"",
-      "\"$(PODS_CONFIGURATION_BUILD_DIR)/ReactCodegen\"",
-    ].join(" "),
+    # The generated spec includes `std::optional` and jsi, so the pod compiles as the
+    # same C++ standard React Native itself uses.
+    "CLANG_CXX_LANGUAGE_STANDARD" => "c++20",
   }
 
 end

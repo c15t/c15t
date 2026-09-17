@@ -24,8 +24,21 @@ import React
 /// SDKs call both on the main thread. Everything that could block returns a promise,
 /// and those promises resolve as soon as the local commit is durable, with delivery
 /// left to the core's own scheduler.
+///
+/// The class deliberately omits the `NativeC15tSpec` conformance that the TypeScript
+/// spec implies. Codegen emits that protocol into an ObjC++ umbrella header whose first
+/// line is `#error This file must be compiled as Obj-C++`, so no Swift file can name it:
+/// the conformance, and the `getTurboModule:` factory `RCTModuleProviders` requires, live
+/// in `C15tReactNativeModule.mm`.
+///
+/// That split leaves one sharp edge. The generated JSI glue reaches this class by
+/// `@selector`, and a selector that disagrees with the protocol still compiles, so every
+/// method below states its Objective-C name rather than relying on inference, and
+/// `src/specs/__tests__/ios-spec-surface.test.ts` fails the moment those names and the
+/// protocol Codegen generates stop agreeing.
+///
 @objc(C15tReactNativeModule)
-public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
+public final class C15tReactNativeModule: RCTEventEmitter {
     private let handler = C15tModuleHandler()
 
     /// Held as a property: the core keeps snapshot observers weakly, so somebody has
@@ -49,12 +62,14 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
     // MARK: - Synchronous reads
 
     /// Handshake payload: the cached snapshot, never a network wait.
+    @objc(getBootstrap)
     public func getBootstrap() -> String {
         followCore()
         return handler.bootstrapPayload()
     }
 
     /// The current snapshot, encoded for the wire.
+    @objc(getSnapshot)
     public func getSnapshot() -> String {
         followCore()
         return handler.snapshotPayload()
@@ -62,6 +77,7 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
 
     // MARK: - Async commands
 
+    @objc(commit:resolve:reject:)
     public func commit(
         _ intent: String,
         resolve: @escaping RCTPromiseResolveBlock,
@@ -71,6 +87,7 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
         resolve(handler.commitPayload(intent: intent))
     }
 
+    @objc(setOverrides:resolve:reject:)
     public func setOverrides(
         _ overrides: String,
         resolve: @escaping RCTPromiseResolveBlock,
@@ -86,11 +103,13 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
 
     /// Record that the notice was dismissed. Local and synchronous: it never writes to
     /// the backend, so there is nothing to reject.
+    @objc(dismissNotice)
     public func dismissNotice() {
         followCore()
         handler.dismissNotice()
     }
 
+    @objc(refresh:reject:)
     public func refresh(
         _ resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
@@ -103,6 +122,7 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
         }
     }
 
+    @objc(identify:resolve:reject:)
     public func identify(
         _ externalId: String,
         resolve: @escaping RCTPromiseResolveBlock,
@@ -116,6 +136,7 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
         }
     }
 
+    @objc(logout:reject:)
     public func logout(
         _ resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
@@ -138,12 +159,14 @@ public final class C15tReactNativeModule: RCTEventEmitter, NativeC15tSpec {
         ]
     }
 
+    @objc(addListener:)
     public override func addListener(_ eventName: String) {
         super.addListener(eventName)
         listenerCount += 1
         followCore()
     }
 
+    @objc(removeListeners:)
     public override func removeListeners(_ count: Double) {
         super.removeListeners(count)
         listenerCount = max(0, listenerCount - Int(count))

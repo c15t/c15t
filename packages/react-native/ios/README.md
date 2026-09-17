@@ -9,15 +9,41 @@ only. No UI here; every surface lives in JavaScript.
 | Path | Module | Contents |
 | --- | --- | --- |
 | `C15tReactNative/Bridge/` | none of React | wire encoders, the change pump, `Info.plist` configuration, the module handler. Compiles and tests with no Pods installed. |
-| `C15tReactNative/ReactNative/` | React + `ReactCodegen` | the TurboModule, the ObjC export shim, and the constructor that starts the core before React Native initializes. |
+| `C15tReactNative/ReactNative/` | React + `ReactCodegen` | the TurboModule: the Swift implementation, and the ObjC++ category carrying the Codegen conformance, the JavaScript name, and the `getTurboModule:` provider. Also the constructor that starts the core before React Native initializes. |
 | `C15tReactNative/Resources/Privacy.xcprivacy` | resource | privacy manifest, shipped in the pod resource bundle and the SPM resource bundle. |
-| `Tests/C15tReactNativeTests/` | test | 38 tests over the wire layer and the module handler. |
+| `Tests/C15tReactNativeTests/` | test | 47 tests over the wire layer and the module handler. |
 | `C15tReactNative.xcodeproj` | generated | iOS-slice build of the wire layer against the core, for CI without an example app. |
 | `support/gen-xcodeproj.rb` | tooling | regenerates that project. |
 
 The bridge attaches to the already-bootstrapped core through `C15t.install(_:)`. It
 never constructs a second one, so `getBootstrap()` and `getSnapshot()` stay synchronous
 reads of the snapshot the core hydrated from storage.
+
+## The Codegen seam
+
+`codegenConfig.name` is `C15tSpec`, so Codegen writes the protocol into one umbrella
+header, `ReactCodegen/C15tSpec/C15tSpec.h`, whose first directive refuses to compile as
+plain Objective-C. No Swift file can name `NativeC15tSpec`, so two things a normal
+TurboModule gets from a macro are written by hand in `C15tReactNativeModule.mm`:
+
+- the `<NativeC15tSpec>` conformance, because `RCTTurboModuleManager` only builds and
+  sets up a module whose class conforms to `RCTTurboModule`, and
+- `getTurboModule:`, because the generated `RCTModuleProviders` requires it before it
+  keeps the instance, and it returns a `std::shared_ptr`, which has no Swift spelling.
+
+`RCT_EXTERN_REMAP_MODULE` supplies neither, and cannot be used here at all: it expands
+to a fresh `@interface C15tReactNativeModule : RCTEventEmitter`, and the Swift generated
+header already defines that class. The category answers `+moduleName` instead, which is
+all the macro was needed for.
+
+The Swift class stays the implementation, and states every Objective-C name explicitly
+rather than trusting inference. Nothing at build time links those names to the generated
+protocol -- the JSI glue looks each one up on the instance at call time -- so
+`src/specs/__tests__/ios-spec-surface.test.ts` runs Codegen over
+`src/specs/NativeC15t.ts` and fails on any selector or argument type that disagrees. The
+module also compares itself against `@protocol(NativeC15tSpec)` once per process and
+logs the difference, so drift is named in the console rather than arriving as an
+unrecognized selector on the JavaScript thread.
 
 ## Startup order
 
@@ -89,3 +115,21 @@ The xcodeproj builds the wire layer and the core only. `ReactNative/` needs the
 `NativeC15tSpec` protocol Codegen generates into the host app's `ReactCodegen` pod, so
 it compiles inside an app build and nowhere else. Regenerate the project with
 `cd ios && GEM_HOME=/opt/homebrew/Cellar/cocoapods/1.17.0/libexec ruby support/gen-xcodeproj.rb`.
+
+Those three cover the wire layer. The React-linked half compiles only inside an app, so
+its acceptance path runs in `examples/react-native-bare/ios`:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+cd examples/react-native-bare/ios
+/opt/homebrew/bin/pod install
+xcodebuild -workspace C15tBare.xcworkspace -scheme C15tBare -configuration Debug \
+  -destination 'platform=iOS Simulator,id=<device-udid>' -derivedDataPath ./DerivedData build
+xcrun simctl install booted ./DerivedData/Build/Products/Debug-iphonesimulator/C15tBare.app
+xcrun simctl launch booted org.reactjs.native.example.C15tBare
+```
+
+The fixture draws the handshake it read through the module: which core is answering, the
+protocol pair, the native SDK version, the snapshot revision. A TurboModule that failed
+to register shows up on that screen rather than passing unnoticed, which is the point of
+building the example app at all.

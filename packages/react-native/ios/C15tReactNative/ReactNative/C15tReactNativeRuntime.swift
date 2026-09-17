@@ -12,7 +12,7 @@ import Foundation
 /// Two things need to reach the bootstrap from Objective-C: the constructor in
 /// `C15tReactNativeRuntimeInitializer.mm`, which runs before React Native
 /// initializes, and a host app that would rather call it itself. This is the `@objc`
-/// surface for both; the decisions live in `C15tReactNativeBootstrap`.
+/// surface; the decisions live in `C15tReactNativeBootstrap`.
 @objc(C15tReactNativeRuntime)
 public final class C15tReactNativeRuntime: NSObject {
     /// Start the core from `Info.plist`, unless the app opted out.
@@ -45,8 +45,14 @@ public final class C15tReactNativeRuntime: NSObject {
     /// the only way a host can supply a transport, store, or header set that the
     /// `Info.plist` keys cannot express.
     ///
+    /// Swift only, and deliberately so. `ConsentCore` has no Objective-C representation,
+    /// so an `@objc` declaration of this method cannot compile. The pod does not need
+    /// one: the only Objective-C caller inside it is the launch hook, and that calls
+    /// `startCoreIfNeeded`. A host that owns its own core installs it from Swift, which
+    /// is the only language in which a `ConsentCore` gets built anyway.
+    ///
     /// - Returns: `true` when `core` is the instance the bridge will use.
-    @objc @discardableResult
+    @discardableResult
     public static func install(core: ConsentCore) -> Bool {
         C15tReactNativeBootstrap.install(core)
     }

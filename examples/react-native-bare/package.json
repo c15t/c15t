@@ -19,7 +19,7 @@
 	},
 	"dependencies": {
 		"@c15t/react-native": "workspace:*",
-		"react": "19.2.3",
+		"react": "19.2.7",
 		"react-native": "0.87.1"
 	},
 	"devDependencies": {
