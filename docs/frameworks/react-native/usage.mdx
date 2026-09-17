@@ -248,6 +248,16 @@ anything it does not cover belongs in a theme token.
 Without `theme`, the surfaces follow the platform scheme and pick `light` until
 `useColorScheme()` answers, so the first frame never flashes the dark palette.
 
+`lightTheme` and `darkTheme` are finished themes for when you want to pick one rather than
+describe one. Both are `createConsentTheme` output, and a theme you pass is used exactly as
+given, so nothing merges your palette over the platform one behind your back.
+
+To build a surface out of the same tokens the built-ins use, call `useConsentStyles`. It
+takes the same `theme` and `styles` props and returns the resolved per-part styles plus the
+scale facts a layout needs: `fontScale`, `controlMinHeight`, `maxBodyHeight`, `safeArea`,
+and `bannerLayer`. Copying numbers out of the built-in sheets instead is how a custom prompt
+ends up with a 28 pt tap target the first time a subject turns their device font size up.
+
 ## Build your own surfaces
 
 Three headless components call a function with the smallest slice they need. Use them
@@ -356,3 +366,62 @@ export function MeasurementSwitch() {
 `save()` writes only the categories you pass. Omitted categories keep their stored
 receipts, which is what stops a preference-center save from renewing a consent the
 subject never looked at.
+
+### Clear the home indicator
+
+`useConsentSafeArea()` returns the bands the built-in surfaces lay out against: `bottom`,
+`top`, `left`, `right`, and `measured`, which says whether a host supplied real insets or
+the package fell back to its reserved floor.
+
+```tsx title="src/MySheet.tsx"
+import type { ReactNode } from 'react';
+import { View } from 'react-native';
+import { useConsentSafeArea } from '@c15t/react-native';
+
+export function MySheet({ children }: { children: ReactNode }) {
+	const safeArea = useConsentSafeArea();
+
+	return (
+		<View
+			style={{
+				paddingBottom: safeArea.bottom,
+				paddingHorizontal: Math.max(safeArea.left, safeArea.right),
+			}}
+		>
+			{children}
+		</View>
+	);
+}
+```
+
+Outside a provider, or where the provider was given nothing, the hook returns the floor and
+`measured: false` rather than throwing. The floor is a real layout answer, so your sheet is
+never flush against the home indicator just because a host skipped a step. Read `measured`
+when you need to know, for example to skip an entrance animation on the pass where the
+insets are not final yet.
+
+### Select without over-rerendering
+
+`useConsentSelector` rerenders a subscriber only when its selected value changes, and by
+default it compares with `Object.is`. A selector that returns a new object therefore looks
+different on every snapshot event, so pass the comparer as the second argument:
+
+```tsx
+import {
+	isConsentStatusEqual,
+	selectConsentStatus,
+	useConsentSelector,
+} from '@c15t/react-native';
+
+// A shell that shows something different while the policy is still resolving.
+const status = useConsentSelector(selectConsentStatus, isConsentStatusEqual);
+```
+
+`selectConsentStatus` gives you `ready`, `policyPending`, `activeUI`, and
+`promptRequirement`, which are the four fields a shell needs to decide what to render at
+all. `shallowEqual` is the comparer for any other flat slice you write yourself, and it is
+one level deep because snapshot slices are flat.
+
+For a single category you do not need either hook: `useConsentDecision` returns one of three
+strings and `useIsAllowed` returns a Boolean, so both compare by identity and rerender only
+on a real change.
