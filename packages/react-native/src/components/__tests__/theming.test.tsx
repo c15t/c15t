@@ -213,7 +213,7 @@ describe('theme', () => {
 		expect(lightTheme.colors.switchTrackOn).toBe('#335CFF');
 		expect(lightTheme.colors.text).toBe('#1A1A1A');
 		expect(lightTheme.colors.textMuted).toBe('#666666');
-		expect(lightTheme.colors.border).toBe('#E5E5E5');
+		expect(lightTheme.colors.border).toBe('#E6E6E6');
 		expect(lightTheme.colors.surfaceRaised).toBe('#FAFAFA');
 		expect(darkTheme.colors.primary).toBe('#6685FF');
 
@@ -221,8 +221,8 @@ describe('theme', () => {
 		expect(lightTheme.spacing).toEqual({ l: 24, m: 16, s: 8, xl: 32, xs: 4 });
 		expect(lightTheme.radius).toEqual({ control: 8, surface: 12 });
 
-		// A button label is 14 at medium, and the sheet pairs a 14 semibold
-		// heading over 16 regular copy.
+		// A button label is 14 at medium on the web tight line, and the sheet
+		// pairs a 14 semibold heading, set tight at 1, over 16 regular copy.
 		expect(lightTheme.typography.body).toEqual({
 			fontSize: 16,
 			lineHeight: 24,
@@ -230,12 +230,12 @@ describe('theme', () => {
 		});
 		expect(lightTheme.typography.label).toEqual({
 			fontSize: 14,
-			lineHeight: 18,
+			lineHeight: 17.5,
 			weight: '500',
 		});
 		expect(lightTheme.typography.title).toEqual({
 			fontSize: 14,
-			lineHeight: 18,
+			lineHeight: 14,
 			weight: '600',
 		});
 
@@ -387,8 +387,9 @@ describe('theme', () => {
 
 		await flushPromises();
 
-		// The 32x20 fully rounded track web draws, rather than the native control
-		// tinted to look near it. The thumb lives inside the track's own padding.
+		// The 28x16 fully rounded track the consent surfaces ask the primitive
+		// for, rather than the native control tinted to look near it. The thumb
+		// lives inside the track's own padding.
 		const trackStyle = () =>
 			nodeStyle(
 				requireRole(tree.container(), 'switch', 'Werbung')
@@ -396,10 +397,10 @@ describe('theme', () => {
 			);
 
 		expect(trackStyle()).toMatchObject({
-			borderRadius: 10,
-			height: 20,
+			borderRadius: 8,
+			height: 16,
 			padding: 2,
-			width: 32,
+			width: 28,
 		});
 
 		// The visible control is small; the finger still gets the platform minimum.
@@ -473,7 +474,10 @@ describe('theme', () => {
 		expect(small.fontScale).toBe(1);
 		expect(small.controlMinHeight).toBe(44);
 
-		setFontScale(2.5);
+		// Three times the default, which is the smallest scale where the label's
+		// own line box is what clears the platform minimum rather than merely
+		// reaching it.
+		setFontScale(3);
 		const large = probeFacts();
 
 		expect(large.controlMinHeight).toBeGreaterThan(44);

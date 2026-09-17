@@ -278,7 +278,11 @@ describe('ConsentBanner', () => {
 			'Alle akzeptieren'
 		);
 
-		expect(nodeStyle(largeAccept).minHeight).toBe(54);
+		// The floor is the label's own line box at this scale, so the number is
+		// read from the token rather than repeated here.
+		expect(nodeStyle(largeAccept).minHeight).toBe(
+			Math.round(lightTheme.typography.label.lineHeight * 3)
+		);
 
 		large.unmount();
 	});

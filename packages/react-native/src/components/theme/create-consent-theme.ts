@@ -181,8 +181,8 @@ const baseTypography: ConsentThemeTypography = {
 	bannerTitle: { fontSize: 16, lineHeight: 24, weight: '500' },
 	body: { fontSize: 16, lineHeight: 24, weight: '400' },
 	caption: { fontSize: 13, lineHeight: 18, weight: '400' },
-	label: { fontSize: 14, lineHeight: 18, weight: '500' },
-	title: { fontSize: 14, lineHeight: 18, weight: '600' },
+	label: { fontSize: 14, lineHeight: 17.5, weight: '500' },
+	title: { fontSize: 14, lineHeight: 14, weight: '600' },
 };
 
 const baseMotion: ConsentThemeMotion = {
@@ -194,7 +194,7 @@ const baseMotion: ConsentThemeMotion = {
 };
 
 const lightColors: ConsentThemeColors = {
-	border: '#E5E5E5',
+	border: '#E6E6E6',
 	focus: '#335CFF',
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.5)',
