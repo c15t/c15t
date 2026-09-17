@@ -243,6 +243,21 @@ if (generatesIntoThisModule) {
 		doFirst {
 			codegenOutputDir.get().asFile.mkdirs()
 		}
+		doLast {
+			// A generator that quietly wrote nothing is the failure worth catching here. The
+			// spec reaches the bridge only through this directory, so an empty result leaves
+			// the module's Kotlin referencing a class that does not exist, and the app reports
+			// it as "cannot find symbol" against a file its own autolinking generated.
+			if (!new File(generatedJavaDir, 'com/c15t/reactnative/NativeC15tSpec.java').isFile()) {
+				throw new GradleException(
+					"generateC15tCodegen produced no ${new File(generatedJavaDir, 'com/c15t/reactnative/NativeC15tSpec.java')}. " +
+						'The bridge compiles its module against this spec and has no substitute for ' +
+						"it in a host app. Check that node ${nodeExecutable} can run " +
+						"${specGenerator} with --project-root ${codegenProjectRoot}; it must resolve " +
+						'@react-native/codegen from there.',
+				)
+			}
+		}
 		// Library semantics, deliberately not generate-codegen-artifacts.js. That entry point
 		// treats the folder as an app: it scans for codegen-enabled libraries and writes the
 		// spec under its own default package, com.facebook.fbreact.specs, which is neither the

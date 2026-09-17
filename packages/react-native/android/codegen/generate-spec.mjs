@@ -27,7 +27,13 @@
  * `generateCodegenArtifactsFromSchema` run in an app that builds this library.
  */
 
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+	existsSync,
+	readdirSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, parse, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -314,11 +320,35 @@ const main = function main(argv) {
 	return 0;
 };
 
-const invokedDirectly =
-	process.argv[1] !== undefined &&
-	existsSync(process.argv[1]) &&
-	statSync(process.argv[1]).isFile() &&
-	resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+/**
+ * Whether this file is the process entry point, compared by realpath.
+ *
+ * Node resolves symlinks when it works out `import.meta.url`, and a build is free to name the
+ * script through a link: a host app's `node_modules/@c15t/react-native` is a symlink into a
+ * workspace, and its Gradle build invokes the script by that linked path. Comparing the two
+ * as written makes the entry check false there, so the CLI parses its arguments, runs nothing,
+ * and exits 0 with an empty output directory that Gradle then happily calls up-to-date.
+ *
+ * @param {string[]} argv `process.argv.slice(2)`, unused except to keep the call site honest.
+ * @returns {boolean} True when this module was run as a program.
+ */
+const invokedAsProgram = function invokedAsProgram(argv) {
+	const entry = argv[0];
+
+	if (entry === undefined) {
+		return false;
+	}
+
+	const self = fileURLToPath(import.meta.url);
+
+	try {
+		return realpathSync(entry) === realpathSync(self);
+	} catch {
+		return false;
+	}
+};
+
+const invokedDirectly = invokedAsProgram(process.argv.slice(1));
 
 if (invokedDirectly) {
 	try {
