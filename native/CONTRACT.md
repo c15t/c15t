@@ -409,11 +409,18 @@ running is answered by that pass, and the core starts another only if an entry w
 queued after the running pass read. Nothing about `committed` softens as a result:
 an entry waiting on an in-flight pass is still owed, still counted by the pending
 depth, and still announced by exactly one delivered event. The queue cannot tell a
-resend from a first send, so serialising passes is the core's own obligation. A
-core that runs every delivery on one serial queue satisfies it by construction and
-says so; a core that awaits concurrently has to guard the pass itself. Either way a
-test requests a second flush while a first send is still open, and fails if any
-entry reaches the transport twice for one queued decision.
+resend from a first send, so serialising passes is the core's own obligation.
+"Every delivery goes through one serial queue" is a claim about the entry
+points, not about the executor: a single background thread does not satisfy this
+by itself, because a retry entry point that is a public synchronous method gets
+called from wherever the wiring lives. The Kotlin core had a one-thread pool and
+still resent in-flight entries, because bootstrap handed it a flush while the
+main thread, a lifecycle worker, and the React Native module thread called the
+same method directly, and a save's own first send ran on that pool with all of
+them in flight. Either satisfy the rule at every entry point or guard the pass
+itself, and say which you did. Either way a test requests a second flush while a
+first send is still open, and fails if any entry reaches the transport twice for
+one queued decision.
 
 Whether to retry is decided by whether the same bytes could ever be accepted.
 The queue replays frozen bytes, so a `400 INPUT_VALIDATION_FAILED` or a contract
