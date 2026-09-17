@@ -211,3 +211,23 @@ build against the same reality.
 - The fixture kinds so far are `evaluation-*` and `save-body-*`. Storage
   round-trip fixtures are still missing and are owed by whoever adds the native
   envelope format.
+
+Kotlin core, as built
+---------------------
+
+`native/core-android/` is a Gradle 9.4.1 project with the wrapper checked in.
+
+- `c15t-core` is the pure-JVM consent engine. A test asserts that no source file
+  imports `android.*`, so keep it that way. Run it with
+  `./gradlew :c15t-core:test --console=plain`.
+- `c15t-android` implements the storage and lifecycle ports: AndroidKeyStore
+  encrypted storage with a `SharedPreferences` fallback, an `androidx.startup`
+  `Initializer` that calls `bootstrap()`, and a `ProcessLifecycleOwner` observer
+  that calls `flushPending()` and `refresh()`.
+- Measured on the development machine, release JVM: hydrate 25.4 us, policy
+  evaluation 0.63 us, snapshot plus three `isAllowed` reads 0.04 us, save
+  acknowledged without network 102 us. `./gradlew :c15t-core:bench` reproduces them.
+- Known gap, still open: losing the keystore key regenerates the subject id
+  instead of keeping the previous one, so audit continuity breaks across a keystore
+  reset. The subject id is a random UUID and not sensitive, so it belongs in
+  unencrypted storage that survives a key reset.
