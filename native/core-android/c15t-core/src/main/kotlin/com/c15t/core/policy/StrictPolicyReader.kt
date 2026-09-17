@@ -22,10 +22,24 @@ sealed class PolicyRead {
 	data class NoPolicy(val status: String) : PolicyRead()
 
 	/**
-	 * Anything this build cannot represent. The caller serves the deny-all
-	 * snapshot with [reason] recorded, which is contract rule 5.
+	 * A refusal this build can state plainly: the resolution carries `status: "failed"`
+	 * with a reason it knows, or the producer declared a contract this build does not
+	 * speak. In both cases the core knows exactly what went wrong and can represent the
+	 * answer, so a device already under a policy keeps that policy through it, which is
+	 * what a failed init does everywhere else.
 	 */
 	data class Failed(val reason: String) : PolicyRead()
+
+	/**
+	 * A value this build cannot parse: a shape it does not have, a status, version, or
+	 * category name it does not know, or a resolution that is simply absent.
+	 *
+	 * This is contract rule 5, and the one case where the core may not keep its last
+	 * answer: it must serve `policyPending: true` with every optional category denied,
+	 * including one it had granted. That lands on `PENDING` and never `DENIED`, so a
+	 * host keeps listening and the next parseable resolution restores the grant.
+	 */
+	data class Unreadable(val reason: String) : PolicyRead()
 }
 
 /**
@@ -66,19 +80,19 @@ object StrictPolicyReader {
 		if (element == null || element is JsonNull) {
 			return if (negotiated) {
 				// A negotiated producer that sent no resolution broke the protocol.
-				PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+				PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 			} else {
 				PolicyRead.Failed(PolicyResolution.REASON_UNSUPPORTED_CONTRACT)
 			}
 		}
-		val root = element as? JsonObject ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+		val root = element as? JsonObject ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		root.stringOrNull("version")?.let { declared ->
 			// The body declares its own contract; honour it even when the response
 			// header was missing.
-			val version = declared.toLongOrNull() ?: return PolicyRead.Failed(PolicyResolution.REASON_UNSUPPORTED_CONTRACT)
+			val version = declared.toLongOrNull() ?: return PolicyRead.Unreadable(PolicyResolution.REASON_UNSUPPORTED_CONTRACT)
 			if (version != POLICY_CONTRACT_VERSION.toLong()) {
-				return PolicyRead.Failed(PolicyResolution.REASON_UNSUPPORTED_CONTRACT)
+				return PolicyRead.Unreadable(PolicyResolution.REASON_UNSUPPORTED_CONTRACT)
 			}
 		}
 
@@ -90,51 +104,51 @@ object StrictPolicyReader {
 				PolicyRead.Failed(reason)
 			}
 
-			null -> PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
-			else -> PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			null -> PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
+			else -> PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 		}
 	}
 
 	private fun readMatched(root: JsonObject): PolicyRead {
-		val policyId = root.stringOrNull("policyId") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
-		val policy = root["policy"] as? JsonObject ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+		val policyId = root.stringOrNull("policyId") ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
+		val policy = root["policy"] as? JsonObject ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 		val fingerprints = root["fingerprints"] as? JsonObject
-		val choiceFingerprint = fingerprints.stringOrNull("choice") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
-		val policyFingerprint = fingerprints.stringOrNull("policy") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+		val choiceFingerprint = fingerprints.stringOrNull("choice") ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
+		val policyFingerprint = fingerprints.stringOrNull("policy") ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 		// `policyFingerprintsSchema` in `@c15t/schema` requires all three; only
 		// `legacyMaterial` is optional. A notice dismissal is judged against this one.
-		val noticeFingerprint = fingerprints.stringOrNull("notice") ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+		val noticeFingerprint = fingerprints.stringOrNull("notice") ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val model = ConsentModel.fromWireName(policy.stringOrNull("model"))
 			// `iab` and any future model are unrepresentable here.
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val prompt = PolicyPrompt.fromWireName(policy.stringOrNull("prompt"))
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		// The wire key is `scope`; `categories` is a save-body field and never appears here.
 		val scope = readCategories(policy["scope"], ALL_OPTIONAL)
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val rawScopeMode = policy.stringOrNull("scopeMode")
 		val scopeMode = when {
 			rawScopeMode == null && (policy["scope"] == null || policy["scope"].isWildcard()) -> ScopeMode.PERMISSIVE
-			rawScopeMode == null -> return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
-			else -> ScopeMode.fromWireName(rawScopeMode) ?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			rawScopeMode == null -> return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
+			else -> ScopeMode.fromWireName(rawScopeMode) ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 		}
 
 		val validity = policy["validity"] as? JsonObject
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 		val choiceMs = readDurationMs(validity, "choiceMs", "choiceDays")
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 		val noticeMs = readDurationMs(validity, "noticeMs", "noticeDays")
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val gpcDeny = readCategories(
 			(policy["privacySignals"] as? JsonObject)?.let { (it["gpc"] as? JsonObject)?.get("denyCategories") },
 			emptyList(),
 		)
-			?: return PolicyRead.Failed(PolicyResolution.REASON_INVALID_PAYLOAD)
+			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		return PolicyRead.Matched(
 			EvaluationPolicy(

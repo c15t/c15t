@@ -105,25 +105,41 @@ object C15t {
 	 */
 	fun isReady(): Boolean = kernel.get()?.isReady() ?: false
 
-	/** Observe one category's permission, starting immediately. */
+	/**
+	 * Observe one category's permission, starting immediately.
+	 *
+	 * Before [bootstrap] there is nothing to observe, so this answers once with what
+	 * [isAllowed] says for [category] -- `necessary` included -- and hands back a
+	 * handle with nothing left to cancel. The answer goes out on the calling thread
+	 * before the call returns, the way [gateDecision] does it: building it into the
+	 * handle instead means a host that never closes it hears nothing at all, and
+	 * registration must never be silence.
+	 */
 	fun gate(
 		category: ConsentCategory,
 		onChange: (Boolean) -> Unit,
-	): Subscription = kernel.get()?.gate(category, onChange) ?: Subscription { onChange(false) }
+	): Subscription {
+		val active = kernel.get()
+		if (active == null) {
+			onChange(isAllowed(category))
+			return Subscription {}
+		}
+		return active.gate(category, onChange)
+	}
 
 	/**
 	 * Observe one category's [ConsentDecision], starting immediately: the contract's
 	 * decision-carrying `gate`.
 	 *
 	 * Fires at registration with the decision as it stands, including one reached long
-	 * before the call, then on every published change; the returned handle cancels.
-	 * Before [bootstrap] there is nothing to observe, so it gives the pre-bootstrap
-	 * answer once, hands back a handle with nothing left to cancel, and goes quiet.
+	 * before the call, then whenever the decision for [category] changes; the returned
+	 * handle cancels. Before [bootstrap] there is nothing to observe, so it gives the
+	 * pre-bootstrap answer once, hands back a handle with nothing left to cancel, and
+	 * goes quiet.
 	 *
-	 * The immediate call is deliberate and not a copy of the boolean [gate]'s shape:
-	 * that one builds its pre-bootstrap answer into the handle, so a host with no
-	 * kernel installed hears nothing until it closes. Registration must never be
-	 * silence, so this answers on the calling thread before it returns.
+	 * The immediate call is deliberate: registration must never be silence, so this
+	 * answers on the calling thread before it returns. The boolean [gate] does the
+	 * same, and for the same reason.
 	 *
 	 * Named rather than an overload of [gate] because both callback types erase to
 	 * `Function1`, which Kotlin cannot declare as two methods. See

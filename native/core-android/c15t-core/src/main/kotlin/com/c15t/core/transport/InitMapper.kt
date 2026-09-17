@@ -17,12 +17,22 @@ import kotlinx.serialization.json.contentOrNull
  *
  * [policyPending] is decided here rather than by the caller: a definitive answer
  * (`matched`, `no-match`, `unconfigured`) clears it, while any failure leaves it
- * set so the gate keeps denying every optional category.
+ * set so the gate keeps denying every optional category. [policyUnreadable] is the
+ * one failure the caller must not soften: a resolution this build cannot parse at
+ * all, which is contract rule 5 rather than a connectivity event.
  */
 data class MappedInit(
 	val resolution: PolicyResolution,
 	val evaluationPolicy: EvaluationPolicy?,
 	val policyPending: Boolean,
+	/**
+	 * `true` when the response carried a `policyResolution` this build cannot parse,
+	 * as opposed to one it read and refused. A read-and-refused resolution is an
+	 * answer, so a device already under a policy keeps it through a later failure;
+	 * an unreadable one is not an answer, and the caller has to take back a grant it
+	 * served from a wire it can no longer represent.
+	 */
+	val policyUnreadable: Boolean = false,
 	val subjectId: String? = null,
 	val location: ConsentLocation? = null,
 	val resolvedOverrides: KernelOverrides? = null,
@@ -86,6 +96,10 @@ object InitMapper {
 
 			is PolicyRead.NoPolicy -> PolicyResolution(status = read.status) to null
 			is PolicyRead.Failed -> PolicyResolution.failed(read.reason) to null
+
+			// Still reported as a `failed` resolution so the host can read the reason;
+			// what sets it apart from the line above is [MappedInit.policyUnreadable].
+			is PolicyRead.Unreadable -> PolicyResolution.failed(read.reason) to null
 		}
 
 		val error = if (resolution.status == PolicyResolution.STATUS_FAILED) {
@@ -101,6 +115,7 @@ object InitMapper {
 			resolution = resolution,
 			evaluationPolicy = policy,
 			policyPending = resolution.status == PolicyResolution.STATUS_FAILED,
+			policyUnreadable = read is PolicyRead.Unreadable,
 			subjectId = body.stringOrNull("subjectId"),
 			location = (body?.get("location") as? JsonObject)?.let { location ->
 				ConsentLocation(

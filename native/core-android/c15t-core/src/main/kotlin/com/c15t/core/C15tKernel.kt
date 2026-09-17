@@ -203,8 +203,14 @@ class C15tKernel(
 	fun isAllowed(category: ConsentCategory): Boolean = state.get().isAllowed(category)
 
 	/**
-	 * Call [onChange] now with the current permission for [category], then again
-	 * whenever that permission changes.
+	 * Call [onChange] now with the current permission for [category], then again on
+	 * every published snapshot.
+	 *
+	 * This one fires per publication rather than per change, which is what
+	 * `native/CONTRACT.md` leaves it: "the boolean `gate` predates this one and keeps
+	 * its per-snapshot fan-out; narrowing that is a separate decision from adding
+	 * this API." A host that acts on the transition keeps its own last value and
+	 * compares. A host that wants the dedupe uses [gateDecision].
 	 *
 	 * The observer is held strongly for as long as the returned handle is open, so
 	 * a caller that keeps only the handle still gets callbacks.
@@ -215,25 +221,32 @@ class C15tKernel(
 	fun gate(
 		category: ConsentCategory,
 		onChange: (Boolean) -> Unit,
-	): Subscription = gateOn(read = { it.isAllowed(category) }, emit = onChange)
+	): Subscription {
+		val observer: (ConsentSnapshot) -> Unit = { onChange(it.isAllowed(category)) }
+		strongObservers += observer
+		onChange(state.get().isAllowed(category))
+		return Subscription { strongObservers.remove(observer) }
+	}
 
 	/**
 	 * Call [onDecision] now with the current [ConsentDecision] for [category], then
-	 * again on every published change, with the returned handle cancelling. This is
-	 * the contract's decision-carrying `gate`.
+	 * again whenever the decision for that category changes, with the returned handle
+	 * cancelling. This is the contract's decision-carrying `gate`.
 	 *
-	 * The rules are the boolean [gate]'s, plus the one that matters to a late starter:
-	 * registering never produces silence. An analytics SDK that initializes two
-	 * seconds into the launch, long after the policy resolved, is told at registration
-	 * the decision it would otherwise have had to go and read. A listener that saw
-	 * [ConsentDecision.PENDING] keeps the handle open and hears the answer land, in
-	 * either direction.
+	 * "Whenever the decision changes" is a dedupe, and it is the whole reason this gate
+	 * carries a decision instead of a boolean. A device that publishes five snapshots
+	 * while the answer stays `PENDING` delivers one `PENDING`, not five: a host acts on
+	 * the transition, so each repeat makes it wonder whether its `init` is idempotent,
+	 * and the core cannot know that it is. A decision that moves away and back fires
+	 * again, which is correct, and a host that must act exactly once still guards its
+	 * own action.
 	 *
-	 * "Every published change" means what the boolean gate means: one callback per
-	 * snapshot the core publishes, whichever way the decision moved, so a listener
-	 * registered during a long offline stretch can be told `PENDING` more than once. A
-	 * host that acts on the transition rather than the value keeps its own last
-	 * decision and compares.
+	 * The rest of the rules are the boolean [gate]'s, plus the one that matters to a
+	 * late starter: registering never produces silence. An analytics SDK that
+	 * initializes two seconds into the launch, long after the policy resolved, is told
+	 * at registration the decision it would otherwise have had to go and read. A
+	 * listener that saw [ConsentDecision.PENDING] keeps the handle open and hears the
+	 * answer land, in either direction.
 	 *
 	 * It carries a different name rather than being a second `gate` overload because
 	 * Kotlin erases both `(Boolean) -> Unit` and `(ConsentDecision) -> Unit` to
@@ -246,7 +259,30 @@ class C15tKernel(
 	fun gateDecision(
 		category: ConsentCategory,
 		onDecision: (ConsentDecision) -> Unit,
-	): Subscription = gateOn(read = { it.decision(category) }, emit = onDecision)
+	): Subscription {
+		// The last decision handed to [onDecision], which is the whole dedupe. One
+		// atomic slot per subscription, held across the comparison alone, so the seed
+		// below and a publication racing it cannot deliver out of order or twice over
+		// the same answer.
+		val lastDelivered = AtomicReference<ConsentDecision?>(null)
+		val observer: (ConsentSnapshot) -> Unit = { snapshot ->
+			val decision = snapshot.decision(category)
+			if (lastDelivered.getAndSet(decision) != decision) {
+				onDecision(decision)
+			}
+		}
+		// Register before the first read, in that order: a change that lands between
+		// the two is delivered by the observer, and the seed then stands down rather
+		// than putting an older decision on the end of the callback's sequence. Missing
+		// a change would leave an SDK switched off with nothing left listening, so the
+		// most this ordering can cost is one redundant delivery.
+		strongObservers += observer
+		val current = state.get().decision(category)
+		if (lastDelivered.compareAndSet(null, current)) {
+			onDecision(current)
+		}
+		return Subscription { strongObservers.remove(observer) }
+	}
 
 	/**
 	 * Why [category] is or is not allowed, in the three states a host SDK can act on.
@@ -541,7 +577,18 @@ class C15tKernel(
 			val subject = mapped.subjectId?.let { serverId ->
 				base.subject?.copy(id = serverId) ?: ConsentSubject(id = serverId)
 			} ?: base.subject
-			evaluationPolicy = mapped.evaluationPolicy ?: evaluationPolicy
+			// Rule 5 is the one exception to the latching below, and a different event
+			// from a failed init: the response carried a resolution this build cannot
+			// parse, so there is no answer left to serve. The rule the current
+			// permissions were computed from goes with it, the way `applyInit` in
+			// `core-swift` drops its resolved policy in the same branch -- permissions
+			// derived from a wire this build cannot re-read are permissions it can no
+			// longer justify.
+			evaluationPolicy = if (mapped.policyUnreadable) {
+				null
+			} else {
+				mapped.evaluationPolicy ?: evaluationPolicy
+			}
 			mapped.resolvedGpcDetection?.let { detected = it }
 			emitted = mapped.error
 			detectedGpc = detected
@@ -552,11 +599,20 @@ class C15tKernel(
 			// which is the opposite of the contract's cached-snapshot rule. The flag
 			// therefore only ever clears, and the resolution the current permissions
 			// were computed from stays in place while error records the attempt.
+			//
+			// Rule 5 is the exception, and only there. When the resolution itself is
+			// unreadable the core cannot represent the answer any more, so the flag
+			// goes back up even though it had come down, and the evaluator's pending
+			// branch denies every optional category including one it had granted. That
+			// lands on PENDING rather than DENIED deliberately: DENIED reads as the
+			// subject's own refusal and invites a host to stop listening, which would
+			// make the category unrecoverable when the next resolution parses.
 			val superseded = mapped.policyPending && !base.policyPending
 			published = PolicyEvaluator.evaluate(
 				snapshot = base.copy(
 					resolution = if (superseded) base.resolution else mapped.resolution,
-					policyPending = mapped.policyPending && base.policyPending,
+					policyPending = mapped.policyPending &&
+						(base.policyPending || mapped.policyUnreadable),
 					// A failed init leaves the local state unready: nothing resolved, so
 					// gates keep denying. Only a definitive answer makes it ready.
 					ready = if (mapped.policyPending) base.ready else true,
@@ -667,23 +723,6 @@ class C15tKernel(
 			return emptyMap()
 		}
 		return if (now - choice.actionAt <= policy.choiceMs) choice.consents else emptyMap()
-	}
-
-	/**
-	 * Register [read] against every published snapshot, delivering it through [emit],
-	 * then deliver the current value once.
-	 *
-	 * Both gates share this so the registration, the immediate read, and the
-	 * cancellation cannot drift apart between the boolean and the decision surface.
-	 */
-	private fun <ValueType> gateOn(
-		read: (ConsentSnapshot) -> ValueType,
-		emit: (ValueType) -> Unit,
-	): Subscription {
-		val observer: (ConsentSnapshot) -> Unit = { emit(read(it)) }
-		strongObservers += observer
-		emit(read(state.get()))
-		return Subscription { strongObservers.remove(observer) }
 	}
 
 	private fun publishPure(snapshot: ConsentSnapshot) {
