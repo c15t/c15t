@@ -27,6 +27,10 @@ def prop = { String name ->
 }
 
 String groupName = prop('c15t.core.group') ?: 'com.c15t'
+// Only read when c15t.core.fromSource=false. No com.c15t artifact is on Maven yet and
+// native/core-android publishes nothing, so this names a release that does not exist. It
+// has to be cut from this tree first and this number raised to match: the bridge imports
+// engine classes (SnapshotWire, the decision gate) that no older engine build contains.
 String coreVersion = prop('c15t.core.version') ?: '3.0.0-alpha.1'
 
 // Unset in a host app, where the version is not ours to choose: React Native's root plugin

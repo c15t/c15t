@@ -37,9 +37,14 @@ rootProject.name = "c15t-react-native-android"
  * `c15t.core.fromSource=true` (the default in this repository) builds against
  * `native/core-android` as an included build, so the bridge is always compiled
  * against the engine that is in the tree next to it and there is no second copy of
- * the source to drift. CI and release jobs flip it to `false` to resolve the
- * published artifacts at `c15t.core.version` instead, which is what an app
- * installing `@c15t/react-native` from npm actually gets.
+ * the source to drift.
+ *
+ * `false` resolves the published artifacts at `c15t.core.version`, which is the shape an
+ * app installing `@c15t/react-native` from npm would get. Nothing builds that way today:
+ * `native/core-android` has no publishing config and no `com.c15t` artifact is on Maven,
+ * so this repository and CI both build from source. When the engine is published, cut that
+ * release from this tree and raise `c15t.core.version` to it before the flag is flipped,
+ * because the bridge imports engine classes no older engine build contains.
  */
 val coreFromSource = providers.gradleProperty("c15t.core.fromSource").orNull?.toBoolean() ?: true
 val coreGroup = providers.gradleProperty("c15t.core.group").orNull ?: "com.c15t"
