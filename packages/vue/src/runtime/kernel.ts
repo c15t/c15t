@@ -558,6 +558,14 @@ export const createVueConsentKernelContext =
 				});
 			}
 		);
+		const unsubscribeSurfaceShown = kernel.events.on(
+			'surface:shown',
+			({ type: _type, ...event }) => {
+				(ownsKernel ? options.config.callbacks : undefined)?.onSurfaceShown?.(
+					event
+				);
+			}
+		);
 
 		// Assigned after context creation because the subscription updates that context.
 		// oxlint-disable-next-line prefer-const
@@ -582,6 +590,7 @@ export const createVueConsentKernelContext =
 				unsubscribe();
 				unsubscribeChoice();
 				unsubscribePermissions();
+				unsubscribeSurfaceShown();
 				if (ownsKernel) {
 					kernel.dispose();
 				}

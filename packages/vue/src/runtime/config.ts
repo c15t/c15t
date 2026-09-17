@@ -62,5 +62,8 @@ export interface ConsentConfig
 		onPermissionsChanged?: (
 			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
 		) => void;
+		onSurfaceShown?: (
+			event: Omit<Extract<KernelEvent, { type: 'surface:shown' }>, 'type'>
+		) => void;
 	};
 }

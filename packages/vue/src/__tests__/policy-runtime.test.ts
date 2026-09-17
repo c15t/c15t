@@ -257,6 +257,41 @@ test('notice dismissal and registration do not replay choice callbacks', async (
 	}
 });
 
+test('onSurfaceShown fires for the server-rendered banner and an opened dialog', () => {
+	const now = 1_800_000_000_000;
+	vi.spyOn(Date, 'now').mockReturnValue(now);
+	const surfaceShown = vi.fn();
+	const config = {
+		callbacks: { onSurfaceShown: surfaceShown },
+		iframeBlocker: false as const,
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		kernelConfig: { initialPolicyResolution: resolution(), now },
+	});
+	expect(surfaceShown).not.toHaveBeenCalled();
+	// No init on the prefetch path: the runtime marks the kernel live itself.
+	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	try {
+		expect(surfaceShown).toHaveBeenCalledOnce();
+		expect(surfaceShown.mock.calls[0]?.[0]).toMatchObject({
+			shownAt: now,
+			surface: 'banner',
+		});
+		expect(surfaceShown.mock.calls[0]?.[0]).not.toHaveProperty('type');
+
+		vi.spyOn(Date, 'now').mockReturnValue(now + 2000);
+		context.activeUI.value = 'manager';
+		expect(surfaceShown).toHaveBeenCalledTimes(2);
+		expect(surfaceShown.mock.calls[1]?.[0]).toMatchObject({
+			shownAt: now + 2000,
+			surface: 'dialog',
+		});
+	} finally {
+		dispose();
+	}
+});
+
 test.each([true, false, 'true', 1, undefined])(
 	'browser GPC accepts only the exact boolean signal %s',
 	(signal) => {
