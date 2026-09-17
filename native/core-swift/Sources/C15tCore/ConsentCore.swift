@@ -342,6 +342,17 @@ public final class ConsentCore: @unchecked Sendable {
     /// Returns as soon as the decision is local and durable; delivery is
     /// asynchronous. `actionAt` is captured before any I/O and reused by every
     /// replay, so the receipt the backend stores is the receipt the subject made.
+    ///
+    /// ``CommitResult/Status-enum/committed`` asserts the device side only: the
+    /// receipts are applied, the snapshot is stored, and the queue holds the bytes
+    /// that owe delivery. What happens to those bytes is reported afterwards, as
+    /// ``CoreEvent/saveDelivered`` or as an ``CoreEvent/error`` carrying one of
+    /// `http-status` (retryable, entry kept), `save-rejected` (the backend refused
+    /// these bytes, entry dropped), `save-undeliverable` (retries or the retention
+    /// window ran out, entry dropped), or `transport-unavailable` (no sender on this
+    /// launch, entry kept). A save that cannot even be queued answers ``rejected``
+    /// with `queue-write-failed`, `not-bootstrapped`, `no-subject`, or
+    /// `concurrent-change`, and changes nothing.
     @discardableResult
     public func save(_ intent: CommitIntent) -> CommitResult {
         // Captured first: a save that took 40 ms to build a body must still report
@@ -351,11 +362,20 @@ public final class ConsentCore: @unchecked Sendable {
         struct Planned {
             let payload: SavePayload
             let body: Data
+            /// Read in the same locked pass as `config`, which is the pass that
+            /// installs it. A planned action that reached this point therefore always
+            /// has somewhere to record its obligation, and ``save(_:)`` never has to
+            /// answer the question "committed, but stored where".
+            let queue: PendingSaveQueue
+            /// The state this action was built on, and the state to install once the
+            /// obligation is on disk. See the guarded apply in the committed branch.
+            let baseRevision: Int
+            let next: ConsentSnapshot
             let result: CommitResult
         }
 
         let prepared: Result<Planned, CoreErrorInfo> = lock.withLock {
-            guard config != nil else {
+            guard let queue else {
                 return .failure(CoreErrorInfo(
                     code: "not-bootstrapped",
                     message: "ConsentCore.save() called before bootstrap()."
@@ -408,6 +428,10 @@ public final class ConsentCore: @unchecked Sendable {
             // the prompt must not report "no surface": `buildSubjectPostBody` reads
             // the pre-commit `activeUI` for the same reason.
             let surfaceAtAction = currentSnapshot.activeUI
+            // Computed, not installed. State moves only once the queue has the bytes
+            // that owe delivery, so a save that cannot take on the obligation has
+            // nothing to take back.
+            let baseRevision = currentSnapshot.revision
             let next = currentSnapshot.byApplying { draft in
                 draft.explicitChoice = choice
                 draft.effectivePermissions = evaluation.permissions
@@ -424,8 +448,6 @@ public final class ConsentCore: @unchecked Sendable {
                     : ActiveUI.banner
                 draft.error = nil
             }
-            currentSnapshot = next
-
             let payload = SavePayload(
                 subjectId: identity.id,
                 subject: ConsentSubject(
@@ -461,6 +483,9 @@ public final class ConsentCore: @unchecked Sendable {
                 return .success(Planned(
                     payload: payload,
                     body: body,
+                    queue: queue,
+                    baseRevision: baseRevision,
+                    next: next,
                     result: CommitResult(
                         status: .committed,
                         revision: next.revision,
@@ -489,33 +514,73 @@ public final class ConsentCore: @unchecked Sendable {
             )
 
         case let .success(plan):
-            publish(persist: true)
-
-            // Persist, then send. The queue write is synchronous and lands before
-            // `save` returns, so a process that dies here still has the action on
-            // disk; an entry that failed to persist is never sent, because
-            // delivering something nothing remembers is how duplicates happen.
-            guard let queue = lock.withLock({ self.queue }) else { return plan.result }
-            let queuedID = queue.enqueue(
+            // Obligation first, state second. The queue write is synchronous and
+            // lands before `save` returns, so a process that dies here still has the
+            // action on disk, and nothing is announced until there is a durable
+            // delivery obligation behind it. An entry that failed to persist is never
+            // sent and never reported committed, because delivering something nothing
+            // remembers is how duplicates happen and promising something nothing
+            // remembers is how decisions go missing.
+            guard let queuedID = plan.queue.enqueue(
                 body: plan.body,
                 subjectId: plan.payload.subjectId,
                 actionAt: plan.payload.confirmed.actionAt
-            )
-            guard let queuedID else {
-                events.emit(.error(CoreErrorInfo(
+            ) else {
+                let info = CoreErrorInfo(
                     code: "queue-write-failed",
-                    message: "Pending save could not be persisted, so it was not sent."
-                )))
-                return plan.result
+                    message: "Pending save could not be persisted, so the decision was not recorded and nothing was sent."
+                )
+                events.emit(.error(info))
+                return CommitResult(
+                    status: .rejected,
+                    revision: snapshot().revision,
+                    permissions: snapshot().effectivePermissions,
+                    consentAction: intent.action,
+                    error: info
+                )
             }
 
+            // Install the choice the obligation was written for. The guard is what
+            // keeps this atomic across the unlocked queue write: if another mutation
+            // landed while the write was in flight, that one stands, this body is
+            // withdrawn rather than replayed over it, and the caller is told the
+            // action did not take.
+            let applied = lock.withLock { () -> Bool in
+                guard currentSnapshot.revision == plan.baseRevision else { return false }
+                currentSnapshot = plan.next
+                return true
+            }
+            guard applied else {
+                plan.queue.remove(id: queuedID)
+                let info = CoreErrorInfo(
+                    code: "concurrent-change",
+                    message: "Consent state changed while this save was being recorded, so it was withdrawn. Repeat the action against the current snapshot."
+                )
+                events.emit(.error(info))
+                return CommitResult(
+                    status: .rejected,
+                    revision: snapshot().revision,
+                    permissions: snapshot().effectivePermissions,
+                    consentAction: intent.action,
+                    error: info
+                )
+            }
+
+            publish(persist: true)
             events.emit(.saveQueued(subjectId: plan.payload.subjectId))
             let body = plan.body
             let subjectId = plan.payload.subjectId
+            let queue = plan.queue
             schedule {
                 guard let transport = self.transport else {
-                    // No transport: the entry stays queued for whichever launch
-                    // finally has one.
+                    // No transport on this launch. The entry stays queued for
+                    // whichever launch finally has one, and that has to be said out
+                    // loud: an obligation with no sender is invisible from
+                    // `CommitResult`, which is the state this branch exists to avoid.
+                    self.events.emit(.error(CoreErrorInfo(
+                        code: "transport-unavailable",
+                        message: "No transport is configured on this launch, so a queued consent save is waiting undelivered."
+                    )))
                     return
                 }
                 switch await transport.sendSave(body) {
@@ -523,13 +588,88 @@ public final class ConsentCore: @unchecked Sendable {
                     queue.remove(id: queuedID)
                     self.events.emit(.saveDelivered(subjectId: subjectId))
                 case let .failure(error):
-                    // Leave it queued with one attempt spent. The decision is
-                    // already local and durable; the backend can wait.
-                    self.events.emit(.error(error.info))
+                    self.settleFailedSend(
+                        error,
+                        queue: queue,
+                        entryID: queuedID,
+                        subjectId: subjectId
+                    )
                 }
             }
             return plan.result
         }
+    }
+
+    /// Account for a first send that did not land.
+    ///
+    /// Two outcomes, and the difference is whether the same bytes could ever be
+    /// accepted. A transport that could not reach the backend, or answered `503`,
+    /// says nothing about the body, so the entry keeps its place in the queue with
+    /// one attempt spent and the next launch tries again. A backend that refused the
+    /// body on its own terms says something permanent, because the queue replays
+    /// frozen bytes: `INPUT_VALIDATION_FAILED` on the first try is
+    /// `INPUT_VALIDATION_FAILED` on the tenth.
+    ///
+    /// A permanently refused body is dropped rather than kept. It is not a lost
+    /// decision: the subject's choice lives in the stored envelope either way, and
+    /// an obligation no producer will ever accept is not worth twenty slots on
+    /// every future launch. Dropping one is only survivable if it is announced, so
+    /// every branch here emits, and the two that release the entry name the reason
+    /// it stopped being owed.
+    private func settleFailedSend(
+        _ error: C15tError,
+        queue: PendingSaveQueue,
+        entryID: String,
+        subjectId: String
+    ) {
+        guard error.isPermanentlyRejected else {
+            // Leave it queued with one attempt spent. The decision is already local
+            // and durable; the backend can wait.
+            let outcome = queue.recordFailedAttempt(id: entryID)
+            if outcome.dropsEntry {
+                events.emit(.error(Self.undeliverableSave(subjectId: subjectId, error: error, outcome: outcome)))
+                return
+            }
+            events.emit(.error(error.info))
+            return
+        }
+
+        queue.remove(id: entryID)
+        events.emit(.error(CoreErrorInfo(
+            code: "save-rejected",
+            message: "The backend refused this consent save, so it was dropped and will not be retried: \(error.message)"
+        )))
+    }
+
+    /// The announcement for an obligation the queue released with the body never
+    /// accepted.
+    ///
+    /// Both roads reach it: a save whose very first send spent the last attempt, and
+    /// a replay that ran a body out. One message builder keeps them from drifting
+    /// apart, because after this point nothing on the device remembers that the
+    /// decision owed anyone anything, and a host that is not told has no way to
+    /// learn it.
+    private static func undeliverableSave(
+        subjectId: String,
+        error: C15tError,
+        outcome: FailedAttempt
+    ) -> CoreErrorInfo {
+        let reason: String
+        switch outcome {
+        case let .droppedAfterAttempts(attempts):
+            reason = "it was refused \(attempts) times, which is the ceiling of \(PendingSaveQueue.maxAttempts) attempts"
+        case .droppedAsTooOld:
+            let days = PendingSaveQueue.maxAgeMs / 86_400_000
+            reason = "it waited longer than the queue's \(days) day retention window"
+        case .retrying, .alreadyGone:
+            // Unreachable: callers only announce a drop. Here so a future ceiling
+            // cannot turn the message into a lie about why.
+            reason = "it left the queue unaccepted"
+        }
+        return CoreErrorInfo(
+            code: "save-undeliverable",
+            message: "A queued consent save for \(subjectId) was dropped because \(reason). Last backend error: \(error.message)"
+        )
     }
 
     /// Record that the notice was dismissed. Grants nothing: a dismissal is not a
@@ -1110,6 +1250,14 @@ public final class ConsentCore: @unchecked Sendable {
         // read, and the queue already holds the bodies for a later attempt.
         let report = await queue.replay(using: transport) { entry, result in
             self.events.emit(.saveReplayed(subjectId: entry.subjectId, ok: result.isSuccess))
+        } onDrop: { entry, error, outcome in
+            // A pass that reported only deliveries would leave this entry missing
+            // from both the queue and the record of what happened to it.
+            self.events.emit(.error(Self.undeliverableSave(
+                subjectId: entry.subjectId,
+                error: error,
+                outcome: outcome
+            )))
         }
         if let error = report.lastError {
             events.emit(.error(error))

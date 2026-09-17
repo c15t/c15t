@@ -82,6 +82,30 @@ public enum C15tError: Error, Sendable, Equatable {
     }
 
     var info: CoreErrorInfo { CoreErrorInfo(code: code, message: message) }
+
+    /// Whether retrying this exact body can ever change the answer.
+    ///
+    /// A queued body is frozen bytes: that is the whole point of the queue, so a
+    /// replay carries the receipts the subject actually gave. Freezing cuts the
+    /// other way too, because it means a rejection that came from reading those
+    /// bytes says the same thing on the eleventh try as on the first. `400` with
+    /// `INPUT_VALIDATION_FAILED` is that case, and so is a contract this build
+    /// cannot speak. A `503`, a timeout, a dropped socket, and a rate limit are
+    /// not: they say the same body may be accepted a moment later.
+    ///
+    /// `401`/`403` count as permanent for a body but not for a device, and the
+    /// queue only ever holds bodies, so a credential that comes back later cannot
+    /// rescue bytes the producer already refused on its own terms.
+    var isPermanentlyRejected: Bool {
+        switch self {
+        case let .httpStatus(status, _):
+            return (400 ..< 500).contains(status) && status != 408 && status != 425 && status != 429
+        case .unsupportedContract:
+            return true
+        case .offline, .invalidPayload, .transport, .notConfigured:
+            return false
+        }
+    }
 }
 
 // MARK: - HTTP seam

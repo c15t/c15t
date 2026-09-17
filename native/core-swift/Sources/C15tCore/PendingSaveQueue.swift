@@ -40,6 +40,31 @@ public struct ReplayReport: Sendable, Equatable {
     public static let empty = ReplayReport(attempted: 0, delivered: 0, remaining: 0)
 }
 
+/// What the queue decided to do with an entry after a delivery attempt failed.
+///
+/// The distinction that matters is between "still owed" and "no longer owed", so
+/// every case other than ``retrying`` is one the caller has to announce. A queue
+/// that releases a decision quietly is the state where a subject's consent exists
+/// in the app's memory of itself and in nobody else's records.
+enum FailedAttempt: Sendable, Equatable {
+    /// Still queued, with one attempt spent.
+    case retrying
+    /// Released at the attempt ceiling.
+    case droppedAfterAttempts(attempts: Int)
+    /// Released because it waited longer than the queue's retention window.
+    case droppedAsTooOld(queuedAt: Int64)
+    /// Was not in the queue: another path delivered it, or a reset cleared it.
+    case alreadyGone
+
+    /// Whether this leaves the queue holding one fewer obligation.
+    var dropsEntry: Bool {
+        switch self {
+        case .retrying, .alreadyGone: return false
+        case .droppedAfterAttempts, .droppedAsTooOld: return true
+        }
+    }
+}
+
 /// Persists consent saves before they are sent, and replays them unchanged.
 ///
 /// Order is the entire contract. Write, then send, then delete on success. A
@@ -129,17 +154,65 @@ final class PendingSaveQueue: @unchecked Sendable {
         lock.withLock { _ = writeEntries([]) }
     }
 
+    /// Account for a delivery attempt that did not land.
+    ///
+    /// Every failed send spends an attempt, whether it came from the save that queued
+    /// the body or from a later replay. Without that, the attempt ceiling is only ever
+    /// reached by replays, so a body a transport refuses on the first try stays queued
+    /// across launches forever, which is the state where a consent decision looks
+    /// delivered to everyone and is remembered by nothing.
+    ///
+    /// Age and attempt limits are enforced here, at the moment a delivery fails,
+    /// rather than on read, so a live read never silently drops something the caller is
+    /// about to send.
+    ///
+    /// - Returns: what the queue did with the entry, including which ceiling released
+    ///   it. The reason is part of the answer rather than a detail: an entry that ran
+    ///   out of attempts and an entry that went stale are two different things to
+    ///   debug, and the caller only gets one line to say it in.
+    @discardableResult
+    func recordFailedAttempt(id: String) -> FailedAttempt {
+        let cutoff = now() - Self.maxAgeMs
+        return lock.withLock {
+            var entries = readEntries()
+            guard let index = entries.firstIndex(where: { $0.id == id }) else { return .alreadyGone }
+            entries[index].attempts += 1
+            let entry = entries[index]
+
+            if entry.attempts >= Self.maxAttempts {
+                entries.remove(at: index)
+                _ = writeEntries(entries)
+                return .droppedAfterAttempts(attempts: entry.attempts)
+            }
+            if entry.queuedAt < cutoff {
+                entries.remove(at: index)
+                _ = writeEntries(entries)
+                return .droppedAsTooOld(queuedAt: entry.queuedAt)
+            }
+
+            _ = writeEntries(entries)
+            return .retrying
+        }
+    }
+
     /// Send everything waiting, in save order.
     ///
     /// Entries are read once, then delivered one at a time so order is preserved
     /// and a flaky endpoint is not burst-attacked. Each result is applied to a
     /// freshly-read queue, so an action taken during a replay is never clobbered.
     ///
-    /// - Parameter onResult: called per entry, so the core can emit an event for
-    ///   each replay rather than one for the pass.
+    /// - Parameters:
+    ///   - onResult: called per entry, so the core can emit an event for each replay
+    ///     rather than one for the pass.
+    ///   - onDrop: called when an entry leaves this queue with its body still
+    ///     unaccepted, with the error that spent its last allowance. A pass that
+    ///     reports only what it delivered leaves the caller to assume the rest is
+    ///     still waiting, which is exactly the wrong assumption to make about a
+    ///     decision that has just stopped being owed.
     func replay(
         using transport: any C15tTransport,
-        onResult: ((PendingSaveEntry, Result<Void, C15tError>) -> Void)? = nil
+        onResult: ((PendingSaveEntry, Result<Void, C15tError>) -> Void)? = nil,
+        onDrop: ((PendingSaveEntry, C15tError, FailedAttempt) -> Void)? = nil
     ) async -> ReplayReport {
         let pending = entries()
         guard !pending.isEmpty else { return .empty }
@@ -155,7 +228,10 @@ final class PendingSaveQueue: @unchecked Sendable {
                 remove(id: entry.id)
             case let .failure(error):
                 lastError = error.info
-                bumpAttempts(id: entry.id)
+                let outcome = recordFailedAttempt(id: entry.id)
+                if outcome.dropsEntry {
+                    onDrop?(entry, error, outcome)
+                }
             }
             onResult?(entry, result)
         }
@@ -169,22 +245,6 @@ final class PendingSaveQueue: @unchecked Sendable {
     }
 
     // MARK: - Storage
-
-    private func bumpAttempts(id: String) {
-        let cutoff = now() - Self.maxAgeMs
-        lock.withLock {
-            var entries = readEntries()
-            guard let index = entries.firstIndex(where: { $0.id == id }) else { return }
-            entries[index].attempts += 1
-            // Age and attempt limits are enforced here, at the moment a delivery
-            // fails, rather than on read, so a live read never silently drops
-            // something the caller is about to send.
-            if entries[index].attempts >= Self.maxAttempts || entries[index].queuedAt < cutoff {
-                entries.remove(at: index)
-            }
-            _ = writeEntries(entries)
-        }
-    }
 
     /// Read without validating every field. Callers get entries the queue itself
     /// wrote; a queue file that does not decode is treated as empty and replaced,

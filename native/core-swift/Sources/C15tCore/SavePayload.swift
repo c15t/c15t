@@ -25,8 +25,23 @@ public enum CommitIntent: Sendable, Equatable {
 /// lets a consent action complete inside the 50 ms budget with no network: the
 /// receipts are durable before this returns, and the backend is told afterwards.
 public struct CommitResult: Sendable, Equatable {
+    /// What ``ConsentCore.save(_:)`` promises, and what it does not.
+    ///
+    /// `committed` is a statement about this device, not about the backend. It
+    /// asserts all three of: the receipts are applied to the snapshot, the snapshot
+    /// is written to protected storage, and the queue holds the exact bytes that
+    /// owe delivery. It deliberately does not assert that the backend has them,
+    /// which no synchronous call can know: delivery is reported afterwards by the
+    /// ``CoreEvent/saveDelivered`` and ``CoreEvent/error`` pair, and the queue depth
+    /// stays readable through ``ConsentCore/pendingSaveCount()``.
+    ///
+    /// The rule that keeps the first assertion honest is that no branch returns
+    /// `committed` without a durable queue entry behind it. A queue that could not
+    /// be written, or does not exist yet, answers ``rejected`` with the reason and
+    /// leaves the snapshot alone, because a decision nothing remembers having to
+    /// deliver is worse than a refusal the caller can act on.
     public enum Status: String, Sendable, Equatable {
-        /// Receipts applied locally and queued or accepted.
+        /// Receipts applied locally and durably queued for delivery.
         case committed
         /// Nothing changed, so nothing was recorded or sent.
         case noop

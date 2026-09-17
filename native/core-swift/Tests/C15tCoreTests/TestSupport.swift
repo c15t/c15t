@@ -40,6 +40,7 @@ final class StubHTTP: HTTPTransport, @unchecked Sendable {
     private var saveRequests: [HTTPRequest] = []
     private var identityRequests: [HTTPRequest] = []
     private var _savesFail = false
+    private var _holdsSaves = false
     private var saveWaiters: [CheckedContinuation<Void, Never>] = []
     private var arrivalWaiters: [CheckedContinuation<Void, Never>] = []
 
@@ -61,6 +62,11 @@ final class StubHTTP: HTTPTransport, @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Status a failing save answers with. `503` is the retry shape, which is what
+    /// the replay tests want; a test about a body the backend refuses on its own
+    /// terms wants `400`.
+    var saveFailureStatus = 503
+
     /// Make every save fail until switched back off.
     func setSavesFail(_ failing: Bool) {
         lock.lock()
@@ -73,11 +79,26 @@ final class StubHTTP: HTTPTransport, @unchecked Sendable {
     /// A stub that answers instantly from memory can finish the delivery, and empty
     /// the queue, before the test's next statement runs. Holding the response keeps
     /// the entry observable while the request is really in flight.
-    var holdsSaves = false
+    ///
+    /// Reading and writing it goes through the lock the waiters live behind, so the
+    /// park decision and ``releaseSaves()`` cannot interleave.
+    var holdsSaves: Bool {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _holdsSaves
+        }
+        set {
+            lock.lock()
+            _holdsSaves = newValue
+            lock.unlock()
+        }
+    }
 
-    /// Resume the saves parked by ``holdsSaves``.
+    /// Stop parking saves, and resume the ones already parked.
     func releaseSaves() {
         lock.lock()
+        _holdsSaves = false
         let parked = saveWaiters
         saveWaiters = []
         lock.unlock()
@@ -158,12 +179,20 @@ final class StubHTTP: HTTPTransport, @unchecked Sendable {
                 await withCheckedContinuation {
                     (continuation: CheckedContinuation<Void, Never>) in
                     lock.lock()
-                    saveWaiters.append(continuation)
-                    lock.unlock()
+                    if _holdsSaves {
+                        saveWaiters.append(continuation)
+                        lock.unlock()
+                    } else {
+                        // Released between the check above and this one. Appending it
+                        // anyway would park a send whose release already happened,
+                        // and the test would wait on a request nobody will finish.
+                        lock.unlock()
+                        continuation.resume()
+                    }
                 }
             }
             if failing {
-                return HTTPResponse(status: 503, body: Data("unavailable".utf8))
+                return HTTPResponse(status: saveFailureStatus, body: Data("unavailable".utf8))
             }
             return canned ?? saveResponse
 
