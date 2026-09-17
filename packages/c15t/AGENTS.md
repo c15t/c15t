@@ -61,6 +61,12 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Styling](./docs/frameworks/next/styling/overview.md): Import the Next.js stylesheet and theme c15t components with tokens, slots, and class names through ConsentRoot options.
 - [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 - [Quickstart](./docs/frameworks/nuxt/quickstart.md): Configure the Nuxt module for server rendering, browser initialization or static hosting.
+- [Configuration](./docs/frameworks/react-native/configuration.md): Bootstrap keys for iOS and Android, transport modes, overrides including the GPC override, and the privacy signal shape.
+- [Native behaviour](./docs/frameworks/react-native/native-behaviour.md): The native consent core boots before JavaScript, hydrates stored consent first, and fails closed on an unreadable store.
+- [Platform support](./docs/frameworks/react-native/platform-support.md): Minimum React Native, Expo, iOS and Android versions for @c15t/react-native, and the versions the package is verified against.
+- [Quickstart](./docs/frameworks/react-native/quickstart.md): Install @c15t/react-native in a bare React Native or Expo app, build a custom native client, and render the first consent banner.
+- [Troubleshoot React Native consent](./docs/frameworks/react-native/troubleshooting.md): Diagnose not-bootstrapped reads, protocol mismatches, retired configuration keys, and banner or gating symptoms in a React Native app.
+- [Usage](./docs/frameworks/react-native/usage.md): Read native consent with the hooks, render the built-in banner, dialog and preference center, or build your own surfaces headless.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.

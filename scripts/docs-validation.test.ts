@@ -62,6 +62,7 @@ test('framework quickstarts resolve inside the host framework group', async () =
 		'svelte',
 		'sveltekit',
 		'javascript',
+		'react-native',
 	]);
 	for (const framework of frameworks?.children ?? []) {
 		expect(framework.pages[0]).toMatchObject({

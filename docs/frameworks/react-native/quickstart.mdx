@@ -1,0 +1,239 @@
+---
+title: Quickstart
+description: Install @c15t/react-native in a bare React Native or Expo app, build a custom native client, and render the first consent banner.
+group: frameworks
+---
+
+## What you are installing
+
+`@c15t/react-native` is a native consent kernel with a thin React Native layer on
+top. Swift on iOS and Kotlin on Android own consent state, persist it, evaluate
+policy and queue backend writes. The JavaScript package reads the native snapshot,
+renders the surface the policy asks for, and forwards the subject's decision. It
+keeps no second copy of consent state.
+
+Because the kernel is native code, consent resolves before your first JavaScript
+frame and survives a cold start with no connectivity. Read
+[native behaviour](/docs/frameworks/react-native/native-behaviour) for the ordering
+that follows from this.
+
+## Before you start
+
+- A c15t backend endpoint. [Create an Inth project](https://inth.com), configure its
+  policy rules, and copy the endpoint. Self-hosting
+  [`@c15t/backend`](/docs/self-host/overview) and offline mode are deliberate
+  alternatives;
+  see [configuration](/docs/frameworks/react-native/configuration).
+- The New Architecture enabled. It is on by default in React Native 0.81 and above,
+  which is the floor this package declares. There is no legacy bridge fallback.
+- A custom native build.
+
+<Callout type="warn">
+  Expo Go cannot run this package. It ships a custom native module, and Expo Go only
+  contains the modules the Expo team compiled into it. Every Expo app needs a
+  development build or a local/EAS build. `npx expo start` against Expo Go is a
+  configuration error, and the config plugin fails the build with that message rather
+  than letting you discover it at runtime.
+</Callout>
+
+## Install the package
+
+<CommandTabs command="@c15t/react-native" mode="install" />
+
+Then rebuild. Installing the JavaScript without a native rebuild is the most common
+cause of `NativeC15tUnavailableError`, because the module is looked up in the running
+binary.
+
+## Expo
+
+Add one plugin entry to `app.json`. It writes the native bootstrap keys, the Android
+launch hook and permission, and the iOS privacy declarations, and it publishes the
+same values to JavaScript under `extra.c15t`.
+
+```json title="app.json"
+{
+  "plugins": [
+    [
+      "@c15t/react-native/expo-plugin",
+      {
+        "backendURL": "https://consent.example.com",
+        "publicKey": "pk_live_7f3a9c"
+      }
+    ]
+  ]
+}
+```
+
+`backendURL` is required in every mode except `offline`, and a base path is allowed so
+a same-origin deployment works unchanged. `publicKey` is a publishable key only: the
+plugin rejects anything shaped `sk_`, `secret_`, `private_` or `rk_`, because the value
+is published inside a public IPA and APK. See
+[configuration](/docs/frameworks/react-native/configuration) for the other options.
+
+Generate the native projects and build a development client:
+
+```bash
+npx expo prebuild
+npx expo run:ios
+npx expo run:android
+```
+
+The plugin runs at `expo prebuild`, `expo run:*` and `eas build` time and ships nothing
+that executes inside the app, so Continuous Native Generation needs no patch step and
+`prebuild --clean` loses nothing. With `updates.url` set and no `runtimeVersion` the
+plugin throws, because that combination serves any JavaScript revision to any shipped
+binary.
+
+## Bare React Native
+
+Autolinking registers the TurboModule on both platforms. What you add by hand is the
+backend configuration and, on iOS, the deployment target and the core pod.
+
+### iOS
+
+Set the deployment floor in `ios/Podfile`. The package requires iOS 16.4, which is
+above the floor React Native 0.87 sets for its own pods.
+
+```ruby title="ios/Podfile"
+platform :ios, '16.4'
+```
+
+The binding depends on a `C15tCore` pod that is not inside the published tarball.
+Resolve it either from a published version, with the environment variable the podspec
+reads:
+
+```bash
+C15T_CORE_POD_VERSION=3.0.0-alpha.1 bundle exec pod install
+```
+
+or from a copy you vendor yourself:
+
+```ruby title="ios/Podfile"
+pod 'C15tCore', :path => '../vendor/c15t-core-swift'
+```
+
+Then declare the backend in `ios/<App>/Info.plist`:
+
+```xml
+<key>com.c15t.backend.url</key>
+<string>https://consent.example.com</string>
+<key>com.c15t.backend.mode</key>
+<string>hosted</string>
+```
+
+Rebuild the app after installing the package, not just the pods.
+
+### Android
+
+Declare the backend and the permission inside `<application>` in
+`android/app/src/main/AndroidManifest.xml`. The launch hook that starts the core ships
+in the library manifest and merges on its own, so do not register a second one.
+
+```xml title="android/app/src/main/AndroidManifest.xml"
+<uses-permission android:name="android.permission.INTERNET" />
+
+<application>
+  <meta-data
+    android:name="com.c15t.PORTAL_URL"
+    android:value="https://consent.example.com" />
+</application>
+```
+
+Confirm the SDK floors in `android/build.gradle`, which the
+[platform support](/docs/frameworks/react-native/platform-support) page lists:
+
+```groovy title="android/build.gradle"
+buildscript {
+  ext {
+    minSdkVersion = 24
+    compileSdkVersion = 36
+  }
+}
+```
+
+Clean and rebuild the app. There is no Android command to run after installing the
+package beyond that rebuild.
+
+## Mount the provider and a banner
+
+`C15tProvider` attaches to the native instance the binary already booted. It creates
+nothing and takes no configuration, because the native core is configured natively
+rather than from JavaScript.
+
+```tsx title="src/Consent.tsx"
+import type { ReactNode } from 'react';
+import { View } from 'react-native';
+import { C15tProvider, ConsentBanner } from '@c15t/react-native';
+
+export function Consent({ children }: { children: ReactNode }) {
+	return (
+		<C15tProvider>
+			<View style={{ flex: 1 }}>{children}</View>
+			<ConsentBanner />
+		</C15tProvider>
+	);
+}
+```
+
+Render it once, above your app, from the component that owns the root
+`ReactNode`:
+
+```tsx title="src/App.tsx"
+import { NavigationContainer } from '@react-navigation/native';
+import { Consent } from './Consent';
+import { Root } from './Root';
+
+export function App() {
+	return (
+		<Consent>
+			<NavigationContainer>
+				<Root />
+			</NavigationContainer>
+		</Consent>
+	);
+}
+```
+
+Your root component can be anything. The provider only needs to sit above the subtree
+that reads consent, and the banner needs to sit inside the same view that holds your
+screens so it overlays them.
+
+`<ConsentBanner />` on its own is a complete prompt. It renders nothing until the
+policy resolves and the snapshot has hydrated, shows notice or opt-in copy from the
+resolved requirement, and opens the built-in dialog itself when the subject taps
+customize.
+
+## Gate one feature
+
+```tsx title="src/AnalyticsGate.tsx"
+import type { ReactNode } from 'react';
+import { useIsAllowed } from '@c15t/react-native';
+
+export function AnalyticsGate({ children }: { children: ReactNode }) {
+	return useIsAllowed('measurement') ? <>{children}</> : null;
+}
+```
+
+`useIsAllowed` reads the native effective permissions. It returns `false` while the
+stored snapshot is hydrating and while the first policy resolution is outstanding, so
+nothing has to opt in to being deny-by-default. See
+[usage](/docs/frameworks/react-native/usage) for the other hooks, the built-in
+surfaces, and the headless path.
+
+## Verify the setup
+
+1. Launch on a device or simulator, not Expo Go. A missing native module throws
+   `NativeC15tUnavailableError` at the provider.
+2. Under an opt-in policy, reject, kill the app, and relaunch. The banner must stay
+   closed and `useConsent().effectivePermissions.measurement` must still be `false`
+   before any network response arrives. That is the hydration contract, not a cache.
+3. Accept, kill the app, relaunch, and confirm the measurement request fires on the
+   first screen that mounts.
+4. Turn the device on airplane mode, change a choice, relaunch with connectivity, and
+   confirm the queued write is delivered.
+5. Read `useC15tBootstrap().nativeSdkVersion` on an about screen and confirm it matches
+   the installed package. A mismatch means an over-the-air bundle is ahead of the
+   binary.
+
+Work through [troubleshooting](/docs/frameworks/react-native/troubleshooting) if any
+step disagrees.

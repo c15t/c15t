@@ -1,0 +1,90 @@
+---
+title: Platform support
+description: Minimum React Native, Expo, iOS and Android versions for @c15t/react-native, and the versions the package is verified against.
+group: frameworks
+---
+
+## Requirements
+
+These are the floors a build has to clear. Each one is read from a build file rather
+than chosen.
+
+| Requirement | Minimum | Source |
+| --- | --- | --- |
+| React Native | 0.81 | `peerDependencies` in `package.json` |
+| New Architecture | required | TurboModule and Codegen only, no legacy bridge |
+| React | 19.1 | `peerDependencies` in `package.json`, optional peer |
+| iOS | 16.4 | `s.platforms` in `C15tReactNative.podspec` |
+| Swift | 5.9 | `s.swift_versions` in the podspec |
+| Android `minSdk` | 24 | `native/core-android/gradle/libs.versions.toml`, applied by the binding's `library.gradle` |
+| Android `compileSdk` | 36 | the same file |
+
+The iOS floor of 16.4 is above the one React Native 0.87 sets for its own pods, so
+setting `platform :ios, '16.4'` in your `Podfile` is a change you have to make
+deliberately rather than inherit.
+
+`react` is an optional peer dependency because the native module and the pure selectors
+work without it. Anything that renders a component needs it.
+
+## Verified against
+
+The package is exercised on these versions. They are what a failing report should be
+measured against, not additional floors.
+
+| Component | Version |
+| --- | --- |
+| React Native | 0.87.1 |
+| React | 19.2.7 |
+| Codegen (`@react-native/codegen`) | 0.87.1 |
+| Expo SDK | 57.0.23 |
+| `expo` CLI | 57.0.25 |
+| `@expo/config-plugins` | 57.0.9 |
+| CocoaPods | 1.17.0 |
+| Xcode | 27 |
+
+`@expo/config-plugins` is a real dependency of the package, so the config plugin is
+built against that line. There is no `expo` peer dependency: an Expo app gets the version
+its SDK ships, and that SDK must carry a React Native release at or above 0.81.
+
+Node needs to be 20.19 or newer, 22.12 or newer, or 24 or newer. Expo resolves a config
+plugin with `require()`, and that set is the floor `@expo/require-utils` names for its
+own resolution. The plugin entry ships a bundled CommonJS file under the `require`
+condition so it loads there, while Metro and every bundler take the ES module condition.
+
+## Release channel
+
+`@c15t/react-native` publishes as a v3 prerelease. Expect the API surface described in
+these guides to match the alpha line, and pin the exact version you build against, since
+the native binary and the JavaScript bundle have to agree about the protocol.
+
+The Android core resolves from source inside this repository today. `c15t.core.fromSource`
+switches the binding to published artifacts, and `C15T_CORE_POD_VERSION` does the same on
+iOS. [Installation](/docs/frameworks/react-native/quickstart) covers both.
+
+## Protocol compatibility
+
+The native build reports the consent protocol it speaks, and the JavaScript package
+supports a range rather than a single number. The current published protocol is `1`, and
+the supported range is `1` to `1`.
+
+This is what an over-the-air update breaks. Expo Updates or CodePush can ship a bundle
+that speaks a newer protocol than the binary in the user's hand, and no JavaScript-only
+update can add a missing native module. When the two disagree, `C15tProvider` throws
+`C15tProtocolMismatchError`, naming both sides. The fix is a new binary, or installing the
+package version that shipped with the existing one.
+
+Set `runtimeVersion` whenever `updates.url` is set. The config plugin throws without it,
+because that combination serves any JavaScript revision to any shipped binary. The
+supported range travels to JavaScript in `extra.c15t.protocol`, so a debug screen can
+compare it against `useC15tBootstrap().protocolVersion` before a user sees a blank screen.
+
+## What is not supported
+
+- Expo Go. It cannot contain a custom native module. Use a development build.
+- Web. Consent on the web belongs to the browser SDK, and importing this package on the
+  web throws `NativeC15tUnavailableError`.
+- The legacy React Native bridge. There is no `NativeModules` fallback, because the
+  legacy bridge cannot register the Codegen surface this package is generated against.
+- IAB TCF. The `iab` slot on the snapshot is reserved and always `null` in this phase, so
+  there is no TC string, no GVL state, and no `IABTCF_*` keys. Adding TCF later is an
+  additive protocol change.

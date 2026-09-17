@@ -14,7 +14,7 @@ The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
 initializer. Add it to your existing consent owner using the registration point
 below. These are partial edits to that owner, not additional providers.
 
-<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'JavaScript']}>
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'JavaScript', 'React Native']}>
   <Tab value="Next.js">
     Import the configuration into the client boundary from your router guide:
 
@@ -251,5 +251,26 @@ below. These are partial edits to that owner, not additional providers.
     `kernel` is the hosted kernel from your quickstart. A provider-owned kernel
     already has a loader; do not attach a second one. See
     [JavaScript script loading](/docs/frameworks/javascript/script-loader).
+  </Tab>
+
+  <Tab value="React Native">
+    There is no script loader to register. `@c15t/scripts` loads browser
+    documents, and a React Native app has none: the consent kernel runs natively
+    and the vendor ships as a native or JavaScript module you start yourself.
+
+    Gate the vendor where you start it, so the module never initialises without
+    permission:
+
+    ```tsx
+    import { ConsentGate } from '@c15t/react-native';
+
+    export function VendorInit() {
+      return <ConsentGate category="measurement">{() => <VendorSDK />}</ConsentGate>;
+    }
+    ```
+
+    An SDK you start outside React reads the same snapshot natively and has to
+    check it there too. See
+    [React Native setup](/docs/frameworks/react-native/quickstart).
   </Tab>
 </Tabs>

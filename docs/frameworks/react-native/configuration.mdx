@@ -1,0 +1,213 @@
+---
+title: Configuration
+description: Bootstrap keys for iOS and Android, transport modes, overrides including the GPC override, and the privacy signal shape.
+group: frameworks
+---
+
+## Where configuration lives
+
+The native core is configured natively, before JavaScript runs. It boots from a launch
+hook that fires ahead of the React host, so the values it needs have to exist in the
+binary rather than in a provider prop. `C15tProvider` takes no configuration, and there
+is no second config source in JavaScript.
+
+Three ways to supply it, in the order most apps should pick them:
+
+1. The Expo config plugin, which writes both platforms' keys from one `app.json`
+   entry.
+2. The native files directly, for a bare React Native app.
+3. An install call from your own launch code, for stores, transports or headers the
+   keys cannot express. Turn the automatic start off first, or your call races the
+   launch hook.
+
+Absent values stay absent. A missing key means "not configured", and the bridge parses
+an empty string as a value.
+
+## Transport modes
+
+The Expo plugin's `mode` is the host-facing spelling. It is spelled three ways because
+each reader already was.
+
+| `mode` | `com.c15t.backend.mode` (iOS) | Android | Reported to JavaScript |
+| --- | --- | --- | --- |
+| `hosted` | `hosted` | `com.c15t.PORTAL_URL` set | `hosted` |
+| `selfHosted` | `self-hosted` | `com.c15t.PORTAL_URL` set | `hosted` |
+| `offline` | `offline` | no `com.c15t.PORTAL_URL` | `offline` |
+| `custom` | `none` | auto-bootstrap disabled | `custom` |
+
+`selfHosted` reaches JavaScript as `hosted` because a self-hosted `@c15t/backend`
+speaks the hosted wire and the provider has no separate kind for it. `custom` leaves the
+core unstarted, so an async command from a frame the host has not installed over is a
+no-op rather than a write that looks delivered; it also defaults `autoBootstrap` to
+`false`, where leaving it on would race the host. `offline` embeds no backend at all,
+which makes every command local-only. Not recommended for production environments.
+
+On Android there is no mode key because neither reader has a mode string: `hosted` and
+`selfHosted` differ only by URL, `offline` is the absence of a URL, and `custom` is the
+absence of a launch hook.
+
+## iOS `Info.plist` keys
+
+Read by `C15tBridgeConfiguration.from(infoPlist:)`. Every key is optional. Expo apps set
+these through `app.json`'s `ios.infoPlist`, which the plugin writes for you.
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `com.c15t.backend.url` | string | Hosted project URL, or a self-hosted base URL. |
+| `com.c15t.backend.mode` | string | `hosted`, `self-hosted`, `offline` or `none`. Inferred from the URL when absent: a URL with no mode is `hosted`, no URL is `offline`. |
+| `com.c15t.backend.domain` | string | Value sent as the `domain` field of `POST /subjects`. |
+| `com.c15t.storage` | string | `keychain` (default), `file` or `memory`. |
+| `com.c15t.keychain.service` | string | Keychain service name. Defaults to `com.c15t.core`, which matches the core's own default so a core you install and one the bridge installs read the same items. |
+| `com.c15t.country` | string | Pin the country used for policy matching. |
+| `com.c15t.region` | string | Pin the region or state code. |
+| `com.c15t.language` | string | Pin the translation language. Defaults to the device locale. |
+| `com.c15t.categories` | string array | Category ids the app declares. Empty means the full policy scope. |
+| `com.c15t.gpc` | boolean | The host app's GPC report. Detection only: it never becomes an override. |
+| `com.c15t.reactnative.AutoBootstrap` | boolean | `false` opts out of the pre-React start. Only written when you opt out, since on is the bridge's default. |
+
+Bad values fall back to the safe option rather than failing the launch. An
+unparseable storage mode becomes the Keychain, and a malformed URL becomes no transport,
+which keeps consent local instead of sending it somewhere the app did not intend.
+
+`com.c15t.test` is retired and refused. Publisher test mode is a client option rather
+than an override, and never reaches a save body. The launch hook will not start a core
+from a plist that still declares it: the console names the key, and every read answers
+deny-all until it is removed or you install a core from code.
+
+`com.c15t.storage` of `file` is development only. Consent is readable without the
+Keychain's protections and a device backup carries it. `memory` keeps nothing across
+relaunch, which is what a test or preview build wants.
+
+## Android `<meta-data>` keys
+
+Read by `C15tAndroid.configFrom` and the bridge's own bootstrap, from the application's
+`<meta-data>`. Expo apps get these from the plugin.
+
+| Key | Meaning |
+| --- | --- |
+| `com.c15t.PORTAL_URL` | Backend base URL. Without it there is nothing to talk to, so the core stays uninstalled and every read answers deny-all. |
+| `com.c15t.INIT_URL` | Override `${PORTAL_URL}/init`, for a proxied init route. |
+| `com.c15t.DOMAIN` | Value sent as the `domain` field of `POST /subjects`. |
+| `com.c15t.FORCE_GPC` | Staged-build switch that forces GPC on. |
+| `com.c15t.reactnative.AUTO_BOOTSTRAP` | `false` opts out of the launch hook. Only written when you opt out. |
+
+The `androidx.startup` provider that runs the hook ships in the library's own manifest
+and merges into yours. Registering it a second time, or registering the module by hand
+in `MainApplication`, in `ios/Podfile`, or in `android/app/build.gradle`, is a
+configuration error: autolinking and the plugin are the only two supported routes, and
+combining them yields two registrations.
+
+## Keys with no reader yet
+
+The plugin also writes `com.c15t.backend.publicKey`, `com.c15t.backend.initUrl` and
+`com.c15t.PUBLIC_KEY`. The cores identify a project by backend URL, so these are
+embedded for proxy routing and so support can read them off a build. No consent
+decision reads them. Treat them as diagnostics, not as configuration.
+
+## Values JavaScript can read
+
+The plugin mirrors its parameters into `extra.c15t`, so an app can branch on what the
+binary was built with:
+
+```ts
+import Constants from 'expo-constants';
+
+// The plugin writes this object; it is not a runtime API.
+const c15t = Constants.expoConfig?.extra?.c15t as {
+	mode: 'custom' | 'hosted' | 'offline';
+	backendURL: string | null;
+	initURL: string | null;
+	domain: string | null;
+	publicKey: string | null;
+	enableAppTrackingTransparency: boolean;
+} | undefined;
+```
+
+`protocol` is also carried there. It is the range the bundle speaks, and it is what the
+native `protocolVersion` is checked against at the handshake. `useC15tBootstrap()`
+returns what the native side reported, including `nativeSdkVersion` and
+`hasStoredSnapshot`.
+
+## Expo plugin parameters
+
+`C15tPluginProps` accepts `backendURL`, `publicKey`, `initURL`, `domain`, `mode`,
+`enableAppTrackingTransparency`, `trackingUsageDescription`, `skAdNetworkIdentifiers`,
+`privacyTrackingDomains`, `forceGPC`, `autoBootstrap` and `skipNativeBuildCheck`.
+
+Everything in it is published inside the app binary, so nothing there may be a secret.
+The plugin rejects a `publicKey` shaped like one.
+
+App Tracking Transparency is opt-in and never implied.
+`NSUserTrackingUsageDescription` and `SKAdNetworkItems` are written only under
+`enableAppTrackingTransparency: true`, which also requires `trackingUsageDescription`
+because Apple rejects a string the plugin invented. A prompt string you already wrote
+survives. Consent to marketing categories is not Apple tracking authorization, so no
+consent setting turns these on, and turning them on does not record consent.
+`privacyTrackingDomains` is accepted only with ATT enabled, and must list the backend
+host when ATT is on.
+
+`skipNativeBuildCheck` waives the Expo Go check for a build harness that drives
+`expo start` in a container without ever opening Expo Go.
+
+## Overrides
+
+Overrides change which policy rule matches and which translations are served. They never
+create a choice, and they never write a consent record. The backend recomputes them
+before it accepts a save, which is why they travel with every commit.
+
+```tsx
+import { useConsentActions } from '@c15t/react-native';
+
+const actions = useConsentActions();
+
+await actions.setOverrides({ country: 'DE', language: 'de' });
+```
+
+| Field | Type | Behaviour |
+| --- | --- | --- |
+| `country` | `string \\| null` | ISO 3166-1 alpha-2, or `null` to let the backend detect. |
+| `region` | `string \\| null` | Region or state code within the country, or `null`. |
+| `language` | `string` | BCP 47 tag. The core always resolves one, falling back to the device locale, because translations must resolve to a single bundle. |
+| `gpc` | `boolean \\| null` | The GPC override, or `null` when the app has none. |
+
+Passed to `setOverrides`, omitted fields keep their current value and an explicit `null`
+clears one. The snapshot's `overrides` object always carries all four fields, with
+`language` never empty.
+
+The `gpc` override is load bearing rather than decorative. It wins over the detected
+signal, which is what makes it an override, and the save path compares it against the
+decision inputs remembered from the last init. A save whose inputs no longer match is
+rejected as stale, so an override you changed without re-resolving will surface as a
+refused write, not a silent mismatch.
+
+There is no `test` override and no `msa` signal in v3. Publisher test mode is a client
+option that never reaches a save body. Sending either field is refused with
+`C15T_OVERRIDES_RETIRED` and nothing changes, rather than being dropped while your app
+believes a mode is on.
+
+Overrides are for debug menus and review-gated builds that must evaluate one region's
+policy. They pin what the app asserts, not what the visitor chose.
+
+## The privacy signal shape
+
+`snapshot.privacySignals.gpc` is an object with three members, and they are not
+interchangeable. A gate reads `active`.
+
+```ts
+snapshot.privacySignals.gpc;
+// { detected: boolean, override: boolean | null, active: boolean }
+```
+
+| Field | Meaning |
+| --- | --- |
+| `detected` | What the device or `/init` reported. There is no user-agent signal on mobile, so this is your app's report or the backend's resolution. |
+| `override` | `overrides.gpc`, or `null` when the app set none. |
+| `active` | The value the evaluator honors: the override when set, otherwise the detection. |
+
+An active signal is a denial, never a grant. It restricts the categories a policy would
+otherwise allow, and the reason shows up in `snapshot.restrictions` beside the denied
+permission. Turning GPC on does not create an explicit consent receipt, and a `detected`
+signal whose `active` is `false` changes nothing.
+
+iOS `com.c15t.gpc` and Android `com.c15t.FORCE_GPC` feed detection. `setOverrides` feeds
+`override`. They are different inputs to the same field.

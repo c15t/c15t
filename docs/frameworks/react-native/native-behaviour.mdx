@@ -1,0 +1,174 @@
+---
+title: Native behaviour
+description: The native consent core boots before JavaScript, hydrates stored consent first, and fails closed on an unreadable store.
+group: frameworks
+---
+
+This page is the reason the package exists. Consent decisions are only useful if the
+code that acts on them can trust the answer it got, and on mobile that trust is an
+ordering problem: an analytics SDK starts long before your React tree has painted.
+
+## The order things happen in
+
+1. The native core starts ahead of React Native. On iOS a
+   `__attribute__((constructor))` runs at image load, before React Native initializes.
+   On Android an `androidx.startup` initializer runs during `Application.onCreate`,
+   before the first `Activity` exists.
+2. `bootstrap()` reads the stored envelope synchronously, before it puts anything on a
+   worker. Hydration is the reason this is its own step.
+3. The React host starts. `C15tProvider` calls `getBootstrap()` and `getSnapshot()`,
+   both synchronous reads of what the core already holds. Neither touches the network or
+   the disk.
+4. `/init` resolves sometime later. That folds a policy into the snapshot, bumps
+   `revision`, and the mounted subscribers whose slice moved rerender.
+
+So the first JavaScript frame already resolves against real stored consent, not an empty
+in-memory object. This is what prevents the common bug where an SDK initializes on a cold
+start because the check ran against state that had not loaded yet.
+
+## Four states, and only two are answers
+
+Every gate reads two flags: `ready` covers hydration, `policyPending` covers the first
+init.
+
+| `ready` | `policyPending` | What it means | `useIsAllowed('measurement')` |
+| --- | --- | --- | --- |
+| `false` | `true` | Nothing has hydrated yet, or the store could not be read. | `false` |
+| `true` | `true` | Stored consent is loaded; the policy has not resolved. | stored value, `false` for optional categories |
+| `true` | `false` | A real answer. | the effective permission |
+| `false` | `false` | Not a state the cores produce; treat it as the row above. | `false` |
+
+`necessary` is the one category that is always allowed. While either flag is unset, every
+optional category reads `false`, with no default-on and no model sniffing. `isAllowed`
+never needs a loading branch, because "unknown" and "denied" give the same instruction.
+
+## An unreadable store fails closed
+
+A stored envelope the running build cannot read is indistinguishable from a fresh
+install: `ready: false`, `policyPending: true`, every optional category `false`, and
+nothing from those bytes applied. That identity is the point. There is no partial read,
+because half an envelope answers like a returning user, and a permission assembled out of
+garbage is indistinguishable from one the subject actually gave.
+
+It covers a field the build does not model, a write that stopped partway through (the
+one shape most likely to read as valid), a document written by an older wire revision,
+and a document from another codec entirely, including a genuine web v3 record. The web
+SDK writes a v3 consent record to `localStorage` or a cookie and neither native core
+reads it, so a shared-origin document is not a fallback.
+
+The subject id survives on both platforms. Losing the consent envelope never costs a
+device its identity, which matters because the identity is a random UUID the SDK owns and
+nothing derived from IDFV, ADID or any other persistent hardware identifier.
+
+A failed init does not throw into your app. It sets `snapshot.error`, keeps
+`policyPending` true, and leaves every optional category denied. If JavaScript receives a
+snapshot payload it cannot parse at all, it serves the same deny-all shape with the error
+code `invalid-native-snapshot` and keeps the last snapshot it did understand for
+rendering.
+
+## What JavaScript never does
+
+The React Native layer holds no consent state, evaluates no policy, persists nothing, and
+queues nothing. It imports the core package for types and pure selectors only. Selectors
+in this package read `effectivePermissions` and apply the two lifecycle flags. They decide
+nothing.
+
+That single-owner rule is why `useConsent()` and a native `isAllowed` read cannot
+disagree, and why there is no reconciliation step to reason about. The Swift, Kotlin and
+TypeScript implementations are held to identical request bodies and snapshots by shared
+protocol fixtures, so a difference between platforms is a bug rather than a documented
+variance.
+
+## Gating a native analytics SDK
+
+An SDK you start from `AppDelegate`, an `Application` class or a native module runs
+outside React and outside `ConsentGate`. Read the same snapshot natively. The reads are
+synchronous and never block on I/O, which is what makes them safe to call from an SDK
+initializer on the main thread.
+
+```swift
+// After the launch hook has run, in your analytics setup.
+// `Analytics` is your own wrapper around the vendor SDK.
+if C15t.isAllowed(.measurement) {
+    Analytics.start()
+}
+```
+
+```kotlin
+// Application.onCreate, after c15t's initializer has run.
+// `Analytics` is your own wrapper around the vendor SDK.
+if (C15t.isAllowed(ConsentCategory.MEASUREMENT)) {
+    Analytics.start()
+}
+```
+
+Neither call waits, so neither defers your launch. A permission that changes later does
+not un-start an SDK you only started on a `false`, so register for the change as well:
+
+```swift
+// Keep the core reachable; the core owns the subscription it hands back.
+C15t.current?.gate(.measurement) { allowed in
+    if allowed { Analytics.start() } else { Analytics.pause() }
+}
+```
+
+The core fires the callback immediately with the current value and then on every change,
+so there is no initial-state race to write around. `gate` lives on the core instance,
+which is `C15t.current` after bootstrap, and takes an `OptionalConsentCategory` and a
+`(Bool) -> Void`. Android exposes the same shape through
+`C15t.gate(category) { allowed -> }`.
+
+Three consequences worth stating plainly:
+
+- A gate that starts an SDK only when a React component renders is a leak. Anything the
+  binary starts before React mounts has already bypassed your JSX.
+- Starting an SDK on a `false` because hydration had not finished is the failure this
+  ordering exists to prevent, and it is silent. If a vendor request must not happen
+  before consent, gate the vendor where it is started, not only where it is rendered.
+- Gating JavaScript-rendered functionality is not the same as putting a vendor behind
+  consent. The vendor's own initialization is the request.
+
+## Offline writes
+
+Every write is persisted before the request, not after, and replayed on the next launch,
+on foreground, and on a reachability change. The pending queue keeps at most the newest
+twenty payloads, oldest dropped first, and replays each one unchanged: a later init that
+changes the policy must not rewrite a queued payload.
+
+`commit()` therefore resolves `queued: true` and the snapshot is already correct offline.
+Check `queued` before describing a resolved promise as a delivered write. Consent
+applies locally either way, which is the correct privacy behavior: a subject's rejection
+takes effect on the device immediately, whether or not the receipt has reached a server.
+
+## Cost
+
+The contract's budgets, measured on the reference device profile:
+
+- `bootstrap()` to the first synchronous `snapshot()`: under 5 ms warm, under 15 ms cold.
+- Hydrate from a stored envelope: under 3 ms for a realistic payload.
+- Consent action to native commit acknowledged: under 50 ms without network.
+- Cold-start overhead attributable to c15t: under 10 ms.
+- React rerenders per consent change: at most one per subscribed component.
+
+The cores publish their own measurements through their bench tasks, in microseconds, for
+hydrate, policy evaluation, snapshot reads, and an acknowledged save. Treat those as the
+numbers to compare against, and reproduce them with the commands in the repository rather
+than quoting them as device-independent.
+
+## Turning the automatic start off
+
+Set `com.c15t.reactnative.AutoBootstrap` to `false` on iOS, or
+`com.c15t.reactnative.AUTO_BOOTSTRAP` to `false` on Android, when your app installs its
+own core. The bridge then keeps answering reads deny-all until you install it, and works
+against whatever core is there afterwards.
+
+Call it before the first JavaScript frame or you get a real gap: on iOS hand your own
+core to `C15tReactNativeBootstrap.install(_:)`, or have the bridge build and start one
+from the `Info.plist` with `C15tReactNativeBootstrap.start()`, which takes an explicit
+`C15tBridgeConfiguration` when you would rather pass one than rely on the plist.
+`C15tReactNativeBootstrap.isRunning` tells you whether a core is in place. On Android,
+`C15t.bootstrap` ignores a second call, so an initializer that wins the race is harmless.
+
+`com.c15t.storage` of `memory`, and the equivalent in-memory store you can install
+yourself, means nothing survives relaunch. That is a preview and test configuration, not
+a production one.

@@ -33,7 +33,10 @@ Consent management for iOS and Android apps. The consent engine runs natively, s
 ## Prerequisites
 
 - React Native 0.81 or newer with the New Architecture enabled
-- A c15t project ID, or a self-hosted `@c15t/backend` URL
+- React 19.1 or newer to render the built-in components
+- iOS 16.4 or newer, Android `minSdk` 24 and `compileSdk` 36
+- A custom native build: Expo Go cannot load this package's native module, so use a development build
+- A c15t project endpoint, or a self-hosted `@c15t/backend` URL
 
 ## Manual Installation
 
@@ -43,7 +46,7 @@ pnpm add @c15t/react-native
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react-native/quickstart).
 
 ## How it works
 
@@ -78,6 +81,34 @@ bun run test:coverage    # whole package, coverage floors enforced
 CI runs `test` with no filter. That collects coverage and fails below the floors in `vitest.config.ts`, so the ratchet holds there. `test:coverage` is the same gate run on purpose: it always collects coverage, and it prints one line per file below the floor instead of a row for every file. Raise the floors as coverage improves; never lower them.
 
 Type checks and lint stay separate: `bun turbo run test check-types lint --filter=@c15t/react-native`.
+
+## Guides
+
+Every guide lives in the [React Native docs](https://c15t.com/docs/frameworks/react-native/quickstart):
+
+- [Quickstart](https://c15t.com/docs/frameworks/react-native/quickstart): install, configure the native bootstrap keys, and render the first banner on bare React Native or Expo
+- [Usage](https://c15t.com/docs/frameworks/react-native/usage): the provider, the hooks, the built-in banner, dialog and preference center, and the headless path
+- [Configuration](https://c15t.com/docs/frameworks/react-native/configuration): iOS and Android bootstrap keys, transport modes, overrides, and the privacy signal shape
+- [Native behaviour](https://c15t.com/docs/frameworks/react-native/native-behaviour): startup order, hydration, fail-closed storage, and gating a native analytics SDK
+- [Platform support](https://c15t.com/docs/frameworks/react-native/platform-support): version floors, the protocol handshake, and what is not supported
+- [Troubleshooting](https://c15t.com/docs/frameworks/react-native/troubleshooting): not-bootstrapped reads, protocol mismatches, retired keys, and native build problems
+
+## Expo
+
+Add one plugin entry to `app.json` and the native bootstrap keys, the Android launch hook and permission, and the iOS privacy declarations are all written for you:
+
+```json
+{
+  "plugins": [
+    [
+      "@c15t/react-native/expo-plugin",
+      { "backendURL": "https://consent.example.com" }
+    ]
+  ]
+}
+```
+
+Expo Go cannot run this package: it ships a custom native module, and Expo Go contains only the modules the Expo team compiled. Build a development build with `npx expo prebuild` and `npx expo run:ios` or `npx expo run:android`. Set `runtimeVersion` whenever `updates.url` is set, because an over-the-air bundle cannot outrun the embedded native protocol.
 
 ## Support
 

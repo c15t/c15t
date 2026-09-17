@@ -1,0 +1,196 @@
+---
+title: Troubleshoot React Native consent
+description: Diagnose not-bootstrapped reads, protocol mismatches, retired configuration keys, and banner or gating symptoms in a React Native app.
+group: frameworks
+---
+
+## The banner never appears
+
+Work the flags in this order. `useConsentStatus()` gives you the first three in one read.
+
+1. `policyPending` still `true` after the app has been open a few seconds: the first
+   init has not resolved. Check the backend URL, that the device has connectivity, and
+   that the origin is allowed by your policy. `snapshot.error` carries the code.
+2. `ready` still `false`: nothing hydrated. On iOS that includes a refused launch
+   configuration, which logs one console line beginning `c15t:` and then stays deny-all.
+3. `promptRequirement.kind` is `none`: the resolved policy owes no interaction. That is
+   a correct answer, not a bug. Confirm the category set and the region the backend
+   resolved.
+4. `activeUI` is `dialog` while you render only a banner: mount the surface the policy
+   resolved to, or let `ConsentPrompt` pick for you.
+5. The provider is mounted below the screen you are looking at. Hooks read the nearest
+   provider, so the subtree has to be inside it.
+
+## Every optional category reads false
+
+That is the deny-by-default contract, not a fault, as long as it clears. If
+`useIsAllowed('measurement')` stays `false` after an accept:
+
+- Read `snapshot.effectivePermissions` directly. If it says `true` and your gate says
+  `false`, the gate is running in a process or a native module that has its own core
+  instance. See [native behaviour](/docs/frameworks/react-native/native-behaviour).
+- Check `snapshot.restrictions`. A category restricted with `gpc` is denied regardless of
+  the grant, and clearing the grant is not the fix.
+- Check whether an override pins a region whose policy denies the category. Overrides
+  change which rule matches.
+
+## `NativeC15tUnavailableError`
+
+Thrown at `C15tProvider`, with the causes listed in the message in the order people hit
+them:
+
+```text
+@c15t/react-native cannot reach its native consent module "C15t": no module is
+registered under that name
+```
+
+- The app runs in Expo Go. It cannot contain a custom native module. Build a development
+  build; an over-the-air update cannot add the module.
+- The pods were not installed, or the iOS app was not rebuilt after installing the
+  package. Run `pod install`, then a clean rebuild.
+- The Android app was not rebuilt after installing the package. Clean and rebuild.
+- The import runs on the web, where consent belongs to the browser SDK.
+
+If the message instead says the module is missing `getBootstrap`, `getSnapshot` or
+`commit`, a half-built binding is registered: a stale pod or a half-written Android
+package. Clean the native build artifacts and rebuild, and confirm you have not
+registered the module by hand as well as through autolinking.
+
+## `C15tProtocolMismatchError`
+
+The embedded native build and the installed JavaScript package disagree about the wire.
+
+```text
+@c15t/react-native cannot use this native build: it speaks consent protocol 2, while
+the installed JavaScript package supports 1 to 1. Rebuild the app so the embedded native
+code matches this package, or install the @c15t/react-native version that shipped with
+the binary.
+```
+
+A `null` version means the native build predates the handshake. The realistic cause is an
+over-the-air update serving a newer bundle to an older binary. Rebuild, or roll the
+bundle back to the revision that shipped with that binary, then set `runtimeVersion`.
+
+## `commit()` resolves with `reason: "not-bootstrapped"`
+
+No core is running, so nothing can be recorded. `ok` is `false`, `revision` is `null`, and
+nothing was written. The same condition rejects the other async calls with
+`C15T_NOT_BOOTSTRAPPED`. There are two ways to get here and the message names both:
+
+```text
+c15t has no backend configured, so the consent core was not started. Set
+com.c15t.backend.url in Info.plist, or start the core yourself before React Native
+initializes. Check the console for a c15t configuration refusal if the key is already set.
+```
+
+1. The backend key is genuinely missing. iOS reads `com.c15t.backend.url`; Android reads
+   the `com.c15t.PORTAL_URL` `<meta-data>`.
+2. The launch hook refused a retired key and did not start. Look for a line beginning
+   `c15t:` in the console. Removing the key, or installing a core from code, both fix it.
+
+Setting `autoBootstrap` to `false` also lands here until you install the core yourself.
+
+A queued payload is the opposite case and is not a failure: `queued: true` with `ok: true`
+means the action applied locally and the payload is persisted for replay.
+
+## Rejections and error codes
+
+Native rejections arrive as promise rejections from `commit`, `setOverrides`, `refresh`,
+`identify` and `logout`. They are configuration and wiring faults, not consent outcomes.
+
+| Code | Means | Fix |
+| --- | --- | --- |
+| `C15T_NOT_BOOTSTRAPPED` | No core is running. | Declare the backend, or install a core before the first frame. |
+| `C15T_CONFIGURATION_RETIRED` | iOS `Info.plist` declares a key this build does not model, so the core was not started. | Remove the key. The message names the replacement. |
+| `C15T_OVERRIDES_REJECTED` | The overrides document could not be read, or `gpc` is neither `true`, `false` nor `null`. Nothing changed. | Send the four documented fields with their types. |
+| `C15T_OVERRIDES_RETIRED` | The document names a retired field. Nothing changed. | Delete it. See the migration notes below. |
+| `C15T_COMMIT_FAILED` | The commit could not be applied at all. | Check the message; the snapshot still holds the last good state. |
+| `C15T_REFRESH_FAILED` | The core could not re-resolve policy. | Retry; a pending `snapshot.error` usually explains it. |
+| `C15T_IDENTIFY_FAILED` | The external id could not be attached. | Confirm the backend accepts the id and the subject is writable. |
+| `C15T_LOGOUT_FAILED` | The external id could not be detached. | Retry; consent is unaffected either way. |
+
+`NativeBridgeError` is a different class of problem: a native payload that will not parse
+at all. The native build does not match the JavaScript package. Rebuild.
+
+Two error codes live on the snapshot rather than in a rejection, because a failed init
+must not throw into a render. `unsupported-contract` means the backend answered that it
+does not speak this policy contract, which is a hard configuration error: the core stays
+deny-all rather than guessing the wire. `invalid-native-snapshot` is set by the
+JavaScript layer when the payload cannot be read, and never comes from a native core,
+which is what makes the two distinguishable in your logs.
+
+## Migrating from an earlier alpha
+
+Three things an older build accepted are now refused rather than ignored, because a host
+that believed them still on would reason about a mode nothing had turned on.
+
+- `com.c15t.test` in `Info.plist`. Publisher test mode is a client option, not an
+  override, and never reaches a save body. There is no test-mode override in the protocol.
+  Remove the key; if you were reaching for it to test a denial, use `com.c15t.gpc`, which
+  is the GPC signal and a different thing.
+- A `test` field in the overrides document, and an `msa` privacy signal. Neither exists in
+  v3. Send `country`, `region`, `language` and `gpc`.
+- Snapshots stored by an earlier build. Some field encodings changed shape, and the store
+  treats an envelope it cannot decode as nothing stored. That fails closed: relaunching
+  after an upgrade asks a returning user again rather than trusting half a record.
+
+`com.c15t.backend.mode` spelling is tolerant, so `selfHosted`, `self-hosted` and
+`self_hosted` all resolve to the same mode, and `host`, `cloud` and `hosted` all resolve to
+hosted. An unrecognised mode string is treated as "not declared" and inferred from the
+URL, not as an error.
+
+## Native build problems
+
+The Android manifest merger fails below `minSdk` 24 or `compileSdk` 36 with a message that
+names neither c15t nor the number. The Expo config plugin raises literal `minSdk` and
+`compileSdk` values it can see, but an SDK 57 template reads `rootProject.ext` values
+supplied by a Gradle plugin at build time, so nothing literal is there to raise. Check the
+resolved values rather than assuming the plugin fixed them.
+
+The config plugin refuses a build for a few configurations that cannot work, and each
+error names the parameter to change:
+
+- A `publicKey` shaped `sk_`, `secret_`, `private_` or `rk_`. Plugin values are published
+  inside the binary; keep the secret key on the backend.
+- `enableAppTrackingTransparency` without `trackingUsageDescription`. App Review rejects a
+  generic string, so the plugin will not write a placeholder.
+- `privacyTrackingDomains` without ATT enabled, or a list that omits the backend host when
+  ATT is on.
+- Registering the module by hand while also autolinking, detected in `MainApplication`,
+  `ios/Podfile`, or `android/app/build.gradle`.
+- `updates.url` set with no `runtimeVersion`.
+- No `<application android:name="...MainApplication">` in the Android manifest. Add your
+  c15t `<meta-data>` entries and the `androidx.startup` provider by hand and drop the
+  plugin.
+
+Forcing GPC in an Android manifest needs care. `C15tAndroid.configFrom` reads
+`com.c15t.FORCE_GPC` as a string and parses it strictly, so a value Android types as a
+boolean reads as absent. If forcing the signal matters on a bare Android app, confirm the
+core saw it before relying on the manifest.
+
+## Reading state from a debug screen
+
+`useC15tBootstrap()` is meant for exactly this. It reports `nativeSdkVersion`, the
+`protocolVersion` the binary speaks, `subjectId`, and `hasStoredSnapshot`, which tells you
+in one line whether hydration found anything on the device.
+
+```tsx
+import { Text } from 'react-native';
+import { useC15tBootstrap, useConsentStatus } from '@c15t/react-native';
+
+export function ConsentDebug() {
+	const bootstrap = useC15tBootstrap();
+	const status = useConsentStatus();
+
+	return (
+		<Text>
+			{`native ${bootstrap.nativeSdkVersion} proto ${bootstrap.protocolVersion} ` +
+				`stored ${String(bootstrap.hasStoredSnapshot)} ` +
+				`ready ${String(status.ready)} pending ${String(status.policyPending)}`}
+		</Text>
+	);
+}
+```
+
+Keep it behind a debug menu. `subjectId` is a random identifier that carries nothing
+sensitive, but it has no business on a screen in a release build.

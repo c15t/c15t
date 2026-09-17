@@ -1,0 +1,322 @@
+---
+title: Usage
+description: Read native consent with the hooks, render the built-in banner, dialog and preference center, or build your own surfaces headless.
+group: frameworks
+---
+
+## The provider
+
+`C15tProvider` is the only component you must mount. It reads the handshake from the
+native core once, publishes the client to the tree below it, and holds no consent state
+of its own. It takes a single prop, `children`.
+
+```tsx title="src/Consent.tsx"
+import type { ReactNode } from 'react';
+import { C15tProvider } from '@c15t/react-native';
+
+export function Consent({ children }: { children: ReactNode }) {
+	return <C15tProvider>{children}</C15tProvider>;
+}
+```
+
+Mount it once, near the root. A nested provider reuses the ancestor's client rather
+than attaching a second native listener, so a test harness or a Storybook story that
+wraps an already-provided subtree is safe.
+
+The provider runs the protocol handshake during render and throws rather than
+rendering a consent surface over state it cannot trust:
+
+- `NativeC15tUnavailableError` when the native module is not in the running binary,
+  which is what happens in Expo Go or after an install without a rebuild.
+- `C15tProtocolMismatchError` when the embedded native build speaks a protocol this
+  bundle does not support. The fix is a rebuild, not a JavaScript update.
+
+## Hooks
+
+Every hook reads the native snapshot or forwards an action. None of them hold state.
+
+| Hook | Returns | Rerenders when |
+| --- | --- | --- |
+| `useIsAllowed(category)` | `boolean` | that one category flips |
+| `useConsentStatus()` | `{ ready, policyPending, activeUI, promptRequirement }` | one of those four fields moves |
+| `useConsentSelector(selector, equals?)` | whatever `selector` returns | the selected value changes under `equals` |
+| `useConsentActions()` | a stable `ConsentActions` object | never, the object is stable |
+| `useC15tBootstrap()` | `BootstrapPayload` | never, it is read once at mount |
+| `useConsent()` | the whole `ConsentSnapshot` | every native change |
+
+`necessary` is always allowed. Every optional category reads `false` while hydration or
+the first policy resolution is outstanding, so `useIsAllowed` needs no loading branch.
+
+```tsx
+import type { ReactNode } from 'react';
+import { useIsAllowed } from '@c15t/react-native';
+
+export function PersonalisedAds({ children }: { children: ReactNode }) {
+	return useIsAllowed('marketing') ? <>{children}</> : null;
+}
+```
+
+`useConsent()` rerenders on changes your screen does not care about. Reach for it only
+in a surface that genuinely reads several slices, such as a preference center.
+
+Pass `useConsentSelector` a selector that outlives the render. Hoist it to module scope
+or wrap it in `useCallback`; an inline arrow is new every render and makes React
+resubscribe each time.
+
+```tsx
+import { Text } from 'react-native';
+import type { ConsentSnapshot } from '@c15t/react-native';
+import { useConsentSelector } from '@c15t/react-native';
+
+const selectSubjectId = (snapshot: ConsentSnapshot): string | null =>
+	snapshot.subject?.id ?? null;
+
+export function SubjectId() {
+	const subjectId = useConsentSelector(selectSubjectId);
+
+	return subjectId === null ? null : <Text>{subjectId}</Text>;
+}
+```
+
+The actions object is stable for the life of the provider, so it is safe in a
+dependency list:
+
+```tsx
+import { useCallback } from 'react';
+import { Pressable, Text } from 'react-native';
+import { useConsentActions } from '@c15t/react-native';
+
+export function AcceptButton() {
+	const actions = useConsentActions();
+	const onPress = useCallback(() => {
+		void actions.acceptAll();
+	}, [actions]);
+
+	return <Pressable onPress={onPress}><Text>Accept all</Text></Pressable>;
+}
+```
+
+`acceptAll()`, `rejectAll()` and `save()` resolve with a `CommitResult`. Consent is
+applied locally either way, so check `queued` before treating a resolved promise as a
+delivered write. `dismissNotice()` is local and synchronous: a notice is an
+acknowledgement, not a consent record, so nothing is sent to the backend.
+
+`identify(externalId)` attaches an id from your own account system and loads that
+subject's stored record. `logout()` detaches it and keeps consent on the c15t subject
+id, so signing out does not reset consent.
+
+## Built-in surfaces
+
+Three components ship with the package. They are optional, and everything they render
+is reachable through the hooks.
+
+| Component | Props | Opens itself |
+| --- | --- | --- |
+| `ConsentBanner` | `onCustomize?`, `styles?`, `theme?` | yes, while a prompt is owed |
+| `ConsentDialog` | `open`, `onRequestClose`, `onOpenPreferences?`, `styles?`, `theme?` | no |
+| `ConsentPreferences` | `open`, `onRequestClose`, `styles?`, `theme?` | no |
+
+The banner is an absolutely positioned layer over your app, never a row in its layout,
+so nothing on screen moves when a policy resolves a prompt. Without `onCustomize` it
+opens the built-in dialog itself, which is what makes `<ConsentBanner />` alone a
+complete prompt.
+
+```tsx title="src/Consent.tsx"
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import {
+	ConsentBanner,
+	ConsentPreferences,
+	C15tProvider,
+} from '@c15t/react-native';
+
+export function Consent({ children }: { children: ReactNode }) {
+	const [preferencesOpen, setPreferencesOpen] = useState(false);
+
+	return (
+		<C15tProvider>
+			<View style={{ flex: 1 }}>
+				{children}
+				<Pressable onPress={() => setPreferencesOpen(true)}>
+					<Text>Manage preferences</Text>
+				</Pressable>
+			</View>
+			<ConsentBanner />
+			<ConsentPreferences
+				onRequestClose={() => setPreferencesOpen(false)}
+				open={preferencesOpen}
+			/>
+		</C15tProvider>
+	);
+}
+```
+
+Keep a standing entry point like that one. The banner only appears while a prompt is
+owed, so without it a subject cannot revisit a decision.
+
+`ConsentDialog` and `ConsentPreferences` both show every category in scope with one
+switch each, and both write only the categories on screen. `ConsentPreferences` does
+not gate on a prompt, so it works at any time, and closing it without pressing save
+writes nothing at all.
+
+Use `ConsentDialog` instead of `ConsentPreferences` when you want the mid-prompt
+experience and a link into your own finer controls:
+
+```tsx title="src/Consent.tsx"
+// Fragment: add this state and these elements inside your provider component.
+const [dialogOpen, setDialogOpen] = useState(false);
+
+<>
+  <ConsentBanner onCustomize={() => setDialogOpen(true)} />
+  <ConsentDialog
+    onOpenPreferences={() => setPreferencesOpen(true)}
+    onRequestClose={() => setDialogOpen(false)}
+    open={dialogOpen}
+  />
+</>
+```
+
+The dialog reads copy only while it is closed, so a grant made elsewhere in the app
+leaves it alone. A mounted-and-shut dialog holds no consent subscription at all.
+
+Copy comes from the translation bundle on the snapshot, which the backend serves in the
+resolved language. Every string has an English fallback, so a partial bundle renders
+readable labels rather than `undefined`.
+
+### Restyle them
+
+`theme` takes a `ConsentTheme`, `styles` takes per-part overrides. Themes are plain
+data, so build one at module scope.
+
+```tsx
+import { ConsentBanner, createConsentTheme } from '@c15t/react-native';
+
+// Build themes at module scope so the object identity stays stable.
+const theme = createConsentTheme({
+	colors: { primary: '#7C3AED' },
+	radius: { surface: 20 },
+});
+
+export const StyledBanner = () => <ConsentBanner theme={theme} />;
+```
+
+Overrides are shallow per group, so that theme changes two values and inherits the
+rest. For one part of one surface, pass `styles` keyed by a part name from
+`CONSENT_THEME_PARTS`: `sheet`, `header`, `title`, `description`, `footer`,
+`primaryButton`, `primaryLabel`, `secondaryButton`, `secondaryLabel`, `categoryRow`,
+`categoryTitle`, `categoryDescription`, `switch`, `scroll`, `overlay`, `banner`,
+`handle`, `row`, `label`, `caption`, `captionLink`. The list is closed on purpose:
+anything it does not cover belongs in a theme token.
+
+Without `theme`, the surfaces follow the platform scheme and pick `light` until
+`useColorScheme()` answers, so the first frame never flashes the dark palette.
+
+## Build your own surfaces
+
+Three headless components call a function with the smallest slice they need. Use them
+where a hook would force an extra component just to hold the call.
+
+| Component | Hands its children | Renders children when |
+| --- | --- | --- |
+| `ConsentReady` | `{ status, actions }` | hydration and the first policy resolution are done |
+| `ConsentPrompt` | `{ activeUI, promptRequirement, actions }` | the policy owes an interaction |
+| `ConsentGate` | `{ category, actions }` | the category is allowed |
+
+Each takes `fallback` for the other case.
+
+```tsx title="src/MyPrompt.tsx"
+import { Pressable, Text, View } from 'react-native';
+import { ConsentPrompt } from '@c15t/react-native';
+
+export function MyPrompt() {
+	return (
+		<ConsentPrompt
+			fallback={null}
+		>
+			{({ actions, activeUI, promptRequirement }) => (
+				<View
+					accessible
+					accessibilityLabel="Privacy"
+					style={{ padding: 16 }}
+				>
+					<Text>
+						{promptRequirement.kind === 'notice'
+							? 'How we use your data'
+							: 'Your privacy'}
+					</Text>
+					{activeUI === 'banner' ? (
+						<Pressable
+							onPress={() => {
+								void actions.acceptAll();
+							}}
+						>
+							<Text>Accept all</Text>
+						</Pressable>
+					) : null}
+					{promptRequirement.kind === 'notice' ? (
+						<Pressable onPress={actions.dismissNotice}>
+							<Text>Acknowledge</Text>
+						</Pressable>
+					) : null}
+				</View>
+			)}
+		</ConsentPrompt>
+	);
+}
+```
+
+`ConsentPrompt` never renders before the native core has decided, which is the flash
+this package exists to prevent. Do not add your own `ready` check around it.
+
+Gate a vendor SDK with `ConsentGate`, or with `useIsAllowed` when the gate is a
+condition rather than a subtree:
+
+```tsx
+import { ConsentGate } from '@c15t/react-native';
+
+// `AdProvider` and `PlaceholderAdProvider` are your own components.
+export function Attribution() {
+	return (
+		<ConsentGate category="measurement" fallback={<PlaceholderAdProvider />}>
+			{() => <AdProvider />}
+		</ConsentGate>
+	);
+}
+```
+
+A JavaScript gate only covers what React Native renders. An analytics SDK you start
+from `AppDelegate`, an `Application` class or a native module reads the same snapshot
+natively and has to check it there too. See
+[native behaviour](/docs/frameworks/react-native/native-behaviour).
+
+For your own preference UI, read the categories from the snapshot and save exactly what
+the subject saw:
+
+```tsx
+import { Switch } from 'react-native';
+import type { ConsentSnapshot } from '@c15t/react-native';
+import { useConsentActions, useConsentSelector } from '@c15t/react-native';
+
+const selectMeasurement = (snapshot: ConsentSnapshot): boolean =>
+	snapshot.effectivePermissions.measurement;
+
+export function MeasurementSwitch() {
+	const allowed = useConsentSelector(selectMeasurement);
+	const actions = useConsentActions();
+
+	return (
+		<Switch
+			onValueChange={(value) => {
+				void actions.save({ measurement: value });
+			}}
+			value={allowed}
+			accessibilityLabel="Measurement"
+		/>
+	);
+}
+```
+
+`save()` writes only the categories you pass. Omitted categories keep their stored
+receipts, which is what stops a preference-center save from renewing a consent the
+subject never looked at.

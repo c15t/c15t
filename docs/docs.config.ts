@@ -255,6 +255,26 @@ export default defineDocsConfig({
 					slug: 'javascript',
 					title: 'JavaScript',
 				},
+				{
+					base: 'react-native',
+					children: [
+						{
+							pages: ['configuration'],
+							title: 'Configuration',
+						},
+						{
+							pages: ['native-behaviour', 'platform-support'],
+							title: 'Native runtime',
+						},
+						{
+							pages: ['troubleshooting'],
+							title: 'Integration',
+						},
+					],
+					pages: ['quickstart', 'usage'],
+					slug: 'react-native',
+					title: 'React Native',
+				},
 			],
 			pages: ['index'],
 			slug: 'frameworks',
