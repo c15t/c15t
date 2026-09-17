@@ -68,6 +68,7 @@
 		"lint": "bun oxlint ./src",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "vitest run --passWithNoTests",
+		"test:coverage": "C15T_COVERAGE_RATCHET=1 vitest run --passWithNoTests && bun scripts/check-coverage-ratchet.ts",
 		"test:watch": "vitest"
 	},
 	"dependencies": {

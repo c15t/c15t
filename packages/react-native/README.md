@@ -63,6 +63,22 @@ if (isAllowed('measurement')) {
 
 While the policy is still resolving, or before the stored snapshot has hydrated, every optional category reads `false`. Nothing has to opt in to that behavior.
 
+## Running the tests
+
+Three commands, run from this package directory:
+
+```bash
+bun run test src/hooks   # one subset, coverage off: nothing but real failures
+bun run test:watch       # rerun on change
+bun run test:coverage    # whole package, coverage floors enforced
+```
+
+`test` runs whatever you name with coverage switched off, from a single file to the whole package. The floors are package-wide, so a subset can never reach them, and a threshold report over four files describes the filter rather than the code.
+
+CI runs `test` with no filter. That collects coverage and fails below the floors in `vitest.config.ts`, so the ratchet holds there. `test:coverage` is the same gate run on purpose: it always collects coverage, and it prints one line per file below the floor instead of a row for every file. Raise the floors as coverage improves; never lower them.
+
+Type checks and lint stay separate: `bun turbo run test check-types lint --filter=@c15t/react-native`.
+
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
