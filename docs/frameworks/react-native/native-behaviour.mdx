@@ -62,6 +62,13 @@ The subject id survives on both platforms. Losing the consent envelope never cos
 device its identity, which matters because the identity is a random UUID the SDK owns and
 nothing derived from IDFV, ADID or any other persistent hardware identifier.
 
+`reset()` lands on that same shape on purpose, and it gets there by deleting the stored
+envelope and the offline queue on both platforms rather than writing a denial over them.
+It is also the only way back to a first launch on a device you already used: an iOS
+uninstall leaves the Keychain item behind, and an Android reinstall keeps `SharedPreferences`
+unless you clear app data, so a wipe is the repeatable path and a reinstall is not. The
+subject id is kept through it, for the reason above.
+
 A failed init does not throw into your app. It sets `snapshot.error`, keeps
 `policyPending` true, and leaves every optional category denied. If JavaScript receives a
 snapshot payload it cannot parse at all, it serves the same deny-all shape with the error

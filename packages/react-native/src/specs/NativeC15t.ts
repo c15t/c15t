@@ -63,6 +63,23 @@ export interface Spec extends TurboModule {
 	 */
 	logout: () => Promise<void>;
 	/**
+	 * Wipe consent and return the device to the state a first launch is in.
+	 *
+	 * The choice prompt is owed again afterwards, so the banner or dialog comes
+	 * back: this is a withdrawal, not a recorded reject-everything. The c15t
+	 * subject id is kept, because the backend holds an audit history keyed to it.
+	 * Overrides, privacy-signal overrides, and the configured category scope are
+	 * kept too, since those are configuration rather than consent.
+	 *
+	 * Resolves once the local state is durable, and then re-resolves the policy in
+	 * the background the way a first launch does. It deliberately does not wait on
+	 * a consent save that was already on its way when the wipe landed: the native
+	 * core cannot recall a request it has handed to the transport, and the outcome
+	 * is not something a caller can act on. Anything still queued goes with the
+	 * queue, because those bodies carry a decision the subject just withdrew.
+	 */
+	reset: () => Promise<void>;
+	/**
 	 * Platform tracking authorization as a JSON-encoded
 	 * `TrackingAuthorizationPayload`.
 	 *

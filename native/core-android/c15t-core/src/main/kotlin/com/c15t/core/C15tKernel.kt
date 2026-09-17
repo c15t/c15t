@@ -130,6 +130,20 @@ class C15tKernel(
 	/** Validated policy from the last init, guarded by [mutationLock]. */
 	private var evaluationPolicy: EvaluationPolicy? = null
 
+	/**
+	 * The overrides the host configured, as opposed to the ones the snapshot carries.
+	 *
+	 * They are not the same value once an init has landed: [runInit] folds the country
+	 * and region the backend matched on over whatever the app pinned, and the snapshot
+	 * has to carry both because that is what the backend recomputes a save against. So
+	 * the snapshot's copy claims a geography the app never asked for, and the only place
+	 * the host's own pin still exists on its own is here. [reset] needs that distinction:
+	 * a wipe deletes the policy resolution, and a location that came from it has to go
+	 * with it, while a country pinned for QA has to survive.
+	 */
+	@Volatile
+	private var configuredOverrides: KernelOverrides = config.overrides
+
 	/** Local notice dismissal, guarded by [mutationLock]. */
 	private var noticeDismissal: NoticeDismissal? = null
 
@@ -625,6 +639,9 @@ class C15tKernel(
 		var published: ConsentSnapshot
 		synchronized(mutationLock) {
 			val current = state.get()
+			// Merged against the host's own pins rather than the snapshot's, which an
+			// earlier init may have widened with a matched country.
+			configuredOverrides = if (merge) merge(configuredOverrides, overrides) else overrides
 			published = PolicyEvaluator.evaluate(
 				snapshot = current.copy(
 					overrides = if (merge) merge(current.overrides, overrides) else overrides,
@@ -784,11 +801,69 @@ class C15tKernel(
 		return PassReport(delivered = delivered, error = lastError, unreachable = false)
 	}
 
-	/** Drop stored consent and the queue, keeping the subject id. */
+	/**
+	 * Return the device to the state a first launch is in, keeping the subject id.
+	 *
+	 * The baseline installed here is the cold-start snapshot, and the difference between
+	 * that and a recorded denial is the entire point of the method. A denial is an
+	 * [ExplicitChoice] that says the subject answered, so the evaluator finds a current
+	 * receipt, owes nothing, and no prompt ever returns. This installs no receipt at all,
+	 * so [PolicyEvaluator] sees `choice == null`, owes the choice again, and the banner
+	 * comes back once the init below lands. `native/CONTRACT.md` states this under
+	 * "Wiping consent (reset)".
+	 *
+	 * Three things this has to do that "clear the store" does not cover:
+	 *
+	 * - Publish. It is a committed mutation, so it moves the revision by one and goes out
+	 *   through the observers like any other. Installing the baseline silently would leave
+	 *   every [gate] in the process holding a decision the device no longer remembers, and
+	 *   restarting the numbering at the cold-start revision would hand each subscriber a
+	 *   snapshot older than the one it holds.
+	 * - Skip the envelope write. Its durable effect is the deletion, so on-disk state after
+	 *   a reset is a subject id and nothing else, which is what a first launch has. That is
+	 *   also the only reason [storedSnapshotFound] moves: reporting cached consent from a
+	 *   device that just wiped it is the claim the unreadable-envelope rule refuses.
+	 * - Re-run init. A first launch does not sit at `policyPending` once the network
+	 *   answers, and a wipe that stopped at the baseline would leave the app there until
+	 *   the next launch, with the subject withdrawn from everything and nothing asking them
+	 *   to decide again. A caller must not have to remember to refresh after this.
+	 *
+	 * What survives is configuration rather than consent: the subject id, the overrides the
+	 * host pinned, and the configured category scope. A host that pinned a country for QA or switched GPC on
+	 * would otherwise get a different policy resolved than the one its app is configured to
+	 * evaluate.
+	 *
+	 * A save a delivery pass had already handed to the transport can still land after the
+	 * queue is dropped, and the pass finds its entry gone when it settles. Nothing here
+	 * waits for it: the entries still in the queue carry a decision the subject just
+	 * withdrew, and the one already on the wire was a valid decision when it was made.
+	 */
 	fun reset() {
+		val now = clock.nowMillis()
+		// Identity first, off the lock, because a missing subject is the one case that
+		// reaches storage. A subject this launch already answers with is reused untouched.
+		val resolved = state.get().subject ?: resolveSubject()
+		val published: ConsentSnapshot
+		synchronized(mutationLock) {
+			val current = state.get()
+			evaluationPolicy = null
+			noticeDismissal = null
+			published = ConsentSnapshot.denyAll(current.subject ?: resolved, now).copy(
+				revision = current.revision + 1,
+				consentCategories = config.consentCategories?.map { it.wireName },
+				// The host's pins, not the snapshot's. See [configuredOverrides]: the
+				// folded country came from the resolution this wipe is deleting, and
+				// keeping it would leave a first launch's answer one field off.
+				overrides = configuredOverrides,
+				privacySignals = signalsFor(configuredOverrides),
+			)
+			state.set(published)
+		}
 		queue.clear()
 		store.clearConsentState()
-		publishPure(ConsentSnapshot.denyAll(resolveSubject(), clock.nowMillis()))
+		storedSnapshotFound = false
+		notifySnapshot(published)
+		background.execute { runInit() }
 	}
 
 	// -- internals ------------------------------------------------------------

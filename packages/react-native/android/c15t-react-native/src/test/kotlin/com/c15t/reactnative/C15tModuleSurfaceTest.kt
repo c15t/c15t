@@ -32,6 +32,7 @@ class C15tModuleSurfaceTest {
 			"refresh" to 1,
 			"identify" to 2,
 			"logout" to 1,
+			"reset" to 1,
 			"getTrackingAuthorization" to 0,
 			"requestTrackingAuthorization" to 1,
 			"addListener" to 1,
@@ -46,7 +47,11 @@ class C15tModuleSurfaceTest {
 				.filter { it.name == name && it.parameterCount == arity }
 			assertTrue("$name with $arity parameter(s) must exist on the module", matches.isNotEmpty())
 		}
-		assertEquals("the spec declares no method the bridge does not implement", 12, declared.size)
+		assertEquals(
+			"the spec declares no method the bridge does not implement",
+			13,
+			declared.size,
+		)
 	}
 
 	@Test
@@ -85,6 +90,6 @@ class C15tModuleSurfaceTest {
 		val SYNC_METHODS = listOf("getBootstrap", "getSnapshot", "getTrackingAuthorization")
 
 		val PROMISE_METHODS =
-			listOf("commit", "setOverrides", "refresh", "identify", "logout", "requestTrackingAuthorization")
+			listOf("commit", "setOverrides", "refresh", "identify", "logout", "reset", "requestTrackingAuthorization")
 	}
 }

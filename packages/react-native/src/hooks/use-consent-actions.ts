@@ -69,6 +69,29 @@ export interface ConsentActions {
 	 */
 	logout: () => Promise<void>;
 	/**
+	 * Wipe consent and return the device to the state a first launch boots
+	 * with.
+	 *
+	 * The subject owes the choice prompt again afterwards, so the banner or
+	 * dialog comes back: this is a withdrawal that has to be answered again, not
+	 * a recorded reject-everything. It is the surface for a "start over" affordance
+	 * and for a reviewer who needs the fresh-install state without reinstalling.
+	 *
+	 * The c15t subject id is kept, because the backend holds an audit history
+	 * keyed to it; erasing what the backend holds for that subject is a backend
+	 * call, not something this wipe can do on the device. Overrides and the
+	 * configured category scope are kept as well, since they are configuration
+	 * rather than consent.
+	 *
+	 * Resolves once the local state is durable. It does not wait on a consent save
+	 * that was already travelling when the wipe landed: the native core cannot
+	 * recall a request it has handed to the transport, and anything still queued
+	 * goes with the queue. Policy re-resolves in the background the way a first
+	 * launch does, so a banner that comes back may arrive a moment later than the
+	 * promise.
+	 */
+	reset: () => Promise<void>;
+	/**
 	 * Ask the platform for tracking authorization.
 	 *
 	 * Nothing in this package calls it, and nothing in this package can: the
@@ -119,6 +142,7 @@ export const useConsentActions = function useConsentActions(): ConsentActions {
 			refresh: () => client.refresh(),
 			rejectAll: () => client.commit({ action: 'necessary' }),
 			requestTrackingAuthorization: () => client.requestTrackingAuthorization(),
+			reset: () => client.reset(),
 			save: (
 				consents?: Readonly<Partial<Record<OptionalConsentCategory, boolean>>>
 			) => client.commit({ action: 'explicit', consents: consents ?? {} }),

@@ -151,6 +151,7 @@ final class C15tModuleHandlerTests: XCTestCase {
         assertBridgeFailure(handler.refreshAll(), C15tBridgeError.notBootstrapped)
         assertBridgeFailure(handler.identify(externalId: "user-1"), C15tBridgeError.notBootstrapped)
         assertBridgeFailure(handler.logout(), C15tBridgeError.notBootstrapped)
+        assertBridgeFailure(handler.reset(), C15tBridgeError.notBootstrapped)
     }
 
     func testIdentifyAndLogoutKeepTheSubjectId() {
@@ -166,6 +167,30 @@ final class C15tModuleHandlerTests: XCTestCase {
         XCTAssertTrue(handler.logout().isSuccess)
         XCTAssertEqual(C15t.snapshot().subject?.id, subjectBefore, "sign-out must not reset consent")
         XCTAssertNil(C15t.snapshot().subject?.externalId)
+    }
+
+    func testResetKeepsIdentityAndConfigurationAndOwesTheChoiceAgain() {
+        let handler = C15tModuleHandler(startCore: { C15tReactNativeBootstrap.start(configuration: memoryConfiguration()) })
+        XCTAssertTrue(handler.ensureCore())
+        XCTAssertTrue(handler.applyOverrides(#"{"country":"FR","language":"fr"}"#).isSuccess)
+        guard let subjectBefore = C15t.snapshot().subject?.id else {
+            return XCTFail("a started core has a subject id")
+        }
+        let revisionBefore = C15t.snapshot().revision
+
+        XCTAssertTrue(handler.reset().isSuccess)
+
+        // What the bridge promises a host: the id the audit history is filed under
+        // survives, and so does the configuration the host pinned, which is not
+        // consent and is not the subject's to withdraw.
+        XCTAssertEqual(C15t.snapshot().subject?.id, subjectBefore, "a wipe keeps the subject id")
+        XCTAssertEqual(C15t.current?.currentOverrides.country, "FR", "overrides are configuration, not consent")
+        // And the state reads like a first launch rather than a recorded denial: no
+        // receipt, and waiting on policy again.
+        XCTAssertNil(C15t.snapshot().explicitChoice, "a wipe leaves no receipt behind")
+        XCTAssertTrue(C15t.snapshot().policyPending)
+        XCTAssertFalse(C15t.snapshot().ready)
+        XCTAssertEqual(C15t.snapshot().revision, revisionBefore + 1, "one committed mutation")
     }
 
     func testDismissNoticeIsAHarmlessNoOpWithoutACore() {

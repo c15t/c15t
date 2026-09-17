@@ -43,6 +43,7 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -199,6 +200,10 @@ class ProtocolFixtureTest {
 					runNativeEnvelope(directory, entry)
 					ran += entry["id"]!!.jsonPrimitive.content
 				}
+				"reset-consent" -> {
+					runResetConsent(directory, entry)
+					ran += entry["id"]!!.jsonPrimitive.content
+				}
 
 				else -> fail("${entry["id"]}: kind ${entry["kind"]} has no runner here. Add one instead of skipping it.")
 			}
@@ -302,6 +307,94 @@ class ProtocolFixtureTest {
 	 * bootstrap are mutations in some cores and not in others. That is also why the
 	 * fixture pins deltas and not absolute revisions.
 	 */
+	/**
+	 * Run a `reset-consent` fixture.
+	 *
+	 * The device is a real one by the time the wipe lands: it bootstrapped over the
+	 * fixture's stored subject, resolved a policy from the transport, and took the
+	 * fixture's action through [C15tKernel.save], so the receipt being deleted is one
+	 * this core wrote. Then three answers are read off it, in this order:
+	 *
+	 * - the baseline [C15tKernel.reset] publishes, which has to be the cold-start state
+	 *   the contract table describes, with the identity and the host's own configuration
+	 *   still on it;
+	 * - what storage holds at that same instant, read from inside the publication. That is
+	 *   the only moment the wipe's deletion is observable, because the init it re-runs
+	 *   then caches the policy it resolves exactly as a first launch's caches one;
+	 * - the snapshot the device settles on once that init has landed, which is what the
+	 *   kernel produced for a device that never decided at all.
+	 */
+	private fun runResetConsent(directory: File, entry: JsonObject) {
+		val fixtureId = id(entry)
+		val fixture = readFixture(directory, entry)
+		val fixtureInput = fixture["input"]?.jsonObject ?: fail("$fixtureId: no input")
+		val expected = fixture["expected"]?.jsonObject ?: fail("$fixtureId: no expected")
+		val baseline = expected["baseline"]?.jsonObject ?: fail("$fixtureId: no expected.baseline")
+		val run = makeRun(entry, fixtureInput)
+		run.kernel.bootstrap()
+
+		val intent = commitIntent(entry, fixtureInput["intent"]?.jsonObject ?: fail("$fixtureId: no input.intent"))
+		run.kernel.save(intent)
+		assertNotNull(
+			run.kernel.snapshot().explicitChoice,
+			"$fixtureId: the action left no receipt on the device, so there was nothing for the wipe to delete",
+		)
+		val revisionBefore = run.kernel.snapshot().revision
+
+		val published = mutableListOf<ConsentSnapshot>()
+		val disk = mutableListOf<JsonElement>()
+		val observer: (ConsentSnapshot) -> Unit = { snapshot ->
+			published += snapshot
+			// Read on the first publication only. That one is the wipe's own: it lands
+			// after the deletion and before the re-run init is scheduled.
+			if (disk.isEmpty()) {
+				disk += buildJsonObject {
+					put("envelope", C15tStoreKeys.SNAPSHOT in run.backend.keys)
+					put("pendingSaves", C15tStoreKeys.PENDING in run.backend.keys)
+					put("subject", C15tStoreKeys.SUBJECT in run.backend.keys)
+				}
+			}
+		}
+		// The wipe re-runs init, and the fixture serves it the same /init it serves
+		// bootstrap. Scripting a second answer is what makes that visible: a core that
+		// never re-resolved would ask once and the run would end with the device parked
+		// on the baseline.
+		run.initScript += initResponseOf(
+			fixtureId,
+			fixtureInput["transport"]?.jsonObject ?: fail("$fixtureId: no transport"),
+		)
+		val subscription = run.kernel.onChange(observer)
+		run.kernel.reset()
+		subscription.close()
+
+		val wiped = published.firstOrNull()
+			?: fail("$fixtureId: reset() published no snapshot, so every gate in the process still holds the decision it deleted")
+		record(
+			fixtureId,
+			"expected.baseline.revisionDelta",
+			baseline["revisionDelta"] ?: JsonNull,
+			JsonPrimitive(wiped.revision - revisionBefore),
+		)
+		record(
+			fixtureId,
+			"expected.baseline.snapshot",
+			baseline["snapshot"] ?: fail("$fixtureId: no expected.baseline.snapshot"),
+			SnapshotWire.toJsonElement(wiped),
+		)
+		record(
+			fixtureId,
+			"expected.baseline.disk",
+			baseline["disk"] ?: fail("$fixtureId: no expected.baseline.disk"),
+			disk.firstOrNull() ?: JsonNull,
+		)
+		record(
+			fixtureId,
+			"expected.afterInit.snapshot",
+			expected["afterInit"]?.jsonObject?.get("snapshot") ?: fail("$fixtureId: no expected.afterInit.snapshot"),
+			SnapshotWire.toJsonElement(run.kernel.snapshot()),
+		)
+	}
+
 	private fun runRevisionTrace(directory: File, entry: JsonObject) {
 		val fixtureId = id(entry)
 		val fixture = readFixture(directory, entry)
@@ -1097,7 +1190,8 @@ class ProtocolFixtureTest {
 		 * write the runner, and the unclaimed count can then only be non-zero when a kind
 		 * was added to one place and not the other.
 		 */
-		val CLAIMED_KINDS: Set<String> = setOf("evaluation", "native-envelope", "revision-trace", "save-body")
+		val CLAIMED_KINDS: Set<String> =
+			setOf("evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body")
 
 
 	/**
@@ -1212,6 +1306,27 @@ class ProtocolFixtureTest {
 		).forEach { (fixture, extra) ->
 			add(fixture, "expected.snapshotBefore", *before.toTypedArray())
 			add(fixture, "expected.snapshotAfter", *(after + extra).toTypedArray())
+		}
+
+		// A wipe is a committed mutation, so it publishes current + 1, and the delta the
+		// fixture pins is asserted above. What it cannot pin is where the device's counting
+		// started: `native/CONTRACT.md` says hydration and bootstrap are mutations in some
+		// cores and not in others, so the absolute the wipe lands on runs ahead here for the
+		// same reason every other fixture's does.
+		listOf(
+			"reset-consent-opt-in-grants",
+			"reset-consent-recorded-denial",
+		).forEach { fixture ->
+			add(
+				fixture,
+				"expected.baseline.snapshot",
+				"revision" to REVISION,
+			)
+			add(
+				fixture,
+				"expected.afterInit.snapshot",
+				"revision" to REVISION,
+			)
 		}
 
 		val gpcBefore = listOf(

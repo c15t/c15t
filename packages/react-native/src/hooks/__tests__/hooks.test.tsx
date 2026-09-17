@@ -407,7 +407,7 @@ describe('useConsentActions', () => {
 		expect(fake.commit).toHaveBeenCalledTimes(0);
 	});
 
-	test('forwards refresh, identify, logout, and overrides', async () => {
+	test('forwards refresh, identify, logout, reset, and overrides', async () => {
 		mount(<ActionsProbe />);
 
 		const actions = capturedActions();
@@ -415,12 +415,14 @@ describe('useConsentActions', () => {
 		await actions.refresh();
 		await actions.identify('user-7');
 		await actions.logout();
+		await actions.reset();
 		await actions.setOverrides({ country: 'US' });
 		await flushPromises();
 
 		expect(fake.refreshCalls).toBe(1);
 		expect(fake.identifyCalls).toEqual(['user-7']);
 		expect(fake.logoutCalls).toBe(1);
+		expect(fake.resetCalls).toBe(1);
 		expect(fake.overrideCalls).toEqual(['{"country":"US"}']);
 	});
 

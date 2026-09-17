@@ -11,7 +11,7 @@ only. No UI here; every surface lives in JavaScript.
 | `C15tReactNative/Bridge/` | none of React | wire encoders, the change pump, `Info.plist` configuration, the module handler, the two lifecycle observers below, and the tracking gate. Compiles and tests with no Pods installed. |
 | `C15tReactNative/ReactNative/` | React + `ReactCodegen` | the TurboModule: the Swift implementation, and the ObjC++ category carrying the Codegen conformance, the JavaScript name, and the `getTurboModule:` provider. Also the constructor that starts the core before React Native initializes. |
 | `C15tReactNative/Resources/Privacy.xcprivacy` | resource | privacy manifest, shipped in the pod resource bundle and the SPM resource bundle. |
-| `Tests/C15tReactNativeTests/` | test | 77 tests over the wire layer, the module handler, the lifecycle legs, and the tracking gate. |
+| `Tests/C15tReactNativeTests/` | test | 78 tests over the wire layer, the module handler, the lifecycle legs, and the tracking gate. |
 | `C15tReactNative.xcodeproj` | generated | iOS-slice build of the wire layer against the core, for CI without an example app. |
 | `support/gen-xcodeproj.rb` | tooling | regenerates that project. |
 

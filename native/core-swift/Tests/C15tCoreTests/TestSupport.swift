@@ -353,11 +353,13 @@ enum Fixture {
         transport: (any C15tTransport)?,
         clock: TestClock,
         overrides: ConsentOverrides = .default(language: "en"),
-        gpc: Bool? = nil
+        gpc: Bool? = nil,
+        categories: [ConsentCategory]? = nil
     ) -> CoreConfig {
         CoreConfig(
             store: store,
             transport: transport,
+            consentCategories: categories,
             overrides: overrides,
             gpc: gpc,
             now: clock.reading,

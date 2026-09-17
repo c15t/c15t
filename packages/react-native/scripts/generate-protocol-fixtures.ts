@@ -28,6 +28,9 @@
  *   foreign envelope — all have to read as nothing stored.
  * - `revision-trace-*.json` — a mutation sequence in, the revision and publication
  *   trace the kernel produced for it out. The cross-core parity fixture.
+ * - `reset-consent-*.json` — a device with a recorded answer in, the wipe out: the
+ *   baseline `reset()` publishes, what its deletion leaves on disk, and the snapshot
+ *   the device answers with once the init it re-ran lands.
  * - `index.json` — every fixture's id, kind, protocolVersion, and SHA-256, so a
  *   runner enumerates fixtures instead of hard-coding names and can prove it read
  *   the bytes this script wrote.
@@ -50,8 +53,10 @@
  * pins one core's byte layout, because the other core would have to fail rather than
  * disagree. The snapshot inside an envelope is still kernel output; the deny-all
  * decision an unreadable one has to leave behind is written out below rather than
- * computed, and `OFFLINE_DENY_ALL` is the only hand-written expectation this script
- * emits.
+ * computed, and `OFFLINE_DENY_ALL` and `RESET_BASELINE` are the two
+ * hand-written expectations this script emits, and each is written down only because
+ * the harness always gives the kernel a transport answer, which leaves no run of it
+ * that ends in the state either one describes.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -579,10 +584,57 @@ interface RevisionTraceFixture {
 	};
 }
 
+/**
+ * A device that had answered, wiped, and what it has to answer with afterwards.
+ *
+ * `expected.baseline` is the snapshot `reset()` publishes and nothing else has run
+ * yet; `expected.disk` is what the wipe's deletion leaves under it; `expected.afterInit`
+ * is the snapshot the device settles on once the init the wipe re-ran has landed, which
+ * is the same snapshot a device that never decided settles on. The two fixtures of this
+ * kind differ only in `input.intent`, and their `expected` halves are identical, which
+ * is the claim "Wiping consent (reset)" in `native/CONTRACT.md` makes: a wipe leaves no
+ * trace of which decision it deleted.
+ */
+interface ResetConsentFixture {
+	protocolVersion: number;
+	kind: 'reset-consent';
+	id: string;
+	description: string;
+	notes: string[];
+	input: FixtureInput & {
+		/** The decision on the device at the moment the wipe lands. */
+		intent: CommitIntent;
+	};
+	expected: {
+		baseline: {
+			/** Read at the baseline publication, before the re-run init can write. */
+			disk: {
+				envelope: false;
+				pendingSaves: false;
+				subject: true;
+			};
+			/**
+			 * What the wipe costs the numbering.
+			 *
+			 * One bump, stated as a delta because the absolute is the device's own: the
+			 * contract says so under "Revisions and error writes", and a core that
+			 * installs the baseline without publishing, or restarts the count at the
+			 * cold-start number, fails here rather than in a comment.
+			 */
+			revisionDelta: number;
+			snapshot: Omit<FixtureSnapshot, 'revision'>;
+		};
+		afterInit: {
+			snapshot: Omit<FixtureSnapshot, 'revision'>;
+		};
+	};
+}
+
 type Fixture =
 	| EvaluationFixture
 	| SaveBodyFixture
 	| NativeEnvelopeFixture
+	| ResetConsentFixture
 	| RevisionTraceFixture;
 
 /** What a scenario holds that a client never sees. */
@@ -1802,6 +1854,171 @@ const buildRevisionTraceFixtures =
 		];
 	};
 
+/**
+ * The snapshot a wiped device is left holding, before the init it re-ran answers.
+ *
+ * Written down rather than run, for the reason the file header gives: every kernel
+ * harness in this script serves a transport answer, so no run of it ends with a device
+ * that has dropped its policy claim and not yet acquired a new one. The values are the
+ * table in "Wiping consent (reset)" in `native/CONTRACT.md`, and they are the same ones
+ * a core installs on a first launch that has not heard from the network.
+ *
+ * `revision` is absent rather than pinned. A wipe is a committed mutation, so the number
+ * it publishes is the one the device was on plus one, which no absolute can state; the
+ * delta below pins the half that is stateable.
+ */
+const RESET_BASELINE: Omit<
+	FixtureSnapshot,
+	| 'consentCategories'
+	| 'effectivePermissions'
+	| 'overrides'
+	| 'privacySignals'
+	| 'revision'
+	| 'subject'
+> = {
+	activeUI: 'none',
+	evaluatedAt: NOW,
+	error: null,
+	explicitChoice: null,
+	iab: null,
+	location: null,
+	model: 'opt-in',
+	nextDeadline: null,
+	optOutDirectives: [],
+	policyPending: true,
+	policySnapshotToken: null,
+	promptRequirement: { kind: 'none' },
+	ready: false,
+	resolution: {
+		fingerprint: null,
+		policyId: null,
+		status: 'unconfigured',
+	},
+	restrictions: {},
+	translations: null,
+};
+
+const RESET_NOTES = [
+	...NOTES,
+	'a wipe is judged against one yardstick: the state a device that has never been used boots into. expected.baseline is that state, and every field of it is either installed by the wipe or kept by it, never carried over from whatever the device was doing.',
+	'installed: policyPending true, ready false, promptRequirement none, activeUI none, effectivePermissions necessary-only, evaluatedAt equal to input.now, and no explicitChoice, notice dismissal, policy claim, resolution, snapshot token, location, translations, opt-out directives, deadline, or error. A device that stops at a recorded denial instead would keep promptRequirement at none and no surface would ever come back, which is the one state a subject cannot get out of.',
+	'kept: the subject id, because native/CONTRACT.md refuses to orphan the audit history the backend holds against it; overrides and privacySignals, because a country pinned for QA and a GPC switch are configuration rather than consent; and the configured category scope. Consent categories are null here only because no fixture configures a narrower scope.',
+	'revision is not pinned. A wipe is a committed mutation, so it publishes the revision the device was on plus one, and native/CONTRACT.md refuses to compare the absolute numbering the three implementations start from. A core that restarts the numbering at the cold-start baseline fails anyway, because the revision it announces goes backwards.',
+	'revisionDelta is the one revision claim this kind can make. A wipe is a committed mutation, so it publishes current + 1, and a core that installs the baseline silently or restarts the numbering fails here.',
+	'baseline.disk is read at the baseline publication, before the init the wipe schedules has had a chance to write. That is the only moment the deletion is observable: the re-run init caches the policy it resolves, exactly as a first launch init does, so an envelope existing later is not by itself a failure. What must never exist again is the bytes the wipe started from.',
+	'baseline.snapshot.effectivePermissions is the deny-everything-optional reading, spelled the same way OFFLINE_DENY_ALL spells it. It is the half a recorded denial shares with a wipe, which is why nothing here stops at it: promptRequirement is the field that tells the two apart.',
+	'expected.afterInit is kernel output: the same /init served to a device with the same pinned identity, the same overrides, and no stored records at all. The wiped device has to settle on the same answer field for field, which is what makes the re-run init part of the wipe rather than something the caller is asked to remember.',
+	'the two fixtures of this kind carry different input.intent and identical expected halves. A device that had accepted everything and a device that had refused everything have to be indistinguishable after both wipe, or the wipe left a trace of what it deleted.',
+];
+
+/**
+ * Build the pair that pins what a wipe leaves behind.
+ *
+ * The device starts as one a native runner can actually reach: it bootstraps over a
+ * stored subject, resolves the Europe opt-in rule, and takes `intent` through the real
+ * save command, so the receipt the wipe has to delete is a receipt the core wrote. Then
+ * it wipes, and the two expectations are read off the kernel -- one by running a device
+ * that never decided, one from the contract's own baseline table.
+ */
+const buildResetConsentFixtures =
+	async function buildResetConsentFixtures(): Promise<ResetConsentFixture[]> {
+		const decided = await runFixture(inputFor(EU_SCENARIO), {
+			intent: { action: 'all' },
+		});
+
+		// A device that has decided, in the shape a runner seeds its storage with.
+		const wipedInput = (
+			intent: CommitIntent
+		): ResetConsentFixture['input'] => ({
+			...inputFor(EU_SCENARIO, {
+				records: storedFor(SUBJECT.europe, {
+					choice: decided.after.explicitChoice ?? null,
+				}),
+			}),
+			intent,
+		});
+
+		// The same device with nothing it ever decided, which is the comparison the
+		// contract offers: not a denial, a device that has not been asked yet.
+		const freshInput = inputFor(EU_SCENARIO, {
+			hydrated: false,
+			records: storedFor(SUBJECT.europe),
+		});
+		const fresh = await runFixture(freshInput);
+		const settled = toFixtureSnapshot(fresh.after, readyFor(freshInput));
+		const { revision: _revision, ...afterInit } = settled;
+
+		const cases: {
+			id: string;
+			description: string;
+			intent: CommitIntent;
+		}[] = [
+			{
+				description:
+					'A device that accepted every category in scope under the Europe opt-in rule, then wiped. The receipt is gone, the choice prompt is owed again, and the device settles on what a device that was never asked settles on.',
+				id: 'reset-consent-opt-in-grants',
+				intent: { action: 'all' },
+			},
+			{
+				description:
+					'The same Europe rule on a device that recorded a deny-everything choice, then wiped. Its expectation is identical to the accept-all wipe above, field for field, which is the point: a wipe that leaves a recorded denial behind would still differ here, and the subject could never get out of it.',
+				id: 'reset-consent-recorded-denial',
+				intent: { action: 'necessary' },
+			},
+		];
+
+		const fixtures = cases.map((testCase) => {
+			const input = wipedInput(testCase.intent);
+			return {
+				description: testCase.description,
+				expected: {
+					afterInit: { snapshot: structuredClone(afterInit) },
+					baseline: {
+						disk: { envelope: false, pendingSaves: false, subject: true },
+						revisionDelta: 1,
+						snapshot: {
+							...structuredClone(RESET_BASELINE),
+							consentCategories: null,
+							effectivePermissions: { ...OFFLINE_DENY_ALL },
+							overrides: fixtureOverrides(input.overrides),
+							privacySignals: fixturePrivacySignals({
+								gpc: {
+									active:
+										input.privacySignals.gpc.override ??
+										input.privacySignals.gpc.detected ??
+										false,
+									detected: input.privacySignals.gpc.detected ?? false,
+									override: input.privacySignals.gpc.override ?? null,
+								},
+							}),
+							subject: { subjectId: SUBJECT.europe },
+						},
+					},
+				},
+				id: testCase.id,
+				input,
+				kind: 'reset-consent' as const,
+				notes: RESET_NOTES,
+				protocolVersion: PROTOCOL_VERSION,
+			} satisfies ResetConsentFixture;
+		});
+
+		// The pair claim is the whole reason there are two of these. Asserted here rather
+		// than left to the prose, so the day one fixture starts expecting something the
+		// other does not, the generator says so instead of two cores agreeing on a
+		// difference nobody chose.
+		const [first, second] = fixtures as [
+			ResetConsentFixture,
+			ResetConsentFixture,
+		];
+		if (stableStringify(first.expected) !== stableStringify(second.expected)) {
+			throw new Error(
+				'reset-consent fixtures disagree about what a wipe leaves behind. A wipe that records which decision it deleted is not a wipe.'
+			);
+		}
+		return fixtures;
+	};
+
 /** Name of the index a native runner enumerates. */
 const INDEX_FILE = 'index.json';
 
@@ -2217,6 +2434,7 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 			...(await buildEvaluationFixtures()),
 			...(await buildSaveBodyFixtures()),
 			...(await buildNativeEnvelopeFixtures()),
+			...(await buildResetConsentFixtures()),
 		];
 		// Last, because the trace drives the same kernel through a sequence and a
 		// half-finished save from here would land inside the next generation pass.

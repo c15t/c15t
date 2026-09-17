@@ -29,6 +29,7 @@ Consent management for iOS and Android apps. The consent engine runs natively, s
 - Offline consent queue: every action is persisted before the request and replayed on launch, foreground, or reconnect
 - Global Privacy Control honored as a denial, never invented as a grant
 - Geographic, region, and language overrides for policy preview and QA
+- A wipe that returns the device to the state a first launch boots with, with the subject id kept so the audit history stays intact
 
 ## Prerequisites
 
@@ -91,7 +92,7 @@ Type checks and lint stay separate: `bun turbo run test check-types lint --filte
 Every guide lives in the [React Native docs](https://c15t.com/docs/frameworks/react-native/quickstart):
 
 - [Quickstart](https://c15t.com/docs/frameworks/react-native/quickstart): install, configure the native bootstrap keys, and render the first banner on bare React Native or Expo
-- [Usage](https://c15t.com/docs/frameworks/react-native/usage): the provider, the hooks, the built-in banner, dialog and preference center, and the headless path
+- [Usage](https://c15t.com/docs/frameworks/react-native/usage): the provider, the hooks, the built-in banner, dialog and preference center, the headless path, and wiping consent back to a first launch
 - [Configuration](https://c15t.com/docs/frameworks/react-native/configuration): iOS and Android bootstrap keys, transport modes, overrides, and the privacy signal shape
 - [Native behaviour](https://c15t.com/docs/frameworks/react-native/native-behaviour): startup order, hydration, fail-closed storage, and gating a native analytics SDK
 - [Platform support](https://c15t.com/docs/frameworks/react-native/platform-support): version floors, the protocol handshake, and what is not supported

@@ -132,6 +132,9 @@ final class ProtocolFixtureTests: XCTestCase {
             case "native-envelope":
                 try await runNativeEnvelope(entry)
                 ran.append(entry.id)
+            case "reset-consent":
+                try await runResetConsent(entry)
+                ran.append(entry.id)
             default:
                 XCTFail("\(entry.id): kind \"\(entry.kind)\" has no runner here. Add one instead of skipping it.")
             }
@@ -179,6 +182,134 @@ final class ProtocolFixtureTests: XCTestCase {
     /// bootstrap are mutations in some cores and not in others. That is also why the
     /// fixture pins deltas and not absolute revisions: `native/CONTRACT.md` refuses
     /// to compare the numbering a core starts from.
+    /// Run a `reset-consent` fixture.
+    ///
+    /// The device is a real one by the time the wipe lands: it booted over the fixture's
+    /// stored subject, resolved a policy from the transport, and took the fixture's action
+    /// through ``ConsentCore/save(_:)``, so the receipt being deleted is one this core
+    /// wrote. Then three answers are read off it, in this order:
+    ///
+    /// - the baseline ``ConsentCore/reset()`` publishes, which has to be the cold-start
+    ///   state the contract table describes with the identity and the host's own
+    ///   configuration still on it, and the one revision bump the wipe is worth;
+    /// - what the store holds at that same instant, read from inside the publication. That
+    ///   is the only moment the deletion is observable, because the init the wipe re-runs
+    ///   then caches the policy it resolves exactly as a first launch's caches one;
+    /// - the snapshot the device settles on once that init has landed, which is what the
+    ///   kernel produced for a device that never decided at all.
+    private func runResetConsent(_ entry: Index.Entry) async throws {
+        let fixture = try loadFixture(entry)
+        guard let input = fixture["input"],
+              let expected = fixture["expected"],
+              let baseline = expected["baseline"],
+              let intent = input["intent"]
+        else {
+            throw Failure.unsupported(fixture: entry.id, detail: "no input, input.intent or expected.baseline")
+        }
+        let run = try makeRun(entry: entry, input: input)
+        await run.core.bootstrapAndSettle(run.config)
+        run.core.save(try commitIntent(entry: entry, intent))
+        await run.core.waitUntilIdle()
+        guard run.core.snapshot().explicitChoice != nil else {
+            throw Failure.unsupported(
+                fixture: entry.id,
+                detail: "the action left no receipt on the device, so there was nothing for the wipe to delete"
+            )
+        }
+        let revisionBefore = run.core.snapshot().revision
+
+        // The wipe re-runs init, and the fixture serves it the same /init it serves
+        // bootstrap. Queueing a second answer is what makes that visible: a core that never
+        // re-resolved would ask once and the run would end with the device parked on the
+        // baseline.
+        guard let transport = input["transport"] else {
+            throw Failure.unsupported(fixture: entry.id, detail: "no transport to serve the wipe's init")
+        }
+        run.http.enqueueInit(try Self.initResponse(from: transport, entry: entry))
+
+        let witness = WipeWitness(store: run.store)
+        let subscription = run.core.onChange(witness)
+        run.core.reset()
+        subscription.cancel()
+
+        guard let published = witness.baselineSnapshot else {
+            throw Failure.unsupported(
+                fixture: entry.id,
+                detail: "reset() published no snapshot, so every gate in the process still holds the decision it deleted"
+            )
+        }
+        record(
+            for: entry,
+            path: "expected.baseline.revisionDelta",
+            expected: baseline["revisionDelta"] ?? .null,
+            actual: .integer(Int64(published.revision - revisionBefore))
+        )
+        record(
+            for: entry,
+            path: "expected.baseline.snapshot",
+            expected: baseline["snapshot"] ?? .null,
+            actual: try snapshotJSON(published)
+        )
+        record(
+            for: entry,
+            path: "expected.baseline.disk",
+            expected: baseline["disk"] ?? .null,
+            actual: witness.baselineDisk ?? .null
+        )
+
+        await run.core.waitUntilIdle()
+        record(
+            for: entry,
+            path: "expected.afterInit.snapshot",
+            expected: expected["afterInit"]?["snapshot"] ?? .null,
+            actual: try snapshotJSON(run.core)
+        )
+    }
+
+    /// Holds the first publication after it is attached, and the store's contents at that
+    /// instant.
+    ///
+    /// The store has to be read from inside the callback. A wipe deletes and then re-runs
+    /// init, and that init caches the policy it resolves, so by the time the call stack
+    /// unwinds the bytes the wipe removed have been replaced by bytes that are allowed.
+    private final class WipeWitness: SnapshotObserver, @unchecked Sendable {
+        private let store: any ConsentStore
+        private let lock = NSLock()
+        private var first: ConsentSnapshot?
+        private var disk: JSONValue?
+
+        init(store: any ConsentStore) {
+            self.store = store
+        }
+
+        var baselineSnapshot: ConsentSnapshot? {
+            lock.lock()
+            defer { lock.unlock() }
+            return first
+        }
+
+        var baselineDisk: JSONValue? {
+            lock.lock()
+            defer { lock.unlock() }
+            return disk
+        }
+
+        func consentDidChange(_ snapshot: ConsentSnapshot) {
+            lock.lock()
+            guard first == nil else {
+                lock.unlock()
+                return
+            }
+            first = snapshot
+            disk = .object([
+                "envelope": .bool(store.data(for: StorageKey.snapshot) != nil),
+                "pendingSaves": .bool(store.data(for: StorageKey.pendingSaves) != nil),
+                "subject": .bool(store.data(for: StorageKey.subject) != nil),
+            ])
+            lock.unlock()
+        }
+    }
+
     private func runRevisionTrace(_ entry: Index.Entry) async throws {
         let fixture = try loadFixture(entry)
         guard let input = fixture["input"],
@@ -476,7 +607,7 @@ final class ProtocolFixtureTests: XCTestCase {
     /// write the runner, and the unclaimed count below can only be non-zero when a
     /// kind was added to one place and not the other.
     private static let claimedKinds: Set<String> = [
-        "evaluation", "native-envelope", "revision-trace", "save-body",
+        "evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body",
     ]
 
     /// Run a `native-envelope` fixture.
@@ -818,7 +949,11 @@ final class ProtocolFixtureTests: XCTestCase {
     }
 
     private func snapshotJSON(_ core: ConsentCore) throws -> JSONValue {
-        guard let value = C15tJSON.parse(try C15tJSON.encode(core.snapshot())) else {
+        try snapshotJSON(core.snapshot())
+    }
+
+    private func snapshotJSON(_ snapshot: ConsentSnapshot) throws -> JSONValue {
+        guard let value = C15tJSON.parse(try C15tJSON.encode(snapshot)) else {
             throw Failure.unsupported(fixture: "core", detail: "the snapshot did not serialize to JSON")
         }
         return value
@@ -1130,6 +1265,14 @@ final class ProtocolFixtureTests: XCTestCase {
     /// yet, and why. Nothing here is a fixture problem. Every row is a Swift defect
     /// with an owner, and the runner fails if a row stops reproducing.
     private static let ledger: [(fixture: String, root: String, fields: [Field])] = [
+        // A wipe is a committed mutation, so it publishes current + 1, and the delta the
+        // fixture pins is asserted by its runner. Where the device's counting started is the
+        // half `native/CONTRACT.md` leaves to each core, so the absolute runs ahead here for
+        // the same reason every other fixture's does.
+        ("reset-consent-opt-in-grants", "expected.baseline.snapshot", [.revision]),
+        ("reset-consent-opt-in-grants", "expected.afterInit.snapshot", [.revision]),
+        ("reset-consent-recorded-denial", "expected.baseline.snapshot", [.revision]),
+        ("reset-consent-recorded-denial", "expected.afterInit.snapshot", [.revision]),
         ("evaluation-eu-opt-in", "expected.snapshot", [.revision]),
         ("evaluation-us-ccpa-opt-out", "expected.snapshot", [.revision]),
         ("evaluation-no-rule-matched", "expected.snapshot", [.revision]),

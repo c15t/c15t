@@ -260,6 +260,18 @@ public struct C15tModuleHandler {
         return .success(())
     }
 
+    /// Wipe consent and return the device to the state a first launch boots with.
+    ///
+    /// The choice prompt is owed again afterwards, so the banner or dialog comes back.
+    /// The c15t subject id is kept, because the backend holds an audit history keyed
+    /// to it, and overrides plus the configured category scope are configuration
+    /// rather than consent.
+    public func reset() -> Result<Void, C15tBridgeError> {
+        guard ensureCore(), let core = C15t.current else { return .failure(.notBootstrapped) }
+        core.reset()
+        return .success(())
+    }
+
     /// Start the core if it is not running.
     ///
     /// - Returns: `true` when a core exists afterwards, so a caller can answer deny-all
