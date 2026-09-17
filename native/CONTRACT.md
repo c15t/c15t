@@ -227,10 +227,13 @@ Kotlin core, as built
 - Measured on the development machine, release JVM: hydrate 25.4 us, policy
   evaluation 0.63 us, snapshot plus three `isAllowed` reads 0.04 us, save
   acknowledged without network 102 us. `./gradlew :c15t-core:bench` reproduces them.
-- Known gap, still open: losing the keystore key regenerates the subject id
-  instead of keeping the previous one, so audit continuity breaks across a keystore
-  reset. The subject id is a random UUID and not sensitive, so it belongs in
-  unencrypted storage that survives a key reset.
+- Losing the keystore key keeps the subject id. It lives in its own plain
+  `c15t.subject` preference file, outside the encrypted records, because it is a
+  random UUID and carries nothing sensitive. `SubjectPreservingStore` routes it
+  there and migrates installs that had it encrypted, once and idempotently. When
+  a key dies, `ResilientKeyValueStore` deletes the blobs it can no longer open,
+  warns once, and serves deny-all with `policyPending: true`. The SPI exposes
+  `KeyValueStore.keys()` for that purge only, and defaults to `emptySet()`.
 
 Swift core, as built
 --------------------

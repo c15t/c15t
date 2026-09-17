@@ -7,6 +7,7 @@ import android.util.Log
 import com.c15t.core.crypto.AesGcmCodec
 import com.c15t.core.spi.KeyValueStore
 import com.c15t.core.store.C15tStore
+import com.c15t.core.store.SubjectPreservingStore
 import java.io.File
 import java.io.IOException
 
@@ -18,10 +19,20 @@ import java.io.IOException
  * of shared preferences. When the keystore is unusable the contract's answer is a
  * `SharedPreferences` fallback with a single log line, and this factory is where
  * that decision is made.
+ *
+ * The subject id is the one thing deliberately not on that path. It is a random UUID, so
+ * encrypting it protects nothing, and storing it beside the records meant a lost keystore
+ * key also lost the installation's identity. It gets its own preference file, which no key
+ * can invalidate, so a keystore reset costs the records and not the audit trail;
+ * [SubjectPreservingStore] does the routing and carries over the id from installs that
+ * stored it encrypted.
  */
 object C15tStores {
 	private const val TAG = "c15t"
 	private const val PREFS_NAME = "c15t.consent.fallback"
+
+	/** Separate from the fallback file, which is where record data goes. */
+	private const val SUBJECT_PREFS_NAME = "c15t.subject"
 
 	@Volatile
 	private var warnedAboutFallback = false
@@ -35,7 +46,8 @@ object C15tStores {
 	fun create(context: Context): C15tStore {
 		val appContext = context.applicationContext
 		val fallback = PreferencesStore(appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE))
-		val backend = try {
+		val identity = PreferencesStore(appContext.getSharedPreferences(SUBJECT_PREFS_NAME, Context.MODE_PRIVATE))
+		val records = try {
 			ResilientKeyValueStore(
 				primary = EncryptedFileStore(
 					File(appContext.noBackupFilesDir, StorePaths.DIRECTORY),
@@ -48,11 +60,14 @@ object C15tStores {
 			warnOnce(error)
 			fallback
 		}
-		return C15tStore(backend = backend, onReadFailure = { key, error ->
-			// A blob this build cannot read is fail-closed inside C15tStore; say so
-			// once per key so the field report is not silent.
-			Log.w(TAG, "c15t could not read stored state for $key; serving deny-all", error)
-		})
+		return C15tStore(
+			backend = SubjectPreservingStore(records = records, identity = identity),
+			onReadFailure = { key, error ->
+				// A blob this build cannot read is fail-closed inside C15tStore; say so
+				// once per key so the field report is not silent.
+				Log.w(TAG, "c15t could not read stored state for $key; serving deny-all", error)
+			},
+		)
 	}
 
 	private fun warnOnce(error: Throwable) {
@@ -102,6 +117,13 @@ internal class EncryptedFileStore(
 			return
 		}
 		writeAtomically(file, codec.encrypt(value.toByteArray(Charsets.UTF_8)))
+	}
+
+	override fun keys(): Set<String> {
+		// File names are the contract keys. Anything StorePaths would not have written,
+		// including the rename temporaries, is not ours to name back.
+		val names = directory.list() ?: return emptySet()
+		return names.filterTo(mutableSetOf()) { StorePaths.fileName(it) == it }
 	}
 
 	override fun flush() {

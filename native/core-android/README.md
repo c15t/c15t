@@ -67,8 +67,12 @@ misconfigured build than a crash in a launch hook. A host that wants to drive
 the Initializer with `tools:node="remove"` on its manifest entry.
 
 Persistence writes one AES/GCM blob per key under `noBackupFilesDir`, keyed
-`com.c15t.snapshot`, `com.c15t.subject`, `com.c15t.pending`. The AES key is an
-AndroidKeyStore alias and never enters the Java heap.
+`com.c15t.snapshot` and `com.c15t.pending`. The AES key is an AndroidKeyStore alias and
+never enters the Java heap. The subject id is the one thing kept off that path: it is a
+random UUID c15t generates itself, so encrypting it protects nothing while tying it to a
+key the platform can revoke. It lives in its own `c15t.subject` preference file, and
+`SubjectPreservingStore` routes reads and writes so the rest of the core cannot tell the
+difference.
 
 ## Verification here
 
@@ -84,7 +88,10 @@ development environment, so `c15t-android` is verified by JVM unit tests plus
 `assembleDebug`. That module keeps its Android code thin enough that the interesting
 behaviour is elsewhere.
 
-One known gap worth naming: the encrypted store's fallback protects against a key that
-is unusable, but a key loss mid-session means the records written before it stay
-unreadable and the subject id is regenerated. Consent state, not identity, is what the
-fallback is for.
+A revoked key costs the records and not the identity. When the key stops working the
+core deletes the blobs it can no longer open, warns once, and continues deny-all with
+`policyPending` set; the stored subject id survives, so the next launch keeps writing
+audit records against the same id instead of orphaning the ones already on the backend.
+Installs that upgraded from the layout where the id sat in the encrypted blob have it
+copied to plain storage on the first read, before anything is written encrypted, and the
+recovery is idempotent.

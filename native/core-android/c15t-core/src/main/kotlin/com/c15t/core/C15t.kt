@@ -122,10 +122,19 @@ object C15t {
 		kernel.get()?.logout()
 	}
 
-	/** Apply developer overrides. */
-	fun setOverrides(overrides: KernelOverrides) {
-		kernel.get()?.setOverrides(overrides)
+	/** Apply developer overrides, replacing the whole record when [merge] is false. */
+	fun setOverrides(overrides: KernelOverrides, merge: Boolean = true) {
+		kernel.get()?.setOverrides(overrides, merge)
 	}
+
+	/**
+	 * Whether the installed kernel hydrated a stored envelope.
+	 *
+	 * `false` before [bootstrap] and before any stored state exists, which is what a
+	 * binding layer reports as `hasStoredSnapshot` in its handshake.
+	 */
+	val hasStoredSnapshot: Boolean
+		get() = kernel.get()?.hasStoredSnapshot ?: false
 
 	/** Replay the offline queue. */
 	fun flushPending(): FlushResult = kernel.get()?.flushPending() ?: FlushResult(delivered = 0, remaining = 0)

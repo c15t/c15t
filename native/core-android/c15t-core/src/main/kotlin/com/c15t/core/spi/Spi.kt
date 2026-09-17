@@ -19,6 +19,16 @@ interface KeyValueStore {
 		value: String?,
 	)
 
+	/**
+	 * The keys this store currently holds.
+	 *
+	 * Optional, and `emptySet()` means "cannot enumerate", never "holds nothing": a
+	 * caller must treat it as nothing to clean up. The one consumer is the resilience
+	 * wrapper, which clears a protected store it has given up on so blobs the dead
+	 * key can no longer read do not linger and resurface.
+	 */
+	fun keys(): Set<String> = emptySet()
+
 	/** Push buffered writes to durable storage. Optional. */
 	fun flush() = Unit
 }

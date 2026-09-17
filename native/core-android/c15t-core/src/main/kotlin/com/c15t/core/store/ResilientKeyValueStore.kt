@@ -18,6 +18,13 @@ import com.c15t.core.spi.KeyValueStore
  * Nothing here weakens fail-closed reads. A blob that fails authentication is not a
  * key failure, so it still reads as "nothing stored" rather than triggering the
  * switch, and every storage error stays contained instead of reaching a launch hook.
+ *
+ * Stepping down also discards what [primary] holds. Those blobs are readable by no
+ * one now, and leaving them behind means a later run could serve "nothing stored"
+ * from files that will never decrypt again. Deleting needs no key, which is why the
+ * cleanup works on a dead keystore. Consent records are what is lost here, and only
+ * consent records: the subject id lives elsewhere, through
+ * [SubjectPreservingStore], so a keystore reset never mints a second identity.
  */
 class ResilientKeyValueStore(
 	private val primary: KeyValueStore,
@@ -85,6 +92,19 @@ class ResilientKeyValueStore(
 			}
 			degraded = true
 		}
+		discardUnreadable()
+		// Once per step-down, which is the one log line the contract allows for this.
 		onFallback(error)
+	}
+
+	/** Remove everything [primary] holds, on the assumption none of it can be read. */
+	private fun discardUnreadable() {
+		try {
+			for (key in primary.keys()) {
+				primary.write(key, null)
+			}
+		} catch (_: Exception) {
+			// A store that cannot delete its own files has nothing left to give back.
+		}
 	}
 }

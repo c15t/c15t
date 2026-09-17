@@ -71,6 +71,9 @@ class C15tKernel(
 	/** Local notice dismissal, guarded by [mutationLock]. */
 	private var noticeDismissal: NoticeDismissal? = null
 
+	@Volatile
+	private var storedSnapshotFound = false
+
 	private val snapshotObservers = CopyOnWriteArrayList<WeakReference<(ConsentSnapshot) -> Unit>>()
 	private val strongObservers = CopyOnWriteArrayList<(ConsentSnapshot) -> Unit>()
 	private val errorObservers = CopyOnWriteArrayList<WeakReference<(KernelError) -> Unit>>()
@@ -91,6 +94,8 @@ class C15tKernel(
 		val now = clock.nowMillis()
 		val subject = resolveSubject()
 		val envelope = store.readEnvelope()
+
+		storedSnapshotFound = envelope != null
 
 		if (envelope == null) {
 			// First launch, or a payload this build cannot read: deny-all until an
@@ -135,6 +140,17 @@ class C15tKernel(
 	/** `true` once [bootstrap] has run. */
 	val isBootstrapped: Boolean
 		get() = bootstrapped.get()
+
+	/**
+	 * Whether [bootstrap] found a stored envelope to hydrate from.
+	 *
+	 * Binding layers report this in their handshake so JavaScript can tell "the user
+	 * has never decided" apart from "we have a cached answer and no connectivity". It
+	 * is recorded during [bootstrap] rather than read on demand: the read has to be
+	 * synchronous and disk-free, and a getter that reopened storage would break that.
+	 */
+	val hasStoredSnapshot: Boolean
+		get() = storedSnapshotFound
 
 	/**
 	 * The current snapshot.
@@ -322,16 +338,20 @@ class C15tKernel(
 	/**
 	 * Apply developer overrides and re-evaluate immediately.
 	 *
-	 * Only the members present in [overrides] change, so a caller can pin a country
-	 * without clearing its language.
+	 * With [merge] only the members present in [overrides] change, so a caller can pin
+	 * a country without clearing its language. With [merge] false [overrides] is the
+	 * whole record, which is the only way to clear one: a null member means "unset" in
+	 * [KernelOverrides], so it cannot express "unset this" while also leaving the
+	 * others alone. A binding that receives explicit nulls from JavaScript uses the
+	 * replace form after computing the full desired record.
 	 */
-	fun setOverrides(overrides: KernelOverrides) {
+	fun setOverrides(overrides: KernelOverrides, merge: Boolean = true) {
 		var published: ConsentSnapshot
 		synchronized(mutationLock) {
 			val current = state.get()
 			published = PolicyEvaluator.evaluate(
 				snapshot = current.copy(
-					overrides = merge(current.overrides, overrides),
+					overrides = if (merge) merge(current.overrides, overrides) else overrides,
 					revision = current.revision + 1,
 				),
 				policy = evaluationPolicy,
