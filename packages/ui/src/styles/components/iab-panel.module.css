@@ -41,8 +41,10 @@
 	--iab-cd-animation-duration: var(--c15t-duration-normal);
 	--iab-cd-animation-timing: ease-out;
 
-	/* Shadow */
-	--iab-cd-shadow: var(--c15t-shadow-xl);
+	/* The shadow scale stops at `lg`, and the consent dialog this surface
+	 * mirrors raises its card with `sm`, so an `xl` reference resolved to
+	 * nothing and left the IAB panel flat against the page. */
+	--iab-cd-shadow: var(--c15t-shadow-sm);
 }
 
 @layer components {
