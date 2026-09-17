@@ -215,3 +215,45 @@ export const nodeStyle = function nodeStyle(
 		unknown
 	>;
 };
+
+/**
+ * The height a control's touch area covers.
+ *
+ * A web consent action draws 35.5 tall and reaches the platform's 44 through its
+ * hit area, so reading `minHeight` no longer says whether a finger is covered.
+ * This adds the drawn box and the slop back together so a test can assert the
+ * thing that actually matters.
+ *
+ * @param node - The rendered control.
+ * @returns Drawn height plus the slop above and below it.
+ */
+export const touchHeight = function touchHeight(node: HTMLElement): number {
+	const box = nodeStyle(node);
+	const label =
+		node.firstElementChild === null
+			? {}
+			: nodeStyle(node.firstElementChild as HTMLElement);
+	const number = (
+		style: Record<string, unknown>,
+		key: string,
+		fallback = 0
+	): number => {
+		const value = style[key];
+
+		return typeof value === 'number' ? value : fallback;
+	};
+	const padding = number(box, 'paddingVertical');
+	const vertical = padding > 0 ? padding * 2 : number(box, 'paddingTop') * 2;
+	const slop = JSON.parse(node.getAttribute('data-hit-slop') ?? '{}') as Record<
+		string,
+		number
+	>;
+
+	return (
+		vertical +
+		number(label, 'lineHeight') +
+		number(box, 'borderWidth') * 2 +
+		number(slop, 'top') +
+		number(slop, 'bottom')
+	);
+};

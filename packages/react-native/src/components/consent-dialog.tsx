@@ -15,6 +15,7 @@ import { Text, View } from 'react-native';
 
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentSelector } from '../hooks/use-consent-selector';
+import { ConsentBrandingTag } from './internal/branding-tag';
 import {
 	isConsentCategoryRowsEqual,
 	selectConsentCategoryRows,
@@ -37,12 +38,31 @@ import { useConsentStyles } from './theme/use-consent-styles';
 
 /** Props for {@link ConsentDialog}. */
 export interface ConsentDialogProps {
+	/**
+	 * Hide the "Secured by c15t" tab.
+	 *
+	 * Off by default, which is what the web surfaces do: the tab is what tells a
+	 * subject who is holding their consent, and a plan that has already paid for
+	 * removing it is the only reason to.
+	 */
+	readonly hideBranding?: boolean;
 	/** Entry point to the app's own preference centre, rendered when supplied. */
 	readonly onOpenPreferences?: () => void;
 	/** Called when the subject closes the dialog without saving. */
 	readonly onRequestClose: () => void;
 	/** Whether the dialog is open. */
 	readonly open: boolean;
+	/**
+	 * How the card is anchored.
+	 *
+	 * `dialog` centres it inside the overlay with a 16pt gutter on every side and
+	 * caps it at the web card's 448pt width, which is what the web surface does and
+	 * the default here. `sheet` drops it to the bottom edge with a grab handle
+	 * above it instead: a legitimate choice on a phone, and a host with a lot of
+	 * categories to reach may prefer the taller card, but it is not what the web
+	 * surface looks like.
+	 */
+	readonly presentation?: 'dialog' | 'sheet';
 	/** Per-part style overrides. */
 	readonly styles?: ConsentPartStyles;
 	/** Theme to render with, instead of the platform scheme. */
@@ -168,15 +188,18 @@ const ConsentDialogContent = ({
 			</ConsentSurfaceBody>
 			<ConsentSurfaceFooter>
 				{/*
-				 * The two decisions share a row in the accent, and the action that
-				 * writes the draft below takes the neutral outline, exactly as the
-				 * web sheet arranges them. Leaving the decisions out of a sheet that
-				 * owes a prompt meant a subject could not grant or deny everything
-				 * without flicking five switches.
+				 * The two decisions share a row in the neutral outline and the action
+				 * that writes the draft takes the accent below them, which is the split
+				 * `policy-actions.ts` draws for a preference surface: there
+				 * `primaryActions` defaults to `save`, so reject and accept stay neutral
+				 * together. Leaving the decisions out of a surface that owes a prompt
+				 * meant a subject could not grant or deny everything without flicking
+				 * five switches.
 				 */}
 				<View style={parts.row}>
 					<ConsentButton
 						disabled={busy}
+						kind="secondary"
 						label={copy.rejectAll}
 						onPress={() => {
 							void decide('reject');
@@ -185,6 +208,7 @@ const ConsentDialogContent = ({
 					/>
 					<ConsentButton
 						disabled={busy}
+						kind="secondary"
 						label={copy.acceptAll}
 						onPress={() => {
 							void decide('accept');
@@ -194,7 +218,6 @@ const ConsentDialogContent = ({
 				</View>
 				<ConsentButton
 					disabled={busy}
-					kind="secondary"
 					label={copy.save}
 					onPress={() => {
 						void save();
@@ -235,24 +258,36 @@ const ConsentDialogContent = ({
  * @returns The dialog while it is open or animating out.
  */
 export const ConsentDialog = ({
+	hideBranding = false,
 	onOpenPreferences,
 	onRequestClose,
 	open,
+	presentation = 'dialog',
 	styles,
 	theme,
 }: ConsentDialogProps): ReactNode => {
 	// Words only. The category list belongs to the sheet, and a shut sheet has
 	// none on screen.
 	const copy = useConsentSelector(selectConsentCopy, isConsentCopyEqual);
-	const surface = useConsentStyles({ styles, theme });
+	const surface = useConsentStyles({ presentation, styles, theme });
+
+	const branding = hideBranding ? undefined : (
+		<ConsentBrandingTag
+			label={copy.securedBy}
+			parts={surface.parts}
+			presentation={presentation}
+			radius={surface.theme.radius.surface}
+		/>
+	);
 
 	return (
 		<ConsentSurface
+			branding={branding}
 			dismissLabel={copy.dismiss}
 			label={copy.dialogTitle}
 			onRequestClose={onRequestClose}
 			open={open}
-			presentation="modal"
+			presentation={presentation}
 			styles={surface}
 		>
 			<ConsentDialogContent

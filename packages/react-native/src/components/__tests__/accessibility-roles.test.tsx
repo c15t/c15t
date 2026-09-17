@@ -19,7 +19,7 @@ import { ConsentBanner } from '../consent-banner';
 import { ConsentDialog } from '../consent-dialog';
 import { ConsentPreferences } from '../consent-preferences';
 import type { SurfaceTree } from './harness';
-import { mountSurface, surfaceNode } from './harness';
+import { mountSurface, roleNodes, surfaceNode } from './harness';
 
 /**
  * `ReactAccessibilityDelegate.AccessibilityRole`, lowercased, which is how React Native
@@ -137,11 +137,34 @@ describe('accessibility roles', () => {
 
 		// Customize used to be a run of underlined text, which is a caption to a
 		// reader and a guess to a finger. Web renders it as a control.
+		//
+		// The one link is the branding tab, and it leads: it is mounted ahead of the
+		// card rather than inside it, which is what the order here records. Every
+		// action a subject can take on the consent state is a button.
 		expect(
 			requestedRoles(tree).filter(
 				(role) => role === 'button' || role === 'link'
 			)
-		).toEqual(['button', 'button', 'button']);
+		).toEqual(['link', 'button', 'button', 'button']);
+
+		tree.unmount();
+	});
+
+	test('the branding tab names the brand and sits outside the card', () => {
+		const tree = mountSurface(<ConsentBanner />);
+		const [tab] = roleNodes(tree.container(), 'link');
+
+		// The web tag is an anchor whose name is the text it wraps, "Secured by"
+		// then the wordmark. A reader on mobile has to hear the same sentence, not
+		// the mark announced as an unlabelled image.
+		expect(tab.getAttribute('aria-label')).toBe('Secured by c15t');
+
+		// The card clips, so a tab inside it would be cut off along the very edge it
+		// is meant to merge into. Being the card's preceding sibling is the only
+		// position that keeps the two outlines continuous.
+		const card = surfaceNode(tree.container());
+		expect(tab.parentElement?.parentElement).not.toBe(card);
+		expect(tab.nextElementSibling).toBe(card);
 
 		tree.unmount();
 	});

@@ -217,6 +217,12 @@ describe('theme', () => {
 		expect(lightTheme.colors.surfaceRaised).toBe('#FAFAFA');
 		expect(darkTheme.colors.primary).toBe('#6685FF');
 
+		// The branding tab is filled with the accent, so web outlines it with the
+		// accent 14% toward black. React Native has no `color-mix` to run at render,
+		// so the resolved literal is the token: 0.86 of each channel.
+		expect(lightTheme.colors.primaryBorder).toBe('#2C4FDB');
+		expect(darkTheme.colors.primaryBorder).toBe('#5872DB');
+
 		// 4 8 16 24 32, the web step scale.
 		expect(lightTheme.spacing).toEqual({ l: 24, m: 16, s: 8, xl: 32, xs: 4 });
 		expect(lightTheme.radius).toEqual({ control: 8, surface: 12 });
@@ -233,6 +239,9 @@ describe('theme', () => {
 			lineHeight: 17.5,
 			weight: '500',
 		});
+
+		// `.title` in `panel.module.css` is `line-height: 1` at `font-size: sm`,
+		// so the heading sits in a 14 line box.
 		expect(lightTheme.typography.title).toEqual({
 			fontSize: 14,
 			lineHeight: 14,
@@ -303,16 +312,29 @@ describe('theme', () => {
 			/>
 		);
 
-		const card = requireRole(tree.container(), 'switch', 'Werbung')
+		// The switch sits in the trigger row, and the trigger row sits in the card.
+		const trigger = requireRole(tree.container(), 'switch', 'Werbung')
 			.parentElement as HTMLElement;
+		const card = trigger.parentElement as HTMLElement;
 
-		// `.item` is a card in its own border, not a row between two dividers.
+		// `.item` is a card in its own border, not a row between two dividers, and it
+		// carries nothing but that border.
 		expect(nodeStyle(card)).toMatchObject({
 			backgroundColor: lightTheme.colors.surface,
 			borderColor: lightTheme.colors.border,
 			borderRadius: lightTheme.radius.control,
 			borderWidth: 1,
+			flexDirection: 'column',
+		});
+
+		// `.triggerRow` is where the 8 of padding and the 4 step live, over the
+		// disclosure's `calc(icon + 0.25rem)` minimum. They have to sit there rather
+		// than on the card, because the description a tap reveals falls outside the
+		// row and still has to line up with the label above it.
+		expect(nodeStyle(trigger)).toMatchObject({
+			alignItems: 'center',
 			gap: 4,
+			minHeight: 24,
 			padding: 8,
 		});
 
@@ -331,35 +353,69 @@ describe('theme', () => {
 		const bannerFooter = surfaceNode(banner.container())
 			.lastElementChild as HTMLElement;
 
-		// `1rem 1.25rem` on `.footer`, on the muted band, under a hairline.
+		// `1rem 1.25rem` on `.footer`, on the muted band, under a hairline. The
+		// row gap is 8 rather than the 16 `.actionRoot` opens with, because
+		// `[data-split]` overrides it as soon as a banner has two action groups,
+		// which is every banner that opts in. It is what keeps the card 238 tall
+		// instead of 271.6.
 		expect(nodeStyle(bannerFooter)).toMatchObject({
 			backgroundColor: lightTheme.colors.surfaceRaised,
 			borderTopColor: lightTheme.colors.border,
 			borderTopWidth: 1,
-			gap: 16,
+			gap: 8,
+			paddingBottom: 16,
 			paddingHorizontal: 20,
-			paddingVertical: 16,
+			paddingTop: 16,
+		});
+
+		const dialog = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+		const dialogFooter = surfaceNode(dialog.container())
+			.lastElementChild as HTMLElement;
+
+		// The dialog's actions sit on the card itself with nothing above them: the
+		// composition renders them in a plain container, and the live surface measures
+		// `border-top-width: 0` over a transparent fill. What it does keep is the
+		// card's own 24 gutter, the footer's 16 above, and the run of the card padding
+		// below, so the row lines up with the heading and the list over it.
+		expect(nodeStyle(dialogFooter)).toMatchObject({
+			backgroundColor: lightTheme.colors.surface,
+			borderTopWidth: 0,
+			gap: 8,
+			paddingBottom: 24,
+			paddingHorizontal: 24,
+			paddingTop: 16,
 		});
 
 		const sheet = mountSurface(
 			<ConsentDialog
 				onRequestClose={vi.fn()}
 				open
+				presentation="sheet"
 			/>
 		);
 		const sheetFooter = surfaceNode(sheet.container())
 			.lastElementChild as HTMLElement;
 
-		// A sheet sits on the card at 16 all round with the shorter step.
+		// A bottom sheet runs to the screen edges, so it has no card gutter to take
+		// and keeps 16 all round. Same card fill and no rule either: the two are one
+		// card anchored two ways, and the host's `presentation` prop should not also
+		// restyle its footer.
 		expect(nodeStyle(sheetFooter)).toMatchObject({
 			backgroundColor: lightTheme.colors.surface,
-			borderTopWidth: 1,
+			borderTopWidth: 0,
 			gap: 8,
+			paddingBottom: 16,
 			paddingHorizontal: 16,
-			paddingVertical: 16,
+			paddingTop: 16,
 		});
 
 		banner.unmount();
+		dialog.unmount();
 		sheet.unmount();
 	});
 
@@ -369,10 +425,13 @@ describe('theme', () => {
 			requireRole(tree.container(), 'button', 'Alle akzeptieren')
 		);
 
-		// `0.625rem 1rem`, and the platform minimum still decides the height.
-		expect(action.paddingVertical).toBe(10);
-		expect(action.paddingHorizontal).toBe(16);
-		expect(action.minHeight).toBeGreaterThanOrEqual(44);
+		// `0.5rem 0.75rem`. The drawn box is 35.5 tall, which is under the
+		// platform minimum on purpose: the 44 is a touch requirement, so it grows
+		// the hit area rather than the control. See
+		// `web-token-parity.test.tsx` for the assertion on that hit area.
+		expect(action.paddingVertical).toBe(8);
+		expect(action.paddingHorizontal).toBe(12);
+		expect(action.minHeight ?? null).toBeNull();
 
 		tree.unmount();
 	});
@@ -389,6 +448,7 @@ describe('theme', () => {
 
 		// The 28x16 fully rounded track the consent surfaces ask the primitive
 		// for, rather than the native control tinted to look near it. The thumb
+
 		// lives inside the track's own padding.
 		const trackStyle = () =>
 			nodeStyle(
@@ -422,6 +482,36 @@ describe('theme', () => {
 		expect(trackStyle().backgroundColor).toBe(lightTheme.colors.switchTrackOn);
 
 		tree.unmount();
+	});
+
+	test('the branding tab is the web tag, and a host can restyle it', () => {
+		const tree = mountSurface(<ConsentBanner />);
+
+		// `0.6875rem` at `line-height: 1`, so the line box is the font size rather
+		// than a step on the type scale. It is the one piece of text in a consent
+		// surface that is not the subject's own language.
+		expect(textStyleOf(tree, 'Secured by')).toEqual(
+			expect.objectContaining({
+				color: lightTheme.colors.onPrimary,
+				fontSize: 11,
+				lineHeight: 11,
+			})
+		);
+
+		expect(
+			nodeStyle(roleNodes(tree.container(), 'link')[0] as HTMLElement).gap
+		).toBe(6);
+		tree.unmount();
+
+		const styled = mountSurface(
+			<ConsentBanner styles={{ branding: { backgroundColor: '#010203' } }} />
+		);
+
+		expect(
+			nodeStyle(roleNodes(styled.container(), 'link')[0] as HTMLElement)
+				.backgroundColor
+		).toBe('#010203');
+		styled.unmount();
 	});
 
 	test('a host theme replaces the palette wholesale', () => {

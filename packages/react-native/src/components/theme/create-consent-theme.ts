@@ -22,17 +22,50 @@ export interface ConsentThemeColors {
 	readonly surfaceRaised: string;
 	/** Hairline separating rows from the footer. */
 	readonly border: string;
+	/**
+	 * The disclosure glyph on a collapsed category row: the plus that becomes a
+	 * minus, and nothing else.
+	 *
+	 * Web keeps this one colour outside the palette: `.arrow` falls back to
+	 * `hsl(0, 0%, 63.92%)` when `--accordion-arrow-color` is unset, which is
+	 * lighter than `textMuted` on purpose so the row's own label stays the loudest
+	 * thing on it while the affordance is still findable.
+	 */
+	readonly disclosure: string;
+	/**
+	 * The copy a category card reveals when it opens.
+	 *
+	 * `.content` in the consent accordion resolves `--accordion-content-color` to
+	 * `hsl(0, 0%, 36.08%)`, a step under `textMuted`: the description is the same
+	 * size as the label it explains, so tone is the only thing separating them.
+	 */
+	readonly contentText: string;
 	/** Primary text. */
 	readonly text: string;
-	/** Secondary text, such as a category description. */
+	/** Secondary text, such as a heading's supporting line. */
 	readonly textMuted: string;
 	/**
-	 * Accent: the outline and label of the two decision actions, and the switch
-	 * track when on. Nothing in the built-in surfaces fills with it.
+	 * Accent: the outline and label of the action the surface is asking for, which
+	 * is `Customize` on a banner and `Save Settings` in a sheet, and the switch
+	 * track when on.
+	 *
+	 * The two decisions stay in {@link ConsentThemeColors.text} so a prompt never
+	 * leans a subject either way, and the fill is never used: every consent action
+	 * web ships is an outline. The branding tab is the one element that fills.
 	 */
 	readonly primary: string;
 	/** Text on a filled {@link ConsentThemeColors.primary}, for a host that fills one. */
 	readonly onPrimary: string;
+	/**
+	 * The outline of a control drawn in the accent: the branding tab, whose fill is
+	 * already the accent and so needs an edge darker than itself to read.
+	 *
+	 * Web asks for `color-mix(in srgb, var(--c15t-primary), black 14%)`, which is
+	 * the accent at 86% against black. React Native has no colour function to run at
+	 * render, so each scheme ships the literal that mix resolves to: `#335CFF` to
+	 * `#2C4FDB`, and the dark accent `#6685FF` to `#5872DB`.
+	 */
+	readonly primaryBorder: string;
 	/** Focus and selected outline. */
 	readonly focus: string;
 	/** Off-state switch track. */
@@ -84,11 +117,18 @@ export interface ConsentThemeTypography {
 	 * inside a sheet, which is the same `0.875rem` in `accordion.module.css`.
 	 */
 	readonly bannerBody: ConsentTypeStyle;
-	/** Sheet title: 14 semibold, smaller than the body under it. */
+	/**
+	 * Sheet title: 14 semibold over 14, tighter than the body under it.
+	 *
+	 * `panel.module.css` sets `line-height: 1` on `.title`, so the heading owns a
+	 * 14 line box. Its tracking is not here: the web writes tracking in `em`, the
+	 * two sheet surfaces disagree on it, and it belongs with the surface that
+	 * draws the heading, so `useConsentStyles` puts it on the part.
+	 */
 	readonly title: ConsentTypeStyle;
 	/** Body copy of a sheet. */
 	readonly body: ConsentTypeStyle;
-	/** Button label. */
+	/** Button label: 14 over 17.5 at medium, the web `line-height-tight`. */
 	readonly label: ConsentTypeStyle;
 	/** Legal and status line. */
 	readonly caption: ConsentTypeStyle;
@@ -195,10 +235,13 @@ const baseMotion: ConsentThemeMotion = {
 
 const lightColors: ConsentThemeColors = {
 	border: '#E6E6E6',
+	contentText: '#5C5C5C',
+	disclosure: '#A3A3A3',
 	focus: '#335CFF',
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.5)',
 	primary: '#335CFF',
+	primaryBorder: '#2C4FDB',
 	surface: '#FFFFFF',
 	surfaceRaised: '#FAFAFA',
 	switchThumb: '#FFFFFF',
@@ -210,10 +253,13 @@ const lightColors: ConsentThemeColors = {
 
 const darkColors: ConsentThemeColors = {
 	border: '#333333',
+	contentText: '#999999',
+	disclosure: '#CCCCCC',
 	focus: '#6685FF',
 	onPrimary: '#FFFFFF',
 	overlay: 'rgba(0, 0, 0, 0.7)',
 	primary: '#6685FF',
+	primaryBorder: '#5872DB',
 	surface: '#121212',
 	surfaceRaised: '#1A1A1A',
 	switchThumb: '#EDEDED',

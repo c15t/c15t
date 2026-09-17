@@ -11,11 +11,17 @@ import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 /** Every part a built-in surface exposes. */
 export const CONSENT_THEME_PARTS = [
 	'banner',
+	'branding',
+	'brandingLabel',
+	'brandingWordmark',
 	'caption',
 	'captionLink',
+	'categoryContent',
 	'categoryDescription',
+	'categoryDisclosure',
 	'categoryRow',
 	'categoryTitle',
+	'categoryTrigger',
 	'description',
 	'footer',
 	'handle',

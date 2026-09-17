@@ -287,8 +287,16 @@ describe('ConsentDialog', () => {
 		expect(onOpenPreferences).toHaveBeenCalledTimes(1);
 		withEntry.unmount();
 
+		// The sheet's remaining link is the branding tab, which every surface carries
+		// unless the host asks otherwise. Asserting "no links at all" would have been
+		// true only while the sheet had exactly one kind of link, and what this case
+		// is actually about is the entry point: absent here, present above.
 		const withoutEntry = mountDialog();
-		expect(roleNodes(withoutEntry.container(), 'link')).toEqual([]);
+		expect(
+			roleNodes(withoutEntry.container(), 'link').map((node) =>
+				node.getAttribute('aria-label')
+			)
+		).toEqual(['Secured by c15t']);
 		withoutEntry.unmount();
 	});
 
@@ -334,8 +342,11 @@ describe('ConsentPreferences', () => {
 			/>
 		);
 
+		// The centre offers no leave button of its own: the web manager has exactly
+		// three actions, and leaving is what the scrim, the back gesture, and the
+		// escape key are for. The scrim is the one of those a test can reach.
 		tap(requireRole(tree.container(), 'switch', 'Werbung'));
-		tap(requireRole(tree.container(), 'button', 'Schliessen'));
+		tap(requireRole(tree.container(), 'button', 'Einstellungen: Schliessen'));
 
 		expect(tree.fake.commitIntents).toEqual([]);
 		expect(onRequestClose).toHaveBeenCalledTimes(1);

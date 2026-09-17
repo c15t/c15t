@@ -13,6 +13,7 @@ import { Text, View } from 'react-native';
 
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentSelector } from '../hooks/use-consent-selector';
+import { ConsentBrandingTag } from './internal/branding-tag';
 import {
 	isConsentCategoryRowsEqual,
 	selectConsentCategoryRows,
@@ -35,10 +36,29 @@ import { useConsentStyles } from './theme/use-consent-styles';
 
 /** Props for {@link ConsentPreferences}. */
 export interface ConsentPreferencesProps {
+	/**
+	 * Hide the "Secured by c15t" tab.
+	 *
+	 * Off by default, which is what the web surfaces do: the tab is what tells a
+	 * subject who is holding their consent, and a plan that has already paid for
+	 * removing it is the only reason to.
+	 */
+	readonly hideBranding?: boolean;
 	/** Called when the subject closes the centre, saved or not. */
 	readonly onRequestClose: () => void;
 	/** Whether the centre is open. */
 	readonly open: boolean;
+	/**
+	 * How the card is anchored.
+	 *
+	 * `dialog` centres it inside the overlay with a 16pt gutter on every side and
+	 * caps it at the web card's 448pt width, which is what the web surface does and
+	 * the default here. `sheet` drops it to the bottom edge with a grab handle
+	 * above it instead: a legitimate choice on a phone, and a host with a lot of
+	 * categories to reach may prefer the taller card, but it is not what the web
+	 * surface looks like.
+	 */
+	readonly presentation?: 'dialog' | 'sheet';
 	/** Per-part style overrides. */
 	readonly styles?: ConsentPartStyles;
 	/** Theme to render with, instead of the platform scheme. */
@@ -73,11 +93,6 @@ const ConsentPreferencesContent = ({
 	const selection = useCategorySelection(rows);
 	const { parts, theme } = useConsentSurfaceFrame();
 	const [busy, setBusy] = useState(false);
-
-	const close = (): void => {
-		selection.reset();
-		onRequestClose();
-	};
 
 	const save = async (): Promise<void> => {
 		if (busy) {
@@ -164,14 +179,17 @@ const ConsentPreferencesContent = ({
 			</ConsentSurfaceBody>
 			<ConsentSurfaceFooter>
 				{/*
-				 * One arrangement for both sheets: the accent carries the two
-				 * decisions, and the neutral outline carries everything that only
-				 * moves the subject around, which is writing the draft and leaving.
-				 * The web preference centre is laid out the same way.
+				 * One arrangement for both card surfaces: the two decisions sit in the
+				 * neutral outline and `Save Settings` carries the accent, which is what
+				 * `primaryActions` defaults to for a preference surface, so reject and
+				 * accept stay neutral together. Nothing else belongs in this footer. The
+				 * web centre offers exactly these three actions, and leaving is already
+				 * covered by the scrim, the back gesture, and the escape key.
 				 */}
 				<View style={parts.row}>
 					<ConsentButton
 						disabled={busy}
+						kind="secondary"
 						label={copy.rejectAll}
 						onPress={() => {
 							void decide('reject');
@@ -180,6 +198,7 @@ const ConsentPreferencesContent = ({
 					/>
 					<ConsentButton
 						disabled={busy}
+						kind="secondary"
 						label={copy.acceptAll}
 						onPress={() => {
 							void decide('accept');
@@ -189,17 +208,10 @@ const ConsentPreferencesContent = ({
 				</View>
 				<ConsentButton
 					disabled={busy}
-					kind="secondary"
 					label={copy.save}
 					onPress={() => {
 						void save();
 					}}
-					parts={parts}
-				/>
-				<ConsentButton
-					kind="secondary"
-					label={copy.dismiss}
-					onPress={close}
 					parts={parts}
 				/>
 			</ConsentSurfaceFooter>
@@ -228,21 +240,33 @@ const ConsentPreferencesContent = ({
  * @returns The centre while it is open or animating out.
  */
 export const ConsentPreferences = ({
+	hideBranding = false,
 	onRequestClose,
 	open,
+	presentation = 'dialog',
 	styles,
 	theme,
 }: ConsentPreferencesProps): ReactNode => {
 	const copy = useConsentSelector(selectConsentCopy, isConsentCopyEqual);
-	const surface = useConsentStyles({ styles, theme });
+	const surface = useConsentStyles({ presentation, styles, theme });
+
+	const branding = hideBranding ? undefined : (
+		<ConsentBrandingTag
+			label={copy.securedBy}
+			parts={surface.parts}
+			presentation={presentation}
+			radius={surface.theme.radius.surface}
+		/>
+	);
 
 	return (
 		<ConsentSurface
+			branding={branding}
 			dismissLabel={copy.dismiss}
 			label={copy.preferences}
 			onRequestClose={onRequestClose}
 			open={open}
-			presentation="modal"
+			presentation={presentation}
 			styles={surface}
 		>
 			<ConsentPreferencesContent

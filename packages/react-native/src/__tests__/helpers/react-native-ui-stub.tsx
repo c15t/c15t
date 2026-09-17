@@ -252,14 +252,24 @@ const flattenStyle = function flattenStyle(
  *
  * Held to the handful of facts that actually distinguish one render from
  * another, which keeps the recorded attribute small and the reader honest about
- * what the stand-in does not model.
+ * what the stand-in does not model. The corner radii, the negative margin and
+ * `zIndex` are here because they are the whole of the branding tab: which two
+ * corners stay round and which edge gives up its border is the only difference
+ * between the banner and the sheet variant, and the tab has to outrank the card
+ * it overlaps or the card's fill paints over it.
  */
 const RECORDED_STYLE_KEYS = [
 	'alignItems',
+	'alignSelf',
 	'backgroundColor',
+	'borderBottomLeftRadius',
+	'borderBottomRightRadius',
+	'borderBottomWidth',
 	'borderColor',
 	'borderRadius',
 	'borderTopColor',
+	'borderTopLeftRadius',
+	'borderTopRightRadius',
 	'borderTopWidth',
 	'borderWidth',
 	'bottom',
@@ -276,9 +286,15 @@ const RECORDED_STYLE_KEYS = [
 	'height',
 	'justifyContent',
 	'left',
+	'letterSpacing',
+	'lineHeight',
+	'marginBottom',
+	'marginRight',
 	'marginTop',
 	'maxHeight',
+	'maxWidth',
 	'minHeight',
+	'opacity',
 	'padding',
 	'paddingBottom',
 	'paddingTop',
@@ -291,6 +307,7 @@ const RECORDED_STYLE_KEYS = [
 	'rowGap',
 	'top',
 	'width',
+	'zIndex',
 ] as const;
 
 const styleAttribute = function styleAttribute(
@@ -408,6 +425,28 @@ const makeSurface = function makeSurface(
 	return forwardRef<unknown, ViewPropsStub>(renderSurface);
 };
 
+/** Props the image stub accepts. */
+interface ImagePropsStub extends AccessibilityProps {
+	readonly resizeMode?: string;
+	readonly source?: number | { readonly uri?: string };
+	readonly style?: StyleValue;
+}
+
+/**
+ * `Image` records which raster it was handed instead of decoding one.
+ *
+ * A `data:` URI has no network path and jsdom has no native decoder, so nothing
+ * here could paint even if it tried. The question a test can answer, and the one
+ * the branding marks care about, is whether the right scale was chosen.
+ */
+export const Image = (props: ImagePropsStub): ReactElement =>
+	createElement('img', {
+		...ariaAttributes(props),
+		'data-rn-source':
+			typeof props.source === 'object' ? props.source.uri : undefined,
+		'data-rn-style': styleAttribute(props.style),
+	});
+
 export const View = makeSurface('div');
 export const SafeAreaView = makeSurface('div');
 export const KeyboardAvoidingView = makeSurface('div');
@@ -453,7 +492,7 @@ interface PressablePropsStub extends AccessibilityProps {
 		| ((state: Record<string, boolean>) => ReactNode);
 	readonly delayLongPress?: number;
 	readonly disabled?: boolean;
-	readonly hitSlop?: unknown;
+	readonly hitSlop?: number | { readonly all?: number; readonly top?: number };
 	readonly nextFocus?: Record<string, string>;
 	readonly onPress?: (event: PressStubEvent) => void;
 	readonly onPressIn?: () => void;
@@ -462,6 +501,27 @@ interface PressablePropsStub extends AccessibilityProps {
 	readonly style?: StyleValue;
 	readonly tabIndex?: number;
 }
+
+/**
+ * Flatten the shapes React Native accepts for `hitSlop` into four edges.
+ *
+ * A test asserts on the touch area, so the stand-in has to report the resolved
+ * inset rather than whatever spelling the component happened to use.
+ *
+ * @param slop - The value passed to `hitSlop`.
+ * @returns The four edges the touch area extends past the drawn box.
+ */
+const uniformEdges = function uniformEdges(
+	slop: number | { all?: number; top?: number } | undefined
+): { bottom: number; left: number; right: number; top: number } {
+	if (typeof slop === 'number') {
+		return { bottom: slop, left: slop, right: slop, top: slop };
+	}
+
+	const value = slop?.all ?? slop?.top ?? 0;
+
+	return { bottom: value, left: value, right: value, top: value };
+};
 
 const pressEvent = (): PressStubEvent => ({
 	nativeEvent: { target: 1 },
@@ -487,12 +547,22 @@ export const Pressable = (props: PressablePropsStub): ReactElement => {
 		{
 			...ariaAttributes(props),
 			'data-disabled': disabled ? 'true' : undefined,
+			'data-hit-slop':
+				props.hitSlop === undefined
+					? undefined
+					: JSON.stringify(uniformEdges(props.hitSlop)),
 			'data-rn-style': styleAttribute(props.style, { pressed: false }),
 			disabled,
 			href: isLink ? '#' : undefined,
+			// React Native hands a touch to the innermost responder, so a control
+			// nested in another one swallows it rather than bubbling it up: a switch
+			// inside an accordion row flips the switch and leaves the row shut. A DOM
+			// click bubbles by default, which would give the row the same tap, so the
+			// stand-in stops the propagation React Native never had.
 			onClick: disabled
 				? undefined
-				: () => {
+				: (event: { stopPropagation: () => void }) => {
+						event.stopPropagation();
 						props.onPressIn?.();
 						props.onPress?.(pressEvent());
 						props.onPressOut?.();

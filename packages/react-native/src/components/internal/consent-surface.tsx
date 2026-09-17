@@ -2,10 +2,11 @@
  * The chrome every consent surface is built from: a sheet, its heading, a body
  * that scrolls before it overflows, a footer, and the enter and exit reveal.
  *
- * Two presentations share it. A banner is an absolutely positioned layer, so
- * mounting one moves no app content: there is no reflow to animate and nothing
- * to shift when the prompt finally goes away. A dialog is a `Modal`, which gives
- * the platform the job of keeping touch and the reader inside the sheet.
+ * Two mounts share it. A banner is an absolutely positioned layer, so mounting
+ * one moves no app content: there is no reflow to animate and nothing to shift
+ * when the prompt finally goes away. A dialog and a bottom sheet are both a
+ * `Modal`, which gives the platform the job of keeping touch and the reader
+ * inside the card, and they differ only in where that card sits.
  *
  * The sheet content is `children`, not props. A surface that is closed leaves
  * its children out of the tree, which is what keeps a mounted-but-closed dialog
@@ -47,8 +48,15 @@ import { useReducedMotion } from './use-reduced-motion';
 /** Fills the screen so the sheet can sit at its bottom edge. */
 const FILL: ViewStyle = { flex: 1 };
 
-/** Which of the two presentations is being rendered. */
-export type ConsentSurfacePresentation = 'banner' | 'modal';
+/**
+ * Which of the three presentations is being rendered.
+ *
+ * `banner` is the absolutely positioned layer over the app. `dialog` and `sheet`
+ * both mount in a `Modal` and differ only in where the card sits inside it: a
+ * dialog is centred, the way the web surface is, and a sheet is anchored to the
+ * bottom edge with a grab handle above the card.
+ */
+export type ConsentSurfacePresentation = 'banner' | 'dialog' | 'sheet';
 
 /** The layout a surface hands to its own content. */
 export interface ConsentSurfaceFrame {
@@ -132,12 +140,27 @@ export const ConsentSurfaceBody = ({
 /**
  * What the footer earns from the surface it sits in.
  *
- * The two are measured apart rather than inferred from one another. A banner puts
- * its actions on the muted band with a hairline along its top edge, 16 deep and
- * 20 in from the card (`1rem 1.25rem` on `.footer`), with a full step between the
- * two action rows (`1rem` on `.actionRoot`). A sheet leaves them on the card with
- * a hairline only, 16 all round (`--consent-dialog-card-padding-mobile`,
- * `--consent-dialog-footer-padding-y`) and a half step (`--consent-dialog-footer-gap`).
+ * The banner is the only surface with a band. It puts its actions on the muted
+ * fill under a hairline, 16 deep and 20 in from the card, which is `1rem 1.25rem`
+ * on `.footer` over the `--consent-banner-footer-background`. The two card
+ * surfaces get none of that: the live dialog's actions sit on the card colour
+ * with nothing above them, and `.footer` there declares only vertical padding.
+ * Measuring that composition rather than the rule is the difference, and it is
+ * why the dialog's own `.footer` border, which does exist in the stylesheet, is
+ * never painted: the actions render in a plain container that carries no class.
+ *
+ * A dialog therefore pays the card's own 24 gutter, `--consent-dialog-card-padding`,
+ * so its buttons line up with the heading and the list above them, and keeps the
+ * footer's `--consent-dialog-footer-padding-y` of 16 above with the run of the card
+ * padding below. A bottom sheet takes `--consent-dialog-card-padding-mobile`, 16
+ * all round, because it runs to the screen edges and has no card padding to
+ * inherit. Neither draws a rule: the two are the same card anchored two ways, and
+ * flipping `presentation` on a host theme should move the card, not restyle it.
+ *
+ * The step between two action rows is 8 on all three. `.actionRoot` is `gap:
+ * 1rem`, which is what a single action group gets, but the ordinary banner and
+ * the ordinary dialog carry `[data-split]` because they hold two groups, and that
+ * rule drops it to `0.5rem`. Measured row to row, the web footer is 8.0.
  *
  * All of that is a fact about the presentation rather than about a theme, so it
  * goes on under the resolved `footer` part, where a host override still wins.
@@ -148,14 +171,29 @@ const footerChrome = function footerChrome(
 	spacing: ConsentThemeSpacing
 ): ViewStyle {
 	const banner = presentation === 'banner';
+	const dialog = presentation === 'dialog';
+
+	// The two edges that disagree per surface, taken as plain numbers because a
+	// `ViewStyle` cannot be built up field by field.
+	let paddingHorizontal = spacing.m;
+
+	if (banner) {
+		paddingHorizontal = BANNER_FOOTER_PADDING_HORIZONTAL;
+	} else if (dialog) {
+		paddingHorizontal = spacing.l;
+	}
 
 	return {
 		backgroundColor: banner ? colors.surfaceRaised : colors.surface,
-		borderTopColor: colors.border,
-		borderTopWidth: 1,
-		gap: banner ? spacing.m : spacing.s,
-		paddingHorizontal: banner ? BANNER_FOOTER_PADDING_HORIZONTAL : spacing.m,
-		paddingVertical: spacing.m,
+		// Only the banner has an edge to hide: its band sits under the copy, so the
+		// rule along its top is what separates the two. A card surface has nothing
+		// to separate from itself.
+		borderTopColor: banner ? colors.border : undefined,
+		borderTopWidth: banner ? 1 : 0,
+		gap: spacing.s,
+		paddingBottom: dialog ? spacing.l : spacing.m,
+		paddingHorizontal,
+		paddingTop: spacing.m,
 	};
 };
 
@@ -185,6 +223,14 @@ export const ConsentSurfaceFooter = ({
 /** Props for {@link ConsentSurface}. */
 export interface ConsentSurfaceProps {
 	/**
+	 * The branding tab, rendered against the card rather than inside it.
+	 *
+	 * Both cards clip, so a tab passed as ordinary content would be cut off at the
+	 * edge it is supposed to merge into. The surface puts it above the card for a
+	 * banner and below it for a sheet, which is what the two web variants do.
+	 */
+	readonly branding?: ReactNode;
+	/**
 	 * The sheet content, using the slot components.
 	 *
 	 * Kept out of the tree while the surface is closed, so nothing it subscribes
@@ -213,6 +259,7 @@ export interface ConsentSurfaceProps {
  */
 export const ConsentSurface = (props: ConsentSurfaceProps) => {
 	const {
+		branding,
 		children,
 		dismissLabel,
 		label,
@@ -266,8 +313,8 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 			{...containerProps}
 			accessibilityLabel={label}
 			ref={containerRef}
-			role={presentation === 'modal' ? 'dialog' : 'region'}
-			style={presentation === 'modal' ? parts.sheet : parts.banner}
+			role={presentation === 'banner' ? 'region' : 'dialog'}
+			style={presentation === 'banner' ? parts.banner : parts.sheet}
 		>
 			<FrameContext.Provider value={frame}>{children}</FrameContext.Provider>
 		</View>
@@ -279,7 +326,10 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 				pointerEvents="box-none"
 				style={bannerLayer}
 			>
-				<Animated.View style={motionStyle}>{sheet}</Animated.View>
+				<Animated.View style={motionStyle}>
+					{branding ?? null}
+					{sheet}
+				</Animated.View>
 			</View>
 		);
 	}
@@ -302,8 +352,15 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 				)}
 				<View style={sheetLayer}>
 					<Animated.View style={motionStyle}>
-						<View style={parts.handle} />
+						{/*
+						 * Only a sheet earns a handle. It is the affordance that says the
+						 * card can be dragged, and a centred dialog cannot be dragged, so
+						 * the web surface that this one is measured against has no bar
+						 * above its card.
+						 */}
+						{presentation === 'sheet' ? <View style={parts.handle} /> : null}
 						{sheet}
+						{branding ?? null}
 					</Animated.View>
 				</View>
 			</KeyboardAvoidingView>

@@ -17,6 +17,7 @@ import { useConsentSelector } from '../hooks/use-consent-selector';
 import { useConsentStatus } from '../hooks/use-consent-status';
 import { isStatusPromptOwed } from '../lib/selectors';
 import { ConsentDialog } from './consent-dialog';
+import { ConsentBrandingTag } from './internal/branding-tag';
 import { ConsentButton } from './internal/consent-button';
 import {
 	ConsentSurface,
@@ -31,6 +32,14 @@ import { useConsentStyles } from './theme/use-consent-styles';
 
 /** Props for {@link ConsentBanner}. */
 export interface ConsentBannerProps {
+	/**
+	 * Hide the "Secured by c15t" tab.
+	 *
+	 * Off by default, which is what the web surfaces do: the tab is what tells a
+	 * subject who is holding their consent, and a plan that has already paid for
+	 * removing it is the only reason to.
+	 */
+	readonly hideBranding?: boolean;
 	/**
 	 * Open the app's own finer controls.
 	 *
@@ -63,6 +72,7 @@ export interface ConsentBannerProps {
  * @returns The banner while a prompt is owed, and nothing otherwise.
  */
 export const ConsentBanner = ({
+	hideBranding = false,
 	onCustomize,
 	styles,
 	theme,
@@ -93,9 +103,19 @@ export const ConsentBanner = ({
 
 	const { parts } = surface;
 
+	const branding = hideBranding ? undefined : (
+		<ConsentBrandingTag
+			label={copy.securedBy}
+			parts={parts}
+			presentation="banner"
+			radius={surface.theme.radius.surface}
+		/>
+	);
+
 	return (
 		<>
 			<ConsentSurface
+				branding={branding}
 				dismissLabel={copy.dismiss}
 				label={title}
 				open={owed && !customizing}
@@ -133,16 +153,17 @@ export const ConsentBanner = ({
 					) : (
 						<>
 							{/*
-							 * The two decisions share a row at equal width, both in the accent, and
-							 * customize takes the row below them in the neutral outline, as it does on
-							 * the web. That split is what tells a decision from a detour before a
-							 * subject reads either label. With all three in one flex row the labels
-							 * decided the arithmetic instead: measured on a device, reject came out
-							 * 724px wide against customize's 167, which left the tertiary action
-							 * reading as a caption rather than a control.
+							 * The two decisions share a row at equal width, and Customize takes the row
+							 * below it on its own. The accent is on Customize rather than on the decisions:
+							 * `policy-actions.ts` defaults `primaryActions` to `customize` so that reject
+							 * and accept stay neutral together, which stops the prompt leaning on a subject
+							 * either way. With all three in one flex row the labels decided the arithmetic
+							 * instead: measured on a device, reject came out 724px wide against customize's
+							 * 167, which left the action that opens the choices reading as a caption.
 							 */}
 							<View style={parts.row}>
 								<ConsentButton
+									kind="secondary"
 									label={copy.rejectAll}
 									onPress={() => {
 										void actions.rejectAll();
@@ -150,6 +171,7 @@ export const ConsentBanner = ({
 									parts={parts}
 								/>
 								<ConsentButton
+									kind="secondary"
 									label={copy.acceptAll}
 									onPress={() => {
 										void actions.acceptAll();
@@ -158,7 +180,6 @@ export const ConsentBanner = ({
 								/>
 							</View>
 							<ConsentButton
-								kind="secondary"
 								label={copy.customize}
 								onPress={customize}
 								parts={parts}

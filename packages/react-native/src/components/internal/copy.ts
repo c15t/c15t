@@ -52,6 +52,14 @@ export interface ConsentCopy {
 	readonly rejectAll: string;
 	/** Label that writes the per-category selection. */
 	readonly save: string;
+	/**
+	 * Lead-in of the branding tab, which the tab finishes with the brand name.
+	 *
+	 * It is a fragment rather than a whole sentence: the subject on web is
+	 * `Secured by c15t`, and the brand is the mark and wordmark the tab renders,
+	 * not a string a translation gets to change.
+	 */
+	readonly securedBy: string;
 }
 
 /**
@@ -79,6 +87,7 @@ const ENGLISH: Omit<ConsentCopy, 'categories'> = {
 	preferences: 'Manage preferences',
 	rejectAll: 'Reject All',
 	save: 'Save Settings',
+	securedBy: 'Secured by',
 };
 
 /**
@@ -129,6 +138,7 @@ interface CopySource {
 		readonly dismiss?: string | null;
 		readonly rejectAll?: string | null;
 		readonly save?: string | null;
+		readonly securedBy?: string | null;
 	};
 	readonly consentManagerDialog?: TitleDescription;
 	readonly consentTypes?: {
@@ -279,6 +289,7 @@ export const isConsentCopyEqual = function isConsentCopyEqual(
 		'preferences',
 		'rejectAll',
 		'save',
+		'securedBy',
 	] as const) {
 		if (current[key] !== next[key]) {
 			return false;
@@ -333,6 +344,9 @@ export const resolveConsentCopy = function resolveConsentCopy(
 
 	return {
 		...actionCopy(common),
+		// Read here rather than in `actionCopy`: every other field in that group is
+		// a verb a subject presses, and this one is the lead-in to a brand name.
+		securedBy: text(common.securedBy, ENGLISH.securedBy),
 		...bannerCopy(banner),
 		...managerCopy(source),
 		categories: categoryMap(source.consentTypes),
