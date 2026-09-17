@@ -90,21 +90,20 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 		promise: Promise,
 	) {
 		if (!ensureCore()) {
-			promise.reject(REJECT_NOT_BOOTSTRAPPED, "c15t has no backend configured")
+			promise.reject(REJECT_NOT_BOOTSTRAPPED, C15tPayload.MESSAGE_NOT_BOOTSTRAPPED)
 			return
 		}
-		val parsed = C15tPayload.parseOverrides(overrides, C15t.snapshot().overrides)
-		if (parsed == null) {
-			promise.reject(REJECT_OVERRIDES, "the overrides document could not be read")
-			return
-		}
-		try {
-			// Replaced rather than merged, because the protocol distinguishes an
-			// explicit null from an omitted field and the kernel's own merge cannot.
-			C15t.setOverrides(parsed, merge = false)
-			promise.resolve(null)
-		} catch (error: Exception) {
-			promise.reject(REJECT_OVERRIDES, error.message, error)
+		// Replaced rather than merged, because the protocol distinguishes an explicit
+		// null from an omitted field and the kernel's own merge cannot. A refusal
+		// leaves the live overrides exactly as they were.
+		when (val read = C15tPayload.parseOverrides(overrides, C15t.snapshot().overrides)) {
+			is OverridesRead.Refused -> promise.reject(read.code, read.message)
+			is OverridesRead.Applied -> try {
+				C15t.setOverrides(read.overrides, merge = false)
+				promise.resolve(null)
+			} catch (error: Exception) {
+				promise.reject(REJECT_OVERRIDES, error.message, error)
+			}
 		}
 	}
 
@@ -116,7 +115,7 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 
 	override fun refresh(promise: Promise) {
 		if (!ensureCore()) {
-			promise.resolve(null)
+			promise.reject(REJECT_NOT_BOOTSTRAPPED, C15tPayload.MESSAGE_NOT_BOOTSTRAPPED)
 			return
 		}
 		try {
@@ -135,7 +134,7 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 		promise: Promise,
 	) {
 		if (!ensureCore()) {
-			promise.reject(REJECT_NOT_BOOTSTRAPPED, "c15t has no backend configured")
+			promise.reject(REJECT_NOT_BOOTSTRAPPED, C15tPayload.MESSAGE_NOT_BOOTSTRAPPED)
 			return
 		}
 		try {
@@ -148,7 +147,10 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 
 	override fun logout(promise: Promise) {
 		if (!ensureCore()) {
-			promise.resolve(null)
+			// Sign-out is not a no-op the app can be told about after the fact: with no
+			// core there is no subject to detach, and resolving would report a logout
+			// that did not happen.
+			promise.reject(REJECT_NOT_BOOTSTRAPPED, C15tPayload.MESSAGE_NOT_BOOTSTRAPPED)
 			return
 		}
 		try {
@@ -229,7 +231,7 @@ class C15tReactNativeModule(appContext: ReactApplicationContext) : NativeC15tSpe
 	private companion object {
 		const val REJECT_COMMIT = "C15T_COMMIT_FAILED"
 
-		const val REJECT_OVERRIDES = "C15T_OVERRIDES_REJECTED"
+		const val REJECT_OVERRIDES = C15tPayload.REJECT_OVERRIDES
 		const val REJECT_REFRESH = "C15T_REFRESH_FAILED"
 		const val REJECT_IDENTIFY = "C15T_IDENTIFY_FAILED"
 		const val REJECT_LOGOUT = "C15T_LOGOUT_FAILED"

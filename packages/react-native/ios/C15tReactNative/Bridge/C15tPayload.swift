@@ -46,8 +46,30 @@ public enum C15tPayload {
         "error",
     ]
 
-    private static let overridesNullKeys = ["country", "region", "test"]
+    private static let overridesNullKeys = ["country", "region", "gpc"]
     private static let resolutionNullKeys = ["policyId", "fingerprint"]
+
+    /// The keys `NativeOverridesInput` declares. A document that names none of them is
+    /// not an override set, and applying it would wipe a language the app relies on.
+    private static let overrideInputKeys: Set<String> = ["country", "region", "language", "gpc"]
+
+    /// Field names a host app may still send that this build does not model.
+    ///
+    /// `native/CONTRACT.md` first described a `test` override and an `msa` privacy
+    /// signal. Neither exists in the kernel: publisher test mode is a client option
+    /// that never reaches a save body, and v3 has no `msa` signal. ``ConsentOverrides``
+    /// has no property for either, so accepting such a document would drop what the
+    /// caller asked for and leave the app believing a mode was on that nothing turned
+    /// on. ``RetiredEnvelope`` refuses the same names in a stored envelope; this
+    /// refuses them on the way in, and says which one.
+    private static let retiredOverrideNames = ["test", "msa"]
+
+    /// Retired keys that must never reach the wire.
+    ///
+    /// The core cannot produce these, and a stored envelope carrying them is refused
+    /// before a snapshot exists. This is the last gate in front of JavaScript, kept
+    /// because a retired name on the wire would read back as a real field.
+    private static let retiredWireKeys: Set<String> = ["test", "msa"]
 
     private static let maxEchoCharacters = 200
 
@@ -79,6 +101,11 @@ public enum C15tPayload {
     /// because the protocol declares keys the core's encoder omits: nullable fields
     /// are re-inserted as explicit `null`, and `overrides.language` never goes out
     /// empty, since translations resolve to exactly one bundle.
+    ///
+    /// `privacySignals.gpc` goes out untouched as the `detected` / `override` /
+    /// `active` triple the core computes. It is what makes a GPC denial explainable
+    /// from the payload alone: `active` is what the evaluator honored, and `override`
+    /// says whether the app or the device caused it.
     public static func snapshot(
         _ snapshot: ConsentSnapshot,
         fallbackLanguage: String = defaultLanguage
@@ -96,7 +123,7 @@ public enum C15tPayload {
         }
 
         if case let .object(overrides)? = fields["overrides"] {
-            var patched = overrides
+            var patched = overrides.filter { !retiredWireKeys.contains($0.key) }
             for key in overridesNullKeys where patched[key] == nil {
                 patched[key] = .null
             }
@@ -238,19 +265,27 @@ public enum C15tPayload {
     /// difference, so the merge happens here and the caller applies the result as a
     /// replacement.
     ///
+    /// Two documents are refused rather than approximated. One that names no override
+    /// at all is not an override document. One that names a retired field is a host
+    /// still on the old protocol, and guessing past it would leave that app believing
+    /// an override is in force when nothing applied it.
+    ///
     /// - Parameters:
     ///   - raw: The JSON document from `setOverrides`.
     ///   - current: The overrides in effect, normally from the live snapshot.
-    /// - Returns: The record to apply, or `nil` when `raw` is not an override
-    ///   document. Applying an unrelated document would wipe a language the app is
-    ///   relying on, which is worse than ignoring a bad call.
+    /// - Returns: The record to apply, or the failure naming what the host has to
+    ///   change. Both carry the code JavaScript sees in the rejection.
     public static func parseOverrides(
         _ raw: String?,
         current: ConsentOverrides
-    ) -> ConsentOverrides? {
-        guard let body = parseObject(raw) else { return nil }
-        let known = ["country", "region", "language", "test"]
-        guard body.keys.contains(where: { known.contains($0) }) else { return nil }
+    ) -> Result<ConsentOverrides, C15tBridgeError> {
+        guard let body = parseObject(raw) else { return .failure(.unreadableOverrides) }
+
+        let retired = retiredOverrideNames.filter { body.keys.contains($0) }
+        if !retired.isEmpty { return .failure(.retiredOverrides(retired)) }
+        guard body.keys.contains(where: { overrideInputKeys.contains($0) }) else {
+            return .failure(.unreadableOverrides)
+        }
 
         // A key that is absent keeps what is in force. A key that is present but not
         // a usable string, including an explicit null, clears it. `language` is the
@@ -259,20 +294,33 @@ public enum C15tPayload {
         var country = current.country
         var region = current.region
         var language = current.language
-        var test = current.test
+        var gpc = current.gpc
 
         if let value = body["country"] { country = value.stringValue }
         if let value = body["region"] { region = value.stringValue }
-        if let value = body["test"] { test = value.stringValue }
         if let value = body["language"], let parsed = value.stringValue, !parsed.isEmpty {
             language = parsed
         }
+        if let value = body["gpc"] {
+            if case .null = value {
+                gpc = nil
+            } else if let parsed = value.boolValue {
+                gpc = parsed
+            } else {
+                // The signal decides whether a standing directive applies, so a value
+                // this build cannot read is refused rather than turned into either
+                // answer.
+                return .failure(.unreadableGpcOverride)
+            }
+        }
 
-        return ConsentOverrides(
-            country: country,
-            region: region,
-            language: language,
-            test: test
+        return .success(
+            ConsentOverrides(
+                country: country,
+                region: region,
+                language: language,
+                gpc: gpc
+            )
         )
     }
 

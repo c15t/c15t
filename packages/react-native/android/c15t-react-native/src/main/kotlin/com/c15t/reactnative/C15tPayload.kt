@@ -20,6 +20,23 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 /**
+ * Outcome of reading a `NativeOverridesInput` document.
+ *
+ * Refusal carries the sentence the host hears, because the two ways a document fails
+ * need different fixes: a document that is not an override set at all is a bad call,
+ * while one that names a retired field is a host app still speaking the old protocol.
+ * Answering the second with the first message would send the integrator looking in the
+ * wrong file.
+ */
+sealed interface OverridesRead {
+	/** The document was readable. Apply [overrides] as a replacement. */
+	data class Applied(val overrides: KernelOverrides) : OverridesRead
+
+	/** The document was refused, with the [code] and [message] the host receives. */
+	data class Refused(val code: String, val message: String) : OverridesRead
+}
+
+/**
  * The JSON the bridge speaks, with no React Native types anywhere in it.
  *
  * Field names come from `src/protocol` on the JavaScript side, which owns the wire
@@ -40,14 +57,57 @@ object C15tPayload {
 	/** Language used when neither the app nor the backend resolved one. */
 	const val DEFAULT_LANGUAGE = "en"
 
-	/** Wire value for the kernel's publisher test mode, which it models as a boolean. */
-	const val TEST_MODE_GPC = "gpc"
-
 	/** Reported when the core was never installed, so nothing can be recorded. */
 	const val REASON_NOT_BOOTSTRAPPED = "not-bootstrapped"
 
 	/** Reported for an intent this build cannot read. */
 	const val REASON_INVALID_INTENT = "invalid-intent"
+
+	/** Rejection code for a `setOverrides` document this build cannot read. */
+	const val REJECT_OVERRIDES = "C15T_OVERRIDES_REJECTED"
+
+	/**
+	 * Rejection code for a `setOverrides` document that names a retired field.
+	 *
+	 * Separate from [REJECT_OVERRIDES] on purpose: a host that sees the retired code
+	 * has one line to change, while the generic code means the document itself is
+	 * malformed.
+	 */
+	const val REJECT_OVERRIDES_RETIRED = "C15T_OVERRIDES_RETIRED"
+
+	/** What a host hears when no core exists, naming both ways to fix it. */
+	const val MESSAGE_NOT_BOOTSTRAPPED =
+		"c15t has no backend configured, so the consent core was not started. Declare " +
+			"com.c15t.PORTAL_URL in the manifest, or call C15t.bootstrap() yourself " +
+			"before React Native initializes."
+
+	/** The override keys `NativeOverridesInput` declares, in wire order. */
+	private val OVERRIDE_INPUT_KEYS = setOf("country", "region", "language", "gpc")
+
+	/** The key `NativeOverrides` always carries, even when the core has no value. */
+	private val OVERRIDE_NULL_KEYS = listOf("country", "region", "gpc")
+
+	/**
+	 * Field names a host app may still send that this build does not model.
+	 *
+	 * `native/CONTRACT.md` first described a `test` override and an `msa` privacy
+	 * signal. Neither exists in the kernel: publisher test mode is a client option
+	 * that never reaches a save body, and v3 has no `msa` signal. `KernelOverrides`
+	 * has no member for either, so accepting the document would drop what the caller
+	 * asked for and leave the app believing a mode was on that nothing turned on.
+	 * [com.c15t.core.store.RetiredWireFields] refuses the same names in a stored
+	 * envelope; this refuses them on the way in, and says which one.
+	 */
+	private val RETIRED_OVERRIDE_NAMES = listOf("test", "msa")
+
+	/**
+	 * Retired keys that must never reach the wire.
+	 *
+	 * The core's encoder cannot produce these today, and a stored envelope carrying
+	 * them is refused before a snapshot is built. This is the last gate in front of
+	 * JavaScript, kept because a retired name on the wire would read as a real field.
+	 */
+	private val RETIRED_WIRE_KEYS = setOf("test", "msa")
 
 	private const val MAX_ECHO_CHARS = 200
 
@@ -81,8 +141,14 @@ object C15tPayload {
 	 * because the kernel models them more loosely than the protocol does:
 	 * `overrides.language` is never null on the wire, since the protocol resolves to
 	 * exactly one translation bundle and a missing language falls back to the device
-	 * locale and then to `en`; and `overrides.test` is a string there rather than a
-	 * boolean, so the kernel's flag is reported as [TEST_MODE_GPC] rather than `true`.
+	 * locale and then to `en`; and every override the protocol declares as
+	 * `T | null` is present as an explicit null, so a JavaScript reader never has to
+	 * branch on presence.
+	 *
+	 * `privacySignals.gpc` goes out untouched as the `detected` / `override` /
+	 * `active` triple the core computes. It is what makes a GPC denial explainable
+	 * from the payload alone: `active` is the reason a category is denied, and
+	 * `override` says whether the app or the device caused it.
 	 */
 	fun snapshot(
 		snapshot: ConsentSnapshot,
@@ -92,18 +158,19 @@ object C15tPayload {
 		val wire = C15tJson.wire.parseToJsonElement(encoded).jsonObject
 		val overrides = wire["overrides"] as? JsonObject ?: JsonObject(emptyMap())
 		val language = optString(overrides["language"]) ?: fallbackLanguage.ifBlank { DEFAULT_LANGUAGE }
-		val test: JsonElement = when (optBoolean(overrides["test"])) {
-			true -> JsonPrimitive(TEST_MODE_GPC)
-			else -> JsonNull
-		}
-		val conformedOverrides = LinkedHashMap<String, JsonElement>(overrides.size)
+
+		val conformedOverrides = LinkedHashMap<String, JsonElement>(overrides.size + OVERRIDE_NULL_KEYS.size)
 		for ((key, value) in overrides) {
-			if (key != "language" && key != "test") {
+			if (key !in RETIRED_WIRE_KEYS) {
 				conformedOverrides[key] = value
 			}
 		}
 		conformedOverrides["language"] = JsonPrimitive(language)
-		conformedOverrides["test"] = test
+		for (key in OVERRIDE_NULL_KEYS) {
+			if (!conformedOverrides.containsKey(key)) {
+				conformedOverrides[key] = JsonNull
+			}
+		}
 
 		val conformed = LinkedHashMap<String, JsonElement>(wire.size)
 		for ((key, value) in wire) {
@@ -121,6 +188,10 @@ object C15tPayload {
 	 * `confirmed` is a list of category names on the wire, so the kernel's map becomes
 	 * its keys: a recorded denial is a receipt in the same way an acceptance is, and
 	 * the JavaScript side reads only the names.
+	 *
+	 * A rejection's `error.code` is copied to `reason`, which is how
+	 * `CommitFailureReason` reaches JavaScript. `not-bootstrapped` arrives here when
+	 * the core went away between the module's check and the save.
 	 */
 	fun commitResult(
 		result: CommitResult,
@@ -232,30 +303,66 @@ object C15tPayload {
 	 * because both are a null member, so the merge happens here and the caller applies
 	 * the result as a replacement.
 	 *
+	 * Two documents are refused rather than approximated. One that names no override
+	 * at all is not an override document, and applying it would wipe a language the app
+	 * relies on. One that names a retired field is a host still on the old protocol,
+	 * and guessing past it would leave that app believing an override is in force.
+	 *
 	 * @param raw the JSON document from `setOverrides`.
 	 * @param current the overrides in effect, normally from the live snapshot.
-	 * @return the record to apply, or `null` when [raw] is not an override document.
+	 * @return [OverridesRead.Applied] with the record to apply, or
+	 *   [OverridesRead.Refused] naming what the host has to change.
 	 */
 	fun parseOverrides(
 		raw: String?,
 		current: KernelOverrides,
-	): KernelOverrides? {
-		val body = parseObject(raw) ?: return null
-		val known = setOf("country", "region", "language", "test")
-		if (body.keys.none { it in known }) {
-			// Not an override document. Applying it would wipe a language the app is
-			// relying on, which is a worse outcome than ignoring a bad call.
-			return null
+	): OverridesRead {
+		val body = parseObject(raw)
+			?: return OverridesRead.Refused(
+				REJECT_OVERRIDES,
+				"the overrides document could not be read, so nothing was changed",
+			)
+
+		val retired = RETIRED_OVERRIDE_NAMES.filter { body.containsKey(it) }
+		if (retired.isNotEmpty()) {
+			return OverridesRead.Refused(
+				REJECT_OVERRIDES_RETIRED,
+				"the overrides document carries the retired field(s) " + retired.joinToString() +
+					", which this build does not reinterpret: publisher test mode is a client " +
+					"option and not an override, and v3 has no msa privacy signal. Send country, " +
+					"region, language, and gpc instead; nothing was changed.",
+			)
 		}
-		return KernelOverrides(
-			country = if (body.containsKey("country")) optString(body["country"]) else current.country,
-			region = if (body.containsKey("region")) optString(body["region"]) else current.region,
-			language = if (body.containsKey("language")) optString(body["language"]) else current.language,
-			test = when {
-				!body.containsKey("test") -> current.test
-				body["test"] === JsonNull -> null
-				else -> optBoolean(body["test"]) ?: body["test"]?.let { true }
-			},
+
+		if (body.keys.none { it in OVERRIDE_INPUT_KEYS }) {
+			return OverridesRead.Refused(
+				REJECT_OVERRIDES,
+				"the overrides document names none of country, region, language, or gpc, so " +
+					"nothing was changed",
+			)
+		}
+
+		if (body.containsKey("gpc") && body["gpc"] !== JsonNull && optBoolean(body["gpc"]) == null) {
+			// `gpc` decides whether a standing directive applies, so a value this build
+			// cannot read is refused rather than turned into either answer.
+			return OverridesRead.Refused(
+				REJECT_OVERRIDES,
+				"the overrides document carries a gpc that is neither true, false, nor null, " +
+					"so nothing was changed",
+			)
+		}
+
+		return OverridesRead.Applied(
+			KernelOverrides(
+				country = if (body.containsKey("country")) optString(body["country"]) else current.country,
+				region = if (body.containsKey("region")) optString(body["region"]) else current.region,
+				language = if (body.containsKey("language")) optString(body["language"]) else current.language,
+				gpc = when {
+					!body.containsKey("gpc") -> current.gpc
+					body["gpc"] === JsonNull -> null
+					else -> optBoolean(body["gpc"])
+				},
+			),
 		)
 	}
 

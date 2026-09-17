@@ -1,8 +1,12 @@
 package com.c15t.reactnative
 
 import com.c15t.core.CommitIntent
+import com.c15t.core.CommitResult
+import com.c15t.core.NativeConfig
 import com.c15t.core.model.ConsentCategory
+import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.KernelOverrides
+import com.c15t.core.model.KernelError
 import com.c15t.core.store.C15tStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -79,18 +83,47 @@ class C15tPayloadTest {
 		assertTrue(snapshot.containsKey("optOutDirectives"))
 		val overrides = snapshot["overrides"]!!.jsonObject
 		assertEquals("de", overrides["language"]!!.jsonPrimitive.content)
-		assertTrue("an unset test mode is null on the wire, not absent", overrides["test"] is JsonNull)
+		assertEquals(
+			"an unset gpc override is null on the wire, not absent",
+			JsonNull,
+			overrides["gpc"],
+		)
 	}
 
 	@Test
-	fun `publisher test mode crosses as a string`() {
+	fun `the gpc signal crosses as the detected override active triple`() {
+		// A caller that sees marketing denied has to be able to say why. `active` is
+		// what the evaluator honored, and `override` says whether the app or the
+		// device caused it, so the payload answers the question on its own.
+		val kernel = bridgeKernel(
+			C15tStore(MemoryStore()),
+			config = NativeConfig(
+				portalUrl = "https://test.c15t.app",
+				overrides = KernelOverrides(gpc = true),
+				detectedGpc = false,
+			),
+		)
+		kernel.bootstrap()
+
+		val signals = parse(C15tPayload.snapshot(kernel.snapshot()))["privacySignals"]!!.jsonObject
+		val gpc = signals["gpc"]!!.jsonObject
+
+		assertFalse("the device reported nothing", gpc["detected"]!!.jsonPrimitive.boolean)
+		assertTrue("the app overrode the signal", gpc["override"]!!.jsonPrimitive.boolean)
+		assertTrue("the override is what the evaluator honored", gpc["active"]!!.jsonPrimitive.boolean)
+		assertFalse("msa is not a v3 signal", signals.containsKey("msa"))
+	}
+
+	@Test
+	fun `an un-overridden signal reports a null override rather than a false one`() {
 		val kernel = bridgeKernel(C15tStore(MemoryStore()))
 		kernel.bootstrap()
-		kernel.setOverrides(KernelOverrides(test = true), merge = false)
 
-		val overrides = parse(C15tPayload.snapshot(kernel.snapshot()))["overrides"]!!.jsonObject
+		val gpc = parse(C15tPayload.snapshot(kernel.snapshot()))["privacySignals"]!!.jsonObject["gpc"]!!.jsonObject
 
-		assertEquals(C15tPayload.TEST_MODE_GPC, overrides["test"]!!.jsonPrimitive.content)
+		assertFalse(gpc["detected"]!!.jsonPrimitive.boolean)
+		assertEquals("no override is not the same answer as an override to false", JsonNull, gpc["override"])
+		assertFalse(gpc["active"]!!.jsonPrimitive.boolean)
 	}
 
 	@Test
@@ -107,6 +140,55 @@ class C15tPayloadTest {
 		val confirmed = payload["confirmed"]!!.jsonArray.map { it.jsonPrimitive.content }
 		assertEquals(setOf("measurement", "marketing"), confirmed.toSet())
 		assertFalse("the reason key stays absent for a successful commit", payload.containsKey("reason"))
+	}
+
+	@Test
+	fun `a refusal from the core reaches JavaScript under the reason it names`() {
+		// Whether a save without a policy is refused or queued is the core's call, and
+		// the two platforms answer it differently. What the bridge must never do is
+		// soften the code it was given, because that code is the whole explanation a
+		// caller gets.
+		val result = CommitResult(
+			ok = false,
+			revision = 4,
+			confirmed = emptyMap(),
+			queued = false,
+			delivered = false,
+			error = KernelError("not-bootstrapped", "C15t.bootstrap() has not run"),
+		)
+
+		val payload = parse(C15tPayload.commitResult(result, ConsentSnapshot()))
+
+		assertFalse(payload["ok"]!!.jsonPrimitive.boolean)
+		assertTrue("a refused commit reports no revision", payload["revision"] is JsonNull)
+		assertEquals("not-bootstrapped", payload["reason"]!!.jsonPrimitive.content)
+	}
+
+	@Test
+	fun `an accepted commit carries no reason at all`() {
+		val result = CommitResult(
+			ok = true,
+			revision = 4,
+			confirmed = mapOf("marketing" to true),
+			queued = true,
+			delivered = false,
+		)
+
+		val payload = parse(C15tPayload.commitResult(result, ConsentSnapshot()))
+
+		assertTrue(payload["ok"]!!.jsonPrimitive.boolean)
+		assertEquals(4L, payload["revision"]!!.jsonPrimitive.content.toLong())
+		assertFalse("reason is a failure-only key", payload.containsKey("reason"))
+	}
+
+	@Test
+	fun `the not-bootstrapped shape carries the reason the protocol names`() {
+		val payload = parse(C15tPayload.notBootstrapped())
+
+		assertFalse(payload["ok"]!!.jsonPrimitive.boolean)
+		assertTrue(payload["revision"] is JsonNull)
+		assertEquals("not-bootstrapped", payload["reason"]!!.jsonPrimitive.content)
+		assertFalse("nothing was queued, because there was no core to queue it to", payload["queued"]!!.jsonPrimitive.boolean)
 	}
 
 	@Test
@@ -135,26 +217,96 @@ class C15tPayloadTest {
 
 	@Test
 	fun `omitted overrides keep their value and explicit nulls clear it`() {
-		val current = KernelOverrides(country = "DE", region = "BE", language = "de", test = true)
+		val current = KernelOverrides(country = "DE", region = "BE", language = "de", gpc = true)
 
-		val cleared = C15tPayload.parseOverrides("{\"country\":null}", current)!!
+		val cleared = applied("""{"country":null,"gpc":null}""", current)
 		assertNull(cleared.country)
 		assertEquals("BE", cleared.region)
 		assertEquals("de", cleared.language)
-		assertEquals(true, cleared.test)
+		assertNull("an explicit null clears the gpc override", cleared.gpc)
 
-		val set = C15tPayload.parseOverrides("{\"region\":\"US-HI\",\"test\":false}", current)!!
+		val set = applied("""{"region":"US-HI","gpc":false}""", current)
 		assertEquals("DE", set.country)
 		assertEquals("US-HI", set.region)
-		assertEquals(false, set.test)
+		assertEquals(false, set.gpc)
 	}
 
 	@Test
-	fun `a document that is not an override set is ignored`() {
+	fun `a gpc that is neither a boolean nor null is refused`() {
+		// The signal decides whether a standing directive applies, so a value this
+		// build cannot read must not become either answer.
+		val refused = C15tPayload.parseOverrides(
+			"""{"gpc":"yes"}""",
+			KernelOverrides(language = "de", gpc = null),
+		)
+
+		assertTrue("expected a refusal, got $refused", refused is OverridesRead.Refused)
+		refused as OverridesRead.Refused
+		assertEquals(C15tPayload.REJECT_OVERRIDES, refused.code)
+		assertTrue(refused.message.contains("gpc"))
+	}
+
+	@Test
+	fun `a document that is not an override set is refused`() {
 		val current = KernelOverrides(language = "de")
-		assertNull(C15tPayload.parseOverrides("{}", current))
-		assertNull(C15tPayload.parseOverrides("{\"nonsense\":1}", current))
-		assertNull(C15tPayload.parseOverrides("not json", current))
+
+		for (raw in listOf("{}", """{"nonsense":1}""", "not json")) {
+			val refused = C15tPayload.parseOverrides(raw, current)
+			assertTrue("expected a refusal for: $raw", refused is OverridesRead.Refused)
+			assertEquals(C15tPayload.REJECT_OVERRIDES, (refused as OverridesRead.Refused).code)
+		}
+	}
+
+	@Test
+	fun `a retired override arriving over the bridge is refused by name`() {
+		// `test` was never a GPC override, and there is no msa signal in v3. Reading
+		// past either would leave the app believing a mode was on that nothing turned
+		// on, which is the silence this refusal exists to break.
+		for (raw in listOf("""{"test":true}""", """{"test":"gpc","language":"de"}""", """{"msa":false}""")) {
+			val refused = C15tPayload.parseOverrides(raw, KernelOverrides(language = "de"))
+
+			assertTrue("expected a refusal for: $raw", refused is OverridesRead.Refused)
+			refused as OverridesRead.Refused
+			assertEquals(C15tPayload.REJECT_OVERRIDES_RETIRED, refused.code)
+			assertTrue(
+				"the message must name the retired field so the host knows what to delete",
+				refused.message.contains("test") || refused.message.contains("msa"),
+			)
+			assertTrue(
+				"and the field that replaces it",
+				refused.message.contains("gpc"),
+			)
+		}
+	}
+
+	@Test
+	fun `a stored envelope carrying the retired override is not served`() {
+		val backend = MemoryStore()
+		bridgeKernel(C15tStore(backend)).bootstrap()
+		sealWithRetiredOverride(backend, key = "test", value = "gpc")
+
+		val relaunched = bridgeKernel(C15tStore(backend))
+		relaunched.bootstrap()
+
+		assertFalse(
+			"the bridge must not report a snapshot it could not read",
+			relaunched.hasStoredSnapshot,
+		)
+		val snapshot = parse(C15tPayload.snapshot(relaunched.snapshot()))
+		assertFalse("a refused read fails closed", snapshot["ready"]!!.jsonPrimitive.boolean)
+		assertTrue(snapshot["policyPending"]!!.jsonPrimitive.boolean)
+		val overrides = snapshot["overrides"]!!.jsonObject
+		assertFalse("a retired name never reaches JavaScript", overrides.containsKey("test"))
+		assertTrue("and the live override set still carries every key", overrides.containsKey("gpc"))
+	}
+
+	private fun applied(
+		raw: String,
+		current: KernelOverrides,
+	): KernelOverrides {
+		val read = C15tPayload.parseOverrides(raw, current)
+		assertTrue("expected the document to apply: $raw", read is OverridesRead.Applied)
+		return (read as OverridesRead.Applied).overrides
 	}
 
 	private fun parse(raw: String): JsonObject = json.parseToJsonElement(raw).jsonObject

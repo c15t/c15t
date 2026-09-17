@@ -141,7 +141,7 @@ final class C15tBootstrapTests: XCTestCase {
             domain: "example.com",
             storageMode: .memory,
             keychainService: C15tBridgeConfiguration.defaultKeychainService,
-            overrides: ConsentOverrides(country: nil, region: nil, language: "en", test: nil),
+            overrides: ConsentOverrides(country: nil, region: nil, language: "en", gpc: nil),
             consentCategories: nil,
             gpc: nil
         )
@@ -205,4 +205,51 @@ final class C15tBootstrapTests: XCTestCase {
         let store = memoryConfiguration().makeStore()
         XCTAssertTrue(store is InMemoryStore)
     }
+    func testARetiredTestModeKeyRefusesTheLaunch() {
+        // `com.c15t.test` set an override that does not exist. Starting anyway would
+        // run a core whose configuration is a guess, and the host would keep believing
+        // a mode was on. Deny-all plus one readable reason is the honest answer.
+        let plist: [String: Any] = [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://example.eu.c15t.app",
+            "com.c15t.test": "gpc",
+        ]
+
+        let retired = C15tBridgeConfiguration.retiredKeys(in: plist)
+        XCTAssertEqual(retired.map(\.key), ["com.c15t.test"])
+
+        guard let issue = C15tBridgeConfiguration.retirementIssue(in: plist) else {
+            return XCTFail("a retired key must produce a readable refusal")
+        }
+        XCTAssertEqual(issue.code, "C15T_CONFIGURATION_RETIRED")
+        XCTAssertTrue(issue.message.contains("com.c15t.test"), "name the key: \(issue.message)")
+        XCTAssertTrue(issue.message.contains("com.c15t.gpc"), "name the key to use instead: \(issue.message)")
+        XCTAssertFalse(
+            C15tReactNativeBootstrap.start(infoPlist: plist),
+            "the core must not start from a configuration this build cannot read"
+        )
+        XCTAssertNil(C15t.current, "and nothing may be installed behind the refusal")
+    }
+
+    func testAGPCKeyIsADetectedSignalAndNeverAnOverride() {
+        // The two collapse into one field if the plist key feeds both, which is the
+        // distinction the contract keeps apart and the evaluator depends on.
+        let configuration = C15tBridgeConfiguration.from(infoPlist: [
+            C15tBridgeConfiguration.InfoPlistKey.gpc: true,
+        ])
+
+        XCTAssertEqual(configuration.gpc, true, "the host reported a signal")
+        XCTAssertNil(configuration.overrides.gpc, "which is not an override")
+    }
+
+    func testAPlistWithoutRetiredKeysIsValid() {
+        let plist: [String: Any] = [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://example.eu.c15t.app",
+            C15tBridgeConfiguration.InfoPlistKey.gpc: true,
+            C15tBridgeConfiguration.InfoPlistKey.language: "de",
+        ]
+
+        XCTAssertTrue(C15tBridgeConfiguration.retiredKeys(in: plist).isEmpty)
+        XCTAssertNil(C15tBridgeConfiguration.retirementIssue(in: plist))
+    }
+
 }

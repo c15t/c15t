@@ -123,9 +123,64 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         public static let country = "com.c15t.country"
         public static let region = "com.c15t.region"
         public static let language = "com.c15t.language"
-        public static let testMode = "com.c15t.test"
         public static let categories = "com.c15t.categories"
         public static let gpc = "com.c15t.gpc"
+    }
+
+    /// A key a host app may still have in `Info.plist` that this build does not model.
+    ///
+    /// `replacement` is why the pair exists: the useful answer to a retired key is not
+    /// "ignored", it is "here is what to write instead". Dropping the key quietly would
+    /// leave a host believing a mode was on that nothing turned on.
+    public struct RetiredInfoPlistKey: Sendable, Equatable {
+        public let key: String
+        public let replacement: String
+
+        public init(key: String, replacement: String) {
+            self.key = key
+            self.replacement = replacement
+        }
+    }
+
+    /// The retired keys this build looks for, and the key a host should write instead.
+    ///
+    /// `com.c15t.test` set the publisher test mode the first draft of
+    /// `native/CONTRACT.md` described as an override. It never was one: test mode is a
+    /// client option that never reaches a save body, and ``ConsentOverrides`` has no
+    /// property for it. ``RetiredEnvelope`` refuses a stored envelope that carries
+    /// `overrides.test`; refusing the plist key here is the same rule on the way in.
+    /// `com.c15t.gpc` is offered because it is the key a host reaching for test mode
+    /// usually wants, and it is the GPC signal, which is a different thing: it feeds
+    /// the core's detection, never ``ConsentOverrides/gpc``. The Expo config plugin
+    /// writes none of these keys.
+    public static let retiredInfoPlistKeys: [RetiredInfoPlistKey] = [
+        RetiredInfoPlistKey(key: "com.c15t.test", replacement: "com.c15t.gpc"),
+    ]
+
+    /// The retired keys present in `infoPlist`, in declaration order.
+    public static func retiredKeys(in infoPlist: [String: Any]) -> [RetiredInfoPlistKey] {
+        retiredInfoPlistKeys.filter { infoPlist[$0.key] != nil }
+    }
+
+    /// The reason this build will not start a core from `infoPlist`, or `nil`.
+    ///
+    /// - Returns: An error naming every retired key found and what replaces it. It is
+    ///   the same sentence the launch hook logs and the module reports, so the console
+    ///   and the JavaScript rejection cannot disagree.
+    public static func retirementIssue(in infoPlist: [String: Any]) -> C15tBridgeError? {
+        let retired = retiredKeys(in: infoPlist)
+        guard !retired.isEmpty else { return nil }
+        let named = retired
+            .map { "\($0.key) (use \($0.replacement) instead)" }
+            .joined(separator: ", ")
+        return C15tBridgeError(
+            code: "C15T_CONFIGURATION_RETIRED",
+            message: "Info.plist declares the retired key(s) \(named), which this build does "
+                + "not reinterpret: publisher test mode is a client option that never reaches "
+                + "a save body, and there is no test-mode override in the protocol. The "
+                + "consent core was not started, so consent reads deny-all until the key is "
+                + "removed or the core is installed from code."
+        )
     }
 
     /// The default Keychain service, which matches the core's own default so a core
@@ -173,7 +228,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
                 country: infoPlist[InfoPlistKey.country] as? String,
                 region: infoPlist[InfoPlistKey.region] as? String,
                 language: language,
-                test: infoPlist[InfoPlistKey.testMode] as? String
+                gpc: nil
             ),
             consentCategories: categories?.isEmpty == true ? nil : categories,
             gpc: infoPlist[InfoPlistKey.gpc] as? Bool
@@ -258,6 +313,18 @@ public enum C15tReactNativeBootstrap {
     ) -> Bool {
         let configuration = C15tBridgeConfiguration.from(infoPlist: infoPlist)
         guard configuration.autoBootstrap else { return C15t.current != nil }
+
+        // A core the app installed itself outranks `Info.plist`, so the retired-key
+        // check belongs to the only path that would build a core from that plist.
+        // Refusing rather than starting with the recognised keys is the same call the
+        // store makes about a retired stored envelope: a configuration this build
+        // cannot read completely is not a configuration to start from, and deny-all
+        // with one clear console line beats a consent state whose cause nobody can say.
+        if C15t.current == nil, let issue = C15tBridgeConfiguration.retirementIssue(in: infoPlist) {
+            NSLog("%@", "c15t: \(issue.message)")
+            return false
+        }
+
         return start(configuration: configuration, fileStoreDirectory: fileStoreDirectory)
     }
 

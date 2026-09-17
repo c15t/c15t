@@ -74,7 +74,7 @@ func memoryConfiguration() -> C15tBridgeConfiguration {
         domain: nil,
         storageMode: .memory,
         keychainService: C15tBridgeConfiguration.defaultKeychainService,
-        overrides: ConsentOverrides(country: nil, region: nil, language: "de", test: nil),
+        overrides: ConsentOverrides(country: nil, region: nil, language: "de", gpc: nil),
         consentCategories: nil,
         gpc: nil
     )

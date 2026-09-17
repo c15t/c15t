@@ -106,6 +106,45 @@ final class C15tModuleHandlerTests: XCTestCase {
         XCTAssertEqual(C15t.current?.currentOverrides.country, "DE", "a rejected call must leave the overrides alone")
     }
 
+    func testARetiredOverrideIsRefusedAndLeavesTheLiveOverridesAlone() {
+        let handler = C15tModuleHandler(startCore: { C15tReactNativeBootstrap.start(configuration: memoryConfiguration()) })
+        XCTAssertTrue(handler.applyOverrides(#"{"country":"DE","language":"de"}"#).isSuccess)
+
+        // The old shape named an override that does not exist. Applying the readable
+        // half and dropping the retired one is exactly the silence that gets a host
+        // shipped with a mode it believes is on, so the whole document is refused.
+        guard case let .failure(error) = handler.applyOverrides(#"{"test":"gpc","country":"FR"}"#) else {
+            return XCTFail("a retired override must be refused, not applied")
+        }
+        XCTAssertEqual(error.code, "C15T_OVERRIDES_RETIRED")
+        XCTAssertTrue(error.message.contains("test"), "name the retired field: \(error.message)")
+        XCTAssertTrue(error.message.contains("gpc"), "and name the field that replaces it: \(error.message)")
+
+        XCTAssertEqual(C15t.current?.currentOverrides.country, "DE", "a refused call changes nothing")
+        XCTAssertEqual(C15t.current?.currentOverrides.language, "de")
+    }
+
+    func testAGpcOverrideIsAppliedAndTheTripleGoesOutComplete() {
+        let handler = C15tModuleHandler(startCore: { C15tReactNativeBootstrap.start(configuration: memoryConfiguration()) })
+        XCTAssertTrue(handler.applyOverrides(#"{"gpc":true}"#).isSuccess)
+
+        // The bridge's half is that the override reaches the core and that the signal
+        // the payload reports is the whole triple, with `override` present as an
+        // explicit null when nothing overrode the detection. A missing key would read
+        // back as `undefined`, and a caller would have no way to tell an override of
+        // false from no override at all.
+        XCTAssertEqual(C15t.current?.currentOverrides.gpc, true)
+
+        let payload = jsonObject(handler.snapshotPayload())
+        let overrides = (payload["overrides"] as? [String: Any]) ?? [:]
+        XCTAssertEqual(overrides.keys.sorted(), ["country", "gpc", "language", "region"])
+
+        let gpc = ((payload["privacySignals"] as? [String: Any])?["gpc"] as? [String: Any]) ?? [:]
+        XCTAssertEqual(gpc.keys.sorted(), ["active", "detected", "override"])
+        assertJSONNull(gpc, "override")
+        XCTAssertNil(overrides["test"], "no retired name reaches the wire")
+    }
+
     func testAsyncCommandsReportAMissingCoreInsteadOfSilentlySucceeding() {
         let handler = C15tModuleHandler(startCore: { false })
 

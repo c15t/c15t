@@ -15,9 +15,13 @@ public struct C15tBridgeError: Error, Equatable, Sendable {
     }
 
     /// No core is running, so nothing can be read or recorded.
+    ///
+    /// The message names both ways to end up here, because the launch hook that
+    /// refuses a retired `Info.plist` key reports through the same answer as one that
+    /// found no backend at all.
     public static let notBootstrapped = C15tBridgeError(
         code: "C15T_NOT_BOOTSTRAPPED",
-        message: "c15t has no backend configured, so the consent core was not started. Set com.c15t.backend.url in Info.plist, or start the core yourself before React Native initializes."
+        message: "c15t has no backend configured, so the consent core was not started. Set com.c15t.backend.url in Info.plist, or start the core yourself before React Native initializes. Check the console for a c15t configuration refusal if the key is already set."
     )
 
     /// The overrides document could not be read.
@@ -25,6 +29,28 @@ public struct C15tBridgeError: Error, Equatable, Sendable {
         code: "C15T_OVERRIDES_REJECTED",
         message: "The overrides document could not be read, so nothing was changed."
     )
+
+    /// The document carried a `gpc` that is neither a boolean nor null.
+    ///
+    /// Shares the rejection code with ``unreadableOverrides`` and differs in the
+    /// message, because the caller's fix is one field rather than the whole document.
+    public static let unreadableGpcOverride = C15tBridgeError(
+        code: "C15T_OVERRIDES_REJECTED",
+        message: "The overrides document carries a gpc that is neither true, false, nor null, so nothing was changed."
+    )
+
+    /// The overrides document names a field this build retired.
+    ///
+    /// Separate from ``unreadableOverrides`` on purpose: a host that sees this code has
+    /// one line to delete, while the generic code means the document itself is
+    /// malformed. The message names the field and the one that replaces it, so nobody
+    /// has to guess whether an override they still believe is set actually applied.
+    public static func retiredOverrides(_ fields: [String]) -> C15tBridgeError {
+        C15tBridgeError(
+            code: "C15T_OVERRIDES_RETIRED",
+            message: "The overrides document carries the retired field(s) \(fields.joined(separator: ", ")), which this build does not reinterpret: publisher test mode is a client option and not an override, and v3 has no msa privacy signal. Send country, region, language, and gpc instead; nothing was changed."
+        )
+    }
 
     /// The core refused to re-resolve policy.
     public static let refreshFailed = C15tBridgeError(
@@ -89,18 +115,22 @@ public struct C15tModuleHandler {
         return C15tPayload.commitResult(core.save(parsed), snapshot: core.snapshot())
     }
 
-    /// Replace the geographic, language, and test overrides.
+    /// Replace the geographic, language, and GPC overrides.
     ///
     /// Applied as a replacement rather than a merge, because the protocol
     /// distinguishes an explicit null from an omitted field and the core's own merge
     /// cannot. The core re-resolves policy as part of setting overrides.
+    ///
+    /// A refused document leaves the live overrides exactly as they were, which is the
+    /// only reason a refusal can be readable at all: the caller can still ask.
     public func applyOverrides(_ json: String) -> Result<Void, C15tBridgeError> {
         guard ensureCore(), let core = C15t.current else { return .failure(.notBootstrapped) }
-        guard let parsed = C15tPayload.parseOverrides(json, current: core.currentOverrides) else {
-            return .failure(.unreadableOverrides)
+        switch C15tPayload.parseOverrides(json, current: core.currentOverrides) {
+        case let .failure(error): return .failure(error)
+        case let .success(overrides):
+            core.setOverrides(overrides)
+            return .success(())
         }
-        core.setOverrides(parsed)
-        return .success(())
     }
 
     /// Record that the notice was dismissed. Local only, so nothing to reject.

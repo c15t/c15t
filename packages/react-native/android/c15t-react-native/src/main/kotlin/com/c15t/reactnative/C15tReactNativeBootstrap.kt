@@ -81,6 +81,13 @@ object C15tReactNativeBootstrap {
 			return this
 		}
 		val language = Locale.getDefault().language.takeIf { it.isNotBlank() } ?: C15tPayload.DEFAULT_LANGUAGE
-		return copy(overrides = KernelOverrides(country = overrides.country, region = overrides.region, language = language, test = overrides.test))
+		return copy(
+			overrides = KernelOverrides(
+				country = overrides.country,
+				region = overrides.region,
+				language = language,
+				gpc = overrides.gpc,
+			),
+		)
 	}
 }

@@ -52,9 +52,13 @@ final class C15tPayloadTests: XCTestCase {
 
         let overrides = payload["overrides"] as? [String: Any]
         XCTAssertNotNil(overrides)
-        for key in ["country", "region", "test"] {
-            XCTAssertTrue(overrides?.keys.contains(key) == true, "overrides.\(key) must be present")
-        }
+        XCTAssertEqual(
+            overrides?.keys.sorted(),
+            ["country", "gpc", "language", "region"],
+            "the override set is exactly what the protocol declares: a retired name on "
+                + "the wire would read back as a real field, and a missing one hands "
+                + "JavaScript undefined where its types promise null",
+        )
         let resolution = payload["resolution"] as? [String: Any]
         XCTAssertNotNil(resolution)
         for key in ["policyId", "fingerprint"] {
@@ -65,7 +69,7 @@ final class C15tPayloadTests: XCTestCase {
     func testSnapshotNeverEmitsAnEmptyLanguage() {
         // Translations resolve to exactly one bundle, so an empty language on the
         // wire is a bug the bridge covers for.
-        let blank = ConsentSnapshot(overrides: ConsentOverrides(country: nil, region: nil, language: "", test: nil))
+        let blank = ConsentSnapshot(overrides: ConsentOverrides(country: nil, region: nil, language: "", gpc: nil))
 
         let payload = jsonObject(C15tPayload.snapshot(blank, fallbackLanguage: "fr"))
         let overrides = payload["overrides"] as? [String: Any]
@@ -74,7 +78,7 @@ final class C15tPayloadTests: XCTestCase {
     }
 
     func testSnapshotKeepsAResolvedLanguageAsIs() {
-        let snapshot = ConsentSnapshot(overrides: ConsentOverrides(country: nil, region: nil, language: "de", test: nil))
+        let snapshot = ConsentSnapshot(overrides: ConsentOverrides(country: nil, region: nil, language: "de", gpc: nil))
 
         let payload = jsonObject(C15tPayload.snapshot(snapshot, fallbackLanguage: "fr"))
 
@@ -104,23 +108,118 @@ final class C15tPayloadTests: XCTestCase {
         }
     }
 
+    func testTheGpcSignalCrossesAsTheDetectedOverrideActiveTriple() {
+        // A caller that sees marketing denied has to be able to say why. `active` is
+        // what the evaluator honored, and `override` says whether the app or the device
+        // caused it, so the payload answers the question on its own.
+        let snapshot = ConsentSnapshot(
+            overrides: ConsentOverrides(country: nil, region: nil, language: "de", gpc: true),
+            privacySignals: PrivacySignals(detected: false, override: true)
+        )
+
+        let gpc = gpcSignal(in: jsonObject(C15tPayload.snapshot(snapshot)))
+
+        XCTAssertEqual(gpc["detected"] as? Bool, false, "the device reported nothing")
+        XCTAssertEqual(gpc["override"] as? Bool, true, "the app overrode the signal")
+        XCTAssertEqual(gpc["active"] as? Bool, true, "the override is what was honored")
+
+        let signals = jsonObject(C15tPayload.snapshot(snapshot))["privacySignals"] as? [String: Any]
+        XCTAssertNil(signals?["msa"], "msa is not a v3 signal")
+    }
+
+    func testAnUnOverriddenSignalReportsANullOverrideRatherThanAFalseOne() {
+        let payload = jsonObject(C15tPayload.snapshot(.coldStart))
+
+        XCTAssertEqual(gpcSignal(in: payload)["detected"] as? Bool, false)
+        XCTAssertEqual(gpcSignal(in: payload)["active"] as? Bool, false)
+        assertJSONNull(gpcSignal(in: payload), "override")
+    }
+
     func testOverridesTreatOmittedAsKeptAndNullAsCleared() {
-        let current = ConsentOverrides(country: "DE", region: "BE", language: "de", test: "run-7")
+        let current = ConsentOverrides(country: "DE", region: "BE", language: "de", gpc: true)
 
         // Omitted keys keep their value.
         XCTAssertEqual(
-            C15tPayload.parseOverrides(#"{"language":"en"}"#, current: current),
-            ConsentOverrides(country: "DE", region: "BE", language: "en", test: "run-7")
+            tryApply(#"{"language":"en"}"#, current: current),
+            ConsentOverrides(country: "DE", region: "BE", language: "en", gpc: true)
         )
         // An explicit null clears, except language, which has no empty state.
         XCTAssertEqual(
-            C15tPayload.parseOverrides(#"{"country":null,"region":null,"language":null,"test":null}"#, current: current),
-            ConsentOverrides(country: nil, region: nil, language: "de", test: nil)
+            tryApply(#"{"country":null,"region":null,"language":null,"gpc":null}"#, current: current),
+            ConsentOverrides(country: nil, region: nil, language: "de", gpc: nil)
+        )
+        XCTAssertEqual(
+            tryApply(#"{"region":"US-HI","gpc":false}"#, current: current),
+            ConsentOverrides(country: "DE", region: "US-HI", language: "de", gpc: false)
         )
         // An unrelated document is refused rather than applied, so a bad call cannot
         // wipe the language the app is relying on.
-        XCTAssertNil(C15tPayload.parseOverrides(#"{"policyId":"p-1"}"#, current: current))
-        XCTAssertNil(C15tPayload.parseOverrides("garbage", current: current))
+        assertBridgeFailure(
+            C15tPayload.parseOverrides(#"{"policyId":"p-1"}"#, current: current),
+            C15tBridgeError.unreadableOverrides
+        )
+        assertBridgeFailure(
+            C15tPayload.parseOverrides("garbage", current: current),
+            C15tBridgeError.unreadableOverrides
+        )
+    }
+
+    func testAGpcThatIsNeitherABooleanNorNullIsRefused() {
+        // The signal decides whether a standing directive applies, so a value this
+        // build cannot read must not become either answer.
+        let result = C15tPayload.parseOverrides(
+            #"{"gpc":"yes"}"#,
+            current: ConsentOverrides(country: nil, region: nil, language: "de", gpc: nil)
+        )
+
+        assertBridgeFailure(result, C15tBridgeError.unreadableGpcOverride)
+    }
+
+    func testARetiredOverrideArrivingOverTheBridgeIsRefusedByName() {
+        // `test` was never a GPC override, and there is no msa signal in v3. Reading
+        // past either would leave the app believing a mode was on that nothing turned
+        // on, which is the silence this refusal exists to break.
+        let current = ConsentOverrides(country: nil, region: nil, language: "de", gpc: nil)
+
+        for raw in [
+            #"{"test":true}"#,
+            #"{"test":"gpc","language":"de"}"#,
+            #"{"msa":false}"#,
+        ] {
+            guard case let .failure(error) = C15tPayload.parseOverrides(raw, current: current) else {
+                XCTFail("\(raw) must be refused outright")
+                continue
+            }
+            XCTAssertEqual(error.code, "C15T_OVERRIDES_RETIRED", raw)
+            XCTAssertTrue(
+                error.message.contains("test") || error.message.contains("msa"),
+                "the message must name the retired field so the host knows what to delete: \(error.message)"
+            )
+            XCTAssertTrue(error.message.contains("gpc"), "and the field that replaces it: \(error.message)")
+        }
+    }
+
+    /// The `gpc` member of a payload's `privacySignals`, so an assertion names a field.
+    private func gpcSignal(in payload: [String: Any]) -> [String: Any] {
+        guard let gpc = (payload["privacySignals"] as? [String: Any])?["gpc"] as? [String: Any] else {
+            XCTFail("privacySignals.gpc missing from \(payload)")
+            return [:]
+        }
+        return gpc
+    }
+
+    /// Apply a `setOverrides` document or fail the test, so the happy-path assertions
+    /// read as documents rather than as `Result` case unwrapping.
+    private func tryApply(
+        _ raw: String,
+        current: ConsentOverrides
+    ) -> ConsentOverrides {
+        switch C15tPayload.parseOverrides(raw, current: current) {
+        case let .success(overrides): return overrides
+        case let .failure(error):
+            XCTFail("\(raw) should apply, got \(error.code): \(error.message)")
+            return current
+        }
     }
 
     func testCommitResultDistinguishesRejectedFromCommitted() {
