@@ -16,12 +16,14 @@ import {
 import { resetConsentClient } from '../../native/client';
 import { ConsentBanner } from '../consent-banner';
 import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
+import { lightTheme } from '../theme/create-consent-theme';
 import {
 	CONTROL_ROLES,
 	mountSurface,
 	nodeStyle,
 	requireRole,
 	roleNodes,
+	surfaceNode,
 	tap,
 	translatedSnapshot,
 } from './harness';
@@ -39,7 +41,7 @@ describe('ConsentBanner', () => {
 		expect(tree.text()).toContain('Wir verarbeiten deine Daten.');
 		requireRole(tree.container(), 'button', 'Alle akzeptieren');
 		requireRole(tree.container(), 'button', 'Alle ablehnen');
-		requireRole(tree.container(), 'link', 'Auswahlen');
+		requireRole(tree.container(), 'button', 'Auswahlen');
 
 		tree.unmount();
 	});
@@ -67,8 +69,8 @@ describe('ConsentBanner', () => {
 			translatedSnapshot({ translations: null })
 		);
 
-		expect(tree.text()).toContain('Your privacy');
-		requireRole(tree.container(), 'button', 'Accept all');
+		expect(tree.text()).toContain('We value your privacy');
+		requireRole(tree.container(), 'button', 'Accept All');
 
 		tree.unmount();
 	});
@@ -129,7 +131,7 @@ describe('ConsentBanner', () => {
 	test('opens the built-in manager when the app brings no surface', async () => {
 		const tree = mountSurface(<ConsentBanner />);
 
-		tap(requireRole(tree.container(), 'link', 'Auswahlen'));
+		tap(requireRole(tree.container(), 'button', 'Auswahlen'));
 		await flushPromises();
 
 		expect(tree.text()).toContain('Zustimmung verwalten');
@@ -143,7 +145,7 @@ describe('ConsentBanner', () => {
 		const onCustomize = vi.fn();
 		const tree = mountSurface(<ConsentBanner onCustomize={onCustomize} />);
 
-		tap(requireRole(tree.container(), 'link', 'Auswahlen'));
+		tap(requireRole(tree.container(), 'button', 'Auswahlen'));
 
 		expect(onCustomize).toHaveBeenCalledTimes(1);
 		expect(tree.text()).toContain('Deine Privatsphaere');
@@ -276,7 +278,7 @@ describe('ConsentBanner', () => {
 			'Alle akzeptieren'
 		);
 
-		expect(nodeStyle(largeAccept).minHeight).toBe(66);
+		expect(nodeStyle(largeAccept).minHeight).toBe(54);
 
 		large.unmount();
 	});
@@ -297,33 +299,103 @@ describe('ConsentBanner', () => {
 });
 
 describe('banner action row', () => {
-	// The Customize link is a run of text, so it is the one control in the row with no
-	// background to size it. The row stretches its items, which grew the link's box to
-	// the row's height and left the label at the top of it: on a real device Customize
-	// rode above Reject All rather than beside it, and wrapped onto a line of its own
-	// the tap area fell under the floor the theme enforces everywhere else.
-	test('centres the link on the row it shares with a button', () => {
+	// A device measurement put all three actions in one flex row: the labels won the
+	// arithmetic, `Reject All` came out four times as wide as `Customize`, and the
+	// third action read as a caption instead of a control. Web keeps the two
+	// decisions in a row of their own and gives customize the row below them, so the
+	// structure is pinned here rather than left to the width of a word.
+	test('the two decisions share a row and each takes half of it', () => {
 		const tree = mountSurface(<ConsentBanner />);
-		const link = nodeStyle(requireRole(tree.container(), 'link', 'Auswahlen'));
+		const accept = requireRole(tree.container(), 'button', 'Alle akzeptieren');
+		const reject = requireRole(tree.container(), 'button', 'Alle ablehnen');
 
-		expect(link.justifyContent).toBe('center');
-		expect(link.alignItems).toBe('center');
-		expect(link.flexShrink).toBe(0);
-		expect(link.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		expect(accept.parentElement).toBe(reject.parentElement);
+		expect(nodeStyle(accept.parentElement as HTMLElement).flexDirection).toBe(
+			'row'
+		);
+
+		for (const action of [accept, reject]) {
+			const style = nodeStyle(action);
+
+			// Half the row each, rather than a share decided by the label.
+			expect(style.flexGrow).toBe(1);
+			expect(style.flexShrink).toBe(1);
+			expect(style.flexBasis).toBe(0);
+			expect(style.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+		}
 
 		tree.unmount();
 	});
 
-	// The two real buttons own their vertical centreing through their part styles, so a
-	// fix aimed at the link must not leak into them.
-	test('leaves the button kinds to their part styles', () => {
+	test('customize is a control on a row of its own', () => {
 		const tree = mountSurface(<ConsentBanner />);
-		const accept = nodeStyle(
-			requireRole(tree.container(), 'button', 'Alle akzeptieren')
+		const accept = requireRole(tree.container(), 'button', 'Alle akzeptieren');
+		const customize = requireRole(tree.container(), 'button', 'Auswahlen');
+
+		// It used to be a run of underlined text with no box to press, which is how
+		// it ended up squeezed into the actions row beside two real buttons.
+		expect(customize.parentElement).not.toBe(accept.parentElement);
+		expect(
+			nodeStyle(customize.parentElement as HTMLElement).flexDirection
+		).toBe('column');
+
+		const style = nodeStyle(customize);
+
+		expect(style.flexGrow).toBe(1);
+		expect(style.flexBasis).toBe(0);
+		expect(style.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
+
+		tree.unmount();
+	});
+
+	test('every action is outlined, and the decisions carry the accent', () => {
+		const tree = mountSurface(<ConsentBanner />);
+
+		const outlined = (name: string, accent: boolean): void => {
+			const action = requireRole(tree.container(), 'button', name);
+			const style = nodeStyle(action);
+			const label = nodeStyle(action.firstElementChild as HTMLElement);
+
+			// Web strokes these rather than filling them: the card shows through.
+			expect(style.backgroundColor).toBe(lightTheme.colors.surface);
+			expect(style.borderWidth).toBe(1);
+			expect(style.borderColor).toBe(
+				accent ? lightTheme.colors.primary : lightTheme.colors.border
+			);
+			expect(label.color).toBe(
+				accent ? lightTheme.colors.primary : lightTheme.colors.text
+			);
+			expect(label.fontWeight).toBe('500');
+		};
+
+		outlined('Alle akzeptieren', true);
+		outlined('Alle ablehnen', false);
+		outlined('Auswahlen', false);
+
+		tree.unmount();
+	});
+
+	test('the actions sit on a band divided from the card', () => {
+		const tree = mountSurface(<ConsentBanner />);
+		const footer = nodeStyle(
+			requireRole(tree.container(), 'button', 'Auswahlen')
+				.parentElement as HTMLElement
 		);
 
-		expect(accept.minHeight).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
-		expect(accept.flexShrink).toBeNull();
+		expect(footer.backgroundColor).toBe(lightTheme.colors.surfaceRaised);
+		expect(footer.borderTopWidth).toBe(1);
+		expect(footer.borderTopColor).toBe(lightTheme.colors.border);
+
+		const card = nodeStyle(
+			surfaceNode(tree.container(), 'Deine Privatsphaere')
+		);
+
+		// The heading above the band stays on the plain card surface, and the card
+		// itself carries the border and elevation the web banner draws.
+		expect(card.backgroundColor).toBe(lightTheme.colors.surface);
+		expect(card.borderWidth).toBe(1);
+		expect(card.borderColor).toBe(lightTheme.colors.border);
+		expect(card.boxShadow).toBe('0 8px 24px rgba(0, 0, 0, 0.12)');
 
 		tree.unmount();
 	});

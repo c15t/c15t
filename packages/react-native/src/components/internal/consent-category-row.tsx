@@ -3,16 +3,18 @@
  *
  * The row is deliberately not `accessible`: making the row one stop in the reader
  * tree would hide the switch inside it, and the switch is the only thing on the
- * row a subject can act on.
+ * row a subject can act on. The switch keeps the web's own geometry, so the row
+ * reads the same as the preference centre a subject may have seen in a browser.
  */
 
 import type { ReactNode } from 'react';
-import { Switch, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
 import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
 import type { ConsentTheme } from '../theme/create-consent-theme';
 import type { ConsentCategoryRow as CategoryRow } from './categories';
+import { ConsentSwitch } from './consent-switch';
 
 /** The text column takes the width the switch does not need. */
 const TEXT_COLUMN: ViewStyle = { flex: 1 };
@@ -54,18 +56,12 @@ export const ConsentCategoryRow = ({
 			<Text style={parts.categoryTitle}>{row.label}</Text>
 			<Text style={parts.categoryDescription}>{row.description}</Text>
 		</View>
-		<Switch
-			accessibilityLabel={row.label}
-			accessibilityRole="switch"
-			accessibilityState={{ disabled: row.disabled }}
+		<ConsentSwitch
 			disabled={row.disabled}
+			label={row.label}
 			onValueChange={onToggle}
-			style={parts.switch}
-			thumbColor={theme.colors.switchThumb}
-			trackColor={{
-				false: theme.colors.switchTrack,
-				true: theme.colors.switchTrackOn,
-			}}
+			parts={parts}
+			theme={theme}
 			value={row.value}
 		/>
 	</View>

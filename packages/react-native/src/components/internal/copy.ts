@@ -52,26 +52,41 @@ export interface ConsentCopy {
 	readonly save: string;
 }
 
-/** English copy used for any string the bundle does not carry. */
+/**
+ * English copy used for any string the bundle does not carry.
+ *
+ * The button labels and headings are the ones the web surfaces show, so the same
+ * decision is spelled the same way in both. The body copy is deliberately not a
+ * copy of the web strings: those talk about cookies, tracking technologies, and
+ * visitors to a website, and a native app has none of the three. Anything here
+ * that a bundle does not override should read as an app talking about itself.
+ */
 const ENGLISH: Omit<ConsentCopy, 'categories'> = {
-	acceptAll: 'Accept all',
+	acceptAll: 'Accept All',
 	acknowledge: 'Acknowledge',
 	bannerDescription:
 		'Choose how your data may be used. You can change this at any time.',
-	bannerTitle: 'Your privacy',
+	bannerTitle: 'We value your privacy',
 	customize: 'Customize',
 	dialogDescription: 'Pick the categories you allow below.',
-	dialogTitle: 'Manage consent',
+	dialogTitle: 'Privacy Settings',
 	dismiss: 'Dismiss',
 	noticeDescription:
 		'We process your data to deliver this app. Learn more in the settings.',
 	noticeTitle: 'How we use your data',
 	preferences: 'Manage preferences',
-	rejectAll: 'Reject all',
-	save: 'Save',
+	rejectAll: 'Reject All',
+	save: 'Save Settings',
 };
 
-/** English per-category copy, in the order the scopes list them. */
+/**
+ * English per-category copy, in the order the scopes list them.
+ *
+ * The names follow the web list, `Analytics` for the `measurement` category
+ * included, so the same category answers to the same word in either place. The
+ * descriptions stay in app terms: the web wording is about cookies and visitors,
+ * which is not what is being switched off here.
+ */
 const ENGLISH_CATEGORIES: Readonly<
 	Record<AllConsentNames, ConsentCategoryCopy>
 > = {
@@ -89,11 +104,11 @@ const ENGLISH_CATEGORIES: Readonly<
 	},
 	measurement: {
 		description: 'Measures how the app is used and how it performs.',
-		title: 'Measurement',
+		title: 'Analytics',
 	},
 	necessary: {
 		description: 'Required for the app to work. It cannot be turned off.',
-		title: 'Strictly necessary',
+		title: 'Strictly Necessary',
 	},
 };
 

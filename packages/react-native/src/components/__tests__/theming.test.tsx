@@ -179,6 +179,86 @@ describe('theme', () => {
 		expect(createConsentTheme().colors.surface).toBe('#FFFFFF');
 	});
 
+	test('the built-in palettes carry the web tokens', () => {
+		// The values are the ones `packages/ui` ships, so the banner a subject saw
+		// in a browser and the banner they see in the app are one design. The
+		// accent is the point of the exercise: it used to be near-black.
+		expect(lightTheme.colors.primary).toBe('#335CFF');
+		expect(lightTheme.colors.switchTrackOn).toBe('#335CFF');
+		expect(lightTheme.colors.text).toBe('#1A1A1A');
+		expect(lightTheme.colors.textMuted).toBe('#666666');
+		expect(lightTheme.colors.border).toBe('#E5E5E5');
+		expect(lightTheme.colors.surfaceRaised).toBe('#FAFAFA');
+		expect(darkTheme.colors.primary).toBe('#6685FF');
+
+		// 4 8 16 24 32, the web step scale.
+		expect(lightTheme.spacing).toEqual({ l: 24, m: 16, s: 8, xl: 32, xs: 4 });
+		expect(lightTheme.radius).toEqual({ control: 8, surface: 12 });
+
+		// Body 16/24, a button label 14 at medium, a heading 14 at semibold.
+		expect(lightTheme.typography.body).toEqual({
+			fontSize: 16,
+			lineHeight: 24,
+			weight: '400',
+		});
+		expect(lightTheme.typography.label).toEqual({
+			fontSize: 14,
+			lineHeight: 18,
+			weight: '500',
+		});
+		expect(lightTheme.typography.title).toEqual({
+			fontSize: 14,
+			lineHeight: 18,
+			weight: '600',
+		});
+	});
+
+	test('the switch is the web track inside a platform tap target', async () => {
+		const tree = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>
+		);
+
+		await flushPromises();
+
+		// The 32x20 fully rounded track web draws, rather than the native control
+		// tinted to look near it. The thumb lives inside the track's own padding.
+		const trackStyle = () =>
+			nodeStyle(
+				requireRole(tree.container(), 'switch', 'Werbung')
+					.firstElementChild as HTMLElement
+			);
+
+		expect(trackStyle()).toMatchObject({
+			borderRadius: 10,
+			height: 20,
+			padding: 2,
+			width: 32,
+		});
+
+		// The visible control is small; the finger still gets the platform minimum.
+		expect(
+			nodeStyle(requireRole(tree.container(), 'switch', 'Werbung')).height
+		).toBe(44);
+
+		expect(trackStyle().backgroundColor).toBe(lightTheme.colors.switchTrack);
+
+		flush(() => {
+			tapSwitch(tree.container(), 'Werbung');
+		});
+
+		expect(
+			requireRole(tree.container(), 'switch', 'Werbung').getAttribute(
+				'aria-checked'
+			)
+		).toBe('true');
+		expect(trackStyle().backgroundColor).toBe(lightTheme.colors.switchTrackOn);
+
+		tree.unmount();
+	});
+
 	test('a host theme replaces the palette wholesale', () => {
 		const tree = mountSurface(
 			<ConsentBanner
@@ -216,7 +296,7 @@ describe('theme', () => {
 
 		expect(resolved.titleColor).toBe('#0000AA');
 		expect(resolved.titleWeight).toBe('700');
-		expect(resolved.border).toBe(14);
+		expect(resolved.border).toBe(12);
 
 		expect(isConsentThemePart('title')).toBe(true);
 		expect(isConsentThemePart('not-a-part')).toBe(false);
@@ -340,7 +420,7 @@ describe('copy and scope changes', () => {
 
 		expect(tree.text()).toContain('Neue Beschreibung.');
 		// The group the bundle left out falls back instead of going blank.
-		expect(tree.text()).toContain('Accept all');
+		expect(tree.text()).toContain('Accept All');
 		expect(tree.commits()).toBe(1);
 
 		tree.unmount();

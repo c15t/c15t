@@ -32,7 +32,11 @@ import {
 import type { ViewStyle } from 'react-native';
 
 import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
-import type { ConsentTheme } from '../theme/create-consent-theme';
+import type {
+	ConsentTheme,
+	ConsentThemeColors,
+	ConsentThemeSpacing,
+} from '../theme/create-consent-theme';
 import type { ConsentStyles } from '../theme/use-consent-styles';
 import { useAnnounceOnOpen } from './use-announce-on-open';
 import { useModalA11y } from './use-modal-a11y';
@@ -51,6 +55,8 @@ export interface ConsentSurfaceFrame {
 	readonly maxBodyHeight: number;
 	/** Every restylable part, already merged with the host override. */
 	readonly parts: ConsentResolvedParts;
+	/** Which presentation this surface mounted as, for the chrome that differs. */
+	readonly presentation: ConsentSurfacePresentation;
 	/** Theme in force, for the controls that need raw values. */
 	readonly theme: ConsentTheme;
 }
@@ -119,6 +125,29 @@ export const ConsentSurfaceBody = ({
 };
 
 /**
+ * What the footer earns from the surface it sits in.
+ *
+ * Web treats the two differently: a banner puts its actions on the muted surface
+ * with a hairline along the top edge and a full step between the two action rows,
+ * and a sheet puts them on the card with the hairline only and a half step. That
+ * is a fact about the presentation rather than about a theme, so it goes on under
+ * the resolved part, where a host override still wins.
+ */
+const footerChrome = function footerChrome(
+	colors: ConsentThemeColors,
+	presentation: ConsentSurfacePresentation,
+	spacing: ConsentThemeSpacing
+): ViewStyle {
+	return {
+		backgroundColor:
+			presentation === 'banner' ? colors.surfaceRaised : colors.surface,
+		borderTopColor: colors.border,
+		borderTopWidth: 1,
+		gap: presentation === 'banner' ? spacing.m : spacing.s,
+	};
+};
+
+/**
  * The actions row, kept out of the scroll so it is always reachable.
  *
  * @param props - Slot content.
@@ -127,9 +156,18 @@ export const ConsentSurfaceBody = ({
 export const ConsentSurfaceFooter = ({
 	children,
 }: ConsentSurfaceSlotProps): ReactNode => {
-	const { parts } = useConsentSurfaceFrame();
+	const { parts, presentation, theme } = useConsentSurfaceFrame();
 
-	return <View style={parts.footer}>{children}</View>;
+	return (
+		<View
+			style={[
+				footerChrome(theme.colors, presentation, theme.spacing),
+				parts.footer,
+			]}
+		>
+			{children}
+		</View>
+	);
 };
 
 /** Props for {@link ConsentSurface}. */
@@ -193,8 +231,8 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 	// Memoized so a surface rerender alone does not push every slot down a new
 	// value and rerender content that reads the frame.
 	const frame = useMemo(
-		() => ({ maxBodyHeight, parts, theme }),
-		[maxBodyHeight, parts, theme]
+		() => ({ maxBodyHeight, parts, presentation, theme }),
+		[maxBodyHeight, parts, presentation, theme]
 	);
 
 	if (!rendered) {
