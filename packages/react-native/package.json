@@ -36,7 +36,8 @@
 		"dist-types",
 		"ios",
 		"android",
-		"react-native.config.js"
+		"react-native.config.js",
+		"C15tReactNative.podspec"
 	],
 	"type": "module",
 	"sideEffects": false,
