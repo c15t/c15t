@@ -50,16 +50,42 @@ empty string. `examples/expo-dev` gets the same keys written by the config plugi
 There is no key to add. A c15t project is identified by its backend URL, and neither
 `/init` nor `/subjects` carries a credential, so nothing here takes one.
 
-For a local backend, `examples/demo` serves one at `/api/self-host`:
+For a local backend, `examples/demo` serves one at `/api/self-host`. It needs a Postgres
+`DATABASE_URL` and starts fine without one, which is the trap: the backend answers `404`,
+the core retries quietly, and the app sits on `policyPending: true` with
+`resolution: unconfigured no policy` and never renders a prompt. Nothing on screen says the
+backend is missing. Point it at the same Postgres CI uses:
 
 ```sh
-bun run --cwd examples/demo dev:localhost      # http://localhost:3000
-adb reverse tcp:3000 tcp:3000                  # Android emulator -> host
+DATABASE_URL='postgres://postgres:c15t@localhost:5432/c15t' \
+  bun run --cwd examples/demo dev:localhost      # http://localhost:3000
+```
+
+Then forward both ports the app dials. Metro and the backend are two separate connections,
+and `adb reverse` is per device and is dropped when the emulator restarts:
+
+```sh
+adb reverse tcp:8081 tcp:8081                    # Android emulator -> Metro
+adb reverse tcp:3000 tcp:3000                    # Android emulator -> backend
 ```
 
 The default `http://localhost:3000/api/self-host` works on the iOS simulator and on
 Android after `adb reverse`. The manifest already allows cleartext on debug builds;
 iOS ships `NSAllowsLocalNetworking`.
+
+To get back to a first-install prompt:
+
+```sh
+adb uninstall com.c15t.bare                                          # Android: enough
+xcrun simctl uninstall <udid> org.reactjs.native.example.C15tBare     # iOS: not enough
+xcrun simctl reset <udid>                                             # iOS: this part matters
+```
+
+Uninstalling is not enough on iOS. The core keeps the subject id and the stored envelope in
+the Keychain, and Keychain items outlive an app uninstall, so a reinstall comes back as a
+returning user holding the previous decision and no prompt is owed. Use a simulator that has
+never run the build, or `xcrun simctl reset`. Android keeps both in app-private storage, so
+`adb uninstall` really does give a clean install.
 
 ## Commands
 
