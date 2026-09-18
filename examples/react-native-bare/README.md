@@ -282,8 +282,10 @@ Neither is c15t behaviour; both are marked in the file.
   artifacts instead. JDK 17 and an Android SDK are required; set `ANDROID_HOME` or write
   `sdk.dir` into `android/local.properties`.
 
-This machine's `xcode-select` points at Command Line Tools, so every Xcode invocation
-needs `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
+`xcode-select -p` points at `/Applications/Xcode.app/Contents/Developer` here, so no
+`DEVELOPER_DIR` override is needed for `pod install` or `xcodebuild`. Where it points at
+Command Line Tools instead, CocoaPods reads an empty `xcodebuild -version`, and every Xcode
+invocation needs `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 
 ## Native build status
 
@@ -292,7 +294,7 @@ for both platforms, `pod install` completes, and the Android app gets through Gr
 configuration. Both platforms have been built, installed and launched;
 [Device run](#device-run) says what each one proved and what it still cannot.
 
-iOS resolves. `pod install` from `ios/`, with `DEVELOPER_DIR` set, prints:
+iOS resolves. `pod install` from `ios/` prints:
 
 ```console
 Auto-linking React Native module for target `C15tBare`: C15tReactNative
@@ -337,9 +339,6 @@ Two more notes for anyone building natively from a checkout:
   includes it at the literal path `../node_modules/@react-native/gradle-plugin`, and Bun's
   isolated install layout does not link a package that only `react-native` depends on into
   this directory, so the `includeBuild` would not resolve.
-- `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` is required for `pod install`
-  and every `xcodebuild` call on this machine, because `xcode-select` points at Command
-  Line Tools and CocoaPods reads an empty `xcodebuild -version` otherwise.
 
 ## Device run
 
