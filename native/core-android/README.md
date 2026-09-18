@@ -5,8 +5,11 @@ device: policy evaluation, gating, persistence, the offline write queue, and sub
 identity. See [`../CONTRACT.md`](../CONTRACT.md) for the shared model; this directory
 implements it for Android.
 
-IAB TCF is out of scope for this phase: no TC string, no GVL, no `IABTCF_*` keys. The
-serialised snapshot keeps a null `iab` slot so adding it later stays additive.
+IAB TCF is on device here: TC Strings decode and encode byte-for-byte against the
+shared fixtures in `../protocol`, and the vendor list `/init` served is kept by the
+kernel and stored in the envelope alongside the policy. Unlike Swift, the Kotlin
+snapshot does not yet fill `iab` with that list -- see `C15tKernel.vendorList`. The
+device fetches no list of its own, and the `IABTCF_*` storage bus is not written.
 
 ## Modules
 
