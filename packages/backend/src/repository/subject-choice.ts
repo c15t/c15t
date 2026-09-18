@@ -283,11 +283,14 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	let grants: Record<string, boolean> | null = null;
 	let confirmedAt = 0;
 	for (const row of ordered) {
-		if (row.vendorChoice.kind === 'unreadable') {
+		const stored = row.vendorChoice;
+		if (stored.kind !== 'grants') {
+			// Unreadable: a decision that cannot be read discards what came
+			// before it. Absent rows were filtered out above.
 			grants = null;
 			continue;
 		}
-		const map = row.vendorChoice.vendorChoice;
+		const map = stored.vendorChoice;
 		grants ??= {};
 		for (const [id, granted] of Object.entries(map.grants)) {
 			Object.defineProperty(grants, id, {
