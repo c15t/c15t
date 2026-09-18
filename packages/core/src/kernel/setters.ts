@@ -6,6 +6,7 @@
  * anything.
  */
 import type { AllConsentNames } from '../consent/consent-types';
+import { mergeDeclaredVendors } from '../libs/vendors';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentState,
@@ -13,9 +14,15 @@ import type {
 	KernelConfig,
 	KernelIABState,
 	KernelOverrides,
+	KernelVendorsState,
 } from '../types';
 import type { KernelRuntime } from './runtime';
-import { buildDraft, copyIABAuthority, DEFAULT_IAB } from './snapshot';
+import {
+	buildDraft,
+	copyIABAuthority,
+	DEFAULT_IAB,
+	DEFAULT_VENDORS,
+} from './snapshot';
 
 /**
  * Merge an IAB patch onto the current IAB slice, returning the next
@@ -41,6 +48,54 @@ export const mergeIab = function mergeIab(
 		changed = true;
 	}
 	return { changed, next };
+};
+
+/**
+ * Merge a vendor patch onto the current vendor slice. Declared lists merge
+ * by id with the existing entry's presentation winning, so a manifest
+ * arriving after config never overwrites a name the publisher set in code.
+ */
+export const mergeVendors = function mergeVendors(
+	current: KernelVendorsState | null,
+	input: Partial<KernelVendorsState>
+): { next: KernelVendorsState | null; changed: boolean } {
+	const baseline = current ?? DEFAULT_VENDORS;
+	const declared =
+		input.declared === undefined
+			? baseline.declared
+			: mergeDeclaredVendors(baseline.declared, input.declared);
+	const listVersion =
+		input.listVersion === undefined ? baseline.listVersion : input.listVersion;
+	const next: KernelVendorsState | null =
+		declared.length === 0 && listVersion === null
+			? null
+			: { declared, listVersion };
+	const changed =
+		(current === null) !== (next === null) ||
+		(next !== null &&
+			current !== null &&
+			(next.listVersion !== current.listVersion ||
+				next.declared !== current.declared));
+	return { changed, next };
+};
+
+/** Merge staged per-vendor grants. `null` clears the draft. */
+export const mergeVendorDraft = function mergeVendorDraft(
+	current: Readonly<Record<string, boolean>> | null,
+	input: Record<string, boolean> | null
+): Record<string, boolean> | null {
+	if (input === null) {
+		return null;
+	}
+	const next: Record<string, boolean> = { ...current };
+	let any = false;
+	for (const [id, value] of Object.entries(input)) {
+		if (typeof value === 'boolean' && id.length > 0) {
+			next[id] = value;
+			any = true;
+		}
+	}
+	return any ? next : current ? { ...current } : null;
 };
 
 /** Merge staged draft values. `null` input clears the draft. */
@@ -156,6 +211,20 @@ export const buildSetters = function buildSetters(
 			}
 			if (inferred.size !== previousSize) {
 				updateCategories();
+			}
+		},
+
+		vendorDraft(input: Record<string, boolean> | null): void {
+			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
+		},
+
+		vendors(input: Partial<KernelVendorsState>): void {
+			const { next, changed } = mergeVendors(getSnapshot().vendors, input);
+			if (!changed) {
+				return;
+			}
+			if (commit({ vendors: next })) {
+				emit({ snapshot: getSnapshot(), type: 'vendors:set' });
 			}
 		},
 

@@ -23,6 +23,8 @@ export interface ScriptDiagnostic {
 	/** Actual consent requirements, independent of alwaysLoad. */
 	readonly hasConsent: boolean;
 	readonly vendorId?: Script['vendorId'];
+	/** Vendor slug for vendor-level consent outside IAB. */
+	readonly vendor?: Script['vendor'];
 	readonly callbackOnly: boolean;
 	readonly alwaysLoad: boolean;
 	readonly persistAfterConsentRevoked: boolean;

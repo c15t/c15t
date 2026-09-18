@@ -8,6 +8,7 @@ import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
 import type { RecordIssue } from '../consent-record/validation';
+import { resolveVendors } from '../libs/vendors';
 import type {
 	ConsentSnapshot,
 	InitResponse,
@@ -143,6 +144,24 @@ export const applyInitResponse = function applyInitResponse(
 
 	if (response.resolvedPrivacySignals?.gpc !== undefined) {
 		patch.privacyDetected = response.resolvedPrivacySignals.gpc === true;
+	}
+
+	// Backend vendor declarations join whatever the client declared in code.
+	// Presentation from code wins; the backend fills the gaps.
+	if (
+		response.vendors !== undefined ||
+		response.vendorListVersion !== undefined
+	) {
+		const resolved = resolveVendors({
+			existing: current.vendors?.declared ?? [],
+			manifest: response.vendors ?? [],
+		});
+		const listVersion =
+			response.vendorListVersion ?? current.vendors?.listVersion ?? null;
+		patch.vendors =
+			resolved.length === 0 && listVersion === null
+				? null
+				: { declared: resolved, listVersion };
 	}
 
 	let recordIssues: RecordIssue[] | null = null;

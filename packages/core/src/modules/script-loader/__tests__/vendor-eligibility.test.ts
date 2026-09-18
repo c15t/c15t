@@ -1,0 +1,101 @@
+import { describe, expect, test } from 'vitest';
+
+import {
+	choiceRecords,
+	iabRule,
+	matchedResolution,
+	NOW,
+} from '../../../__tests__/fixtures/kernel-fixtures';
+import { createConsentKernel } from '../../../kernel';
+import { buildCallbackInfo } from '../callbacks';
+import { buildReconcilePass, hasScriptConsent } from '../eligibility';
+import { normalizeScripts } from '../normalize';
+import type { Script } from '../types';
+
+const snapshotFor = (denied: string[], iab = false) =>
+	createConsentKernel({
+		...(iab && {
+			initialIab: { enabled: true },
+			initialPolicyResolution: matchedResolution(iabRule()),
+		}),
+		initialRecords: {
+			...choiceRecords({ marketing: true, measurement: true }),
+			vendorChoice: { confirmedAt: NOW - 1, denied, version: 1 },
+		},
+		now: NOW,
+	}).getSnapshot();
+
+const script = (overrides: Partial<Script> = {}): Script => ({
+	category: 'marketing',
+	id: 'meta',
+	src: 'https://connect.facebook.net/en_US/fbevents.js',
+	vendor: 'meta-pixel',
+	...overrides,
+});
+
+describe('script vendor eligibility', () => {
+	test('normalization keeps a non-empty vendor slug', () => {
+		const [withVendor, without] = normalizeScripts([
+			script(),
+			script({ id: 'b', vendor: '' }),
+		]);
+		expect(withVendor?.vendor).toBe('meta-pixel');
+		expect(without?.vendor).toBeNull();
+	});
+
+	test('the pass carries the denial set only when something is denied', () => {
+		expect(buildReconcilePass(snapshotFor([])).vendorDenied).toBeNull();
+		expect(
+			buildReconcilePass(snapshotFor(['meta-pixel'])).vendorDenied?.has(
+				'meta-pixel'
+			)
+		).toBe(true);
+	});
+
+	test('a denied vendor blocks the simple-category fast path and the tree path', () => {
+		const pass = buildReconcilePass(snapshotFor(['meta-pixel']));
+		const [simple, tree, other] = normalizeScripts([
+			script(),
+			script({ category: { or: ['marketing', 'measurement'] }, id: 'tree' }),
+			script({ id: 'other', vendor: 'other' }),
+		]);
+		expect(hasScriptConsent(simple!, pass)).toBe(false);
+		expect(hasScriptConsent(tree!, pass)).toBe(false);
+		expect(hasScriptConsent(other!, pass)).toBe(true);
+	});
+
+	test('the vendor slug is ignored in IAB mode', () => {
+		const snap = snapshotFor(['meta-pixel'], true);
+		const pass = buildReconcilePass(snap);
+		const [entry] = normalizeScripts([script()]);
+		expect(hasScriptConsent(entry!, pass)).toBe(
+			snap.effectivePermissions.marketing
+		);
+	});
+
+	test('callback info reports the vendor grant outside IAB mode only', () => {
+		const denied = buildCallbackInfo(
+			script(),
+			snapshotFor(['meta-pixel']),
+			false,
+			'el'
+		);
+		expect(denied.vendor).toEqual({ granted: false, id: 'meta-pixel' });
+		const granted = buildCallbackInfo(script(), snapshotFor([]), true, 'el');
+		expect(granted.vendor).toEqual({ granted: true, id: 'meta-pixel' });
+		const iab = buildCallbackInfo(
+			script(),
+			snapshotFor(['meta-pixel'], true),
+			true,
+			'el'
+		);
+		expect(iab.vendor).toBeUndefined();
+		const plain = buildCallbackInfo(
+			script({ vendor: undefined }),
+			snapshotFor([]),
+			true,
+			'el'
+		);
+		expect(plain.vendor).toBeUndefined();
+	});
+});

@@ -65,6 +65,7 @@ pass logging callbacks when constructing the instance instead.
 | `disableGeoLocation` | Disables location-based resolution. Review the resulting default and fallback behavior. |
 | `customTranslations`, `i18n` | Translation overrides and locale configuration. |
 | `iab` | `enabled`, `cmpId`, `customVendors` and the GVL `endpoint`. |
+| `vendors`, `vendorListVersion` | Vendors offered for vendor-level consent outside IAB, returned from `/init` and merged with vendors declared in the client. The version label is shown and recorded, never used to force re-consent. |
 
 ## Browser script routes
 

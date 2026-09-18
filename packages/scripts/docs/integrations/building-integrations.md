@@ -31,6 +31,10 @@ Replace the example URL and implement the vendor's initialization. This is a
 loader template, not a functioning analytics SDK. The script stays blocked
 while measurement permission is denied.
 
+Add `vendor: 'example-analytics'` and declare the vendor in the provider's
+`vendors` option when visitors should be able to turn this vendor off inside a
+granted category. See [vendor-level consent](./vendor-consent.md).
+
 ## Define revocation deliberately
 
 `onConsentChange` receives current permission information. Use it to update the

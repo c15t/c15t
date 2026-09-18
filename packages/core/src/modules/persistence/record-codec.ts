@@ -40,6 +40,7 @@ import {
 	validateNoticeDismissal,
 } from '../../consent-record/validation';
 import type { RecordIssue } from '../../consent-record/validation';
+import type { VendorChoice } from '../../types';
 
 /** Validated IAB transport metadata carried alongside category choices. */
 export interface StoredIabMetadata {
@@ -75,6 +76,9 @@ export interface StoredPrivacyOptOuts {
 	version: 1;
 	directives: readonly PrivacyOptOut[];
 }
+
+/** Local vendor denial list. Version 1 matches the kernel record. */
+export type StoredVendorChoice = VendorChoice;
 
 /** Structural issue found while decoding a stored record. */
 export type StorageIssue =
@@ -1013,4 +1017,142 @@ export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
 		}
 	}
 	return decodePrivacyOptOuts({ directives, version: 1 }, now);
+};
+
+// ---------------------------------------------------------------------------
+// Vendor denial list (local-only, JSON + compact cookie projection)
+// ---------------------------------------------------------------------------
+
+/** Prefix of the compact vendor-choice cookie projection. */
+export const COMPACT_VENDORS_PREFIX = 'v=1';
+
+/** Validates a parsed vendor denial list. */
+export const decodeVendorChoice = function decodeVendorChoice(
+	input: unknown,
+	now: number
+): DecodeResult<StoredVendorChoice> {
+	if (!isPlainRecord(input)) {
+		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
+	}
+	if (ownValue(input, 'version') !== 1) {
+		return {
+			issues: [{ code: 'unsupported-version', path: 'version' }],
+			ok: false,
+		};
+	}
+	const issues: StorageIssue[] = [];
+	for (const key of ownKeys(input)) {
+		if (key !== 'version' && key !== 'confirmedAt' && key !== 'denied') {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	const confirmedAt = ownValue(input, 'confirmedAt');
+	const timestampIssue = checkTimestamp(confirmedAt, now);
+	if (timestampIssue) {
+		issues.push({ code: timestampIssue, path: 'confirmedAt' });
+	}
+	const rawDenied = ownValue(input, 'denied');
+	const denied: string[] = [];
+	if (Array.isArray(rawDenied)) {
+		for (const [index, entry] of rawDenied.entries()) {
+			if (!isNonEmptyString(entry)) {
+				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
+				continue;
+			}
+			if (denied.includes(entry)) {
+				issues.push({ code: 'duplicate-key', path: `denied[${index}]` });
+				continue;
+			}
+			denied.push(entry);
+		}
+	} else {
+		issues.push({ code: 'not-an-object', path: 'denied' });
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	return {
+		ok: true,
+		record: {
+			confirmedAt: confirmedAt as number,
+			denied: denied.sort(),
+			version: 1,
+		},
+	};
+};
+
+/** Serializes the vendor denial list for localStorage. */
+export const encodeVendorChoice = function encodeVendorChoice(
+	record: StoredVendorChoice
+): string {
+	return JSON.stringify({
+		confirmedAt: record.confirmedAt,
+		denied: [...record.denied].sort(),
+		version: 1,
+	});
+};
+
+/**
+ * Compact vendor denials for the `<key>-vendors` cookie:
+ * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`.
+ * The `d` field is omitted when nothing is denied.
+ */
+export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
+	record: StoredVendorChoice
+): string {
+	const parts = [
+		COMPACT_VENDORS_PREFIX,
+		`t${KEY_VALUE_SEPARATOR}${record.confirmedAt}`,
+	];
+	if (record.denied.length > 0) {
+		parts.push(
+			`d${KEY_VALUE_SEPARATOR}${[...record.denied]
+				.sort()
+				.map((id) => encodeURIComponent(id))
+				.join(LIST_SEPARATOR)}`
+		);
+	}
+	return parts.join(FIELD_SEPARATOR);
+};
+
+/** Decodes compact vendor denials through the shared validator. */
+export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
+	rawValue: string,
+	now: number
+): DecodeResult<StoredVendorChoice> {
+	const issues: StorageIssue[] = [];
+	const fields = parseCompactFields(rawValue, COMPACT_VENDORS_PREFIX, issues);
+	if (!fields) {
+		return { issues, ok: false };
+	}
+	for (const key of fields.keys()) {
+		if (key !== 't' && key !== 'd') {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const list = fields.get('d');
+	const denied: unknown[] = [];
+	if (list !== undefined && list !== '') {
+		for (const [index, entry] of list.split(LIST_SEPARATOR).entries()) {
+			const id = decodeComponent(entry);
+			if (id === null) {
+				return {
+					issues: [{ code: 'malformed-encoding', path: `d[${index}]` }],
+					ok: false,
+				};
+			}
+			denied.push(id);
+		}
+	}
+	return decodeVendorChoice(
+		{
+			confirmedAt: parseCompactInteger(fields.get('t')),
+			denied,
+			version: 1,
+		},
+		now
+	);
 };

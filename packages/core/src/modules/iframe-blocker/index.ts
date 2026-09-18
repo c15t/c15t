@@ -2,8 +2,8 @@
  * `@c15t/core/modules/iframe-blocker`
  *
  * Kernel-consuming iframe blocker. Subscribes to the kernel snapshot,
- * observes the DOM for iframes carrying a `data-category` attribute,
- * and toggles their `src` based on consent.
+ * observes the DOM for iframes carrying a `data-category` or
+ * `data-vendor` attribute, and toggles their `src` based on consent.
  *
  * Concerns are split across siblings:
  * - `types.ts`        — public type definitions.
@@ -13,8 +13,8 @@
  * v2 parity: `packages/core/src/libs/iframe-blocker/core.ts`.
  *
  * Semantics:
- * - iframes WITHOUT `data-category` are untouched (never blocked).
- * - iframes WITH `data-category`:
+ * - iframes WITHOUT `data-category` or `data-vendor` are untouched.
+ * - iframes WITH `data-category` and/or `data-vendor`:
  *   - consent granted + HTTP(S) `data-src` but no `src` → set resolved src
  *   - consent NOT granted + has `src`              → removeAttribute('src')
  *
@@ -100,7 +100,9 @@ export const createIframeBlocker = function createIframeBlocker(
 
 	const processAll = function processAll(): void {
 		registerIframes(
-			document.querySelectorAll<HTMLIFrameElement>('iframe[data-category]')
+			document.querySelectorAll<HTMLIFrameElement>(
+				'iframe[data-category], iframe[data-vendor]'
+			)
 		);
 		reconcileAllIframes(kernel.getSnapshot());
 	};
@@ -109,7 +111,7 @@ export const createIframeBlocker = function createIframeBlocker(
 		processAll();
 		if (document.body) {
 			observer.observe(document.body, {
-				attributeFilter: ['data-category'],
+				attributeFilter: ['data-category', 'data-vendor'],
 				attributes: true,
 				childList: true,
 				subtree: true,
@@ -121,6 +123,8 @@ export const createIframeBlocker = function createIframeBlocker(
 	let lastConsents: unknown = null;
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
+	let lastVendorChoice: unknown = null;
+	let lastModel: unknown = null;
 	const unsubscribe = kernel.subscribe((snapshot) => {
 		if (disableAuto) {
 			return;
@@ -128,13 +132,17 @@ export const createIframeBlocker = function createIframeBlocker(
 		if (
 			snapshot.effectivePermissions === lastConsents &&
 			snapshot.policyRule.scope === lastPolicyCategories &&
-			snapshot.policyRule.scopeMode === lastScopeMode
+			snapshot.policyRule.scopeMode === lastScopeMode &&
+			snapshot.vendorChoice === lastVendorChoice &&
+			snapshot.model === lastModel
 		) {
 			return;
 		}
 		lastConsents = snapshot.effectivePermissions;
 		lastPolicyCategories = snapshot.policyRule.scope;
 		lastScopeMode = snapshot.policyRule.scopeMode;
+		lastVendorChoice = snapshot.vendorChoice;
+		lastModel = snapshot.model;
 		processAll();
 	});
 

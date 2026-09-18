@@ -7,7 +7,7 @@
  * lifecycle handle. Framework packages extend {@link ConsentRuntimeOptions}
  * with their own UI-only fields rather than restating the shared ones.
  */
-import type { PolicyRule } from '@c15t/schema/types';
+import type { PolicyRule, Vendor } from '@c15t/schema/types';
 import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
@@ -198,6 +198,18 @@ export interface ConsentRuntimeOptions {
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];
 	/**
+	 * Vendors offered for vendor-level consent outside IAB.
+	 *
+	 * Each vendor sits inside a category. A subject can grant the category
+	 * and still turn one vendor off; scripts, network rules and iframes that
+	 * name the vendor through `vendor` / `data-vendor` then stay blocked.
+	 * Declarations merge with vendors the backend returns from `/init` and
+	 * with slugs found on scripts and rules. Presentation declared here wins
+	 * over the backend's. Unrelated to `iab.vendors` and `iab.customVendors`,
+	 * which speak the TCF vocabulary and only matter under an `iab` policy.
+	 */
+	vendors?: Vendor[];
+	/**
 	 * Content Security Policy nonce applied to DOM nodes c15t injects.
 	 *
 	 * Set this when your CSP uses a nonce-based policy instead of
@@ -291,6 +303,13 @@ export interface ConsentRuntime {
 	reinit: () => Promise<void>;
 	/** Replace configured categories; retain categories discovered from integrations. */
 	setConsentCategories: (categories: AllConsentNames[]) => void;
+	/**
+	 * Stage one vendor's grant for the next `save()`. Never a grant on its
+	 * own: gates only change once the save records it.
+	 */
+	setVendorConsent: (vendorId: string, granted: boolean) => void;
+	/** Drop staged vendor grants without saving. */
+	resetVendorDraft: () => void;
 	/** Subscribe to {@link ConsentRuntime.iab} changing. */
 	onIABChange: (
 		listener: (handle: ConsentRuntimeIABHandle | null) => void

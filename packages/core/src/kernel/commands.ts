@@ -23,6 +23,7 @@ import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
+	ExplicitChoice,
 	InitContext,
 	InitResult,
 	KernelConfig,
@@ -33,6 +34,7 @@ import type {
 	SaveInput,
 	SavePayload,
 	SaveResult,
+	VendorChoice,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
@@ -174,6 +176,118 @@ export const resolveSaveSelection = function resolveSaveSelection(
 		};
 	}
 	return { consentAction: 'custom', values: input };
+};
+
+const EMPTY_CHOICE: ExplicitChoice = Object.freeze({
+	categories: Object.freeze({}),
+	version: 3,
+}) as ExplicitChoice;
+
+/** Own string keys mapped to booleans. Rejects anything else. */
+const isVendorGrantMap = function isVendorGrantMap(
+	value: unknown
+): value is Record<string, boolean> {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+	return Object.entries(value).every(
+		([id, granted]) => id.length > 0 && typeof granted === 'boolean'
+	);
+};
+
+const sameVendorChoice = function sameVendorChoice(
+	left: VendorChoice | null,
+	right: VendorChoice | null
+): boolean {
+	if (left === right) {
+		return true;
+	}
+	if (!left || !right) {
+		return false;
+	}
+	return (
+		left.denied.length === right.denied.length &&
+		left.denied.every((id, index) => id === right.denied[index])
+	);
+};
+
+/**
+ * The vendor denial list one save leaves behind.
+ *
+ * - Under `model === 'iab'` the vendor axis is inert: IAB vendor consent is
+ *   authoritative and nothing here changes.
+ * - `'all'` and `'none'` clear the list: vendors follow the category.
+ * - Otherwise explicit grants win over the staged vendor draft, applied on
+ *   top of the current denials. Ids that are not declared, or are declared
+ *   `disabled`, are ignored.
+ *
+ * An empty list is represented as `null`. Returns the current value when
+ * nothing usable was supplied, so an unchanged save never renews the time.
+ */
+export const resolveVendorSelection = function resolveVendorSelection(
+	snapshot: ConsentSnapshot,
+	draft: Readonly<Record<string, boolean>> | null,
+	input: SaveInput | undefined,
+	explicit: Record<string, boolean> | undefined,
+	actionAt: number
+): VendorChoice | null {
+	const current = snapshot.vendorChoice;
+	if (snapshot.model === 'iab') {
+		return current;
+	}
+	const bulk = input === 'all' || input === 'none';
+	const grants = bulk ? explicit : (explicit ?? draft ?? undefined);
+	if (!bulk && grants === undefined) {
+		return current;
+	}
+	const toggleable = new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			toggleable.add(vendor.id);
+		}
+	}
+	const denied = new Set<string>(bulk ? [] : (current?.denied ?? []));
+	for (const [id, granted] of Object.entries(grants ?? {})) {
+		if (!toggleable.has(id)) {
+			continue;
+		}
+		if (granted) {
+			denied.delete(id);
+		} else {
+			denied.add(id);
+		}
+	}
+	const next: VendorChoice | null =
+		denied.size === 0
+			? null
+			: { confirmedAt: actionAt, denied: [...denied].sort(), version: 1 };
+	return sameVendorChoice(current, next) ? current : next;
+};
+
+/** Granted flag for every declared vendor, for the transport payload. */
+const vendorChoicePayload = function vendorChoicePayload(
+	snapshot: ConsentSnapshot,
+	actionAt: number
+): SavePayload['vendorChoice'] {
+	const declared = snapshot.vendors?.declared ?? [];
+	if (snapshot.model === 'iab' || declared.length === 0) {
+		return undefined;
+	}
+	const denied = new Set(snapshot.vendorChoice?.denied ?? []);
+	const grants: Record<string, boolean> = {};
+	for (const vendor of declared) {
+		Object.defineProperty(grants, vendor.id, {
+			configurable: true,
+			enumerable: true,
+			value: !denied.has(vendor.id),
+			writable: true,
+		});
+	}
+	return {
+		confirmedAt: snapshot.vendorChoice?.confirmedAt ?? actionAt,
+		grants,
+		version: 1,
+	};
 };
 
 /** A save's action time must be a past or present safe integer. */
@@ -652,12 +766,25 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			) {
 				return null;
 			}
-			return selectSavePayload(
+			const selected = selectSavePayload(
 				payload,
 				(category) =>
 					current.explicitChoice?.categories[category] ===
 					actionSnapshot.explicitChoice?.categories[category]
 			);
+			// A newer action already carries the current vendor map, so this
+			// one has nothing left to say about vendors. Its category receipts
+			// still stand on their own; a vendor-only action has nothing left.
+			if (
+				selected?.vendorChoice !== undefined &&
+				current.vendorChoice !== actionSnapshot.vendorChoice
+			) {
+				const { vendorChoice: _superseded, ...remaining } = selected;
+				return Object.keys(remaining.confirmed.categories).length > 0
+					? remaining
+					: null;
+			}
+			return selected;
 		};
 		const send = transport?.save;
 		if (!send) {
@@ -779,12 +906,14 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return runInitAttempt(1);
 		},
 
+		// oxlint-disable-next-line complexity -- One action records categories and vendors together in a fixed order.
 		async save(
 			input?: SaveInput,
 			context?: {
 				actionAt?: number;
 				iabAuthority?: KernelIABAuthority;
 				categories?: readonly AllConsentNames[];
+				vendors?: Record<string, boolean>;
 			}
 		): Promise<SaveResult> {
 			const currentTime = runtime.now();
@@ -807,33 +936,69 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			) {
 				return { ok: false };
 			}
+			if (
+				context?.vendors !== undefined &&
+				!isVendorGrantMap(context.vendors)
+			) {
+				return {
+					issues: [{ code: 'invalid-boolean', path: 'vendors' }],
+					ok: false,
+				};
+			}
 			emit({ type: 'command:save:started' });
 
 			const before = getSnapshot();
+			// Vendor denials resolve before any early return so a vendor-only
+			// toggle is recorded even when no category receipt is owed.
+			const nextVendorChoice = resolveVendorSelection(
+				before,
+				runtime.getVendorDraft(),
+				input,
+				context?.vendors,
+				actionAt
+			);
+			const vendorsChanged = nextVendorChoice !== before.vendorChoice;
 			const owedNothing = saveUnderNoneRegime(before);
-			if (owedNothing) {
+			if (owedNothing && !vendorsChanged) {
 				emit({ result: owedNothing, type: 'command:save:completed' });
 				return owedNothing;
 			}
 			// Captured once, before validation, yield, network or persistence.
 			const uiSource = before.activeUI;
-			const { values, consentAction } = resolveSaveSelection(
-				before,
-				runtime.getDraft(),
-				input,
-				context?.categories
-			);
-			const recorded = recordCategoryPatch(before.explicitChoice, values, {
-				actionAt,
-				now: currentTime,
-				policy: before.evaluationPolicy,
-			});
+			let consentAction: SavePayload['consentAction'] = 'custom';
+			let recorded: ReturnType<typeof recordCategoryPatch>;
+			if (owedNothing) {
+				// A `none` regime owes no category receipt; only vendors change.
+				recorded = {
+					choice: before.explicitChoice ?? EMPTY_CHOICE,
+					confirmed: [],
+					ok: true,
+				};
+			} else {
+				const selection = resolveSaveSelection(
+					before,
+					runtime.getDraft(),
+					input,
+					context?.categories
+				);
+				consentAction = selection.consentAction;
+				recorded = recordCategoryPatch(
+					before.explicitChoice,
+					selection.values,
+					{
+						actionAt,
+						now: currentTime,
+						policy: before.evaluationPolicy,
+					}
+				);
+			}
 			if (recorded.ok === false) {
 				const result: SaveResult = { issues: recorded.issues, ok: false };
 				emit({ result, type: 'command:save:completed' });
 				return result;
 			}
-			if (recorded.confirmed.length === 0) {
+			const categoriesChanged = recorded.confirmed.length > 0;
+			if (!categoriesChanged && !vendorsChanged) {
 				// Nothing confirmed: no receipt, no choice event, no request, no write.
 				const result: SaveResult = {
 					confirmed: [],
@@ -847,11 +1012,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const subjectId = before.subject?.subjectId ?? generateSubjectId();
 			const subject = saveSubject(before, subjectId);
 			runtime.setDraft(null);
+			runtime.setVendorDraft(null);
 			const patch: SnapshotPatch = {
-				explicitChoice: recorded.choice,
 				now: currentTime,
 				subject,
 			};
+			if (categoriesChanged) {
+				patch.explicitChoice = recorded.choice;
+			}
+			if (vendorsChanged) {
+				patch.vendorChoice = nextVendorChoice;
+			}
 			applySaveAuthority(patch, before, context?.iabAuthority);
 			commit(patch);
 			const after = getSnapshot();
@@ -871,12 +1042,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					confirmedCategories[category] = decision.value;
 				}
 			}
-			emit({
-				actionAt,
-				confirmed: recorded.confirmed,
-				snapshot: after,
-				type: 'choice:recorded',
-			});
+			if (categoriesChanged) {
+				emit({
+					actionAt,
+					confirmed: recorded.confirmed,
+					snapshot: after,
+					type: 'choice:recorded',
+				});
+			}
+			if (vendorsChanged) {
+				emit({ actionAt, snapshot: after, type: 'vendors:recorded' });
+			}
 			runtime.armDeadlineTimer();
 
 			// Built once so a queued replay records when the visitor decided,
@@ -897,6 +1073,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				uiSource,
 				user: after.user,
 			};
+			const vendorChoice = vendorChoicePayload(after, actionAt);
+			if (vendorChoice) {
+				payload.vendorChoice = vendorChoice;
+			}
 
 			const result = await sendSave(
 				payload,

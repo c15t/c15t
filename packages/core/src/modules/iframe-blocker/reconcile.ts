@@ -7,10 +7,12 @@
  * by `buildReconcilePass` and shared across every iframe in the pass.
  *
  * Semantics:
- * - iframes WITHOUT `data-category` are untouched (never blocked).
- * - iframes WITH `data-category`:
+ * - iframes WITHOUT `data-category` or `data-vendor` are untouched.
+ * - iframes WITH `data-category` and/or `data-vendor`:
  *   - consent granted + HTTP(S) `data-src` but no `src` → set resolved src
  *   - consent NOT granted + has `src`              → removeAttribute('src')
+ *   Outside IAB mode a `data-vendor` the subject turned off denies the
+ *   iframe even when its category passes.
  */
 import type { AllConsentNames } from '../../consent/consent-types';
 import { allConsentNames } from '../../consent/consent-types';
@@ -23,6 +25,10 @@ import { getEffectiveGateState, has } from '../has';
  */
 export interface ReconcilePass {
 	consents: ConsentState;
+	/** Vendors the subject turned off, or `null` when none is denied. */
+	vendorDenied: ReadonlySet<string> | null;
+	/** Vendor denials are inert in IAB mode. */
+	isIabMode: boolean;
 }
 
 /**
@@ -31,9 +37,23 @@ export interface ReconcilePass {
 export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
+	const denied = snapshot.vendorChoice?.denied;
 	return {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
+		isIabMode: snapshot.model === 'iab',
+		vendorDenied: denied && denied.length > 0 ? new Set(denied) : null,
 	};
+};
+
+/**
+ * Read the `data-vendor` attribute. Unknown ids are not an error: a vendor
+ * the subject never saw cannot have been turned off, so it is granted.
+ */
+export const determineVendor = function determineVendor(
+	iframe: HTMLIFrameElement
+): string | undefined {
+	const raw = iframe.getAttribute('data-vendor');
+	return raw ? raw : undefined;
 };
 
 /**
@@ -63,18 +83,26 @@ export const determineCategory = function determineCategory(
 /**
  * Apply the consent gate to a single iframe. Mutates the iframe's
  * `src` / `data-src` attributes. No-op for iframes without a
- * `data-category` attribute.
+ * `data-category` or `data-vendor` attribute. An iframe with only
+ * `data-vendor` is gated on the vendor alone.
  */
 export const reconcileIframe = function reconcileIframe(
 	iframe: HTMLIFrameElement,
 	pass: ReconcilePass
 ): void {
 	const category = determineCategory(iframe);
-	if (!category) {
+	const vendor = determineVendor(iframe);
+	if (!category && !vendor) {
 		return;
 	}
 
-	const allowed = has(category, pass.consents);
+	const categoryAllowed = category ? has(category, pass.consents) : true;
+	const vendorAllowed =
+		vendor === undefined ||
+		pass.isIabMode ||
+		pass.vendorDenied === null ||
+		!pass.vendorDenied.has(vendor);
+	const allowed = categoryAllowed && vendorAllowed;
 	const dataSrc = iframe.getAttribute('data-src');
 
 	if (allowed) {

@@ -24,6 +24,7 @@ import type {
 	GetSubjectOutput,
 	PrivacyDirectiveWire,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
@@ -39,7 +40,7 @@ import {
 	isOptionalConsentCategory,
 	validateExplicitChoice,
 } from '../consent-record/validation';
-import type { HydrationRecords } from '../types';
+import type { HydrationRecords, VendorChoice } from '../types';
 
 /** Validated records returned by a subject transport. */
 export type TransportHydrationRecords = HydrationRecords;
@@ -205,6 +206,54 @@ const mapDirective = (
 };
 
 /**
+ * The vendor denial list a wire grant map describes. A malformed map is
+ * ignored rather than invented; an all-granted map is `null`.
+ */
+const mapVendorChoice = (
+	wire: VendorChoiceWire | null | undefined,
+	now: number
+): VendorChoice | null => {
+	if (
+		!wire ||
+		typeof wire !== 'object' ||
+		wire.version !== 1 ||
+		typeof wire.grants !== 'object' ||
+		wire.grants === null ||
+		checkTimestamp(wire.confirmedAt, now)
+	) {
+		return null;
+	}
+	const denied: string[] = [];
+	for (const [id, granted] of Object.entries(wire.grants)) {
+		if (typeof granted !== 'boolean') {
+			return null;
+		}
+		if (!granted && id.length > 0) {
+			denied.push(id);
+		}
+	}
+	return denied.length > 0
+		? { confirmedAt: wire.confirmedAt, denied: denied.sort(), version: 1 }
+		: null;
+};
+
+/** Newest vendor grant map across the consent items, for older backends. */
+const mergeItemVendors = (
+	items: readonly ConsentItem[]
+): VendorChoiceWire | null | undefined => {
+	let newest: VendorChoiceWire | null | undefined;
+	for (const item of items) {
+		if (item.type !== COOKIE_BANNER || !item.vendorChoice) {
+			continue;
+		}
+		if (!newest || item.vendorChoice.confirmedAt >= newest.confirmedAt) {
+			newest = item.vendorChoice;
+		}
+	}
+	return newest;
+};
+
+/**
  * Maps a subject read onto hydration records.
  *
  * `choice` is `null` when the backend holds no usable receipt: none at all,
@@ -232,11 +281,17 @@ export const mapSubjectRecordToHydrationRecords =
 			}
 		}
 
+		const vendorWire =
+			record.subjectVendorChoice === undefined
+				? mergeItemVendors(record.consents)
+				: record.subjectVendorChoice;
+
 		return {
 			choice: validated?.ok ? validated.record : null,
 			now: options.now,
 			optOutDirectives: directives,
 			subject: mapSubject(record.subject),
+			vendorChoice: mapVendorChoice(vendorWire, options.now),
 		};
 	};
 

@@ -36,6 +36,11 @@ allowed iframe for performance; it does not implement consent gating.
 
 ## Consent behavior
 
+Add `data-vendor="youtube"` next to `data-category` and declare a `youtube`
+vendor in the provider's `vendors` option to let visitors turn YouTube off while
+keeping the rest of the category on. See
+[vendor-level consent](/docs/integrations/vendor-consent).
+
 Each example keeps the iframe absent until the category is allowed. After
 permission, the iframe can load. Revoking permission removes the iframe and its
 embedded document. Requests already sent cannot be recalled.

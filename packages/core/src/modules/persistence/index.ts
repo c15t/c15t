@@ -24,8 +24,9 @@
  * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
  *   A canonical subject acknowledgement preserves every receipt timestamp.
  *   Separate writes follow
- *   `notice:dismissed` (the notice record and its cookie projection) and
- *   `privacy:opt-out` (the privacy record and its cookie projection).
+ *   `notice:dismissed` (the notice record and its cookie projection),
+ *   `privacy:opt-out` (the privacy record and its cookie projection) and
+ *   `vendors:recorded` (the vendor denial list and its cookie projection).
  *   Permission changes, policy changes and elapsed time never write.
  * - `clear()` cancels queued writes before it removes storage, so a
  *   pending flush cannot recreate what was just cleared.
@@ -40,6 +41,7 @@ import {
 	writeChoiceToStorage,
 	writeNoticeToStorage,
 	writePrivacyToStorage,
+	writeVendorChoiceToStorage,
 } from './write';
 
 export type {
@@ -52,7 +54,11 @@ export {
 	readStoredRecordsFromCookieHeader,
 } from './hydrate';
 export type { StoredRecords } from './hydrate';
-export type { StoredIabMetadata, StoredConsentEnvelope } from './record-codec';
+export type {
+	StoredIabMetadata,
+	StoredConsentEnvelope,
+	StoredVendorChoice,
+} from './record-codec';
 export { resolveStorageKeys } from './record-storage';
 
 export const CONSENT_STORAGE_KEY = STORAGE_KEY_V2;
@@ -76,6 +82,9 @@ export const createPersistence = function createPersistence(
 	const privacyWrites = createWriteScheduler(() => {
 		writePrivacyToStorage(kernel.getSnapshot(), storageConfig, now());
 	});
+	const vendorWrites = createWriteScheduler(() => {
+		writeVendorChoiceToStorage(kernel.getSnapshot(), storageConfig, now());
+	});
 
 	const unsubscribers = [
 		kernel.events.on('choice:recorded', () => {
@@ -90,18 +99,23 @@ export const createPersistence = function createPersistence(
 		kernel.events.on('privacy:opt-out', () => {
 			privacyWrites.schedule();
 		}),
+		kernel.events.on('vendors:recorded', () => {
+			vendorWrites.schedule();
+		}),
 	];
 
 	const flushAll = function flushAll(): void {
 		choiceWrites.flush();
 		noticeWrites.flush();
 		privacyWrites.flush();
+		vendorWrites.flush();
 	};
 
 	const cancelAll = function cancelAll(): void {
 		choiceWrites.cancel();
 		noticeWrites.cancel();
 		privacyWrites.cancel();
+		vendorWrites.cancel();
 	};
 
 	const hydrate = function hydrate(): boolean {
@@ -136,6 +150,7 @@ export const createPersistence = function createPersistence(
 				now: now(),
 				optOutDirectives: [],
 				subject: null,
+				vendorChoice: null,
 			});
 			kernel.events.emit({ type: 'records:cleared' });
 		},

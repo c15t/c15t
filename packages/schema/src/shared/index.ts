@@ -73,6 +73,13 @@ export {
 	nonIABVendorSchema,
 } from './non-iab-vendor';
 export {
+	type Vendor,
+	type VendorCategoryCondition,
+	vendorCategoryConditionSchema,
+	vendorIdSchema,
+	vendorSchema,
+} from './vendor';
+export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,
 	createMaterialPolicyFingerprint,

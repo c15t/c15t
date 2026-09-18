@@ -46,6 +46,10 @@ export const normalizeScripts = function normalizeScripts(
 			typeof script.category === 'string'
 				? (script.category as AllConsentNames)
 				: null,
+		vendor:
+			typeof script.vendor === 'string' && script.vendor.length > 0
+				? script.vendor
+				: null,
 	}));
 };
 

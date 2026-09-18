@@ -11,7 +11,7 @@
  * its own.
  */
 import type { ConsentSnapshot } from '../../types';
-import { getEffectiveGateState } from '../has';
+import { getEffectiveGateState, isVendorDenied } from '../has';
 import type {
 	Script,
 	ScriptCallbackInfo,
@@ -32,7 +32,7 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	element?: HTMLScriptElement,
 	error?: Error
 ): ScriptCallbackInfo {
-	return {
+	const info: ScriptCallbackInfo = {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		element,
 		elementId,
@@ -40,6 +40,13 @@ export const buildCallbackInfo = function buildCallbackInfo(
 		hasConsent,
 		id: script.id,
 	};
+	if (script.vendor && snapshot.model !== 'iab') {
+		info.vendor = {
+			granted: !isVendorDenied(snapshot, script.vendor),
+			id: script.vendor,
+		};
+	}
+	return info;
 };
 
 /**

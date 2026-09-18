@@ -33,6 +33,7 @@ import type { I18nConfig } from '@c15t/translations';
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
 import { extractConsentNamesFromCondition } from '../libs/has';
+import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
@@ -221,6 +222,16 @@ export const hasResolvedPrefetch = function hasResolvedPrefetch(
 	);
 };
 
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
 const requireTransportFactory = function requireTransportFactory(
 	options: ConsentRuntimeOptions
 ) {
@@ -260,15 +271,33 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	};
 	const transport = requireTransportFactory(options)(transportContext);
 
+	const integrations = [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+	];
+	const declaredVendors = resolveVendors({
+		config: options.vendors,
+		onWarn: warnVendorDeclaration,
+		owners: integrations,
+	});
+
 	return createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
 		inferredConsentCategories: [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		].flatMap((integration) =>
-			extractConsentNamesFromCondition(integration.category)
-		),
+			...integrations.flatMap((integration) =>
+				extractConsentNamesFromCondition(integration.category)
+			),
+			// A vendor declared in code makes its category selectable, the same
+			// way a script or rule would.
+			...(options.vendors ?? []).flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+		],
+		initialVendors:
+			declaredVendors.length > 0
+				? { declared: declaredVendors, listVersion: null }
+				: prefetch.initialVendors,
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -384,6 +413,21 @@ export const createConsentRuntime = function createConsentRuntime(
 			kernel,
 		})
 	);
+	// Vendors the backend declares arrive with init. Their categories become
+	// selectable the same way a code-declared vendor's do at construction.
+	disposers.push(
+		kernel.events.on('init:applied', ({ snapshot }) => {
+			const declared = snapshot.vendors?.declared ?? [];
+			if (declared.length === 0) {
+				return;
+			}
+			kernel.set.registerConsentCategories(
+				declared.flatMap((vendor) =>
+					extractConsentNamesFromCondition(vendor.category)
+				)
+			);
+		})
+	);
 
 	let persistenceHandle: PersistenceHandle | null = null;
 
@@ -467,6 +511,7 @@ export const createConsentRuntime = function createConsentRuntime(
 				noticeDismissal: null,
 				optOutDirectives: [],
 				subject: null,
+				vendorChoice: null,
 			});
 			kernel.events.emit({ type: 'records:cleared' });
 		},
@@ -515,11 +560,17 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 			await runInit();
 		},
+		resetVendorDraft() {
+			kernel.set.vendorDraft(null);
+		},
 		setConsentCategories(categories) {
 			kernel.set.consentCategories(categories);
 		},
 		setOverrides(overrides: KernelOverrides) {
 			kernel.set.overrides(overrides);
+		},
+		setVendorConsent(vendorId, granted) {
+			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
 		start() {
 			if (started || disposed || typeof document === 'undefined') {

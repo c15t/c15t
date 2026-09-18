@@ -52,6 +52,9 @@ export interface KernelRuntime {
 	commit: (patch: SnapshotPatch) => boolean;
 	getDraft: () => PresentedSelection | null;
 	setDraft: (draft: PresentedSelection | null) => void;
+	/** Staged per-vendor grants, dropped when the choice contract changes. */
+	getVendorDraft: () => Readonly<Record<string, boolean>> | null;
+	setVendorDraft: (draft: Record<string, boolean> | null) => void;
 	now: () => number;
 	/** Whether a lifecycle command (init or hydrate) already ran. */
 	isStarted: () => boolean;
@@ -103,9 +106,9 @@ const hasDocumentListeners = function hasDocumentListeners(): boolean {
 };
 
 /** Draft values bound to the choice fingerprint they were presented under. */
-interface BoundDraft {
+interface BoundDraft<Values> {
 	fingerprint: string;
-	values: PresentedSelection;
+	values: Values;
 }
 
 export const createRuntime = function createRuntime(
@@ -113,12 +116,13 @@ export const createRuntime = function createRuntime(
 ): KernelRuntime {
 	const { emit, transport } = options;
 	let snapshot = options.initialSnapshot;
-	let draft: BoundDraft | null = options.initialDraft
+	let draft: BoundDraft<PresentedSelection> | null = options.initialDraft
 		? {
 				fingerprint: snapshot.evaluationPolicy.choice.fingerprint,
 				values: options.initialDraft,
 			}
 		: null;
+	let vendorDraft: BoundDraft<Record<string, boolean>> | null = null;
 	let started = false;
 	let disposed = false;
 	let generation = 0;
@@ -399,6 +403,11 @@ export const createRuntime = function createRuntime(
 				: null,
 		getGeneration: () => generation,
 		getSnapshot,
+		getVendorDraft: () =>
+			vendorDraft &&
+			vendorDraft.fingerprint === snapshot.evaluationPolicy.choice.fingerprint
+				? vendorDraft.values
+				: null,
 		hydrate,
 		invalidateRecords: () => {
 			generation += 1;
@@ -413,6 +422,14 @@ export const createRuntime = function createRuntime(
 		refresh,
 		setDraft(next) {
 			draft = next
+				? {
+						fingerprint: snapshot.evaluationPolicy.choice.fingerprint,
+						values: next,
+					}
+				: null;
+		},
+		setVendorDraft(next) {
+			vendorDraft = next
 				? {
 						fingerprint: snapshot.evaluationPolicy.choice.fingerprint,
 						values: next,

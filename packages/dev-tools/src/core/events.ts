@@ -13,6 +13,8 @@ const EVENT_TYPES = [
 	'user:identified',
 	'subject:resolved',
 	'iab:set',
+	'vendors:set',
+	'vendors:recorded',
 	'init:applied',
 	'init:failed',
 	'save:replayed',
@@ -171,6 +173,29 @@ export function kernelEventToDevToolsEvent(
 				data: snapshotData(event.snapshot),
 				id,
 				message: 'IAB state changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'vendors:set':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					vendors: event.snapshot.vendors,
+				},
+				id,
+				message: 'Declared vendors changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'vendors:recorded':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					actionAt: event.actionAt,
+					vendorChoice: event.snapshot.vendorChoice,
+				},
+				id,
+				message: 'Vendor choice recorded',
 				timestamp,
 				type: event.type,
 			};

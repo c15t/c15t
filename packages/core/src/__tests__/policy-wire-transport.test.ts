@@ -471,6 +471,7 @@ describe('hosted subject record boundary', () => {
 				},
 			],
 			subject: { externalId: 'person-42', subjectId: 'sub_test' },
+			vendorChoice: null,
 		});
 	});
 

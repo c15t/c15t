@@ -15,6 +15,7 @@ import type {
 	PolicyResolutionWire,
 } from '@c15t/schema/types';
 
+import { resolveVendors } from '../libs/vendors';
 import type {
 	InitResponse,
 	KernelBranding,
@@ -166,6 +167,12 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (payload.cmpId !== undefined) {
 		mapped.cmpId = payload.cmpId;
 	}
+	if (payload.vendors !== undefined) {
+		mapped.vendors = payload.vendors;
+	}
+	if (payload.vendorListVersion !== undefined) {
+		mapped.vendorListVersion = payload.vendorListVersion;
+	}
 	if (payload.subjectId !== undefined && payload.subjectId !== null) {
 		mapped.subjectId = payload.subjectId;
 	}
@@ -271,11 +278,30 @@ export const mergeInitResponseIntoKernelConfig =
 		}
 
 		if (
+			response.vendors !== undefined ||
+			response.vendorListVersion !== undefined
+		) {
+			const declared = resolveVendors({
+				existing: merged.initialVendors?.declared ?? [],
+				manifest: response.vendors ?? [],
+			});
+			const listVersion =
+				response.vendorListVersion ??
+				merged.initialVendors?.listVersion ??
+				null;
+			if (declared.length > 0 || listVersion !== null) {
+				merged.initialVendors = { declared, listVersion };
+			}
+		}
+
+		if (
 			merged.initialPolicyResolution &&
 			merged.initialPolicyResolution.status !== 'matched'
 		) {
 			// Clear after folding the response: a failed producer may include
 			// stale legacy metadata alongside its non-matching resolution.
+			// Vendor declarations stay: they are presentation data, not policy
+			// proof, and the client's own declarations would survive anyway.
 
 			delete merged.initialPolicySnapshotToken;
 			delete merged.initialIab;
@@ -361,6 +387,24 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 		}
 		if (iab.cmpId !== undefined && iab.cmpId !== null) {
 			response.cmpId = iab.cmpId;
+		}
+	}
+
+	const vendors = config.initialVendors;
+	if (vendors !== undefined) {
+		// Only manifest-sourced entries round-trip: code-declared vendors are
+		// re-resolved by the runtime from its own options.
+		const manifest = vendors.declared.filter(
+			(vendor) => vendor.source === 'manifest' && vendor.presentable
+		);
+		if (manifest.length > 0) {
+			response.vendors = manifest.map(
+				({ presentable: _presentable, source: _source, ...vendor }) =>
+					vendor as NonNullable<InitResponse['vendors']>[number]
+			);
+		}
+		if (vendors.listVersion !== null) {
+			response.vendorListVersion = vendors.listVersion;
 		}
 	}
 

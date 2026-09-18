@@ -21,6 +21,7 @@ import type { PolicyFingerprints } from './policy-rule-fingerprint';
 import type { PolicyMatch } from './policy-runtime';
 import { getTranslationsData } from './translations-runtime';
 import type { I18nOptions, LoggerLike } from './translations-runtime';
+import type { Vendor } from './vendor';
 
 export type ConsentManifestBranding = (typeof brandingValues)[number];
 
@@ -76,6 +77,10 @@ export interface ConsentManifest {
 	translations?: ConsentManifestTranslationInputs;
 	cmpId?: number;
 	iab?: ConsentManifestIAB;
+	/** Vendors declared for vendor-level consent outside IAB. */
+	vendors?: Vendor[];
+	/** Version label of `vendors`, surfaced for display and audit only. */
+	vendorListVersion?: string;
 }
 
 export interface ResolveInitFromManifestInputs {
@@ -315,6 +320,10 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 			manifest.cmpId !== undefined && {
 				cmpId: manifest.cmpId,
 			}),
+		...(manifest.vendors !== undefined && { vendors: manifest.vendors }),
+		...(manifest.vendorListVersion !== undefined && {
+			vendorListVersion: manifest.vendorListVersion,
+		}),
 	};
 };
 
@@ -351,6 +360,10 @@ export interface ConsentManifestConfig {
 		>['customVendors'];
 		readonly endpoint?: string;
 	};
+	/** Vendors declared for vendor-level consent outside IAB. */
+	readonly vendors?: readonly Vendor[];
+	/** Version label of `vendors`, for display and audit only. */
+	readonly vendorListVersion?: string;
 }
 
 const DEFAULT_GVL_ENDPOINT = 'https://gvl.inth.app';
@@ -422,6 +435,8 @@ export const buildConsentManifestFromConfig =
 				customTranslations: config.customTranslations,
 				i18n: config.i18n,
 			},
+			vendorListVersion: config.vendorListVersion,
+			vendors: config.vendors ? [...config.vendors] : undefined,
 		};
 
 		// The revision is a fingerprint of the manifest itself, so a client can

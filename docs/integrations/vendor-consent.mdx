@@ -1,0 +1,137 @@
+---
+title: Vendor-level consent
+description: Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
+group: integrations
+---
+
+## Declare vendors
+
+Add `vendors` to your provider or runtime options. Each vendor sits inside a
+category condition and needs a name and a privacy policy URL so the preference
+surface can list it:
+
+```ts
+import { hosted, type Vendor } from 'c15t';
+import { createConsentRuntime } from 'c15t/runtime';
+
+const vendors = [
+	{
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		category: 'marketing',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+		description: 'Ad conversion measurement and audiences.',
+	},
+	{
+		id: 'google-analytics',
+		name: 'Google Analytics',
+		category: 'measurement',
+		privacyPolicyUrl: 'https://policies.google.com/privacy',
+	},
+] satisfies Vendor[];
+
+const runtime = createConsentRuntime({
+	mode: hosted({ url: '/api/c15t' }),
+	vendors,
+	scripts: [
+		{
+			id: 'meta-pixel',
+			category: 'marketing',
+			vendor: 'meta-pixel',
+			src: 'https://connect.facebook.net/en_US/fbevents.js',
+		},
+	],
+});
+
+// Start in the browser after mount. The endpoint must serve your c15t backend.
+runtime.start();
+```
+
+The `id` is a lowercase slug of up to 64 characters. Reuse it as the `vendor`
+field on scripts and network rules and as the `data-vendor` attribute on
+iframes. Integrations from `@c15t/scripts` already set `vendor` to their
+manifest slug, so `googleTag()` and `metaPixel()` need no extra wiring.
+
+A backend can also declare vendors. Add `vendors` and an optional
+`vendorListVersion` to the manifest configuration; `/init` returns them and the
+client merges them with the vendors declared in code. When both declare the
+same id, the copy declared in code wins. A slug used by a script but declared
+nowhere still gates loading. It is hidden from the preference surface, and the
+runtime warns about it outside production.
+
+## How a vendor is gated
+
+A target loads when its category condition passes and the visitor has not
+turned its vendor off:
+
+```text
+loads  =  category condition satisfied  AND  vendor not denied
+```
+
+The category is evaluated first, so an unknown category still throws as a
+configuration error. A vendor toggle never grants a category on its own: with
+marketing denied, `meta-pixel` stays blocked whatever its own switch says.
+
+Under an `iab` policy the `vendor` slug is inert. Vendor consent then comes from
+the TC string through `vendorId`, and the vendor rows are not shown.
+
+The same rule applies to the three gates:
+
+| Surface | Field |
+| --- | --- |
+| Script loader | `Script.vendor` |
+| Network blocker | `NetworkBlockerRule.vendor` |
+| Iframe blocker | `data-vendor` on the `<iframe>` |
+
+An iframe with `data-vendor` and no `data-category` is gated on the vendor
+alone. An unknown `data-vendor` value is granted rather than thrown: a vendor
+the visitor never saw cannot have been turned off.
+
+## Record a vendor choice
+
+Vendor grants travel with the save. Stage them and confirm with the next save,
+or pass them explicitly:
+
+```ts
+// Stage from a toggle handler; nothing changes until save() runs.
+runtime.setVendorConsent('meta-pixel', false);
+await runtime.kernel.commands.save();
+
+// Or confirm categories and vendors in one action.
+await runtime.kernel.commands.save(
+	{ marketing: true, measurement: true },
+	{ vendors: { 'meta-pixel': false } }
+);
+```
+
+Only the vendors the visitor turned off are stored. Accept all and reject all
+both clear that list, so vendors follow their category on a bulk action. A
+vendor that is not declared, or is declared with `disabled: true`, is ignored.
+Under an opt-out policy every vendor starts on and the stored list is the
+do-not-sell list.
+
+A vendor-only change records without touching category receipts. The kernel
+emits `vendors:recorded` rather than `choice:recorded`, writes the
+`<storageKey>-vendors` cookie and localStorage entry, and sends the complete
+grant map to the backend as `vendorChoice`. Category confirmation times are not
+renewed.
+
+Scripts see the vendor result in their callbacks. `ScriptCallbackInfo.vendor`
+carries `{ id, granted }` outside IAB mode. Integrations that send Google
+Consent Mode or RudderStack signals send every category as denied while their
+vendor is off, so the vendor's own consent API cannot re-enable tracking.
+
+## What a denial does not do
+
+Turning a vendor off blocks future loads and requests. It does not delete the
+cookies that vendor already set. Configure
+[clear on revocation](/docs/integrations/clear-on-revocation) for that, keyed by
+the vendor's category.
+
+A vendor denial has no expiry and no policy basis. It stays until the visitor
+changes it or a bulk action clears it, including across a policy change that
+requires the category choice again.
+
+Adding a vendor to the list does not reopen consent. New vendors default to on
+inside a granted category. Use the policy rule's `copyRevision` when a new
+vendor should prompt the visitor again.
