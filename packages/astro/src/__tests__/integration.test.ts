@@ -97,7 +97,9 @@ describe('resolveOptions', () => {
 		};
 		expect(() =>
 			resolveOptions({
-				experiment: { id: 'banner-shape', variants },
+				// The option type requires `variant`; a hand-built object can
+				// still omit it, and the guard has to catch that.
+				experiment: { id: 'banner-shape', variants } as never,
 				mode: offlineMode(),
 			})
 		).toThrowError(/Built-in assignment is not supported on Astro/u);

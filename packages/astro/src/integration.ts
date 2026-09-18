@@ -159,9 +159,12 @@ export const resolveOptions = function resolveOptions(
 	// hides. An arm assigned in the browser would be recorded on the
 	// impression and the choice while the visitor saw the base banner, so
 	// the arm has to be known on the server.
-	if (options.experiment && options.experiment.variant === undefined) {
+	if (options.experiment && typeof options.experiment.variant !== 'string') {
 		throw new Error(
-			`@c15t/astro: \`experiment\` needs a \`variant\`. Built-in assignment is not supported on Astro because the banner is server-rendered; resolve the arm on the server (a feature flag, a cookie) and pass it as \`experiment.variant\`.`
+			'@c15t/astro: `experiment` needs a `variant`. ' +
+				'Built-in assignment is not supported on Astro because the banner ' +
+				'is server-rendered; resolve the arm on the server (a feature flag, ' +
+				'a cookie) and pass it as `experiment.variant`.'
 		);
 	}
 	const {

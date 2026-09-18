@@ -139,7 +139,7 @@ export interface C15tAstroOptions {
 	 * banner is server-rendered, so the arm must be resolved on the server.
 	 * Built-in assignment is not available on Astro.
 	 */
-	experiment?: ConsentExperiment;
+	experiment?: Omit<ConsentExperiment, 'variant'> & { variant: string };
 	/**
 	 * Transport selection. Build it with `hosted()`, `offline()` or
 	 * `manifest()` so the descriptor stays well-formed.

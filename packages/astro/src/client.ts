@@ -396,6 +396,7 @@ const createClient = function createClient(
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
 		prefetch: config,
+		presentation: options.presentation,
 		scripts,
 		storageConfig: options.storageConfig,
 		theme: options.theme,

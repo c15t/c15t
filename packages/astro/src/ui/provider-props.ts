@@ -20,6 +20,11 @@ import type { C15tResolvedOptions } from '../types';
  */
 export interface DialogPresentationOptions {
 	consentCategories?: C15tResolvedOptions['consentCategories'];
+	/**
+	 * The configured experiment. The island reads the assigned arm from the
+	 * runtime snapshot and merges that arm over `presentation`; `theme`
+	 * below already carries the arm's theme overrides.
+	 */
 	experiment?: C15tResolvedOptions['experiment'];
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
