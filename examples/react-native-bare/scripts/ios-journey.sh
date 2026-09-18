@@ -46,7 +46,10 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${APP_DIR}/../.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-OUT_DIR="${IOS_JOURNEY_OUT:-/tmp/ios-journey}"
+# Namespaced by worktree: lanes that each own a simulator still wrote their frames to
+# one shared /tmp/ios-journey, so a second run cleared the first run's evidence and
+# compared it against frames it never took.
+OUT_DIR="${IOS_JOURNEY_OUT:-/tmp/ios-journey/$(basename "${REPO_ROOT}")}"
 SIM_NAME="${IOS_JOURNEY_SIM:-c15t-ios-journey}"
 SIM_DEVICE="${IOS_JOURNEY_DEVICE:-iPhone 17 Pro}"
 SIM_RUNTIME="${IOS_JOURNEY_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-4}"
@@ -56,8 +59,23 @@ DERIVED="${IOS_JOURNEY_DERIVED:-/tmp/ios-journey-derived}"
 SCALE="${IOS_JOURNEY_SCALE:-3}"
 STATUS_BAND_PX="${IOS_JOURNEY_STATUS_BAND_PX:-177}"
 MIN_CHANGED_PCT="${IOS_JOURNEY_MIN_CHANGED_PCT:-0.35}"
+# Ceiling for a `same:` step, well clear of the 0.18% a cold-start status line costs and
+# far below the 5%+ any real consent change paints.
+SAME_MAX_CHANGED_PCT="${IOS_JOURNEY_SAME_MAX_CHANGED_PCT:-0.5}"
 TRUTH_DIR="${IOS_JOURNEY_TRUTH:-/tmp/ui-parity/truth}"
 MODE="${1:-release}"
+METRO_PORT=""
+LOCK_DIR=""
+
+# One trap for the whole run. Two traps would clobber each other, and the packager
+# and the lock both have to survive a failure halfway through the journey.
+cleanup() {
+	[[ -n "${METRO_PORT}" ]] &&
+		pkill -f "react-native start --port ${METRO_PORT}" >/dev/null 2>&1
+	[[ -n "${LOCK_DIR}" ]] && rmdir "${LOCK_DIR}" 2>/dev/null
+	return 0
+}
+trap cleanup EXIT
 
 STEP_FAILS=0
 SUMMARY=()
@@ -121,6 +139,13 @@ fi
 
 log "simulator ${SIM_NAME} ${SIM_UDID}"
 
+# Two runs on one simulator is the worst failure this script can have: each erases the
+# other's device and screenshots the other's screen, so a step reads as obstructed or
+# as a frame that did not move, and the run that reports it is not the run at fault.
+LOCK_DIR="${TMPDIR:-/tmp}c15t-ios-journey-${SIM_UDID}.lock"
+mkdir "${LOCK_DIR}" 2>/dev/null ||
+	die "another run already drives ${SIM_NAME}. Its lock is ${LOCK_DIR}. Wait for it, or point this run at another device with IOS_JOURNEY_SIM."
+
 sim shutdown "${SIM_UDID}" >/dev/null 2>&1 || true
 log "erasing ${SIM_NAME}: this is the fresh-install step, Keychain included"
 sim erase "${SIM_UDID}"
@@ -149,7 +174,13 @@ XCODE_ARGS=(
 	-sdk iphonesimulator
 	-destination 'generic/platform=iOS Simulator'
 	-derivedDataPath "${DERIVED}"
-	CODE_SIGNING_ALLOWED=NO
+	# An ad-hoc simulator signature, not an unsigned build. A binary built with
+	# CODE_SIGNING_ALLOWED=NO has no keychain-access group, so the core's Keychain
+	# write fails with errSecMissingEntitlement and a consent decision comes back
+	# refused. Ad-hoc identity (-) is enough for a simulator.
+	CODE_SIGNING_ALLOWED=YES
+	CODE_SIGNING_FOR_SIMULATOR=YES
+	CODE_SIGN_IDENTITY=-
 )
 
 if [[ "${MODE}" == "debug" ]]; then
@@ -165,7 +196,6 @@ if [[ "${MODE}" == "debug" ]]; then
 	log "starting Metro on ${METRO_PORT}, never 8081"
 	(cd "${APP_DIR}" && npx react-native start --port "${METRO_PORT}" \
 		>/tmp/ios-journey-metro.log 2>&1 &)
-	trap 'pkill -f "react-native start --port ${METRO_PORT}" >/dev/null 2>&1 || true' EXIT
 
 	for _ in $(seq 1 60); do
 		curl -fsS -m 2 "http://localhost:${METRO_PORT}/status" >/dev/null 2>&1 && break
@@ -188,7 +218,7 @@ APP_PATH="$(find "${DERIVED}/Build/Products" -maxdepth 2 -name 'C15tBare.app' -t
 [[ -n "${APP_PATH}" ]] || die "no C15tBare.app under ${DERIVED}/Build/Products"
 
 mkdir -p "${OUT_DIR}"
-rm -f "${OUT_DIR}"/*.png "${OUT_DIR}"/*.png.md5 "${OUT_DIR}"/*.json
+rm -f "${OUT_DIR}"/*.png "${OUT_DIR}"/*.png.md5 "${OUT_DIR}"/*.json "${OUT_DIR}"/*.app-md5
 
 log "installing $(basename "${APP_PATH}")"
 sim install "${SIM_UDID}" "${APP_PATH}"
@@ -276,11 +306,22 @@ step() {
 			reason="only ${changed}% of the app area changed, step did not happen"
 		fi
 	elif [[ "${expect}" == same:* ]]; then
-		local want="${expect#same:}"
-		if [[ ! -f "${OUT_DIR}/${want}.app-md5" ]] ||
-			[[ "${app_md5}" != "$(cat "${OUT_DIR}/${want}.app-md5")" ]]; then
+		# Byte equality is the wrong demand for a step that changes nothing. Every step is a
+		# cold start, and the app's own status line settles on its own schedule: a measured
+		# run put the banner in the identical pixels with the identical buttons in both frames
+		# and still differed across one 20pt line. So the bound is how much of the app area
+		# moved, and the surface check below is what pins which consent surface is on screen.
+		local want="${expect#same:}" base_changed="n/a"
+		if [[ -f "${OUT_DIR}/${want}.png" ]]; then
+			base_changed="$(python "${SCRIPT_DIR}/ios-frame-proof.py" diff \
+				"${OUT_DIR}/${want}.png" "${png}" --status-band "${STATUS_BAND_PX}")"
+		fi
+		if [[ "${base_changed}" == "n/a" ]]; then
 			status="FAILED"
-			reason="app area differs from ${want}, which the step says it must not"
+			reason="cannot compare against ${want}, no baseline frame to compare to"
+		elif awk -v c="${base_changed}" -v m="${SAME_MAX_CHANGED_PCT}" 'BEGIN{exit !(c>m)}'; then
+			status="FAILED"
+			reason="${base_changed}% of the app area moved against ${want}, which the step says it must not"
 		fi
 	fi
 
@@ -361,7 +402,14 @@ step 08-relaunch-measurement-off "relaunched: measurement still off" diff none "
 appearance dark
 step 09-dark-dialog "dark scheme from the platform, manager open" diff dialog "c15t-demo://customize" 8
 
-# 10. The core's own wipe, not a reinstall, and the prompt back in the other palette.
+# 10. The core's own wipe, not a reinstall, and the prompt back where it started.
+#     Light again, on purpose. Only the modal dialog dims what is behind it, so in dark the
+#     banner sits on a page painted the same 18,18,18 as its own card and the framing has no
+#     fill delta to walk; the hairline and the footer band are still there and measure right
+#     (51,51,51 and 26,26,26, the web values), but the surface check cannot frame the card,
+#     which would report a missing prompt rather than a missing edge. Step 09 keeps the dark
+#     coverage, and the frame this step is compared against was taken in light.
+appearance light
 step 10-reset-prompt-returns "reset: first-run prompt owed again" diff banner "c15t-demo://reset" 12
 
 # 11. And it is owed in storage, so a second cold start still shows it.
