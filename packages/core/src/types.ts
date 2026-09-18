@@ -92,6 +92,16 @@ export type Model = KernelModel;
 export type KernelActiveUI = 'none' | 'banner' | 'dialog' | null;
 
 /**
+ * Surface a save is attributed to. Defaults to the snapshot's `activeUI`;
+ * a host passes `'widget'` for an inline preference center that is not a
+ * kernel-managed surface.
+ */
+export type SaveUISource = KernelActiveUI | 'widget';
+
+/** Prompt surfaces whose first appearance the kernel timestamps. */
+export type PromptSurface = 'banner' | 'dialog';
+
+/**
  * Active UI surface once the kernel has resolved (never `null`).
  */
 export type ActiveUI = 'none' | 'banner' | 'dialog';
@@ -292,6 +302,13 @@ export interface ConsentSnapshot {
 	 * `'none'`. A failed init also keeps the first layer hidden.
 	 */
 	readonly policyPending: boolean;
+	/**
+	 * Epoch milliseconds of the first time each prompt surface became
+	 * visible in this kernel's lifetime, or `null` while it never has. The
+	 * event bus does not replay `surface:shown` to late subscribers; read
+	 * this to learn about an impression that happened before subscribing.
+	 */
+	readonly surfaceShownAt: Readonly<Record<PromptSurface, number | null>>;
 
 	// -- IAB passthrough (null when IAB not enabled) -------------------------
 	readonly iab: Readonly<KernelIABState> | null;
@@ -340,6 +357,12 @@ export interface KernelConfig {
 	/**
 	 * Marks the policy as pending transport initialization.
 	 * Suppresses `activeUI` until init completes.
+	 *
+	 * `init()` marks the kernel live before `transport.init` resolves, so a
+	 * kernel built without an initial policy resolution shows the fallback
+	 * banner and records its impression (`surface:shown`) at once. Headless
+	 * callers that wait for the transport's policy should pass `true` so no
+	 * impression is recorded before the policy arrives.
 	 */
 	initialPolicyPending?: boolean;
 	/**
@@ -443,9 +466,15 @@ export interface SavePayload {
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
 	model: KernelModel;
-	uiSource: KernelActiveUI;
+	uiSource: SaveUISource;
 	consentAction: 'all' | 'necessary' | 'custom';
 	policySnapshotToken: string | null;
+	/**
+	 * Milliseconds between the first impression of the surface this save is
+	 * attributed to and `confirmed.actionAt`. Absent when the surface is not
+	 * a prompt surface or was never shown to this kernel.
+	 */
+	timeToDecisionMs?: number;
 	/**
 	 * Resolved policy inputs captured with the action. The backend
 	 * recomputes them before accepting a choice; retries keep the
@@ -502,6 +531,16 @@ export type KernelEvent =
 			/** Categories whose receipt this action replaced. */
 			confirmed: readonly OptionalConsentCategory[];
 			actionAt: number;
+			/** Milliseconds from the surface's first impression to this action, when known. */
+			timeToDecisionMs?: number;
+	  }
+	| {
+			/** A prompt surface became visible. */
+			type: 'surface:shown';
+			surface: PromptSurface;
+			/** Epoch milliseconds of this impression. */
+			shownAt: number;
+			snapshot: ConsentSnapshot;
 	  }
 	| {
 			/** Effective permissions changed by value (choice, policy, expiry, privacy). */
@@ -635,6 +674,18 @@ export interface ConsentKernel {
 	hydrate: (records: HydrationRecords) => HydrationResult;
 
 	/**
+	 * Mark the kernel live in a visitor's browser. `init()` does this on its
+	 * own; an adapter that renders from a server-resolved prefetch and never
+	 * calls `init()` must call it after hydration so a visible surface is
+	 * stamped as an impression (`surface:shown`, `snapshot.surfaceShownAt`)
+	 * and a later choice can carry `timeToDecisionMs`. Idempotent; a server
+	 * or test kernel that never goes live records no impression.
+	 *
+	 * @param at - Impression time for a surface already visible. Defaults to now.
+	 */
+	markLive: (at?: number) => void;
+
+	/**
 	 * Re-evaluate at `now` (default `Date.now()`). Gates call this before a
 	 * time-sensitive decision so an elapsed expiry cannot hide behind a
 	 * delayed timer. Advances the snapshot only when something changed.
@@ -690,6 +741,8 @@ export interface ConsentKernel {
 				 * @internal
 				 */
 				iabAuthority?: KernelIABAuthority;
+				/** Surface to attribute the save to. Defaults to the snapshot's `activeUI`. */
+				uiSource?: SaveUISource;
 			}
 		) => Promise<SaveResult>;
 		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */

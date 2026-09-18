@@ -540,13 +540,9 @@ export const createVueConsentKernelContext =
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
 		const unsubscribeChoice = kernel.events.on(
 			'choice:recorded',
-			({ snapshot: eventSnapshot, confirmed, actionAt }) => {
+			({ type: _type, ...event }) => {
 				(ownsKernel ? options.config.callbacks : undefined)?.onChoiceRecorded?.(
-					{
-						actionAt,
-						confirmed,
-						snapshot: eventSnapshot,
-					}
+					event
 				);
 			}
 		);
@@ -560,6 +556,14 @@ export const createVueConsentKernelContext =
 					previous,
 					snapshot: eventSnapshot,
 				});
+			}
+		);
+		const unsubscribeSurfaceShown = kernel.events.on(
+			'surface:shown',
+			({ type: _type, ...event }) => {
+				(ownsKernel ? options.config.callbacks : undefined)?.onSurfaceShown?.(
+					event
+				);
 			}
 		);
 
@@ -586,6 +590,7 @@ export const createVueConsentKernelContext =
 				unsubscribe();
 				unsubscribeChoice();
 				unsubscribePermissions();
+				unsubscribeSurfaceShown();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
@@ -814,7 +819,11 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	let active = true;
 	const isActive = () => active;
 
-	if (options.runInit !== false) {
+	if (options.runInit === false) {
+		// No init call marks this kernel live, so do it here: the banner the
+		// server rendered is the visitor's first impression.
+		context.kernel.markLive();
+	} else {
 		void (async () => {
 			await context.kernel.commands.init();
 			if (!active) {

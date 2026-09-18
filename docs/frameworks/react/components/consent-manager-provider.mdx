@@ -39,7 +39,7 @@ mechanism for switching visitors or backends.
 | --- | --- |
 | `mode` | Hosted, offline or custom transport factory |
 | `scripts` | Consent-managed script configurations |
-| `callbacks` | Choice, permission and error events |
+| `callbacks` | Impression, choice, permission and error events; see [callbacks](/docs/frameworks/react/callbacks) |
 | `theme`, `components` | Theme tokens and component slot attributes |
 | `presentation` | Prompt and preferences layout behavior |
 | `i18n` | Languages and message overrides |
@@ -52,6 +52,7 @@ production.
 
 ## Observe changes without inventing choices
 
+`onSurfaceShown` reports the banner or the dialog becoming visible.
 `onChoiceRecorded` reports explicit accept, reject and save actions.
 `onPermissionsChanged` also covers changes caused by policy, expiry or privacy
 signals. Hydration and notice dismissal do not become explicit choices.

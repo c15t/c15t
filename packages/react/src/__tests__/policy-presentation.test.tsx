@@ -243,8 +243,9 @@ describe('policy presentation reference behavior', () => {
 			.element(screen.getByTestId('consent-widget-footer-save-button'))
 			.toBeVisible();
 		await screen.getByTestId('consent-widget-footer-save-button').click();
-		expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
-		expect(kernel.getSnapshot().noticeDismissal).toBeNull();
+		// Saving from the preference center acknowledges the notice.
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	});
 });
 

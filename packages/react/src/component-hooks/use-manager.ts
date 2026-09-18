@@ -14,6 +14,7 @@ import type {
 import { evaluateConsent } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
+import { toSaveUISource } from '../context/consent-tracking-context';
 import { useConsentManagerDraft } from '../draft';
 import {
 	useActiveUI,
@@ -148,12 +149,13 @@ export const useConsentManager = function useConsentManager() {
 	);
 
 	const saveConsents = useCallback(
-		async (type: SaveType, _options?: { uiSource?: string }) => {
+		async (type: SaveType, options?: { uiSource?: string }) => {
+			const uiSource = toSaveUISource(options?.uiSource);
 			if (type === 'custom') {
-				await saveKernelConsents();
+				await saveKernelConsents(undefined, uiSource);
 				return;
 			}
-			await saveKernelConsents(type === 'all' ? 'all' : 'none');
+			await saveKernelConsents(type === 'all' ? 'all' : 'none', uiSource);
 		},
 		[saveKernelConsents]
 	);

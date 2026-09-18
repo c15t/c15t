@@ -163,7 +163,7 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['script-loader', 'troubleshooting'],
+							pages: ['script-loader', 'callbacks', 'troubleshooting'],
 							title: 'Integration',
 						},
 						{

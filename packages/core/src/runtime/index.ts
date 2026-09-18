@@ -543,6 +543,9 @@ export const createConsentRuntime = function createConsentRuntime(
 				void runInit();
 			} else if (enabled) {
 				kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });
+				// No init call marks this kernel live, so do it here: the banner
+				// the server rendered is the visitor's first impression.
+				kernel.markLive();
 				const { gpc } = kernel.getSnapshot().privacySignals;
 				if (gpc.detected && gpc.active) {
 					kernel.set.privacySignals({ gpc: true });

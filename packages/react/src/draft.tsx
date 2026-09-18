@@ -7,6 +7,7 @@ import type {
 	ConsentState,
 	SaveResult,
 	SaveInput,
+	SaveUISource,
 } from '@c15t/core';
 import {
 	createContext,
@@ -177,7 +178,8 @@ const createDraftStore = function createDraftStore(
 		async save(
 			input?: SaveInput,
 			categories?: readonly AllConsentNames[],
-			onSuccess?: () => void
+			onSuccess?: () => void,
+			uiSource?: SaveUISource
 		): Promise<SaveResult> {
 			// Guard against changes between the render and the click as well.
 			if (
@@ -197,7 +199,10 @@ const createDraftStore = function createDraftStore(
 			}
 			saveSequence += 1;
 			const sequence = saveSequence;
-			const pending = kernel.commands.save(input ?? patch, { categories });
+			const pending = kernel.commands.save(input ?? patch, {
+				categories,
+				...(uiSource !== undefined && { uiSource }),
+			});
 			// A clean draft can reseed synchronously from the local receipt.
 			const savedRevision = revision;
 			const result = await pending;
@@ -273,14 +278,19 @@ const useSaveAction = function useSaveAction(store: DraftStore) {
 	const kernel = useKernel();
 	const services = useContext(ProviderServicesContext);
 	return useCallback(
-		(input?: SaveInput) => {
+		(input?: SaveInput, uiSource?: SaveUISource) => {
 			let current = false;
 			return saveConsentUI(
 				kernel,
 				() =>
-					store.save(input, services?.getConsentCategories(), () => {
-						current = true;
-					}),
+					store.save(
+						input,
+						services?.getConsentCategories(),
+						() => {
+							current = true;
+						},
+						uiSource
+					),
 				() => current
 			);
 		},

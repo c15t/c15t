@@ -68,7 +68,7 @@ const loadClearOnRevocationModule = () =>
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
 	Callbacks,
-	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+	'onChoiceRecorded' | 'onPermissionsChanged' | 'onSurfaceShown' | 'onError'
 >;
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
@@ -564,18 +564,14 @@ const useProviderCallbacks = function useProviderCallbacks(
 
 	useEffect(() => {
 		const subscriptions = [
-			kernel.events.on(
-				'choice:recorded',
-				({ snapshot, confirmed, actionAt }) => {
-					callbacksRef.current?.onChoiceRecorded?.({
-						actionAt,
-						confirmed,
-						snapshot,
-					});
-				}
-			),
+			kernel.events.on('choice:recorded', ({ type: _type, ...event }) => {
+				callbacksRef.current?.onChoiceRecorded?.(event);
+			}),
 			kernel.events.on('permissions:changed', ({ snapshot, previous }) => {
 				callbacksRef.current?.onPermissionsChanged?.({ previous, snapshot });
+			}),
+			kernel.events.on('surface:shown', ({ type: _type, ...event }) => {
+				callbacksRef.current?.onSurfaceShown?.(event);
 			}),
 
 			kernel.events.on(
@@ -726,6 +722,9 @@ const InitMount = ({
 					: kernel.getServerSnapshot().evaluatedAt,
 			});
 			hydrated.current = true;
+			// No init call marks this kernel live, so do it here: the banner
+			// the server rendered is the visitor's first impression.
+			kernel.markLive();
 			const { gpc } = kernel.getSnapshot().privacySignals;
 			if (gpc.detected && gpc.active) {
 				// Hydration stays read-only; activate the detected signal through

@@ -105,6 +105,8 @@ export interface PolicyObservation {
 	storage?:
 		| 'unchanged'
 		| 'choice-v3'
+		/** A v3 choice envelope plus the notice dismissal the same save recorded. */
+		| 'choice-and-notice'
 		| 'notice-only'
 		| 'privacy-only'
 		| 'cleared';

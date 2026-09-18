@@ -62,5 +62,15 @@ export interface ConsentConfig
 		onPermissionsChanged?: (
 			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
 		) => void;
+		/**
+		 * Runs when the banner or the dialog becomes visible: once per opening,
+		 * never for a hydrated record or a server render. Count these as
+		 * impressions; `onChoiceRecorded` counts decisions.
+		 *
+		 * @param event - The surface, its impression time and the snapshot.
+		 */
+		onSurfaceShown?: (
+			event: Omit<Extract<KernelEvent, { type: 'surface:shown' }>, 'type'>
+		) => void;
 	};
 }
