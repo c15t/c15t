@@ -165,3 +165,8 @@ All 40 package build/test tasks passed. The final focused run passed 1,083 core,
 repository lint and formatting also passed. The broader root test command hit a
 Next.js static-export fixture that requires its dedicated compatibility runner's
 backend URL; the package test run avoids invoking that fixture outside its runner.
+
+The final browser lifecycle comparison against the original v3 base passed all
+12 budgets across six scenarios. The first run failed only the revocation timing
+budget by 5.8 ms; a repeat with unchanged code and budgets passed. Results are in
+`polish-lifecycle-comparison.md`.
