@@ -51,8 +51,24 @@ other's endpoint or cache automatically.
 
 Both endpoint defaults are `https://gvl.inth.app`. If you operate a different
 compatible endpoint, set `manifest.iab.endpoint` for manifest consumers and
-`gvl.endpoint` for server initialization. The backend fetches the language's
-primary subtag, for example `/de.json` for `de-DE`.
+`gvl.endpoint` for server initialization.
+
+The backend requests the endpoint itself: the upstream publishes one document at
+its root, and a per-language path such as `/de.json` answers 404. When
+`gvl.vendorIds` is set and holds 500 ids or fewer, the scope travels as a
+`?vendorIds=` query filter, so a scoped deployment fetches its own vendors
+rather than all of them. Measured against the public list, a 32-vendor scope is
+about 11 KB compressed against about 101 KB for the whole document. Above 500
+ids the filter is withheld -- the query string would outrun the request-line
+limit a CDN enforces and fail the whole consent surface -- and the full document
+is narrowed by the same allowlist server-side instead, so a vendor outside the
+scope is never served whoever did the filtering.
+
+`gvl.enabled` is the switch that decides whether `/init` embeds a list at all.
+Configuring `gvl` without it keeps the cache and scope wired up but serves no
+list, which is a silent way to end up with an IAB policy and no vendor
+disclosure. The allowlist is also applied to whatever comes back, so a vendor
+outside the scope is not handed to clients whether the endpoint filtered or not.
 
 Use a [cache adapter](/docs/self-host/guides/caching) to reuse fetched lists.
 `gvl.ttlMs` defaults to one day. A failed upstream fetch or invalid document
