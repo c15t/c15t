@@ -88,3 +88,27 @@ export const createElementIdResolver =
 			},
 		};
 	};
+
+/** Compare the DOM resource, excluding callbacks and consent eligibility. */
+export const hasSameResource = (previous: Script, next: Script): boolean => {
+	const fields = [
+		'src',
+		'textContent',
+		'callbackOnly',
+		'anonymizeId',
+		'target',
+		'async',
+		'defer',
+		'nonce',
+		'fetchPriority',
+	] as const;
+	const attributes = previous.attributes ?? {};
+	const nextAttributes = next.attributes ?? {};
+	return (
+		fields.every((field) => previous[field] === next[field]) &&
+		Object.keys(attributes).length === Object.keys(nextAttributes).length &&
+		Object.entries(attributes).every(
+			([key, value]) => nextAttributes[key] === value
+		)
+	);
+};

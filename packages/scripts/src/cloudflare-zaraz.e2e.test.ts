@@ -80,6 +80,77 @@ describe('Zaraz consent bridge through the kernel and script loader', () => {
 		expect(document.scripts.length).toBe(before);
 	});
 
+	it.each(['getAll', 'set'] as const)(
+		'reports a %s failure and retries with the latest consent',
+		(method) => {
+			const { api } = installZaraz({ analytics: true });
+			const error = new Error('Zaraz unavailable');
+			vi.spyOn(api, method).mockImplementationOnce(() => {
+				throw error;
+			});
+			const onReady = vi.fn();
+			const onError = vi.fn();
+			const { kernel } = mount(
+				cloudflareZaraz({
+					onError,
+					onReady,
+					purposes: { measurement: ['analytics'] },
+				})
+			);
+			expect(onError).toHaveBeenCalledWith(error);
+			expect(onReady).not.toHaveBeenCalled();
+			expect(api.sendQueuedEvents).not.toHaveBeenCalled();
+			void kernel.commands.save({ ...deniedConsents, marketing: true });
+			expect(api.getAll()).toEqual({ analytics: false });
+			expect(onReady).toHaveBeenCalledOnce();
+		}
+	);
+
+	it('reports readiness-event failures and retries when readiness is announced again', () => {
+		const { api } = installZaraz({ analytics: true }, false);
+		const error = new Error('Zaraz unavailable');
+		const onError = vi.fn();
+		const onReady = vi.fn();
+		mount(
+			cloudflareZaraz({
+				onError,
+				onReady,
+				purposes: { measurement: ['analytics'] },
+			})
+		);
+		vi.spyOn(api, 'set').mockImplementationOnce(() => {
+			throw error;
+		});
+		api.APIReady = true;
+		document.dispatchEvent(new Event('zarazConsentAPIReady'));
+		expect(onError).toHaveBeenCalledWith(error);
+		expect(onReady).not.toHaveBeenCalled();
+		document.dispatchEvent(new Event('zarazConsentAPIReady'));
+		expect(api.getAll()).toEqual({ analytics: false });
+		expect(onReady).toHaveBeenCalledOnce();
+	});
+
+	it('preserves grants when the kernel already has the returning visitor choice', () => {
+		const { api } = installZaraz({ analytics: true });
+		const kernel = createConsentKernel();
+		void kernel.commands.save({ ...deniedConsents, measurement: true });
+		const onReady = vi.fn();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [
+				cloudflareZaraz({
+					onReady,
+					purposes: { measurement: ['analytics'] },
+				}),
+			],
+		});
+		disposers.push(kernel.dispose, loader.dispose);
+		expect(api.getAll()).toEqual({ analytics: true });
+		expect(api.set).not.toHaveBeenCalled();
+		expect(api.sendQueuedEvents).not.toHaveBeenCalled();
+		expect(onReady).toHaveBeenCalledOnce();
+	});
+
 	it('does not hide an absent Zaraz modal', () => {
 		const { api } = installZaraz({ analytics: true });
 		const hide = vi.fn(() => {

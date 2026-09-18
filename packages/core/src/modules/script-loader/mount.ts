@@ -49,7 +49,7 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	if (deps.loadedElements.get(script.id) !== element) {
 		return;
 	}
-	if (!element.isConnected) {
+	if (!pending.appended) {
 		deps.loadedElements.delete(script.id);
 		deps.ownedScriptIds.delete(script.id);
 		return;
@@ -307,14 +307,30 @@ export const mountScript = function mountScript(
 	const target = script.target === 'body' ? document.body : document.head;
 
 	if (batch) {
-		batch.push({ element, elementId, hasConsent, info, script, target });
+		batch.push({
+			appended: false,
+			element,
+			elementId,
+			hasConsent,
+			info,
+			script,
+			target,
+		});
 		return;
 	}
 
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
 	target.appendChild(element);
-	completeMount(deps, { element, elementId, hasConsent, info, script, target });
+	completeMount(deps, {
+		appended: true,
+		element,
+		elementId,
+		hasConsent,
+		info,
+		script,
+		target,
+	});
 };
 
 /**
@@ -349,7 +365,6 @@ export const unmountScript = function unmountScript(
 		// Element stays in DOM but we drop our reference so a later
 		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);
-		deps.ownedScriptIds.delete(script.id);
 		if (typeof script.onConsentChange === 'function') {
 			const info = buildCallbackInfo(
 				script,
@@ -430,6 +445,7 @@ export const flushPendingMounts = function flushPendingMounts(
 			return;
 		}
 		only.target.appendChild(only.element);
+		only.appended = true;
 	} else {
 		const byTarget = new Map<HTMLElement, PendingMount[]>();
 		for (const pending of batch) {
@@ -451,7 +467,10 @@ export const flushPendingMounts = function flushPendingMounts(
 					({ script, element }) =>
 						deps.loadedElements.get(script.id) === element
 				)
-				.map(({ element }) => element);
+				.map((pending) => {
+					pending.appended = true;
+					return pending.element;
+				});
 			if (elements.length === 0) {
 				continue;
 			}

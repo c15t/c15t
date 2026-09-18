@@ -195,7 +195,9 @@ export interface Script {
 
 	/**
 	 * Release listeners and other resources when this configuration is removed,
-	 * replaced, or its loader is disposed. Called even if the script never loaded.
+	 * replaced by a different object, or its loader is disposed. Adding this hook
+	 * opts into object-owned lifecycles; keep the config stable across rerenders.
+	 * Called even if the script never loaded.
 	 * Consent revocation alone does not call this hook. It does not revoke vendor
 	 * consent or undo code that has already executed. Must be safe to call before
 	 * onLoad, including during server rendering.

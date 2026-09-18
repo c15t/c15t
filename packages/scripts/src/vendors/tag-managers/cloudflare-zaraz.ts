@@ -21,6 +21,8 @@ export interface CloudflareZarazOptions {
 	 * pageviews disabled in Zaraz, send the initial Pageview from this callback.
 	 */
 	onReady?: () => void;
+	/** Called when synchronization fails. Retried on the next consent update or readiness event. */
+	onError?: (error: unknown) => void;
 }
 
 const consentCategories: readonly AllConsentNames[] = [
@@ -91,7 +93,7 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 	let latest: ConsentState | undefined;
 	let listeningDocument: Document | undefined;
 	let initialized = false;
-	const apply = (): boolean => {
+	const synchronize = (): boolean => {
 		const api = getConsentApi();
 		if (!latest || !api) {
 			return false;
@@ -119,6 +121,20 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		}
 		if (granted && options.sendQueuedEvents !== false) {
 			api.sendQueuedEvents();
+		}
+		return true;
+	};
+	const apply = (): boolean => {
+		try {
+			if (!synchronize()) {
+				return false;
+			}
+		} catch (error) {
+			if (!options.onError) {
+				throw error;
+			}
+			options.onError(error);
+			return false;
 		}
 		listeningDocument?.removeEventListener(readyEvent, apply);
 		listeningDocument = undefined;

@@ -27,8 +27,9 @@ Zaraz keeps a separate consent cookie. Its automatic pageview can run before
 c15t resolves the current permissions, using a grant from a previous visit.
 Disabling that pageview and emitting it from `onReady` prevents this particular
 startup race. Do not send other events before synchronization, and audit any
-custom triggers that run independently. The bridge cannot undo requests sent
-before it starts.
+custom triggers that run independently. DOM-ready, timer or click triggers can
+run with stale permissions before the bridge mounts. The bridge cannot undo
+requests sent before it starts.
 
 Cloudflare documents [purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
 and [automatic pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
@@ -344,12 +345,27 @@ Zaraz cookie. `onReady` runs once after the first successful synchronization,
 including when all optional purposes are denied. A pageview sent there remains
 subject to Zaraz's purpose checks.
 
-| Option             | Default  | Behavior                                                                   |
-| ------------------ | -------- | -------------------------------------------------------------------------- |
-| `purposes`         | Required | Maps categories to Zaraz purpose IDs; unmapped purposes are denied         |
-| `hideBuiltInModal` | `true`   | Hides the currently visible modal; also disable auto-display in Cloudflare |
-| `sendQueuedEvents` | `true`   | Replays Zaraz's queued pageviews after new grants                          |
-| `onReady`          | Unset    | Runs after initial permission synchronization                              |
+| Option             | Default  | Behavior                                                                     |
+| ------------------ | -------- | ---------------------------------------------------------------------------- |
+| `purposes`         | Required | Maps categories to Zaraz purpose IDs; unmapped purposes are denied           |
+| `hideBuiltInModal` | `true`   | Hides the currently visible modal; also disable auto-display in Cloudflare   |
+| `sendQueuedEvents` | `true`   | Replays Zaraz's queued pageviews after new grants                            |
+| `onReady`          | Unset    | Runs after initial permission synchronization                                |
+| `onError`          | Unset    | Receives synchronization errors so the application can report or handle them |
+
+If a Zaraz API call throws, `onReady` does not run until synchronization
+succeeds. Use `onError(error)` to report the failure and prevent application
+events from relying on permissions that were not applied. The bridge retries
+with the latest permissions on the next consent update or readiness event;
+it does not poll or schedule automatic retries. Without `onError`, synchronous
+failures reach the script loader's debug events and readiness-event failures
+reach the browser's error handler. A failed revocation can leave the previous
+Zaraz grant in place.
+
+If the bridge starts before saved consent or policy resolution is available,
+it applies the kernel's current effective permissions and updates them when
+initialization completes. Pass restored state during setup when available.
+The bridge does not force a denial when the kernel already permits a purpose.
 
 Set `sendQueuedEvents: false` if your application deliberately discards
 pre-consent pageviews. Send subsequent route events only after readiness and

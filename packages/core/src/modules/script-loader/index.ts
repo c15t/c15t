@@ -40,7 +40,11 @@ import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
 import { buildReconcilePass, hasScriptConsent } from './eligibility';
 import { flushPendingMounts, mountScript, unmountScript } from './mount';
 import type { MountDeps } from './mount';
-import { createElementIdResolver, normalizeScripts } from './normalize';
+import {
+	createElementIdResolver,
+	hasSameResource,
+	normalizeScripts,
+} from './normalize';
 import type {
 	NormalizedScript,
 	PendingMount,
@@ -63,6 +67,8 @@ export type {
 	ScriptLoaderHandle,
 	ScriptLoaderOptions,
 } from './types';
+
+const MAX_RECONCILE_PASSES = 100;
 
 export const createScriptLoader = function createScriptLoader(
 	options: ScriptLoaderOptions
@@ -111,6 +117,7 @@ export const createScriptLoader = function createScriptLoader(
 	const eligibilityByScriptId = new Map<string, boolean>();
 	const consentByScriptId = new Map<string, boolean>();
 
+	let unsubscribe: (() => void) | undefined;
 	let disposed = false;
 	let processing = false;
 	let pendingScripts: Script[] | undefined;
@@ -285,7 +292,10 @@ export const createScriptLoader = function createScriptLoader(
 		}
 		diagnostics?.dispose();
 		diagnostics = undefined;
-		for (const [scriptId, element] of loadedElements) {
+		for (const [scriptId, element] of new Map([
+			...retainedElements,
+			...loadedElements,
+		])) {
 			if (ownedScriptIds.has(scriptId) && element?.parentNode) {
 				element.parentNode.removeChild(element);
 			}
@@ -302,13 +312,26 @@ export const createScriptLoader = function createScriptLoader(
 
 	const replaceScripts = (next: Script[]): void => {
 		const nextScripts = new Set(next);
+		const nextById = new Map(next.map((script) => [script.id, script]));
 		const previous = new Set(normalized.map(({ script }) => script));
 		const snapshot = kernel.getSnapshot();
 		for (const script of previous) {
 			if (nextScripts.has(script)) {
 				continue;
 			}
-			// Replacement starts a fresh lifecycle, including for the same ID.
+			const replacement = nextById.get(script.id);
+			// Existing vendor helpers are recreated on framework rerenders. Keep
+			// their resource mounted unless it changed. onDispose opts into an
+			// object-owned lifecycle, used by integrations with attached listeners.
+			if (
+				replacement &&
+				!script.onDispose &&
+				!replacement.onDispose &&
+				hasSameResource(script, replacement)
+			) {
+				continue;
+			}
+			// Resource replacement starts a fresh lifecycle, even for the same ID.
 			// Persistence applies to consent revocation, not config replacement.
 			unmountScript(mountDeps, script, snapshot, false, true);
 			disposeScript(script);
@@ -333,9 +356,25 @@ export const createScriptLoader = function createScriptLoader(
 			return;
 		}
 		processing = true;
+		let passes = 0;
 		try {
 			while (pendingScripts || reconcileRequested) {
 				if (disposed) {
+					break;
+				}
+				passes += 1;
+				if (passes > MAX_RECONCILE_PASSES) {
+					disposed = true;
+					unsubscribe?.();
+					unsubscribe = undefined;
+					emit({
+						action: 'error',
+						message: 'Script callback feedback loop detected; loader disposed',
+						scope: 'phase',
+						scriptId: '',
+						source: 'script-loader',
+						timestamp: Date.now(),
+					});
 					break;
 				}
 				if (pendingScripts) {
@@ -356,7 +395,7 @@ export const createScriptLoader = function createScriptLoader(
 			processing = false;
 		}
 	};
-	const unsubscribe = kernel.subscribe(() => {
+	unsubscribe = kernel.subscribe(() => {
 		if (processing && isConsentStateUnchanged(kernel.getSnapshot())) {
 			return;
 		}
@@ -372,7 +411,8 @@ export const createScriptLoader = function createScriptLoader(
 				return;
 			}
 			disposed = true;
-			unsubscribe();
+			unsubscribe?.();
+			unsubscribe = undefined;
 			drain();
 		},
 		getLoadedScriptIds() {
