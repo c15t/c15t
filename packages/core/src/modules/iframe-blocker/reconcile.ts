@@ -147,15 +147,17 @@ export const reconcileIframe = function reconcileIframe(
 
 	// Not allowed. Clear src if present.
 	const src = iframe.getAttribute('src');
-	if (src) {
-		if (!dataSrc) {
-			iframe.setAttribute('data-src', src);
-		}
-		iframe.removeAttribute('src');
-		// Marked only when the blocker itself moved the source: an author's own
-		// lazy `data-src` with no `src` was never paused and is never restored.
-		iframe.setAttribute(PAUSED_ATTRIBUTE, '');
+	if (!src) {
+		return;
 	}
+	if (!dataSrc) {
+		iframe.setAttribute('data-src', src);
+	}
+	iframe.removeAttribute('src');
+	// Marked only when the blocker itself moved a source: an iframe with no
+	// `src`, whether bare or with an author's own lazy `data-src`, was never
+	// paused and is never restored.
+	iframe.setAttribute(PAUSED_ATTRIBUTE, '');
 };
 
 /**
