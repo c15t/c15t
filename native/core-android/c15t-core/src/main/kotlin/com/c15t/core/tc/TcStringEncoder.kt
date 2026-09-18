@@ -12,16 +12,24 @@ package com.c15t.core.tc
  * the publisher segment has nothing on a consent snapshot to be built from. Authoring those on
  * mobile would invent behaviour with no web counterpart to check it against.
  *
- * [consentScreen], [consentLanguage], [publisherCountryCode] and [isServiceSpecific] default to
- * what the web codec defaults to, because all four land in the bytes. A mobile default that
- * disagrees with web's is a parity failure neither side's tests would explain.
+ * [consentScreen] and [publisherCountryCode] default to what the web codec defaults to, because
+ * both land in the bytes. A mobile default that disagrees with web's is a parity failure neither
+ * side's tests would explain.
  *
- * [vendorListVersion] and [policyVersion] deliberately have no default. On the web both come from
- * the GVL and cannot be overridden -- `TCModel`'s getters prefer the GVL over the stored field, so
- * a model built against GVL 177 writes 177 whatever the caller asked for -- which means a live
- * string advertises vendorListVersion 177 and TcfPolicyVersion 5 today. A mobile caller passes the
- * two numbers off the GVL it actually rendered. `0` would be a default that advertises a vendor
- * list that has never existed.
+ * ConsentLanguage has no knob here, and that is deliberate. The web codec does offer
+ * `config.consentLanguage ?? 'EN'`, and the reference then throws that value away:
+ * `SemanticPreEncoder` writes `gvl.language` over the model's language on every encode. A default
+ * that can never reach the bytes is not a default, it is a setting that silently stops working, so
+ * the language lives in one place -- [TcVendorList.language], whose own EN default is the same one
+ * `GVL.DEFAULT_LANGUAGE` carries.
+ *
+ * [vendorList] carries the two version numbers this string writes, and it is required. Neither is
+ * optional in the reference either: its encoder throws `Unable to encode TCModel without a GVL`, and
+ * a required parameter turns that into a compile error rather than a failure at the moment a string
+ * is written. The list is required for a second and heavier reason -- it decides which bits survive
+ * at all. Without it there is no way to know whether vendor 400 is a vendor, and the only choices
+ * left to the encoder are writing a signal the framework calls invalid and dropping one that was
+ * valid. See [TcSemanticPreEncoder].
  *
  * @property confirmedAtMillis When the user decided, in epoch milliseconds. Both date fields in the
  * string are this floored to a UTC day, which is what the format carries.
@@ -29,11 +37,9 @@ package com.c15t.core.tc
 data class TcConsentInput(
 	val cmpId: Int,
 	val confirmedAtMillis: Long,
-	val vendorListVersion: Int,
-	val policyVersion: Int,
+	val vendorList: TcVendorList,
 	val cmpVersion: Int = 0,
 	val consentScreen: Int = DEFAULT_CONSENT_SCREEN,
-	val consentLanguage: String = DEFAULT_CONSENT_LANGUAGE,
 	val publisherCountryCode: String = DEFAULT_PUBLISHER_COUNTRY_CODE,
 	val isServiceSpecific: Boolean = DEFAULT_IS_SERVICE_SPECIFIC,
 	val purposeConsents: List<Int> = emptyList(),
@@ -46,9 +52,6 @@ data class TcConsentInput(
 	companion object {
 		/** `config.consentScreen ?? 1` in `tc-string.ts`. */
 		const val DEFAULT_CONSENT_SCREEN = 1
-
-		/** `config.consentLanguage ?? 'EN'`. */
-		const val DEFAULT_CONSENT_LANGUAGE = "EN"
 
 		/** `config.publisherCountryCode ?? 'US'`. */
 		const val DEFAULT_PUBLISHER_COUNTRY_CODE = "US"
@@ -88,8 +91,14 @@ object TcStringEncoder {
 	 * `[core].[vendorsDisclosed]`, the Publisher TC segment riding along only in the former. It is
 	 * written all-zero because the web codec reaches it with no publisher purpose and no custom
 	 * purposes set; skipping the segment there would be a different string, not a shorter one.
+	 *
+	 * The bytes describe [TcSemanticPreEncoder.prepare]'s reading of [input], not [input] verbatim.
+	 * Three signals are cleared and one is replaced before a bit is written, and all four decisions
+	 * are the reference's, so a string this writes for a state web would accept is the same string
+	 * web writes for it.
 	 */
 	fun encode(input: TcConsentInput): String {
+		val prepared = TcSemanticPreEncoder.prepare(input)
 		val day = utcDayDeciseconds(input.confirmedAtMillis)
 		val core = TcCoreSegment(
 			version = TcCoreSegment.SUPPORTED_VERSION,
@@ -98,18 +107,18 @@ object TcStringEncoder {
 			cmpId = input.cmpId,
 			cmpVersion = input.cmpVersion,
 			consentScreen = input.consentScreen,
-			consentLanguage = input.consentLanguage.uppercase(),
-			vendorListVersion = input.vendorListVersion,
-			policyVersion = input.policyVersion,
+			consentLanguage = prepared.consentLanguage,
+			vendorListVersion = input.vendorList.vendorListVersion,
+			policyVersion = input.vendorList.tcfPolicyVersion,
 			isServiceSpecific = input.isServiceSpecific,
 			useNonStandardTexts = false,
 			specialFeatureOptins = input.specialFeatureOptins,
 			purposeConsents = input.purposeConsents,
-			purposeLegitimateInterests = input.purposeLegitimateInterests,
+			purposeLegitimateInterests = prepared.purposeLegitimateInterests,
 			purposeOneTreatment = false,
 			publisherCountryCode = input.publisherCountryCode.uppercase(),
-			vendorConsents = TcVectorSection.ofIds(input.vendorConsents),
-			vendorLegitimateInterests = TcVectorSection.ofIds(input.vendorLegitimateInterests),
+			vendorConsents = TcVectorSection.ofIds(prepared.vendorConsents),
+			vendorLegitimateInterests = TcVectorSection.ofIds(prepared.vendorLegitimateInterests),
 			publisherRestrictions = TcPublisherRestrictions.EMPTY,
 		)
 
