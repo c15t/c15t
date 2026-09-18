@@ -81,7 +81,10 @@ const renderVendors = function renderVendors(
 	snapshot: DevToolsState['snapshot']
 ): void {
 	const declared = snapshot.vendors?.declared ?? [];
-	if (declared.length === 0) {
+	// Under an IAB policy the slugs and the stored denial list are inert: the
+	// TC string decides vendor consent, so a grant label here would contradict
+	// the IAB tab. The preference center hides the rows for the same reason.
+	if (declared.length === 0 || snapshot.model === 'iab') {
 		return;
 	}
 	const section = createSection(
