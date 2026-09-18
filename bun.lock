@@ -5,6 +5,7 @@
     "": {
       "name": "c15t-workspace",
       "devDependencies": {
+        "@babel/parser": "7.28.5",
         "@changesets/changelog-github": "0.7.0",
         "@changesets/cli": "2.31.0",
         "@rsbuild/core": "1.7.5",
@@ -1155,6 +1156,7 @@
       "version": "2.2.0-canary-20260731105620",
       "dependencies": {
         "@c15t/backend": "workspace:*",
+        "@c15t/schema": "workspace:*",
       },
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
