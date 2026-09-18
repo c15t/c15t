@@ -764,9 +764,17 @@ const useProviderOptionSync = function useProviderOptionSync(
 			return;
 		}
 		previousVendorsRef.current = serialized;
+		// Scripts and rules come along as owners: a configured vendor that a
+		// script also names is resolved to its config entry alone, so removing
+		// it from the option must leave the script-sourced fallback the first
+		// resolution never created.
 		const declared = resolveVendors({
 			config: options.vendors,
 			onWarn: warnVendorDeclaration,
+			owners: [
+				...(options.scripts ?? []),
+				...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+			],
 		});
 		// The provider owns the config source: its previous entries are replaced
 		// so a vendor the parent removed disappears, while backend and script
@@ -779,7 +787,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 				)
 			);
 		}
-	}, [kernel, options.vendors, owns]);
+	}, [kernel, options.networkBlocker, options.scripts, options.vendors, owns]);
 
 	useEffect(() => {
 		const nodeEnv = (
