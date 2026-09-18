@@ -425,6 +425,41 @@ describe('dialog card', () => {
 
 		tree.unmount();
 	});
+
+	test('leaves the web 48 between the last card and the first action', () => {
+		const tree = mountSurface(
+			<ConsentPreferences
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const card = surfaceNode(tree.container(), 'Manage preferences');
+		const footer = card.lastElementChild as HTMLElement;
+		const footerStyle = nodeStyle(footer);
+		const list = (
+			requireRole(tree.container(), 'button', 'Marketing')
+				.parentElement as HTMLElement
+		).parentElement as HTMLElement;
+
+		// `--consent-manager-footer-padding` is `var(--c15t-space-lg) 0 0 0`, so the
+		// actions carry 24 above and nothing below -- the 24 under them is `.content`'s
+		// own bottom padding, which this footer is the last thing inside of. The stack's
+		// run underneath the last card is the other 24, the manager's `margin-top:
+		// 1.5rem` between children. The web widget measures 48 from card to button, and
+		// the two halves have to stay in these two places: put the whole 48 on either
+		// one and the list or the band slides out of the card.
+		expect(footerStyle.paddingTop).toBe(24);
+		expect(footerStyle.paddingBottom).toBe(24);
+		expect(footerStyle.borderTopWidth ?? 0).toBe(0);
+		expect(footerStyle.backgroundColor).toBe(WEB.surface);
+		expect(Number(nodeStyle(list).paddingBottom)).toBe(24);
+		expect(
+			Number(nodeStyle(list).paddingBottom) + Number(footerStyle.paddingTop)
+		).toBe(48);
+
+		tree.unmount();
+	});
 });
 
 describe('category accordion', () => {
@@ -650,6 +685,30 @@ describe('branding tab', () => {
 		// at 402 wide measures 5.
 		expect(style.paddingVertical ?? style.paddingTop).toBe(5);
 		expect(style.paddingHorizontal).toBe(10);
+
+		tree.unmount();
+	});
+
+	test('draws the brand smaller than the words in front of it', () => {
+		const tree = mountSurface(<ConsentBanner />, englishSnapshot());
+		const runs = [
+			...tree.container().querySelectorAll<HTMLElement>('span[data-rn-style]'),
+		]
+			.map(nodeStyle)
+			.filter((style) => style.color === lightTheme.colors.onPrimary);
+
+		// The `max-width: 480px` query restates both runs as `0.625rem`, but only the
+		// wordmark's copy of that rule carries the `:not(.headless)` that ties it with
+		// the 11pt rule it displaces, and only that one comes later. So `Secured by`
+		// stays at `--consent-dialog-branding-label-size` and `c15t` drops to 10, which
+		// is what the demo at 411 wide computes and what the crop of the tag shows.
+		expect(runs.map((style) => style.fontSize)).toEqual([11, 10]);
+		expect(runs.map((style) => style.lineHeight)).toEqual([11, 10]);
+
+		// The tracking each run resolves to at its own size: `.01em` opens the label
+		// by 0.11, `.03em` closes the brand by 0.3 at 10pt, which is what lets the
+		// wordmark sit against its mark.
+		expect(runs.map((style) => style.letterSpacing)).toEqual([0.11, -0.3]);
 
 		tree.unmount();
 	});

@@ -447,15 +447,18 @@ describe('theme', () => {
 		// The dialog's actions sit on the card itself with nothing above them: the
 		// composition renders them in a plain container, and the live surface measures
 		// `border-top-width: 0` over a transparent fill. What it does keep is the
-		// card's own 24 gutter, the footer's 16 above, and the run of the card padding
-		// below, so the row lines up with the heading and the list over it.
+		// card's own 24 gutter, 24 above, and the run of the card padding below, so the
+		// row lines up with the heading and the list over it. The 24 above comes from
+		// `--consent-manager-footer-padding`, which is `var(--c15t-space-lg) 0 0 0`:
+		// those actions are the manager's footer, not the dialog frame's, so the 16 in
+		// `panel.module.css` never paints and reading it instead left the row 8 short.
 		expect(nodeStyle(dialogFooter)).toMatchObject({
 			backgroundColor: lightTheme.colors.surface,
 			borderTopWidth: 0,
 			gap: 8,
 			paddingBottom: 24,
 			paddingHorizontal: 24,
-			paddingTop: 16,
+			paddingTop: 24,
 		});
 
 		const sheet = mountSurface(
