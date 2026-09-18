@@ -30,6 +30,8 @@ const Probe = () => {
 				declared: declared.map((vendor) => vendor.id),
 				meta,
 				name: declared.find((vendor) => vendor.id === 'meta-pixel')?.name,
+				ownerCategory: declared.find((vendor) => vendor.id === 'meta-pixel')
+					?.ownerCategory,
 				source: declared.find((vendor) => vendor.id === 'meta-pixel')?.source,
 			})}
 		</output>
@@ -43,6 +45,7 @@ const readProbe = () =>
 		declared: string[];
 		meta: boolean;
 		name?: string;
+		ownerCategory?: unknown;
 		source?: string;
 	} | null;
 
@@ -267,6 +270,61 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.source).toBe('manifest');
 			expect(readProbe()?.name).toBe('Meta (backend)');
 		});
+	});
+
+	test('a script that starts naming a backend vendor becomes its owner', async () => {
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'owned-backend-vendor' }
+		);
+		const Host = () => {
+			const [scripts, setScripts] = useState<Script[]>([]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: {
+							...fixture,
+							initialVendors: {
+								declared: [{ ...META, presentable: true, source: 'manifest' }],
+								listVersion: '1',
+							},
+						},
+						scripts,
+					}}
+				>
+					<button
+						data-testid="add-script"
+						onClick={() =>
+							setScripts([
+								{
+									category: 'marketing',
+									id: 'meta-pixel-script',
+									textContent: '/* pixel */',
+									vendor: 'meta-pixel',
+								},
+							])
+						}
+						type="button"
+					>
+						add
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.source).toBe('manifest');
+		});
+		await page.getByTestId('add-script').click();
+		// The backend entry stays the winner and remembers the new owner.
+		await vi.waitFor(() => {
+			expect(readProbe()?.ownerCategory).toBe('marketing');
+		});
+		expect(readProbe()?.source).toBe('manifest');
 	});
 
 	test('useVendorAllowed ignores a stored denial for a vendor declared disabled', async () => {

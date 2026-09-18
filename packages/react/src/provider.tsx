@@ -773,8 +773,13 @@ const useProviderOptionSync = function useProviderOptionSync(
 			return;
 		}
 		previousVendorsRef.current = serialized;
+		// Resolved against the backend entries the kernel already holds, so a
+		// script that starts naming a backend vendor's slug attaches to that
+		// entry as an owner and survives the backend dropping it later.
+		const current = kernel.getSnapshot().vendors?.declared ?? [];
 		const declared = resolveVendors({
 			config: options.vendors,
+			existing: current.filter((vendor) => vendor.source === 'manifest'),
 			onWarn: warnVendorDeclaration,
 			owners,
 		});
