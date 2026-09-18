@@ -181,12 +181,22 @@ export const ConsentSurfaceBody = ({
  * never painted: the actions render in a plain container that carries no class.
  *
  * A dialog therefore pays the card's own 24 gutter, `--consent-dialog-card-padding`,
- * so its buttons line up with the heading and the list above them, and keeps the
- * footer's `--consent-dialog-footer-padding-y` of 16 above with the run of the card
- * padding below. A bottom sheet takes `--consent-dialog-card-padding-mobile`, 16
- * all round, because it runs to the screen edges and has no card padding to
- * inherit. Neither draws a rule: the two are the same card anchored two ways, and
- * flipping `presentation` on a host theme should move the card, not restyle it.
+ * so its buttons line up with the heading and the list above them -- the web footer
+ * pads `0` sideways and leans on `.content`'s `padding: 0 24 24` for the inset.
+ * Above the actions it keeps 24, and that 24 is the number to be careful with: the
+ * actions are the *manager's* footer, so `manager.module.css` owns it, and
+ * `--consent-manager-footer-padding` is `var(--c15t-space-lg) 0 0 0` -- 24 above,
+ * nothing below, the 24 under them being `.content`'s own bottom padding. The 16
+ * in `panel.module.css` (`--consent-dialog-footer-padding-y`) is the frame's rule
+ * for a footer the dialog never renders, and reading it instead of the manager's
+ * put the actions 8 short of where the web puts them. The manager also puts 24
+ * between its children, so the live widget measures 48 from the last category card
+ * to the first button, and this footer plus the list's own run underneath it is
+ * what has to add up to that. A bottom sheet takes `--consent-dialog-card-padding-
+ * mobile`, 16 all round, because it runs to the screen edges and has no card
+ * padding to inherit. Neither draws a rule: the two are the same card anchored two
+ * ways, and flipping `presentation` on a host theme should move the card, not
+ * restyle it.
  *
  * The step between two action rows is 8 on all three. `.actionRoot` is `gap:
  * 1rem`, which is what a single action group gets, but the ordinary banner and
@@ -224,7 +234,7 @@ const footerChrome = function footerChrome(
 		gap: spacing.s,
 		paddingBottom: dialog ? spacing.l : spacing.m,
 		paddingHorizontal,
-		paddingTop: spacing.m,
+		paddingTop: dialog ? spacing.l : spacing.m,
 	};
 };
 

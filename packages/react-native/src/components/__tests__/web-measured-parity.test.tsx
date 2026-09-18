@@ -425,6 +425,41 @@ describe('dialog card', () => {
 
 		tree.unmount();
 	});
+
+	test('leaves the web 48 between the last card and the first action', () => {
+		const tree = mountSurface(
+			<ConsentPreferences
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const card = surfaceNode(tree.container(), 'Manage preferences');
+		const footer = card.lastElementChild as HTMLElement;
+		const footerStyle = nodeStyle(footer);
+		const list = (
+			requireRole(tree.container(), 'button', 'Marketing')
+				.parentElement as HTMLElement
+		).parentElement as HTMLElement;
+
+		// `--consent-manager-footer-padding` is `var(--c15t-space-lg) 0 0 0`, so the
+		// actions carry 24 above and nothing below -- the 24 under them is `.content`'s
+		// own bottom padding, which this footer is the last thing inside of. The stack's
+		// run underneath the last card is the other 24, the manager's `margin-top:
+		// 1.5rem` between children. The web widget measures 48 from card to button, and
+		// the two halves have to stay in these two places: put the whole 48 on either
+		// one and the list or the band slides out of the card.
+		expect(footerStyle.paddingTop).toBe(24);
+		expect(footerStyle.paddingBottom).toBe(24);
+		expect(footerStyle.borderTopWidth ?? 0).toBe(0);
+		expect(footerStyle.backgroundColor).toBe(WEB.surface);
+		expect(Number(nodeStyle(list).paddingBottom)).toBe(24);
+		expect(
+			Number(nodeStyle(list).paddingBottom) + Number(footerStyle.paddingTop)
+		).toBe(48);
+
+		tree.unmount();
+	});
 });
 
 describe('category accordion', () => {

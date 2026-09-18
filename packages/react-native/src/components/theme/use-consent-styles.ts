@@ -643,8 +643,11 @@ export const useConsentStyles = function useConsentStyles(
 			},
 			// The list of category cards. The separation lives here because the
 			// stack gap belongs between the cards, where a row's own padding would
-			// also put one above the footer. The run under the last card is the
-			// bottom half of `.content`'s `padding: 24; padding-top: 0`.
+			// also put one above the footer. The run under the last card is not the
+			// card's bottom padding -- that belongs to the footer, which sits below
+			// this list. It is the 24 the manager puts between each pair of its own
+			// children (`margin-top: 1.5rem`), which is the first half of the 48 the
+			// live widget leaves between the last card and the first action.
 			scrollContent: { gap: CATEGORY_STACK_GAP, paddingBottom: cardPadding },
 			// Both decisions, and every action that only moves the subject around: the
 			// neutral outline, which is 1px of the border token over the card fill with
