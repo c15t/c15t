@@ -9,7 +9,8 @@
 import type { CMPApi, CMPApiConfig, GlobalVendorList } from '@c15t/core';
 
 import { forEachSequential } from '../for-each-sequential';
-import { CMP_ID, CMP_VERSION } from './cmp-defaults';
+import { CMP_VERSION_NUMBER } from './cmp-defaults';
+import { assertValidCmpId } from './cmp-id';
 import { IAB_STORAGE_KEYS } from './constants';
 import type {
 	CMPStatus,
@@ -84,7 +85,10 @@ const getCookie = function getCookie(name: string): string | null {
 export const createCMPApi = function createCMPApi(
 	config: CMPApiConfig
 ): CMPApi {
-	const { cmpId = CMP_ID, cmpVersion = CMP_VERSION } = config;
+	// Vendors read these two fields from `__tcfapi` ping, so an unusable CMP ID
+	// must fail here rather than be reported as if it were valid.
+	const cmpId = assertValidCmpId(config.cmpId);
+	const cmpVersion = config.cmpVersion ?? CMP_VERSION_NUMBER;
 	let { gvl } = config;
 	let gdprApplies = config.gdprApplies ?? true;
 

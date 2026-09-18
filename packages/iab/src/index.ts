@@ -37,6 +37,8 @@ import {
 	validateAuthority,
 } from './authority';
 import { createCMPApi } from './tcf/cmp-api';
+import { CMP_VERSION_NUMBER } from './tcf/cmp-defaults';
+import { assertValidCmpId, createCmpIdError, isValidCmpId } from './tcf/cmp-id';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import { getTCFCore } from './tcf/lazy-load';
 import {
@@ -53,9 +55,16 @@ import { generateTCString } from './tcf/tc-string';
 export interface CreateIABOptions {
 	/** The consent kernel to bind to. */
 	kernel: ConsentKernel;
-	/** IAB-registered CMP ID. Required for valid TCF string output. */
+	/**
+	 * CMP ID assigned by IAB Europe at CMP registration. An integer from 2 to
+	 * 4095. Required: a TC String encodes it in a 12-bit field, and strings for
+	 * unregistered providers are not valid TCF signals.
+	 */
 	cmpId: number;
-	/** CMP version (often the package version). Default: 1. */
+	/**
+	 * CMP version reported in the TC String and `__tcfapi`. Defaults to the
+	 * major of the `@c15t/iab` package version.
+	 */
 	cmpVersion?: number;
 	/** Filter GVL to a specific vendor allowlist (optional). */
 	vendors?: number[];
@@ -88,8 +97,10 @@ export interface CreateIABOptions {
  */
 export type IABUserConfig = Omit<CreateIABOptions, 'cmpId' | 'kernel'> & {
 	/**
-	 * IAB-registered CMP ID. Hosted providers can omit this when the backend
-	 * returns the ID during initialization.
+	 * CMP ID assigned by IAB Europe at CMP registration. Hosted providers can
+	 * omit this when the backend returns the ID during initialization.
+	 * Supplying a value that is not a registered ID is rejected here rather
+	 * than at save time.
 	 */
 	cmpId?: number;
 };
@@ -105,6 +116,8 @@ export interface IABProviderConfig extends IABUserConfig {
  *
  * @param config - CMP and vendor configuration for the IAB runtime.
  * @returns Provider configuration with the IAB addon enabled.
+ * @throws {Error} When `cmpId` is present but is not a registered CMP ID. An
+ * absent `cmpId` is allowed: a hosted backend can supply it from `/init`.
  *
  * @example
  * ```tsx
@@ -121,6 +134,11 @@ export interface IABProviderConfig extends IABUserConfig {
 const createIABProviderConfig = function createIABProviderConfig(
 	config: IABUserConfig
 ): IABProviderConfig {
+	// An absent cmpId is legitimate: a hosted backend returns it from /init.
+	// A present-but-unusable one is never legitimate.
+	if (config.cmpId !== undefined && !isValidCmpId(config.cmpId)) {
+		throw createCmpIdError(config.cmpId);
+	}
 	return {
 		...config,
 		enabled: true,
@@ -398,10 +416,20 @@ const resolvePreloadedGvl = function resolvePreloadedGvl(
 	return undefined;
 };
 
+/**
+ * Mounts the IAB TCF runtime against a consent kernel: installs `__tcfapi`,
+ * loads the vendor list, and encodes TC Strings from kernel state.
+ *
+ * @param options - Kernel plus CMP identity and vendor configuration.
+ * @returns An imperative handle over CMP state, with `whenReady` and `dispose`.
+ * @throws {Error} When `cmpId` is not a registered CMP ID. Fails at mount so a
+ * page never advertises an unusable CMP to vendors over `__tcfapi`.
+ */
 export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
-	const { kernel, cmpId, cmpVersion = 1, vendors, gvlURL } = options;
+	const { kernel, cmpVersion = CMP_VERSION_NUMBER, vendors, gvlURL } = options;
+	const cmpId = assertValidCmpId(options.cmpId);
 
 	const preloadedGvl = resolvePreloadedGvl(kernel, options);
 	let reference =
