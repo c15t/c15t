@@ -144,9 +144,14 @@ export function kernelEventToDevToolsEvent(
 			};
 		case 'notice:dismissed':
 			return {
-				data: { ...snapshotData(event.snapshot), dismissal: event.dismissal },
+				data: {
+					...snapshotData(event.snapshot),
+					dismissal: event.dismissal,
+					surface: event.surface,
+					timeToDecisionMs: event.timeToDecisionMs,
+				},
 				id,
-				message: 'Local notice dismissed',
+				message: `Local notice dismissed from ${event.surface}`,
 				timestamp,
 				type: event.type,
 			};

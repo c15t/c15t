@@ -1,3 +1,4 @@
+import type { ExperimentReportEvent } from '@c15t/core';
 import {
 	readStoredRecords,
 	readStoredRecordsFromCookieHeader,
@@ -686,6 +687,57 @@ test.each(['opt-in', 'opt-out'] as const)(
 		}
 	}
 );
+
+test('experiment.reportTo receives the impression with its arm, then the choice', async () => {
+	const { fetchMock } = createFetchMock();
+	const reports: ExperimentReportEvent[] = [];
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example',
+		customFetch: fetchMock as unknown as typeof fetch,
+		experiment: {
+			id: 'banner-shape',
+			reportTo: (event) => reports.push(event),
+			variants: { bar: { prompt: { variant: 'bar' } }, floating: {} },
+		},
+		iframeBlocker: false,
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: initFixture,
+	});
+	expect(reports).toEqual([]);
+	// Assignment and the impression both happen in start(); the reporter was
+	// subscribed at context creation, so the impression already names the arm.
+	const stop = startVueConsentRuntime(context, config, { runInit: false });
+	try {
+		expect(reports.map((report) => report.name)).toEqual([
+			'c15t_surface_shown',
+		]);
+		const assigned = context.kernel.getSnapshot().experiment;
+		expect(assigned?.assignedBy).toBe('c15t');
+		expect(reports[0]).toMatchObject({
+			assignedBy: 'c15t',
+			experimentId: 'banner-shape',
+			surface: 'banner',
+			variant: assigned?.variant,
+		});
+		expect(['bar', 'floating']).toContain(reports[0]?.variant);
+
+		await context.kernel.commands.save('all');
+
+		expect(reports.map((report) => report.name)).toEqual([
+			'c15t_surface_shown',
+			'c15t_choice_recorded',
+		]);
+		expect(reports[1]).toMatchObject({
+			consentAction: 'all',
+			surface: 'banner',
+			variant: assigned?.variant,
+		});
+	} finally {
+		stop();
+	}
+});
 
 test('runtime clears configured storage when permission is revoked', async () => {
 	const config: RuntimeConsentConfig = {

@@ -115,6 +115,16 @@ absent before measurement permission. The example emits no custom conversion
 events. Script removal cannot undo SDK code that already ran; application event
 calls must also stop after withdrawal.
 
+The integration takes static config, so the banner-shape experiment is
+switched on at build time like `C15T_IAB`. The banner is server-rendered,
+so `@c15t/astro` has no built-in assignment: the host resolves the arm, the
+way a flag provider would. Run
+`C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev` and open
+`/consent-example`: the page runs the `floating` fallback arm and shows
+`banner-shape · floating · host` with the impressions and choices it
+reported. Set `C15T_EXPERIMENT_ARM=wall` for the `wall` arm. Events go to
+`window.dataLayer`. See https://c15t.com/docs/guides/banner-experiments.
+
 Without a backend URL, the existing offline showcase remains active. Offline
 mode is not recommended for production environments. `C15T_IAB=1` continues
 to select the existing IAB showcase. Astro has no dedicated DevTools component

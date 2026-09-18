@@ -20,9 +20,17 @@ import {
 	consentLoaderOptions,
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
+import { useMemo } from 'react';
 
 import { backendURL, consentRoute } from '../consent';
 import { createExampleScripts } from '../example-scripts';
+import {
+	bannerExperiment,
+	ExperimentEventsContext,
+	experimentSearch,
+	useExperimentLog,
+} from '../experiment';
+import type { ExperimentSearch } from '../experiment';
 
 import '../consent-example.css';
 import appCss from '../styles.css?url';
@@ -65,7 +73,27 @@ const IabSurfaces = ({ cmpId }: { cmpId: number }) => {
 
 const RootComponent = () => {
 	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
-	const state = Route.useLoaderData();
+	const { experiment: experimentSwitch, ...state } = Route.useLoaderData();
+	// `?experiment=1` runs the banner-shape experiment; the loader resolved
+	// `arm` on the server, which is where a flag provider's answer would
+	// come from. Without the param the root gets no `experiment` option.
+	// The log belongs to one run: a client navigation to another arm starts
+	// a fresh list instead of mixing the two.
+	const experimentRun = experimentSwitch.enabled
+		? `exp:${experimentSwitch.arm ?? ''}`
+		: '';
+	const { events, report } = useExperimentLog(experimentRun);
+	const experiment = useMemo(
+		() =>
+			experimentSwitch.enabled
+				? bannerExperiment(experimentSwitch.arm, report)
+				: undefined,
+		[experimentSwitch.arm, experimentSwitch.enabled, report]
+	);
+	const experimentEvents = useMemo(
+		() => (experiment ? events : null),
+		[experiment, events]
+	);
 
 	return (
 		<html lang="en">
@@ -77,11 +105,14 @@ const RootComponent = () => {
 					state={state}
 					backendURL={consentRoute}
 					scripts={scripts}
+					options={{ experiment }}
 				>
 					<ConsentBanner />
 					<ConsentDialog />
 					<IabSurfaces cmpId={state.initialIab?.cmpId ?? 10} />
-					<Outlet />
+					<ExperimentEventsContext.Provider value={experimentEvents}>
+						<Outlet />
+					</ExperimentEventsContext.Provider>
 				</ConsentRoot>
 				<Scripts />
 			</body>
@@ -103,5 +134,14 @@ export const Route = createRootRoute({
 			{ title: 'c15t × TanStack Start' },
 		],
 	}),
-	loader: () => getConsentState(),
+	loader: async ({
+		location,
+	}): Promise<
+		Awaited<ReturnType<typeof getConsentState>> & {
+			experiment: ExperimentSearch;
+		}
+	> => ({
+		...(await getConsentState()),
+		experiment: experimentSearch(location.searchStr),
+	}),
 });

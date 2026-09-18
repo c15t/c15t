@@ -31,6 +31,7 @@ import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import {
 	createExperimentController,
+	createExperimentReporting,
 	createLazyIABFactory,
 } from '@c15t/core/runtime';
 import type {
@@ -517,6 +518,24 @@ const createOwnedExperiment = (
 			})
 		: undefined;
 
+/**
+ * Fan out impressions and choices to `experiment.reportTo`. Only an owned
+ * experiment reports; a borrowed runtime already does.
+ */
+const mountExperimentReporting = (
+	kernel: ConsentKernel,
+	experiment: ExperimentController | undefined,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (!(experiment && config.experiment)) {
+		return () => undefined;
+	}
+	return createExperimentReporting({
+		kernel,
+		reportTo: config.experiment.reportTo,
+	});
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -598,6 +617,11 @@ export const createVueConsentKernelContext =
 				);
 			}
 		);
+		const unsubscribeReporting = mountExperimentReporting(
+			kernel,
+			experiment,
+			options.config
+		);
 		const unsubscribePermissions = kernel.events.on(
 			'permissions:changed',
 			({ snapshot: eventSnapshot, previous }) => {
@@ -643,6 +667,7 @@ export const createVueConsentKernelContext =
 				unsubscribeChoice();
 				unsubscribePermissions();
 				unsubscribeSurfaceShown();
+				unsubscribeReporting();
 				experiment?.dispose();
 				if (ownsKernel) {
 					kernel.dispose();

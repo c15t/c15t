@@ -17,6 +17,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
 import { createDemoScripts } from '../../lib/demo-scripts';
+import { demoExperiment, parseSurfaceParams } from '../../lib/prompt-surface';
 import {
 	DEFAULT_SCENARIO_ID,
 	DEMO_CMP_ID,
@@ -36,6 +37,7 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { VideoDemo } from '../video-demo';
+import { ExperimentEvents, useExperimentLog } from './experiment-events';
 import { LiquidGlassFilter } from './liquid-glass-filter';
 import { LiveStatus } from './live-status';
 
@@ -217,6 +219,18 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 	const params = parseParams(searchParams);
 	const scenario = getScenarioById(params.scenarioId);
+	// `?experiment=1` swaps the scenario presentation for the banner-shape
+	// experiment; `&arm=bar` forces the arm the way a flag provider would.
+	const surface = parseSurfaceParams(searchParams);
+	const { experiment: experimentEnabled, arm } = surface;
+	// The log belongs to one experiment run: switching the arm or turning
+	// the experiment off starts a fresh list instead of mixing runs.
+	const experimentRun = experimentEnabled ? `exp:${arm}` : '';
+	const { events: experimentEvents, report } = useExperimentLog(experimentRun);
+	const experiment = useMemo(
+		() => demoExperiment({ arm, experiment: experimentEnabled }, report),
+		[experimentEnabled, arm, report]
+	);
 	const isSelfHost = backend === 'self-host';
 	const hostedLabel = isSelfHost ? 'Self-hosted' : 'Hosted';
 
@@ -266,7 +280,14 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 	// Remount the provider whenever the simulated environment changes so the
 	// consent manager re-initializes from scratch.
-	const providerKey = `${backend}-${params.mode}-${params.scenarioId}-${params.country}-${params.region}`;
+	const providerKey = [
+		backend,
+		params.mode,
+		params.scenarioId,
+		params.country,
+		params.region,
+		experimentRun,
+	].join('-');
 
 	// Use the default theme during SSR/hydration to avoid mismatches, then
 	// switch to the visitor's preset. The IAB banner keeps its default
@@ -298,8 +319,11 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 		},
 		overrides,
 		// Scenarios without an explicit presentation take the demo's per-policy
-		// shape, so different regimes look different out of the box.
-		presentation: scenario.runtimePresentation,
+		// shape, so different regimes look different out of the box. The
+		// experiment replaces it so the arms, not the scenario, decide the shape.
+		...(experiment
+			? { experiment }
+			: { presentation: scenario.runtimePresentation }),
 		scripts: createDemoScripts('demo-analytics'),
 		theme: demoTheme,
 	};
@@ -463,6 +487,10 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 									</p>
 								</div>
 							</div>
+
+							{experiment ? (
+								<ExperimentEvents events={experimentEvents} />
+							) : null}
 
 							<VideoDemo inline />
 						</section>

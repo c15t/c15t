@@ -4,12 +4,14 @@ import {
 	DAY,
 	matchedResolution,
 	NOW,
+	noticeRule,
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import type { KernelEvent, SavePayload } from '../../types';
 import { createConsentKernel } from '../index';
 
 type SurfaceShown = Extract<KernelEvent, { type: 'surface:shown' }>;
+type NoticeDismissed = Extract<KernelEvent, { type: 'notice:dismissed' }>;
 
 const disposers: (() => void)[] = [];
 afterEach(() => {
@@ -253,5 +255,83 @@ describe('surface:shown', () => {
 		const payload = save.mock.calls[0]?.[0] as SavePayload;
 		expect(payload.uiSource).toBe('widget');
 		expect(payload).not.toHaveProperty('timeToDecisionMs');
+	});
+});
+
+describe('notice:dismissed attribution', () => {
+	const setupNotice = () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			now: NOW,
+		});
+		disposers.push(kernel.dispose);
+		const dismissed: NoticeDismissed[] = [];
+		kernel.events.on('notice:dismissed', (event) => dismissed.push(event));
+		return { dismissed, kernel };
+	};
+
+	test('a dismissal from the shown banner is timed from its impression', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { dismissed, kernel } = setupNotice();
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 4200);
+		await kernel.commands.dismissNotice();
+
+		expect(dismissed[0]).toMatchObject({
+			surface: 'banner',
+			timeToDecisionMs: 3700,
+		});
+	});
+
+	test('a programmatic dismissal with no prompt open is not a banner outcome', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { dismissed, kernel } = setupNotice();
+		await kernel.commands.init();
+		kernel.set.activeUI('none');
+
+		await kernel.commands.dismissNotice();
+
+		expect(dismissed[0]).toMatchObject({ surface: 'none' });
+		expect(dismissed[0]).not.toHaveProperty('timeToDecisionMs');
+	});
+
+	test('a clock that moved backwards omits the timing instead of clamping', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { dismissed, kernel } = setupNotice();
+		await kernel.commands.init();
+
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 100);
+		await kernel.commands.dismissNotice();
+
+		expect(dismissed[0]).toMatchObject({ surface: 'banner' });
+		expect(dismissed[0]).not.toHaveProperty('timeToDecisionMs');
+	});
+
+	test('the dismissal keeps the arm it happened under, not a reassignment made during commit', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { dismissed, kernel } = setupNotice();
+		await kernel.commands.init();
+		const original = {
+			acknowledgedDiagnostics: false,
+			assignedBy: 'host',
+			id: 'banner-shape',
+			variant: 'wall',
+		} as const;
+		kernel.set.experiment(original);
+		// A subscriber reacting to the dismissal commit swaps the arm before
+		// the event is built.
+		const unsubscribe = kernel.subscribe((snapshot) => {
+			if (snapshot.noticeDismissal) {
+				kernel.set.experiment({ ...original, variant: 'floating' });
+			}
+		});
+
+		await kernel.commands.dismissNotice();
+		unsubscribe();
+
+		expect(dismissed[0]?.experiment).toEqual(original);
+		expect(dismissed[0]?.snapshot.experiment?.variant).toBe('floating');
 	});
 });

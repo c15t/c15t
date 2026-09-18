@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentExperiment } from '../../libs/experiment';
 import { EXPERIMENT_STORAGE_KEY } from '../../libs/experiment-assignment';
+import type { ExperimentReportEvent } from '../../libs/experiment-reporting';
+import { clearStoredConsentRecords } from '../../modules/persistence/record-storage';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport, SavePayload } from '../../types';
@@ -50,6 +52,7 @@ const createRuntime = function createRuntime(
 
 beforeEach(() => {
 	localStorage.clear();
+	clearStoredConsentRecords();
 });
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -158,6 +161,110 @@ describe('runtime experiments', () => {
 			variant: 'bar',
 		});
 		runtime.dispose();
+	});
+
+	test('reportTo receives the impression and the choice, in order', async () => {
+		const reports: ExperimentReportEvent[] = [];
+		const { runtime } = createRuntime({
+			reportTo: (event) => reports.push(event),
+			variant: 'bar',
+		});
+		runtime.start();
+		await vi.waitFor(() => expect(reports).toHaveLength(1));
+		await runtime.kernel.commands.save('all');
+		expect(reports).toHaveLength(2);
+		expect(reports.map((report) => report.name)).toEqual([
+			'c15t_surface_shown',
+			'c15t_choice_recorded',
+		]);
+		for (const report of reports) {
+			expect(report).toMatchObject({
+				assignedBy: 'host',
+				experimentId: 'banner-shape',
+				variant: 'bar',
+			});
+		}
+		expect(reports[1]).toMatchObject({
+			consentAction: 'all',
+			surface: 'banner',
+		});
+		expect(reports[1]).toHaveProperty('timeToDecisionMs');
+		runtime.dispose();
+	});
+
+	test('an opt-out notice arm reports the dismissal, not a choice', async () => {
+		const reports: ExperimentReportEvent[] = [];
+		const notice: PolicyRule = {
+			...policyRulePresets.usPrivacyStatesOptOut(),
+			match: { isDefault: true },
+			prompt: 'notice',
+		};
+		const offline = createOfflineTransport({ policyRules: [notice] });
+		const transport: KernelTransport = {
+			init: (context) => offline.init(context),
+			save: vi.fn().mockResolvedValue({ ok: true }),
+		};
+		const { runtime } = createRuntime(
+			{ reportTo: (event) => reports.push(event), variant: 'bar' },
+			transport
+		);
+		runtime.start();
+		await vi.waitFor(() => expect(reports).toHaveLength(1));
+		const result = await runtime.kernel.commands.dismissNotice();
+		expect(result.ok).toBe(true);
+		expect(transport.save).not.toHaveBeenCalled();
+		expect(reports.map((report) => report.name)).toEqual([
+			'c15t_surface_shown',
+			'c15t_notice_dismissed',
+		]);
+		expect(reports[1]).toMatchObject({
+			experimentId: 'banner-shape',
+			surface: 'banner',
+			variant: 'bar',
+		});
+		expect(reports[1]).toHaveProperty('timeToDecisionMs');
+		runtime.dispose();
+	});
+
+	test('a throwing reporter is logged and does not stop the others', async () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const reports: ExperimentReportEvent[] = [];
+		const { runtime } = createRuntime({
+			reportTo: [
+				() => {
+					throw new Error('analytics down');
+				},
+				(event) => reports.push(event),
+			],
+			variant: 'bar',
+		});
+		runtime.start();
+		await vi.waitFor(() => expect(reports).toHaveLength(1));
+		const result = await runtime.kernel.commands.save('all');
+		expect(result.ok).toBe(true);
+		expect(reports).toHaveLength(2);
+		expect(error).toHaveBeenCalledTimes(2);
+		runtime.dispose();
+	});
+
+	test('reporting stops on dispose', async () => {
+		const reports: ExperimentReportEvent[] = [];
+		const { runtime } = createRuntime({
+			reportTo: (event) => reports.push(event),
+			variant: 'bar',
+		});
+		runtime.start();
+		await vi.waitFor(() => expect(reports).toHaveLength(1));
+		runtime.dispose();
+		runtime.kernel.events.emit({
+			shownAt: Date.now(),
+			snapshot: runtime.kernel.getSnapshot(),
+			surface: 'dialog',
+			type: 'surface:shown',
+		});
+		expect(reports).toHaveLength(1);
 	});
 
 	test('an unacknowledged arm with diagnostics fails at construction', () => {

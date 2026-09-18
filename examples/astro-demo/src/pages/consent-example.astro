@@ -10,6 +10,17 @@ import '../consent-example.css';
 		<consent-example-video>
 			<button type="button" data-theme="default">Default theme</button>
 			<button type="button" data-theme="branded">Branded theme</button>
+			<section data-testid="experiment" data-experiment hidden>
+				<h2>Banner experiment</h2>
+				<p>Arm: <code data-testid="experiment-arm" data-experiment-arm>assigning…</code></p>
+				<ul data-experiment-events></ul>
+				<p>
+					The same events are pushed to <code>window.dataLayer</code>. Start the
+					demo with <code>C15T_EXPERIMENT=1</code>; the host picks the arm, so
+					<code>C15T_EXPERIMENT_ARM=wall</code> selects the wall arm and the
+					default is <code>floating</code>.
+				</p>
+			</section>
 			<h2>Watch the video</h2>
 			<div data-video><p>Allow measurement to load this YouTube video.</p></div>
 			<ConsentDialogTrigger>Open privacy settings</ConsentDialogTrigger>
@@ -23,6 +34,60 @@ import '../consent-example.css';
 
 	class ConsentExampleVideo extends HTMLElement {
 		dispose?: () => void;
+		disposeExperiment: (() => void)[] = [];
+
+		// `C15T_EXPERIMENT=1` puts the banner-shape experiment in astro.config.
+		// The arm is on the snapshot; the events c15t pushes to
+		// `window.dataLayer` are rebuilt from the kernel for an in-page log.
+		connectExperiment = (client: NonNullable<ReturnType<typeof getConsentClient>>) => {
+			const panel = this.querySelector<HTMLElement>('[data-experiment]');
+			const arm = this.querySelector('[data-experiment-arm]');
+			const list = this.querySelector('[data-experiment-events]');
+			if (!client.options.experiment || !panel || !arm || !list) {
+				return;
+			}
+			panel.hidden = false;
+			const renderArm = () => {
+				const assignment = client.getConsent().experiment;
+				arm.textContent = assignment
+					? `${assignment.id} · ${assignment.variant} · ${assignment.assignedBy}`
+					: 'assigning…';
+			};
+			const log = (line: string) => {
+				const item = document.createElement('li');
+				item.textContent = line;
+				list.append(item);
+			};
+			renderArm();
+			const { kernel } = client.runtime;
+			this.disposeExperiment = [
+				client.subscribe(renderArm),
+				kernel.events.on('surface:shown', (event) => {
+					const assignment = event.experiment ?? event.snapshot.experiment;
+					if (assignment) {
+						log(
+							`c15t_surface_shown · ${assignment.variant} · ${event.surface}`
+						);
+					}
+				}),
+				kernel.events.on('choice:recorded', (event) => {
+					const assignment = event.experiment ?? event.snapshot.experiment;
+					if (assignment) {
+						log(
+							`c15t_choice_recorded · ${assignment.variant} · ${event.uiSource} · ${event.consentAction}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
+						);
+					}
+				}),
+				kernel.events.on('notice:dismissed', (event) => {
+					const assignment = event.experiment ?? event.snapshot.experiment;
+					if (assignment) {
+						log(
+							`c15t_notice_dismissed · ${assignment.variant} · ${event.surface}${event.timeToDecisionMs === undefined ? '' : ` · ${event.timeToDecisionMs} ms`}`
+						);
+					}
+				}),
+			];
+		};
 
 		connect = () => {
 			if (this.dispose) {
@@ -49,6 +114,7 @@ import '../consent-example.css';
 			};
 			render();
 			this.dispose = client.runtime.kernel.subscribe(render);
+			this.connectExperiment(client);
 		};
 
 		setTheme = (event: Event) => {
@@ -72,6 +138,10 @@ import '../consent-example.css';
 			document.removeEventListener('DOMContentLoaded', this.connect);
 			this.dispose?.();
 			this.dispose = undefined;
+			for (const stop of this.disposeExperiment) {
+				stop();
+			}
+			this.disposeExperiment = [];
 			delete document.documentElement.dataset.consentExampleTheme;
 		}
 	}

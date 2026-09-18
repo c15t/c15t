@@ -132,6 +132,17 @@ footer {
 	height: 20px;
 	vertical-align: middle;
 }
+/* The experiment's `wall` arm: centred over a backdrop. The page behind is
+   made inert in main.ts, so the backdrop only has to look like one. */
+#consent-backdrop {
+	position: fixed;
+	inset: 0;
+	background: #17111e88;
+}
+#consent-prompt[data-variant='wall'] {
+	inset: 50% auto auto 50%;
+	transform: translate(-50%, -50%);
+}
 [data-design='branded'] #consent-prompt {
 	border-top: 6px solid #6943a3;
 }
