@@ -167,9 +167,38 @@ log "building @c15t/react-native, filtered: the Next demo must not see a rebuild
 (cd "${REPO_ROOT}" && bun turbo run build --filter=@c15t/react-native >/dev/null) ||
 	die "the SDK did not build. Nothing below this line can be believed without it."
 
-if [[ ! -d "${APP_DIR}/ios/Pods" ]]; then
+# A development pod resolves its source globs when `pod install` runs, and the
+# Pods project then carries a frozen file list. A kernel file that lands after the
+# latest install is not compiled at all, and the failure reads as a missing type
+# inside a file that plainly exists on disk -- which is how one run came back with
+# `cannot find type 'TcStorageBusWriting' in scope` for a type that had been in the
+# kernel for a day.
+#
+# Directory existence and mtimes are both the wrong ruler. The directory survives
+# whatever stale list it was built with, and the SDK build immediately over this
+# rewrites every file under vendor/C15tCore, so mtimes would force an integration on
+# every run. Instead the daemon integrates when the covered contents change: the Podfile
+# and the sorted checksum list of the vendored sources are the fingerprint, saved
+# inside Pods/, which is gitignored, so only the run that changed the key list pays.
+KERNEL_POD_SOURCES="${REPO_ROOT}/packages/react-native/vendor/C15tCore"
+POD_STAMP="${APP_DIR}/ios/Pods/.c15t-kernel-sources.cksum"
+
+kernel_pod_fingerprint() {
+	{
+		find "${KERNEL_POD_SOURCES}" -name '*.swift' | sort | xargs cksum
+		cat "${APP_DIR}/ios/Podfile"
+	} | cksum
+}
+
+NEEDED_POD_FINGERPRINT="$(kernel_pod_fingerprint)"
+CURRENT_POD_FINGERPRINT="$(cat "${POD_STAMP}" 2>/dev/null)"
+
+if [[ ! -d "${APP_DIR}/ios/Pods" ]] || [[ "${NEEDED_POD_FINGERPRINT}" != "${CURRENT_POD_FINGERPRINT}" ]]; then
 	log "pod install"
-	(cd "${APP_DIR}" && bun run pod-install >/dev/null)
+	(cd "${APP_DIR}" && bun run pod-install >/dev/null) ||
+		die "pod install failed. The Pods project cannot list kernel files it never saw."
+	mkdir -p "${APP_DIR}/ios/Pods"
+	printf '%s\n' "${NEEDED_POD_FINGERPRINT}" > "${POD_STAMP}"
 fi
 
 log "building the C15tBare app (${MODE})"
