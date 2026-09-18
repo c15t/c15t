@@ -46,6 +46,33 @@ const respondWith = (body: unknown, ok = true) =>
 			status: ok ? 200 : 500,
 		})) as unknown as typeof globalThis.fetch;
 
+/** A vendor entry complete enough for `gvlVendorSchema`. */
+const vendor = (id: number) => ({
+	cookieMaxAgeSeconds: null,
+	cookieRefresh: false,
+	features: [],
+	flexiblePurposes: [],
+	id,
+	legIntPurposes: [],
+	name: `Vendor ${id}`,
+	purposes: [1],
+	specialFeatures: [],
+	specialPurposes: [],
+	urls: [],
+	usesCookies: false,
+	usesNonCookieAccess: false,
+});
+
+/** A fetch stub that answers with `body` and records the URL it was called with. */
+const recordUrl = (body: unknown) => {
+	const urls: string[] = [];
+	const fetchImpl = ((input: RequestInfo | URL) => {
+		urls.push(String(input));
+		return Promise.resolve(new Response(JSON.stringify(body)));
+	}) as unknown as typeof globalThis.fetch;
+	return { fetchImpl, urls };
+};
+
 describe('gvl cache key', () => {
 	it('treats a reordered vendor list as the same list', () => {
 		// The same set in a different order is the same document; separate keys
@@ -142,5 +169,79 @@ describe('resolveGvl', () => {
 		for (const result of results) {
 			assert.isNotNull(result);
 		}
+	});
+
+	it('requests the document at the endpoint itself', async () => {
+		// The upstream serves the list at its root and answers `/en.json` with a
+		// 404, so a per-language path silently means every IAB deployment gets
+		// no GVL at all. This is the assertion that let that ship.
+		const { fetchImpl, urls } = recordUrl(GVL);
+		await resolveGvl('de-DE', { fetch: fetchImpl });
+
+		assert.deepEqual(urls, ['https://gvl.inth.app']);
+	});
+
+	it('sends a scoped allowlist as a server-side filter', async () => {
+		// Its own endpoint: `inflight` is module-scoped, and a request that
+		// shares a cache key with one another test made this one observe a
+		// promise instead of its own fetch.
+		const { fetchImpl, urls } = recordUrl(GVL);
+		await resolveGvl('en', {
+			endpoint: 'https://gvl-filter.test',
+			fetch: fetchImpl,
+			vendorIds: [3, 1, 2],
+		});
+
+		// Sorted, so one allowlist is one cache key and one upstream URL.
+		assert.match(
+			urls[0] ?? '',
+			/^https:\/\/gvl-filter\.test\?vendorIds=1(?:%2C|,)2(?:%2C|,)3$/u
+		);
+	});
+
+	it('narrows an allowlist too wide for a request line, locally', async () => {
+		// Above the query cap the upstream gets no filter and returns every
+		// vendor. The filter still has to happen: handing a visitor the full GVL
+		// because a publisher scoped wide would disclose partners nobody asked
+		// to disclose, and the narrowed document is what belongs in the cache.
+		const wide = [1, ...Array.from({ length: 500 }, (_, i) => i + 1000)];
+		const doc = {
+			...GVL,
+			vendors: { 1: vendor(1), 2: vendor(2), 3: vendor(3) },
+		};
+		const cache = memoryCache();
+		const { fetchImpl, urls } = recordUrl(doc);
+
+		const result = await resolveGvl('en', {
+			cache,
+			endpoint: 'https://gvl-wide.test',
+			fetch: fetchImpl,
+			vendorIds: wide,
+		});
+
+		assert.notMatch(urls[0] ?? '', /vendorIds/u);
+		assert.deepStrictEqual(Object.keys(result?.vendors ?? {}), ['1']);
+		assert.deepStrictEqual(
+			Object.keys(
+				(
+					cache.entries.get(
+						gvlCacheKey('https://gvl-wide.test', 'en', wide)
+					) as { vendors: Record<string, unknown> }
+				).vendors ?? {}
+			),
+			['1']
+		);
+	});
+
+	it('passes an unscoped request through unfiltered', async () => {
+		const { fetchImpl, urls } = recordUrl(GVL);
+		const result = await resolveGvl('en', {
+			endpoint: 'https://gvl-unscoped.test',
+			fetch: fetchImpl,
+			vendorIds: [],
+		});
+
+		assert.deepEqual(urls, ['https://gvl-unscoped.test']);
+		assert.deepStrictEqual(result?.vendors, {});
 	});
 });
