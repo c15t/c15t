@@ -4,9 +4,11 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelOverrides,
+	ResolvedVendor,
 } from '@c15t/core';
 import {
 	deniedVendorIds,
+	evaluateConsent,
 	CONSENT_CATEGORIES,
 	resolveConsentPresentation,
 	subscribeIABControls,
@@ -80,11 +82,10 @@ const renderVendors = function renderVendors(
 	container: HTMLElement,
 	snapshot: DevToolsState['snapshot']
 ): void {
+	// Only reached outside IAB mode: `renderConsents` returns before this under
+	// an IAB policy, where the slugs and stored denials are inert.
 	const declared = snapshot.vendors?.declared ?? [];
-	// Under an IAB policy the slugs and the stored denial list are inert: the
-	// TC string decides vendor consent, so a grant label here would contradict
-	// the IAB tab. The preference center hides the rows for the same reason.
-	if (declared.length === 0 || snapshot.model === 'iab') {
+	if (declared.length === 0) {
 		return;
 	}
 	const section = createSection(
@@ -97,18 +98,30 @@ const renderVendors = function renderVendors(
 	// The kernel's own gate view: a stale denial for a vendor now declared
 	// `disabled` does not count, so DevTools agrees with what loads.
 	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
+	// What the gate answers for this vendor right now: its own denial first,
+	// then its category, so a row never reads as allowed while blocked.
+	const status = (vendor: ResolvedVendor): string => {
+		if (denied.has(vendor.id)) {
+			return 'Denied';
+		}
+		let categoryAllowed = false;
+		try {
+			categoryAllowed = evaluateConsent(
+				{ category: vendor.category },
+				snapshot
+			);
+		} catch {
+			categoryAllowed = false;
+		}
+		return categoryAllowed ? 'Allowed' : 'Blocked by category';
+	};
 	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
 	for (const vendor of declared) {
 		const item = createElement(document, 'div', 'c15t-dev-tools__check');
 		item.append(
 			createElement(document, 'span', undefined, vendor.name ?? vendor.id),
 			createElement(document, 'span', 'c15t-dev-tools__badge', vendor.source),
-			createElement(
-				document,
-				'span',
-				'c15t-dev-tools__muted',
-				denied.has(vendor.id) ? 'Denied' : 'Granted'
-			)
+			createElement(document, 'span', 'c15t-dev-tools__muted', status(vendor))
 		);
 		if (!vendor.presentable) {
 			item.append(

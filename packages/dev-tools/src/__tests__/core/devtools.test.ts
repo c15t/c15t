@@ -322,16 +322,31 @@ describe('vendors on the consents tab', () => {
 		version: 1 as const,
 	};
 
-	it('labels a stored denial as denied under a category policy', () => {
+	it('labels each vendor with what the gate answers', () => {
+		const analytics = {
+			...meta,
+			category: 'measurement' as const,
+			id: 'google-analytics',
+			name: 'Google Analytics',
+		};
 		const kernel = createConsentKernel({
 			initialPolicyResolution: policyResolution(),
-			initialRecords: { vendorChoice: denied },
-			initialVendors: { declared: [meta], listVersion: null },
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: false }),
+				vendorChoice: denied,
+			},
+			initialVendors: { declared: [analytics, meta], listVersion: null },
 		});
 		const tools = createInstance(kernel);
 		tools.open();
-		expect(tools.element?.textContent).toContain('Meta Pixel');
-		expect(tools.element?.textContent).toContain('Denied');
+		const rows = [
+			...(tools.element?.querySelectorAll('.c15t-dev-tools__check') ?? []),
+		].map((row) => row.textContent);
+		expect(rows.find((row) => row?.includes('Meta Pixel'))).toContain('Denied');
+		// Not denied, but its category is off: the gate still blocks it.
+		expect(rows.find((row) => row?.includes('Google Analytics'))).toContain(
+			'Blocked by category'
+		);
 	});
 
 	it('hides the same vendors under an IAB policy', () => {
