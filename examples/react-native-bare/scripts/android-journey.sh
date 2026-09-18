@@ -105,8 +105,20 @@ print(' | '.join(seen[:24]))
 PY
 }
 
+# capture <name>
+#
+# exec-out, not exec-screencap. The latter runs screencap through the device shell, which
+# rewrites the PNG's line endings on the way out and leaves a zero-byte file behind: the run
+# reports every step green while writing no frames at all, and the frames are the half of the
+# evidence a human can check. exec-out keeps the stream binary.
 capture () {
-	"${ADB}" -s "${SERIAL}" exec-screencap 1 >"${OUT_DIR}/${1}.png" 2>/dev/null || true
+	local png="${OUT_DIR}/${1}.png"
+	if ! "${ADB}" -s "${SERIAL}" exec-out screencap -p >"${png}" 2>/dev/null ||
+		[[ ! -s "${png}" ]]; then
+		"${ADB}" -s "${SERIAL}" shell screencap -p /sdcard/journey.png >/dev/null 2>&1 &&
+			"${ADB}" -s "${SERIAL}" pull /sdcard/journey.png "${png}" >/dev/null 2>&1
+	fi
+	[[ -s "${png}" ]] || die "no screenshot for step $1 in ${png}"
 }
 
 # expect <name> <description> <needle>...: every needle must be on screen
