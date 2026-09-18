@@ -1,3 +1,9 @@
+## @c15t/translations@3.0.0-alpha.2 (alpha)
+
+### Fix declaration imports for Node16 and NodeNext
+
+Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
 # @c15t/translations
 
 ## 3.0.0-alpha.0
