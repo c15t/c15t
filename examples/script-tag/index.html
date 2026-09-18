@@ -162,8 +162,9 @@
 			// `?experiment=1` runs a banner-shape experiment: c15t assigns the arm
 			// and reports impressions and choices to window.dataLayer and to the
 			// log below. `&arm=wall` forces the arm the way a flag provider would.
-			if (location.search.includes('experiment=1')) {
-				const arm = new URLSearchParams(location.search).get('arm');
+			const experimentParams = new URLSearchParams(location.search);
+			if (experimentParams.get('experiment') === '1') {
+				const arm = experimentParams.get('arm');
 				c15t.push([
 					'config',
 					{
