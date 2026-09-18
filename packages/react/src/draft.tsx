@@ -270,11 +270,15 @@ const createDraftStore = function createDraftStore(
 			saveSequence += 1;
 			const sequence = saveSequence;
 			// Only vendors the draft moved travel with the save, so an untouched
-			// vendor never renews the recorded confirmation time.
+			// vendor never renews the recorded confirmation time. A bulk action
+			// clears the denial list on its own, so it carries none.
+			const bulk = input === 'all' || input === 'none';
 			const vendors: Record<string, boolean> = {};
-			for (const [id, granted] of Object.entries(current.vendors)) {
-				if (baseVendors[id] !== granted) {
-					vendors[id] = granted;
+			if (!bulk) {
+				for (const [id, granted] of Object.entries(current.vendors)) {
+					if (baseVendors[id] !== granted) {
+						vendors[id] = granted;
+					}
 				}
 			}
 			const pending = kernel.commands.save(input ?? patch, {
