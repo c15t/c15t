@@ -43,7 +43,7 @@ const gvlPayload = function gvlPayload(
 			vendors: { '755': { id: 755, name: 'Google' } },
 			...overrides,
 		}),
-		{ status: 200, headers: { 'content-type': 'application/json' } }
+		{ headers: { 'content-type': 'application/json' }, status: 200 }
 	);
 };
 
@@ -79,14 +79,16 @@ test('keeps a filtered list when the scope sits exactly on the cap', async () =>
 	expect(url.searchParams.get('vendorIds')?.split(',')).toHaveLength(500);
 });
 
-test('rejects a vendor list with no usable policy version', async () => {
-	for (const policyVersion of [undefined, null, 0, -1, 1.5, Number.NaN]) {
+// Each value needs its own fetch stub and a cleared cache, so these are separate
+// tests rather than a loop the linter is right to distrust.
+test.each([undefined, null, 0, -1, 1.5, Number.NaN])(
+	'rejects a vendor list with policy version %p',
+	async (policyVersion) => {
 		const fetchMock = vi
 			.fn<typeof fetch>()
 			.mockResolvedValue(gvlPayload({ tcfPolicyVersion: policyVersion }));
 		vi.stubGlobal('fetch', fetchMock);
 
 		await expect(fetchGVL()).rejects.toThrow(/missing required fields/u);
-		clearGVLCache();
 	}
-});
+);

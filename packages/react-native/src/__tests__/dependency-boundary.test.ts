@@ -1,8 +1,8 @@
 /**
  * The mobile package carries no consent kernel and no TCF codec.
  *
- * @c15t/react-native renders what a native core decides and hands it back over
- * the TurboModule bridge. That boundary is the reason the SDK exists, and it is
+ * This package renders what a native core decides and hands it back over the
+ * TurboModule bridge. That boundary is the reason the SDK exists, and it is
  * easy to lose quietly: `@c15t/core` is a devDependency, so a stray runtime
  * import type-checks, lints, and passes tests on a desktop before anyone notices
  * a JavaScript consent engine shipped inside the app bundle. The TC String
@@ -16,8 +16,7 @@
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
@@ -39,7 +38,7 @@ const FORBIDDEN = [
  * clause can be judged together. Statements span lines, hence `s`.
  */
 const IMPORT_STATEMENT =
-	/(^|\n)[ \t]*(import|export)\s+(?:(?<clause>[\s\S]*?)\s+from\s+)?['"](?<specifier>[^'"]+)['"]/g;
+	/(?<lead>^|\n)[ \t]*(?<kind>import|export)\s+(?:(?<clause>[\s\S]*?)\s+from\s+)?['"](?<specifier>[^'"]+)['"]/gu;
 
 /** Whether every named binding in a clause is erased by the compiler. */
 const isTypeOnlyClause = function isTypeOnlyClause(
@@ -101,7 +100,7 @@ test('no runtime import of the consent kernel or the TCF codec', () => {
 
 			if (
 				FORBIDDEN.includes(base) &&
-				!isTypeOnlyClause(match[2] ?? 'import', match.groups?.clause)
+				!isTypeOnlyClause(match.groups?.kind ?? 'import', match.groups?.clause)
 			) {
 				offenders.push(`${relative(SRC, file)}: ${specifier}`);
 			}
