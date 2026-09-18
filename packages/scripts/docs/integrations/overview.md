@@ -40,9 +40,10 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 
 ## Tag managers
 
-| Integration                                   | Helper             | Category    | Loading behavior                     |
-| --------------------------------------------- | ------------------ | ----------- | ------------------------------------ |
-| [Google Tag Manager](./google-tag-manager.md) | `googleTagManager` | `necessary` | Always loads; signals Google consent |
+| Integration                                   | Helper             | Category    | Loading behavior                                 |
+| --------------------------------------------- | ------------------ | ----------- | ------------------------------------------------ |
+| [Cloudflare Zaraz](./cloudflare-zaraz.md)     | `cloudflareZaraz`  | `necessary` | Synchronizes purposes; Zaraz owns tool execution |
+| [Google Tag Manager](./google-tag-manager.md) | `googleTagManager` | `necessary` | Always loads; signals Google consent             |
 
 ## Analytics
 

@@ -45,7 +45,12 @@ export interface ScriptLoaderDebugEvent {
 	scriptId: string;
 	elementId?: string;
 	hasConsent?: boolean;
-	callback?: 'onLoad' | 'onError' | 'onConsentChange' | 'onBeforeLoad';
+	callback?:
+		| 'onLoad'
+		| 'onError'
+		| 'onConsentChange'
+		| 'onBeforeLoad'
+		| 'onDispose';
 	data?: Record<string, unknown>;
 	timestamp: number;
 }
@@ -113,6 +118,8 @@ export interface ReconcilePass {
  * layout invalidation per append target instead of one per script.
  */
 export interface PendingMount {
+	/** Records insertion even if inline execution removes its own element. */
+	appended: boolean;
 	script: Script;
 	element: HTMLScriptElement;
 	target: HTMLElement;

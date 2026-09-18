@@ -23,8 +23,15 @@ import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
  * closure capture and remain testable.
  */
 export interface MountDeps {
+	/** Stop lifecycle callbacks when disposal is requested during mounting. */
+	isDisposed: () => boolean;
 	/** Latest kernel state for callbacks completing after consent changes. */
 	getSnapshot: () => ConsentSnapshot;
+	/** Resolve callbacks and permission from the currently registered configuration. */
+	getCurrentScript?: (
+		scriptId: string,
+		snapshot: ConsentSnapshot
+	) => { script: Script; hasConsent: boolean } | undefined;
 	/** Retained elements still observed after consent revocation. */
 	retainedElements: Map<string, HTMLScriptElement>;
 	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
@@ -40,6 +47,85 @@ export interface MountDeps {
 	/** CSP nonce for created elements when the script declares none. */
 	nonce?: string;
 }
+
+const completionContext = (
+	deps: MountDeps,
+	script: Script,
+	hasConsent: boolean,
+	elementId: string,
+	element: HTMLScriptElement
+) => {
+	const snapshot = deps.getSnapshot();
+	const current = deps.getCurrentScript
+		? deps.getCurrentScript(script.id, snapshot)
+		: {
+				hasConsent:
+					deps.retainedElements.get(script.id) === element ? false : hasConsent,
+				script,
+			};
+	if (!current) {
+		return;
+	}
+	return {
+		info:
+			hasAnyCallback(current.script) || deps.hasDebugListener
+				? buildCallbackInfo(
+						current.script,
+						snapshot,
+						current.hasConsent,
+						elementId,
+						element
+					)
+				: undefined,
+		script: current.script,
+	};
+};
+
+/** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
+const completeMount = (deps: MountDeps, pending: PendingMount): void => {
+	const { script, element, elementId, hasConsent } = pending;
+	if (deps.loadedElements.get(script.id) !== element) {
+		return;
+	}
+	if (!pending.appended) {
+		deps.loadedElements.delete(script.id);
+		deps.ownedScriptIds.delete(script.id);
+		return;
+	}
+	if (deps.isDisposed()) {
+		return;
+	}
+	if (!script.src) {
+		// Defer inline completion until parsing, and ignore obsolete mounts.
+		setTimeout(() => {
+			if (
+				!deps.isDisposed() &&
+				deps.loadedElements.get(script.id) === element
+			) {
+				const current = completionContext(
+					deps,
+					script,
+					hasConsent,
+					elementId,
+					element
+				);
+				if (current?.info) {
+					invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+				}
+			}
+		}, 0);
+	}
+	deps.emit({
+		action: 'loaded',
+		elementId,
+		hasConsent,
+		message: 'Script mounted',
+		scope: 'lifecycle',
+		scriptId: script.id,
+		source: 'script-loader',
+		timestamp: Date.now(),
+	});
+};
 
 /**
  * Mount a script into the DOM, or queue it for batched append.
@@ -58,7 +144,8 @@ export const mountScript = function mountScript(
 	script: Script,
 	snapshot: ConsentSnapshot,
 	hasConsent: boolean,
-	batch: PendingMount[] | null
+	batch: PendingMount[] | null,
+	isCurrentPass: () => boolean = () => true
 ): void {
 	if (typeof document === 'undefined') {
 		return;
@@ -101,6 +188,9 @@ export const mountScript = function mountScript(
 			undefined
 		);
 		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
+		if (deps.isDisposed() || !isCurrentPass()) {
+			return;
+		}
 		invokeCallback(script, 'onLoad', info, deps.emit);
 		deps.loadedElements.set(script.id, null);
 		deps.emit({
@@ -198,31 +288,37 @@ export const mountScript = function mountScript(
 		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
 	}
 
+	if (deps.isDisposed()) {
+		return;
+	}
+
 	// Listeners only make sense on external scripts; inline scripts have
 	// no network event. Diagnostics still need events without user callbacks.
 	if (script.src) {
+		const isRegisteredElement = () =>
+			!deps.isDisposed() &&
+			(deps.loadedElements.get(script.id) === element ||
+				deps.retainedElements.get(script.id) === element);
 		const isCurrentElement = () =>
 			element.isConnected &&
 			document.getElementById(elementId) === element &&
-			(deps.loadedElements.get(script.id) === element ||
-				deps.retainedElements.get(script.id) === element);
-		const completionInfo = () =>
-			info && deps.retainedElements.get(script.id) === element
-				? buildCallbackInfo(
-						script,
-						deps.getSnapshot(),
-						false,
-						elementId,
-						element
-					)
-				: info;
+			isRegisteredElement();
 		element.addEventListener('load', () => {
 			if (!isCurrentElement()) {
 				return;
 			}
-			const currentInfo = completionInfo();
-			if (currentInfo) {
-				invokeCallback(script, 'onLoad', currentInfo, deps.emit);
+			const current = completionContext(
+				deps,
+				script,
+				hasConsent,
+				elementId,
+				element
+			);
+			if (current?.info) {
+				invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+			}
+			if (!isRegisteredElement()) {
+				return;
 			}
 			deps.emit({
 				action: 'load_completed',
@@ -238,13 +334,22 @@ export const mountScript = function mountScript(
 			if (!isCurrentElement()) {
 				return;
 			}
-			const currentInfo = completionInfo();
-			if (currentInfo) {
+			const current = completionContext(
+				deps,
+				script,
+				hasConsent,
+				elementId,
+				element
+			);
+			if (current?.info) {
 				const errorInfo = {
-					...currentInfo,
+					...current.info,
 					error: new Error(`Failed to load script: ${script.src}`),
 				};
-				invokeCallback(script, 'onError', errorInfo, deps.emit);
+				invokeCallback(current.script, 'onError', errorInfo, deps.emit);
+			}
+			if (!isRegisteredElement()) {
+				return;
 			}
 			deps.emit({
 				action: 'error',
@@ -261,32 +366,29 @@ export const mountScript = function mountScript(
 	const target = script.target === 'body' ? document.body : document.head;
 
 	if (batch) {
-		batch.push({ element, elementId, hasConsent, info, script, target });
+		batch.push({
+			appended: false,
+			element,
+			elementId,
+			hasConsent,
+			info,
+			script,
+			target,
+		});
 		return;
 	}
 
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
 	target.appendChild(element);
-	if (deps.loadedElements.get(script.id) !== element) {
-		return;
-	}
-
-	if (!script.src && info) {
-		// Inline script: defer onLoad one tick so the browser parses
-		// before the callback observes side effects.
-		setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
-	}
-
-	deps.emit({
-		action: 'loaded',
+	completeMount(deps, {
+		appended: true,
+		element,
 		elementId,
 		hasConsent,
-		message: 'Script mounted',
-		scope: 'lifecycle',
-		scriptId: script.id,
-		source: 'script-loader',
-		timestamp: Date.now(),
+		info,
+		script,
+		target,
 	});
 };
 
@@ -302,23 +404,29 @@ export const unmountScript = function unmountScript(
 	deps: MountDeps,
 	script: Script,
 	snapshot: ConsentSnapshot,
-	hasConsent: boolean
+	hasConsent: boolean,
+	removeConfiguration = false
 ): void {
-	const element = deps.loadedElements.get(script.id);
+	let element = deps.loadedElements.get(script.id);
+	if (
+		element === undefined &&
+		(removeConfiguration || !script.persistAfterConsentRevoked)
+	) {
+		element = deps.retainedElements.get(script.id);
+	}
 	if (element === undefined) {
 		return;
 	}
 
 	const elementId = deps.elementIds.resolve(script);
 
-	if (script.persistAfterConsentRevoked) {
+	if (script.persistAfterConsentRevoked && !removeConfiguration) {
 		if (element) {
 			deps.retainedElements.set(script.id, element);
 		}
 		// Element stays in DOM but we drop our reference so a later
 		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);
-		deps.ownedScriptIds.delete(script.id);
 		if (typeof script.onConsentChange === 'function') {
 			const info = buildCallbackInfo(
 				script,
@@ -347,6 +455,7 @@ export const unmountScript = function unmountScript(
 		element.parentNode.removeChild(element);
 	}
 	deps.loadedElements.delete(script.id);
+	deps.retainedElements.delete(script.id);
 	deps.ownedScriptIds.delete(script.id);
 
 	if (typeof script.onConsentChange === 'function') {
@@ -379,9 +488,10 @@ export const unmountScript = function unmountScript(
  */
 export const flushPendingMounts = function flushPendingMounts(
 	deps: MountDeps,
-	batch: PendingMount[]
+	batch: PendingMount[],
+	isCurrentPass: () => boolean = () => true
 ): void {
-	if (batch.length === 0) {
+	if (batch.length === 0 || !isCurrentPass()) {
 		return;
 	}
 	// Register before insertion: inline execution and DOM adapters can dispatch
@@ -398,6 +508,7 @@ export const flushPendingMounts = function flushPendingMounts(
 			return;
 		}
 		only.target.appendChild(only.element);
+		only.appended = true;
 	} else {
 		const byTarget = new Map<HTMLElement, PendingMount[]>();
 		for (const pending of batch) {
@@ -409,6 +520,9 @@ export const flushPendingMounts = function flushPendingMounts(
 			}
 		}
 		for (const [target, entries] of byTarget) {
+			if (deps.isDisposed() || !isCurrentPass()) {
+				break;
+			}
 			// A previous target can execute inline code that revokes consent or
 			// replaces this loader's scripts. Never insert invalidated entries.
 			const elements = entries
@@ -416,7 +530,10 @@ export const flushPendingMounts = function flushPendingMounts(
 					({ script, element }) =>
 						deps.loadedElements.get(script.id) === element
 				)
-				.map(({ element }) => element);
+				.map((pending) => {
+					pending.appended = true;
+					return pending.element;
+				});
 			if (elements.length === 0) {
 				continue;
 			}
@@ -437,24 +554,6 @@ export const flushPendingMounts = function flushPendingMounts(
 	}
 
 	for (const pending of batch) {
-		if (deps.loadedElements.get(pending.script.id) !== pending.element) {
-			continue;
-		}
-		if (!pending.script.src && pending.info) {
-			const { info } = pending;
-			const { script } = pending;
-			setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
-		}
-
-		deps.emit({
-			action: 'loaded',
-			elementId: pending.elementId,
-			hasConsent: pending.hasConsent,
-			message: 'Script mounted',
-			scope: 'lifecycle',
-			scriptId: pending.script.id,
-			source: 'script-loader',
-			timestamp: Date.now(),
-		});
+		completeMount(deps, pending);
 	}
 };

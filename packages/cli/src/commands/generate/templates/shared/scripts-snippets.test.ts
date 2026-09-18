@@ -26,6 +26,18 @@ describe('script snippets', () => {
 		}
 	});
 
+	it('includes required Zaraz startup and stable-registration steps', () => {
+		const config = generateScriptsConfig(['cloudflare-zaraz']);
+		expect(config).toContain(
+			'Disable Zaraz automatic pageviews and consent modal'
+		);
+		expect(config).toContain('stable outside render functions');
+		expect(config).toContain('onReady:');
+		expect(config).toContain(
+			'Send the initial Zaraz Pageview here after consent sync'
+		);
+	});
+
 	it('generates matching imports and config calls', () => {
 		const selected = ['microsoft-clarity', 'segment', 'logrocket'];
 

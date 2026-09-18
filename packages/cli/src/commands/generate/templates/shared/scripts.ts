@@ -45,6 +45,18 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })",
 		importName: 'cloudflareWebAnalytics',
 	},
+	'cloudflare-zaraz': {
+		example: `cloudflareZaraz({
+  purposes: { measurement: ['YOUR_ZARAZ_PURPOSE_ID'] },
+  // TODO(required): Disable Zaraz automatic pageviews and consent modal.
+  // Keep this configuration stable outside render functions before adding onReady.
+  // Follow https://c15t.com/docs/integrations/cloudflare-zaraz
+  onReady: () => {
+    // TODO(required): Send the initial Zaraz Pageview here after consent sync.
+  },
+})`,
+		importName: 'cloudflareZaraz',
+	},
 	crisp: {
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'crisp',

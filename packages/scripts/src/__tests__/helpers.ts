@@ -37,7 +37,7 @@ export interface ExpectedScriptSnapshot {
 	/** Expected consent-revocation persistence flag from the generated script. */
 	persistAfterConsentRevoked: boolean | undefined;
 	/** Expected remote script URL from the generated helper script. */
-	src: string;
+	src: string | undefined;
 }
 
 /**

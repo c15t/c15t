@@ -33,13 +33,18 @@
 import { extractConsentNamesFromCondition } from '../../libs/has';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
+import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
 import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
 import { buildReconcilePass, hasScriptConsent } from './eligibility';
 import { flushPendingMounts, mountScript, unmountScript } from './mount';
 import type { MountDeps } from './mount';
-import { createElementIdResolver, normalizeScripts } from './normalize';
+import {
+	createElementIdResolver,
+	hasSameResource,
+	normalizeScripts,
+} from './normalize';
 import type {
 	NormalizedScript,
 	PendingMount,
@@ -62,6 +67,8 @@ export type {
 	ScriptLoaderHandle,
 	ScriptLoaderOptions,
 } from './types';
+
+const MAX_RECONCILE_PASSES = 100;
 
 export const createScriptLoader = function createScriptLoader(
 	options: ScriptLoaderOptions
@@ -110,11 +117,32 @@ export const createScriptLoader = function createScriptLoader(
 	const eligibilityByScriptId = new Map<string, boolean>();
 	const consentByScriptId = new Map<string, boolean>();
 
+	let unsubscribe: (() => void) | undefined;
+	let disposed = false;
+	let processing = false;
+	let pendingScripts: Script[] | undefined;
+	let reconcileRequested = false;
+	let forceReconcile = false;
+
+	// A callback can request changes while this pass is still mounting scripts.
+	const isCurrentPass = () =>
+		!disposed && pendingScripts === undefined && !reconcileRequested;
+
 	const mountDeps: MountDeps = {
 		elementIds,
 		emit,
+		getCurrentScript: (scriptId, snapshot) => {
+			const entry = normalized.find(({ script }) => script.id === scriptId);
+			return entry
+				? {
+						hasConsent: hasScriptConsent(entry, buildReconcilePass(snapshot)),
+						script: entry.script,
+					}
+				: undefined;
+		},
 		getSnapshot: kernel.getSnapshot,
 		hasDebugListener,
+		isDisposed: () => disposed,
 		loadedElements,
 		nonce: options.nonce,
 		ownedScriptIds,
@@ -133,21 +161,25 @@ export const createScriptLoader = function createScriptLoader(
 	let lastModel: unknown = null;
 	let lastEvaluationPolicy: unknown = null;
 
-	const reconcile = function reconcile(force = false): void {
-		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+	const isConsentStateUnchanged = (snapshot: ConsentSnapshot): boolean => {
 		const effective = getEffectiveGateState(snapshot);
-		const permissionsChanged = effective.effectivePermissions !== lastConsents;
-
-		if (
-			!force &&
-			!permissionsChanged &&
+		return (
+			effective.effectivePermissions === lastConsents &&
 			snapshot.policyRule.scope === lastPolicyCategories &&
 			snapshot.policyRule.scopeMode === lastScopeMode &&
 			snapshot.iab === lastIab &&
 			effective.restrictions === lastRestrictions &&
 			snapshot.model === lastModel &&
 			snapshot.evaluationPolicy === lastEvaluationPolicy
-		) {
+		);
+	};
+
+	const reconcile = function reconcile(force = false): void {
+		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+		const effective = getEffectiveGateState(snapshot);
+		const permissionsChanged = effective.effectivePermissions !== lastConsents;
+
+		if (!force && isConsentStateUnchanged(snapshot)) {
 			return;
 		}
 		lastConsents = effective.effectivePermissions;
@@ -183,13 +215,23 @@ export const createScriptLoader = function createScriptLoader(
 
 			if (eligible) {
 				retainedElements.delete(script.id);
-				mountScript(mountDeps, script, snapshot, hasConsent, batch);
+				mountScript(
+					mountDeps,
+					script,
+					snapshot,
+					hasConsent,
+					batch,
+					isCurrentPass
+				);
 			} else {
 				unmountScript(mountDeps, script, snapshot, hasConsent);
 			}
+			if (!isCurrentPass()) {
+				break;
+			}
 		}
 
-		flushPendingMounts(mountDeps, batch);
+		flushPendingMounts(mountDeps, batch, isCurrentPass);
 		diagnostics?.notify();
 	};
 
@@ -236,57 +278,180 @@ export const createScriptLoader = function createScriptLoader(
 				};
 			})
 	);
-	const unsubscribe = kernel.subscribe(() => reconcile());
+	const disposeScript = (
+		script: Script,
+		element = loadedElements.get(script.id) ?? retainedElements.get(script.id)
+	): void => {
+		if (!script.onDispose) {
+			return;
+		}
+		const snapshot = kernel.getSnapshot();
+		invokeCallback(
+			script,
+			'onDispose',
+			buildCallbackInfo(
+				script,
+				snapshot,
+				consentByScriptId.get(script.id) ?? false,
+				elementIds.resolve(script),
+				element
+			),
+			emit
+		);
+	};
 
+	const cleanup = (): void => {
+		// Clear registrations before user callbacks. Each object owns one cleanup
+		// per registration, even if it appears more than once in the input.
+		const scripts = new Set(normalized.map(({ script }) => script));
+		normalized = [];
+		pendingScripts = undefined;
+		for (const script of scripts) {
+			disposeScript(script);
+		}
+		diagnostics?.dispose();
+		diagnostics = undefined;
+		for (const [scriptId, element] of new Map([
+			...retainedElements,
+			...loadedElements,
+		])) {
+			if (ownedScriptIds.has(scriptId) && element?.parentNode) {
+				element.parentNode.removeChild(element);
+			}
+		}
+		loadedElements.clear();
+		retainedElements.clear();
+		ownedScriptIds.clear();
+		elementIds.clear();
+		eligibilityByScriptId.clear();
+		consentByScriptId.clear();
+		lastEvents.clear();
+		statuses.clear();
+	};
+
+	const replaceScripts = (next: Script[]): void => {
+		const nextScripts = new Set(next);
+		const nextById = new Map(next.map((script) => [script.id, script]));
+		const previous = new Set(normalized.map(({ script }) => script));
+		const snapshot = kernel.getSnapshot();
+		for (const script of previous) {
+			if (nextScripts.has(script)) {
+				continue;
+			}
+			const replacement = nextById.get(script.id);
+			// Existing vendor helpers are recreated on framework rerenders. Keep
+			// their resource mounted unless it changed. onDispose opts into an
+			// object-owned lifecycle, used by integrations with attached listeners.
+			if (
+				replacement &&
+				!script.onDispose &&
+				!replacement.onDispose &&
+				hasSameResource(script, replacement)
+			) {
+				continue;
+			}
+			// Resource replacement starts a fresh lifecycle, even for the same ID.
+			// Persistence applies to consent revocation, not config replacement.
+			const element =
+				loadedElements.get(script.id) ?? retainedElements.get(script.id);
+			unmountScript(mountDeps, script, snapshot, false, true);
+			disposeScript(script, element);
+			retainedElements.delete(script.id);
+			eligibilityByScriptId.delete(script.id);
+			consentByScriptId.delete(script.id);
+			lastEvents.delete(script.id);
+			statuses.delete(script.id);
+		}
+		normalized = normalizeScripts(next);
+		if (!disposed) {
+			registerCategories(next);
+			reconcileRequested = true;
+			forceReconcile = true;
+		}
+	};
+
+	// Serialize lifecycle changes. Callbacks can request another configuration
+	// or dispose the loader without recursively cleaning up the current one.
+	const drain = (): void => {
+		if (processing) {
+			return;
+		}
+		processing = true;
+		let passes = 0;
+		try {
+			while (pendingScripts || reconcileRequested) {
+				if (disposed) {
+					break;
+				}
+				passes += 1;
+				if (passes > MAX_RECONCILE_PASSES) {
+					disposed = true;
+					unsubscribe?.();
+					unsubscribe = undefined;
+					emit({
+						action: 'error',
+						message: 'Script callback feedback loop detected; loader disposed',
+						scope: 'phase',
+						scriptId: '',
+						source: 'script-loader',
+						timestamp: Date.now(),
+					});
+					break;
+				}
+				if (pendingScripts) {
+					const next = pendingScripts;
+					pendingScripts = undefined;
+					replaceScripts(next);
+				} else {
+					const force = forceReconcile;
+					reconcileRequested = false;
+					forceReconcile = false;
+					reconcile(force);
+				}
+			}
+		} finally {
+			if (disposed) {
+				cleanup();
+			}
+			processing = false;
+		}
+	};
+	unsubscribe = kernel.subscribe(() => {
+		if (processing && isConsentStateUnchanged(kernel.getSnapshot())) {
+			return;
+		}
+		// Revisit mounts skipped when a callback interrupts the active pass,
+		// even if their eligibility is unchanged in the next snapshot.
+		forceReconcile ||= processing;
+		reconcileRequested = true;
+		drain();
+	});
 	const handle: ScriptLoaderHandle = {
 		dispose() {
-			unsubscribe();
-			diagnostics?.dispose();
-			diagnostics = undefined;
-			if (typeof document === 'undefined') {
+			if (disposed) {
 				return;
 			}
-			for (const [scriptId, element] of loadedElements) {
-				if (!ownedScriptIds.has(scriptId)) {
-					continue;
-				}
-				if (element?.parentNode) {
-					element.parentNode.removeChild(element);
-				}
-			}
-			loadedElements.clear();
-			retainedElements.clear();
-			ownedScriptIds.clear();
-			elementIds.clear();
-			eligibilityByScriptId.clear();
-			consentByScriptId.clear();
-			lastEvents.clear();
-			statuses.clear();
+			disposed = true;
+			unsubscribe?.();
+			unsubscribe = undefined;
+			drain();
 		},
 		getLoadedScriptIds() {
 			return Array.from(loadedElements.keys());
 		},
 		updateScripts(next: Script[]) {
-			const nextIds = new Set(next.map((s) => s.id));
-			const snapshot = kernel.getSnapshot();
-			for (const { script } of normalized) {
-				if (!nextIds.has(script.id)) {
-					unmountScript(mountDeps, script, snapshot, false);
-					retainedElements.delete(script.id);
-					eligibilityByScriptId.delete(script.id);
-					consentByScriptId.delete(script.id);
-					lastEvents.delete(script.id);
-					statuses.delete(script.id);
-				}
+			if (disposed) {
+				return;
 			}
-			normalized = normalizeScripts(next);
-			registerCategories(next);
-			reconcile(true);
+			pendingScripts = next;
+			drain();
 		},
 	};
 	try {
 		// Observe initial mounts too, including synchronous inline execution.
-		reconcile(true);
+		reconcileRequested = true;
+		forceReconcile = true;
+		drain();
 	} catch (error) {
 		handle.dispose();
 		throw error;

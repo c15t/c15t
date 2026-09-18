@@ -183,6 +183,11 @@
 			"import": "./dist/vendors/functional/intercom.js",
 			"default": "./dist/vendors/functional/intercom.js"
 		},
+		"./cloudflare-zaraz": {
+			"types": "./dist-types/vendors/tag-managers/cloudflare-zaraz.d.ts",
+			"import": "./dist/vendors/tag-managers/cloudflare-zaraz.js",
+			"default": "./dist/vendors/tag-managers/cloudflare-zaraz.js"
+		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",

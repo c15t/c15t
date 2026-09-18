@@ -183,6 +183,54 @@ test('disabled mode loads scripts without initializing or recording choice', asy
 	).toBeNull();
 });
 
+test.each([false, true])(
+	'keeps an inline vendor initialized once across provider rerenders, self-removing=%s',
+	async (selfRemoving) => {
+		const executed = vi.fn();
+		const initialize = vi.fn();
+		const consent = vi.fn();
+		window.addEventListener('c15t-test-vendor-executed', executed);
+		const mode = custom({ init: vi.fn() });
+		const prefetch = policyFixture({ marketing: true });
+		const provider = () => (
+			<ConsentProvider
+				options={{
+					mode,
+					persistence: false,
+					prefetch,
+					scripts: [
+						{
+							alwaysLoad: true,
+							category: 'marketing',
+							id: 'browser-rerender',
+							onBeforeLoad: () => initialize(),
+							onConsentChange: ({ hasConsent }) => consent(hasConsent),
+							textContent: [
+								"window.dispatchEvent(new Event('c15t-test-vendor-executed'));",
+								selfRemoving ? 'document.currentScript.remove();' : '',
+							].join(' '),
+						},
+					],
+				}}
+			>
+				<Capture />
+			</ConsentProvider>
+		);
+		try {
+			const screen = await render(provider());
+			await vi.waitFor(() => expect(executed).toHaveBeenCalledOnce());
+			await screen.rerender(provider());
+			await screen.rerender(provider());
+			expect(initialize).toHaveBeenCalledOnce();
+			expect(executed).toHaveBeenCalledOnce();
+			expect(consent).toHaveBeenCalledWith(true);
+			expect(consent).not.toHaveBeenCalledWith(false);
+		} finally {
+			window.removeEventListener('c15t-test-vendor-executed', executed);
+		}
+	}
+);
+
 test('toggling disabled mode grants scripts and restores the existing choice', async () => {
 	const onBeforeLoad = vi.fn();
 	const init = vi.fn();
