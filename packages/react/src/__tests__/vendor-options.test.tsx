@@ -424,6 +424,55 @@ describe('provider vendor options', () => {
 		expect(readProbe()?.source).toBe('manifest');
 	});
 
+	test('useVendorAllowed grants a vendor removed from the declarations despite a stored denial', async () => {
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'removed-denied-vendor' }
+		);
+		const Host = () => {
+			const [vendors, setVendors] = useState<Vendor[]>([META]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: {
+							...fixture,
+							initialRecords: {
+								...fixture.initialRecords,
+								vendorChoice: {
+									confirmedAt: (fixture.now ?? 1) - 1,
+									denied: ['meta-pixel'],
+									version: 1,
+								},
+							},
+						},
+						vendors,
+					}}
+				>
+					<button
+						data-testid="remove"
+						onClick={() => setVendors([])}
+						type="button"
+					>
+						remove
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.meta).toBe(false);
+		});
+		await page.getByTestId('remove').click();
+		// No switch is left to grant it again, so the denial no longer counts.
+		await vi.waitFor(() => {
+			expect(readProbe()?.meta).toBe(true);
+		});
+	});
+
 	test('useVendorAllowed ignores a stored denial for a vendor declared disabled', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },

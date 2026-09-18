@@ -284,13 +284,15 @@ export const useVendorAllowed = function useVendorAllowed(
 		const vendor = snap.vendors?.declared.find(
 			(entry) => entry.id === vendorId
 		);
+		// Nothing is known about an undeclared id, and the kernel ignores a
+		// stored denial for it too, so it follows its category alone.
+		if (!vendor) {
+			return true;
+		}
 		// The kernel's own gate semantics: inert under `iab`, and a stale denial
 		// for a vendor now declared `disabled` no longer counts.
 		if (snap.model !== 'iab' && isVendorDenied(snap, vendorId)) {
 			return false;
-		}
-		if (!vendor) {
-			return true;
 		}
 		try {
 			return evaluateConsent({ category: vendor.category }, snap);
