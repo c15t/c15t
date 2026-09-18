@@ -77,6 +77,8 @@ const element = function element<Kind extends HTMLElement>(
 	}
 	return node;
 };
+const page = element<HTMLElement>('main');
+const backdrop = element<HTMLElement>('#consent-backdrop');
 const prompt = element<HTMLElement>('#consent-prompt');
 const dialog = element<HTMLDialogElement>('#preferences');
 const fields = element<HTMLElement>('#categories');
@@ -109,7 +111,9 @@ const stopReporting = createExperimentReporting({
 						event.timeToDecisionMs !== undefined
 							? ` · ${event.timeToDecisionMs} ms`
 							: '';
-					item.textContent = `${event.name} · ${event.variant} · ${event.surface}${action}${timing}`;
+					item.textContent =
+						`${event.name} · ${event.variant} · ${event.surface}` +
+						`${action}${timing}`;
 					experimentEvents.append(item);
 				},
 			]
@@ -188,6 +192,29 @@ const renderActions = function renderActions(
 	container.replaceChildren(...buttons);
 };
 
+/**
+ * The `wall` arm blocks the page: a backdrop covers it, the content behind
+ * is inert to pointer, keyboard and assistive technology, and focus moves
+ * into the prompt when it opens.
+ */
+let walled = false;
+const renderWall = function renderWall() {
+	const wall = !prompt.hidden && prompt.dataset.variant === 'wall';
+	backdrop.hidden = !wall;
+	page.inert = wall;
+	if (wall) {
+		prompt.setAttribute('role', 'dialog');
+		prompt.setAttribute('aria-modal', 'true');
+	} else {
+		prompt.removeAttribute('role');
+		prompt.removeAttribute('aria-modal');
+	}
+	if (wall && !walled) {
+		prompt.querySelector<HTMLButtonElement>('button')?.focus();
+	}
+	walled = wall;
+};
+
 const render = function render(snapshot: ConsentSnapshot) {
 	latest = snapshot;
 	const ready =
@@ -195,6 +222,7 @@ const render = function render(snapshot: ConsentSnapshot) {
 	prompt.hidden = !ready || snapshot.activeUI !== 'banner';
 	renderActions(actions, 'prompt', snapshot);
 	renderActions(preferencesActions, 'preferences', snapshot);
+	renderWall();
 	element<HTMLElement>('#prompt-title').textContent =
 		snapshot.promptRequirement.kind === 'notice'
 			? 'Your privacy choices'
