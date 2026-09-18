@@ -27,8 +27,18 @@ export default defineConfig({
 });
 ```
 
-Set your actual registered `cmpId` in `manifest.iab` where your deployment
-requires it. Do not copy a placeholder CMP identity into a production setup.
+Set `manifest.iab.cmpId` to the CMP ID your deployment is entitled to use. IAB
+Europe assigns one when a company registers as a CMP
+([register.consensu.org/CMP](https://register.consensu.org/CMP)); publishers
+using a registered CMP do not need their own. Every TC String names the CMP that
+wrote it, so a copied or placeholder ID attributes your users' consent records
+to another provider and is not a staging-only shortcut.
+
+Left unset, `/init` returns no CMP ID and the browser add-on does not mount, so
+nothing writes a TC String. Set to a value outside the encodable range, an
+integer from 2 to 4095, and `@c15t/iab` throws instead of encoding a string that
+names no registered CMP.
+
 Review the policy's location coverage and add other reviewed regional rules as
 needed.
 

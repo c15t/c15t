@@ -11,6 +11,12 @@ group: reference
   Framework. Configure an IAB policy, the correct CMP identity and vendor data for
   your deployment. A demo CMP ID is not a production configuration.
 
+  A CMP ID is assigned to a company when it registers as a CMP with IAB Europe
+  ([register.consensu.org/CMP](https://register.consensu.org/CMP)). Every TC
+  String names the CMP that wrote it, so an ID you did not register attributes
+  your users' consent records to someone else. Omitting it leaves the add-on
+  unmounted: no `__tcfapi`, and no TC String written.
+
   Install `@c15t/iab` alongside your framework adapter, then mount the IAB
   components inside an existing consent provider connected to Inth.
 </section>
