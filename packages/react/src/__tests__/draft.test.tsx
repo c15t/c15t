@@ -314,6 +314,52 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 	});
 });
 
+test('the vendor draft ignores a stale denial for a vendor declared disabled', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'disabled-vendor-draft' }
+	);
+	const Probe = () => {
+		const draft = useConsentDraft();
+		return <output>{JSON.stringify(draft.vendors)}</output>;
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: {
+					...fixture,
+					initialRecords: {
+						...fixture.initialRecords,
+						vendorChoice: {
+							confirmedAt: (fixture.now ?? 1) - 1,
+							denied: ['meta-pixel'],
+							version: 1,
+						},
+					},
+				},
+				vendors: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	// Every gate allows the vendor, so the draft must not report it as off.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"meta-pixel":true}');
+});
+
 test('drafts use configured categories and require review when the displayed scope changes', async () => {
 	const Probe = ({ expand }: { expand: () => void }) => {
 		const draft = useConsentDraft();
