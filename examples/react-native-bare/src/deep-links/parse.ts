@@ -125,3 +125,25 @@ export const linkFlag = (link: DemoLink, name: string): boolean => {
 		!['0', 'false', 'no', 'off'].includes(value.toLowerCase())
 	);
 };
+
+/**
+ * The query parameter that asks for the Diagnostics tab once a verb has run.
+ *
+ * It belongs to the delivery hook rather than to a verb row because it reports on
+ * every verb, including `help` and one the table does not know.
+ */
+export const DEMO_REPORT_PARAM = 'report';
+
+/**
+ * Whether a link asks to be answered in front of the Diagnostics tab.
+ *
+ * On iOS a link can only arrive at launch, and the tab a receipt is printed on is
+ * app state that the next launch resets, so a scripted run has to ask for the tab in
+ * the same link that acts. Without it the receipt exists only in a JavaScript
+ * instance that has already been killed.
+ *
+ * @param link - Parsed link.
+ * @returns `true` for `?report=1`, and `false` when the parameter is absent or off.
+ */
+export const linkRequestsReport = (link: DemoLink): boolean =>
+	linkFlag(link, DEMO_REPORT_PARAM);

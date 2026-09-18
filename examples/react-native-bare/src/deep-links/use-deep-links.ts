@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 
 import type { DemoLink } from './parse';
-import { parseDemoLink } from './parse';
+import { linkRequestsReport, parseDemoLink } from './parse';
 import type { DemoVerbContext } from './verbs';
 import { DEMO_VERB_LINES, DEMO_VERBS, HELP_USAGE } from './verbs';
 
@@ -101,6 +101,12 @@ export const useDemoDeepLinks = (context: DemoVerbContext): DemoLinks => {
 				LOG_LIMIT
 			)
 		);
+
+		// `?report=1` puts the tab the receipt is printed on in the same launch as
+		// the verb that wrote it, which is the only way an iOS run can show one.
+		if (linkRequestsReport(link)) {
+			latest.current.showDiagnostics();
+		}
 	}, []);
 
 	useEffect(() => {

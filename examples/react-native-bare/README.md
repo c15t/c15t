@@ -134,11 +134,18 @@ on Android: `?` and `&` belong to the shell otherwise.
 | `refresh` | `refresh()`: re-resolve policy and retry the offline queue |
 | `reset` | see below |
 | `help` | prints this list on screen |
+| `report=1`, on any verb | answers on **Diagnostics**, so the receipt is in the same screenshot as the step that wrote it |
 
 Every verb answers with one line, and the app prints it on **Diagnostics** under **Demo
 links** next to the link it answered. A scripted run leaves behind a screenshot and
 nothing else, so the receipt belongs in the frame that proves the step. A verb that does
 not exist says so on screen, with the list, rather than doing nothing.
+
+Which is what `report=1` is for. On iOS a link can only arrive at launch, and the tab the
+receipt is printed on is app state, so the next launch wipes the receipt along with the tab.
+A step that wants its receipt on screen has to ask for the tab in the same link:
+`c15t-demo://save?measurement=1&report=1`. Without the flag the answer exists only in the
+JavaScript instance that the next step terminates.
 
 Three things worth knowing:
 
@@ -150,6 +157,48 @@ Three things worth knowing:
 - Android hands the launch link to JavaScript twice over a cold start, so an app answers a
   given link once per JavaScript instance. That also means a Metro reload replays the link
   that launched the app: kill it first when the next step starts from a clean run.
+
+## Prove the iOS journey in one command
+
+`scripts/ios-consent-journey.sh` builds the fixture, creates a simulator that has never
+seen the app, walks first run through a saved preference and a relaunch in both colour
+schemes, and writes one numbered screenshot per step plus the native evidence behind it.
+
+```sh
+scripts/ios-consent-journey.sh                      # build, then both schemes
+scripts/ios-consent-journey.sh --only dark --reuse  # one scheme, erase instead of recreate
+```
+
+Screenshots and logs land in `SHOT_DIR`, which defaults to `/tmp/ios-proof`. It starts by
+checking `GET /api/self-host/init`, and refuses to run without a policy: with no backend
+the core resolves nothing, no prompt is ever owed, and eight screenshots of an app with no
+banner look exactly like eight screenshots of a working one.
+
+Four things it does that are easy to get wrong:
+
+- It **creates the simulator** rather than reinstalling into one. `simctl uninstall` does
+  not clear the Keychain, the consent snapshot lives in the Keychain, and so an app that
+  was "freshly installed" is still a subject who already answered and never shows a
+  prompt. `--reuse` runs `simctl erase`, which does clear it; the script proves the point
+  by asserting that the steps produced distinct frames.
+- It **keeps the ad-hoc signature**. Building a simulator binary with
+  `CODE_SIGNING_ALLOWED=NO` produces an app whose Keychain writes fail: `/init` is a read,
+  so the banner still renders, but every decision comes back
+  `refused (queue-write-failed)`. Nothing else on screen says the signature is the cause.
+- It builds **Release**, so the JavaScript bundle is inside the app. In Debug the binary
+  dials a Metro server on 8081, and on a machine with several worktrees checked out that
+  is whichever server started first, not this app's.
+- It sends links through `C15T_DEMO_LINK`, not `simctl openurl`. iOS asks
+  "Open in “c15t Bare”?" before it hands a custom-scheme open to the app, and a headless
+  run has no finger for it.
+
+The evidence it leaves is not only pictures. `logs/01-backend-connections-<scheme>.txt`
+holds the sockets the app process held to the backend while it started, and
+`logs/native-<scheme>.txt` holds the core's own request lines, which is where
+`GET /api/self-host/init` and `POST /api/self-host/subjects` appear with the process name
+beside them. A receipt that reads `queued` is correct and expected: the core applies a
+commit to the device durably and tells the backend afterwards, so no synchronous answer
+can promise the server has it.
 
 The registration lives in three files, and all three are needed. `CFBundleURLTypes` in
 `ios/C15tBare/Info.plist` and the intent filter in `AndroidManifest.xml` are what make
