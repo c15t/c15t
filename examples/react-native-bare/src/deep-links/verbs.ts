@@ -14,6 +14,7 @@ import type {
 	CommitResult,
 	ConsentActions,
 	OptionalConsentCategory,
+	ConsentIabTab,
 } from '@c15t/react-native';
 
 import type { Appearance } from '../theme';
@@ -29,6 +30,13 @@ export interface DemoVerbContext {
 	readonly closeSheets: () => void;
 	/** Open the built-in consent manager. */
 	readonly openDialog: () => void;
+	/**
+	 * Open the IAB disclosure drawer.
+	 *
+	 * @param tab - Tab to open on. The web's `{count} partners` link opens the same
+	 *   disclosure on the partner list, and that is what a bare call means.
+	 */
+	readonly openIabDrawer: (tab?: ConsentIabTab) => void;
 	/** Open the built-in preference centre. */
 	readonly openPreferences: () => void;
 	/** Whether a prompt is still owed, so a verb can name what it left standing. */
@@ -173,6 +181,25 @@ export const DEMO_VERBS: readonly DemoVerb[] = [
 		summary: 'Open the preference centre with no prompt outstanding.',
 		usage: 'preferences',
 		verb: 'preferences',
+	},
+	// The partner list is what the web's `{count} partners` link opens, so a bare
+	// `iab` opens the same way and `iab/purposes` is the exception a reviewer has
+	// to name. The rows are fixture data: the drawer renders from props and this
+	// app hands it the sample GVL's display model, not anything the core decided.
+	{
+		run: (context, link) => {
+			const [named] = link.rest;
+			const tab: ConsentIabTab =
+				named === 'purposes' || named === 'vendors' ? named : 'vendors';
+
+			context.openIabDrawer(tab);
+
+			return `opened ConsentIabDrawer on ${tab}`;
+		},
+		summary:
+			'Open the IAB disclosure drawer, on the partner list unless a tab is named.',
+		usage: 'iab | iab/purposes',
+		verb: 'iab',
 	},
 	{
 		run: (context, link) => {
