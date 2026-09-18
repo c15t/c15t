@@ -79,7 +79,8 @@ export interface ConsentExperiment {
 	variant?: string;
 	/**
 	 * Relative weights per arm for built-in assignment. Default: equal. An
-	 * arm missing from a supplied map has weight `0`.
+	 * arm missing from a supplied map has weight `0`. A supplied map must
+	 * give at least one arm a positive weight.
 	 */
 	weights?: Readonly<Record<string, number>>;
 	/**
@@ -135,6 +136,32 @@ const variantNames = function variantNames(
 };
 
 /**
+ * The weight of each arm in declaration order: `1` each when `weights` is
+ * omitted, else the host's own-property value clamped at `0`. A supplied
+ * map that leaves no arm reachable is a misconfiguration, not a request
+ * for equal weights.
+ */
+const resolveWeights = function resolveWeights(
+	experiment: ConsentExperiment,
+	names: readonly string[]
+): number[] {
+	const { weights } = experiment;
+	if (!weights) {
+		return names.map(() => 1);
+	}
+	const weighted = names.map((name) =>
+		Object.hasOwn(weights, name) ? Math.max(0, weights[name] ?? 0) : 0
+	);
+	const total = weighted.reduce((sum, weight) => sum + weight, 0);
+	if (!(total > 0) || !Number.isFinite(total)) {
+		throw new Error(
+			`c15t experiment "${experiment.id}": weights must give at least one arm a finite positive weight.`
+		);
+	}
+	return weighted;
+};
+
+/**
  * Pick the arm a subject runs.
  *
  * A host-supplied `variant` wins and is reported as `assignedBy: 'host'`.
@@ -146,7 +173,8 @@ const variantNames = function variantNames(
  * @param subjectId - A stable identifier for the subject.
  * @returns The assignment.
  * @throws {Error} When `experiment.variant` names an arm that is not declared
- * in `variants`, or when `variants` is empty.
+ * in `variants`, when `variants` is empty, or when a supplied `weights` map
+ * has no finite positive total.
  *
  * @example
  * ```ts
@@ -176,14 +204,7 @@ export const assignExperimentVariant = function assignExperimentVariant(
 			variant: experiment.variant,
 		};
 	}
-	const { weights } = experiment;
-	let weighted = names.map((name) =>
-		weights ? Math.max(0, weights[name] ?? 0) : 1
-	);
-	const total = weighted.reduce((sum, weight) => sum + weight, 0);
-	if (!(total > 0) || !Number.isFinite(total)) {
-		weighted = names.map(() => 1);
-	}
+	const weighted = resolveWeights(experiment, names);
 	const sum = weighted.reduce((acc, weight) => acc + weight, 0);
 	const point =
 		(fnv1a(`${experiment.id}:${subjectId}`) / 0x1_00_00_00_00) * sum;
@@ -416,7 +437,8 @@ export interface ValidateExperimentOptions {
  * @param options - Base presentation and appearance tokens.
  * @returns Diagnostics keyed by arm name. Empty when every arm is clean.
  * @throws {Error} When an arm has diagnostics and
- * `experiment.acknowledgeDiagnostics` is not `true`.
+ * `experiment.acknowledgeDiagnostics` is not `true`, or when built-in
+ * assignment would run with a `weights` map that reaches no arm.
  */
 export const validateExperiment = function validateExperiment(
 	experiment: ConsentExperiment,
@@ -424,7 +446,13 @@ export const validateExperiment = function validateExperiment(
 	options: ValidateExperimentOptions = {}
 ): ExperimentDiagnostics {
 	const diagnostics: ExperimentDiagnostics = {};
-	for (const name of variantNames(experiment)) {
+	const names = variantNames(experiment);
+	if (experiment.variant === undefined) {
+		// Fail where the arms are validated, at construction, rather than
+		// when built-in assignment first runs in the visitor's browser.
+		resolveWeights(experiment, names);
+	}
+	for (const name of names) {
 		const presentation = resolveExperimentPresentation(
 			options.presentation,
 			experiment,

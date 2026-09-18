@@ -74,19 +74,28 @@ describe('assignExperimentVariant', () => {
 });
 
 describe('assignExperimentVariant weights', () => {
-	it('falls back to equal weights when every weight is zero', () => {
-		const zero: ConsentExperiment = {
-			...experiment,
-			weights: { bar: 0, floating: 0 },
-		};
-		const seen = new Set<string>();
-		for (let index = 0; index < 200; index += 1) {
-			const key = `sub_${index}`;
-			const assignment = assignExperimentVariant(zero, key);
-			expect(assignment).toEqual(assignExperimentVariant(experiment, key));
-			seen.add(assignment.variant);
+	it('rejects a supplied map that reaches no arm', () => {
+		const unusable: Readonly<Record<string, number>>[] = [
+			{ bar: 0, floating: 0 },
+			{ bar: Number.POSITIVE_INFINITY, floating: 1 },
+			{ bar: Number.NaN },
+		];
+		for (const weights of unusable) {
+			expect(() =>
+				assignExperimentVariant({ ...experiment, weights }, 'sub_1')
+			).toThrow(/finite positive weight/u);
 		}
-		expect([...seen].sort()).toEqual(['bar', 'floating']);
+	});
+
+	it('gives an arm missing from the map weight 0, prototype keys included', () => {
+		const only: ConsentExperiment = {
+			...experiment,
+			variants: { ...experiment.variants, constructor: {} },
+			weights: { bar: 1 },
+		};
+		for (let index = 0; index < 50; index += 1) {
+			expect(assignExperimentVariant(only, `sub_${index}`).variant).toBe('bar');
+		}
 	});
 });
 
@@ -161,6 +170,14 @@ describe('validateExperiment', () => {
 				presentation: { prompt: { primaryActions: ['accept'] } },
 			})
 		).toThrow(/"bar".*\n.*"floating"|"bar"/u);
+	});
+	it('rejects an unusable weights map when c15t would assign the arm', () => {
+		const zero = { ...experiment, weights: { bar: 0, floating: 0 } };
+		expect(() => validateExperiment(zero, choice)).toThrow(
+			/finite positive weight/u
+		);
+		// A host-resolved arm never reads the weights.
+		expect(validateExperiment({ ...zero, variant: 'bar' }, choice)).toEqual({});
 	});
 });
 
