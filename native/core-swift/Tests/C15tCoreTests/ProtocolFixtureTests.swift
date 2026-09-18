@@ -118,6 +118,19 @@ final class ProtocolFixtureTests: XCTestCase {
         let index = try loadIndex()
         var ran: [String] = []
 
+        // The vendor-scope vectors are graded by `VendorListScopeTests`, for the same reason the
+        // TC Strings have their own file: narrowing a vendor list is not something `C15tSDK` does
+        // on a kernel call, so this runner has no action to replay against them. What it can prove
+        // is the handoff -- the file that grades them reaches exactly the entries this index lists,
+        // which is what turns the branch below into accounting rather than an excuse.
+        let vendorScopeIDs = Set(index.fixtures.filter { $0.kind == VendorListScopeFixtures.kind }.map(\.id))
+        XCTAssertEqual(
+            try VendorListScopeFixtures.ids(),
+            vendorScopeIDs.sorted(),
+            "the vendor-scope loader does not reach exactly the fixtures index.json lists, which would "
+                + "make the claim below a claim rather than a fact"
+        )
+
         for entry in index.fixtures {
             switch entry.kind {
             case "evaluation":
@@ -137,6 +150,10 @@ final class ProtocolFixtureTests: XCTestCase {
                 ran.append(entry.id)
             case "tc-string":
                 try runTcString(entry)
+                ran.append(entry.id)
+            case VendorListScopeFixtures.kind:
+                // VendorListScopeTests grades all of these against the same index, and the check
+                // above proved it reaches these exact ids, so this branch is accounting.
                 ran.append(entry.id)
             default:
                 XCTFail("\(entry.id): kind \"\(entry.kind)\" has no runner here. Add one instead of skipping it.")
@@ -168,6 +185,18 @@ final class ProtocolFixtureTests: XCTestCase {
                 + "index.json; \(tcStringIDs.count - tcStringClaimed) unclaimed "
                 + "(\(tcStringEncodeSkipped) decode-only by the fixture's own instruction, "
                 + "\(tcStringIDs.count - tcStringEncodeSkipped) claiming a byte-exact encode)"
+        )
+        let vendorScopeClaimed = ran.filter { vendorScopeIDs.contains($0) }.count
+        print(
+            "Vendor scope fixtures: claimed \(vendorScopeClaimed) of \(vendorScopeIDs.count) "
+                + "vendor-list-scope fixtures from index.json; "
+                + "\(vendorScopeIDs.count - vendorScopeClaimed) unclaimed"
+        )
+        XCTAssertEqual(
+            vendorScopeClaimed,
+            vendorScopeIDs.count,
+            "the vendor-scope runner claimed \(vendorScopeClaimed) of \(vendorScopeIDs.count). A "
+                + "vendor-list-scope fixture that is neither run nor named is a fixture that cannot fail."
         )
         XCTAssertEqual(
             tcStringClaimed,
@@ -722,6 +751,7 @@ final class ProtocolFixtureTests: XCTestCase {
     /// kind was added to one place and not the other.
     private static let claimedKinds: Set<String> = [
         "evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body", "tc-string",
+        VendorListScopeFixtures.kind,
     ]
 
     /// Run a `native-envelope` fixture.

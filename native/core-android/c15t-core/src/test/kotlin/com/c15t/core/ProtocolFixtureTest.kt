@@ -22,6 +22,7 @@ import com.c15t.core.transport.SaveOutcome
 import com.c15t.core.transport.TransportOutcome
 import com.c15t.core.wire.SnapshotWire
 import com.c15t.core.tc.TcStringFixtures
+import com.c15t.core.tc.VendorListScopeFixtures
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -196,6 +197,22 @@ class ProtocolFixtureTest {
 			"the tc-string codec loader does not reach exactly the fixtures $INDEX_FILE lists, which " +
 				"would make the delegation below a claim rather than a fact",
 		)
+		// The vendor-scope vectors are graded by VendorListScopeFixturesTest for the same reason
+		// the TC Strings are: C15tKernel never narrows a vendor list, so this file has no kernel
+		// call to make against them. The loader has to reach exactly the ids the index lists, which
+		// is what turns the branch below into a claim rather than an excuse.
+		val vendorScopesDelegated = VendorListScopeFixtures.ids()
+		val vendorScopesListed = index.fixtures
+			.filter { it["kind"]!!.jsonPrimitive.content == VendorListScopeFixtures.KIND }
+			.map { it["id"]!!.jsonPrimitive.content }
+			.sorted()
+		assertEquals(
+			vendorScopesListed,
+			vendorScopesDelegated,
+			"the vendor-scope loader does not reach exactly the fixtures $INDEX_FILE lists, which " +
+				"would make the delegation below a claim rather than a fact",
+		)
+
 		for (entry in index.fixtures) {
 			when (entry["kind"]!!.jsonPrimitive.content) {
 				"evaluation" -> {
@@ -219,6 +236,12 @@ class ProtocolFixtureTest {
 				}
 				"reset-consent" -> {
 					runResetConsent(directory, entry)
+					ran += entry["id"]!!.jsonPrimitive.content
+				}
+
+				VendorListScopeFixtures.KIND -> {
+					// VendorListScopeFixturesTest grades all of these against the same index, and the
+					// check above proved it reaches these exact ids, so this branch is accounting.
 					ran += entry["id"]!!.jsonPrimitive.content
 				}
 
@@ -1220,7 +1243,15 @@ class ProtocolFixtureTest {
 		 * a runner would have provided.
 		 */
 		val CLAIMED_KINDS: Set<String> =
-			setOf("evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body", "tc-string")
+			setOf(
+				VendorListScopeFixtures.KIND,
+				"evaluation",
+				"native-envelope",
+				"reset-consent",
+				"revision-trace",
+				"save-body",
+				"tc-string",
+			)
 
 
 	/**
