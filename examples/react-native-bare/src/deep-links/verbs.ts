@@ -19,7 +19,7 @@ import type {
 import type { Appearance } from '../theme';
 import { APPEARANCE_HINT, isAppearance } from '../theme';
 import type { DemoLink } from './parse';
-import { linkFlag } from './parse';
+import { DEMO_REPORT_PARAM, linkFlag } from './parse';
 
 /** What a verb is allowed to touch, handed over by the shell that owns it. */
 export interface DemoVerbContext {
@@ -35,6 +35,8 @@ export interface DemoVerbContext {
 	readonly promptOwed: boolean;
 	/** Force a colour scheme, or hand the choice back to the platform. */
 	readonly setAppearance: (appearance: Appearance) => void;
+	/** Show the Diagnostics tab, where the receipt for a link is printed. */
+	readonly showDiagnostics: () => void;
 }
 
 /** One row of the table. */
@@ -258,8 +260,17 @@ export const HELP_USAGE = 'help';
 
 const HELP_LINE = `${HELP_USAGE} - Print this list on screen.`;
 
+/**
+ * The one flag every verb takes, including this list.
+ *
+ * It is a parameter rather than a verb because it reports on a verb, and on `help`
+ * and on a verb the table does not recognise, so no row owns it.
+ */
+const REPORT_LINE = `${DEMO_REPORT_PARAM}=1 - Answer on the Diagnostics tab, so the receipt is in the screenshot.`;
+
 /** The table as lines, shared by the `help` verb and the Diagnostics tab. */
 export const DEMO_VERB_LINES: readonly string[] = [
 	...DEMO_VERBS.map((entry) => `${entry.usage} - ${entry.summary}`),
 	HELP_LINE,
+	REPORT_LINE,
 ];

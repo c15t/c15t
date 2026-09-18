@@ -246,6 +246,9 @@ export const App = () => {
 		openPreferences,
 		promptOwed,
 		setAppearance,
+		showDiagnostics: () => {
+			setTab('diagnostics');
+		},
 	});
 
 	// One resolution of the palette, read by the chrome through the provider and handed

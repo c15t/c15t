@@ -9,7 +9,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEMO_LINK_SCHEME, linkFlag, parseDemoLink } from './parse';
+import {
+	DEMO_LINK_SCHEME,
+	linkFlag,
+	linkRequestsReport,
+	parseDemoLink,
+} from './parse';
 
 describe('parseDemoLink', () => {
 	it('reads a bare verb off the authority', () => {
@@ -119,5 +124,44 @@ describe('linkFlag', () => {
 		const link = parseDemoLink(`${DEMO_LINK_SCHEME}://save?experience=1`);
 
 		expect(link === null ? '' : linkFlag(link, 'marketing')).toBe(false);
+	});
+});
+
+describe('linkRequestsReport', () => {
+	// The receipt for a link is printed on the Diagnostics tab, and iOS can only
+	// deliver a link at launch, which resets that tab. A step that wants its receipt
+	// in the screenshot has to ask for the tab in the same link.
+	it('asks for the tab when the link carries the flag', () => {
+		const link = parseDemoLink(`${DEMO_LINK_SCHEME}://accept?report=1`);
+
+		expect(link === null ? false : linkRequestsReport(link)).toBe(true);
+	});
+
+	it('leaves the tab alone when no flag is on the link', () => {
+		const link = parseDemoLink(
+			`${DEMO_LINK_SCHEME}://save?measurement=1&marketing=0`
+		);
+
+		expect(link === null ? false : linkRequestsReport(link)).toBe(false);
+	});
+
+	it('honours a flag spelled off', () => {
+		const link = parseDemoLink(`${DEMO_LINK_SCHEME}://accept?report=0`);
+
+		expect(link === null ? false : linkRequestsReport(link)).toBe(false);
+	});
+
+	it('reports without disturbing the categories the same link names', () => {
+		const link = parseDemoLink(
+			`${DEMO_LINK_SCHEME}://save?measurement=1&report=1`
+		);
+
+		if (link === null) {
+			throw new Error('expected a demo link');
+		}
+
+		expect(linkRequestsReport(link)).toBe(true);
+		expect(linkFlag(link, 'measurement')).toBe(true);
+		expect(linkFlag(link, 'marketing')).toBe(false);
 	});
 });
