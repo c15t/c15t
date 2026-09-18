@@ -290,6 +290,7 @@ const groupSubjects = (
 		vendorChoice: mergeSubjectVendorChoice(
 			subject.consents.map((consent) => ({
 				givenAt: consent.givenAt,
+				id: consent.id,
 				type: consent.type,
 				vendorChoice: consent.storedVendorChoice,
 			}))

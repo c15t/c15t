@@ -13,11 +13,13 @@ describe('mergeSubjectVendorChoice', () => {
 		const merged = mergeSubjectVendorChoice([
 			{
 				givenAt: new Date(2),
+				id: 'cns_1',
 				type: 'cookie_banner',
 				vendorChoice: { kind: 'grants', vendorChoice: grants('a', true, 1) },
 			},
 			{
 				givenAt: new Date(1),
+				id: 'cns_2',
 				type: 'cookie_banner',
 				vendorChoice: { kind: 'grants', vendorChoice: grants('a', false, 9) },
 			},
@@ -28,6 +30,7 @@ describe('mergeSubjectVendorChoice', () => {
 	it('skips acts without a map but not an unreadable newer one', () => {
 		const older = {
 			givenAt: new Date(1),
+			id: 'cns_1',
 			type: 'cookie_banner',
 			vendorChoice: {
 				kind: 'grants' as const,
@@ -39,6 +42,7 @@ describe('mergeSubjectVendorChoice', () => {
 				older,
 				{
 					givenAt: new Date(2),
+					id: 'cns_2',
 					type: 'cookie_banner',
 					vendorChoice: { kind: 'absent' },
 				},
@@ -50,10 +54,41 @@ describe('mergeSubjectVendorChoice', () => {
 				older,
 				{
 					givenAt: new Date(2),
+					id: 'cns_2',
 					type: 'cookie_banner',
 					vendorChoice: { kind: 'unreadable' },
 				},
 			])
+		);
+	});
+
+	it('breaks a givenAt tie by row id regardless of query order', () => {
+		const rows = [
+			{
+				givenAt: new Date(5),
+				id: 'cns_a',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants' as const,
+					vendorChoice: grants('a', true, 5),
+				},
+			},
+			{
+				givenAt: new Date(5),
+				id: 'cns_b',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants' as const,
+					vendorChoice: grants('a', false, 5),
+				},
+			},
+		];
+		assert.deepStrictEqual(mergeSubjectVendorChoice(rows)?.grants, {
+			a: false,
+		});
+		assert.deepStrictEqual(
+			mergeSubjectVendorChoice([...rows].reverse())?.grants,
+			{ a: false }
 		);
 	});
 });
