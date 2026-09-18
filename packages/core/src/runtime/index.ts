@@ -32,10 +32,10 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
-import { extractConsentNamesFromCondition } from '../libs/has';
 import { assignExperimentVariant } from '../libs/experiment';
 import { createExperimentController } from '../libs/experiment-assignment';
 import type { ExperimentController } from '../libs/experiment-assignment';
+import { extractConsentNamesFromCondition } from '../libs/has';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
