@@ -768,15 +768,17 @@ const useProviderOptionSync = function useProviderOptionSync(
 			config: options.vendors,
 			onWarn: warnVendorDeclaration,
 		});
-		if (declared.length === 0) {
-			return;
+		// The provider owns the config source: its previous entries are replaced
+		// so a vendor the parent removed disappears, while backend and script
+		// entries stay.
+		kernel.set.vendors({ declared }, { replaceSource: 'config' });
+		if (declared.length > 0) {
+			kernel.set.registerConsentCategories(
+				declared.flatMap((vendor) =>
+					extractConsentNamesFromCondition(vendor.category)
+				)
+			);
 		}
-		kernel.set.vendors({ declared });
-		kernel.set.registerConsentCategories(
-			declared.flatMap((vendor) =>
-				extractConsentNamesFromCondition(vendor.category)
-			)
-		);
 	}, [kernel, options.vendors, owns]);
 
 	useEffect(() => {
