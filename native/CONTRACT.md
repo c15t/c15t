@@ -4,12 +4,16 @@ c15t mobile contract
 Authoritative reference for `@c15t/react-native`, the Swift core, and the Kotlin
 core. Issue: https://github.com/c15t/c15t/issues/1010
 
-IAB TCF is in this phase for the parts a device can be graded on: both cores
-decode and encode TC Strings byte-for-byte against the same `native/protocol`
-fixtures the web reference produced, both keep the vendor list `/init` served, and
-neither fetches a list on the device. The `IABTCF_*` storage bus is deliberately
-not written yet, so third-party vendor SDKs that read those keys see nothing; the
-decision and the sources are recorded in `docs/internal/tcf-mobile.md`.
+IAB TCF is partly in this phase, and the line is worth reading before the bullets.
+Both cores decode and encode TC Strings byte-for-byte against the same
+`native/protocol` fixtures the web reference produced, and both keep the vendor list
+`/init` served rather than fetching one on the device. Neither core can yet act on
+an IAB rule end to end: the strict policy reader in each still rejects a wire model
+of `iab`, so a device under an IAB policy comes up deny-all rather than presenting
+the disclosure. Saving a `tcString` alongside a decision is not implemented either,
+and neither is the `IABTCF_*` storage bus, so vendor SDKs reading those keys on a
+device see nothing. `docs/internal/tcf-mobile.md` records the sources behind all of
+that, including the Keychain-versus-shared-defaults trade-off the bus will force.
 
 Layout
 ------

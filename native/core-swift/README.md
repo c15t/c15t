@@ -6,11 +6,12 @@ persistence, the offline write queue, and subject identity.
 [`../CONTRACT.md`](../CONTRACT.md) is the shared model; this package implements it in
 Swift, and `../core-android` implements it in Kotlin against the same fixtures.
 
-IAB TCF is on device here: TC Strings decode and encode byte-for-byte against the
-shared fixtures in `../protocol`, the vendor list `/init` served is kept and only
-that list ever reaches the device, and `snapshot.iab` carries it as `{ gvl }`. What
-is not here is the `IABTCF_*` storage bus, so vendor SDKs reading those defaults see
-nothing yet; `../CONTRACT.md` and `docs/internal/tcf-mobile.md` say why.
+IAB TCF here is the wire, not the flow: TC Strings decode and encode
+byte-for-byte against the shared fixtures in `../protocol`, the vendor list `/init`
+served is kept and only that list ever reaches the device, and `snapshot.iab`
+carries it as `{ gvl }`. The flow is not wired: the strict policy reader still
+rejects a wire model of `iab`, no `tcString` is saved with a decision, and the
+`IABTCF_*` bus is not written. See `../CONTRACT.md`.
 
 Depends on Foundation and Security only. No UIKit, no AppKit, no React Native, no Expo,
 which is what lets the same sources serve SwiftPM, CocoaPods (`C15tCore.podspec`), an app

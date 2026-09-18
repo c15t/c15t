@@ -9,7 +9,9 @@ IAB TCF is on device here: TC Strings decode and encode byte-for-byte against th
 shared fixtures in `../protocol`, and the vendor list `/init` served is kept by the
 kernel and stored in the envelope alongside the policy. Unlike Swift, the Kotlin
 snapshot does not yet fill `iab` with that list -- see `C15tKernel.vendorList`. The
-device fetches no list of its own, and the `IABTCF_*` storage bus is not written.
+flow is not wired: `model` in `model/Enums.kt` cannot name `iab`, so a strict
+policy read of an IAB rule fails closed to deny-all, no `tcString` is saved with a
+decision, and the `IABTCF_*` bus is not written. See `../CONTRACT.md`.
 
 ## Modules
 
