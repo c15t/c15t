@@ -45,8 +45,10 @@ changelogs and `.tegami/publish-lock.yaml` are outputs; do not edit them.
 Stable, alpha, and RC use separate `tegami/version-packages-<branch>` PR branches.
 CI runs `bun run tegami ci`. Pending notes produce a version PR containing
 manifests, dependency updates, the Bun lockfile, changelogs, and the publish lock.
-Merging the version PR triggers publication. An unfinished publish lock takes
-priority over further versioning, so failed releases can be retried.
+Merging the version PR triggers publication. The CLI wrapper checks for an
+unfinished publish lock before running `ci` and publishes that lock first,
+leaving any newer notes for the next run. A failed retry preserves the lock.
+Tegami's upstream `ci` command skips this check, so use `bun run tegami ci`.
 
 The version hook explicitly refreshes workspace versions in `bun.lock`. Bun
 1.3.11 leaves them stale after version-only manifest changes, even when running

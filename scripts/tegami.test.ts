@@ -22,6 +22,7 @@ import {
 	checkReleaseVersion,
 	createRelease,
 	releaseLine,
+	runReleaseCli,
 	syncBunLockVersions,
 } from './tegami';
 
@@ -339,6 +340,41 @@ describe('publish plan validation', () => {
 	});
 });
 
+describe('CI release retries', () => {
+	it.each([
+		['main', '1.0.0'],
+		['v3', '3.0.0-alpha.1'],
+		['2.0.0', '2.0.0-rc.1'],
+	])(
+		'preserves the pending %s release when new notes arrive',
+		async (branch, version) => {
+			const root = fixture([{ name: '@c15t/core', version }]);
+			change(root, { '@c15t/core': 'patch' }, 'original');
+			await (await release(root, branch).draft()).apply();
+			const lockPath = join(root, '.tegami/publish-lock.yaml');
+			const lock = readFileSync(lockPath, 'utf8');
+			const pendingVersion = readManifest(root, 'core').version;
+			change(root, { '@c15t/core': 'patch' }, 'later');
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(() => Promise.resolve(new Response(null, { status: 404 })))
+			);
+			const instance = release(root, branch);
+			// Exercise CLI dispatch without uploading the fixture to a registry.
+			const publish = vi
+				.spyOn(instance, 'publish')
+				.mockResolvedValue('skipped');
+			await runReleaseCli(instance, ['ci']);
+			expect(publish).toHaveBeenCalledOnce();
+			expect(readFileSync(lockPath, 'utf8')).toBe(lock);
+			expect(readManifest(root, 'core').version).toBe(pendingVersion);
+			expect(readFileSync(join(root, '.tegami/later.md'), 'utf8')).toContain(
+				'Release notes for later.'
+			);
+		}
+	);
+});
+
 describe('publishing through npm', () => {
 	const publishFixture = function publishFixture(fail?: 'build' | 'artifacts') {
 		const root = fixture([
@@ -414,9 +450,9 @@ appendFileSync(process.env.C15T_PUBLISH_LOG, JSON.stringify({ args: process.argv
 		write(
 			root,
 			'publish-fixture.ts',
-			`import { createRelease } from ${JSON.stringify(join(repository, 'scripts/tegami.ts'))};
+			`import { createRelease, runReleaseCli } from ${JSON.stringify(join(repository, 'scripts/tegami.ts'))};
 globalThis.fetch = async () => new Response(null, { status: 404 });
-await createRelease({ branch: 'v3', cwd: process.cwd(), github: false }).publish();`
+await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: false }), ['ci']);`
 		);
 		const env = {
 			...process.env,
@@ -448,6 +484,7 @@ await createRelease({ branch: 'v3', cwd: process.cwd(), github: false }).publish
 	it('builds and checks artifacts, packs workspace ranges, then invokes npm with the channel tag', async () => {
 		const root = publishFixture();
 		await (await release(root).draft()).apply();
+		change(root, { '@c15t/core': 'patch' }, 'later');
 		expect(readFileSync(join(root, 'bun.lock'), 'utf8')).toContain(
 			'3.0.0-alpha.0'
 		);
@@ -494,6 +531,7 @@ await createRelease({ branch: 'v3', cwd: process.cwd(), github: false }).publish
 		expect(readManifest(root, 'core').dependencies).toEqual({
 			'@c15t/logger': 'workspace:*',
 		});
+		expect(existsSync(join(root, '.tegami/later.md'))).toBe(true);
 	});
 
 	it.each(['build', 'artifacts'] as const)(
@@ -501,8 +539,13 @@ await createRelease({ branch: 'v3', cwd: process.cwd(), github: false }).publish
 		async (step) => {
 			const root = publishFixture(step);
 			await (await release(root).draft()).apply();
+			const lockPath = join(root, '.tegami/publish-lock.yaml');
+			const lock = readFileSync(lockPath, 'utf8');
+			change(root, { '@c15t/core': 'patch' }, 'later');
 			expect(() => publishInIsolation(root)).toThrow();
 			expect(existsSync(join(root, 'uploads.jsonl'))).toBe(false);
+			expect(readFileSync(lockPath, 'utf8')).toBe(lock);
+			expect(existsSync(join(root, '.tegami/later.md'))).toBe(true);
 		}
 	);
 

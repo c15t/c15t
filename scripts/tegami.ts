@@ -13,10 +13,11 @@ import { tegami } from 'tegami';
 import type {
 	BumpType,
 	PublishPlan,
+	Tegami,
 	TegamiPlugin,
 	WorkspacePackage,
 } from 'tegami';
-import { runCli } from 'tegami/cli';
+import { createCli } from 'tegami/cli';
 import { github } from 'tegami/plugins/github';
 import { NpmPackage } from 'tegami/providers/npm';
 
@@ -364,6 +365,21 @@ export const createRelease = function createRelease({
 	});
 };
 
+/** Finish an existing release before CI can replace its publish lock. */
+export const runReleaseCli = async function runReleaseCli(
+	release: Tegami,
+	args = process.argv.slice(2)
+) {
+	const command = [...args];
+	if (
+		command[0] === 'ci' &&
+		(await release.getPublishStatus()).status === 'pending'
+	) {
+		command[0] = 'publish';
+	}
+	await createCli(release).parseAsync(command);
+};
+
 if (import.meta.main) {
 	const branch =
 		process.env.GITHUB_BASE_REF ||
@@ -375,5 +391,5 @@ if (import.meta.main) {
 	const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
 		encoding: 'utf8',
 	}).trim();
-	await runCli(createRelease({ branch, commit }));
+	await runReleaseCli(createRelease({ branch, commit }));
 }
