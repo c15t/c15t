@@ -309,11 +309,15 @@ baseline_for() {
 settle() {
 	local expect="$1" surface="$2" baseline="$3" floor="$4" ceiling="$5"
 	local probe="${OUT_DIR}/.probe.png" want_mode="banner" waited=0
-	local found surface_ok change_ok frame_md5
+	local found surface_ok change_ok frame_md5 started
 
 	[[ "${surface}" == "dialog" ]] && want_mode="dialog"
 
-	while (( waited < ceiling )); do
+	# Wall clock, not poll count. A probe costs a screenshot plus a pass over the frame, so
+	# counting iterations would quietly make the ceiling mean something else on a loaded
+	# machine, which is exactly where it matters that it means seconds.
+	started="$(date +%s)"
+	while :; do
 		sim io "${SIM_UDID}" screenshot "${probe}" >/dev/null 2>&1
 
 		found="$(probe_surface "${probe}" "${want_mode}")"
@@ -334,8 +338,9 @@ settle() {
 			return 0
 		fi
 
+		waited=$(( $(date +%s) - started ))
+		(( waited >= ceiling )) && break
 		sleep 2
-		waited=$((waited + 2))
 	done
 
 	return 1
