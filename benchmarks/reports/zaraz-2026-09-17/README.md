@@ -185,3 +185,7 @@ updated measurements. The latest loader is 5,838 gzip bytes and the bridge is
 878. Browser lifecycle timing budgets were sensitive to measurement order;
 the report retains both failed normal-order runs and the passing reversed-order
 diagnostic.
+
+The PR watcher follow-up fixes callback cancellation, completion routing and
+Zaraz queue retries. Current measurements and validation are in the final
+section of [review validation](review-validation.md).

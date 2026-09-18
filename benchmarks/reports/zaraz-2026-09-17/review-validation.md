@@ -72,3 +72,46 @@ commit `b35f87427c419528f6eee55eaecfc5f2fcc3b3d1` with the same product source.
 To repeat the diagnostic, run the two `measure` calls in
 `scripts/benchmark-run.ts` in head-then-base order; keep all other settings
 unchanged. No benchmark budgets or repository benchmark scripts were changed.
+
+
+## PR watcher follow-up
+
+Source commit: `b0147b102`. The watcher found further actionable feedback:
+
+- Callback-only `onLoad` ran after `onBeforeLoad` revoked consent or replaced the configuration. Both regressions failed before the fix and now pass.
+- `onDispose` lost the original element during replacement or removal, and omitted retained elements during disposal. Six teardown cases now verify the element passed to cleanup.
+- A retained same-resource element called obsolete completion callbacks. External load/error events and deferred inline completion now resolve the current configuration and consent. All three regressions failed before the fix.
+- A failed Zaraz queue replay was forgotten once permissions had been written. The bridge now retains pending replay purposes and cancels them on revocation. Recovery and revocation tests cover this, including another purpose remaining granted.
+- The CLI snippet now includes required TODOs for disabling automatic pageviews, stable registration and the initial Pageview from `onReady`.
+- The microbenchmark now rejects missing baselines and baselines resolving to HEAD. Both failure paths were exercised, followed by a successful comparison with an explicit prior revision.
+
+The repeated `onBeforeLoad` finding remains open as an API-semantics disagreement.
+It prepares an attempt that can be invalidated by a callback. A regression shows
+that retrying a still-eligible script uses a new element and updated consent;
+suppressing preparation would skip setup on that new element. The guide now
+explains repeat-safe preparation and reserves `onLoad` for completed loading.
+
+All 25 selected build/test/type-check tasks passed, including 1,103 core,
+424 scripts, 65 DevTools and 417 CLI tests. The React provider Chromium file
+passed all 23 cases. Core test types, lint, formatting and regenerated docs
+passed. Local CI's repository job passed after restoring real Git in its
+runner. The run stopped there because the prior full attempt established that
+its artifact emulator selects the wrong artifact for downstream setup.
+
+The final microbenchmark ran with these local checks idle. Empty-loader median
+changed from 1.8 to 1.6 microseconds. The 50-callback median changed from 10.2 to
+10.4 microseconds, and p95 from 12.8 to 13.0. The bridge measured 2.0 microseconds.
+The loader is 5,987 gzip bytes and the bridge is 909, increases of 149 and 31
+bytes over `e375e113c`. These measurements do not establish a speedup.
+Samples and source hashes are in `babysit-results.json`.
+
+An earlier measurement ran alongside package checks and measured the
+50-callback median at 12.8 versus 13.6 microseconds. Its raw results are retained
+in `babysit-contended-results.json`; the idle run is the primary comparison.
+The normal-order browser timing caveat above describes the previous revision.
+GitHub runs the full lifecycle budgets again after this follow-up is pushed.
+
+The refreshed Inth demo passed all 12 live checks with no browser errors.
+`babysit-live-results.json` records the deployment version and source commit.
+Transient API failures are exercised by local integration tests; the live
+probe verifies normal grant, revocation, persistence and teardown.
