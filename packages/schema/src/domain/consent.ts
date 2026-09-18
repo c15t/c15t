@@ -4,7 +4,10 @@ export const consentSchema = v.object({
 	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
 	consentAction: v.nullish(v.string()),
 	domainId: v.string(),
-	/** Experiment the presentation was drawn from, copied out of `metadata.experiment.id`. */
+	/**
+	 * Experiment the presentation was drawn from, copied out of
+	 * `metadata.experiment.id`.
+	 */
 	experimentId: v.nullish(v.string()),
 	/** Arm the subject saw, copied out of `metadata.experiment.variant`. */
 	experimentVariant: v.nullish(v.string()),
@@ -28,7 +31,10 @@ export const consentSchema = v.object({
 	/** IAB TCF TC String (only for IAB consents) */
 	tcString: v.nullish(v.string()),
 	tenantId: v.nullish(v.string()),
-	/** Milliseconds from the surface's first impression to this act, when the client measured it. */
+	/**
+	 * Milliseconds from the surface's first impression to this act, when the
+	 * client measured it.
+	 */
 	timeToDecisionMs: v.nullish(v.number()),
 	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
 	uiSource: v.nullish(v.string()),
