@@ -480,7 +480,13 @@ export const createIAB = function createIAB(
 			return preloaded;
 		}
 
-		const list = await fetchGVL(requested ? undefined : vendors, {
+		// Ask for the scope the publisher declared on both paths. The reference
+		// path used to fetch unfiltered and narrow afterwards, which meant every
+		// publisher with a server-resolved reference pulled the whole list: the
+		// live GVL is 857KB uncompressed, against 41KB for a three-vendor scope.
+		// An endpoint that ignores the filter still ends up narrowed below, so the
+		// filter is an optimisation and never a behaviour change.
+		const list = await fetchGVL(vendors?.length ? vendors : undefined, {
 			endpoint: requested?.url ?? gvlURL,
 			format: requested?.format,
 			headers: referenceHeaders(requested),
