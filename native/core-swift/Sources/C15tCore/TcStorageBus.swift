@@ -164,21 +164,34 @@ enum TcStorageBus {
         // one keeps the key absent -- the spec leaves the reader in
         // "undetermined" exactly where this build refuses to guess.
         //
-        // The answer in this build is always `0`, by two given facts rather
-        // than a constant: the strict policy reader refuses a wire whose model
-        // is `iab` (`PolicyWire.swift`, "policy model \"iab\" requires IAB
-        // support, which this build does not have"), so no envelope this build
-        // writes can carry the model, and `ConsentModel` has no case to name
-        // it. The lane that makes the `iab` model representable has to flip
-        // this projection too; `TcStorageBusTests` pins the wiring so flipping
-        // only moves the value, not the plumbing.
+        // Which model matched is the whole question, and the snapshot cannot
+        // answer it: a device running an IAB rule *reports* `opt-in`
+        // (`ConsentModel.runtimeModel`) because it has no TC String to back the
+        // other name, so reading `snapshot.model` here would say `0` for exactly
+        // the one rule that means `1`. The envelope is the durable copy of the
+        // rule itself, so the answer comes from its wire, read through the same
+        // strict reader that accepted it -- nothing new is stored, and a bus
+        // rebuilt from stored bytes asks the question the commit asked.
+        //
+        // `0` stays the answer for `opt-in`, `opt-out` and `none`, and for a wire
+        // this reader will not name: `packages/iab` puts `false` beside every
+        // model but `iab`, so this row moves for one rule and one rule only.
         let resolved = !snapshot.policyPending
             && snapshot.resolution.status == .matched
         if resolved {
-            values[TcStorageBusKeys.gdprApplies] = .number(0)
+            let applies = storedRuleIsIAB(envelope)
+            values[TcStorageBusKeys.gdprApplies] = .number(applies ? 1 : 0)
         }
 
         return values
+    }
+
+    /// Whether the rule `envelope` was derived from governs IAB.
+    private static func storedRuleIsIAB(_ envelope: StoredEnvelope) -> Bool {
+        guard case let .resolved(resolved) = PolicyWireReader.read(envelope.policyResolution) else {
+            return false
+        }
+        return resolved.policy.model == .iab
     }
 }
 

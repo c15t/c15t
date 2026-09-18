@@ -70,26 +70,48 @@ export const OPTIONAL_CONSENT_CATEGORIES = [
 ] as const satisfies readonly OptionalConsentCategory[];
 
 /**
- * The consent models a native core may resolve.
+ * Every consent model the wire can carry, in the order both native cores declare
+ * them.
  *
- * `iab` is absent because no core resolves it: Kotlin's `StrictPolicyReader`
- * refuses the wire value rather than approximate it, and Swift's `ConsentModel`
- * never names it. A core that answered `iab` would promise an evaluation it
- * cannot do. The vendor list `/init` serves is a different thing and a device
- * does hold one -- see the `iab` slot in `./snapshot` and the document in
- * `./gvl` -- because naming a partner in a disclosure is not a permission model.
+ * This is the readable set: what `/init` may serve a device, and what both cores
+ * are graded against. `@c15t/schema` names the same four in `POLICY_RULE_MODELS`
+ * (`packages/schema/src/shared/policy-rule.ts`), and that package is not in this
+ * one's graph, so `__tests__/vocabulary.type-test.ts` is the gate that keeps this
+ * a copy and not a second opinion -- it pins {@link KernelModel} below to the
+ * kernel's `Model` union at compile time.
+ *
+ * Order is load bearing. Swift's `ConsentModel` and Kotlin's declare this
+ * sequence, and `__tests__/vocabulary.test.ts` compares all three as sequences,
+ * which is what turns a model added on one platform and not another into a
+ * failure here instead of a policy silently unread on a phone.
+ */
+export const POLICY_MODELS = ['opt-in', 'opt-out', 'iab', 'none'] as const;
+
+/**
+ * The consent models a native core may report.
+ *
+ * `iab` is absent because no core names it in a snapshot. Both cores read the
+ * wire value and evaluate it, and both report `opt-in` while running one,
+ * following `deriveModel` in `packages/core/src/policy.ts`: a rule earns the name
+ * `iab` only from an installed `@c15t/iab`, and a device has no CMP ID, no vendor
+ * vector, and no `IABTCF_*` bus to back that name. The vendor list `/init` serves
+ * is a different thing and a device does hold one -- see the `iab` slot in
+ * `./snapshot` and the document in `./gvl` -- because naming a partner in a
+ * disclosure is not a permission model.
  */
 export const NATIVE_MODELS = ['opt-in', 'opt-out', 'none'] as const;
 
 /**
  * Permission model the policy enforces, in the kernel's whole vocabulary.
  *
- * `iab` is a model no device resolves; see {@link NATIVE_MODELS}. It stays in
- * this union so the save payload keeps the exact shape the kernel builds and
- * the protocol fixtures pin, while {@link NativeModel} stays the narrower thing
- * a snapshot is allowed to carry.
+ * {@link POLICY_MODELS} verbatim, which is the kernel's `Model` union and is
+ * pinned to it by `__tests__/vocabulary.type-test.ts`. `iab` is a model a device
+ * reads and evaluates but never reports; see {@link NATIVE_MODELS}. It stays in
+ * this union so the save payload keeps the exact shape the kernel builds and the
+ * protocol fixtures pin, while {@link NativeModel} stays the narrower thing a
+ * snapshot may carry.
  */
-export type KernelModel = (typeof NATIVE_MODELS)[number] | 'iab';
+export type KernelModel = (typeof POLICY_MODELS)[number];
 
 /**
  * The surfaces a host may be asked to render, in prompt-severity order.

@@ -64,6 +64,11 @@ object SaveBodyBuilder {
 		put("type", "cookie_banner")
 		payload.uiSource?.let { put("uiSource", it.wireName) }
 		confirmedChoice(payload)?.let { put("choice", it) }
+		// No `tcString`. An `iab` rule is read and evaluated, but a TC String opens with a
+		// CMP ID IAB Europe assigned, and this build holds no registered one: it reads
+		// neither `cmpId` nor the vendor vectors a string would assert off `/init`, and
+		// `packages/iab/src/tcf/cmp-defaults.ts` refuses to invent a default. `@c15t/core`
+		// leaves the key off the body in the same position, with its IAB module absent.
 		// The decision assertion goes on flat, not nested, and only when nothing
 		// else already binds the write to a policy revision. `buildDecisionAssertion`
 		// in `@c15t/core` returns nothing whenever a `policySnapshotToken` is

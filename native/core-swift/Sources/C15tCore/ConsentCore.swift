@@ -490,7 +490,7 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.promptRequirement = evaluation.promptRequirement
                 draft.nextDeadline = evaluation.nextDeadline
                 draft.evaluatedAt = actionAt
-                draft.model = resolved.policy.model
+                draft.model = resolved.policy.model.runtimeModel
                 // Visibility follows the remaining obligation, not the fact that an
                 // action was taken: a choice save under a notice rule still owes the
                 // notice, so the first layer stays. Same rule as `deriveActiveUI`.
@@ -511,7 +511,7 @@ public final class ConsentCore: @unchecked Sendable {
                 consents: evaluation.permissions,
                 overrides: wireOverrides,
                 user: user,
-                model: resolved.policy.model,
+                model: resolved.policy.model.runtimeModel,
                 uiSource: surfaceAtAction,
                 consentAction: action,
                 policySnapshotToken: next.policySnapshotToken,
@@ -1009,7 +1009,7 @@ public final class ConsentCore: @unchecked Sendable {
                 case let .resolved(resolved):
                     self.resolvedPolicy = resolved
                     draft.resolution = resolved.resolution
-                    draft.model = resolved.policy.model
+                    draft.model = resolved.policy.model.runtimeModel
                     draft.policyPending = false
                     draft.error = nil
                 case let .rejected(reason, message):
@@ -1256,7 +1256,7 @@ public final class ConsentCore: @unchecked Sendable {
             draft.promptRequirement = evaluation.promptRequirement
             draft.nextDeadline = evaluation.nextDeadline
             draft.evaluatedAt = now
-            draft.model = resolved.policy.model
+            draft.model = resolved.policy.model.runtimeModel
             draft.activeUI = evaluation.promptRequirement.kind == .none
                 ? ActiveUI.none
                 : ActiveUI.banner
@@ -1457,7 +1457,7 @@ public final class ConsentCore: @unchecked Sendable {
                 // lost signal keeps the snapshot the contract says it may serve.
                 draft.ready = true
                 draft.resolution = resolved.resolution
-                draft.model = resolved.policy.model
+                draft.model = resolved.policy.model.runtimeModel
                 draft.error = nil
 
                 let evaluation = PolicyEvaluator.evaluate(

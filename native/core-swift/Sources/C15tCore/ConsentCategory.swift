@@ -157,13 +157,35 @@ public struct ConsentState: Sendable, Codable, Equatable {
     }
 }
 
-/// The permission model the runtime enforces. `iab` is deliberately absent: this
-/// phase ships no TC string and no GVL, so a rule that requires it is treated as
-/// unrepresentable and fails closed rather than being approximated.
+/// The permission model the policy enforces, as the wire names it.
+///
+/// `iab` is a rule this core reads and evaluates: the categories it governs stay denied
+/// until a valid explicit choice grants them, which is what the evaluator in `@c15t/core`
+/// already does for `iab` and for `opt-in` alike. See ``runtimeModel`` for what the
+/// snapshot reports while one is in force.
 public enum ConsentModel: String, Sendable, Codable, CaseIterable {
     case optIn = "opt-in"
     case optOut = "opt-out"
+    case iab
     case none
+
+    /// The model this device reports while a rule of this kind is in force.
+    ///
+    /// Port of `deriveModel` in `packages/core/src/policy.ts`, with the web's `iabEnabled`
+    /// argument answered for good: an IAB rule runs as `iab` on the web only once
+    /// `@c15t/iab` is installed, and a device has nothing to install in that place. It has
+    /// no registered CMP ID to put in a TC String, no per-vendor vector to assert, and no
+    /// `IABTCF_*` bus to publish, so a snapshot reading `iab` would promise the vendor-side
+    /// record this build cannot produce. The web's own answer for that situation is the
+    /// honest one: the categories behave as `opt-in`, so the snapshot reports `opt-in` and
+    /// so does the `jurisdictionModel` of a save built from it. The resolution still names
+    /// the matched IAB policy, so nothing about which rule matched is hidden.
+    ///
+    /// A report, not a permission. Every category decision still reads the real rule on
+    /// ``EvaluationPolicy``.
+    package var runtimeModel: ConsentModel {
+        self == .iab ? .optIn : self
+    }
 }
 
 /// Which UI surface the binding layer should render.

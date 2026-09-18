@@ -46,8 +46,11 @@ sealed class PolicyRead {
  * Strict reader for the `policyResolution` value of an `/init` response.
  *
  * The reader never repairs, defaults, or guesses a permission. It accepts the
- * normalized `ResolvedPolicyRule` shape from `@c15t/schema` and rejects
- * everything else, including the `iab` model, which this phase cannot represent.
+ * normalized `ResolvedPolicyRule` shape from `@c15t/schema` and rejects everything
+ * else. `iab` is part of that shape and is read -- [PolicyEvaluator] has a rule for it, and
+ * each core keeps the vendor list `/init` serves. What stays refused is a model this enum
+ * does not name: a value invented after this build is a producer speaking a contract this
+ * reader does not have, and there is no default that could be guessed for it.
  */
 object StrictPolicyReader {
 	/** Policy wire contract version this build reads; matches `@c15t/schema`. */
@@ -120,7 +123,8 @@ object StrictPolicyReader {
 		val noticeFingerprint = fingerprints.stringOrNull("notice") ?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val model = ConsentModel.fromWireName(policy.stringOrNull("model"))
-			// `iab` and any future model are unrepresentable here.
+			// Any model this build does not name. `iab` reads; a value from a newer schema
+			// does not, and contract rule 5 decides what that costs the device.
 			?: return PolicyRead.Unreadable(PolicyResolution.REASON_INVALID_PAYLOAD)
 
 		val prompt = PolicyPrompt.fromWireName(policy.stringOrNull("prompt"))

@@ -6,9 +6,10 @@ import kotlinx.serialization.Serializable
 /**
  * Consent model the runtime enforces.
  *
- * The `iab` model is out of scope for this phase: a wire value of `iab` is not
- * representable here, so the strict policy reader rejects it and the core fails
- * closed instead of guessing permissions.
+ * `iab` is a rule this core reads and evaluates: the categories it governs stay denied
+ * until a valid explicit choice grants them, which is what the evaluator in `@c15t/core`
+ * already does for `iab` and for `opt-in` alike. See [runtimeModel] for what the snapshot
+ * reports while one is in force.
  */
 @Serializable
 enum class ConsentModel(val wireName: String) {
@@ -18,9 +19,31 @@ enum class ConsentModel(val wireName: String) {
 	@SerialName("opt-out")
 	OPT_OUT("opt-out"),
 
+	@SerialName("iab")
+	IAB("iab"),
+
 	@SerialName("none")
 	NONE("none"),
 	;
+
+	/**
+	 * The model this device reports while a rule of this kind is in force.
+	 *
+	 * Port of `deriveModel` in `packages/core/src/policy.ts`, with the web's `iabEnabled`
+	 * argument answered for good: an IAB rule runs as `iab` on the web only once
+	 * `@c15t/iab` is installed, and a device has nothing to install in that place. It has no
+	 * registered CMP ID to put in a TC String, no per-vendor vector to assert, and no
+	 * `IABTCF_*` bus to publish, so a snapshot reading `iab` would promise the vendor-side
+	 * record this build cannot produce. The web's own answer for that situation is the
+	 * honest one: the categories behave as `opt-in`, so the snapshot reports `opt-in` and so
+	 * does the `jurisdictionModel` of a save built from it. The resolution still names the
+	 * matched IAB policy, so nothing about which rule matched is hidden.
+	 *
+	 * A report, not a permission. Every category decision still reads the real rule on
+	 * [com.c15t.core.policy.EvaluationPolicy.model].
+	 */
+	val runtimeModel: ConsentModel
+		get() = if (this == IAB) OPT_IN else this
 
 	companion object {
 		/** Parse a wire model name, returning `null` for unknown values. */

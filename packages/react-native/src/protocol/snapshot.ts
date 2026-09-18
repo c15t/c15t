@@ -29,10 +29,14 @@ import type {
 /**
  * Consent model enforced on device.
  *
- * `iab` is excluded because no native core resolves it: Kotlin's `Enums.kt`
- * refuses the wire value and `StrictPolicyReader` fails closed on it, and
- * Swift's `ConsentModel` never names it. A core that answered `iab` would
- * promise an evaluation it cannot do.
+ * `iab` is excluded because no native core reports it. Both cores read the wire value
+ * and evaluate it now -- an in-scope category stays denied until a current choice grants
+ * it, which is what `defaultPermission` in `packages/core/src/consent-record/evaluate.ts`
+ * does for `iab` and for `opt-in` alike -- and both then report `opt-in`, copied from
+ * `deriveModel` in `packages/core/src/policy.ts`, which names a rule `iab` only once
+ * `@c15t/iab` is installed. A device has nothing to install there: no registered CMP ID
+ * to sign a TC String, no per-vendor vector, no `IABTCF_*` bus. Answering `iab` would
+ * advertise the vendor-side record that `NativeIABState` does not carry.
  *
  * Reading a served vendor list is a different question, and {@link
  * NativeIABState} answers it: a device may hold the list `/init` embedded while

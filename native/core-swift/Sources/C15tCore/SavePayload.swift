@@ -267,7 +267,15 @@ enum SubjectPostBodyBuilder {
         if let choice = choiceWire(for: payload) {
             fields["choice"] = choice
         }
-        // No `tcString`: this build has no IAB module to encode one.
+        // No `tcString`, and not because an `iab` rule is unreadable -- it is read and
+        // evaluated now. A TC String is a legal record a vendor reads, and it opens with a
+        // CMP ID IAB Europe assigned to somebody. Nothing here holds one: the web takes it
+        // from configuration or from `/init` (`packages/iab/src/tcf/cmp-defaults.ts` refuses
+        // to default it, because a placeholder names a provider that is not us), this build
+        // reads neither, and a save carries category receipts rather than the per-vendor
+        // vectors the rest of the string would assert. `@c15t/core` is in the same position
+        // with its IAB module absent: `payload.tcString` is null and the key stays off the
+        // body. Encoding one is the additive change the `iab` slot is reserved for.
 
         // The decision assertion goes on flat, not nested, and only when nothing
         // else already binds the write to a policy revision. `buildDecisionAssertion`
