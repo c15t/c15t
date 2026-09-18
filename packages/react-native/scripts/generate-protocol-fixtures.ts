@@ -132,6 +132,8 @@ import {
 } from '../src/protocol/version';
 import { buildTcStringFixtures } from './tc-string-fixtures';
 import type { TcStringFixture } from './tc-string-fixtures';
+import { buildVendorListScopeFixtures } from './vendor-list-scope-fixtures';
+import type { VendorListScopeFixture } from './vendor-list-scope-fixtures';
 
 // -- Fixed inputs ------------------------------------------------------------
 
@@ -649,7 +651,8 @@ type Fixture =
 	| NativeEnvelopeFixture
 	| ResetConsentFixture
 	| RevisionTraceFixture
-	| TcStringFixture;
+	| TcStringFixture
+	| VendorListScopeFixture;
 
 /** What a scenario holds that a client never sees. */
 interface Scenario {
@@ -2169,8 +2172,12 @@ const withoutVersion = function withoutVersion(
  */
 const transportsIn = function transportsIn(fixture: Fixture): InitTransport[] {
 	// A tc-string fixture carries a TC Model and a vendor list and no transport: the
-	// reference encoder is the whole pipeline, and no /init response reaches it.
-	if (fixture.kind === 'tc-string') {
+	// reference encoder is the whole pipeline, and no /init response reaches it. A
+	// vendor-list-scope fixture is that shape of case from the other end -- a served GVL and a
+	// scope in, the web filter's return value out -- so there is no response here to prove
+	// readable either. Both kinds are exempt because they have no transport, not because the
+	// check is optional.
+	if (fixture.kind === 'tc-string' || fixture.kind === 'vendor-list-scope') {
 		return [];
 	}
 	const { input } = fixture;
@@ -2265,8 +2272,11 @@ const assertHydrationClaims = function assertHydrationClaims(
 ): void {
 	for (const fixture of fixtures) {
 		// The tc-string kind has no hydration to claim: nothing is stored and nothing is
-		// read back off a device, so ready is not a fact this vector describes.
-		if (fixture.kind === 'tc-string') {
+		// read back off a device, so ready is not a fact this vector describes. The
+		// vendor-list-scope kind is in the same position for the same reason -- its input is a
+		// document and a scope, with no stored record and no subject anywhere -- and `ready`
+		// would be read off a fixture that has no such field to read.
+		if (fixture.kind === 'tc-string' || fixture.kind === 'vendor-list-scope') {
 			continue;
 		}
 		const { hydrated, storedRecords } = fixture.input;
@@ -2505,6 +2515,10 @@ export const writeFixtures = async function writeFixtures(
 		// The reference encoder reads no clock either -- every timestamp is handed to it
 		// -- but it sits in this process, so it inherits the pin rather than argument for it.
 		fixtures.push(...buildTcStringFixtures(NOW, PROTOCOL_VERSION));
+		// The vendor-list-scope kind reads no clock and no kernel either: its oracle is the web
+		// filter, called on a document this file builds. It goes last among the derived kinds so
+		// a refusal from it cannot land inside the run of any other kind.
+		fixtures.push(...buildVendorListScopeFixtures(PROTOCOL_VERSION));
 	} finally {
 		Date.now = realDateNow;
 	}
