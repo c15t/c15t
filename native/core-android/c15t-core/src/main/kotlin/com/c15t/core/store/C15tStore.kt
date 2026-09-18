@@ -51,6 +51,16 @@ class C15tStore(
 	 */
 	private val queueJson: Json = C15tJson.queue,
 	private val onReadFailure: (String, Throwable) -> Unit = { _, _ -> },
+	/**
+	 * Where the `IABTCF_*` bus lands, or `null` to write no bus at all.
+	 *
+	 * The bus is an egress projection of committed state, never a second
+	 * consent store: nothing here reads it back. A host wires the
+	 * application-default SharedPreferences conformance described on
+	 * [TcStorageBusSink]; a host that ships no ad SDK passes `null` and the
+	 * store's behaviour is byte-identical to a build with no bus at all.
+	 */
+	private val tcStorageBus: TcStorageBusSink? = null,
 ) {
 	/**
 	 * Set by the read that refused a stored id, cleared when [takeUnusableSubject] hands it
@@ -135,9 +145,20 @@ class C15tStore(
 		}
 	}
 
-	/** Persist [envelope] so the next cold start answers synchronously. */
+	/**
+	 * Persist [envelope] so the next cold start answers synchronously.
+	 *
+	 * The `IABTCF_*` bus moves in this same step, because the specification's
+	 * readers must not be able to observe a device whose vendor mirror is ahead
+	 * of, or behind, a decision its own record took back: the projection is a
+	 * pure function of [envelope], published once the envelope bytes have gone
+	 * to the authoritative store. A host [KeyValueStore] reports no write
+	 * failure through this seam; a drop that leaves the mirror one commit stale
+	 * is rebuilt by the next write, the next launch, or [rebuildTcStorageBus].
+	 */
 	fun writeEnvelope(envelope: SnapshotEnvelope) {
 		backend.write(C15tStoreKeys.SNAPSHOT, json.encodeToString(SnapshotEnvelope.serializer(), envelope))
+		tcStorageBus?.write(TcStorageBusProjection.values(envelope))
 	}
 
 	/** Read the offline write queue; an unparseable queue reads as empty. */
@@ -169,6 +190,32 @@ class C15tStore(
 		backend.write(C15tStoreKeys.SNAPSHOT, null)
 		backend.write(C15tStoreKeys.PENDING, null)
 		backend.flush()
+		// Same step, same rule as every other wipe: the keys this core put on
+		// the bus go with the envelope they projected. The wipe addresses the
+		// whole specification table -- [TcStorageBusSink.clear] says why.
+		tcStorageBus?.clear()
+	}
+
+	/**
+	 * Re-derive the `IABTCF_*` bus from the stored envelope.
+	 *
+	 * The repair path, not the normal one: [writeEnvelope], [clearConsentState]
+	 * and a launch that persists already keep the bus in step. This exists for
+	 * the moments outside those writes -- somebody cleared the
+	 * application-default file (the publisher's duty for vestigial values makes
+	 * that legal), or a device integrates the bus on top of an envelope that
+	 * was there first. Absent or unreadable stored state clears the bus,
+	 * because the honest mirror of nothing stored is nothing held; a store
+	 * with no bus configured is a no-op.
+	 */
+	fun rebuildTcStorageBus() {
+		val bus = tcStorageBus ?: return
+		val envelope = readEnvelope()
+		if (envelope != null) {
+			bus.write(TcStorageBusProjection.values(envelope))
+		} else {
+			bus.clear()
+		}
 	}
 
 	/** Flush buffered writes to durable storage. */

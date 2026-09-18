@@ -115,10 +115,12 @@ object PolicyEvaluator {
 				reasons += RESTRICTION_STRICT_SCOPE
 			} else {
 				// Permissive: the policy simply does not govern this category, so it
-				// follows its model default without a prompt. The default is read through
-				// `permitsByDefault`, not by naming one model, so a model that denies by
-				// default is denied outside the scope too -- an `iab` rule grants nothing
-				// anywhere until a receipt says otherwise.
+				// follows its model default without a prompt. `permitsByDefault` is that
+				// same answer, written once so a fourth model cannot silently pick one:
+				// `iab` inherits `opt-in`'s answer rather than inventing its own. The web
+				// answer for this branch names no model at all -- permissive allows -- and
+				// divergence 1 in `docs/internal/evaluator-parity.md` owns replacing this
+				// branch with it, for all four models at once.
 				allowed = policy.model.permitsByDefault() || choice?.valueOf(category) == true
 			}
 
