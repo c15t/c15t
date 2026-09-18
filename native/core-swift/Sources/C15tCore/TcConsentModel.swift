@@ -22,8 +22,27 @@ package struct TcVendorDeclaration: Sendable, Equatable {
     /// Purposes that can flip basis under a publisher restriction.
     package let flexiblePurposes: [Int]
     package let specialPurposes: [Int]
-    /// A soft-deleted vendor keeps its entry and loses its signals.
-    package let isDeleted: Bool
+    /// The date this vendor was withdrawn from the list, in the wire's own shape, or nil
+    /// while it is still an active vendor.
+    ///
+    /// Carried as the date rather than collapsed into a boolean on the way in, because the
+    /// date is the fact both sources hand over: `deletedDate` on a `/init` vendor entry, on
+    /// the shared fixtures' `input.vendorList.vendors`, and on `TcVendor.deletedDate` in the
+    /// Kotlin core. A boolean asks every caller to have read that field already, and a caller
+    /// that skipped it writes consent bits for a vendor the framework struck from the list.
+    /// `tc-string-parity-deleted-vendor-consent` is that failure, and it is invisible on the
+    /// string: the withdrawal never reaches the wire, so only a golden byte catches it.
+    package let deletedDate: String?
+
+    /// Whether this vendor was withdrawn from the list.
+    ///
+    /// Truthiness, the way `GVL.js` tests it and the way `TcVendor.isDeleted` does in
+    /// Kotlin: the field carries something, so the vendor is gone. Nothing is compared to a
+    /// clock here, which is what keeps an empty string an active vendor.
+    package var isDeleted: Bool {
+        guard let deletedDate else { return false }
+        return !deletedDate.isEmpty
+    }
 
     package init(
         id: Int,
@@ -31,14 +50,14 @@ package struct TcVendorDeclaration: Sendable, Equatable {
         legitimateInterests: [Int] = [],
         flexiblePurposes: [Int] = [],
         specialPurposes: [Int] = [],
-        isDeleted: Bool = false
+        deletedDate: String? = nil
     ) {
         self.id = id
         self.purposes = purposes
         self.legitimateInterests = legitimateInterests
         self.flexiblePurposes = flexiblePurposes
         self.specialPurposes = specialPurposes
-        self.isDeleted = isDeleted
+        self.deletedDate = deletedDate
     }
 }
 

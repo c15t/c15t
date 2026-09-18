@@ -59,8 +59,12 @@ final class TcSemanticPreEncoderTests: XCTestCase {
                 TcVendorDeclaration(id: 11, legitimateInterests: [9, 10]),
                 TcVendorDeclaration(id: 20),
                 TcVendorDeclaration(id: 21, specialPurposes: [1]),
-                TcVendorDeclaration(id: 30, purposes: [1, 2], isDeleted: true),
-                TcVendorDeclaration(id: 31, legitimateInterests: [9]),
+                TcVendorDeclaration(
+                    id: 30,
+                    purposes: [1, 2],
+                    deletedDate: "2025-01-15T00:00:00Z"
+                ),
+                TcVendorDeclaration(id: 31, legitimateInterests: [9], deletedDate: ""),
                 TcVendorDeclaration(id: 40, flexiblePurposes: [2]),
                 TcVendorDeclaration(id: 41, flexiblePurposes: [9]),
             ]
@@ -194,6 +198,31 @@ final class TcSemanticPreEncoderTests: XCTestCase {
             model(legitimateInterests: [31]),
             consents: [],
             legitimateInterests: [31]
+        )
+    }
+
+    /// The other half of the withdrawal vector, and the half an over-eager fix loses. On the
+    /// web the hit is bigger than the prune, because `GVL.mapVendors` deletes a withdrawn
+    /// vendor from `gvl.vendors` at construction and leaves the id in `vendorIds`, so
+    /// `gvl.vendors[700]` answers undefined and the pre-encoder clears the signal on that
+    /// alone. This core keeps the entry and reads the date, landing on the same two vectors,
+    /// which the draft of this file got wrong in the other direction. Either way
+    /// `vendorsDisclosed` is copied through the pass untouched: the disclosure fact is that
+    /// the subject saw the vendor, and a withdrawal does not take that back. Both vectors are
+    /// pinned at once by `tc-string-parity-deleted-vendor-consent`.
+    func testAWidrawnVendorIsPrunedFromItsSignalsButNotFromTheDisclosure() throws {
+        var drafted = model(consents: [30], legitimateInterests: [31])
+        drafted.vendorsDisclosed = [30, 31]
+        let shaped = try shape(drafted)
+        XCTAssertEqual(
+            shaped.vendorConsents.ids.sorted(),
+            [],
+            "the withdrawn vendor loses its consent signal"
+        )
+        XCTAssertEqual(
+            shaped.vendorsDisclosed?.ids.sorted(),
+            [30, 31],
+            "the disclosed vector keeps it, because the pass does not rewrite that one"
         )
     }
 
@@ -358,9 +387,10 @@ final class TcSemanticPreEncoderTests: XCTestCase {
         XCTAssertEqual(shaped.consentLanguage, "EN")
     }
 
-    /// The hand-in route is not going anywhere: the fixtures feed the encoder a stub list
-    /// with no `deletedDate` recorded at all, and a declaration that says withdrawn has to
-    /// prune the same way a served list's date does.
+    /// The hand-in route is not going anywhere either: the shared fixtures feed the encoder
+    /// a stub list rather than a document, and `tc-string-parity-deleted-vendor-consent`
+    /// arrives through it, so a declaration carrying a withdrawal date has to prune exactly
+    /// as a served list's does.
     func testAHandInDeclarationOfADeletedVendorPrunesLikeAServedDate() throws {
         let drafted = model(consents: [10, 30], legitimateInterests: [11, 30])
         let list = TcVendorList(
@@ -370,7 +400,7 @@ final class TcSemanticPreEncoderTests: XCTestCase {
             vendors: [
                 TcVendorDeclaration(id: 10, purposes: [1]),
                 TcVendorDeclaration(id: 11, legitimateInterests: [9]),
-                TcVendorDeclaration(id: 30, purposes: [1], isDeleted: true),
+                TcVendorDeclaration(id: 30, purposes: [1], deletedDate: "2026-01-01T00:00:00Z"),
             ]
         )
         let shaped = try TcStringEncoder.shape(drafted, vendorList: list)
