@@ -333,6 +333,20 @@ describe('createConsentClient', () => {
 		});
 		expect(start({ ui: false }).theme).toBeUndefined();
 	});
+
+	it('keeps the theme undefined for a headless client with an arm theme', async () => {
+		const client = start({
+			experiment: {
+				id: 'button-style',
+				variant: 'bold',
+				variants: { bold: { theme: { colors: { primary: '#123456' } } } },
+			},
+			ui: false,
+		});
+		await client.ready();
+		expect(client.getSnapshot().experiment?.variant).toBe('bold');
+		expect(client.theme).toBeUndefined();
+	});
 	it('resolves ready straight away when disabled', async () => {
 		const client = start({ enabled: false });
 		await expect(client.ready()).resolves.toBeDefined();

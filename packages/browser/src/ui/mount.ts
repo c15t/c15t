@@ -124,7 +124,8 @@ export const mountConsentUI = function mountConsentUI(
 
 	// The arm's theme overrides ride on the host theme. Assignment lands in
 	// `start()`, before the UI mounts, so the first sheet already carries it;
-	// `update()` re-renders the sheet if the arm changes later.
+	// `update()` re-renders the sheet if the arm changes later, and creates
+	// it when a later arm is the first thing that needs one.
 	const resolveTheme = function resolveTheme(): Theme | undefined {
 		return applyExperimentTheme(
 			options.theme,
@@ -138,8 +139,9 @@ export const mountConsentUI = function mountConsentUI(
 		renderedTheme,
 		extension?.stylesheet
 	);
-	const styleEl = styleText ? h('style', {}, styleText) : null;
-	if (styleEl) {
+	let styleEl: HTMLStyleElement | null = null;
+	if (styleText) {
+		styleEl = h('style', {}, styleText);
 		root.append(styleEl);
 	}
 
@@ -184,13 +186,15 @@ export const mountConsentUI = function mountConsentUI(
 	const update = function update(): void {
 		const snapshot = client.getSnapshot();
 		const theme = resolveTheme();
-		if (styleEl && theme !== renderedTheme) {
+		if (theme !== renderedTheme) {
 			renderedTheme = theme;
-			styleEl.textContent = buildStyleText(
-				options,
-				theme,
-				extension?.stylesheet
-			);
+			const text = buildStyleText(options, theme, extension?.stylesheet);
+			if (styleEl) {
+				styleEl.textContent = text;
+			} else if (text) {
+				styleEl = h('style', {}, text);
+				root.prepend(styleEl);
+			}
 		}
 		for (const surface of surfaces) {
 			surface.sync(snapshot);

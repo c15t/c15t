@@ -351,7 +351,8 @@ export const createIABSurface = (
 			rendered.snapshot.iab?.gvl === snapshot.iab?.gvl &&
 			rendered.snapshot.translations === snapshot.translations &&
 			rendered.snapshot.policyRule === snapshot.policyRule &&
-			rendered.snapshot.branding === snapshot.branding
+			rendered.snapshot.branding === snapshot.branding &&
+			rendered.snapshot.experiment === snapshot.experiment
 		) {
 			preferences?.sync(snapshot);
 			return;

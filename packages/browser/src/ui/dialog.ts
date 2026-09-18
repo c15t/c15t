@@ -42,6 +42,7 @@ export const createDialog = function createDialog(
 		translations: ConsentSnapshot['translations'];
 		branding: ConsentSnapshot['branding'];
 		policyRule: ConsentSnapshot['policyRule'];
+		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
 	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
@@ -149,6 +150,7 @@ export const createDialog = function createDialog(
 		});
 		renderedFrom = {
 			branding: snapshot.branding,
+			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
@@ -256,7 +258,8 @@ export const createDialog = function createDialog(
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
 				renderedFrom.branding === snapshot.branding &&
-				renderedFrom.policyRule === snapshot.policyRule
+				renderedFrom.policyRule === snapshot.policyRule &&
+				renderedFrom.experiment === snapshot.experiment
 			) {
 				widget?.sync(snapshot);
 				return;

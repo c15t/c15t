@@ -662,8 +662,13 @@ export const createConsentClient = function createConsentClient(
 			return kernel.subscribe(listener);
 		},
 		get theme(): Theme | undefined {
+			// A headless client renders nothing, so an arm's theme has nothing
+			// to override; the getter stays `undefined` whatever is assigned.
+			if (options.ui === false) {
+				return undefined;
+			}
 			return applyExperimentTheme(
-				options.ui === false ? undefined : options.ui?.theme,
+				options.ui?.theme,
 				options.experiment,
 				kernel.getSnapshot().experiment
 			);
