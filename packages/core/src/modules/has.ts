@@ -108,6 +108,31 @@ export interface ConsentGate<
 }
 
 /**
+ * Ids the subject turned off that a gate should honor, or `null` when
+ * nothing is denied. A vendor currently declared `disabled` is skipped:
+ * saves cannot toggle it, so a denial recorded while it was toggleable would
+ * otherwise block it with no way back short of a bulk action.
+ * @param snapshot - Immutable kernel snapshot.
+ * @returns Denied vendor ids, or `null`.
+ */
+export const deniedVendorIds = function deniedVendorIds(
+	snapshot: Pick<ConsentSnapshot, 'vendorChoice' | 'vendors'>
+): ReadonlySet<string> | null {
+	const denied = snapshot.vendorChoice?.denied;
+	if (!denied || denied.length === 0) {
+		return null;
+	}
+	const declared = snapshot.vendors?.declared;
+	const ids = new Set<string>();
+	for (const id of denied) {
+		if (!declared?.some((vendor) => vendor.id === id && vendor.disabled)) {
+			ids.add(id);
+		}
+	}
+	return ids.size > 0 ? ids : null;
+};
+
+/**
  * Whether the subject turned a vendor off. Unknown ids are granted: a
  * denial only exists for a vendor the subject saw and switched off.
  * @param snapshot - Immutable kernel snapshot.
@@ -115,11 +140,10 @@ export interface ConsentGate<
  * @returns `true` while the vendor is denied.
  */
 export const isVendorDenied = function isVendorDenied(
-	snapshot: Pick<ConsentSnapshot, 'vendorChoice'>,
+	snapshot: Pick<ConsentSnapshot, 'vendorChoice' | 'vendors'>,
 	vendor: string
 ): boolean {
-	const denied = snapshot.vendorChoice?.denied;
-	return denied !== undefined && denied.includes(vendor);
+	return deniedVendorIds(snapshot)?.has(vendor) ?? false;
 };
 
 /**

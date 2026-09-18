@@ -300,6 +300,7 @@ export type {
 } from './libs/policy-actions';
 
 export {
+	deniedVendorIds,
 	evaluateConsent,
 	getEffectiveGateState,
 	isVendorDenied,

@@ -242,7 +242,12 @@ export interface VendorChoice {
 	readonly version: 1;
 	/** Epoch milliseconds when the vendor grants were last confirmed. */
 	readonly confirmedAt: number;
-	/** Sorted, de-duplicated ids of denied vendors. */
+	/**
+	 * Sorted, de-duplicated ids of denied vendors. Empty once every denial
+	 * was lifted; the record keeps its time so a newer "nothing denied"
+	 * decision still wins a merge against an older denial. `null` on the
+	 * snapshot means no vendor decision was ever made.
+	 */
 	readonly denied: readonly string[];
 }
 

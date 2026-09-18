@@ -9,7 +9,12 @@
  */
 
 import type { ConsentSnapshot } from '../../types';
-import { evaluateConsent, getEffectiveGateState, has } from '../has';
+import {
+	deniedVendorIds,
+	evaluateConsent,
+	getEffectiveGateState,
+	has,
+} from '../has';
 import type { NormalizedScript, ReconcilePass } from './types';
 
 /**
@@ -20,13 +25,12 @@ import type { NormalizedScript, ReconcilePass } from './types';
 export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
-	const denied = snapshot.vendorChoice?.denied;
 	return {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		iab: snapshot.iab,
 		isIabMode: snapshot.model === 'iab',
 		snapshot,
-		vendorDenied: denied && denied.length > 0 ? new Set(denied) : null,
+		vendorDenied: deniedVendorIds(snapshot),
 	};
 };
 

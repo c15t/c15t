@@ -71,6 +71,37 @@ describe('evaluateConsent with a vendor slug', () => {
 		).toBe(false);
 	});
 
+	test('a stored denial for a vendor now declared disabled is ignored', () => {
+		const snap = createConsentKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 1,
+					denied: ['cdn', 'meta-pixel'],
+					version: 1,
+				},
+			},
+			initialVendors: {
+				declared: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'cdn',
+						presentable: false,
+						source: 'config',
+					},
+				],
+				listVersion: null,
+			},
+			now: NOW,
+		}).getSnapshot();
+		expect(isVendorDenied(snap, 'cdn')).toBe(false);
+		expect(isVendorDenied(snap, 'meta-pixel')).toBe(true);
+		expect(
+			evaluateConsent({ category: 'marketing', vendor: 'cdn' }, snap)
+		).toBe(true);
+	});
+
 	test('an unknown category still throws before the vendor is consulted', () => {
 		const snap = snapshotWith(['meta-pixel']);
 		expect(() =>

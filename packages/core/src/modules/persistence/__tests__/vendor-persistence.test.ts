@@ -83,15 +83,20 @@ describe('vendor persistence', () => {
 		fresh.dispose();
 	});
 
-	it('removes the record when a bulk action clears every denial', async () => {
+	it('keeps a timestamped empty record when a bulk action clears every denial', async () => {
 		const kernel = createKernel();
 		const persistence = createPersistence({ kernel, now: () => NOW });
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
 		await vi.runAllTimersAsync();
 		await kernel.commands.save('all');
 		await vi.runAllTimersAsync();
-		expect(readStoredVendorChoice(undefined, NOW)).toBeNull();
-		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		// The time is what lets a later merge know this clear is newer than an
+		// older server denial, so it is written rather than removed.
+		expect(readStoredVendorChoice(undefined, NOW)).toEqual({
+			ok: true,
+			record: { confirmedAt: NOW, denied: [], version: 1 },
+		});
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
 		persistence.dispose();
 		kernel.dispose();
 	});

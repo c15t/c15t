@@ -282,18 +282,15 @@ export const mergeNewestVendorChoice = function mergeNewestVendorChoice(
 	current: VendorChoice | null,
 	incoming: VendorChoice | null
 ): VendorChoice | null {
-	const newest = (() => {
-		if (!current) {
-			return incoming;
-		}
-		if (!incoming) {
-			return current;
-		}
-		return incoming.confirmedAt > current.confirmedAt ? incoming : current;
-	})();
-	// An empty list is how a newer "grant everything" decision travels; once
-	// it has won, nothing is denied and the snapshot holds `null`.
-	return newest && newest.denied.length === 0 ? null : newest;
+	if (!current) {
+		return incoming;
+	}
+	if (!incoming) {
+		return current;
+	}
+	// An empty list is a real, timestamped "nothing denied" decision, so it
+	// takes part in newest-wins like any other and is never folded to `null`.
+	return incoming.confirmedAt > current.confirmedAt ? incoming : current;
 };
 
 /**

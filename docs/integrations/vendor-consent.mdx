@@ -6,9 +6,11 @@ group: integrations
 
 ## Declare vendors
 
-Add `vendors` to your provider or runtime options. Each vendor sits inside a
-category condition and needs a name and a privacy policy URL so the preference
-surface can list it:
+Add `vendors` to your runtime options. Each vendor sits inside a category
+condition and needs a name and a privacy policy URL so the preference surface
+can list it. The React provider accepts the same option once the preference
+center renders vendor rows; until then, declare vendors on the runtime or the
+backend manifest, and scripts, rules and iframes are gated either way:
 
 ```ts
 import { hosted, type Vendor } from 'c15t';

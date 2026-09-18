@@ -17,7 +17,7 @@
 import type { AllConsentNames } from '../../consent/consent-types';
 import { allConsentNames } from '../../consent/consent-types';
 import type { ConsentSnapshot, ConsentState } from '../../types';
-import { getEffectiveGateState, has } from '../has';
+import { deniedVendorIds, getEffectiveGateState, has } from '../has';
 
 /**
  * Per-pass eligibility context. Built once per kernel tick / DOM scan
@@ -37,11 +37,10 @@ export interface ReconcilePass {
 export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
-	const denied = snapshot.vendorChoice?.denied;
 	return {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		isIabMode: snapshot.model === 'iab',
-		vendorDenied: denied && denied.length > 0 ? new Set(denied) : null,
+		vendorDenied: deniedVendorIds(snapshot),
 	};
 };
 

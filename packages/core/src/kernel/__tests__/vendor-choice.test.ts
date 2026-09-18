@@ -274,6 +274,7 @@ describe('save with vendors', () => {
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 		});
 		await kernel.commands.save('all', { vendors: { 'meta-pixel': false } });
+		// Nothing was ever denied, so there is still no decision to record.
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		kernel.dispose();
 	});
@@ -290,10 +291,15 @@ describe('save with vendors', () => {
 			},
 		});
 		await kernel.commands.save('none');
-		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		// Cleared, but still a timestamped decision so it wins newest-wins.
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
 		kernel.set.vendorDraft({ 'meta-pixel': false });
 		await kernel.commands.save('all');
-		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
 		kernel.dispose();
 	});
 
@@ -414,7 +420,39 @@ describe('server records and init', () => {
 			},
 			NOW
 		);
-		expect(patch.vendorChoice).toBeNull();
+		expect(patch.vendorChoice).toEqual({
+			confirmedAt: NOW - 5,
+			denied: [],
+			version: 1,
+		});
+	});
+
+	test('granting the last denied vendor survives an older server denial that lands afterwards', () => {
+		const current = buildInitialSnapshot({
+			initialRecords: {
+				...choiceRecords({ marketing: true }),
+				// The visitor lifted a denial at NOW - 2 ...
+				vendorChoice: { confirmedAt: NOW - 2, denied: [], version: 1 },
+			},
+			initialVendors: vendors,
+			now: NOW,
+		});
+		// ... and a server read taken earlier still carries the denial.
+		const { patch } = applyInitResponse(
+			current,
+			{
+				policyResolution: undefined,
+				records: {
+					vendorChoice: {
+						confirmedAt: NOW - 10,
+						denied: ['meta-pixel'],
+						version: 1,
+					},
+				},
+			},
+			NOW
+		);
+		expect(patch.vendorChoice).toBe(current.vendorChoice);
 	});
 
 	test('a later init replaces the previous backend vendor list', () => {

@@ -38,10 +38,9 @@ export interface ResolveVendorsInput {
 	manifest?: readonly Vendor[];
 	/** Scripts and network rules that carry a `vendor` slug. */
 	owners?: readonly VendorOwner[];
-	/** Called once per vendor that has no presentable declaration. */
+	/** Called once per vendor that is dropped or has no presentable declaration. */
 	onWarn?: (message: string) => void;
 }
-
 const SOURCE_RANK: Record<VendorSource, number> = {
 	config: 0,
 	manifest: 1,

@@ -224,6 +224,22 @@ const toggleableVendorIds = function toggleableVendorIds(
 	return ids;
 };
 
+/**
+ * The state after every denial is lifted. A decision that once denied
+ * something becomes an empty list that keeps its time, so a newest-wins
+ * merge with an older server read cannot re-deny what the visitor just
+ * granted. Nothing ever decided stays `null`.
+ */
+const clearedVendorChoice = function clearedVendorChoice(
+	current: VendorChoice | null,
+	actionAt: number
+): VendorChoice | null {
+	if (current === null || current.denied.length === 0) {
+		return current;
+	}
+	return { confirmedAt: actionAt, denied: [], version: 1 };
+};
+
 /** Sorted denial list after applying grants on top of the current one. */
 const applyVendorGrants = function applyVendorGrants(
 	snapshot: ConsentSnapshot,
@@ -274,15 +290,17 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	if (bulk) {
 		// Vendors follow the category on a bulk action; explicit grants and the
 		// staged draft are both discarded so nothing survives as a denial.
-		return current === null ? current : null;
+		return clearedVendorChoice(current, actionAt);
 	}
 	const grants = explicit ?? draft ?? undefined;
 	if (grants === undefined) {
 		return current;
 	}
 	const denied = applyVendorGrants(snapshot, current?.denied, grants);
-	const next: VendorChoice | null =
-		denied.length === 0 ? null : { confirmedAt: actionAt, denied, version: 1 };
+	if (denied.length === 0) {
+		return clearedVendorChoice(current, actionAt);
+	}
+	const next: VendorChoice = { confirmedAt: actionAt, denied, version: 1 };
 	return sameVendorChoice(current, next) ? current : next;
 };
 
