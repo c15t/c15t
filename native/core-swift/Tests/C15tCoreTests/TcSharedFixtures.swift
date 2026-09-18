@@ -164,8 +164,10 @@ enum TcSharedFixtures {
         model.publisherRestrictions = try restrictions(rawModel["publisherRestrictions"], entry.file)
 
         // The recorded list is a stub: language, two versions, and the per-vendor
-        // purpose declarations. Nothing else, so nothing here pretends to hold a GVL,
-        // and no deletions are recorded because the generator recorded none.
+        // purpose declarations. Nothing else, so nothing here pretends to hold a GVL.
+        // `deletedDate` is read because it is the one vendor field that moves bytes:
+        // withdrawn vendors stay in `input.vendorList.vendors` -- lists are append-only
+        // history -- and the whole question of what to do with them is the encoder's.
         var vendors: [TcVendorDeclaration] = []
         for vendor in rawList["vendors"]?.arrayValue ?? [] {
             guard let id = vendor["id"]?.intValue else {
@@ -177,7 +179,8 @@ enum TcSharedFixtures {
                     purposes: list(vendor["purposes"]),
                     legitimateInterests: list(vendor["legIntPurposes"]),
                     flexiblePurposes: list(vendor["flexiblePurposes"]),
-                    specialPurposes: list(vendor["specialPurposes"])
+                    specialPurposes: list(vendor["specialPurposes"]),
+                    deletedDate: vendor["deletedDate"]?.stringValue
                 )
             )
         }

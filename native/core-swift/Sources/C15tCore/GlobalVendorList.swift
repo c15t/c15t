@@ -271,6 +271,13 @@ public struct GlobalVendorList: Sendable, Codable, Equatable {
 
     /// The entry for one vendor, the way every caller on both platforms asks for it:
     /// `gvl.vendors[755]` on the web, `gvl.vendor(755)` here.
+    ///
+    /// One difference worth knowing before a dialog draws from it. A withdrawn vendor stays
+    /// in this dictionary, because it stays in the served document, while the web's `GVL`
+    /// class deletes it from `vendors` at construction and keeps it only in `fullVendorList`.
+    /// Check ``GVLVendor/isDeleted`` before offering an entry to a subject. The encoder does
+    /// not need the warning: ``TcVendorDeclaration/deletedDate`` travels with the entry, so
+    /// a signal for a withdrawn vendor is dropped wherever the list reaches the string.
     public func vendor(_ id: Int) -> GVLVendor? {
         vendors[id]
     }
@@ -569,7 +576,7 @@ extension TcVendorList {
                     legitimateInterests: vendor.legIntPurposes,
                     flexiblePurposes: vendor.flexiblePurposes,
                     specialPurposes: vendor.specialPurposes,
-                    isDeleted: vendor.isDeleted
+                    deletedDate: vendor.deletedDate
                 )
             }
         )
