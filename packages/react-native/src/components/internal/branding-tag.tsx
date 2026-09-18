@@ -49,7 +49,14 @@ const MARK_SIZE = 15;
 /** `gap: 0.3125rem` on `.brandingWordmark`, between the mark and the wordmark. */
 const WORDMARK_GAP = 5;
 
-const WORDMARK_ROW: ViewStyle = { flexDirection: 'row', gap: WORDMARK_GAP };
+// `align-items: center` on `.brandingWordmark`. The mark is 15pt and the label is
+// 10 under the phone query, so the two need a shared middle line; letting the row
+// stretch its shorter child would hang the wordmark off the mark it is welded to.
+const WORDMARK_ROW: ViewStyle = {
+	alignItems: 'center',
+	flexDirection: 'row',
+	gap: WORDMARK_GAP,
+};
 
 const MARK_STYLE = { height: MARK_SIZE, width: MARK_SIZE };
 
