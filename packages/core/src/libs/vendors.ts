@@ -123,6 +123,26 @@ const sameVendor = function sameVendor(
 	);
 };
 
+/** Whether two resolved lists hold the same vendors, in any order. */
+export const sameDeclaredVendors = function sameDeclaredVendors(
+	left: readonly ResolvedVendor[],
+	right: readonly ResolvedVendor[]
+): boolean {
+	if (left.length !== right.length) {
+		return false;
+	}
+	const byId = new Map(right.map((vendor) => [vendor.id, vendor]));
+	return left.every((vendor) => {
+		const other = byId.get(vendor.id);
+		return (
+			other !== undefined &&
+			sameVendor(vendor, other) &&
+			JSON.stringify(vendor.ownerCategory) ===
+				JSON.stringify(other.ownerCategory)
+		);
+	});
+};
+
 /** One condition for every owner of a slug. */
 const ownerCondition = function ownerCondition(
 	categories: readonly HasCondition<AllConsentNames>[]

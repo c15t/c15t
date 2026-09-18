@@ -6,7 +6,7 @@
  * anything.
  */
 import type { AllConsentNames } from '../consent/consent-types';
-import { mergeDeclaredVendors } from '../libs/vendors';
+import { mergeDeclaredVendors, sameDeclaredVendors } from '../libs/vendors';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentState,
@@ -71,10 +71,17 @@ export const mergeVendors = function mergeVendors(
 			: baseline.declared.filter(
 					(vendor) => vendor.source !== options.replaceSource
 				);
-	const declared =
+	const merged =
 		input.declared === undefined
 			? baseline.declared
 			: mergeDeclaredVendors(base, input.declared);
+	// `filter` always allocates, so a replacement that ends where it started
+	// has to fall back to the current reference or every call would commit.
+	const declared =
+		merged !== baseline.declared &&
+		sameDeclaredVendors(merged, baseline.declared)
+			? baseline.declared
+			: merged;
 	const listVersion =
 		input.listVersion === undefined ? baseline.listVersion : input.listVersion;
 	const next: KernelVendorsState | null =
