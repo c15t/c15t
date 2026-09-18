@@ -153,6 +153,29 @@ describe('owner fallback across manifest replacement', () => {
 		]);
 	});
 
+	test('a manifest entry that replaces a script fallback remembers its owner category', () => {
+		// Re-initialisation resolves the backend list against the existing
+		// declarations without the owners, so the manifest entry has to pick
+		// the owner category up from the fallback it replaces.
+		const fromOwners = resolveVendors({
+			manifest: [meta],
+			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
+		});
+		const stillDeclared = resolveVendors({
+			existing: withoutManifestVendors(fromOwners),
+			manifest: [meta],
+		});
+		expect(stillDeclared[0]?.source).toBe('manifest');
+		expect(stillDeclared[0]?.ownerCategory).toBe('measurement');
+		const afterRemoval = resolveVendors({
+			existing: withoutManifestVendors(stillDeclared),
+			manifest: [],
+		});
+		expect(
+			afterRemoval.map((vendor) => [vendor.source, vendor.category])
+		).toEqual([['script', 'measurement']]);
+	});
+
 	test('a backend vendor with no owners disappears when the backend drops it', () => {
 		const first = resolveVendors({ manifest: [meta] });
 		expect(
