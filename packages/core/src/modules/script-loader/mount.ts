@@ -295,11 +295,14 @@ export const mountScript = function mountScript(
 	// Listeners only make sense on external scripts; inline scripts have
 	// no network event. Diagnostics still need events without user callbacks.
 	if (script.src) {
+		const isRegisteredElement = () =>
+			!deps.isDisposed() &&
+			(deps.loadedElements.get(script.id) === element ||
+				deps.retainedElements.get(script.id) === element);
 		const isCurrentElement = () =>
 			element.isConnected &&
 			document.getElementById(elementId) === element &&
-			(deps.loadedElements.get(script.id) === element ||
-				deps.retainedElements.get(script.id) === element);
+			isRegisteredElement();
 		element.addEventListener('load', () => {
 			if (!isCurrentElement()) {
 				return;
@@ -313,6 +316,9 @@ export const mountScript = function mountScript(
 			);
 			if (current?.info) {
 				invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+			}
+			if (!isRegisteredElement()) {
+				return;
 			}
 			deps.emit({
 				action: 'load_completed',
@@ -341,6 +347,9 @@ export const mountScript = function mountScript(
 					error: new Error(`Failed to load script: ${script.src}`),
 				};
 				invokeCallback(current.script, 'onError', errorInfo, deps.emit);
+			}
+			if (!isRegisteredElement()) {
+				return;
 			}
 			deps.emit({
 				action: 'error',

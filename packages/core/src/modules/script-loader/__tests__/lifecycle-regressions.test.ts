@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
+import { getScriptDiagnostics } from '../diagnostics';
 import { createScriptLoader } from '../index';
 import type { Script } from '../index';
 
@@ -330,3 +331,50 @@ test.each([false, true])(
 		expect(element?.isConnected).toBe(borrowed);
 	}
 );
+
+test.each(['load', 'error'] as const)(
+	'does not apply an obsolete %s status after its callback replaces the resource',
+	(event) => {
+		const { kernel, loader } = mount([]);
+		const replacement: Script = {
+			category: 'necessary',
+			id: 'completion-replaced',
+			src: 'https://example.com/new.js',
+		};
+		const replace = () => loader.updateScripts([replacement]);
+		loader.updateScripts([
+			{
+				...replacement,
+				onError: replace,
+				onLoad: replace,
+				src: 'https://example.com/old.js',
+			},
+		]);
+		const original = document.head.querySelector('script');
+		original?.dispatchEvent(new Event(event));
+		expect(getScriptDiagnostics(kernel)).toEqual([
+			expect.objectContaining({
+				src: replacement.src,
+				status: 'loading',
+			}),
+		]);
+		const current = document.head.querySelector('script');
+		expect(current).not.toBe(original);
+		current?.dispatchEvent(new Event('load'));
+		expect(getScriptDiagnostics(kernel)[0]?.status).toBe('loaded');
+	}
+);
+
+test('records completion when onLoad removes its own element without replacing the configuration', () => {
+	const { kernel } = mount([
+		{
+			category: 'necessary',
+			id: 'remove-on-load',
+			onLoad: ({ element }) => element?.remove(),
+			src: 'https://example.com/vendor.js',
+		},
+	]);
+	document.head.querySelector('script')?.dispatchEvent(new Event('load'));
+	expect(document.head.querySelector('script')).toBeNull();
+	expect(getScriptDiagnostics(kernel)[0]?.status).toBe('loaded');
+});

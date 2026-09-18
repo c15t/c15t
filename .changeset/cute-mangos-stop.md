@@ -17,3 +17,5 @@ Deliver pending load and error events to the current configuration when a same-r
 Remove retained owned script elements when configuration updates disable persistence after revocation.
 
 Keep Zaraz readiness retries registered after synchronization errors even when `onError` is omitted.
+
+Keep replacement scripts in the loading state when an obsolete completion callback replaces its resource.
