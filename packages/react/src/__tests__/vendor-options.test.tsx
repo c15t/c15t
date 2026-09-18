@@ -424,6 +424,78 @@ describe('provider vendor options', () => {
 		expect(readProbe()?.source).toBe('manifest');
 	});
 
+	test('a shadowed backend copy forgets a script owner the parent removed', async () => {
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'shadowed-owner' }
+		);
+		const pixel: Script = {
+			category: 'marketing',
+			id: 'meta-pixel-script',
+			textContent: '/* pixel */',
+			vendor: 'meta-pixel',
+		};
+		const Host = () => {
+			const [scripts, setScripts] = useState<Script[]>([pixel]);
+			const [vendors, setVendors] = useState<Vendor[]>([
+				{ ...META, name: 'Meta (config)' },
+			]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: {
+							...fixture,
+							initialVendors: {
+								declared: [
+									{
+										...META,
+										name: 'Meta (backend)',
+										presentable: true,
+										source: 'manifest',
+									},
+								],
+								listVersion: '1',
+							},
+						},
+						scripts,
+						vendors,
+					}}
+				>
+					<button
+						data-testid="remove-script"
+						onClick={() => setScripts([])}
+						type="button"
+					>
+						remove script
+					</button>
+					<button
+						data-testid="remove-config"
+						onClick={() => setVendors([])}
+						type="button"
+					>
+						remove config
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.name).toBe('Meta (config)');
+		});
+		await page.getByTestId('remove-script').click();
+		await page.getByTestId('remove-config').click();
+		// The backend copy comes back without the owner the removed script gave
+		// it, so a later backend removal would leave nothing behind.
+		await vi.waitFor(() => {
+			expect(readProbe()?.source).toBe('manifest');
+		});
+		expect(readProbe()?.ownerCategory).toBeUndefined();
+	});
+
 	test('useVendorAllowed grants a vendor removed from the declarations despite a stored denial', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },
