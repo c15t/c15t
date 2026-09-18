@@ -34,6 +34,7 @@ on a branch `KayleeWilliams/<lane>`, based on `v3-3`, and merges back into
 | `init-vendor-scope-header` | `/init` honours the scope a client declares | Landed at `aca02651e`, merged into `v3-3` as `edd5f3935` |
 | `tcf-evaluator-parity` | the three evaluator divergences and their fixtures | in progress |
 | `mobile-example-connect` | the example app on the native snapshot, and the scope it declares | in progress |
+| `tcf-spec-truth` | `docs/internal/tcf-mobile.md`, gap lists only | in progress |
 | `slop-audit`, `anti-slop-baseline` | anti-slop index and baseline | open |
 
 ## Open work, in the order it needs to happen
@@ -57,7 +58,13 @@ on a branch `KayleeWilliams/<lane>`, based on `v3-3`, and merges back into
    `vendors` parameter and the device journey reports the partner rows the drawer
    renders against the vendors the served list carries, so the drawer and the wire are
    graded against one number rather than two someone typed.
-3. Evaluator parity, now the `tcf-evaluator-parity` lane. Close the three
+3. `tcf-spec-truth` removes stale claims from the spec doc's gap lists. The bus
+   shipped with a fixed set of keys, so the list of duties we still fail must name the
+   keys still unwritten rather than say there is no bus; the Kotlin envelope now
+   persists the served vendor list; and a reset that clears both stores must not be
+   described as clearing nothing. Every claim it keeps and every claim it writes needs
+   a file and a line that proves it.
+4. Evaluator parity, now the `tcf-evaluator-parity` lane. Close the three
    divergences measured in `evaluator-parity.md`, in both native cores, then let
    the regenerated fixtures pin them. Two fixture axes are missing: no evaluation
    fixture uses narrower than a full four-category `scope`, and no fixture pairs a
