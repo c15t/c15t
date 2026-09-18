@@ -18,8 +18,12 @@ function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: num
 ```
 
 Supply your deployment's CMP ID and vendor configuration. Do not copy a demo ID
-into production. The module installs the CMP API, manages vendor data and can
-encode the TC String. It does not render your banner or preferences UI.
+into production: IAB Europe assigns CMP IDs at registration
+([register.consensu.org/CMP](https://register.consensu.org/CMP)), every TC
+String names the CMP that wrote it, and `createIAB` throws unless the ID is an
+integer from 2 to 4095 rather than encoding a string that names no registered
+CMP. The module installs the CMP API, manages vendor data and can encode the TC
+String. It does not render your banner or preferences UI.
 
 ## Own the lifecycle
 
