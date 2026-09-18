@@ -110,7 +110,7 @@ static NSString *C15tNormalizeTypeEncoding(const char *encoding) {
         struct objc_method_description *methods = protocol_copyMethodDescriptionList(@protocol(NativeC15tSpec), YES, YES, &methodCount);
 
         if (methods == NULL) {
-            RCTLogError(@"C15t: the generated NativeC15tSpec protocol reported no methods, so the TurboModule cannot be built.");
+            RCTLogError(@"c15t: the generated NativeC15tSpec protocol reported no methods, so the TurboModule cannot be built.");
             return;
         }
 
@@ -122,7 +122,7 @@ static NSString *C15tNormalizeTypeEncoding(const char *encoding) {
 
             Method implemented = class_getInstanceMethod([self class], selector);
             if (implemented == NULL) {
-                RCTLogError(@"C15t: %@ does not respond to %@, so the generated JSI glue cannot call it.", NSStringFromClass([self class]), NSStringFromSelector(selector));
+                RCTLogError(@"c15t: %@ does not respond to %@, so the generated JSI glue cannot call it.", NSStringFromClass([self class]), NSStringFromSelector(selector));
                 continue;
             }
 
@@ -133,7 +133,7 @@ static NSString *C15tNormalizeTypeEncoding(const char *encoding) {
 
             NSString *actual = C15tNormalizeTypeEncoding(method_getTypeEncoding(implemented));
             if (![declared isEqualToString:actual]) {
-                RCTLogError(@"C15t: %@ implements %@ as %@ but the generated protocol declares %@.", NSStringFromClass([self class]), NSStringFromSelector(selector), actual, declared);
+                RCTLogError(@"c15t: %@ implements %@ as %@ but the generated protocol declares %@.", NSStringFromClass([self class]), NSStringFromSelector(selector), actual, declared);
             }
         }
 
