@@ -172,7 +172,7 @@ class TcStringDecodeTest {
 			"every vector pins the historic policy version 2",
 		)
 		assertTrue(
-			fixtures.map { it.policyVersion }.contains(5),
+			fixtures.map { it.vendorList.tcfPolicyVersion }.contains(5),
 			"no vector carries the policy version a live GVL advertises",
 		)
 	}

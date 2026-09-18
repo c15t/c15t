@@ -3,6 +3,7 @@ package com.c15t.core.tc
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -66,11 +67,14 @@ object TcStringFixtures {
 	private fun parse(fileName: String, root: JsonObject): TcStringFixture {
 		val input = root["input"]!!.jsonObject
 		val model = input["model"]!!.jsonObject
-		// The vendor list recorded here is a stub: language, tcfPolicyVersion, vendorListVersion and
-		// vendors, and no purposes or stacks. The three values this codec needs are scalars, and
-		// taking them as scalars is what the recorded data supports. Reaching past them would mean
-		// inventing a GVL to make a number line up.
-		val vendorList = input["vendorList"]!!.jsonObject
+		// `input.vendorList` is not the GVL the vectors lane had in hand: no purpose definitions, no
+		// stacks. But every one of its 621 vendor entries carries the four purpose lists, and nothing
+		// is invented to fill the rest. That is enough to answer the only two questions the encoder
+		// puts to a vendor list -- does this id exist, and does this vendor declare this basis -- which
+		// is what [TcSemanticPreEncoder] asks. The two version numbers are scalars read straight off
+		// the manifest, which is all the reference can claim for them either: on the web they are the
+		// list's own fields, not something a caller chooses.
+		val vendorList = parseVendorList(input["vendorList"]!!.jsonObject)
 		val expects = root["expects"]!!.jsonObject
 		val expected = root["expected"]!!.jsonObject
 		val encode = expected["encode"]!!.jsonObject
@@ -88,11 +92,36 @@ object TcStringFixtures {
 			expectedSegmentTypes = encode["segmentTypes"]!!.jsonArray.map { it.jsonPrimitive.int },
 			expected = ExpectedFields(fields),
 			model = ModelInput(model),
-			vendorListLanguage = vendorList["language"]!!.jsonPrimitive.content,
-			vendorListVersion = vendorList["vendorListVersion"]!!.jsonPrimitive.int,
-			policyVersion = vendorList["tcfPolicyVersion"]!!.jsonPrimitive.int,
+			vendorList = vendorList,
 		)
 	}
+
+	/**
+	 * `input.vendorList` as a [TcVendorList].
+	 *
+	 * The four purpose lists are read as required keys on every vendor rather than defaulting to
+	 * empty when absent, because an empty list is a claim -- it says the vendor declares nothing
+	 * under that basis, and the encoder answers by clearing the bit. A manifest that stopped
+	 * recording one of them would otherwise be read as a withdrawal of consent rather than a gap in
+	 * the record, and the assertion would pass while meaning something else.
+	 */
+	private fun parseVendorList(vendorList: JsonObject): TcVendorList = TcVendorList(
+		vendorListVersion = vendorList.int("vendorListVersion"),
+		tcfPolicyVersion = vendorList.int("tcfPolicyVersion"),
+		language = vendorList.string("language"),
+		vendors = vendorList["vendors"]!!.jsonArray.map { entry ->
+			entry.jsonObject.let {
+				TcVendor(
+					id = it.int("id"),
+					purposes = it.ids("purposes"),
+					legIntPurposes = it.ids("legIntPurposes"),
+					specialPurposes = it.ids("specialPurposes"),
+					flexiblePurposes = it.ids("flexiblePurposes"),
+					deletedDate = it["deletedDate"]?.jsonPrimitive?.contentOrNull,
+				)
+			}
+		},
+	)
 
 	/** Find `native/protocol` by walking up, because Gradle may start anywhere in the module. */
 	private fun fixtureDirectory(): File {
@@ -135,13 +164,12 @@ data class TcStringFixture(
 	val expected: ExpectedFields,
 	val model: ModelInput,
 	/**
-	 * `vendorList.language`, which the reference writes into ConsentLanguage in place of whatever
-	 * the model carried. See `tc-string-parity-consent-language-from-vendor-list`, where the app
-	 * said EN and the string says DE.
+	 * `input.vendorList`, including the per-vendor purpose lists the semantic pre-pass reads. Its
+	 * `language` is the one thing here that decides ConsentLanguage: the reference overwrites
+	 * whatever the model carried, which is what `tc-string-parity-consent-language-from-vendor-list`
+	 * pins -- the app said EN, the vendor list said DE, the string says DE.
 	 */
-	val vendorListLanguage: String,
-	val vendorListVersion: Int,
-	val policyVersion: Int,
+	val vendorList: TcVendorList,
 )
 
 /** `expected.decode.fields`, every key required: the contract is uniform across all 27 fixtures. */

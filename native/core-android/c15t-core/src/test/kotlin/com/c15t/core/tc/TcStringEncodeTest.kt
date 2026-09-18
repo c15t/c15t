@@ -12,21 +12,16 @@ import kotlin.test.assertTrue
  * decoded models agreeing would not be, because a TC String is forwarded to vendors and audited as
  * a byte string, and "means the same thing, different bytes" is a different record.
  *
- * Three recorded values arrive as scalars rather than being derived, because the recorded vendor
- * list is a stub with no purposes or stacks and cannot stand up a GVL object:
- * `vendorListVersion`, `tcfPolicyVersion` and `language`. The third is not cosmetic.
- * `tc-string-parity-consent-language-from-vendor-list` hands the encoder a model that says EN
- * against a vendor list that says DE, and the reference overwrites the model before writing, so the
- * bytes must say DE. Reading the app's language here would produce a string the oracle reads back
- * differently, which is the failure this suite exists to catch.
+ * Every value the encoder needs comes from the fixture rather than being invented here: the model,
+ * the vendor list with its per-vendor purpose lists, and the two versions as scalars. Nothing is
+ * substituted on the way in -- in particular the app's own consent language is passed through and
+ * the codec is expected to overwrite it the way the reference does, which
+ * [consentLanguageComesFromTheVendorList] checks as its own claim.
  *
- * [DIVERGENCES] holds the one graded encode vector this codec does not reproduce. It is asserted
- * as a divergence, not skipped: the row goes stale and fails if the gap closes, and the test names
- * exactly which signals move.
- *
- * Two vectors, both for the same reason. The reference runs a semantic pass over the model before
- * writing and removes signals from it, so its bytes describe a smaller consent state than the one
- * the model carried. This codec writes the state it was given.
+ * [DIVERGENCES] is the seam for a graded encode vector this codec does not reproduce. It is asserted
+ * as a divergence rather than skipped, and it cuts both ways: a row whose string now matches fails
+ * the run, and a vector that fails to reproduce without a row fails it too. See its declaration for
+ * the two rows that used to be here.
  */
 class TcStringEncodeTest {
 	private val fixtures = TcStringFixtures.load()
@@ -106,6 +101,43 @@ class TcStringEncodeTest {
 	}
 
 	/**
+	 * The language in the bytes belongs to the vendor list, not to the app.
+	 *
+	 * `SemanticPreEncoder.process` assigns `gvl.language` over the model's ConsentLanguage on every
+	 * encode, so the app's locale cannot reach the string by any route. [TcConsentInput] therefore
+	 * carries no consent language at all: web exposes `config.consentLanguage ?? 'EN'`, and web's own
+	 * encoder then discards it, which is a setting that silently stops working rather than a default.
+	 *
+	 * This asks the vectors where the two languages disagree, which is the only place the reference's
+	 * output can settle it. `tc-string-parity-consent-language-from-vendor-list` is one of them: the
+	 * app said EN, the list said DE, and the recorded bytes say DE.
+	 */
+	@Test
+	fun `consent language comes from the vendor list and not the app`() {
+		val disagreeing = encodeGraded().filter { it.model.consentLanguage != it.vendorList.language }
+		assertTrue(
+			disagreeing.isNotEmpty(),
+			"no vector pairs an app language with a different vendor list language, " +
+				"so nothing here can prove the override happened",
+		)
+		disagreeing.forEach { fixture ->
+			val written = TcStringDecoder.decode(TcStringEncoder.encode(inputFor(fixture))).core.consentLanguage
+			assertEquals(
+				fixture.vendorList.language,
+				written,
+				"${fixture.id}: the app said ${fixture.model.consentLanguage}, the list said " +
+					"${fixture.vendorList.language}, and the string has to say the list's",
+			)
+			assertNotEquals(
+				fixture.model.consentLanguage,
+				written,
+				"${fixture.id}: the app's language survived, which the reference never permits",
+			)
+		}
+		println("  CONSENT LANGUAGE overridden by the vendor list in ${disagreeing.size} vectors")
+	}
+
+	/**
 	 * What the divergence rows claim, checked rather than asserted in prose.
 	 *
 	 * The reference runs a semantic pass before writing: it refuses legitimate interest for purposes
@@ -182,22 +214,12 @@ class TcStringEncodeTest {
 
 	private fun inputFor(fixture: TcStringFixture): TcConsentInput {
 		val model = fixture.model
-		// The consent language a native build must write is the vendor list's, not the app's, so
-		// that this claim stays honest the substitution is checked against the decoded bytes.
-		assertEquals(
-			fixture.vendorListLanguage,
-			fixture.expected.consentLanguage,
-			"${fixture.id}: ConsentLanguage in the string is not vendorList.language, so the " +
-				"substitution made here is no longer what the reference does",
-		)
 		return TcConsentInput(
 			cmpId = model.cmpId,
 			confirmedAtMillis = model.createdMillis,
-			vendorListVersion = fixture.vendorListVersion,
-			policyVersion = fixture.policyVersion,
+			vendorList = fixture.vendorList,
 			cmpVersion = model.cmpVersion,
 			consentScreen = model.consentScreen,
-			consentLanguage = fixture.vendorListLanguage,
 			publisherCountryCode = model.publisherCountryCode,
 			isServiceSpecific = model.isServiceSpecific,
 			purposeConsents = model.purposeConsents,
@@ -217,35 +239,25 @@ class TcStringEncodeTest {
 
 	private companion object {
 		/**
-		 * Graded encode vectors whose bytes this codec does not reproduce, and the reference
-		 * behaviour behind each gap.
+		 * Graded encode vectors whose bytes this codec does not reproduce, and the reference behaviour
+		 * behind each gap. Add an entry and [assertDeclaredDivergence] proves what the gap is: the two
+		 * strings must differ, they must differ only in the signals named, and everything the pruning
+		 * explanation does not reach must still agree byte for byte.
 		 *
-	 * Both rows are the reference's semantic pre-pass, `encoder/SemanticPreEncoder.js`, which edits
-	 * the model on the way to the encoder. The two halves of it are not equally reachable from what
-	 * the fixtures record, and the difference matters for whoever decides whether to mirror it:
-	 *
-	 * - `unset([1, 3, 4, 5, 6])` on purposeLegitimateInterests is a hardcoded rule with no vendor
-	 * list involved, so it is reproducible from the recorded model alone. `li-and-special-features`
-	 * differs on exactly this and nothing else: the model carries LI 1 through 10, the bytes carry
-	 * 2, 7, 8, 9, 10.
-	 * - Dropping a vendor signal the vendor list does not back needs each vendor's declared and
-	 * flexible purposes. `pruned-signals` asks for vendor consents 1 and 400 and vendor LI 2 and 400;
-	 * vendor 400 is not in the recorded list at all, so the reference writes 1 and 2. Mirroring that
-	 * means implementing the GVL-semantic filter against a vendor list the manifest records without
-	 * purposes, which is a wider scope than mirroring the fields c15t writes.
-	 *
-	 * Neither gap is live for the state c15t itself produces: purposes 1, 3, 4, 5 and 6 are not
-	 * legitimate-interest purposes under the current policy, and c15t's web codec derives vendor
-	 * signals from the GVL rather than from a user's free choice, so there is nothing for the pass
-	 * to remove. Reported rather than closed: silently dropping signals in a mobile encoder is a
-	 * product decision, and getting its conditions wrong would disagree with web about *when*
-	 * pruning applies, which is worse than the difference it would fix.
-	 */
-	private val DIVERGENCES: Map<String, String> = mapOf(
-		"tc-string-parity-li-and-special-features" to
-			"the reference unsets legitimate interest for purposes 1, 3, 4, 5 and 6; this codec writes what it is given",
-		"tc-string-parity-pruned-signals" to
-			"the reference prunes signals the vendor list does not back, and unsets LI for purposes 1, 3-6; this codec writes what it is given",
-	)
+		 * It is empty, and both rows that were here were closed by implementing
+		 * [TcSemanticPreEncoder]. Worth recording how, because one of the two was expected to stay
+		 * open. `tc-string-parity-li-and-special-features` needed the LI rule for purposes 1 and 3
+		 * through 6, which is a constant with no vendor list in it. `tc-string-parity-pruned-signals`
+		 * was filed as needing a full GVL, on the understanding that the fixtures' `input.vendorList`
+		 * recorded no per-vendor purposes. That understanding was wrong: all 621 vendor entries across
+		 * the 27 vectors carry `purposes`, `legIntPurposes`, `specialPurposes` and `flexiblePurposes`,
+		 * which is exactly what the rule reads, so the vector reproduces from the shared record and no
+		 * re-record is needed for it. What the recorded list still lacks is purpose definitions and
+		 * stacks, which nothing in this codec reads.
+		 *
+		 * If a future vector reintroduces either gap, the phantom check and the set comparison below
+		 * will both say so rather than let it pass quietly.
+		 */
+		private val DIVERGENCES: Map<String, String> = emptyMap()
 	}
 }
