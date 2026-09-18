@@ -3,8 +3,9 @@
  *
  * A save may carry `vendorChoice`, the complete per-vendor grant map with one
  * confirmation time. The backend stores it as sent, including vendors the
- * manifest does not declare, and reads back the map of the most recent act
- * as `subjectVendorChoice`. Saves without vendors are unaffected.
+ * manifest does not declare, requires every manifest vendor to be decided,
+ * and reads back the map of the most recent act as `subjectVendorChoice`.
+ * Saves without vendors are unaffected.
  */
 
 import type { PolicyRule, Vendor } from '@c15t/schema';
@@ -133,7 +134,11 @@ for (const engine of ENGINES) {
 				givenAt: T0,
 				vendorChoice: {
 					confirmedAt: T0,
-					grants: { 'client-only': true, 'meta-pixel': false },
+					grants: {
+						'client-only': true,
+						'google-analytics': true,
+						'meta-pixel': false,
+					},
 					version: 1,
 				},
 			});
@@ -142,7 +147,11 @@ for (const engine of ENGINES) {
 			assert.strictEqual(read.status, 200);
 			assert.deepStrictEqual(read.body.subjectVendorChoice, {
 				confirmedAt: T0,
-				grants: { 'client-only': true, 'meta-pixel': false },
+				grants: {
+					'client-only': true,
+					'google-analytics': true,
+					'meta-pixel': false,
+				},
 				version: 1,
 			});
 		});
@@ -153,7 +162,7 @@ for (const engine of ENGINES) {
 				givenAt: T0,
 				vendorChoice: {
 					confirmedAt: T1,
-					grants: { 'meta-pixel': false },
+					grants: { 'google-analytics': true, 'meta-pixel': false },
 					version: 1,
 				},
 			});
@@ -162,7 +171,7 @@ for (const engine of ENGINES) {
 				givenAt: T1,
 				vendorChoice: {
 					confirmedAt: T0,
-					grants: { 'meta-pixel': true },
+					grants: { 'google-analytics': true, 'meta-pixel': true },
 					version: 1,
 				},
 			});
@@ -171,7 +180,7 @@ for (const engine of ENGINES) {
 			assert.strictEqual(read.status, 200);
 			assert.deepStrictEqual(
 				(read.body.subjectVendorChoice as { grants: unknown }).grants,
-				{ 'meta-pixel': true }
+				{ 'google-analytics': true, 'meta-pixel': true }
 			);
 		});
 
@@ -181,11 +190,27 @@ for (const engine of ENGINES) {
 				givenAt: T0,
 				vendorChoice: {
 					confirmedAt: Date.now() + 60_000,
-					grants: { 'meta-pixel': false },
+					grants: { 'google-analytics': true, 'meta-pixel': false },
 					version: 1,
 				},
 			});
 			assert.strictEqual(future.status, 400, JSON.stringify(future.body));
+		});
+
+		it('refuses a map that leaves out a vendor the manifest declares', async () => {
+			// An omitted id reads back as allowed on the client, so a partial map
+			// could enable a configured vendor nobody decided.
+			const partial = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				vendorChoice: {
+					confirmedAt: T0,
+					grants: { 'meta-pixel': false },
+					version: 1,
+				},
+			});
+			assert.strictEqual(partial.status, 400, JSON.stringify(partial.body));
+			assert.match(String(partial.body.message), /google-analytics/u);
 		});
 
 		it('reports null vendor state for a subject that never sent a map', async () => {
@@ -207,7 +232,7 @@ for (const engine of ENGINES) {
 				givenAt: T0,
 				vendorChoice: {
 					confirmedAt: T0,
-					grants: { 'meta-pixel': false },
+					grants: { 'google-analytics': true, 'meta-pixel': false },
 					version: 1,
 				},
 			});
@@ -217,7 +242,7 @@ for (const engine of ENGINES) {
 				givenAt: T0,
 				vendorChoice: {
 					confirmedAt: T0,
-					grants: { 'meta-pixel': true },
+					grants: { 'google-analytics': true, 'meta-pixel': true },
 					version: 1,
 				},
 			});
