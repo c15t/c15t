@@ -197,7 +197,7 @@ const FLEXIBLE_PURPOSES: readonly number[] = [7, 9];
  * the declarations that actually decide what gets encoded.
  */
 const vendorFor = function vendorFor(vendor: TcStringVendor): Vendor {
-	return {
+	const mapped: Vendor = {
 		features: [...vendor.features],
 		flexiblePurposes: [...vendor.flexiblePurposes],
 		id: vendor.id,
@@ -207,10 +207,27 @@ const vendorFor = function vendorFor(vendor: TcStringVendor): Vendor {
 		specialFeatures: [...vendor.specialFeatures],
 		specialPurposes: [...vendor.specialPurposes],
 	};
+	// The oracle's Vendor type does not name this field even though its GVL reads it
+	// and its mapVendors branches on it, so it is assigned through a narrowed cast
+	// rather than dropped here and re-added somewhere less visible.
+	if (vendor.deletedDate !== undefined) {
+		(mapped as { deletedDate?: string }).deletedDate = vendor.deletedDate;
+	}
+	return mapped;
 };
 
 /** How the fixture names a vendor list, in a field order a runner can mirror. */
 interface TcStringVendor {
+	/**
+	 * The date the IAB marked this vendor withdrawn, as the vendor-list JSON states
+	 * it. `SemanticPreEncoder` unsets a positive consent or legitimate-interest
+	 * signal for any vendor the GVL does not hand back, and `GVL.populateVendors`
+	 * drops every vendor carrying a `deletedDate` out of `gvl.vendors` on the way in
+	 * (the full list survives as `gvl.fullVendorList`), so this one field decides
+	 * whether an id that looks perfectly valid contributes a bit to the string.
+	 * Recorded per entry because it changes the encoding, not because it is metadata.
+	 */
+	deletedDate?: string;
 	features: number[];
 	flexiblePurposes: number[];
 	id: number;
@@ -535,21 +552,41 @@ const idRanges = function idRanges(ids: readonly number[]): string {
 };
 
 /**
- * The losses this vector actually exhibits, stated as notes.
- *
- * Every line here is produced by comparing what went into the encoder with what came
- * out of the decoder, not from a standing list of known defects. A loss that stops
- * happening in a future oracle stops being claimed, and a new one gets claimed the
- * moment it appears, which is the only way these notes stay worth the native lanes'
- * time. Each one is a place where a native port that round-trips faithfully is
- * nevertheless wrong, so they belong in the fixture rather than in a comment.
+ * Which vendor vectors lost ids, and for what reason. Split out of fidelityNotes so
+ * the three causes of a dropped vendor id each get their own claim, and the three
+ * pass-through behaviours get stated where they are observable.
  */
-const fidelityNotes = function fidelityNotes(
+const vendorVectorNotes = function vendorVectorNotes(
+	vendorList: TcStringVendorList,
 	model: TcStringModel,
-	fields: TcStringDecodedFields,
-	segmentTypes: readonly number[]
-): string[] {
+	fields: TcStringDecodedFields
+): { deleted: number[]; notes: string[] } {
 	const notes: string[] = [];
+	// A dropped vendor id has three different causes and the reference conflates two
+	// of them into one branch, so the note has to say which one this id fell into.
+	// Blaming a withdrawal on an undeclared purpose would send a native lane to fix
+	// the wrong check.
+	const vendorById = new Map(
+		vendorList.vendors.map((vendor) => [vendor.id, vendor])
+	);
+	const prunedByCause = function prunedByCause(pruned: readonly number[]): {
+		deleted: number[];
+		absent: number[];
+		undeclared: number[];
+	} {
+		const causes = { absent: [], deleted: [], undeclared: [] };
+		for (const id of pruned) {
+			const vendor = vendorById.get(id);
+			if (vendor === undefined) {
+				causes.absent.push(id);
+			} else if (vendor.deletedDate === undefined) {
+				causes.undeclared.push(id);
+			} else {
+				causes.deleted.push(id);
+			}
+		}
+		return causes;
+	};
 
 	const prunedLi = dropped(
 		model.purposeLegitimateInterests,
@@ -568,22 +605,86 @@ const fidelityNotes = function fidelityNotes(
 		);
 	}
 
-	const prunedVendors = dropped(model.vendorConsents, fields.vendorConsents);
-	if (prunedVendors.length > 0) {
-		notes.push(
-			`vendorConsents loses ${idRanges(prunedVendors)}: the reference drops a positive vendor signal the vendor list gives no consent purpose for, so the encoder's answer depends on input.vendorList and not on the model alone.`
+	const prunedVectors: {
+		field: 'vendorConsents' | 'vendorLegitimateInterests';
+		label: string;
+		modelValue: readonly number[];
+		decodedValue: readonly number[];
+	}[] = [
+		{
+			decodedValue: fields.vendorConsents,
+			field: 'vendorConsents',
+			label: 'vendorConsents',
+			modelValue: model.vendorConsents,
+		},
+		{
+			decodedValue: fields.vendorLegitimateInterests,
+			field: 'vendorLegitimateInterests',
+			label: 'vendorLegitimateInterests',
+			modelValue: model.vendorLegitimateInterests,
+		},
+	];
+	const deletedByVector: number[] = [];
+	for (const vector of prunedVectors) {
+		const causes = prunedByCause(
+			dropped(vector.modelValue, vector.decodedValue)
 		);
+		if (causes.undeclared.length > 0) {
+			notes.push(
+				`${vector.label} loses ${idRanges(causes.undeclared)}: the reference drops a positive vendor signal the vendor list gives no purpose for under that legal basis, so the encoder's answer depends on input.vendorList and not on the model alone.`
+			);
+		}
+		if (causes.absent.length > 0) {
+			notes.push(
+				`${vector.label} loses ${idRanges(causes.absent)} because no such vendor is declared in input.vendorList at all: the pre-encoder's "!vendor" branch, which is also the arm a withdrawn vendor falls through, since GVL.mapVendors builds gvl.vendors from vendors whose deletedDate is unset.`
+			);
+		}
+		if (causes.deleted.length > 0) {
+			deletedByVector.push(...causes.deleted);
+			notes.push(
+				`${vector.label} loses ${idRanges(causes.deleted)} to withdrawal, not to an undeclared purpose: those entries carry deletedDate, GVL.mapVendors leaves them out of gvl.vendors (the id is still in gvl.vendorIds and the entry still survives in gvl.fullVendorList), and SemanticPreEncoder unsets a positive signal for any vendor the GVL does not hand back. The ids stay declared in input.vendorList.vendors and stay valid as numbers, so a port that keeps withdrawn vendors in its vendor table and never reads deletedDate encodes bits the reference erases.`
+			);
+		}
 	}
 
-	const prunedVendorLi = dropped(
-		model.vendorLegitimateInterests,
-		fields.vendorLegitimateInterests
+	// The vectors disagree on purpose: vendorsDisclosed is the one vendor vector the
+	// pre-encoder never prunes, so a withdrawn id survives here while its consent bit
+	// is gone, and the two vectors end up with different maxIds and different widths.
+	const disclosedDeleted = model.vendorsDisclosed.filter(
+		(id) => vendorById.get(id)?.deletedDate !== undefined
 	);
-	if (prunedVendorLi.length > 0) {
+	if (disclosedDeleted.length > 0) {
 		notes.push(
-			`vendorLegitimateInterests loses ${idRanges(prunedVendorLi)} for the same reason: no declared legitimate-interest purpose, no encoded signal.`
+			`vendorsDisclosed keeps ${idRanges(disclosedDeleted)} even though the pruned vectors dropped those same ids, because vendorsDisclosed is copied through the pre-encoder untouched. The vectors therefore carry different maxIds off the same model: an encoder that prunes the disclosed list, or one that leaves the consent list alone, fails here in opposite directions.`
 		);
 	}
+	if (model.vendorsAllowed.some((id) => deletedByVector.includes(id))) {
+		notes.push(
+			`vendorsAllowed keeps every id the model set, withdrawn or not, for the same reason vendorsDisclosed does: SemanticPreEncoder puts only legIntPurposes and purposes into its pruning map, so vendorsAllowed is never visited. A port that prunes all four vendor vectors is as wrong as one that prunes only one.`
+		);
+	}
+	return { deleted: deletedByVector, notes };
+};
+
+/**
+ * The losses this vector actually exhibits, stated as notes.
+ *
+ * Every line here is produced by comparing what went into the encoder with what came
+ * out of the decoder, not from a standing list of known defects. A loss that stops
+ * happening in a future oracle stops being claimed, and a new one gets claimed the
+ * moment it appears, which is the only way these notes stay worth the native lanes'
+ * time. Each one is a place where a native port that round-trips faithfully is
+ * nevertheless wrong, so they belong in the fixture rather than in a comment.
+ */
+const fidelityNotes = function fidelityNotes(
+	vendorList: TcStringVendorList,
+	model: TcStringModel,
+	fields: TcStringDecodedFields,
+	segmentTypes: readonly number[]
+): string[] {
+	const notes: string[] = [];
+
+	notes.push(...vendorVectorNotes(vendorList, model, fields).notes);
 
 	if (model.consentLanguage !== fields.consentLanguage) {
 		notes.push(
@@ -707,20 +808,43 @@ const fixtureVendor = function fixtureVendor(id: number): TcStringVendor {
 };
 
 interface VendorListOverrides {
+	/**
+	 * Ids to mark withdrawn in this case's vendor list. The date is one constant
+	 * rather than a per-case argument: nothing in the reference reads the value, only
+	 * its presence, and a per-case date would invite a vector that appears to test
+	 * date comparison when nothing does.
+	 */
+	deletedVendorIds?: readonly number[];
 	language?: string;
 	tcfPolicyVersion?: number;
 	vendorListVersion?: number;
 }
 
+/** The withdrawal stamp every deletion here carries. See VendorListOverrides. */
+const DELETED_DATE = '2026-01-01T00:00:00Z';
+
 /** The vendor list every vector shares, apart from the two fields a case varies. */
 const vendorListFor = function vendorListFor(
 	overrides: VendorListOverrides = {}
 ): TcStringVendorList {
+	const deleted = new Set(overrides.deletedVendorIds);
+	for (const id of deleted) {
+		if (!VENDOR_IDS.includes(id)) {
+			throw new Error(
+				`Cannot mark vendor ${String(id)} deleted: it is not in the fixture vendor list, so the string would carry an absent vendor rather than a deleted one. Those are separate branches of the pre-encoder and this kind pins both.`
+			);
+		}
+	}
 	return {
 		language: overrides.language ?? 'EN',
 		tcfPolicyVersion: overrides.tcfPolicyVersion ?? 5,
 		vendorListVersion: overrides.vendorListVersion ?? 142,
-		vendors: VENDOR_IDS.map((id) => fixtureVendor(id)),
+		vendors: VENDOR_IDS.map((id) => {
+			const vendor = fixtureVendor(id);
+			return deleted.has(id)
+				? { ...vendor, deletedDate: DELETED_DATE }
+				: vendor;
+		}),
 	};
 };
 
@@ -763,6 +887,7 @@ interface CaseSpec {
 		created?: 'clock' | 'day';
 		lastUpdated?: 'clock' | 'day';
 	};
+	/** Vendor-list edits for this case, including which vendors are withdrawn. */
 	vendorList?: VendorListOverrides;
 }
 
@@ -1290,6 +1415,42 @@ const CASE_SPECS: readonly CaseSpec[] = [
 		population: 'decode-coverage',
 		timestamps: { created: 'day', lastUpdated: 'clock' },
 	},
+	{
+		description:
+			'A withdrawn vendor that the app still recorded consent for: 700 carries a deletedDate in the vendor list, the model consents to it, and the string the reference writes says otherwise while the disclosed vector still names it.',
+		id: 'tc-string-parity-deleted-vendor-consent',
+		model: {
+			purposeConsents: [1],
+			vendorConsents: [1, 700],
+			vendorsDisclosed: [1, 700],
+		},
+		notes: [
+			'deletedDate never reaches the wire, so the whole decision belongs to the encoder: a decoder reading this string sees 700 in one vector and its absence in another with nothing on the string to explain the difference, which is why a port that gets it wrong can only be caught by a golden string.',
+		],
+		population: 'parity',
+		vendorList: { deletedVendorIds: [700] },
+	},
+	{
+		description:
+			'Three withdrawn vendors spread across all three vendor vectors at once, on a global string that carries an allowed segment, which is where the pre-encoder proves it only prunes two of them.',
+		encodingOptions: { isForVendors: true },
+		id: 'tc-string-decode-deleted-vendor-three-vectors',
+		model: {
+			isServiceSpecific: false,
+			purposeConsents: [1],
+			purposeLegitimateInterests: [2],
+			supportOOB: true,
+			vendorConsents: [1, 300, 700],
+			vendorLegitimateInterests: [46, 300, 700],
+			vendorsAllowed: [46, 300, 700],
+			vendorsDisclosed: [1, 46, 300, 700],
+		},
+		notes: [
+			'Vendor 46 is not withdrawn and keeps its legitimate-interest bit everywhere, so the only difference between 46 and 300 as this string is written is the deleted date on the vendor entry.',
+		],
+		population: 'decode-coverage',
+		vendorList: { deletedVendorIds: [300, 700] },
+	},
 ];
 
 /** Resolve one case's timestamps against the frozen clock. */
@@ -1356,7 +1517,7 @@ const buildTcStringCase = function buildTcStringCase(
 		notes: [
 			POPULATION_NOTES[spec.population],
 			...spec.notes,
-			...fidelityNotes(model, fields, segmentTypes),
+			...fidelityNotes(vendorList, model, fields, segmentTypes),
 		],
 		oracle: { ...TC_STRING_ORACLE, encodeOptions: encodingOptions },
 		population: spec.population,

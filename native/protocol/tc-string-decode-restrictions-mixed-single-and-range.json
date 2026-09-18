@@ -1,17 +1,13 @@
 {
 	"description": "One publisher restriction whose vendors are scattered so the encoder emits three range entries under a single purpose, two singles and one pair, with ids past 40 throughout.",
-	"expects": {
-		"decode": true,
-		"encode": false
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": true,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -54,8 +50,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
-				"vendorConsents": [41],
-				"vendorLegitimateInterests": [],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 41,
@@ -63,10 +57,12 @@
 					"vendorsAllowed": 0,
 					"vendorsDisclosed": 0
 				},
-				"version": 2,
+				"vendorConsents": [41],
+				"vendorLegitimateInterests": [],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [],
-				"vendorsDisclosed": []
+				"vendorsDisclosed": [],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -79,6 +75,10 @@
 			"tcString": "CQe_xoAQe_xoAAcABBENCOFgAIAAAAAAACiQAUgAAAAAAgAAABJQAwAUwA8ASwBXgAAA.IAAA.YAAAAAAAAAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
 	"id": "tc-string-decode-restrictions-mixed-single-and-range",
 	"input": {
 		"encodingOptions": {
@@ -86,11 +86,11 @@
 			"version": 2
 		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": true,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -114,9 +114,9 @@
 			"useNonStandardTexts": false,
 			"vendorConsents": [41],
 			"vendorLegitimateInterests": [],
-			"version": 2,
 			"vendorsAllowed": [],
-			"vendorsDisclosed": []
+			"vendorsDisclosed": [],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {

@@ -1,5 +1,5 @@
 {
-	"description": "purposeOneTreatment set on a global-scope string, which the TCF policy forbids and the reference encodes anyway.",
+	"description": "A withdrawn vendor that the app still recorded consent for: 700 carries a deletedDate in the vendor list, the model consents to it, and the string the reference writes says otherwise while the disclosed vector still names it.",
 	"expected": {
 		"decode": {
 			"fields": {
@@ -8,7 +8,7 @@
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"isServiceSpecific": false,
+				"isServiceSpecific": true,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
 				"policyVersion": 5,
@@ -18,38 +18,42 @@
 				"publisherCustomLegitimateInterests": [],
 				"publisherLegitimateInterests": [],
 				"publisherRestrictions": [],
-				"purposeConsents": [2, 3, 4],
+				"purposeConsents": [1],
 				"purposeLegitimateInterests": [],
-				"purposeOneTreatment": true,
+				"purposeOneTreatment": false,
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
-					"vendorConsents": 0,
+					"vendorConsents": 1,
 					"vendorLegitimateInterests": 0,
 					"vendorsAllowed": 0,
-					"vendorsDisclosed": 0
+					"vendorsDisclosed": 700
 				},
-				"vendorConsents": [],
+				"vendorConsents": [1],
 				"vendorLegitimateInterests": [],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [],
-				"vendorsDisclosed": [],
+				"vendorsDisclosed": [1, 700],
 				"version": 2
 			}
 		},
 		"encode": {
-			"segmentTypes": [0, 1],
-			"segments": ["CQe_xoAQe_xoAAcABBENCOFAAHAAAAAAAKiQAAAAAAAA", "IAAA"],
-			"tcString": "CQe_xoAQe_xoAAcABBENCOFAAHAAAAAAAKiQAAAAAAAA.IAAA"
+			"segmentTypes": [0, 1, 3],
+			"segments": [
+				"CQe_xoAQe_xoAAcABBENCOFgAIAAAAAAACiQAAoAAAAA",
+				"IFeQAgAAgK8A",
+				"YAAAAAAAAAAA"
+			],
+			"tcString": "CQe_xoAQe_xoAAcABBENCOFgAIAAAAAAACiQAAoAAAAA.IFeQAgAAgK8A.YAAAAAAAAAAA"
 		}
 	},
 	"expects": {
 		"decode": true,
-		"encode": false
+		"encode": true
 	},
-	"id": "tc-string-decode-purpose-one-treatment-global",
+	"id": "tc-string-parity-deleted-vendor-consent",
 	"input": {
 		"encodingOptions": {
 			"isForVendors": false,
@@ -61,7 +65,7 @@
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"isServiceSpecific": false,
+			"isServiceSpecific": true,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
 			"publisherConsents": [],
@@ -70,16 +74,16 @@
 			"publisherCustomLegitimateInterests": [],
 			"publisherLegitimateInterests": [],
 			"publisherRestrictions": [],
-			"purposeConsents": [2, 3, 4],
+			"purposeConsents": [1],
 			"purposeLegitimateInterests": [],
-			"purposeOneTreatment": true,
+			"purposeOneTreatment": false,
 			"specialFeatureOptins": [],
 			"supportOOB": false,
 			"useNonStandardTexts": false,
-			"vendorConsents": [],
+			"vendorConsents": [1, 700],
 			"vendorLegitimateInterests": [],
 			"vendorsAllowed": [],
-			"vendorsDisclosed": [],
+			"vendorsDisclosed": [1, 700],
 			"version": 2
 		},
 		"now": 1770000000000,
@@ -293,16 +297,18 @@
 					"legIntPurposes": [2, 7, 9, 10],
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
-					"specialPurposes": []
+					"specialPurposes": [],
+					"deletedDate": "2026-01-01T00:00:00Z"
 				}
 			]
 		}
 	},
 	"kind": "tc-string",
 	"notes": [
-		"Population decode-coverage: this model reaches past what @c15t/iab writes, so expects.encode is false and only the decode half is graded. An encoder that cannot produce this input is not wrong.",
-		"The policy says a global string must carry purposeOneTreatment false and a CMP that reads true has to treat the string as invalid and re-establish consent. The reference does neither: it encodes the combination and decodes it back without complaint. A native core that enforces the rule will reject a string this vector contains, so the enforcement is a policy decision on top of the codec and belongs in neither core quietly.",
-		"the string carries no publisherTC segment, so every publisherConsents, publisherLegitimateInterests, numCustomPurposes and publisherCustom* field reads back at its zero rather than being absent. A decoder must not treat that zero as a stored empty choice, and an encoder must know the segment is conditional.",
+		"Population parity: every non-default field here is one @c15t/iab writes, so expects.encode is true and a native encoder has to reproduce tcString byte for byte.",
+		"deletedDate never reaches the wire, so the whole decision belongs to the encoder: a decoder reading this string sees 700 in one vector and its absence in another with nothing on the string to explain the difference, which is why a port that gets it wrong can only be caught by a golden string.",
+		"vendorConsents loses 700 to withdrawal, not to an undeclared purpose: those entries carry deletedDate, GVL.mapVendors leaves them out of gvl.vendors (the id is still in gvl.vendorIds and the entry still survives in gvl.fullVendorList), and SemanticPreEncoder unsets a positive signal for any vendor the GVL does not hand back. The ids stay declared in input.vendorList.vendors and stay valid as numbers, so a port that keeps withdrawn vendors in its vendor table and never reads deletedDate encodes bits the reference erases.",
+		"vendorsDisclosed keeps 700 even though the pruned vectors dropped those same ids, because vendorsDisclosed is copied through the pre-encoder untouched. The vectors therefore carry different maxIds off the same model: an encoder that prunes the disclosed list, or one that leaves the consent list alone, fails here in opposite directions.",
 		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
 	],
 	"oracle": {
@@ -314,6 +320,6 @@
 			"version": 2
 		}
 	},
-	"population": "decode-coverage",
+	"population": "parity",
 	"protocolVersion": 1
 }

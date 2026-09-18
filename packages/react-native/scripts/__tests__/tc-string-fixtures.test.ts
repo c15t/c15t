@@ -33,6 +33,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_DIR = resolve(HERE, '../../../../native/protocol');
 
 interface FixtureVendor {
+	deletedDate?: string;
 	features: number[];
 	flexiblePurposes: number[];
 	id: number;
@@ -370,6 +371,79 @@ describe('tc-string fixtures are byte-stable', () => {
 			expect(fixture.input.now % 100).toBe(0);
 			expect(fixture.input.now).toBe(index.clock);
 		}
+	});
+});
+
+describe('tc-string withdrawn vendors', () => {
+	const byId = new Map(FIXTURES.map((f) => [f.id, f]));
+	const deletedIdsOf = function deletedIdsOf(
+		fixture: TcStringFixtureFile
+	): number[] {
+		return fixture.input.vendorList.vendors
+			.filter((vendor) => vendor.deletedDate !== undefined)
+			.map((vendor) => vendor.id);
+	};
+
+	test('both populations carry a withdrawn-vendor vector', () => {
+		const withDeletion = FIXTURES.filter((f) => deletedIdsOf(f).length > 0).map(
+			(f) => f.population
+		);
+		expect(new Set(withDeletion)).toEqual(
+			new Set(['decode-coverage', 'parity'])
+		);
+	});
+
+	// The strip is the whole point, so it is asserted from the read-back rather than
+	// from a belief about what SemanticPreEncoder does.
+	test('a withdrawn id never reaches a pruned vector', () => {
+		for (const fixture of FIXTURES) {
+			const deleted = new Set(deletedIdsOf(fixture));
+			if (deleted.size === 0) {
+				continue;
+			}
+			for (const field of [
+				'vendorConsents',
+				'vendorLegitimateInterests',
+			] as const) {
+				const ids = fixture.expected.decode.fields[field] as number[];
+				expect(
+					ids.filter((id) => deleted.has(id)),
+					`${fixture.id} ${field}`
+				).toEqual([]);
+			}
+		}
+	});
+
+	test('the vectors the pre-encoder skips keep the withdrawn id', () => {
+		const fixture = byId.get(
+			'tc-string-decode-deleted-vendor-three-vectors'
+		) as TcStringFixtureFile;
+		expect(fixture.input.model.vendorsDisclosed).toContain(700);
+		expect(fixture.expected.decode.fields.vendorsDisclosed).toEqual([
+			1, 46, 300, 700,
+		]);
+		expect(fixture.expected.decode.fields.vendorsAllowed).toEqual([
+			46, 300, 700,
+		]);
+		// 46 is the control: same legal basis, same vectors, nothing withdrawn.
+		expect(fixture.expected.decode.fields.vendorLegitimateInterests).toEqual([
+			46,
+		]);
+	});
+
+	test('one model leaves the pruned and pass-through vectors at different widths', () => {
+		const fixture = byId.get(
+			'tc-string-parity-deleted-vendor-consent'
+		) as TcStringFixtureFile;
+		const maxIds = fixture.expected.decode.fields['vectorMaxIds'] as Record<
+			string,
+			number
+		>;
+		// The withdrawn id was the largest consented one, so pruning collapses that
+		// vector to 1 while the disclosed vector still reports 700. Content and width
+		// both move, and a decoder that shares a maxId between vectors fails here.
+		expect(maxIds.vendorConsents).toBe(1);
+		expect(maxIds.vendorsDisclosed).toBe(700);
 	});
 });
 

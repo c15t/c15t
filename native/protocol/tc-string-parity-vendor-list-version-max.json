@@ -1,17 +1,13 @@
 {
 	"description": "A vendor list version at 4095, the largest value the 12-bit field holds, so the segment widths a port must assume are pinned at their ceiling.",
-	"expects": {
-		"decode": true,
-		"encode": true
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": true,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -28,8 +24,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
-				"vendorConsents": [],
-				"vendorLegitimateInterests": [],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 0,
@@ -37,10 +31,12 @@
 					"vendorsAllowed": 0,
 					"vendorsDisclosed": 1
 				},
-				"version": 2,
+				"vendorConsents": [],
+				"vendorLegitimateInterests": [],
 				"vendorListVersion": 4095,
 				"vendorsAllowed": [],
-				"vendorsDisclosed": [1]
+				"vendorsDisclosed": [1],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -53,6 +49,10 @@
 			"tcString": "CQe_xoAQe_xoAAcABBEN__FgAIAAAAAAACiQAAAAAAAA.IAAo.YAAAAAAAAAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": true
+	},
 	"id": "tc-string-parity-vendor-list-version-max",
 	"input": {
 		"encodingOptions": {
@@ -60,11 +60,11 @@
 			"version": 2
 		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": true,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -82,9 +82,9 @@
 			"useNonStandardTexts": false,
 			"vendorConsents": [],
 			"vendorLegitimateInterests": [],
-			"version": 2,
 			"vendorsAllowed": [],
-			"vendorsDisclosed": [1]
+			"vendorsDisclosed": [1],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {
