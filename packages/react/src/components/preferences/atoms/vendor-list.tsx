@@ -30,7 +30,12 @@ const DEFAULT_COPY = {
  * is `iab`. Each row is a switch that stages a per-vendor grant on the same
  * draft the category switches use; nothing is recorded until Save. While the
  * parent category is off in the draft, the vendor switches are disabled: a
- * vendor toggle never grants a category on its own.
+ * vendor toggle never grants a category on its own. A `disabled` vendor is
+ * listed without a switch.
+ *
+ * @param props - The category whose vendors to list, plus `Box` attributes.
+ * @returns The vendor group, or `null` when there is nothing to list.
+ * @public
  */
 export const ConsentWidgetVendorList = ({
 	category,

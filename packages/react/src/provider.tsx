@@ -195,9 +195,14 @@ export interface ConsentProviderOptions extends Pick<
  */
 export type ExternalRuntimeProviderOptions = Omit<
 	ConsentProviderOptions,
-	'mode'
+	'mode' | 'vendors'
 > & {
 	mode?: ConsentProviderOptions['mode'];
+	/**
+	 * Not accepted here: the runtime owner declares vendors through
+	 * `createConsentRuntime({ vendors })`, and the kernel carries them.
+	 */
+	vendors?: never;
 };
 
 /** The provider builds and owns its own kernel. */
@@ -623,7 +628,10 @@ const useProviderCallbacks = function useProviderCallbacks(
 	useEffect(() => {
 		const subscriptions = [
 			// Vendors the backend declares arrive with init. Their categories
-			// become selectable the same way a code-declared vendor's do.
+			// become selectable the same way a code-declared vendor's do. The
+			// kernel's inferred set only grows, so a category that lost its last
+			// vendor stays selectable until remount; that matches how a removed
+			// script's category behaves today.
 			kernel.events.on('init:applied', ({ snapshot }) => {
 				const declared = snapshot.vendors?.declared ?? [];
 				if (declared.length > 0) {
@@ -738,6 +746,38 @@ const useProviderOptionSync = function useProviderOptionSync(
 		}
 		kernel.set.activeUI('none');
 	}, [enabled, kernel, owns]);
+
+	// `vendors` is a live option like `scripts`: a list supplied or replaced
+	// after the first render is merged into the kernel and its categories
+	// registered, so the preference center shows the rows.
+	const previousVendorsRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!owns) {
+			return;
+		}
+		const serialized = JSON.stringify(options.vendors ?? []);
+		if (previousVendorsRef.current === null) {
+			previousVendorsRef.current = serialized;
+			return;
+		}
+		if (previousVendorsRef.current === serialized) {
+			return;
+		}
+		previousVendorsRef.current = serialized;
+		const declared = resolveVendors({
+			config: options.vendors,
+			onWarn: warnVendorDeclaration,
+		});
+		if (declared.length === 0) {
+			return;
+		}
+		kernel.set.vendors({ declared });
+		kernel.set.registerConsentCategories(
+			declared.flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			)
+		);
+	}, [kernel, options.vendors, owns]);
 
 	useEffect(() => {
 		const nodeEnv = (

@@ -138,9 +138,9 @@ describe('consent widget vendor rows', () => {
 				)
 		).not.toBeNull();
 
-		const meta = page.getByTestId(
-			'consent-widget-vendor-switch-marketing-meta-pixel'
-		);
+		// The switch is addressed by its accessible name, which is part of the
+		// contract; test ids keep category-scoped membership assertions.
+		const meta = list.getByRole('switch', { name: 'Allow Meta Pixel' });
 		await expect.element(meta).toHaveAttribute('aria-checked', 'true');
 		await meta.click();
 		await expect.element(meta).toHaveAttribute('aria-checked', 'false');
