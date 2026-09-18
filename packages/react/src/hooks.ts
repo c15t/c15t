@@ -34,7 +34,10 @@ import type {
 	KernelUser,
 	LocationResponse,
 	PolicyScopeMode,
+	ResolvedVendor,
+	VendorChoice,
 } from '@c15t/core';
+import { evaluateConsent } from '@c15t/core';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
@@ -236,6 +239,54 @@ export const useSpecialFeatureOptIn = function useSpecialFeatureOptIn(
 /** Latest TCF string. `null` until the IAB module encodes one. */
 export const useTCString = function useTCString(): string | null {
 	return useKernelSelector((snap) => snap.iab?.tcString ?? null);
+};
+
+const NO_VENDORS: readonly ResolvedVendor[] = [];
+
+/**
+ * Vendors declared for vendor-level consent outside IAB, merged from the
+ * provider's `vendors` option, the backend and script slugs. Empty under an
+ * `iab` policy, where the TC string decides and vendor rows are not shown.
+ */
+export const useDeclaredVendors =
+	function useDeclaredVendors(): readonly ResolvedVendor[] {
+		return useKernelSelector((snap) =>
+			snap.model === 'iab' ? NO_VENDORS : (snap.vendors?.declared ?? NO_VENDORS)
+		);
+	};
+
+/** Vendors the visitor turned off, or `null` when none is denied. */
+export const useVendorChoice =
+	function useVendorChoice(): Readonly<VendorChoice> | null {
+		return useKernelSelector((snap) => snap.vendorChoice);
+	};
+
+/**
+ * Whether one vendor is allowed: its category passes and the visitor has
+ * not turned it off. Unknown vendors follow their category alone.
+ */
+export const useVendorAllowed = function useVendorAllowed(
+	vendorId: string
+): boolean {
+	return useKernelSelector((snap) => {
+		const vendor = snap.vendors?.declared.find(
+			(entry) => entry.id === vendorId
+		);
+		const denied =
+			snap.model !== 'iab' &&
+			(snap.vendorChoice?.denied.includes(vendorId) ?? false);
+		if (denied) {
+			return false;
+		}
+		if (!vendor) {
+			return true;
+		}
+		try {
+			return evaluateConsent({ category: vendor.category }, snap);
+		} catch {
+			return false;
+		}
+	});
 };
 
 /** Register categories used by scripts, frames, or other integrations. */

@@ -11,7 +11,7 @@ import type {
 	PromptPresentation,
 	TranslationConfig,
 } from '@c15t/core';
-import { evaluateConsent } from '@c15t/core';
+import { evaluateConsent, extractConsentNamesFromCondition } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
 import { useConsentManagerDraft } from '../draft';
@@ -20,6 +20,7 @@ import {
 	useRegisterConsentCategories,
 	useBranding,
 	useConsents,
+	useDeclaredVendors,
 	useModel,
 	usePromptPresentation,
 	usePolicyCategories,
@@ -106,6 +107,7 @@ export const useConsentManager = function useConsentManager() {
 	const policyDialog = usePreferencesPresentation();
 	const policyScopeMode = usePolicyScopeMode();
 	const { draft, save: saveKernelConsents } = useConsentManagerDraft();
+	const declaredVendors = useDeclaredVendors();
 	const setKernelActiveUI = useSetActiveUI();
 	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
 	const translations = useTranslations();
@@ -167,6 +169,24 @@ export const useConsentManager = function useConsentManager() {
 		[draft, consentCategories]
 	);
 
+	const setSelectedVendor = useCallback(
+		(vendorId: string, granted: boolean) => {
+			draft.setVendor(vendorId, granted);
+		},
+		[draft]
+	);
+
+	/** Presentable vendors whose category condition names this category. */
+	const getDisplayedVendors = useCallback(
+		(category: AllConsentNames) =>
+			declaredVendors.filter(
+				(vendor) =>
+					vendor.presentable &&
+					extractConsentNamesFromCondition(vendor.category).includes(category)
+			),
+		[declaredVendors]
+	);
+
 	const updateConsentCategories = useRegisterConsentCategories();
 
 	const subscribeToConsentChanges = useCallback(
@@ -185,6 +205,7 @@ export const useConsentManager = function useConsentManager() {
 		effectivePermissions: snapshot.effectivePermissions,
 		explicitChoice: snapshot.explicitChoice,
 		getDisplayedConsents,
+		getDisplayedVendors,
 		has,
 		iab: snapshot.iab,
 		manager: null,
@@ -204,10 +225,14 @@ export const useConsentManager = function useConsentManager() {
 		saveConsents,
 		selectedConsentTypes: draft.values,
 		selectedConsents: draft.values,
+		selectedVendors: draft.vendors,
 		setActiveUI,
 		setSelectedConsent,
+		setSelectedVendor,
 		subscribeToConsentChanges,
 		translationConfig,
 		updateConsentCategories,
+		vendorChoice: snapshot.vendorChoice,
+		vendors: declaredVendors,
 	};
 };
