@@ -1262,3 +1262,16 @@ the contract moved, not the kernel.
   how many calls the runner made. What *is* comparable is the cost of a step, and
   `revision-trace-*.json` pins that per step; "Revisions and error writes" is the
   rule it pins.
+
+Evaluator parity
+----------------
+
+Rule 4 says the native cores must produce what `@c15t/core` produces. Where the
+TS evaluator has a rule the kernels have never been run against, that gap is now
+written down with its measurement: the web answer table and the three kernel
+divergences it found live in
+[`docs/internal/evaluator-parity.md`](../docs/internal/evaluator-parity.md).
+Read it before changing either `PolicyEvaluator`, or the evaluation scenarios in
+`packages/react-native/scripts/generate-protocol-fixtures.ts`. Permissions and
+`restrictions` are bridge and storage surface: a kernel may not change them to
+match a hunch, and no fixture expectation may be edited to make a core pass.
