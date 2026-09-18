@@ -10,7 +10,11 @@
  */
 
 import type { ConsentSnapshot } from '../../types';
-import type { StoredConsentEnvelope, StoredIabMetadata } from './record-codec';
+import type {
+	StoredConsentEnvelope,
+	StoredIabMetadata,
+	StoredVendorChoice,
+} from './record-codec';
 import {
 	clearStoredVendorChoice,
 	writeStoredConsentEnvelope,
@@ -108,11 +112,14 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 		clearStoredVendorChoice(storageConfig);
 		return;
 	}
-	const result = writeStoredVendorChoice(
-		snapshot.vendorChoice,
-		storageConfig,
-		now
-	);
+	// The subject rides along so a visitor whose only act so far decided
+	// vendors keeps one identity: the envelope cannot hold it without a
+	// category choice.
+	const record: StoredVendorChoice = { ...snapshot.vendorChoice };
+	if (snapshot.subject && Object.keys(snapshot.subject).length > 0) {
+		record.subject = { ...snapshot.subject };
+	}
+	const result = writeStoredVendorChoice(record, storageConfig, now);
 	if (result.ok === false) {
 		console.warn('[c15t] Vendor choice was not written.', result.issues);
 		return;

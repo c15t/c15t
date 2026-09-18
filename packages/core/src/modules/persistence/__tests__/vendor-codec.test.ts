@@ -60,6 +60,27 @@ describe('vendor choice compact projection', () => {
 		});
 	});
 
+	it('carries the subject in both projections', () => {
+		const record = {
+			confirmedAt: NOW - 1,
+			denied: ['meta-pixel'],
+			subject: { externalId: 'u/1', subjectId: 'sub_1' },
+			version: 1 as const,
+		};
+		const compact = encodeVendorChoiceCompact(record);
+		expect(compact).toBe(`v=1&t=${NOW - 1}&d=meta-pixel&sid=sub_1&eid=u%2F1`);
+		expect(decodeVendorChoiceCompact(compact, NOW)).toEqual({
+			ok: true,
+			record,
+		});
+		expect(
+			decodeVendorChoice(JSON.parse(encodeVendorChoice(record)), NOW)
+		).toEqual({ ok: true, record });
+		expect(
+			decodeVendorChoice({ ...record, subject: { subjectId: '' } }, NOW).ok
+		).toBe(false);
+	});
+
 	it('omits the list when nothing is denied', () => {
 		const text = encodeVendorChoiceCompact({
 			confirmedAt: NOW - 1,
@@ -151,6 +172,27 @@ describe('vendor choice storage', () => {
 		clearStoredConsentRecords();
 		expect(readStoredVendorChoice(undefined, NOW)).toBeNull();
 		expect(readStoredRecords(undefined, NOW).records.vendorChoice).toBeNull();
+	});
+
+	it('seeds the subject from the vendor record when no envelope exists', () => {
+		writeStoredVendorChoice(
+			{
+				confirmedAt: NOW - 1,
+				denied: ['meta-pixel'],
+				subject: { subjectId: 'sub_1' },
+				version: 1,
+			},
+			undefined,
+			NOW
+		);
+		const { records } = readStoredRecords(undefined, NOW);
+		expect(records.subject).toEqual({ subjectId: 'sub_1' });
+		// The kernel's own record shape: the subject is not repeated inside it.
+		expect(records.vendorChoice).toEqual({
+			confirmedAt: NOW - 1,
+			denied: ['meta-pixel'],
+			version: 1,
+		});
 	});
 
 	it('is read from a request cookie header for server rendering', () => {

@@ -9,7 +9,7 @@
  * validates again and never emits a choice event.
  */
 import type { ConsentKernel, HydrationRecords } from '../../types';
-import type { StoredIabMetadata } from './record-codec';
+import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
 import {
 	readStoredConsentRecord,
 	readStoredConsentRecordFromCookieHeader,
@@ -34,6 +34,23 @@ export interface StoredRecords {
 	candidates: StoredConsentSelection['candidates'];
 }
 
+/**
+ * The kernel's own vendor record shape. The stored record also carries the
+ * subject, which the kernel validator does not know, so it is split off.
+ */
+const kernelVendorChoice = function kernelVendorChoice(
+	record: StoredVendorChoice | null
+): HydrationRecords['vendorChoice'] {
+	if (!record) {
+		return null;
+	}
+	return {
+		confirmedAt: record.confirmedAt,
+		denied: record.denied,
+		version: record.version,
+	};
+};
+
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
@@ -42,21 +59,20 @@ const composeRecords = function composeRecords(
 	now: number
 ): StoredRecords {
 	const { selected } = selection;
+	const vendorRecord = vendors?.ok ? vendors.record : null;
 	const records: HydrationRecords = {
 		choice: selected?.choice ?? null,
 		noticeDismissal: notice?.ok ? notice.record : null,
 		now,
 		optOutDirectives: privacy?.ok ? [...privacy.record.directives] : [],
-		subject: selected?.subject ?? null,
-		vendorChoice: vendors?.ok ? vendors.record : null,
+		// The envelope's subject wins; the vendor record's copy covers a visitor
+		// whose only act so far decided vendors.
+		subject: selected?.subject ?? vendorRecord?.subject ?? null,
+		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
 		candidates: selection.candidates,
-		found:
-			selected !== null ||
-			notice?.ok === true ||
-			privacy?.ok === true ||
-			vendors?.ok === true,
+		found: selected !== null || [notice, privacy, vendors].some((r) => r?.ok),
 		iab: selected?.iab ?? null,
 		records,
 	};
@@ -90,7 +106,9 @@ export const readStoredRecords = function readStoredRecords(
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
 		delete stored.records.choice;
-		delete stored.records.subject;
+		if (!vendors?.ok) {
+			delete stored.records.subject;
+		}
 	}
 	if (!notice?.ok && noticeUnavailable) {
 		delete stored.records.noticeDismissal;

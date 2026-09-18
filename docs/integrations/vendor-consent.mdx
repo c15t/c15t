@@ -119,7 +119,9 @@ A vendor-only change records without touching category receipts. The kernel
 emits `vendors:recorded` rather than `choice:recorded`, writes the
 `<storageKey>-vendors` cookie and localStorage entry, and sends the complete
 grant map to the backend as `vendorChoice`. Category confirmation times are not
-renewed.
+renewed. The vendor entry also carries the subject id, so a visitor whose first
+act only decided vendors keeps the same subject after a reload even though no
+category record exists yet.
 
 Scripts see the vendor result in their callbacks. `ScriptCallbackInfo.vendor`
 carries `{ id, granted }` outside IAB mode. Integrations that send Google

@@ -22,6 +22,8 @@
  *   recreate a missing cookie or localStorage mirror. A `hydrate()` call
  *   flushes any queued write first.
  * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
+ *   The vendor record follows `subject:resolved` too, since it carries the
+ *   subject for a visitor with no category choice yet.
  *   A canonical subject acknowledgement preserves every receipt timestamp.
  *   Separate writes follow
  *   `notice:dismissed` (the notice record and its cookie projection),
@@ -92,6 +94,7 @@ export const createPersistence = function createPersistence(
 		}),
 		kernel.events.on('subject:resolved', () => {
 			choiceWrites.schedule();
+			vendorWrites.schedule();
 		}),
 		kernel.events.on('notice:dismissed', () => {
 			noticeWrites.schedule();

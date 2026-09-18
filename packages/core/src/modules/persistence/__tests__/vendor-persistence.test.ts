@@ -69,9 +69,10 @@ describe('vendor persistence', () => {
 		const persistence = createPersistence({ kernel, now: () => NOW });
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
 		await vi.runAllTimersAsync();
-		expect(readStoredVendorChoice(undefined, NOW)).toEqual({
-			ok: true,
-			record: { confirmedAt: NOW, denied: ['meta-pixel'], version: 1 },
+		expect(readStoredVendorChoice(undefined, NOW)?.record).toMatchObject({
+			confirmedAt: NOW,
+			denied: ['meta-pixel'],
+			version: 1,
 		});
 		persistence.dispose();
 		kernel.dispose();
@@ -92,13 +93,46 @@ describe('vendor persistence', () => {
 		await vi.runAllTimersAsync();
 		// The time is what lets a later merge know this clear is newer than an
 		// older server denial, so it is written rather than removed.
-		expect(readStoredVendorChoice(undefined, NOW)).toEqual({
-			ok: true,
-			record: { confirmedAt: NOW, denied: [], version: 1 },
+		expect(readStoredVendorChoice(undefined, NOW)?.record).toMatchObject({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
 		});
 		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
 		persistence.dispose();
 		kernel.dispose();
+	});
+
+	it('keeps the subject a vendor-only first act created across a reload', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			initialVendors: vendors,
+			now: NOW,
+		});
+		const persistence = createPersistence({ kernel, now: () => NOW });
+		// No category receipt exists yet, so the consent envelope is never
+		// written; the subject has to travel with the vendor record instead.
+		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
+		await vi.runAllTimersAsync();
+		const { subjectId } = kernel.getSnapshot().subject ?? {};
+		expect(subjectId).toBeTruthy();
+		persistence.dispose();
+		kernel.dispose();
+
+		const fresh = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			initialVendors: vendors,
+			now: NOW,
+		});
+		const rehydrated = createPersistence({ kernel: fresh, now: () => NOW });
+		expect(fresh.getSnapshot().subject?.subjectId).toBe(subjectId);
+		expect(fresh.getSnapshot().vendorChoice?.denied).toEqual(['meta-pixel']);
+		rehydrated.dispose();
+		fresh.dispose();
 	});
 
 	it('clear() removes the stored record and the in-memory denials', async () => {

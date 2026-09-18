@@ -78,7 +78,14 @@ export interface StoredPrivacyOptOuts {
 }
 
 /** Local vendor denial list. Version 1 matches the kernel record. */
-export type StoredVendorChoice = VendorChoice;
+export type StoredVendorChoice = VendorChoice & {
+	/**
+	 * Subject identity, carried so a visitor whose first act only decided
+	 * vendors keeps the same subject after a reload. The consent envelope needs
+	 * a category choice to exist and cannot hold it for that visitor.
+	 */
+	subject?: ConsentSubject;
+};
 
 /** Structural issue found while decoding a stored record. */
 export type StorageIssue =
@@ -1026,6 +1033,13 @@ export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
 /** Prefix of the compact vendor-choice cookie projection. */
 export const COMPACT_VENDORS_PREFIX = 'v=1';
 
+const VENDOR_CHOICE_KEYS = [
+	'version',
+	'confirmedAt',
+	'denied',
+	'subject',
+] as const;
+
 /** Validates a parsed vendor denial list. */
 export const decodeVendorChoice = function decodeVendorChoice(
 	input: unknown,
@@ -1042,7 +1056,9 @@ export const decodeVendorChoice = function decodeVendorChoice(
 	}
 	const issues: StorageIssue[] = [];
 	for (const key of ownKeys(input)) {
-		if (key !== 'version' && key !== 'confirmedAt' && key !== 'denied') {
+		if (
+			!VENDOR_CHOICE_KEYS.includes(key as (typeof VENDOR_CHOICE_KEYS)[number])
+		) {
 			issues.push({ code: 'unknown-key', path: key });
 		}
 	}
@@ -1051,6 +1067,7 @@ export const decodeVendorChoice = function decodeVendorChoice(
 	if (timestampIssue) {
 		issues.push({ code: timestampIssue, path: 'confirmedAt' });
 	}
+	const subject = validateSubject(ownValue(input, 'subject'), issues);
 	const rawDenied = ownValue(input, 'denied');
 	const denied: string[] = [];
 	if (Array.isArray(rawDenied)) {
@@ -1071,30 +1088,36 @@ export const decodeVendorChoice = function decodeVendorChoice(
 	if (issues.length > 0) {
 		return { issues, ok: false };
 	}
-	return {
-		ok: true,
-		record: {
-			confirmedAt: confirmedAt as number,
-			denied: denied.sort(),
-			version: 1,
-		},
+	const record: StoredVendorChoice = {
+		confirmedAt: confirmedAt as number,
+		denied: denied.sort(),
+		version: 1,
 	};
+	if (subject) {
+		record.subject = subject;
+	}
+	return { ok: true, record };
 };
 
 /** Serializes the vendor denial list for localStorage. */
 export const encodeVendorChoice = function encodeVendorChoice(
 	record: StoredVendorChoice
 ): string {
-	return JSON.stringify({
+	const encoded: StoredVendorChoice = {
 		confirmedAt: record.confirmedAt,
 		denied: [...record.denied].sort(),
 		version: 1,
-	});
+	};
+	if (record.subject && Object.keys(record.subject).length > 0) {
+		encoded.subject = { ...record.subject };
+	}
+	return JSON.stringify(encoded);
 };
 
 /**
  * Compact vendor denials for the `<key>-vendors` cookie:
- * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`.
+ * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`, followed by the
+ * subject fields the consent envelope also uses (`sid`, `eid`, `idp`).
  * The `d` field is omitted when nothing is denied.
  */
 export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
@@ -1112,6 +1135,14 @@ export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
 				.join(LIST_SEPARATOR)}`
 		);
 	}
+	for (const key of SUBJECT_KEYS) {
+		const value = record.subject?.[key];
+		if (value) {
+			parts.push(
+				`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
+			);
+		}
+	}
 	return parts.join(FIELD_SEPARATOR);
 };
 
@@ -1125,7 +1156,18 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 	if (!fields) {
 		return { issues, ok: false };
 	}
-	for (const key of fields.keys()) {
+	const subject: ConsentSubject = {};
+	for (const [key, value] of fields) {
+		const subjectKey = CODE_TO_SUBJECT_KEY.get(key);
+		if (subjectKey) {
+			const decoded = decodeComponent(value);
+			if (decoded === null || decoded.length === 0) {
+				issues.push({ code: 'invalid-identifier', path: key });
+			} else {
+				subject[subjectKey] = decoded;
+			}
+			continue;
+		}
 		if (key !== 't' && key !== 'd') {
 			issues.push({ code: 'unknown-key', path: key });
 		}
@@ -1147,12 +1189,13 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 			denied.push(id);
 		}
 	}
-	return decodeVendorChoice(
-		{
-			confirmedAt: parseCompactInteger(fields.get('t')),
-			denied,
-			version: 1,
-		},
-		now
-	);
+	const candidate: Record<string, unknown> = {
+		confirmedAt: parseCompactInteger(fields.get('t')),
+		denied,
+		version: 1,
+	};
+	if (Object.keys(subject).length > 0) {
+		candidate.subject = subject;
+	}
+	return decodeVendorChoice(candidate, now);
 };
