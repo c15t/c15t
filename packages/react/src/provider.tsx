@@ -775,11 +775,16 @@ const useProviderOptionSync = function useProviderOptionSync(
 		previousVendorsRef.current = serialized;
 		// Resolved against the backend entries the kernel already holds, so a
 		// script that starts naming a backend vendor's slug attaches to that
-		// entry as an owner and survives the backend dropping it later.
+		// entry as an owner and survives the backend dropping it later. The
+		// owners they remembered are dropped first: the current scripts and
+		// rules are the whole owner set, and a stale owner would otherwise keep
+		// a vendor declared after both its script and the backend let it go.
 		const current = kernel.getSnapshot().vendors?.declared ?? [];
 		const declared = resolveVendors({
 			config: options.vendors,
-			existing: current.filter((vendor) => vendor.source === 'manifest'),
+			existing: current
+				.filter((vendor) => vendor.source === 'manifest')
+				.map(({ ownerCategory: _stale, ...vendor }) => vendor),
 			onWarn: warnVendorDeclaration,
 			owners,
 		});

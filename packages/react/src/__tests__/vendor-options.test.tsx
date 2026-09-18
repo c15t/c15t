@@ -371,6 +371,59 @@ describe('provider vendor options', () => {
 		expect(readProbe()?.source).toBe('manifest');
 	});
 
+	test('a backend vendor forgets a script owner the parent removed', async () => {
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'forgotten-owner' }
+		);
+		const pixel: Script = {
+			category: 'marketing',
+			id: 'meta-pixel-script',
+			textContent: '/* pixel */',
+			vendor: 'meta-pixel',
+		};
+		const Host = () => {
+			const [scripts, setScripts] = useState<Script[]>([pixel]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: {
+							...fixture,
+							initialVendors: {
+								declared: [{ ...META, presentable: true, source: 'manifest' }],
+								listVersion: '1',
+							},
+						},
+						scripts,
+					}}
+				>
+					<button
+						data-testid="remove-script"
+						onClick={() => setScripts([])}
+						type="button"
+					>
+						remove
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.ownerCategory).toBe('marketing');
+		});
+		await page.getByTestId('remove-script').click();
+		// Still declared by the backend, but no script owns it any more, so a
+		// later backend removal leaves nothing behind.
+		await vi.waitFor(() => {
+			expect(readProbe()?.ownerCategory).toBeUndefined();
+		});
+		expect(readProbe()?.source).toBe('manifest');
+	});
+
 	test('useVendorAllowed ignores a stored denial for a vendor declared disabled', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },
