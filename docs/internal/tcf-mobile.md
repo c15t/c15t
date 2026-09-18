@@ -784,16 +784,22 @@ these are the spec duties it would miss. Ordered by how much they matter.
    `consentCategories`, `effectivePermissions` and five c15t categories; there is no purpose, special
    purpose, feature, special feature, stack, vendor, GVL-version, consent-screen, consent-language,
    publisher-CC, or disclosure-set concept. Every field the TC string needs — 3.2 — is
-   unrepresentable today. `iab` is a reserved slot serialized as `null`.
+   unrepresentable today. The `iab` slot is still `JsonNull` on Kotlin, while Swift already carries a
+   `KernelIABState` holding the served vendor list and nothing else.
 7. **Special-purpose legitimate interest is still not encodable**, which tcf-readiness already
    records for web and which does not change on mobile: `@iabtechlabtcf/core@1.5.21` has no
    special-purposes bitfield. Confirmed here — `Fields.js` exposes `purposeConsents`,
    `purposeLegitimateInterests`, `specialFeatureOptins`, `publisherRestrictions` and nothing else in
    that family.
-8. **Publisher restrictions, custom purposes, and the GVL are absent on native.** S5 Chapter II §5.9
-   requires publisher restrictions to be both rendered and signalled; S4 §5 says when to write them;
-   neither core has a GVL at all, and B(b)/B(c)/B(d) require GVL-sourced copy, illustrations and
-   translations on device.
+8. **Publisher restrictions and custom purposes are absent on native; the list itself is not.** S5
+   Chapter II §5.9 requires publisher restrictions to be both rendered and signalled and S4 §5 says
+   when to write them, and neither core can express either. The vendor list is no longer missing:
+   each core reads the `gvl` that `/init` embeds and keeps it, and Swift already publishes it as
+   `KernelIABState(gvl:)`. What is still missing is the publisher's vendor allowlist. Web holds one
+   as `iab.vendors` and it does three jobs: filtering the request, narrowing the held list through
+   `narrowGVLToVendors`, and clearing a `gvlReference.summary` that counted the wider list. Mobile has
+   no such setting, so both narrowing helpers sit uncalled and a device discloses exactly the scope
+   the server chose to embed.
 9. **No resurface affordance.** Appendix B C(f) wants an easily reachable resurfacing entry, naming
    "the top-level settings of the Publisher's app", and an equivalent withdraw-all control. The
    contract's surface model is `activeUI: none | banner | dialog | null` with no persisted
