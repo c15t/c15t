@@ -15,6 +15,7 @@ import type {
 	KernelIABState,
 	KernelOverrides,
 	KernelVendorsState,
+	VendorSource,
 } from '../types';
 import type { KernelRuntime } from './runtime';
 import {
@@ -57,13 +58,23 @@ export const mergeIab = function mergeIab(
  */
 export const mergeVendors = function mergeVendors(
 	current: KernelVendorsState | null,
-	input: Partial<KernelVendorsState>
+	input: Partial<KernelVendorsState>,
+	options: { replaceSource?: VendorSource } = {}
 ): { next: KernelVendorsState | null; changed: boolean } {
 	const baseline = current ?? DEFAULT_VENDORS;
+	// Replacing a source drops its previous entries first, so a caller that
+	// owns that source (the runtime option, a fresh backend list) can remove a
+	// vendor rather than only add or update one.
+	const base =
+		options.replaceSource === undefined || input.declared === undefined
+			? baseline.declared
+			: baseline.declared.filter(
+					(vendor) => vendor.source !== options.replaceSource
+				);
 	const declared =
 		input.declared === undefined
 			? baseline.declared
-			: mergeDeclaredVendors(baseline.declared, input.declared);
+			: mergeDeclaredVendors(base, input.declared);
 	const listVersion =
 		input.listVersion === undefined ? baseline.listVersion : input.listVersion;
 	const next: KernelVendorsState | null =
@@ -241,8 +252,15 @@ export const buildSetters = function buildSetters(
 			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
 		},
 
-		vendors(input: Partial<KernelVendorsState>): void {
-			const { next, changed } = mergeVendors(getSnapshot().vendors, input);
+		vendors(
+			input: Partial<KernelVendorsState>,
+			options?: { replaceSource?: VendorSource }
+		): void {
+			const { next, changed } = mergeVendors(
+				getSnapshot().vendors,
+				input,
+				options
+			);
 			if (!changed) {
 				return;
 			}

@@ -752,8 +752,15 @@ export interface ConsentKernel {
 		activeUI: (ui: KernelActiveUI) => void;
 		/** Patch the IAB slice. Creates the slice if currently null. */
 		iab: (patch: Partial<KernelIABState>) => void;
-		/** Merge declared vendors. Existing ids keep config-sourced presentation. */
-		vendors: (patch: Partial<KernelVendorsState>) => void;
+		/**
+		 * Merge declared vendors. Existing ids keep higher-priority presentation.
+		 * Pass `replaceSource` to drop that source's previous entries first, so a
+		 * caller that owns the source can remove a vendor and not only add one.
+		 */
+		vendors: (
+			patch: Partial<KernelVendorsState>,
+			options?: { replaceSource?: VendorSource }
+		) => void;
 		/** Stage per-vendor grants a no-input `save()` confirms. Never a grant. */
 		vendorDraft: (input: Record<string, boolean> | null) => void;
 	};

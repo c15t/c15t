@@ -144,6 +144,36 @@ describe('snapshot vendor state', () => {
 		kernel.dispose();
 	});
 
+	test('set.vendors with replaceSource drops that source\u2019s previous entries', () => {
+		const kernel = createKernel();
+		kernel.set.vendors(
+			{
+				declared: [
+					{
+						category: 'marketing',
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						presentable: true,
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+						source: 'config',
+					},
+				],
+			},
+			{ replaceSource: 'config' }
+		);
+		// The two other config vendors are gone; a manifest one would survive.
+		expect(
+			kernel.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
+		).toEqual(['meta-pixel']);
+		kernel.set.vendors({ declared: [] }, { replaceSource: 'config' });
+		// The list version is presentation data and survives an empty list.
+		expect(kernel.getSnapshot().vendors).toEqual({
+			declared: [],
+			listVersion: '2026-09',
+		});
+		kernel.dispose();
+	});
+
 	test('set.vendors merges declarations and emits once per change', () => {
 		const kernel = createKernel({ initialVendors: undefined });
 		const set = vi.fn();
