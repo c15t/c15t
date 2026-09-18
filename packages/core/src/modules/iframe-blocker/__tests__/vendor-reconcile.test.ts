@@ -84,6 +84,29 @@ describe('iframe data-vendor', () => {
 		expect(granted.getAttribute('src')).toBe('https://www.youtube.com/embed/y');
 	});
 
+	test('removing the last gate from a paused iframe restores its source', () => {
+		const kernel = kernelFor(['youtube']);
+		const iframe = makeIframe({
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const blocker = createIframeBlocker({ kernel });
+		expect(iframe.getAttribute('src')).toBeNull();
+		iframe.removeAttribute('data-vendor');
+		reconcileIframe(iframe, buildReconcilePass(kernel.getSnapshot()));
+		expect(iframe.getAttribute('src')).toBe('https://www.youtube.com/embed/x');
+		expect(iframe.getAttribute('data-src')).toBeNull();
+		blocker.dispose();
+		kernel.dispose();
+	});
+
+	test('an iframe that was never gated is left alone', () => {
+		const iframe = makeIframe({ 'data-src': 'https://example.com/lazy' });
+		reconcileIframe(iframe, buildReconcilePass(kernelFor([]).getSnapshot()));
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe('https://example.com/lazy');
+	});
+
 	test('the blocker re-scans when the vendor choice changes', () => {
 		const kernel = kernelFor([]);
 		const iframe = makeIframe({

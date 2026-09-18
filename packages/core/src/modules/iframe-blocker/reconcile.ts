@@ -80,6 +80,34 @@ export const determineCategory = function determineCategory(
 };
 
 /**
+ * Marks an iframe the blocker paused, as opposed to one whose author uses
+ * `data-src` for their own lazy loading. Only a marked iframe is restored
+ * when its last gate attribute is removed.
+ */
+export const PAUSED_ATTRIBUTE = 'data-c15t-paused';
+
+/** Move a paused `data-src` back to `src` when it is a web URL. */
+const restoreSource = function restoreSource(iframe: HTMLIFrameElement): void {
+	const dataSrc = iframe.getAttribute('data-src');
+	if (!dataSrc) {
+		return;
+	}
+	let source: URL;
+	try {
+		source = new URL(dataSrc, iframe.ownerDocument.baseURI);
+	} catch {
+		return;
+	}
+	// Parse before checking the scheme: browsers normalize control characters.
+	if (source.protocol !== 'http:' && source.protocol !== 'https:') {
+		return;
+	}
+	iframe.setAttribute('src', source.href);
+	iframe.removeAttribute('data-src');
+	iframe.removeAttribute(PAUSED_ATTRIBUTE);
+};
+
+/**
  * Apply the consent gate to a single iframe. Mutates the iframe's
  * `src` / `data-src` attributes. No-op for iframes without a
  * `data-category` or `data-vendor` attribute. An iframe with only
@@ -91,7 +119,13 @@ export const reconcileIframe = function reconcileIframe(
 ): void {
 	const category = determineCategory(iframe);
 	const vendor = determineVendor(iframe);
+	// No gate left. An iframe the blocker paused earlier is restored: its
+	// last attribute was removed, so nothing gates it any more. One that was
+	// never gated has no `data-src` of ours and is left alone.
 	if (!category && !vendor) {
+		if (iframe.getAttribute(PAUSED_ATTRIBUTE) !== null) {
+			restoreSource(iframe);
+		}
 		return;
 	}
 
@@ -106,18 +140,7 @@ export const reconcileIframe = function reconcileIframe(
 
 	if (allowed) {
 		if (dataSrc && !iframe.getAttribute('src')) {
-			let source: URL;
-			try {
-				source = new URL(dataSrc, iframe.ownerDocument.baseURI);
-			} catch {
-				return;
-			}
-			// Parse before checking the scheme: browsers normalize control characters.
-			if (source.protocol !== 'http:' && source.protocol !== 'https:') {
-				return;
-			}
-			iframe.setAttribute('src', source.href);
-			iframe.removeAttribute('data-src');
+			restoreSource(iframe);
 		}
 		return;
 	}
@@ -130,6 +153,7 @@ export const reconcileIframe = function reconcileIframe(
 		}
 		iframe.removeAttribute('src');
 	}
+	iframe.setAttribute(PAUSED_ATTRIBUTE, '');
 };
 
 /**
