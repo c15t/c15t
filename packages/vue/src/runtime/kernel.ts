@@ -7,6 +7,7 @@ import {
 	initOutputToKernelConfig,
 } from '@c15t/core';
 import type {
+	ConsentExperiment,
 	ConsentKernel,
 	ConsentSnapshot,
 	InitResponse,
@@ -81,8 +82,17 @@ export interface VueConsentKernelContext {
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
-	/** Owns the configured experiment; absent for a borrowed runtime or no experiment. */
+	/**
+	 * Owns the configured experiment. Absent for a borrowed runtime or when
+	 * no experiment is configured.
+	 */
 	experiment?: ExperimentController;
+	/**
+	 * The experiment definition the kernel was created with. Validation,
+	 * assignment and attribution all derive from it, so presentation and
+	 * theme resolve against it too; a later config change is ignored.
+	 */
+	experimentDefinition?: ConsentExperiment;
 	dispose: () => void;
 }
 
@@ -639,6 +649,7 @@ export const createVueConsentKernelContext =
 				}
 			},
 			experiment,
+			experimentDefinition: options.config.experiment,
 			iab: options.runtime?.iab ?? undefined,
 			init,
 			initialRecords: records.hydrationRecords,

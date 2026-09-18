@@ -1,5 +1,6 @@
 import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 import type {
+	ConsentExperiment,
 	ConsentPresentation,
 	ConsentSnapshot,
 	ExperimentAssignment,
@@ -40,9 +41,34 @@ const useAnySnapshot = function useAnySnapshot(): Ref<ConsentSnapshot> {
 };
 
 /**
+ * The experiment definition the arm is resolved against: the one the
+ * kernel was created with when the plugin owns the kernel, so a config
+ * change after install cannot render an arm the assignment never named;
+ * the live config otherwise (a borrowed runtime, a bare kernel).
+ */
+const useExperimentDefinition = function useExperimentDefinition(): Ref<
+	ConsentExperiment | undefined
+> {
+	const context = inject(symbolKernelContext, undefined);
+	const config = useConsentConfig();
+	return computed(() =>
+		context?.ownsKernel ? context.experimentDefinition : config.value.experiment
+	);
+};
+
+/**
  * The presentation experiment arm this visitor runs, or `null` while no
  * experiment is configured or the arm is not assigned yet. Built-in
  * assignment lands on mount; a host-resolved `variant` is known at once.
+ *
+ * @returns The assignment, reactive to the kernel snapshot.
+ * @throws {Error} When no snapshot, kernel context or kernel is provided.
+ *
+ * @example
+ * ```ts
+ * const assignment = useExperiment();
+ * watchEffect(() => console.log(assignment.value?.variant));
+ * ```
  */
 export const useExperiment =
 	function useExperiment(): ComputedRef<Readonly<ExperimentAssignment> | null> {
@@ -53,17 +79,27 @@ export const useExperiment =
 /**
  * The configured `presentation` with the assigned experiment arm merged
  * over it. Equal to `presentation` while no arm is assigned.
+ *
+ * @returns The presentation to render, reactive to the assignment.
+ * @throws {Error} When no snapshot, kernel context or kernel is provided.
+ *
+ * @example
+ * ```ts
+ * const presentation = useResolvedPresentation();
+ * const variant = computed(() => presentation.value?.prompt?.variant);
+ * ```
  */
 export const useResolvedPresentation =
 	function useResolvedPresentation(): ComputedRef<
 		ConsentPresentation | undefined
 	> {
 		const config = useConsentConfig();
+		const definition = useExperimentDefinition();
 		const experiment = useExperiment();
 		return computed(() =>
 			applyExperimentAssignment(
 				config.value.presentation,
-				config.value.experiment,
+				definition.value,
 				experiment.value
 			)
 		);
@@ -78,18 +114,21 @@ export const useResolvedPresentation =
  * is assigned or the arm has no theme.
  *
  * @param base - The host theme, or nothing.
- * @returns The theme to render.
+ * @returns The theme to render, reactive to `base` and the assignment.
+ * @throws {Error} When no snapshot, kernel context or kernel is provided.
+ *
+ * @example
+ * ```ts
+ * const theme = useResolvedTheme(() => props.theme);
+ * const css = computed(() => (theme.value ? generateThemeCSS(theme.value) : ''));
+ * ```
  */
 export const useResolvedTheme = function useResolvedTheme(
 	base?: MaybeRefOrGetter<Theme | undefined>
 ): ComputedRef<Theme | undefined> {
-	const config = useConsentConfig();
+	const definition = useExperimentDefinition();
 	const experiment = useExperiment();
 	return computed(() =>
-		applyExperimentTheme(
-			toValue(base),
-			config.value.experiment,
-			experiment.value
-		)
+		applyExperimentTheme(toValue(base), definition.value, experiment.value)
 	);
 };

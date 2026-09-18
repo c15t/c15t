@@ -15,6 +15,12 @@ export const useConsentDraft = function useConsentDraft(
 	const fingerprint = ref('');
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
 	const values = ref<Partial<ConsentState>>({});
+	/** What `reset()` last seeded, to tell an untouched draft from an edit. */
+	let seeded: Partial<ConsentState> = {};
+	const untouched = () =>
+		displayedCategories.value.every(
+			(category) => values.value[category] === seeded[category]
+		);
 	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
 		const scope =
 			current.evaluationPolicy.choiceScope ?? current.policyRule.scope;
@@ -43,8 +49,19 @@ export const useConsentDraft = function useConsentDraft(
 							current.policyRule.preselectedCategories.includes(category))),
 			])
 		);
+		seeded = { ...values.value };
 	};
 	reset();
+	// Built-in assignment lands after mount, so an arm's `preferences.defaults`
+	// arrive after the first seed. Reseed a draft the visitor has not edited.
+	watch(
+		() => presentation.value?.preferences?.defaults,
+		() => {
+			if (shouldSyncChanges() && untouched()) {
+				reset();
+			}
+		}
+	);
 	const isStale = computed(
 		() =>
 			fingerprint.value !==
