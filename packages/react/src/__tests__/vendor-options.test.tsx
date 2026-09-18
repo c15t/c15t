@@ -12,6 +12,7 @@ import { page } from 'vitest/browser';
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { useDeclaredVendors, useVendorAllowed } from '~/hooks';
+import { useScriptLoader } from '~/module-hooks/script-loader';
 import { offline } from '~/transports/offline';
 
 const META: Vendor = {
@@ -494,6 +495,59 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.source).toBe('manifest');
 		});
 		expect(readProbe()?.ownerCategory).toBeUndefined();
+	});
+
+	test('a vendor option update keeps a slug another module declared', async () => {
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'hook-owned-vendor' }
+		);
+		// A loader mounted through the hook, not the provider option, declares
+		// its own slug.
+		const HookLoader = () => {
+			useScriptLoader([
+				{
+					callbackOnly: true,
+					category: 'marketing',
+					id: 'hook-pixel',
+					vendor: 'hook-vendor',
+				},
+			]);
+			return null;
+		};
+		const Host = () => {
+			const [vendors, setVendors] = useState<Vendor[]>([]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: fixture,
+						vendors,
+					}}
+				>
+					<HookLoader />
+					<button
+						data-testid="declare"
+						onClick={() => setVendors([{ ...META, id: 'other-vendor' }])}
+						type="button"
+					>
+						declare
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual(['hook-vendor']);
+		});
+		await page.getByTestId('declare').click();
+		// The provider's own update must not sweep away the hook's slug.
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual(['hook-vendor', 'other-vendor']);
+		});
 	});
 
 	test('useVendorAllowed grants a vendor removed from the declarations despite a stored denial', async () => {

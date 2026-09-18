@@ -753,6 +753,11 @@ const useProviderOptionSync = function useProviderOptionSync(
 	// are part of the same picture, since their slugs declare vendors too: a
 	// change to either recomputes the code-declared set.
 	const previousVendorsRef = useRef<string | null>(null);
+	// Slugs the provider's own scripts and rules declared last time. Only
+	// these are replaced on an update: a `useScriptLoader` or
+	// `useNetworkBlocker` hook elsewhere in the tree declares its own slugs
+	// and does not redeclare them when this list changes.
+	const ownedSlugsRef = useRef<ReadonlySet<string>>(new Set());
 	useEffect(() => {
 		if (!owns) {
 			return;
@@ -765,14 +770,20 @@ const useProviderOptionSync = function useProviderOptionSync(
 			options.vendors ?? [],
 			owners.map((owner) => [owner.vendor ?? null, owner.category]),
 		]);
+		const ownedNow = new Set(
+			owners.flatMap((owner) => (owner.vendor ? [owner.vendor] : []))
+		);
 		if (previousVendorsRef.current === null) {
 			previousVendorsRef.current = serialized;
+			ownedSlugsRef.current = ownedNow;
 			return;
 		}
 		if (previousVendorsRef.current === serialized) {
 			return;
 		}
 		previousVendorsRef.current = serialized;
+		const ownedBefore = ownedSlugsRef.current;
+		ownedSlugsRef.current = ownedNow;
 		// Resolved against the backend entries the kernel already holds, so a
 		// script that starts naming a backend vendor's slug attaches to that
 		// entry as an owner and survives the backend dropping it later. The
@@ -796,12 +807,24 @@ const useProviderOptionSync = function useProviderOptionSync(
 			onWarn: warnVendorDeclaration,
 			owners,
 		});
-		// The provider owns the code-declared sources: its previous config and
-		// script entries are replaced, so a vendor the parent removed
-		// disappears, while a backend entry a config copy shadowed comes back.
+		// The provider owns the config source outright: its previous entries
+		// are replaced, so a vendor the parent removed disappears, while a
+		// backend entry a config copy shadowed comes back. Script entries are
+		// shared with hook-owned integrations, so only the slugs this
+		// provider's own scripts and rules named before are replaced; a slug
+		// another module declared stays.
 		kernel.set.vendors({ declared }, { replaceSource: 'config' });
+		const scriptEntries = declared.filter(
+			(vendor) => vendor.source === 'script'
+		);
+		const foreign = current.filter(
+			(vendor) =>
+				vendor.source === 'script' &&
+				!ownedBefore.has(vendor.id) &&
+				!ownedNow.has(vendor.id)
+		);
 		kernel.set.vendors(
-			{ declared: declared.filter((vendor) => vendor.source === 'script') },
+			{ declared: [...scriptEntries, ...foreign] },
 			{ replaceSource: 'script' }
 		);
 		if (declared.length > 0) {
