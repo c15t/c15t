@@ -148,37 +148,48 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 	},
 ];
 
+/**
+ * Vendor-level consent (#1034) added the vendor gate, the denial-list codec
+ * with its subject copy, the paused-iframe marker and the vendor save path
+ * to the kernel entry: about 3 kB gzip on every consumer scenario, measured
+ * on the PR that introduced it. The delta budgets below carry that once;
+ * they return to their previous values in the follow-up that lands after the
+ * feature is on the base branch.
+ */
+const VENDOR_CONSENT_GZIP_BYTES = 3072;
+
 export const bundleBudgets: MetricBudget[] = [
 	{
 		comparator: 'delta-bytes-lte',
 		description:
-			'The core-only route should not gain more than 1.5kB over the base branch.',
+			'The core-only route should not gain more than 1.5kB over the base branch, plus the vendor consent allowance.',
 		metric: 'core-only',
-		threshold: 1536,
+		threshold: 1536 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
-		description: 'Headless React bundle delta budget.',
+		description:
+			'Headless React bundle delta budget, plus the vendor consent allowance.',
 		metric: 'react-headless',
-		threshold: 2048,
+		threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React banner bundle delta budget.',
 		metric: 'react-banner-only',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React full bundle delta budget.',
 		metric: 'react-full',
-		threshold: 4096,
+		threshold: 4096 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'Next.js package bundle delta budget.',
 		metric: 'nextjs-basic',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 ];
 
@@ -1046,9 +1057,9 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip.',
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance.',
 			metric: 'initialGzip',
-			threshold: 2048,
+			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 		},
 		{
 			comparator: 'delta-bytes-lte',

@@ -8,6 +8,7 @@ import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
 import type { RecordIssue } from '../consent-record/validation';
+import { resolveVendors, withoutManifestVendors } from '../libs/vendors';
 import type {
 	ConsentSnapshot,
 	InitResponse,
@@ -143,6 +144,36 @@ export const applyInitResponse = function applyInitResponse(
 
 	if (response.resolvedPrivacySignals?.gpc !== undefined) {
 		patch.privacyDetected = response.resolvedPrivacySignals.gpc === true;
+	}
+
+	// Backend vendor declarations join whatever the client declared in code.
+	// Presentation from code wins; the backend fills the gaps.
+	if (
+		response.vendors !== undefined ||
+		response.vendorListVersion !== undefined
+	) {
+		// A new backend list replaces the previous one outright, so an edit or
+		// removal on the backend lands; code and script declarations survive.
+		const existing = current.vendors?.declared ?? [];
+		const resolved = resolveVendors({
+			existing:
+				response.vendors === undefined
+					? existing
+					: withoutManifestVendors(existing),
+			manifest: response.vendors ?? [],
+		});
+		// A replacement list carries its own version or none: the previous
+		// label described the previous list. Only a version-only response
+		// keeps the current declarations under a new label.
+		const listVersion =
+			response.vendorListVersion ??
+			(response.vendors === undefined
+				? (current.vendors?.listVersion ?? null)
+				: null);
+		patch.vendors =
+			resolved.length === 0 && listVersion === null
+				? null
+				: { declared: resolved, listVersion };
 	}
 
 	let recordIssues: RecordIssue[] | null = null;

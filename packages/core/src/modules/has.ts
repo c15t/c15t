@@ -92,13 +92,66 @@ export const hasIABConsent = function hasIABConsent(
 
 /**
  * Target shape the three blocker modules evaluate against. Has a
- * category condition (always required) plus optional IAB metadata.
+ * category condition (always required), optional IAB metadata and an
+ * optional vendor slug for vendor-level consent outside IAB.
  */
 export interface ConsentGate<
 	CategoryType extends AllConsentNames = AllConsentNames,
 > extends IABTarget {
 	category: HasCondition<CategoryType>;
+	/**
+	 * Vendor slug the target belongs to. Outside `model === 'iab'` the target
+	 * is denied while the subject has this vendor turned off. Inert in IAB
+	 * mode, where vendor consent comes from the TC string.
+	 */
+	vendor?: string;
 }
+
+/**
+ * Ids the subject turned off that a gate should honor, or `null` when
+ * nothing is denied. Only a vendor currently declared and not `disabled`
+ * counts: for anything else the visitor has no switch to grant it again, so
+ * a denial recorded earlier would block it with no way back short of a bulk
+ * action. A vendor removed from every declaration therefore follows its
+ * category again, the same as one never declared.
+ * @param snapshot - Immutable kernel snapshot.
+ * @returns Denied vendor ids, or `null`.
+ */
+export const deniedVendorIds = function deniedVendorIds(
+	snapshot: Pick<ConsentSnapshot, 'vendorChoice' | 'vendors'>
+): ReadonlySet<string> | null {
+	const denied = snapshot.vendorChoice?.denied;
+	if (!denied || denied.length === 0) {
+		return null;
+	}
+	const toggleable = new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			toggleable.add(vendor.id);
+		}
+	}
+	const ids = new Set<string>();
+	for (const id of denied) {
+		if (toggleable.has(id)) {
+			ids.add(id);
+		}
+	}
+	return ids.size > 0 ? ids : null;
+};
+
+/**
+ * Whether the subject turned a vendor off. Unknown ids are granted: a
+ * denial only counts for a vendor the subject can still see and switch.
+ * @param snapshot - Immutable kernel snapshot.
+ * @param vendor - Vendor slug.
+ * @returns `true` while the vendor is denied.
+ */
+export const isVendorDenied = function isVendorDenied(
+	snapshot: Pick<ConsentSnapshot, 'vendorChoice' | 'vendors'>,
+	vendor: string
+): boolean {
+	return deniedVendorIds(snapshot)?.has(vendor) ?? false;
+};
 
 /**
  * Reads permissions at the gate's clock without changing the kernel.
@@ -156,7 +209,9 @@ const hasCurrentIABAuthority = function hasCurrentIABAuthority(
 /**
  * Evaluates a target using current effective permissions or confirmed TC authority.
  * IAB targets also apply every referenced category restriction, including in OR trees.
- * @param target - Category condition and optional IAB metadata.
+ * Outside IAB mode a target whose `vendor` the subject turned off is denied
+ * after its category condition passes, so an unknown category still throws.
+ * @param target - Category condition, optional IAB metadata and optional vendor.
  * @param snapshot - Immutable kernel snapshot.
  * @param now - Gate clock in epoch milliseconds.
  * @returns Whether the target may run at this time.
@@ -197,5 +252,9 @@ export const evaluateConsent = function evaluateConsent<
 		return hasIABConsent(target, authority);
 	}
 
-	return has(target.category, effective.effectivePermissions);
+	const allowed = has(target.category, effective.effectivePermissions);
+	if (!allowed || target.vendor === undefined || snapshot.model === 'iab') {
+		return allowed;
+	}
+	return !isVendorDenied(snapshot, target.vendor);
 };

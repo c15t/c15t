@@ -89,6 +89,26 @@ test('every patch input agrees with full snapshot derivation', () => {
 			translations: { language: 'en', translations: enTranslations },
 		},
 		user: { user: { externalId: 'visitor' } },
+		vendorChoice: {
+			vendorChoice: {
+				confirmedAt: NOW - 1,
+				denied: ['meta-pixel'],
+				version: 1,
+			},
+		},
+		vendors: {
+			vendors: {
+				declared: [
+					{
+						category: 'marketing',
+						id: 'meta-pixel',
+						presentable: false,
+						source: 'script',
+					},
+				],
+				listVersion: null,
+			},
+		},
 	};
 	for (const patch of Object.values(patches)) {
 		const next = checkCommit(initial, patch);

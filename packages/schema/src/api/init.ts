@@ -5,6 +5,7 @@ import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
 import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
+import { vendorSchema } from '~/shared/vendor';
 
 /**
  * Title and description schema for translations
@@ -217,6 +218,16 @@ export const initOutputSchema = v.object({
 		language: v.string(),
 		translations: translationsSchema,
 	}),
+	/**
+	 * Version label of the declared vendor list. Shown in the preference
+	 * surface and recorded for audit; it never forces re-consent.
+	 */
+	vendorListVersion: v.optional(v.string()),
+	/**
+	 * Vendors the publisher declares for vendor-level consent outside IAB.
+	 * Merged with vendors declared in code by the client.
+	 */
+	vendors: v.optional(v.array(vendorSchema)),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;

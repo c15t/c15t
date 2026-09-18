@@ -81,6 +81,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Snapchat Pixel](./integrations/snapchat-pixel.md): Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [TikTok Pixel](./integrations/tiktok-pixel.md): Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [Umami Analytics](./integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Vendor-level consent](./integrations/vendor-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [X Pixel](./integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.

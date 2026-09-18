@@ -34,13 +34,15 @@ export const selectSavePayload = function selectSavePayload(
 			consents[category] = payload.consents[category];
 		}
 	}
+	const { vendorChoice: _superseded, ...rest } = payload;
 	return {
-		...payload,
+		...rest,
 		choice: { categories: receipts, version: 3 },
 		confirmed: { ...payload.confirmed, categories },
 		consentAction: 'custom',
 		consents,
 		// A partial category action cannot replay the superseded full TC selection.
 		tcString: null,
+		// Nor the full vendor grant map: a newer action already carried it.
 	};
 };

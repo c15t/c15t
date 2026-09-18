@@ -115,6 +115,7 @@ describe('isEligible', () => {
 			hasIabMeta: false,
 			script: script as Script,
 			simpleCategory: 'analytics' as never,
+			vendor: null,
 		};
 		expect(() => isEligible(entry, pass)).toThrow(/not found/u);
 	});

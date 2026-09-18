@@ -33,6 +33,7 @@ import type { I18nConfig } from '@c15t/translations';
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
 import { extractConsentNamesFromCondition } from '../libs/has';
+import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
@@ -221,6 +222,16 @@ export const hasResolvedPrefetch = function hasResolvedPrefetch(
 	);
 };
 
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
 const requireTransportFactory = function requireTransportFactory(
 	options: ConsentRuntimeOptions
 ) {
@@ -260,15 +271,34 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	};
 	const transport = requireTransportFactory(options)(transportContext);
 
+	const integrations = [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+	];
+	// Backend vendors a server prefetch already resolved are kept: a resolved
+	// prefetch skips the initial `init()`, so nothing would merge them later.
+	const declaredVendors = resolveVendors({
+		config: options.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnVendorDeclaration,
+		owners: integrations,
+	});
+	const vendorListVersion = prefetch.initialVendors?.listVersion ?? null;
+
 	return createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
 		inferredConsentCategories: [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		].flatMap((integration) =>
-			extractConsentNamesFromCondition(integration.category)
-		),
+			...integrations.flatMap((integration) =>
+				extractConsentNamesFromCondition(integration.category)
+			),
+			// Every declared vendor, from code or a resolved prefetch, makes its
+			// category selectable at construction, so the server snapshot and the
+			// hydrated one evaluate the same scope.
+			...declaredVendors.flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+		],
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -291,8 +321,15 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
 			: DISABLED_RESOLUTION,
+		// A disabled runtime grants everything, so stored records, including a
+		// vendor denial list, must not narrow what loads.
+		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
+		initialVendors:
+			declaredVendors.length > 0 || vendorListVersion !== null
+				? { declared: declaredVendors, listVersion: vendorListVersion }
+				: undefined,
 		now:
 			prefetch.now ??
 			prefetch.initialRecords?.now ??
@@ -384,6 +421,21 @@ export const createConsentRuntime = function createConsentRuntime(
 			kernel,
 		})
 	);
+	// Vendors the backend declares arrive with init. Their categories become
+	// selectable the same way a code-declared vendor's do at construction.
+	disposers.push(
+		kernel.events.on('init:applied', ({ snapshot }) => {
+			const declared = snapshot.vendors?.declared ?? [];
+			if (declared.length === 0) {
+				return;
+			}
+			kernel.set.registerConsentCategories(
+				declared.flatMap((vendor) =>
+					extractConsentNamesFromCondition(vendor.category)
+				)
+			);
+		})
+	);
 
 	let persistenceHandle: PersistenceHandle | null = null;
 
@@ -467,6 +519,7 @@ export const createConsentRuntime = function createConsentRuntime(
 				noticeDismissal: null,
 				optOutDirectives: [],
 				subject: null,
+				vendorChoice: null,
 			});
 			kernel.events.emit({ type: 'records:cleared' });
 		},
@@ -515,11 +568,17 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 			await runInit();
 		},
+		resetVendorDraft() {
+			kernel.set.vendorDraft(null);
+		},
 		setConsentCategories(categories) {
 			kernel.set.consentCategories(categories);
 		},
 		setOverrides(overrides: KernelOverrides) {
 			kernel.set.overrides(overrides);
+		},
+		setVendorConsent(vendorId, granted) {
+			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
 		start() {
 			if (started || disposed || typeof document === 'undefined') {

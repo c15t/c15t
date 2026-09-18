@@ -117,6 +117,20 @@ const isDecisionInputs = (value: unknown): boolean =>
 		typeof value.language === 'string' &&
 		typeof value.gpc === 'boolean');
 
+const isVendorChoicePayload = function isVendorChoicePayload(
+	value: unknown
+): boolean {
+	return (
+		value === undefined ||
+		(isRecord(value) &&
+			value.version === 1 &&
+			typeof value.confirmedAt === 'number' &&
+			Number.isSafeInteger(value.confirmedAt) &&
+			value.confirmedAt >= 0 &&
+			isBooleanRecord(value.grants))
+	);
+};
+
 // Validate every persisted payload field before replaying it.
 // oxlint-disable-next-line complexity
 const isSavePayload = function isSavePayload(
@@ -163,7 +177,8 @@ const isSavePayload = function isSavePayload(
 			typeof value.policySnapshotToken === 'string') &&
 		(value.tcString === undefined ||
 			value.tcString === null ||
-			typeof value.tcString === 'string')
+			typeof value.tcString === 'string') &&
+		isVendorChoicePayload(value.vendorChoice)
 	);
 };
 
@@ -255,10 +270,23 @@ const subtractSuperseded = function subtractSuperseded(
 	) {
 		return older;
 	}
-	return selectSavePayload(
+	const selected = selectSavePayload(
 		older,
 		(category) => !Object.hasOwn(newer.confirmed.categories, category)
 	);
+	if (
+		!selected ||
+		newer.vendorChoice === undefined ||
+		selected.vendorChoice === undefined
+	) {
+		return selected;
+	}
+	// The newer action carries the complete vendor grant map, so the older
+	// one has nothing left to say about vendors.
+	const { vendorChoice: _superseded, ...remaining } = selected;
+	return Object.keys(remaining.confirmed.categories).length > 0
+		? remaining
+		: null;
 };
 
 const normalizePendingSaves = function normalizePendingSaves(

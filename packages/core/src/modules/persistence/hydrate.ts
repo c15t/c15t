@@ -9,7 +9,7 @@
  * validates again and never emits a choice event.
  */
 import type { ConsentKernel, HydrationRecords } from '../../types';
-import type { StoredIabMetadata } from './record-codec';
+import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
 import {
 	readStoredConsentRecord,
 	readStoredConsentRecordFromCookieHeader,
@@ -17,6 +17,8 @@ import {
 	readStoredNoticeDismissalFromCookieHeader,
 	readStoredPrivacyOptOuts,
 	readStoredPrivacyOptOutsFromCookieHeader,
+	readStoredVendorChoice,
+	readStoredVendorChoiceFromCookieHeader,
 } from './record-storage';
 import type { StoredConsentSelection } from './record-storage';
 import type { StorageConfig } from './types';
@@ -32,23 +34,45 @@ export interface StoredRecords {
 	candidates: StoredConsentSelection['candidates'];
 }
 
+/**
+ * The kernel's own vendor record shape. The stored record also carries the
+ * subject, which the kernel validator does not know, so it is split off.
+ */
+const kernelVendorChoice = function kernelVendorChoice(
+	record: StoredVendorChoice | null
+): HydrationRecords['vendorChoice'] {
+	if (!record) {
+		return null;
+	}
+	return {
+		confirmedAt: record.confirmedAt,
+		denied: record.denied,
+		version: record.version,
+	};
+};
+
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
 	privacy: ReturnType<typeof readStoredPrivacyOptOuts>,
+	vendors: ReturnType<typeof readStoredVendorChoice>,
 	now: number
 ): StoredRecords {
 	const { selected } = selection;
+	const vendorRecord = vendors?.ok ? vendors.record : null;
 	const records: HydrationRecords = {
 		choice: selected?.choice ?? null,
 		noticeDismissal: notice?.ok ? notice.record : null,
 		now,
 		optOutDirectives: privacy?.ok ? [...privacy.record.directives] : [],
-		subject: selected?.subject ?? null,
+		// The envelope's subject wins; the vendor record's copy covers a visitor
+		// whose only act so far decided vendors.
+		subject: selected?.subject ?? vendorRecord?.subject ?? null,
+		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
 		candidates: selection.candidates,
-		found: selected !== null || notice?.ok === true || privacy?.ok === true,
+		found: selected !== null || [notice, privacy, vendors].some((r) => r?.ok),
 		iab: selected?.iab ?? null,
 		records,
 	};
@@ -64,6 +88,7 @@ export const readStoredRecords = function readStoredRecords(
 	let choiceUnavailable = false;
 	let noticeUnavailable = false;
 	let privacyUnavailable = false;
+	let vendorsUnavailable = false;
 	const selection = readStoredConsentRecord(storageConfig, now, () => {
 		choiceUnavailable = true;
 	});
@@ -73,12 +98,17 @@ export const readStoredRecords = function readStoredRecords(
 	const privacy = readStoredPrivacyOptOuts(storageConfig, now, () => {
 		privacyUnavailable = true;
 	});
-	const stored = composeRecords(selection, notice, privacy, now);
+	const vendors = readStoredVendorChoice(storageConfig, now, () => {
+		vendorsUnavailable = true;
+	});
+	const stored = composeRecords(selection, notice, privacy, vendors, now);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
 		delete stored.records.choice;
-		delete stored.records.subject;
+		if (!vendors?.ok) {
+			delete stored.records.subject;
+		}
 	}
 	if (!notice?.ok && noticeUnavailable) {
 		delete stored.records.noticeDismissal;
@@ -86,14 +116,18 @@ export const readStoredRecords = function readStoredRecords(
 	if (!privacy?.ok && privacyUnavailable) {
 		delete stored.records.optOutDirectives;
 	}
+	if (!vendors?.ok && vendorsUnavailable) {
+		delete stored.records.vendorChoice;
+	}
 	return stored;
 };
 
 /**
  * Server read of every cookie-carried record from a request `Cookie`
- * header at `now`. The choice, the notice projection and the privacy
- * projection are decoded with the same validators the browser uses, so a
- * server render seeded with the result matches the client's hydration.
+ * header at `now`. The choice, the notice projection, the privacy
+ * projection and the vendor projection are decoded with the same validators
+ * the browser uses, so a server render seeded with the result matches the
+ * client's hydration.
  */
 export const readStoredRecordsFromCookieHeader =
 	function readStoredRecordsFromCookieHeader(
@@ -113,6 +147,7 @@ export const readStoredRecordsFromCookieHeader =
 				storageConfig,
 				now
 			),
+			readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
 			now
 		).records;
 	};

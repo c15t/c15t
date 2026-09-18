@@ -40,6 +40,7 @@ import {
 	validateNoticeDismissal,
 } from '../../consent-record/validation';
 import type { RecordIssue } from '../../consent-record/validation';
+import type { VendorChoice } from '../../types';
 
 /** Validated IAB transport metadata carried alongside category choices. */
 export interface StoredIabMetadata {
@@ -75,6 +76,16 @@ export interface StoredPrivacyOptOuts {
 	version: 1;
 	directives: readonly PrivacyOptOut[];
 }
+
+/** Local vendor denial list. Version 1 matches the kernel record. */
+export type StoredVendorChoice = VendorChoice & {
+	/**
+	 * Subject identity, carried so a visitor whose first act only decided
+	 * vendors keeps the same subject after a reload. The consent envelope needs
+	 * a category choice to exist and cannot hold it for that visitor.
+	 */
+	subject?: ConsentSubject;
+};
 
 /** Structural issue found while decoding a stored record. */
 export type StorageIssue =
@@ -1013,4 +1024,178 @@ export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
 		}
 	}
 	return decodePrivacyOptOuts({ directives, version: 1 }, now);
+};
+
+// ---------------------------------------------------------------------------
+// Vendor denial list (local-only, JSON + compact cookie projection)
+// ---------------------------------------------------------------------------
+
+/** Prefix of the compact vendor-choice cookie projection. */
+export const COMPACT_VENDORS_PREFIX = 'v=1';
+
+const VENDOR_CHOICE_KEYS = [
+	'version',
+	'confirmedAt',
+	'denied',
+	'subject',
+] as const;
+
+/** Validates a parsed vendor denial list. */
+export const decodeVendorChoice = function decodeVendorChoice(
+	input: unknown,
+	now: number
+): DecodeResult<StoredVendorChoice> {
+	if (!isPlainRecord(input)) {
+		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
+	}
+	if (ownValue(input, 'version') !== 1) {
+		return {
+			issues: [{ code: 'unsupported-version', path: 'version' }],
+			ok: false,
+		};
+	}
+	const issues: StorageIssue[] = [];
+	for (const key of ownKeys(input)) {
+		if (
+			!VENDOR_CHOICE_KEYS.includes(key as (typeof VENDOR_CHOICE_KEYS)[number])
+		) {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	const confirmedAt = ownValue(input, 'confirmedAt');
+	const timestampIssue = checkTimestamp(confirmedAt, now);
+	if (timestampIssue) {
+		issues.push({ code: timestampIssue, path: 'confirmedAt' });
+	}
+	const subject = validateSubject(ownValue(input, 'subject'), issues);
+	const rawDenied = ownValue(input, 'denied');
+	const denied: string[] = [];
+	if (Array.isArray(rawDenied)) {
+		for (const [index, entry] of rawDenied.entries()) {
+			if (!isNonEmptyString(entry)) {
+				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
+				continue;
+			}
+			if (denied.includes(entry)) {
+				issues.push({ code: 'duplicate-key', path: `denied[${index}]` });
+				continue;
+			}
+			denied.push(entry);
+		}
+	} else {
+		issues.push({ code: 'not-an-object', path: 'denied' });
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const record: StoredVendorChoice = {
+		confirmedAt: confirmedAt as number,
+		denied: denied.sort(),
+		version: 1,
+	};
+	if (subject) {
+		record.subject = subject;
+	}
+	return { ok: true, record };
+};
+
+/** Serializes the vendor denial list for localStorage. */
+export const encodeVendorChoice = function encodeVendorChoice(
+	record: StoredVendorChoice
+): string {
+	const encoded: StoredVendorChoice = {
+		confirmedAt: record.confirmedAt,
+		denied: [...record.denied].sort(),
+		version: 1,
+	};
+	if (record.subject && Object.keys(record.subject).length > 0) {
+		encoded.subject = { ...record.subject };
+	}
+	return JSON.stringify(encoded);
+};
+
+/**
+ * Compact vendor denials for the `<key>-vendors` cookie:
+ * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`, followed by the
+ * subject fields the consent envelope also uses (`sid`, `eid`, `idp`).
+ * The `d` field is omitted when nothing is denied.
+ */
+export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
+	record: StoredVendorChoice
+): string {
+	const parts = [
+		COMPACT_VENDORS_PREFIX,
+		`t${KEY_VALUE_SEPARATOR}${record.confirmedAt}`,
+	];
+	if (record.denied.length > 0) {
+		parts.push(
+			`d${KEY_VALUE_SEPARATOR}${[...record.denied]
+				.sort()
+				.map((id) => encodeURIComponent(id))
+				.join(LIST_SEPARATOR)}`
+		);
+	}
+	for (const key of SUBJECT_KEYS) {
+		const value = record.subject?.[key];
+		if (value) {
+			parts.push(
+				`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
+			);
+		}
+	}
+	return parts.join(FIELD_SEPARATOR);
+};
+
+/** Decodes compact vendor denials through the shared validator. */
+export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
+	rawValue: string,
+	now: number
+): DecodeResult<StoredVendorChoice> {
+	const issues: StorageIssue[] = [];
+	const fields = parseCompactFields(rawValue, COMPACT_VENDORS_PREFIX, issues);
+	if (!fields) {
+		return { issues, ok: false };
+	}
+	const subject: ConsentSubject = {};
+	for (const [key, value] of fields) {
+		const subjectKey = CODE_TO_SUBJECT_KEY.get(key);
+		if (subjectKey) {
+			const decoded = decodeComponent(value);
+			if (decoded === null || decoded.length === 0) {
+				issues.push({ code: 'invalid-identifier', path: key });
+			} else {
+				subject[subjectKey] = decoded;
+			}
+			continue;
+		}
+		if (key !== 't' && key !== 'd') {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const list = fields.get('d');
+	const denied: unknown[] = [];
+	if (list !== undefined && list !== '') {
+		for (const [index, entry] of list.split(LIST_SEPARATOR).entries()) {
+			const id = decodeComponent(entry);
+			if (id === null) {
+				return {
+					issues: [{ code: 'malformed-encoding', path: `d[${index}]` }],
+					ok: false,
+				};
+			}
+			denied.push(id);
+		}
+	}
+	const candidate: Record<string, unknown> = {
+		confirmedAt: parseCompactInteger(fields.get('t')),
+		denied,
+		version: 1,
+	};
+	if (Object.keys(subject).length > 0) {
+		candidate.subject = subject;
+	}
+	return decodeVendorChoice(candidate, now);
 };

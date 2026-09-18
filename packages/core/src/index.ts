@@ -128,6 +128,7 @@ export type {
 	KernelTranslations,
 	KernelTransport,
 	KernelUser,
+	KernelVendorsState,
 	Listener,
 	LocationResponse,
 	NonIABVendor,
@@ -135,11 +136,15 @@ export type {
 	PolicyResolution,
 	PolicyScopeMode,
 	ResolvedPolicyRule,
+	ResolvedVendor,
 	SaveInput,
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,
 	Unsubscribe,
+	Vendor,
+	VendorChoice,
+	VendorSource,
 } from './types';
 
 // -- Consent categories --------------------------------------------------------
@@ -294,7 +299,14 @@ export type {
 	ResolvedConsentPresentation,
 } from './libs/policy-actions';
 
-export { evaluateConsent, getEffectiveGateState } from './modules/has';
+export {
+	deniedVendorIds,
+	evaluateConsent,
+	getEffectiveGateState,
+	isVendorDenied,
+} from './modules/has';
+export type { ResolveVendorsInput, VendorOwner } from './libs/vendors';
+export { resolveVendors } from './libs/vendors';
 export {
 	deferInitGvl,
 	deferInitGvlToRoute,

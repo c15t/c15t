@@ -52,6 +52,7 @@ export type {
 	SubjectChoiceWire,
 	SubjectItem,
 	SubjectPrivacyDirectiveInput,
+	VendorChoiceWire,
 } from './api/subject';
 // Domain types
 export type {
@@ -144,6 +145,8 @@ export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
+// Vendor-level consent outside IAB
+export type { Vendor, VendorCategoryCondition } from './shared/vendor';
 export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,

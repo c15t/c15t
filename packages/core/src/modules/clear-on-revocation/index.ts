@@ -61,6 +61,7 @@ export const createClearOnRevocation = (
 		protectedKeys.add(key);
 		protectedKeys.add(`${key}-notice`);
 		protectedKeys.add(`${key}-privacy`);
+		protectedKeys.add(`${key}-vendors`);
 	}
 	const previous = new Map<OptionalConsentCategory, boolean>();
 	const reconcile = (): void => {

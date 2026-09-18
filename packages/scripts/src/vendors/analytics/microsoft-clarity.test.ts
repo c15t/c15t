@@ -100,4 +100,30 @@ describe('microsoft-clarity', () => {
 			}),
 		]);
 	});
+
+	it('denies every channel while the subject has the vendor turned off', () => {
+		const globalRef = getTestGlobal();
+		const script = clarity({ id: 'abcdef1234' });
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: true,
+					necessary: true,
+				},
+				hasConsent: false,
+				id: script.id,
+				vendor: { granted: false, id: 'microsoft-clarity' },
+			})
+		);
+		const stub = globalRef.clarity as
+			| (((...args: unknown[]) => void) & { q?: unknown[][] })
+			| undefined;
+		expect(stub?.q?.at(-1)).toEqual(
+			consentv2Call({ ad_Storage: 'denied', analytics_Storage: 'denied' })
+		);
+	});
 });

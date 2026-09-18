@@ -31,6 +31,7 @@
  *   loaders (or already in the DOM) are left alone.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
+import { declareOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
@@ -106,6 +107,7 @@ export const createScriptLoader = function createScriptLoader(
 				extractConsentNamesFromCondition(script.category)
 			)
 		);
+		declareOwnedVendors(kernel, scripts);
 	};
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
@@ -160,6 +162,8 @@ export const createScriptLoader = function createScriptLoader(
 	let lastRestrictions: unknown = null;
 	let lastModel: unknown = null;
 	let lastEvaluationPolicy: unknown = null;
+	let lastVendorChoice: unknown = null;
+	let lastVendors: unknown = null;
 
 	const isConsentStateUnchanged = (snapshot: ConsentSnapshot): boolean => {
 		const effective = getEffectiveGateState(snapshot);
@@ -170,7 +174,9 @@ export const createScriptLoader = function createScriptLoader(
 			snapshot.iab === lastIab &&
 			effective.restrictions === lastRestrictions &&
 			snapshot.model === lastModel &&
-			snapshot.evaluationPolicy === lastEvaluationPolicy
+			snapshot.evaluationPolicy === lastEvaluationPolicy &&
+			snapshot.vendorChoice === lastVendorChoice &&
+			snapshot.vendors === lastVendors
 		);
 	};
 
@@ -182,6 +188,8 @@ export const createScriptLoader = function createScriptLoader(
 		if (!force && isConsentStateUnchanged(snapshot)) {
 			return;
 		}
+		lastVendorChoice = snapshot.vendorChoice;
+		lastVendors = snapshot.vendors;
 		lastConsents = effective.effectivePermissions;
 		lastRestrictions = effective.restrictions;
 		lastModel = snapshot.model;
@@ -274,6 +282,7 @@ export const createScriptLoader = function createScriptLoader(
 						script.persistAfterConsentRevoked ?? false,
 					src: script.src,
 					status,
+					vendor: script.vendor,
 					vendorId: script.vendorId,
 				};
 			})
@@ -443,6 +452,7 @@ export const createScriptLoader = function createScriptLoader(
 			if (disposed) {
 				return;
 			}
+			registerCategories(next);
 			pendingScripts = next;
 			drain();
 		},
