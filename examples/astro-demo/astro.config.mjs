@@ -31,19 +31,20 @@ const iab = process.env.C15T_IAB === '1';
 //   C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev
 //   C15T_EXPERIMENT=1 C15T_EXPERIMENT_ARM=wall bun run --cwd examples/astro-demo dev
 //
-// The arm env stands in for a flag provider; omit it and c15t assigns.
-// Only the serializable `'dataLayer'` target fits here; a function reporter
-// would go in `clientEntrypoint`.
-const experimentArm = process.env.C15T_EXPERIMENT_ARM;
+// The banner is server-rendered, so `@c15t/astro` has no built-in
+// assignment: the arm must be resolved on the host, the way a flag provider
+// would. The arm env stands in for that provider and `floating` is the
+// fallback arm, the same as a flag that never resolves. Only the
+// serializable `'dataLayer'` target fits here; a function reporter would go
+// in `clientEntrypoint`.
+const experimentArm =
+	process.env.C15T_EXPERIMENT_ARM === 'wall' ? 'wall' : 'floating';
 const experiment =
 	process.env.C15T_EXPERIMENT === '1'
 		? {
 				id: 'banner-shape',
 				reportTo: 'dataLayer',
-				variant:
-					experimentArm === 'wall' || experimentArm === 'floating'
-						? experimentArm
-						: undefined,
+				variant: experimentArm,
 				variants: {
 					floating: {},
 					wall: { prompt: { variant: 'wall' } },
