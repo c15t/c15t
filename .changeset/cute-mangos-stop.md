@@ -15,3 +15,5 @@ Retry failed Zaraz queue replays while consent remains granted. Include required
 Deliver pending load and error events to the current configuration when a same-resource update keeps the script element.
 
 Remove retained owned script elements when configuration updates disable persistence after revocation.
+
+Keep Zaraz readiness retries registered after synchronization errors even when `onError` is omitted.

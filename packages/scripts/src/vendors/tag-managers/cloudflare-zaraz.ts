@@ -154,12 +154,18 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 	};
 	const update: NonNullable<Script['onConsentChange']> = ({ consents }) => {
 		latest = consents;
-		if (typeof document === 'undefined' || apply()) {
+		if (typeof document === 'undefined') {
 			return;
 		}
-		if (!listeningDocument) {
-			listeningDocument = document;
-			document.addEventListener(readyEvent, apply);
+		let applied = false;
+		try {
+			applied = apply();
+		} finally {
+			// Preserve retries even when errors propagate to the loader's debug hook.
+			if (!applied && !listeningDocument) {
+				listeningDocument = document;
+				document.addEventListener(readyEvent, apply);
+			}
 		}
 	};
 	return {

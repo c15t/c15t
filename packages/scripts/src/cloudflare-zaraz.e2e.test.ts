@@ -106,6 +106,38 @@ describe('Zaraz consent bridge through the kernel and script loader', () => {
 		}
 	);
 
+	it.each(['getAll', 'set'] as const)(
+		'keeps readiness retries without onError after %s fails',
+		(method) => {
+			const { api } = installZaraz({ analytics: true });
+			const error = new Error('Transient consent failure');
+			vi.spyOn(api, method).mockImplementationOnce(() => {
+				throw error;
+			});
+			const onReady = vi.fn();
+			const onDebug = vi.fn();
+			const kernel = createConsentKernel();
+			const loader = createScriptLoader({
+				kernel,
+				onDebug,
+				scripts: [
+					cloudflareZaraz({
+						onReady,
+						purposes: { measurement: ['analytics'] },
+					}),
+				],
+			});
+			disposers.push(kernel.dispose, loader.dispose);
+			expect(onDebug).toHaveBeenCalledWith(
+				expect.objectContaining({ action: 'callback_error' })
+			);
+			expect(onReady).not.toHaveBeenCalled();
+			document.dispatchEvent(new Event('zarazConsentAPIReady'));
+			expect(api.getAll()).toEqual({ analytics: false });
+			expect(onReady).toHaveBeenCalledOnce();
+		}
+	);
+
 	it('reports readiness-event failures and retries when readiness is announced again', () => {
 		const { api } = installZaraz({ analytics: true }, false);
 		const error = new Error('Zaraz unavailable');

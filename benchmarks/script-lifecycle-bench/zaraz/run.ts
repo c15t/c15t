@@ -180,8 +180,14 @@ try {
 		checks,
 		date: new Date().toISOString(),
 		machine: { arch: arch(), cpu: cpus()[0]?.model, platform: platform() },
-		method:
-			'31 alternating samples per case, 5 warmups, 500 kernel consent updates per sample. Timing includes loader creation and disposal, excludes kernel creation. Baseline substitutes every script-loader module from the base ref; dependencies outside that directory are identical. Zaraz API is a local fixture; no vendor network or edge execution is measured.',
+		method: [
+			'31 alternating samples per case, 5 warmups, 500 kernel consent',
+			'updates per sample. Timing includes loader creation and',
+			'disposal, excludes kernel creation. Baseline substitutes every',
+			'script-loader module from the base ref; dependencies outside',
+			'that directory are identical. Zaraz API is a local fixture; no',
+			'vendor network or edge execution is measured.',
+		].join(' '),
 		samples,
 		sizes,
 		summary,

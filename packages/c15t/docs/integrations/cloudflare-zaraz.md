@@ -357,7 +357,8 @@ If a Zaraz API call throws, `onReady` does not run until synchronization
 succeeds. Use `onError(error)` to report the failure and prevent application
 events from relying on permissions that were not applied. The bridge retries
 with the latest permissions on the next consent update or readiness event;
-it does not poll or schedule automatic retries. A failed queued-event replay
+it does not poll or schedule automatic retries. Readiness retries remain
+registered when `onError` is omitted and an error reaches the loader debug hook. A failed queued-event replay
 remains pending until synchronization succeeds while that purpose is still
 allowed. Revoking the purpose cancels its pending replay. Zaraz can partially
 process a queue before throwing, so retries cannot guarantee exactly-once delivery. Without `onError`, synchronous
