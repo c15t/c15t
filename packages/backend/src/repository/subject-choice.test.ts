@@ -1,6 +1,9 @@
 import { assert, describe, it } from 'vitest';
 
-import { mergeSubjectVendorChoice } from './subject-choice';
+import {
+	decodeStoredVendorChoice,
+	mergeSubjectVendorChoice,
+} from './subject-choice';
 
 const grants = (id: string, granted: boolean, confirmedAt: number) => ({
 	confirmedAt,
@@ -60,6 +63,16 @@ describe('mergeSubjectVendorChoice', () => {
 				},
 			])
 		);
+	});
+
+	it('reads a stored JSON null as an absent map, on text columns too', () => {
+		assert.deepStrictEqual(decodeStoredVendorChoice(null), { kind: 'absent' });
+		assert.deepStrictEqual(decodeStoredVendorChoice('null'), {
+			kind: 'absent',
+		});
+		assert.deepStrictEqual(decodeStoredVendorChoice('{}'), {
+			kind: 'unreadable',
+		});
 	});
 
 	it('breaks a givenAt tie by row id regardless of query order', () => {

@@ -226,6 +226,12 @@ export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
 			return undefined;
 		}
 	})();
+	// SQLite hands a JSON column back as text, so a stored JSON `null` arrives
+	// as the string 'null'. It means the same as no column value, and must
+	// not read as an unreadable newer act that hides an older valid map.
+	if (parsed === null) {
+		return { kind: 'absent' };
+	}
 	const validated = v.safeParse(vendorChoiceWireSchema, parsed);
 	return validated.success
 		? { kind: 'grants', vendorChoice: validated.output }
