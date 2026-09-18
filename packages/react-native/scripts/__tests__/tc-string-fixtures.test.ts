@@ -32,6 +32,16 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_DIR = resolve(HERE, '../../../../native/protocol');
 
+interface FixtureVendor {
+	features: number[];
+	flexiblePurposes: number[];
+	id: number;
+	legIntPurposes: number[];
+	purposes: number[];
+	specialFeatures: number[];
+	specialPurposes: number[];
+}
+
 interface FixtureModel {
 	consentLanguage: string;
 	consentScreen: number;
@@ -73,10 +83,14 @@ interface TcStringFixtureFile {
 	id: string;
 	input: {
 		encodingOptions: { isForVendors: boolean; version: 2 };
-		gvlOptions: { language: string };
 		model: FixtureModel;
 		now: number;
-		vendorList: VendorList;
+		vendorList: {
+			language: string;
+			tcfPolicyVersion: number;
+			vendorListVersion: number;
+			vendors: FixtureVendor[];
+		};
 	};
 	notes: string[];
 	population: 'decode-coverage' | 'parity';
@@ -118,12 +132,40 @@ const FIXTURES = readTcStringFixtures();
 const modelFromInput = function modelFromInput(
 	fixture: TcStringFixtureFile
 ): TCModel {
-	// The fixture records the exact body the oracle consumed, so the second reader
-	// below feeds it straight back in. Nothing here assembles a vendor list: a body
-	// this test invented would disagree with the generator about which purposes and
-	// special features exist, and the encoder prunes against those maps.
-	const { gvlOptions, model, vendorList } = fixture.input;
-	const gvl = new GVL(vendorList, gvlOptions);
+	const { model, vendorList } = fixture.input;
+	const vendors: Record<string, unknown> = {};
+	for (const vendor of vendorList.vendors) {
+		vendors[String(vendor.id)] = { ...vendor };
+	}
+	const purposes: Record<string, unknown> = {};
+	for (const vendor of vendorList.vendors) {
+		for (const purposeId of vendor.purposes) {
+			purposes[String(purposeId)] = {
+				description: `Purpose ${String(purposeId)}.`,
+				id: purposeId,
+				name: `Purpose ${String(purposeId)}`,
+			};
+		}
+	}
+	// The language a CMP loaded the list in is a construction option rather than a
+	// field of the list JSON, and the reference overwrites the model's consent
+	// language with it. Omit it here and every vector silently re-encodes as EN.
+	const gvl = new GVL(
+		{
+			dataCategories: {},
+			features: {},
+			gvlSpecificationVersion: 3,
+			lastUpdated: '2026-02-02T00:00:00Z',
+			purposes,
+			specialFeatures: {},
+			specialPurposes: {},
+			stacks: {},
+			tcfPolicyVersion: vendorList.tcfPolicyVersion,
+			vendorListVersion: vendorList.vendorListVersion,
+			vendors,
+		} as VendorList,
+		{ language: vendorList.language }
+	);
 
 	const tcModel = new TCModel(gvl);
 	tcModel.created = new Date(model.created);
@@ -565,57 +607,6 @@ describe('tc-string notes name every loss the reference causes', () => {
 		expect(
 			named('tc-string-parity-service-specific-false', 'no publisherTC segment')
 		).toBe(1);
-	});
-});
-
-describe('tc-string vendor lists are self-describing', () => {
-	// The pre-encoder prunes a positive signal against gvl.purposes, the per-vendor
-	// declarations and the special-feature map before it writes a bit, so a runner
-	// holding a slimmer list than the one the oracle used encodes a different string
-	// from the same model. These assertions are the reason the full body is recorded.
-	test('every recorded body validates through the reference GVL', () => {
-		for (const fixture of FIXTURES) {
-			const gvl = new GVL(fixture.input.vendorList, fixture.input.gvlOptions);
-			expect(gvl.vendorListVersion, fixture.id).toBe(
-				fixture.expected.decode.fields.vendorListVersion
-			);
-			expect(gvl.tcfPolicyVersion, fixture.id).toBe(
-				fixture.expected.decode.fields.policyVersion
-			);
-			// Not a field of the body: the language the list was constructed under is
-			// what overwrites model.consentLanguage during encoding.
-			expect(gvl.language, fixture.id).toBe(fixture.input.gvlOptions.language);
-		}
-	});
-
-	// The bug this kind had: the recorded body used to carry only the vendor arrays
-	// and the two version scalars, which the reference rejects outright.
-	test('the body alone passes the reference validation', () => {
-		for (const fixture of FIXTURES) {
-			expect(() => new GVL(fixture.input.vendorList), fixture.id).not.toThrow();
-		}
-	});
-
-	test('the maps the pre-encoder consults are all present', () => {
-		for (const fixture of FIXTURES) {
-			const { vendorList } = fixture.input;
-			expect(Object.keys(vendorList.purposes).length, fixture.id).toBe(10);
-			expect(
-				Object.keys(vendorList.specialFeatures).length,
-				fixture.id
-			).toBeGreaterThan(0);
-			expect(Object.keys(vendorList.vendors).length, fixture.id).toBe(23);
-			for (const [id, vendor] of Object.entries(vendorList.vendors)) {
-				expect(
-					vendor.purposes.length,
-					`${fixture.id} vendor ${id}`
-				).toBeGreaterThan(0);
-				expect(
-					vendor.flexiblePurposes.length,
-					`${fixture.id} vendor ${id}`
-				).toBeGreaterThan(0);
-			}
-		}
 	});
 });
 

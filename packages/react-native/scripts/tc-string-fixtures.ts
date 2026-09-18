@@ -30,14 +30,6 @@
  * clock -- which is why `input.now` and `input.model.created` differ. See
  * {@link c15tTimestamp}.
  *
- * `input` is complete on purpose. `input.vendorList` is the vendor-list object the
- * oracle consumed -- purposes, features, stacks, special purposes and special
- * features included -- and `input.gvlOptions` is the second argument it was
- * constructed with, because a vendor vector is pruned against those maps before a
- * bit is written. A runner that rebuilds a slimmer list from the vendor arrays alone
- * gets a GVLError at best and a different string at worst, so `new
- * GVL(input.vendorList, input.gvlOptions)` is the whole vendor-side input.
- *
  * Where the reference loses information on the way out, the loss is written into
  * that fixture's `notes` by {@link fidelityNotes}, which compares what went in with
  * what came back rather than restating a list someone once believed. That list is
@@ -253,13 +245,6 @@ const SPECIAL_FEATURES = {
  * The vendor list object the reference consumes, built in a fixed key order so the
  * encoder's pruning decisions depend only on the fixture and not on this file's
  * formatting.
- *
- * This object is what each fixture records as `input.vendorList`, verbatim. It is
- * not a summary of {@link TcStringVendorList}: `purposes`, `specialFeatures`,
- * `features`, `stacks` and `specialPurposes` are all consulted by the semantic
- * pre-encoder before a single bit is written, so leaving them out of the fixture
- * would leave a native port unable to tell why a positive signal went missing, and
- * `new GVL(input.vendorList)` would fail validation outright.
  */
 const vendorListJson = function vendorListJson(
 	list: TcStringVendorList
@@ -353,21 +338,7 @@ export interface TcStringFixture {
 		/** The pinned evaluation clock, verbatim from `index.json`. */
 		now: number;
 		encodingOptions: TcStringEncodeOptions;
-		/**
-		 * The second argument the oracle's `new GVL` was handed. The language a CMP
-		 * loaded the list in is a construction option, not a field of the list JSON,
-		 * and the reference overwrites `model.consentLanguage` with it, so it is
-		 * recorded apart from the body rather than inside it.
-		 */
-		gvlOptions: { language: string };
-		/**
-		 * The vendor-list object the oracle consumed, field for field. The semantic
-		 * pre-encoder consults `purposes` and the per-vendor declarations while it
-		 * compresses a vendor vector, so a runner that rebuilds only some of this
-		 * body can encode a different string from the same model: `new
-		 * GVL(vendorList, gvlOptions)` has to be the whole input.
-		 */
-		vendorList: VendorList;
+		vendorList: TcStringVendorList;
 		model: TcStringModel;
 	};
 	expected: {
@@ -616,7 +587,7 @@ const fidelityNotes = function fidelityNotes(
 
 	if (model.consentLanguage !== fields.consentLanguage) {
 		notes.push(
-			`consentLanguage is not writable: the reference overwrites the model's "${model.consentLanguage}" with the language the vendor list was constructed under (input.gvlOptions.language, "${fields.consentLanguage}" here), so a port that reads the app's language produces a different string.`
+			`consentLanguage is not writable: the reference overwrites the model's "${model.consentLanguage}" with the vendor list's language "${fields.consentLanguage}", so a port that reads the app's language produces a different string here.`
 		);
 	}
 
@@ -1142,7 +1113,7 @@ const CASE_SPECS: readonly CaseSpec[] = [
 		id: 'tc-string-parity-consent-language-from-vendor-list',
 		model: { purposeConsents: [1], vendorConsents: [1] },
 		notes: [
-			'The reference overwrites the model language with the language the vendor list was built under (input.gvlOptions.language) before encoding, so the string says DE while the app said EN. A native encoder that reads the language off the SDK configuration produces a byte that differs here.',
+			'The reference overwrites the model language with the vendor list language before encoding, so the string says DE while the app said EN. A native encoder that reads the language off the SDK configuration produces a byte that differs here.',
 		],
 		population: 'parity',
 		vendorList: { language: 'DE' },
@@ -1377,10 +1348,9 @@ const buildTcStringCase = function buildTcStringCase(
 		id: spec.id,
 		input: {
 			encodingOptions,
-			gvlOptions: { language: vendorList.language },
 			model,
 			now,
-			vendorList: vendorListJson(vendorList),
+			vendorList,
 		},
 		kind: 'tc-string',
 		notes: [
