@@ -1,3 +1,4 @@
+import type { VendorCategoryCondition } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { ResolvedVendor } from '../../types';
@@ -82,7 +83,9 @@ describe('resolveVendors', () => {
 	});
 
 	test('owner conditions are copied so freezing the snapshot leaves the script alone', () => {
-		const category = { or: ['marketing', 'measurement'] as const };
+		const category: VendorCategoryCondition = {
+			or: ['marketing', 'measurement'],
+		};
 		const resolved = resolveVendors({
 			owners: [{ category, vendor: 'hotjar' }],
 		});
