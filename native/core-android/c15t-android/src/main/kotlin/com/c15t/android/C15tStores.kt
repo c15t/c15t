@@ -1,13 +1,24 @@
+// The bus sink below must open the application-default preferences file through
+// the platform API the IAB CMP specification names. That API is deprecated, and
+// the deprecation is the ecosystem still reading the file it picks -- there is no
+// replacement that keeps the mirror where a vendor SDK looks, so the one warning
+// this file can emit is the one it has to ignore.
+@file:Suppress("DEPRECATION")
+
 package com.c15t.android
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import com.c15t.core.store.ResilientKeyValueStore
 import android.util.Log
 import com.c15t.core.crypto.AesGcmCodec
 import com.c15t.core.spi.KeyValueStore
 import com.c15t.core.store.C15tStore
 import com.c15t.core.store.SubjectPreservingStore
+import com.c15t.core.store.TcBusValue
+import com.c15t.core.store.TcStorageBusKeys
+import com.c15t.core.store.TcStorageBusSink
 import java.io.File
 import java.io.IOException
 
@@ -42,6 +53,11 @@ object C15tStores {
 	 *
 	 * Never throws: a host that cannot get an encrypted store still gets a working,
 	 * if less protected, core, which is the trade the contract makes.
+	 *
+	 * The `IABTCF_*` bus rides along with every store this builds: no flag turns it
+	 * on and no host step installs it, because the readers it exists for are third
+	 * party code inside the host process that never asks permission first. See
+	 * [DefaultPreferencesTcStorageBus].
 	 */
 	fun create(context: Context): C15tStore {
 		val appContext = context.applicationContext
@@ -68,6 +84,7 @@ object C15tStores {
 				// once per key so the field report is not silent.
 				Log.w(TAG, "c15t could not read stored state for $key; serving deny-all", error)
 			},
+			tcStorageBus = DefaultPreferencesTcStorageBus(appContext),
 		)
 	}
 
@@ -218,6 +235,58 @@ internal class PreferencesStore(private val prefs: SharedPreferences) : KeyValue
 	override fun flush() {
 		prefs.edit().apply()
 	}
+
+	private companion object {
+		const val TAG = "c15t"
+	}
+}
+
+/**
+ * The `IABTCF_*` bus over the application-default `SharedPreferences`.
+ *
+ * [PreferenceManager.getDefaultSharedPreferences] is the entry point the IAB CMP
+ * specification names for these keys, and it is deprecated precisely because the
+ * ecosystem still reads the file it picks. That is why the call is spelled out here
+ * rather than replaced: this class never derives a file name, and a mirror under a
+ * c15t-named file is a mirror no vendor SDK opens, which costs the same as shipping
+ * no bus at all.
+ *
+ * One `edit()` transaction carries the whole table. `putInt` writes the spec's
+ * Number rows and `putString` its String rows, because those are the accessors
+ * vendors call and a mistyped entry does not read across. Every named key the
+ * incoming map omits is removed, so a row whose source value the core took back
+ * stops answering for it; keys outside the specification table belong to other
+ * ecosystems and stay untouched.
+ *
+ * Nothing here reaches a consent commit as a throw. This is a projection of a record
+ * that already stands: [C15tStore.writeEnvelope] has put the encrypted envelope away
+ * before the bus moves, and a mirror that failed rebuilds on the next commit, on the
+ * next launch, or through [C15tStore.rebuildTcStorageBus].
+ */
+internal class DefaultPreferencesTcStorageBus(context: Context) : TcStorageBusSink {
+	/** Opened once: the default file is process-wide, like the bus it holds. */
+	private val prefs = PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
+
+	override fun write(values: Map<String, TcBusValue>) {
+		try {
+			val editor = prefs.edit()
+			for (key in TcStorageBusKeys.ALL_NAMES) {
+				when (val value = values[key]) {
+					is TcBusValue.NumberValue -> editor.putInt(key, value.value)
+					is TcBusValue.TextValue -> editor.putString(key, value.value)
+					null -> editor.remove(key)
+				}
+			}
+			editor.apply()
+		} catch (error: Throwable) {
+			// Includes a preferences file somebody else left unreadable. The consent
+			// record is in the encrypted store either way; only the mirror is missing.
+			Log.e(TAG, "failed to publish the IABTCF storage bus", error)
+		}
+	}
+
+	/** Empty the table: a whole-table write that fills nothing. */
+	override fun clear() = write(emptyMap())
 
 	private companion object {
 		const val TAG = "c15t"

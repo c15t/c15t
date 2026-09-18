@@ -93,6 +93,8 @@ compare it against `useC15tBootstrap().protocolVersion` before a user sees a bla
   web throws `NativeC15tUnavailableError`.
 - The legacy React Native bridge. There is no `NativeModules` fallback, because the
   legacy bridge cannot register the Codegen surface this package is generated against.
-- IAB TCF. The `iab` slot on the snapshot is reserved and always `null` in this phase, so
-  there is no TC string, no GVL state, and no `IABTCF_*` keys. Adding TCF later is an
-  additive protocol change.
+- IAB TCF's vendor-side record. A rule whose model is `iab` is read and evaluated, the
+  `iab` slot carries the vendor list `/init` serves, and the drawer presents it, but no
+  TC string is encoded on a device: there is no registered CMP identity and no per-vendor
+  vector, so the `IABTCF_*` bus carries only `IABTCF_PolicyVersion` and
+  `IABTCF_gdprApplies`. Publishing the rest is an additive protocol change.

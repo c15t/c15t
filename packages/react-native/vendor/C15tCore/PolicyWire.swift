@@ -376,15 +376,9 @@ enum PolicyWireReader {
         guard case let .string(modelValue)? = raw["model"] else {
             throw problem(.invalidPayload, "policy.model must be a string")
         }
-        // `iab` is a real wire value this build cannot honour: there is no TC
-        // string and no GVL here, so reading it as opt-in would invent
-        // permissions. Report it as a contract this client does not speak.
-        guard modelValue != "iab" else {
-            throw problem(
-                .unsupportedContract,
-                "policy model \"iab\" requires IAB support, which this build does not have"
-            )
-        }
+        // Anything this enum does not name is still a contract this client does not
+        // speak, and stays a refusal rather than a guess: `iab` is readable because the
+        // evaluator has a rule for it, and a model invented after this build does not.
         guard let model = ConsentModel(rawValue: modelValue) else {
             throw problem(
                 .unsupportedContract,
@@ -431,8 +425,16 @@ enum PolicyWireReader {
         guard Set(preselected).isSubset(of: Set(scope)) else {
             throw problem(.invalidPayload, "preselectedCategories must be inside scope")
         }
-        guard model != .none || preselected.isEmpty else {
-            throw problem(.invalidPayload, "none rules cannot preselect categories")
+        // `collectScopeErrors` in `@c15t/schema` refuses an author who sets
+        // `preselectedCategories` on an `iab` or `none` rule, and `resolvePreselected`
+        // answers empty for both, so a resolved rule carrying a preselection beside either
+        // one was not produced by that resolver. Neither model has a displayed default to
+        // preselect: `iab` grants nothing until a receipt says so, and `none` asks nothing.
+        guard model == .optIn || model == .optOut || preselected.isEmpty else {
+            throw problem(
+                .invalidPayload,
+                "model \"\(model.rawValue)\" rules cannot preselect categories"
+            )
         }
 
         try readActions(raw["actions"], prompt: prompt)
@@ -579,10 +581,14 @@ enum PolicyWireReader {
 
     // MARK: - Valid tables
 
-    /// `POLICY_MODEL_PROMPTS` in `@c15t/schema`, minus `iab`.
+    /// `POLICY_MODEL_PROMPTS` in `@c15t/schema`.
     private static func validPrompt(for model: ConsentModel, _ prompt: PolicyPrompt) -> Bool {
         switch model {
         case .optIn: return prompt == .choice
+        // An IAB rule always asks. `assertPromptForModel` in `@c15t/core` keeps every model
+        // but `opt-out` on `choice`, and the schema's table narrows `iab` to that one value,
+        // so a notice-only or silent IAB rule is a rule that was never resolved.
+        case .iab: return prompt == .choice
         case .optOut: return prompt == .choice || prompt == .notice || prompt == .none
         case .none: return prompt == .none
         }
@@ -592,6 +598,10 @@ enum PolicyWireReader {
     private static func requiredRights(for model: ConsentModel) -> Set<String> {
         switch model {
         case .optIn: return ["disclosure", "preferences"]
+        // `requiredPolicyRights` in `@c15t/schema`: every model but `none` owes disclosure
+        // and preferences, and only `opt-out` adds a standing opt-out right. An IAB subject
+        // withdraws a purpose through the TC String, not through a CCPA-style directive.
+        case .iab: return ["disclosure", "preferences"]
         case .optOut: return ["disclosure", "preferences", "opt-out"]
         case .none: return []
         }

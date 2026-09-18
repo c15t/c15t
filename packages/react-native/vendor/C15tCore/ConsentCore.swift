@@ -50,6 +50,16 @@ public struct CoreConfig: @unchecked Sendable {
     /// Replay the offline queue at the end of bootstrap. On by default: the
     /// contract lists launch as a retry trigger, and bootstrap is launch.
     public let flushPendingOnBootstrap: Bool
+    /// Where the `IABTCF_*` storage bus lands, or `nil` to write no bus at all.
+    ///
+    /// The bus is an egress projection of the snapshot, not a second consent
+    /// store: ``TcStorageBusWriting`` never answers a read, and nothing in the
+    /// core trusts a value that reached it -- the Keychain stays authoritative.
+    /// A host on iOS wires ``UserDefaultsStorageBus`` (standard `UserDefaults`,
+    /// which is what S1's CMP API table tells a vendor SDK to read); a host
+    /// that ships no ad SDK leaves this `nil` and the core's behavior is
+    /// byte-identical to a build with no bus at all.
+    public let storageBus: (any TcStorageBusWriting)?
 
     public init(
         store: any ConsentStore = InMemoryStore(),
@@ -60,7 +70,8 @@ public struct CoreConfig: @unchecked Sendable {
         gpc: Bool? = nil,
         now: @escaping @Sendable () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1_000) },
         initRetry: InitRetry? = InitRetry(),
-        flushPendingOnBootstrap: Bool = true
+        flushPendingOnBootstrap: Bool = true,
+        storageBus: (any TcStorageBusWriting)? = nil
     ) {
         self.store = store
         self.transport = transport
@@ -71,6 +82,7 @@ public struct CoreConfig: @unchecked Sendable {
         self.now = now
         self.initRetry = initRetry
         self.flushPendingOnBootstrap = flushPendingOnBootstrap
+        self.storageBus = storageBus
     }
 }
 
@@ -219,6 +231,17 @@ public final class ConsentCore: @unchecked Sendable {
     /// The current state. Synchronous, and never touches disk or the network.
     public func snapshot() -> ConsentSnapshot {
         lock.withLock { currentSnapshot }
+    }
+
+    /// The vendor list this device last was served, for a host app's own Swift code.
+    ///
+    /// The same value the React Native boundary reads at `snapshot.iab.gvl`, read off
+    /// the same snapshot, so a dialog rendered natively and a dialog rendered in
+    /// JavaScript cannot end up describing different vendors. Synchronous, and it never
+    /// fetches: `nil` means no `/init` has served a list this build could read, which is
+    /// the normal answer for every policy that is not `iab`.
+    public func globalVendorList() -> GlobalVendorList? {
+        lock.withLock { currentSnapshot.iab?.gvl }
     }
 
     /// Whether processing in `category` is permitted right now.
@@ -467,7 +490,7 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.promptRequirement = evaluation.promptRequirement
                 draft.nextDeadline = evaluation.nextDeadline
                 draft.evaluatedAt = actionAt
-                draft.model = resolved.policy.model
+                draft.model = resolved.policy.model.runtimeModel
                 // Visibility follows the remaining obligation, not the fact that an
                 // action was taken: a choice save under a notice rule still owes the
                 // notice, so the first layer stays. Same rule as `deriveActiveUI`.
@@ -488,7 +511,7 @@ public final class ConsentCore: @unchecked Sendable {
                 consents: evaluation.permissions,
                 overrides: wireOverrides,
                 user: user,
-                model: resolved.policy.model,
+                model: resolved.policy.model.runtimeModel,
                 uiSource: surfaceAtAction,
                 consentAction: action,
                 policySnapshotToken: next.policySnapshotToken,
@@ -856,7 +879,8 @@ public final class ConsentCore: @unchecked Sendable {
     /// waits for it. The entries still queued carry a decision the subject just withdrew,
     /// and the one already on the wire was current when it was made.
     public func reset() {
-        let wired = lock.withLock { () -> (store: any ConsentStore, queue: PendingSaveQueue)? in
+        let wired = lock.withLock {
+            () -> (store: any ConsentStore, queue: PendingSaveQueue, bus: (any TcStorageBusWriting)?)? in
             let now = (config?.now ?? Self.wallClock)()
             resolvedPolicy = nil
             policyWire = nil
@@ -878,6 +902,10 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.policySnapshotToken = nil
                 draft.location = nil
                 draft.translations = nil
+                // The list came with a policy claim, so it goes with one; a wipe leaves no
+                // IAB state behind, and the next init serves it again if the matched
+                // model is still `iab`.
+                draft.iab = nil
                 draft.optOutDirectives = []
                 draft.nextDeadline = nil
                 draft.error = nil
@@ -900,7 +928,7 @@ public final class ConsentCore: @unchecked Sendable {
             persistedRevision = 0
             restoredFromStore = false
             guard let config, let queue else { return nil }
-            return (config.store, queue)
+            return (config.store, queue, config.storageBus)
         }
         // Storage first, outside the lock, so nothing is announced about a device whose
         // bytes are still there. A core that was never bootstrapped has no store and no
@@ -909,6 +937,11 @@ public final class ConsentCore: @unchecked Sendable {
             wired.queue.clear()
             wired.store.set(nil, for: StorageKey.snapshot)
             wired.store.set(nil, for: StorageKey.pendingSaves)
+            // Same step, same rule as every other wipe: the keys this core put
+            // on the bus go with the envelope they projected. The wipe clears
+            // the whole spec table, not just the rows written this run -- the
+            // clear's own doc states why.
+            wired.bus?.clear()
         }
         publish(persist: false)
         scheduleInit(attempt: 1)
@@ -976,7 +1009,7 @@ public final class ConsentCore: @unchecked Sendable {
                 case let .resolved(resolved):
                     self.resolvedPolicy = resolved
                     draft.resolution = resolved.resolution
-                    draft.model = resolved.policy.model
+                    draft.model = resolved.policy.model.runtimeModel
                     draft.policyPending = false
                     draft.error = nil
                 case let .rejected(reason, message):
@@ -1019,6 +1052,31 @@ public final class ConsentCore: @unchecked Sendable {
             events.emit(.error(error))
         }
         return restored
+    }
+
+    /// Re-derive the `IABTCF_*` bus from the stored envelope.
+    ///
+    /// The repair path, not the normal one. Every publish, reset and hydration
+    /// already keeps the bus in step with the envelope, so this exists for the
+    /// moments outside the core's own writes: somebody cleared the standard
+    /// defaults (the publisher's duty for vestigial values makes that legal),
+    /// or a device is integrating the bus for the first time on top of an
+    /// envelope that was there first. Absent or unreadable stored state clears
+    /// the bus, because the honest mirror of nothing stored is nothing held;
+    /// a core with no bus configured is a no-op.
+    public func rebuildTcStorageBus() {
+        let wired = lock.withLock { () -> (store: any ConsentStore, bus: any TcStorageBusWriting)? in
+            guard let config, let bus = config.storageBus else { return nil }
+            return (config.store, bus)
+        }
+        guard let wired else { return }
+        let envelope = wired.store.data(for: StorageKey.snapshot)
+            .flatMap(StoredEnvelope.decode)
+        if let envelope {
+            wired.bus.write(TcStorageBus.values(for: envelope))
+        } else {
+            wired.bus.clear()
+        }
     }
 
     // MARK: - Idle
@@ -1198,7 +1256,7 @@ public final class ConsentCore: @unchecked Sendable {
             draft.promptRequirement = evaluation.promptRequirement
             draft.nextDeadline = evaluation.nextDeadline
             draft.evaluatedAt = now
-            draft.model = resolved.policy.model
+            draft.model = resolved.policy.model.runtimeModel
             draft.activeUI = evaluation.promptRequirement.kind == .none
                 ? ActiveUI.none
                 : ActiveUI.banner
@@ -1223,6 +1281,8 @@ public final class ConsentCore: @unchecked Sendable {
             let store: any ConsentStore
             let data: Data
             let revision: Int
+            let bus: (any TcStorageBusWriting)?
+            let busValues: [String: TcBusValue]
         }
         let pending: Write? = lock.withLock {
             guard let config, currentSnapshot.revision > persistedRevision else { return nil }
@@ -1236,13 +1296,28 @@ public final class ConsentCore: @unchecked Sendable {
             // Claim the revision before releasing the lock, so two overlapping
             // publishes cannot both decide they are the newest writer.
             persistedRevision = currentSnapshot.revision
-            return Write(store: config.store, data: data, revision: currentSnapshot.revision)
+            return Write(
+                store: config.store,
+                data: data,
+                revision: currentSnapshot.revision,
+                bus: config.storageBus,
+                busValues: TcStorageBus.values(for: envelope)
+            )
         }
         guard let pending else { return }
         // The write is outside the lock. A failed write leaves the claimed revision
         // alone on purpose: the next mutation writes again, and rolling the claim
         // back would let an older envelope overtake a newer one.
-        _ = pending.store.encode(pending.data, for: StorageKey.snapshot)
+        let committed = pending.store.encode(pending.data, for: StorageKey.snapshot)
+        // The bus is a projection of the committed step, so it moves only when
+        // the authoritative write moved: a mirror of state that never landed on
+        // disk is the one thing the bus must never become. A store write that
+        // failed leaves the mirror stale until the commit that succeeds or a
+        // ``rebuildTcStorageBus``, and the next launch's hydrate enforces the
+        // rule either way.
+        if committed {
+            pending.bus?.write(pending.busValues)
+        }
     }
 
     // MARK: - Async work
@@ -1338,6 +1413,27 @@ public final class ConsentCore: @unchecked Sendable {
             if let location = response.location { draft.location = location }
             if let translations = response.translations { draft.translations = translations }
             if let token = response.policySnapshotToken { draft.policySnapshotToken = token }
+            // The vendor list is folded here, beside the other served-metadata fields,
+            // and before the policy branch, on purpose.
+            //
+            // Only when present: a later `/init` that serves no `gvl` leaves the list the
+            // core already has. That is the retention the dialog needs. Once a purpose
+            // name or vendor name has been on screen, replacing it with nothing does not
+            // take a permission away -- it renders an empty dialog against a consent the
+            // subject just gave -- and the backend omits the field routinely, because
+            // `buildInitResponse` only embeds it while the matched model is `iab`. The
+            // web keeps its module-level GVL cache for the same reason. A newer list
+            // replaces an older one whole, so the device can never hold two vendors'
+            // worth of `vendorListVersion`.
+            //
+            // Same retention rules as the matched policy, which means stored on the
+            // snapshot and written with it in the same envelope: one write, one read,
+            // wiped by ``reset()`` alongside `policyWire`. It rides the snapshot rather
+            // than taking an envelope key of its own, because the bridge reads the
+            // snapshot and a second copy of one fact is two answers.
+            if let gvl = response.gvl {
+                draft.iab = KernelIABState(gvl: gvl)
+            }
 
             // Server-mapped receipts merge in per category, newest wins. A local
             // receipt that has not reached the backend yet is newer than anything
@@ -1361,7 +1457,7 @@ public final class ConsentCore: @unchecked Sendable {
                 // lost signal keeps the snapshot the contract says it may serve.
                 draft.ready = true
                 draft.resolution = resolved.resolution
-                draft.model = resolved.policy.model
+                draft.model = resolved.policy.model.runtimeModel
                 draft.error = nil
 
                 let evaluation = PolicyEvaluator.evaluate(

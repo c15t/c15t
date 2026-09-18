@@ -49,8 +49,8 @@ enum RetiredEnvelope {
     ///
     /// The synthesized `encode(to:)` omits nils, which would hand the JavaScript
     /// layer `{country, language}` where the protocol declares four keys, while the
-    /// Kotlin core writes all four. `native/CONTRACT.md` keeps the reserved `iab` key
-    /// for the same reason: a reader should never have to branch on presence.
+    /// Kotlin core writes all four. `native/CONTRACT.md` keeps an empty `iab` written
+    /// as an explicit null for the same reason: a reader never branches on presence.
     static func write<Value: Encodable, Key: CodingKey>(
         _ value: Value?,
         forKey key: Key,

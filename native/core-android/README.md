@@ -12,7 +12,8 @@ snapshot does not yet fill `iab` with that list -- see `C15tKernel.vendorList`. 
 model of `iab` is read and evaluated, with the web kernel's default: nothing in scope is
 granted until a choice says so, and the snapshot reports `opt-in` while it runs. What is
 still not wired is the vendor-side record -- no `tcString` is saved with a decision, and
-the `IABTCF_*` bus is not written. See `../CONTRACT.md`.
+the `IABTCF_*` bus is written by `C15tStores.create`, so every store this
+package builds carries it. See `../CONTRACT.md`.
 
 ## Modules
 

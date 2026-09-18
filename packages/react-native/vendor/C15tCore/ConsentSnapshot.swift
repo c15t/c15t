@@ -323,6 +323,77 @@ public struct CoreErrorInfo: Sendable, Codable, Equatable, Error {
     }
 }
 
+/// The IAB half of a snapshot: everything this build learned from `/init` about IAB.
+///
+/// The key names are `KernelIABState`'s, from `packages/core/src/types.ts`, because
+/// the React Native boundary hands JavaScript a JSON string and a renamed key shows up
+/// as `undefined` on a device rather than as a type error. Only `gvl` is carried:
+/// `authority`, `tcString`, the per-vendor vectors and `cmpId` are IAB runtime state this
+/// build does not own yet, and an absent key says that plainly where `enabled: false`
+/// would claim an answer about a module that is not there.
+///
+/// `null` for a snapshot with no list is the shape the protocol declares today, and it is
+/// what a device serves until a `/init` lands a `gvl`.
+public struct KernelIABState: Sendable, Codable, Equatable {
+    /// Global Vendor List (IAB-registered vendors + purposes).
+    public let gvl: GlobalVendorList?
+
+    public init(gvl: GlobalVendorList?) {
+        self.gvl = gvl
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case gvl
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        // Always emitted: the kernel type declares `gvl` as required and nullable, so a
+        // state with no list says so with an explicit null rather than a missing key.
+        try container.encode(gvl, forKey: .gvl)
+    }
+
+    /// Decode, refusing any IAB state this build cannot give back.
+    ///
+    /// `StoredEnvelope`'s rule is that a key it does not model makes the whole envelope
+    /// unreadable rather than partly readable, and a writer from a later phase that
+    /// stored a TC string here is exactly that key. The device then comes up like a
+    /// fresh install, which is the direction the contract picks for bytes it cannot
+    /// honour.
+    public init(from decoder: any Decoder) throws {
+        let value = try JSONValue(from: decoder)
+        guard let fields = value.objectValue else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "iab state is neither null nor an object"
+                )
+            )
+        }
+        guard fields.keys.allSatisfy({ $0 == CodingKeys.gvl.rawValue }) else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "iab state carries IAB fields this build does not model"
+                )
+            )
+        }
+        guard let gvl = fields["gvl"], !gvl.isNull else {
+            self = KernelIABState(gvl: nil)
+            return
+        }
+        guard let parsed = GlobalVendorList.stored(gvl) else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "iab.gvl is not a vendor list this build can serve"
+                )
+            )
+        }
+        self = KernelIABState(gvl: parsed)
+    }
+}
+
 /// The whole of native consent state, at one revision.
 ///
 /// Frozen by construction: every stored property is a `let`, and a change
@@ -368,9 +439,15 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
     /// Epoch milliseconds of the last evaluation.
     public let evaluatedAt: Int64
     public let error: CoreErrorInfo?
-    /// Reserved IAB slot. Always `null` in this phase, but the key is encoded so
-    /// a JavaScript layer that reads it does not have to branch on presence.
-    public let iab: JSONValue?
+    /// The IAB seam: null until a `/init` serves a `gvl`, then the list itself.
+    ///
+    /// The key is always encoded, so a JavaScript layer that reads it never has to
+    /// branch on presence. Nothing derived hangs off it: the vendor list is served
+    /// metadata the dialog renders and the encoder prunes against, and no category
+    /// permission reads it, which is why a `gvl` the core cannot parse leaves the whole
+    /// field null rather than moving `policyPending` or the deny-all rule. See
+    /// ``ConsentCore``'s init fold.
+    public let iab: KernelIABState?
 
     public init(
         revision: Int = 0,
@@ -394,7 +471,7 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         nextDeadline: Int64? = nil,
         evaluatedAt: Int64 = 0,
         error: CoreErrorInfo? = nil,
-        iab: JSONValue? = nil
+        iab: KernelIABState? = nil
     ) {
         self.revision = revision
         self.policyPending = policyPending
@@ -462,6 +539,10 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         var nextDeadline: Int64?
         var evaluatedAt: Int64
         var error: CoreErrorInfo?
+        /// Carried from the snapshot rather than recomputed, because a draft that
+        /// dropped it would answer an init that served no list by forgetting the list
+        /// the dialog is already showing.
+        var iab: KernelIABState?
 
         init(current: ConsentSnapshot) {
             policyPending = current.policyPending
@@ -484,6 +565,7 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
             nextDeadline = current.nextDeadline
             evaluatedAt = current.evaluatedAt
             error = current.error
+            iab = current.iab
         }
 
         func build(revision: Int) -> ConsentSnapshot {
@@ -508,7 +590,8 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
                 translations: translations,
                 nextDeadline: nextDeadline,
                 evaluatedAt: evaluatedAt,
-                error: error
+                error: error,
+                iab: iab
             )
         }
     }
@@ -580,8 +663,9 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         try container.encodeIfPresent(nextDeadline, forKey: .nextDeadline)
         try container.encode(evaluatedAt, forKey: .evaluatedAt)
         try container.encodeIfPresent(error, forKey: .error)
-        // Always emitted, always null in this phase. See the property comment.
-        try container.encodeNil(forKey: .iab)
+        // Always emitted: `null` when no list has been served, the list when one has.
+        // See the property comment.
+        try container.encode(iab, forKey: .iab)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -649,17 +733,10 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         nextDeadline = try container.decodeIfPresent(Int64.self, forKey: .nextDeadline)
         evaluatedAt = try container.decode(Int64.self, forKey: .evaluatedAt)
         error = try container.decodeIfPresent(CoreErrorInfo.self, forKey: .error)
-        // A stored `iab` that is anything but null means a writer from a later
-        // phase got here; this one must not carry state it cannot honour.
-        if let iab = try container.decodeIfPresent(JSONValue.self, forKey: .iab),
-           !iab.isNull
-        {
-            throw DecodingError.dataCorruptedError(
-                forKey: .iab,
-                in: container,
-                debugDescription: "IAB state is not supported in this build"
-            )
-        }
-        iab = nil
+        // Absent and null both read as "no list served yet", which is what an envelope
+        // written before this field carried anything holds. An `iab` object this build
+        // cannot reproduce throws, and the store treats an unreadable envelope as
+        // nothing stored.
+        iab = try container.decodeIfPresent(KernelIABState.self, forKey: .iab)
     }
 }

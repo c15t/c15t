@@ -17,7 +17,12 @@ own:
                     NSUserDefaults. Android: the application-default
                     SharedPreferences via PreferenceManager's
                     getDefaultSharedPreferences -- never a derived file
-                    name. Rows written today: IABTCF_PolicyVersion (the
+                    name. Both are wired by the platform's own install path --
+                    C15tStores.create on Android, the bridge's
+                    makeCoreConfiguration on iOS -- with no flag and no host
+                    step, because the readers are somebody else's SDK inside the
+                    host process and never ask first; a host that wants no bus
+                    installs a configured core itself. Rows written today: IABTCF_PolicyVersion (the
                     stored list's tcfPolicyVersion) and IABTCF_gdprApplies
                     (the matched rule's model tested against `iab`, mirroring
                     packages/iab, so 1 under an IAB rule and 0 under every

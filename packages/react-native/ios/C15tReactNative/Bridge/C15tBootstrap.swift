@@ -259,6 +259,16 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
 
     /// Build the core configuration this maps to.
     ///
+    /// Every core this installs carries the `IABTCF_*` bus over standard
+    /// `NSUserDefaults`, with no `Info.plist` key and no host step to switch it on.
+    /// The readers it exists for are ad SDKs linked into the host binary, which read
+    /// the bus whether or not the app asked for one, and an empty table reads to them
+    /// as "no CMP on this device" -- the claim this exists to make false. Leaving the
+    /// bus off stays the host's own option, by installing a configured core directly
+    /// (see ``C15tReactNativeBootstrap/install(_:)``); the record is unaffected either
+    /// way, because the Keychain stays authoritative and nothing here reads the mirror
+    /// back.
+    ///
     /// - Returns: The config, or `nil` when the storage mode cannot be honoured, such
     ///   as a Keychain on a platform without one. Starting with an unencrypted store
     ///   because the intended one is unavailable is not a fallback this makes quietly.
@@ -269,7 +279,8 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
             transport: makeTransport(),
             consentCategories: consentCategories,
             overrides: overrides,
-            gpc: gpc
+            gpc: gpc,
+            storageBus: UserDefaultsStorageBus()
         )
     }
 
