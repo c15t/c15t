@@ -8,19 +8,16 @@ import {
 	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { afterEach, expect, test } from 'vitest';
 
 const directories: string[] = [];
-const parserDirectory = dirname(
-	fileURLToPath(import.meta.resolve('@babel/parser/package.json'))
-);
-const compiler = fileURLToPath(
-	new URL('./bin/tsc', import.meta.resolve('typescript/package.json'))
-);
+const { resolve } = createRequire(import.meta.url);
+const parserDirectory = dirname(resolve('@babel/parser/package.json'));
+const compiler = join(dirname(resolve('typescript/package.json')), 'bin/tsc');
 
 afterEach(() => {
 	for (const directory of directories.splice(0)) {
