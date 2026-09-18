@@ -19,6 +19,8 @@
 export const ANDROID_META = {
 	/** Present only when the host bootstraps the core itself. */
 	autoBootstrap: 'com.c15t.reactnative.AUTO_BOOTSTRAP',
+	/** Comma-separated category ids the app offers, read by `C15tAndroid`. */
+	categories: 'com.c15t.CATEGORIES',
 	/** Value sent as the `domain` field of `POST /subjects`. */
 	domain: 'com.c15t.DOMAIN',
 	/** Staged-build switch that forces GPC on. */
@@ -35,6 +37,8 @@ export const IOS_PLIST_KEY = {
 	autoBootstrap: 'com.c15t.reactnative.AutoBootstrap',
 	/** Hosted project URL or self-hosted base URL. */
 	backendURL: 'com.c15t.backend.url',
+	/** Category id array the app offers, read by the iOS bridge. */
+	categories: 'com.c15t.categories',
 	/** Value sent as the `domain` field of `POST /subjects`. */
 	domain: 'com.c15t.backend.domain',
 	/** Staged-build switch that forces GPC on, as a real Boolean. */
@@ -85,6 +89,27 @@ export const EXTRA_KEY = 'c15t';
 
 /** Name recorded in the plugin history so the plugin never runs twice. */
 export const PLUGIN_NAME = '@c15t/react-native/expo-plugin';
+
+/**
+ * Category ids a host may declare, the same list the web provider accepts as
+ * `consentCategories`.
+ *
+ * Transcribed the way the key tables above are: from `ConsentCategory` in both
+ * native cores and `CONSENT_CATEGORIES` in the package's own protocol
+ * vocabulary. The cores drop a name outside this list rather than trusting it,
+ * so the plugin refuses it at prebuild instead of shipping a declaration that
+ * silently narrows to fewer rows than the host typed.
+ */
+export const CONSENT_CATEGORY_IDS = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] as const;
+
+/** One declared consent category id. */
+export type C15tConsentCategoryId = (typeof CONSENT_CATEGORY_IDS)[number];
 
 /**
  * Shape Apple accepts for an SKAdNetwork identifier.

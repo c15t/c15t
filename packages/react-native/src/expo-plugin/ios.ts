@@ -28,8 +28,8 @@ export interface C15tPrivacyManifestDeclarations {
  */
 export const buildInfoPlistEntries = function buildInfoPlistEntries(
 	params: ResolvedC15tParams
-): Record<string, string | boolean> {
-	const entries: Record<string, string | boolean> = {
+): Record<string, string | boolean | string[]> {
+	const entries: Record<string, string | boolean | string[]> = {
 		[IOS_PLIST_KEY.transportMode]: IOS_TRANSPORT_MODE[params.mode],
 	};
 
@@ -41,6 +41,12 @@ export const buildInfoPlistEntries = function buildInfoPlistEntries(
 	}
 	if (params.domain !== null) {
 		entries[IOS_PLIST_KEY.domain] = params.domain;
+	}
+	// A real plist array, not a joined string: the bridge reads this key as
+	// `[String]` and drops names that are not category raw values. An empty
+	// declaration stays unwritten, because absence is the full-scope answer.
+	if (params.consentCategories.length > 0) {
+		entries[IOS_PLIST_KEY.categories] = [...params.consentCategories];
 	}
 	if (params.forceGPC) {
 		entries[IOS_PLIST_KEY.gpc] = true;

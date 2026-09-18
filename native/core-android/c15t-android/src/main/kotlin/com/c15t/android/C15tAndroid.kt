@@ -7,6 +7,7 @@ import android.os.Looper
 import android.util.Log
 import com.c15t.core.C15t
 import com.c15t.core.NativeConfig
+import com.c15t.core.model.ConsentCategory
 import com.c15t.core.model.KernelError
 import com.c15t.core.spi.Clock
 import com.c15t.core.spi.TaskExecutor
@@ -29,6 +30,14 @@ object C15tAndroid {
 
 	const val META_INIT_URL = "com.c15t.INIT_URL"
 	const val META_DOMAIN = "com.c15t.DOMAIN"
+
+	/**
+	 * Comma-separated category ids the app offers, e.g.
+	 * `necessary, functionality, measurement, marketing`. This is the Android
+	 * spelling of the `consentCategories` a web host passes to its provider, and
+	 * iOS reads the same declaration from the `com.c15t.categories` plist array.
+	 */
+	const val META_CATEGORIES = "com.c15t.CATEGORIES"
 
 	@Volatile
 	private var foregroundObserver: C15tForegroundObserver? = null
@@ -137,9 +146,31 @@ object C15tAndroid {
 			portalUrl = portalUrl,
 			initUrl = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_INIT_URL)),
 			domain = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_DOMAIN)),
+			consentCategories = declaredCategories(C15tManifestValue.raw(bundle, META_CATEGORIES)),
 			detectedGpc = C15tManifestValue.boolean(C15tManifestValue.raw(bundle, META_GPC)),
 		)
 	}
+
+	/**
+	 * Parse a declared category scope from manifest text.
+	 *
+	 * The value is a comma-separated list of category ids. Spaces around a name
+	 * are decoration; a name neither core knows is dropped rather than trusted,
+	 * the same call the iOS plist reader makes about an unknown raw value, so a
+	 * typo narrows the rows instead of installing a category that cannot exist.
+	 * `necessary` in the list is harmless: the kernel lists it whatever the
+	 * declaration says, and the declaration only ever narrows the optional set.
+	 *
+	 * @param raw the raw bundle entry, typically `bundle.get(key)`.
+	 * @return the declared categories in declaration order, or `null` when
+	 *   nothing usable is declared, which tells the core to offer the full
+	 *   policy scope.
+	 */
+	fun declaredCategories(raw: Any?): List<ConsentCategory>? =
+		C15tManifestValue.string(raw)
+			?.split(',')
+			?.mapNotNull { ConsentCategory.fromWireName(it.trim()) }
+			?.takeIf { it.isNotEmpty() }
 
 	/** Manifest key that forces GPC on for a staged build. */
 	const val META_GPC = "com.c15t.FORCE_GPC"

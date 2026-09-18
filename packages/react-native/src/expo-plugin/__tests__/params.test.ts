@@ -70,6 +70,39 @@ describe('resolveParams', () => {
 		).toThrowError(/must be one of custom, hosted, offline, selfHosted/u);
 	});
 
+	it('defaults no declared category scope to the full policy scope', () => {
+		// Empty means "write nothing", which the cores read as the full scope.
+		expect(
+			resolveParams({ backendURL: BACKEND }).consentCategories
+		).toStrictEqual([]);
+	});
+
+	it('trims and de-duplicates a declared category scope', () => {
+		expect(
+			resolveParams({
+				backendURL: BACKEND,
+				consentCategories: [' necessary ', 'necessary', 'marketing'],
+			}).consentCategories
+		).toStrictEqual(['necessary', 'marketing']);
+	});
+
+	it('rejects an unknown category with the list of real ones', () => {
+		// The cores drop an unknown name rather than trusting it; a plugin that
+		// wrote it anyway would ship rows the host never typed.
+		expect(() =>
+			resolveParams({
+				backendURL: BACKEND,
+				consentCategories: ['marketing', 'experiance'],
+			})
+		).toThrowError(/unknown: "experiance"/u);
+	});
+
+	it('refuses an empty category list instead of meaning "everything"', () => {
+		expect(() =>
+			resolveParams({ backendURL: BACKEND, consentCategories: [] })
+		).toThrowError(/Omit it entirely to offer the full policy scope/u);
+	});
+
 	it('refuses a domain with a space in it', () => {
 		expect(() =>
 			resolveParams({ backendURL: BACKEND, domain: 'two words' })

@@ -69,6 +69,15 @@ export const buildMetaDataPairs = function buildMetaDataPairs(
 	if (params.domain !== null) {
 		pairs.push({ name: ANDROID_META.domain, value: params.domain });
 	}
+	// The comma-separated spelling `C15tAndroid.declaredCategories` parses; iOS
+	// gets the same list as a plist array. An empty declaration stays unwritten,
+	// because absence is the full-scope answer.
+	if (params.consentCategories.length > 0) {
+		pairs.push({
+			name: ANDROID_META.categories,
+			value: params.consentCategories.join(','),
+		});
+	}
 	if (params.forceGPC) {
 		pairs.push({ name: ANDROID_META.forceGpc, value: 'true' });
 	}
