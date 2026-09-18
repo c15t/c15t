@@ -307,6 +307,25 @@ to the framework, and the `AD_ID` grant that the manifest does carry is set by a
 dialog this app does not own, so reporting it as `denied` would make a consent claim the
 subject never made.
 
+Vendor list scope
+-----------------
+
+The vendor list a core shows is scoped. No core fetches a list: the document on the
+snapshot is the one `/init` served, and scoping is something both sides apply to it.
+
+The filter belongs to one layer. The deployment narrows by its own publisher ids, and
+it puts them in a query only while the id count is small enough to travel safely.
+Above that cap the whole document is fetched and narrowed before it is served, so a
+publisher who scoped wide pays more bytes and never a wider disclosure. The same rule
+lives twice on web, in `packages/iab` when it fetches for itself and in
+`packages/backend` when it serves `/init`. The mobile helpers must return exactly what
+`narrowGVLToVendors` returns for the same document and the same ids. That equal answer
+is owed by a fixture whose expected value came from the web function itself.
+
+An entry is chosen by the key that holds it, never by an `id` inside its own body. A
+body claim that cannot resolve to a GVL vendor is a claim about a vendor nobody knows,
+so it surfaces as a custom vendor or not at all.
+
 Persistence
 -----------
 
