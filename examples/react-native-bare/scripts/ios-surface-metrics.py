@@ -129,6 +129,33 @@ def solid_blue(f, box):
     return total > 0 and blue_count / total >= 0.55
 
 
+def column_blue(f, x, y0, y1):
+    """Fraction of a column that is tab blue across the tab's own height."""
+    total = blue_count = 0
+    for yy in range(int(y0), int(y1)):
+        total += 1
+        if blue(f.get(x, yy)):
+            blue_count += 1
+    return total > 0 and blue_count / total >= 0.5
+
+
+def grow_past_glyphs(f, box):
+    """Extend a tab run across the wordmark painted inside it.
+
+    The row walk closes a run at the first non-blue pixel, and the tab carries white
+    glyphs, so the run it reports stops inside the pill: measured that way the tab came
+    out at 83.3pt against the web's 129.4, a FAIL on a surface that was actually 127.7
+    and inside its own tolerance. A column through a glyph is still mostly the fill
+    behind it, while a column past the pill is the page, so the fill fraction tells the
+    two apart. Only the trailing edge grows: the run starts at the pill's own left edge.
+    """
+    x, y, w, h = box
+    right = int(x + w)
+    while right < f.w_px and column_blue(f, right, y, y + h):
+        right += 1
+    return (x, y, right - x, h)
+
+
 def find_branding_tab(f):
     """The largest filled blue block: the tab, never blue text."""
     best = None
@@ -155,7 +182,9 @@ def find_branding_tab(f):
                         if best is None or area > best[0]:
                             best = (area, box)
                 start = None
-    return None if best is None else best[1]
+    if best is None:
+        return None
+    return grow_past_glyphs(f, best[1])
 
 
 def tab_band(f, tab, mode):
