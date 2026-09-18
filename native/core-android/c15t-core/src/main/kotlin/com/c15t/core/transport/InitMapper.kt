@@ -8,6 +8,8 @@ import com.c15t.core.model.PrivacySignals
 import com.c15t.core.policy.EvaluationPolicy
 import com.c15t.core.policy.PolicyRead
 import com.c15t.core.policy.StrictPolicyReader
+import com.c15t.core.tc.GlobalVendorList
+import com.c15t.core.tc.GlobalVendorListJson
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -46,6 +48,27 @@ data class MappedInit(
 	val translationsLanguage: String? = null,
 	val policySnapshotToken: String? = null,
 	val translations: JsonObject? = null,
+	/**
+	 * The vendor list the backend embedded under `gvl`, already accepted or refused by
+	 * [GlobalVendorListJson.fromInitBody].
+	 *
+	 * `null` covers three cases and treats them as one: the backend sent no `gvl`, because it only
+	 * embeds one when the matched policy's model is `iab` (`packages/backend/src/http/init.ts`); the
+	 * backend sent one and it failed the list contract, which is what the web's `fetchGVL` throws on
+	 * and what the web then serves as no list; and the response was a failure at all, so there was no
+	 * body to read a list out of.
+	 *
+	 * It is null in the third case by construction, and that costs nothing: this field never takes
+	 * anything away. The kernel keeps the last list it accepted across a list-less or failed `/init`,
+	 * for the reason written at [com.c15t.core.C15tKernel.vendorList], so a device that has already
+	 * drawn purpose names off a list keeps being able to say who they belong to. Reading this field
+	 * as "install it, or clear what you have" would be the bug that comment is there to prevent.
+	 *
+	 * No error rides with a refused list. The list is display and encoding data, and the policy
+	 * resolution answered independently of it; failing an `/init` over a vendor list would deny
+	 * consent to a subject whose rule resolved fine.
+	 */
+	val gvl: GlobalVendorList? = null,
 	val error: KernelError? = null,
 )
 
@@ -142,6 +165,7 @@ object InitMapper {
 			translationsLanguage = (body?.get("translations") as? JsonObject)?.stringOrNull("language"),
 			policySnapshotToken = body.stringOrNull("policySnapshotToken"),
 			translations = body?.get("translations") as? JsonObject,
+			gvl = GlobalVendorListJson.fromInitBody(body),
 			error = error,
 		)
 	}

@@ -9,7 +9,9 @@ import com.c15t.core.model.KernelUser
 import com.c15t.core.spi.Clock
 import com.c15t.core.spi.TaskExecutor
 import com.c15t.core.store.C15tStore
+import com.c15t.core.tc.GlobalVendorList
 import com.c15t.core.transport.C15tTransport
+import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -90,6 +92,28 @@ object C15t {
 
 	/** The current snapshot, or a deny-all snapshot before [bootstrap]. */
 	fun snapshot(): ConsentSnapshot = kernel.get()?.snapshot() ?: ConsentSnapshot.denyAll()
+
+	/**
+	 * The vendor list the served disclosure is read out of, or `null` before one has been accepted.
+	 *
+	 * The accessor a host's own Kotlin code and a binding layer use. [C15tKernel.vendorList] states why
+	 * this is a call on the core rather than a field of the snapshot, and why the answer outlives the
+	 * `/init` that served it. With no kernel installed it answers `null`, which is the same answer a
+	 * device with IAB off gives.
+	 */
+	fun vendorList(): GlobalVendorList? = kernel.get()?.vendorList
+
+	/**
+	 * [vendorList] as the JSON body the web reads, for a bridge that forwards a string.
+	 *
+	 * Key names and record shapes are the served document's, unchanged -- see
+	 * [GlobalVendorListJson.toJsonElement]. `null` means there is no list to send, and a bridge that
+	 * sends an absent body for `null` is what a JavaScript layer holding no `gvl` expects.
+	 */
+	fun vendorListBody(): String? = kernel.get()?.vendorListBody()
+
+	/** [vendorListBody] as a document, for a caller composing a larger payload. */
+	fun vendorListJson(): JsonObject? = kernel.get()?.vendorListJson()
 
 	/** Whether [category] may run; false for every optional category until ready. */
 	fun isAllowed(category: ConsentCategory): Boolean = kernel.get()?.isAllowed(category) ?: !category.optional
