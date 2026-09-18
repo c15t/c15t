@@ -115,6 +115,64 @@ describe('withC15t standard install', () => {
 		]);
 	});
 
+	it('writes a declared category scope to both platforms', async () => {
+		// The same declaration, spelled the way each reader wants it: a plist
+		// array on iOS, a comma-separated meta-data value on Android. The
+		// strict-equality tests above already pin that nothing is written when
+		// the host declares no scope.
+		const config = applyToFixture({
+			...STANDARD_PROPS,
+			consentCategories: [
+				'necessary',
+				'functionality',
+				'measurement',
+				'marketing',
+			],
+		});
+
+		const applied = await runInfoPlist(config);
+		expect(applied.ios?.infoPlist).toStrictEqual({
+			ITSAppUsesNonExemptEncryption: false,
+			'com.c15t.backend.mode': 'hosted',
+			'com.c15t.backend.url': BACKEND,
+			'com.c15t.categories': [
+				'necessary',
+				'functionality',
+				'measurement',
+				'marketing',
+			],
+		});
+
+		const manifestApplied = await runMod(
+			config,
+			'android',
+			'manifest',
+			await readFixtureManifest()
+		);
+		const manifest =
+			manifestApplied.modResults as AndroidConfig.Manifest.AndroidManifest;
+		expect(applicationOf(manifest)['meta-data']).toStrictEqual([
+			{
+				$: {
+					'android:name': 'expo.modules.updates.ENABLED',
+					'android:value': 'true',
+				},
+			},
+			{
+				$: {
+					'android:name': 'com.c15t.PORTAL_URL',
+					'android:value': BACKEND,
+				},
+			},
+			{
+				$: {
+					'android:name': 'com.c15t.CATEGORIES',
+					'android:value': 'necessary,functionality,measurement,marketing',
+				},
+			},
+		]);
+	});
+
 	it('registers the c15t initializer through androidx.startup', async () => {
 		const config = applyToFixture(STANDARD_PROPS);
 		const applied = await runMod(

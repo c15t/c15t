@@ -18,6 +18,10 @@
              com.c15t.PORTAL_URL      required: the backend base URL
              com.c15t.INIT_URL        init-route override for a proxy
              com.c15t.DOMAIN          domain sent on subject writes
+             com.c15t.CATEGORIES      comma-separated category scope the app
+                                      offers; iOS spells this the
+                                      com.c15t.categories plist array. Absent
+                                      means the full policy scope.
              com.c15t.FORCE_GPC       force the GPC signal on for a staged build
              com.c15t.reactnative.AUTO_BOOTSTRAP
                                       false only when the app starts the core
@@ -25,6 +29,12 @@
       <meta-data
         android:name="com.c15t.PORTAL_URL"
         android:value="http://localhost:3000/api/self-host" />
+      <!-- The same four categories examples/demo declares to its web provider
+           as consentCategories, so one backend and one policy render the same
+           four dialog rows on web and on mobile. -->
+      <meta-data
+        android:name="com.c15t.CATEGORIES"
+        android:value="necessary, functionality, measurement, marketing" />
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

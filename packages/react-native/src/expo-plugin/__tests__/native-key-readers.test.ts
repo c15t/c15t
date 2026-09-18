@@ -66,6 +66,7 @@ const C15T_KEY_PREFIX = 'com.c15t.';
 const EVERY_KEY_PROPS = {
 	autoBootstrap: false,
 	backendURL: 'https://consent.example.com',
+	consentCategories: ['necessary', 'functionality', 'measurement', 'marketing'],
 	domain: 'app.example.com',
 	forceGPC: true,
 	initURL: 'https://app.example.com/api/consent/init',

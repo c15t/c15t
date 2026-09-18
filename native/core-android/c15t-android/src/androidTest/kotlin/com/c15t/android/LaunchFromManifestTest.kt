@@ -60,6 +60,16 @@ class LaunchFromManifestTest {
 		// built on `getString` plus `toBooleanStrictOrNull` would still see it, and would then
 		// answer "not declared" for the `TRUE` and `1` spellings of the same switch.
 		assertEquals(true, config.detectedGpc)
+		assertEquals(
+			"the declared scope reaches the config in declared order, with the unknown name dropped",
+			listOf(
+				ConsentCategory.NECESSARY,
+				ConsentCategory.FUNCTIONALITY,
+				ConsentCategory.MEASUREMENT,
+				ConsentCategory.MARKETING,
+			),
+			config.consentCategories,
+		)
 	}
 
 	/** The built APK registers `C15tInitializer` with androidx.startup, so the launch hook runs. */

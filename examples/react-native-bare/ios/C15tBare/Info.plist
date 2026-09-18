@@ -76,5 +76,16 @@
 	<string>selfHosted</string>
 	<key>com.c15t.backend.url</key>
 	<string>http://localhost:3000/api/self-host</string>
+	<!-- The same four categories examples/demo declares to its web provider as
+	     consentCategories, so one backend and one policy render the same four
+	     dialog rows on web and on mobile. Android spells this the
+	     com.c15t.CATEGORIES meta-data. -->
+	<key>com.c15t.categories</key>
+	<array>
+		<string>necessary</string>
+		<string>functionality</string>
+		<string>measurement</string>
+		<string>marketing</string>
+	</array>
 </dict>
 </plist>

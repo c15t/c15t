@@ -1010,7 +1010,10 @@ so a same-origin deployment works unchanged. `mode` is `hosted`, `selfHosted`,
 `offline`, or `custom`. There is no credential parameter: a project is identified
 by its backend URL, and neither core's `/init` nor its `/subjects` request carries
 a key, so the plugin has nowhere honest to put one. `forceGPC` is for staged
-builds. `autoBootstrap`
+builds. `consentCategories` declares the categories the app offers, so the same
+backend and the same declaration list the same rows as a web app; an unknown id
+or an empty list fails the prebuild rather than quietly meaning something else.
+`autoBootstrap`
 defaults to `true`, and to `false` under `mode: 'custom'`, where leaving it on
 would race the host. `skipNativeBuildCheck` waives the Expo Go check for a
 harness that drives `expo start` in a container without opening Expo Go.
@@ -1028,6 +1031,7 @@ Android through `C15tAndroid` and `C15tReactNativeBootstrap`:
     com.c15t.backend.domain             com.c15t.DOMAIN
     com.c15t.gpc                        com.c15t.FORCE_GPC
     com.c15t.backend.initUrl            com.c15t.INIT_URL
+    com.c15t.categories                 com.c15t.CATEGORIES
     com.c15t.reactnative.AutoBootstrap  com.c15t.reactnative.AUTO_BOOTSTRAP
 
 The two spellings differ because the readers already did, and a plugin that
@@ -1035,6 +1039,20 @@ tidied that up would write keys nothing reads. Absent values stay absent: the
 bridge treats a missing key as "not configured" and has to parse an empty
 string. `AutoBootstrap` is written only in the opt-out case, since on is the
 bridge's own default.
+
+`consentCategories` is the host-facing parameter; the two keys are its native
+spellings, the same declaration a web host passes to its provider as
+`consentCategories`. The list is what the app offers, and it only ever narrows
+the optional half of the resolved policy scope: `snapshot.consentCategories` is
+`necessary` plus (scope ∩ declaration), a name the policy does not govern is
+dropped, and with no declaration the full scope is offered. iOS reads a string
+array and drops entries that are not category raw values; Android reads a
+comma-separated list, trims spaces around each name, and drops unknown names the
+same way, so a mistyped id narrows the rows rather than installing a category
+that cannot exist. A declaration that parses to nothing reads as absent, which
+is the full-scope answer, not an empty dialog. Neither key travels to JavaScript
+through `extra.c15t`: the snapshot already carries the decided list, and a
+second copy could only disagree with it.
 
 Android types the value, not the app: an unquoted `android:value="true"` reaches the
 meta-data bundle as a `Boolean` and an unquoted `1` as a `Long`, and only a quoted

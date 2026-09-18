@@ -1,4 +1,8 @@
-import { SK_AD_NETWORK_IDENTIFIER_PATTERN } from './constants';
+import {
+	CONSENT_CATEGORY_IDS,
+	SK_AD_NETWORK_IDENTIFIER_PATTERN,
+} from './constants';
+import type { C15tConsentCategoryId } from './constants';
 import { C15tPluginError } from './errors';
 
 /**
@@ -79,6 +83,16 @@ export interface C15tPluginProps {
 	initURL?: string;
 	/** Value sent as the `domain` field of `POST /subjects`. */
 	domain?: string;
+	/**
+	 * The consent categories this app offers, the mobile spelling of the
+	 * `consentCategories` a web host passes to its provider.
+	 *
+	 * The declaration only narrows the optional half of the resolved policy
+	 * scope: a surface lists `necessary` plus the scope the policy governs that
+	 * this list also names, so the same backend and the same declaration render
+	 * the same rows on web and mobile. Omit it to offer the full policy scope.
+	 */
+	consentCategories?: readonly C15tConsentCategoryId[];
 	/**
 	 * Transport mode.
 	 *
@@ -162,6 +176,14 @@ export interface ResolvedC15tParams {
 	readonly initURL: string | null;
 	/** `domain` sent on subject writes, or `null` to let the core derive it. */
 	readonly domain: string | null;
+	/**
+	 * Category ids the app declares, de-duplicated; empty means no declaration.
+	 *
+	 * Written as the `com.c15t.categories` plist array and the comma-separated
+	 * `com.c15t.CATEGORIES` meta-data. Absent keys are the full-scope answer,
+	 * so the empty list is written nowhere rather than as an empty value.
+	 */
+	readonly consentCategories: readonly C15tConsentCategoryId[];
 	/** App Tracking Transparency opt-in, resolved. */
 	readonly appTrackingTransparency: {
 		readonly enabled: boolean;
@@ -281,6 +303,43 @@ const normalizeTrackingDomain = function normalizeTrackingDomain(
 	return trimmed.toLowerCase();
 };
 
+const normalizeConsentCategories = function normalizeConsentCategories(
+	categories: readonly string[] | undefined
+): C15tConsentCategoryId[] {
+	if (categories === undefined) {
+		return [];
+	}
+	if (categories.length === 0) {
+		// An empty list means "no declaration" to both cores, which is the full
+		// policy scope: the opposite of what a host typing `[]` looks like it
+		// means. Omitting the parameter says the full-scope thing honestly.
+		throw new C15tPluginError(
+			'consentCategories must name at least one category. Omit it ' +
+				'entirely to offer the full policy scope.'
+		);
+	}
+	const trimmed = categories.map((category) => category.trim());
+	const unknown = [
+		...new Set(
+			trimmed.filter(
+				(category) =>
+					!(CONSENT_CATEGORY_IDS as readonly string[]).includes(category)
+			)
+		),
+	];
+	if (unknown.length > 0) {
+		// Both cores drop an unknown name rather than trusting it, so writing it
+		// would ship a declaration whose rows quietly differ from the list the
+		// host typed. Refuse it while someone is still reading app.json.
+		throw new C15tPluginError(
+			`consentCategories accepts only ` +
+				`${CONSENT_CATEGORY_IDS.join(', ')}; unknown: ` +
+				`${unknown.map((name) => JSON.stringify(name)).join(', ')}.`
+		);
+	}
+	return [...new Set(trimmed)] as C15tConsentCategoryId[];
+};
+
 const resolveAppTrackingTransparency = function resolveAppTrackingTransparency(
 	props: C15tPluginProps
 ): ResolvedC15tParams['appTrackingTransparency'] {
@@ -391,6 +450,7 @@ export const resolveParams = function resolveParams(
 		autoBootstrap: props.autoBootstrap ?? mode !== 'custom',
 		backendHost,
 		backendURL,
+		consentCategories: normalizeConsentCategories(props.consentCategories),
 		domain: normalizeOptionalText(props.domain, 'domain'),
 		forceGPC: props.forceGPC ?? false,
 		initURL,

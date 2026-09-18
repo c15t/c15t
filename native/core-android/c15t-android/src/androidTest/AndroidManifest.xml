@@ -21,6 +21,15 @@
 			android:name="com.c15t.DOMAIN"
 			android:value="consent.instrumentation.invalid" />
 		<!--
+			The declared category scope, comma-separated, with a trailing name
+			neither core knows. `configFrom` has to keep the four real ids in
+			declared order and drop the unknown one, exactly as the iOS plist
+			reader drops an unknown raw value.
+		-->
+		<meta-data
+			android:name="com.c15t.CATEGORIES"
+			android:value="necessary, functionality, measurement, marketing, not-a-category" />
+		<!--
 			Unquoted on purpose. The parser hands an unquoted `true` over as a Boolean and
 			a quoted `"true"` as text, and a reader that names one of the two honours only
 			whichever spelling the app happened to type.

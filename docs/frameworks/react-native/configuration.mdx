@@ -89,6 +89,7 @@ Read by `C15tAndroid.configFrom` and the bridge's own bootstrap, from the applic
 | `com.c15t.PORTAL_URL` | Backend base URL. Without it there is nothing to talk to, so the core stays uninstalled and every read answers deny-all. |
 | `com.c15t.INIT_URL` | Override `${PORTAL_URL}/init`, for a proxied init route. |
 | `com.c15t.DOMAIN` | Value sent as the `domain` field of `POST /subjects`. |
+| `com.c15t.CATEGORIES` | Comma-separated category ids the app declares, e.g. `necessary, functionality, measurement, marketing`. Spaces around a name are ignored and an unknown name is dropped; a list with nothing usable reads as absent. iOS spells this the `com.c15t.categories` array. |
 | `com.c15t.FORCE_GPC` | Staged-build switch that forces GPC on. |
 | `com.c15t.reactnative.AUTO_BOOTSTRAP` | `false` opts out of the launch hook. Only written when you opt out. |
 
@@ -130,8 +131,17 @@ returns what the native side reported, including `nativeSdkVersion` and
 ## Expo plugin parameters
 
 `C15tPluginProps` accepts `backendURL`, `initURL`, `domain`, `mode`,
-`enableAppTrackingTransparency`, `trackingUsageDescription`, `skAdNetworkIdentifiers`,
+`consentCategories`, `enableAppTrackingTransparency`,
+`trackingUsageDescription`, `skAdNetworkIdentifiers`,
 `privacyTrackingDomains`, `forceGPC`, `autoBootstrap` and `skipNativeBuildCheck`.
+
+`consentCategories` is the mobile spelling of the `consentCategories` a web
+provider takes: the category ids your app offers. It reaches both platforms as
+one declaration and only narrows the optional half of the resolved policy scope,
+so the same backend and the same list render the same dialog rows on web and
+mobile. Omit it to offer the full policy scope. An unknown id or an empty list
+fails the prebuild rather than shipping a declaration that reads differently
+than you typed it.
 
 Everything in it is published inside the app binary, so nothing there may be a secret.
 There is no credential parameter to reach for: a c15t project is identified by its
