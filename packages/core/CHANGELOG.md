@@ -1,5 +1,15 @@
 # c15t
 
+## 2.2.0-canary-20260918135847
+
+### Patch Changes
+
+- 9c613d4: Preserve choices saved while the consent store is starting. Read the latest consent state after calculating the policy fingerprint so startup cannot restore an older choice or timestamp in storage.
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [9c613d4]
+  - @c15t/schema@2.1.1-canary-20260918135847
+  - @c15t/translations@2.2.0-canary-20260918135847
+
 ## 2.2.0-canary-20260814121231
 
 ### Patch Changes

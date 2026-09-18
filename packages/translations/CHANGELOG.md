@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 2.2.0-canary-20260918135847
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
 ## 2.2.0-canary-20260727202135
 
 ### Minor Changes
