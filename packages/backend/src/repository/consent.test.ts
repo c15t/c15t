@@ -260,6 +260,17 @@ describe('assertSameVendors', () => {
 		);
 	});
 
+	it('reads a stored value that is not a vendor map as absent', async () => {
+		assert.strictEqual(
+			(await run(assertSameVendors('{}', undefined)))._tag,
+			'Success'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors('{}', grants)))._tag,
+			'Failure'
+		);
+	});
+
 	it('treats absent on both sides as the same submission', async () => {
 		assert.strictEqual(
 			(await run(assertSameVendors(null, undefined)))._tag,
