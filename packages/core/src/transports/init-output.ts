@@ -15,7 +15,7 @@ import type {
 	PolicyResolutionWire,
 } from '@c15t/schema/types';
 
-import { resolveVendors } from '../libs/vendors';
+import { resolveVendors, withoutManifestVendors } from '../libs/vendors';
 import type {
 	InitResponse,
 	KernelBranding,
@@ -286,7 +286,7 @@ export const mergeInitResponseIntoKernelConfig =
 				existing:
 					response.vendors === undefined
 						? existing
-						: existing.filter((vendor) => vendor.source !== 'manifest'),
+						: withoutManifestVendors(existing),
 				manifest: response.vendors ?? [],
 			});
 			const listVersion =

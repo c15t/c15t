@@ -123,6 +123,56 @@ const sameVendor = function sameVendor(
 	);
 };
 
+/** One condition for every owner of a slug. */
+const ownerCondition = function ownerCondition(
+	categories: readonly HasCondition<AllConsentNames>[]
+): HasCondition<AllConsentNames> {
+	return categories.length === 1 && categories[0] !== undefined
+		? categories[0]
+		: { or: [...categories] };
+};
+
+/**
+ * The script-sourced fallback a manifest entry carries, when scripts or rules
+ * also name its slug. Used when a later backend list drops the vendor.
+ */
+export const ownerFallback = function ownerFallback(
+	vendor: ResolvedVendor
+): ResolvedVendor | null {
+	if (!vendor.ownerCategory) {
+		return null;
+	}
+	return {
+		category: vendor.ownerCategory,
+		disabled: onlyNecessary(vendor.ownerCategory) || undefined,
+		id: vendor.id,
+		presentable: false,
+		source: 'script',
+	};
+};
+
+/**
+ * A resolved list with the backend's entries removed, each replaced by the
+ * script-sourced fallback it carried, if any. The input to a fresh manifest
+ * merge, so a vendor the backend dropped keeps gating its scripts.
+ */
+export const withoutManifestVendors = function withoutManifestVendors(
+	declared: readonly ResolvedVendor[]
+): ResolvedVendor[] {
+	const kept: ResolvedVendor[] = [];
+	for (const vendor of declared) {
+		if (vendor.source !== 'manifest') {
+			kept.push(vendor);
+			continue;
+		}
+		const fallback = ownerFallback(vendor);
+		if (fallback) {
+			kept.push(fallback);
+		}
+	}
+	return kept;
+};
+
 /**
  * Merge two resolved lists by id. The entry with the higher-priority source
  * keeps its presentation; when the sources tie the incoming entry wins so a
@@ -183,7 +233,18 @@ export const resolveVendors = function resolveVendors(
 			!existing ||
 			SOURCE_RANK[candidate.source] <= SOURCE_RANK[existing.source]
 		) {
-			byId.set(candidate.id, candidate);
+			// A backend entry that replaces a script fallback remembers it.
+			const ownerCategory =
+				candidate.source === 'manifest'
+					? (candidate.ownerCategory ??
+						(existing?.source === 'script'
+							? existing.category
+							: existing?.ownerCategory))
+					: undefined;
+			byId.set(
+				candidate.id,
+				ownerCategory ? { ...candidate, ownerCategory } : candidate
+			);
 		}
 	};
 	// A declared id that the wire cannot carry as a grant key is dropped with
@@ -220,13 +281,20 @@ export const resolveVendors = function resolveVendors(
 		ownerCategories.set(owner.vendor, list);
 	}
 	for (const [id, categories] of ownerCategories) {
-		if (byId.has(id)) {
+		const existing = byId.get(id);
+		// A declared vendor keeps its own presentation, but its owners' categories
+		// are remembered so that dropping the declaration later leaves a
+		// script-sourced fallback rather than nothing.
+		if (existing) {
+			if (existing.source === 'manifest' && !existing.ownerCategory) {
+				byId.set(id, {
+					...existing,
+					ownerCategory: ownerCondition(categories),
+				});
+			}
 			continue;
 		}
-		const category: HasCondition<AllConsentNames> =
-			categories.length === 1 && categories[0] !== undefined
-				? categories[0]
-				: { or: categories };
+		const category = ownerCondition(categories);
 		byId.set(id, {
 			category,
 			disabled: onlyNecessary(category) || undefined,

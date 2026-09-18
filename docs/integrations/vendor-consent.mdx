@@ -129,9 +129,11 @@ vendor is off, so the vendor's own consent API cannot re-enable tracking.
 ## What a denial does not do
 
 Turning a vendor off blocks future loads and requests. It does not delete the
-cookies that vendor already set. Configure
-[clear on revocation](/docs/integrations/clear-on-revocation) for that, keyed by
-the vendor's category.
+cookies that vendor already set, and
+[clear on revocation](/docs/integrations/clear-on-revocation) does not help here:
+it runs when a category is denied, and the category stays granted when only one
+of its vendors is off. Remove that vendor's cookies yourself from an
+`onConsentChange` callback that checks `info.vendor.granted`.
 
 A vendor denial has no expiry and no policy basis. It stays until the visitor
 changes it or a bulk action clears it, including across a policy change that

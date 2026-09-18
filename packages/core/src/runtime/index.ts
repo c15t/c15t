@@ -292,9 +292,10 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			...integrations.flatMap((integration) =>
 				extractConsentNamesFromCondition(integration.category)
 			),
-			// A vendor declared in code makes its category selectable, the same
-			// way a script or rule would.
-			...(options.vendors ?? []).flatMap((vendor) =>
+			// Every declared vendor, from code or a resolved prefetch, makes its
+			// category selectable at construction, so the server snapshot and the
+			// hydrated one evaluate the same scope.
+			...declaredVendors.flatMap((vendor) =>
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],

@@ -160,12 +160,15 @@ describe('createRuntimeKernel', () => {
 				},
 			],
 		});
-		const { vendors } = kernel.getServerSnapshot();
+		const { vendors, consentCategories } = kernel.getServerSnapshot();
 		expect(vendors?.listVersion).toBe('2026-09');
 		expect(vendors?.declared.map((vendor) => vendor.id)).toEqual([
 			'google-analytics',
 			'meta-pixel',
 		]);
+		// The prefetched backend vendor's category is selectable at construction,
+		// so the server snapshot and the hydrated one agree on scope.
+		expect(consentCategories).toContain('measurement');
 	});
 
 	test('a disabled runtime ignores a prefetched vendor denial', () => {

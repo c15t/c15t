@@ -1,7 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import type { ResolvedVendor } from '../../types';
-import { mergeDeclaredVendors, resolveVendors } from '../vendors';
+import {
+	mergeDeclaredVendors,
+	resolveVendors,
+	withoutManifestVendors,
+} from '../vendors';
 
 const meta = {
 	category: 'marketing' as const,
@@ -123,6 +127,37 @@ describe('resolveVendors', () => {
 			config: [{ ...meta, disabled: true }],
 		});
 		expect(resolved[0]?.disabled).toBe(true);
+	});
+});
+
+describe('owner fallback across manifest replacement', () => {
+	test('a backend vendor that scripts also name falls back to a script entry when the backend drops it', () => {
+		const first = resolveVendors({
+			manifest: [meta],
+			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
+		});
+		expect(first[0]?.source).toBe('manifest');
+		expect(first[0]?.ownerCategory).toBe('measurement');
+		const afterRemoval = resolveVendors({
+			existing: withoutManifestVendors(first),
+			manifest: [],
+		});
+		expect(afterRemoval).toEqual([
+			{
+				category: 'measurement',
+				disabled: undefined,
+				id: 'meta-pixel',
+				presentable: false,
+				source: 'script',
+			},
+		]);
+	});
+
+	test('a backend vendor with no owners disappears when the backend drops it', () => {
+		const first = resolveVendors({ manifest: [meta] });
+		expect(
+			resolveVendors({ existing: withoutManifestVendors(first), manifest: [] })
+		).toEqual([]);
 	});
 });
 

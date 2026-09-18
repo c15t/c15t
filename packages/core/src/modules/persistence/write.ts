@@ -92,9 +92,9 @@ export const writePrivacyToStorage = function writePrivacyToStorage(
 };
 
 /**
- * Write the vendor denial list. A snapshot with no denials removes the
- * record so an empty list never lingers in storage. No-op outside the
- * browser.
+ * Write the vendor denial list. A `null` decision removes the record; an
+ * empty list is written, since its time is what lets it supersede an older
+ * server denial. No-op outside the browser.
  */
 export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 	snapshot: ConsentSnapshot,

@@ -36,6 +36,7 @@ import type {
 } from './consent-record/types';
 import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
+import type { HasCondition } from './libs/has';
 
 // Re-export schema types that consumers need so they don't have to
 // import from @c15t/schema directly for routine work.
@@ -220,6 +221,12 @@ export type ResolvedVendor = Pick<Vendor, 'id' | 'category'> &
 	Partial<Omit<Vendor, 'id' | 'category'>> & {
 		source: VendorSource;
 		presentable: boolean;
+		/**
+		 * Condition of the scripts or rules that also name this slug, kept on a
+		 * backend-sourced entry so a later backend list that drops the vendor
+		 * leaves a script-sourced fallback instead of nothing.
+		 */
+		ownerCategory?: HasCondition<AllConsentNames>;
 	};
 
 /**

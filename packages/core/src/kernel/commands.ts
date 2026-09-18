@@ -292,7 +292,8 @@ const applyVendorGrants = function applyVendorGrants(
  *   top of the current denials. Ids that are not declared, or are declared
  *   `disabled`, are ignored.
  *
- * An empty list is represented as `null`. Returns the current value when
+ * Lifting every denial leaves a timestamped empty list, never `null`: `null`
+ * means no vendor decision was ever made. Returns the current value when
  * nothing usable was supplied, so an unchanged save never renews the time.
  */
 export const resolveVendorSelection = function resolveVendorSelection(
