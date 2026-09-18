@@ -121,6 +121,27 @@ describe('script-owned vendor declarations', () => {
 		expect(declared.map((vendor) => [vendor.id, vendor.source])).toEqual([
 			['meta-pixel', 'script'],
 		]);
+		// The script moves category: the vendor moves with it.
+		loader.updateScripts([
+			script({ callbackOnly: true, category: 'measurement' }),
+		]);
+		expect(kernel.getSnapshot().vendors?.declared[0]?.category).toBe(
+			'measurement'
+		);
+		loader.dispose();
+		kernel.dispose();
+	});
+
+	test('a script with a nested condition does not get its config frozen', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			now: NOW,
+		});
+		const category = { or: ['marketing', 'measurement'] as const };
+		const loader = createScriptLoader({ kernel, scripts: [] });
+		loader.updateScripts([script({ callbackOnly: true, category })]);
+		expect(Object.isFrozen(category)).toBe(false);
+		expect(Object.isFrozen(category.or)).toBe(false);
 		loader.dispose();
 		kernel.dispose();
 	});

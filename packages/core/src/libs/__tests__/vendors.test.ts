@@ -69,6 +69,27 @@ describe('resolveVendors', () => {
 		expect(onWarn.mock.calls[0]?.[0]).toContain('hotjar');
 	});
 
+	test('a script fallback follows its script to a new category', () => {
+		const first = resolveVendors({
+			owners: [{ category: 'marketing', vendor: 'hotjar' }],
+		});
+		const moved = resolveVendors({
+			existing: first,
+			owners: [{ category: 'measurement', vendor: 'hotjar' }],
+		});
+		expect(moved[0]?.category).toBe('measurement');
+		expect(moved[0]?.source).toBe('script');
+	});
+
+	test('owner conditions are copied so freezing the snapshot leaves the script alone', () => {
+		const category = { or: ['marketing', 'measurement'] as const };
+		const resolved = resolveVendors({
+			owners: [{ category, vendor: 'hotjar' }],
+		});
+		expect(resolved[0]?.category).toEqual(category);
+		expect(resolved[0]?.category).not.toBe(category);
+	});
+
 	test('a declared vendor silences the script warning and keeps its own category', () => {
 		const onWarn = vi.fn();
 		const resolved = resolveVendors({

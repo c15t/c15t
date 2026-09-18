@@ -126,22 +126,36 @@ const sameVendor = function sameVendor(
 	);
 };
 
+/** The script-sourced entry a set of owner categories would produce. */
+const scriptEntry = function scriptEntry(
+	id: string,
+	category: HasCondition<AllConsentNames>
+): ResolvedVendor {
+	return {
+		category,
+		disabled: onlyNecessary(category) || undefined,
+		id,
+		presentable: false,
+		source: 'script',
+	};
+};
+
 /**
- * A declared entry that remembers the owners of its slug. The category lands
- * on the outermost declaration that has none yet and on the copy it shadows,
- * so whichever declaration is left after a removal still knows its owners.
+ * An entry brought up to date with the current owners of its slug. A
+ * script-sourced entry takes the owners' condition as its category, so a
+ * script that moves to another category moves the vendor with it. A declared
+ * entry keeps its own category and remembers the condition, on itself and on
+ * the copy it shadows, so whichever declaration is left after a removal
+ * still knows its owners.
  */
 const withOwners = function withOwners(
 	vendor: ResolvedVendor,
 	ownerCategory: HasCondition<AllConsentNames>
 ): ResolvedVendor {
 	if (vendor.source === 'script') {
-		return vendor;
+		return scriptEntry(vendor.id, ownerCategory);
 	}
-	const next: ResolvedVendor = { ...vendor };
-	if (!next.ownerCategory) {
-		next.ownerCategory = ownerCategory;
-	}
+	const next: ResolvedVendor = { ...vendor, ownerCategory };
 	if (next.shadowed) {
 		next.shadowed = withOwners(next.shadowed, ownerCategory);
 	}
@@ -170,20 +184,6 @@ const ownerCondition = function ownerCondition(
 	return categories.length === 1 && categories[0] !== undefined
 		? categories[0]
 		: { or: [...categories] };
-};
-
-/** The script-sourced entry a set of owner categories would produce. */
-const scriptEntry = function scriptEntry(
-	id: string,
-	category: HasCondition<AllConsentNames>
-): ResolvedVendor {
-	return {
-		category,
-		disabled: onlyNecessary(category) || undefined,
-		id,
-		presentable: false,
-		source: 'script',
-	};
 };
 
 /**
@@ -378,7 +378,9 @@ export const resolveVendors = function resolveVendors(
 			continue;
 		}
 		const list = ownerCategories.get(owner.vendor) ?? [];
-		list.push(owner.category);
+		// A plain copy: the snapshot freezes what it holds, and the caller's
+		// script or rule configuration must stay theirs to mutate.
+		list.push(copyCategory(owner.category));
 		ownerCategories.set(owner.vendor, list);
 	}
 	for (const [id, categories] of ownerCategories) {
@@ -405,10 +407,12 @@ export const resolveVendors = function resolveVendors(
 /**
  * Declare the vendors a set of scripts or rules owns on the kernel, merging
  * over the entries it already holds. Called by an integration when its list
- * is set or swapped, so a slug introduced later still becomes toggleable and
- * a declared vendor learns its new owner. Nothing is removed: another
- * integration may still name the slug, and the runtime owner replaces the
- * script source as a whole when it knows every integration.
+ * is set or swapped, so a slug introduced later still becomes toggleable, a
+ * slug whose script moved category follows it, and a declared vendor learns
+ * its new owner. Nothing is removed: another integration may still name the
+ * slug. An integration only knows its own list, so a slug two integrations
+ * share takes the category of the one that declared last; a host that knows
+ * every integration resolves with the full owner set instead.
  */
 export const declareOwnedVendors = function declareOwnedVendors(
 	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
