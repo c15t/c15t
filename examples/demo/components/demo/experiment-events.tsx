@@ -1,9 +1,35 @@
 'use client';
 
-import type { ExperimentReportEvent } from 'c15t';
+import type { ExperimentReportEvent, ExperimentReporter } from 'c15t';
 import { useExperiment } from 'c15t/react';
+import { useCallback, useState } from 'react';
 
 import { Badge } from '../ui/badge';
+
+/**
+ * Collects the events one experiment run reports. `run` names the run
+ * (arm and switch); when it changes the list starts over, so the readout
+ * never shows events from a previous assignment.
+ */
+export const useExperimentLog = function useExperimentLog(run: string): {
+	events: readonly ExperimentReportEvent[];
+	report: ExperimentReporter;
+} {
+	const [log, setLog] = useState<{
+		events: ExperimentReportEvent[];
+		run: string;
+	}>({ events: [], run });
+	const report = useCallback<ExperimentReporter>(
+		(event) => {
+			setLog((previous) => ({
+				events: previous.run === run ? [...previous.events, event] : [event],
+				run,
+			}));
+		},
+		[run]
+	);
+	return { events: log.run === run ? log.events : [], report };
+};
 
 /**
  * Lists the events the banner-shape experiment reported so far. The same

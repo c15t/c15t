@@ -5,15 +5,9 @@ import {
 	useConsent,
 	useExperiment,
 } from 'c15t/tanstack-start';
-import {
-	lazy,
-	Suspense,
-	useContext,
-	useEffect,
-	useSyncExternalStore,
-} from 'react';
+import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
 
-import { ExperimentEventsContext } from './__root';
+import { useExperimentEvents } from '../experiment';
 
 const subscribe = () => () => {
 	/* Hydration state has no external events. */
@@ -27,7 +21,7 @@ const DevTools = import.meta.env.DEV
 
 /** The assigned arm and the events the experiment reported so far. */
 const ExperimentReadout = () => {
-	const events = useContext(ExperimentEventsContext);
+	const events = useExperimentEvents();
 	const assignment = useExperiment();
 	if (!events) {
 		return null;

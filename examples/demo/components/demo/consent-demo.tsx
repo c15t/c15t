@@ -1,6 +1,5 @@
 'use client';
 
-import type { ExperimentReportEvent } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -15,7 +14,7 @@ import {
 	IABProvider,
 } from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { createDemoScripts } from '../../lib/demo-scripts';
 import { demoExperiment, parseSurfaceParams } from '../../lib/prompt-surface';
@@ -38,7 +37,7 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { VideoDemo } from '../video-demo';
-import { ExperimentEvents } from './experiment-events';
+import { ExperimentEvents, useExperimentLog } from './experiment-events';
 import { LiquidGlassFilter } from './liquid-glass-filter';
 import { LiveStatus } from './live-status';
 
@@ -223,16 +222,14 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	// `?experiment=1` swaps the scenario presentation for the banner-shape
 	// experiment; `&arm=bar` forces the arm the way a flag provider would.
 	const surface = parseSurfaceParams(searchParams);
-	const [experimentEvents, setExperimentEvents] = useState<
-		ExperimentReportEvent[]
-	>([]);
 	const { experiment: experimentEnabled, arm } = surface;
+	// The log belongs to one experiment run: switching the arm or turning
+	// the experiment off starts a fresh list instead of mixing runs.
+	const experimentRun = experimentEnabled ? `exp:${arm}` : '';
+	const { events: experimentEvents, report } = useExperimentLog(experimentRun);
 	const experiment = useMemo(
-		() =>
-			demoExperiment({ arm, experiment: experimentEnabled }, (event) =>
-				setExperimentEvents((previous) => [...previous, event])
-			),
-		[experimentEnabled, arm]
+		() => demoExperiment({ arm, experiment: experimentEnabled }, report),
+		[experimentEnabled, arm, report]
 	);
 	const isSelfHost = backend === 'self-host';
 	const hostedLabel = isSelfHost ? 'Self-hosted' : 'Hosted';
@@ -283,7 +280,14 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 	// Remount the provider whenever the simulated environment changes so the
 	// consent manager re-initializes from scratch.
-	const providerKey = `${backend}-${params.mode}-${params.scenarioId}-${params.country}-${params.region}-${surface.experiment ? `exp:${surface.arm}` : ''}`;
+	const providerKey = [
+		backend,
+		params.mode,
+		params.scenarioId,
+		params.country,
+		params.region,
+		experimentRun,
+	].join('-');
 
 	// Use the default theme during SSR/hydration to avoid mismatches, then
 	// switch to the visitor's preset. The IAB banner keeps its default
