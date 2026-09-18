@@ -8,6 +8,7 @@ import type {
 	SaveResult,
 	SaveInput,
 } from '@c15t/core';
+import { deniedVendorIds } from '@c15t/core';
 import {
 	createContext,
 	useCallback,
@@ -28,8 +29,10 @@ export interface ConsentDraftHandle {
 	values: Readonly<ConsentState>;
 	displayedCategories: readonly AllConsentNames[];
 	/**
-	 * Granted flag per declared vendor. Seeded from the recorded denials;
-	 * every vendor not denied is `true`. Empty under an `iab` policy.
+	 * Granted flag per declared vendor. Seeded from the denials the gate
+	 * honors, so a vendor declared `disabled` reads `true` whatever an older
+	 * record says; every vendor not denied is `true`. Empty under an `iab`
+	 * policy.
 	 */
 	vendors: Readonly<Record<string, boolean>>;
 	isDirty: boolean;
@@ -58,7 +61,10 @@ const seedVendors = function seedVendors(
 	if (snapshot.model === 'iab') {
 		return grants;
 	}
-	const denied = new Set(snapshot.vendorChoice?.denied);
+	// The kernel's own gate view: a stale denial for a vendor now declared
+	// `disabled` does not count, so the draft never reports a vendor as off
+	// while every gate allows it.
+	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
 	for (const vendor of snapshot.vendors?.declared ?? []) {
 		grants[vendor.id] = !denied.has(vendor.id);
 	}
