@@ -160,3 +160,26 @@ identical in this comparison; only bridge error handling changed.
 
 All 12 live checks passed again after deploying this source to the Inth demo.
 `readiness-live-results.json` records its source and deployment identifiers.
+
+
+## Completion status follow-up
+
+Commit `3ca8e201f` prevents an old element's completion callback from marking
+a replacement resource as loaded or failed. Two regressions reproduced the
+incorrect status before the fix. A third confirms that successful completion
+still reports loaded when the callback removes its own element. The post-callback
+guard checks loader registration, allowing this self-removal behavior.
+
+All 11 focused build/test/type-check tasks passed, including 1,108 core,
+426 scripts and 65 DevTools tests. Core test types and lint passed. Local CI's
+repository job passed after the documented Git-wrapper repair; downstream
+jobs were not repeated because of its established artifact-emulator failure.
+
+Against `2c115f25a`, the loader grows from 5,997 to 6,013 gzip bytes, an increase
+of 16 bytes. The bridge remains 927 gzip bytes. Empty-loader median changes
+from 1.6 to 1.4 microseconds and p95 from 2.0 to 1.8. The 50-callback median
+changes from 9.0 to 9.2 microseconds and p95 from 11.2 to 10.4. The bridge
+measures 1.8 microseconds per update, with p95 at 2.4. These measurements do
+not establish a speedup. Raw samples and source hashes are in
+`completion-results.json`. The live deployment remains on `77018cc5d`; this
+follow-up changes loader diagnostics and is covered by the core regressions.
