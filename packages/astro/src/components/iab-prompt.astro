@@ -28,7 +28,7 @@
  * <IABConsentDialog />
  * ```
  */
-import { defaultTranslationConfig, resolveConsentPresentation } from '@c15t/core';
+import { applyExperimentAssignment, defaultTranslationConfig, resolveConsentPresentation } from '@c15t/core';
 import type { TranslationsResponse } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import {
@@ -86,12 +86,16 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
-const { blocking } = resolveConsentPresentation({
+// The experiment arm is the host-resolved `variant`, already on the server
+// snapshot, so the root renders the arm's shape and position the same way
+// the browser IAB surface does.
+const presentation = resolveConsentPresentation({
 	override: { scrollLock },
 	policy: snapshot.policyRule,
-	presentation: c15t.options.presentation,
+	presentation: applyExperimentAssignment(c15t.options.presentation, c15t.options.experiment, snapshot.experiment),
 	surface: 'prompt',
 });
+const { blocking, variant } = presentation;
 const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
@@ -130,6 +134,22 @@ const copy = {
 };
 
 const textDirection = getTextDirection(snapshot.translations?.language);
+
+// A default corner mirrors for RTL, as in the browser IAB surface; a host
+// (or arm) that set the position keeps it.
+const mirrorCorner = function mirrorCorner(corner: string): string {
+	if (corner.endsWith('-left')) {
+		return corner.replace(/-left$/u, '-right');
+	}
+	if (corner.endsWith('-right')) {
+		return corner.replace(/-right$/u, '-left');
+	}
+	return corner;
+};
+const position =
+	textDirection === 'rtl' && presentation.positionSource === 'default'
+		? mirrorCorner(presentation.position)
+		: presentation.position;
 
 const descriptionText = copy.description.replace(
 	'{partnerCount}',
@@ -192,8 +212,9 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 			class={rootClass}
 			data-c15t-visible="true"
 			data-blocking={blocking ? 'true' : undefined}
-			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-position={position}
 			data-testid="iab-consent-banner-root"
+			data-variant={variant}
 			dir={textDirection}
 			lang={snapshot.translations?.language}
 			tabindex="-1"

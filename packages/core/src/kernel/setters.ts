@@ -6,6 +6,7 @@
  * anything.
  */
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentState,
@@ -107,6 +108,19 @@ export const buildSetters = function buildSetters(
 
 		draft(input: Partial<ConsentState>): void {
 			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
+		},
+
+		experiment(assignment: ExperimentAssignment | null): void {
+			const current = getSnapshot().experiment;
+			if (
+				current?.id === assignment?.id &&
+				current?.variant === assignment?.variant &&
+				current?.assignedBy === assignment?.assignedBy &&
+				current?.acknowledgedDiagnostics === assignment?.acknowledgedDiagnostics
+			) {
+				return;
+			}
+			commit({ experiment: assignment ? { ...assignment } : null });
 		},
 
 		iab(input: Partial<KernelIABState>): void {

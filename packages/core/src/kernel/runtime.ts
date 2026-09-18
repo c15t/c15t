@@ -275,12 +275,20 @@ export const createRuntime = function createRuntime(
 			});
 		}
 		if (shown !== null) {
-			emit({
+			const event: Extract<KernelEvent, { type: 'surface:shown' }> = {
 				shownAt: adopted.evaluatedAt,
 				snapshot: adopted,
 				surface: shown,
 				type: 'surface:shown',
-			});
+			};
+			// The arm is read after subscribers ran: the experiment controller
+			// re-validates against the policy this commit resolved and may clear
+			// the arm synchronously, and the impression must record the arm the
+			// visitor saw, not the one the policy rejected.
+			if (snapshot.experiment) {
+				event.experiment = snapshot.experiment;
+			}
+			emit(event);
 		}
 		return true;
 	};

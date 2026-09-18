@@ -1,6 +1,14 @@
-import { custom, evaluateConsent, hosted, policyRulePresets } from '@c15t/core';
+import {
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	custom,
+	evaluateConsent,
+	hosted,
+	policyRulePresets,
+} from '@c15t/core';
 import type {
 	AllConsentNames,
+	ConsentPresentation,
 	ConsentSnapshot,
 	ConsentState,
 	HasCondition,
@@ -15,6 +23,7 @@ import type {
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
+import type { Theme } from '@c15t/ui/theme';
 
 import { createDeferred } from './deferred';
 import { createGatedScriptActivator } from './gated-scripts';
@@ -220,6 +229,7 @@ export const createConsentClient = function createConsentClient(
 		consentCategories: options.consentCategories,
 		createIAB: context.createIAB,
 		enabled: options.enabled,
+		experiment: options.experiment,
 		i18n: options.i18n,
 		iab: context.createIAB ? (options.iab ?? { enabled: true }) : undefined,
 		iframeBlocker: options.iframeBlocker,
@@ -232,6 +242,7 @@ export const createConsentClient = function createConsentClient(
 		presentation: options.presentation,
 		scripts: options.scripts,
 		storageConfig: options.storageConfig,
+		theme: options.ui === false ? undefined : options.ui?.theme,
 		user: options.user,
 		// The script-tag build owns `window.c15t`; core must not overwrite it.
 		windowDebug: false,
@@ -538,6 +549,13 @@ export const createConsentClient = function createConsentClient(
 		},
 		openDialog,
 		options,
+		get presentation(): ConsentPresentation | undefined {
+			return applyExperimentAssignment(
+				options.presentation,
+				options.experiment,
+				kernel.getSnapshot().experiment
+			);
+		},
 		ready() {
 			return ready.promise;
 		},
@@ -642,6 +660,18 @@ export const createConsentClient = function createConsentClient(
 		},
 		subscribe(listener) {
 			return kernel.subscribe(listener);
+		},
+		get theme(): Theme | undefined {
+			// A headless client renders nothing, so an arm's theme has nothing
+			// to override; the getter stays `undefined` whatever is assigned.
+			if (options.ui === false) {
+				return undefined;
+			}
+			return applyExperimentTheme(
+				options.ui?.theme,
+				options.experiment,
+				kernel.getSnapshot().experiment
+			);
 		},
 		get ui() {
 			return ui;

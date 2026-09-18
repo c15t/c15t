@@ -12,6 +12,7 @@
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import { validateExplicitChoice } from '../consent-record/validation';
+import { isExperimentAssignment } from '../libs/experiment-record';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
 import { selectSavePayload } from './save-selection';
@@ -52,6 +53,12 @@ const isScalarRecord = function isScalarRecord(value: unknown): boolean {
 
 const isOptionalString = function isOptionalString(value: unknown): boolean {
 	return value === undefined || typeof value === 'string';
+};
+
+const isOptionalExperiment = function isOptionalExperiment(
+	value: unknown
+): boolean {
+	return value === undefined || isExperimentAssignment(value);
 };
 
 const isOptionalFiniteNumber = function isOptionalFiniteNumber(
@@ -161,6 +168,7 @@ const isSavePayload = function isSavePayload(
 		validAction &&
 		isOptionalFiniteNumber(value.givenAt) &&
 		isOptionalFiniteNumber(value.timeToDecisionMs) &&
+		isOptionalExperiment(value.experiment) &&
 		(value.policySnapshotToken === null ||
 			typeof value.policySnapshotToken === 'string') &&
 		(value.tcString === undefined ||

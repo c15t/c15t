@@ -42,6 +42,7 @@ export const createDialog = function createDialog(
 		translations: ConsentSnapshot['translations'];
 		branding: ConsentSnapshot['branding'];
 		policyRule: ConsentSnapshot['policyRule'];
+		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
 	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
@@ -64,7 +65,7 @@ export const createDialog = function createDialog(
 				'aria-labelledby': 'consent-dialog-title',
 				'aria-modal': resolveConsentPresentation({
 					policy: snapshot.policyRule,
-					presentation: ctx.client.options.presentation,
+					presentation: ctx.client.presentation,
 					surface: 'preferences',
 				}).blocking
 					? 'true'
@@ -149,6 +150,7 @@ export const createDialog = function createDialog(
 		});
 		renderedFrom = {
 			branding: snapshot.branding,
+			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
@@ -197,7 +199,7 @@ export const createDialog = function createDialog(
 		ctx.root.append(overlay, positioner);
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
-			presentation: ctx.client.options.presentation,
+			presentation: ctx.client.presentation,
 			surface: 'preferences',
 		});
 		if (blocking) {
@@ -256,7 +258,8 @@ export const createDialog = function createDialog(
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
 				renderedFrom.branding === snapshot.branding &&
-				renderedFrom.policyRule === snapshot.policyRule
+				renderedFrom.policyRule === snapshot.policyRule &&
+				renderedFrom.experiment === snapshot.experiment
 			) {
 				widget?.sync(snapshot);
 				return;

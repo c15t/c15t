@@ -239,6 +239,7 @@ export const freezeSnapshot = function freezeSnapshot(
 
 		snapshot.iab,
 		snapshot.location,
+		snapshot.experiment,
 	]) {
 		if (nested) {
 			Object.freeze(nested);
@@ -321,6 +322,9 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		experiment: config.initialExperiment
+			? { ...config.initialExperiment }
+			: null,
 		explicitChoice,
 		iab,
 		location: config.initialLocation ? { ...config.initialLocation } : null,

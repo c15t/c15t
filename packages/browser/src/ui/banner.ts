@@ -39,6 +39,7 @@ export const createBanner = function createBanner(
 		translations: ConsentSnapshot['translations'];
 		policyRule: ConsentSnapshot['policyRule'];
 		branding: ConsentSnapshot['branding'];
+		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
 	// oxlint-disable-next-line complexity -- Notice copy, action labels and presentation are resolved together.
@@ -62,7 +63,7 @@ export const createBanner = function createBanner(
 		const actions = resolveActions(
 			snapshot,
 			'prompt',
-			ctx.client.options.presentation,
+			ctx.client.presentation,
 			{
 				scrollLock: options.scrollLock,
 				trapFocus: options.trapFocus,
@@ -210,6 +211,7 @@ export const createBanner = function createBanner(
 		element = build(snapshot);
 		renderedFrom = {
 			branding: snapshot.branding,
+			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
@@ -288,7 +290,8 @@ export const createBanner = function createBanner(
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
 				renderedFrom.policyRule === snapshot.policyRule &&
-				renderedFrom.branding === snapshot.branding
+				renderedFrom.branding === snapshot.branding &&
+				renderedFrom.experiment === snapshot.experiment
 			) {
 				return;
 			}

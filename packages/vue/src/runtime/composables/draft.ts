@@ -2,6 +2,7 @@ import type { ConsentState, ConsentSnapshot, SaveResult } from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
+import { useResolvedPresentation } from './experiment';
 import { useConsentKernelContext } from './kernel';
 
 /** Editable, unmasked choices scoped to the categories the visitor reviewed. */
@@ -10,9 +11,16 @@ export const useConsentDraft = function useConsentDraft(
 ) {
 	const { kernel, snapshot } = useConsentKernelContext();
 	const config = useConsentConfig();
+	const presentation = useResolvedPresentation();
 	const fingerprint = ref('');
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
 	const values = ref<Partial<ConsentState>>({});
+	/** What `reset()` last seeded, to tell an untouched draft from an edit. */
+	const seeded = shallowRef<Partial<ConsentState>>({});
+	const untouched = () =>
+		displayedCategories.value.every(
+			(category) => values.value[category] === seeded.value[category]
+		);
 	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
 		const scope =
 			current.evaluationPolicy.choiceScope ?? current.policyRule.scope;
@@ -36,13 +44,24 @@ export const useConsentDraft = function useConsentDraft(
 				category,
 				category === 'necessary' ||
 					(current.explicitChoice?.categories[category]?.value ??
-						config.value.presentation?.preferences?.defaults?.[category] ??
+						presentation.value?.preferences?.defaults?.[category] ??
 						(current.policyRule.model === 'opt-out' ||
 							current.policyRule.preselectedCategories.includes(category))),
 			])
 		);
+		seeded.value = { ...values.value };
 	};
 	reset();
+	// Built-in assignment lands after mount, so an arm's `preferences.defaults`
+	// arrive after the first seed. Reseed a draft the visitor has not edited.
+	watch(
+		() => presentation.value?.preferences?.defaults,
+		() => {
+			if (shouldSyncChanges() && untouched()) {
+				reset();
+			}
+		}
+	);
 	const isStale = computed(
 		() =>
 			fingerprint.value !==

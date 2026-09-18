@@ -25,6 +25,7 @@ import type {
 	ExplicitChoice,
 	OptionalConsentCategory,
 } from '../consent-record/types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import type { SavePayload } from '../types';
 
 export interface BuildSubjectPostBodyOptions {
@@ -48,11 +49,13 @@ export interface SubjectPostBody {
 	consentAction: SavePayload['consentAction'];
 	policySnapshotToken?: string;
 	tcString?: string;
-	/** Free-form audit metadata. `userProperties` and `timeToDecisionMs` are the keys c15t sets. */
+	/** Free-form audit metadata. `userProperties`, `timeToDecisionMs` and `experiment` are the keys c15t sets. */
 	metadata?: Record<string, unknown> & {
 		userProperties?: NonNullable<SavePayload['user']>['properties'];
 		/** Milliseconds from the surface's first impression to the action. */
 		timeToDecisionMs?: number;
+		/** The presentation experiment arm the visitor acted under. */
+		experiment?: ExperimentAssignment;
 	};
 }
 
@@ -66,6 +69,9 @@ const buildMetadata = function buildMetadata(
 	}
 	if (payload.timeToDecisionMs !== undefined) {
 		metadata.timeToDecisionMs = payload.timeToDecisionMs;
+	}
+	if (payload.experiment) {
+		metadata.experiment = { ...payload.experiment };
 	}
 	return Object.keys(metadata).length > 0 ? metadata : undefined;
 };

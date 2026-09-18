@@ -379,6 +379,7 @@ const createClient = function createClient(
 		clearOnRevocation: extension.clearOnRevocation ?? options.clearOnRevocation,
 		consentCategories: options.consentCategories,
 		createIAB: lazyCreateIAB,
+		experiment: options.experiment,
 		i18n: options.i18n as ConsentRuntimeOptions['i18n'],
 		// `RuntimeIABOptions` is the runtime's open-ended shape; the
 		// integration option is the closed, documented subset of it.
@@ -395,8 +396,10 @@ const createClient = function createClient(
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
 		prefetch: config,
+		presentation: options.presentation,
 		scripts,
 		storageConfig: options.storageConfig,
+		theme: options.theme,
 	});
 
 	let dialog: ConsentDialogHandle | null = null;

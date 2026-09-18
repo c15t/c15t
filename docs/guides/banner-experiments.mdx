@@ -1,0 +1,281 @@
+---
+title: Banner experiments
+description: Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
+group: guides
+---
+
+## Vary presentation, not policy
+
+The `experiment` option changes only how the prompt and the preference center
+look: variant, position, layout, primary actions, blocking. The policy rule,
+its categories and its copy stay the same for every arm, so every arm records
+a choice under the same policy fingerprint. c15t merges the assigned arm over
+`presentation`, exposes it as `snapshot.experiment`, and saves it with every
+choice, so you can compare opt-in rate and time to decision per arm.
+
+```tsx title="src/app/providers.tsx"
+'use client';
+
+import { ConsentProvider, hosted } from 'c15t/react';
+
+export const Providers = ({
+	children,
+	variant,
+}: {
+	children: React.ReactNode;
+	variant?: string;
+}) => (
+	<ConsentProvider
+		options={{
+			mode: hosted({ url: 'https://your-project.inth.app' }),
+			presentation: { prompt: { position: 'bottom-left' } },
+			experiment: {
+				id: 'banner-shape',
+				variants: {
+					floating: {},
+					bar: { prompt: { variant: 'bar', position: 'bottom' } },
+				},
+				// From your flag provider. Omit it for built-in assignment.
+				variant,
+			},
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
+```
+
+| Field | Purpose |
+| --- | --- |
+| `id` | Stable experiment name, recorded with every impression and choice |
+| `variants` | Arm name to `presentation` fragment, merged over the base `presentation` per surface |
+| `variant` | The arm your flag provider resolved; must be a key of `variants` |
+| `weights` | Relative weights for built-in assignment; default equal |
+| `acknowledgeDiagnostics` | Run an arm that trips a presentation diagnostic and record that you reviewed it |
+
+The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
+`@c15t/svelte`, `@c15t/astro` and `@c15t/browser`.
+
+`experiment` is read once, when the provider mounts. Changing it later has
+no effect; remount the provider (a `key` in React) to switch experiments.
+
+On Astro, `variant` is required. The banner is server-rendered HTML that the
+browser only shows or hides, so an arm assigned in the browser would be
+recorded for a banner the visitor never saw. Resolve the arm on the server,
+from a flag or a cookie, and pass it as `variant`; `c15t()` throws at config
+time without one.
+
+### Vary the theme
+
+An arm can carry `theme` overrides next to its presentation fragment. They
+merge over the host `theme` one token group deep, so an arm can change one
+colour or radius and keep the rest of your palette. Arrays and scalars are
+replaced.
+
+```tsx
+experiment: {
+	id: 'button-style',
+	variants: {
+		control: {},
+		bold: {
+			theme: {
+				colors: { primary: '#0a0a0a' },
+				radius: { lg: '4px' },
+			},
+		},
+	},
+}
+```
+
+Read the merged theme with `useResolvedTheme()` in React,
+`useResolvedTheme(theme)` in Vue, `getConsentManager().theme` in Svelte and
+`client.theme` in `@c15t/browser`. Per-action styling through
+`theme.consentActions` runs through the same prominence check as
+presentation: an arm that fills accept and outlines reject trips
+`equivalent-prominence-overridden` and needs `acknowledgeDiagnostics: true`.
+
+## Resolve the arm with a flag provider
+
+Resolve the arm wherever your flags live and pass its name as `variant`. c15t
+records `assignedBy: 'host'` and never re-assigns a visitor you assigned.
+
+### Vercel Flags SDK
+
+```ts title="src/flags.ts"
+import { flag } from 'flags/next';
+
+export const bannerShape = flag<'floating' | 'bar'>({
+	key: 'banner-shape',
+	decide: () => 'bar',
+});
+```
+
+```tsx title="src/app/layout.tsx"
+import { bannerShape } from '../flags';
+import { Providers } from './providers';
+
+export default async function RootLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	const variant = await bannerShape();
+	return (
+		<html lang="en">
+			<body>
+				<Providers variant={variant}>{children}</Providers>
+			</body>
+		</html>
+	);
+}
+```
+
+### PostHog
+
+PostHog resolves flags asynchronously in the browser. Because `experiment`
+is read once at mount, a provider mounted before the flags load runs
+built-in assignment and never picks up the flag. Wait for the flags, then
+mount the provider with the resolved arm.
+
+```tsx title="src/app/flagged-providers.tsx"
+'use client';
+
+import { useEffect, useState } from 'react';
+import posthog from 'posthog-js';
+
+import { Providers } from './providers';
+
+export const FlaggedProviders = ({
+	children,
+}: {
+	children: React.ReactNode;
+}) => {
+	const [variant, setVariant] = useState<string | null>(null);
+	useEffect(
+		() =>
+			posthog.onFeatureFlags(() => {
+				const flag = posthog.getFeatureFlag('banner-shape');
+				setVariant(typeof flag === 'string' ? flag : 'floating');
+			}),
+		[]
+	);
+	if (variant === null) {
+		// Flags not loaded yet: no provider, no banner. Render the page
+		// without consent surfaces, or a placeholder, until they arrive.
+		return children;
+	}
+	return <Providers variant={variant}>{children}</Providers>;
+};
+```
+
+Pick a fallback arm (`'floating'` above) for a visitor whose flag never
+resolves, so the choice is still attributed to an arm you declared.
+
+### LaunchDarkly, GrowthBook, Statsig
+
+```ts
+const variant = ldClient.variation('banner-shape', 'floating');
+const variant = growthbook.getFeatureValue('banner-shape', 'floating');
+const variant = Statsig.getExperiment('banner-shape').get('variant', 'floating');
+```
+
+A `variant` that is not a key of `variants` throws at provider construction.
+Treat that as a flag misconfiguration, not a visitor error.
+
+## Let c15t assign the arm
+
+Omit `variant` and c15t hashes a stable key into the arms by `weights`
+(equal by default). The key is the stored subject id when the browser already
+has one, or a random key created on first visit. The assignment is stored under
+`c15t-experiment-v1` in localStorage (a cookie when localStorage is unavailable)
+so a returning visitor keeps their arm. Only the random key is written to that
+record; the subject id stays in the consent record. c15t records
+`assignedBy: 'c15t'`.
+
+An arm missing from a supplied `weights` map has weight `0`. A map that gives
+no arm a positive weight is a configuration error and fails when the provider
+is constructed.
+
+```ts
+experiment: {
+	id: 'banner-shape',
+	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
+	weights: { floating: 90, bar: 10 },
+}
+```
+
+Changing `id` starts a new experiment and re-assigns everyone. Removing an
+arm re-assigns only the visitors who were in it.
+
+Built-in assignment is not available on `@c15t/astro`; pass `variant`.
+
+## Acknowledge presentation diagnostics
+
+Each arm is resolved under the active policy the same way `presentation` is.
+An arm that trips a diagnostic, for example `equivalent-prominence-overridden`
+because it makes accept primary while reject stays neutral, is rejected when
+the provider is constructed. Set `acknowledgeDiagnostics: true` to run it.
+c15t then logs the diagnostics once outside production and records
+`acknowledgedDiagnostics: true` with the arm on every choice. You own the
+legal review of that arm; c15t records that you made it.
+
+## Read the assignment
+
+```tsx
+import {
+	useExperiment,
+	useResolvedPresentation,
+	useResolvedTheme,
+} from 'c15t/react';
+
+const { id, variant, assignedBy } = useExperiment() ?? {};
+const presentation = useResolvedPresentation();
+const theme = useResolvedTheme();
+```
+
+React exposes three hooks:
+
+- `useExperiment()` returns the assigned arm (`id`, `variant`, `assignedBy`,
+  `acknowledgedDiagnostics`), or `null` while no experiment is configured
+  or no arm is assigned yet.
+- `useResolvedPresentation()` returns `presentation` with the assigned
+  arm merged over it per surface. While no arm is assigned it returns
+  `presentation` itself. The stock banner, dialog and widget render from it,
+  as do `usePromptPresentation()` and `usePreferencesPresentation()`.
+- `useResolvedTheme()` returns `theme` with the arm's `theme` merged one
+  token group deep over it. While no arm is assigned, or the arm has no
+  `theme`, it returns `theme` itself. The provider injects this merged theme.
+
+Built-in assignment lands after mount, so `useExperiment()` is `null` on the
+server render and during hydration and the resolved hooks return the base
+values; they update in the same render the arm lands, and a clean
+preferences draft reseeds from the arm's `preferences.defaults`. A
+host-resolved `variant` is known from the first render, on the server too.
+The provider reads `experiment` once, at mount; remount to change it.
+
+Vue exposes `useExperiment()`, `useResolvedPresentation()` and
+`useResolvedTheme(theme)`, Svelte `getConsentManager().experiment`,
+`.presentation` and `.theme`, and `@c15t/browser` `client.presentation` and
+`client.theme`. Every adapter also reports the arm on `snapshot.experiment`.
+
+## What is recorded
+
+Each choice saved through `POST /subjects` carries in `metadata`:
+
+| Key | Value |
+| --- | --- |
+| `experiment` | `{ id, variant, assignedBy, acknowledgedDiagnostics }` |
+| `timeToDecisionMs` | Milliseconds from the surface's first impression to the action |
+
+`uiSource` on the same record names the surface (`banner`, `dialog`,
+`widget`). The `surface:shown` and `choice:recorded` kernel events and the
+`onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
+`experiment` object, so impressions and decisions can be joined per arm in
+your analytics without a backend query.
+
+## Copy is out of scope
+
+Arms change presentation and theme tokens only. Copy is not a variant dimension because
+`copyRevision` is hashed into the prompt fingerprint: a copy change re-prompts
+every returning visitor, so a copy experiment would re-prompt them on each
+arm switch. Vary layout, shape, position and action prominence instead.

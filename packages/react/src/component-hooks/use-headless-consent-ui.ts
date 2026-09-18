@@ -1,6 +1,9 @@
 'use client';
 
-import { resolveConsentPresentation } from '@c15t/core';
+import {
+	actionAppearanceFromTheme,
+	resolveConsentPresentation,
+} from '@c15t/core';
 import type {
 	ConsentPresentation,
 	PresentationAction,
@@ -14,10 +17,10 @@ import {
 	useActiveUI,
 	useDismissNotice,
 	usePolicyRule,
+	useResolvedPresentation,
 	useSetActiveUI,
 } from '../hooks';
 import { useTheme } from '../hooks/use-theme';
-import { useUIConfig } from '../ui-config-context';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
 export type HeadlessConsentSurfaceAction = PresentationAction;
@@ -46,7 +49,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 ) {
 	const activeUI = useActiveUI();
 	const policy = usePolicyRule();
-	const { presentation: configuredPresentation } = useUIConfig();
+	const configuredPresentation = useResolvedPresentation();
 	const globalTheme = useContext(GlobalThemeContext);
 	const presentation = useMemo(
 		() => ({
@@ -64,23 +67,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 		[configuredPresentation, globalTheme.scrollLock, globalTheme.trapFocus]
 	);
 	const { theme } = useTheme();
-	const appearance = useMemo(() => {
-		const styles = theme?.consentActions;
-		if (
-			!styles?.accept &&
-			!styles?.reject &&
-			!styles?.customize &&
-			!styles?.dismiss
-		) {
-			return undefined;
-		}
-		return {
-			accept: { ...styles.default, ...styles.accept },
-			customize: { ...styles.default, ...styles.customize },
-			dismiss: { ...styles.default, ...styles.dismiss },
-			reject: { ...styles.default, ...styles.reject },
-		};
-	}, [theme]);
+	const appearance = useMemo(() => actionAppearanceFromTheme(theme), [theme]);
 	const saveConsents = useConsentSaveAction();
 	const dismissNotice = useDismissNotice();
 	const setActiveUI = useSetActiveUI();

@@ -280,6 +280,37 @@ export {
 	PROMPT_VARIANT_POSITIONS,
 	resolveConsentPresentation,
 } from './libs/policy-actions';
+export {
+	actionAppearanceFromTheme,
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	assignExperimentVariant,
+	resolveExperimentPresentation,
+	resolveExperimentTheme,
+	validateExperiment,
+} from './libs/experiment';
+export type {
+	ActionAppearance,
+	ConsentExperiment,
+	ExperimentActionStyle,
+	ExperimentArm,
+	ExperimentArmTheme,
+	ExperimentAssignment,
+	ExperimentDiagnostics,
+	ValidateExperimentOptions,
+} from './libs/experiment';
+export {
+	createExperimentController,
+	EXPERIMENT_STORAGE_KEY,
+	readStoredExperimentAssignment,
+	resolveExperimentAssignment,
+	writeStoredExperimentAssignment,
+} from './libs/experiment-assignment';
+export type {
+	ExperimentController,
+	ExperimentControllerOptions,
+	StoredExperimentAssignment,
+} from './libs/experiment-assignment';
 export type {
 	ConsentPresentation,
 	PromptPresentation,

@@ -37,6 +37,7 @@ function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 	return {
 		activeUI: snapshot.activeUI,
 		effectivePermissions: snapshot.effectivePermissions,
+		experiment: snapshot.experiment,
 		explicitChoice: snapshot.explicitChoice,
 		model: snapshot.model,
 		noticeDismissal: snapshot.noticeDismissal,

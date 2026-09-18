@@ -191,6 +191,7 @@ export const createWidget = function createWidget(
 		categories: string;
 		translations: ConsentSnapshot['translations'];
 		policyRule: ConsentSnapshot['policyRule'];
+		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
 	const element = h('div', {
@@ -208,7 +209,7 @@ export const createWidget = function createWidget(
 		return (
 			draft[name] ??
 			snapshot.explicitChoice?.categories[name]?.value ??
-			ctx.client.options.presentation?.preferences?.defaults?.[name] ??
+			ctx.client.presentation?.preferences?.defaults?.[name] ??
 			(snapshot.policyRule.model === 'opt-out' ||
 				snapshot.policyRule.preselectedCategories.includes(name))
 		);
@@ -329,11 +330,7 @@ export const createWidget = function createWidget(
 			save: 'consent-widget-footer-save-button',
 		};
 		return renderActionFooter({
-			actions: resolveActions(
-				snapshot,
-				'preferences',
-				ctx.client.options.presentation
-			),
+			actions: resolveActions(snapshot, 'preferences', ctx.client.presentation),
 			buttonTestId: (action) => testIds[action],
 			footerClassName: classes.manager.footer,
 			label: (action) => labels[action],
@@ -389,6 +386,7 @@ export const createWidget = function createWidget(
 		}
 		renderedFrom = {
 			categories: categories.join(','),
+			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
@@ -409,7 +407,8 @@ export const createWidget = function createWidget(
 				!renderedFrom ||
 				renderedFrom.categories !== categories ||
 				renderedFrom.translations !== snapshot.translations ||
-				renderedFrom.policyRule !== snapshot.policyRule
+				renderedFrom.policyRule !== snapshot.policyRule ||
+				renderedFrom.experiment !== snapshot.experiment
 			) {
 				rebuild(snapshot);
 				return;

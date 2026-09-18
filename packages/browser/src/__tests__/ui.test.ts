@@ -75,6 +75,45 @@ afterEach(() => {
 });
 
 describe('mountConsentUI', () => {
+	it('rebuilds the banner when the assigned arm changes', async () => {
+		const experiment = {
+			id: 'banner-shape',
+			variant: 'floating',
+			variants: {
+				bar: { prompt: { variant: 'bar' as const } },
+				floating: { prompt: { variant: 'floating' as const } },
+			},
+		};
+		const { client, root } = await mount({}, { experiment });
+		expect(query(root, 'consent-banner-root').dataset.variant).toBe('floating');
+		client.kernel.set.experiment({
+			acknowledgedDiagnostics: false,
+			assignedBy: 'c15t',
+			id: 'banner-shape',
+			variant: 'bar',
+		});
+		expect(query(root, 'consent-banner-root').dataset.variant).toBe('bar');
+	});
+
+	it('creates the stylesheet when an arm theme arrives after mount', async () => {
+		const experiment = {
+			id: 'button-style',
+			variants: {
+				bold: { theme: { colors: { primary: '#123456' } } },
+				control: {},
+			},
+		};
+		// No stylesheet, theme or css: nothing to inject at mount.
+		const { client, root } = await mount({}, { experiment });
+		client.kernel.set.experiment({
+			acknowledgedDiagnostics: false,
+			assignedBy: 'c15t',
+			id: 'button-style',
+			variant: 'bold',
+		});
+		expect(root.querySelector('style')?.textContent).toContain('#123456');
+	});
+
 	it('records untouched displayed preferences when Save is clicked', async () => {
 		const { client, root } = await mount();
 		client.openDialog();

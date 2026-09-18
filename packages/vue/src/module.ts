@@ -173,6 +173,9 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 				'useDismissNotice',
 				'useConsentDraft',
 				'useConsentPolicyActions',
+				'useExperiment',
+				'useResolvedPresentation',
+				'useResolvedTheme',
 
 				'useConsentIabSelection',
 				'useConsentIabSave',

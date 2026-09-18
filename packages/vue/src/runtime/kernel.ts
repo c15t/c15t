@@ -1,4 +1,5 @@
 import {
+	assignExperimentVariant,
 	extractConsentNamesFromCondition,
 	c15tProtocolHeaders,
 	createConsentKernel,
@@ -6,6 +7,7 @@ import {
 	initOutputToKernelConfig,
 } from '@c15t/core';
 import type {
+	ConsentExperiment,
 	ConsentKernel,
 	ConsentSnapshot,
 	InitResponse,
@@ -27,10 +29,14 @@ import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
-import { createLazyIABFactory } from '@c15t/core/runtime';
+import {
+	createExperimentController,
+	createLazyIABFactory,
+} from '@c15t/core/runtime';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeIABHandle,
+	ExperimentController,
 } from '@c15t/core/runtime';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
@@ -76,6 +82,17 @@ export interface VueConsentKernelContext {
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
+	/**
+	 * Owns the configured experiment. Absent for a borrowed runtime or when
+	 * no experiment is configured.
+	 */
+	experiment?: ExperimentController;
+	/**
+	 * The experiment definition the kernel was created with. Validation,
+	 * assignment and attribution all derive from it, so presentation and
+	 * theme resolve against it too; a later config change is ignored.
+	 */
+	experimentDefinition?: ConsentExperiment;
 	dispose: () => void;
 }
 
@@ -469,6 +486,37 @@ const resolveInitialPolicyPending = (
 		initialConfig.initialPolicyResolution
 	);
 
+/**
+ * Kernel config carrying a host-resolved arm. Known before any render, so
+ * the server snapshot renders the same variant hydration will.
+ */
+const hostExperimentSeed = (
+	config: RuntimeConsentConfig
+): Pick<KernelConfig, 'initialExperiment'> => {
+	const seed: Pick<KernelConfig, 'initialExperiment'> = {};
+	if (config.experiment?.variant !== undefined) {
+		seed.initialExperiment = assignExperimentVariant(config.experiment, '');
+	}
+	return seed;
+};
+
+/**
+ * Validates every arm now, so a misconfigured experiment throws at plugin
+ * install rather than on the visitor's first paint.
+ */
+const createOwnedExperiment = (
+	kernel: ConsentKernel,
+	config: RuntimeConsentConfig
+): ExperimentController | undefined =>
+	config.experiment
+		? createExperimentController({
+				experiment: config.experiment,
+				kernel,
+				presentation: config.presentation,
+				storageConfig: config.storageConfig,
+			})
+		: undefined;
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -524,8 +572,12 @@ export const createVueConsentKernelContext =
 					options.initialRecords?.now ??
 					options.config.initialRecords?.now,
 				transport,
+				...hostExperimentSeed(options.config),
 				...options.kernelConfig,
 			});
+		const experiment = ownsKernel
+			? createOwnedExperiment(kernel, options.config)
+			: undefined;
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -591,10 +643,13 @@ export const createVueConsentKernelContext =
 				unsubscribeChoice();
 				unsubscribePermissions();
 				unsubscribeSurfaceShown();
+				experiment?.dispose();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
 			},
+			experiment,
+			experimentDefinition: options.config.experiment,
 			iab: options.runtime?.iab ?? undefined,
 			init,
 			initialRecords: records.hydrationRecords,
@@ -699,6 +754,34 @@ const mountClearOnRevocation = (
  * @param options - Set `runInit: false` to skip the initial `init()`.
  * @returns A disposer that undoes everything this call mounted.
  */
+/**
+ * Hydrate stored records into the kernel, then assign the experiment arm:
+ * after hydration so a returning visitor's subject id seeds the arm, and
+ * before init so the first impression already carries it. No-op without
+ * browser storage.
+ */
+const mountVuePersistence = (
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+		return () => undefined;
+	}
+	const persistence = createPersistence({
+		kernel: context.kernel,
+		skipHydration: true,
+		storageConfig: config.storageConfig,
+	});
+	hydrateVuePersistence(context, persistence);
+	context.experiment?.assign();
+	const clearMemory = context.clearRecords;
+	context.clearRecords = persistence.clear;
+	return () => {
+		context.clearRecords = clearMemory;
+		persistence.dispose();
+	};
+};
+
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
@@ -724,20 +807,7 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => windowDebug.dispose());
 	}
 
-	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
-		const persistence = createPersistence({
-			kernel: context.kernel,
-			skipHydration: true,
-			storageConfig: config.storageConfig,
-		});
-		hydrateVuePersistence(context, persistence);
-		const clearMemory = context.clearRecords;
-		context.clearRecords = persistence.clear;
-		disposers.push(() => {
-			context.clearRecords = clearMemory;
-			persistence.dispose();
-		});
-	}
+	disposers.push(mountVuePersistence(context, config));
 
 	const detectedGpc = context.snapshot.value.privacySignals.gpc;
 	if (detectedGpc.detected && detectedGpc.active) {

@@ -64,6 +64,14 @@ test('every patch input agrees with full snapshot derivation', () => {
 		activeUI: { activeUI: 'dialog' },
 		branding: { branding: 'consent' },
 		consentCategories: { consentCategories: ['necessary', 'measurement'] },
+		experiment: {
+			experiment: {
+				acknowledgedDiagnostics: false,
+				assignedBy: 'host',
+				id: 'exp',
+				variant: 'a',
+			},
+		},
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
 		iab: { iab: { ...DEFAULT_IAB, enabled: true } },
 		location: { location: { countryCode: 'DE', regionCode: null } },

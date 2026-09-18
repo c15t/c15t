@@ -21,6 +21,8 @@
 import type {
 	AllConsentNames,
 	ConsentKernel,
+	ConsentPresentation,
+	ExperimentAssignment,
 	PromptPresentation,
 	PreferencesPresentation,
 	ConsentSnapshot,
@@ -35,9 +37,11 @@ import type {
 	LocationResponse,
 	PolicyScopeMode,
 } from '@c15t/core';
-import { useCallback, useContext, useSyncExternalStore } from 'react';
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
+import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
+import type { Theme } from './types/theme';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
 
@@ -388,15 +392,53 @@ export const useDismissNotice =
 		return useKernel().commands.dismissNotice;
 	};
 
+/**
+ * The presentation experiment arm this visitor runs, or `null` while no
+ * experiment is configured or the arm is not assigned yet. Built-in
+ * assignment lands after mount; a host-resolved `variant` is known at once.
+ */
+export const useExperiment =
+	function useExperiment(): Readonly<ExperimentAssignment> | null {
+		return useKernelSelector((snapshot) => snapshot.experiment);
+	};
+
+/**
+ * The host presentation with the assigned experiment arm merged over it.
+ * Equal to `options.presentation` while no arm is assigned.
+ */
+export const useResolvedPresentation = function useResolvedPresentation():
+	| ConsentPresentation
+	| undefined {
+	const { experiment, presentation } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentAssignment(presentation, experiment, assignment),
+		[presentation, experiment, assignment]
+	);
+};
+
+/**
+ * The host theme with the assigned experiment arm's `theme` merged over it.
+ * Equal to `options.theme` while no arm is assigned or the arm has no theme.
+ */
+export const useResolvedTheme = function useResolvedTheme(): Theme | undefined {
+	const { experiment, theme } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentTheme(theme, experiment, assignment),
+		[theme, experiment, assignment]
+	);
+};
+
 const EMPTY_PROMPT: PromptPresentation = {};
 const EMPTY_PREFERENCES: PreferencesPresentation = {};
-/** Host first-layer presentation. */
+/** Host first-layer presentation, with the experiment arm applied. */
 export const usePromptPresentation =
 	function usePromptPresentation(): PromptPresentation {
-		return useUIConfig().presentation?.prompt ?? EMPTY_PROMPT;
+		return useResolvedPresentation()?.prompt ?? EMPTY_PROMPT;
 	};
-/** Host persistent preferences presentation. */
+/** Host persistent preferences presentation, with the experiment arm applied. */
 export const usePreferencesPresentation =
 	function usePreferencesPresentation(): PreferencesPresentation {
-		return useUIConfig().presentation?.preferences ?? EMPTY_PREFERENCES;
+		return useResolvedPresentation()?.preferences ?? EMPTY_PREFERENCES;
 	};

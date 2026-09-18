@@ -5,6 +5,7 @@
 		KernelOverrides,
 		KernelUser,
 	} from '@c15t/core';
+	import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 	import {
 		createConsentRuntime,
 		normalizeKernelUser,
@@ -96,6 +97,10 @@
 			})
 		);
 	const { kernel } = runtime;
+	// The runtime validated and assigned from the experiment it was created
+	// with, so presentation, theme and draft defaults resolve against that
+	// same definition; a later `options.experiment` is ignored.
+	const experiment = untrack(() => options.experiment);
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
 	let draftScope = $state<string | null>(null);
@@ -182,7 +187,11 @@
 						name,
 						draftValues[name] ??
 							snapshot.explicitChoice?.categories[name]?.value ??
-							options.presentation?.preferences?.defaults?.[name] ??
+							applyExperimentAssignment(
+								options.presentation,
+								experiment,
+								snapshot.experiment
+							)?.preferences?.defaults?.[name] ??
 							(snapshot.policyRule.model === 'opt-out' ||
 								snapshot.policyRule.preselectedCategories.includes(name)),
 					])
@@ -239,10 +248,12 @@
 			...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
 		],
 		getDraft: () => draft,
+		getExperiment: () => experiment,
 		getIAB: getIABState,
 		getLegalLinks: () => options.legalLinks,
 		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
+		getTheme: () => options.theme,
 	});
 
 	const unsubscribe = kernel.subscribe((next) => {
@@ -380,7 +391,11 @@
 		return () => mediaQuery.removeEventListener('change', handler);
 	});
 
-	const userTheme = $derived(options.theme);
+	// The arm's theme overrides ride on the host theme, so the injected
+	// tokens and the theme context both follow the assignment.
+	const userTheme = $derived(
+		applyExperimentTheme(options.theme, experiment, snapshot.experiment)
+	);
 
 	setThemeContext({
 		get colorScheme() {

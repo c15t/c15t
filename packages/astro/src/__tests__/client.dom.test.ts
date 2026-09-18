@@ -102,6 +102,24 @@ describe('boot', () => {
 		expect(getConsentClient()).toBe(first);
 	});
 
+	it('runs the host-resolved experiment arm from the first snapshot', () => {
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			experiment: {
+				id: 'banner-shape',
+				variant: 'bar',
+				variants: { bar: { prompt: { variant: 'bar' } }, control: {} },
+			},
+		});
+		expect(booted.getConsent().experiment).toEqual({
+			acknowledgedDiagnostics: false,
+			assignedBy: 'host',
+			id: 'banner-shape',
+			variant: 'bar',
+		});
+	});
+
 	it('boots from the inlined config instead of the network', () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 		renderBanner();

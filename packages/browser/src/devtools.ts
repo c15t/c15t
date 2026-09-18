@@ -44,8 +44,7 @@ export const mountDevTools = function mountDevTools(
 		...options,
 		clearRecords: options.clearRecords ?? client.runtime.clearRecords,
 		getConsentCategories: () => client.consentCategories,
-		getPresentation:
-			options.getPresentation ?? (() => client.options.presentation),
+		getPresentation: options.getPresentation ?? (() => client.presentation),
 		kernel: client.kernel,
 	});
 };
