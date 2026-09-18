@@ -4,20 +4,38 @@ c15t mobile contract
 Authoritative reference for `@c15t/react-native`, the Swift core, and the Kotlin
 core. Issue: https://github.com/c15t/c15t/issues/1010
 
-IAB TCF is partly in this phase, and the line is worth reading before the bullets.
-Both cores decode and encode TC Strings byte-for-byte against the same
-`native/protocol` fixtures the web reference produced, both keep the vendor list
-`/init` served rather than fetching one on the device, and both now put that list on
-the snapshot the bridge reads. Neither core can yet act on an IAB rule end to end:
-the strict policy reader in each still rejects a wire model of `iab`, so a device
-under an IAB policy comes up deny-all rather than presenting the disclosure. Saving
-a `tcString` alongside a decision is not implemented either, and neither is the
-`IABTCF_*` storage bus, so vendor SDKs reading those keys on a device see nothing.
-The members that would turn the slot into an IAB runtime, `tcString`, `cmpId` and the
-per-vendor vectors, stay absent rather than arriving with a value nothing earned, so
-adding them later is an additive protocol change.
-`docs/internal/tcf-mobile.md` records the sources behind all of that, including the
-Keychain-versus-shared-defaults trade-off the bus will force.
+IAB TCF is partially in scope, at exactly the width of the state the cores
+own:
+
+    GVL state       the `/init`-served vendor list is held by the cores and
+                    published on the snapshot the bridge reads, in the `iab`
+                    slot on both platforms, and neither core fetches a list on
+                    a device. Kotlin keeps the document under the envelope's own
+                    `gvl` key in storage and rehydrates the slot from it.
+    IABTCF_* bus    an egress projection of the stored envelope, written in
+                    the same step as the snapshot write. iOS: standard
+                    NSUserDefaults. Android: the application-default
+                    SharedPreferences via PreferenceManager's
+                    getDefaultSharedPreferences -- never a derived file
+                    name. Rows written today: IABTCF_PolicyVersion (the
+                    stored list's tcfPolicyVersion) and IABTCF_gdprApplies
+                    (the resolved policy's model, mirroring packages/iab).
+                    The bus is never read back; the Keychain and the
+                    encrypted noBackupFilesDir store stay authoritative.
+                    reset() and every envelope discard clear the table, and
+                    the projection rebuilds from stored bytes alone.
+    TC string       still out of scope, and with it the bus rows that encode
+                    from it: no CMP identity and no purpose or vendor vectors
+                    exist in the cores yet, and the strict policy reader in each
+                    core still rejects a wire model of `iab`, so a device under
+                    an IAB policy comes up deny-all rather than presenting the
+                    disclosure. Saving a `tcString` beside a decision is not
+                    implemented either. Every spec-table key is named in
+                    TcStorageBus.swift / TcStorageBus.kt; the rows that stay
+                    absent name their missing field there.
+
+`docs/internal/tcf-mobile.md` records the sources behind all of that, including
+the Keychain-versus-shared-defaults trade-off the bus forces.
 
 Layout
 ------
@@ -56,7 +74,7 @@ State model
 
 Native holds one immutable `ConsentSnapshot`, versioned by `revision`. It mirrors
 the fields of `ConsentSnapshot` in `packages/core/src/types.ts` that matter on
-mobile:
+mobile, minus IAB:
 
     revision: number                  // monotonic, bumps on every mutation
     policyPending: boolean            // true until the first init resolves
@@ -75,31 +93,9 @@ mobile:
     nextDeadline: number | null
     evaluatedAt: number
     error: { code, message } | null
-    iab: { gvl } | null                  // the vendor list /init served
 
-`iab` carries the vendor list `/init` served, and nothing beside it. Both cores fold
-it onto the snapshot rather than parking it next to the snapshot, because the bridge
-reads the snapshot and a second copy of one fact is two answers. Serialize the whole
-slot as `null` where there is no list and keep the key, so a JavaScript layer that
-predates TCF does not branch on an SDK version. Neither core publishes an `iab`
-holding a null `gvl`: both build the object only around a list they accepted, so
-absence rides on the slot and a reader never tells "no list served" apart from "no
-answer given". An `iab` naming a member this build does not model is an unreadable
-envelope rather than a half-believed one, which both cores enforce in their own
-decode. Only the nullable-`gvl` bytes differ: the web's `KernelIABState.gvl` is a
-nullable key, `core-swift` reads `{"gvl":null}` back as an object carrying no list,
-and the Kotlin core types the field non-null and so refuses those bytes whole.
-
-A list a host has already drawn names from survives one `/init` that serves none:
-each core keeps the list it accepted until `reset()`, and each enforces that in its
-own test. Scope only ever narrows the list, and an entry is always selected by its
-key, never by an `id` inside its own body.
-
-Storage keeps one copy. Swift writes the snapshot, list inside it. Kotlin keeps the
-document under the envelope's own `gvl` key and writes the stored snapshot with that
-slot nulled, because this document is the largest thing in a blob rewritten on every
-committed mutation, and hydration puts it back. That difference stays in storage,
-where a core's own spelling is its own business.
+`iab` is reserved. Serialize it as `null` and keep the key so an older JavaScript
+layer does not have to branch.
 
 `consentCategories` is the subject-facing list a consent surface draws: `necessary`
 first, then the resolved policy scope narrowed by the host's declared scope, all
@@ -311,6 +307,25 @@ to the framework, and the `AD_ID` grant that the manifest does carry is set by a
 dialog this app does not own, so reporting it as `denied` would make a consent claim the
 subject never made.
 
+Vendor list scope
+-----------------
+
+The vendor list a core shows is scoped. No core fetches a list: the document on the
+snapshot is the one `/init` served, and scoping is something both sides apply to it.
+
+The filter belongs to one layer. The deployment narrows by its own publisher ids, and
+it puts them in a query only while the id count is small enough to travel safely.
+Above that cap the whole document is fetched and narrowed before it is served, so a
+publisher who scoped wide pays more bytes and never a wider disclosure. The same rule
+lives twice on web, in `packages/iab` when it fetches for itself and in
+`packages/backend` when it serves `/init`. The mobile helpers must return exactly what
+`narrowGVLToVendors` returns for the same document and the same ids. That equal answer
+is owed by a fixture whose expected value came from the web function itself.
+
+An entry is chosen by the key that holds it, never by an `id` inside its own body. A
+body claim that cannot resolve to a GVL vendor is a claim about a vendor nobody knows,
+so it surfaces as a custom vendor or not at all.
+
 Persistence
 -----------
 
@@ -355,11 +370,10 @@ slot, so refusing an envelope never costs a device its identity. What each write
   nothing else), `storedAt` in epoch milliseconds, `snapshot`, `noticeDismissal`, and
   `policyResolution`.
 - Kotlin stores a `SnapshotEnvelope` in the encrypted blob: `snapshot`,
-  `evaluationPolicy`, `noticeDismissal`, and `gvl`, the vendor list, kept there
-  while the published snapshot carries it at `iab`. It carries no format version of
-  its own and no write time. `AesGcmCodec` puts a version byte in the blob header,
-  which gates the framing rather than the fields, so an envelope-level change has
-  nowhere to be recorded. That is a gap in the Kotlin core, not a decision.
+  `evaluationPolicy`, and `noticeDismissal`. It carries no format version of its own
+  and no write time. `AesGcmCodec` puts a version byte in the blob header, which
+  gates the framing rather than the fields, so an envelope-level change has nowhere
+  to be recorded. That is a gap in the Kotlin core, not a decision.
 
 Three facts carry `loadBearing: true`, meaning the answer the device gives changes if
 the field is lost or wrong. Two of them decide what is allowed and one decides what the
@@ -1248,3 +1262,16 @@ the contract moved, not the kernel.
   how many calls the runner made. What *is* comparable is the cost of a step, and
   `revision-trace-*.json` pins that per step; "Revisions and error writes" is the
   rule it pins.
+
+Evaluator parity
+----------------
+
+Rule 4 says the native cores must produce what `@c15t/core` produces. Where the
+TS evaluator has a rule the kernels have never been run against, that gap is now
+written down with its measurement: the web answer table and the three kernel
+divergences it found live in
+[`docs/internal/evaluator-parity.md`](../docs/internal/evaluator-parity.md).
+Read it before changing either `PolicyEvaluator`, or the evaluation scenarios in
+`packages/react-native/scripts/generate-protocol-fixtures.ts`. Permissions and
+`restrictions` are bridge and storage surface: a kernel may not change them to
+match a hunch, and no fixture expectation may be edited to make a core pass.
