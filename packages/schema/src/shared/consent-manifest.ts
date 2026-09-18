@@ -320,7 +320,10 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 			manifest.cmpId !== undefined && {
 				cmpId: manifest.cmpId,
 			}),
-		...(manifest.vendors !== undefined && { vendors: manifest.vendors }),
+		// Always present: the client reads an omitted list as "keep what you
+		// have", so a backend that removed its last vendor has to say so with
+		// an empty list or a reinit would keep the old declarations.
+		vendors: manifest.vendors ?? [],
 		...(manifest.vendorListVersion !== undefined && {
 			vendorListVersion: manifest.vendorListVersion,
 		}),

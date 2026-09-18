@@ -106,10 +106,12 @@ describe('consent manifest vendors', () => {
 		expect(output.vendorListVersion).toBe('2026-09');
 	});
 
-	it('omits vendor fields when the manifest declares none', async () => {
+	it('emits an empty vendor list and no version when the manifest declares none', async () => {
+		// The client keeps its current declarations when the list is omitted, so
+		// a backend that removed its last vendor has to send an empty list.
 		const manifest = await buildConsentManifestFromConfig({});
 		const output = resolveInitFromManifest(manifest, { language: 'en' });
-		expect(output).not.toHaveProperty('vendors');
+		expect(output.vendors).toEqual([]);
 		expect(output).not.toHaveProperty('vendorListVersion');
 	});
 });
