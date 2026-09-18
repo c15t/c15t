@@ -68,6 +68,15 @@ mobile, minus IAB:
 `iab` is reserved. Serialize it as `null` and keep the key so an older JavaScript
 layer does not have to branch.
 
+`consentCategories` is the subject-facing list a consent surface draws: `necessary`
+first, then the resolved policy scope narrowed by the host's declared scope, all
+optional names in canonical sorted order. That is the same set the web dialog derives
+from the policy (`choiceScope` crossed with `scope` in `packages/core`), so the same
+backend and the same declaration list the same rows on both platforms, and a name the
+policy does not govern is never rendered. With no policy resolved the list falls back
+to the safe fallback rule's scope: every optional category the vocabulary knows.
+`null` answers only for a core with no configuration installed at all.
+
 `ready` and `policyPending` are the two flags a native SDK gate must consult.
 While either is unset, every optional category reads `false`.
 
@@ -576,7 +585,9 @@ What the core publishes, and what it keeps:
     translations, optOutDirectives, restrictions, nextDeadline, error
                                               absent, as a cold start leaves them
     subject                                   kept, external id included
-    overrides, consentCategories, privacySignals   kept: configuration, not consent
+    overrides, privacySignals                 kept: configuration, not consent
+    consentCategories                         recomputed from that configuration: the
+                                              declared scope with no policy left to narrow it
 
 The kept list is load bearing. A host that pinned a country for QA, switched GPC on, or
 narrowed the category scope has configured the device rather than consented with it, and

@@ -885,7 +885,7 @@ public final class ConsentCore: @unchecked Sendable {
                 if let identity {
                     draft.subject = identity.snapshot(externalId: user?.externalId)
                 }
-                draft.consentCategories = config?.consentCategories
+                draft.consentCategories = decidedCategories(nil)
                 // The host's pins, not ``overrides``. See ``configuredOverrides``: the
                 // folded country came from the resolution this wipe is deleting, and
                 // keeping it would leave the answer one field off a first launch's.
@@ -966,7 +966,6 @@ public final class ConsentCore: @unchecked Sendable {
             var draft = ConsentSnapshot.Draft(current: envelope?.snapshot ?? .coldStart)
             draft.subject = identity.snapshot(externalId: self.user?.externalId)
             draft.overrides = overrides
-            draft.consentCategories = config.consentCategories
             draft.ready = envelope != nil
 
             self.policyWire = envelope?.policyResolution
@@ -997,6 +996,9 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.effectivePermissions = .necessaryOnly
                 draft.promptRequirement = .none
             }
+
+            // The subject-facing list, against whatever this store says is in force.
+            draft.consentCategories = decidedCategories(self.resolvedPolicy)
 
             // Continue the stored numbering rather than restarting at 1, so a
             // subscriber that saw revision 3 before the relaunch cannot treat the
@@ -1113,6 +1115,45 @@ public final class ConsentCore: @unchecked Sendable {
             language: overrides.language,
             gpc: gpcSignal.active
         )
+    }
+
+    /// The categories the consent surfaces list right now.
+    ///
+    /// The same derivation the web dialog uses (`getDisplayedConsents` in
+    /// `use-manager.ts`): `necessary` first, then the policy scope narrowed by the
+    /// host's own declaration. A host that declares nothing is asked about the whole
+    /// scope; a name the host declares that the resolved policy does not govern is
+    /// dropped, because a row the evaluator will not honour is a row that cannot be
+    /// honoured. Before any policy resolves the evaluator runs the safe fallback
+    /// rule over every optional category, so the scope behind the list is the full
+    /// optional set -- the same rows the web shows while it waits for init.
+    ///
+    /// The list is `necessary` plus the optional names in canonical (sorted) order;
+    /// the JavaScript layer restyles that into display order, and both native cores
+    /// emit this exact shape so the protocol fixtures can pin them together.
+    ///
+    /// Callers must already hold the lock, because the answer reads ``config``.
+    private func decidedCategories(_ resolved: ResolvedPolicy?) -> [ConsentCategory] {
+        var declared: Set<ConsentCategory>?
+        if let list = config?.consentCategories, !list.isEmpty {
+            declared = Set(list)
+        }
+        let scope: Set<ConsentCategory>
+        if let resolved {
+            scope = Set(resolved.policy.scope.map(\.category))
+        } else {
+            scope = Set(OptionalConsentCategory.allCases.map(\.category))
+        }
+        let optional = OptionalConsentCategory.allCases
+            .lazy
+            .map(\.category)
+            .filter { category in
+                guard scope.contains(category) else { return false }
+                guard let declared else { return true }
+                return declared.contains(category)
+            }
+            .sorted { $0.rawValue < $1.rawValue }
+        return [ConsentCategory.necessary] + Array(optional)
     }
 
     /// Map an intent onto the receipts it confirms. Callers must already hold the
@@ -1358,6 +1399,10 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.error = CoreErrorInfo(code: reason.rawValue, message: message)
             }
 
+            // The same list rule the web dialog applies to the resolution it just
+            // read: the rejected branch has no scope of its own, so the list falls
+            // back to the full optional set the pending evaluator uses.
+            draft.consentCategories = decidedCategories(self.resolvedPolicy)
             currentSnapshot = draft.build(revision: currentSnapshot.revision + 1)
         }
 

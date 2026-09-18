@@ -132,9 +132,9 @@ class ResetTest {
 		assertEquals("DE", after.overrides.country, "a pinned country is configuration, not consent")
 		assertEquals("de", after.overrides.language)
 		assertEquals(
-			listOf(ConsentCategory.MEASUREMENT.wireName),
+			listOf(ConsentCategory.NECESSARY.wireName, ConsentCategory.MEASUREMENT.wireName),
 			after.consentCategories,
-			"the host's category scope survives the wipe",
+			"the host's category scope survives the wipe; the list itself is recomputed against the fallback rule, since the policy that narrowed it is gone",
 		)
 	}
 

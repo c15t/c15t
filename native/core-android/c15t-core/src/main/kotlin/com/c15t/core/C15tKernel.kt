@@ -203,7 +203,7 @@ class C15tKernel(
 			// init resolves, with ready false so a host can tell the two apart.
 			publishPure(
 				ConsentSnapshot.denyAll(subject, now).copy(
-					consentCategories = config.consentCategories?.map { it.wireName },
+					consentCategories = decidedCategories(null),
 					overrides = config.overrides,
 					privacySignals = signalsFor(config.overrides),
 				)
@@ -223,7 +223,7 @@ class C15tKernel(
 			val hydrated = restored.copy(
 				ready = true,
 				subject = restored.subject?.copy(id = subject.id) ?: subject,
-				consentCategories = config.consentCategories?.map { it.wireName } ?: restored.consentCategories,
+				consentCategories = decidedCategories(envelope.evaluationPolicy),
 				overrides = hydratedOverrides,
 				// A stored `active` is never trusted: it would keep a category denied
 				// after the signal that caused it is gone.
@@ -850,7 +850,7 @@ class C15tKernel(
 			noticeDismissal = null
 			published = ConsentSnapshot.denyAll(current.subject ?: resolved, now).copy(
 				revision = current.revision + 1,
-				consentCategories = config.consentCategories?.map { it.wireName },
+				consentCategories = decidedCategories(null),
 				// The host's pins, not the snapshot's. See [configuredOverrides]: the
 				// folded country came from the resolution this wipe is deleting, and
 				// keeping it would leave a first launch's answer one field off.
@@ -1001,7 +1001,7 @@ class C15tKernel(
 					translations = mapped.translations ?: base.translations,
 					error = mapped.error,
 					revision = base.revision + 1,
-					consentCategories = base.consentCategories ?: config.consentCategories?.map { it.wireName },
+					consentCategories = decidedCategories(evaluationPolicy),
 				),
 				policy = evaluationPolicy,
 				noticeDismissal = noticeDismissal,
@@ -1217,6 +1217,36 @@ class C15tKernel(
 			),
 			givenAt = actionAt,
 		)
+	}
+
+	/**
+	 * The categories the consent surfaces list right now.
+	 *
+	 * The same derivation the web dialog uses (`getDisplayedConsents` in
+	 * `use-manager.ts`): `necessary` first, then the policy scope narrowed by the
+	 * host's own declaration. A host that declares nothing is asked about the whole
+	 * scope; a name the host declares that the resolved policy does not govern is
+	 * dropped, because a row the evaluator will not honour is a row that cannot be
+	 * honoured. Before any policy resolves the evaluator runs the safe fallback
+	 * rule over every optional category, so the scope behind the list is the full
+	 * optional set -- the same rows the web shows while it waits for init.
+	 *
+	 * The list is `necessary` plus the optional names in canonical (sorted) order;
+	 * the JavaScript layer restyles that into display order, and both native cores
+	 * emit this exact shape so the protocol fixtures can pin them together.
+	 */
+	private fun decidedCategories(policy: EvaluationPolicy?): List<String> {
+		val declared = config.consentCategories?.takeIf { it.isNotEmpty() }?.toSet()
+		val scope: Set<ConsentCategory> =
+			policy?.scope?.toSet() ?: ConsentCategory.OPTIONAL.toSet()
+		return buildList {
+			add(ConsentCategory.NECESSARY.wireName)
+			addAll(
+				ConsentCategory.OPTIONAL
+					.filter { it in scope && (declared == null || it in declared) }
+					.map { it.wireName },
+			)
+		}
 	}
 
 	/** The receipts from before this action that the current policy still honours. */

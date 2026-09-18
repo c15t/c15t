@@ -1084,6 +1084,29 @@ const fixtureResolution = function fixtureResolution(
 	};
 };
 
+/**
+ * The subject-facing category list the native snapshot carries.
+ *
+ * The native cores decide this list themselves -- `decidedCategories` in each of
+ * them -- and it is the set the web dialog shows for the same input: `necessary`,
+ * then the choice scope the kernel projects (the policy scope narrowed by the
+ * categories the app registered, or the whole policy scope when it registered
+ * none). `necessary` leads and the optional names follow in canonical sorted
+ * order, which is the order both cores emit; the JavaScript layer re-orders that
+ * into display order. The fixture configs register no categories, so what the
+ * kernel projects is the sorted scope, and both cores have to agree with it.
+ */
+const fixtureDecisionCategories = function fixtureDecisionCategories(
+	snapshot: KernelSnapshot
+): readonly AllConsentNames[] {
+	const decided =
+		snapshot.evaluationPolicy.choiceScope ?? snapshot.evaluationPolicy.scope;
+	return [
+		'necessary',
+		...[...decided].sort((left, right) => left.localeCompare(right)),
+	];
+};
+
 const toFixtureSnapshot = function toFixtureSnapshot(
 	snapshot: KernelSnapshot,
 	ready: boolean
@@ -1092,9 +1115,7 @@ const toFixtureSnapshot = function toFixtureSnapshot(
 	const { resolution } = snapshot;
 	return {
 		activeUI: snapshot.activeUI,
-		consentCategories: snapshot.consentCategories
-			? [...snapshot.consentCategories]
-			: null,
+		consentCategories: fixtureDecisionCategories(snapshot),
 		effectivePermissions: { ...snapshot.effectivePermissions },
 		error: null,
 		evaluatedAt: snapshot.evaluatedAt,
@@ -1867,6 +1888,22 @@ const buildRevisionTraceFixtures =
  * it publishes is the one the device was on plus one, which no absolute can state; the
  * delta below pins the half that is stateable.
  */
+/**
+ * The list a pending device lists.
+ *
+ * A wipe (or a first launch) leaves the core without a policy, and the pending
+ * evaluator runs the safe fallback rule over every optional category, so the
+ * subject-facing list is `necessary` plus all four in canonical sorted order.
+ * Same rule as `fixtureDecisionCategories`, with the fallback scope behind it.
+ */
+const FULL_DECIDED_CATEGORIES: readonly AllConsentNames[] = [
+	'necessary',
+	'experience',
+	'functionality',
+	'marketing',
+	'measurement',
+];
+
 const RESET_BASELINE: Omit<
 	FixtureSnapshot,
 	| 'consentCategories'
@@ -1902,7 +1939,7 @@ const RESET_NOTES = [
 	...NOTES,
 	'a wipe is judged against one yardstick: the state a device that has never been used boots into. expected.baseline is that state, and every field of it is either installed by the wipe or kept by it, never carried over from whatever the device was doing.',
 	'installed: policyPending true, ready false, promptRequirement none, activeUI none, effectivePermissions necessary-only, evaluatedAt equal to input.now, and no explicitChoice, notice dismissal, policy claim, resolution, snapshot token, location, translations, opt-out directives, deadline, or error. A device that stops at a recorded denial instead would keep promptRequirement at none and no surface would ever come back, which is the one state a subject cannot get out of.',
-	'kept: the subject id, because native/CONTRACT.md refuses to orphan the audit history the backend holds against it; overrides and privacySignals, because a country pinned for QA and a GPC switch are configuration rather than consent; and the configured category scope. Consent categories are null here only because no fixture configures a narrower scope.',
+	'kept: the subject id, because native/CONTRACT.md refuses to orphan the audit history the backend holds against it; overrides and privacySignals, because a country pinned for QA and a GPC switch are configuration rather than consent; and the configured category scope, which a wipe recomputes from configuration rather than consent. No fixture configures a narrower scope, so the baseline lists `necessary` plus every optional category: the rows the safe fallback rule covers until a policy resolves.',
 	'revision is not pinned. A wipe is a committed mutation, so it publishes the revision the device was on plus one, and native/CONTRACT.md refuses to compare the absolute numbering the three implementations start from. A core that restarts the numbering at the cold-start baseline fails anyway, because the revision it announces goes backwards.',
 	'revisionDelta is the one revision claim this kind can make. A wipe is a committed mutation, so it publishes current + 1, and a core that installs the baseline silently or restarts the numbering fails here.',
 	'baseline.disk is read at the baseline publication, before the init the wipe schedules has had a chance to write. That is the only moment the deletion is observable: the re-run init caches the policy it resolves, exactly as a first launch init does, so an envelope existing later is not by itself a failure. What must never exist again is the bytes the wipe started from.',
@@ -1993,7 +2030,7 @@ const buildResetConsentFixtures =
 						revisionDelta: 1,
 						snapshot: {
 							...structuredClone(RESET_BASELINE),
-							consentCategories: null,
+							consentCategories: [...FULL_DECIDED_CATEGORIES],
 							effectivePermissions: { ...OFFLINE_DENY_ALL },
 							overrides: fixtureOverrides(input.overrides),
 							privacySignals: fixturePrivacySignals({
