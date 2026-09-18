@@ -26,7 +26,7 @@
  * only the identity tuple can find them.
  */
 
-import { buildConsentId } from '@c15t/schema';
+import { buildConsentId, vendorChoiceWireSchema } from '@c15t/schema';
 import type {
 	ConsentSubmissionIdentity,
 	SubjectChoiceWire,
@@ -35,6 +35,7 @@ import type {
 import { Data, Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
+import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
@@ -251,11 +252,18 @@ const canonicalVendorChoice = (
 	]);
 };
 
+/**
+ * The stored vendor map, decoded through the wire schema. A value that is
+ * JSON but not a vendor map, after a manual import or corruption, reads as
+ * absent so the comparison yields a conflict rather than a crash.
+ */
 const storedVendorChoice = (value: unknown): VendorChoiceWire | null => {
 	const parsed = typeof value === 'string' ? safeParse(value) : value;
-	return parsed && typeof parsed === 'object'
-		? (parsed as VendorChoiceWire)
-		: null;
+	if (parsed === null || parsed === undefined) {
+		return null;
+	}
+	const decoded = v.safeParse(vendorChoiceWireSchema, parsed);
+	return decoded.success ? decoded.output : null;
 };
 
 /**
