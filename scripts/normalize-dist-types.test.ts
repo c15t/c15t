@@ -15,6 +15,9 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, expect, test } from 'vitest';
 
 const directories: string[] = [];
+const parserDirectory = dirname(
+	fileURLToPath(import.meta.resolve('@babel/parser/package.json'))
+);
 const compiler = fileURLToPath(
 	new URL('./bin/tsc', import.meta.resolve('typescript/package.json'))
 );
@@ -25,6 +28,7 @@ afterEach(() => {
 	}
 });
 
+/** Build an isolated ESM workspace for the script and declaration consumers. */
 const fixture = function fixture() {
 	const root = mkdtempSync(join(tmpdir(), 'normalize-types-'));
 	directories.push(root);
@@ -34,6 +38,8 @@ const fixture = function fixture() {
 		writeFileSync(path, content);
 	};
 	write('package.json', JSON.stringify({ private: true, type: 'module' }));
+	mkdirSync(join(root, 'node_modules/@babel'), { recursive: true });
+	symlinkSync(parserDirectory, join(root, 'node_modules/@babel/parser'), 'dir');
 	for (const name of ['core', 'shared']) {
 		write(
 			`packages/${name}/package.json`,
@@ -159,4 +165,39 @@ test('normalizing explicit specifiers again leaves declarations unchanged', () =
 	const normalized = readFileSync(entry, 'utf8');
 	project.normalize();
 	expect(readFileSync(entry, 'utf8')).toBe(normalized);
+});
+
+test('preserves import-like literals and comments when rewriting module syntax', () => {
+	const project = fixture();
+	const preserved = [
+		`/** Example: import './ambient'; export * from './client'; */`,
+		`// import('./client/types')`,
+		`export type Statement = "import './ambient'";`,
+		`export type ExportStatement = "export * from './client'";`,
+		`export type ImportQuery = "import('./client/types')";`,
+		"export type Template = `import './ambient'`;",
+	];
+	project.write(
+		'packages/core/dist-types/literals.d.ts',
+		[
+			...preserved,
+			`import /* module */ './ambient';`,
+			`export type { Options } from /* module */ './client/types';`,
+			`declare namespace Nested { type Value = import('./client/types').Options; }`,
+		].join('\n')
+	);
+	project.normalize();
+	expect(
+		readFileSync(
+			join(project.root, 'packages/core/dist-types/literals.d.ts'),
+			'utf8'
+		)
+	).toBe(
+		[
+			...preserved,
+			`import /* module */ './ambient.js';`,
+			`export type { Options } from /* module */ './client/types.js';`,
+			`declare namespace Nested { type Value = import('./client/types.js').Options; }`,
+		].join('\n')
+	);
 });

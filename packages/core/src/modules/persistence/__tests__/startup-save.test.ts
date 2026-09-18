@@ -22,11 +22,11 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-// #1134: v2 startup wrote an old choice back while adding its fingerprint.
-// Exercise both orderings of the v3 deferred write against init completion.
+// V3 has no fingerprint write-back. Guard offline initialization and an
+// init response with old records against replacing a newer local choice (#1134).
 test.each([false, true])(
-	'a save during startup survives storage and reload, write before init = %s',
-	async (writeBeforeInit) => {
+	'startup preserves a local choice when init returns old records = %s',
+	async (returnsOldRecords) => {
 		localStorage.setItem(
 			STORAGE_KEY_V2,
 			JSON.stringify({
@@ -55,6 +55,10 @@ test.each([false, true])(
 					value: true,
 				}
 			);
+			const startupRecords = {
+				choice: kernel.getSnapshot().explicitChoice,
+				subject: kernel.getSnapshot().subject,
+			};
 			const pending = kernel.commands.init();
 			expect(kernel.getSnapshot().policyPending).toBe(true);
 			kernel.set.draft({ marketing: false });
@@ -65,10 +69,15 @@ test.each([false, true])(
 				confirmedAt: NOW,
 				value: false,
 			});
-			if (writeBeforeInit) {
-				vi.advanceTimersByTime(0);
+			vi.advanceTimersByTime(0);
+			const initResponse: InitResponse = await offline.init({
+				overrides: {},
+				user: null,
+			});
+			if (returnsOldRecords) {
+				initResponse.records = startupRecords;
 			}
-			response.resolve(await offline.init({ overrides: {}, user: null }));
+			response.resolve(initResponse);
 			await pending;
 			vi.advanceTimersByTime(0);
 			expect(kernel.getSnapshot().policyPending).toBe(false);
