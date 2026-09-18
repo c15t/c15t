@@ -708,6 +708,37 @@ describe('server records and init', () => {
 		]);
 	});
 
+	test('a replacement list without a version drops the previous label', () => {
+		const current = buildInitialSnapshot({
+			initialVendors: { declared: [], listVersion: '1' },
+			now: NOW,
+		});
+		const replaced = applyInitResponse(
+			current,
+			{
+				policyResolution: undefined,
+				vendors: [
+					{
+						category: 'experience',
+						id: 'intercom',
+						name: 'Intercom',
+						privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
+					},
+				],
+			},
+			NOW
+		);
+		// The old label described the old list.
+		expect(replaced.patch.vendors?.listVersion).toBeNull();
+		// A version-only response relabels the current declarations.
+		const relabelled = applyInitResponse(
+			current,
+			{ policyResolution: undefined, vendorListVersion: '2' },
+			NOW
+		);
+		expect(relabelled.patch.vendors?.listVersion).toBe('2');
+	});
+
 	test('server vendor records merge newest-wins on init', () => {
 		const current = buildInitialSnapshot({
 			initialRecords: {

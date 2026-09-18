@@ -162,8 +162,14 @@ export const applyInitResponse = function applyInitResponse(
 					: withoutManifestVendors(existing),
 			manifest: response.vendors ?? [],
 		});
+		// A replacement list carries its own version or none: the previous
+		// label described the previous list. Only a version-only response
+		// keeps the current declarations under a new label.
 		const listVersion =
-			response.vendorListVersion ?? current.vendors?.listVersion ?? null;
+			response.vendorListVersion ??
+			(response.vendors === undefined
+				? (current.vendors?.listVersion ?? null)
+				: null);
 		patch.vendors =
 			resolved.length === 0 && listVersion === null
 				? null

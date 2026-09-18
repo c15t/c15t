@@ -234,24 +234,18 @@ describe('init output', () => {
 			}),
 			vendors: [],
 		});
-		// The old version is kept only with the list; both come from the
-		// same response, and this one sent neither.
-		expect(cleared.initialVendors).toEqual({
-			declared: [],
-			listVersion: '2026-09',
+		// The old label described the old list. A replacement without a
+		// version and without entries leaves nothing to keep.
+		expect(cleared.initialVendors).toBeUndefined();
+		// A version-only response relabels the current declarations.
+		const relabelled = mergeInitResponseIntoKernelConfig(withVendors, {
+			policyResolution: undefined,
+			vendorListVersion: '2026-10',
 		});
-		const { initialVendors: _dropped, ...noVersion } = withVendors;
-		const fresh = mergeInitResponseIntoKernelConfig(
-			{
-				...noVersion,
-				initialVendors: {
-					declared: withVendors.initialVendors?.declared ?? [],
-					listVersion: null,
-				},
-			},
-			{ policyResolution: undefined, vendors: [] }
+		expect(relabelled.initialVendors?.listVersion).toBe('2026-10');
+		expect(relabelled.initialVendors?.declared).toEqual(
+			withVendors.initialVendors?.declared
 		);
-		expect(fresh.initialVendors).toBeUndefined();
 	});
 
 	test('lifts manifest vendors back into an init response', () => {

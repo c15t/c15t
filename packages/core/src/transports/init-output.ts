@@ -289,10 +289,13 @@ export const mergeInitResponseIntoKernelConfig =
 						: withoutManifestVendors(existing),
 				manifest: response.vendors ?? [],
 			});
+			// Same rule as `applyInitResponse`: a replacement list drops the
+			// previous label unless the response names a new one.
 			const listVersion =
 				response.vendorListVersion ??
-				merged.initialVendors?.listVersion ??
-				null;
+				(response.vendors === undefined
+					? (merged.initialVendors?.listVersion ?? null)
+					: null);
 			// An empty backend list with no version clears the slice; otherwise
 			// the old entries would survive the copy.
 			if (declared.length > 0 || listVersion !== null) {
