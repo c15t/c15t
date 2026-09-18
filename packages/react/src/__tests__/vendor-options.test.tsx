@@ -29,6 +29,7 @@ const Probe = () => {
 			{JSON.stringify({
 				declared: declared.map((vendor) => vendor.id),
 				meta,
+				source: declared.find((vendor) => vendor.id === 'meta-pixel')?.source,
 			})}
 		</output>
 	);
@@ -37,7 +38,7 @@ const Probe = () => {
 const readProbe = () =>
 	JSON.parse(
 		document.querySelector('[data-testid="probe"]')?.textContent ?? 'null'
-	) as { declared: string[]; meta: boolean } | null;
+	) as { declared: string[]; meta: boolean; source?: string } | null;
 
 describe('provider vendor options', () => {
 	test('a vendors option supplied after the first render reaches the kernel', async () => {
@@ -111,6 +112,53 @@ describe('provider vendor options', () => {
 		await page.getByTestId('remove').click();
 		await vi.waitFor(() => {
 			expect(readProbe()?.declared).toEqual([]);
+		});
+	});
+
+	test('a removed vendor that a script still names falls back to a script entry', async () => {
+		const Host = () => {
+			const [vendors, setVendors] = useState<Vendor[]>([META]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: policyFixture(
+							{ marketing: true },
+							{ categories: ['marketing'], id: 'owned-vendors' }
+						),
+						scripts: [
+							{
+								category: 'marketing',
+								id: 'meta-pixel-script',
+								textContent: '/* pixel */',
+								vendor: 'meta-pixel',
+							},
+						],
+						vendors,
+					}}
+				>
+					<button
+						data-testid="remove"
+						onClick={() => setVendors([])}
+						type="button"
+					>
+						remove
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual(['meta-pixel']);
+		});
+		await page.getByTestId('remove').click();
+		// The script still names the slug, so the vendor stays declared as a
+		// script-sourced entry rather than disappearing with its config copy.
+		await vi.waitFor(() => {
+			expect(readProbe()?.source).toBe('script');
 		});
 	});
 
