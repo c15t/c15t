@@ -90,7 +90,8 @@ per-vendor grant map with one confirmation time. The backend stores it as sent o
 the consent row, including vendors the client declared in code rather than in the
 manifest, and returns `subjectVendorChoice`: the most recent act decides every
 vendor it names, and a vendor an earlier act decided but the latest one omits
-keeps that earlier grant. A map that omits a vendor the manifest declares is
+keeps that earlier grant. The aggregate's `confirmedAt` is the time of the oldest
+decision still in it, so a retained grant is never presented as newer than it is. A map that omits a vendor the manifest declares is
 stored too: the client saw an older manifest, so its silence about that vendor
 is not a decision. A vendor no act ever named follows its category.
 Retrying the same act with a different map is a `CONFLICT`, like a retry with
