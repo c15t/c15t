@@ -1,5 +1,13 @@
 # @c15t/schema
 
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- c7325a8: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [c7325a8]
+  - @c15t/translations@3.0.0-alpha.2
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

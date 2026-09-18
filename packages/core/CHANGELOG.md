@@ -1,5 +1,33 @@
 # c15t
 
+## 3.0.0-alpha.2
+
+### Minor Changes
+
+- f3227c0: Add a Cloudflare Zaraz consent bridge with explicit category-to-purpose mapping, denied defaults for unmapped purposes, and queued pageview replay after grants. Add the script `onDispose` callback so integrations can remove listeners when their configuration is removed or the loader is disposed.
+
+  Preserve unchanged vendor resources across same-ID configuration updates. Track completed inline execution independently of DOM attachment, remove retained owned elements during configuration teardown, and stop runaway callback reconciliation. Expose Zaraz synchronization failures through `onError`.
+
+  Cancel callback-only loading when preparation invalidates consent or configuration. Preserve the original script element for disposal callbacks.
+
+  Retry failed Zaraz queue replays while consent remains granted. Include required pageview handoff and stable registration steps in generated Zaraz configurations.
+
+  Deliver pending load and error events to the current configuration when a same-resource update keeps the script element.
+
+  Remove retained owned script elements when configuration updates disable persistence after revocation.
+
+  Keep Zaraz readiness retries registered after synchronization errors even when `onError` is omitted.
+
+  Keep replacement scripts in the loading state when an obsolete completion callback replaces its resource.
+
+### Patch Changes
+
+- 574862b: Restore category discovery from scripts, frames, and network rules. Merge discovered categories with `consentCategories` within the policy scope, and use the same set for the dialog and consent completion. Keep the banner dismissed after accepting the displayed categories and reloading. Enable tagged iframe discovery and blocking by default in React, matching the shared runtime.
+- c7325a8: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [c7325a8]
+  - @c15t/schema@3.0.0-alpha.1
+  - @c15t/translations@3.0.0-alpha.2
+
 ## 3.0.0-alpha.1
 
 ### Minor Changes

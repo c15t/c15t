@@ -1,5 +1,27 @@
 # @c15t/react
 
+## 3.0.0-alpha.2
+
+### Patch Changes
+
+- 574862b: Restore category discovery from scripts, frames, and network rules. Merge discovered categories with `consentCategories` within the policy scope, and use the same set for the dialog and consent completion. Keep the banner dismissed after accepting the displayed categories and reloading. Enable tagged iframe discovery and blocking by default in React, matching the shared runtime.
+- 58ec289: Remove first-open scheduling delays from React's aggregate dialog, widget, and compound components while preserving server rendering and hydration. Keep children mounted when an external runtime provides IAB context, so loading the bridge cannot reset local drafts.
+
+  Remove the extra Suspense delay from Astro's React IAB dialog island.
+
+  Queue external-runtime IAB actions until the runtime publishes its handle, and reject pending saves with AbortError when the borrowing provider unmounts. Correct the React and Next.js peer dependency ranges to require React and React DOM 18 or newer, matching the APIs already used by v3. Upgrade both React packages before using v3 on an older installation.
+
+- c7325a8: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [574862b]
+- Updated dependencies [f3227c0]
+- Updated dependencies [c7325a8]
+  - @c15t/core@3.0.0-alpha.2
+  - @c15t/dev-tools@3.0.0-alpha.2
+  - @c15t/iab@3.0.0-alpha.2
+  - @c15t/schema@3.0.0-alpha.1
+  - @c15t/translations@3.0.0-alpha.2
+  - @c15t/ui@3.0.0-alpha.2
+
 ## 3.0.0-alpha.1
 
 ### Minor Changes
