@@ -33,6 +33,14 @@ Usage:
 
 Exit 0 when every measured metric is inside tolerance, 1 when one is not, and 2 when the
 surface was not measured at all, because "not measured" must never read as "passed".
+
+--mode iab-drawer grades the full-page IAB disclosure instead of a banner or a dialog,
+against the web iab-panel figures recorded in WEB_IAB. Open it with the demo link
+`c15t-demo://iab` (the partner list, which is what the web's `{count} partners` link
+opens) or `c15t-demo://iab/purposes`. The gap between purpose rows is only gradeable on
+the purposes tab and the row pitch only on the partners tab, because the purposes rows
+differ in height and the partner rows do not; whichever half is not on screen is
+printed under NOT MEASURED rather than quietly dropped.
 """
 
 from __future__ import annotations
@@ -58,10 +66,61 @@ EXPECTED = {
     "row_pitch": (54.0, 3.0),
 }
 
+# What the web IAB disclosure measures, in CSS px, and where each figure came from.
+# Every one is a `getBoundingClientRect()` read out of the live `examples/demo` app at
+# 411 x 914, forced light, scenario `preset-europe-iab`, against the fixture in
+# /tmp/ui-parity/truth/iab-light.json (purposes tab) and iab-light-vendors.json
+# (vendors tab). Nothing here is read out of the CSS by eye.
+WEB_IAB = {
+    "card_inset": 16.0,  # iab-consent-dialog-card x, and the right gap
+    "tab_button": 170.5,  # button.tabButton w
+    "tab_button_height": 32.0,  # button.tabButton h
+    "tab_list_height": 40.0,  # div.tabsList h
+    "purpose_row_height": 78.0,  # purpose-item-1 h, a two-line name
+    "vendor_row_height": 58.0,  # div.vendorListItem-* h, 168 of 168 rows
+    "vendor_row_pitch": 64.0,  # consecutive div.vendorListItem-* tops
+    "button_height": 35.5,  # button.button h
+    "button_column_gap": 16.0,  # div.actionGroup column-gap
+    "action_row_gap": 16.0,  # div.footer.actionRoot row-gap, not the dialog's 8
+    "footer_height": 112.0,  # div.footer.actionRoot h, at no bottom band
+}
+
+# The drawer's own contract. Its card is a page and not a floating card, so the inset
+# is zero on both sides: the web's 16.0 is `.root { padding: 16 }` around a centred
+# dialog, which is the one thing this presentation exists to avoid. Everything else
+# here is the web's figure, taken from WEB_IAB.
+EXPECTED_IAB = {
+    "card_left": (0.0, 2.0),
+    "card_right_gap": (0.0, 2.0),
+    "tab_height": (WEB_IAB["tab_button_height"], 2.0),
+    "tab_list_height": (WEB_IAB["tab_list_height"], 2.0),
+    # The web's 86 pitch is one row's own height plus its gap, and a row's height is
+    # however many lines its name wraps to on this device. The gap is the half that
+    # travels between devices, and 86 - 78 is where the web's 8 comes from.
+    "purpose_row_gap": (8.0, 2.0),
+    "vendor_row_pitch": (WEB_IAB["vendor_row_pitch"], 3.0),
+    "button_height": (WEB_IAB["button_height"], 2.5),
+    "button_column_gap": (WEB_IAB["button_column_gap"], 2.5),
+    # 16 and not the 8 the banner and dialog footers grade at: `.actionRoot` is
+    # `gap: 1rem`, and only `[data-split]` drops the web's own step to .5rem.
+    "action_row_gap": (WEB_IAB["action_row_gap"], 2.5),
+}
+
+TABLES = {"banner": EXPECTED, "dialog": EXPECTED, "iab-drawer": EXPECTED_IAB}
+
+# A purpose, a stack, and the locked section all put their partner count on the second
+# line and nothing else does, so this selects a row without naming a row.
+PARTNERS_META = re.compile(r"^\d+ partners$")
+# A partner row on the vendors tab is the only one that counts its claims instead.
+CLAIMS_META = re.compile(r"^\d+ purposes?(, \d+ special)?(, \d+ features?)?$")
+IAB_ACTIONS = {"Reject All", "Accept All", "Save Settings"}
+IAB_TAB = re.compile(r"^(Purposes|Vendors) \(\d+\)$")
+
 GUTTER = 16.0  # --gutter, off every safe-area edge
 TAB_HEIGHT = 28.0  # the branding tab, hung below the card
 BOTTOM_BAND_FLOOR = 44.0  # RESERVED_BOTTOM_INSET, use-consent-safe-area.ts
 BOTTOM_BAND_TOLERANCE = 3.0
+WEB_WIDTH = 411.0  # the viewport every WEB_IAB figure was taken at
 
 LABELS = {"Reject All", "Accept All", "Customize", "Save Settings", "Dismiss"}
 CATEGORIES = {"Strictly Necessary", "Functionality", "Analytics", "Marketing", "Experience"}
@@ -87,10 +146,230 @@ def resolve_adb(explicit):
     sys.exit("no adb found. Pass --adb, or set ADB or ANDROID_HOME.")
 
 
+def modal(values):
+    """The most repeated value, so one wrapped row name cannot set the pitch."""
+    counts = {v: values.count(v) for v in set(values)}
+    return max(sorted(counts), key=lambda v: counts[v]) if counts else None
+
+
+def measure_iab(
+    nodes, win_w, nav_inset, contains, clickable_ancestor, metric, check, reported
+):
+    """Grade the IAB disclosure drawer, whose rows are found by what they say.
+
+    React Native's `testID` does not reach a `uiautomator` dump on this build: the
+    dumps this script has ever read carry no app resource-ids at all. So the model's
+    `purpose-item-1` cannot be looked up here and the rows are identified by their
+    own second line instead, which is what the web's `data-testid` sits on. That
+    picks out the same rows without naming a single purpose or partner.
+
+    @param nodes - Every node in the app window, in points.
+    @param win_w - Window width in points.
+    @param nav_inset - Bottom band the surface lays out against, in points.
+    @param contains - Does an outer box hold an inner one.
+    @param clickable_ancestor - The control a text node sits inside.
+    @param metric - Record one graded measurement.
+    @param check - Record one pass or fail.
+    @returns What was found for the JSON report, and why the screen does not carry a
+      drawer. A reason means exit 2: the drawer was not there to measure.
+    """
+    actions = [n for n in nodes if n["text"] in IAB_ACTIONS]
+    tabs = {}
+    for node in nodes:
+        named = IAB_TAB.match(node["text"]) or IAB_TAB.match(node["desc"])
+        if named and named.group(1) not in tabs:
+            tabs[named.group(1)] = clickable_ancestor(node) or node
+
+    if len(tabs) < 2 or len(actions) < 3:
+        return None, (
+            f"no IAB drawer on screen: {len(tabs)} of the 2 tabs and {len(actions)} "
+            f"of the 3 actions it owes were found"
+        )
+
+    anchors = [tabs["Purposes"]["box"], tabs["Vendors"]["box"]] + [
+        a["box"] for a in actions
+    ]
+    holders = sorted(
+        (n for n in nodes if all(contains(n["box"], a) for a in anchors)),
+        key=lambda n: n["box"][2] * n["box"][3],
+    )
+    if not holders:
+        return None, "the tabs and the actions are on screen but no card holds them"
+
+    cx, cy, cw, ch = holders[0]["box"]
+    print(f"card   x{cx:.1f} y{cy:.1f} w{cw:.1f} h{ch:.1f}")
+    print(
+        f"web    card inset {WEB_IAB['card_inset']} on a {WEB_WIDTH:.0f} viewport, which is "
+        f"the centred dialog's gutter; the drawer is a page and takes 0"
+    )
+    metric("card_left", cx)
+    metric("card_right_gap", win_w - (cx + cw))
+
+    # The two tabs. Their height is the web's, but their width cannot be: the web
+    # splits a 353pt list -- 411 less the dialog's 32 of side gutter -- and the
+    # drawer splits its own, which is 32 wider. So the target is the web's own grid
+    # (a 4 pad each side, a 4 gap, two 1fr tracks) over the list actually measured,
+    # and the web's 170.5 is printed rather than asserted.
+    for name, tab in sorted(tabs.items()):
+        print(f"tab    {name} w{tab['box'][2]:.1f} h{tab['box'][3]:.1f}")
+        metric("tab_height", tab["box"][3])
+    (first, second) = (tabs["Purposes"]["box"], tabs["Vendors"]["box"])
+    check(
+        abs(first[2] - second[2]) <= 1.0,
+        "the two tabs share a width",
+        round(abs(first[2] - second[2]), 1),
+        0.0,
+        1.0,
+    )
+
+    lists = sorted(
+        (
+            n
+            for n in nodes
+            if n["box"][3] < 64
+            and contains(n["box"], first)
+            and contains(n["box"], second)
+        ),
+        key=lambda n: n["box"][2] * n["box"][3],
+    )
+    if lists:
+        lx, ly, lw, lh = lists[0]["box"]
+        metric("tab_list_height", lh)
+        metric("tab_width", first[2], round((lw - 2 * 4 - 4) / 2, 1), 2.0)
+    else:
+        reported.append("tab_width and tab_list_height: the tabs' own list was not found")
+
+    # The footer. It is the node that holds the three actions and is smaller than one,
+    # so the web's 12 of top and bottom padding are inside the box being graded, and
+    # the device's bottom band is added to the target rather than subtracted from the
+    # measurement. The web's 112 carries a 1px border the RN sheet does not draw.
+    footers = sorted(
+        (
+            n
+            for n in nodes
+            if all(contains(n["box"], a["box"]) for a in actions)
+            and n["box"][3] < 132 + nav_inset
+        ),
+        key=lambda n: n["box"][2] * n["box"][3],
+    )
+    if footers:
+        metric(
+            "footer_height",
+            footers[0]["box"][3],
+            round(WEB_IAB["footer_height"] - 1.0 + nav_inset, 1),
+            4.0,
+        )
+    else:
+        reported.append("footer_height: no node wraps the three actions alone")
+
+    rows = {}
+    for action in actions:
+        rows.setdefault(round(action["box"][1] / 6), []).append(action)
+    ordered = sorted(rows.values(), key=lambda g: min(b["box"][1] for b in g))
+    for group in ordered:
+        group.sort(key=lambda b: b["box"][0])
+        for a, b in zip(group, group[1:]):
+            metric("button_column_gap", b["box"][0] - (a["box"][0] + a["box"][2]))
+    for above, below in zip(ordered, ordered[1:]):
+        lowest = max(b["box"][1] + b["box"][3] for b in above)
+        metric("action_row_gap", min(b["box"][1] for b in below) - lowest)
+    for action in actions:
+        metric("button_height", action["box"][3])
+
+    # The rows of whichever tab is on screen.
+    selected = next(
+        (
+            n
+            for n in nodes
+            if (n["el"].get("selected") or "") == "true"
+            and IAB_TAB.match(n["desc"] or n["text"])
+        ),
+        None
+    )
+    on_vendors = bool(
+        selected and IAB_TAB.match(selected["desc"] or selected["text"]).group(1) == "Vendors"
+    )
+    meta = [
+        n
+        for n in nodes
+        if (CLAIMS_META if on_vendors else PARTNERS_META).match(n["text"])
+    ]
+    headers = sorted(
+        ((clickable_ancestor(n) or n) for n in meta), key=lambda n: n["box"][1]
+    )
+    if len(headers) < 2:
+        reported.append(
+            f"row pitch: only {len(headers)} gradable rows in view on the "
+            f"{'vendors' if on_vendors else 'purposes'} tab"
+        )
+        return (
+            {
+                "card": [round(v, 1) for v in (cx, cy, cw, ch)],
+                "actions": len(actions),
+                "tab": "vendors" if on_vendors else "purposes",
+                "rows": len(headers),
+            },
+            None,
+        )
+
+    pitch = [
+        round(b["box"][1] - a["box"][1], 1) for a, b in zip(headers, headers[1:])
+    ]
+    gaps = [
+        round(b["box"][1] - (a["box"][1] + a["box"][3]), 1)
+        for a, b in zip(headers, headers[1:])
+        if abs(a["box"][3] - b["box"][3]) <= 1.0
+    ]
+    print(f"row    tops {[round(h['box'][1], 1) for h in headers]}")
+    print(f"pitch  {pitch}   gap {gaps}")
+
+    if on_vendors:
+        # Every web partner row is 58 tall and 64 pitch, 168 times over, because no
+        # name in the sample GVL wraps at 263px. The drawer separates its rows by 8
+        # where the web's `.vendorListItem` separates by 6 -- one gap part serves both
+        # lists -- so the pitch lands ~2 over and the gap is reported, not graded.
+        metric("vendor_row_pitch", modal(pitch))
+        print(
+            f"note   vendor row gap {modal(gaps) if gaps else 'n/a'} against the web's "
+            f"6; recorded divergence, one gap part serves both lists"
+        )
+    elif gaps:
+        # The purposes tab is where the web's 86 pitch was measured, and 86 is 78 plus
+        # the storyboard's gap, so the gap is the half that transfers between devices:
+        # a row's own height is however many lines its name wraps to.
+        metric("purpose_row_gap", modal(gaps))
+    else:
+        reported.append(
+            "purpose_row_gap: no two visible purpose rows are the same height, so no "
+            "row-to-row gap can be taken between them"
+        )
+
+    return (
+        {
+            "card": [round(v, 1) for v in (cx, cy, cw, ch)],
+            "actions": len(actions),
+            "tab": "vendors" if on_vendors else "purposes",
+            "rows": len(headers),
+            "pitch": pitch,
+            "gaps": gaps,
+        },
+        None,
+    )
+
+
 def measure(args):
-    if not args.serial:
-        sys.exit("no device named. Pass --serial, or set ANDROID_SERIAL.")
-    adb = resolve_adb(args.adb)
+    # A saved dump plus a named display is a complete record and needs no device.
+    # The two have to arrive together: bounds mean nothing without the density that
+    # produced them, which is the one thing a uiautomator XML never carries.
+    offline = bool(args.from_xml and args.density_factor and args.screen)
+    if not offline:
+        if not args.serial:
+            sys.exit(
+                "no device named. Pass --serial, or set ANDROID_SERIAL. To grade a "
+                "saved dump with no device, pass --from-xml with --density-factor "
+                "and --screen too."
+            )
+        adb = resolve_adb(args.adb)
 
     def sh(*extra):
         return subprocess.run(
@@ -100,12 +379,16 @@ def measure(args):
             check=False,
         ).stdout
 
-    density = DENSITY.search(sh("wm", "density"))
-    size = re.search(r"(\d+)x(\d+)", sh("wm", "size"))
-    if not density or not size:
-        return None, "cannot read the display: is the device attached?"
-    dsf = int(density.group(1)) / 160
-    screen_w, screen_h = int(size.group(1)), int(size.group(2))
+    if offline:
+        dsf = args.density_factor
+        screen_w, screen_h = (int(v) for v in args.screen.lower().split("x"))
+    else:
+        density = DENSITY.search(sh("wm", "density"))
+        size = re.search(r"(\d+)x(\d+)", sh("wm", "size"))
+        if not density or not size:
+            return None, "cannot read the display: is the device attached?"
+        dsf = int(density.group(1)) / 160
+        screen_w, screen_h = int(size.group(1)), int(size.group(2))
     win_w, win_h = screen_w / dsf, screen_h / dsf
 
     # One all-windows dump carries the app's tree and the system bands. Saved evidence
@@ -198,7 +481,7 @@ def measure(args):
 
     def metric(name, value, want=None, tol=None):
         if want is None:
-            want, tol = EXPECTED[name]
+            want, tol = TABLES[args.mode][name]
         checks.append((abs(value - want) <= tol, name, round(value, 1), want, tol))
 
     findings = {
@@ -220,6 +503,28 @@ def measure(args):
         f"bottom {nav_inset:.1f} ({findings['bands']['nav_source']}, "
         f"device reports {device_band})"
     )
+
+    if args.mode == "iab-drawer":
+        reported = []
+        graded, missing = measure_iab(
+            nodes,
+            win_w,
+            nav_inset,
+            contains,
+            clickable_ancestor,
+            metric,
+            check,
+            reported,
+        )
+        if missing:
+            return None, missing
+        graded["web_truth"] = WEB_IAB
+        graded["web_viewport_width"] = WEB_WIDTH
+        findings.update(graded)
+        if reported:
+            findings["not_measured"] = reported
+            print("NOT MEASURED  " + "  |  ".join(reported))
+        return findings, checks
 
     labels = [n for n in nodes if n["text"] in LABELS]
     title = next(
@@ -323,11 +628,22 @@ def main():
     ap.add_argument(
         "--serial", default=os.environ.get("ANDROID_SERIAL"), help="adb device serial"
     )
-    ap.add_argument("--mode", choices=("banner", "dialog"), default="banner")
+    ap.add_argument(
+        "--mode", choices=("banner", "dialog", "iab-drawer"), default="banner"
+    )
     ap.add_argument("--nav-inset", type=float, default=None)
     ap.add_argument("--status-inset", type=float, default=None)
     ap.add_argument("--adb")
     ap.add_argument("--from-xml", help="grade a saved uiautomator dump instead of the live screen")
+    ap.add_argument(
+        "--density-factor",
+        type=float,
+        help="with --from-xml: the dump's density over 160, e.g. 2.625",
+    )
+    ap.add_argument(
+        "--screen",
+        help="with --from-xml: the dump's device size in px, e.g. 1080x2400",
+    )
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 

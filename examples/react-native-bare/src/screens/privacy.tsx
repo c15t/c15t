@@ -18,10 +18,16 @@ import {
 	Card,
 	Heading,
 	Screen,
+	TextLink,
 	Text,
 	useHostStyles,
 } from '../components/ui';
-import { categoryTitle, preferencesLabel } from '../surface-copy';
+import { IAB_DEMO_DISPLAY_MODEL } from '../fixtures/iab-display-model';
+import {
+	categoryTitle,
+	partnersLabel,
+	preferencesLabel,
+} from '../surface-copy';
 
 /** The categories a subject decides on, in the order the policy lists them. */
 const CHOICES = [
@@ -76,8 +82,10 @@ const statusLabel = (snapshot: ReturnType<typeof useConsent>): string => {
 
 /** The privacy screen itself. */
 export const PrivacyScreen = ({
+	onOpenIabDrawer,
 	onOpenPreferences,
 }: {
+	readonly onOpenIabDrawer: () => void;
 	readonly onOpenPreferences: () => void;
 }) => {
 	const snapshot = useConsent();
@@ -103,6 +111,20 @@ export const PrivacyScreen = ({
 				label={preferencesLabel(snapshot)}
 				onPress={onOpenPreferences}
 			/>
+
+			{/*
+			 * The web puts this link inside the banner's own sentence and uses it to
+			 * open the IAB panel straight on the partner list. This app has no banner of
+			 * its own -- the prompt is the package's -- so the link sits beside the
+			 * entry point to the preference centre instead, and does the same job.
+			 */}
+			<TextLink
+				onPress={() => {
+					onOpenIabDrawer();
+				}}
+			>
+				{partnersLabel(IAB_DEMO_DISPLAY_MODEL.vendorTabCount)}
+			</TextLink>
 
 			<Card title="What this app uses">
 				{CHOICES.map((category) => (

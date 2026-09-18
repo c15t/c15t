@@ -194,6 +194,46 @@ export const Hint = ({ children }: { readonly children: ReactNode }) => {
 	return <NativeText style={parts.caption}>{children}</NativeText>;
 };
 
+/**
+ * An inline text link, in the accent the surfaces use for one.
+ *
+ * The web renders its `{count} partners` entry as a bare link inside a sentence
+ * and not as a button, and this keeps that: same accent, same weight, the size
+ * inherited from the line it sits in. One thing it adds is the underline. On the
+ * web the underline arrives on hover, and a phone has no hover to wait for.
+ */
+export const TextLink = ({
+	children,
+	onPress,
+}: {
+	readonly children: ReactNode;
+	readonly onPress: () => void;
+}) => {
+	const { theme } = useHostStyles();
+	const { body, title } = theme.typography;
+
+	return (
+		<Pressable
+			accessibilityRole="link"
+			hitSlop={{ bottom: 8, left: 0, right: 0, top: 8 }}
+			onPress={onPress}
+			style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+		>
+			<NativeText
+				style={{
+					color: theme.colors.primary,
+					fontSize: body.fontSize,
+					fontWeight: title.weight,
+					lineHeight: body.lineHeight,
+					textDecorationLine: 'underline',
+				}}
+			>
+				{children}
+			</NativeText>
+		</Pressable>
+	);
+};
+
 /** A value, in the monospace a reader scans a diagnostic dump with. */
 export const Mono = ({
 	children,

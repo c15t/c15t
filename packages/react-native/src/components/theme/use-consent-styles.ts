@@ -9,7 +9,7 @@
  */
 
 import { useMemo } from 'react';
-import { useColorScheme, useWindowDimensions } from 'react-native';
+import { I18nManager, useColorScheme, useWindowDimensions } from 'react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
 import { useConsentSafeArea } from '../../hooks/use-consent-safe-area';
@@ -44,6 +44,19 @@ export interface ConsentStyles {
 	readonly controlMinHeight: number;
 	/** Height a scrollable body may reach inside the safe area before it scrolls. */
 	readonly maxBodyHeight: number;
+	/**
+	 * How far a drawer sits off screen while closed, signed along the X axis.
+	 *
+	 * A drawer arrives from the trailing edge, and the trailing edge is the right
+	 * hand one only in a left-to-right layout. Travel is therefore the whole
+	 * window width, negated when the layout is right-to-left, so the page starts
+	 * exactly one screen off on whichever side the reader's thumb is waiting on.
+	 *
+	 * It is the window and not the safe width because the card slides over the
+	 * notch rather than stopping short of it: a travel measured to the band would
+	 * leave a sliver of the page visible down one edge while it was shut.
+	 */
+	readonly drawerTravel: number;
 	/** The bands in force, and whether the host measured them. */
 	readonly safeArea: ConsentSafeArea;
 	/**
@@ -121,6 +134,42 @@ export const CONSENT_SWITCH_GEOMETRY = {
 	padding: 2,
 	thumb: 10,
 	width: 28,
+} as const;
+
+/**
+ * The box a consent switch draws itself at.
+ *
+ * Structural rather than `typeof {@link CONSENT_SWITCH_GEOMETRY}`, because the
+ * disclosure asks for a second size: a plain quadruple of numbers is what lets
+ * one primitive serve the consent dialog's 28x16 and the IAB row's 32x20 without
+ * a union of two literals at every call site.
+ */
+export interface ConsentSwitchGeometry {
+	/** Track height. */
+	readonly height: number;
+	/** Inset between the track's edge and the thumb. */
+	readonly padding: number;
+	/** Thumb diameter. */
+	readonly thumb: number;
+	/** Track width. */
+	readonly width: number;
+}
+
+/**
+ * The larger of the two switches `packages/ui` ships: a 32x20 fully rounded
+ * track, padded by 2 around a 12-point thumb.
+ *
+ * The IAB disclosure asks the primitive for its default size and the consent
+ * dialog asks for `size="small"`, so the two surfaces really do carry different
+ * controls. Measured on the live panel at a 411 CSS px viewport: the track box is
+ * 32 x 20 with `padding: 2px` and `border-radius: 9999px`, and the thumb inside
+ * it is 12 x 12.
+ */
+export const CONSENT_IAB_SWITCH_GEOMETRY = {
+	height: 20,
+	padding: 2,
+	thumb: 12,
+	width: 32,
 } as const;
 
 /**
@@ -213,6 +262,95 @@ const TRACKING_EM = {
 } as const;
 
 /**
+ * The heading and supporting line of an IAB disclosure, in points.
+ *
+ * `--iab-cd-title-font-size` is `1.125rem` at semibold over `line-height: 1.25`,
+ * which is 18 over 22.5, and `--iab-cd-description-font-size` is `0.75rem` over
+ * `--iab-cd-description-line-height`, the `line-height-normal` token, so 12 over
+ * 18. Neither is on this package's type scale: the scale carries the banner and
+ * the consent dialog, and `iab-panel.module.css` declares its own pair. They are
+ * spelled as constants here rather than added to `ConsentThemeTypography` because
+ * they belong to one surface, the same reason the branding tab's 11 and 10 are
+ * not on the scale either.
+ *
+ * The heading carries no tracking. `.title` in that sheet sets a size, a weight,
+ * and a line height, and stops there, so this is one of the roles `TRACKING_EM`
+ * deliberately has no entry for.
+ */
+const IAB_TITLE = { fontSize: 18, lineHeight: 22.5, weight: '600' } as const;
+
+/** The supporting line under {@link IAB_TITLE}. */
+const IAB_DESCRIPTION = {
+	fontSize: 12,
+	lineHeight: 18,
+	weight: '400',
+} as const;
+
+/**
+ * The rows of an IAB disclosure, in points, one entry per web class.
+ *
+ * Each figure is the sub-`768px` rule in `iab-panel.module.css`, which is the
+ * only one a phone matches:
+ *
+ * - `tabHeight` / `tabFontSize`: `.tabButton` is `height: 2rem` with
+ *   `font-size: .8125rem` at weight 500 and `padding: 0 .75rem`.
+ * - `tabListPadding` / `tabListGap`: `.tabsList` pads `.25rem` and gaps
+ *   `.25rem`, on `--c15t-radius-lg`.
+ * - `rowHeaderPadding` / `rowHeaderGap`: `.purposeHeader` is `padding: .75rem`
+ *   with `gap: .75rem`.
+ * - `rowTitleSize`: `.purposeName` and `.vendorListName` are both `.875rem` at
+ *   weight 500.
+ * - `rowMetaSize`: `.purposeMeta`, `.stackMeta`, and `.vendorListMetaText` are
+ *   all `.75rem` in the muted tone.
+ * - `rowDescriptionSize` / `rowDescriptionLineHeight`: `.purposeDescription` is
+ *   `.75rem` over `line-height: 1.5`.
+ * - `listGap`: `.purposeItem` and `.stackItem` separate by
+ *   `margin-bottom: .5rem`. The vendors list separates its rows by `.375rem`,
+ *   which is 6, and the drawer renders 8 there: one part carries the gap, and 8
+ *   is the row pitch the purposes tab is graded on. The 2pt is recorded rather
+ *   than hidden.
+ */
+const IAB_ROWS = {
+	listGap: 8,
+	rowDescriptionLineHeight: 18,
+	rowDescriptionSize: 12,
+	rowHeaderGap: 12,
+	rowHeaderPadding: 12,
+	rowMetaSize: 12,
+	rowTitleSize: 14,
+	tabFontSize: 13,
+	tabHeight: 32,
+	tabListGap: 4,
+	tabListPadding: 4,
+} as const;
+
+/**
+ * The padding of each band of an IAB disclosure.
+ *
+ * The header and the footer both say `.75rem 1rem` -- 12 above and below, 16 in
+ * from the card edge -- and the scrolling content says `.75rem` on all four
+ * sides. The tabs sit between the header and the content with
+ * `.75rem .75rem 0 .75rem`, so they lean on the content's own 12 below them
+ * rather than declaring a bottom of their own.
+ *
+ * `footerGap` is the step between the two action rows. `.actionRoot` is `gap:
+ * 1rem`, which is 16 and not the 8 the banner and the dialog footers use --
+ * those two carry `[data-split]`, which is what drops the web's own step to
+ * `.5rem`, and the disclosure has no such attribute. Measured row to row: 16.0.
+ */
+export const IAB_BANDS = {
+	contentPadding: 12,
+	footerGap: 16,
+	footerPaddingHorizontal: 16,
+	footerPaddingVertical: 12,
+	headerPaddingHorizontal: 16,
+	headerPaddingVertical: 12,
+	tabPaddingBottom: 0,
+	tabPaddingHorizontal: 12,
+	tabPaddingTop: 12,
+} as const;
+
+/**
  * The gap between two category cards: 12.
  *
  * `accordion.module.css` stacks `.item`s with `--accordion-stack-gap`, which is
@@ -247,6 +385,19 @@ export const CONSENT_DISCLOSURE_GEOMETRY = {
 	arm: (14 / 24) * 20,
 	box: 20,
 	stroke: (2 / 24) * 20,
+} as const;
+
+/**
+ * The same glyph one size down, for the rows of an IAB disclosure.
+ *
+ * `.purposeArrow` and the vendor row's chevron are both `1rem` rather than the
+ * accordion's `1.25rem`, so the plus a disclosure row carries is 16 on the same
+ * lucide ratio: 9.33 of arm and 1.33 of stroke.
+ */
+export const CONSENT_IAB_DISCLOSURE_GEOMETRY = {
+	arm: (14 / 24) * 16,
+	box: 16,
+	stroke: (2 / 24) * 16,
 } as const;
 
 /**
@@ -305,6 +456,218 @@ const textStyle = function textStyle(
 	};
 };
 
+/** The four surfaces a host can ask for, as the `presentation` option takes them. */
+type SurfacePresentation = 'banner' | 'dialog' | 'drawer' | 'sheet';
+
+/**
+ * How a presentation sits in its layer, in the facts that depend on neither a
+ * theme, a window, nor a safe-area band.
+ *
+ * A table rather than a ternary at each fact. The builder below is the largest
+ * function in the package, and a surface choice read out of one of these costs it
+ * nothing, where eighteen conditionals spread over its card, bands, and footer
+ * push it past the branch budget the lint holds it to. The four entries are the
+ * whole difference between the surfaces; a fifth row is the whole of adding one.
+ */
+interface SurfaceLayout {
+	/** How the card is held across the layer's cross axis. */
+	readonly alignItems: ViewStyle['alignItems'];
+	/** Whether the card is set down in the middle of its overlay. */
+	readonly centered: boolean;
+	/** The arrow a row of this surface opens with. */
+	readonly disclosureGeometry: Readonly<{
+		arm: number;
+		box: number;
+		stroke: number;
+	}>;
+	/** Steps of `gutter` the overlay spends over the card, above and below. */
+	readonly gutterSteps: number;
+	/** Whether a grab handle has to come off the card's height allowance. */
+	readonly handled: boolean;
+	/** How the card is placed along the layer's main axis. */
+	readonly justifyContent: ViewStyle['justifyContent'];
+	/** Whether the surface is the page rather than a card set down on one. */
+	readonly page: boolean;
+	/** The track this surface's rows switch with. */
+	readonly switchGeometry: Readonly<{
+		height: number;
+		padding: number;
+		thumb: number;
+		width: number;
+	}>;
+	/** Whether a branding tag shares the wrapper and has to come off too. */
+	readonly tagged: boolean;
+}
+
+/** One entry per {@link SurfacePresentation}. */
+const SURFACE_LAYOUTS: Record<SurfacePresentation, SurfaceLayout> = {
+	banner: {
+		alignItems: undefined,
+		centered: false,
+		disclosureGeometry: CONSENT_DISCLOSURE_GEOMETRY,
+		gutterSteps: 1,
+		handled: false,
+		justifyContent: 'flex-end',
+		page: false,
+		switchGeometry: CONSENT_SWITCH_GEOMETRY,
+		tagged: true,
+	},
+	dialog: {
+		alignItems: 'center',
+		centered: true,
+		disclosureGeometry: CONSENT_DISCLOSURE_GEOMETRY,
+		gutterSteps: 2,
+		handled: false,
+		justifyContent: 'center',
+		page: false,
+		switchGeometry: CONSENT_SWITCH_GEOMETRY,
+		tagged: true,
+	},
+	drawer: {
+		// Stretched over the layer instead of parked at an edge of it, so the layer's
+		// only job is the bands: the page's heading has to sit below the clock and
+		// its footer above the home indicator. There is no gutter, because a page has
+		// no screen edge to keep off -- the inset the web card buys with
+		// `padding: 16` on `.root` is paid here by the page filling the viewport,
+		// which is what the graded geometry compares.
+		alignItems: 'stretch',
+		centered: false,
+		disclosureGeometry: CONSENT_IAB_DISCLOSURE_GEOMETRY,
+		gutterSteps: 0,
+		handled: false,
+		justifyContent: 'flex-start',
+		page: true,
+		switchGeometry: CONSENT_IAB_SWITCH_GEOMETRY,
+		tagged: false,
+	},
+	sheet: {
+		alignItems: undefined,
+		centered: false,
+		disclosureGeometry: CONSENT_DISCLOSURE_GEOMETRY,
+		gutterSteps: 1,
+		handled: true,
+		justifyContent: 'flex-end',
+		page: false,
+		switchGeometry: CONSENT_SWITCH_GEOMETRY,
+		tagged: true,
+	},
+};
+
+/**
+ * What the parts disagree on between the presentations.
+ *
+ * The other half of {@link SURFACE_LAYOUTS}: that table holds the facts a
+ * placement needs and can settle at module scope, this one holds the numbers a
+ * part draws with, which cannot settle there because most of them are a theme
+ * token. The builder reads the row for the presentation it is building. Written
+ * as four rows rather than a ternary at each part for the branch budget
+ * {@link SurfaceLayout} gives: eighteen of them spread over the card, the bands,
+ * and the type roles is what put this file over the limit.
+ */
+interface SurfacePartFacts {
+	/** Tracking of the copy under a heading, or none. */
+	readonly bodyTracking: number | undefined;
+	/** The type role of the copy under a heading. */
+	readonly bodyType: ConsentTypeStyle;
+	/** The card's own border. Only the dialog has one: a sheet and a page run to the screen edges. */
+	readonly cardBorderWidth: number;
+	/** The card's `flex`, which a page needs because it is the whole layer. */
+	readonly cardFlex: ViewStyle['flex'];
+	/** How wide the card may get, which the page and the sheet leave unbounded. */
+	readonly cardMaxWidth: ViewStyle['maxWidth'];
+	/** The inset each band of the card keeps from its own edge. */
+	readonly cardPadding: number;
+	/** The card's corner radius. A page has none, or the dimmed app shows through four round notches. */
+	readonly cardRadius: number;
+	/** The card's elevation, which only the dialog carries. */
+	readonly cardShadow: ViewStyle['boxShadow'];
+	/** Space the scrolling body keeps above its first row. */
+	readonly contentPaddingTop: number;
+	/** Step between the heading and the copy under it. */
+	readonly headerGap: number;
+	/** Sideways inset of the heading band, which the disclosure pads itself. */
+	readonly headerPaddingHorizontal: number;
+	/** Vertical inset of the heading band, on the same two edges. */
+	readonly headerPaddingVertical: number;
+	/** The rule under the heading band. `.header` in the disclosure is the only one that draws it. */
+	readonly headerRuleWidth: number;
+	/** Step between the rows of a list. */
+	readonly listGap: number;
+	/** Tracking of the heading, which the disclosure leaves at zero. */
+	readonly titleTracking: number | undefined;
+	/** The type role of the heading. */
+	readonly titleType: ConsentTypeStyle;
+}
+
+/**
+ * The tallest a card may stand, in the room the overlay leaves it.
+ *
+ * The overlay centres what it is given, so a card that resolves taller than the
+ * space between the gutters is not clipped, it is pushed up: measured on a
+ * 411x914 device, a card whose only bound was its content came back 1090 tall and
+ * painted its heading over the status bar clock. A cap is also what the web card
+ * has -- 370x499 inside an 872 viewport, with the list scrolling under a header
+ * and a footer that stay put -- and the tag the card shares its wrapper with has
+ * to come off the allowance, or the wrapper overflows by exactly those 28. A page
+ * takes everything between the two bands: no gutter above or below, no tag to find
+ * room for, and no handle.
+ *
+ * @param layout - Presentation being built.
+ * @param safeHeight - Window height less both bands.
+ * @param gutter - The overlay's own inset, in points.
+ * @returns A `maxHeight` no card can resolve taller than.
+ */
+const cardMaxHeightFor = function cardMaxHeightFor(
+	layout: SurfaceLayout,
+	safeHeight: number,
+	gutter: number
+): number {
+	return Math.max(
+		MIN_BODY_HEIGHT,
+		safeHeight -
+			layout.gutterSteps * gutter -
+			(layout.tagged ? BRANDING_TAG_HEIGHT : 0) -
+			(layout.handled ? SHEET_HANDLE_HEIGHT : 0)
+	);
+};
+
+/**
+ * The layer a sheet, dialog, or page is centred in.
+ *
+ * A sheet keeps its actions the same distance above the band as the banner does,
+ * and the band is added outside the gutter rather than swapped for it: a measured
+ * band moves the sheet, and the gap between the deepest control and the sheet's
+ * own rounded edge stays with the footer. A dialog is the same card set down in the
+ * middle of the overlay rather than pushed to its bottom edge, which is what the
+ * web root does -- pad 16 all round and centre -- and a notch is against that
+ * gutter rather than added to it, because a card 448 wide at most has no reason to
+ * slide under one.
+ *
+ * @param layout - Presentation being built.
+ * @param insets - The gutters and the bands in force.
+ * @returns A style for the layer under the card.
+ */
+const sheetLayerFor = function sheetLayerFor(
+	layout: SurfaceLayout,
+	insets: {
+		bottomGutter: number;
+		gutter: number;
+		safeArea: ConsentSafeArea;
+		sideGutter: number;
+	}
+): ViewStyle {
+	return {
+		alignItems: layout.alignItems,
+		flex: 1,
+		justifyContent: layout.justifyContent,
+		paddingBottom:
+			(layout.page ? 0 : insets.bottomGutter) + insets.safeArea.bottom,
+		paddingLeft: layout.centered ? insets.sideGutter : insets.safeArea.left,
+		paddingRight: layout.centered ? insets.sideGutter : insets.safeArea.right,
+		paddingTop: (layout.centered ? insets.gutter : 0) + insets.safeArea.top,
+	};
+};
+
 /**
  * Resolve the styles for one render.
  *
@@ -323,13 +686,20 @@ export const useConsentStyles = function useConsentStyles(
 		 * card is anchored and padded. Defaults to the dialog, which is the shape the
 		 * web surface has.
 		 */
-		readonly presentation?: 'banner' | 'dialog' | 'sheet';
+		/**
+		 * `drawer` is the fourth: a card that fills the screen and slides in along
+		 * the trailing edge, which is what the IAB disclosure is on a phone and the
+		 * reason this one is not a centred dialog. It keeps the same card, the same
+		 * bands, and the same footer, and drops the border, the corner radius, the
+		 * width cap, and the 16pt gutter, because a page has no edge to keep off.
+		 */
+		readonly presentation?: 'banner' | 'dialog' | 'drawer' | 'sheet';
 		readonly styles?: ConsentPartStyles;
 		readonly theme?: ConsentTheme;
 	} = {}
 ): ConsentStyles {
 	const scheme = resolveConsentColorScheme(useColorScheme());
-	const { fontScale, height } = useWindowDimensions();
+	const { fontScale, height, width } = useWindowDimensions();
 	const safeArea = useConsentSafeArea();
 	const { presentation = 'dialog', styles, theme } = options;
 
@@ -357,12 +727,90 @@ export const useConsentStyles = function useConsentStyles(
 
 	return useMemo(() => {
 		const { colors, radius, spacing, typography } = resolvedTheme;
-		// The banner heading is larger than its copy and the sheet heading is
-		// smaller than its, so the roles are picked here rather than in a part.
-		const titleType =
-			presentation === 'banner' ? typography.bannerTitle : typography.title;
-		const bodyType =
-			presentation === 'banner' ? typography.bannerBody : typography.body;
+		const layout = SURFACE_LAYOUTS[presentation];
+		// The banner heading is larger than its copy, the sheet heading is smaller
+		// than its, and the disclosure brings a third pairing, so the roles -- and
+		// every other number the parts disagree on -- are read out of one row of this
+		// table rather than decided at each part. The theme tokens are read here, so a
+		// host theme still decides them; only the disagreement between surfaces is
+		// fixed by the row. See {@link SurfacePartFacts}.
+		const facts: SurfacePartFacts = {
+			banner: {
+				bodyTracking: TRACKING_EM.bannerBody,
+				bodyType: typography.bannerBody,
+				cardBorderWidth: 0,
+				cardFlex: undefined,
+				cardMaxWidth: undefined,
+				cardPadding: spacing.m,
+				cardRadius: radius.surface,
+				cardShadow: undefined,
+				contentPaddingTop: 0,
+				headerGap: spacing.s,
+				headerPaddingHorizontal: spacing.m,
+				headerPaddingVertical: spacing.m,
+				headerRuleWidth: 0,
+				listGap: CATEGORY_STACK_GAP,
+				titleTracking: TRACKING_EM.bannerTitle,
+				titleType: typography.bannerTitle,
+			},
+			dialog: {
+				bodyTracking: undefined,
+				bodyType: typography.body,
+				cardBorderWidth: HAIRLINE,
+				cardFlex: undefined,
+				cardMaxWidth: DIALOG_MAX_WIDTH,
+				cardPadding: spacing.l,
+				cardRadius: radius.surface,
+				cardShadow: SHADOW_SM,
+				contentPaddingTop: 0,
+				headerGap: spacing.xs,
+				headerPaddingHorizontal: spacing.l,
+				headerPaddingVertical: spacing.l,
+				headerRuleWidth: 0,
+				listGap: CATEGORY_STACK_GAP,
+				titleTracking: TRACKING_EM.dialogTitle,
+				titleType: typography.title,
+			},
+			drawer: {
+				bodyTracking: undefined,
+				bodyType: IAB_DESCRIPTION,
+				cardBorderWidth: 0,
+				cardFlex: 1,
+				cardMaxWidth: undefined,
+				cardPadding: IAB_BANDS.contentPadding,
+				cardRadius: 0,
+				cardShadow: undefined,
+				contentPaddingTop: IAB_BANDS.contentPadding,
+				headerGap: spacing.xs,
+				headerPaddingHorizontal: IAB_BANDS.headerPaddingHorizontal,
+				headerPaddingVertical: IAB_BANDS.headerPaddingVertical,
+				headerRuleWidth: HAIRLINE,
+				// The disclosure separates its rows by `.5rem`, and the run under the
+				// last row is the scrolling body's own 12 rather than the 24 the cards
+				// put under their last one.
+				listGap: IAB_ROWS.listGap,
+				titleTracking: undefined,
+				titleType: IAB_TITLE,
+			},
+			sheet: {
+				bodyTracking: undefined,
+				bodyType: typography.body,
+				cardBorderWidth: 0,
+				cardFlex: undefined,
+				cardMaxWidth: undefined,
+				cardPadding: spacing.m,
+				cardRadius: radius.surface,
+				cardShadow: undefined,
+				contentPaddingTop: 0,
+				headerGap: spacing.xs,
+				headerPaddingHorizontal: spacing.m,
+				headerPaddingVertical: spacing.m,
+				headerRuleWidth: 0,
+				listGap: CATEGORY_STACK_GAP,
+				titleTracking: TRACKING_EM.dialogTitle,
+				titleType: typography.title,
+			},
+		}[presentation];
 		// The height a control's touch area may not fall below once the platform has
 		// scaled its text. The drawn box is the web's 8 + 17.5 + 8 plus two hairlines
 		// at scale 1, which is under the touch floor, so the floor decides there; past
@@ -402,13 +850,13 @@ export const useConsentStyles = function useConsentStyles(
 		// and left it floating in the middle of the display.
 		const bottomGutter = gutter;
 
-		// The inset every band of a card keeps from its own edge. The dialog takes
-		// the web's card padding, `--consent-dialog-card-padding` at 24; the bottom
-		// sheet and the banner stay on 16, which is what they were measured at. The
-		// card itself pads nothing: each band carries its own, the way the web's
-		// header, content, and footer do, so the footer rule runs edge to edge.
-		const centered = presentation === 'dialog';
-		const cardPadding = presentation === 'dialog' ? spacing.l : spacing.m;
+		// The disclosure asks the switch primitive for its default size and the
+		// consent dialog asks for the small one, so the track this part draws depends
+		// on which surface is being built. The control's thumb reads the matching
+		// constant rather than assuming the dialog's.
+		// The glyph that opens a row moves with the switch: the disclosure's own
+		// arrows are `1rem`, a sixth smaller than the accordion's `1.25rem`.
+		const { disclosureGeometry, switchGeometry } = layout;
 
 		// The tallest a card may stand. The overlay centres what it is given, so a
 		// card that resolves taller than the space between the gutters is not
@@ -418,13 +866,7 @@ export const useConsentStyles = function useConsentStyles(
 		// 872 viewport, with the list scrolling under a header and a footer that stay
 		// put -- and the tab the card shares its wrapper with has to come off the
 		// allowance, or the wrapper overflows by exactly those 28.
-		const cardMaxHeight = Math.max(
-			MIN_BODY_HEIGHT,
-			safeHeight -
-				(centered ? gutter * 2 : gutter) -
-				BRANDING_TAG_HEIGHT -
-				(presentation === 'sheet' ? SHEET_HANDLE_HEIGHT : 0)
-		);
+		const cardMaxHeight = cardMaxHeightFor(layout, safeHeight, gutter);
 
 		const bannerLayer: ViewStyle = {
 			bottom: safeArea.bottom,
@@ -435,25 +877,17 @@ export const useConsentStyles = function useConsentStyles(
 			right: 0,
 		};
 
-		// A sheet keeps its actions the same distance above the band as the banner
-		// does, and the band is added outside the gutter rather than swapped for it:
-		// a measured band moves the sheet, and the gap between the deepest control
-		// and the sheet's own rounded edge stays with the footer.
-		// A dialog is the same card set down in the middle of the overlay rather than
-		// pushed to its bottom edge, which is what the web root does: pad 16 all
-		// round and centre. A notch is against that gutter rather than added to it,
-		// because a card 448 wide at most has no reason to slide under one.
+		// How far a floating card has to keep clear of the notch on the sideways
+		// axis. `sheetLayerFor` spends it on the dialog alone, and reads the bands
+		// off the same safe area.
 		const sideGutter = Math.max(gutter, safeArea.left, safeArea.right);
 
-		const sheetLayer: ViewStyle = {
-			alignItems: centered ? 'center' : undefined,
-			flex: 1,
-			justifyContent: centered ? 'center' : 'flex-end',
-			paddingBottom: bottomGutter + safeArea.bottom,
-			paddingLeft: centered ? sideGutter : safeArea.left,
-			paddingRight: centered ? sideGutter : safeArea.right,
-			paddingTop: centered ? gutter + safeArea.top : safeArea.top,
-		};
+		const sheetLayer = sheetLayerFor(layout, {
+			bottomGutter,
+			gutter,
+			safeArea,
+			sideGutter,
+		});
 
 		const base: Record<string, ViewStyle & TextStyle> = {
 			banner: {
@@ -542,8 +976,8 @@ export const useConsentStyles = function useConsentStyles(
 			// one part carries the colour and the weight of the plus and its minus.
 			categoryDisclosure: {
 				backgroundColor: colors.disclosure,
-				height: CONSENT_DISCLOSURE_GEOMETRY.stroke,
-				width: CONSENT_DISCLOSURE_GEOMETRY.arm,
+				height: disclosureGeometry.stroke,
+				width: disclosureGeometry.arm,
 			},
 			// One bordered card per category, not a divided list: `.item` is nothing
 			// but a 1px border in the border token and `radius-md`, which measures 8
@@ -581,10 +1015,34 @@ export const useConsentStyles = function useConsentStyles(
 				minHeight: categoryTriggerHeight,
 				padding: spacing.s,
 			},
+			// The box the close control draws: `.closeButton` is `padding: .375rem`
+			// on `--c15t-radius-md` over the muted tone, with no border and no fill
+			// until hover. The 44 a fingertip needs is reached through `hitSlop` in
+			// the control itself, exactly as every other control here does it, so the
+			// header stays the height the web header measures.
+			closeButton: {
+				alignItems: 'center',
+				borderRadius: radius.control,
+				height: 28,
+				justifyContent: 'center',
+				padding: 6,
+				width: 28,
+			},
+			// One bar of the cross. The web draws a 1rem lucide `x` at `stroke-width:
+			// 2`, which is two 16pt strokes 2pt thick crossing at the centre; React
+			// Native has no SVG, so the control renders this bar twice, rotated through
+			// +45 and -45 degrees. Both bars are the same part, which is what keeps a
+			// thicker cross from ever being half-drawn in another colour.
+			closeGlyph: {
+				backgroundColor: colors.textMuted,
+				height: 2,
+				position: 'absolute',
+				width: 16,
+			},
 			description: textStyle(
-				bodyType,
+				facts.bodyType,
 				colors.textMuted,
-				presentation === 'banner' ? TRACKING_EM.bannerBody : undefined
+				facts.bodyTracking
 			),
 			// The band, the rule above it, the padding, and the step between the
 			// action rows are all facts about the presentation rather than the
@@ -605,11 +1063,50 @@ export const useConsentStyles = function useConsentStyles(
 			// `0.5rem` step between heading and copy; the dialog leads with the card
 			// padding and a `--consent-dialog-header-gap` of 4.
 			header: {
-				gap: presentation === 'banner' ? spacing.s : spacing.xs,
-				padding: cardPadding,
+				// The banner puts 8 between its heading and its copy and the dialog 4;
+				// the disclosure puts 4 too, because `.description` carries
+				// `margin: .25rem 0 0` under the heading rather than the band
+				// declaring a gap. It is the only band with a rule under it:
+				// `.header` draws a `border-bottom` in the border token, which is what
+				// separates the heading from the segmented control below it.
+				borderBottomColor: colors.border,
+				borderBottomWidth: facts.headerRuleWidth,
+				gap: facts.headerGap,
+				// Two longhands rather than `padding` plus an override, because React
+				// Native resolves a longhand over a shorthand whichever order they are
+				// written in: `padding` here with a `paddingVertical: 0` under it would
+				// have quietly flattened the dialog's own 24 of heading inset to pay for
+				// a number the drawer does not use.
+				paddingHorizontal: facts.headerPaddingHorizontal,
+				paddingVertical: facts.headerPaddingVertical,
 			},
 			label: {
 				...textStyle(typography.label, colors.primary),
+				textAlign: 'center',
+			},
+			// The Object / Objected control on a partner's legitimate-interest leg.
+			// `.objectButton` is `.6875rem` at weight 500 on `padding: .25rem .5rem`, one
+			// hairline in the border token on `--c15t-radius-sm`, which is 4 and not this
+			// theme's own 8. It measures 53.6 x 23.8 at a 411 CSS px viewport, so the 44
+			// a fingertip needs comes from `hitSlop` here too rather than from the box.
+			objectButton: {
+				alignItems: 'center',
+				borderColor: colors.border,
+				borderRadius: 4,
+				borderWidth: HAIRLINE,
+				justifyContent: 'center',
+				paddingHorizontal: 8,
+				paddingVertical: 4,
+			},
+			// The control's own words. `.objectButton` writes them in the muted tone
+			// over nothing, and `.objectButtonActive` inverts the pair to the card's
+			// colour once the objection is held -- that second colour is a state, so it
+			// is applied by the control over this part.
+			objectLabel: {
+				...textStyle(
+					{ fontSize: 11, lineHeight: 13.75, weight: '500' },
+					colors.textMuted
+				),
 				textAlign: 'center',
 			},
 			overlay: { backgroundColor: colors.overlay },
@@ -636,10 +1133,118 @@ export const useConsentStyles = function useConsentStyles(
 				textAlign: 'center',
 			},
 			row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.m },
+			// One row of the disclosure. `.purposeItem`, `.stackItem`, and
+			// `.specialPurposesSection` are the same bordered card: a hairline in the
+			// border token on `--c15t-radius-md`, which is this theme's own `control`
+			// radius, filled with the card colour. A partner row is the same card with
+			// the fill taken away, which is `.vendorListItem`.
+			rowCard: {
+				backgroundColor: colors.surface,
+				borderColor: colors.border,
+				borderRadius: radius.control,
+				borderWidth: HAIRLINE,
+				flexDirection: 'column',
+			},
+			// The disclosure a row opens to: a rule above it, 12 of air over that
+			// rule, and 12 of padding on the sides and below. `.purposeContent` is
+			// `padding: 0 .75rem .75rem` plus `margin-top: .75rem` plus
+			// `padding-top: .75rem` and a `border-top`, and the `marginTop` here is
+			// that margin -- the gap sits above the rule, not below it.
+			rowContent: {
+				borderTopColor: colors.border,
+				borderTopWidth: HAIRLINE,
+				marginTop: IAB_ROWS.rowHeaderPadding,
+				paddingBottom: IAB_ROWS.rowHeaderPadding,
+				paddingHorizontal: IAB_ROWS.rowHeaderPadding,
+				paddingTop: IAB_ROWS.rowHeaderPadding,
+			},
+			// `.purposeDescription` and `.stackDescription`: the GVL's own words, 12
+			// over an explicit `line-height: 1.5`, in the muted tone.
+			rowDescription: textStyle(
+				{
+					fontSize: IAB_ROWS.rowDescriptionSize,
+					lineHeight: IAB_ROWS.rowDescriptionLineHeight,
+					weight: '400',
+				},
+				colors.textMuted
+			),
+			// The tappable head of a row: 12 of padding all round, 12 between the
+			// disclosure, the text column, and the switch, and the tops of those three
+			// lined up, which is `.purposeHeader`'s `align-items: flex-start`. A title
+			// that wraps to two lines therefore pushes the switch down rather than
+			// centring itself against it, the way the web row does.
+			rowHeader: {
+				alignItems: 'flex-start',
+				flexDirection: 'row',
+				gap: IAB_ROWS.rowHeaderGap,
+				padding: IAB_ROWS.rowHeaderPadding,
+			},
+			// One entry in a list inside an opened partner row -- a purpose name, a
+			// special purpose, a feature. `.vendorPurposeItem` hangs a 12pt muted line 8
+			// off a 2px rule: `padding-left: .5rem` and `border-left: 2px solid` in the
+			// border token. That rule is the only 2px line on the surface, and it is
+			// what makes a claim read as belonging to the heading above it.
+			rowListItem: {
+				borderLeftColor: colors.border,
+				borderLeftWidth: 2,
+				color: colors.textMuted,
+				flexDirection: 'row',
+				fontSize: 12,
+				gap: 8,
+				lineHeight: 15,
+				paddingLeft: 8,
+			},
+			// The padlock beside a locked row's name. One part for two shapes: the
+			// component paints the body from `backgroundColor` and the shackle from
+			// `borderColor`, both of which the web paints in the same muted tone, so a
+			// host that retints one retints the whole glyph.
+			rowLock: {
+				backgroundColor: colors.textMuted,
+				borderColor: colors.textMuted,
+			},
+			// `{count} partners` under a row's name: `.purposeMeta` is `.75rem` in the
+			// muted tone and declares no line height, so it inherits the sheet's
+			// `line-height-tight`, the same 1.25 that puts a 14 label on a 17.5 line.
+			rowMeta: textStyle(
+				{ fontSize: IAB_ROWS.rowMetaSize, lineHeight: 15, weight: '400' },
+				colors.textMuted
+			),
+			// The standing notice under a partner's legitimate-interest claim: the
+			// right to object. `.liExplanation` is `.6875rem` in italics, in the muted
+			// tone, on the same hovered surface as the band it sits in.
+			rowNotice: {
+				...textStyle(
+					{ fontSize: 11, lineHeight: 13.75, weight: '400' },
+					colors.textMuted
+				),
+				fontStyle: 'italic',
+			},
+			// A heading inside an opened partner row -- `Purposes (4)`, `Legitimate
+			// Interest`, `Features`. `.vendorPurposesTitle` is `.75rem` at weight 500 in
+			// the plain text colour with 4 under it. It is not the uppercase 10pt form
+			// the purpose row's own sub-headings use, and the two are separate parts for
+			// that reason.
+			rowSectionTitle: {
+				...textStyle(
+					{ fontSize: 12, lineHeight: 15, weight: '500' },
+					colors.text
+				),
+				marginBottom: 4,
+			},
+			// `.purposeName`, `.stackName`, and `.vendorListName`: 14 at weight 500 on
+			// the inherited tight line, which is this scale's own `label` box one
+			// weight up. The category label next door stays at 400 -- that row's label
+			// is regular on the web, and the two rows are not the same row.
+			rowTitle: textStyle({ ...typography.label, weight: '500' }, colors.text),
 			scroll: {
 				flexGrow: 0,
 				flexShrink: 1,
-				paddingHorizontal: cardPadding,
+				paddingHorizontal: facts.cardPadding,
+				// `.content` in the disclosure pads all four sides, so the list carries
+				// its own 12 above the first row. The two card surfaces do not: their
+				// `.content` is `padding: 0 24 24` and the heading band above is what
+				// separates the list from it, so they keep the 0 they were measured with.
+				paddingTop: facts.contentPaddingTop,
 			},
 			// The list of category cards. The separation lives here because the
 			// stack gap belongs between the cards, where a row's own padding would
@@ -648,7 +1253,10 @@ export const useConsentStyles = function useConsentStyles(
 			// this list. It is the 24 the manager puts between each pair of its own
 			// children (`margin-top: 1.5rem`), which is the first half of the 48 the
 			// live widget leaves between the last card and the first action.
-			scrollContent: { gap: CATEGORY_STACK_GAP, paddingBottom: cardPadding },
+			scrollContent: {
+				gap: facts.listGap,
+				paddingBottom: facts.cardPadding,
+			},
 			// Both decisions, and every action that only moves the subject around: the
 			// neutral outline, which is 1px of the border token over the card fill with
 			// the same `shadow-sm` the accent action carries.
@@ -667,35 +1275,116 @@ export const useConsentStyles = function useConsentStyles(
 				...textStyle(typography.label, colors.text),
 				textAlign: 'center',
 			},
+			// The heading over a list inside an opened row -- `With Your Permission`
+			// and `Legitimate Interest` in a purpose row, and the two partner groups in
+			// a vendors list. `.vendorSectionHeading` is `.75rem` at weight 600 in the
+			// plain text colour on `padding: .375rem 0 .25rem`, which is the 26 the live
+			// panel measures for the box.
+			sectionHeading: textStyle(
+				{ fontSize: 12, lineHeight: 15, weight: '600' },
+				colors.text
+			),
 			// One part for both modal presentations, because it is the same card
-			// anchored two ways. A dialog adds the web card's own border and width
-			// cap; a bottom sheet runs to the screen edges and needs neither.
+			// anchored three ways. A dialog adds the web card's own border and width
+			// cap; a bottom sheet runs to the screen edges and needs neither; a drawer
+			// is the screen, so it stretches over the whole layer and takes no radius,
+			// no hairline, and no elevation. A page that kept the dialog's 12pt corner
+			// would show the dimmed app through four round notches, which reads as a
+			// sheet that failed to finish opening.
 			sheet: {
 				backgroundColor: colors.surface,
 				borderColor: colors.border,
-				borderRadius: radius.surface,
-				borderWidth: presentation === 'dialog' ? HAIRLINE : 0,
-				boxShadow: presentation === 'dialog' ? SHADOW_SM : undefined,
+				borderRadius: facts.cardRadius,
+				borderWidth: facts.cardBorderWidth,
+				boxShadow: facts.cardShadow,
+				flex: facts.cardFlex,
 				flexDirection: 'column',
 				maxHeight: cardMaxHeight,
-				maxWidth: presentation === 'dialog' ? DIALOG_MAX_WIDTH : undefined,
+				maxWidth: facts.cardMaxWidth,
 				overflow: 'hidden',
+			},
+			// The band a stack opens to: `.stackContent` is `padding: .5rem` over
+			// `--iab-cd-surface-hover` under a hairline. The rows inside it are ordinary
+			// purpose rows, which is what a stack is -- a shortcut over N decisions
+			// rather than a further decision of its own.
+			stackContent: {
+				backgroundColor: colors.surfaceRaised,
+				borderTopColor: colors.border,
+				borderTopWidth: HAIRLINE,
+				gap: IAB_ROWS.listGap,
+				padding: 8,
 			},
 			switch: {
 				backgroundColor: colors.switchTrack,
-				borderRadius: CONSENT_SWITCH_GEOMETRY.height / 2,
-				height: CONSENT_SWITCH_GEOMETRY.height,
+				borderRadius: switchGeometry.height / 2,
+				height: switchGeometry.height,
 				justifyContent: 'center',
-				padding: CONSENT_SWITCH_GEOMETRY.padding,
-				width: CONSENT_SWITCH_GEOMETRY.width,
+				padding: switchGeometry.padding,
+				width: switchGeometry.width,
 			},
-			title: textStyle(
-				titleType,
-				colors.text,
-				presentation === 'banner'
-					? TRACKING_EM.bannerTitle
-					: TRACKING_EM.dialogTitle
-			),
+			// One tab of the segmented control. `.tabButton` is a fixed `height: 2rem`
+			// with `padding: 0 .75rem` on `--c15t-radius-md`, and the two of them are
+			// `1fr` tracks of `.tabsList`, which in React Native is a flexing child
+			// over a zero basis. It carries no fill of its own: the web slides one
+			// `.tabIndicator` behind the active trigger, and a selected tab here takes
+			// the card colour from the component, which is the same two pixels of
+			// difference arrived at by a different mechanism.
+			tab: {
+				alignItems: 'center',
+				borderRadius: radius.control,
+				flexBasis: 0,
+				flexGrow: 1,
+				flexShrink: 1,
+				height: IAB_ROWS.tabHeight,
+				justifyContent: 'center',
+				paddingHorizontal: 12,
+			},
+			// The band the segmented control stands in, between the header's rule and
+			// the scrolling list. `.tabsContainer` is `padding: .75rem .75rem 0`, so the
+			// tabs lean on the content's own 12 below them rather than declaring a
+			// bottom of their own -- which is why the 0 under them is written down here
+			// instead of being left to a parent that knows nothing about tabs.
+			tabBand: {
+				paddingBottom: IAB_BANDS.tabPaddingBottom,
+				paddingHorizontal: IAB_BANDS.tabPaddingHorizontal,
+				paddingTop: IAB_BANDS.tabPaddingTop,
+			},
+			// The tab's own words and count. `.tabButton` is `.8125rem` at weight 500
+			// and declares no line height, so it inherits the sheet's
+			// `line-height-tight`, which is the 1.25 that puts 13 on a 16.25 line. The
+			// colour here is the inactive one; an active tab reads plain text, and that
+			// is a state rather than a part.
+			tabLabel: {
+				color: colors.textMuted,
+				fontSize: IAB_ROWS.tabFontSize,
+				fontWeight: '500',
+				lineHeight: 16.25,
+			},
+			// The segmented control the two tabs sit in: `.tabsList` is a `0.25rem`
+			// grid with a `0.25rem` gap on `--c15t-radius-lg`, filled with
+			// `--iab-cd-surface-hover` so the pair reads as one control with a hole
+			// punched in it rather than two buttons side by side.
+			tabList: {
+				alignItems: 'stretch',
+				backgroundColor: colors.surfaceRaised,
+				borderRadius: radius.surface,
+				flexDirection: 'row',
+				gap: IAB_ROWS.tabListGap,
+				padding: IAB_ROWS.tabListPadding,
+			},
+			title: textStyle(facts.titleType, colors.text, facts.titleTracking),
+			// The band a partner row opens to. `.vendorListContent` is the same hovered
+			// fill and hairline as `.stackContent` at `padding: 0 .625rem .625rem`, so it
+			// starts flush with the row's header instead of adding a second 10 above the
+			// rule, and it keeps its own 10 sideways rather than a stack's 8.
+			vendorContent: {
+				backgroundColor: colors.surfaceRaised,
+				borderTopColor: colors.border,
+				borderTopWidth: HAIRLINE,
+				gap: 12,
+				paddingBottom: 10,
+				paddingHorizontal: 10,
+			},
 		};
 
 		const parts = { ...base } as ConsentResolvedParts;
@@ -711,6 +1400,7 @@ export const useConsentStyles = function useConsentStyles(
 		return {
 			bannerLayer,
 			controlMinHeight,
+			drawerTravel: I18nManager.isRTL ? -width : width,
 			fontScale: scaled,
 			maxBodyHeight: bodyHeight,
 			parts,
@@ -730,5 +1420,8 @@ export const useConsentStyles = function useConsentStyles(
 		scaled,
 		scheme,
 		styles,
+		// `drawerTravel` is the whole window width, so a rotation has to recompute it
+		// rather than hand back the travel the previous orientation was sized for.
+		width,
 	]);
 };

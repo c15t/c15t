@@ -281,14 +281,15 @@ same rule by [native behaviour](/docs/frameworks/react-native/native-behaviour).
 
 ## Built-in surfaces
 
-Three components ship with the package. They are optional, and everything they render
-is reachable through the hooks.
+Three components ship with the package, and a fourth draws the IAB disclosure. They are
+optional, and everything they render is reachable through the hooks.
 
 | Component | Props | Opens itself |
 | --- | --- | --- |
 | `ConsentBanner` | `onCustomize?`, `styles?`, `theme?` | yes, while a prompt is owed |
 | `ConsentDialog` | `open`, `onRequestClose`, `onOpenPreferences?`, `styles?`, `theme?` | no |
 | `ConsentPreferences` | `open`, `onRequestClose`, `styles?`, `theme?` | no |
+| `ConsentIabDrawer` | `open`, `onClose`, `onSave`, `model`, `initialSelection?`, `initialTab?`, `copy?`, `styles?`, `theme?` | no, and it reads no kernel data |
 
 The banner is an absolutely positioned layer over your app, never a row in its layout,
 so nothing on screen moves when a policy resolves a prompt. Without `onCustomize` it
@@ -357,6 +358,48 @@ leaves it alone. A mounted-and-shut dialog holds no consent subscription at all.
 Copy comes from the translation bundle on the snapshot, which the backend serves in the
 resolved language. Every string has an English fallback, so a partial bundle renders
 readable labels rather than `undefined`.
+
+### The IAB disclosure
+
+`ConsentIabDrawer` is the fourth surface, and the only one that is a page rather than a
+card. A disclosure that runs to a hundred and sixty-eight partners does not fit a card
+floating at 85 per cent of the viewport, so this one slides in from the trailing edge,
+scrolls its own body, and keeps its actions in a sticky footer.
+
+It renders from props and nothing else. `model` is the same row list the web preference
+centre renders -- purposes, stacks, special features, and partners, in the web's order,
+with the web's `testId` on every row -- and the package never reads a consent kernel to
+draw it. That is deliberate: the snapshot reserves an `iab` slot and holds it `null`
+while TCF is out of scope on device, so where the rows come from is yours to decide.
+
+```tsx title="src/IabDisclosure.tsx"
+import { ConsentIabDrawer } from '@c15t/react-native';
+
+<>
+  <ConsentIabDrawer.Root
+    initialTab="vendors"
+    model={displayModel}
+    onClose={() => setIabOpen(false)}
+    onSave={(selection) => {
+      // one call, with every decision on the surface
+    }}
+    open={iabOpen}
+  >
+    <ConsentIabDrawer.Header />
+    <ConsentIabDrawer.Tabs />
+    <ConsentIabDrawer.Body />
+    <ConsentIabDrawer.Footer />
+  </ConsentIabDrawer.Root>
+</>
+```
+
+Switches are held locally until Save. One press of it calls `onSave` once with the whole
+selection, including the rows nobody touched, so what you hand back to the kernel is a
+complete set rather than four partial maps. `Reject All` and `Accept All` are decisions
+and not drafts: they write too. Closing writes nothing, which is the same bargain the
+web preference centre makes. Android's back button is the same as the close control.
+
+`initialTab="vendors"` is what answers a `{count} partners` link, the way the web's does.
 
 ### Restyle them
 

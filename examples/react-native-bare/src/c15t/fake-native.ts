@@ -437,6 +437,10 @@ class FakeCore {
 						code: 'C15T_TRACKING_UNSUPPORTED',
 					})
 				),
+			reset: async () => {
+				this.resetConsent();
+				await settle();
+			},
 			setOverrides: async (overrides) => {
 				this.setOverrides(overrides);
 				await settle();
@@ -637,6 +641,22 @@ class FakeCore {
 		this.externalId = null;
 		this.writeLog('info', 'logged out: consent stays with the subject id');
 		this.patch({});
+	}
+
+	/**
+	 * Withdraw the decision and owe the prompt again, which is what `reset` is.
+	 *
+	 * The subject id stays, as the spec has it: the backend holds an audit history
+	 * keyed to it. Whatever was still queued goes, because those bodies carry a
+	 * decision the subject has just withdrawn. `resetStorage()` on the SDK is the
+	 * harder thing -- that one matches an uninstall.
+	 */
+	private resetConsent(): void {
+		this.granted = {};
+		this.noticeDismissed = false;
+		this.queuedPayloads = [];
+		this.writeLog('warn', 'consent wiped: the first-run prompt is owed again');
+		this.patch({ activeUI: null, ...this.evaluation() });
 	}
 
 	private setOverrides(overridesJson: string): void {

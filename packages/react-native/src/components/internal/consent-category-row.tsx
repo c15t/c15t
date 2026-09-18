@@ -26,6 +26,7 @@ import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
 import type { ConsentTheme } from '../theme/create-consent-theme';
 import { CONSENT_DISCLOSURE_GEOMETRY } from '../theme/use-consent-styles';
 import type { ConsentCategoryRow as CategoryRow } from './categories';
+import { ConsentDisclosureGlyph } from './consent-disclosure-glyph';
 import { ConsentSwitch } from './consent-switch';
 
 /** The text column takes the width the disclosure and the switch do not need. */
@@ -86,33 +87,6 @@ const hitSlopFor = function hitSlopFor(
 	return { bottom: inset, left: inset, right: inset, top: inset };
 };
 
-/**
- * The square the glyph is drawn in.
- *
- * It is decorative, so it carries no label: a reader hears the category name from
- * the row and a second announcement for a plus sign is noise.
- */
-const GLYPH_BOX: ViewStyle = {
-	alignItems: 'center',
-	height: CONSENT_DISCLOSURE_GEOMETRY.box,
-	justifyContent: 'center',
-	position: 'relative',
-	width: CONSENT_DISCLOSURE_GEOMETRY.box,
-};
-
-/**
- * The vertical arm of the plus, centred on the horizontal one.
- *
- * The horizontal arm is a restylable part; this is the same bar turned through 90
- * degrees, so it borrows the part's colour and takes its size from the geometry
- * the part was built from.
- */
-const GLYPH_STALK: ViewStyle = {
-	height: CONSENT_DISCLOSURE_GEOMETRY.arm,
-	position: 'absolute',
-	width: CONSENT_DISCLOSURE_GEOMETRY.stroke,
-};
-
 /** Props for {@link ConsentCategoryRow}. */
 export interface ConsentCategoryRowProps {
 	/** Row to render. */
@@ -147,7 +121,6 @@ export const ConsentCategoryRow = ({
 	theme,
 }: ConsentCategoryRowProps): ReactNode => {
 	const [open, setOpen] = useState(false);
-	const glyphColor = parts.categoryDisclosure.backgroundColor;
 
 	return (
 		<View style={parts.categoryRow}>
@@ -161,22 +134,12 @@ export const ConsentCategoryRow = ({
 				}}
 				style={parts.categoryTrigger}
 			>
-				<View style={GLYPH_BOX}>
-					<View style={parts.categoryDisclosure} />
-					{open ? null : (
-						<View
-							style={[
-								GLYPH_STALK,
-								{
-									backgroundColor:
-										typeof glyphColor === 'string'
-											? glyphColor
-											: theme.colors.disclosure,
-								},
-							]}
-						/>
-					)}
-				</View>
+				<ConsentDisclosureGlyph
+					geometry={CONSENT_DISCLOSURE_GEOMETRY}
+					open={open}
+					parts={parts}
+					theme={theme}
+				/>
 				<Text style={[parts.categoryTitle, TEXT_COLUMN]}>{row.label}</Text>
 				<ConsentSwitch
 					disabled={row.disabled}

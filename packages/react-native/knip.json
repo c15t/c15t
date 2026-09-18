@@ -12,6 +12,7 @@
 	],
 	"ignoreDependencies": [
 		"@c15t/core",
+		"@c15t/iab",
 		"@c15t/typescript-config",
 		"@c15t/vitest-config",
 		"@react-native/codegen"

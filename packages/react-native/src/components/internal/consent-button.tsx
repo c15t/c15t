@@ -132,6 +132,14 @@ export interface ConsentButtonProps {
 	/** Extra style merged over the part style. */
 	readonly style?: StyleProp<ViewStyle | TextStyle>;
 	/**
+	 * Platform test id for the control.
+	 *
+	 * Only ever a locator for a host's own tests and the example app's layout
+	 * metrics, which is why it is optional and why nothing in this package reads
+	 * it. The consent surfaces' own ids come from the display model.
+	 */
+	readonly testID?: string;
+	/**
 	 * Run the action.
 	 *
 	 * @returns Nothing.
@@ -164,6 +172,7 @@ export const ConsentButton = ({
 	onPress,
 	parts,
 	style,
+	testID,
 }: ConsentButtonProps): ReactNode => (
 	<Pressable
 		accessibilityLabel={accessibilityLabel ?? label}
@@ -173,6 +182,7 @@ export const ConsentButton = ({
 		hitSlop={hitSlopFor(parts, kind)}
 		onPress={onPress}
 		style={[parts[CONTAINER_PART[kind]], CONTAINER_EXTRA[kind], style]}
+		testID={testID}
 	>
 		<Text style={parts[LABEL_PART[kind]]}>{label}</Text>
 	</Pressable>

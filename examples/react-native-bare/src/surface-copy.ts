@@ -31,6 +31,17 @@ const FALLBACK_TITLES: Record<AllConsentNames, string> = {
 /** What the package shows when no bundle carries the entry-point label. */
 const FALLBACK_PREFERENCES = 'Manage preferences';
 
+/**
+ * What the web shows for its partner-count link.
+ *
+ * Copied from `packages/translations/src/translations/en.ts` at
+ * `iab.banner.partnersLink`. The kernel bundle this app is handed carries cookie
+ * banner, preference, and rights copy only -- no `iab` group -- so there is
+ * nothing served to read here, and the web's own English is the closest thing to
+ * a default a host has.
+ */
+const FALLBACK_PARTNERS_LINK = '{count} partners';
+
 /** Use a served string when it carries text, the served bundle's own rule. */
 const text = (value: string | null | undefined, fallback: string): string =>
 	typeof value === 'string' && value.trim() !== '' ? value : fallback;
@@ -65,3 +76,15 @@ export const preferencesLabel = (snapshot: ConsentSnapshot): string =>
 		snapshot.translations?.translations.rights?.preferences,
 		FALLBACK_PREFERENCES
 	);
+
+/**
+ * The web's `{count} partners` link, with the count filled in.
+ *
+ * This is the entry point to the IAB disclosure, which on the web sits inside the
+ * banner's own sentence and opens the panel straight on the partner list.
+ *
+ * @param count - How many partners the disclosure lists.
+ * @returns The link text, e.g. `4 partners`.
+ */
+export const partnersLabel = (count: number): string =>
+	FALLBACK_PARTNERS_LINK.replace('{count}', String(count));

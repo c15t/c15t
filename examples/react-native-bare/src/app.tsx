@@ -15,12 +15,14 @@
 import {
 	ConsentBanner,
 	ConsentDialog,
+	ConsentIabDrawer,
 	ConsentPreferences,
 	isStatusPromptOwed,
 	useConsentActions,
 	useConsentStyles,
 	useConsentStatus,
 } from '@c15t/react-native';
+import type { ConsentIabSelection, ConsentIabTab } from '@c15t/react-native';
 import { Component, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, Text as NativeText, View } from 'react-native';
@@ -39,6 +41,7 @@ import {
 	useHostStyles,
 } from './components/ui';
 import { useDemoDeepLinks } from './deep-links/use-deep-links';
+import { IAB_DEMO_DISPLAY_MODEL } from './fixtures/iab-display-model';
 import { DiagnosticsScreen } from './screens/diagnostics';
 import { PrivacyScreen } from './screens/privacy';
 import { APPEARANCE_LABELS, APPEARANCES, surfaceTheme } from './theme';
@@ -223,6 +226,15 @@ export const App = () => {
 	const [tab, setTab] = useState<Tab>('privacy');
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [preferencesOpen, setPreferencesOpen] = useState(false);
+	const [iabOpen, setIabOpen] = useState(false);
+	const [iabTab, setIabTab] = useState<ConsentIabTab>('vendors');
+
+	// What the drawer last wrote, kept so that reopening it shows the saved
+	// switches instead of the fixture's blanks. The drawer holds its own draft and
+	// hands the whole selection over once, so this app has nothing to reconcile.
+	const [iabSelection, setIabSelection] = useState<
+		ConsentIabSelection | undefined
+	>();
 
 	const openDialog = (): void => {
 		setPreferencesOpen(false);
@@ -234,15 +246,26 @@ export const App = () => {
 		setPreferencesOpen(true);
 	};
 
+	// One sheet at a time, and the drawer is a sheet: two modals stacked would
+	// leave the Android back gesture with a choice nobody made.
+	const openIabDrawer = (next: ConsentIabTab = 'vendors'): void => {
+		setDialogOpen(false);
+		setPreferencesOpen(false);
+		setIabTab(next);
+		setIabOpen(true);
+	};
+
 	const closeSheets = (): void => {
 		setDialogOpen(false);
 		setPreferencesOpen(false);
+		setIabOpen(false);
 	};
 
 	const links = useDemoDeepLinks({
 		actions,
 		closeSheets,
 		openDialog,
+		openIabDrawer,
 		openPreferences,
 		promptOwed,
 		setAppearance,
@@ -273,7 +296,10 @@ export const App = () => {
 				<View style={{ flex: 1 }}>
 					<ErrorBoundary>
 						{tab === 'privacy' ? (
-							<PrivacyScreen onOpenPreferences={openPreferences} />
+							<PrivacyScreen
+								onOpenIabDrawer={openIabDrawer}
+								onOpenPreferences={openPreferences}
+							/>
 						) : (
 							<DiagnosticsScreen
 								links={links}
@@ -305,6 +331,34 @@ export const App = () => {
 					open={preferencesOpen}
 					theme={theme}
 				/>
+
+				{/*
+				 * The IAB disclosure, drawn from fixture rows rather than from the core.
+				 * `initialTab` is what lets the app's own `{count} partners` link land on
+				 * the partner list the way the web's does, and the `key` is what makes a
+				 * second open start from the standing rather than from the draft that was
+				 * abandoned.
+				 */}
+				<ConsentIabDrawer.Root
+					initialSelection={iabSelection}
+					initialTab={iabTab}
+					key={`iab-${String(iabTab)}`}
+					model={IAB_DEMO_DISPLAY_MODEL}
+					onClose={() => {
+						setIabOpen(false);
+					}}
+					onSave={(selection) => {
+						setIabSelection(selection);
+						setIabOpen(false);
+					}}
+					open={iabOpen}
+					theme={theme}
+				>
+					<ConsentIabDrawer.Header />
+					<ConsentIabDrawer.Tabs />
+					<ConsentIabDrawer.Body />
+					<ConsentIabDrawer.Footer />
+				</ConsentIabDrawer.Root>
 			</View>
 		</HostStylesProvider>
 	);
