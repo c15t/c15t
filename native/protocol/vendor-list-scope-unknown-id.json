@@ -1,0 +1,1377 @@
+{
+	"description": "Two of the three scope ids name vendors the served list does not carry, and neither buys an entry: the answer is the one served entry and nothing else.",
+	"expected": {
+		"document": {
+			"dataCategories": {
+				"1": {
+					"description": "Cookie identifiers.",
+					"id": 1,
+					"name": "Cookies and other identifiers"
+				},
+				"9": {
+					"description": "Precise location.",
+					"id": 9,
+					"name": "Precise location data"
+				}
+			},
+			"features": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Identify devices based on information"
+				},
+				"2": {
+					"description": "Purpose 2 operates on device data.",
+					"id": 2,
+					"illustrations": [],
+					"name": "Link to other activities"
+				},
+				"3": {
+					"description": "Purpose 3 operates on device data.",
+					"id": 3,
+					"illustrations": [],
+					"name": "Receive and use information"
+				}
+			},
+			"gvlSpecificationVersion": 4,
+			"lastUpdated": "2025-11-01T00:00:00Z",
+			"purposes": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"descriptionLegal": "Legal text for purpose 1.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Store and/or access information on a device"
+				},
+				"3": {
+					"description": "Purpose 3 operates on device data.",
+					"id": 3,
+					"illustrations": [],
+					"name": "Personalise content"
+				},
+				"4": {
+					"description": "Purpose 4 operates on device data.",
+					"descriptionLegal": "Legal text for purpose 4.",
+					"id": 4,
+					"illustrations": [],
+					"name": "Use limited data to select advertising"
+				},
+				"7": {
+					"description": "Purpose 7 operates on device data.",
+					"id": 7,
+					"illustrations": [],
+					"name": "Measure performance"
+				}
+			},
+			"specialFeatures": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Use precise geolocation data"
+				},
+				"2": {
+					"description": "Purpose 2 operates on device data.",
+					"id": 2,
+					"illustrations": [],
+					"name": "Actively scan device characteristics"
+				}
+			},
+			"specialPurposes": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Ensure security, prevent and detect fraud"
+				},
+				"2": {
+					"description": "Purpose 2 operates on device data.",
+					"id": 2,
+					"illustrations": [],
+					"name": "Deliver and present advertising"
+				}
+			},
+			"stacks": {
+				"40": {
+					"description": "Personalise content, measure performance",
+					"id": 40,
+					"name": "Content measurement packet",
+					"purposes": [3, 7],
+					"specialFeatures": [2]
+				},
+				"41": {
+					"description": "Limited advertising data",
+					"id": 41,
+					"name": "Advertising packet",
+					"purposes": [4],
+					"specialFeatures": [1]
+				}
+			},
+			"tcfPolicyVersion": 5,
+			"vendorListVersion": 177,
+			"vendors": {
+				"11": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 7,
+					"legIntPurposes": [4],
+					"name": "Vendor 11",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v11.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": true
+				}
+			}
+		},
+		"unchanged": false,
+		"vendorKeys": ["11"],
+		"vendors": [
+			{
+				"bodyId": 7,
+				"bodyIdDiffersFromKey": true,
+				"carriesOptionalFields": false,
+				"key": 11,
+				"name": "Vendor 11"
+			}
+		]
+	},
+	"id": "vendor-list-scope-unknown-id",
+	"input": {
+		"document": {
+			"dataCategories": {
+				"1": {
+					"description": "Cookie identifiers.",
+					"id": 1,
+					"name": "Cookies and other identifiers"
+				},
+				"9": {
+					"description": "Precise location.",
+					"id": 9,
+					"name": "Precise location data"
+				}
+			},
+			"features": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Identify devices based on information"
+				},
+				"2": {
+					"description": "Purpose 2 operates on device data.",
+					"id": 2,
+					"illustrations": [],
+					"name": "Link to other activities"
+				},
+				"3": {
+					"description": "Purpose 3 operates on device data.",
+					"id": 3,
+					"illustrations": [],
+					"name": "Receive and use information"
+				}
+			},
+			"gvlSpecificationVersion": 4,
+			"lastUpdated": "2025-11-01T00:00:00Z",
+			"purposes": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"descriptionLegal": "Legal text for purpose 1.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Store and/or access information on a device"
+				},
+				"3": {
+					"description": "Purpose 3 operates on device data.",
+					"id": 3,
+					"illustrations": [],
+					"name": "Personalise content"
+				},
+				"4": {
+					"description": "Purpose 4 operates on device data.",
+					"descriptionLegal": "Legal text for purpose 4.",
+					"id": 4,
+					"illustrations": [],
+					"name": "Use limited data to select advertising"
+				},
+				"7": {
+					"description": "Purpose 7 operates on device data.",
+					"id": 7,
+					"illustrations": [],
+					"name": "Measure performance"
+				}
+			},
+			"specialFeatures": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Use precise geolocation data"
+				},
+				"2": {
+					"description": "Purpose 2 operates on device data.",
+					"id": 2,
+					"illustrations": [],
+					"name": "Actively scan device characteristics"
+				}
+			},
+			"specialPurposes": {
+				"1": {
+					"description": "Purpose 1 operates on device data.",
+					"id": 1,
+					"illustrations": [],
+					"name": "Ensure security, prevent and detect fraud"
+				},
+				"2": {
+					"description": "Purpose 2 operates on device data.",
+					"id": 2,
+					"illustrations": [],
+					"name": "Deliver and present advertising"
+				}
+			},
+			"stacks": {
+				"40": {
+					"description": "Personalise content, measure performance",
+					"id": 40,
+					"name": "Content measurement packet",
+					"purposes": [3, 7],
+					"specialFeatures": [2]
+				},
+				"41": {
+					"description": "Limited advertising data",
+					"id": 41,
+					"name": "Advertising packet",
+					"purposes": [4],
+					"specialFeatures": [1]
+				}
+			},
+			"tcfPolicyVersion": 5,
+			"vendorListVersion": 177,
+			"vendors": {
+				"1": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 1,
+					"legIntPurposes": [4],
+					"name": "Vendor 1",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v1.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"2": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 2,
+					"legIntPurposes": [4],
+					"name": "Vendor 2",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v2.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"3": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 3,
+					"legIntPurposes": [4],
+					"name": "Vendor 3",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v3.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"4": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 4,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 4",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v4.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"5": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 5,
+					"legIntPurposes": [4],
+					"name": "Vendor 5",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v5.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"6": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 6,
+					"legIntPurposes": [4],
+					"name": "Vendor 6",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v6.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"7": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 11,
+					"legIntPurposes": [4],
+					"name": "Vendor 7",
+					"purposes": [1, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v7.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"8": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"dataCategories": [1, 9],
+					"dataRetention": {
+						"purposes": {
+							"1": 13
+						},
+						"stdRetention": 34128000
+					},
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 8,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 8",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v8.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"9": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 9,
+					"legIntPurposes": [4],
+					"name": "Vendor 9",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v9.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"10": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 10,
+					"legIntPurposes": [4],
+					"name": "Vendor 10",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v10.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"11": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 7,
+					"legIntPurposes": [4],
+					"name": "Vendor 11",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v11.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": true
+				},
+				"12": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 12,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 12",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v12.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"13": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 13,
+					"legIntPurposes": [4],
+					"name": "Vendor 13",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v13.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"14": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 14,
+					"legIntPurposes": [4],
+					"name": "Vendor 14",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v14.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"15": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [2],
+					"id": 15,
+					"legIntPurposes": [4],
+					"name": "Vendor 15",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v15.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"16": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 16,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 16",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v16.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"17": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 17,
+					"legIntPurposes": [4],
+					"name": "Vendor 17",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v17.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"18": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 18,
+					"legIntPurposes": [4],
+					"name": "Vendor 18",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v18.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"19": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 19,
+					"legIntPurposes": [4],
+					"name": "Vendor 19",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v19.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"20": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 20,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 20",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v20.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"21": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 21,
+					"legIntPurposes": [4],
+					"name": "Vendor 21",
+					"purposes": [1, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v21.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"22": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 22,
+					"legIntPurposes": [4],
+					"name": "Vendor 22",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v22.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": true
+				},
+				"23": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 23,
+					"legIntPurposes": [4],
+					"name": "Vendor 23",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v23.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"24": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 24,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 24",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v24.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"25": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 25,
+					"legIntPurposes": [4],
+					"name": "Vendor 25",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v25.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"26": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 26,
+					"legIntPurposes": [4],
+					"name": "Vendor 26",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v26.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"27": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 27,
+					"legIntPurposes": [4],
+					"name": "Vendor 27",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v27.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"28": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 28,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 28",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v28.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"29": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 29,
+					"legIntPurposes": [4],
+					"name": "Vendor 29",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v29.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"30": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [2],
+					"id": 30,
+					"legIntPurposes": [4],
+					"name": "Vendor 30",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v30.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"31": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 31,
+					"legIntPurposes": [4],
+					"name": "Vendor 31",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v31.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"32": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 32,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 32",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v32.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"33": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 33,
+					"legIntPurposes": [4],
+					"name": "Vendor 33",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v33.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": true
+				},
+				"34": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 34,
+					"legIntPurposes": [4],
+					"name": "Vendor 34",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v34.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"35": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 35,
+					"legIntPurposes": [4],
+					"name": "Vendor 35",
+					"purposes": [1, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v35.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"36": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 36,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 36",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v36.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"37": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 37,
+					"legIntPurposes": [4],
+					"name": "Vendor 37",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v37.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"38": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 38,
+					"legIntPurposes": [4],
+					"name": "Vendor 38",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v38.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"39": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 39,
+					"legIntPurposes": [4],
+					"name": "Vendor 39",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v39.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"40": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 40,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 40",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v40.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"43": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"deviceStorageDisclosureUrl": "https://v43.test/storage.json",
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 43,
+					"legIntPurposes": [4],
+					"name": "Vendor 43",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v43.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"45": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"dataCategories": [1, 9],
+					"dataRetention": {
+						"purposes": {
+							"1": 13
+						},
+						"stdRetention": 34128000
+					},
+					"features": [1],
+					"flexiblePurposes": [2],
+					"id": 45,
+					"legIntPurposes": [4],
+					"name": "Vendor 45",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v45.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"46": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 46,
+					"legIntPurposes": [4],
+					"name": "Vendor 46",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v46.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"62": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 62,
+					"legIntPurposes": [4],
+					"name": "Vendor 62",
+					"overflow": {
+						"httpGetLimit": 8
+					},
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v62.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"71": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 71,
+					"legIntPurposes": [4],
+					"name": "Vendor 71",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v71.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"77": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 77,
+					"legIntPurposes": [4],
+					"name": "Vendor 77",
+					"purposes": [1, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v77.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": true
+				},
+				"88": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 88,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 88",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v88.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": true
+				},
+				"97": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 97,
+					"legIntPurposes": [4],
+					"name": "Vendor 97",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v97.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"112": {
+					"cookieMaxAgeSeconds": 34128000,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 112,
+					"legIntPurposes": [2, 4],
+					"name": "Vendor 112",
+					"purposes": [1, 3, 7],
+					"specialFeatures": [2],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v112.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"141": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 141,
+					"legIntPurposes": [4],
+					"name": "Vendor 141",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v141.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"177": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 177,
+					"legIntPurposes": [4],
+					"name": "Vendor 177",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v177.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"353": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [],
+					"flexiblePurposes": [],
+					"id": 353,
+					"legIntPurposes": [4],
+					"name": "Vendor 353",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v353.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"755": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"deletedDate": "2025-08-01T00:00:00Z",
+					"features": [],
+					"flexiblePurposes": [2],
+					"id": 755,
+					"legIntPurposes": [4],
+					"name": "Vendor 755",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v755.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				},
+				"897": {
+					"cookieMaxAgeSeconds": null,
+					"cookieRefresh": false,
+					"features": [1],
+					"flexiblePurposes": [],
+					"id": 897,
+					"legIntPurposes": [4],
+					"name": "Vendor 897",
+					"purposes": [1, 7],
+					"specialFeatures": [],
+					"specialPurposes": [1],
+					"urls": [
+						{
+							"langId": "EN",
+							"privacy": "https://v897.test/privacy"
+						}
+					],
+					"usesCookies": true,
+					"usesNonCookieAccess": false
+				}
+			}
+		},
+		"scopeSize": 3,
+		"vendorIds": [11, 1000483, 66001]
+	},
+	"kind": "vendor-list-scope",
+	"notes": [
+		"expected.document is what narrowGVLToVendors in packages/iab/src/tcf/fetch-gvl.ts returned for this input: called, not restated.",
+		"vendorKeys is the surviving vendors keys in the order the web returned them, which is served order and not the order a host typed the scope in.",
+		"Nothing in expected is invented: an id the served document does not carry contributes no entry, and a survivor arrives with its optional fields attached."
+	],
+	"oracle": {
+		"function": "narrowGVLToVendors",
+		"module": "packages/iab/src/tcf/fetch-gvl.ts",
+		"package": "@c15t/iab"
+	},
+	"protocolVersion": 1,
+	"shape": "scope-unknown-id"
+}

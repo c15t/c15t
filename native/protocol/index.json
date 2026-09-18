@@ -1,6 +1,6 @@
 {
 	"clock": 1770000000000,
-	"count": 54,
+	"count": 63,
 	"fixtures": [
 		{
 			"bytes": 6342,
@@ -433,6 +433,78 @@
 			"kind": "tc-string",
 			"protocolVersion": 1,
 			"sha256": "332d519d17097f003eb06fe85f2b07bea584fbd570e8fd7a8bab8fb96ce79e88"
+		},
+		{
+			"bytes": 51413,
+			"file": "vendor-list-scope-32-vendors.json",
+			"id": "vendor-list-scope-32-vendors",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "4f8cc86ad08c60b2a1a5f66a2d30a0e73707e9b2bad03632f15e6255576bfce0"
+		},
+		{
+			"bytes": 64489,
+			"file": "vendor-list-scope-empty.json",
+			"id": "vendor-list-scope-empty",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "9354fbb5098e506123ec49586ad69771728a27547a835135453b0a5ecff419c9"
+		},
+		{
+			"bytes": 64499,
+			"file": "vendor-list-scope-absent.json",
+			"id": "vendor-list-scope-absent",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "0c2792713e0a344de99b64837d111ce5361f761a9ba4dd8f8be2c50a88942e8f"
+		},
+		{
+			"bytes": 32208,
+			"file": "vendor-list-scope-unknown-id.json",
+			"id": "vendor-list-scope-unknown-id",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "a5faf94c506080a02c0abf421717058a644ad2ece48450a43892f41b75f1f9b4"
+		},
+		{
+			"bytes": 69370,
+			"file": "vendor-list-scope-wider-than-list.json",
+			"id": "vendor-list-scope-wider-than-list",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "7aed2f04a207e203a135f666dbc6ccae69706babe4441b2755eba8c1c9d511cd"
+		},
+		{
+			"bytes": 66464,
+			"file": "vendor-list-scope-above-query-cap.json",
+			"id": "vendor-list-scope-above-query-cap",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "7f05f84da1adbb4484cc28ebcbb39f7ffc072f5573b0ca77bafea7f74a4078a6"
+		},
+		{
+			"bytes": 32339,
+			"file": "vendor-list-scope-key-not-body-id.json",
+			"id": "vendor-list-scope-key-not-body-id",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "206cd7985978f3896e59fb2d2f5164beeff689c8239ba1c393e9a3193409a52b"
+		},
+		{
+			"bytes": 35084,
+			"file": "vendor-list-scope-siblings-preserved.json",
+			"id": "vendor-list-scope-siblings-preserved",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "a492572ec3958320ea3378c3dd5f0e94b00933bb6bfb7568719979c3330a28e0"
+		},
+		{
+			"bytes": 32957,
+			"file": "vendor-list-scope-versions-preserved.json",
+			"id": "vendor-list-scope-versions-preserved",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "3ad952875daefdb5182883845b45d827c082337a844f502f1786797f068eb954"
 		}
 	],
 	"generatedBy": "packages/react-native/scripts/generate-protocol-fixtures.ts",
@@ -442,7 +514,8 @@
 		"reset-consent",
 		"revision-trace",
 		"save-body",
-		"tc-string"
+		"tc-string",
+		"vendor-list-scope"
 	],
 	"policyContractHeader": {
 		"name": "x-c15t-policy-contract",

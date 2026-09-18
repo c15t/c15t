@@ -83,7 +83,8 @@ interface FixtureFile {
 		| 'reset-consent'
 		| 'revision-trace'
 		| 'save-body'
-		| 'tc-string';
+		| 'tc-string'
+		| 'vendor-list-scope';
 	protocolVersion: number;
 	description: string;
 	notes: string[];
@@ -112,7 +113,8 @@ interface IndexEntry {
 		| 'reset-consent'
 		| 'revision-trace'
 		| 'save-body'
-		| 'tc-string';
+		| 'tc-string'
+		| 'vendor-list-scope';
 	protocolVersion: number;
 	sha256: string;
 }
@@ -309,6 +311,7 @@ describe('protocol fixtures', () => {
 				'revision-trace',
 				'save-body',
 				'tc-string',
+				'vendor-list-scope',
 			]).toContain(fixture.kind);
 			expect(fixture.id.startsWith(`${fixture.kind}-`)).toBe(true);
 			expect(fixture.description.length).toBeGreaterThan(30);
