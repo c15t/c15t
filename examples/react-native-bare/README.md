@@ -160,45 +160,78 @@ Three things worth knowing:
 
 ## Prove the iOS journey in one command
 
-`scripts/ios-consent-journey.sh` builds the fixture, creates a simulator that has never
-seen the app, walks first run through a saved preference and a relaunch in both colour
-schemes, and writes one numbered screenshot per step plus the native evidence behind it.
+`scripts/ios-journey.sh` builds the fixture, erases a simulator so the subject has never
+answered before, walks first run through a saved preference, a relaunch, the preference
+centre and a reset in both colour schemes, and writes one numbered frame per step.
 
 ```sh
-scripts/ios-consent-journey.sh                      # build, then both schemes
-scripts/ios-consent-journey.sh --only dark --reuse  # one scheme, erase instead of recreate
+scripts/ios-journey.sh              # Release: the bundle is inside the binary
+scripts/ios-journey.sh debug        # Debug: starts its own Metro, never on 8081
+IOS_JOURNEY_ONLY=01-fresh-banner scripts/ios-journey.sh   # one step, for a re-run
 ```
 
-Screenshots and logs land in `SHOT_DIR`, which defaults to `/tmp/ios-proof`. It starts by
-checking `GET /api/self-host/init`, and refuses to run without a policy: with no backend
-the core resolves nothing, no prompt is ever owed, and eight screenshots of an app with no
-banner look exactly like eight screenshots of a working one.
+Evidence lands in `IOS_JOURNEY_OUT`, which defaults to `/tmp/ios-journey`. `IOS_JOURNEY_SIM`,
+`IOS_JOURNEY_DEVICE`, `IOS_JOURNEY_RUNTIME` and `IOS_JOURNEY_BACKEND` move the device and the
+backend it talks to.
+
+It refuses to start without a policy from `GET /api/self-host/init`. With no backend the core
+resolves nothing and no prompt is ever owed, which looks exactly like a banner that never ships.
 
 Four things it does that are easy to get wrong:
 
-- It **creates the simulator** rather than reinstalling into one. `simctl uninstall` does
-  not clear the Keychain, the consent snapshot lives in the Keychain, and so an app that
-  was "freshly installed" is still a subject who already answered and never shows a
-  prompt. `--reuse` runs `simctl erase`, which does clear it; the script proves the point
-  by asserting that the steps produced distinct frames.
+- It **erases the simulator** rather than reinstalling into one. `simctl uninstall` does not
+  clear the Keychain, the consent snapshot lives in the Keychain, and so an app that was
+  "freshly installed" is still a subject who already answered and never shows a prompt.
 - It **keeps the ad-hoc signature**. Building a simulator binary with
   `CODE_SIGNING_ALLOWED=NO` produces an app whose Keychain writes fail: `/init` is a read,
   so the banner still renders, but every decision comes back
   `refused (queue-write-failed)`. Nothing else on screen says the signature is the cause.
-- It builds **Release**, so the JavaScript bundle is inside the app. In Debug the binary
-  dials a Metro server on 8081, and on a machine with several worktrees checked out that
-  is whichever server started first, not this app's.
+- It builds **Release** by default, so the JavaScript bundle is inside the app. In Debug the
+  binary dials a Metro server, and on a machine with several worktrees checked out that is
+  whichever server started first, so Debug starts its own and probes upward from 8084.
 - It sends links through `C15T_DEMO_LINK`, not `simctl openurl`. iOS asks
   "Open in “c15t Bare”?" before it hands a custom-scheme open to the app, and a headless
-  run has no finger for it.
+  run has no finger for it. One link per cold start also means every step survives process
+  death on its own. Set `IOS_JOURNEY_PROBE_OPENURL=1` to re-test that claim rather than
+  repeat it.
 
-The evidence it leaves is not only pictures. `logs/01-backend-connections-<scheme>.txt`
-holds the sockets the app process held to the backend while it started, and
-`logs/native-<scheme>.txt` holds the core's own request lines, which is where
-`GET /api/self-host/init` and `POST /api/self-host/subjects` appear with the process name
-beside them. A receipt that reads `queued` is correct and expected: the core applies a
-commit to the device durably and tells the backend afterwards, so no synchronous answer
-can promise the server has it.
+The evidence is not only pictures. Each step records the md5 of the whole frame and the md5 of
+the frame below the system status band, plus the percentage of the app area that changed since
+the previous step. Hashing the whole PNG is not enough on its own: the status bar carries a
+clock, so a step that never happened still produced a fresh hash, and that is how an earlier
+run reported eight steps while delivering none of them. Whether a consent surface is actually
+on screen is read off the pixels by `ios-surface-metrics.py` rather than assumed from a verb
+that exited 0. A receipt that reads `queued` is correct and expected: the core applies a commit
+to the device durably and tells the backend afterwards, so no synchronous answer can promise
+the server has it.
+
+
+## Prove the Android journey in one command
+
+`scripts/android-journey.sh` walks the same route on a connected device or emulator. It clears
+the app with `pm clear`, sends each verb as a real `c15t-demo://` deep link, and asserts the
+outcome out of the view hierarchy rather than off a screenshot, so a step fails on the exact
+word it did not find.
+
+```sh
+ANDROID_SERIAL=emulator-5554 scripts/android-journey.sh
+```
+
+It refuses to run with more than one device attached until `ANDROID_SERIAL` says which one, and
+it takes a lock per serial, because two runs driving one device read each other's screens and
+one of them reports a step that never happened. Frames and the hierarchies behind them land in
+`JOURNEY_OUT`, which defaults to `/tmp/android-journey/<worktree>`.
+
+To confirm a decision reached the backend rather than only the device, read the consent table
+the demo writes to:
+
+```sh
+psql "$DATABASE_URL" -c 'select "givenAt", jurisdiction, "uiSource", "consentAction", "purposeIds" from consent order by "givenAt" desc limit 5;'
+```
+
+A `custom` action from `banner` naming exactly the purposes you switched on is the receipt.
+`acceptAll` records `accept_all` with every purpose, and a dismissal records nothing at all,
+because a dismissal is not a choice.
 
 The registration lives in three files, and all three are needed. `CFBundleURLTypes` in
 `ios/C15tBare/Info.plist` and the intent filter in `AndroidManifest.xml` are what make
