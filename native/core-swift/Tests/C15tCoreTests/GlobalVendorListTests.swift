@@ -185,8 +185,13 @@ final class GlobalVendorListTests: XCTestCase {
 
     /// The other half of the same rule, from the other direction: a policy this build
     /// does refuse keeps refusing exactly as it did before any of this existed, with a
-    /// valid list sitting right next to it. A list cannot rescue an `iab` rule this build
-    /// has no TC string machinery for, and it must not change what the failure reports.
+    /// valid list sitting right next to it. A list cannot rescue a rule this build has no
+    /// evaluation for, and it must not change what the failure reports.
+    ///
+    /// `iab` is no longer the refused case here: the reader reads it and the evaluator has
+    /// a rule for it. A model name this build has never seen is, and it holds the rule for
+    /// the same reason -- metadata that arrived beside an answer the core cannot represent
+    /// is kept, and still buys that answer nothing.
     ///
     /// The list itself stays. `applyInit` folds the served-metadata fields, and this is
     /// the same rule `translations` already follows: a resolution the core cannot act on
@@ -203,7 +208,9 @@ final class GlobalVendorListTests: XCTestCase {
             let localStore = InMemoryStore()
             let localHTTP = StubHTTP()
             localHTTP.initResponse = Fixture.initResponse(
-                policyResolution: Fixture.matchedResolution(policy: Fixture.rule(model: "iab")),
+                policyResolution: Fixture.matchedResolution(
+                    policy: Fixture.rule(model: "quantum-leibler")
+                ),
                 gvl: document
             )
             let core = ConsentCore()

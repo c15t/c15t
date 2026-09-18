@@ -231,6 +231,58 @@ class KernelTest {
 		}
 	}
 
+	/**
+	 * An IAB rule is read and evaluated, and it grants nothing on its own.
+	 *
+	 * `defaultPermission` in `packages/core/src/consent-record/evaluate.ts` answers `iab`
+	 * exactly as it answers `opt-in`, and `deriveModel` in `packages/core/src/policy.ts`
+	 * keeps the runtime name `opt-in` until the IAB module is installed -- which on device it
+	 * never is, because there is no CMP ID to sign a TC String with and no vendor vector to
+	 * fill. The out-of-scope half is the same rule read the other way: a permissive IAB rule
+	 * still withholds the categories it does not name, because the model behind it denies by
+	 * default rather than permitting by default.
+	 */
+	@Test
+	fun `an iab rule grants nothing until a choice and reports opt-in`() {
+		val clock = FixedClock()
+		val transport = RecordingTransport().respondInit(
+			initSuccess(
+				body = initBody(
+					policyId = "de-tcf",
+					model = "\"iab\"",
+					scope = """["measurement","marketing"]""",
+					scopeMode = "\"permissive\"",
+				),
+			),
+		)
+		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()), clock = clock, transport = transport)
+		kernel.bootstrap()
+
+		val opened = kernel.snapshot()
+		assertEquals(ConsentModel.OPT_IN, opened.model, "the runtime name stays opt-in without an IAB runtime")
+		assertEquals("de-tcf", opened.resolution.policyId, "and yet the IAB rule that matched stays named")
+		assertTrue(opened.promptRequirement.acknowledge, "a choice is owed, exactly as under opt-in")
+		assertTrue(opened.effectivePermissions.necessary, "nothing gets to take `necessary` away")
+		for (category in ConsentCategory.OPTIONAL) {
+			// Covers both halves at once: the two categories the rule names have no
+			// receipt, and the two it leaves out are outside a permissive scope whose
+			// model still denies by default.
+			assertFalse(kernel.isAllowed(category), "$category: a permissive IAB rule grants nothing unsaid")
+		}
+
+		val accepted = kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.MEASUREMENT to true)))
+		assertTrue(accepted.ok)
+		assertTrue(kernel.isAllowed(ConsentCategory.MEASUREMENT), "the subject's own grant is what opens it")
+		assertFalse(kernel.isAllowed(ConsentCategory.MARKETING), "and only what they granted")
+		assertFalse(kernel.isAllowed(ConsentCategory.FUNCTIONALITY), "outside scope stays outside the grant")
+		assertEquals(ConsentModel.OPT_IN, kernel.snapshot().model)
+
+		// The write carries the reported model, not the rule's name, which is what the
+		// kernel puts in `jurisdictionModel` for the same situation.
+		val payload = transport.saveRequests.last().payload
+		assertEquals(ConsentModel.OPT_IN, payload.model)
+	}
+
 	@Test
 	fun `GPC and a strict scope restrict an explicit grant`() {
 		val transport = RecordingTransport().respondInit(

@@ -327,11 +327,13 @@ class VendorListRetentionTest {
 	/**
 	 * A resolution this core cannot represent still fails closed, list or no list.
 	 *
-	 * `iab` is not in Kotlin's [com.c15t.core.model.ConsentModel], so an `iab` policy is an unreadable
-	 * resolution here, which makes it the exact case contract rule 5 is about: pending, deny all, and
-	 * never an invented permission. Reading `gvl` off the same body may not soften that, and it may
-	 * not make the two devices differ. The list itself stays held -- it is disclosure and encoding
-	 * data rather than a permission, and the rule 5 argument is about the rule.
+	 * A model name Kotlin's [com.c15t.core.model.ConsentModel] does not carry is an unreadable
+	 * resolution here, which makes it the exact case contract rule 5 is about: pending, deny all,
+	 * and never an invented permission. `iab` is no longer that case -- the reader reads it and
+	 * [com.c15t.core.policy.PolicyEvaluator] has a rule for it -- so the guard is held by a model
+	 * from a schema this build has not seen. Reading `gvl` off the same body may not soften that,
+	 * and it may not make the two devices differ. The list itself stays held -- it is disclosure
+	 * and encoding data rather than a permission, and the rule 5 argument is about the rule.
 	 */
 	@Test
 	fun `an unreadable policy resolution fails closed the same way with a list on the body`() {
@@ -339,7 +341,9 @@ class VendorListRetentionTest {
 			val errors = mutableListOf<KernelError>()
 			val kernel = testKernel(
 				store = C15tStore(InMemoryKeyValueStore()),
-				transport = RecordingTransport().respondInit(initSuccess(body = initBody(model = "\"iab\"", gvl = gvl))),
+				transport = RecordingTransport().respondInit(
+					initSuccess(body = initBody(model = "\"quantum-leibler\"", gvl = gvl)),
+				),
 				logger = { errors += it },
 			)
 			kernel.bootstrap()
@@ -350,10 +354,10 @@ class VendorListRetentionTest {
 		val (withoutList, withoutListErrors) = run(null)
 
 		val snapshot = withList.snapshot()
-		assertTrue(snapshot.policyPending, "an `iab` rule is still unreadable here")
+		assertTrue(snapshot.policyPending, "a model this build does not name is unreadable here")
 		assertFalse(snapshot.ready)
 		for (category in ConsentCategory.OPTIONAL) {
-			assertFalse(withList.isAllowed(category), "$category stays denied under a rule this core cannot read")
+			assertFalse(withList.isAllowed(category), "$category stays denied under a rule with no evaluation")
 		}
 		// The two devices differ in exactly one field, and it is the disclosure half: same pending
 		// flag, same deny-all, same prompt, same errors. A rule this core cannot read decides nothing
@@ -517,4 +521,3 @@ class VendorListRetentionTest {
 """
 	}
 }
-

@@ -8,10 +8,11 @@ implements it for Android.
 IAB TCF is on device here: TC Strings decode and encode byte-for-byte against the
 shared fixtures in `../protocol`, and the vendor list `/init` served is kept by the
 kernel and stored in the envelope alongside the policy. Unlike Swift, the Kotlin
-snapshot does not yet fill `iab` with that list -- see `C15tKernel.vendorList`. The
-flow is not wired: `model` in `model/Enums.kt` cannot name `iab`, so a strict
-policy read of an IAB rule fails closed to deny-all, no `tcString` is saved with a
-decision, and the `IABTCF_*` bus is not written. See `../CONTRACT.md`.
+snapshot does not yet fill `iab` with that list -- see `C15tKernel.vendorList`. A wire
+model of `iab` is read and evaluated, with the web kernel's default: nothing in scope is
+granted until a choice says so, and the snapshot reports `opt-in` while it runs. What is
+still not wired is the vendor-side record -- no `tcString` is saved with a decision, and
+the `IABTCF_*` bus is not written. See `../CONTRACT.md`.
 
 ## Modules
 

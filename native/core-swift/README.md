@@ -9,9 +9,11 @@ Swift, and `../core-android` implements it in Kotlin against the same fixtures.
 IAB TCF here is the wire, not the flow: TC Strings decode and encode
 byte-for-byte against the shared fixtures in `../protocol`, the vendor list `/init`
 served is kept and only that list ever reaches the device, and `snapshot.iab`
-carries it as `{ gvl }`. The flow is not wired: the strict policy reader still
-rejects a wire model of `iab`, no `tcString` is saved with a decision, and the
-`IABTCF_*` bus is not written. See `../CONTRACT.md`.
+carries it as `{ gvl }`. A wire model of `iab` is read and evaluated, with the web
+kernel's default: nothing in scope is granted until a choice says so, and the snapshot
+reports `opt-in` while it runs. What is still not wired is the vendor-side record -- no
+`tcString` is saved with a decision, and the `IABTCF_*` bus is not written. See
+`../CONTRACT.md`.
 
 Depends on Foundation and Security only. No UIKit, no AppKit, no React Native, no Expo,
 which is what lets the same sources serve SwiftPM, CocoaPods (`C15tCore.podspec`), an app

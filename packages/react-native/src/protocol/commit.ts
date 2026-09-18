@@ -153,8 +153,15 @@ export interface SavePayload {
 	/**
 	 * TC string emitted by an IAB module.
 	 *
-	 * Always absent on device: this phase ships no TC string, and the field is
-	 * carried so the payload stays the body the kernel and the fixtures describe.
+	 * Always absent on device, and not because an `iab` rule is unreadable -- both
+	 * cores read and evaluate one now. A TC String opens with a CMP ID IAB Europe
+	 * assigned, and a device holds no registered one: it reads neither `cmpId` nor
+	 * the per-vendor vectors the rest of the string would assert, and
+	 * `@c15t/iab/src/tcf/cmp-defaults.ts` refuses to default an ID rather than name a
+	 * provider that is not c15t. The kernel leaves the key off the body in the same
+	 * position, with its IAB module absent, so the field is carried to keep this the
+	 * body the kernel and the fixtures describe. Adding the device-side value is the
+	 * additive change the `iab` snapshot slot is reserved for.
 	 */
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */

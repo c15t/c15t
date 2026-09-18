@@ -61,10 +61,12 @@ class FailClosedTest {
 	}
 
 	@Test
-	fun `the iab model is not representable and fails closed`() {
-		// IAB is out of scope for this phase, so a rule asking for it is unreadable
-		// rather than a hint to guess permissions.
-		assertDenyAll(bootstrapWith(initBody(model = "\"iab\"")))
+	fun `a model this build has never heard of fails closed`() {
+		// `iab` reads and evaluates now (see KernelTest); a name from a newer schema does
+		// not, and there is no default that could be guessed for it: a model the evaluator
+		// has no rule for is exactly the case rule 5 refuses, because reading it as any of
+		// the three it does know would invent permissions for a whole policy.
+		assertDenyAll(bootstrapWith(initBody(model = "\"quantum-leibler\"")))
 	}
 
 	@Test

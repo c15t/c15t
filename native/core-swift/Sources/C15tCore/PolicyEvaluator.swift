@@ -196,12 +196,16 @@ package enum PolicyEvaluator {
 
     /// The model default for a category with no usable decision.
     ///
-    /// `opt-in` denies until the subject says yes. `opt-out` and `none` permit
-    /// until the subject says no. There is no fourth case: an unreadable policy
-    /// never reaches the evaluator.
+    /// `opt-in` and `iab` deny until the subject says yes. `opt-out` and `none` permit
+    /// until the subject says no. That pair is `defaultPermission` in
+    /// `packages/core/src/consent-record/evaluate.ts`, which grants an in-scope category
+    /// only for `model === 'opt-out' || model === 'none'`: an IAB rule therefore opens
+    /// nothing by default here either, because a purpose no one consented to is not a
+    /// purpose a TC String could vouch for. There is no unreachable case: an unreadable
+    /// policy never reaches the evaluator.
     private static func defaultPermission(for model: ConsentModel) -> Bool {
         switch model {
-        case .optIn: return false
+        case .optIn, .iab: return false
         case .optOut: return true
         case .none: return true
         }

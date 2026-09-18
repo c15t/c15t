@@ -8,16 +8,53 @@ IAB TCF is partly in this phase, and the line is worth reading before the bullet
 Both cores decode and encode TC Strings byte-for-byte against the same
 `native/protocol` fixtures the web reference produced, both keep the vendor list
 `/init` served rather than fetching one on the device, and both now put that list on
-the snapshot the bridge reads. Neither core can yet act on an IAB rule end to end:
-the strict policy reader in each still rejects a wire model of `iab`, so a device
-under an IAB policy comes up deny-all rather than presenting the disclosure. Saving
-a `tcString` alongside a decision is not implemented either, and neither is the
-`IABTCF_*` storage bus, so vendor SDKs reading those keys on a device see nothing.
-The members that would turn the slot into an IAB runtime, `tcString`, `cmpId` and the
-per-vendor vectors, stay absent rather than arriving with a value nothing earned, so
-adding them later is an additive protocol change.
-`docs/internal/tcf-mobile.md` records the sources behind all of that, including the
-Keychain-versus-shared-defaults trade-off the bus will force.
+the snapshot the bridge reads. Both cores also read and evaluate a wire model of `iab`
+now, so a device under an IAB rule presents the disclosure and asks for a choice
+instead of coming up deny-all. What is still missing is the vendor-side record: no
+`tcString` is saved with a decision, and no `IABTCF_*` storage bus is written, so
+vendor SDKs reading those keys on a device see nothing. The members that would turn the
+slot into an IAB runtime, `tcString`, `cmpId` and the per-vendor vectors, stay absent
+rather than arriving with a value nothing earned -- there is no CMP registered to this
+build, so nothing here could honestly be put in a TC String -- and adding them stays an
+additive protocol change. `docs/internal/tcf-mobile.md` records the sources behind all
+of that, including the Keychain-versus-shared-defaults trade-off the bus will force.
+
+An IAB rule is evaluated by copying the web kernel rather than by inventing a device
+rule, and the rules below are worth naming because each one is a place a core could
+quietly grant more than the web does. An in-scope category is denied until a current
+explicit choice grants it: `defaultPermission` in
+`packages/core/src/consent-record/evaluate.ts` permits an in-scope category only for
+`model === 'opt-out' || model === 'none'`, so `iab` and `opt-in` answer the same way. A
+category outside the scope follows each core's own out-of-scope rule, which reads that
+same model default and therefore denies under an IAB rule with a permissive scope too.
+That out-of-scope rule predates IAB and answers exactly as it did for every model this
+build already read, divergence from the web kernel's out-of-scope answer included.
+`necessary` is granted and is not the rule's to take: the web evaluator seeds
+`permissions` with `necessary: true` and never revisits it, and its GPC check refuses a
+mapping that names `necessary`. The prompt is `choice` and nothing else --
+`POLICY_MODEL_PROMPTS` in `@c15t/schema` allows `iab` exactly that one, and
+`assertPromptForModel` in `@c15t/core` agrees -- so a notice is never what an IAB rule
+settles on: the rule owes a disclosure it can name from the served list and a choice
+that has to be made, and dismissing a banner grants nothing. A rule that carries
+`preselectedCategories` beside `iab` is refused outright, because `resolvePreselected`
+in `@c15t/schema` answers an empty set for that model and a preselection would display a
+permission with no receipt behind it, and the rights a rule must declare come from
+`requiredPolicyRights` in the same file, which asks `iab` for disclosure and preferences
+and for no standing opt-out right.
+Those last two tables are enforced by the Swift reader only. The Kotlin reader takes
+`prompt` at face value and never reads `preselectedCategories`, a gap that predates IAB
+and holds for every model it reads. What that costs is strictness about a rule the
+producer should not have served, not a permission: an IAB rule Kotlin lets through on
+those terms still grants nothing, because the model behind it denies by default. Closing
+the reader gap is a reader change, not an IAB one.
+
+The model a device reports is not the model a device evaluates. `deriveModel` in
+`packages/core/src/policy.ts` runs an IAB rule as `iab` only once `@c15t/iab` is
+installed, and a device has nothing to install there: no registered `cmpId`, no
+per-vendor vector, no bus. So both cores publish `opt-in` for the `model` of a snapshot
+running an IAB rule, and both send `jurisdictionModel: "opt-in"` on the write that
+follows it, while `resolution` keeps naming the IAB policy that matched. Reporting
+`iab` would advertise the vendor-side record the slot beside it does not hold.
 
 Layout
 ------
@@ -61,7 +98,7 @@ mobile:
     revision: number                  // monotonic, bumps on every mutation
     policyPending: boolean            // true until the first init resolves
     ready: boolean                    // false until hydrate() completed or the first init resolved
-    model: 'opt-in' | 'opt-out' | 'none'
+    model: 'opt-in' | 'opt-out' | 'none'   // the reported model; an IAB rule reports `opt-in`
     activeUI: 'none' | 'banner' | 'dialog' | null
     effectivePermissions: { necessary, functionality, experience, measurement, marketing }  // all boolean
     consentCategories: string[] | null
