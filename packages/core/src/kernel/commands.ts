@@ -19,11 +19,12 @@ import type {
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
-import { extractConsentNamesFromCondition } from '../libs/has';
+import { extractConsentNamesFromCondition, has } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
+	ConsentState,
 	ExplicitChoice,
 	InitContext,
 	InitResult,
@@ -242,9 +243,14 @@ const clearedVendorChoice = function clearedVendorChoice(
 };
 
 /**
- * The state after a bulk action narrowed to some categories: denials of
- * vendors whose condition names one of them are lifted, every other denial
- * stays. Stamped like a full bulk action once a governed vendor exists.
+ * The state after a bulk action narrowed to some categories. A denial is
+ * lifted only for a vendor the action decides on its own: one of its
+ * categories is selected, and the categories the action leaves alone cannot
+ * satisfy its condition by themselves. A vendor under `{ or: [marketing,
+ * measurement] }` keeps its denial when only measurement is rejected, since
+ * the still-granted marketing branch would load it at once. Every other
+ * denial stays. Stamped like a full bulk action once a governed vendor
+ * exists.
  */
 const scopedBulkVendorChoice = function scopedBulkVendorChoice(
 	snapshot: ConsentSnapshot,
@@ -252,13 +258,25 @@ const scopedBulkVendorChoice = function scopedBulkVendorChoice(
 	actionAt: number
 ): VendorChoice | null {
 	const current = snapshot.vendorChoice;
+	// What the unselected categories alone can prove: the selected ones read
+	// as off, everything else keeps its effective value.
+	const outsideScope: ConsentState = { ...snapshot.effectivePermissions };
+	for (const category of categories) {
+		outsideScope[category] = false;
+	}
 	const governed = new Set<string>();
 	for (const vendor of snapshot.vendors?.declared ?? []) {
-		if (
-			extractConsentNamesFromCondition(vendor.category).some((name) =>
-				categories.includes(name)
-			)
-		) {
+		const names = extractConsentNamesFromCondition(vendor.category);
+		if (!names.some((name) => categories.includes(name))) {
+			continue;
+		}
+		let loadsAnyway = false;
+		try {
+			loadsAnyway = has(vendor.category, outsideScope);
+		} catch {
+			loadsAnyway = false;
+		}
+		if (!loadsAnyway) {
 			governed.add(vendor.id);
 		}
 	}
@@ -330,8 +348,9 @@ const applyVendorGrants = function applyVendorGrants(
  *   `disabled`, are ignored.
  *
  * Lifting every denial leaves a timestamped empty list, never `null`: `null`
- * means no vendor decision was ever made. Returns the current value when
- * nothing usable was supplied, so an unchanged save never renews the time.
+ * means no vendor decision was ever made, and an explicit grant over `null`
+ * is a decision too. Returns the current value when nothing usable was
+ * supplied, so an unchanged save never renews the time.
  */
 export const resolveVendorSelection = function resolveVendorSelection(
 	snapshot: ConsentSnapshot,
@@ -360,9 +379,19 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	if (grants === undefined) {
 		return current;
 	}
+	const toggleable = toggleableVendorIds(snapshot);
+	const usable = Object.keys(grants).some((id) => toggleable.has(id));
+	if (!usable) {
+		return current;
+	}
 	const denied = applyVendorGrants(snapshot, current?.denied, grants);
 	if (denied.length === 0) {
-		return clearedVendorChoice(current, actionAt);
+		// An explicit grant is a decision even when it denies nothing: over
+		// `null` it leaves a timestamped empty record, so an older server
+		// denial arriving afterwards loses the merge to what the visitor chose.
+		return current === null
+			? { confirmedAt: actionAt, denied: [], version: 1 }
+			: clearedVendorChoice(current, actionAt);
 	}
 	const next: VendorChoice = { confirmedAt: actionAt, denied, version: 1 };
 	return sameVendorChoice(current, next) ? current : next;

@@ -402,6 +402,68 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a narrowed bulk action keeps the denial of a vendor another granted category still loads', async () => {
+		// Receipts under the kernel's own rule, so marketing is granted for real.
+		const rule = matchedResolution(
+			optInRule({ categories: ['marketing', 'measurement'] })
+		);
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords(
+					{ marketing: true, measurement: true },
+					{ fingerprint: rule.fingerprints.choice }
+				),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['shared'],
+					version: 1,
+				},
+			},
+			initialVendors: {
+				declared: [
+					...vendors.declared,
+					{
+						category: { or: ['marketing', 'measurement'] },
+						id: 'shared',
+						presentable: false,
+						source: 'script',
+					},
+				],
+				listVersion: null,
+			},
+		});
+		// Rejecting measurement alone leaves marketing granted, and marketing
+		// alone loads the shared vendor, so its denial must survive.
+		await kernel.commands.save('none', { categories: ['measurement'] });
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual(['shared']);
+		kernel.dispose();
+	});
+
+	test('an explicit grant over no prior decision records a timestamped empty list', async () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const kernel = createKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			transport: { save },
+		});
+		await kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
+		// A decision, even one that denies nothing: an older server denial
+		// arriving afterwards must lose the merge to it.
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		const payload = save.mock.calls[0]?.[0] as SavePayload;
+		expect(payload.vendorChoice?.grants).toEqual({
+			cdn: true,
+			'google-analytics': true,
+			'meta-pixel': true,
+		});
+		kernel.dispose();
+	});
+
 	test('a category save with no vendor decision sends no vendor map', async () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })
