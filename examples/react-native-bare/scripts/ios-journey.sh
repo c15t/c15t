@@ -2,20 +2,36 @@
 #
 # Prove the c15t consent journey on the iOS Simulator, end to end, in one command.
 #
-#   examples/react-native-bare/scripts/ios-journey.sh
+#   examples/react-native-bare/scripts/ios-journey.sh [release|debug]
 #
-# The app is driven only through its own `c15t-demo://` verbs, because this Xcode has
-# no `simctl tap`, no `swipe`, and no `Simulator.app` to click in. Nothing here
-# synthesises a touch.
+# Delivery, and why it is not `simctl openurl`
+# -------------------------------------------
+# iOS 26 will not hand a `c15t-demo://` open to the app without asking first: it raises
+# "Open in c15t Bare?" and waits for a tap. This machine cannot answer it. `simctl io`
+# offers enumerate, poll, recordVideo, screenshot and screenConfig, and there is no
+# Simulator.app in the Xcode bundle to click in, so there is no finger to give it. Every
+# verb therefore goes in as the `C15T_DEMO_LINK` launch variable, which
+# `ios/C15tBare/AppDelegate.swift` puts into the launch options as a URL, so
+# `Linking.getInitialURL()` returns it and the verb table runs unchanged. One link per
+# cold start, which also means every step survives process death on its own.
 #
-# Proof discipline is the reason this script exists. Every step prints the md5 of its
-# screenshot next to the step name, and two consecutive byte-identical screenshots are
-# reported as a FAILED step rather than a passed one, because that is what a step that
-# never happened looks like. A command exiting 0 is never treated as evidence.
+# IOS_JOURNEY_PROBE_OPENURL=1 sends one real `openurl` as a check on that claim and
+# reports what comes back, because "the alert is unavoidable" has to be re-tested
+# rather than repeated.
+#
+# Proof discipline
+# ----------------
+# Every step records the md5 of the frame, the md5 of the frame below the system band,
+# and the percentage of the app area that changed since the previous frame. Hashing the
+# whole PNG is not enough: the status bar carries a clock, so a step that never happened
+# still produced a fresh hash. That is how an earlier run of this script reported eight
+# steps and had delivered none of them. Each step also states what it expects, and a
+# consent surface on screen is read off the pixels by ios-surface-metrics.py rather than
+# assumed from the verb exiting 0.
 #
 # Device state: the simulator is erased before the run, so this is a genuinely fresh
-# subject. `simctl uninstall` is not enough on iOS, because the core keeps the subject
-# id and the stored envelope in the Keychain and Keychain items outlive an uninstall.
+# subject. `simctl uninstall` is not enough on iOS, because the core keeps the subject id
+# and the stored envelope in the Keychain and Keychain items outlive an uninstall.
 #
 # What this deliberately does not touch:
 #   - port 8081, which belongs to the Android verification; Metro here starts at 8084
@@ -28,6 +44,7 @@ set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${APP_DIR}/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 OUT_DIR="${IOS_JOURNEY_OUT:-/tmp/ios-journey}"
 SIM_NAME="${IOS_JOURNEY_SIM:-c15t-ios-journey}"
@@ -36,19 +53,32 @@ SIM_RUNTIME="${IOS_JOURNEY_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-4}
 BUNDLE_ID="org.reactjs.native.example.C15tBare"
 BACKEND_URL="${IOS_JOURNEY_BACKEND:-http://localhost:3000/api/self-host}"
 DERIVED="${IOS_JOURNEY_DERIVED:-/tmp/ios-journey-derived}"
+SCALE="${IOS_JOURNEY_SCALE:-3}"
+STATUS_BAND_PX="${IOS_JOURNEY_STATUS_BAND_PX:-177}"
+MIN_CHANGED_PCT="${IOS_JOURNEY_MIN_CHANGED_PCT:-0.35}"
+TRUTH_DIR="${IOS_JOURNEY_TRUTH:-/tmp/ui-parity/truth}"
 MODE="${1:-release}"
 
-SIM_UDID=""
 STEP_FAILS=0
-PREV_MD5=""
-PREV_STEP="none"
 SUMMARY=()
+PREV_PNG=""
+PREV_STEP="none"
+PREV_APP_MD5=""
+SIM_UDID=""
 
 log() { printf '==> %s\n' "$*"; }
 warn() { printf 'warn %s\n' "$*"; }
 die() { printf 'fail %s\n' "$*" >&2; exit 1; }
-
 sim() { xcrun simctl "$@"; }
+
+python() { command python3 "$@"; }
+
+[[ -z "${IOS_JOURNEY_ONLY:-}" ]] || ONLY_STEPS="${IOS_JOURNEY_ONLY//,/ }"
+in_run() {
+	[[ -z "${ONLY_STEPS:-}" ]] && return 0
+	for s in ${ONLY_STEPS}; do [[ "$s" == "${1}" ]] && return 0; done
+	return 1
+}
 
 # ---------------------------------------------------------------------------
 # 1. Preflight
@@ -58,6 +88,10 @@ xcode_developer_dir="$(xcode-select -p)"
 [[ "${xcode_developer_dir}" == *Xcode.app/Contents/Developer ]] ||
 	die "xcode-select points at ${xcode_developer_dir}, not a full Xcode."
 
+command -v xcrun >/dev/null || die "xcrun is not on PATH"
+python -c 'import PIL' 2>/dev/null ||
+	die "Pillow is missing, so frames cannot be compared: python3 -m pip install pillow"
+
 curl -fsS -m 10 -o /dev/null "${BACKEND_URL}/init" ||
 	die "the consent backend is not answering at ${BACKEND_URL}. Start it with:
       DATABASE_URL='postgres://postgres:c15t@localhost:5432/c15t' \\
@@ -65,12 +99,20 @@ curl -fsS -m 10 -o /dev/null "${BACKEND_URL}/init" ||
     Without it the core retries quietly and no prompt ever renders, which looks
     exactly like a banner that never ships."
 
+# The claim this script is built on, re-tested rather than repeated: a real
+# openurl on this machine must raise the confirmation and go nowhere.
+if [[ "${IOS_JOURNEY_PROBE_OPENURL:-0}" == "1" ]]; then
+	log "openurl probe, expecting the iOS confirmation this run cannot answer"
+	sim openurl "${SIM_UDID:-booted}" "c15t-demo://help" >/dev/null 2>&1 ||
+		warn "simctl openurl itself exited non-zero"
+fi
+
 # ---------------------------------------------------------------------------
 # 2. Device
 # ---------------------------------------------------------------------------
 
 SIM_UDID="$(sim list devices available | grep -m1 "${SIM_NAME} (" |
-	sed -E 's/.*\(([A-F0-9-]{36})\).*/\1/')"
+	sed -E 's/.*\(([A-F0-9-]{36})\).*/\1/')" || true
 
 if [[ -z "${SIM_UDID}" ]]; then
 	log "creating simulator ${SIM_NAME} (${SIM_DEVICE})"
@@ -84,13 +126,15 @@ log "erasing ${SIM_NAME}: this is the fresh-install step, Keychain included"
 sim erase "${SIM_UDID}"
 sim boot "${SIM_UDID}" >/dev/null 2>&1 || true
 sim bootstatus "${SIM_UDID}" -b >/dev/null
+sim ui "${SIM_UDID}" appearance light
 
 # ---------------------------------------------------------------------------
 # 3. Build
 # ---------------------------------------------------------------------------
 
 log "building @c15t/react-native, filtered: the Next demo must not see a rebuild"
-(cd "${REPO_ROOT}" && bun turbo run build --filter=@c15t/react-native >/dev/null)
+(cd "${REPO_ROOT}" && bun turbo run build --filter=@c15t/react-native >/dev/null) ||
+	die "the SDK did not build. Nothing below this line can be believed without it."
 
 if [[ ! -d "${APP_DIR}/ios/Pods" ]]; then
 	log "pod install"
@@ -144,7 +188,7 @@ APP_PATH="$(find "${DERIVED}/Build/Products" -maxdepth 2 -name 'C15tBare.app' -t
 [[ -n "${APP_PATH}" ]] || die "no C15tBare.app under ${DERIVED}/Build/Products"
 
 mkdir -p "${OUT_DIR}"
-rm -f "${OUT_DIR}"/*.png "${OUT_DIR}"/*.png.md5
+rm -f "${OUT_DIR}"/*.png "${OUT_DIR}"/*.png.md5 "${OUT_DIR}"/*.json
 
 log "installing $(basename "${APP_PATH}")"
 sim install "${SIM_UDID}" "${APP_PATH}"
@@ -153,11 +197,11 @@ sim install "${SIM_UDID}" "${APP_PATH}"
 # 4. Journey helpers
 # ---------------------------------------------------------------------------
 
-# relaunch [link]
+# deliver <link>
 #
-# A link owed by a cold start cannot ride on an openurl. The launch variable is what
-# JavaScript reads as the initial URL, and the verbs are unchanged either way.
-relaunch() {
+# A cold start carrying one verb. The link arrives as the launch URL, which is the only
+# door iOS opens without a confirmation this machine cannot answer.
+deliver() {
 	local link="${1:-}"
 
 	sim terminate "${SIM_UDID}" "${BUNDLE_ID}" >/dev/null 2>&1 || true
@@ -171,47 +215,112 @@ relaunch() {
 	fi
 }
 
-# send <url>: deliver to the running app, leaving any sheet it has open on screen.
-send() {
-	local url="$1"
+# expect_surface <banner|dialog|none> <png> <json>
+#
+# Whether a consent surface is on screen is read off the pixels: the branding tab is
+# the signature, and the card the metrics tool frames around it.
+expect_surface() {
+	local want="$1" png="$2" json="$3" found
 
-	if ! sim openurl "${SIM_UDID}" "${url}" >/dev/null 2>&1; then
-		warn "openurl refused ${url}; falling back to the launch variable"
-		relaunch "${url}"
-		return
+	python "${SCRIPT_DIR}/ios-surface-metrics.py" "${png}" \
+		--mode "$( [[ "${want}" == "dialog" ]] && echo dialog || echo banner )" \
+		--scale "${SCALE}" --json >"${json}" 2>/dev/null || true
+
+	found="$(python -c 'import json,sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    print("unreadable"); raise SystemExit
+print("yes" if d.get("surface_found") else "no")' "${json}")"
+
+	if [[ "${want}" == "none" ]]; then
+		[[ "${found}" == "no" ]]
+	else
+		[[ "${found}" == "yes" ]]
 	fi
-
-	sleep 2
 }
 
-# step <file-stem> <description> [settle-seconds]
+# step <stem> <description> <expect> <surface> <link> [settle-seconds]
+#
+# expect is one of:
+#   diff            the app area must visibly move from the previous frame
+#   same:<stem>     the app area must be identical to that frame
+#   quiet:<stem>    report the match with that frame, decide nothing on it
 step() {
-	local stem="$1" description="$2" settle="${3:-2}"
-	local path="${OUT_DIR}/${stem}.png" md5 status="ok"
+	local stem="$1" description="$2" expect="${3:-diff}" surface="${4:-none}" \
+		link="${5:-}" settle="${6:-5}"
+	local png="${OUT_DIR}/${stem}.png" json="${OUT_DIR}/${stem}.json"
+	local full_md5 app_md5 changed="n/a" status="ok" reason=""
 
+	if ! in_run "${stem}"; then return 0; fi
+
+	deliver "${link}"
 	sleep "${settle}"
-	sim io "${SIM_UDID}" screenshot "${path}" >/dev/null
+	sim io "${SIM_UDID}" screenshot "${png}" >/dev/null
 
-	md5="$(md5 -q "${path}")"
+	read -r full_md5 app_md5 < <(python "${SCRIPT_DIR}/ios-frame-proof.py" digest \
+		"${png}" --status-band "${STATUS_BAND_PX}")
 
-	if [[ -n "${PREV_MD5}" && "${md5}" == "${PREV_MD5}" ]]; then
+	if [[ -n "${PREV_APP_MD5}" ]]; then
+		changed="$(python "${SCRIPT_DIR}/ios-frame-proof.py" diff \
+			"${OUT_DIR}/${PREV_STEP}.png" "${png}" --status-band "${STATUS_BAND_PX}")"
+	fi
+
+	if [[ "${expect}" == diff:* || "${expect}" == "diff" ]]; then
+		if [[ -n "${PREV_APP_MD5}" && "${app_md5}" == "${PREV_APP_MD5}" ]]; then
+			status="FAILED"
+			reason="app area identical to ${PREV_STEP}, step did not happen"
+		elif [[ "${changed}" != "n/a" ]] &&
+			awk -v c="${changed}" -v m="${MIN_CHANGED_PCT}" 'BEGIN{exit !(c<m)}'; then
+			status="FAILED"
+			reason="only ${changed}% of the app area changed, step did not happen"
+		fi
+	elif [[ "${expect}" == same:* ]]; then
+		local want="${expect#same:}"
+		if [[ ! -f "${OUT_DIR}/${want}.app-md5" ]] ||
+			[[ "${app_md5}" != "$(cat "${OUT_DIR}/${want}.app-md5")" ]]; then
+			status="FAILED"
+			reason="app area differs from ${want}, which the step says it must not"
+		fi
+	fi
+
+	if [[ "${status}" == "ok" ]] && ! expect_surface "${surface}" "${png}" "${json}"; then
 		status="FAILED"
-		STEP_FAILS=$((STEP_FAILS + 1))
+		reason="expected surface '${surface}' on screen, the pixels say otherwise"
 	fi
 
-	printf '%s  %s\n' "${md5}" "${path}" >"${path}.md5"
-
+	printf '%s  %s\n' "${full_md5}" "${png}" >"${png}.md5"
 	if [[ "${status}" == "ok" ]]; then
-		printf '  [%s] %-46s %s  %s\n' "${stem%%-*}" "${description}" "${md5}" "${path}"
+		printf '  [%s] %-42s ok      %s\n' "${stem%%-*}" "${description}" "${full_md5}"
 	else
-		printf '  [%s] %-46s %s  %s\n' "${stem%%-*}" \
-			"${description} -- IDENTICAL TO ${PREV_STEP}, step did not happen" "${md5}" "${path}"
+		STEP_FAILS=$((STEP_FAILS + 1))
+		printf '  [%s] %-42s FAILED  %s\n      %s\n' "${stem%%-*}" \
+			"${description}" "${full_md5}" "${reason}"
 	fi
 
-	SUMMARY+=("${stem}|${description}|${md5}|${status}")
+	local match="-"
+	if [[ "${expect}" == same:* || "${expect}" == quiet:* ]]; then
+		local want="${expect#*:}" baseline=""
+		[[ -f "${OUT_DIR}/${want}.app-md5" ]] && baseline="$(cat "${OUT_DIR}/${want}.app-md5")"
+		if [[ "${app_md5}" == "${baseline}" ]]; then
+			match="match:${want}"
+		else
+			match="differ:${want}"
+		fi
+	fi
 
-	PREV_MD5="${md5}"
+	printf '%s\n' "${app_md5}" >"${OUT_DIR}/${stem}.app-md5"
+
+	SUMMARY+=("${stem}|${description}|${status}|${full_md5}|${app_md5}|${changed}|${surface}|${match}")
+	PREV_PNG="${png}"
 	PREV_STEP="${stem}"
+	PREV_APP_MD5="${app_md5}"
+}
+
+# appearance <light|dark>
+appearance() {
+	sim ui "${SIM_UDID}" appearance "${1}"
+	log "simulator appearance: ${1}"
 }
 
 # ---------------------------------------------------------------------------
@@ -220,74 +329,87 @@ step() {
 
 log "journey, screenshots in ${OUT_DIR}"
 
-# 1. Fresh launch: nothing answered, so the banner owes a decision.
-relaunch
-step "01-first-run-banner" "fresh launch, banner owing a decision" 12
+# 1. Nothing answered on a fresh subject, so the banner owes a decision.
+step 01-fresh-banner "fresh install: banner owing a decision" diff banner "" 14
 
-# 2. The consent manager, the path the banner's Customize button takes.
-send "c15t-demo://customize"
-step "02-consent-manager" "consent manager open, every category listed" 3
+# 2. dismissNotice on an opt-in policy is not a decision. A cold start is what makes
+#    this read as storage rather than as a sheet that happened to stay open.
+step 02-dismiss-still-owed "dismiss leaves an opt-in prompt owed" same:01-fresh-banner banner "c15t-demo://dismiss" 8
 
-# 3. One category moved.
-#
-# The switch inside ConsentDialog is the SDK's own uncommitted React state, and the
-# only writer is that row's onValueChange, so no deep link reaches it. What a link can
-# do is commit one category while the sheet is on screen: the rows are re-derived from
-# the snapshot, so the switch moves in front of the camera. Named here so nobody reads
-# this frame as a thumb on a switch.
-send "c15t-demo://save?measurement=1"
-step "03-category-toggled" "measurement committed on, sheet still open" 4
+# 3. The consent manager, the path the banner's Customize button takes. This is also
+#    the frame that proves the launch-variable channel reaches the verb table.
+step 03-customize-dialog "consent manager open, every category listed" diff dialog "c15t-demo://customize" 8
 
-# 4. Saved, and the decision readable on the app rather than inside a sheet.
-send "c15t-demo://dismiss"
-step "04-decision-committed" "sheet closed, revision and categories on screen" 3
+# 4. acceptAll over the real bridge: the prompt goes away and every category the policy
+#    governs reads allowed to its own subscriber, which is what unblocks a gate.
+step 04-accept-everything "acceptAll: prompt gone, categories allowed" diff none "c15t-demo://accept" 8
 
-# 5. Process death and a cold start, the only relaunch that proves stored state.
-relaunch
-step "05-relaunch-saved" "relaunched: reads as saved, no prompt owed" 10
+# 5. Process death, then the stored answer, with nothing owed.
+step 05-relaunch-no-prompt "relaunched: reads as saved, no prompt owed" quiet:04-accept-everything none "" 12
 
-# 6. The standing preference centre.
-send "c15t-demo://preferences"
-step "06-preference-centre" "preference centre open" 3
+# 6. One category moved off. A deep link commits it through the action; no fake thumb.
+step 06-save-measurement-off "save measurement=0: one category moves" diff none "c15t-demo://save?measurement=0" 8
 
-# 7. The other palette, on the same sheet.
-send "c15t-demo://dismiss"
-send "c15t-demo://scheme/dark"
-send "c15t-demo://preferences"
-step "07-dark-scheme" "dark scheme, preference centre open" 4
+# 7. That category, read back off stored state, switch and all.
+step 07-preference-centre "preference centre: measurement off, rest on" diff dialog "c15t-demo://preferences" 8
 
-# 8. Back to first launch through the core's own wipe rather than a reinstall.
-send "c15t-demo://dismiss"
-send "c15t-demo://scheme/light"
-send "c15t-demo://reset"
-step "08-reset-first-launch" "reset: first-run prompt owed again" 10
+# 8. The same answer with the process gone: this is persistence, not sheet state.
+step 08-relaunch-measurement-off "relaunched: measurement still off" diff none "" 12
+
+# 9. The other palette, driven by the platform rather than a forced override, because
+#    the demo follows the system unless a verb says otherwise.
+appearance dark
+step 09-dark-dialog "dark scheme from the platform, manager open" diff dialog "c15t-demo://customize" 8
+
+# 10. The core's own wipe, not a reinstall, and the prompt back in the other palette.
+step 10-reset-prompt-returns "reset: first-run prompt owed again" diff banner "c15t-demo://reset" 12
+
+# 11. And it is owed in storage, so a second cold start still shows it.
+step 11-reset-relaunch-owed "relaunched after reset: prompt still owed" same:10-reset-prompt-returns banner "" 12
 
 # ---------------------------------------------------------------------------
-# 6. Report
+# 6. Parity, at the same point the web and Android were measured
 # ---------------------------------------------------------------------------
 
-printf '\n%-26s %-40s %-8s %s\n' "STEP" "DESCRIPTION" "RESULT" "MD5"
-printf '%s\n' "-------------------------------------------------------------------------"
+log "surface metrics, iOS in points against the captured web truth"
+metrics() {
+	local stem="$1" mode="$2" truth="$3"
+	[[ -f "${OUT_DIR}/${stem}.png" ]] || { warn "no frame ${stem}"; return; }
+	printf -- '--- %s (%s)\n' "${stem}" "${mode}"
+	python "${SCRIPT_DIR}/ios-surface-metrics.py" "${OUT_DIR}/${stem}.png" \
+		--mode "${mode}" --scale "${SCALE}" --truth "${TRUTH_DIR}/${truth}.json" || true
+}
+metrics 01-fresh-banner banner light
+metrics 03-customize-dialog dialog light
+metrics 09-dark-dialog dialog dark
+metrics 10-reset-prompt-returns banner dark
+
+# ---------------------------------------------------------------------------
+# 7. Report
+# ---------------------------------------------------------------------------
+
+printf '\n%-30s %-8s %-9s %-8s %s\n' "STEP" "RESULT" "CHANGED%" "SURFACE" "APP-AREA MD5 / FULL MD5"
+printf '%s\n' "-------------------------------------------------------------------------------"
 for row in "${SUMMARY[@]}"; do
-	IFS='|' read -r stem description md5 status <<<"${row}"
-	printf '%-26s %-40s %-8s %s\n' "${stem}" "${description}" "${status}" "${md5}"
+	IFS='|' read -r stem description status full_md5 app_md5 changed surface match <<<"${row}"
+	printf '%-30s %-8s %-9s %-8s %s\n' "${stem}" "${status}" "${changed}" "${surface}" "${app_md5}"
+	printf '%-30s %-8s %-9s %-8s %s\n' "" "" "" "" "${full_md5}"
 done
 printf '\n'
 
-first_frame_md5="$(md5 -q "${OUT_DIR}/01-first-run-banner.png")"
-reset_frame_md5="$(md5 -q "${OUT_DIR}/08-reset-first-launch.png")"
-
-if [[ "${first_frame_md5}" == "${reset_frame_md5}" ]]; then
-	log "reset restored the first frame pixel for pixel"
-fi
+first_frame_md5="$(cat "${OUT_DIR}/01-fresh-banner.app-md5" 2>/dev/null || true)"
+reset_frame_md5="$(cat "${OUT_DIR}/10-reset-prompt-returns.app-md5" 2>/dev/null || true)"
+[[ -n "${first_frame_md5}" && "${first_frame_md5}" == "${reset_frame_md5}" ]] &&
+	log "reset restored the first frame in the app area pixel for pixel"
 
 unique="$(md5 -q "${OUT_DIR}"/*.png | sort -u | wc -l | tr -d ' ')"
 log "${unique} distinct screenshots across ${#SUMMARY[@]} steps"
-log "device ${SIM_NAME} ${SIM_UDID}"
+log "device ${SIM_NAME} ${SIM_UDID} appearance $(sim ui "${SIM_UDID}" appearance)"
+log "runtime ${SIM_RUNTIME} scale ${SCALE} status band ${STATUS_BAND_PX}px"
 log "app ${APP_PATH}"
 
 if [[ "${STEP_FAILS}" -gt 0 ]]; then
-	die "${STEP_FAILS} step(s) produced a screenshot identical to the one before them."
+	die "${STEP_FAILS} step(s) failed. A step whose app area did not move is a step that did not happen."
 fi
 
-log "every step produced a distinct frame"
+log "every step moved the app area, or matched the frame it said it would"
