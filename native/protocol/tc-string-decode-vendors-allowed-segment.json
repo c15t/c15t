@@ -1,17 +1,13 @@
 {
 	"description": "A global string addressed to vendors that supports out-of-band disclosure and narrows it to three vendors, the four-segment shape.",
-	"expects": {
-		"decode": true,
-		"encode": false
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": false,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -28,8 +24,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
-				"vendorConsents": [1, 2],
-				"vendorLegitimateInterests": [],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 2,
@@ -37,10 +31,12 @@
 					"vendorsAllowed": 700,
 					"vendorsDisclosed": 3
 				},
-				"version": 2,
+				"vendorConsents": [1, 2],
+				"vendorLegitimateInterests": [],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [60, 300, 700],
-				"vendorsDisclosed": [1, 2, 3]
+				"vendorsDisclosed": [1, 2, 3],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -54,18 +50,25 @@
 			"tcString": "CQe_xoAQe_xoAAcABBENCOFAAMAAAAAAACiQABMAAAAA.IABu.QFeQAwAeAEsAV4AA.YAAAAAAAAAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
 	"id": "tc-string-decode-vendors-allowed-segment",
 	"input": {
 		"encodingOptions": {
 			"isForVendors": true,
 			"version": 2
 		},
+		"gvlOptions": {
+			"language": "EN"
+		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": false,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -83,224 +86,316 @@
 			"useNonStandardTexts": false,
 			"vendorConsents": [1, 2],
 			"vendorLegitimateInterests": [],
-			"version": 2,
 			"vendorsAllowed": [60, 300, 700],
-			"vendorsDisclosed": [1, 2, 3]
+			"vendorsDisclosed": [1, 2, 3],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {
-			"language": "EN",
+			"dataCategories": {},
+			"features": {},
+			"gvlSpecificationVersion": 3,
+			"lastUpdated": "2026-02-02T00:00:00Z",
+			"purposes": {
+				"1": {
+					"description": "Fixture purpose 1.",
+					"id": 1,
+					"name": "Purpose 1"
+				},
+				"2": {
+					"description": "Fixture purpose 2.",
+					"id": 2,
+					"name": "Purpose 2"
+				},
+				"3": {
+					"description": "Fixture purpose 3.",
+					"id": 3,
+					"name": "Purpose 3"
+				},
+				"4": {
+					"description": "Fixture purpose 4.",
+					"id": 4,
+					"name": "Purpose 4"
+				},
+				"5": {
+					"description": "Fixture purpose 5.",
+					"id": 5,
+					"name": "Purpose 5"
+				},
+				"6": {
+					"description": "Fixture purpose 6.",
+					"id": 6,
+					"name": "Purpose 6"
+				},
+				"7": {
+					"description": "Fixture purpose 7.",
+					"id": 7,
+					"name": "Purpose 7"
+				},
+				"8": {
+					"description": "Fixture purpose 8.",
+					"id": 8,
+					"name": "Purpose 8"
+				},
+				"9": {
+					"description": "Fixture purpose 9.",
+					"id": 9,
+					"name": "Purpose 9"
+				},
+				"10": {
+					"description": "Fixture purpose 10.",
+					"id": 10,
+					"name": "Purpose 10"
+				}
+			},
+			"specialFeatures": {
+				"1": {
+					"description": "Use precise geolocation data.",
+					"id": 1,
+					"name": "Geolocation"
+				},
+				"2": {
+					"description": "Match data with other data sources.",
+					"id": 2,
+					"name": "Match data"
+				}
+			},
+			"specialPurposes": {},
+			"stacks": {},
 			"tcfPolicyVersion": 5,
 			"vendorListVersion": 142,
-			"vendors": [
-				{
+			"vendors": {
+				"1": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 1,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 1",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"2": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 2,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 2",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"3": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 3,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 3",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"4": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 4,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 4",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"5": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 5,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 5",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"6": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 6,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 6",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"7": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 7,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 7",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"8": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 8,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 8",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"9": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 9,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 9",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"10": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 10,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 10",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"11": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 11,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 11",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"12": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 12,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 12",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"41": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 41,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 41",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"42": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 42,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 42",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"43": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 43,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 43",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"44": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 44,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 44",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"45": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 45,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 45",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"46": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 46,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 46",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"47": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 47,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 47",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"60": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 60,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 60",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"300": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 300,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 300",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"500": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 500,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 500",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				},
-				{
+				"700": {
 					"features": [],
 					"flexiblePurposes": [7, 9],
 					"id": 700,
 					"legIntPurposes": [2, 7, 9, 10],
+					"name": "Fixture Vendor 700",
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
 					"specialPurposes": []
 				}
-			]
+			}
 		}
 	},
 	"kind": "tc-string",
