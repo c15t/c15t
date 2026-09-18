@@ -6,14 +6,18 @@ core. Issue: https://github.com/c15t/c15t/issues/1010
 
 IAB TCF is partly in this phase, and the line is worth reading before the bullets.
 Both cores decode and encode TC Strings byte-for-byte against the same
-`native/protocol` fixtures the web reference produced, and both keep the vendor list
-`/init` served rather than fetching one on the device. Neither core can yet act on
-an IAB rule end to end: the strict policy reader in each still rejects a wire model
-of `iab`, so a device under an IAB policy comes up deny-all rather than presenting
-the disclosure. Saving a `tcString` alongside a decision is not implemented either,
-and neither is the `IABTCF_*` storage bus, so vendor SDKs reading those keys on a
-device see nothing. `docs/internal/tcf-mobile.md` records the sources behind all of
-that, including the Keychain-versus-shared-defaults trade-off the bus will force.
+`native/protocol` fixtures the web reference produced, both keep the vendor list
+`/init` served rather than fetching one on the device, and both now put that list on
+the snapshot the bridge reads. Neither core can yet act on an IAB rule end to end:
+the strict policy reader in each still rejects a wire model of `iab`, so a device
+under an IAB policy comes up deny-all rather than presenting the disclosure. Saving
+a `tcString` alongside a decision is not implemented either, and neither is the
+`IABTCF_*` storage bus, so vendor SDKs reading those keys on a device see nothing.
+The members that would turn the slot into an IAB runtime, `tcString`, `cmpId` and the
+per-vendor vectors, stay absent rather than arriving with a value nothing earned, so
+adding them later is an additive protocol change.
+`docs/internal/tcf-mobile.md` records the sources behind all of that, including the
+Keychain-versus-shared-defaults trade-off the bus will force.
 
 Layout
 ------
@@ -52,7 +56,7 @@ State model
 
 Native holds one immutable `ConsentSnapshot`, versioned by `revision`. It mirrors
 the fields of `ConsentSnapshot` in `packages/core/src/types.ts` that matter on
-mobile, plus the `iab` slot below:
+mobile:
 
     revision: number                  // monotonic, bumps on every mutation
     policyPending: boolean            // true until the first init resolves
@@ -71,17 +75,31 @@ mobile, plus the `iab` slot below:
     nextDeadline: number | null
     evaluatedAt: number
     error: { code, message } | null
+    iab: { gvl } | null                  // the vendor list /init served
 
-`iab` carries the vendor list `/init` served, serialized as `{ gvl }`, or `null`
-when the device has never been served one. Swift declares that shape as
-`KernelIABState` and fills it when a resolved init carries a list; Kotlin's
-envelope keeps the list and its snapshot fill is still catching up, so read the
-slot as optional data rather than as a promise. A host that has drawn purpose or
-partner names does not lose them because one later `/init` happened to serve
-none: the retention rule sits on `C15tKernel.vendorList` in Kotlin and on the
-snapshot's IAB state in Swift, and only `reset()` clears it. Scope only ever
-narrows this list, and a value is only ever selected by its key, never by an `id`
-inside its own body.
+`iab` carries the vendor list `/init` served, and nothing beside it. Both cores fold
+it onto the snapshot rather than parking it next to the snapshot, because the bridge
+reads the snapshot and a second copy of one fact is two answers. Serialize the whole
+slot as `null` where there is no list and keep the key, so a JavaScript layer that
+predates TCF does not branch on an SDK version. Neither core publishes an `iab`
+holding a null `gvl`: both build the object only around a list they accepted, so
+absence rides on the slot and a reader never tells "no list served" apart from "no
+answer given". An `iab` naming a member this build does not model is an unreadable
+envelope rather than a half-believed one, which both cores enforce in their own
+decode. Only the nullable-`gvl` bytes differ: the web's `KernelIABState.gvl` is a
+nullable key, `core-swift` reads `{"gvl":null}` back as an object carrying no list,
+and the Kotlin core types the field non-null and so refuses those bytes whole.
+
+A list a host has already drawn names from survives one `/init` that serves none:
+each core keeps the list it accepted until `reset()`, and each enforces that in its
+own test. Scope only ever narrows the list, and an entry is always selected by its
+key, never by an `id` inside its own body.
+
+Storage keeps one copy. Swift writes the snapshot, list inside it. Kotlin keeps the
+document under the envelope's own `gvl` key and writes the stored snapshot with that
+slot nulled, because this document is the largest thing in a blob rewritten on every
+committed mutation, and hydration puts it back. That difference stays in storage,
+where a core's own spelling is its own business.
 
 `consentCategories` is the subject-facing list a consent surface draws: `necessary`
 first, then the resolved policy scope narrowed by the host's declared scope, all
@@ -337,10 +355,11 @@ slot, so refusing an envelope never costs a device its identity. What each write
   nothing else), `storedAt` in epoch milliseconds, `snapshot`, `noticeDismissal`, and
   `policyResolution`.
 - Kotlin stores a `SnapshotEnvelope` in the encrypted blob: `snapshot`,
-  `evaluationPolicy`, and `noticeDismissal`. It carries no format version of its own
-  and no write time. `AesGcmCodec` puts a version byte in the blob header, which
-  gates the framing rather than the fields, so an envelope-level change has nowhere
-  to be recorded. That is a gap in the Kotlin core, not a decision.
+  `evaluationPolicy`, `noticeDismissal`, and `gvl`, the vendor list, kept there
+  while the published snapshot carries it at `iab`. It carries no format version of
+  its own and no write time. `AesGcmCodec` puts a version byte in the blob header,
+  which gates the framing rather than the fields, so an envelope-level change has
+  nowhere to be recorded. That is a gap in the Kotlin core, not a decision.
 
 Three facts carry `loadBearing: true`, meaning the answer the device gives changes if
 the field is lost or wrong. Two of them decide what is allowed and one decides what the

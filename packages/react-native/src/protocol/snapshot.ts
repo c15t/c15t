@@ -175,24 +175,25 @@ export interface ConsentSnapshot {
 	/**
 	 * IAB TCF state: the vendor list this device was served, or `null`.
 	 *
-	 * `null` is a real answer, and a device reaches it two different ways.
+	 * `null` is a real answer, and there is one way to hold it: no `/init` has served a
+	 * `gvl` this build could read. That is the ordinary answer for every policy whose
+	 * model is not `iab`, because the backend embeds a list only while it is.
 	 *
-	 * - iOS holds `null` until a `/init` lands a `gvl`. Swift's `ConsentCore` then
-	 *   folds the list in and keeps it when a later `/init` serves none, because
-	 *   the backend embeds a list only while the matched model is `iab`, and a
-	 *   disclosure that lost its partner names between launches would change the
-	 *   claim made to the subject.
-	 * - Android answers `null` here always. Kotlin's `Snapshot.kt` pins the slot
-	 *   to `JsonNull` and its retention test keeps it there; that core keeps the
-	 *   list on the stored envelope under `gvl` and hands the same document to a
-	 *   caller through `C15tKernel.vendorListBody()`. This package's bridge does
-	 *   not expose that accessor yet, so on Android the list exists and is not
-	 *   readable from this key.
+	 * Both cores fold a served list onto this key and keep it when a later `/init`
+	 * serves none. The disclosure a subject was already shown is drawn out of that
+	 * document, so dropping it would change a claim the subject was given without the
+	 * subject doing anything, and only a reset takes it back. Kotlin keeps the bytes
+	 * under the stored envelope's own `gvl` key and puts them back here on hydration,
+	 * so the encrypted blob carries one copy of the largest thing in it and a device
+	 * upgrading from a build that kept the list only there keeps its disclosure.
 	 *
-	 * The key is never absent. `native/CONTRACT.md` asks for a serialised `null`
-	 * where there is no state, so a JavaScript layer that predates TCF does not
-	 * have to branch, and a body here is a shape both cores and the fixtures
-	 * agree on rather than one platform's invention.
+	 * A host app's own code reads the same document off the same state: Kotlin's
+	 * `C15tKernel.vendorListBody()` and Swift's `globalVendorList()` are both the
+	 * snapshot field, which is what keeps a disclosure drawn natively and one drawn
+	 * through this bridge naming the same vendors.
+	 *
+	 * The key is never absent: a serialised `null` where there is no list is what lets
+	 * a JavaScript layer that predates TCF avoid branching on an SDK version.
 	 */
 	readonly iab: NativeIABState | null;
 }

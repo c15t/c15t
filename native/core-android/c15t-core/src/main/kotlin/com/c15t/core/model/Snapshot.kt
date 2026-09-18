@@ -1,10 +1,9 @@
 package com.c15t.core.model
 
+import com.c15t.core.tc.GlobalVendorList
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonNull
 
 /**
  * Interaction the active policy still requires.
@@ -235,11 +234,42 @@ data class DecisionInputs(
 )
 
 /**
+ * The IAB half of a [ConsentSnapshot]: the vendor list this device was served.
+ *
+ * The key name is `KernelIABState`'s, from `packages/core/src/types.ts`, because
+ * a renamed key is invisible across the bridge: the snapshot crosses into
+ * JavaScript as text, so the declared type can say `iab.gvl` while the device
+ * sends `iab.list`, and every app on that platform reads `undefined` with nothing
+ * failing anywhere. Only `gvl` is carried. `authority`, `tcString`, `cmpId` and
+ * the per-vendor vectors are IAB runtime state this core does not own, and an
+ * absent key says that plainly where `enabled: false` would claim an answer about
+ * a module that is not there.
+ *
+ * `gvl` is non-null, which is stricter than the web's nullable key on purpose: this
+ * core only ever builds the container around a list it accepted, so a non-null `iab`
+ * always means a list is held and a reader never has to tell "no list served" apart
+ * from "no answer given". The price is that stored bytes reading `{"gvl":null}` --
+ * which `core-swift` takes as a container holding no list -- are unreadable here,
+ * and neither core writes them. Absence is carried by [ConsentSnapshot.iab] being
+ * `null`, which is also what `packages/react-native/src/protocol/wire-shape.ts`
+ * grades.
+ *
+ * The spellings inside the list are the served document's, not this core's: see
+ * [GlobalVendorList] and [com.c15t.core.tc.GlobalVendorListJson].
+ */
+@Serializable
+data class KernelIabState(
+	val gvl: GlobalVendorList,
+)
+
+/**
  * The one immutable consent state the native core holds, versioned by
  * [revision].
  *
  * Field set and semantics follow `native/CONTRACT.md`, which is the mobile
- * projection of `ConsentSnapshot` in `packages/core/src/types.ts` minus IAB.
+ * projection of `ConsentSnapshot` in `packages/core/src/types.ts`. The IAB half
+ * is the served vendor list on [iab], the same seam `KernelIABState` is on the
+ * web and in `core-swift`.
  * Every mutation produces a new instance and bumps [revision]; readers never see
  * a partially updated snapshot.
  */
@@ -276,11 +306,24 @@ data class ConsentSnapshot(
 	val evaluatedAt: Long = 0,
 	val error: KernelError? = null,
 	/**
-	 * Reserved IAB slot. Always `null` this phase; the key is kept so a
-	 * JavaScript layer does not have to branch on the SDK version.
+	 * The vendor list this device is reading its disclosure out of, or `null` while
+	 * no `/init` has served one this build could accept.
+	 *
+	 * Latched, and it travels with the snapshot rather than beside it: a `/init`
+	 * that serves no list leaves the list already there, and only
+	 * [com.c15t.core.C15tKernel.reset] takes it back. The reason is on that field --
+	 * once a purpose or vendor name has been on screen, replacing it with nothing
+	 * changes a claim the subject was already given, and the backend embeds a list
+	 * only while the matched model is `iab`.
+	 *
+	 * The key is always present on the wire, `null` written where there is no list,
+	 * so a JavaScript layer that predates TCF does not branch on the SDK version.
+	 * Storage keeps the document once, under the envelope's own `gvl` key, and puts
+	 * it back here on hydration -- see
+	 * [com.c15t.core.store.SnapshotEnvelope.gvl].
 	 */
 	@SerialName("iab")
-	val iab: JsonElement = JsonNull,
+	val iab: KernelIabState? = null,
 ) {
 	/**
 	 * Whether [category] may run right now.

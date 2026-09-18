@@ -206,17 +206,19 @@ export interface GVLVendor {
  * Mirrors `GlobalVendorList` in `@c15t/core`, which re-exports the type inferred
  * from `globalVendorListSchema`.
  *
- * A device reaches this document by two routes, and they carry the same names.
+ * Both cores fold a served list into the snapshot's `iab` slot, because that is the
+ * key a disclosure is drawn from, and both keep the bytes in the shape the document
+ * arrived in. Only the durable copy sits in a different place: Swift stores the
+ * snapshot itself, while Kotlin keeps the document under the stored envelope's own
+ * `gvl` key and writes the stored snapshot with that slot empty, so the encrypted
+ * blob carries this document once instead of twice. Hydration puts it back either
+ * way, so a launch with no network renders the disclosure it rendered yesterday.
  *
- * - iOS folds it into the snapshot at the `iab` slot of `./snapshot`: Swift's
- *   `ConsentCore.prepare(iab:)` fills the slot from `initResponse.gvl`, and the
- *   envelope then persists it so the next launch renders the same disclosure with
- *   no network.
- * - Android keeps it on the stored envelope as `gvl` and hands the same document
- *   to a caller through `C15tKernel.vendorListBody()`. Its retention test names
- *   the two promises that matter to a reader: `a refresh with no gvl keeps the
- *   list the device already holds`, and `the list comes back on the next launch
- *   through a failed init`.
+ * Kotlin's retention test names the two promises that matter to a reader: `a
+ * refresh with no gvl keeps the list the device already holds`, and `the list comes
+ * back on the next launch through a failed init`. A host that does not go through
+ * the bridge reads the same field from `C15tKernel.vendorListBody()` or Swift's
+ * `globalVendorList()`.
  *
  * Both cores gate a list on the same four fields before they hold one --
  * `vendorListVersion`, `tcfPolicyVersion`, `purposes`, `vendors`, from

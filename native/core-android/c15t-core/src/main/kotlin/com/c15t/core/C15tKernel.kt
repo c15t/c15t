@@ -12,6 +12,7 @@ import com.c15t.core.model.ConfirmedCoverage
 import com.c15t.core.model.DecisionInputs
 import com.c15t.core.model.ExplicitChoice
 import com.c15t.core.model.GpcSignal
+import com.c15t.core.model.KernelIabState
 import com.c15t.core.model.PrivacySignals
 import com.c15t.core.model.QueuedSave
 import com.c15t.core.model.SavePayload
@@ -134,41 +135,6 @@ class C15tKernel(
 	private var evaluationPolicy: EvaluationPolicy? = null
 
 	/**
-	 * The last vendor list a `/init` served that [GlobalVendorListJson.fromInitBody] accepted, guarded
-	 * by [mutationLock], and latched across `/init` responses in one direction: a list
-	 * replaces a list, and a `/init` that carried none takes nothing back. [reset] is the one thing that does.
-	 *
-	 * Why an `/init` that carries no `gvl` must leave this alone. The list is what a purpose id and a
-	 * vendor id mean. A subject shown "cookie analytics, advertising personalisation" and a named list
-	 * of vendors was shown those words out of this document, and the disclosure the dialog draws and
-	 * the TC String written next to it both repeat that claim on every later launch. If a refresh that
-	 * happened to carry no `gvl` -- which is normal, because the backend embeds one only when the
-	 * matched model is `iab` -- cleared it, then a device would wake up one morning with a saved
-	 * consent record pointing at ids it can no longer name, and a surface that either goes blank or
-	 * re-derives an empty disclosure. The subject did nothing; the claim we already made would have
-	 * changed underneath them. That is the thing this latch is for, and it is why the list travels in
-	 * the stored envelope beside [evaluationPolicy] rather than living only in this process.
-	 *
-	 * Holding a stale list costs nothing that discarding one costs worse. Nothing here
-	 * decides a category from it -- the list is disclosure and encoding data, and permissions come
-	 * from the policy -- so the worst it can do is name a vendor the IAB has since withdrawn, a
-	 * list-version problem the next `/init` solves. Discarding is the sharper failure: a dialog that
-	 * goes blank on a device whose subject did nothing. `TcSemanticPreEncoder` handles the dangerous
-	 * half of the staleness directly, clearing a signal for a vendor the served list withdrew or
-	 * never carried before a bit is written, so the string stays valid at any age.
-	 *
-	 * [reset] is where it does go, with [evaluationPolicy] and [noticeDismissal], which is
-	 * the matched policy's own retention and the rule this field stores under: a wiped device shows
-	 * nobody a disclosure, so there is no claim left to hold, and a list kept in memory past a wipe
-	 * would be written back into a fresh envelope by the next save. An unreadable resolution is the
-	 * opposite case and takes nothing. There rule 5 takes back the rule, because the core can no
-	 * longer represent the permissions it served; a vendor list is not a permission, and dropping it
-	 * mid-flight is precisely what would change an answer the subject has already been given.
-	 */
-	@Volatile
-	private var storedVendorList: GlobalVendorList? = null
-
-	/**
 	 * The overrides the host configured, as opposed to the ones the snapshot carries.
 	 *
 	 * They are not the same value once an init has landed: [runInit] folds the country
@@ -249,7 +215,6 @@ class C15tKernel(
 			synchronized(mutationLock) {
 				evaluationPolicy = null
 				noticeDismissal = null
-				storedVendorList = null
 			}
 			persist()
 		} else {
@@ -257,11 +222,16 @@ class C15tKernel(
 			synchronized(mutationLock) {
 				evaluationPolicy = envelope.evaluationPolicy
 				noticeDismissal = envelope.noticeDismissal
-				storedVendorList = envelope.gvl
 			}
 			val hydratedOverrides = merge(restored.overrides, config.overrides)
 			val hydrated = restored.copy(
 				ready = true,
+				// The envelope key is where the list is durable -- one copy of the document in the
+				// blob, and the key a build before this one wrote too -- and `iab` is where the
+				// published snapshot carries it, because that is the key the bridge reads. The
+				// fallback reads the other shape, so a device whose bytes hold the list the way a
+				// later build stores it is not stranded without its disclosure either.
+				iab = envelope.gvl?.let(::KernelIabState) ?: restored.iab,
 				subject = restored.subject?.copy(id = subject.id) ?: subject,
 				consentCategories = decidedCategories(envelope.evaluationPolicy),
 				overrides = hydratedOverrides,
@@ -309,22 +279,42 @@ class C15tKernel(
 	 * The vendor list this device is reading its disclosure out of, or `null` while none has been
 	 * served and accepted.
 	 *
-	 * This is the seam the React Native bridge and a host's own Kotlin code ask the question with, and
-	 * it is a kernel accessor rather than a snapshot field for one reason:
-	 * `packages/react-native/src/protocol/snapshot.ts` pins the snapshot's reserved `iab` slot to
-	 * `null` for this phase. A body on that key would be a wire shape neither side has agreed to, and
-	 * the snapshot is the one object in this core whose key names belong to somebody else
-	 * (`native/CONTRACT.md`). Everything the bridge needs about IAB therefore comes from here, and
-	 * [vendorListBody] is what turns it back into the document the web reads.
+	 * This is the seam a host app's own Kotlin code asks the question with. It is one read of
+	 * [snapshot] rather than a second copy of the answer, so a disclosure drawn natively and one
+	 * drawn through the bridge off `snapshot.iab.gvl` cannot end up naming different vendors --
+	 * which is also how `core-swift`'s `globalVendorList()` works. [vendorListBody] turns it back
+	 * into the document the web reads.
+	 *
+	 * Why the list latches. It is what a purpose id and a vendor id mean. A subject shown "cookie
+	 * analytics, advertising personalisation" above a named list of vendors was shown those words
+	 * out of this document, and the disclosure the dialog draws and the TC String written next to it
+	 * both repeat that claim on every later launch. If a refresh that happened to carry no `gvl` --
+	 * which is normal, because the backend embeds one only when the matched model is `iab` --
+	 * cleared it, a device would wake up one morning with a saved consent record pointing at ids it
+	 * can no longer name, and a surface that either goes blank or re-derives an empty disclosure.
+	 * The subject did nothing; the claim already made would have changed underneath them.
+	 *
+	 * Holding a stale list costs nothing that discarding one costs worse. Nothing here decides a
+	 * category from it -- the list is disclosure and encoding data, and permissions come from the
+	 * policy -- so the worst it can do is name a vendor the IAB has since withdrawn, a list-version
+	 * problem the next `/init` solves. Discarding is the sharper failure: a dialog that goes blank
+	 * on a device whose subject did nothing. `TcSemanticPreEncoder` handles the dangerous half of
+	 * that staleness directly, clearing a signal for a vendor the served list withdrew or never
+	 * carried before a bit is written, so the string stays valid at any age.
+	 *
+	 * [reset] is where it goes, with [evaluationPolicy] and [noticeDismissal], which is the matched
+	 * policy's own retention and the rule this latch stores under: a wiped device shows nobody a
+	 * disclosure, so there is no claim left to hold. An unreadable resolution is the opposite case
+	 * and takes nothing. There rule 5 takes back the rule, because the core can no longer represent
+	 * the permissions it served; a vendor list is not a permission, and dropping it mid-flight is
+	 * precisely what would change an answer the subject has already been given.
 	 *
 	 * One read of in-memory state, on the same terms as [snapshot] and [isAllowed]: no disk, no
 	 * network, no lock held across either, because an ad SDK calls the whole surface from
-	 * `Application.onCreate`. The list may be newer or older than the snapshot it is read beside --
-	 * they are written under the same lock, and a reader that needs both should read the snapshot,
-	 * which carries the resolution the list arrived with.
+	 * `Application.onCreate`.
 	 */
 	val vendorList: GlobalVendorList?
-		get() = storedVendorList
+		get() = state.get().iab?.gvl
 
 	/**
 	 * [vendorList] as the JSON body the web reads, or `null` when there is no list.
@@ -334,15 +324,15 @@ class C15tKernel(
 	 * that already handles `iab.gvl` from `/init` handles this unchanged, which is the requirement this
 	 * accessor exists to satisfy -- see [GlobalVendorListJson.toJsonElement].
 	 *
-	 * Derived per call rather than stored, so there is one copy of the list and no chance of a body
-	 * disagreeing with the model it came from. It costs a serialisation on each call, and the callers
+	 * Encoded per call rather than cached, because [vendorList] is the snapshot's own field and a
+	 * stored body could only fall behind it. It costs a serialisation on each call, and the callers
 	 * are a consent surface being opened and a bridge message being sent, not a per-frame read.
 	 */
-	fun vendorListBody(): String? = storedVendorList?.let { GlobalVendorListJson.toJson(it) }
+	fun vendorListBody(): String? = vendorList?.let { GlobalVendorListJson.toJson(it) }
 
 	/** [vendorListBody] as a document, for a caller that is composing a larger payload. */
 	fun vendorListJson(): JsonObject? =
-		storedVendorList?.let { GlobalVendorListJson.toJsonElement(it) }
+		vendorList?.let { GlobalVendorListJson.toJsonElement(it) }
 
 	/**
 	 * Whether [category] may run right now.
@@ -927,12 +917,14 @@ class C15tKernel(
 			val current = state.get()
 			evaluationPolicy = null
 			noticeDismissal = null
-			// The list goes with the policy. Not because a wipe has anything to hide -- the list is a
-			// public document -- but because a wipe is a device no longer showing anybody a disclosure,
-			// so the claim the latch exists to protect has been withdrawn with it. Kept in memory it
-			// would be written straight back into the next envelope this core persists.
-			storedVendorList = null
 			published = ConsentSnapshot.denyAll(current.subject ?: resolved, now).copy(
+				// The list goes with the policy. Not because a wipe has anything to hide -- the list
+				// is a public document -- but because a wipe is a device no longer showing anybody a
+				// disclosure, so the claim the latch exists to protect has been withdrawn with it.
+				// Written out here rather than trusted to `denyAll`'s default, the way `core-swift`
+				// wipes it, because a list kept on the snapshot past a wipe is written straight back
+				// into the next envelope this core persists.
+				iab = null,
 				revision = current.revision + 1,
 				consentCategories = decidedCategories(null),
 				// The host's pins, not the snapshot's. See [configuredOverrides]: the
@@ -1043,14 +1035,15 @@ class C15tKernel(
 			} else {
 				mapped.evaluationPolicy ?: evaluationPolicy
 			}
-			// Latched, exactly like the policy two lines above, and for the reason on the field: once
-			// a purpose or vendor name has been drawn from a list, a `/init` that served none must not
-			// take the name back, because the disclosure it belonged to has already been shown. Only a
-			// better list displaces it -- `fromInitBody` answers null for absent and for refused alike,
-			// so this assignment cannot empty anything. Note the `gvl` stays outside the
-			// `policyUnreadable` branch above on purpose: an unreadable resolution costs the core its
-			// claim about permissions, which is rule 5, and costs it nothing about who vendor 755 is.
-			mapped.gvl?.let { storedVendorList = it }
+			// Latched, exactly like the policy two lines above, and for the reason on
+			// [vendorList]: once a purpose or vendor name has been drawn from a list, a `/init` that
+			// served none must not take the name back, because the disclosure it belonged to has
+			// already been shown. Only a better list displaces it -- `fromInitBody` answers null for
+			// absent and for refused alike, so the fold below cannot empty anything. Note the `gvl`
+			// stays outside the `policyUnreadable` branch above on purpose: an unreadable resolution
+			// costs the core its claim about permissions, which is rule 5, and costs it nothing about
+			// who vendor 755 is.
+			val latchedVendorList = mapped.gvl ?: base.iab?.gvl
 			mapped.resolvedGpcDetection?.let { detected = it }
 			emitted = mapped.error
 			detectedGpc = detected
@@ -1072,6 +1065,10 @@ class C15tKernel(
 			val superseded = mapped.policyPending && !base.policyPending
 			published = PolicyEvaluator.evaluate(
 				snapshot = base.copy(
+					// The latch lands on the snapshot's own field, which is the copy the bridge
+					// reads, so the list behind a JavaScript disclosure is the list a host's own
+					// Kotlin reads off [vendorList].
+					iab = latchedVendorList?.let(::KernelIabState),
 					resolution = if (superseded) base.resolution else mapped.resolution,
 					policyPending = mapped.policyPending &&
 						(base.policyPending || mapped.policyUnreadable),
@@ -1365,10 +1362,15 @@ class C15tKernel(
 		val snapshot = state.get()
 		val envelope = synchronized(mutationLock) {
 			SnapshotEnvelope(
-				snapshot = snapshot,
+				// One copy of the document per write. The envelope's `gvl` key is where the list is
+				// durable -- it is that key a build from before this field existed read, and
+				// [bootstrap] reads it back onto the snapshot -- so the stored snapshot goes with
+				// `iab` nulled instead of carrying the largest thing either object holds a second
+				// time, on a write that happens for every committed mutation.
+				snapshot = snapshot.copy(iab = null),
 				evaluationPolicy = evaluationPolicy,
 				noticeDismissal = noticeDismissal,
-				gvl = storedVendorList,
+				gvl = snapshot.iab?.gvl,
 			)
 		}
 		store.writeEnvelope(envelope)

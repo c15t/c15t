@@ -11,9 +11,13 @@ import com.c15t.core.model.ConsentSubject
 import com.c15t.core.model.ExplicitChoice
 import com.c15t.core.model.KernelOverrides
 import com.c15t.core.model.KernelError
+import com.c15t.core.model.KernelIabState
 import com.c15t.core.model.PromptPurpose
 import com.c15t.core.model.PromptRequirement
 import com.c15t.core.store.C15tStore
+import com.c15t.core.tc.GlobalVendorList
+import com.c15t.core.tc.GvlLocalizedEntry
+import com.c15t.core.tc.GvlVendorEntry
 import com.c15t.core.wire.SnapshotWire
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -79,14 +83,17 @@ class C15tPayloadTest {
 	}
 
 	@Test
-	fun `the snapshot wire form keeps the reserved keys and never a null language`() {
+	fun `the snapshot wire form keeps every declared key and never a null language`() {
 		val kernel = bridgeKernel(C15tStore(MemoryStore()))
 		kernel.bootstrap()
 
 		val snapshot = parse(C15tPayload.snapshot(kernel.snapshot(), fallbackLanguage = "de"))
 
-		assertTrue("the iab slot stays present", snapshot.containsKey("iab"))
-		assertTrue("the reserved slot is JSON null", snapshot["iab"] is JsonNull)
+		assertTrue("the iab key stays present", snapshot.containsKey("iab"))
+		assertTrue(
+			"a device that was never served a list writes null rather than inventing an empty one",
+			snapshot["iab"] is JsonNull,
+		)
 		assertTrue(snapshot.containsKey("optOutDirectives"))
 		val overrides = snapshot["overrides"]!!.jsonObject
 		assertEquals("de", overrides["language"]!!.jsonPrimitive.content)
@@ -94,6 +101,53 @@ class C15tPayloadTest {
 			"an unset gpc override is null on the wire, not absent",
 			JsonNull,
 			overrides["gpc"],
+		)
+	}
+
+	/**
+	 * A drawer that renders partner names reads `iab.gvl`, and Android used to hand it
+	 * `null`: the core kept the served list behind a kernel accessor while Swift put it
+	 * on the snapshot, so the same build named vendors on iOS and showed an empty pane
+	 * on Android.
+	 *
+	 * `VendorListRetentionTest` grades the core for the same regression. This grades the
+	 * artifact this module hands JavaScript, because the payload builder copies the wire
+	 * keys one by one, and a copy loop that leaves one out is invisible to every type on
+	 * the receiving side -- the list arrives under no name at all, the app reads
+	 * `undefined`, and nothing fails.
+	 */
+	@Test
+	fun `a served vendor list crosses the bridge inside the iab slot`() {
+		val list = GlobalVendorList(
+			purposes = mapOf(1 to GvlLocalizedEntry(id = 1, name = "Store and/or access information on a device")),
+			vendors = mapOf(755 to GvlVendorEntry(id = 755, name = "Vendor Seven Fifty-Five", purposes = listOf(1))),
+			vendorListVersion = 177,
+			tcfPolicyVersion = 5,
+		)
+
+		val iab = parse(C15tPayload.snapshot(ConsentSnapshot(iab = KernelIabState(list))))
+			.getValue("iab")
+			.jsonObject
+
+		assertEquals(
+			"the kernel's `KernelIABState` carries `gvl` and nothing beside it",
+			setOf("gvl"),
+			iab.keys,
+		)
+		val document = iab["gvl"]!!.jsonObject
+		assertEquals(
+			"the version a disclosure is labelled with",
+			177L,
+			document["vendorListVersion"]!!.jsonPrimitive.content.toLong(),
+		)
+		assertEquals(
+			"the partner name a drawer draws has to survive the trip",
+			"Vendor Seven Fifty-Five",
+			document["vendors"]!!.jsonObject["755"]!!.jsonObject["name"]!!.jsonPrimitive.content,
+		)
+		assertNull(
+			"the document keeps the served shape, so a key this list never carried stays absent",
+			document["dataCategories"],
 		)
 	}
 

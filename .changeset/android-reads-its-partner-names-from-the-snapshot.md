@@ -1,0 +1,5 @@
+---
+'@c15t/react-native': patch
+---
+
+`getSnapshot()` now carries the vendor list that `/init` served at `iab.gvl` on Android, the key the protocol declares and the one iOS already filled. Kotlin kept the document on the stored envelope under `gvl` and pinned the snapshot slot to `null`, so a surface drawing partner names off the snapshot came up empty on Android while the same build named them on iOS. Storage keeps one copy: the envelope's `gvl` key is still where the bytes live, so a device upgrading from an earlier build keeps the list it already has, and the stored snapshot goes out with that slot empty instead of writing the largest document in the encrypted blob twice on every committed mutation. The retention rule is unchanged -- a `/init` that serves no `gvl` leaves the list a disclosure was already drawn from, and only `reset()` takes it back. `C15tKernel.vendorListBody()` and Swift's `globalVendorList()` now read the same field the bridge reads, so a disclosure drawn natively and one drawn through JavaScript cannot name different vendors.
