@@ -23,6 +23,44 @@ const readWorkflow = function readWorkflow(name: string): unknown {
 };
 
 describe('release validation', () => {
+	it('runs Tegami in the trusted release workflow with provenance and Node 24', () => {
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				repository: {
+					steps: expect.arrayContaining([
+						{ uses: './.github/actions/setup', with: { 'node-version': '24' } },
+					]),
+				},
+			},
+		});
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				publish: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							with: expect.objectContaining({ 'node-version': 24 }),
+						}),
+						expect.objectContaining({
+							env: {
+								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
+								NPM_CONFIG_PROVENANCE: 'true',
+							},
+							if: "github.ref != 'refs/heads/canary'",
+							run: 'bun run tegami ci',
+						}),
+						expect.objectContaining({
+							env: {
+								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
+								NPM_CONFIG_PROVENANCE: 'true',
+							},
+							if: "github.ref == 'refs/heads/canary'",
+							run: 'bun run tegami version --no-checks\nbun run tegami publish\n',
+						}),
+					]),
+				},
+			},
+		});
+	});
 	it('keeps npm trusted publishing on a GitHub-hosted runner', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: {

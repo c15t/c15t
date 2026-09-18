@@ -8,6 +8,14 @@ const workspaces = readWorkspaces(repository);
 const plan = (files: string[]) => createCiPlan(files, workspaces);
 
 describe('CI selection', () => {
+	it('treats release notes as docs but validates publish locks as executable configuration', () => {
+		expect(plan(['.tegami/fix.md'])).toMatchObject({
+			docs: true,
+			full: false,
+			tests: [],
+		});
+		expect(plan(['.tegami/publish-lock.yaml']).full).toBe(true);
+	});
 	it('runs no runtime work for the docs and generated files in PR 1105', () => {
 		const result = plan([
 			'docs/docs.config.ts',
