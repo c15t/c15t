@@ -59,6 +59,25 @@ describe('init signals', () => {
 		);
 	});
 
+	it('reads a declared vendor scope without failing on a bad one', () => {
+		// The signal the request-level narrowing runs on. A header the backend
+		// cannot read has to look exactly like no header, because `/init` sits
+		// on the critical rendering path and has to answer either way.
+		const declared = new Headers({
+			'x-c15t-country': 'DE',
+			'x-c15t-vendors': '7, 41, 672',
+		});
+		assert.deepStrictEqual(
+			readInitSignals(declared).declaredVendorIds,
+			[7, 41, 672]
+		);
+
+		const absent = new Headers({ 'x-c15t-country': 'DE' });
+		assert.isUndefined(readInitSignals(absent).declaredVendorIds);
+
+		const useless = new Headers({ 'x-c15t-vendors': 'c15t' });
+		assert.isUndefined(readInitSignals(useless).declaredVendorIds);
+	});
 	it('defaults language to en when the header is absent', () => {
 		assert.strictEqual(readInitSignals(new Headers()).language, 'en');
 	});

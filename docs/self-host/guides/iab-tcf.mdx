@@ -82,6 +82,25 @@ applied to whatever comes back, so a vendor outside your scope is not handed to
 clients whether the endpoint filtered or not. Leave it out and you are asking for
 every vendor the published list carries.
 
+A native app can ask for less. It declares the vendors it ships on each init
+request:
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/init' \
+  -H 'x-c15t-country: DE' \
+  -H 'x-c15t-vendors: 8, 46, 153'
+```
+
+For a request that resolves a matched IAB policy, the `gvl` in the response is
+the intersection of that list and `gvl.vendorIds`. A vendor the app declares but
+you never configured is not served. A request with no header, or with a header
+the backend cannot read, gets the configured scope. The cap is 500 ids, and a
+longer list is ignored rather than truncated.
+
+The narrowing happens per request and after the cache lookup. Your upstream
+fetch count stays whatever `gvl.endpoint` and `gvl.vendorIds` describe, however
+many different scopes the devices in front of the backend declare.
+
 Use a [cache adapter](/docs/self-host/guides/caching) to reuse fetched lists.
 `gvl.ttlMs` defaults to one day. A failed upstream fetch or invalid document
 produces a null GVL instead of failing the entire initialization request.
@@ -95,7 +114,8 @@ response carries the `gvl` field. It is the only copy a device gets: nothing on 
 phone fetches a list, so an absent field there is a disclosure surface with
 nothing in it rather than a round trip the client can make up for. Test a
 location outside the IAB rule so that the ordinary consent flow still works and
-fetches nothing.
+fetches nothing. Send a declared vendor scope too, and check that the `gvl` in
+the response names those vendors and nothing the configuration excluded.
 
 Connect the browser using the [IAB add-on guide](/docs/frameworks/react/iab/overview). Keep a
 persistent way to revisit vendor and purpose choices. A preset and a served GVL

@@ -56,6 +56,12 @@ language and GPC against the manifest. Its `policyResolution` distinguishes a
 matched rule from an unmatched or failed resolution. A `200` response alone does
 not establish that a rule matched.
 
+`x-c15t-vendors` is optional and native-app shaped: a comma-separated list of
+the vendor ids an application actually ships. On a matched IAB rule the `gvl` in
+the response is then the intersection of that list and `gvl.vendorIds`, so the
+header can shrink the served list and cannot widen it. See
+[IAB backend configuration](/docs/self-host/guides/iab-tcf).
+
 `/init` uses `Cache-Control: no-store`. It can include a signed
 `policySnapshotToken` when signing is configured and a policy matched. For
 request-time framework rendering, prefer a cached manifest and local resolution
