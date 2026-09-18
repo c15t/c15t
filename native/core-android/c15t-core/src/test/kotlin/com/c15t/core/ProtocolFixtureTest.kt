@@ -21,6 +21,7 @@ import com.c15t.core.transport.HostedTransport
 import com.c15t.core.transport.SaveOutcome
 import com.c15t.core.transport.TransportOutcome
 import com.c15t.core.wire.SnapshotWire
+import com.c15t.core.tc.TcStringFixtures
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -179,6 +180,22 @@ class ProtocolFixtureTest {
 		val directory = fixtureDirectory()
 		val index = readIndex(directory)
 		val ran = mutableListOf<String>()
+
+		// TC Strings are graded by the codec's own runners, not by this file: nothing in C15tKernel
+		// reads or writes one yet. The delegation is checked rather than assumed -- the codec's
+		// loader has to reach exactly the fixtures this index lists -- so the kind is claimed here
+		// with something behind it instead of skipped.
+		val tcStringsDelegated = TcStringFixtures.load().map { it.id }.sorted()
+		val tcStringsListed = index.fixtures
+			.filter { it["kind"]!!.jsonPrimitive.content == "tc-string" }
+			.map { it["id"]!!.jsonPrimitive.content }
+			.sorted()
+		assertEquals(
+			tcStringsListed,
+			tcStringsDelegated,
+			"the tc-string codec loader does not reach exactly the fixtures $INDEX_FILE lists, which " +
+				"would make the delegation below a claim rather than a fact",
+		)
 		for (entry in index.fixtures) {
 			when (entry["kind"]!!.jsonPrimitive.content) {
 				"evaluation" -> {
@@ -202,6 +219,13 @@ class ProtocolFixtureTest {
 				}
 				"reset-consent" -> {
 					runResetConsent(directory, entry)
+					ran += entry["id"]!!.jsonPrimitive.content
+				}
+
+				"tc-string" -> {
+					// TcStringDecodeTest, TcStringEncodeTest and TcStringRoundTripTest grade all of
+					// these against the same index; the check that they cover these exact ids ran
+					// above, so this branch is accounting, not an excuse.
 					ran += entry["id"]!!.jsonPrimitive.content
 				}
 
@@ -1189,9 +1213,14 @@ class ProtocolFixtureTest {
 		 * no branch for rather than skipping it, so the only way to grow this set is to
 		 * write the runner, and the unclaimed count can then only be non-zero when a kind
 		 * was added to one place and not the other.
+		 *
+		 * `tc-string` is the one entry here with no runner in this file: the codec owns it and
+		 * lives in its own package. It stays in the set because the dispatch checks that the
+		 * codec's runners reach exactly the fixtures the index lists, which is the same property
+		 * a runner would have provided.
 		 */
 		val CLAIMED_KINDS: Set<String> =
-			setOf("evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body")
+			setOf("evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body", "tc-string")
 
 
 	/**
