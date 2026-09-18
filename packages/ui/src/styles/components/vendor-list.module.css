@@ -2,11 +2,15 @@
    defaults at use sites so imports cannot override one another. */
 
 @layer components {
+	/* A fieldset, so the legend names the group. Browser defaults are reset
+	   before the list's own border and spacing apply. */
 	.root:not(:global(.headless)) {
 		display: grid;
 		gap: var(--vendor-list-gap, var(--c15t-space-xs));
+		min-inline-size: 0;
 		margin: var(--vendor-list-margin-top, var(--c15t-space-sm)) 0 0;
 		padding: var(--vendor-list-padding-top, var(--c15t-space-sm)) 0 0;
+		border: 0;
 		border-top: 1px solid var(--vendor-list-border-color, var(--c15t-border));
 	}
 
@@ -16,6 +20,7 @@
 
 	.title:not(:global(.headless)) {
 		margin: 0;
+		padding: 0;
 		font-size: var(--vendor-list-title-size, var(--c15t-font-size-xs));
 		font-weight: var(--c15t-font-weight-medium);
 		line-height: var(--c15t-line-height-tight);

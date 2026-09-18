@@ -250,16 +250,6 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		root: true,
 		trigger: true,
 	},
-	'vendor-list': {
-		control: true,
-		description: true,
-		header: true,
-		item: true,
-		link: true,
-		name: true,
-		root: true,
-		title: true,
-	},
 	banner: {
 		actionGroup: true,
 		actions: true,
@@ -388,6 +378,16 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		toolbar: true,
 		toolbarIcon: true,
 		toolbarItem: true,
+	},
+	'vendor-list': {
+		control: true,
+		description: true,
+		header: true,
+		item: true,
+		link: true,
+		name: true,
+		root: true,
+		title: true,
 	},
 } as const satisfies ConsentComponentSlotKeyMap;
 
