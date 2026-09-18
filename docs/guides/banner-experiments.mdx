@@ -176,7 +176,11 @@ resolves, so the choice is still attributed to an arm you declared.
 
 ```ts
 const variant = ldClient.variation('banner-shape', 'floating');
-// v4 of @launchdarkly/js-client-sdk returns a typed string:
+```
+
+v4 of `@launchdarkly/js-client-sdk` returns a typed string:
+
+```ts
 const variant = ldClient.stringVariation('banner-shape', 'floating');
 ```
 
