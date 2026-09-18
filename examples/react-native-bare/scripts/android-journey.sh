@@ -121,6 +121,20 @@ capture () {
 	[[ -s "${png}" ]] || die "no screenshot for step $1 in ${png}"
 }
 
+# die_if_dead <name>: the app can fail before JavaScript, and then every consent label is
+# missing for a reason that has nothing to do with consent. Both journey scripts rebuild
+# @c15t/react-native, and the debug Android app is served that same dist over Metro, so a run
+# that starts while another worktree is rebuilding lands on a dead instance. Saying so beats
+# reporting that the banner never appeared.
+die_if_dead () {
+	local xml="${OUT_DIR}/${1}.xml"
+	if grep -qE "loadJSBundleFromAssets|ReactHostImpl|JSBundleLoader|Unable to load script" \
+		"${xml}" 2>/dev/null; then
+		rm -f "${xml}"
+		die "the app on ${SERIAL} crashed loading its JavaScript bundle, so nothing below this line could mean anything. Another build was probably replacing @c15t/react-native mid-run. Wait for it and re-run."
+	fi
+}
+
 # expect <name> <description> <needle>...: every needle must be on screen
 expect () {
 	local name="$1" description="$2"
@@ -185,24 +199,28 @@ sleep 2
 sleep 28
 capture 01-fresh-banner
 texts 01-fresh-banner >/dev/null
+die_if_dead 01-fresh-banner
 expect 01-fresh-banner "fresh install: banner owing a decision" "${banner_texts[@]}"
 
 log "step 2: customize opens the consent manager"
 link "customize" 8
 capture 02-customize-dialog
 texts 02-dialog >/dev/null
+die_if_dead 02-dialog
 expect 02-dialog "consent manager lists every category" "${dialog_texts[@]}"
 
 log "step 3: save a per-category set"
 link "save?experience=1&marketing=0" 10
 capture 03-saved
 texts 03-saved >/dev/null
+die_if_dead 03-saved
 expect 03-saved "save left the app screen readable" "WHAT THIS APP USES" "Experience"
 
 log "step 4: a decision was given, so nothing is owed"
 relaunch 14
 capture 04-relaunch-no-prompt
 texts 04-relaunch-no-prompt >/dev/null
+die_if_dead 04-relaunch-no-prompt
 forbid 04-relaunch-no-prompt "relaunched: no prompt owed" "We value your privacy" "Accept All"
 expect 04-relaunch-no-prompt "relaunched: the choice survived" "WHAT THIS APP USES" "Experience"
 
@@ -210,6 +228,7 @@ log "step 5: reset owes the first-run prompt again"
 link "reset" 12
 capture 05-reset
 texts 05-reset >/dev/null
+die_if_dead 05-reset
 expect 05-reset "reset: first-run prompt owed again" "${banner_texts[@]}"
 
 printf '\n'
