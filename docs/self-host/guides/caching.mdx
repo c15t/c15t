@@ -55,8 +55,8 @@ requests on the backend once that window closes.
 
 ## Cache the Global Vendor List
 
-GVL caching is separate from manifest HTTP caching. Supply a cache adapter when
-you enable server-side GVL loading. Concurrent misses share an in-flight fetch,
+GVL caching is separate from manifest HTTP caching. Supply a cache adapter with
+your server-side GVL configuration. Concurrent misses share an in-flight fetch,
 but persistent reuse requires the configured cache.
 
 ```ts title="src/consent-backend.ts"
@@ -66,7 +66,7 @@ import config from '../c15t-backend.config';
 
 export const backend = c15tInstance({
   ...config,
-  gvl: { enabled: true, cache: createMemoryCacheAdapter(), ttlMs: 86400000 },
+  gvl: { cache: createMemoryCacheAdapter(), ttlMs: 86400000 },
 });
 ```
 

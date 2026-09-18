@@ -198,30 +198,48 @@ describe('init GVL inclusion', () => {
 	const serve = (() =>
 		new Response(JSON.stringify(GVL))) as unknown as typeof globalThis.fetch;
 
-	it('omits the vendor list when IAB is disabled', async () => {
+	it('omits the vendor list when the block explicitly declines', async () => {
+		// `enabled: false` is the refusal that stays: a deployment that keeps its
+		// scope and cache configured because the list is loaded elsewhere.
+		let requests = 0;
 		const result = await buildInitResponse(
 			iabConfig,
 			new Headers(),
 			undefined,
 			{
 				enabled: false,
-				fetch: serve,
+				fetch: ((input: RequestInfo | URL) => {
+					requests += 1;
+					return serve(input);
+				}) as unknown as typeof globalThis.fetch,
 			}
 		);
-		// A non-IAB deployment must not pay for a document it will never read.
+
 		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+		assert.strictEqual(requests, 0, 'a refusal must not reach the upstream');
 	});
 
-	it('omits the vendor list when IAB is enabled but never fetched', async () => {
-		const result = await buildInitResponse(
-			iabConfig,
-			new Headers(),
-			undefined,
-			{
-				enabled: false,
-			}
-		);
-		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+	it('fetches nothing when `gvl` is not configured at all', async () => {
+		// Taking the `enabled` flag away must not turn into "always fetch". A
+		// deployment that never asked for server-side list loading gets no
+		// third-party document pulled on its behalf per visitor, on the critical
+		// rendering path. The scope is a firewall rule, and an absent one does
+		// not silently mean "the whole list".
+		const globalFetch = globalThis.fetch;
+		let requests = 0;
+		globalThis.fetch = (() => {
+			requests += 1;
+			return Promise.reject(new Error('no server-side list configured'));
+		}) as unknown as typeof globalThis.fetch;
+
+		try {
+			const result = await buildInitResponse(iabConfig, new Headers());
+
+			assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+			assert.strictEqual(requests, 0);
+		} finally {
+			globalThis.fetch = globalFetch;
+		}
 	});
 
 	it('includes the vendor list when IAB is active', async () => {
@@ -287,7 +305,7 @@ describe('init GVL inclusion', () => {
 		}
 	});
 
-	it('passes the request language through to the fetch', async () => {
+	it('requests the document at the endpoint, never a per-language path', async () => {
 		let requested = '';
 		const capture = ((url: string) => {
 			requested = String(url);
@@ -298,12 +316,14 @@ describe('init GVL inclusion', () => {
 			iabConfig,
 			new Headers({ 'accept-language': 'fr-CA' }),
 			undefined,
-			{ enabled: true, fetch: capture }
+			{ fetch: capture }
 		);
 
-		// Serving an English vendor list to a French visitor is a compliance
-		// problem, not a cosmetic one.
-		assert.include(requested, '/fr.json');
+		// Upstream answers `/<language>.json` with a 404, so the request that
+		// looks like it is being helpful is the one that leaves a French visitor
+		// with no list at all. The language still separates cache entries, which
+		// is the only place it can honestly do anything.
+		assert.strictEqual(requested, 'https://gvl.inth.app');
 	});
 });
 

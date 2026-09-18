@@ -31,7 +31,7 @@ import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
 import { resolveGvl } from './gvl';
-import type { GvlOptions } from './gvl';
+import type { GvlConfig } from './gvl';
 import { createPolicySnapshotToken } from './policy-snapshot';
 import type { PolicySnapshotOptions } from './policy-snapshot';
 
@@ -96,12 +96,17 @@ const isContractSupported = function isContractSupported(
  *
  * Geo-dependent by definition, so unlike `/manifest` it must not be cached
  * across visitors.
+ *
+ * The matched policy decides whether the response carries a vendor list: a
+ * matched IAB rule gets one as long as the deployment configured `gvl`, because
+ * an IAB banner without a list has no vendor to name. `gvl.enabled: false` is
+ * the only refusal.
  */
 export const buildInitResponse = async function buildInitResponse(
 	config: ConsentManifestConfig,
 	headers: Headers,
 	snapshot?: PolicySnapshotOptions,
-	gvl?: GvlOptions & { enabled?: boolean },
+	gvl?: GvlConfig,
 	/**
 	 * Tenant the token audience is scoped to. The instance's tenant when it
 	 * has one, so the save route verifying under `options.tenantId` and the
@@ -138,8 +143,14 @@ export const buildInitResponse = async function buildInitResponse(
 				translations: resolved.translations,
 			};
 	const resolution = negotiated.policyResolution;
+	// The matched policy decides; there is no second flag to forget. A
+	// deployment that wrote a `gvl` block asked for server-side list loading,
+	// and a matched IAB rule with no list is a disclosure of nothing. The scope
+	// stays exactly as configured: an absent block is never filled in by
+	// fetching the whole document on a publisher's behalf.
 	const wantsGvl =
-		gvl?.enabled === true &&
+		gvl !== undefined &&
+		gvl.enabled !== false &&
 		resolution.status === 'matched' &&
 		resolution.policy.model === 'iab';
 	const gvlDocument = wantsGvl

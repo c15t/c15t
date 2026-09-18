@@ -142,9 +142,33 @@ const warnOnPolicyFailure = async (options: C15TOptions): Promise<void> => {
 	}
 };
 
+/**
+ * Says so at startup when an IAB rule is configured with no way to load a list.
+ *
+ * A rule whose model is `iab` promises the visitor a disclosure of named
+ * vendors, and on the paths this product ships the list arrives on `/init`:
+ * nothing on a device fetches one. So IAB rules with no `gvl` block resolve TCF
+ * policies that cannot be disclosed, and the response shows that only as an
+ * absent field. Printed once here, next to the policy warning, because a
+ * missing disclosure is not something a banner will ever complain about.
+ */
+const warnOnVendorListGap = (options: C15TOptions): void => {
+	const iabRules = (options.manifest?.policyRules ?? []).filter(
+		(rule) => rule.model === 'iab'
+	);
+	if (iabRules.length === 0 || options.gvl) {
+		return;
+	}
+	const ids = iabRules.map((rule) => rule.id).join(', ');
+	console.warn(
+		`[c15t] ${ids} resolves as IAB but \`gvl\` is not configured, so no /init carries a Global Vendor List and no vendor can be disclosed. Set \`gvl: { vendorIds }\` to load your own vendors server-side, or \`gvl: { enabled: false }\` if the list is served elsewhere.`
+	);
+};
+
 export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const { database, ...app } = options;
 	void warnOnPolicyFailure(options);
+	warnOnVendorListGap(options);
 
 	const runtime = ManagedRuntime.make(
 		toLayer(database) as Layer.Layer<SqlClient.SqlClient, never>

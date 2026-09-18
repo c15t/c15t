@@ -12,6 +12,7 @@ browser.
 
 ```ts title="c15t-backend.config.ts"
 import { defineConfig, policyRulePresets } from '@c15t/backend';
+import { createMemoryCacheAdapter } from '@c15t/backend/cache';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
@@ -23,7 +24,9 @@ export default defineConfig({
     policyRules: [policyRulePresets.europeIab()],
     iab: { enabled: true },
   },
-  gvl: { enabled: true },
+  // The matched IAB rule asks for a list; this says where it comes from and
+  // which vendors it may name.
+  gvl: { cache: createMemoryCacheAdapter(), vendorIds: [3, 7, 41] },
 });
 ```
 
@@ -64,11 +67,20 @@ limit a CDN enforces and fail the whole consent surface -- and the full document
 is narrowed by the same allowlist server-side instead, so a vendor outside the
 scope is never served whoever did the filtering.
 
-`gvl.enabled` is the switch that decides whether `/init` embeds a list at all.
-Configuring `gvl` without it keeps the cache and scope wired up but serves no
-list, which is a silent way to end up with an IAB policy and no vendor
-disclosure. The allowlist is also applied to whatever comes back, so a vendor
-outside the scope is not handed to clients whether the endpoint filtered or not.
+A matched IAB rule is what needs a list, so a matched IAB rule is also what
+decides that `/init` carries one. There is no second switch to remember:
+everything in the `gvl` block is read by server-side list loading and nothing
+else, so writing the block is the opt-in. `gvl.enabled: false` is how you decline
+while keeping the scope and cache in place, for a deployment that loads the list
+somewhere else. If your rules resolve as IAB and there is no `gvl` block at all,
+the backend serves no list and prints one line at startup saying so, because a
+banner that names no vendors never complains about it on its own.
+
+`gvl.vendorIds` is a ceiling and never a default. The backend does not fetch a
+wider list than you configured in order to fill one in, and the allowlist is
+applied to whatever comes back, so a vendor outside your scope is not handed to
+clients whether the endpoint filtered or not. Leave it out and you are asking for
+every vendor the published list carries.
 
 Use a [cache adapter](/docs/self-host/guides/caching) to reuse fetched lists.
 `gvl.ttlMs` defaults to one day. A failed upstream fetch or invalid document
@@ -78,9 +90,12 @@ Verify how the client handles that state before deployment.
 ## Verify both initialization paths
 
 Inspect `/manifest` for IAB metadata and the selected rule. Call `/init` with a
-location covered by that rule and confirm the policy model is `iab`. When
-server-side GVL loading is enabled, confirm the list is available too. Test a
-location outside the IAB rule so that the ordinary consent flow still works.
+location covered by that rule and confirm the policy model is `iab` and the
+response carries the `gvl` field. It is the only copy a device gets: nothing on a
+phone fetches a list, so an absent field there is a disclosure surface with
+nothing in it rather than a round trip the client can make up for. Test a
+location outside the IAB rule so that the ordinary consent flow still works and
+fetches nothing.
 
 Connect the browser using the [IAB add-on guide](/docs/frameworks/react/iab/overview). Keep a
 persistent way to revisit vendor and purpose choices. A preset and a served GVL

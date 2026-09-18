@@ -35,7 +35,7 @@ import { layer as logLayer, silent } from '../observability/log';
 import type { Log } from '../observability/log';
 import { toHttp } from './errors';
 import type { RouteError } from './errors';
-import type { GvlOptions } from './gvl';
+import type { GvlConfig } from './gvl';
 import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
@@ -111,7 +111,16 @@ export interface AppOptions {
 	 * one signing key and TTL cannot serve both.
 	 */
 	readonly legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
-	readonly gvl?: GvlOptions & { enabled?: boolean };
+	/**
+	 * Server-side Global Vendor List loading.
+	 *
+	 * Configuring it is the opt-in: every request that resolves a matched IAB
+	 * policy gets the list, narrowed to `vendorIds` when a scope is set.
+	 * Leaving `gvl` out serves no list at all — the backend never fetches an
+	 * unscoped document for a deployment that did not configure one, and
+	 * `enabled: false` refuses while keeping the rest in place.
+	 */
+	readonly gvl?: GvlConfig;
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
 	 *

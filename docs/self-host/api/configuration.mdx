@@ -44,7 +44,7 @@ fallback. Add reviewed rules for other locations in
 | `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
 | `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. |
 | `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
-| `gvl` | Server-side Global Vendor List loading and cache configuration. Set `enabled: true` to include it for matched IAB `/init` responses. |
+| `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
 | `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |
 | `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
 | `version` | Version reported by the status endpoint and OpenAPI document. |
