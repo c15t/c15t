@@ -1,4 +1,7 @@
-# TCF readiness
+---
+title: TCF readiness
+description: Internal assessment of what implementing IAB TCF would take, with registration lead times and the gaps that remain open.
+---
 
 Internal assessment. Not published on c15t.com. Written 2026-09-18 against
 branch `KayleeWilliams/tcf-readiness`.
@@ -17,7 +20,7 @@ IAB Europe's own wording is the tiebreaker: "Publishers do not have to register
 to participate in the TCF. Publishers can then either select a CMP [...] from
 the list that they would like to work with or publishers can register as a CMP
 themselves (i.e. Private CMP)."
-(<https://iabeurope.eu/join-the-tcf/>)
+([https://iabeurope.eu/join-the-tcf/](https://iabeurope.eu/join-the-tcf/))
 
 **What c15t implements today is the Private CMP model.** Every doc page puts
 `cmpId` on the customer: `manifest.iab` for self-host
@@ -35,7 +38,7 @@ appears anywhere in the repo.
 ### Option A: c15t registers one CMP ID as a platform CMP
 
 Cost: EUR 1,575/year CMP membership, plus passing IAB Europe's CMP Validation
-test (<https://iabeurope.eu/join-the-tcf/>). Lead time is not published; see
+test ([https://iabeurope.eu/join-the-tcf/](https://iabeurope.eu/join-the-tcf/)). Lead time is not published; see
 [Registration path](#registration-path).
 
 What it buys: customers are publishers, and publishers register for nothing. One
@@ -81,7 +84,7 @@ Two things are true under either branch and are not scope-dependent:
 
 Mobile TCF is a separate question and this document does not answer it. IAB
 Europe maintains a "TCF v2.2 Compliance Form For Non-Web CMPs" listed at
-<https://iabeurope.eu/tcf-supporting-resources/>, which is the artefact a
+[https://iabeurope.eu/tcf-supporting-resources/](https://iabeurope.eu/tcf-supporting-resources/), which is the artefact a
 mobile branch would start from.
 
 ## What `packages/iab` implements today
@@ -219,14 +222,14 @@ them. Where a page does not state something, that is said.
 Sources:
 
 - CMP and vendor fees, and the publisher exemption:
-  <https://iabeurope.eu/join-the-tcf/>
+  [https://iabeurope.eu/join-the-tcf/](https://iabeurope.eu/join-the-tcf/)
 - Portals the same page links: vendor
-  <https://register.consensu.org/>, CMP <https://register.consensu.org/CMP>
-- What a CMP must do under the TCF: <https://iabeurope.eu/tcf-for-cmps/>
+  [https://register.consensu.org/](https://register.consensu.org/), CMP [https://register.consensu.org/CMP](https://register.consensu.org/CMP)
+- What a CMP must do under the TCF: [https://iabeurope.eu/tcf-for-cmps/](https://iabeurope.eu/tcf-for-cmps/)
 - GVL vendor listing is a separate registration from CMP registration: the two
   are different portals with separate fees on `join-the-tcf`.
 - TCF v2.3 supporting documents, including the non-web CMP compliance form:
-  <https://iabeurope.eu/tcf-supporting-resources/>
+  [https://iabeurope.eu/tcf-supporting-resources/](https://iabeurope.eu/tcf-supporting-resources/)
 
 **Lead time is the gap in the public record.** The pages state that a CMP
 receives an ID after passing "the CMP Validation test managed by IAB Europe" and
@@ -246,11 +249,11 @@ logs. Answer it as a data-processing question with counsel, not from the repo.
 that.** The pages below are the live public Google pages on this surface, and
 the word "certified" does not appear on any of them. I read all four.
 
-- <https://support.google.com/google-ads/answer/10000067> (About consent mode)
-- <https://support.google.com/google-ads/answer/10021549> (Google Ads
+- [https://support.google.com/google-ads/answer/10000067](https://support.google.com/google-ads/answer/10000067) (About consent mode)
+- [https://support.google.com/google-ads/answer/10021549](https://support.google.com/google-ads/answer/10021549) (Google Ads
   integration with the IAB TCF)
-- <https://support.google.com/google-ads/answer/14009343> (Set up a consent banner)
-- <https://developers.google.com/tag-platform/security/concepts/consent-mode>
+- [https://support.google.com/google-ads/answer/14009343](https://support.google.com/google-ads/answer/14009343) (Set up a consent banner)
+- [https://developers.google.com/tag-platform/security/concepts/consent-mode](https://developers.google.com/tag-platform/security/concepts/consent-mode)
 
 The CMP-partner help centre at `support.google.com/cmppartners/` resolves to the
 generic Google Help index rather than a programme page. The certification
@@ -264,12 +267,12 @@ question, is a timing constraint: "If your CMP doesn't respond within 500
 milliseconds or you find 'error', 'stub', or 'loading' status, the tag will
 proceed in a restricted mode", with `tcloaded` or `cmpuishown` plus
 `useractioncomplete` required inside the window
-(<https://support.google.com/google-ads/answer/10021549>).
+([https://support.google.com/google-ads/answer/10021549](https://support.google.com/google-ads/answer/10021549)).
 
 **US privacy string: this is engineering work, not a queue.** IAB Tech Lab
 publishes the Global Privacy Platform as an API and string format to implement,
 with `ping`/`getSection`/`getField` commands and a `signalStatus` read flag
-(<https://iabtechlab.com/standards/global-privacy-platform/>). No registration
+([https://iabtechlab.com/standards/global-privacy-platform/](https://iabtechlab.com/standards/global-privacy-platform/)). No registration
 or ID issuance appears in what I could read, and IAB Europe's only registration
 portals are the vendor and CMP ones above. If c15t needs a US string, the lead
 time is an engineer, not an application form.
