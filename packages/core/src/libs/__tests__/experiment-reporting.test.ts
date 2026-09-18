@@ -16,7 +16,11 @@ import {
 	posthogReporter,
 	resolveExperimentReporters,
 } from '../experiment-reporting';
-import type { ExperimentReportEvent } from '../experiment-reporting';
+import type {
+	ExperimentReportEvent,
+	ExperimentReportingOptions,
+	ExperimentReportTarget,
+} from '../experiment-reporting';
 
 type ReportingWindow = Window & {
 	dataLayer?: unknown[];
