@@ -54,7 +54,6 @@ export const readWorkspaces = function readWorkspaces(
 export const isDocumentation = function isDocumentation(path: string): boolean {
 	return (
 		path.startsWith('docs/') ||
-		path.startsWith('.changeset/') ||
 		/\.(?:md|mdx)$/u.test(path) ||
 		/^packages\/[^/]+\/readme\.json$/u.test(path) ||
 		/^packages\/[^/]+\/docs\//u.test(path)

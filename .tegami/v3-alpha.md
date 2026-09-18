@@ -1,24 +1,65 @@
 ---
-'@c15t/astro': major
-'@c15t/backend': major
-'@c15t/browser': major
-'@c15t/cli': major
-'@c15t/core': major
-'@c15t/dev-tools': major
-'@c15t/iab': major
-'@c15t/logger': major
-'@c15t/nextjs': major
-'@c15t/node-sdk': major
-'@c15t/react': major
-'@c15t/schema': major
-'@c15t/scripts': major
-'@c15t/svelte': major
-'@c15t/tanstack-start': major
-'@c15t/translations': major
-'@c15t/ui': major
-'@c15t/vue': major
-'c15t': major
+packages:
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(@c15t/astro)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(@c15t/backend)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(@c15t/browser)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(@c15t/cli)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(@c15t/core)
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(@c15t/dev-tools)
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(@c15t/iab)
+  "@c15t/logger":
+    replay:
+      - exit-prerelease(@c15t/logger)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(@c15t/nextjs)
+  "@c15t/node-sdk":
+    replay:
+      - exit-prerelease(@c15t/node-sdk)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(@c15t/react)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(@c15t/schema)
+  "@c15t/scripts":
+    replay:
+      - exit-prerelease(@c15t/scripts)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(@c15t/svelte)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(@c15t/tanstack-start)
+  "@c15t/translations":
+    replay:
+      - exit-prerelease(@c15t/translations)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(@c15t/ui)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(c15t)
 ---
+
+### Introduce c15t v3
 
 This v3 alpha is for internal use only. APIs are unstable, and breaking changes will occur between alpha releases.
 

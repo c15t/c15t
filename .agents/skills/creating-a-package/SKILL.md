@@ -3,7 +3,7 @@ name: creating-a-package
 description: |
   Scaffold a new workspace package in the c15t monorepo. Use when adding a
   package under packages/, wiring up rslib builds, vitest, turbo, exports
-  maps, or deciding whether a package joins the linked changeset group.
+  maps, or deciding whether a package joins the linked release group.
 ---
 
 # Creating a c15t Package
@@ -37,7 +37,7 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
 
 6. **turbo.json**: the generic `build`/`test`/`lint` tasks cover most packages. Add a package-specific entry only if outputs differ (e.g. bundled docs add `AGENTS.md` + `docs/**` to build outputs) or the demo should watch it (`@c15t/example-demo#dev.with`).
 
-7. **Changesets**: decide whether it joins the `linked` group in `.changeset/config.json` (core SDK packages that must version together) or versions independently (utilities like logger/schema/ui).
+7. **Tegami**: decide whether it joins `linkedPackages` in `scripts/tegami.ts` (core SDK packages that must version together) or versions independently (utilities like logger/schema/ui).
 
 8. **README**: user-facing published packages get a generated `README.md` — create `readme.json` (see `packages/react/readme.json`) and run `bun run generate:readmes`; don't hand-write README.md. Internal utility packages (like schema/ui today) may skip it.
 

@@ -47,6 +47,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          node-version: '24'
       - name: Select checks
         id: plan
         run: bun scripts/ci-plan.ts

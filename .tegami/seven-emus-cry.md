@@ -1,10 +1,13 @@
 ---
-'@c15t/react': patch
-'@c15t/astro': patch
-'@c15t/nextjs': patch
-'@c15t/tanstack-start': patch
-'c15t': patch
+packages:
+  "@c15t/react": patch
+  "@c15t/astro": patch
+  "@c15t/nextjs": patch
+  "@c15t/tanstack-start": patch
+  c15t: patch
 ---
+
+### Remove dialog scheduling delays and preserve IAB actions
 
 Remove first-open scheduling delays from React's aggregate dialog, widget, and compound components while preserving server rendering and hydration. Keep children mounted when an external runtime provides IAB context, so loading the bridge cannot reset local drafts.
 
