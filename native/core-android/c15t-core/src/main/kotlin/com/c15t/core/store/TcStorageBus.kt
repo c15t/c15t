@@ -1,5 +1,6 @@
 package com.c15t.core.store
 
+import com.c15t.core.model.ConsentModel
 import com.c15t.core.model.PolicyResolution
 
 // The `IABTCF_*` storage bus.
@@ -190,16 +191,20 @@ internal object TcStorageBusProjection {
 		// keeps the key absent -- the reader's "undetermined" is exactly where
 		// this build refuses to guess.
 		//
-		// The answer in this build is always `0`, by two given facts rather
-		// than a constant: the strict policy reader refuses a wire whose model
-		// is `iab` (`StrictPolicyReader`, which this phase "cannot represent"),
-		// so no envelope this build writes can carry that model, and
-		// `com.c15t.core.model.ConsentModel` has no entry to name it. The lane
-		// that makes the `iab` model representable has to flip this projection
-		// too; `TcStorageBusTest` pins the wiring so flipping only moves the
-		// value, not the plumbing.
+		// Which model matched is the whole question, and the snapshot cannot
+		// answer it: a device running an IAB rule *reports* `opt-in`
+		// (`ConsentModel.runtimeModel`) because it has no TC String to back the other
+		// name, so reading `snapshot.model` here would say 0 for exactly the one rule
+		// that means 1. The envelope is the durable copy of the rule the receipts were
+		// judged against, so the row reads that rule's model -- the same source the
+		// evaluator uses, and nothing this projection recomputes has to be stored twice.
+		//
+		// `0` stays the answer for `opt-in`, `opt-out` and `none`, and for an envelope
+		// carrying no policy of its own: `packages/iab` puts `false` beside every model
+		// but `iab`, so this row moves for one rule and one rule only.
 		if (!snapshot.policyPending && snapshot.resolution.status == PolicyResolution.STATUS_MATCHED) {
-			values[TcStorageBusKeys.GDPR_APPLIES] = TcBusValue.NumberValue(0)
+			val applies = envelope.evaluationPolicy?.model == ConsentModel.IAB
+			values[TcStorageBusKeys.GDPR_APPLIES] = TcBusValue.NumberValue(if (applies) 1 else 0)
 		}
 
 		return values

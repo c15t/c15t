@@ -1,8 +1,13 @@
 package com.c15t.core
 
+import com.c15t.core.model.ConsentCategory
+import com.c15t.core.model.ConsentModel
 import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.ConsentSubject
 import com.c15t.core.model.PolicyResolution
+import com.c15t.core.policy.EvaluationPolicy
+import com.c15t.core.policy.PolicyPrompt
+import com.c15t.core.policy.ScopeMode
 import com.c15t.core.store.SnapshotEnvelope
 import com.c15t.core.store.TcBusValue
 import com.c15t.core.store.TcStorageBusKeys
@@ -74,6 +79,7 @@ class TcStorageBusTest {
 		policyPending: Boolean = true,
 		status: String = PolicyResolution.STATUS_UNCONFIGURED,
 		list: com.c15t.core.tc.GlobalVendorList? = null,
+		policy: EvaluationPolicy? = null,
 	) = SnapshotEnvelope(
 		snapshot = ConsentSnapshot.denyAll(ConsentSubject(id = "sub_bus1"), now = 0L).copy(
 			policyPending = policyPending,
@@ -82,7 +88,21 @@ class TcStorageBusTest {
 				policyId = if (status == PolicyResolution.STATUS_MATCHED) "de-1" else null,
 			),
 		),
+		evaluationPolicy = policy,
 		gvl = list,
+	)
+
+	/** The matched rule a bus write normally sits on. */
+	private fun rule(model: ConsentModel) = EvaluationPolicy(
+		id = "de-1",
+		model = model,
+		prompt = PolicyPrompt.CHOICE,
+		scope = listOf(ConsentCategory.MARKETING),
+		scopeMode = ScopeMode.STRICT,
+		choiceMs = 30L * 24 * 60 * 60 * 1000,
+		noticeMs = 30L * 24 * 60 * 60 * 1000,
+		choiceFingerprint = "choice-fp-1",
+		policyFingerprint = "policy-fp-1",
 	)
 
 	// -- 1. Projection --------------------------------------------------------
@@ -112,9 +132,9 @@ class TcStorageBusTest {
 
 	@Test
 	fun gdprAppliesAnswersOnlyForAResolvedPolicy() {
-		// Mirrors `policyRule.model === "iab"` from `packages/iab`; the `iab`
-		// model is inexpressible in this build -- `StrictPolicyReader` refuses
-		// that wire -- so a matched policy honestly answers 0, never a guess.
+		// Mirrors `policyRule.model === "iab"` from `packages/iab`: every model but
+		// `iab` answers false there, so a matched policy that names no IAB rule owes
+		// 0 and nothing more. The IAB answer is the next test.
 		assertEquals(
 			TcBusValue.NumberValue(0),
 			TcStorageBusProjection
@@ -134,6 +154,45 @@ class TcStorageBusTest {
 				"an unresolved policy must not claim an answer",
 			)
 		}
+	}
+
+	/**
+	 * The one bus row this core's IAB support moves: an IAB rule reads 1, which is the
+	 * question `packages/iab` asks (`policyRule.model === "iab"`).
+	 *
+	 * It is read off the envelope's own rule and not off `snapshot.model`, because this
+	 * core reports `opt-in` while an IAB rule runs -- the report is about what the device
+	 * can back with a record, and this row is about which rule matched. Reading it off the
+	 * envelope is also what keeps a rebuilt bus equal to the one the commit published.
+	 */
+	@Test
+	fun gdprAppliesReadsOneUnderAStoredIABRule() {
+		val iab = envelope(
+			policyPending = false,
+			status = PolicyResolution.STATUS_MATCHED,
+			policy = rule(ConsentModel.IAB),
+		)
+		assertEquals(
+			TcBusValue.NumberValue(1),
+			TcStorageBusProjection.values(iab)[TcStorageBusKeys.GDPR_APPLIES],
+			"an IAB rule applies GDPR, whatever the snapshot reports",
+		)
+		assertEquals(
+			ConsentModel.OPT_IN,
+			iab.snapshot.model,
+			"and this core still reports opt-in while it runs",
+		)
+
+		val optIn = envelope(
+			policyPending = false,
+			status = PolicyResolution.STATUS_MATCHED,
+			policy = rule(ConsentModel.OPT_IN),
+		)
+		assertEquals(
+			TcBusValue.NumberValue(0),
+			TcStorageBusProjection.values(optIn)[TcStorageBusKeys.GDPR_APPLIES],
+			"a model that is not IAB keeps the web's own 0",
+		)
 	}
 
 	@Test

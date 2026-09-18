@@ -115,8 +115,13 @@ object PolicyEvaluator {
 				reasons += RESTRICTION_STRICT_SCOPE
 			} else {
 				// Permissive: the policy simply does not govern this category, so it
-				// follows its model default without a prompt.
-				allowed = policy.model != ConsentModel.OPT_IN || choice?.valueOf(category) == true
+				// follows its model default without a prompt. `permitsByDefault` is that
+				// same answer, written once so a fourth model cannot silently pick one:
+				// `iab` inherits `opt-in`'s answer rather than inventing its own. The web
+				// answer for this branch names no model at all -- permissive allows -- and
+				// divergence 1 in `docs/internal/evaluator-parity.md` owns replacing this
+				// branch with it, for all four models at once.
+				allowed = policy.model.permitsByDefault() || choice?.valueOf(category) == true
 			}
 
 			if (allowed && gpcActive && category in policy.gpcDenyCategories) {
@@ -168,7 +173,7 @@ object PolicyEvaluator {
 		}
 
 		return snapshot.copy(
-			model = policy.model,
+			model = policy.model.runtimeModel,
 			activeUI = if (prompt.notice || prompt.acknowledge) ActiveUI.BANNER else ActiveUI.NONE,
 			promptRequirement = prompt,
 			effectivePermissions = state,
@@ -187,9 +192,19 @@ object PolicyEvaluator {
 	): Boolean = when (model) {
 		// Nothing is allowed until a current receipt says so.
 		ConsentModel.OPT_IN -> choiceCurrent && choice?.valueOf(category) == true
+		// Same answer as `opt-in`, for the same reason: `defaultPermission` in
+		// `packages/core/src/consent-record/evaluate.ts` grants an in-scope category only
+		// when `model === 'opt-out' || model === 'none'`, so an IAB rule leaves a purpose
+		// shut until the subject's choice is on record -- and a purpose with no consent
+		// behind it is a purpose no TC String could vouch for either.
+		ConsentModel.IAB -> choiceCurrent && choice?.valueOf(category) == true
 		// Allowed until the subject says no; an expired choice restores the default.
 		ConsentModel.OPT_OUT -> if (choiceCurrent) choice?.valueOf(category) != false else true
 		// No prompt and no rights: processing is permitted by default.
 		ConsentModel.NONE -> true
 	}
+
+	/** Whether a model permits a category it does not govern, before any receipt. */
+	private fun ConsentModel.permitsByDefault(): Boolean =
+		this == ConsentModel.OPT_OUT || this == ConsentModel.NONE
 }

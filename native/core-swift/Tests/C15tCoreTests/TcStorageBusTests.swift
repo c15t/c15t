@@ -65,16 +65,23 @@ final class RecordingBus: TcStorageBusWriting, @unchecked Sendable {
 /// that move it.
 final class TcStorageBusTests: XCTestCase {
     private func envelope(
-        _ mutate: (inout ConsentSnapshot.Draft) -> Void = { _ in }
+        _ mutate: (inout ConsentSnapshot.Draft) -> Void = { _ in },
+        policyResolution: JSONValue? = nil
     ) -> StoredEnvelope {
         var draft = ConsentSnapshot.Draft(current: .coldStart)
         mutate(&draft)
         return StoredEnvelope(
             snapshot: draft.build(revision: 1),
             noticeDismissal: nil,
-            policyResolution: nil,
+            policyResolution: policyResolution,
             storedAt: 1_758_100_000_000
         )
+    }
+
+    /// A draft whose snapshot says a rule matched, the ordinary state behind a bus write.
+    private static func matched(_ draft: inout ConsentSnapshot.Draft) {
+        draft.policyPending = false
+        draft.resolution = PolicyResolutionInfo(status: .matched, policyId: "de-1", fingerprint: "f")
     }
 
     private func gvl(tcfPolicyVersion: Int = 5) -> GlobalVendorList {
@@ -118,13 +125,9 @@ final class TcStorageBusTests: XCTestCase {
 
     func testGdprAppliesAnswersOnlyForAResolvedPolicy() {
         // Mirrors the web rule `policyRule.model === "iab"`: a matched policy
-        // answers, and in this build the matched model is never `iab` -- both
-        // platforms' strict policy readers refuse that wire outright -- so the
-        // honest mirror is `0`, never a silent guess.
-        let matched = envelope { draft in
-            draft.policyPending = false
-            draft.resolution = PolicyResolutionInfo(status: .matched, policyId: "de-1", fingerprint: "f")
-        }
+        // answers, and every model but `iab` answers `false` there, so a matched
+        // envelope that names no IAB rule owes `0` and nothing more.
+        let matched = envelope(Self.matched)
         XCTAssertEqual(
             TcStorageBus.values(for: matched)[TcStorageBusKeys.gdprApplies],
             .number(0)
@@ -157,6 +160,42 @@ final class TcStorageBusTests: XCTestCase {
                 "an unresolved policy must not claim an answer"
             )
         }
+    }
+
+    /// The one row this build's IAB support moves on the bus: an IAB rule reads
+    /// `1`, the same question `packages/iab` asks (`policyRule.model === "iab"`).
+    ///
+    /// The rule's model comes from the envelope's copy of the wire, so the row
+    /// survives a bus wipe: what a rebuild recomputes has to be what the commit
+    /// published. `snapshot.model` is deliberately not consulted -- a device
+    /// reports `opt-in` while an IAB rule runs, and that report is not this row.
+    func testGdprAppliesReadsOneUnderAStoredIABRule() {
+        let iab = envelope(
+            Self.matched,
+            policyResolution: Fixture.matchedResolution(
+                id: "de-1",
+                policy: Fixture.rule(id: "de-1", model: "iab")
+            )
+        )
+        XCTAssertEqual(
+            TcStorageBus.values(for: iab)[TcStorageBusKeys.gdprApplies],
+            .number(1),
+            "an IAB rule applies GDPR, whatever the snapshot reports"
+        )
+        XCTAssertEqual(iab.snapshot.model, .optIn, "and this core still reports opt-in while it runs")
+
+        let optIn = envelope(
+            Self.matched,
+            policyResolution: Fixture.matchedResolution(
+                id: "us-1",
+                policy: Fixture.rule(id: "us-1", model: "opt-in")
+            )
+        )
+        XCTAssertEqual(
+            TcStorageBus.values(for: optIn)[TcStorageBusKeys.gdprApplies],
+            .number(0),
+            "a model that is not IAB keeps the web's own 0"
+        )
     }
 
     func testProjectionNamesOnlySpecTableKeys() {

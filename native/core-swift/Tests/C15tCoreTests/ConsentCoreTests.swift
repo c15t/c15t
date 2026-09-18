@@ -172,8 +172,11 @@ final class ConsentCoreTests: XCTestCase {
                 "policy": .null,
                 "surprise": .bool(true),
             ]), unsupported),
-            ("an IAB rule this build cannot honour", Fixture.matchedResolution(policy: Fixture.rule(
-                model: "iab"
+            // Only a model this enum does not name. `iab` is readable now -- see
+            // `testIabRuleDeniesUntilAChoiceAndReportsOptInOnTheSnapshot` -- and a name from
+            // a newer schema is still a producer this reader has no rule for.
+            ("a model this build has never heard of", Fixture.matchedResolution(policy: Fixture.rule(
+                model: "quantum-leibler"
             )), unsupported),
             ("a non-matched outcome with no explicit policy", .object([
                 "version": .integer(contract),
@@ -597,6 +600,123 @@ final class ConsentCoreTests: XCTestCase {
         await optOut.waitUntilIdle()
         XCTAssertFalse(optOut.isAllowed(.marketing))
         XCTAssertEqual(optOut.snapshot().restrictions[.marketing], [.explicitDenial])
+    }
+
+    /// An IAB rule is read and evaluated, and it grants nothing on its own.
+    ///
+    /// `defaultPermission` in `packages/core/src/consent-record/evaluate.ts` treats `iab`
+    /// exactly as it treats `opt-in`, and `deriveModel` in `packages/core/src/policy.ts`
+    /// keeps the runtime name `opt-in` until the IAB module is installed -- which on device
+    /// it never is, because there is no CMP ID to sign a TC String with and no vendor vector
+    /// to fill. So the device denies without a receipt, prompt is owed, `necessary` is
+    /// granted anyway, and the state it reports keeps saying `opt-in` even though the rule
+    /// that matched was IAB.
+    func testIabRuleDeniesUntilAChoiceAndReportsOptInOnTheSnapshot() async {
+        // The rule's own id has to equal `policyId`, which `readMatched` checks, so both
+        // sides of the name go in together.
+        http.initResponse = Fixture.initResponse(
+            policyResolution: Fixture.matchedResolution(
+                id: "de-tcf",
+                policy: Fixture.rule(id: "de-tcf", model: "iab")
+            )
+        )
+        let core = ConsentCore()
+        await core.bootstrapAndSettle(Fixture.configured(
+            store: store,
+            transport: Fixture.transport(http),
+            clock: clock
+        ))
+
+        let opened = core.snapshot()
+        XCTAssertEqual(opened.model, .optIn, "the runtime name stays opt-in without an IAB runtime")
+        XCTAssertEqual(opened.resolution.policyId, "de-tcf", "and yet the IAB rule that matched stays named")
+        XCTAssertEqual(opened.resolution.status, .matched)
+        XCTAssertEqual(opened.promptRequirement.kind, .choice, "a choice is owed, exactly as under opt-in")
+        XCTAssertTrue(core.isAllowed(.necessary), "nothing gets to take `necessary` away")
+        for category in OptionalConsentCategory.allCases {
+            XCTAssertFalse(core.isAllowed(category.category), "\(category): no receipt yet")
+            // The rule resolved, so this is the subject's answer and not a device that
+            // has not been told: `PENDING` belongs to an unresolved policy, and nothing
+            // about an IAB rule puts the gate back to waiting once it read the rule.
+            XCTAssertEqual(core.decision(for: category.category), .denied)
+        }
+
+        core.save(.custom([.marketing: true]))
+        await core.waitUntilIdle()
+        XCTAssertTrue(core.isAllowed(.marketing), "the subject's own grant is what opens it")
+        XCTAssertFalse(core.isAllowed(.measurement), "and only what they granted")
+        XCTAssertEqual(core.snapshot().model, .optIn)
+        XCTAssertEqual(core.decision(for: .marketing), .granted)
+
+        // The write carries the reported model, not the rule's name, which is what the
+        // kernel puts in `jurisdictionModel` for the same situation.
+        let body = http.recordedSaveRequests.last?.body ?? Data()
+        XCTAssertEqual(C15tJSON.parse(body)?["jurisdictionModel"]?.stringValue, "opt-in")
+
+        // A relaunch reads the same rule out of the stored envelope and reaches the same
+        // answer, so the projection is not a thing only a fresh init gets right. The
+        // backend serves the same IAB rule again; a core whose init came back unreadable
+        // would take the grant back under rule 5, and that is a different test.
+        let relaunchHTTP = StubHTTP()
+        relaunchHTTP.initResponse = Fixture.initResponse(
+            policyResolution: Fixture.matchedResolution(
+                id: "de-tcf",
+                policy: Fixture.rule(id: "de-tcf", model: "iab")
+            )
+        )
+        let relaunched = ConsentCore()
+        await relaunched.bootstrapAndSettle(Fixture.configured(
+            store: store,
+            transport: Fixture.transport(relaunchHTTP),
+            clock: clock
+        ))
+        XCTAssertEqual(relaunched.snapshot().model, .optIn)
+        XCTAssertEqual(relaunched.snapshot().resolution.policyId, "de-tcf")
+        XCTAssertTrue(relaunched.isAllowed(.marketing))
+    }
+
+    /// Two rules an IAB policy cannot be, both straight out of `@c15t/schema`:
+    /// `POLICY_MODEL_PROMPTS` gives `iab` the single prompt `choice`, and
+    /// `collectScopeErrors` refuses `preselectedCategories` beside it -- the resolver
+    /// answers an empty set for `iab`, so a rule carrying one was never resolved by it.
+    /// A pre-set toggle would be a permission the evaluator has no receipt for.
+    func testAnIabRuleAskingForWhatTheSchemaForbidsFailsClosed() async {
+        let invalid = PolicyFailureReason.invalidPayload.rawValue
+        let preselected = Fixture.rule(model: "iab")
+        var preselectedFields = preselected.objectValue ?? [:]
+        preselectedFields["preselectedCategories"] = .array([.string("marketing")])
+
+        let cases: [(String, JSONValue, String)] = [
+            ("an IAB rule with prompt \"notice\"", Fixture.matchedResolution(policy: Fixture.rule(
+                model: "iab",
+                prompt: "notice"
+            )), invalid),
+            ("an IAB rule with prompt \"none\"", Fixture.matchedResolution(policy: Fixture.rule(
+                model: "iab",
+                prompt: "none"
+            )), invalid),
+            ("an IAB rule that preselects a category", Fixture.matchedResolution(policy: .object(preselectedFields)), invalid),
+        ]
+
+        for (label, wire, expectedCode) in cases {
+            let localHTTP = StubHTTP()
+            localHTTP.initResponse = Fixture.initResponse(policyResolution: wire)
+            let core = ConsentCore()
+            await core.bootstrapAndSettle(Fixture.configured(
+                store: InMemoryStore(),
+                transport: Fixture.transport(localHTTP),
+                clock: clock
+            ))
+
+            let snapshot = core.snapshot()
+            XCTAssertTrue(snapshot.policyPending, "\(label): must stay pending")
+            XCTAssertEqual(
+                snapshot.effectivePermissions,
+                .necessaryOnly,
+                "\(label): must deny every optional category rather than guess"
+            )
+            XCTAssertEqual(snapshot.error?.code, expectedCode, "\(label): reported the wrong failure")
+        }
     }
 
     func testActiveGPCDeniesEvenAnExplicitGrantAndReportsTheReason() async {

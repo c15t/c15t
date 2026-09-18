@@ -231,6 +231,80 @@ class KernelTest {
 		}
 	}
 
+	/**
+	 * An IAB rule is read and evaluated, and it grants nothing on its own.
+	 *
+	 * `defaultPermission` in `packages/core/src/consent-record/evaluate.ts` answers `iab`
+	 * exactly as it answers `opt-in`, and `deriveModel` in `packages/core/src/policy.ts`
+	 * keeps the runtime name `opt-in` until the IAB module is installed -- which on device it
+	 * never is, because there is no CMP ID to sign a TC String with and no vendor vector to
+	 * fill.
+	 *
+	 * Every assertion here sits on a row of the measured table in
+	 * `docs/internal/evaluator-parity.md`, which is why the scope is strict. The web answer
+	 * for a category the rule does not govern mentions no model at all -- permissive allows,
+	 * strict refuses -- while both kernels answer that branch from the model default today.
+	 * That is divergence 1, a follow-on task of its own, so a permissive scope would let this
+	 * test pass by pinning an answer the parity task exists to flip. Strict refuses for the
+	 * same reason the web does, under every model, and the IAB semantics stay under test.
+	 */
+	@Test
+	fun `an iab rule grants nothing until a choice and reports opt-in`() {
+		val clock = FixedClock()
+		val transport = RecordingTransport().respondInit(
+			initSuccess(
+				body = initBody(
+					policyId = "de-tcf",
+					model = "\"iab\"",
+					scope = """["measurement","marketing"]""",
+					scopeMode = "\"strict\"",
+				),
+			),
+		)
+		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()), clock = clock, transport = transport)
+		kernel.bootstrap()
+
+		val opened = kernel.snapshot()
+		assertEquals(ConsentModel.OPT_IN, opened.model, "the runtime name stays opt-in without an IAB runtime")
+		assertEquals("de-tcf", opened.resolution.policyId, "and yet the IAB rule that matched stays named")
+		assertTrue(opened.promptRequirement.acknowledge, "a choice is owed, exactly as under opt-in")
+		assertTrue(opened.effectivePermissions.necessary, "nothing gets to take `necessary` away")
+		for (category in ConsentCategory.OPTIONAL) {
+			// The rule names two of these and governs none of the other two, and either
+			// way the answer is the same and neither answer came from the model being
+			// `iab`: the named pair has no receipt, the unnamed pair is outside a strict
+			// scope.
+			assertFalse(kernel.isAllowed(category), "$category: an IAB rule grants nothing unsaid")
+		}
+
+		val accepted = kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.MEASUREMENT to true)))
+		assertTrue(accepted.ok)
+		assertTrue(kernel.isAllowed(ConsentCategory.MEASUREMENT), "the subject's own grant is what opens it")
+		assertFalse(kernel.isAllowed(ConsentCategory.MARKETING), "and only what they granted")
+
+		// A grant for a category the rule does not govern is refused by the strict scope,
+		// which is the row the web answers the same way for all four models. The refusal is
+		// the scope's, not the model's: `iab` is not allowed to be the reason.
+		assertTrue(kernel.save(CommitIntent.Explicit(mapOf(ConsentCategory.FUNCTIONALITY to true))).ok)
+		assertFalse(kernel.isAllowed(ConsentCategory.FUNCTIONALITY), "a strict scope withholds what it does not govern")
+		val after = kernel.snapshot()
+		assertEquals(
+			true,
+			after.explicitChoice?.valueOf(ConsentCategory.FUNCTIONALITY),
+			"the receipt is still recorded, masked rather than rewritten",
+		)
+		assertTrue(
+			after.restrictions[ConsentCategory.FUNCTIONALITY.wireName]?.contains("strict-scope") == true,
+			"and it says so, the way the web answer for that row does",
+		)
+		assertEquals(ConsentModel.OPT_IN, kernel.snapshot().model)
+
+		// The write carries the reported model, not the rule's name, which is what the
+		// kernel puts in `jurisdictionModel` for the same situation.
+		val payload = transport.saveRequests.last().payload
+		assertEquals(ConsentModel.OPT_IN, payload.model)
+	}
+
 	@Test
 	fun `GPC and a strict scope restrict an explicit grant`() {
 		val transport = RecordingTransport().respondInit(
