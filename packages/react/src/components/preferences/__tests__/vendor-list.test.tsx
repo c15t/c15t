@@ -185,17 +185,23 @@ describe('consent widget vendor rows', () => {
 		await page
 			.getByTestId('consent-widget-accordion-trigger-marketing')
 			.click();
-		const ids = [
-			...document.querySelectorAll(
-				'[id^="c15t-vendor-"][id$="-shared-vendor"]'
-			),
-		]
-			.map((element) => element.id)
-			.sort();
-		expect(ids).toEqual([
-			'c15t-vendor-marketing-shared-vendor',
-			'c15t-vendor-measurement-shared-vendor',
+		const ids = [...document.querySelectorAll('[id$="-shared-vendor"]')].map(
+			(element) => element.id
+		);
+		expect(new Set(ids).size).toBe(2);
+		expect(ids.map((id) => id.replace(/^.*vendor-/u, '')).sort()).toEqual([
+			'marketing-shared-vendor',
+			'measurement-shared-vendor',
 		]);
+		// The switch points at the label of its own instance.
+		const meta = document.querySelector(
+			'[data-testid="consent-widget-vendor-switch-marketing-meta-pixel"]'
+		);
+		const described = meta?.getAttribute('aria-describedby');
+		expect(described).toBeTruthy();
+		expect(document.getElementById(described ?? '')?.textContent).toBe(
+			'Meta Pixel'
+		);
 		expect(
 			document.querySelector(
 				'[data-testid="consent-widget-vendor-item-marketing-negated-vendor"]'
