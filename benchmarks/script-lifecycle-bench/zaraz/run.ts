@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { cpus, platform, arch } from 'node:os';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import { build } from 'esbuild';
@@ -28,16 +28,31 @@ if (baseRef === revision('HEAD')) {
 	throw new Error('BENCH_BASE_REF must differ from HEAD.');
 }
 const baseline = new Map(
-	['index.ts', 'mount.ts'].map((file) => {
-		const path = `packages/core/src/modules/script-loader/${file}`;
-		return [
+	execFileSync(
+		'git',
+		[
+			'ls-tree',
+			'-r',
+			'--name-only',
+			baseRef,
+			'--',
+			'packages/core/src/modules/script-loader',
+		],
+		{
+			cwd: root,
+			encoding: 'utf8',
+		}
+	)
+		.trim()
+		.split('\n')
+		.filter((path) => path.endsWith('.ts') && !path.includes('/__tests__/'))
+		.map((path) => [
 			resolve(root, path),
 			execFileSync('git', ['show', `${baseRef}:${path}`], {
 				cwd: root,
 				encoding: 'utf8',
 			}),
-		];
-	})
+		])
 );
 const baselinePlugin = {
 	name: 'baseline-script-loader',
@@ -46,13 +61,21 @@ const baselinePlugin = {
 			{
 				filter:
 					// oxlint-disable-next-line require-unicode-regexp -- esbuild uses Go regular expressions.
-					/packages\/core\/src\/modules\/script-loader\/(?:index|mount)\.ts$/,
+					/packages\/core\/src\/modules\/script-loader\/.*\.ts$/,
 			},
-			(args) => ({
-				contents: baseline.get(args.path),
-				loader: 'ts',
-				resolveDir: resolve(root, 'packages/core/src/modules/script-loader'),
-			})
+			(args) => {
+				const contents = baseline.get(args.path);
+				if (contents === undefined) {
+					throw new Error(
+						`Lifecycle module missing from baseline: ${args.path}`
+					);
+				}
+				return {
+					contents,
+					loader: 'ts',
+					resolveDir: dirname(args.path),
+				};
+			}
 		);
 	},
 };
@@ -158,7 +181,7 @@ try {
 		date: new Date().toISOString(),
 		machine: { arch: arch(), cpu: cpus()[0]?.model, platform: platform() },
 		method:
-			'31 alternating samples per case, 5 warmups, 500 kernel consent updates per sample. Timing includes loader creation and disposal, excludes kernel creation. Baseline substitutes script-loader/index.ts and mount.ts from the base ref; all other dependencies are identical. Zaraz API is a local fixture; no vendor network or edge execution is measured.',
+			'31 alternating samples per case, 5 warmups, 500 kernel consent updates per sample. Timing includes loader creation and disposal, excludes kernel creation. Baseline substitutes every script-loader module from the base ref; dependencies outside that directory are identical. Zaraz API is a local fixture; no vendor network or edge execution is measured.',
 		samples,
 		sizes,
 		summary,

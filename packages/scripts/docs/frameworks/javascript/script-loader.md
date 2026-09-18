@@ -54,6 +54,8 @@ functions alone do not reload the vendor or send a temporary denial. Changing
 the source, inline code or element attributes starts a new loading lifecycle.
 Consent conditions are reevaluated on every configuration update. Pending
 load and error events use the latest registered callbacks and consent state.
+Setting `persistAfterConsentRevoked` to `false` removes an owned retained element
+when the script no longer has consent.
 
 Custom script configurations can use `onDispose(info)` to release event
 listeners or other resources. Adding this hook opts the configuration into an

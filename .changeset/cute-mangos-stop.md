@@ -13,3 +13,5 @@ Cancel callback-only loading when preparation invalidates consent or configurati
 Retry failed Zaraz queue replays while consent remains granted. Include required pageview handoff and stable registration steps in generated Zaraz configurations.
 
 Deliver pending load and error events to the current configuration when a same-resource update keeps the script element.
+
+Remove retained owned script elements when configuration updates disable persistence after revocation.

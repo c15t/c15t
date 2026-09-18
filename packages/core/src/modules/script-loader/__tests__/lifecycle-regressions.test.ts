@@ -303,3 +303,30 @@ test('delivers deferred inline completion to callbacks added before completion',
 	});
 	expect(currentCallback).toHaveBeenCalledOnce();
 });
+
+test.each([false, true])(
+	'disabling retention removes only owned elements, borrowed=%s',
+	(borrowed) => {
+		const script: Script = {
+			anonymizeId: false,
+			category: 'measurement',
+			id: 'disable-retention',
+			persistAfterConsentRevoked: true,
+			src: 'https://example.com/vendor.js',
+		};
+		if (borrowed) {
+			const foreign = document.createElement('script');
+			foreign.id = 'c15t-script-disable-retention';
+			foreign.src = script.src ?? '';
+			document.head.appendChild(foreign);
+		}
+		const { kernel, loader } = mount([script]);
+		const element = document.head.querySelector('script');
+		void kernel.commands.save({ measurement: false });
+		expect(element?.isConnected).toBe(true);
+		loader.updateScripts([{ ...script, persistAfterConsentRevoked: false }]);
+		expect(element?.isConnected).toBe(borrowed);
+		loader.dispose();
+		expect(element?.isConnected).toBe(borrowed);
+	}
+);

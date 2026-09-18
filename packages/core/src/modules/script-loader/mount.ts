@@ -399,7 +399,10 @@ export const unmountScript = function unmountScript(
 	removeConfiguration = false
 ): void {
 	let element = deps.loadedElements.get(script.id);
-	if (element === undefined && removeConfiguration) {
+	if (
+		element === undefined &&
+		(removeConfiguration || !script.persistAfterConsentRevoked)
+	) {
 		element = deps.retainedElements.get(script.id);
 	}
 	if (element === undefined) {
@@ -443,6 +446,7 @@ export const unmountScript = function unmountScript(
 		element.parentNode.removeChild(element);
 	}
 	deps.loadedElements.delete(script.id);
+	deps.retainedElements.delete(script.id);
 	deps.ownedScriptIds.delete(script.id);
 
 	if (typeof script.onConsentChange === 'function') {
