@@ -30,7 +30,7 @@ import {
 import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
-import { resolveGvl } from './gvl';
+import { parseVendorScopeHeader, resolveGvl, VENDOR_SCOPE_HEADER } from './gvl';
 import type { GvlConfig } from './gvl';
 import { createPolicySnapshotToken } from './policy-snapshot';
 import type { PolicySnapshotOptions } from './policy-snapshot';
@@ -46,6 +46,16 @@ export interface InitRequestSignals {
 	 * header was present but unparseable.
 	 */
 	readonly policyContract: number | null | undefined;
+	/**
+	 * The vendors this client declared it uses, read from
+	 * `x-c15t-vendors`.
+	 *
+	 * `undefined` covers a client that sent no header and one whose header
+	 * could not be read: both are served the configured scope. A declared
+	 * scope only ever narrows what the configuration already allows, so a
+	 * wrong value costs bytes rather than disclosure.
+	 */
+	readonly declaredVendorIds: readonly number[] | undefined;
 }
 
 const readPolicyContract = function readPolicyContract(
@@ -71,6 +81,10 @@ export const readInitSignals = function readInitSignals(
 
 	return {
 		country: country ?? null,
+		// Unreadable, oversized, and absent all arrive as undefined, which is
+		// the shape that serves the configured scope. A consent surface that
+		// answers is worth more than one that reports a bad request.
+		declaredVendorIds: parseVendorScopeHeader(headers.get(VENDOR_SCOPE_HEADER)),
 		// Global Privacy Control is a signal, not a preference: the spec
 		// defines '1' as the only affirmative value, so anything else is
 		// absence rather than a false.
@@ -147,14 +161,17 @@ export const buildInitResponse = async function buildInitResponse(
 	// deployment that wrote a `gvl` block asked for server-side list loading,
 	// and a matched IAB rule with no list is a disclosure of nothing. The scope
 	// stays exactly as configured: an absent block is never filled in by
-	// fetching the whole document on a publisher's behalf.
+	// fetching the whole document on a publisher's behalf. A declared request
+	// scope may only cut that configured scope down, never reach past it, and
+	// it reaches the upstream not at all -- `resolveGvl` narrows the cached
+	// document per request.
 	const wantsGvl =
 		gvl !== undefined &&
 		gvl.enabled !== false &&
 		resolution.status === 'matched' &&
 		resolution.policy.model === 'iab';
 	const gvlDocument = wantsGvl
-		? await resolveGvl(signals.language, gvl)
+		? await resolveGvl(signals.language, gvl, signals.declaredVendorIds)
 		: undefined;
 	const body =
 		gvlDocument === undefined

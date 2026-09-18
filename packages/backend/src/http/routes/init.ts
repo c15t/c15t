@@ -32,9 +32,12 @@ export const register = function register({
 			);
 			// Geo-dependent by definition, so it must never be cached across
 			// visitors the way /manifest is. The contract header is part of the
-			// response identity too, for any cache that ignores no-store.
+			// response identity too, for any cache that ignores no-store, and so
+			// is the declared vendor scope: it changes which vendors the response
+			// names, which is the one thing a consent surface may not serve to the
+			// wrong client.
 			c.header('Cache-Control', 'no-store');
-			c.header('Vary', 'Origin, x-c15t-policy-contract');
+			c.header('Vary', 'Origin, x-c15t-policy-contract, x-c15t-vendors');
 			return c.json(body);
 		}
 	);

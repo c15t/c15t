@@ -70,6 +70,14 @@ export const backend = c15tInstance({
 });
 ```
 
+A device can narrow the list per request with `x-c15t-vendors`. That header is
+not part of the cache key. The backend caches one document per endpoint,
+language, and configured `gvl.vendorIds`, then narrows that document for each
+request. What a client sends therefore cannot create cache entries, and cannot
+add an upstream fetch. `/init` answers with `Cache-Control: no-store` and lists
+the header in `Vary` regardless, because the vendors it names are
+request-specific.
+
 The backend loads a GVL only for a matched IAB rule. The GVL TTL uses
 milliseconds, unlike `manifestCache`.
 
