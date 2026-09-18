@@ -44,7 +44,7 @@ afterEach(() => {
 test.each([
 	false,
 	true,
-])('a choice saved during startup survives reload, previous marketing = %s', async (previousMarketing) => {
+])('startup save survives reload, was %s', async (previousMarketing) => {
 	const oldTime = Date.now() - 60_000;
 	saveConsentToStorage({
 		consents: {
