@@ -69,7 +69,10 @@ const sequencedTransport = function sequencedTransport(
 		init: (context) => {
 			const transport = offline[Math.min(attempt, offline.length - 1)];
 			attempt += 1;
-			return (transport as KernelTransport).init(context);
+			if (!transport) {
+				throw new Error('sequencedTransport requires at least one rule set');
+			}
+			return transport.init(context);
 		},
 		save: vi.fn().mockResolvedValue({ ok: true }),
 	};
@@ -171,6 +174,44 @@ describe('createExperimentController', () => {
 });
 
 describe('resolveExperimentAssignment', () => {
+	test('hashes the subject id without persisting it', () => {
+		const { assignment, record } = resolveExperimentAssignment({
+			experiment,
+			stored: null,
+			subjectId: 'sub_1',
+		});
+		expect(assignment).toEqual(assignExperimentVariant(experiment, 'sub_1'));
+		expect(record).toEqual(assignment);
+		expect(JSON.stringify(record)).not.toContain('sub_1');
+	});
+
+	test('keeps a seeded arm over the stored one', () => {
+		const seeded = assignExperimentVariant(experiment, 'server');
+		const stored = {
+			...assignExperimentVariant(experiment, 'other'),
+			variant: seeded.variant === 'bar' ? 'floating' : 'bar',
+		};
+		const { assignment, record } = resolveExperimentAssignment({
+			experiment,
+			seeded,
+			stored,
+		});
+		expect(assignment).toEqual(seeded);
+		expect(record).toEqual(seeded);
+	});
+
+	test('a stored arm named after a prototype property is not reused', () => {
+		const stored = {
+			acknowledgedDiagnostics: false,
+			assignedBy: 'c15t' as const,
+			id: 'banner-shape',
+			key: 'key_1',
+			variant: 'constructor',
+		};
+		const { assignment } = resolveExperimentAssignment({ experiment, stored });
+		expect(Object.keys(experiment.variants)).toContain(assignment.variant);
+	});
+
 	test('re-hashes with the stored key when the stored arm no longer exists', () => {
 		const stored = {
 			acknowledgedDiagnostics: false,
@@ -202,6 +243,25 @@ describe('stored assignment cookie fallback', () => {
 		writeStoredExperimentAssignment(record);
 		expect(document.cookie).toContain(`${EXPERIMENT_STORAGE_KEY}=`);
 		expect(readStoredExperimentAssignment()).toEqual(record);
+	});
+
+	test('a localStorage write drops a stale fallback cookie', () => {
+		const stale = {
+			acknowledgedDiagnostics: false,
+			assignedBy: 'c15t' as const,
+			id: 'banner-shape',
+			key: 'key_1',
+			variant: 'bar',
+		};
+		const store = localStorage;
+		vi.stubGlobal('localStorage', null);
+		writeStoredExperimentAssignment(stale);
+		vi.stubGlobal('localStorage', store);
+		writeStoredExperimentAssignment({ ...stale, variant: 'floating' });
+		expect(document.cookie).not.toContain(`${EXPERIMENT_STORAGE_KEY}=`);
+		// localStorage gone again: nothing old comes back through the cookie.
+		vi.stubGlobal('localStorage', null);
+		expect(readStoredExperimentAssignment()).toBeNull();
 	});
 
 	test('an unreadable cookie reads as no record', () => {

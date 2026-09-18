@@ -85,6 +85,26 @@ describe('runtime experiments', () => {
 		second.runtime.dispose();
 	});
 
+	test('a prefetched arm seeds the snapshot and survives start', () => {
+		// The server assigned and rendered `bar`; the browser must attribute
+		// the impression to that arm rather than start unassigned.
+		const seeded = {
+			acknowledgedDiagnostics: false,
+			assignedBy: 'host' as const,
+			id: 'banner-shape',
+			variant: 'bar',
+		};
+		const runtime = createConsentRuntime({
+			experiment,
+			mode: custom(createTransport()),
+			prefetch: { initialExperiment: seeded },
+		});
+		expect(runtime.kernel.getServerSnapshot().experiment).toEqual(seeded);
+		runtime.start();
+		expect(runtime.kernel.getSnapshot().experiment).toEqual(seeded);
+		runtime.dispose();
+	});
+
 	test('a host variant overrides a stored one', () => {
 		localStorage.setItem(
 			EXPERIMENT_STORAGE_KEY,
@@ -128,8 +148,10 @@ describe('runtime experiments', () => {
 		expect(recorded[0]).toMatchObject({
 			experiment: { id: 'banner-shape', variant: 'bar' },
 		});
-		const payload = vi.mocked(transport.save).mock.calls[0]?.[0] as SavePayload;
-		expect(payload.experiment).toEqual({
+		const payload = vi.mocked(transport.save)?.mock.calls[0]?.[0] as
+			| SavePayload
+			| undefined;
+		expect(payload?.experiment).toEqual({
 			acknowledgedDiagnostics: false,
 			assignedBy: 'host',
 			id: 'banner-shape',

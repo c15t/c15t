@@ -276,11 +276,14 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	const transport = requireTransportFactory(options)(transportContext);
 
 	// A host-resolved arm is known before any render, so the server
-	// snapshot carries it and the first paint already uses it.
-	const initialExperiment =
-		enabled && options.experiment?.variant !== undefined
-			? assignExperimentVariant(options.experiment, '')
-			: undefined;
+	// snapshot carries it and the first paint already uses it. A prefetch
+	// that already carries an arm (the Astro middleware, a server seed) is
+	// kept: the server rendered that arm, so the browser has to attribute
+	// the impression to it rather than start unassigned.
+	let initialExperiment = enabled ? prefetch.initialExperiment : undefined;
+	if (enabled && options.experiment?.variant !== undefined) {
+		initialExperiment = assignExperimentVariant(options.experiment, '');
+	}
 
 	return createConsentKernel({
 		...prefetch,
