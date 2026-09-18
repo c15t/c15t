@@ -32,6 +32,7 @@ import type {
 	KernelIABState,
 	KernelVendorsState,
 	VendorChoice,
+	ResolvedVendor,
 } from '../types';
 import { validateHydrationRecords } from './records';
 
@@ -168,7 +169,11 @@ export const buildInitialVendors = function buildInitialVendors(
 		return null;
 	}
 	return {
-		declared: initial.declared.map((vendor) => ({ ...vendor })),
+		// Plain JSON copies: freezing the snapshot must not freeze a nested
+		// category condition the caller's config or script still references.
+		declared: initial.declared.map(
+			(vendor) => JSON.parse(JSON.stringify(vendor)) as ResolvedVendor
+		),
 		listVersion: initial.listVersion ?? null,
 	};
 };

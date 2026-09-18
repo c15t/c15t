@@ -55,6 +55,23 @@ describe('snapshot default freezing', () => {
 		expect(snapshot.user?.externalId).toBe('before');
 	});
 
+	test('copies nested vendor conditions without freezing the caller objects', () => {
+		const category = { or: ['marketing', 'measurement'] as const };
+		const snapshot = buildInitialSnapshot({
+			initialVendors: {
+				declared: [
+					{ category, id: 'meta-pixel', presentable: false, source: 'script' },
+				],
+				listVersion: null,
+			},
+			now: NOW,
+		});
+		expectFrozenData(snapshot.vendors);
+		expect(Object.isFrozen(category)).toBe(false);
+		expect(Object.isFrozen(category.or)).toBe(false);
+		expect(snapshot.vendors?.declared[0]?.category).toEqual(category);
+	});
+
 	test('copies and freezes seeded IAB authority without normalizing it early', () => {
 		const authority = {
 			choiceFingerprint: 'choice-v1:stale',
