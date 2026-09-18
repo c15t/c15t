@@ -9,6 +9,7 @@ import {
 import { createConsentKernel } from '../../../kernel';
 import { buildCallbackInfo } from '../callbacks';
 import { buildReconcilePass, hasScriptConsent } from '../eligibility';
+import { createScriptLoader } from '../index';
 import { normalizeScripts } from '../normalize';
 import type { Script } from '../types';
 
@@ -103,5 +104,24 @@ describe('script vendor eligibility', () => {
 			'el'
 		);
 		expect(plain.vendor).toBeUndefined();
+	});
+});
+
+describe('script-owned vendor declarations', () => {
+	test('a script list swapped in later declares its vendor slug', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			now: NOW,
+		});
+		const loader = createScriptLoader({ kernel, scripts: [] });
+		expect(kernel.getSnapshot().vendors).toBeNull();
+		// No DOM in this suite, so the script must not try to mount.
+		loader.updateScripts([script({ callbackOnly: true })]);
+		const declared = kernel.getSnapshot().vendors?.declared ?? [];
+		expect(declared.map((vendor) => [vendor.id, vendor.source])).toEqual([
+			['meta-pixel', 'script'],
+		]);
+		loader.dispose();
+		kernel.dispose();
 	});
 });

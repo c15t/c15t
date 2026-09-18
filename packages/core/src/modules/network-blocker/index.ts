@@ -32,6 +32,7 @@
  *   subscribe tick.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
+import { declareOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { installFetchPatch } from './patch-fetch';
 import { installXhrPatch } from './patch-xhr';
@@ -57,10 +58,12 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	const { kernel, onRequestBlocked } = options;
 	const logBlocked = options.logBlockedRequests ?? true;
 	let rules: NetworkBlockerRule[] = [...(options.rules ?? [])];
-	const registerCategories = () =>
+	const registerCategories = () => {
 		kernel.set.registerConsentCategories(
 			rules.flatMap((rule) => extractConsentNamesFromCondition(rule.category))
 		);
+		declareOwnedVendors(kernel, rules);
+	};
 	registerCategories();
 	let enabled = options.enabled !== false;
 	let snapshot: ConsentSnapshot = kernel.getSnapshot();

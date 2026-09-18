@@ -31,6 +31,7 @@
  *   loaders (or already in the DOM) are left alone.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
+import { declareOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
@@ -106,6 +107,7 @@ export const createScriptLoader = function createScriptLoader(
 				extractConsentNamesFromCondition(script.category)
 			)
 		);
+		declareOwnedVendors(kernel, scripts);
 	};
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
@@ -450,6 +452,7 @@ export const createScriptLoader = function createScriptLoader(
 			if (disposed) {
 				return;
 			}
+			registerCategories(next);
 			pendingScripts = next;
 			drain();
 		},

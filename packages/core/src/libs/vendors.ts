@@ -14,7 +14,7 @@
 import type { Vendor } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
-import type { ResolvedVendor, VendorSource } from '../types';
+import type { ConsentKernel, ResolvedVendor, VendorSource } from '../types';
 import type { HasCondition } from './has';
 import { extractConsentNamesFromCondition } from './has';
 
@@ -400,4 +400,26 @@ export const resolveVendors = function resolveVendors(
 	return [...byId.values()].sort((left, right) =>
 		left.id.localeCompare(right.id)
 	);
+};
+
+/**
+ * Declare the vendors a set of scripts or rules owns on the kernel, merging
+ * over the entries it already holds. Called by an integration when its list
+ * is set or swapped, so a slug introduced later still becomes toggleable and
+ * a declared vendor learns its new owner. Nothing is removed: another
+ * integration may still name the slug, and the runtime owner replaces the
+ * script source as a whole when it knows every integration.
+ */
+export const declareOwnedVendors = function declareOwnedVendors(
+	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
+	owners: readonly VendorOwner[]
+): void {
+	if (!owners.some((owner) => owner.vendor)) {
+		return;
+	}
+	const declared = resolveVendors({
+		existing: kernel.getSnapshot().vendors?.declared,
+		owners,
+	});
+	kernel.set.vendors({ declared });
 };
