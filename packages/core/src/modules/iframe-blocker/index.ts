@@ -124,6 +124,7 @@ export const createIframeBlocker = function createIframeBlocker(
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
 	let lastVendorChoice: unknown = null;
+	let lastVendors: unknown = null;
 	let lastModel: unknown = null;
 	const unsubscribe = kernel.subscribe((snapshot) => {
 		if (disableAuto) {
@@ -134,6 +135,7 @@ export const createIframeBlocker = function createIframeBlocker(
 			snapshot.policyRule.scope === lastPolicyCategories &&
 			snapshot.policyRule.scopeMode === lastScopeMode &&
 			snapshot.vendorChoice === lastVendorChoice &&
+			snapshot.vendors === lastVendors &&
 			snapshot.model === lastModel
 		) {
 			return;
@@ -142,6 +144,7 @@ export const createIframeBlocker = function createIframeBlocker(
 		lastPolicyCategories = snapshot.policyRule.scope;
 		lastScopeMode = snapshot.policyRule.scopeMode;
 		lastVendorChoice = snapshot.vendorChoice;
+		lastVendors = snapshot.vendors;
 		lastModel = snapshot.model;
 		processAll();
 	});

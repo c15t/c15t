@@ -97,6 +97,16 @@ describe('resolveVendors', () => {
 		).toBe(true);
 	});
 
+	test('a configured vendor whose id is not a valid wire id is dropped with a warning', () => {
+		const onWarn = vi.fn();
+		const resolved = resolveVendors({
+			config: [{ ...meta, id: 'Meta Pixel' }, meta],
+			onWarn,
+		});
+		expect(resolved.map((vendor) => vendor.id)).toEqual(['meta-pixel']);
+		expect(onWarn).toHaveBeenCalledOnce();
+	});
+
 	test('a newer declaration of the same source replaces the existing entry', () => {
 		const resolved = resolveVendors({
 			existing: [

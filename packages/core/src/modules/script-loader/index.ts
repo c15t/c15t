@@ -161,6 +161,7 @@ export const createScriptLoader = function createScriptLoader(
 	let lastModel: unknown = null;
 	let lastEvaluationPolicy: unknown = null;
 	let lastVendorChoice: unknown = null;
+	let lastVendors: unknown = null;
 
 	const isConsentStateUnchanged = (snapshot: ConsentSnapshot): boolean => {
 		const effective = getEffectiveGateState(snapshot);
@@ -172,7 +173,8 @@ export const createScriptLoader = function createScriptLoader(
 			effective.restrictions === lastRestrictions &&
 			snapshot.model === lastModel &&
 			snapshot.evaluationPolicy === lastEvaluationPolicy &&
-			snapshot.vendorChoice === lastVendorChoice
+			snapshot.vendorChoice === lastVendorChoice &&
+			snapshot.vendors === lastVendors
 		);
 	};
 
@@ -185,6 +187,7 @@ export const createScriptLoader = function createScriptLoader(
 			return;
 		}
 		lastVendorChoice = snapshot.vendorChoice;
+		lastVendors = snapshot.vendors;
 		lastConsents = effective.effectivePermissions;
 		lastRestrictions = effective.restrictions;
 		lastModel = snapshot.model;

@@ -103,4 +103,30 @@ describe('iframe data-vendor', () => {
 		blocker.dispose();
 		kernel.dispose();
 	});
+
+	test('the blocker re-scans when a denied vendor becomes disabled', () => {
+		const kernel = kernelFor(['youtube']);
+		const iframe = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const blocker = createIframeBlocker({ kernel });
+		expect(iframe.getAttribute('src')).toBeNull();
+		// Declaring the vendor `disabled` lifts its stored denial at the gate.
+		kernel.set.vendors({
+			declared: [
+				{
+					category: 'marketing',
+					disabled: true,
+					id: 'youtube',
+					presentable: false,
+					source: 'config',
+				},
+			],
+		});
+		expect(iframe.getAttribute('src')).toBe('https://www.youtube.com/embed/x');
+		blocker.dispose();
+		kernel.dispose();
+	});
 });

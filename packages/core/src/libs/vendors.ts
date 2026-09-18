@@ -54,6 +54,9 @@ const SOURCE_RANK: Record<VendorSource, number> = {
  */
 const VENDOR_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 
+const invalidSlugWarning = (id: string): string =>
+	`[c15t] Vendor id "${id}" is not a lowercase slug of up to 64 characters (letters, digits, ".", "_" and "-"). It is ignored: anything it names is gated by its category only.`;
+
 /** Whether a string is a slug the wire schema accepts. */
 export const isValidVendorId = function isValidVendorId(
 	value: string
@@ -183,11 +186,21 @@ export const resolveVendors = function resolveVendors(
 			byId.set(candidate.id, candidate);
 		}
 	};
+	// A declared id that the wire cannot carry as a grant key is dropped with
+	// a warning, the same way an owner slug is: one bad id would otherwise
+	// make every save fail backend validation.
+	const declare = (vendor: Vendor, source: 'config' | 'manifest') => {
+		if (!isValidVendorId(vendor.id)) {
+			input.onWarn?.(invalidSlugWarning(vendor.id));
+			return;
+		}
+		place(toResolved(vendor, source));
+	};
 	for (const vendor of input.config ?? []) {
-		place(toResolved(vendor, 'config'));
+		declare(vendor, 'config');
 	}
 	for (const vendor of input.manifest ?? []) {
-		place(toResolved(vendor, 'manifest'));
+		declare(vendor, 'manifest');
 	}
 
 	// Scripts and rules only know the slug and their own category. Collect
@@ -199,9 +212,7 @@ export const resolveVendors = function resolveVendors(
 			continue;
 		}
 		if (!isValidVendorId(owner.vendor)) {
-			input.onWarn?.(
-				`[c15t] Vendor slug "${owner.vendor}" is not a lowercase slug of up to 64 characters (letters, digits, ".", "_" and "-"). It is ignored: the script or rule is gated by its category only.`
-			);
+			input.onWarn?.(invalidSlugWarning(owner.vendor));
 			continue;
 		}
 		const list = ownerCategories.get(owner.vendor) ?? [];
