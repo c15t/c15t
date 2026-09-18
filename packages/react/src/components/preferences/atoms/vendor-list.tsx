@@ -1,5 +1,6 @@
 import type { AllConsentNames } from '@c15t/core';
 import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
+import { useId } from 'react';
 
 import { useConsentManager } from '~/component-hooks/use-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
@@ -51,6 +52,9 @@ export const ConsentWidgetVendorList = ({
 	} = useConsentManager();
 	const { consentManagerDialog } = useTranslations();
 	const { noStyle: contextNoStyle } = useTheme();
+	// Two surfaces can list the same vendor at once, an inline widget and an
+	// open dialog for instance, so the label ids are scoped to this instance.
+	const instanceId = useId();
 	const finalNoStyle = noStyle ?? contextNoStyle;
 	const vendors = getDisplayedVendors(category);
 	if (vendors.length === 0) {
@@ -89,6 +93,7 @@ export const ConsentWidgetVendorList = ({
 				)}
 				{vendors.map((vendor) => {
 					const name = vendor.name ?? vendor.id;
+					const labelId = `${instanceId}vendor-${category}-${vendor.id}`;
 					const checked = selectedVendors[vendor.id] ?? true;
 					// A `disabled` vendor is presented without a toggle: the kernel
 					// ignores grants for it, so a switch would only mislead.
@@ -112,7 +117,7 @@ export const ConsentWidgetVendorList = ({
 									baseClassName={styles?.name}
 									slotKey="vendor-list.name"
 								>
-									<p id={`c15t-vendor-${category}-${vendor.id}`}>{name}</p>
+									<p id={labelId}>{name}</p>
 								</Box>
 								{vendor.description ? (
 									<Box
@@ -149,7 +154,7 @@ export const ConsentWidgetVendorList = ({
 								>
 									<RadixSwitch.Root
 										aria-label={copy.switchLabel.replace('{vendor}', name)}
-										aria-describedby={`c15t-vendor-${category}-${vendor.id}`}
+										aria-describedby={labelId}
 										checked={checked}
 										data-testid={`consent-widget-vendor-switch-${category}-${vendor.id}`}
 										disabled={!categoryOn}
