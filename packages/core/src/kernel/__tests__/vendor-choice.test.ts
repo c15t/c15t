@@ -174,6 +174,20 @@ describe('snapshot vendor state', () => {
 		kernel.dispose();
 	});
 
+	test('set.vendors with replaceSource and the same list is a no-op', () => {
+		const kernel = createKernel();
+		const set = vi.fn();
+		kernel.events.on('vendors:set', set);
+		const before = kernel.getSnapshot();
+		kernel.set.vendors(
+			{ declared: vendors.declared },
+			{ replaceSource: 'config' }
+		);
+		expect(set).not.toHaveBeenCalled();
+		expect(kernel.getSnapshot().vendors).toBe(before.vendors);
+		kernel.dispose();
+	});
+
 	test('set.vendors merges declarations and emits once per change', () => {
 		const kernel = createKernel({ initialVendors: undefined });
 		const set = vi.fn();
@@ -281,6 +295,31 @@ describe('save with vendors', () => {
 				vendors: { cdn: false, unknown: false },
 			}
 		);
+		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		kernel.dispose();
+	});
+
+	test('a staged value for an undeclared vendor is dropped by a no-op save', async () => {
+		const kernel = createKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+		});
+		kernel.set.vendorDraft({ 'tiktok-pixel': false });
+		await kernel.commands.save();
+		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		// The vendor is declared later. The stale staged denial must not be
+		// applied by the next unrelated save.
+		kernel.set.vendors({
+			declared: [
+				...vendors.declared,
+				{
+					category: 'marketing',
+					id: 'tiktok-pixel',
+					presentable: false,
+					source: 'config',
+				},
+			],
+		});
+		await kernel.commands.save();
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		kernel.dispose();
 	});

@@ -1061,6 +1061,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const categoriesChanged = recorded.confirmed.length > 0;
 			if (!categoriesChanged && !vendorsChanged) {
 				// Nothing confirmed: no receipt, no choice event, no request, no write.
+				// A staged vendor value the selection ignored (undeclared, disabled)
+				// is dropped too, or a later declaration would let an unrelated save
+				// apply it.
+				runtime.setVendorDraft(null);
 				const result: SaveResult = {
 					confirmed: [],
 					ok: true,
