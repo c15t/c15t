@@ -58,9 +58,47 @@ describe('mergeSubjectVendorChoice', () => {
 				vendorChoice: { kind: 'grants', vendorChoice: grants('a', false, 2) },
 			},
 		]);
+		// The composite is dated by its oldest surviving decision, so the
+		// retained `b` is never presented as newer than it is.
+		assert.deepStrictEqual(merged, {
+			confirmedAt: 1,
+			grants: { a: false, b: false },
+			version: 1,
+		});
+	});
+
+	it('takes the latest time when the latest act names every vendor', () => {
+		const merged = mergeSubjectVendorChoice([
+			{
+				givenAt: new Date(1),
+				id: 'cns_1',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants',
+					vendorChoice: {
+						confirmedAt: 1,
+						grants: { a: true, b: false },
+						version: 1,
+					},
+				},
+			},
+			{
+				givenAt: new Date(2),
+				id: 'cns_2',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants',
+					vendorChoice: {
+						confirmedAt: 2,
+						grants: { a: false, b: true },
+						version: 1,
+					},
+				},
+			},
+		]);
 		assert.deepStrictEqual(merged, {
 			confirmedAt: 2,
-			grants: { a: false, b: false },
+			grants: { a: false, b: true },
 			version: 1,
 		});
 	});

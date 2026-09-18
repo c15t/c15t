@@ -256,9 +256,13 @@ export interface VendorSourceRow {
  * added since, so its silence is not a decision. A later act that does name
  * the vendor replaces that grant as usual.
  *
- * `givenAt` is the act's time; a map's own `confirmedAt` travels with the
- * latest act but does not pick the winner, since a client may send them
- * independently. Two acts at the same instant can both exist when they
+ * `givenAt` orders the acts; a map's own `confirmedAt` does not pick the
+ * winner, since a client may send them independently. The composite carries
+ * one `confirmedAt`, and the client compares whole records by it, so it takes
+ * the time of the oldest act whose decision still stands: a retained older
+ * grant must never be presented as newer than it is, or it would override a
+ * newer local decision about a vendor the later act never named. When the
+ * latest act names every vendor, that is simply its own time. Two acts at the same instant can both exist when they
  * differ in policy or domain, and SQL does not define which one a query
  * returns last, so a tie is broken by the row id: the greater id wins on
  * every engine. A row without a map is skipped: that act did not decide
@@ -281,13 +285,15 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 			return byTime === 0 ? left.id.localeCompare(right.id) : byTime;
 		});
 	let grants: Record<string, boolean> | null = null;
-	let confirmedAt = 0;
+	// When each surviving decision was confirmed, keyed like `grants`.
+	let decidedAt: Record<string, number> = {};
 	for (const row of ordered) {
 		const stored = row.vendorChoice;
 		if (stored.kind !== 'grants') {
 			// Unreadable: a decision that cannot be read discards what came
 			// before it. Absent rows were filtered out above.
 			grants = null;
+			decidedAt = {};
 			continue;
 		}
 		const map = stored.vendorChoice;
@@ -299,8 +305,17 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 				value: granted,
 				writable: true,
 			});
+			Object.defineProperty(decidedAt, id, {
+				configurable: true,
+				enumerable: true,
+				value: map.confirmedAt,
+				writable: true,
+			});
 		}
-		({ confirmedAt } = map);
 	}
-	return grants === null ? null : { confirmedAt, grants, version: 1 };
+	if (grants === null) {
+		return null;
+	}
+	const confirmedAt = Math.min(...Object.values(decidedAt));
+	return { confirmedAt, grants, version: 1 };
 };
