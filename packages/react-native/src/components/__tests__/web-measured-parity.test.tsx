@@ -653,4 +653,28 @@ describe('branding tab', () => {
 
 		tree.unmount();
 	});
+
+	test('draws the brand smaller than the words in front of it', () => {
+		const tree = mountSurface(<ConsentBanner />, englishSnapshot());
+		const runs = [
+			...tree.container().querySelectorAll<HTMLElement>('span[data-rn-style]'),
+		]
+			.map(nodeStyle)
+			.filter((style) => style.color === lightTheme.colors.onPrimary);
+
+		// The `max-width: 480px` query restates both runs as `0.625rem`, but only the
+		// wordmark's copy of that rule carries the `:not(.headless)` that ties it with
+		// the 11pt rule it displaces, and only that one comes later. So `Secured by`
+		// stays at `--consent-dialog-branding-label-size` and `c15t` drops to 10, which
+		// is what the demo at 411 wide computes and what the crop of the tag shows.
+		expect(runs.map((style) => style.fontSize)).toEqual([11, 10]);
+		expect(runs.map((style) => style.lineHeight)).toEqual([11, 10]);
+
+		// The tracking each run resolves to at its own size: `.01em` opens the label
+		// by 0.11, `.03em` closes the brand by 0.3 at 10pt, which is what lets the
+		// wordmark sit against its mark.
+		expect(runs.map((style) => style.letterSpacing)).toEqual([0.11, -0.3]);
+
+		tree.unmount();
+	});
 });

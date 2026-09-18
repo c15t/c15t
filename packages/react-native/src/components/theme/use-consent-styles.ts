@@ -492,10 +492,20 @@ export const useConsentStyles = function useConsentStyles(
 				// tab overlaps it by. The web rule carries the same value.
 				zIndex: 2,
 			},
-			// Both runs are the tag's `--consent-dialog-branding-label-size`, 11pt over
-			// a line of its own size. They part company on tracking: `.brandingCopy`
-			// opens by `.01em` and `.brandingWordmarkLabel` closes by `.03em`, which is
-			// how the wordmark sits tight against its own mark.
+			// The two runs of the tag are not the same size, which is the only reason
+			// they are two parts. Both ask for `--consent-dialog-branding-label-size`,
+			// 11pt, but the `max-width: 480px` query every phone matches restates
+			// `.brandingWordmarkLabel` as `0.625rem`, and it wins on specificity: it
+			// carries the same `:not(.headless)` as the rule it displaces and comes
+			// later. Its own sibling `.brandingCopy` is spelled without the `:not()`
+			// in that query, so it loses, and stays at 11. The live banner at 411 wide
+			// measures "Secured by" at 11 and `c15t` at 10, and the crop shows the
+			// brand sitting visibly smaller than the words in front of it -- a single
+			// part for both cannot draw that. Both carry a line of their own size,
+			// which is `.brandingText`'s and `.brandingWordmarkLabel`'s `line-height: 1`.
+			// They also part company on tracking, which is how the brand hugs its mark:
+			// `.brandingTag .brandingCopy` opens by `.01em`, +0.11 at 11pt, and the
+			// wordmark closes by `.03em`, -0.3 at 10.
 			brandingLabel: {
 				color: colors.onPrimary,
 				fontSize: 11,
@@ -504,9 +514,9 @@ export const useConsentStyles = function useConsentStyles(
 			},
 			brandingWordmark: {
 				color: colors.onPrimary,
-				fontSize: 11,
-				letterSpacing: Number((TRACKING_EM.brandingWordmark * 11).toFixed(4)),
-				lineHeight: 11,
+				fontSize: 10,
+				letterSpacing: Number((TRACKING_EM.brandingWordmark * 10).toFixed(4)),
+				lineHeight: 10,
 			},
 			caption: textStyle(typography.caption, colors.textMuted),
 			captionLink: textStyle(typography.caption, colors.text),
