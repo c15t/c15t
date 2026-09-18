@@ -115,3 +115,28 @@ The refreshed Inth demo passed all 12 live checks with no browser errors.
 `babysit-live-results.json` records the deployment version and source commit.
 Transient API failures are exercised by local integration tests; the live
 probe verifies normal grant, revocation, persistence and teardown.
+
+
+## Persistence configuration follow-up
+
+Commit `f5b3549f9` also removes an owned retained element when a same-source
+configuration update turns `persistAfterConsentRevoked` off after revocation.
+The regression failed before the fix. A companion case confirms borrowed DOM
+remains untouched. All 11 focused build/test/type-check tasks passed, including
+1,105 core, 424 scripts and 65 DevTools tests. Test types, docs, formatting and
+Local CI's repository job passed with the same runner Git repair.
+
+The benchmark now substitutes every script-loader module from the requested
+baseline, including callbacks and normalization, and fails if a module is
+missing instead of silently mixing it with current source. Benchmark types
+and a full browser run passed against `e9dd435bc`.
+
+The final loader is 5,997 gzip bytes, 10 bytes above `e9dd435bc`; the bridge
+remains 909. Empty-loader medians were 1.4 microseconds for both revisions,
+and 50-callback medians were 8.6 for both. The bridge measured 1.6 microseconds.
+`retention-results.json` records samples, the complete-module baseline method
+and source hashes. Earlier records retain their original, narrower methodology.
+
+The quote-style review is left open as a false positive. The test string uses
+double outer quotes around JavaScript containing single quotes, as Oxfmt
+formats it. The suggested unescaped single-quoted replacement is invalid syntax.
