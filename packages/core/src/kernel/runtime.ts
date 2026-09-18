@@ -197,16 +197,9 @@ export const createRuntime = function createRuntime(
 		if (!snapshotChanged(current, next)) {
 			return false;
 		}
-		snapshot = freezeSnapshot(next);
-		notify();
-		if (snapshot.effectivePermissions !== current.effectivePermissions) {
-			emit({
-				previous: current.effectivePermissions,
-				snapshot,
-				type: 'permissions:changed',
-			});
-		}
-		const surface = snapshot.activeUI;
+		const adopted = freezeSnapshot(next);
+		snapshot = adopted;
+		const surface = adopted.activeUI;
 		// A save derives `activeUI` to `none` in the same commit that clears
 		// the prompt. An adapter that keeps its preference dialog open for the
 		// save then restores `dialog` with an explicit `set.activeUI` before
@@ -223,18 +216,32 @@ export const createRuntime = function createRuntime(
 			isPromptSurface(current.activeUI) &&
 			current.activeUI !== surface &&
 			patch.activeUI === undefined
-				? { snapshot, surface: current.activeUI }
+				? { snapshot: adopted, surface: current.activeUI }
 				: null;
-		if (
+		const shown: PromptSurface | null =
 			live &&
 			isPromptSurface(surface) &&
 			!restoredAfterSave &&
 			(surface !== current.activeUI || current.surfaceShownAt[surface] === null)
-		) {
+				? surface
+				: null;
+		// Everything the events describe is settled before subscribers run: a
+		// listener may commit again synchronously (an adapter hiding or
+		// restoring a surface), and that nested commit must neither steal
+		// this commit's events nor see a stale `hiddenBySave`.
+		notify();
+		if (adopted.effectivePermissions !== current.effectivePermissions) {
 			emit({
-				shownAt: snapshot.evaluatedAt,
-				snapshot,
-				surface,
+				previous: current.effectivePermissions,
+				snapshot: adopted,
+				type: 'permissions:changed',
+			});
+		}
+		if (shown !== null) {
+			emit({
+				shownAt: adopted.evaluatedAt,
+				snapshot: adopted,
+				surface: shown,
 				type: 'surface:shown',
 			});
 		}
