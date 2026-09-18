@@ -12,7 +12,7 @@ const grants = (id: string, granted: boolean, confirmedAt: number) => ({
 });
 
 describe('mergeSubjectVendorChoice', () => {
-	it('returns the map of the latest act by givenAt', () => {
+	it('lets the latest act by givenAt decide the vendors it names', () => {
 		const merged = mergeSubjectVendorChoice([
 			{
 				givenAt: new Date(2),
@@ -27,7 +27,42 @@ describe('mergeSubjectVendorChoice', () => {
 				vendorChoice: { kind: 'grants', vendorChoice: grants('a', false, 9) },
 			},
 		]);
-		assert.deepStrictEqual(merged?.grants, { a: true });
+		assert.deepStrictEqual(merged, {
+			confirmedAt: 1,
+			grants: { a: true },
+			version: 1,
+		});
+	});
+
+	it('keeps an earlier decision for a vendor the latest act omits', () => {
+		// The later act came from a client on an older vendor list: it never saw
+		// `b`, so its silence must not drop the denial another tab recorded.
+		const merged = mergeSubjectVendorChoice([
+			{
+				givenAt: new Date(1),
+				id: 'cns_1',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants',
+					vendorChoice: {
+						confirmedAt: 1,
+						grants: { a: true, b: false },
+						version: 1,
+					},
+				},
+			},
+			{
+				givenAt: new Date(2),
+				id: 'cns_2',
+				type: 'cookie_banner',
+				vendorChoice: { kind: 'grants', vendorChoice: grants('a', false, 2) },
+			},
+		]);
+		assert.deepStrictEqual(merged, {
+			confirmedAt: 2,
+			grants: { a: false, b: false },
+			version: 1,
+		});
 	});
 
 	it('skips acts without a map but not an unreadable newer one', () => {
