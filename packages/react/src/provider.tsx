@@ -483,6 +483,38 @@ const resolveInitialPolicyPending = function resolveInitialPolicyPending(
 	);
 };
 
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
+/**
+ * Declared vendors for the kernel: code declarations and script slugs merged
+ * over whatever a server prefetch already resolved. A resolved prefetch
+ * skips the initial `init()`, so nothing would merge backend vendors later.
+ */
+const resolveProviderVendors = function resolveProviderVendors(
+	options: ConsentProviderOptions,
+	integrations: readonly { vendor?: string; category: Script['category'] }[],
+	prefetch: KernelConfig
+): KernelConfig['initialVendors'] {
+	const declared = resolveVendors({
+		config: options.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnVendorDeclaration,
+		owners: integrations,
+	});
+	const listVersion = prefetch.initialVendors?.listVersion ?? null;
+	return declared.length > 0 || listVersion !== null
+		? { declared, listVersion }
+		: undefined;
+};
+
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
@@ -512,18 +544,11 @@ const createProviderKernel = function createProviderKernel(
 		...(options.scripts ?? []),
 		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
 	];
-	const declaredVendors = resolveVendors({
-		config: options.vendors,
-		onWarn: (message) => {
-			const nodeEnv = (
-				globalThis as { process?: { env?: { NODE_ENV?: string } } }
-			).process?.env?.NODE_ENV;
-			if (nodeEnv !== 'production') {
-				console.warn(message);
-			}
-		},
-		owners: integrations,
-	});
+	const initialVendors = resolveProviderVendors(
+		options,
+		integrations,
+		prefetch
+	);
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
@@ -537,10 +562,7 @@ const createProviderKernel = function createProviderKernel(
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],
-		initialVendors:
-			declaredVendors.length > 0
-				? { declared: declaredVendors, listVersion: null }
-				: prefetch.initialVendors,
+		initialVendors,
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed

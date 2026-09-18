@@ -70,7 +70,9 @@ group: reference
   hint "Turn on this category to choose vendors." Accept all and Reject all
   clear every vendor denial. Under an `iab` policy no vendor rows render.
   Vendors that are only referenced by a script slug, without a name and
-  privacy policy URL, still gate loading but are not listed. See
+  privacy policy URL, still gate loading but are not listed, and so does a
+  vendor whose condition negates a category, since no category row can
+  host it. See
   [vendor-level consent](/docs/integrations/vendor-consent).
 
   ### Actions

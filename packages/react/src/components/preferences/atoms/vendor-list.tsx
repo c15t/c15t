@@ -105,7 +105,7 @@ export const ConsentWidgetVendorList = ({
 									baseClassName={styles?.name}
 									slotKey="vendor-list.name"
 								>
-									<p id={`c15t-vendor-${vendor.id}`}>{name}</p>
+									<p id={`c15t-vendor-${category}-${vendor.id}`}>{name}</p>
 								</Box>
 								{vendor.description ? (
 									<Box
@@ -141,7 +141,7 @@ export const ConsentWidgetVendorList = ({
 							>
 								<RadixSwitch.Root
 									aria-label={copy.switchLabel.replace('{vendor}', name)}
-									aria-describedby={`c15t-vendor-${vendor.id}`}
+									aria-describedby={`c15t-vendor-${category}-${vendor.id}`}
 									checked={checked}
 									data-testid={`consent-widget-vendor-switch-${vendor.id}`}
 									disabled={disabled}
