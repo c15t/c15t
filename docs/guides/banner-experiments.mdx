@@ -188,7 +188,13 @@ Omit `variant` and c15t hashes a stable key into the arms by `weights`
 (equal by default). The key is the stored subject id when the browser already
 has one, or a random key created on first visit. The assignment is stored under
 `c15t-experiment-v1` in localStorage (a cookie when localStorage is unavailable)
-so a returning visitor keeps their arm. c15t records `assignedBy: 'c15t'`.
+so a returning visitor keeps their arm. Only the random key is written to that
+record; the subject id stays in the consent record. c15t records
+`assignedBy: 'c15t'`.
+
+An arm missing from a supplied `weights` map has weight `0`. A map that gives
+no arm a positive weight is a configuration error and fails when the provider
+is constructed.
 
 ```ts
 experiment: {
@@ -216,16 +222,42 @@ legal review of that arm; c15t records that you made it.
 ## Read the assignment
 
 ```tsx
-import { useExperiment } from 'c15t/react';
+import {
+	useExperiment,
+	useResolvedPresentation,
+	useResolvedTheme,
+} from 'c15t/react';
 
 const { id, variant, assignedBy } = useExperiment() ?? {};
+const presentation = useResolvedPresentation();
+const theme = useResolvedTheme();
 ```
 
-Vue exposes `useExperiment()` and `useResolvedPresentation()`, Svelte
-`getConsentManager().experiment`, and `@c15t/browser` `client.presentation`.
-Every adapter also reports it on `snapshot.experiment`. Built-in assignment
-lands after mount, so `useExperiment()` is `null` on the server render and
-during hydration; a host-resolved `variant` is known from the first render.
+React exposes three hooks:
+
+- `useExperiment()` returns the assigned arm (`id`, `variant`, `assignedBy`,
+  `acknowledgedDiagnostics`), or `null` while no experiment is configured
+  or no arm is assigned yet.
+- `useResolvedPresentation()` returns `presentation` with the assigned
+  arm merged over it per surface. While no arm is assigned it returns
+  `presentation` itself. The stock banner, dialog and widget render from it,
+  as do `usePromptPresentation()` and `usePreferencesPresentation()`.
+- `useResolvedTheme()` returns `theme` with the arm's `theme` merged one
+  token group deep over it. While no arm is assigned, or the arm has no
+  `theme`, it returns `theme` itself. The provider injects this merged theme.
+
+Built-in assignment lands after mount, so `useExperiment()` is `null` on the
+server render and during hydration and the resolved hooks return the base
+values; they update in the same render the arm lands, and a clean
+preferences draft reseeds from the arm's `preferences.defaults`. A
+host-resolved `variant` is known from the first render, on the server too.
+The provider reads `experiment` once, at mount; remount to change it.
+
+Vue exposes `useExperiment()`, `useResolvedPresentation()` and
+`useResolvedTheme(theme)`, Svelte `getConsentManager().experiment`,
+`.presentation` and `.theme`, and `@c15t/browser` `client.presentation` and
+`client.theme`. Every adapter also reports the arm on `snapshot.experiment`.
+
 
 ## What is recorded
 
