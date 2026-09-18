@@ -65,15 +65,6 @@ const describeCommit = (label: string, result: CommitResult): string => {
 	return `${label}: rev ${String(result.revision)} ${delivered}${confirmed}`;
 };
 
-/**
- * A verb the installed SDK cannot serve yet.
- *
- * Naming the package keeps a scripted run honest: a verb that silently did nothing
- * reads as a passing step, and this line does not.
- */
-const notInThisBuild = (name: string): string =>
-	`${name}: @c15t/react-native in this checkout has no such action`;
-
 /** The external id `identify` uses when the link does not name one. */
 const DEFAULT_EXTERNAL_ID = 'runner-42';
 
@@ -118,11 +109,10 @@ const selectionFrom = (
  * `help` is answered by the delivery hook, so the table holds only the verbs that
  * reach the SDK or the screens.
  *
- * `reset` is already in the table, which is what makes the SDK's incoming reset
- * action one line of wiring: replace `notInThisBuild('reset')` with a call to the
- * new action and the verb, its documentation, and its receipt all come along. Until
- * then the verb reports that the action is absent, which is a truth a reviewer can
- * read in a screenshot, unlike a verb that quietly did nothing.
+ * `reset` calls the core's wipe, so the table can put a reviewer back at first
+ * launch without a reinstall. The sheets close first: a wipe that left the
+ * preference centre on screen would show switches read from a snapshot that no
+ * longer exists.
  */
 export const DEMO_VERBS: readonly DemoVerb[] = [
 	{
@@ -241,7 +231,12 @@ export const DEMO_VERBS: readonly DemoVerb[] = [
 		verb: 'refresh',
 	},
 	{
-		run: () => notInThisBuild('reset'),
+		run: async (context) => {
+			context.closeSheets();
+			await context.actions.reset();
+
+			return 'reset: consent wiped, first-run prompt owed again';
+		},
 		summary: 'Forget the stored consent and owe the first-run prompt again.',
 		usage: 'reset',
 		verb: 'reset',
