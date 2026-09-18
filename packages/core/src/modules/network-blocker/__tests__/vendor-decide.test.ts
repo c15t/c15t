@@ -8,6 +8,17 @@ import { createConsentKernel } from '../../../kernel';
 import { evaluateBlock } from '../decide';
 import { createNetworkBlocker } from '../index';
 
+/** The slugs these tests deny, declared so the gate honors the denial. */
+const declaredVendors = (ids: readonly string[]) => ({
+	declared: ids.map((id) => ({
+		category: 'marketing' as const,
+		id,
+		presentable: false,
+		source: 'script' as const,
+	})),
+	listVersion: null,
+});
+
 describe('network rules with a vendor slug', () => {
 	test('a denied vendor blocks a request whose category is granted', () => {
 		const snap = createConsentKernel({
@@ -19,6 +30,7 @@ describe('network rules with a vendor slug', () => {
 					version: 1,
 				},
 			},
+			initialVendors: declaredVendors(['meta-pixel']),
 			now: NOW,
 		}).getSnapshot();
 		const rules = [

@@ -13,6 +13,17 @@ import { createScriptLoader } from '../index';
 import { normalizeScripts } from '../normalize';
 import type { Script } from '../types';
 
+/** The slugs these tests deny, declared so the gate honors the denial. */
+const declaredVendors = (ids: readonly string[]) => ({
+	declared: ids.map((id) => ({
+		category: 'marketing' as const,
+		id,
+		presentable: false,
+		source: 'script' as const,
+	})),
+	listVersion: null,
+});
+
 const snapshotFor = (denied: string[], iab = false) =>
 	createConsentKernel({
 		...(iab && {
@@ -23,6 +34,7 @@ const snapshotFor = (denied: string[], iab = false) =>
 			...choiceRecords({ marketing: true, measurement: true }),
 			vendorChoice: { confirmedAt: NOW - 1, denied, version: 1 },
 		},
+		initialVendors: declaredVendors(denied),
 		now: NOW,
 	}).getSnapshot();
 
@@ -137,7 +149,9 @@ describe('script-owned vendor declarations', () => {
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 			now: NOW,
 		});
-		const category = { or: ['marketing', 'measurement'] as const };
+		const category: Script['category'] = {
+			or: ['marketing', 'measurement'],
+		};
 		const loader = createScriptLoader({ kernel, scripts: [] });
 		loader.updateScripts([script({ callbackOnly: true, category })]);
 		expect(Object.isFrozen(category)).toBe(false);

@@ -27,12 +27,24 @@ const makeIframe = (attrs: Record<string, string>) => {
 	return iframe;
 };
 
+/** The slugs these tests deny, declared so the gate honors the denial. */
+const declaredVendors = (ids: readonly string[]) => ({
+	declared: ids.map((id) => ({
+		category: 'marketing' as const,
+		id,
+		presentable: false,
+		source: 'script' as const,
+	})),
+	listVersion: null,
+});
+
 const kernelFor = (denied: string[]) =>
 	createConsentKernel({
 		initialRecords: {
 			...choiceRecords({ marketing: true }),
 			vendorChoice: { confirmedAt: NOW - 1, denied, version: 1 },
 		},
+		initialVendors: declaredVendors(denied),
 		now: NOW,
 	});
 
@@ -133,7 +145,11 @@ describe('iframe data-vendor', () => {
 	});
 
 	test('the blocker re-scans when the vendor choice changes', () => {
-		const kernel = kernelFor([]);
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+			initialVendors: declaredVendors(['youtube']),
+			now: NOW,
+		});
 		const iframe = makeIframe({
 			'data-category': 'marketing',
 			'data-vendor': 'youtube',

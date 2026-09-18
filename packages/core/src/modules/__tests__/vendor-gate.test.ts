@@ -1,7 +1,8 @@
 /**
  * Vendor-level consent at the shared gate. A denied vendor blocks a target
- * whose category passes; unknown vendors are granted; IAB mode ignores the
- * vendor slug; category evaluation still runs first so config errors throw.
+ * whose category passes; unknown, undeclared and disabled vendors are
+ * granted; IAB mode ignores the vendor slug; category evaluation still runs
+ * first so config errors throw.
  */
 import { describe, expect, test } from 'vitest';
 
@@ -15,6 +16,17 @@ import { createConsentKernel } from '../../index';
 import type { ConsentSnapshot } from '../../types';
 import { evaluateConsent, isVendorDenied } from '../has';
 
+/** The slugs these tests deny, declared so the gate honors the denial. */
+const declaredVendors = (ids: readonly string[]) => ({
+	declared: ids.map((id) => ({
+		category: 'marketing' as const,
+		id,
+		presentable: false,
+		source: 'script' as const,
+	})),
+	listVersion: null,
+});
+
 const snapshotWith = function snapshotWith(
 	denied: string[],
 	consents: Partial<Record<'marketing' | 'measurement', boolean>> = {
@@ -26,6 +38,7 @@ const snapshotWith = function snapshotWith(
 			...choiceRecords({ measurement: false, ...consents }),
 			vendorChoice: { confirmedAt: NOW - 1, denied, version: 1 },
 		},
+		initialVendors: declaredVendors(denied),
 		now: NOW,
 	}).getSnapshot();
 };
@@ -73,6 +86,26 @@ describe('evaluateConsent with a vendor slug', () => {
 		).toBe(false);
 	});
 
+	test('a stored denial for a vendor no longer declared is ignored', () => {
+		// The visitor has no switch left to grant it again, so it follows its
+		// category like a vendor never declared.
+		const snap = createConsentKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 1,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+			now: NOW,
+		}).getSnapshot();
+		expect(isVendorDenied(snap, 'meta-pixel')).toBe(false);
+		expect(
+			evaluateConsent({ category: 'marketing', vendor: 'meta-pixel' }, snap)
+		).toBe(true);
+	});
+
 	test('a stored denial for a vendor now declared disabled is ignored', () => {
 		const snap = createConsentKernel({
 			initialRecords: {
@@ -92,6 +125,7 @@ describe('evaluateConsent with a vendor slug', () => {
 						presentable: false,
 						source: 'config',
 					},
+					...declaredVendors(['meta-pixel']).declared,
 				],
 				listVersion: null,
 			},
