@@ -140,3 +140,23 @@ and source hashes. Earlier records retain their original, narrower methodology.
 The quote-style review is left open as a false positive. The test string uses
 double outer quotes around JavaScript containing single quotes, as Oxfmt
 formats it. The suggested unescaped single-quoted replacement is invalid syntax.
+
+
+## Readiness error follow-up
+
+Commit `77018cc5d` keeps the readiness listener registered when an API error
+propagates to the loader debug hook without a configured `onError`. Both
+`getAll` and `set` regressions failed before the fix and now pass. A `finally`
+block preserves the retry while allowing the existing error reporting to run.
+All 426 scripts tests, builds and types passed. Local CI's repository job also
+passed after the documented Git-wrapper repair. The benchmark description was
+wrapped into short literals; a direct comparison confirmed identical output.
+
+The loader remains 5,997 gzip bytes. The bridge is 927, an 18-byte increase over
+`96df38f62`. Empty-loader medians were 1.6 microseconds and 50-callback medians
+10.0 for both revisions. The bridge measured 2.0 microseconds per update.
+Samples and source hashes are in `readiness-results.json`. The loader code is
+identical in this comparison; only bridge error handling changed.
+
+All 12 live checks passed again after deploying this source to the Inth demo.
+`readiness-live-results.json` records its source and deployment identifiers.
