@@ -222,6 +222,28 @@ it takes a lock per serial, because two runs driving one device read each other'
 one of them reports a step that never happened. Frames and the hierarchies behind them land in
 `JOURNEY_OUT`, which defaults to `/tmp/android-journey/<worktree>`.
 
+The geometry half of that proof is `scripts/android-surface-metrics.py`, which the journey
+runs for the banner and the consent manager:
+
+```sh
+ANDROID_SERIAL=emulator-5554 scripts/android-surface-metrics.py --mode dialog
+```
+
+It reads the two bands rather than assuming them, which is the part that is easy to get
+wrong. The status band comes out of the dump, because with no host measurement the SDK takes
+it from `StatusBar.currentHeight`, which is the status bar window the system reports. The
+bottom band defaults to the SDK's `RESERVED_BOTTOM_INSET` floor and not to this device's
+navigation bar, because the bare example passes no insets to the provider; wire
+`react-native-safe-area-context` into the provider and pass `--nav-inset` with the device's
+real number instead. Both bands are printed on every run, and a run that cannot read them
+exits 2 rather than measuring against a guess. A saved hierarchy grades too, so the evidence
+stays re-runnable after the device is gone:
+
+```sh
+ANDROID_SERIAL=emulator-5554 scripts/android-surface-metrics.py --mode dialog \
+    --from-xml /tmp/android-journey/v3-3/02-customize-dialog.xml
+```
+
 To confirm a decision reached the backend rather than only the device, read the consent table
 the demo writes to:
 

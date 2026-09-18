@@ -24,7 +24,8 @@
 
 set -euo pipefail
 
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${APP_DIR}/../.." && pwd)"
 
 PKG="com.c15t.bare"
@@ -86,9 +87,16 @@ rm -f "${OUT_DIR}"/*.png "${OUT_DIR}"/*.xml
 FAILED=0
 
 # texts <name>: dump the hierarchy and print the distinct strings on screen
+#
+# --windows, so the saved evidence carries the status bar window and android-surface-metrics.py
+# can grade a frame after the device is gone. The remote file is removed before the dump
+# because a failed dump leaves the previous one in place, and `cat` would hand back the screen
+# from the step before: the needles would match, and the step that never rendered would report
+# green.
 texts () {
 	local name="$1"
-	"${ADB}" -s "${SERIAL}" shell uiautomator dump /sdcard/journey.xml >/dev/null 2>&1 || true
+	"${ADB}" -s "${SERIAL}" shell rm -f /sdcard/journey.xml >/dev/null 2>&1 || true
+	"${ADB}" -s "${SERIAL}" shell uiautomator dump --windows /sdcard/journey.xml >/dev/null 2>&1 || true
 	"${ADB}" -s "${SERIAL}" shell cat /sdcard/journey.xml >"${OUT_DIR}/${name}.xml" 2>/dev/null || true
 	python3 - "${OUT_DIR}/${name}.xml" <<'PY'
 import re, sys
@@ -103,6 +111,24 @@ for value in re.findall(r'text="([^"]+)"', tree):
         seen.append(value)
 print(' | '.join(seen[:24]))
 PY
+}
+
+# parity <name> <banner|dialog>: grade the geometry of the surface this step is standing on.
+#
+# The text assertions prove the right words are somewhere on screen. This proves the surface
+# is built to the web's measurements, which no amount of grep can tell. It reads the live
+# screen, so it belongs inside the step, while that step's surface is still up: a later pass
+# over the saved frames would grade whatever the next step had already put there and call it
+# the previous one.
+parity () {
+	local name="$1" mode="$2"
+	printf -- '--- %s (%s)\n' "${name}" "${mode}"
+	python3 "${SCRIPT_DIR}/android-surface-metrics.py" --serial "${SERIAL}" --mode "${mode}" |
+		tee "${OUT_DIR}/${name}-metrics.txt" || true
+	grep -q '^RESULT MATCH$' "${OUT_DIR}/${name}-metrics.txt" || {
+		log "FAIL: ${name} geometry is not at web parity"
+		FAILED=$((FAILED + 1))
+	}
 }
 
 # capture <name>
@@ -201,13 +227,15 @@ capture 01-fresh-banner
 texts 01-fresh-banner >/dev/null
 die_if_dead 01-fresh-banner
 expect 01-fresh-banner "fresh install: banner owing a decision" "${banner_texts[@]}"
+parity 01-fresh-banner banner
 
 log "step 2: customize opens the consent manager"
 link "customize" 8
 capture 02-customize-dialog
-texts 02-dialog >/dev/null
-die_if_dead 02-dialog
-expect 02-dialog "consent manager lists every category" "${dialog_texts[@]}"
+texts 02-customize-dialog >/dev/null
+die_if_dead 02-customize-dialog
+expect 02-customize-dialog "consent manager lists every category" "${dialog_texts[@]}"
+parity 02-customize-dialog dialog
 
 log "step 3: save a per-category set"
 link "save?experience=1&marketing=0" 10
@@ -230,6 +258,7 @@ capture 05-reset
 texts 05-reset >/dev/null
 die_if_dead 05-reset
 expect 05-reset "reset: first-run prompt owed again" "${banner_texts[@]}"
+parity 05-reset banner
 
 printf '\n'
 if [[ "${FAILED}" == "0" ]]; then
