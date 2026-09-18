@@ -88,7 +88,9 @@ filter away the subject's cookie-banner choice state.
 When the client declares vendors, a save also carries `vendorChoice`: the complete
 per-vendor grant map with one confirmation time. The backend stores it as sent on
 the consent row, including vendors the client declared in code rather than in the
-manifest, and returns the map of the most recent act as `subjectVendorChoice`.
+manifest, and returns the map of the most recent act as `subjectVendorChoice`. A
+map that leaves out a vendor the manifest declares is refused with
+`VENDOR_CHOICE_INCOMPLETE`, since an omitted vendor reads back as allowed.
 Retrying the same act with a different map is a `CONFLICT`, like a retry with
 different receipts, and so is any retry against a stored map that cannot be
 read. Migration `4-vendor-choice` adds the column.
