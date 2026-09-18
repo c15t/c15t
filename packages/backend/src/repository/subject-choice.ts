@@ -247,48 +247,57 @@ export interface VendorSourceRow {
 }
 
 /**
- * The vendor grant map of a subject's most recent cookie-banner act.
+ * The vendor grant map a subject's cookie-banner acts add up to.
  *
- * Unlike category receipts, a vendor map is one complete decision, so the
- * map on the latest act by `givenAt` replaces every earlier one outright.
- * `givenAt` is the act's time; the map's own `confirmedAt` travels with it
- * but does not pick the winner, since a client may send them independently.
- * Two acts at the same instant can both exist when they differ in policy or
- * domain, and SQL does not define which one a query returns last, so a tie is
- * broken by the row id: the greater id wins on every engine. A row without a
- * map is skipped: that act did not decide vendors. A row whose map is
- * unreadable is the newest decision and cannot be read, so the aggregate is
- * `null` rather than an older map that the unreadable act superseded.
+ * The latest act by `givenAt` sets the map's time and decides every vendor
+ * it names. A vendor an earlier act decided but the latest one omits keeps
+ * the earlier grant: the client sends the complete map for the list it
+ * saw, and a client on a cached or bundled manifest has not seen a vendor
+ * added since, so its silence is not a decision. A later act that does name
+ * the vendor replaces that grant as usual.
+ *
+ * `givenAt` is the act's time; a map's own `confirmedAt` travels with the
+ * latest act but does not pick the winner, since a client may send them
+ * independently. Two acts at the same instant can both exist when they
+ * differ in policy or domain, and SQL does not define which one a query
+ * returns last, so a tie is broken by the row id: the greater id wins on
+ * every engine. A row without a map is skipped: that act did not decide
+ * vendors. A row whose map is unreadable is a decision that cannot be read,
+ * so everything at or before it is discarded and the aggregate is `null`
+ * unless a later readable act exists.
  *
  * @internal
  */
 export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	rows: readonly VendorSourceRow[]
 ): VendorChoiceWire | null {
-	let newest: {
-		givenAt: number;
-		id: string;
-		vendorChoice: VendorChoiceWire | null;
-	} | null = null;
-	for (const row of rows) {
-		if (row.type !== COOKIE_BANNER_TYPE || row.vendorChoice.kind === 'absent') {
+	const ordered = rows
+		.filter(
+			(row) =>
+				row.type === COOKIE_BANNER_TYPE && row.vendorChoice.kind !== 'absent'
+		)
+		.sort((left, right) => {
+			const byTime = left.givenAt.getTime() - right.givenAt.getTime();
+			return byTime === 0 ? left.id.localeCompare(right.id) : byTime;
+		});
+	let grants: Record<string, boolean> | null = null;
+	let confirmedAt = 0;
+	for (const row of ordered) {
+		if (row.vendorChoice.kind === 'unreadable') {
+			grants = null;
 			continue;
 		}
-		const givenAt = row.givenAt.getTime();
-		const later =
-			newest === null ||
-			givenAt > newest.givenAt ||
-			(givenAt === newest.givenAt && row.id > newest.id);
-		if (later) {
-			newest = {
-				givenAt,
-				id: row.id,
-				vendorChoice:
-					row.vendorChoice.kind === 'grants'
-						? row.vendorChoice.vendorChoice
-						: null,
-			};
+		const map = row.vendorChoice.vendorChoice;
+		grants ??= {};
+		for (const [id, granted] of Object.entries(map.grants)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: granted,
+				writable: true,
+			});
 		}
+		({ confirmedAt } = map);
 	}
-	return newest?.vendorChoice ?? null;
+	return grants === null ? null : { confirmedAt, grants, version: 1 };
 };
