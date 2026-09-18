@@ -998,10 +998,14 @@ describe('kernel transport: failed save replay', () => {
 		const pendingSave = kernel.commands.save('all');
 		await vi.advanceTimersByTimeAsync(0);
 		await pendingSave;
-		const stored = JSON.parse(
+		const stored: unknown = JSON.parse(
 			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
 		);
-		expect(stored[0].payload.timeToDecisionMs).toBe(3000);
+		expect(stored).toEqual([
+			expect.objectContaining({
+				payload: expect.objectContaining({ timeToDecisionMs: 3000 }),
+			}),
+		]);
 
 		vi.setSystemTime(1_700_000_060_000);
 		await kernel.commands.init();
