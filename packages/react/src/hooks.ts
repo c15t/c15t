@@ -284,8 +284,9 @@ export const useVendorAllowed = function useVendorAllowed(
 		const vendor = snap.vendors?.declared.find(
 			(entry) => entry.id === vendorId
 		);
-		// Nothing is known about an undeclared id, and the kernel ignores a
-		// stored denial for it too, so it follows its category alone.
+		// An explicit short-circuit, not load-bearing: the kernel's denial set
+		// already skips an undeclared id, so this only makes the answer for an
+		// unknown vendor plain to read.
 		if (!vendor) {
 			return true;
 		}
