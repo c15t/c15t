@@ -155,3 +155,151 @@ test('configuration removal leaves a borrowed retained element in place', () => 
 	loader.dispose();
 	expect(foreign.isConnected).toBe(true);
 });
+
+test.each(['revoke', 'replace'] as const)(
+	'cancels callback-only onLoad when onBeforeLoad requests %s',
+	(action) => {
+		const { kernel, loader } = mount([]);
+		const load = vi.fn();
+		const replacementLoad = vi.fn();
+		loader.updateScripts([
+			{
+				callbackOnly: true,
+				category: 'measurement',
+				id: 'callback-interrupted',
+				onBeforeLoad: () => {
+					if (action === 'revoke') {
+						void kernel.commands.save({ measurement: false });
+					} else {
+						loader.updateScripts([
+							{
+								callbackOnly: true,
+								category: 'necessary',
+								id: 'replacement',
+								onLoad: replacementLoad,
+							},
+						]);
+					}
+				},
+				onLoad: load,
+			},
+		]);
+		expect(load).not.toHaveBeenCalled();
+		expect(loader.getLoadedScriptIds()).toEqual(
+			action === 'replace' ? ['replacement'] : []
+		);
+		expect(replacementLoad).toHaveBeenCalledTimes(action === 'replace' ? 1 : 0);
+	}
+);
+
+test.each([
+	['replace', false],
+	['remove', false],
+	['dispose', false],
+	['replace', true],
+	['remove', true],
+	['dispose', true],
+] as const)(
+	'passes the original element to onDispose for %s, retained=%s',
+	(action, retained) => {
+		const cleanup = vi.fn();
+		const script: Script = {
+			category: 'measurement',
+			id: 'dispose-element',
+			onDispose: cleanup,
+			persistAfterConsentRevoked: true,
+			src: 'https://example.com/old.js',
+		};
+		const { kernel, loader } = mount([script]);
+		const element = document.head.querySelector('script');
+		if (retained) {
+			void kernel.commands.save({ measurement: false });
+		}
+		if (action === 'dispose') {
+			loader.dispose();
+		} else {
+			loader.updateScripts(
+				action === 'remove'
+					? []
+					: [{ ...script, src: 'https://example.com/new.js' }]
+			);
+		}
+		expect(cleanup).toHaveBeenCalledOnce();
+		expect(cleanup).toHaveBeenCalledWith(expect.objectContaining({ element }));
+	}
+);
+
+test('retries aborted preparation with the latest consent and a new element', () => {
+	const { kernel, loader } = mount([]);
+	const prepared: HTMLScriptElement[] = [];
+	const permissions: boolean[] = [];
+	loader.updateScripts([
+		{
+			alwaysLoad: true,
+			category: 'measurement',
+			id: 'retry-preparation',
+			onBeforeLoad: ({ element, hasConsent }) => {
+				if (!element) {
+					throw new Error('Expected a prepared script element');
+				}
+				prepared.push(element);
+				permissions.push(hasConsent);
+				element.dataset.permission = String(hasConsent);
+				if (hasConsent) {
+					void kernel.commands.save({ measurement: false });
+				}
+			},
+			textContent: 'void 0',
+		},
+	]);
+	expect(permissions).toEqual([true, false]);
+	expect(prepared[0]?.isConnected).toBe(false);
+	expect(prepared[1]?.isConnected).toBe(true);
+	expect(document.head.querySelector('script')?.dataset.permission).toBe(
+		'false'
+	);
+});
+
+test.each(['load', 'error'] as const)(
+	'delivers delayed %s to the current same-resource configuration',
+	(event) => {
+		const oldCallback = vi.fn();
+		const currentCallback = vi.fn();
+		const script: Script = {
+			alwaysLoad: true,
+			category: 'measurement',
+			id: 'latest-callback',
+			onError: oldCallback,
+			onLoad: oldCallback,
+			src: 'https://example.com/vendor.js',
+		};
+		const { kernel, loader } = mount([script]);
+		const element = document.head.querySelector('script');
+		loader.updateScripts([
+			{ ...script, onError: currentCallback, onLoad: currentCallback },
+		]);
+		void kernel.commands.save({ measurement: false });
+		element?.dispatchEvent(new Event(event));
+		expect(oldCallback).not.toHaveBeenCalled();
+		expect(currentCallback).toHaveBeenCalledOnce();
+		expect(currentCallback).toHaveBeenCalledWith(
+			expect.objectContaining({ element, hasConsent: false })
+		);
+		expect(document.head.querySelector('script')).toBe(element);
+	}
+);
+
+test('delivers deferred inline completion to callbacks added before completion', async () => {
+	const script: Script = {
+		category: 'necessary',
+		id: 'latest-inline',
+		textContent: 'void 0',
+	};
+	const { loader } = mount([script]);
+	const currentCallback = vi.fn();
+	loader.updateScripts([{ ...script, onLoad: currentCallback }]);
+	await new Promise((resolve) => {
+		setTimeout(resolve, 10);
+	});
+	expect(currentCallback).toHaveBeenCalledOnce();
+});

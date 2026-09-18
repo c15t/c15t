@@ -130,6 +130,43 @@ describe('Zaraz consent bridge through the kernel and script loader', () => {
 		expect(onReady).toHaveBeenCalledOnce();
 	});
 
+	it.each([false, true])(
+		'recovers a failed queue replay, revoked before retry=%s',
+		(revoke) => {
+			const onError = vi.fn();
+			const onReady = vi.fn();
+			const { kernel } = mount(
+				cloudflareZaraz({
+					onError,
+					onReady,
+					purposes: { marketing: ['ads'], measurement: ['analytics'] },
+				})
+			);
+			void kernel.commands.save({
+				...deniedConsents,
+				marketing: true,
+				measurement: true,
+			});
+			// Advertising already had permission; only analytics creates replay work.
+			const { api } = installZaraz({ ads: true, analytics: false });
+			vi.spyOn(api, 'sendQueuedEvents').mockImplementationOnce(() => {
+				throw new Error('Replay unavailable');
+			});
+			document.dispatchEvent(new Event('zarazConsentAPIReady'));
+			expect(onError).toHaveBeenCalledOnce();
+			expect(onReady).not.toHaveBeenCalled();
+			expect(api.getAll()).toEqual({ ads: true, analytics: true });
+			if (revoke) {
+				void kernel.commands.save({ ...deniedConsents, marketing: true });
+			}
+			document.dispatchEvent(new Event('zarazConsentAPIReady'));
+			expect(api.sendQueuedEvents).toHaveBeenCalledTimes(revoke ? 1 : 2);
+			expect(onReady).toHaveBeenCalledOnce();
+			document.dispatchEvent(new Event('zarazConsentAPIReady'));
+			expect(api.sendQueuedEvents).toHaveBeenCalledTimes(revoke ? 1 : 2);
+		}
+	);
+
 	it('preserves grants when the kernel already has the returning visitor choice', () => {
 		const { api } = installZaraz({ analytics: true });
 		const kernel = createConsentKernel();

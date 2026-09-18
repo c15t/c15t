@@ -205,7 +205,10 @@ test.each([false, true])(
 							id: 'browser-rerender',
 							onBeforeLoad: () => initialize(),
 							onConsentChange: ({ hasConsent }) => consent(hasConsent),
-							textContent: `window.dispatchEvent(new Event('c15t-test-vendor-executed')); ${selfRemoving ? 'document.currentScript.remove();' : ''}`,
+							textContent: [
+								"window.dispatchEvent(new Event('c15t-test-vendor-executed'));",
+								selfRemoving ? 'document.currentScript.remove();' : '',
+							].join(' '),
 						},
 					],
 				}}

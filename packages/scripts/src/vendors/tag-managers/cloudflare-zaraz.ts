@@ -93,6 +93,7 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 	let latest: ConsentState | undefined;
 	let listeningDocument: Document | undefined;
 	let initialized = false;
+	const pendingReplay = new Set<string>();
 	const synchronize = (): boolean => {
 		const api = getConsentApi();
 		if (!latest || !api) {
@@ -101,7 +102,6 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		const previous = api.getAll();
 		const permissions: Record<string, boolean> = {};
 		let changed = false;
-		let granted = false;
 		for (const purpose of Object.keys(previous)) {
 			const category = mappings.get(purpose);
 			const allowed = category !== undefined && latest[category] === true;
@@ -111,7 +111,14 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 				value: allowed,
 			});
 			changed ||= previous[purpose] !== allowed;
-			granted ||= allowed && previous[purpose] !== true;
+			if (allowed && previous[purpose] !== true) {
+				pendingReplay.add(purpose);
+			}
+		}
+		for (const purpose of pendingReplay) {
+			if (permissions[purpose] !== true) {
+				pendingReplay.delete(purpose);
+			}
 		}
 		if (options.hideBuiltInModal !== false && api.modal === true) {
 			api.modal = false;
@@ -119,9 +126,10 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		if (changed) {
 			api.set(permissions);
 		}
-		if (granted && options.sendQueuedEvents !== false) {
+		if (pendingReplay.size > 0 && options.sendQueuedEvents !== false) {
 			api.sendQueuedEvents();
 		}
+		pendingReplay.clear();
 		return true;
 	};
 	const apply = (): boolean => {
@@ -171,6 +179,7 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 			listeningDocument = undefined;
 			latest = undefined;
 			initialized = false;
+			pendingReplay.clear();
 		},
 		onLoad: update,
 	};

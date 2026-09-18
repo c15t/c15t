@@ -27,6 +27,11 @@ export interface MountDeps {
 	isDisposed: () => boolean;
 	/** Latest kernel state for callbacks completing after consent changes. */
 	getSnapshot: () => ConsentSnapshot;
+	/** Resolve callbacks and permission from the currently registered configuration. */
+	getCurrentScript?: (
+		scriptId: string,
+		snapshot: ConsentSnapshot
+	) => { script: Script; hasConsent: boolean } | undefined;
 	/** Retained elements still observed after consent revocation. */
 	retainedElements: Map<string, HTMLScriptElement>;
 	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
@@ -43,9 +48,42 @@ export interface MountDeps {
 	nonce?: string;
 }
 
+const completionContext = (
+	deps: MountDeps,
+	script: Script,
+	hasConsent: boolean,
+	elementId: string,
+	element: HTMLScriptElement
+) => {
+	const snapshot = deps.getSnapshot();
+	const current = deps.getCurrentScript
+		? deps.getCurrentScript(script.id, snapshot)
+		: {
+				hasConsent:
+					deps.retainedElements.get(script.id) === element ? false : hasConsent,
+				script,
+			};
+	if (!current) {
+		return;
+	}
+	return {
+		info:
+			hasAnyCallback(current.script) || deps.hasDebugListener
+				? buildCallbackInfo(
+						current.script,
+						snapshot,
+						current.hasConsent,
+						elementId,
+						element
+					)
+				: undefined,
+		script: current.script,
+	};
+};
+
 /** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
-	const { script, element, elementId, hasConsent, info } = pending;
+	const { script, element, elementId, hasConsent } = pending;
 	if (deps.loadedElements.get(script.id) !== element) {
 		return;
 	}
@@ -57,14 +95,23 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	if (deps.isDisposed()) {
 		return;
 	}
-	if (!script.src && info) {
+	if (!script.src) {
 		// Defer inline completion until parsing, and ignore obsolete mounts.
 		setTimeout(() => {
 			if (
 				!deps.isDisposed() &&
 				deps.loadedElements.get(script.id) === element
 			) {
-				invokeCallback(script, 'onLoad', info, deps.emit);
+				const current = completionContext(
+					deps,
+					script,
+					hasConsent,
+					elementId,
+					element
+				);
+				if (current?.info) {
+					invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+				}
 			}
 		}, 0);
 	}
@@ -97,7 +144,8 @@ export const mountScript = function mountScript(
 	script: Script,
 	snapshot: ConsentSnapshot,
 	hasConsent: boolean,
-	batch: PendingMount[] | null
+	batch: PendingMount[] | null,
+	isCurrentPass: () => boolean = () => true
 ): void {
 	if (typeof document === 'undefined') {
 		return;
@@ -140,7 +188,7 @@ export const mountScript = function mountScript(
 			undefined
 		);
 		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
-		if (deps.isDisposed()) {
+		if (deps.isDisposed() || !isCurrentPass()) {
 			return;
 		}
 		invokeCallback(script, 'onLoad', info, deps.emit);
@@ -252,23 +300,19 @@ export const mountScript = function mountScript(
 			document.getElementById(elementId) === element &&
 			(deps.loadedElements.get(script.id) === element ||
 				deps.retainedElements.get(script.id) === element);
-		const completionInfo = () =>
-			info && deps.retainedElements.get(script.id) === element
-				? buildCallbackInfo(
-						script,
-						deps.getSnapshot(),
-						false,
-						elementId,
-						element
-					)
-				: info;
 		element.addEventListener('load', () => {
 			if (!isCurrentElement()) {
 				return;
 			}
-			const currentInfo = completionInfo();
-			if (currentInfo) {
-				invokeCallback(script, 'onLoad', currentInfo, deps.emit);
+			const current = completionContext(
+				deps,
+				script,
+				hasConsent,
+				elementId,
+				element
+			);
+			if (current?.info) {
+				invokeCallback(current.script, 'onLoad', current.info, deps.emit);
 			}
 			deps.emit({
 				action: 'load_completed',
@@ -284,13 +328,19 @@ export const mountScript = function mountScript(
 			if (!isCurrentElement()) {
 				return;
 			}
-			const currentInfo = completionInfo();
-			if (currentInfo) {
+			const current = completionContext(
+				deps,
+				script,
+				hasConsent,
+				elementId,
+				element
+			);
+			if (current?.info) {
 				const errorInfo = {
-					...currentInfo,
+					...current.info,
 					error: new Error(`Failed to load script: ${script.src}`),
 				};
-				invokeCallback(script, 'onError', errorInfo, deps.emit);
+				invokeCallback(current.script, 'onError', errorInfo, deps.emit);
 			}
 			deps.emit({
 				action: 'error',

@@ -14,7 +14,19 @@ const out = resolve(
 	root,
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/current/zaraz'
 );
-const baseRef = process.env.BENCH_BASE_REF ?? 'HEAD';
+const requestedBase = process.env.BENCH_BASE_REF;
+if (!requestedBase) {
+	throw new Error('Set BENCH_BASE_REF to the revision to compare against.');
+}
+const revision = (ref: string): string =>
+	execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], {
+		cwd: root,
+		encoding: 'utf8',
+	}).trim();
+const baseRef = revision(requestedBase);
+if (baseRef === revision('HEAD')) {
+	throw new Error('BENCH_BASE_REF must differ from HEAD.');
+}
 const baseline = new Map(
 	['index.ts', 'mount.ts'].map((file) => {
 		const path = `packages/core/src/modules/script-loader/${file}`;

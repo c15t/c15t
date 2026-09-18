@@ -52,7 +52,8 @@ Ordinary scripts keep their mounted resource when `updateScripts` receives a
 fresh object with the same ID and unchanged element configuration. New callback
 functions alone do not reload the vendor or send a temporary denial. Changing
 the source, inline code or element attributes starts a new loading lifecycle.
-Consent conditions are reevaluated on every configuration update.
+Consent conditions are reevaluated on every configuration update. Pending
+load and error events use the latest registered callbacks and consent state.
 
 Custom script configurations can use `onDispose(info)` to release event
 listeners or other resources. Adding this hook opts the configuration into an
@@ -60,6 +61,8 @@ object-owned lifecycle: replacing the object disposes its resources and starts
 again, even with the same ID. Keep these objects stable across framework
 rerenders. The loader also calls the hook when the configuration is removed or
 the loader is disposed, including configurations that never loaded.
+`info.element` contains the last loaded or retained element when available,
+even when configuration removal has already detached it.
 
 Duplicate references receive one cleanup per registration. Re-registering a
 removed object starts a new lifecycle. Updates requested from lifecycle
@@ -68,6 +71,14 @@ configuration wins. Disposal stops further reconciliation. A callback feedback
 loop exceeding 100 consecutive passes disposes the loader and reports an
 `error` debug event. Avoid callbacks that keep changing consent or replacing
 their own configuration.
+
+`onBeforeLoad` prepares a loading attempt. If a callback changes consent or
+replaces configurations, the loader cancels that attempt before loading and
+reevaluates the latest state. A still-eligible script can retry preparation
+with a new element and updated consent. Make `onBeforeLoad` safe to repeat;
+use `onLoad` for initialization that requires a completed load. This also
+applies to callback-only scripts, whose `onLoad` is skipped when preparation
+invalidates the current pass.
 
 Consent revocation alone does not call `onDispose`. Use `onConsentChange` for
 vendor opt-out commands. Cleanup errors are reported through the loader's debug

@@ -131,6 +131,15 @@ export const createScriptLoader = function createScriptLoader(
 	const mountDeps: MountDeps = {
 		elementIds,
 		emit,
+		getCurrentScript: (scriptId, snapshot) => {
+			const entry = normalized.find(({ script }) => script.id === scriptId);
+			return entry
+				? {
+						hasConsent: hasScriptConsent(entry, buildReconcilePass(snapshot)),
+						script: entry.script,
+					}
+				: undefined;
+		},
 		getSnapshot: kernel.getSnapshot,
 		hasDebugListener,
 		isDisposed: () => disposed,
@@ -206,7 +215,14 @@ export const createScriptLoader = function createScriptLoader(
 
 			if (eligible) {
 				retainedElements.delete(script.id);
-				mountScript(mountDeps, script, snapshot, hasConsent, batch);
+				mountScript(
+					mountDeps,
+					script,
+					snapshot,
+					hasConsent,
+					batch,
+					isCurrentPass
+				);
 			} else {
 				unmountScript(mountDeps, script, snapshot, hasConsent);
 			}
@@ -262,7 +278,10 @@ export const createScriptLoader = function createScriptLoader(
 				};
 			})
 	);
-	const disposeScript = (script: Script): void => {
+	const disposeScript = (
+		script: Script,
+		element = loadedElements.get(script.id) ?? retainedElements.get(script.id)
+	): void => {
 		if (!script.onDispose) {
 			return;
 		}
@@ -275,7 +294,7 @@ export const createScriptLoader = function createScriptLoader(
 				snapshot,
 				consentByScriptId.get(script.id) ?? false,
 				elementIds.resolve(script),
-				loadedElements.get(script.id) ?? undefined
+				element
 			),
 			emit
 		);
@@ -333,8 +352,10 @@ export const createScriptLoader = function createScriptLoader(
 			}
 			// Resource replacement starts a fresh lifecycle, even for the same ID.
 			// Persistence applies to consent revocation, not config replacement.
+			const element =
+				loadedElements.get(script.id) ?? retainedElements.get(script.id);
 			unmountScript(mountDeps, script, snapshot, false, true);
-			disposeScript(script);
+			disposeScript(script, element);
 			retainedElements.delete(script.id);
 			eligibilityByScriptId.delete(script.id);
 			consentByScriptId.delete(script.id);

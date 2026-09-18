@@ -153,7 +153,8 @@ export interface Script {
 	target?: 'head' | 'body';
 
 	/**
-	 * Callback executed before the script is loaded
+	 * Callback executed before a loading attempt. Can repeat with updated consent
+	 * and a new element if a callback invalidates the attempt before loading.
 	 * @param info - Information about the script and current consent state
 	 */
 	onBeforeLoad?: (info: ScriptCallbackInfo) => void;
