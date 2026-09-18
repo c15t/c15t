@@ -277,6 +277,11 @@ fun initBody(
 	policySnapshotToken: String? = "snap-1",
 	includePolicyResolution: Boolean = true,
 	version: String? = "1",
+	/**
+	 * A vendor-list document to embed under `gvl`, as raw JSON text. Null writes no key, which is the
+	 * ordinary case: `packages/backend/src/http/init.ts` embeds one only for a matched `iab` policy.
+	 */
+	gvl: String? = null,
 ): String {
 	val policy = buildList {
 		add("\"id\":\"$policyId\"")
@@ -301,10 +306,13 @@ fun initBody(
 	}.joinToString(",", prefix = "{", postfix = "}")
 
 	val token = policySnapshotToken?.let { ""","policySnapshotToken":"$it"""" } ?: ""
+	// `gvl` goes last so a body string a test already compares stays byte-identical when it does not
+	// serve a list; `InitMapper` looks keys up rather than reading them in order.
+	val list = gvl?.let { ""","gvl":$it""" } ?: ""
 	return if (includePolicyResolution) {
-		"""{"policyResolution":$resolution$token}"""
+		"""{"policyResolution":$resolution$token$list}"""
 	} else {
-		"""{"location":{"countryCode":"US"}$token}"""
+		"""{"location":{"countryCode":"US"}$token$list}"""
 	}
 }
 
