@@ -84,7 +84,7 @@ describe('iframe data-vendor', () => {
 		expect(granted.getAttribute('src')).toBe('https://www.youtube.com/embed/y');
 	});
 
-	test('the blocker re-scans when the vendor choice changes', async () => {
+	test('the blocker re-scans when the vendor choice changes', () => {
 		const kernel = kernelFor([]);
 		const iframe = makeIframe({
 			'data-category': 'marketing',

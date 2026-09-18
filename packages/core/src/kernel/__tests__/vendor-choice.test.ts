@@ -150,9 +150,9 @@ describe('snapshot vendor state', () => {
 
 describe('save with vendors', () => {
 	test('a vendor-only save records, persists an event and sends the grant map', async () => {
-		const save = vi.fn<NonNullable<KernelTransport['save']>>(async () => ({
-			ok: true,
-		}));
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
 		const kernel = createKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 			transport: { save },

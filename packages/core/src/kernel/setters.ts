@@ -95,7 +95,10 @@ export const mergeVendorDraft = function mergeVendorDraft(
 			any = true;
 		}
 	}
-	return any ? next : current ? { ...current } : null;
+	if (any) {
+		return next;
+	}
+	return current ? { ...current } : null;
 };
 
 /** Merge staged draft values. `null` input clears the draft. */
@@ -214,20 +217,6 @@ export const buildSetters = function buildSetters(
 			}
 		},
 
-		vendorDraft(input: Record<string, boolean> | null): void {
-			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
-		},
-
-		vendors(input: Partial<KernelVendorsState>): void {
-			const { next, changed } = mergeVendors(getSnapshot().vendors, input);
-			if (!changed) {
-				return;
-			}
-			if (commit({ vendors: next })) {
-				emit({ snapshot: getSnapshot(), type: 'vendors:set' });
-			}
-		},
-
 		subjectId(id: string | null): void {
 			const { subject, iab } = getSnapshot();
 			const iabPatch = iab
@@ -246,6 +235,20 @@ export const buildSetters = function buildSetters(
 				return;
 			}
 			commit({ subject: { ...subject, subjectId: id }, ...iabPatch });
+		},
+
+		vendorDraft(input: Record<string, boolean> | null): void {
+			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
+		},
+
+		vendors(input: Partial<KernelVendorsState>): void {
+			const { next, changed } = mergeVendors(getSnapshot().vendors, input);
+			if (!changed) {
+				return;
+			}
+			if (commit({ vendors: next })) {
+				emit({ snapshot: getSnapshot(), type: 'vendors:set' });
+			}
 		},
 	};
 };

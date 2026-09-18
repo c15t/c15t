@@ -211,6 +211,40 @@ const sameVendorChoice = function sameVendorChoice(
 	);
 };
 
+/** Ids a save may toggle: declared and not `disabled`. */
+const toggleableVendorIds = function toggleableVendorIds(
+	snapshot: ConsentSnapshot
+): ReadonlySet<string> {
+	const ids = new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			ids.add(vendor.id);
+		}
+	}
+	return ids;
+};
+
+/** Sorted denial list after applying grants on top of the current one. */
+const applyVendorGrants = function applyVendorGrants(
+	snapshot: ConsentSnapshot,
+	current: readonly string[] | undefined,
+	grants: Readonly<Record<string, boolean>> | undefined
+): string[] {
+	const toggleable = toggleableVendorIds(snapshot);
+	const denied = new Set<string>(current);
+	for (const [id, granted] of Object.entries(grants ?? {})) {
+		if (!toggleable.has(id)) {
+			continue;
+		}
+		if (granted) {
+			denied.delete(id);
+		} else {
+			denied.add(id);
+		}
+	}
+	return [...denied].sort();
+};
+
 /**
  * The vendor denial list one save leaves behind.
  *
@@ -240,27 +274,13 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	if (!bulk && grants === undefined) {
 		return current;
 	}
-	const toggleable = new Set<string>();
-	for (const vendor of snapshot.vendors?.declared ?? []) {
-		if (vendor.disabled !== true) {
-			toggleable.add(vendor.id);
-		}
-	}
-	const denied = new Set<string>(bulk ? [] : (current?.denied ?? []));
-	for (const [id, granted] of Object.entries(grants ?? {})) {
-		if (!toggleable.has(id)) {
-			continue;
-		}
-		if (granted) {
-			denied.delete(id);
-		} else {
-			denied.add(id);
-		}
-	}
+	const denied = applyVendorGrants(
+		snapshot,
+		bulk ? undefined : current?.denied,
+		grants
+	);
 	const next: VendorChoice | null =
-		denied.size === 0
-			? null
-			: { confirmedAt: actionAt, denied: [...denied].sort(), version: 1 };
+		denied.length === 0 ? null : { confirmedAt: actionAt, denied, version: 1 };
 	return sameVendorChoice(current, next) ? current : next;
 };
 
@@ -273,7 +293,7 @@ const vendorChoicePayload = function vendorChoicePayload(
 	if (snapshot.model === 'iab' || declared.length === 0) {
 		return undefined;
 	}
-	const denied = new Set(snapshot.vendorChoice?.denied ?? []);
+	const denied = new Set(snapshot.vendorChoice?.denied);
 	const grants: Record<string, boolean> = {};
 	for (const vendor of declared) {
 		Object.defineProperty(grants, vendor.id, {
@@ -981,7 +1001,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					input,
 					context?.categories
 				);
-				consentAction = selection.consentAction;
+				({ consentAction } = selection);
 				recorded = recordCategoryPatch(
 					before.explicitChoice,
 					selection.values,

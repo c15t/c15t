@@ -84,6 +84,22 @@ const toResolved = function toResolved(
 	};
 };
 
+const sameVendor = function sameVendor(
+	left: ResolvedVendor,
+	right: ResolvedVendor
+): boolean {
+	return (
+		left.source === right.source &&
+		left.name === right.name &&
+		left.privacyPolicyUrl === right.privacyPolicyUrl &&
+		left.description === right.description &&
+		left.legalName === right.legalName &&
+		left.homepageUrl === right.homepageUrl &&
+		left.disabled === right.disabled &&
+		JSON.stringify(left.category) === JSON.stringify(right.category)
+	);
+};
+
 /**
  * Merge two resolved lists by id. The entry with the higher-priority source
  * keeps its presentation; when the sources tie the incoming entry wins so a
@@ -120,22 +136,6 @@ export const mergeDeclaredVendors = function mergeDeclaredVendors(
 	}
 	return [...byId.values()].sort((left, right) =>
 		left.id.localeCompare(right.id)
-	);
-};
-
-const sameVendor = function sameVendor(
-	left: ResolvedVendor,
-	right: ResolvedVendor
-): boolean {
-	return (
-		left.source === right.source &&
-		left.name === right.name &&
-		left.privacyPolicyUrl === right.privacyPolicyUrl &&
-		left.description === right.description &&
-		left.legalName === right.legalName &&
-		left.homepageUrl === right.homepageUrl &&
-		left.disabled === right.disabled &&
-		JSON.stringify(left.category) === JSON.stringify(right.category)
 	);
 };
 

@@ -294,10 +294,6 @@ export const createRuntimeKernel = function createRuntimeKernel(
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],
-		initialVendors:
-			declaredVendors.length > 0
-				? { declared: declaredVendors, listVersion: null }
-				: prefetch.initialVendors,
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -322,6 +318,10 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			: DISABLED_RESOLUTION,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
+		initialVendors:
+			declaredVendors.length > 0
+				? { declared: declaredVendors, listVersion: null }
+				: prefetch.initialVendors,
 		now:
 			prefetch.now ??
 			prefetch.initialRecords?.now ??

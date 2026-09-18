@@ -59,16 +59,22 @@ describe('script vendor eligibility', () => {
 			script({ category: { or: ['marketing', 'measurement'] }, id: 'tree' }),
 			script({ id: 'other', vendor: 'other' }),
 		]);
-		expect(hasScriptConsent(simple!, pass)).toBe(false);
-		expect(hasScriptConsent(tree!, pass)).toBe(false);
-		expect(hasScriptConsent(other!, pass)).toBe(true);
+		if (!(simple && tree && other)) {
+			throw new Error('expected three normalized scripts');
+		}
+		expect(hasScriptConsent(simple, pass)).toBe(false);
+		expect(hasScriptConsent(tree, pass)).toBe(false);
+		expect(hasScriptConsent(other, pass)).toBe(true);
 	});
 
 	test('the vendor slug is ignored in IAB mode', () => {
 		const snap = snapshotFor(['meta-pixel'], true);
 		const pass = buildReconcilePass(snap);
 		const [entry] = normalizeScripts([script()]);
-		expect(hasScriptConsent(entry!, pass)).toBe(
+		if (!entry) {
+			throw new Error('expected a normalized script');
+		}
+		expect(hasScriptConsent(entry, pass)).toBe(
 			snap.effectivePermissions.marketing
 		);
 	});
