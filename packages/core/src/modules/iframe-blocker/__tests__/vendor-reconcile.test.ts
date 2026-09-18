@@ -107,6 +107,19 @@ describe('iframe data-vendor', () => {
 		expect(iframe.getAttribute('data-src')).toBe('https://example.com/lazy');
 	});
 
+	test("a denied iframe with only an author's data-src is not marked as paused", () => {
+		const iframe = makeIframe({
+			'data-src': 'https://www.youtube.com/embed/lazy',
+			'data-vendor': 'youtube',
+		});
+		const pass = buildReconcilePass(kernelFor(['youtube']).getSnapshot());
+		reconcileIframe(iframe, pass);
+		iframe.removeAttribute('data-vendor');
+		reconcileIframe(iframe, pass);
+		// The blocker never moved a source, so removing the gate starts nothing.
+		expect(iframe.getAttribute('src')).toBeNull();
+	});
+
 	test('the blocker re-scans when the vendor choice changes', () => {
 		const kernel = kernelFor([]);
 		const iframe = makeIframe({

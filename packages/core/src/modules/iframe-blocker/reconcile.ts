@@ -152,8 +152,10 @@ export const reconcileIframe = function reconcileIframe(
 			iframe.setAttribute('data-src', src);
 		}
 		iframe.removeAttribute('src');
+		// Marked only when the blocker itself moved the source: an author's own
+		// lazy `data-src` with no `src` was never paused and is never restored.
+		iframe.setAttribute(PAUSED_ATTRIBUTE, '');
 	}
-	iframe.setAttribute(PAUSED_ATTRIBUTE, '');
 };
 
 /**
