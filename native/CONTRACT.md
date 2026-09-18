@@ -4,9 +4,29 @@ c15t mobile contract
 Authoritative reference for `@c15t/react-native`, the Swift core, and the Kotlin
 core. Issue: https://github.com/c15t/c15t/issues/1010
 
-IAB TCF is out of scope for this phase. No TC string, no GVL state, no
-`IABTCF_*` keys. The types reserve the `iab` slot so adding it later is an
-additive protocol change, not a rewrite.
+IAB TCF is partially in scope, at exactly the width of the state the cores
+own:
+
+    GVL state       the `/init`-served vendor list is held by the cores
+                    (Swift: the snapshot's `iab` slot; Kotlin: the envelope's
+                    `gvl` field)
+    IABTCF_* bus    an egress projection of the stored envelope, written in
+                    the same step as the snapshot write. iOS: standard
+                    NSUserDefaults. Android: the application-default
+                    SharedPreferences via PreferenceManager's
+                    getDefaultSharedPreferences -- never a derived file
+                    name. Rows written today: IABTCF_PolicyVersion (the
+                    stored list's tcfPolicyVersion) and IABTCF_gdprApplies
+                    (the resolved policy's model, mirroring packages/iab).
+                    The bus is never read back; the Keychain and the
+                    encrypted noBackupFilesDir store stay authoritative.
+                    reset() and every envelope discard clear the table, and
+                    the projection rebuilds from stored bytes alone.
+    TC string       still out of scope, and with it the bus rows that encode
+                    from it: no CMP identity and no purpose or vendor
+                    vectors exist in the cores yet. Every spec-table key is
+                    named in TcStorageBus.swift / TcStorageBus.kt; the rows
+                    that stay absent name their missing field there.
 
 Layout
 ------
