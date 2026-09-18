@@ -234,6 +234,7 @@ export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
 
 /** @internal */
 export interface VendorSourceRow {
+	readonly id: string;
 	readonly type: string;
 	readonly givenAt: Date;
 	readonly vendorChoice: StoredVendorChoice;
@@ -246,8 +247,10 @@ export interface VendorSourceRow {
  * map on the latest act by `givenAt` replaces every earlier one outright.
  * `givenAt` is the act's time; the map's own `confirmedAt` travels with it
  * but does not pick the winner, since a client may send them independently.
- * Ties keep the later row. A row without a map is skipped: that act did not
- * decide vendors. A row whose map is unreadable is the newest decision and
+ * Two acts at the same instant can both exist when they differ in policy or
+ * domain, and SQL does not define which one a query returns last, so a tie is
+ * broken by the row id: the greater id wins on every engine. A row without a
+ * map is skipped: that act did not decide vendors. A row whose map is unreadable is the newest decision and
  * cannot be read, so the aggregate is `null` rather than an older map that
  * the unreadable act superseded.
  *
@@ -258,6 +261,7 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 ): VendorChoiceWire | null {
 	let newest: {
 		givenAt: number;
+		id: string;
 		vendorChoice: VendorChoiceWire | null;
 	} | null = null;
 	for (const row of rows) {
@@ -265,9 +269,14 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 			continue;
 		}
 		const givenAt = row.givenAt.getTime();
-		if (newest === null || givenAt >= newest.givenAt) {
+		const later =
+			newest === null ||
+			givenAt > newest.givenAt ||
+			(givenAt === newest.givenAt && row.id > newest.id);
+		if (later) {
 			newest = {
 				givenAt,
+				id: row.id,
 				vendorChoice:
 					row.vendorChoice.kind === 'grants'
 						? row.vendorChoice.vendorChoice
