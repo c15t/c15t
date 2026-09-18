@@ -174,3 +174,14 @@ budget by 5.8 ms; a repeat with unchanged code and budgets passed. Results are i
 The refreshed Inth demo passed all 12 live checks on 18 September, including
 accepted and rejected consent persistence after refresh. Deployment and source
 identifiers are recorded in `polish-live-results.json`.
+
+## Adversarial review follow-up
+
+Validated the review findings and added regression fixes for vendor rerenders,
+self-removing inline scripts, retained element cleanup and callback feedback
+loops. Zaraz API failures now have an optional error callback. See
+[review validation](review-validation.md) for reproductions, test results and
+updated measurements. The latest loader is 5,838 gzip bytes and the bridge is
+878. Browser lifecycle timing budgets were sensitive to measurement order;
+the report retains both failed normal-order runs and the passing reversed-order
+diagnostic.
