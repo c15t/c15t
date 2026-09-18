@@ -77,6 +77,43 @@ describe('provider vendor options', () => {
 		});
 	});
 
+	test('a vendor removed from the option disappears from the kernel', async () => {
+		const Host = () => {
+			const [vendors, setVendors] = useState<Vendor[]>([META]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: policyFixture(
+							{ marketing: true },
+							{ categories: ['marketing'], id: 'removed-vendors' }
+						),
+						vendors,
+					}}
+				>
+					<button
+						data-testid="remove"
+						onClick={() => setVendors([])}
+						type="button"
+					>
+						remove
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual(['meta-pixel']);
+		});
+		await page.getByTestId('remove').click();
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual([]);
+		});
+	});
+
 	test('useVendorAllowed ignores a stored denial for a vendor declared disabled', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },
