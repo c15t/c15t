@@ -1,10 +1,20 @@
 ---
 packages:
-  "@c15t/react": patch
-  "@c15t/astro": patch
-  "@c15t/nextjs": patch
-  "@c15t/tanstack-start": patch
-  c15t: patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Remove dialog scheduling delays and preserve IAB actions

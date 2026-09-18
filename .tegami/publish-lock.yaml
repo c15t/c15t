@@ -1,0 +1,191 @@
+c15t:release:
+  - branch: v3
+    id: npm:@c15t/tanstack-start
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/backend
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/ui
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/astro
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/scripts
+    version: 3.0.0-alpha.1
+  - branch: v3
+    id: npm:@c15t/schema
+    version: 3.0.0-alpha.1
+  - branch: v3
+    id: npm:@c15t/node-sdk
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/cli
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/logger
+    version: 3.0.0-alpha.1
+  - branch: v3
+    id: npm:@c15t/dev-tools
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/browser
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/iab
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/translations
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/nextjs
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:c15t
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/react
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/core
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/svelte
+    version: 3.0.0-alpha.2
+  - branch: v3
+    id: npm:@c15t/vue
+    version: 3.0.0-alpha.2
+core:changelogs:
+  - content: "---\npackages:\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Remove dialog scheduling delays and preserve IAB actions\n\nRemove first-open scheduling delays from React's aggregate dialog, widget, and compound components while preserving server rendering and hydration. Keep children mounted when an external runtime provides IAB context, so loading the bridge cannot reset local drafts.\n\nRemove the extra Suspense delay from Astro's React IAB dialog island.\n\nQueue external-runtime IAB actions until the runtime publishes its handle, and reject pending saves with AbortError when the borrowing provider unmounts. Correct the React and Next.js peer dependency ranges to require React and React DOM 18 or newer, matching the APIs already used by v3. Upgrade both React packages before using v3 on an older installation.\n"
+    filename: seven-emus-cry.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/backend\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/iab\":\n    type: patch\n  \"@c15t/logger\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/node-sdk\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/translations\":\n    type: patch\n  \"@c15t/ui\":\n    type: patch\n---\n\n### Fix declaration imports for Node16 and NodeNext\n\nFix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.\n"
+    filename: slow-beans-retire.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n---\n\n### Restore category discovery and consent completion\n\nRestore category discovery from scripts, frames, and network rules. Merge discovered categories with `consentCategories` within the policy scope, and use the same set for the dialog and consent completion. Keep the banner dismissed after accepting the displayed categories and reloading. Enable tagged iframe discovery and blocking by default in React, matching the shared runtime.\n"
+    filename: chatty-boats-mix.md
+    v: 0.0.0
+core:packages:
+  - changelogIds:
+      - seven-emus-cry.md
+      - slow-beans-retire.md
+    id: npm:@c15t/tanstack-start
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/backend
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/ui
+    updated: true
+  - changelogIds:
+      - seven-emus-cry.md
+      - slow-beans-retire.md
+    id: npm:@c15t/astro
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/scripts
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/schema
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/node-sdk
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/logger
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/dev-tools
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+      - chatty-boats-mix.md
+    id: npm:@c15t/browser
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/iab
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+    id: npm:@c15t/translations
+    updated: true
+  - changelogIds:
+      - seven-emus-cry.md
+      - slow-beans-retire.md
+    id: npm:@c15t/nextjs
+    updated: true
+  - changelogIds:
+      - seven-emus-cry.md
+    id: npm:c15t
+    updated: true
+  - changelogIds:
+      - seven-emus-cry.md
+      - slow-beans-retire.md
+      - chatty-boats-mix.md
+    id: npm:@c15t/react
+    updated: true
+  - changelogIds:
+      - slow-beans-retire.md
+      - chatty-boats-mix.md
+    id: npm:@c15t/core
+    updated: true
+  - changelogIds:
+      - chatty-boats-mix.md
+    id: npm:@c15t/svelte
+    updated: true
+  - changelogIds:
+      - chatty-boats-mix.md
+    id: npm:@c15t/vue
+    updated: true
+npm:packages:
+  - distTag: alpha
+    id: npm:@c15t/tanstack-start
+  - distTag: alpha
+    id: npm:@c15t/backend
+  - distTag: alpha
+    id: npm:@c15t/node-sdk
+  - distTag: alpha
+    id: npm:@c15t/cli
+  - distTag: alpha
+    id: npm:@c15t/dev-tools
+  - distTag: alpha
+    id: npm:@c15t/iab
+  - distTag: alpha
+    id: npm:@c15t/translations
+  - distTag: alpha
+    id: npm:@c15t/nextjs
+  - distTag: alpha
+    id: npm:c15t
+  - distTag: alpha
+    id: npm:@c15t/react
+  - distTag: alpha
+    id: npm:@c15t/core
+  - distTag: alpha
+    id: npm:@c15t/ui
+  - distTag: alpha
+    id: npm:@c15t/astro
+  - distTag: alpha
+    id: npm:@c15t/scripts
+  - distTag: alpha
+    id: npm:@c15t/schema
+  - distTag: alpha
+    id: npm:@c15t/logger
+  - distTag: alpha
+    id: npm:@c15t/browser
+  - distTag: alpha
+    id: npm:@c15t/svelte
+  - distTag: alpha
+    id: npm:@c15t/vue
