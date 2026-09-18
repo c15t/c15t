@@ -30,11 +30,13 @@
 import {
 	POLICY_OPTIONAL_CATEGORIES,
 	subjectChoiceWireSchema,
+	vendorChoiceWireSchema,
 } from '@c15t/schema';
 import type {
 	PolicyOptionalCategory,
 	SubjectCategoryReceiptWire,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema';
 import * as v from 'valibot';
 
@@ -190,4 +192,68 @@ export const decodePreferences = function decodePreferences(
 		}
 	}
 	return Object.keys(preferences).length > 0 ? preferences : undefined;
+};
+
+/**
+ * What a row's `vendorChoice` column holds. `absent` covers rows written
+ * before vendor consent existed and rows whose save declared no vendors.
+ */
+export type StoredVendorChoice =
+	| { kind: 'absent' }
+	| { kind: 'unreadable' }
+	| { kind: 'grants'; vendorChoice: VendorChoiceWire };
+
+/** What a row's `vendorChoice` column holds. See {@link StoredVendorChoice}. */
+export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
+	value: unknown
+): StoredVendorChoice {
+	if (value === null || value === undefined) {
+		return { kind: 'absent' };
+	}
+	const parsed = (() => {
+		if (typeof value !== 'string') {
+			return value;
+		}
+		try {
+			return JSON.parse(value) as unknown;
+		} catch {
+			return undefined;
+		}
+	})();
+	const validated = v.safeParse(vendorChoiceWireSchema, parsed);
+	return validated.success
+		? { kind: 'grants', vendorChoice: validated.output }
+		: { kind: 'unreadable' };
+};
+
+export interface VendorSourceRow {
+	readonly type: string;
+	readonly givenAt: Date;
+	readonly vendorChoice: StoredVendorChoice;
+}
+
+/**
+ * The newest vendor grant map across a subject's cookie-banner rows.
+ *
+ * Unlike category receipts, a vendor map is one complete decision, so the
+ * newest map by its own `confirmedAt` replaces earlier ones outright. Ties
+ * keep the later row. Unreadable rows contribute nothing.
+ */
+export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
+	rows: readonly VendorSourceRow[]
+): VendorChoiceWire | null {
+	let newest: VendorChoiceWire | null = null;
+	const ordered = [...rows].sort(
+		(left, right) => left.givenAt.getTime() - right.givenAt.getTime()
+	);
+	for (const row of ordered) {
+		if (row.type !== COOKIE_BANNER_TYPE || row.vendorChoice.kind !== 'grants') {
+			continue;
+		}
+		const candidate = row.vendorChoice.vendorChoice;
+		if (newest === null || candidate.confirmedAt >= newest.confirmedAt) {
+			newest = candidate;
+		}
+	}
+	return newest;
 };

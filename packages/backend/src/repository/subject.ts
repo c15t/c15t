@@ -32,7 +32,7 @@
  */
 
 import { generateEntityId } from '@c15t/schema';
-import type { SubjectChoiceWire } from '@c15t/schema';
+import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient, Statement } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
@@ -44,9 +44,11 @@ import { purposeCodesById } from './consent-purpose';
 import {
 	decodePreferences,
 	decodeStoredChoice,
+	decodeStoredVendorChoice,
 	mergeSubjectChoice,
+	mergeSubjectVendorChoice,
 } from './subject-choice';
-import type { StoredChoice } from './subject-choice';
+import type { StoredChoice, StoredVendorChoice } from './subject-choice';
 
 /**
  * Who asserted a subject's external identity link.
@@ -82,6 +84,9 @@ export interface ConsentRow {
 	readonly choice: SubjectChoiceWire | null | undefined;
 	/** What the row's receipt column holds, including an unreadable value. */
 	readonly storedChoice: StoredChoice;
+	/** Per-vendor grants this submission carried, as the client sent them. */
+	readonly vendorChoice: VendorChoiceWire | null | undefined;
+	readonly storedVendorChoice: StoredVendorChoice;
 	readonly givenAt: Date;
 	/** True when this consent points at the newest active policy of its type. */
 	readonly isLatestPolicy: boolean;
@@ -96,6 +101,8 @@ export interface SubjectWithConsents {
 	readonly consents: readonly ConsentRow[];
 	/** Latest receipt per category across the cookie-banner consents. */
 	readonly choice: SubjectChoiceWire | null;
+	/** Newest vendor grant map across the cookie-banner consents. */
+	readonly vendorChoice: VendorChoiceWire | null;
 }
 
 interface JoinedRow {
@@ -110,6 +117,7 @@ interface JoinedRow {
 	readonly consent_policyId: string | null;
 	readonly consent_purposeIds: unknown;
 	readonly consent_choice: unknown;
+	readonly consent_vendorChoice: unknown;
 	readonly consent_givenAt: unknown;
 	readonly policy_type: string | null;
 	readonly policy_version: string | null;
@@ -137,6 +145,7 @@ const JOINED_COLUMNS: readonly (readonly [column: string, alias: string])[] = [
 	['c.policyId', 'consent_policyId'],
 	['c.purposeIds', 'consent_purposeIds'],
 	['c.choice', 'consent_choice'],
+	['c.vendorChoice', 'consent_vendorChoice'],
 	['c.givenAt', 'consent_givenAt'],
 	['p.type', 'policy_type'],
 	['p.version', 'policy_version'],
@@ -220,6 +229,7 @@ const groupSubjects = (
 			id: row.subject_id,
 			identityAuthority: toIdentityAuthority(row.subject_identityAuthority),
 			identityProvider: row.subject_identityProvider,
+			vendorChoice: null,
 		};
 
 		if (row.consent_id !== null && row.consent_givenAt !== null) {
@@ -229,6 +239,15 @@ const groupSubjects = (
 				({ choice } = storedChoice);
 			} else if (storedChoice.kind === 'unreadable') {
 				choice = null;
+			}
+			const storedVendorChoice = decodeStoredVendorChoice(
+				row.consent_vendorChoice
+			);
+			let vendorChoice: ConsentRow['vendorChoice'];
+			if (storedVendorChoice.kind === 'grants') {
+				({ vendorChoice } = storedVendorChoice);
+			} else if (storedVendorChoice.kind === 'unreadable') {
+				vendorChoice = null;
 			}
 			(subject.consents as ConsentRow[]).push({
 				choice,
@@ -245,11 +264,13 @@ const groupSubjects = (
 				preferences: decodePreferences(row.consent_purposeIds, codesById),
 				purposeIds: row.consent_purposeIds,
 				storedChoice,
+				storedVendorChoice,
 				subjectId: row.subject_id,
 				// A consent whose policy row is gone still has to satisfy the
 				// contract's required `type`; '' is the honest answer rather
 				// than inventing one.
 				type: row.policy_type ?? '',
+				vendorChoice,
 			});
 		}
 
@@ -264,6 +285,13 @@ const groupSubjects = (
 				givenAt: consent.givenAt,
 				preferences: consent.preferences,
 				type: consent.type,
+			}))
+		),
+		vendorChoice: mergeSubjectVendorChoice(
+			subject.consents.map((consent) => ({
+				givenAt: consent.givenAt,
+				type: consent.type,
+				vendorChoice: consent.storedVendorChoice,
 			}))
 		),
 	}));

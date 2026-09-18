@@ -131,8 +131,9 @@ for (const engine of ENGINES) {
 					assert.deepStrictEqual(report.pending, [
 						'2-hot-path-indexes',
 						'3-consent-receipts-and-privacy-directives',
+						'4-vendor-choice',
 					]);
-					assert.deepStrictEqual(yield* ledger, [1, 2, 3]);
+					assert.deepStrictEqual(yield* ledger, [1, 2, 3, 4]);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);
@@ -191,6 +192,7 @@ for (const engine of ENGINES) {
 					assert.deepStrictEqual(report.pending, [
 						'2-hot-path-indexes',
 						'3-consent-receipts-and-privacy-directives',
+						'4-vendor-choice',
 					]);
 
 					// The assertion that makes the flag mean something: no tables, no

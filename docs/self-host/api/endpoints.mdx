@@ -85,6 +85,13 @@ Read `GET /subjects/:id` to inspect merged category choices. A type filter chang
 which consent records are returned and how `isValid` is calculated; it does not
 filter away the subject's cookie-banner choice state.
 
+When the client declares vendors, a save also carries `vendorChoice`: the complete
+per-vendor grant map with one confirmation time. The backend stores it as sent on
+the consent row and returns the newest map as `subjectVendorChoice`. A grant for a
+vendor the manifest does not declare is refused with `VENDOR_OUT_OF_SCOPE`; a denial
+for one is kept. Retrying the same act with a different map is a `CONFLICT`, like a
+retry with different receipts. Migration `4-vendor-choice` adds the column.
+
 Privacy directives are stored separately from consent records. Saving consent
 does not delete an existing directive. An API-authenticated identity link has
 different authority from a browser-asserted link.
