@@ -54,6 +54,23 @@ interface DraftSnapshot {
 	isDirty: boolean;
 	isStale: boolean;
 }
+/**
+ * Defines an own enumerable data property. Plain assignment would route a
+ * valid `__proto__` vendor id through the prototype setter and drop it, so
+ * that vendor could never become dirty or travel with a save.
+ */
+const setOwn = function setOwn(
+	target: Record<string, boolean>,
+	key: string,
+	value: boolean
+): void {
+	Object.defineProperty(target, key, {
+		configurable: true,
+		enumerable: true,
+		value,
+		writable: true,
+	});
+};
 const seedVendors = function seedVendors(
 	snapshot: ConsentSnapshot
 ): Record<string, boolean> {
@@ -66,7 +83,7 @@ const seedVendors = function seedVendors(
 	// while every gate allows it.
 	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
 	for (const vendor of snapshot.vendors?.declared ?? []) {
-		grants[vendor.id] = !denied.has(vendor.id);
+		setOwn(grants, vendor.id, !denied.has(vendor.id));
 	}
 	return grants;
 };
@@ -179,11 +196,11 @@ const createDraftStore = function createDraftStore(
 		let changed = false;
 		for (const [id, granted] of Object.entries(patch)) {
 			if (
-				id in baseVendors &&
+				Object.keys(baseVendors).includes(id) &&
 				typeof granted === 'boolean' &&
 				vendors[id] !== granted
 			) {
-				vendors[id] = granted;
+				setOwn(vendors, id, granted);
 				changed = true;
 			}
 		}
@@ -197,8 +214,13 @@ const createDraftStore = function createDraftStore(
 		}
 	};
 	/** Every declared vendor granted: what a bulk action leaves behind. */
-	const allVendorsOn = () =>
-		Object.fromEntries(Object.keys(baseVendors).map((id) => [id, true]));
+	const allVendorsOn = () => {
+		const grants: Record<string, boolean> = {};
+		for (const id of Object.keys(baseVendors)) {
+			setOwn(grants, id, true);
+		}
+		return grants;
+	};
 	const sync = () => {
 		const next = kernel.getSnapshot();
 		if (
@@ -294,7 +316,7 @@ const createDraftStore = function createDraftStore(
 			if (!bulk) {
 				for (const [id, granted] of Object.entries(current.vendors)) {
 					if (baseVendors[id] !== granted) {
-						vendors[id] = granted;
+						setOwn(vendors, id, granted);
 					}
 				}
 			}
