@@ -118,105 +118,136 @@ final class TcBitFieldTests: XCTestCase {
     //   publisherCountryCode 12 -> 213
     //   vendorConsents: MaxVendorId 16 -> 229, IsRangeEncoding 1 -> 230
 
-    /// The `core-purposes` vector: purposes 1, 2 and 10 by consent, 7 and 9 by
-    /// legitimate interest, vendor consents 1 and 8, vendor LI 7. Read through the
-    /// corpus so no TC string literal lives in this file.
-    private var corePurposes: String {
-        TcFixtureCorpus.vector(_id: "core-purposes").string
+    /// `tc-string-parity-policy-version-5`: cmpId 28 version 1 screen 1, language EN,
+    /// purposes 1, 2 and 7 by consent, no legitimate interest, vendor consents 1 and 2
+    /// against a declared width of 2. Read through the shared fixtures, so no TC string
+    /// literal lives in this file.
+    private func coreVector() throws -> String {
+        try TcSharedFixtures.vector(id: "tc-string-parity-policy-version-5").expectedTCString
     }
 
     func testHandComputedCoreOffsets() throws {
-        guard let decoded = TcBase64URL.decode(corePurposes) else {
-            return XCTFail("vector should be base64url")
+        let core = try coreVector().split(separator: ".").first.map(String.init) ?? ""
+        guard let decoded = TcBase64URL.decode(core) else {
+            return XCTFail("the core segment should decode")
         }
         var reader = TcBitReader(bytes: decoded.bytes, bitCount: decoded.bitCount)
 
         XCTAssertEqual(try? reader.readUnsigned(6), 2, "version sits at 0 and is 2")
         XCTAssertEqual(reader.cursor, 6)
-        // created == lastUpdated in this vector, and skipping both lands on 78.
-        _ = try? reader.readUnsigned(36)
-        _ = try? reader.readUnsigned(36)
+        // Both dates are the same instant here, and reading both lands on 78.
+        // 1_769_990_400_000 ms is 17_699_904_000 units of 100 ms.
+        XCTAssertEqual(reader.readUnsigned(36), 17_699_904_000, "Created at 6, in units of 100 ms")
+        XCTAssertEqual(reader.readUnsigned(36), 17_699_904_000, "LastUpdated at 42")
         XCTAssertEqual(reader.cursor, 78, "6 + 36 + 36")
         XCTAssertEqual(try? reader.readUnsigned(12), 28, "cmpId at 78")
         XCTAssertEqual(try? reader.readUnsigned(12), 1, "cmpVersion at 90")
-        XCTAssertEqual(try? reader.readUnsigned(6), 3, "consentScreen at 102")
+        XCTAssertEqual(try? reader.readUnsigned(6), 1, "consentScreen at 102")
 
-        // consentLanguage at 120: two 6-bit letters, EN = 4 and 13.
+        // consentLanguage at 108: two 6-bit letters, EN = 4 and 13.
         XCTAssertEqual(try? reader.readUnsigned(6), 4, "E is 69 - 65")
         XCTAssertEqual(try? reader.readUnsigned(6), 13, "N is 78 - 65")
-        XCTAssertEqual(try? reader.readUnsigned(12), 177, "vendorListVersion at 132")
-        XCTAssertEqual(try? reader.readUnsigned(6), 5, "tcfPolicyVersion at 144, matching a live GVL")
-        XCTAssertEqual(reader.readBool(), true, "isServiceSpecific at 150... at 138")
+        XCTAssertEqual(reader.cursor, 120, "108 + 12")
+        XCTAssertEqual(try? reader.readUnsigned(12), 142, "vendorListVersion at 120")
+        XCTAssertEqual(try? reader.readUnsigned(6), 5, "tcfPolicyVersion at 132, what a live list carries")
+        XCTAssertEqual(reader.readBool(), true, "isServiceSpecific at 138")
         XCTAssertEqual(reader.readBool(), false, "useNonStandardTexts at 139")
         XCTAssertEqual(reader.cursor, 140)
-        // specialFeatureOptIns at 140, twelve bits, none opted in here.
-        XCTAssertEqual(try? reader.readUnsigned(12), 0)
+        XCTAssertEqual(try? reader.readUnsigned(12), 0, "specialFeatureOptIns at 140, none opted in")
         XCTAssertEqual(reader.cursor, 152, "140 + 12")
 
-        // purposeConsents at 152: bit for purpose p lives at 152 + (p - 1).
+        // purposeConsents at 152: the bit for purpose p sits at 152 + (p - 1).
         let consentBits = reader.readBits(24)
         XCTAssertEqual(reader.cursor, 176, "152 + 24")
         let consent = Set((0..<24).compactMap { consentBits?[$0] == true ? $0 + 1 : nil })
-        XCTAssertEqual(consent, [1, 2, 10], "1 + 2 + 10 are the purposes this vector sets")
+        XCTAssertEqual(consent, [1, 2, 7], "purposes 1 + 2 + 7 are what this fixture sets")
 
         let legitimateInterest = reader.readBits(24)
         XCTAssertEqual(reader.cursor, 200, "176 + 24")
-        let li = Set((0..<24).compactMap { legitimateInterest?[$0] == true ? $0 + 1 : nil })
-        XCTAssertEqual(li, [7, 9])
+        XCTAssertFalse(legitimateInterest?.contains(true) ?? true, "no purpose legitimate interest here")
 
         XCTAssertEqual(reader.readBool(), false, "purposeOneTreatment at 200")
-        // publisherCountryCode at 201, twelve bits: US = 20 and 18.
+        // publisherCountryCode at 201: US = 20 and 18.
         XCTAssertEqual(try? reader.readUnsigned(6), 20, "U is 85 - 65")
         XCTAssertEqual(try? reader.readUnsigned(6), 18, "S is 83 - 65")
         XCTAssertEqual(reader.cursor, 213, "201 + 12")
 
         // vendorConsents at 213.
-        XCTAssertEqual(try? reader.readUnsigned(16), 8, "MaxVendorId at 213")
+        XCTAssertEqual(try? reader.readUnsigned(16), 2, "MaxVendorId at 213")
         XCTAssertEqual(reader.readBool(), false, "IsRangeEncoding 0 means a bit field")
         XCTAssertEqual(reader.cursor, 230, "213 + 16 + 1")
-        let vendors = reader.readBits(8)
+        let vendors = reader.readBits(2)
         XCTAssertEqual(
-            Set((0..<8).compactMap { vendors?[$0] == true ? $0 + 1 : nil }),
-            [1, 8],
+            Set((0..<2).compactMap { vendors?[$0] == true ? $0 + 1 : nil }),
+            [1, 2],
             "the bit field is read in the same 1-based order as purposes"
         )
     }
 
-    private func segment(of id: String) -> String {
-        let parts = TcFixtureCorpus.vector(_id: id).string.split(separator: ".")
-        return parts.count > 1 ? String(parts[1]) : ""
+    /// The core segment of a fixture, which is where the vendor vectors live.
+    private func core(of id: String) throws -> String {
+        let parts = try TcSharedFixtures.vector(id: id).expectedTCString.split(separator: ".")
+        guard let first = parts.first else {
+            throw TcSharedFixtures.LoadError.malformed(file: id, detail: "no core segment")
+        }
+        return String(first)
     }
 
-    func testIsRangeEncodingPolarityIsZeroForBitField() throws {
-        // The formats document states IsRangeEncoding as "1 Range 0 BitField", and
-        // `encoder/field/VectorEncodingType.js` agrees (FIELD = 0, RANGE = 1).
-        //
-        // Hand-check the boundary the reference encoder picks: a bit field costs
-        // 3 + 16 + 1 + MaxVendorId, a single contiguous range costs
-        // 3 + 16 + 1 + 12 + 1 + 16 + 16 = 65. So 45 contiguous vendors costs
-        // 20 + 45 = 65 bits and stays a bit field, while 46 costs 20 + 46 = 66 bits
-        // and a range at 65 becomes cheaper. That is why the switch lands at 46, and
-        // why both segments below render to 65 -> 72 padded bits -> 12 characters.
-        let bitField = segment(of: "disclosed-bitfield-45")
-        let ranges = segment(of: "disclosed-range-46")
-        XCTAssertEqual(bitField.count, 12)
-        XCTAssertEqual(ranges.count, 12)
+    private func bitReader(_ segment: String) throws -> TcBitReader {
+        guard let decoded = TcBase64URL.decode(segment) else {
+            throw TcSharedFixtures.LoadError.malformed(file: segment, detail: "not base64url")
+        }
+        return TcBitReader(bytes: decoded.bytes, bitCount: decoded.bitCount)
+    }
 
-        for (segment, expectedPolarity, expectedMaxId) in [
-            (bitField, false, 45), (ranges, true, 46),
+    /// The two fixtures that straddle the point where the reference encoder starts
+    /// considering a range: one vendor at id 45, one at id 46.
+    ///
+    /// `IsRangeEncoding` reads 1 for a range and 0 for a bit field, which
+    /// `encoder/field/VectorEncodingType.js` (FIELD = 0, RANGE = 1) and the formats
+    /// document agree on. What decides which one goes out is the interesting half, and
+    /// it is not the cheaper encoding. A range section costs 16 + 1 + 12 for its header
+    /// plus 1 + 16 for a single entry, so one lone vendor is 46 bits wherever it sits,
+    /// while a bit field costs 16 + 1 + MaxVendorId: 62 bits at 45 and 63 at 46.
+    ///
+    /// So at 45 a range is 16 bits cheaper and the reference still writes the bit
+    /// field, because its walk only entertains a range once MaxVendorId exceeds 45 --
+    /// 45 being the cost of the cheapest conceivable range section. At 46 the gate
+    /// opens and the range wins on its merits. A port that measured both and wrote the
+    /// shorter would reproduce the 46 fixture and fail the 45 one, which is why both
+    /// sides of the line are pinned.
+    func testIsRangeEncodingPolarityIsZeroForBitField() throws {
+        for (id, expectedPolarity, expectedMaxId) in [
+            ("tc-string-parity-single-vendor-id-45", false, 45),
+            ("tc-string-parity-single-vendor-id-46", true, 46),
         ] {
-            guard let decoded = TcBase64URL.decode(segment) else {
-                return XCTFail("segment should decode")
-            }
-            var reader = TcBitReader(bytes: decoded.bytes, bitCount: decoded.bitCount)
-            XCTAssertEqual(try? reader.readUnsigned(3), 1, "segment type 1 is vendorsDisclosed")
-            XCTAssertEqual(try? reader.readUnsigned(16), UInt64(expectedMaxId), "MaxVendorId")
+            var reader = try bitReader(core(of: id))
+            _ = reader.readBits(213)
+            XCTAssertEqual(reader.cursor, 213, "\(id): vendorConsents starts at 213")
             XCTAssertEqual(
-                reader.readBool(),
-                expectedPolarity,
-                "IsRangeEncoding for \(segment)"
+                try? reader.readUnsigned(16),
+                UInt64(expectedMaxId),
+                "\(id): MaxVendorId at 213"
             )
+            XCTAssertEqual(reader.readBool(), expectedPolarity, "\(id): IsRangeEncoding")
+            XCTAssertEqual(reader.cursor, 230, "\(id): 213 + 16 + 1")
         }
     }
 
+    /// A range entry carries an end id only when it is a range, so a single costs 17
+    /// bits and a range 33. A reader that assumed either width would find
+    /// NumPubRestrictions in the wrong place.
+    func testRangeEntriesCarryTheirEndIdOnlyWhenTheyAreRanges() throws {
+        var reader = try bitReader(core(of: "tc-string-parity-single-vendor-id-46"))
+        _ = reader.readBits(213)
+        XCTAssertEqual(reader.readUnsigned(16), 46, "MaxVendorId")
+        XCTAssertEqual(reader.readBool(), true, "IsRangeEncoding")
+        XCTAssertEqual(reader.readUnsigned(12), 1, "NumEntries at 230")
+        XCTAssertEqual(reader.readBool(), false, "IsARange 0 is a single")
+        XCTAssertEqual(reader.readUnsigned(16), 46, "StartOrOnlyVendorId at 243")
+        // No EndVendorId follows a single, so NumPubRestrictions begins at
+        // 213 + 16 + 1 + 12 + 1 + 16 = 259.
+        XCTAssertEqual(reader.cursor, 259, "a single ends the vector at 259")
+        XCTAssertEqual(reader.readUnsigned(12), 0, "NumPubRestrictions at 259, none in this fixture")
+    }
 }
