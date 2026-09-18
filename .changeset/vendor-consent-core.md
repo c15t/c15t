@@ -1,11 +1,12 @@
 ---
 'c15t': minor
+'@c15t/core': minor
 '@c15t/schema': minor
 '@c15t/scripts': minor
 '@c15t/dev-tools': minor
 ---
 
-Add vendor-level consent outside IAB TCF. Declare vendors with the runtime's `vendors` option or the backend manifest's `vendors`, then name them through `vendor` on scripts and network rules and `data-vendor` on iframes. A target loads when its category passes and the visitor has not turned its vendor off; the slug is inert under an `iab` policy.
+Add vendor-level consent outside IAB TCF. Declare vendors with the runtime's `vendors` option or the backend manifest's `vendors`, then name them through `vendor` on scripts and network rules and `data-vendor` on iframes. A target loads when its category passes and the visitor has not turned its vendor off; `alwaysLoad` scripts still mount and see the result in their callbacks. The slug is inert under an `iab` policy.
 
 Vendor denials are stored in a new `<storageKey>-vendors` cookie and localStorage entry, hydrated on the server from the request cookie header, and sent to the backend as `vendorChoice` on save. `kernel.set.vendorDraft()`, `save(input, { vendors })`, the `vendors:set` and `vendors:recorded` events, and `ScriptCallbackInfo.vendor` are new. `@c15t/scripts` integrations set `vendor` to their manifest slug and send every Consent Mode or RudderStack category as denied while their vendor is off.
 

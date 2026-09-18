@@ -250,7 +250,8 @@ const applyVendorGrants = function applyVendorGrants(
  *
  * - Under `model === 'iab'` the vendor axis is inert: IAB vendor consent is
  *   authoritative and nothing here changes.
- * - `'all'` and `'none'` clear the list: vendors follow the category.
+ * - `'all'` and `'none'` clear the list: vendors follow the category, and
+ *   any explicit grants or staged draft are ignored.
  * - Otherwise explicit grants win over the staged vendor draft, applied on
  *   top of the current denials. Ids that are not declared, or are declared
  *   `disabled`, are ignored.
@@ -270,15 +271,16 @@ export const resolveVendorSelection = function resolveVendorSelection(
 		return current;
 	}
 	const bulk = input === 'all' || input === 'none';
-	const grants = bulk ? explicit : (explicit ?? draft ?? undefined);
-	if (!bulk && grants === undefined) {
+	if (bulk) {
+		// Vendors follow the category on a bulk action; explicit grants and the
+		// staged draft are both discarded so nothing survives as a denial.
+		return current === null ? current : null;
+	}
+	const grants = explicit ?? draft ?? undefined;
+	if (grants === undefined) {
 		return current;
 	}
-	const denied = applyVendorGrants(
-		snapshot,
-		bulk ? undefined : current?.denied,
-		grants
-	);
+	const denied = applyVendorGrants(snapshot, current?.denied, grants);
 	const next: VendorChoice | null =
 		denied.length === 0 ? null : { confirmedAt: actionAt, denied, version: 1 };
 	return sameVendorChoice(current, next) ? current : next;

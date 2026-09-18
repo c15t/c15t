@@ -92,7 +92,9 @@ describe('subject record', () => {
 		});
 	});
 
-	test('an all-granted map, a future map and a missing map are all null', () => {
+	test('an all-granted map keeps its time as an empty denial list', () => {
+		// Carried through so a newer "grant everything" can supersede an older
+		// local denial in the newest-wins merge; the kernel folds it to null.
 		expect(
 			mapSubjectRecordToHydrationRecords(
 				{
@@ -100,6 +102,22 @@ describe('subject record', () => {
 					subjectVendorChoice: {
 						confirmedAt: NOW - 50,
 						grants: { 'meta-pixel': true },
+						version: 1,
+					},
+				},
+				{ now: NOW }
+			).vendorChoice
+		).toEqual({ confirmedAt: NOW - 50, denied: [], version: 1 });
+	});
+
+	test('a future map, an array map and a missing map are all null', () => {
+		expect(
+			mapSubjectRecordToHydrationRecords(
+				{
+					...base,
+					subjectVendorChoice: {
+						confirmedAt: NOW - 50,
+						grants: [false] as unknown as Record<string, boolean>,
 						version: 1,
 					},
 				},

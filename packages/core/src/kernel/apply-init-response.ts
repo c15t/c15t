@@ -152,8 +152,14 @@ export const applyInitResponse = function applyInitResponse(
 		response.vendors !== undefined ||
 		response.vendorListVersion !== undefined
 	) {
+		// A new backend list replaces the previous one outright, so an edit or
+		// removal on the backend lands; code and script declarations survive.
+		const existing = current.vendors?.declared ?? [];
 		const resolved = resolveVendors({
-			existing: current.vendors?.declared ?? [],
+			existing:
+				response.vendors === undefined
+					? existing
+					: existing.filter((vendor) => vendor.source !== 'manifest'),
 			manifest: response.vendors ?? [],
 		});
 		const listVersion =

@@ -7,6 +7,7 @@
  * a `Map<>` argument so callers don't have to plumb identity through.
  */
 import type { AllConsentNames } from '../../consent/consent-types';
+import { isValidVendorId } from '../../libs/vendors';
 import type { NormalizedScript, Script } from './types';
 
 const anonymizedElementIds = new Map<string, string>();
@@ -46,8 +47,10 @@ export const normalizeScripts = function normalizeScripts(
 			typeof script.category === 'string'
 				? (script.category as AllConsentNames)
 				: null,
+		// An invalid slug is ignored here too, so the gate never denies on a
+		// vendor the preference surface cannot present or the wire cannot carry.
 		vendor:
-			typeof script.vendor === 'string' && script.vendor.length > 0
+			typeof script.vendor === 'string' && isValidVendorId(script.vendor)
 				? script.vendor
 				: null,
 	}));

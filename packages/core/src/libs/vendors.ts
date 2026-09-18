@@ -25,7 +25,12 @@ export interface VendorOwner {
 }
 
 export interface ResolveVendorsInput {
-	/** Already-resolved vendors to merge over. Their presentation wins. */
+	/**
+	 * Already-resolved vendors to merge over. Pass only the entries that
+	 * should survive: a caller applying a fresh manifest list drops the
+	 * previous manifest entries first, so the backend can update or remove
+	 * a vendor.
+	 */
 	existing?: readonly ResolvedVendor[];
 	/** Vendors declared in code through the runtime option. */
 	config?: readonly Vendor[];
@@ -41,6 +46,20 @@ const SOURCE_RANK: Record<VendorSource, number> = {
 	config: 0,
 	manifest: 1,
 	script: 2,
+};
+
+/**
+ * The slug shape the wire accepts as a `vendorChoice.grants` key. A script
+ * or rule slug that does not match would make every save fail backend
+ * validation, so it is dropped at declaration with a warning instead.
+ */
+const VENDOR_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+
+/** Whether a string is a slug the wire schema accepts. */
+export const isValidVendorId = function isValidVendorId(
+	value: string
+): boolean {
+	return VENDOR_ID_PATTERN.test(value);
 };
 
 const isPresentable = function isPresentable(
@@ -78,7 +97,9 @@ const toResolved = function toResolved(
 	return {
 		...vendor,
 		category: copyCategory(vendor.category),
-		disabled: vendor.disabled ?? (onlyNecessary(vendor.category) || undefined),
+		// A vendor that only ever falls under `necessary` can never be turned
+		// off, whatever the declaration says.
+		disabled: onlyNecessary(vendor.category) ? true : vendor.disabled,
 		presentable: isPresentable(vendor),
 		source,
 	};
@@ -152,11 +173,13 @@ export const resolveVendors = function resolveVendors(
 	for (const vendor of input.existing ?? []) {
 		byId.set(vendor.id, vendor);
 	}
+	// A candidate replaces an existing entry of the same or a lower-priority
+	// source, so a newer declaration of the same vendor updates its copy.
 	const place = (candidate: ResolvedVendor) => {
 		const existing = byId.get(candidate.id);
 		if (
 			!existing ||
-			SOURCE_RANK[candidate.source] < SOURCE_RANK[existing.source]
+			SOURCE_RANK[candidate.source] <= SOURCE_RANK[existing.source]
 		) {
 			byId.set(candidate.id, candidate);
 		}
@@ -174,6 +197,12 @@ export const resolveVendors = function resolveVendors(
 	const ownerCategories = new Map<string, HasCondition<AllConsentNames>[]>();
 	for (const owner of input.owners ?? []) {
 		if (!owner.vendor) {
+			continue;
+		}
+		if (!isValidVendorId(owner.vendor)) {
+			input.onWarn?.(
+				`[c15t] Vendor slug "${owner.vendor}" is not a lowercase slug of up to 64 characters (letters, digits, ".", "_" and "-"). It is ignored: the script or rule is gated by its category only.`
+			);
 			continue;
 		}
 		const list = ownerCategories.get(owner.vendor) ?? [];

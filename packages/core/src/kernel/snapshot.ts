@@ -161,7 +161,10 @@ export const buildInitialIab = function buildInitialIab(
 export const buildInitialVendors = function buildInitialVendors(
 	initial: KernelVendorsState | undefined
 ): KernelVendorsState | null {
-	if (!initial || initial.declared.length === 0) {
+	if (
+		!initial ||
+		(initial.declared.length === 0 && initial.listVersion === null)
+	) {
 		return null;
 	}
 	return {

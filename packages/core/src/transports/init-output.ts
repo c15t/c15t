@@ -281,8 +281,12 @@ export const mergeInitResponseIntoKernelConfig =
 			response.vendors !== undefined ||
 			response.vendorListVersion !== undefined
 		) {
+			const existing = merged.initialVendors?.declared ?? [];
 			const declared = resolveVendors({
-				existing: merged.initialVendors?.declared ?? [],
+				existing:
+					response.vendors === undefined
+						? existing
+						: existing.filter((vendor) => vendor.source !== 'manifest'),
 				manifest: response.vendors ?? [],
 			});
 			const listVersion =

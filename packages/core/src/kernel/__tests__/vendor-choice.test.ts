@@ -97,6 +97,14 @@ describe('validateVendorChoice', () => {
 });
 
 describe('snapshot vendor state', () => {
+	test('an empty declared list still keeps its version', () => {
+		const snap = buildInitialSnapshot({
+			initialVendors: { declared: [], listVersion: '2026-09' },
+			now: NOW,
+		});
+		expect(snap.vendors).toEqual({ declared: [], listVersion: '2026-09' });
+	});
+
 	test('construction copies declared vendors and seeds no denial', () => {
 		const snap = buildInitialSnapshot({ initialVendors: vendors, now: NOW });
 		expect(snap.vendors?.declared).toHaveLength(3);
@@ -261,6 +269,15 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a bulk action ignores explicit vendor grants', async () => {
+		const kernel = createKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+		});
+		await kernel.commands.save('all', { vendors: { 'meta-pixel': false } });
+		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		kernel.dispose();
+	});
+
 	test("'all' and 'none' clear the denial list", async () => {
 		const kernel = createKernel({
 			initialRecords: {
@@ -372,6 +389,75 @@ describe('server records and init', () => {
 		expect(
 			patch.vendors?.declared.find((vendor) => vendor.id === 'meta-pixel')?.name
 		).toBe('Meta Pixel');
+	});
+
+	test('a newer all-granted server map clears an older local denial', () => {
+		const current = buildInitialSnapshot({
+			initialRecords: {
+				...choiceRecords({ marketing: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 10,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+			initialVendors: vendors,
+			now: NOW,
+		});
+		const { patch } = applyInitResponse(
+			current,
+			{
+				policyResolution: undefined,
+				records: {
+					vendorChoice: { confirmedAt: NOW - 5, denied: [], version: 1 },
+				},
+			},
+			NOW
+		);
+		expect(patch.vendorChoice).toBeNull();
+	});
+
+	test('a later init replaces the previous backend vendor list', () => {
+		const current = buildInitialSnapshot({
+			initialVendors: {
+				declared: [
+					...vendors.declared,
+					{
+						category: 'experience',
+						id: 'old-backend',
+						name: 'Old',
+						presentable: true,
+						privacyPolicyUrl: 'https://example.com/old',
+						source: 'manifest',
+					},
+				],
+				listVersion: '1',
+			},
+			now: NOW,
+		});
+		const { patch } = applyInitResponse(
+			current,
+			{
+				policyResolution: undefined,
+				vendorListVersion: '2',
+				vendors: [
+					{
+						category: 'experience',
+						id: 'intercom',
+						name: 'Intercom',
+						privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
+					},
+				],
+			},
+			NOW
+		);
+		expect(patch.vendors?.listVersion).toBe('2');
+		expect(patch.vendors?.declared.map((vendor) => vendor.id)).toEqual([
+			'cdn',
+			'google-analytics',
+			'intercom',
+			'meta-pixel',
+		]);
 	});
 
 	test('server vendor records merge newest-wins on init', () => {

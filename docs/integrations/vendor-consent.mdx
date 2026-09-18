@@ -71,6 +71,9 @@ loads  =  category condition satisfied  AND  vendor not denied
 The category is evaluated first, so an unknown category still throws as a
 configuration error. A vendor toggle never grants a category on its own: with
 marketing denied, `meta-pixel` stays blocked whatever its own switch says.
+A script with `alwaysLoad` still mounts, as it does for a denied category;
+its callbacks receive the vendor result in `info.vendor.granted` so a
+self-managing SDK can honor it.
 
 Under an `iab` policy the `vendor` slug is inert. Vendor consent then comes from
 the TC string through `vendorId`, and the vendor rows are not shown.

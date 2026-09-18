@@ -207,7 +207,10 @@ const mapDirective = (
 
 /**
  * The vendor denial list a wire grant map describes. A malformed map is
- * ignored rather than invented; an all-granted map is `null`.
+ * ignored rather than invented. An all-granted map becomes an empty record
+ * that keeps its confirmation time, so a newer server decision to grant
+ * everything can still supersede an older local denial in the newest-wins
+ * merge; a `null` would read as "nothing known" and keep the denial.
  */
 const mapVendorChoice = (
 	wire: VendorChoiceWire | null | undefined,
@@ -219,6 +222,7 @@ const mapVendorChoice = (
 		wire.version !== 1 ||
 		typeof wire.grants !== 'object' ||
 		wire.grants === null ||
+		Array.isArray(wire.grants) ||
 		checkTimestamp(wire.confirmedAt, now)
 	) {
 		return null;
@@ -232,9 +236,7 @@ const mapVendorChoice = (
 			denied.push(id);
 		}
 	}
-	return denied.length > 0
-		? { confirmedAt: wire.confirmedAt, denied: denied.sort(), version: 1 }
-		: null;
+	return { confirmedAt: wire.confirmedAt, denied: denied.sort(), version: 1 };
 };
 
 /** Newest vendor grant map across the consent items, for older backends. */

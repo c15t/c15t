@@ -75,11 +75,37 @@ describe('resolveVendors', () => {
 		expect(onWarn).not.toHaveBeenCalled();
 	});
 
-	test('a vendor whose category is only necessary is disabled', () => {
+	test('a vendor whose category is only necessary is disabled, even when declared otherwise', () => {
 		const resolved = resolveVendors({
-			config: [{ ...meta, category: 'necessary', id: 'cdn' }],
+			config: [{ ...meta, category: 'necessary', disabled: false, id: 'cdn' }],
 		});
 		expect(resolved[0]?.disabled).toBe(true);
+	});
+
+	test('a script slug that is not a valid wire id is dropped with a warning', () => {
+		const onWarn = vi.fn();
+		const resolved = resolveVendors({
+			onWarn,
+			owners: [
+				{ category: 'marketing', vendor: 'Meta Pixel' },
+				{ category: 'marketing', vendor: 'ok-slug' },
+			],
+		});
+		expect(resolved.map((vendor) => vendor.id)).toEqual(['ok-slug']);
+		expect(
+			onWarn.mock.calls.some(([m]) => String(m).includes('Meta Pixel'))
+		).toBe(true);
+	});
+
+	test('a newer declaration of the same source replaces the existing entry', () => {
+		const resolved = resolveVendors({
+			existing: [
+				{ ...meta, name: 'Old name', presentable: true, source: 'manifest' },
+			],
+			manifest: [{ ...meta, name: 'New name' }],
+		});
+		expect(resolved).toHaveLength(1);
+		expect(resolved[0]?.name).toBe('New name');
 	});
 
 	test('an explicit disabled flag is kept', () => {
