@@ -128,6 +128,9 @@ export {
 	useSpecialFeatureOptIn,
 	useTCString,
 	useUser,
+	useDeclaredVendors,
+	useVendorAllowed,
+	useVendorChoice,
 	useVendorConsent,
 } from './hooks';
 export type {

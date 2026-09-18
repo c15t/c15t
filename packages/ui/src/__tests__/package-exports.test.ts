@@ -23,6 +23,7 @@ const COMPONENT_STYLE_MODULES = [
 	'preference-item',
 	'switch',
 	'tabs',
+	'vendor-list',
 ] as const;
 
 const PRIMITIVE_CSS_MODULES = [

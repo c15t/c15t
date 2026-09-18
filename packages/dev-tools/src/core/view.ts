@@ -73,6 +73,53 @@ interface ViewState {
 	iab: IABPanelState;
 }
 
+/** Declared vendors with their source and current grant, read-only. */
+const renderVendors = function renderVendors(
+	document: Document,
+	container: HTMLElement,
+	snapshot: DevToolsState['snapshot']
+): void {
+	const declared = snapshot.vendors?.declared ?? [];
+	if (declared.length === 0) {
+		return;
+	}
+	const section = createSection(
+		document,
+		'Vendors',
+		snapshot.vendors?.listVersion
+			? `Vendor list ${snapshot.vendors.listVersion}. A denied vendor stays blocked inside a granted category.`
+			: 'A denied vendor stays blocked inside a granted category.'
+	);
+	const denied = new Set(snapshot.vendorChoice?.denied);
+	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
+	for (const vendor of declared) {
+		const item = createElement(document, 'div', 'c15t-dev-tools__check');
+		item.append(
+			createElement(document, 'span', undefined, vendor.name ?? vendor.id),
+			createElement(document, 'span', 'c15t-dev-tools__badge', vendor.source),
+			createElement(
+				document,
+				'span',
+				'c15t-dev-tools__muted',
+				denied.has(vendor.id) ? 'Denied' : 'Granted'
+			)
+		);
+		if (!vendor.presentable) {
+			item.append(
+				createElement(
+					document,
+					'span',
+					'c15t-dev-tools__muted',
+					'Slug only. Declare a name and privacy policy URL to show it.'
+				)
+			);
+		}
+		list.append(item);
+	}
+	section.append(list);
+	container.append(section);
+};
+
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 function renderConsents(
 	document: Document,
@@ -199,6 +246,7 @@ function renderConsents(
 	actions.append(discard);
 	section.append(list, actions);
 	container.append(section);
+	renderVendors(document, container, snapshot);
 }
 
 const renderScripts = (

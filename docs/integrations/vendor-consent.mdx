@@ -132,6 +132,27 @@ carries `{ id, granted }` outside IAB mode. Integrations that send Google
 Consent Mode or RudderStack signals send every category as denied while their
 vendor is off, so the vendor's own consent API cannot re-enable tracking.
 
+## Show vendors in the preference center
+
+The React `ConsentWidget` and `ConsentDialog` list vendors under their
+category when the provider declares them. Pass the same `vendors` array to
+`ConsentProvider`, or to `ConsentRoot` in Next.js and TanStack Start:
+
+```tsx
+import { ConsentProvider, hosted } from 'c15t/react';
+
+<ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }), vendors }}>
+	{children}
+</ConsentProvider>;
+```
+
+Each category row expands to a "Vendors" group with a switch per vendor. The
+switches disable while the category is off in the draft, and Save records the
+vendors the visitor moved. Copy comes from
+`consentManagerDialog.vendors.{title, privacyPolicy, disabledByCategory,
+switchLabel}` in the translations. The Vue and Svelte preference centers do
+not render vendor rows yet; they still gate scripts, requests and iframes.
+
 ## What a denial does not do
 
 Turning a vendor off blocks future loads and requests. It does not delete the

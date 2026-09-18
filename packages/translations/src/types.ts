@@ -47,6 +47,20 @@ export interface CookieBannerTranslations {
 export interface ConsentManagerDialogTranslations {
 	title: string;
 	description: string;
+	/** Copy for vendor rows nested under a category. Optional in translations. */
+	vendors?: Partial<VendorListTranslations>;
+}
+
+/** Copy for the vendor list inside the preference center. */
+export interface VendorListTranslations {
+	/** Heading above the vendor rows of one category. */
+	title: string;
+	/** Link text to a vendor's privacy policy. */
+	privacyPolicy: string;
+	/** Hint shown while the parent category is off, so vendor switches are disabled. */
+	disabledByCategory: string;
+	/** Accessible label for a vendor switch, with a {vendor} placeholder. */
+	switchLabel: string;
 }
 
 export interface ConsentTypeTranslations {

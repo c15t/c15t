@@ -27,11 +27,18 @@ import { saveConsentUI } from './ui-save';
 export interface ConsentDraftHandle {
 	values: Readonly<ConsentState>;
 	displayedCategories: readonly AllConsentNames[];
+	/**
+	 * Granted flag per declared vendor. Seeded from the recorded denials;
+	 * every vendor not denied is `true`. Empty under an `iab` policy.
+	 */
+	vendors: Readonly<Record<string, boolean>>;
 	isDirty: boolean;
 	/** A policy or displayed-category change requires reset and review before saving. */
 	isStale: boolean;
 	set: (category: AllConsentNames, value: boolean) => void;
 	update: (patch: Partial<ConsentState>) => void;
+	/** Stage one vendor's grant. Recorded by the next save. */
+	setVendor: (vendorId: string, granted: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<SaveResult>;
@@ -40,9 +47,33 @@ export interface ConsentDraftHandle {
 interface DraftSnapshot {
 	values: ConsentState;
 	displayedCategories: readonly AllConsentNames[];
+	vendors: Record<string, boolean>;
 	isDirty: boolean;
 	isStale: boolean;
 }
+const seedVendors = function seedVendors(
+	snapshot: ConsentSnapshot
+): Record<string, boolean> {
+	const grants: Record<string, boolean> = {};
+	if (snapshot.model === 'iab') {
+		return grants;
+	}
+	const denied = new Set(snapshot.vendorChoice?.denied ?? []);
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		grants[vendor.id] = !denied.has(vendor.id);
+	}
+	return grants;
+};
+const sameGrants = function sameGrants(
+	left: Readonly<Record<string, boolean>>,
+	right: Readonly<Record<string, boolean>>
+): boolean {
+	const keys = Object.keys(left);
+	return (
+		keys.length === Object.keys(right).length &&
+		keys.every((key) => left[key] === right[key])
+	);
+};
 const seed = function seed(
 	snapshot: ConsentSnapshot,
 	defaults?: Partial<ConsentState>
@@ -72,6 +103,7 @@ const createDraftStore = function createDraftStore(
 	let saveSequence = 0;
 	let source = kernel.getSnapshot();
 	let base = seed(source, defaults);
+	let baseVendors = seedVendors(source);
 	let { fingerprint } = source.evaluationPolicy.choice;
 	let current: DraftSnapshot = {
 		displayedCategories: [
@@ -81,6 +113,7 @@ const createDraftStore = function createDraftStore(
 		isDirty: false,
 		isStale: false,
 		values: base,
+		vendors: baseVendors,
 	};
 	const listeners = new Set<() => void>();
 	const publish = (next: DraftSnapshot) => {
@@ -89,10 +122,18 @@ const createDraftStore = function createDraftStore(
 			listener();
 		}
 	};
+	const isDirty = (
+		values: ConsentState,
+		vendors: Readonly<Record<string, boolean>>
+	) =>
+		current.displayedCategories.some(
+			(category) => values[category] !== base[category]
+		) || !sameGrants(vendors, baseVendors);
 	const reset = () => {
 		revision += 1;
 		source = kernel.getSnapshot();
 		base = seed(source, defaults);
+		baseVendors = seedVendors(source);
 		({ fingerprint } = source.evaluationPolicy.choice);
 		publish({
 			displayedCategories: [
@@ -102,6 +143,7 @@ const createDraftStore = function createDraftStore(
 			isDirty: false,
 			isStale: false,
 			values: base,
+			vendors: baseVendors,
 		});
 	};
 	const update = (patch: Partial<ConsentState>) => {
@@ -121,19 +163,45 @@ const createDraftStore = function createDraftStore(
 			revision += 1;
 			publish({
 				...current,
-				isDirty: current.displayedCategories.some(
-					(category) => values[category] !== base[category]
-				),
+				isDirty: isDirty(values, current.vendors),
 				values,
 			});
 		}
 	};
+	const updateVendors = (patch: Readonly<Record<string, boolean>>) => {
+		const vendors = { ...current.vendors };
+		let changed = false;
+		for (const [id, granted] of Object.entries(patch)) {
+			if (
+				id in baseVendors &&
+				typeof granted === 'boolean' &&
+				vendors[id] !== granted
+			) {
+				vendors[id] = granted;
+				changed = true;
+			}
+		}
+		if (changed) {
+			revision += 1;
+			publish({
+				...current,
+				isDirty: isDirty(current.values, vendors),
+				vendors,
+			});
+		}
+	};
+	/** Every declared vendor granted: what a bulk action leaves behind. */
+	const allVendorsOn = () =>
+		Object.fromEntries(Object.keys(baseVendors).map((id) => [id, true]));
 	const sync = () => {
 		const next = kernel.getSnapshot();
 		if (
 			source.explicitChoice === next.explicitChoice &&
 			source.policyRule === next.policyRule &&
-			source.evaluationPolicy === next.evaluationPolicy
+			source.evaluationPolicy === next.evaluationPolicy &&
+			source.vendors === next.vendors &&
+			source.vendorChoice === next.vendorChoice &&
+			source.model === next.model
 		) {
 			return;
 		}
@@ -160,6 +228,7 @@ const createDraftStore = function createDraftStore(
 					current.displayedCategories.map((category) => [category, true])
 				)
 			);
+			updateVendors(allVendorsOn());
 		},
 		connect() {
 			sync();
@@ -172,6 +241,9 @@ const createDraftStore = function createDraftStore(
 					current.displayedCategories.map((category) => [category, false])
 				)
 			);
+			// Vendors follow the category: a rejected category needs no per-vendor
+			// denial, and the kernel clears the denial list on a bulk action.
+			updateVendors(allVendorsOn());
 		},
 		reset,
 		async save(
@@ -197,7 +269,18 @@ const createDraftStore = function createDraftStore(
 			}
 			saveSequence += 1;
 			const sequence = saveSequence;
-			const pending = kernel.commands.save(input ?? patch, { categories });
+			// Only vendors the draft moved travel with the save, so an untouched
+			// vendor never renews the recorded confirmation time.
+			const vendors: Record<string, boolean> = {};
+			for (const [id, granted] of Object.entries(current.vendors)) {
+				if (baseVendors[id] !== granted) {
+					vendors[id] = granted;
+				}
+			}
+			const pending = kernel.commands.save(input ?? patch, {
+				categories,
+				...(Object.keys(vendors).length > 0 && { vendors }),
+			});
 			// A clean draft can reseed synchronously from the local receipt.
 			const savedRevision = revision;
 			const result = await pending;
@@ -215,6 +298,9 @@ const createDraftStore = function createDraftStore(
 		},
 		set(category: AllConsentNames, value: boolean) {
 			update({ [category]: value });
+		},
+		setVendor(vendorId: string, granted: boolean) {
+			updateVendors({ [vendorId]: granted });
 		},
 		subscribe(listener: () => void) {
 			listeners.add(listener);
@@ -304,6 +390,7 @@ const useDraftHandle = function useDraftHandle(
 			reset: store.reset,
 			save: store.save,
 			set: store.set,
+			setVendor: store.setVendor,
 			update: store.update,
 		}),
 		[snapshot, store]

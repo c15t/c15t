@@ -4,6 +4,7 @@ import {
 	extractConsentNamesFromCondition,
 	createConsentKernel,
 	kernelConfigToInitResponse,
+	resolveVendors,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
@@ -26,6 +27,7 @@ import type {
 	StorageConfig,
 	TranslationsResponse,
 	User,
+	Vendor,
 } from '@c15t/core';
 import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import type { Script } from '@c15t/core/modules/script-loader';
@@ -158,6 +160,14 @@ export interface ConsentProviderOptions extends Pick<
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
 	scripts?: Script[];
+	/**
+	 * Vendors offered for vendor-level consent outside IAB. Each sits inside a
+	 * category; a visitor can grant the category and still turn one vendor
+	 * off. Scripts, network rules and iframes name a vendor through `vendor`
+	 * or `data-vendor`. Merged with vendors the backend returns and with slugs
+	 * found on scripts and rules; presentation declared here wins.
+	 */
+	vendors?: Vendor[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
 	/** Discover and gate DOM iframes with data-category. Enabled by default. */
@@ -498,16 +508,39 @@ const createProviderKernel = function createProviderKernel(
 		() => kernelRef.current
 	);
 
+	const integrations = [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+	];
+	const declaredVendors = resolveVendors({
+		config: options.vendors,
+		onWarn: (message) => {
+			const nodeEnv = (
+				globalThis as { process?: { env?: { NODE_ENV?: string } } }
+			).process?.env?.NODE_ENV;
+			if (nodeEnv !== 'production') {
+				console.warn(message);
+			}
+		},
+		owners: integrations,
+	});
+
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
 		inferredConsentCategories: [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		].flatMap((integration) =>
-			extractConsentNamesFromCondition(integration.category)
-		),
+			...integrations.flatMap((integration) =>
+				extractConsentNamesFromCondition(integration.category)
+			),
+			...(options.vendors ?? []).flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+		],
+		initialVendors:
+			declaredVendors.length > 0
+				? { declared: declaredVendors, listVersion: null }
+				: prefetch.initialVendors,
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
@@ -564,6 +597,18 @@ const useProviderCallbacks = function useProviderCallbacks(
 
 	useEffect(() => {
 		const subscriptions = [
+			// Vendors the backend declares arrive with init. Their categories
+			// become selectable the same way a code-declared vendor's do.
+			kernel.events.on('init:applied', ({ snapshot }) => {
+				const declared = snapshot.vendors?.declared ?? [];
+				if (declared.length > 0) {
+					kernel.set.registerConsentCategories(
+						declared.flatMap((vendor) =>
+							extractConsentNamesFromCondition(vendor.category)
+						)
+					);
+				}
+			}),
 			kernel.events.on(
 				'choice:recorded',
 				({ snapshot, confirmed, actionAt }) => {
