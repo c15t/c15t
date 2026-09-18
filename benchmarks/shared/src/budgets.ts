@@ -150,12 +150,13 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 
 /**
  * Vendor-level consent (#1034) added the vendor gate, the denial-list codec
- * and the vendor save path to the kernel entry: about 2.7 kB gzip on every
- * consumer scenario, measured on the PR that introduced it. The delta
- * budgets below carry that once; they return to their previous values in
- * the follow-up that lands after the feature is on the base branch.
+ * with its subject copy, the paused-iframe marker and the vendor save path
+ * to the kernel entry: about 3 kB gzip on every consumer scenario, measured
+ * on the PR that introduced it. The delta budgets below carry that once;
+ * they return to their previous values in the follow-up that lands after the
+ * feature is on the base branch.
  */
-const VENDOR_CONSENT_GZIP_BYTES = 2816;
+const VENDOR_CONSENT_GZIP_BYTES = 3072;
 
 export const bundleBudgets: MetricBudget[] = [
 	{
@@ -176,19 +177,19 @@ export const bundleBudgets: MetricBudget[] = [
 		comparator: 'delta-bytes-lte',
 		description: 'React banner bundle delta budget.',
 		metric: 'react-banner-only',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React full bundle delta budget.',
 		metric: 'react-full',
-		threshold: 4096,
+		threshold: 4096 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'Next.js package bundle delta budget.',
 		metric: 'nextjs-basic',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 ];
 
