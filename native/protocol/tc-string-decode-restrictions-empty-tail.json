@@ -1,0 +1,322 @@
+{
+	"description": "A string whose core segment ends in a publisher restriction count of zero with everything before it populated, which is where a decoder learns the body has no terminator.",
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
+	"expected": {
+		"decode": {
+			"fields": {
+				"consentLanguage": "EN",
+				"consentScreen": 1,
+				"created": 1769990400000,
+				"cmpId": 28,
+				"cmpVersion": 1,
+				"isServiceSpecific": true,
+				"lastUpdated": 1769990400000,
+				"numCustomPurposes": 0,
+				"policyVersion": 5,
+				"publisherConsents": [],
+				"publisherCountryCode": "US",
+				"publisherCustomConsents": [],
+				"publisherCustomLegitimateInterests": [],
+				"publisherLegitimateInterests": [],
+				"publisherRestrictions": [],
+				"purposeConsents": [1, 2, 7],
+				"purposeLegitimateInterests": [],
+				"purposeOneTreatment": true,
+				"specialFeatureOptins": [],
+				"supportOOB": false,
+				"useNonStandardTexts": true,
+				"vendorConsents": [41, 42, 43, 44, 45, 46, 47],
+				"vendorLegitimateInterests": [60],
+				"vectorMaxIds": {
+					"publisherCustomConsents": 0,
+					"vendorConsents": 47,
+					"vendorLegitimateInterests": 60,
+					"vendorsAllowed": 0,
+					"vendorsDisclosed": 0
+				},
+				"version": 2,
+				"vendorListVersion": 142,
+				"vendorsAllowed": [],
+				"vendorsDisclosed": []
+			}
+		},
+		"encode": {
+			"segmentTypes": [0, 1, 3],
+			"segments": [
+				"CQe_xoAQe_xoAAcABBENCOFwAMIAAAAAAKiQAXwAYAUgBeAHkAEAHgAA",
+				"IAAA",
+				"YAAAAAAAAAAA"
+			],
+			"tcString": "CQe_xoAQe_xoAAcABBENCOFwAMIAAAAAAKiQAXwAYAUgBeAHkAEAHgAA.IAAA.YAAAAAAAAAAA"
+		}
+	},
+	"id": "tc-string-decode-restrictions-empty-tail",
+	"input": {
+		"encodingOptions": {
+			"isForVendors": false,
+			"version": 2
+		},
+		"model": {
+			"consentLanguage": "EN",
+			"consentScreen": 1,
+			"created": 1769990400000,
+			"cmpId": 28,
+			"cmpVersion": 1,
+			"isServiceSpecific": true,
+			"lastUpdated": 1769990400000,
+			"numCustomPurposes": 0,
+			"publisherConsents": [],
+			"publisherCountryCode": "US",
+			"publisherCustomConsents": [],
+			"publisherCustomLegitimateInterests": [],
+			"publisherLegitimateInterests": [],
+			"publisherRestrictions": [],
+			"purposeConsents": [1, 2, 7],
+			"purposeLegitimateInterests": [],
+			"purposeOneTreatment": true,
+			"specialFeatureOptins": [],
+			"supportOOB": false,
+			"useNonStandardTexts": true,
+			"vendorConsents": [41, 42, 43, 44, 45, 46, 47],
+			"vendorLegitimateInterests": [60],
+			"version": 2,
+			"vendorsAllowed": [],
+			"vendorsDisclosed": []
+		},
+		"now": 1770000000000,
+		"vendorList": {
+			"language": "EN",
+			"tcfPolicyVersion": 5,
+			"vendorListVersion": 142,
+			"vendors": [
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 1,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 2,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 3,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 4,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 5,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 6,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 7,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 8,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 9,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 10,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 11,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 12,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 41,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 42,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 43,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 44,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 45,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 46,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 47,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 60,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 300,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 500,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 700,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				}
+			]
+		}
+	},
+	"kind": "tc-string",
+	"notes": [
+		"Population decode-coverage: this model reaches past what @c15t/iab writes, so expects.encode is false and only the decode half is graded. An encoder that cannot produce this input is not wrong.",
+		"There is no terminator word after the publisher restrictions in a v2 core string: an empty list is a 12-bit zero count and then the segment ends, mid-word. A port carrying a v1 habit of reading a sentinel will run off the end of the core segment here, and the padding bits after it are zero, which makes the mistake look like a valid extra entry rather than an overrun.",
+		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
+	],
+	"oracle": {
+		"package": "@iabtechlabtcf/core",
+		"repository": "InteractiveAdvertisingBureau/iabtcf-es",
+		"version": "1.5.21",
+		"encodeOptions": {
+			"isForVendors": false,
+			"version": 2
+		}
+	},
+	"population": "decode-coverage",
+	"protocolVersion": 1
+}

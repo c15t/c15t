@@ -1,0 +1,323 @@
+{
+	"description": "An app that asked for its own consent language while the vendor list it loaded is a different one, which is the common real-world case the reference settles silently.",
+	"expects": {
+		"decode": true,
+		"encode": true
+	},
+	"expected": {
+		"decode": {
+			"fields": {
+				"consentLanguage": "DE",
+				"consentScreen": 1,
+				"created": 1769990400000,
+				"cmpId": 28,
+				"cmpVersion": 1,
+				"isServiceSpecific": true,
+				"lastUpdated": 1769990400000,
+				"numCustomPurposes": 0,
+				"policyVersion": 5,
+				"publisherConsents": [],
+				"publisherCountryCode": "US",
+				"publisherCustomConsents": [],
+				"publisherCustomLegitimateInterests": [],
+				"publisherLegitimateInterests": [],
+				"publisherRestrictions": [],
+				"purposeConsents": [1],
+				"purposeLegitimateInterests": [],
+				"purposeOneTreatment": false,
+				"specialFeatureOptins": [],
+				"supportOOB": false,
+				"useNonStandardTexts": false,
+				"vendorConsents": [1],
+				"vendorLegitimateInterests": [],
+				"vectorMaxIds": {
+					"publisherCustomConsents": 0,
+					"vendorConsents": 1,
+					"vendorLegitimateInterests": 0,
+					"vendorsAllowed": 0,
+					"vendorsDisclosed": 0
+				},
+				"version": 2,
+				"vendorListVersion": 142,
+				"vendorsAllowed": [],
+				"vendorsDisclosed": []
+			}
+		},
+		"encode": {
+			"segmentTypes": [0, 1, 3],
+			"segments": [
+				"CQe_xoAQe_xoAAcABBDECOFgAIAAAAAAACiQAAoAAAAA",
+				"IAAA",
+				"YAAAAAAAAAAA"
+			],
+			"tcString": "CQe_xoAQe_xoAAcABBDECOFgAIAAAAAAACiQAAoAAAAA.IAAA.YAAAAAAAAAAA"
+		}
+	},
+	"id": "tc-string-parity-consent-language-from-vendor-list",
+	"input": {
+		"encodingOptions": {
+			"isForVendors": false,
+			"version": 2
+		},
+		"model": {
+			"consentLanguage": "EN",
+			"consentScreen": 1,
+			"created": 1769990400000,
+			"cmpId": 28,
+			"cmpVersion": 1,
+			"isServiceSpecific": true,
+			"lastUpdated": 1769990400000,
+			"numCustomPurposes": 0,
+			"publisherConsents": [],
+			"publisherCountryCode": "US",
+			"publisherCustomConsents": [],
+			"publisherCustomLegitimateInterests": [],
+			"publisherLegitimateInterests": [],
+			"publisherRestrictions": [],
+			"purposeConsents": [1],
+			"purposeLegitimateInterests": [],
+			"purposeOneTreatment": false,
+			"specialFeatureOptins": [],
+			"supportOOB": false,
+			"useNonStandardTexts": false,
+			"vendorConsents": [1],
+			"vendorLegitimateInterests": [],
+			"version": 2,
+			"vendorsAllowed": [],
+			"vendorsDisclosed": []
+		},
+		"now": 1770000000000,
+		"vendorList": {
+			"language": "DE",
+			"tcfPolicyVersion": 5,
+			"vendorListVersion": 142,
+			"vendors": [
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 1,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 2,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 3,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 4,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 5,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 6,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 7,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 8,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 9,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 10,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 11,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 12,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 41,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 42,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 43,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 44,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 45,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 46,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 47,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 60,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 300,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 500,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 700,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				}
+			]
+		}
+	},
+	"kind": "tc-string",
+	"notes": [
+		"Population parity: every non-default field here is one @c15t/iab writes, so expects.encode is true and a native encoder has to reproduce tcString byte for byte.",
+		"The reference overwrites the model language with the vendor list language before encoding, so the string says DE while the app said EN. A native encoder that reads the language off the SDK configuration produces a byte that differs here.",
+		"consentLanguage is not writable: the reference overwrites the model's \"EN\" with the vendor list's language \"DE\", so a port that reads the app's language produces a different string here.",
+		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
+	],
+	"oracle": {
+		"package": "@iabtechlabtcf/core",
+		"repository": "InteractiveAdvertisingBureau/iabtcf-es",
+		"version": "1.5.21",
+		"encodeOptions": {
+			"isForVendors": false,
+			"version": 2
+		}
+	},
+	"population": "parity",
+	"protocolVersion": 1
+}

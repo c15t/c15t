@@ -1,0 +1,322 @@
+{
+	"description": "A created timestamp a day behind lastUpdated, which is what a consent record looks like after it has been refreshed.",
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
+	"expected": {
+		"decode": {
+			"fields": {
+				"consentLanguage": "EN",
+				"consentScreen": 1,
+				"created": 1769990400000,
+				"cmpId": 28,
+				"cmpVersion": 1,
+				"isServiceSpecific": true,
+				"lastUpdated": 1770000000000,
+				"numCustomPurposes": 0,
+				"policyVersion": 5,
+				"publisherConsents": [],
+				"publisherCountryCode": "US",
+				"publisherCustomConsents": [],
+				"publisherCustomLegitimateInterests": [],
+				"publisherLegitimateInterests": [],
+				"publisherRestrictions": [],
+				"purposeConsents": [1, 7],
+				"purposeLegitimateInterests": [],
+				"purposeOneTreatment": false,
+				"specialFeatureOptins": [],
+				"supportOOB": false,
+				"useNonStandardTexts": false,
+				"vendorConsents": [1],
+				"vendorLegitimateInterests": [],
+				"vectorMaxIds": {
+					"publisherCustomConsents": 0,
+					"vendorConsents": 1,
+					"vendorLegitimateInterests": 0,
+					"vendorsAllowed": 0,
+					"vendorsDisclosed": 0
+				},
+				"version": 2,
+				"vendorListVersion": 142,
+				"vendorsAllowed": [],
+				"vendorsDisclosed": []
+			}
+		},
+		"encode": {
+			"segmentTypes": [0, 1, 3],
+			"segments": [
+				"CQe_xoAQfAJEAAcABBENCOFgAIIAAAAAACiQAAoAAAAA",
+				"IAAA",
+				"YAAAAAAAAAAA"
+			],
+			"tcString": "CQe_xoAQfAJEAAcABBENCOFgAIIAAAAAACiQAAoAAAAA.IAAA.YAAAAAAAAAAA"
+		}
+	},
+	"id": "tc-string-decode-created-before-last-updated",
+	"input": {
+		"encodingOptions": {
+			"isForVendors": false,
+			"version": 2
+		},
+		"model": {
+			"consentLanguage": "EN",
+			"consentScreen": 1,
+			"created": 1769990400000,
+			"cmpId": 28,
+			"cmpVersion": 1,
+			"isServiceSpecific": true,
+			"lastUpdated": 1770000000000,
+			"numCustomPurposes": 0,
+			"publisherConsents": [],
+			"publisherCountryCode": "US",
+			"publisherCustomConsents": [],
+			"publisherCustomLegitimateInterests": [],
+			"publisherLegitimateInterests": [],
+			"publisherRestrictions": [],
+			"purposeConsents": [1, 7],
+			"purposeLegitimateInterests": [],
+			"purposeOneTreatment": false,
+			"specialFeatureOptins": [],
+			"supportOOB": false,
+			"useNonStandardTexts": false,
+			"vendorConsents": [1],
+			"vendorLegitimateInterests": [],
+			"version": 2,
+			"vendorsAllowed": [],
+			"vendorsDisclosed": []
+		},
+		"now": 1770000000000,
+		"vendorList": {
+			"language": "EN",
+			"tcfPolicyVersion": 5,
+			"vendorListVersion": 142,
+			"vendors": [
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 1,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 2,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 3,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 4,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 5,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 6,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 7,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 8,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 9,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 10,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 11,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 12,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 41,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 42,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 43,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 44,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 45,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 46,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 47,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 60,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 300,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 500,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 700,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				}
+			]
+		}
+	},
+	"kind": "tc-string",
+	"notes": [
+		"Population decode-coverage: this model reaches past what @c15t/iab writes, so expects.encode is false and only the decode half is graded. An encoder that cannot produce this input is not wrong.",
+		"Both timestamps are 36 bits of tenths of a second, so they survive to the decisecond and not below it; a confirmation time with a sub-de-second remainder is the one thing in a core segment that cannot round-trip exactly, which is why the fixture clock is a whole number of deciseconds. @c15t/iab always writes both fields from the same truncated day, so a decoder that assumes created equals lastUpdated passes every parity vector and fails this one.",
+		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
+	],
+	"oracle": {
+		"package": "@iabtechlabtcf/core",
+		"repository": "InteractiveAdvertisingBureau/iabtcf-es",
+		"version": "1.5.21",
+		"encodeOptions": {
+			"isForVendors": false,
+			"version": 2
+		}
+	},
+	"population": "decode-coverage",
+	"protocolVersion": 1
+}

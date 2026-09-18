@@ -31,6 +31,12 @@
  * - `reset-consent-*.json` — a device with a recorded answer in, the wipe out: the
  *   baseline `reset()` publishes, what its deletion leaves on disk, and the snapshot
  *   the device answers with once the init it re-ran lands.
+ * - `tc-string-*.json` — a TC Model plus a vendor list in, the base64url TCF string the
+ *   reference encoder produced out, and the field map its decoder read back. These are
+ *   the only fixtures the c15t kernel has no hand in: their oracle is
+ *   `@iabtechlabtcf/core`, because there is no native TC String SDK to adopt. Two
+ *   populations, recorded per fixture as `population` and `expects`. See
+ *   `./tc-string-fixtures.ts` for what each one obliges a core to do.
  * - `index.json` — every fixture's id, kind, protocolVersion, and SHA-256, so a
  *   runner enumerates fixtures instead of hard-coding names and can prove it read
  *   the bytes this script wrote.
@@ -43,8 +49,12 @@
  * rather than generated, the language is always pinned, and every object here is
  * built in a fixed key order. Re-running the script must not change a byte.
  *
- * IAB TCF is out of scope: no TC string, no GVL, and the snapshot `iab` slot is
- * emitted as `null`.
+ * The consent *policy* half of IAB TCF stays out of scope: no kernel fixture carries a
+ * TC string, no GVL, and the snapshot `iab` slot is emitted as `null`. The wire half is
+ * now in scope as its own kind, and it is deliberately not threaded through the kernel —
+ * c15t's own encoder populates a subset of `TCModel`, so a vector set cut only from
+ * c15t's outputs would pass a decoder that cannot see publisherRestrictions or
+ * purposeOneTreatment at all. Both populations therefore drive the reference directly.
  *
  * Stored envelopes are the one thing here the kernel does not produce, because it has
  * no stored-envelope path to derive one from. Swift and Kotlin encode independently,
@@ -66,6 +76,7 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	realpathSync,
 	writeFileSync,
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -119,6 +130,8 @@ import {
 	isProtocolVersionSupported,
 	PROTOCOL_VERSION,
 } from '../src/protocol/version';
+import { buildTcStringFixtures } from './tc-string-fixtures';
+import type { TcStringFixture } from './tc-string-fixtures';
 
 // -- Fixed inputs ------------------------------------------------------------
 
@@ -635,7 +648,8 @@ type Fixture =
 	| SaveBodyFixture
 	| NativeEnvelopeFixture
 	| ResetConsentFixture
-	| RevisionTraceFixture;
+	| RevisionTraceFixture
+	| TcStringFixture;
 
 /** What a scenario holds that a client never sees. */
 interface Scenario {
@@ -2154,6 +2168,11 @@ const withoutVersion = function withoutVersion(
  * bootstrap response the sequence starts from.
  */
 const transportsIn = function transportsIn(fixture: Fixture): InitTransport[] {
+	// A tc-string fixture carries a TC Model and a vendor list and no transport: the
+	// reference encoder is the whole pipeline, and no /init response reaches it.
+	if (fixture.kind === 'tc-string') {
+		return [];
+	}
 	const { input } = fixture;
 	if (!('steps' in input)) {
 		return [input.transport];
@@ -2245,6 +2264,11 @@ const assertHydrationClaims = function assertHydrationClaims(
 	fixtures: readonly Fixture[]
 ): void {
 	for (const fixture of fixtures) {
+		// The tc-string kind has no hydration to claim: nothing is stored and nothing is
+		// read back off a device, so ready is not a fact this vector describes.
+		if (fixture.kind === 'tc-string') {
+			continue;
+		}
 		const { hydrated, storedRecords } = fixture.input;
 		const recordsInsideEnvelope =
 			storedRecords.choice !== null || storedRecords.noticeDismissal !== null;
@@ -2455,11 +2479,13 @@ const formatWith = function formatWith(paths: string[], cwd: string): void {
 	}
 };
 
-const writeFixtures = async function writeFixtures(): Promise<void> {
+export const writeFixtures = async function writeFixtures(
+	outDir?: string
+): Promise<void> {
 	const here = dirname(fileURLToPath(import.meta.url));
 	const repoRoot = resolve(here, '..', '..', '..');
-	const outDir = resolve(repoRoot, 'native', 'protocol');
-	mkdirSync(outDir, { recursive: true });
+	const target = outDir ?? resolve(repoRoot, 'native', 'protocol');
+	mkdirSync(target, { recursive: true });
 	// Kernel commands read Date.now() directly, so the whole generation runs against
 	// a pinned clock. Without this a notice dismissal recorded by the real command
 	// carries the wall-clock time and fails validation against NOW.
@@ -2476,12 +2502,15 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 		// Last, because the trace drives the same kernel through a sequence and a
 		// half-finished save from here would land inside the next generation pass.
 		fixtures.push(...(await buildRevisionTraceFixtures()));
+		// The reference encoder reads no clock either -- every timestamp is handed to it
+		// -- but it sits in this process, so it inherits the pin rather than argument for it.
+		fixtures.push(...buildTcStringFixtures(NOW, PROTOCOL_VERSION));
 	} finally {
 		Date.now = realDateNow;
 	}
 	assertProtocolVersions(
 		fixtures,
-		outDir,
+		target,
 		process.argv.includes('--allow-protocol-change')
 	);
 	assertWiresReadable(fixtures);
@@ -2489,7 +2518,7 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 	assertSubjectIdsAreProducible(fixtures);
 	for (const fixture of fixtures) {
 		writeFileSync(
-			resolve(outDir, `${fixture.id}.json`),
+			resolve(target, `${fixture.id}.json`),
 			`${JSON.stringify(fixture, null, '\t')}\n`,
 			'utf8'
 		);
@@ -2497,13 +2526,13 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 	// Format before hashing, so the index describes the bytes a runner opens. Oxfmt
 	// collapses short arrays and switches indentation to tabs, so writing without
 	// this step would leave every regenerated fixture dirty for autofix.ci to fix.
-	formatWith([outDir], repoRoot);
-	const entries = writeIndex(outDir, fixtures);
+	formatWith([target], repoRoot);
+	const entries = writeIndex(target, fixtures);
 	// The index is written after the directory pass, so format it on its own. Its
 	// output is a fixed point, which is what keeps two runs byte-identical.
-	formatWith([resolve(outDir, INDEX_FILE)], repoRoot);
+	formatWith([resolve(target, INDEX_FILE)], repoRoot);
 	for (const entry of entries) {
-		const bytes = readFileSync(resolve(outDir, entry.file));
+		const bytes = readFileSync(resolve(target, entry.file));
 		if (sha256Of(bytes) !== entry.sha256) {
 			throw new Error(
 				`${entry.file} changed after the index was written. The generator is not byte-stable.`
@@ -2520,13 +2549,36 @@ const writeFixtures = async function writeFixtures(): Promise<void> {
 			);
 		}
 	}
-	assertNoStaleFixtures(outDir, entries);
+	assertNoStaleFixtures(target, entries);
 	console.log(
-		`Wrote ${String(fixtures.length)} fixtures and ${INDEX_FILE} to native/protocol`
+		`Wrote ${String(fixtures.length)} fixtures and ${INDEX_FILE} to ${target}`
 	);
 	for (const fixture of fixtures) {
 		console.log(`  ${fixture.kind.padEnd(11)} ${fixture.id}.json`);
 	}
 };
 
-await writeFixtures();
+/**
+ * Whether this file is the process entry point, compared by realpath.
+ *
+ * Same trap `android/codegen/generate-spec.mjs` documents: Node resolves a symlink when
+ * it works out `import.meta.url` and a build is free to name this script through a link,
+ * so a by-the-book comparison is false exactly where the generator has to run, and the
+ * CLI would exit 0 having written nothing. Everything below the guard is exported, so a
+ * test can generate into a temp directory and prove two runs agree byte for byte.
+ */
+const invokedAsProgram = function invokedAsProgram(): boolean {
+	const [entry] = process.argv;
+	if (entry === undefined) {
+		return false;
+	}
+	try {
+		return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url));
+	} catch {
+		return false;
+	}
+};
+
+if (invokedAsProgram()) {
+	await writeFixtures();
+}

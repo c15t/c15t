@@ -87,6 +87,10 @@ const config = mergeConfig(
 					// Test doubles and the render harness are not shipped code.
 					'src/__tests__/**',
 					'src/**/__tests__/**',
+					// The fixture generator is repo tooling: it is not published and not
+					// reachable from a runtime import, so ratcheting its lines would gate a
+					// build script on how many fixture rows a change happened to add.
+					'scripts/**',
 					// Gradle output from the Android module is not shipped JavaScript.
 					// Counting it would report a test runner's own bundle as uncovered.
 					'**/build/**',
@@ -113,6 +117,8 @@ const config = mergeConfig(
 				'src/**/*.test.ts',
 				'src/**/*.spec.tsx',
 				'src/**/*.spec.ts',
+				// The generator's own tests live beside the generator they exercise.
+				'scripts/**/*.test.ts',
 			],
 		},
 	})
