@@ -1,12 +1,18 @@
-import { EXPERIMENT_STORAGE_KEY } from '@c15t/core';
+import { EXPERIMENT_STORAGE_KEY, custom } from '@c15t/core';
 import type { ExperimentArmTheme, SavePayload } from '@c15t/core';
+import { createConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from 'vitest';
 
 import { ConsentBanner } from '../components/prompt';
-import { useExperiment, useResolvedTheme } from '../hooks';
+import { useConsentDraft } from '../draft';
+import {
+	useExperiment,
+	useResolvedPresentation,
+	useResolvedTheme,
+} from '../hooks';
 import { ConsentProvider } from '../provider';
 import type { ConsentProviderOptions } from '../provider';
 
@@ -42,6 +48,34 @@ const ThemeProbe = () => {
 	const theme = useResolvedTheme();
 	return <output data-testid="theme">{JSON.stringify(theme ?? null)}</output>;
 };
+
+const PresentationProbe = () => {
+	const presentation = useResolvedPresentation();
+	return (
+		<output data-testid="presentation">
+			{presentation?.prompt?.variant ?? 'none'}
+		</output>
+	);
+};
+
+const DraftProbe = () => {
+	const draft = useConsentDraft();
+	return (
+		<>
+			<output data-testid="draft">{String(draft.values.marketing)}</output>
+			<button
+				data-testid="edit"
+				onClick={() => draft.set('measurement', true)}
+				type="button"
+			>
+				edit
+			</button>
+		</>
+	);
+};
+
+const readText = (testId: string) =>
+	document.querySelector(`[data-testid="${testId}"]`)?.textContent;
 
 const mount = function mount(
 	options: Partial<ConsentProviderOptions>,
@@ -173,6 +207,150 @@ test('an arm theme reaches the injected tokens and useResolvedTheme()', async ()
 		expect(css).toContain('#abcdef');
 	} finally {
 		mounted.unmount();
+	}
+});
+
+/**
+ * A borrowed runtime lets the test decide when the arm lands: the provider
+ * resolves presentation from `snapshot.experiment` either way.
+ */
+const mountDraftWithLateArm = function mountDraftWithLateArm() {
+	const runtime = createConsentRuntime({
+		mode: custom({ save: vi.fn().mockResolvedValue({ ok: true }) }),
+		prefetch: { initialPolicyResolution: resolution },
+	});
+	const container = document.createElement('div');
+	document.body.append(container);
+	const view = createRoot(container);
+	view.render(
+		<ConsentProvider
+			options={{
+				experiment: {
+					id: 'defaults',
+					variants: {
+						bar: { preferences: { defaults: { marketing: true } } },
+						floating: {},
+					},
+				},
+			}}
+			runtime={runtime}
+		>
+			<DraftProbe />
+		</ConsentProvider>
+	);
+	return {
+		assign() {
+			runtime.kernel.set.experiment({
+				acknowledgedDiagnostics: false,
+				assignedBy: 'c15t',
+				id: 'defaults',
+				variant: 'bar',
+			});
+		},
+		unmount() {
+			view.unmount();
+			container.remove();
+			runtime.dispose();
+		},
+	};
+};
+
+test('a clean draft reseeds from the arm assigned after mount', async () => {
+	const mounted = mountDraftWithLateArm();
+	try {
+		await vi.waitFor(() => expect(readText('draft')).toBe('false'));
+		mounted.assign();
+		await vi.waitFor(() => expect(readText('draft')).toBe('true'));
+	} finally {
+		mounted.unmount();
+	}
+});
+
+test('an edited draft keeps its values when the arm lands', async () => {
+	const mounted = mountDraftWithLateArm();
+	try {
+		await vi.waitFor(() => expect(readText('draft')).toBe('false'));
+		document.querySelector<HTMLButtonElement>('[data-testid="edit"]')?.click();
+		mounted.assign();
+		// Give a reseed every chance to happen, then check it did not.
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		expect(readText('draft')).toBe('false');
+	} finally {
+		mounted.unmount();
+	}
+});
+
+test('the experiment is read once: a changed option keeps the mounted arm', async () => {
+	const save = vi.fn().mockResolvedValue({ ok: true });
+	const container = document.createElement('div');
+	document.body.append(container);
+	const view = createRoot(container);
+	const render = (variants: NonNullable<typeof experiment>['variants']) =>
+		view.render(
+			<ConsentProvider
+				options={{
+					enabled: true,
+					experiment: { id: 'banner-shape', variant: 'bar', variants },
+					mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
+					persistence: false,
+					prefetch: { initialPolicyResolution: resolution },
+				}}
+			>
+				<PresentationProbe />
+			</ConsentProvider>
+		);
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+	try {
+		render(experiment.variants);
+		await vi.waitFor(() => expect(readText('presentation')).toBe('bar'));
+		render({ bar: { prompt: { variant: 'wall' } } });
+		await vi.waitFor(() => expect(warn).toHaveBeenCalled());
+		expect(readText('presentation')).toBe('bar');
+	} finally {
+		warn.mockRestore();
+		view.unmount();
+		container.remove();
+	}
+});
+
+test('a provider enabled after mount builds its controller then', async () => {
+	const container = document.createElement('div');
+	document.body.append(container);
+	const view = createRoot(container);
+	const render = (enabled: boolean) =>
+		view.render(
+			<ConsentProvider
+				options={{
+					enabled,
+					experiment,
+					mode: Object.assign(
+						() => ({ save: vi.fn().mockResolvedValue({ ok: true }) }),
+						{ kind: 'custom' as const }
+					),
+					persistence: false,
+					prefetch: { initialPolicyResolution: resolution },
+				}}
+			>
+				<Probe />
+			</ConsentProvider>
+		);
+	try {
+		render(false);
+		await vi.waitFor(() => expect(readText('experiment')).toBe('null'));
+		expect(localStorage.getItem(EXPERIMENT_STORAGE_KEY)).toBeNull();
+		render(true);
+		await vi.waitFor(() =>
+			expect(JSON.parse(readText('experiment') ?? 'null')).toMatchObject({
+				assignedBy: 'c15t',
+				id: 'banner-shape',
+			})
+		);
+		expect(localStorage.getItem(EXPERIMENT_STORAGE_KEY)).not.toBeNull();
+	} finally {
+		view.unmount();
+		container.remove();
 	}
 });
 

@@ -65,10 +65,29 @@ const seed = function seed(
 	}
 	return values;
 };
+const sameDefaults = function sameDefaults(
+	left: Partial<ConsentState> | undefined,
+	right: Partial<ConsentState> | undefined
+): boolean {
+	if (left === right) {
+		return true;
+	}
+	if (!left || !right) {
+		return false;
+	}
+	const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+	for (const key of keys) {
+		if (left[key as AllConsentNames] !== right[key as AllConsentNames]) {
+			return false;
+		}
+	}
+	return true;
+};
 const createDraftStore = function createDraftStore(
 	kernel: ConsentKernel,
-	defaults?: Partial<ConsentState>
+	initialDefaults?: Partial<ConsentState>
 ) {
+	let defaults = initialDefaults;
 	let revision = 0;
 	let saveSequence = 0;
 	let source = kernel.getSnapshot();
@@ -221,6 +240,20 @@ const createDraftStore = function createDraftStore(
 		set(category: AllConsentNames, value: boolean) {
 			update({ [category]: value });
 		},
+		/**
+		 * Replace the defaults a category without a receipt seeds from. A
+		 * clean draft reseeds at once, so an experiment arm assigned after
+		 * mount shows its own defaults; edits the visitor already made stay.
+		 */
+		setDefaults(next: Partial<ConsentState> | undefined) {
+			if (sameDefaults(defaults, next)) {
+				return;
+			}
+			defaults = next;
+			if (!current.isDirty) {
+				reset();
+			}
+		},
 		subscribe(listener: () => void) {
 			listeners.add(listener);
 			return () => {
@@ -251,12 +284,14 @@ export const ConsentDraftProvider = ({
 	const kernel = useKernel();
 	const parent = useContext(DraftContext);
 	const presentation = useResolvedPresentation();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, initial ?? presentation?.preferences?.defaults)
-	);
+	const defaults = initial ?? presentation?.preferences?.defaults;
+	const [local, setLocal] = useState(() => createDraftStore(kernel, defaults));
 	void setLocal;
 	const store = parent && !initial ? parent : local;
 	useEffect(() => store.connect(), [store]);
+	useEffect(() => {
+		local.setDefaults(defaults);
+	}, [local, defaults]);
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
 	);
@@ -265,12 +300,14 @@ const useDraftStore = function useDraftStore() {
 	const kernel = useKernel();
 	const shared = useContext(DraftContext);
 	const presentation = useResolvedPresentation();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, presentation?.preferences?.defaults)
-	);
+	const defaults = presentation?.preferences?.defaults;
+	const [local, setLocal] = useState(() => createDraftStore(kernel, defaults));
 	void setLocal;
 	const store = shared ?? local;
 	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
+	useEffect(() => {
+		local.setDefaults(defaults);
+	}, [local, defaults]);
 	return store;
 };
 
