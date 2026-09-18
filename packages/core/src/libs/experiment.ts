@@ -123,31 +123,34 @@ const fnv1a = function fnv1a(input: string): number {
 	return hash >>> 0;
 };
 
+/** The prefix every experiment error starts with. */
+const label = function label(experiment: ConsentExperiment): string {
+	return `c15t experiment "${experiment.id}"`;
+};
+
 const variantNames = function variantNames(
 	experiment: ConsentExperiment
 ): string[] {
 	const names = Object.keys(experiment.variants);
 	if (names.length === 0) {
-		throw new Error(
-			`c15t experiment "${experiment.id}": declare at least one variant.`
-		);
+		throw new Error(`${label(experiment)}: declare at least one variant.`);
 	}
 	return names;
 };
 
 /**
- * The weight of each arm in declaration order: `1` each when `weights` is
- * omitted, else the host's own-property value clamped at `0`. A supplied
- * map that leaves no arm reachable is a misconfiguration, not a request
- * for equal weights.
+ * The weight of each arm in declaration order and their total: `1` each
+ * when `weights` is omitted, else the host's own-property value clamped at
+ * `0`. A supplied map that leaves no arm reachable is a misconfiguration,
+ * not a request for equal weights.
  */
 const resolveWeights = function resolveWeights(
 	experiment: ConsentExperiment,
 	names: readonly string[]
-): number[] {
+): [weighted: number[], total: number] {
 	const { weights } = experiment;
 	if (!weights) {
-		return names.map(() => 1);
+		return [names.map(() => 1), names.length];
 	}
 	const weighted = names.map((name) =>
 		Object.hasOwn(weights, name) ? Math.max(0, weights[name] ?? 0) : 0
@@ -155,10 +158,10 @@ const resolveWeights = function resolveWeights(
 	const total = weighted.reduce((sum, weight) => sum + weight, 0);
 	if (!(total > 0) || !Number.isFinite(total)) {
 		throw new Error(
-			`c15t experiment "${experiment.id}": weights must give at least one arm a finite positive weight.`
+			`${label(experiment)}: weights must give at least one arm a finite positive weight.`
 		);
 	}
-	return weighted;
+	return [weighted, total];
 };
 
 /**
@@ -194,7 +197,7 @@ export const assignExperimentVariant = function assignExperimentVariant(
 	if (experiment.variant !== undefined) {
 		if (!names.includes(experiment.variant)) {
 			throw new Error(
-				`c15t experiment "${experiment.id}": variant "${experiment.variant}" is not one of ${names.map((name) => `"${name}"`).join(', ')}.`
+				`${label(experiment)}: variant "${experiment.variant}" is not one of ${names.map((name) => `"${name}"`).join(', ')}.`
 			);
 		}
 		return {
@@ -204,10 +207,9 @@ export const assignExperimentVariant = function assignExperimentVariant(
 			variant: experiment.variant,
 		};
 	}
-	const weighted = resolveWeights(experiment, names);
-	const sum = weighted.reduce((acc, weight) => acc + weight, 0);
+	const [weighted, total] = resolveWeights(experiment, names);
 	const point =
-		(fnv1a(`${experiment.id}:${subjectId}`) / 0x1_00_00_00_00) * sum;
+		(fnv1a(`${experiment.id}:${subjectId}`) / 0x1_00_00_00_00) * total;
 	let cumulative = 0;
 	let variant = names.at(-1) as string;
 	for (let index = 0; index < names.length; index += 1) {
@@ -487,7 +489,7 @@ export const validateExperiment = function validateExperiment(
 			)
 			.join('\n');
 		throw new Error(
-			`c15t experiment "${experiment.id}": these arms trip presentation diagnostics under policy "${policy.id}". Fix the arm or set acknowledgeDiagnostics: true to run it and record the acknowledgement.\n${detail}`
+			`${label(experiment)}: these arms trip presentation diagnostics under policy "${policy.id}". Fix them or set acknowledgeDiagnostics: true.\n${detail}`
 		);
 	}
 	return diagnostics;

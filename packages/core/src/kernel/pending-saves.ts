@@ -12,6 +12,7 @@
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import { validateExplicitChoice } from '../consent-record/validation';
+import { isExperimentAssignment } from '../libs/experiment-record';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
 import { selectSavePayload } from './save-selection';
@@ -57,16 +58,7 @@ const isOptionalString = function isOptionalString(value: unknown): boolean {
 const isOptionalExperiment = function isOptionalExperiment(
 	value: unknown
 ): boolean {
-	if (value === undefined) {
-		return true;
-	}
-	return (
-		isRecord(value) &&
-		typeof value.id === 'string' &&
-		typeof value.variant === 'string' &&
-		(value.assignedBy === 'host' || value.assignedBy === 'c15t') &&
-		typeof value.acknowledgedDiagnostics === 'boolean'
-	);
+	return value === undefined || isExperimentAssignment(value);
 };
 
 const isOptionalFiniteNumber = function isOptionalFiniteNumber(

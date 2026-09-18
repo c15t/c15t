@@ -20,6 +20,7 @@ import type {
 	ExperimentDiagnostics,
 	ValidateExperimentOptions,
 } from './experiment';
+import { isExperimentAssignment } from './experiment-record';
 
 /** localStorage key (and cookie name fallback) of the stored assignment. */
 export const EXPERIMENT_STORAGE_KEY = 'c15t-experiment-v1';
@@ -37,17 +38,11 @@ export interface StoredExperimentAssignment extends ExperimentAssignment {
 const isStoredAssignment = function isStoredAssignment(
 	value: unknown
 ): value is StoredExperimentAssignment {
-	if (typeof value !== 'object' || value === null) {
+	if (!isExperimentAssignment(value)) {
 		return false;
 	}
-	const record = value as Record<string, unknown>;
-	return (
-		typeof record.id === 'string' &&
-		typeof record.variant === 'string' &&
-		(record.assignedBy === 'host' || record.assignedBy === 'c15t') &&
-		typeof record.acknowledgedDiagnostics === 'boolean' &&
-		(record.key === undefined || typeof record.key === 'string')
-	);
+	const { key } = value as StoredExperimentAssignment;
+	return key === undefined || typeof key === 'string';
 };
 
 const parseStored = function parseStored(
@@ -133,12 +128,9 @@ export const writeStoredExperimentAssignment =
 	};
 
 const randomKey = function randomKey(): string {
-	const bytes = crypto.getRandomValues(new Uint8Array(16));
-	let hex = '';
-	for (const byte of bytes) {
-		hex += byte.toString(16).padStart(2, '0');
-	}
-	return hex;
+	return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+		byte.toString(16).padStart(2, '0')
+	).join('');
 };
 
 /** Inputs of {@link resolveExperimentAssignment}. */
@@ -289,11 +281,6 @@ export const createExperimentController = function createExperimentController(
 		((failure: Error) => {
 			console.error(failure);
 		});
-	const validateOptions: ValidateExperimentOptions = {
-		actionAppearance: options.actionAppearance,
-		presentation: options.presentation,
-		theme: options.theme,
-	};
 	/** Whether each policy seen so far rejected the experiment. */
 	const rejectedByPolicy = new Map<string, boolean>();
 	let lastPolicy: ConsentSnapshot['policyRule'] | null = null;
@@ -325,11 +312,7 @@ export const createExperimentController = function createExperimentController(
 	): boolean {
 		const { policyRule } = snapshot;
 		try {
-			const diagnostics = validateExperiment(
-				experiment,
-				policyRule,
-				validateOptions
-			);
+			const diagnostics = validateExperiment(experiment, policyRule, options);
 			if (Object.keys(diagnostics).length > 0) {
 				warn(
 					`c15t experiment "${experiment.id}": running with acknowledged presentation diagnostics under policy "${policyRule.id}".`,
