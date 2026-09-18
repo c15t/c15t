@@ -22,16 +22,20 @@ data class SnapshotEnvelope(
 	val noticeDismissal: NoticeDismissal? = null,
 	/**
 	 * The last vendor list the backend served, kept for the same reason and by the same rule as
-	 * [evaluationPolicy].
+	 * [evaluationPolicy], and the one place this build writes its bytes.
 	 *
 	 * Both are inputs the derived snapshot cannot carry -- one is the rule the receipts were judged
 	 * against, the other is the document the purpose and vendor names in a disclosure come from -- and
-	 * both have to outlive the `/init` that served them. The list is here rather than on
-	 * [com.c15t.core.model.ConsentSnapshot] so the snapshot stays the shape
-	 * `packages/react-native/src/protocol/snapshot.ts` declares, where the reserved `iab` slot is
-	 * pinned to `null` for this phase; a body put there would be a wire shape this repository has not
-	 * agreed to. Neither the React Native boundary nor the encoder needs it: the bridge asks
-	 * [com.c15t.core.C15tKernel.vendorListBody], and the encoder is handed the list with the string.
+	 * both have to outlive the `/init` that served them.
+	 *
+	 * The published snapshot does carry the list, at [com.c15t.core.model.ConsentSnapshot.iab], because
+	 * that is the key the React Native bridge reads and the key `core-swift` puts it on: a drawer that
+	 * renders partner names has to reach the list the same way on both platforms. This key is the
+	 * durable half of the same fact. [com.c15t.core.C15tKernel] nulls the snapshot slot on the way in
+	 * and refills it on hydration, so the encrypted blob holds one copy of a document that is by far
+	 * the largest thing in it, written on every committed mutation, and a device that upgrades from a
+	 * build that kept the list only here loses nothing: this is the key that build wrote, and it is
+	 * still the key read first.
 	 *
 	 * Storage rules are therefore the envelope's and not a new set: the same encrypted slot, the same
 	 * `C15tJson.storage` codec, which refuses a document carrying a key this build does not model, and

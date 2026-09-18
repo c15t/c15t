@@ -68,12 +68,15 @@ export const SNAPSHOT_KEYS = [
  * implementation detail. Names inside a core, and names inside a stored envelope,
  * stay the core's own business.
  *
- * `gvl` is required inside `iab` rather than optional, because the producer that
- * fills the slot writes it as an explicit null when it has no list: Swift's
- * `KernelIABState` encodes `gvl` unconditionally and refuses any other name inside
- * the object, so a reader never has to tell "no list served" from "no answer
- * given". An `iab` of `null` is skipped by the walker, which is the shape Android
- * serves and the shape every generated fixture carries.
+ * `gvl` is a required key with a nullable value inside `iab`, which is what
+ * `KernelIABState` declares in `packages/core/src/types.ts`: Swift encodes it
+ * unconditionally and refuses any other name inside the object. Kotlin's
+ * `KernelIabState` types the field non-null, so it refuses `{"gvl":null}` where Swift
+ * reads an object carrying no list. Neither core publishes those bytes -- both build
+ * the object around a list they accepted -- so absence lives on `iab` itself and a
+ * reader never has to tell "no list served" from "no answer given". An `iab` of
+ * `null` is skipped by the walker, which is what a device that was never served a
+ * list sends, and what every generated fixture carries.
  */
 export const KERNEL_OWNED_KEYS = [
 	{

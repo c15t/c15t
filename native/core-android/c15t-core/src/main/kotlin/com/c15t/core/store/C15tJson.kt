@@ -23,8 +23,8 @@ object C15tJson {
 	 * nothing applied and a device that behaves like a fresh install.
 	 */
 	val storage: Json = Json {
-		// Every key always present, so the reserved `iab` slot survives a
-		// round trip and a JavaScript reader never has to branch.
+		// Every key always present, so an `iab` holding nothing survives a round
+		// trip as a written null and a JavaScript reader never has to branch.
 		encodeDefaults = true
 		explicitNulls = true
 		ignoreUnknownKeys = false

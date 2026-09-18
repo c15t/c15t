@@ -448,20 +448,30 @@ describe('the Kotlin core writes these names', () => {
 		);
 	});
 
-	test('the snapshot slot stays null and the list rides beside it', () => {
-		// Android writes `null` where iOS writes a body, and the protocol type has to
-		// admit both without pretending they are the same device. The Kotlin tests
-		// grade the same promise (`SnapshotWireTest`, `VendorListRetentionTest`);
-		// this one is what the TypeScript side is allowed to assume about it.
+	test('the snapshot carries the list, and the envelope still stores it', () => {
+		// Both cores publish the served document at `iab.gvl`: that is the key this package
+		// reads and the key a drawer renders partner names from. Kotlin parked it behind a
+		// kernel accessor while Swift put it on the snapshot, so one build showed names on
+		// iOS and an empty pane on Android. The Kotlin tests grade the behaviour
+		// (`SnapshotWireTest`, `VendorListRetentionTest`); this is what the TypeScript side
+		// is allowed to assume about it, and it is the reason `NativeIABState` is not a lie.
 		const snapshotKeys = kotlinKeys(KOTLIN_MODEL, 'ConsentSnapshot');
 
 		expect(snapshotKeys).toContain('iab');
 		expect(snapshotKeys).not.toContain('gvl');
 		expect(KOTLIN_MODEL).toMatch(
-			/@SerialName\("iab"\)\s*\n\s*val iab: JsonElement = JsonNull/u
+			/@SerialName\("iab"\)\s*\n\s*val iab: KernelIabState\? = null/u
 		);
 
-		// Both halves of Android's answer, in the two places they live.
+		// The object on the key carries `gvl` and nothing beside it, on both sides, so a
+		// reader never has to tell "no list served" from "no answer given".
+		expect(sorted(kotlinKeys(KOTLIN_MODEL, 'KernelIabState'))).toEqual(
+			IAB_STATE_KEYS
+		);
+
+		// Storage keeps one copy. The envelope key is where the bytes are durable, the
+		// snapshot is what the bridge reads, and the accessor stays for a host that is not
+		// going through a bridge at all.
 		expect(KOTLIN_ENVELOPE_SOURCE).toMatch(
 			/val gvl: GlobalVendorList\? = null/u
 		);

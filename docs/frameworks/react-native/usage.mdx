@@ -369,8 +369,9 @@ scrolls its own body, and keeps its actions in a sticky footer.
 It renders from props and nothing else. `model` is the same row list the web preference
 centre renders -- purposes, stacks, special features, and partners, in the web's order,
 with the web's `testId` on every row -- and the package never reads a consent kernel to
-draw it. That is deliberate: the snapshot reserves an `iab` slot and holds it `null`
-while TCF is out of scope on device, so where the rows come from is yours to decide.
+draw it. Where the rows come from is yours to decide. Both native cores publish the
+vendor list that `/init` served at `snapshot.iab.gvl`, and that document is what names
+the purposes, stacks and partners a disclosure shows, so it is the usual source.
 
 ```tsx title="src/IabDisclosure.tsx"
 import { ConsentIabDrawer } from '@c15t/react-native';

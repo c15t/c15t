@@ -4,9 +4,11 @@ c15t mobile contract
 Authoritative reference for `@c15t/react-native`, the Swift core, and the Kotlin
 core. Issue: https://github.com/c15t/c15t/issues/1010
 
-IAB TCF is out of scope for this phase. No TC string, no GVL state, no
-`IABTCF_*` keys. The types reserve the `iab` slot so adding it later is an
-additive protocol change, not a rewrite.
+The `iab` slot carries the vendor list a device was served, and nothing beside it.
+There is still no TC String and no `IABTCF_*` keys: the list is disclosure, not a
+permission, and the members that would turn the slot into an IAB runtime --
+`tcString`, `cmpId`, the per-vendor vectors -- stay absent rather than arriving
+with a value nothing earned. Adding them later is an additive protocol change.
 
 Layout
 ------
@@ -45,7 +47,7 @@ State model
 
 Native holds one immutable `ConsentSnapshot`, versioned by `revision`. It mirrors
 the fields of `ConsentSnapshot` in `packages/core/src/types.ts` that matter on
-mobile, minus IAB:
+mobile:
 
     revision: number                  // monotonic, bumps on every mutation
     policyPending: boolean            // true until the first init resolves
@@ -64,9 +66,26 @@ mobile, minus IAB:
     nextDeadline: number | null
     evaluatedAt: number
     error: { code, message } | null
+    iab: { gvl } | null                  // the vendor list /init served
 
-`iab` is reserved. Serialize it as `null` and keep the key so an older JavaScript
-layer does not have to branch.
+`iab` carries the vendor list `/init` served, and nothing beside it. Both cores fold
+it onto the snapshot rather than parking it next to the snapshot, because the bridge
+reads the snapshot and a second copy of one fact is two answers. Serialize the whole
+slot as `null` where there is no list and keep the key, so a JavaScript layer that
+predates TCF does not branch on an SDK version. Neither core publishes an `iab`
+holding a null `gvl`: both build the object only around a list they accepted, so
+absence rides on the slot and a reader never tells "no list served" apart from "no
+answer given". An `iab` naming a member this build does not model is an unreadable
+envelope rather than a half-believed one, which both cores enforce in their own
+decode. Only the nullable-`gvl` bytes differ: the web's `KernelIABState.gvl` is a
+nullable key, `core-swift` reads `{"gvl":null}` back as an object carrying no list,
+and the Kotlin core types the field non-null and so refuses those bytes whole.
+
+Storage keeps one copy. Swift writes the snapshot, list inside it. Kotlin keeps the
+document under the envelope's own `gvl` key and writes the stored snapshot with that
+slot nulled, because this document is the largest thing in a blob rewritten on every
+committed mutation, and hydration puts it back. That difference stays in storage,
+where a core's own spelling is its own business.
 
 `consentCategories` is the subject-facing list a consent surface draws: `necessary`
 first, then the resolved policy scope narrowed by the host's declared scope, all
@@ -322,10 +341,11 @@ slot, so refusing an envelope never costs a device its identity. What each write
   nothing else), `storedAt` in epoch milliseconds, `snapshot`, `noticeDismissal`, and
   `policyResolution`.
 - Kotlin stores a `SnapshotEnvelope` in the encrypted blob: `snapshot`,
-  `evaluationPolicy`, and `noticeDismissal`. It carries no format version of its own
-  and no write time. `AesGcmCodec` puts a version byte in the blob header, which
-  gates the framing rather than the fields, so an envelope-level change has nowhere
-  to be recorded. That is a gap in the Kotlin core, not a decision.
+  `evaluationPolicy`, `noticeDismissal`, and `gvl`, the vendor list, kept there
+  while the published snapshot carries it at `iab`. It carries no format version of
+  its own and no write time. `AesGcmCodec` puts a version byte in the blob header,
+  which gates the framing rather than the fields, so an envelope-level change has
+  nowhere to be recorded. That is a gap in the Kotlin core, not a decision.
 
 Three facts carry `loadBearing: true`, meaning the answer the device gives changes if
 the field is lost or wrong. Two of them decide what is allowed and one decides what the
