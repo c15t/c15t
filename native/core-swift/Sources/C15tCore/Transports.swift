@@ -21,6 +21,60 @@ public enum C15tSDK {
     /// The `x-c15t-policy-contract` header name: the capability declaration.
     public static let policyContractHeader = "x-c15t-policy-contract"
 
+    /// The `x-c15t-vendors` header name: the publisher's declared vendor scope.
+    ///
+    /// A scope declaration, not a filter the client relies on. It is the mobile
+    /// spelling of the `vendorIds` parameter that
+    /// `gvlRequestUrl` in `packages/backend/src/http/gvl.ts` puts on the upstream
+    /// GVL request, which is why it travels as a header: `/init` is a GET the core
+    /// builds from the project URL, and a client that invented query parameters on
+    /// a route it does not own would break every deployment behind a proxy. It is a
+    /// header and not a body field for the same reason as the country and region
+    /// overrides beside it: the producer has to read it before it decides what to
+    /// build, and `/init` has no body to put it in.
+    ///
+    /// A hint about bytes, never the answer about disclosure. A producer that
+    /// honours it sends a list that needs no pruning; a producer that ignores it
+    /// sends the wide one, and ``CoreConfig/vendors`` prunes it on the way into
+    /// state. That is why an over-cap declaration sends no header and still gets a
+    /// narrow device.
+    public static let vendorScopeHeader = "x-c15t-vendors"
+
+    /// How many declared ids this build will still put on one request line.
+    ///
+    /// The same ceiling as `MAX_GVL_QUERY_VENDOR_IDS` in
+    /// `packages/iab/src/tcf/fetch-gvl.ts` and `packages/backend/src/http/gvl.ts`,
+    /// for the same reason: past it the scope stops fitting comfortably in a
+    /// request line, the producer is expected to fetch the list whole, and every
+    /// consumer narrows locally. `packages/backend` and `packages/iab` both keep the
+    /// local prune above the cap, so the web answer for a 609-id publisher is "ask
+    /// for everything, show your own partners", and this must not be the build that
+    /// silently truncates a header into a different scope.
+    public static let maxVendorScopeHeaderIds = 500
+
+    /// The `x-c15t-vendors` value for a declared scope, or `nil` for no header.
+    ///
+    /// Deduplicated and ascending, so two hosts who declared the same partners in a
+    /// different order, or twice in the same list, ask the same question of the
+    /// backend. That stability is what makes the value cacheable and comparable on
+    /// the producer side, which is exactly what the `vendorIds` parameter is keyed
+    /// on upstream -- `fetch-gvl.ts` sorts before it builds its cache key.
+    ///
+    /// Absent for the cases where a scope would be a lie or a burden: `nil` and
+    /// `[]` both mean no declaration, and above ``maxVendorScopeHeaderIds`` the
+    /// scope cannot travel on the request line. In all of those the served list is
+    /// whatever the producer chooses, and the local prune is what answers for it.
+    ///
+    /// - Parameter vendorIds: The declared ids, in whatever order the host wrote them.
+    /// - Returns: The ids as `1,2,3`, or `nil` when no header should be sent.
+    public static func vendorScopeHeaderValue(_ vendorIds: [Int]?) -> String? {
+        guard let vendorIds, !vendorIds.isEmpty else { return nil }
+        guard vendorIds.count <= maxVendorScopeHeaderIds else { return nil }
+        let ids = Set(vendorIds).sorted()
+        guard !ids.isEmpty else { return nil }
+        return ids.map(String.init).joined(separator: ",")
+    }
+
     /// Native SDK traffic is the React Native line, which is what the `rn->`
     /// prefix marks. Bare Swift consumers still report the same line, because the
     /// backend has no separate bucket for them.
@@ -195,11 +249,25 @@ public struct InitContext: Sendable, Equatable {
     public let overrides: KernelOverridesWire
     public let user: KernelUser?
     public let subjectId: String
+    /// The vendor scope ``CoreConfig/vendors`` declares, passed through unchanged.
+    ///
+    /// The core hands its declaration to the transport rather than letting the
+    /// transport hold one, because a transport that kept consent configuration
+    /// would be a second place that knows what the device may disclose. It also
+    /// means a host that replaced the transport, or a test that drives one directly,
+    /// still sees the scope answered for on the way out.
+    public let vendors: [Int]?
 
-    public init(overrides: KernelOverridesWire, user: KernelUser?, subjectId: String) {
+    public init(
+        overrides: KernelOverridesWire,
+        user: KernelUser?,
+        subjectId: String,
+        vendors: [Int]? = nil
+    ) {
         self.overrides = overrides
         self.user = user
         self.subjectId = subjectId
+        self.vendors = vendors
     }
 }
 
@@ -501,6 +569,9 @@ public struct HostedTransport: C15tTransport {
         if let country = context.overrides.country { headers["x-c15t-country"] = country }
         if let region = context.overrides.region { headers["x-c15t-region"] = region }
         if context.overrides.gpc == true { headers["sec-gpc"] = "1" }
+        if let scope = C15tSDK.vendorScopeHeaderValue(context.vendors) {
+            headers[C15tSDK.vendorScopeHeader] = scope
+        }
 
         do {
             let response = try await client.send(HTTPRequest(

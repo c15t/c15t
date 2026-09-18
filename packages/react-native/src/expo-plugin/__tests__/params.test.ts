@@ -103,6 +103,34 @@ describe('resolveParams', () => {
 		).toThrowError(/Omit it entirely to offer the full policy scope/u);
 	});
 
+	it('defaults no declared vendor scope to every served vendor', () => {
+		// Empty means "write nothing", which both cores read as no scope rather
+		// than as a drawer with nothing in it.
+		expect(resolveParams({ backendURL: BACKEND }).vendors).toStrictEqual([]);
+	});
+
+	it('de-duplicates a declared vendor scope and keeps the order written', () => {
+		expect(
+			resolveParams({ backendURL: BACKEND, vendors: [755, 42, 8, 42] }).vendors
+		).toStrictEqual([755, 42, 8]);
+	});
+
+	it('refuses an empty vendor list instead of meaning "everything"', () => {
+		// Both cores read an empty scope as no scope, so writing one would ship the
+		// widest possible disclosure under a name that reads like the narrowest.
+		expect(() =>
+			resolveParams({ backendURL: BACKEND, vendors: [] })
+		).toThrowError(/Omit it entirely to disclose every vendor/u);
+	});
+
+	it('refuses a vendor id that is not a positive whole number', () => {
+		// The readers drop an entry they cannot name rather than trusting it, so a
+		// plugin that wrote one anyway would ship a drawer the host never typed.
+		expect(() =>
+			resolveParams({ backendURL: BACKEND, vendors: [42, 0, -3, 7.5] })
+		).toThrowError(/invalid: 0, -3, 7\.5/u);
+	});
+
 	it('refuses a domain with a space in it', () => {
 		expect(() =>
 			resolveParams({ backendURL: BACKEND, domain: 'two words' })

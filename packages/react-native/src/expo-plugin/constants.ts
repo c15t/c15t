@@ -29,6 +29,14 @@ export const ANDROID_META = {
 	initUrl: 'com.c15t.INIT_URL',
 	/** c15t backend base URL, the value the core calls `portalUrl`. */
 	portalUrl: 'com.c15t.PORTAL_URL',
+	/**
+	 * Comma-separated IAB vendor ids the app may disclose, read by `C15tAndroid`.
+	 *
+	 * The Android spelling of the `iab.vendors` array a web host passes to its
+	 * provider. It stays a string because Android `<meta-data>` has no list type;
+	 * iOS gets the same declaration as a plist array under its own key.
+	 */
+	vendors: 'com.c15t.VENDORS',
 } as const;
 
 /** iOS `Info.plist` keys, matching `C15tBridgeConfiguration.InfoPlistKey`. */
@@ -47,6 +55,13 @@ export const IOS_PLIST_KEY = {
 	initURL: 'com.c15t.backend.initUrl',
 	/** One of the iOS bridge's own `TransportMode` raw values. */
 	transportMode: 'com.c15t.backend.mode',
+	/**
+	 * Comma-separated IAB vendor ids the app may disclose, read by the iOS bridge.
+	 *
+	 * A string rather than a number array so one declaration spells the same list on
+	 * both platforms; the bridge's `declaredVendors` accepts a bare number too.
+	 */
+	vendors: 'com.c15t.vendors',
 } as const;
 
 /** androidx.startup provider the app manifest declares. */

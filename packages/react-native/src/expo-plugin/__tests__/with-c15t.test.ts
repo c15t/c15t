@@ -115,6 +115,40 @@ describe('withC15t standard install', () => {
 		]);
 	});
 
+	it('writes a declared vendor scope to both platforms', async () => {
+		// One comma-separated string on both platforms, which is the shape each
+		// reader parses: C15tAndroid.declaredVendors on Android, the bridge's
+		// declaredVendors on iOS. Categories get a plist array because that reader
+		// takes names; ids do not need one.
+		const config = applyToFixture({
+			...STANDARD_PROPS,
+			vendors: [755, 42, 8],
+		});
+
+		const applied = await runInfoPlist(config);
+		expect(applied.ios?.infoPlist).toStrictEqual({
+			ITSAppUsesNonExemptEncryption: false,
+			'com.c15t.backend.mode': 'hosted',
+			'com.c15t.backend.url': BACKEND,
+			'com.c15t.vendors': '755,42,8',
+		});
+
+		const manifestApplied = await runMod(
+			config,
+			'android',
+			'manifest',
+			await readFixtureManifest()
+		);
+		const manifest =
+			manifestApplied.modResults as AndroidConfig.Manifest.AndroidManifest;
+		expect(applicationOf(manifest)['meta-data']).toContainEqual({
+			$: {
+				'android:name': 'com.c15t.VENDORS',
+				'android:value': '755,42,8',
+			},
+		});
+	});
+
 	it('writes a declared category scope to both platforms', async () => {
 		// The same declaration, spelled the way each reader wants it: a plist
 		// array on iOS, a comma-separated meta-data value on Android. The

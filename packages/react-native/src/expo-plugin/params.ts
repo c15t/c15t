@@ -94,6 +94,16 @@ export interface C15tPluginProps {
 	 */
 	consentCategories?: readonly C15tConsentCategoryId[];
 	/**
+	 * The IAB vendor ids this app may disclose, the mobile spelling of the
+	 * `iab.vendors` array a web host passes to its provider.
+	 *
+	 * The declaration narrows the vendor drawer only: the vendor list this app
+	 * is served keeps the purposes, features, stacks, and both version numbers
+	 * the policy was graded against, so a scoped app can still explain what
+	 * purpose 7 means. Omit it to disclose every vendor the backend serves.
+	 */
+	vendors?: readonly number[];
+	/**
 	 * Transport mode.
 	 *
 	 * `hosted` starts the core from the embedded config. `selfHosted` is the
@@ -184,6 +194,16 @@ export interface ResolvedC15tParams {
 	 * so the empty list is written nowhere rather than as an empty value.
 	 */
 	readonly consentCategories: readonly C15tConsentCategoryId[];
+	/**
+	 * Vendor ids the app declares, de-duplicated; empty means no declaration.
+	 *
+	 * Written as the `com.c15t.vendors` plist string and the comma-separated
+	 * `com.c15t.VENDORS` meta-data. Absent keys are the full-disclosure answer,
+	 * so the empty list is written nowhere rather than as an empty value. Both
+	 * embedded cores also prune whatever they are served down to this list, so a
+	 * backend that ignores the declaration still cannot widen the drawer.
+	 */
+	readonly vendors: readonly number[];
 	/** App Tracking Transparency opt-in, resolved. */
 	readonly appTrackingTransparency: {
 		readonly enabled: boolean;
@@ -340,6 +360,50 @@ const normalizeConsentCategories = function normalizeConsentCategories(
 	return [...new Set(trimmed)] as C15tConsentCategoryId[];
 };
 
+/**
+ * Validate and de-duplicate a declared vendor scope.
+ *
+ * Ids are positive integers because that is what the IAB publishes and what both
+ * cores parse; an entry that is not one is dropped by the readers rather than
+ * trusted, so the plugin refuses it here instead of shipping a declaration whose
+ * drawer quietly differs from the list someone typed into `app.json`.
+ *
+ * An id the served vendor list does not carry costs nothing: pruning a document
+ * never adds an entry to satisfy a scope, so a custom or out-of-range id is
+ * simply an id nobody is ever shown.
+ */
+const normalizeVendors = function normalizeVendors(
+	vendors: readonly number[] | undefined
+): number[] {
+	if (vendors === undefined) {
+		return [];
+	}
+	if (vendors.length === 0) {
+		// An empty list means "no declaration" to both cores, which is every
+		// vendor the backend serves: the opposite of what a host typing `[]`
+		// looks like it means. Omitting the parameter says that honestly.
+		throw new C15tPluginError(
+			'vendors must name at least one vendor id. Omit it entirely to ' +
+				'disclose every vendor the backend serves.'
+		);
+	}
+	const invalid = [
+		...new Set(
+			vendors.filter(
+				(vendor) =>
+					!Number.isInteger(vendor) || !Number.isFinite(vendor) || vendor <= 0
+			)
+		),
+	];
+	if (invalid.length > 0) {
+		throw new C15tPluginError(
+			`vendors accepts positive integer IAB vendor ids; invalid: ` +
+				`${invalid.map((vendor) => JSON.stringify(vendor)).join(', ')}.`
+		);
+	}
+	return [...new Set(vendors)];
+};
+
 const resolveAppTrackingTransparency = function resolveAppTrackingTransparency(
 	props: C15tPluginProps
 ): ResolvedC15tParams['appTrackingTransparency'] {
@@ -458,5 +522,6 @@ export const resolveParams = function resolveParams(
 		privacyTrackingDomains,
 		providerMode: PROVIDER_TRANSPORT_MODE[mode],
 		skipNativeBuildCheck: props.skipNativeBuildCheck ?? false,
+		vendors: normalizeVendors(props.vendors),
 	};
 };

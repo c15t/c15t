@@ -78,6 +78,14 @@ export const buildMetaDataPairs = function buildMetaDataPairs(
 			value: params.consentCategories.join(','),
 		});
 	}
+	// The comma-separated spelling `C15tAndroid.declaredVendors` parses. An empty
+	// declaration stays unwritten, because absence is the full-disclosure answer.
+	if (params.vendors.length > 0) {
+		pairs.push({
+			name: ANDROID_META.vendors,
+			value: params.vendors.join(','),
+		});
+	}
 	if (params.forceGPC) {
 		pairs.push({ name: ANDROID_META.forceGpc, value: 'true' });
 	}

@@ -18,6 +18,28 @@ import com.c15t.core.transport.C15tProtocol
  * to the host of [portalUrl].
  * @property consentCategories Categories the host offers. `null` uses the full
  * policy scope.
+ * @property vendors Vendor ids this deployment may disclose, or `null` for no
+ * declaration. The Android twin of `iab.vendors` on web.
+ *
+ * Web puts that option to three uses: filtering the GVL request, narrowing the list the
+ * module holds through `narrowGVLToVendors`, and clearing a summary that had counted the
+ * wider list. The first one reaches this core as the `x-c15t-vendors` request header, the
+ * second is what [com.c15t.core.C15tKernel] does with this field on every path a list
+ * arrives by, and the third has no native equivalent yet because this build holds one
+ * list and reports it whole.
+ *
+ * `null` and an empty list are the same answer: no scope declared, so a served list is
+ * kept exactly as it arrived. Both web narrows read an empty list that way --
+ * `narrowGVLToVendors` in `packages/iab/src/tcf/fetch-gvl.ts` hands the document back, and
+ * `gvlRequestUrl` in `packages/backend/src/http/gvl.ts` does not put the scope on the
+ * request line at all -- and [com.c15t.core.tc.narrowToVendorIds] says so on its own
+ * terms. A core that read `emptyList()` as "show nobody" would leave a publisher who never
+ * scoped anything with an empty drawer under a consent the subject can still give, so a
+ * host that means no vendors has to say so somewhere other than here.
+ *
+ * Ids the served document does not carry buy nothing, so an out-of-range or
+ * publisher-custom id costs nothing, and the framework half of the document -- purposes,
+ * features, stacks, and both version numbers -- is never moved by a scope.
  * @property overrides Developer overrides applied before the first init, so a
  * staged build can pin country, region, language, or GPC.
  * @property detectedGpc The GPC signal the device reports, or `null` when it has
@@ -36,6 +58,7 @@ data class NativeConfig(
 	val domain: String? = null,
 	val sdkVersion: String = C15tProtocol.DEFAULT_SDK_VERSION,
 	val consentCategories: List<ConsentCategory>? = null,
+	val vendors: List<Int>? = null,
 	val overrides: KernelOverrides = KernelOverrides(),
 	val detectedGpc: Boolean? = null,
 	val extraHeaders: Map<String, String> = emptyMap(),

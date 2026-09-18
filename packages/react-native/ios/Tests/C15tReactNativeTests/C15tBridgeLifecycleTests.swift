@@ -167,6 +167,62 @@ final class C15tBootstrapTests: XCTestCase {
         XCTAssertEqual(configuration.consentCategories, [.marketing], "unknown categories are dropped, not trusted")
     }
 
+    /// The declared vendor scope, from `Info.plist` entry to ``CoreConfig/vendors``.
+    ///
+    /// The plugin writes one comma-separated string on both platforms, and a host also
+    /// types the key into a plist by hand. A reader that honoured only the plugin's shape
+    /// would silently ignore the hand-written one, so the shapes below are the ones a
+    /// shipping app can actually arrive with. The cases mirror
+    /// `DeclaredVendorsTest` on Android id for id, because a scope that prunes on one
+    /// platform and not the other is a disclosure bug that only shows up in production:
+    /// spaces around an id are decoration, an entry that is not a positive whole number
+    /// is dropped rather than trusted, repeats collapse, and nothing usable is not a
+    /// declaration at all.
+    func testDeclaredVendorsParseFromEveryShapeAHostCanWrite() throws {
+        let keyed = C15tBridgeConfiguration.from(infoPlist: [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://consent.example.com",
+            C15tBridgeConfiguration.InfoPlistKey.vendors: "755, 42,8, 42",
+        ])
+        XCTAssertEqual(keyed.vendors, [755, 42, 8], "declaration order, spaces trimmed, repeats dropped")
+        // `.memory` so the assertion does not depend on a Keychain being available on
+        // the machine running this; every other field rides through unchanged.
+        var intoCore = keyed
+        intoCore.storageMode = .memory
+        XCTAssertEqual(
+            try XCTUnwrap(intoCore.makeCoreConfiguration()).vendors,
+            [755, 42, 8],
+            "the declaration reaches the core that prunes with it"
+        )
+
+        // An unquoted plist number is the likeliest hand-written spelling for one
+        // partner, and an array is what a host copying the categories key would expect.
+        XCTAssertEqual(C15tBridgeConfiguration.declaredVendors(42), [42])
+        XCTAssertEqual(C15tBridgeConfiguration.declaredVendors([42, 8]), [42, 8])
+        XCTAssertEqual(C15tBridgeConfiguration.declaredVendors(["42, 8", "755"]), [42, 8, 755])
+
+        // An id the served list does not carry stays in the declaration: pruning a served
+        // document never adds an entry to satisfy a scope.
+        XCTAssertEqual(C15tBridgeConfiguration.declaredVendors("999999,42"), [999_999, 42])
+    }
+
+    func testAnUnusableVendorDeclarationIsNotAScope() throws {
+        // "vendor-42" and 0 are the typos this exists for: trusting either would name a
+        // disclosure the framework never assigned, or none at all. Absent and empty both
+        // read as no scope, which keeps every vendor the backend serves.
+        for raw: Any? in ["", "   ", " , , ", "vendor-42", "0", "-3, 7.5", "vendor, google"] {
+            XCTAssertNil(C15tBridgeConfiguration.declaredVendors(raw), "\(String(describing: raw)) is not a scope")
+        }
+
+        let configuration = C15tBridgeConfiguration.from(infoPlist: [
+            C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://consent.example.com",
+            C15tBridgeConfiguration.InfoPlistKey.vendors: "vendor-42",
+        ])
+        XCTAssertNil(configuration.vendors)
+        var unusableIntoCore = configuration
+        unusableIntoCore.storageMode = .memory
+        XCTAssertNil(try XCTUnwrap(unusableIntoCore.makeCoreConfiguration()).vendors)
+    }
+
     func testDeclaredModeWinsOverURLInference() {
         let configuration = C15tBridgeConfiguration.from(infoPlist: [
             C15tBridgeConfiguration.InfoPlistKey.backendURL: "https://consent.example.com",
