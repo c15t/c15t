@@ -48,6 +48,13 @@ export const buildInfoPlistEntries = function buildInfoPlistEntries(
 	if (params.consentCategories.length > 0) {
 		entries[IOS_PLIST_KEY.categories] = [...params.consentCategories];
 	}
+	// The same list Android gets as meta-data, written as text because that is the
+	// shape `C15tBridgeConfiguration.declaredVendors` and the Android reader share.
+	// An empty declaration stays unwritten, because absence is the full-disclosure
+	// answer; the cores prune whatever they are served down to these ids either way.
+	if (params.vendors.length > 0) {
+		entries[IOS_PLIST_KEY.vendors] = params.vendors.join(',');
+	}
 	if (params.forceGPC) {
 		entries[IOS_PLIST_KEY.gpc] = true;
 	}

@@ -90,6 +90,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         keychainService: String = C15tBridgeConfiguration.defaultKeychainService,
         overrides: ConsentOverrides = .default(),
         consentCategories: [ConsentCategory]? = nil,
+        vendors: [Int]? = nil,
         gpc: Bool? = nil
     ) {
         self.autoBootstrap = autoBootstrap
@@ -101,6 +102,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         self.keychainService = keychainService
         self.overrides = overrides
         self.consentCategories = consentCategories
+        self.vendors = vendors
         self.gpc = gpc
     }
 
@@ -123,6 +125,21 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
     public var overrides: ConsentOverrides
     /// Categories to offer. `nil` uses the full policy scope.
     public var consentCategories: [ConsentCategory]?
+    /// The IAB vendor ids the app declares, or `nil` when it declares no scope.
+    ///
+    /// `com.c15t.vendors`, the iOS spelling of the `iab.vendors` array a web host passes to its
+    /// provider and of the comma-separated `com.c15t.VENDORS` Android meta-data. It goes into
+    /// ``makeCoreConfiguration`` as ``CoreConfig/vendors``, where two things follow from it: the
+    /// vendor list served to this device is pruned to these ids on every path it arrives by, and the
+    /// declaration travels on `/init` as `x-c15t-vendors` so the request stops carrying what the
+    /// app is going to prune anyway.
+    ///
+    /// The prune is the promise and the header is the saving, so an over-long declaration that
+    /// ``C15tSDK/maxVendorScopeHeaderIds`` will not fit on a request line still produces a device
+    /// that discloses only these ids. `nil` and an empty declaration both mean "no scope", which
+    /// keeps every vendor the producer serves: a host that means no vendors has to say so with a
+    /// scope that names none, not by leaving this key out.
+    public var vendors: [Int]?
     /// The host app's Global Privacy Control signal, or `nil` when it has none.
     public var gpc: Bool?
 
@@ -139,6 +156,12 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
         public static let region = "com.c15t.region"
         public static let language = "com.c15t.language"
         public static let categories = "com.c15t.categories"
+        /// Comma-separated IAB vendor ids, the numeric twin of the ``categories`` array.
+        ///
+        /// A string rather than an array of numbers because that is the shape Android's
+        /// `com.c15t.VENDORS` meta-data has to take, and one spelling for the same declaration on
+        /// both platforms is the reason either key is readable at all.
+        public static let vendors = "com.c15t.vendors"
         public static let gpc = "com.c15t.gpc"
     }
 
@@ -253,8 +276,56 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
                 gpc: nil
             ),
             consentCategories: categories?.isEmpty == true ? nil : categories,
+            vendors: declaredVendors(infoPlist[InfoPlistKey.vendors]),
             gpc: infoPlist[InfoPlistKey.gpc] as? Bool
         )
+    }
+
+    /// Parse a declared vendor scope out of an `Info.plist` entry.
+    ///
+    /// The value is a comma-separated list of ids. Spaces around an id are decoration, and an entry
+    /// that is not a positive whole number is dropped rather than trusted -- the same call
+    /// ``from(infoPlist:)`` makes about a category name this build does not model, so a typo in an id
+    /// cannot install a disclosure the framework never assigned. Duplicates go here rather than being
+    /// carried: the request half sorts and dedupes anyway, and a device that stored one id twice would
+    /// report a wider partner list than the app has.
+    ///
+    /// An id the served vendor list does not carry stays in the declaration and costs nothing, because
+    /// pruning a served document never adds an entry to satisfy a scope. Reading ids rather than
+    /// resolving them is the point: nothing this key declares has to be verifiable at launch.
+    ///
+    /// A number written as a plist `number` is accepted as one id, since that is the shape a
+    /// hand-declared plist is most likely to hold for a single partner.
+    ///
+    /// - Parameter raw: the raw `Info.plist` entry, typically `infoPlist[key]`.
+    /// - Returns: the declared ids in declaration order and without repeats, or `nil` when nothing
+    ///   usable is declared, which tells the core to keep every vendor it is served.
+    public static func declaredVendors(_ raw: Any?) -> [Int]? {
+        let entries: [String]
+        switch raw {
+        case let text as String:
+            entries = text.components(separatedBy: ",")
+        case let number as NSNumber:
+            entries = [number.stringValue]
+        case let numbers as [NSNumber]:
+            entries = numbers.map(\.stringValue)
+        case let strings as [String]:
+            entries = strings.flatMap { $0.components(separatedBy: ",") }
+        default:
+            return nil
+        }
+        let ids = entries
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .compactMap { Int($0) }
+            .filter { $0 > 0 }
+        let deduped = dedupe(ids)
+        return deduped.isEmpty ? nil : deduped
+    }
+
+    /// The ids in order of first appearance, without repeats.
+    private static func dedupe(_ ids: [Int]) -> [Int] {
+        var seen = Set<Int>()
+        return ids.filter { seen.insert($0).inserted }
     }
 
     /// Build the core configuration this maps to.
@@ -278,6 +349,7 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
             store: store,
             transport: makeTransport(),
             consentCategories: consentCategories,
+            vendors: vendors,
             overrides: overrides,
             gpc: gpc,
             storageBus: UserDefaultsStorageBus()

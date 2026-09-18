@@ -791,15 +791,26 @@ these are the spec duties it would miss. Ordered by how much they matter.
    special-purposes bitfield. Confirmed here — `Fields.js` exposes `purposeConsents`,
    `purposeLegitimateInterests`, `specialFeatureOptins`, `publisherRestrictions` and nothing else in
    that family.
-8. **Publisher restrictions and custom purposes are absent on native; the list itself is not.** S5
-   Chapter II §5.9 requires publisher restrictions to be both rendered and signalled and S4 §5 says
-   when to write them, and neither core can express either. The vendor list is no longer missing:
-   each core reads the `gvl` that `/init` embeds and keeps it, and Swift already publishes it as
-   `KernelIABState(gvl:)`. What is still missing is the publisher's vendor allowlist. Web holds one
-   as `iab.vendors` and it does three jobs: filtering the request, narrowing the held list through
-   `narrowGVLToVendors`, and clearing a `gvlReference.summary` that counted the wider list. Mobile has
-   no such setting, so both narrowing helpers sit uncalled and a device discloses exactly the scope
-   the server chose to embed.
+8. **Publisher restrictions and custom purposes are absent on native; the list and its scope are
+   not.** S5 Chapter II §5.9 requires publisher restrictions to be both rendered and signalled and
+   S4 §5 says when to write them, and neither core can express either. The vendor allowlist closed
+   here. Each core reads the `gvl` that `/init` embeds and keeps it, and both now hold the
+   publisher's declaration beside it: `NativeConfig.vendors` (`NativeConfig.kt:61`) and
+   `CoreConfig.vendors` (`ConsentCore.swift:57`), where `null`/`nil` and an empty list all read as
+   no scope declared. Web's `iab.vendors` does three jobs and mobile now does two of them. The
+   request goes out with `x-c15t-vendors` (`C15tProtocol.kt:48`, `Transports.swift:53`): deduped,
+   ascending, comma-separated, and absent above the same 500 that `MAX_GVL_QUERY_VENDOR_IDS` uses.
+   The held list is pruned on every path it arrives by — `C15tKernel.kt:253` and `:1077`,
+   `ConsentCore.swift:1076` and `:1490` — which is what makes it a read-path rule rather than a
+   first-store rule, so bytes written before a host scoped the app stop disclosing vendors it never
+   named. The prune carries the promise and the header only saves bytes: a producer that ignores the
+   header and embeds the whole list is answered by that same line, which is also why an over-cap
+   declaration sends no header and still gets a narrow device. The third job is still missing,
+   because a device holds one list and reports it whole: web clears a `gvlReference.summary` that had
+   counted the wider list (`packages/core/src/runtime/index.ts:272-283`) and there is no such summary
+   to clear here. `@c15t/react-native` spells the declaration as the plugin's `vendors` prop, which
+   becomes the `com.c15t.vendors` plist string and the `com.c15t.VENDORS` meta-data both cores read
+   at launch, before JavaScript exists.
 9. **No resurface affordance.** Appendix B C(f) wants an easily reachable resurfacing entry, naming
    "the top-level settings of the Publisher's app", and an equivalent withdraw-all control. The
    contract's surface model is `activeUI: none | banner | dialog | null` with no persisted

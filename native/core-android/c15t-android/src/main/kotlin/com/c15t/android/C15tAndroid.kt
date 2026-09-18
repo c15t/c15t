@@ -147,6 +147,7 @@ object C15tAndroid {
 			initUrl = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_INIT_URL)),
 			domain = C15tManifestValue.string(C15tManifestValue.raw(bundle, META_DOMAIN)),
 			consentCategories = declaredCategories(C15tManifestValue.raw(bundle, META_CATEGORIES)),
+			vendors = declaredVendors(C15tManifestValue.raw(bundle, META_VENDORS)),
 			detectedGpc = C15tManifestValue.boolean(C15tManifestValue.raw(bundle, META_GPC)),
 		)
 	}
@@ -172,8 +173,49 @@ object C15tAndroid {
 			?.mapNotNull { ConsentCategory.fromWireName(it.trim()) }
 			?.takeIf { it.isNotEmpty() }
 
+	/**
+	 * Parse a declared vendor scope from manifest text.
+	 *
+	 * The value is a comma-separated list of IAB vendor ids. Spaces around an id are decoration, and
+	 * an entry that is not a positive whole number is dropped rather than trusted -- the same call
+	 * [declaredCategories] makes about a name neither core knows, so a typo in an id cannot install a
+	 * disclosure the framework never assigned. Duplicates are dropped here rather than carried: the
+	 * request half sorts and dedupes anyway, and a device that stored the same id twice would report a
+	 * scope longer than the publisher's partner list.
+	 *
+	 * An id the served list does not carry stays in the declaration and costs nothing, because pruning
+	 * a served document never adds an entry to satisfy a scope. That is the point of reading ids here
+	 * instead of resolving them: nothing this key declares has to be verifiable at launch.
+	 *
+	 * @param raw the raw bundle entry, typically `bundle.get(key)`.
+	 * @return the declared ids in declaration order and without repeats, or `null` when nothing usable
+	 *   is declared, which tells the core to keep every vendor it is served.
+	 */
+	fun declaredVendors(raw: Any?): List<Int>? =
+		C15tManifestValue.string(raw)
+			?.split(',')
+			?.mapNotNull { entry -> entry.trim().toIntOrNull()?.takeIf { it > 0 } }
+			?.distinct()
+			?.takeIf { it.isNotEmpty() }
+
 	/** Manifest key that forces GPC on for a staged build. */
 	const val META_GPC = "com.c15t.FORCE_GPC"
+
+	/**
+	 * Comma-separated IAB vendor ids the app declares, e.g. `42, 755, 8`. This is the Android
+	 * spelling of the `iab.vendors` array a web host passes to its provider, and iOS reads the same
+	 * declaration from the `com.c15t.vendors` plist string.
+	 *
+	 * The device half of the declaration -- prune the list the core holds -- is what carries the
+	 * disclosure promise, and it runs whatever this key says. The request half travels to the backend
+	 * as `x-c15t-vendors`, which is an optimisation about bytes: an unusable entry here costs a
+	 * slightly wider request, not a wider disclosure, and a declaration too long to fit on the request
+	 * line is sent as no header at all.
+	 *
+	 * Absent and empty both read as "declare nothing", which keeps every served vendor. A host that
+	 * means no vendors has to say so with a scope that names none, not by leaving this key out.
+	 */
+	const val META_VENDORS = "com.c15t.VENDORS"
 
 	private fun onMainThread(block: () -> Unit) {
 		if (Looper.myLooper() == Looper.getMainLooper()) {

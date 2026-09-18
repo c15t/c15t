@@ -49,6 +49,13 @@ class HostedTransport(
 		context.overrides.country?.let { headers["x-c15t-country"] = it }
 		context.overrides.region?.let { headers["x-c15t-region"] = it }
 		context.overrides.language?.let { headers["accept-language"] = it }
+		// The declared vendor scope, on the request that asks for the list it scopes. The
+		// kernel prunes whatever comes back regardless -- this header saves bytes, it is
+		// not the guarantee -- which is why a scope too wide to name here is simply not
+		// named and still produces a narrow device.
+		C15tProtocol.vendorScopeHeaderValue(context.vendors)?.let { scope ->
+			headers[C15tProtocol.VENDOR_SCOPE_HEADER] = scope
+		}
 
 		return send(HttpRequest(method = HttpRequest.GET, url = initUrl, headers = headers))
 	}

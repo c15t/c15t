@@ -469,12 +469,14 @@ enum Fixture {
         clock: TestClock,
         overrides: ConsentOverrides = .default(language: "en"),
         gpc: Bool? = nil,
-        categories: [ConsentCategory]? = nil
+        categories: [ConsentCategory]? = nil,
+        vendors: [Int]? = nil
     ) -> CoreConfig {
         CoreConfig(
             store: store,
             transport: transport,
             consentCategories: categories,
+            vendors: vendors,
             overrides: overrides,
             gpc: gpc,
             now: clock.reading,

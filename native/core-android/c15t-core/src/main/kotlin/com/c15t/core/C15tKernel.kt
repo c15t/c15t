@@ -28,6 +28,7 @@ import com.c15t.core.store.SnapshotEnvelope
 import com.c15t.core.store.UnusableSubjectId
 import com.c15t.core.tc.GlobalVendorList
 import com.c15t.core.tc.GlobalVendorListJson
+import com.c15t.core.tc.narrowToVendorIds
 import com.c15t.core.transport.C15tTransport
 import com.c15t.core.transport.MappedInit
 import com.c15t.core.transport.InitContext
@@ -231,7 +232,26 @@ class C15tKernel(
 				// published snapshot carries it, because that is the key the bridge reads. The
 				// fallback reads the other shape, so a device whose bytes hold the list the way a
 				// later build stores it is not stranded without its disclosure either.
-				iab = envelope.gvl?.let(::KernelIabState) ?: restored.iab,
+				//
+				// The declared scope is applied to whichever shape the list arrived in, which is
+				// what makes this a read-path rule rather than a first-store rule. Stored bytes
+				// can predate the declaration: the host scoped the app in this release, or the
+				// envelope came from a build that never scoped anything, or a scope was widened and
+				// narrowed again on a device that has been offline since. Reading those bytes whole
+				// would serve the wider list to the first drawer that opens before `/init` lands,
+				// and on a device whose network never comes back that drawer is the answer for the
+				// life of the app. Applying it costs nothing when the list is already inside the
+				// scope -- [com.c15t.core.tc.narrowToVendorIds] over an already-narrow list returns
+				// an equal one -- so this is the whole rule and not a race against the network.
+				// [persist] then writes the pruned document back, so the device stops storing the
+				// scope it no longer discloses.
+				//
+				// A `null` scope is a no-op on both branches, so a host that declared nothing keeps
+				// a served list byte for byte the same, which is what the retention tests around
+				// this line have always graded.
+				iab = (envelope.gvl ?: restored.iab?.gvl)
+					?.narrowToVendorIds(config.vendors)
+					?.let(::KernelIabState),
 				subject = restored.subject?.copy(id = subject.id) ?: subject,
 				consentCategories = decidedCategories(envelope.evaluationPolicy),
 				overrides = hydratedOverrides,
@@ -1009,6 +1029,7 @@ class C15tKernel(
 					overrides = current.overrides,
 					subject = current.subject,
 					gpc = GpcSignal.derive(override = current.overrides.gpc, detected = detected == true).active,
+					vendors = config.vendors,
 				)
 			)
 		} catch (error: Exception) {
@@ -1043,7 +1064,17 @@ class C15tKernel(
 			// stays outside the `policyUnreadable` branch above on purpose: an unreadable resolution
 			// costs the core its claim about permissions, which is rule 5, and costs it nothing about
 			// who vendor 755 is.
-			val latchedVendorList = mapped.gvl ?: base.iab?.gvl
+			//
+			// The declared scope narrows what arrives, before the latch. Web does the same on both
+			// of its routes: `createIAB` in `packages/iab` asks the GVL endpoint for its scope and
+			// then prunes whatever comes back, in case the endpoint ignored the parameter. The prune
+			// is the part that carries the disclosure promise and the `x-c15t-vendors` header is the
+			// bytes-saving optimisation in front of it, so a producer that embeds the whole list
+			// here is answered by this line and not by the request.
+			//
+			// Inside the latch rather than outside it, because the retained half already went
+			// through this line on the launch that served it, and on the read that hydrated it.
+			val latchedVendorList = mapped.gvl?.narrowToVendorIds(config.vendors) ?: base.iab?.gvl
 			mapped.resolvedGpcDetection?.let { detected = it }
 			emitted = mapped.error
 			detectedGpc = detected

@@ -63,6 +63,7 @@ these through `app.json`'s `ios.infoPlist`, which the plugin writes for you.
 | `com.c15t.region` | string | Pin the region or state code. |
 | `com.c15t.language` | string | Pin the translation language. Defaults to the device locale. |
 | `com.c15t.categories` | string array | Category ids the app declares. Empty means the full policy scope. |
+| `com.c15t.vendors` | string | Comma-separated IAB vendor ids the app may disclose, e.g. `42, 755, 8`. Android spells this `com.c15t.VENDORS`. Absent or empty means no scope: the core keeps every vendor the backend serves. |
 | `com.c15t.gpc` | boolean | The host app's GPC report. Detection only: it never becomes an override. |
 | `com.c15t.reactnative.AutoBootstrap` | boolean | `false` opts out of the pre-React start. Only written when you opt out, since on is the bridge's default. |
 
@@ -90,6 +91,7 @@ Read by `C15tAndroid.configFrom` and the bridge's own bootstrap, from the applic
 | `com.c15t.INIT_URL` | Override `${PORTAL_URL}/init`, for a proxied init route. |
 | `com.c15t.DOMAIN` | Value sent as the `domain` field of `POST /subjects`. |
 | `com.c15t.CATEGORIES` | Comma-separated category ids the app declares, e.g. `necessary, functionality, measurement, marketing`. Spaces around a name are ignored and an unknown name is dropped; a list with nothing usable reads as absent. iOS spells this the `com.c15t.categories` array. |
+| `com.c15t.VENDORS` | Comma-separated IAB vendor ids the app may disclose, e.g. `42, 755, 8`. Spaces around an id are ignored and an id that is not a positive whole number is dropped; a list with nothing usable reads as absent. iOS spells this the `com.c15t.vendors` string. The core prunes the vendor list it is served down to these ids, whatever the backend embedded. |
 | `com.c15t.FORCE_GPC` | Staged-build switch that forces GPC on. |
 | `com.c15t.reactnative.AUTO_BOOTSTRAP` | `false` opts out of the launch hook. Only written when you opt out. |
 
@@ -133,7 +135,8 @@ returns what the native side reported, including `nativeSdkVersion` and
 `C15tPluginProps` accepts `backendURL`, `initURL`, `domain`, `mode`,
 `consentCategories`, `enableAppTrackingTransparency`,
 `trackingUsageDescription`, `skAdNetworkIdentifiers`,
-`privacyTrackingDomains`, `forceGPC`, `autoBootstrap` and `skipNativeBuildCheck`.
+`privacyTrackingDomains`, `forceGPC`, `autoBootstrap`, `skipNativeBuildCheck`
+and `vendors`.
 
 `consentCategories` is the mobile spelling of the `consentCategories` a web
 provider takes: the category ids your app offers. It reaches both platforms as
@@ -142,6 +145,21 @@ so the same backend and the same list render the same dialog rows on web and
 mobile. Omit it to offer the full policy scope. An unknown id or an empty list
 fails the prebuild rather than shipping a declaration that reads differently
 than you typed it.
+
+`vendors` is the mobile spelling of the `iab.vendors` array a web host passes to
+its provider: the IAB vendor ids your app discloses. It reaches both platforms as
+one comma-separated string, and it narrows the vendor drawer only. The purposes,
+features, stacks and both version numbers of the served vendor list stay exactly
+as the backend embedded them, because those describe the framework rather than the
+audience, and a consent string still has to be able to say which policy version it
+was graded against. A device prunes whatever it is served down to your list, on
+every path the list arrives by, including state stored before you declared a scope.
+The same list also travels to the backend on `GET /init` as `x-c15t-vendors` so the
+response stops carrying vendors you would prune anyway; a declaration longer than
+500 ids is too wide for one request line and is simply not sent, while the pruning
+stays in force either way. Omit the parameter to disclose every vendor the backend
+serves. A negative or fractional id, or an empty list, fails the prebuild rather
+than shipping a drawer that reads differently than you typed it.
 
 Everything in it is published inside the app binary, so nothing there may be a secret.
 There is no credential parameter to reach for: a c15t project is identified by its

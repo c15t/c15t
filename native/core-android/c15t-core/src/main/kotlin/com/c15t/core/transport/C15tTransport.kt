@@ -14,6 +14,18 @@ data class InitContext(
 	val subject: ConsentSubject?,
 	/** `true` when the device reports GPC or the developer forced it on. */
 	val gpc: Boolean,
+	/**
+	 * The vendor scope `NativeConfig.vendors` declares, passed through unchanged.
+	 *
+	 * The core hands its declaration down rather than letting the transport read it off
+	 * the [com.c15t.core.NativeConfig] it is already handed, so that both cores put the
+	 * scope on the wire through one shape -- `core-swift`'s transport is constructed
+	 * without any consent configuration at all, and a Kotlin transport that kept its own
+	 * copy of one fact the kernel also holds is a second answer waiting to drift. It also
+	 * means a test that drives a transport directly, or a host that swaps one in, still
+	 * sees the declaration travel with the request it is supposed to shape.
+	 */
+	val vendors: List<Int>? = null,
 )
 
 /**

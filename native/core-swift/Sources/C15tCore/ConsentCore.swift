@@ -32,6 +32,29 @@ public struct CoreConfig: @unchecked Sendable {
     public let transport: (any C15tTransport)?
     /// Categories to offer. `nil` uses the full policy scope.
     public let consentCategories: [ConsentCategory]?
+    /// The vendor ids this deployment may disclose, or `nil` for no declaration.
+    ///
+    /// This is the native twin of `iab.vendors` on web. That option does three jobs
+    /// there: it filters the GVL request, it narrows the list the module holds through
+    /// ``GlobalVendorList/narrowed(toVendorIds:)``, and it clears a summary that had
+    /// counted the wider list. The first one reaches here as the `x-c15t-vendors`
+    /// request header, and the second is what ``ConsentCore`` does with this field on
+    /// every path a list arrives by. The third has no native equivalent yet, because
+    /// this build holds one list and reports it whole.
+    ///
+    /// `nil` and `[]` are the same answer: no scope declared, so every served list is
+    /// kept as it arrived. Both web narrows read an empty array that way --
+    /// `narrowGVLToVendors` in `packages/iab/src/tcf/fetch-gvl.ts` hands the document
+    /// back, and `gvlRequestUrl` in `packages/backend/src/http/gvl.ts` does not put the
+    /// scope on the request line at all -- and a core that read `[]` as "show nobody"
+    /// would leave a publisher who never scoped anything with an empty drawer under a
+    /// consent the subject can still give. A host that means no vendors has to say so
+    /// somewhere other than here.
+    ///
+    /// Ids the served list does not carry buy nothing, so an out-of-range or
+    /// publisher-custom id costs nothing, and the list's framework half -- purposes,
+    /// features, stacks, and both version numbers -- is never touched by a scope.
+    public let vendors: [Int]?
     public let overrides: ConsentOverrides
     public let user: KernelUser?
     /// The Global Privacy Control signal as the host app reports it.
@@ -65,6 +88,7 @@ public struct CoreConfig: @unchecked Sendable {
         store: any ConsentStore = InMemoryStore(),
         transport: (any C15tTransport)? = nil,
         consentCategories: [ConsentCategory]? = nil,
+        vendors: [Int]? = nil,
         overrides: ConsentOverrides = .default(),
         user: KernelUser? = nil,
         gpc: Bool? = nil,
@@ -76,6 +100,7 @@ public struct CoreConfig: @unchecked Sendable {
         self.store = store
         self.transport = transport
         self.consentCategories = consentCategories
+        self.vendors = vendors
         self.overrides = overrides
         self.user = user
         self.gpc = gpc
@@ -1030,6 +1055,27 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.promptRequirement = .none
             }
 
+            // Stored bytes get the scope too, which is the part a "we prune what the
+            // backend served us" rule quietly misses. An envelope can predate this
+            // setting: the host added the declaration in this release, or the bytes came
+            // from a build that had no scope at all, or the declaration was widened and
+            // then narrowed again on a device that never went online. Reading those
+            // bytes straight into state would serve the wider list to the very first
+            // drawer that opens before `/init` lands, and on a device whose network never
+            // comes back that drawer is the answer for the life of the app. Pruning on
+            // the read costs nothing when the scope is already in force -- keeping an
+            // ``narrowed`` list narrowed is identity -- so this is the whole guarantee
+            // rather than a race against the network.
+            //
+            // ``rebuildTcStorageBus()`` deliberately does not repeat this. The rows it
+            // projects are the served policy version and the matched rule's model, and a
+            // ``GlobalVendorList/narrowed(toVendorIds:)`` prune leaves both numbers
+            // exactly as served, so the mirror it writes is the same either way; every
+            // write path that does move the mirror goes through the snapshot pruned here.
+            if let stored = draft.iab?.gvl {
+                draft.iab = KernelIABState(gvl: stored.narrowed(toVendorIds: config.vendors))
+            }
+
             // The subject-facing list, against whatever this store says is in force.
             draft.consentCategories = decidedCategories(self.resolvedPolicy)
 
@@ -1362,7 +1408,8 @@ public final class ConsentCore: @unchecked Sendable {
             InitContext(
                 overrides: wireOverrides,
                 user: user,
-                subjectId: identity?.id ?? ""
+                subjectId: identity?.id ?? "",
+                vendors: config.vendors
             )
         }
 
@@ -1431,8 +1478,16 @@ public final class ConsentCore: @unchecked Sendable {
             // wiped by ``reset()`` alongside `policyWire`. It rides the snapshot rather
             // than taking an envelope key of its own, because the bridge reads the
             // snapshot and a second copy of one fact is two answers.
+            //
+            // The declared scope is applied here rather than downstream, which is where
+            // ``GlobalVendorList/narrowed(toVendorIds:)`` puts the promise: the snapshot
+            // is what the bridge reads and what the envelope is built from, so one prune
+            // on the value reaches the surface a subject reads instead of leaving a wide
+            // list behind a narrow rendering rule. The header the same scope goes out on
+            // is an optimisation in front of this, never the guarantee -- a producer that
+            // ignores it and embeds the whole list is answered by the same line.
             if let gvl = response.gvl {
-                draft.iab = KernelIABState(gvl: gvl)
+                draft.iab = KernelIABState(gvl: gvl.narrowed(toVendorIds: config?.vendors))
             }
 
             // Server-mapped receipts merge in per category, newest wins. A local
