@@ -558,7 +558,10 @@ const createProviderKernel = function createProviderKernel(
 			...integrations.flatMap((integration) =>
 				extractConsentNamesFromCondition(integration.category)
 			),
-			...(options.vendors ?? []).flatMap((vendor) =>
+			// A vendor declared in code or already resolved by a server prefetch
+			// makes its category selectable; a resolved prefetch skips init, so
+			// nothing would register it later.
+			...(initialVendors?.declared ?? []).flatMap((vendor) =>
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],

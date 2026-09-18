@@ -133,8 +133,10 @@ export const TEST_ID_PATTERNS = [
 	// render vendors). Vendor ids are lowercase slugs that may contain dots.
 	/^consent-widget-vendor-list-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-vendor-hint-[a-z][a-z0-9-]*$/u,
-	/^consent-widget-vendor-item-[a-z0-9][a-z0-9._-]*$/u,
-	/^consent-widget-vendor-switch-[a-z0-9][a-z0-9._-]*$/u,
+	// Item and switch ids are `<category>-<vendor id>`, since one vendor can
+	// sit under several categories.
+	/^consent-widget-vendor-item-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
+	/^consent-widget-vendor-switch-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
 	/^stack-item-[a-z0-9][a-z0-9-]*$/u,
 	/^purpose-item-[a-z0-9][a-z0-9-]*$/u,
 	// A GVL numbers purposes, special purposes, features and special

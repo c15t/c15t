@@ -85,13 +85,15 @@ export const ConsentWidgetVendorList = ({
 				{vendors.map((vendor) => {
 					const name = vendor.name ?? vendor.id;
 					const checked = selectedVendors[vendor.id] ?? true;
-					const disabled = !categoryOn || vendor.disabled === true;
+					// A `disabled` vendor is presented without a toggle: the kernel
+					// ignores grants for it, so a switch would only mislead.
+					const toggleable = vendor.disabled !== true;
 					return (
 						<Box
 							key={vendor.id}
 							noStyle={finalNoStyle}
 							baseClassName={styles?.item}
-							data-testid={`consent-widget-vendor-item-${vendor.id}`}
+							data-testid={`consent-widget-vendor-item-${category}-${vendor.id}`}
 							slotKey="vendor-list.item"
 						>
 							<Box
@@ -134,21 +136,25 @@ export const ConsentWidgetVendorList = ({
 									</Box>
 								) : null}
 							</Box>
-							<Box
-								noStyle={finalNoStyle}
-								baseClassName={styles?.control}
-								slotKey="vendor-list.control"
-							>
-								<RadixSwitch.Root
-									aria-label={copy.switchLabel.replace('{vendor}', name)}
-									aria-describedby={`c15t-vendor-${category}-${vendor.id}`}
-									checked={checked}
-									data-testid={`consent-widget-vendor-switch-${vendor.id}`}
-									disabled={disabled}
-									onCheckedChange={(next) => setSelectedVendor(vendor.id, next)}
-									size="small"
-								/>
-							</Box>
+							{toggleable ? (
+								<Box
+									noStyle={finalNoStyle}
+									baseClassName={styles?.control}
+									slotKey="vendor-list.control"
+								>
+									<RadixSwitch.Root
+										aria-label={copy.switchLabel.replace('{vendor}', name)}
+										aria-describedby={`c15t-vendor-${category}-${vendor.id}`}
+										checked={checked}
+										data-testid={`consent-widget-vendor-switch-${category}-${vendor.id}`}
+										disabled={!categoryOn}
+										onCheckedChange={(next) =>
+											setSelectedVendor(vendor.id, next)
+										}
+										size="small"
+									/>
+								</Box>
+							) : null}
 						</Box>
 					);
 				})}

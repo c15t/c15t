@@ -67,8 +67,10 @@ group: reference
   switches and record on Save. Saving with one vendor off denies that vendor
   only; the category stays granted and its other vendors keep loading. While
   the category is off in the draft the vendor switches are disabled, with the
-  hint "Turn on this category to choose vendors." Accept all and Reject all
-  clear every vendor denial. Under an `iab` policy no vendor rows render.
+  hint "Turn on this category to choose vendors." A vendor declared
+  `disabled`, or one that only falls under `necessary`, is listed without a
+  switch. Accept all and Reject all clear every vendor denial, including one
+  staged but not yet saved. Under an `iab` policy no vendor rows render.
   Vendors that are only referenced by a script slug, without a name and
   privacy policy URL, still gate loading but are not listed, and so does a
   vendor whose condition negates a category, since no category row can

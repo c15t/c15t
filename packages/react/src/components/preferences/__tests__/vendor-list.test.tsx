@@ -52,6 +52,13 @@ const VENDORS: Vendor[] = [
 		name: 'Negated Vendor',
 		privacyPolicyUrl: 'https://example.com/privacy',
 	},
+	{
+		category: 'marketing',
+		disabled: true,
+		id: 'fixed-vendor',
+		name: 'Fixed Vendor',
+		privacyPolicyUrl: 'https://example.com/privacy',
+	},
 ];
 
 const Probe = () => {
@@ -105,10 +112,14 @@ describe('consent widget vendor rows', () => {
 		const list = page.getByTestId('consent-widget-vendor-list-marketing');
 		await expect.element(list).toBeVisible();
 		await expect
-			.element(page.getByTestId('consent-widget-vendor-item-meta-pixel'))
+			.element(
+				page.getByTestId('consent-widget-vendor-item-marketing-meta-pixel')
+			)
 			.toHaveTextContent('Meta Pixel');
 		await expect
-			.element(page.getByTestId('consent-widget-vendor-item-meta-pixel'))
+			.element(
+				page.getByTestId('consent-widget-vendor-item-marketing-meta-pixel')
+			)
 			.toHaveTextContent('Ad conversion measurement.');
 		// The measurement vendor lives under its own category, not this one.
 		const marketingList = document.querySelector(
@@ -116,18 +127,20 @@ describe('consent widget vendor rows', () => {
 		);
 		expect(
 			marketingList?.querySelector(
-				'[data-testid="consent-widget-vendor-item-google-analytics"]'
+				'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
 			)
 		).toBeNull();
 		expect(
 			document
 				.querySelector('[data-testid="consent-widget-vendor-list-measurement"]')
 				?.querySelector(
-					'[data-testid="consent-widget-vendor-item-google-analytics"]'
+					'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
 				)
 		).not.toBeNull();
 
-		const meta = page.getByTestId('consent-widget-vendor-switch-meta-pixel');
+		const meta = page.getByTestId(
+			'consent-widget-vendor-switch-marketing-meta-pixel'
+		);
 		await expect.element(meta).toHaveAttribute('aria-checked', 'true');
 		await meta.click();
 		await expect.element(meta).toHaveAttribute('aria-checked', 'false');
@@ -150,7 +163,9 @@ describe('consent widget vendor rows', () => {
 		await page
 			.getByTestId('consent-widget-accordion-trigger-marketing')
 			.click();
-		const meta = page.getByTestId('consent-widget-vendor-switch-meta-pixel');
+		const meta = page.getByTestId(
+			'consent-widget-vendor-switch-marketing-meta-pixel'
+		);
 		await expect.element(meta).toBeDisabled();
 		await expect
 			.element(page.getByTestId('consent-widget-vendor-hint-marketing'))
@@ -183,9 +198,45 @@ describe('consent widget vendor rows', () => {
 		]);
 		expect(
 			document.querySelector(
-				'[data-testid="consent-widget-vendor-item-negated-vendor"]'
+				'[data-testid="consent-widget-vendor-item-marketing-negated-vendor"]'
 			)
 		).toBeNull();
+	});
+
+	test('a disabled vendor is listed without a switch', async () => {
+		renderWidget({ marketing: true, measurement: true });
+		await page
+			.getByTestId('consent-widget-accordion-trigger-marketing')
+			.click();
+		await expect
+			.element(
+				page.getByTestId('consent-widget-vendor-item-marketing-fixed-vendor')
+			)
+			.toHaveTextContent('Fixed Vendor');
+		expect(
+			document.querySelector(
+				'[data-testid="consent-widget-vendor-switch-marketing-fixed-vendor"]'
+			)
+		).toBeNull();
+	});
+
+	test('accept all discards a staged vendor denial instead of recording it', async () => {
+		renderWidget({ marketing: true, measurement: true });
+		await page
+			.getByTestId('consent-widget-accordion-trigger-marketing')
+			.click();
+		await page
+			.getByTestId('consent-widget-vendor-switch-marketing-meta-pixel')
+			.click();
+		await page.getByTestId('consent-widget-footer-accept-all-button').click();
+		await vi.waitFor(() => {
+			expect(readProbe()).toEqual({
+				ads: true,
+				denied: [],
+				marketing: true,
+				meta: true,
+			});
+		});
 	});
 
 	test('accept all clears a recorded denial', async () => {
@@ -193,7 +244,9 @@ describe('consent widget vendor rows', () => {
 		await page
 			.getByTestId('consent-widget-accordion-trigger-marketing')
 			.click();
-		await page.getByTestId('consent-widget-vendor-switch-meta-pixel').click();
+		await page
+			.getByTestId('consent-widget-vendor-switch-marketing-meta-pixel')
+			.click();
 		await page.getByTestId('consent-widget-footer-save-button').click();
 		await vi.waitFor(() => {
 			expect(readProbe().denied).toEqual(['meta-pixel']);
