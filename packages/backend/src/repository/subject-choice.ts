@@ -246,21 +246,33 @@ export interface VendorSourceRow {
  * map on the latest act by `givenAt` replaces every earlier one outright.
  * `givenAt` is the act's time; the map's own `confirmedAt` travels with it
  * but does not pick the winner, since a client may send them independently.
- * Ties keep the later row. Unreadable rows contribute nothing.
+ * Ties keep the later row. A row without a map is skipped: that act did not
+ * decide vendors. A row whose map is unreadable is the newest decision and
+ * cannot be read, so the aggregate is `null` rather than an older map that
+ * the unreadable act superseded.
  *
  * @internal
  */
 export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	rows: readonly VendorSourceRow[]
 ): VendorChoiceWire | null {
-	let newest: { givenAt: number; vendorChoice: VendorChoiceWire } | null = null;
+	let newest: {
+		givenAt: number;
+		vendorChoice: VendorChoiceWire | null;
+	} | null = null;
 	for (const row of rows) {
-		if (row.type !== COOKIE_BANNER_TYPE || row.vendorChoice.kind !== 'grants') {
+		if (row.type !== COOKIE_BANNER_TYPE || row.vendorChoice.kind === 'absent') {
 			continue;
 		}
 		const givenAt = row.givenAt.getTime();
 		if (newest === null || givenAt >= newest.givenAt) {
-			newest = { givenAt, vendorChoice: row.vendorChoice.vendorChoice };
+			newest = {
+				givenAt,
+				vendorChoice:
+					row.vendorChoice.kind === 'grants'
+						? row.vendorChoice.vendorChoice
+						: null,
+			};
 		}
 	}
 	return newest?.vendorChoice ?? null;
