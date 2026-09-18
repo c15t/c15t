@@ -37,7 +37,7 @@ import type {
 	ResolvedVendor,
 	VendorChoice,
 } from '@c15t/core';
-import { evaluateConsent } from '@c15t/core';
+import { evaluateConsent, isVendorDenied } from '@c15t/core';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
@@ -272,10 +272,9 @@ export const useVendorAllowed = function useVendorAllowed(
 		const vendor = snap.vendors?.declared.find(
 			(entry) => entry.id === vendorId
 		);
-		const denied =
-			snap.model !== 'iab' &&
-			(snap.vendorChoice?.denied.includes(vendorId) ?? false);
-		if (denied) {
+		// The kernel's own gate semantics: inert under `iab`, and a stale denial
+		// for a vendor now declared `disabled` no longer counts.
+		if (snap.model !== 'iab' && isVendorDenied(snap, vendorId)) {
 			return false;
 		}
 		if (!vendor) {

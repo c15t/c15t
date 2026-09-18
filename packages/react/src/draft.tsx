@@ -212,8 +212,19 @@ const createDraftStore = function createDraftStore(
 			nextScope.some(
 				(category) => !current.displayedCategories.includes(category)
 			);
+		// A changed vendor list is material too: the draft's vendor grants are
+		// keyed by the declared ids, so a new or removed vendor needs a reset.
+		// Only the ids matter here; a recorded grant change is what a save
+		// produces and reseeds through the clean-draft path below.
+		const nextIds = Object.keys(seedVendors(next)).sort();
+		const baseIds = Object.keys(baseVendors).sort();
+		const vendorsChanged =
+			nextIds.length !== baseIds.length ||
+			nextIds.some((id, index) => id !== baseIds[index]);
 		const material =
-			fingerprint !== next.evaluationPolicy.choice.fingerprint || scopeChanged;
+			fingerprint !== next.evaluationPolicy.choice.fingerprint ||
+			scopeChanged ||
+			vendorsChanged;
 		source = next;
 		if (!current.isDirty) {
 			reset();
