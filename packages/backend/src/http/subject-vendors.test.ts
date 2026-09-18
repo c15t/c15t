@@ -2,10 +2,9 @@
  * Vendor-level consent through the HTTP surface, on every engine.
  *
  * A save may carry `vendorChoice`, the complete per-vendor grant map with one
- * confirmation time. The backend stores it as sent, refuses a grant for a
- * vendor the manifest does not declare, keeps a denial for one it no longer
- * declares, and reads back the newest map as `subjectVendorChoice`. Saves
- * without vendors are unaffected.
+ * confirmation time. The backend stores it as sent, including vendors the
+ * manifest does not declare, and reads back the map of the most recent act
+ * as `subjectVendorChoice`. Saves without vendors are unaffected.
  */
 
 import type { PolicyRule, Vendor } from '@c15t/schema';
@@ -128,32 +127,52 @@ for (const engine of ENGINES) {
 			});
 		});
 
-		it('refuses a grant for a vendor the manifest does not declare and keeps a denial', async () => {
-			const granted = await harness.json('POST', '/subjects', {
+		it('stores vendors the manifest does not declare, since the client may declare them in code', async () => {
+			const saved = await harness.json('POST', '/subjects', {
 				...base,
 				givenAt: T0,
 				vendorChoice: {
 					confirmedAt: T0,
-					grants: { 'meta-pixel': true, 'removed-vendor': true },
+					grants: { 'client-only': true, 'meta-pixel': false },
 					version: 1,
 				},
 			});
-			assert.strictEqual(granted.status, 400, JSON.stringify(granted.body));
-			assert.strictEqual(
-				(granted.body.cause as { code: string }).code,
-				'VENDOR_OUT_OF_SCOPE'
-			);
+			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.strictEqual(read.status, 200);
+			assert.deepStrictEqual(read.body.subjectVendorChoice, {
+				confirmedAt: T0,
+				grants: { 'client-only': true, 'meta-pixel': false },
+				version: 1,
+			});
+		});
 
-			const denied = await harness.json('POST', '/subjects', {
+		it('picks the newest act by givenAt even when its map carries an older time', async () => {
+			await harness.json('POST', '/subjects', {
 				...base,
 				givenAt: T0,
 				vendorChoice: {
-					confirmedAt: T0,
-					grants: { 'meta-pixel': true, 'removed-vendor': false },
+					confirmedAt: T1,
+					grants: { 'meta-pixel': false },
 					version: 1,
 				},
 			});
-			assert.strictEqual(denied.status, 200, JSON.stringify(denied.body));
+			const later = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T1,
+				vendorChoice: {
+					confirmedAt: T0,
+					grants: { 'meta-pixel': true },
+					version: 1,
+				},
+			});
+			assert.strictEqual(later.status, 200, JSON.stringify(later.body));
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.strictEqual(read.status, 200);
+			assert.deepStrictEqual(
+				(read.body.subjectVendorChoice as { grants: unknown }).grants,
+				{ 'meta-pixel': true }
+			);
 		});
 
 		it('refuses a vendor confirmation later than the server clock', async () => {
@@ -176,6 +195,7 @@ for (const engine of ENGINES) {
 			});
 			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
 			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.strictEqual(read.status, 200);
 			assert.strictEqual(read.body.subjectVendorChoice, null);
 			const consents = read.body.consents as { vendorChoice?: unknown }[];
 			assert.isUndefined(consents[0]?.vendorChoice);
