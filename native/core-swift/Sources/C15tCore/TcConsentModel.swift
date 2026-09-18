@@ -55,6 +55,16 @@ package struct TcVendorList: Sendable, Equatable {
     package let vendorListVersion: Int
     package let tcfPolicyVersion: Int
     package let vendors: [TcVendorDeclaration]
+    /// The same vendors by id.
+    ///
+    /// Indexed once at construction because the pruning pass asks one question per
+    /// positive signal -- does vendor N exist, and does it declare this basis -- and a
+    /// list served by `/init` names over a thousand vendors. Rescanning the array for
+    /// each answer puts the cost of one string at quadratic in the size of the list,
+    /// which is the reason `TcVendorList` in the Kotlin core keeps the same index.
+    /// A repeated id keeps the first entry, which is what the linear scan this replaced
+    /// answered with; no real list repeats one.
+    private let byId: [Int: TcVendorDeclaration]
 
     package init(
         language: String,
@@ -66,10 +76,15 @@ package struct TcVendorList: Sendable, Equatable {
         self.vendorListVersion = vendorListVersion
         self.tcfPolicyVersion = tcfPolicyVersion
         self.vendors = vendors
+        var index: [Int: TcVendorDeclaration] = [:]
+        for declaration in vendors where index[declaration.id] == nil {
+            index[declaration.id] = declaration
+        }
+        byId = index
     }
 
     package func vendor(_ id: Int) -> TcVendorDeclaration? {
-        vendors.first { $0.id == id }
+        byId[id]
     }
 }
 
