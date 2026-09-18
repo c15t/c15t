@@ -8,10 +8,15 @@
  * behind a fixture runner that tolerated them, and the only visible symptom was a
  * consent screen printing an empty subject.
  *
- * The kernel owns the spelling of four objects on the snapshot. Here that spelling
+ * The kernel owns the spelling of five objects on the snapshot. Here that spelling
  * is written down once so the protocol fixtures generated from the TypeScript kernel
  * can be checked against it, and so a native core that renames a key is a failing
  * assertion rather than an undefined read in someone's app.
+ *
+ * The check stops at the top of the vendor list inside `iab`. That document belongs
+ * to the IAB framework and is read field-by-field forgivingly on every platform, so
+ * a key name inside one of its records is a question for `gvl.ts`, which the vendor
+ * list tests compare against all four places it is written.
  *
  * @packageDocumentation
  */
@@ -29,8 +34,9 @@ interface KernelOwnedKeys {
 /**
  * Every key `ConsentSnapshot` declares.
  *
- * `iab` is reserved and serialized as `null`, so it belongs on the list even while
- * TCF stays out of scope: dropping the key is itself a wire change.
+ * `iab` belongs on the list whether it holds a vendor list or `null`: a payload that
+ * drops the key is a wire change either way, and `native/CONTRACT.md` asks for a
+ * serialised `null` rather than an absent key where there is no state.
  */
 export const SNAPSHOT_KEYS = [
 	'revision',
@@ -58,9 +64,16 @@ export const SNAPSHOT_KEYS = [
 ] as const;
 
 /**
- * The four objects whose key names come from `@c15t/core` and are not a native
+ * The five objects whose key names come from `@c15t/core` and are not a native
  * implementation detail. Names inside a core, and names inside a stored envelope,
  * stay the core's own business.
+ *
+ * `gvl` is required inside `iab` rather than optional, because the producer that
+ * fills the slot writes it as an explicit null when it has no list: Swift's
+ * `KernelIABState` encodes `gvl` unconditionally and refuses any other name inside
+ * the object, so a reader never has to tell "no list served" from "no answer
+ * given". An `iab` of `null` is skipped by the walker, which is the shape Android
+ * serves and the shape every generated fixture carries.
  */
 export const KERNEL_OWNED_KEYS = [
 	{
@@ -82,6 +95,11 @@ export const KERNEL_OWNED_KEYS = [
 		optional: [],
 		path: 'explicitChoice',
 		required: ['version', 'categories'],
+	},
+	{
+		optional: [],
+		path: 'iab',
+		required: ['gvl'],
 	},
 ] as const satisfies readonly KernelOwnedKeys[];
 

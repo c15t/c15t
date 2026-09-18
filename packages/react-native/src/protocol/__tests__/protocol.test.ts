@@ -2,9 +2,12 @@
  * Guards the two things the native cores depend on: the version handshake,
  * and the shape of every snapshot the fixtures claim.
  *
- * The fixture assertions are the important half. A fixture that drops a key,
- * or fills `iab` with something other than `null`, would silently move the
- * contract for Swift and Kotlin, because both read these files as truth.
+ * The fixture assertions are the important half. A fixture that drops a key, or
+ * fills `iab` with something other than the `null` every one of them carries,
+ * would silently move the contract for Swift and Kotlin, because both read these
+ * files as truth. A device may hold a vendor list there; what the fixtures pin is
+ * that the generator has never put one in, and the shape of a body is graded by
+ * name in `gvl.test.ts`.
  */
 
 import { createHash } from 'node:crypto';

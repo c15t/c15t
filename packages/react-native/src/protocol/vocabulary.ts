@@ -72,9 +72,12 @@ export const OPTIONAL_CONSENT_CATEGORIES = [
 /**
  * The consent models a native core may resolve.
  *
- * `iab` is absent by design. This phase ships no TC string and no GVL, so a
- * core that resolved `iab` would promise an evaluation it cannot do, and the
- * strict policy reader refuses the wire value rather than approximate it.
+ * `iab` is absent because no core resolves it: Kotlin's `StrictPolicyReader`
+ * refuses the wire value rather than approximate it, and Swift's `ConsentModel`
+ * never names it. A core that answered `iab` would promise an evaluation it
+ * cannot do. The vendor list `/init` serves is a different thing and a device
+ * does hold one -- see the `iab` slot in `./snapshot` and the document in
+ * `./gvl` -- because naming a partner in a disclosure is not a permission model.
  */
 export const NATIVE_MODELS = ['opt-in', 'opt-out', 'none'] as const;
 

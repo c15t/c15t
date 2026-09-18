@@ -4,11 +4,12 @@
  *
  * This is the shape on the wire. It is the kernel snapshot from `@c15t/core`
  * restricted to the fields that matter on device, plus the lifecycle flags a
- * native gate needs (`ready`, `policyPending`) and the IAB slot held open as
- * `null`. The native cores serialize exactly this object from `getSnapshot()`;
- * the JavaScript layer never derives it.
+ * native gate needs (`ready`, `policyPending`) and the IAB slot, which carries
+ * the vendor list a device was served. The native cores serialize exactly this
+ * object from `getSnapshot()`; the JavaScript layer never derives it.
  */
 
+import type { GlobalVendorList } from './gvl';
 import type { NativeOverrides } from './overrides';
 import type {
 	AllConsentNames,
@@ -28,8 +29,15 @@ import type {
 /**
  * Consent model enforced on device.
  *
- * `iab` is excluded: TCF is out of scope for this phase, and a native core
- * must never resolve a model it cannot evaluate.
+ * `iab` is excluded because no native core resolves it: Kotlin's `Enums.kt`
+ * refuses the wire value and `StrictPolicyReader` fails closed on it, and
+ * Swift's `ConsentModel` never names it. A core that answered `iab` would
+ * promise an evaluation it cannot do.
+ *
+ * Reading a served vendor list is a different question, and {@link
+ * NativeIABState} answers it: a device may hold the list `/init` embedded while
+ * the model it evaluates is `opt-in`, because the list is disclosure, not a
+ * permission rule.
  */
 export type NativeModel = Exclude<KernelModel, 'iab'>;
 
@@ -86,6 +94,23 @@ export interface NativePrivacySignals {
 export interface NativeSnapshotError {
 	readonly code: string;
 	readonly message: string;
+}
+
+/**
+ * The IAB half of a snapshot.
+ *
+ * Mirrors `KernelIABState` in `@c15t/core` on `gvl` alone. The kernel's other
+ * members -- `authority`, `enabled`, `cmpId`, `tcString`, `gvlReference`,
+ * `customVendors`, and the per-vendor and per-purpose vectors -- are IAB runtime
+ * state a device does not own yet, and an absent key says that plainly where
+ * `enabled: false` would claim an answer about a module that is not there.
+ * Swift's `KernelIABState` makes the same cut for the same reason and encodes
+ * `gvl` always present, so a reader never confuses "no list served" with "no
+ * answer given". The document behind the name is `./gvl`.
+ */
+export interface NativeIABState {
+	/** Global Vendor List (IAB-registered vendors + purposes), or `null`. */
+	readonly gvl: GlobalVendorList | null;
 }
 
 /**
@@ -148,10 +173,26 @@ export interface ConsentSnapshot {
 	/** Failure the core is holding, or `null`. */
 	readonly error: NativeSnapshotError | null;
 	/**
-	 * IAB TCF slot, reserved and always `null` in this phase.
+	 * IAB TCF state: the vendor list this device was served, or `null`.
 	 *
-	 * The key stays so a JavaScript layer that predates TCF does not have to
-	 * branch, and so adding TCF later is an additive protocol change.
+	 * `null` is a real answer, and a device reaches it two different ways.
+	 *
+	 * - iOS holds `null` until a `/init` lands a `gvl`. Swift's `ConsentCore` then
+	 *   folds the list in and keeps it when a later `/init` serves none, because
+	 *   the backend embeds a list only while the matched model is `iab`, and a
+	 *   disclosure that lost its partner names between launches would change the
+	 *   claim made to the subject.
+	 * - Android answers `null` here always. Kotlin's `Snapshot.kt` pins the slot
+	 *   to `JsonNull` and its retention test keeps it there; that core keeps the
+	 *   list on the stored envelope under `gvl` and hands the same document to a
+	 *   caller through `C15tKernel.vendorListBody()`. This package's bridge does
+	 *   not expose that accessor yet, so on Android the list exists and is not
+	 *   readable from this key.
+	 *
+	 * The key is never absent. `native/CONTRACT.md` asks for a serialised `null`
+	 * where there is no state, so a JavaScript layer that predates TCF does not
+	 * have to branch, and a body here is a shape both cores and the fixtures
+	 * agree on rather than one platform's invention.
 	 */
-	readonly iab: null;
+	readonly iab: NativeIABState | null;
 }

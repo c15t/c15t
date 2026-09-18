@@ -169,7 +169,7 @@ describe('a renamed kernel-owned key is reported', () => {
 		);
 	});
 
-	test('the four objects are the whole of it, and nothing else moves', () => {
+	test('the owned objects are the whole of it, and nothing else moves', () => {
 		// Every line belongs to a kernel-owned object: the rename must not be able to
 		// hide behind noise from the rest of the payload.
 		expect(problems.length).toBeGreaterThan(0);
@@ -260,6 +260,65 @@ describe('describeSnapshotWireDrift on a hand-written payload', () => {
 		});
 
 		expect(describeSnapshotWireDrift(candidate)).toEqual([]);
+	});
+
+	test('the vendor list a device serves is read at the iab key', () => {
+		// The slot is a body on one platform and the contract's `null` on the other, so
+		// both are clean, and the walker stops at the top of the document itself.
+		expect(
+			describeSnapshotWireDrift(withField(minimal(), 'iab', null))
+		).toEqual([]);
+		expect(
+			describeSnapshotWireDrift(withField(minimal(), 'iab', { gvl: null }))
+		).toEqual([]);
+		expect(
+			describeSnapshotWireDrift(
+				withField(minimal(), 'iab', {
+					gvl: { tcfPolicyVersion: 5, vendorListVersion: 177 },
+				})
+			)
+		).toEqual([]);
+		// A slot that is neither null nor an object is named once, not per key.
+		expect(
+			describeSnapshotWireDrift(withField(minimal(), 'iab', 'iab'))
+		).toEqual(['iab: expected an object the kernel owns, found string']);
+
+		const owned = KERNEL_OWNED_KEYS.map((entry) => entry.path);
+		expect(owned).toContain('iab');
+	});
+
+	test('an iab slot with no gvl is drift, and an invented IAB name is named', () => {
+		// A slot with no `gvl` key says nothing about whether a list was served, and a
+		// name the kernel does not use inside it is the rename this checker exists to
+		// catch: invisible to Swift, to Kotlin, and to a type check.
+		expect(describeSnapshotWireDrift(withField(minimal(), 'iab', {}))).toEqual([
+			'iab.gvl: required here, absent from the payload',
+		]);
+		expect(
+			describeSnapshotWireDrift(
+				withField(minimal(), 'iab', { enabled: false, gvl: null })
+			)
+		).toEqual([
+			'iab.enabled: the kernel owns these key names and does not use "enabled" here',
+		]);
+
+		// A core from a phase that grew the slot stays quiet while it keeps `gvl`, and is
+		// named the moment the key a reader needs is the one that went missing.
+		expect(
+			describeSnapshotWireDrift(
+				withField(minimal(), 'iab', { gvl: null, tcString: 'CQ...' }),
+				{ allowUnknownKeys: true }
+			)
+		).toEqual([]);
+		expect(
+			describeSnapshotWireDrift(
+				withField(minimal(), 'iab', { tcString: 'CQ...' }),
+				{ allowUnknownKeys: true }
+			)
+		).toEqual([
+			'iab.gvl: required here, absent from the payload',
+			'iab.tcString: the kernel owns these key names and does not use "tcString" here',
+		]);
 	});
 
 	test('allowUnknownKeys keeps a newer native build quiet but not a rename', () => {

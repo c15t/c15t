@@ -16,6 +16,19 @@ export type {
 	CommitResult,
 	NativeSavePayload,
 } from './commit';
+export type {
+	GlobalVendorList,
+	GVLDataCategory,
+	GVLFeature,
+	GVLPurpose,
+	GVLSpecialFeature,
+	GVLSpecialPurpose,
+	GVLStack,
+	GVLVendor,
+	GVLVendorDataRetention,
+	GVLVendorOverflow,
+	GVLVendorUrl,
+} from './gvl';
 export type { NativeOverrides, NativeOverridesInput } from './overrides';
 export { defaultNativeOverrides } from './overrides';
 export type {
@@ -28,6 +41,7 @@ export {
 } from './tracking';
 export type {
 	ConsentSnapshot,
+	NativeIABState,
 	NativeModel,
 	NativeGpcSignal,
 	NativePrivacySignals,
