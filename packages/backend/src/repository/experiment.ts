@@ -175,6 +175,9 @@ const medianTimeToDecision = Effect.fn('experiment.median')(
 		const sql = yield* SqlClient.SqlClient;
 		const middle = samples % 2 === 1 ? 1 : 2;
 		const offset = Math.floor((samples - 1) / 2);
+		// MySQL rejects bound parameters in `limit … offset …` of a prepared
+		// statement. Both values derive from a row count we just read, never
+		// from input, so they are spliced in as integer literals.
 		const rows = yield* sql<{ ms: number | string }>`
 			select ${sql('c.timeToDecisionMs')} as ${sql('ms')}
 			from ${sql('consent')} as ${sql('c')}
@@ -182,7 +185,7 @@ const medianTimeToDecision = Effect.fn('experiment.median')(
 				and ${sql('c.experimentVariant')} = ${variant}
 				and ${sql('c.timeToDecisionMs')} is not null
 			order by ${sql('c.timeToDecisionMs')} asc
-			limit ${middle} offset ${offset}
+			limit ${sql.literal(String(middle))} offset ${sql.literal(String(offset))}
 		`;
 		if (rows.length === 0) {
 			return null;
