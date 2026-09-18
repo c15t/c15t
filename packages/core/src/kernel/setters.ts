@@ -6,7 +6,11 @@
  * anything.
  */
 import type { AllConsentNames } from '../consent/consent-types';
-import { mergeDeclaredVendors, sameDeclaredVendors } from '../libs/vendors';
+import {
+	mergeDeclaredVendors,
+	sameDeclaredVendors,
+	withoutSourceVendors,
+} from '../libs/vendors';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentState,
@@ -68,15 +72,14 @@ export const mergeVendors = function mergeVendors(
 	const base =
 		options.replaceSource === undefined || input.declared === undefined
 			? baseline.declared
-			: baseline.declared.filter(
-					(vendor) => vendor.source !== options.replaceSource
-				);
+			: withoutSourceVendors(baseline.declared, options.replaceSource);
 	const merged =
 		input.declared === undefined
 			? baseline.declared
 			: mergeDeclaredVendors(base, input.declared);
-	// `filter` always allocates, so a replacement that ends where it started
-	// has to fall back to the current reference or every call would commit.
+	// Removing a source always allocates, so a replacement that ends where it
+	// started has to fall back to the current reference or every call would
+	// commit.
 	const declared =
 		merged !== baseline.declared &&
 		sameDeclaredVendors(merged, baseline.declared)

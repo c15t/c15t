@@ -15,6 +15,7 @@ import {
 import { createConsentKernel } from '../../index';
 import type {
 	KernelVendorsState,
+	ResolvedVendor,
 	SavePayload,
 	KernelTransport,
 } from '../../types';
@@ -171,6 +172,32 @@ describe('snapshot vendor state', () => {
 			declared: [],
 			listVersion: '2026-09',
 		});
+		kernel.dispose();
+	});
+
+	test('replacing the config source restores the backend copy a config entry shadowed', () => {
+		const kernel = createKernel({ initialVendors: undefined });
+		kernel.set.vendors({
+			declared: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta (backend)',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/backend',
+					source: 'manifest',
+				},
+			],
+		});
+		kernel.set.vendors(
+			{ declared: [vendors.declared[0] as ResolvedVendor] },
+			{ replaceSource: 'config' }
+		);
+		expect(kernel.getSnapshot().vendors?.declared[0]?.name).toBe('Meta Pixel');
+		kernel.set.vendors({ declared: [] }, { replaceSource: 'config' });
+		const [restored] = kernel.getSnapshot().vendors?.declared ?? [];
+		expect(restored?.source).toBe('manifest');
+		expect(restored?.name).toBe('Meta (backend)');
 		kernel.dispose();
 	});
 
@@ -350,6 +377,43 @@ describe('save with vendors', () => {
 			denied: [],
 			version: 1,
 		});
+		kernel.dispose();
+	});
+
+	test('a bulk action narrowed to some categories keeps unrelated denials', async () => {
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['google-analytics', 'meta-pixel'],
+					version: 1,
+				},
+			},
+		});
+		// Rejecting only measurement lifts the analytics denial and leaves the
+		// marketing vendor exactly as the visitor left it.
+		await kernel.commands.save('none', { categories: ['measurement'] });
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: ['meta-pixel'],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
+	test('a category save with no vendor decision sends no vendor map', async () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const kernel = createKernel({ transport: { save } });
+		await kernel.commands.save({ marketing: true, measurement: true });
+		expect(kernel.getSnapshot().vendorChoice).toBeNull();
+		const payload = save.mock.calls[0]?.[0] as SavePayload;
+		// Claiming every vendor was granted now would let an older server
+		// denial still in flight win locally while the backend held the newer
+		// map. No decision, no map.
+		expect(payload.vendorChoice).toBeUndefined();
 		kernel.dispose();
 	});
 

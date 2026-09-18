@@ -223,10 +223,16 @@ export type ResolvedVendor = Pick<Vendor, 'id' | 'category'> &
 		presentable: boolean;
 		/**
 		 * Condition of the scripts or rules that also name this slug, kept on a
-		 * backend-sourced entry so a later backend list that drops the vendor
-		 * leaves a script-sourced fallback instead of nothing.
+		 * declared entry so a later list that drops the vendor leaves a
+		 * script-sourced fallback instead of nothing.
 		 */
 		ownerCategory?: HasCondition<AllConsentNames>;
+		/**
+		 * The lower-priority declaration this entry replaced, kept so removing
+		 * this entry's source restores it: a config entry remembers the backend
+		 * copy of the same vendor.
+		 */
+		shadowed?: ResolvedVendor;
 	};
 
 /**

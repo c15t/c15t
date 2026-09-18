@@ -5,6 +5,7 @@ import {
 	mergeDeclaredVendors,
 	resolveVendors,
 	withoutManifestVendors,
+	withoutSourceVendors,
 } from '../vendors';
 
 const meta = {
@@ -176,6 +177,47 @@ describe('owner fallback across manifest replacement', () => {
 		).toEqual([['script', 'measurement']]);
 	});
 
+	test('a config entry that shadows a backend copy restores it when config drops the vendor', () => {
+		const first = resolveVendors({
+			config: [{ ...meta, name: 'Meta (config)' }],
+			manifest: [{ ...meta, name: 'Meta (backend)' }],
+			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
+		});
+		expect(first[0]?.source).toBe('config');
+		expect(first[0]?.shadowed?.source).toBe('manifest');
+		const afterRemoval = resolveVendors({
+			config: [],
+			existing: withoutSourceVendors(first, 'config'),
+		});
+		expect(afterRemoval).toHaveLength(1);
+		expect(afterRemoval[0]?.source).toBe('manifest');
+		expect(afterRemoval[0]?.name).toBe('Meta (backend)');
+		// The owners travel with the restored copy, so dropping the backend
+		// entry later still leaves the script fallback.
+		expect(afterRemoval[0]?.ownerCategory).toBe('measurement');
+		expect(
+			withoutSourceVendors(afterRemoval, 'manifest').map((v) => v.source)
+		).toEqual(['script']);
+	});
+
+	test('a backend list that drops a shadowed vendor drops the shadow too', () => {
+		const first = resolveVendors({
+			config: [{ ...meta, name: 'Meta (config)' }],
+			manifest: [{ ...meta, name: 'Meta (backend)' }],
+		});
+		const afterBackendDrop = resolveVendors({
+			existing: withoutManifestVendors(first),
+			manifest: [],
+		});
+		expect(afterBackendDrop[0]?.shadowed).toBeUndefined();
+		expect(
+			resolveVendors({
+				config: [],
+				existing: withoutSourceVendors(afterBackendDrop, 'config'),
+			})
+		).toEqual([]);
+	});
+
 	test('a backend vendor with no owners disappears when the backend drops it', () => {
 		const first = resolveVendors({ manifest: [meta] });
 		expect(
@@ -198,15 +240,23 @@ describe('mergeDeclaredVendors', () => {
 	};
 
 	test('returns the current list when nothing new arrives', () => {
-		const current = [config];
+		const current = [{ ...config, shadowed: manifest }];
 		expect(mergeDeclaredVendors(current, [])).toBe(current);
 		expect(mergeDeclaredVendors(current, [manifest])).toBe(current);
 	});
 
-	test('a higher-priority source replaces a lower one', () => {
+	test('a backend copy arriving under a config entry becomes its shadow', () => {
+		const merged = mergeDeclaredVendors([config], [manifest]);
+		expect(merged[0]?.source).toBe('config');
+		expect(merged[0]?.name).toBe('Meta Pixel');
+		expect(merged[0]?.shadowed).toEqual(manifest);
+	});
+
+	test('a higher-priority source replaces a lower one and shadows it', () => {
 		const merged = mergeDeclaredVendors([manifest], [config]);
 		expect(merged[0]?.name).toBe('Meta Pixel');
 		expect(merged[0]?.source).toBe('config');
+		expect(merged[0]?.shadowed).toEqual(manifest);
 	});
 
 	test('a new id is appended and the result is sorted by id', () => {

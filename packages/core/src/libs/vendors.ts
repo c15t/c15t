@@ -119,8 +119,33 @@ const sameVendor = function sameVendor(
 		left.legalName === right.legalName &&
 		left.homepageUrl === right.homepageUrl &&
 		left.disabled === right.disabled &&
-		JSON.stringify(left.category) === JSON.stringify(right.category)
+		JSON.stringify(left.category) === JSON.stringify(right.category) &&
+		JSON.stringify(left.ownerCategory) ===
+			JSON.stringify(right.ownerCategory) &&
+		JSON.stringify(left.shadowed) === JSON.stringify(right.shadowed)
 	);
+};
+
+/**
+ * A declared entry that remembers the owners of its slug. The category lands
+ * on the outermost declaration that has none yet and on the copy it shadows,
+ * so whichever declaration is left after a removal still knows its owners.
+ */
+const withOwners = function withOwners(
+	vendor: ResolvedVendor,
+	ownerCategory: HasCondition<AllConsentNames>
+): ResolvedVendor {
+	if (vendor.source === 'script') {
+		return vendor;
+	}
+	const next: ResolvedVendor = { ...vendor };
+	if (!next.ownerCategory) {
+		next.ownerCategory = ownerCategory;
+	}
+	if (next.shadowed) {
+		next.shadowed = withOwners(next.shadowed, ownerCategory);
+	}
+	return next;
 };
 
 /** Whether two resolved lists hold the same vendors, in any order. */
@@ -134,12 +159,7 @@ export const sameDeclaredVendors = function sameDeclaredVendors(
 	const byId = new Map(right.map((vendor) => [vendor.id, vendor]));
 	return left.every((vendor) => {
 		const other = byId.get(vendor.id);
-		return (
-			other !== undefined &&
-			sameVendor(vendor, other) &&
-			JSON.stringify(vendor.ownerCategory) ===
-				JSON.stringify(other.ownerCategory)
-		);
+		return other !== undefined && sameVendor(vendor, other);
 	});
 };
 
@@ -152,37 +172,106 @@ const ownerCondition = function ownerCondition(
 		: { or: [...categories] };
 };
 
-/**
- * The script-sourced fallback a manifest entry carries, when scripts or rules
- * also name its slug. Used when a later backend list drops the vendor.
- */
-export const ownerFallback = function ownerFallback(
-	vendor: ResolvedVendor
-): ResolvedVendor | null {
-	if (!vendor.ownerCategory) {
-		return null;
-	}
+/** The script-sourced entry a set of owner categories would produce. */
+const scriptEntry = function scriptEntry(
+	id: string,
+	category: HasCondition<AllConsentNames>
+): ResolvedVendor {
 	return {
-		category: vendor.ownerCategory,
-		disabled: onlyNecessary(vendor.ownerCategory) || undefined,
-		id: vendor.id,
+		category,
+		disabled: onlyNecessary(category) || undefined,
+		id,
 		presentable: false,
 		source: 'script',
 	};
 };
 
 /**
- * A resolved list with the backend's entries removed, each replaced by the
- * script-sourced fallback it carried, if any. The input to a fresh manifest
- * merge, so a vendor the backend dropped keeps gating its scripts.
+ * The lower-priority declaration an entry shadows, when its own source is
+ * removed: the manifest copy a config entry replaced, or the script-sourced
+ * entry the owners of the slug would produce. `null` when nothing else
+ * declares the vendor.
  */
-export const withoutManifestVendors = function withoutManifestVendors(
-	declared: readonly ResolvedVendor[]
+export const ownerFallback = function ownerFallback(
+	vendor: ResolvedVendor
+): ResolvedVendor | null {
+	if (vendor.shadowed) {
+		return vendor.shadowed;
+	}
+	if (!vendor.ownerCategory) {
+		return null;
+	}
+	return scriptEntry(vendor.id, vendor.ownerCategory);
+};
+
+/** The entry without its shadow, keeping the owners the shadow knew. */
+const withoutShadow = function withoutShadow(
+	vendor: ResolvedVendor
+): ResolvedVendor {
+	const { shadowed, ...rest } = vendor;
+	const next: ResolvedVendor = rest;
+	if (!next.ownerCategory && shadowed?.ownerCategory) {
+		next.ownerCategory = shadowed.ownerCategory;
+	}
+	return next;
+};
+
+/**
+ * One incoming declaration merged onto the entry already held for its id.
+ * Returns `existing` itself when nothing changes, so callers can detect a
+ * no-op by reference.
+ *
+ * A higher- or equal-priority copy replaces the entry and takes over what it
+ * remembered: a config entry arriving over a backend one shadows it, one
+ * arriving over a script fallback keeps the owners, and a newer copy of the
+ * same source inherits both. A backend copy arriving under a config entry
+ * becomes that entry's shadow instead.
+ */
+const mergeEntry = function mergeEntry(
+	existing: ResolvedVendor,
+	incoming: ResolvedVendor
+): ResolvedVendor {
+	if (SOURCE_RANK[incoming.source] > SOURCE_RANK[existing.source]) {
+		const shadowable =
+			existing.source === 'config' && incoming.source === 'manifest';
+		if (
+			shadowable &&
+			!(existing.shadowed && sameVendor(existing.shadowed, incoming))
+		) {
+			return { ...existing, shadowed: incoming };
+		}
+		return existing;
+	}
+	const next: ResolvedVendor = { ...incoming };
+	if (existing.source === incoming.source) {
+		next.ownerCategory ??= existing.ownerCategory;
+		next.shadowed ??= existing.shadowed;
+	} else if (existing.source === 'script') {
+		next.ownerCategory ??= existing.category;
+	} else {
+		next.shadowed ??= existing;
+	}
+	return sameVendor(existing, next) ? existing : next;
+};
+
+/**
+ * A resolved list with one source's entries removed, each replaced by the
+ * declaration it shadowed, if any. The input to a fresh merge of that
+ * source, so a vendor the backend or the runtime option dropped keeps the
+ * copy another source still declares.
+ */
+export const withoutSourceVendors = function withoutSourceVendors(
+	declared: readonly ResolvedVendor[],
+	source: VendorSource
 ): ResolvedVendor[] {
 	const kept: ResolvedVendor[] = [];
 	for (const vendor of declared) {
-		if (vendor.source !== 'manifest') {
-			kept.push(vendor);
+		if (vendor.source !== source) {
+			// A shadow of the removed source goes too, or a later removal of
+			// the winner would restore a copy that source no longer declares.
+			kept.push(
+				vendor.shadowed?.source === source ? withoutShadow(vendor) : vendor
+			);
 			continue;
 		}
 		const fallback = ownerFallback(vendor);
@@ -191,6 +280,13 @@ export const withoutManifestVendors = function withoutManifestVendors(
 		}
 	}
 	return kept;
+};
+
+/** `withoutSourceVendors` for the backend's entries. */
+export const withoutManifestVendors = function withoutManifestVendors(
+	declared: readonly ResolvedVendor[]
+): ResolvedVendor[] {
+	return withoutSourceVendors(declared, 'manifest');
 };
 
 /**
@@ -212,16 +308,10 @@ export const mergeDeclaredVendors = function mergeDeclaredVendors(
 	let changed = false;
 	for (const vendor of incoming) {
 		const existing = byId.get(vendor.id);
-		if (!existing) {
-			byId.set(vendor.id, vendor);
+		const next = existing ? mergeEntry(existing, vendor) : vendor;
+		if (next !== existing) {
+			byId.set(vendor.id, next);
 			changed = true;
-			continue;
-		}
-		if (SOURCE_RANK[vendor.source] <= SOURCE_RANK[existing.source]) {
-			if (!sameVendor(existing, vendor)) {
-				byId.set(vendor.id, vendor);
-				changed = true;
-			}
 		}
 	}
 	if (!changed) {
@@ -245,27 +335,12 @@ export const resolveVendors = function resolveVendors(
 	for (const vendor of input.existing ?? []) {
 		byId.set(vendor.id, vendor);
 	}
-	// A candidate replaces an existing entry of the same or a lower-priority
-	// source, so a newer declaration of the same vendor updates its copy.
 	const place = (candidate: ResolvedVendor) => {
 		const existing = byId.get(candidate.id);
-		if (
-			!existing ||
-			SOURCE_RANK[candidate.source] <= SOURCE_RANK[existing.source]
-		) {
-			// A backend entry that replaces a script fallback remembers it.
-			const ownerCategory =
-				candidate.source === 'manifest'
-					? (candidate.ownerCategory ??
-						(existing?.source === 'script'
-							? existing.category
-							: existing?.ownerCategory))
-					: undefined;
-			byId.set(
-				candidate.id,
-				ownerCategory ? { ...candidate, ownerCategory } : candidate
-			);
-		}
+		byId.set(
+			candidate.id,
+			existing ? mergeEntry(existing, candidate) : candidate
+		);
 	};
 	// A declared id that the wire cannot carry as a grant key is dropped with
 	// a warning, the same way an owner slug is: one bad id would otherwise
@@ -306,22 +381,11 @@ export const resolveVendors = function resolveVendors(
 		// are remembered so that dropping the declaration later leaves a
 		// script-sourced fallback rather than nothing.
 		if (existing) {
-			if (existing.source === 'manifest' && !existing.ownerCategory) {
-				byId.set(id, {
-					...existing,
-					ownerCategory: ownerCondition(categories),
-				});
-			}
+			byId.set(id, withOwners(existing, ownerCondition(categories)));
 			continue;
 		}
 		const category = ownerCondition(categories);
-		byId.set(id, {
-			category,
-			disabled: onlyNecessary(category) || undefined,
-			id,
-			presentable: false,
-			source: 'script',
-		});
+		byId.set(id, scriptEntry(id, category));
 		input.onWarn?.(
 			`[c15t] Vendor "${id}" is referenced by a script or rule but has no declaration with a name and privacy policy URL. It gates loading but is hidden from the preference surface until declared in \`vendors\`.`
 		);
