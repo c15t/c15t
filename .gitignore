@@ -64,7 +64,10 @@ docs/public/r/*
 coverage.json
 
 .pnpm-store
-version.ts
+# `genversion` output. These paths only: the hand-written
+# packages/react-native/src/protocol/version.ts was being swallowed by this.
+**/src/version.ts
+**/src/lib/version.ts
 i18n.cache
 
 .test-apps/
