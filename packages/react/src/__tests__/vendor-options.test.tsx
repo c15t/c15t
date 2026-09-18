@@ -217,6 +217,50 @@ describe('provider vendor options', () => {
 		});
 	});
 
+	test('a removed script takes its slug-only vendor with it', async () => {
+		const pixel: Script = {
+			category: 'marketing',
+			id: 'meta-pixel-script',
+			textContent: '/* pixel */',
+			vendor: 'meta-pixel',
+		};
+		const Host = () => {
+			const [scripts, setScripts] = useState<Script[]>([pixel]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: policyFixture(
+							{ marketing: true },
+							{ categories: ['marketing'], id: 'removed-scripts' }
+						),
+						scripts,
+					}}
+				>
+					<button
+						data-testid="remove-script"
+						onClick={() => setScripts([])}
+						type="button"
+					>
+						remove
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.source).toBe('script');
+		});
+		await page.getByTestId('remove-script').click();
+		// Nothing else declares the slug, so the vendor leaves the list.
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual([]);
+		});
+	});
+
 	test('removing a config vendor restores the backend copy it shadowed', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },
