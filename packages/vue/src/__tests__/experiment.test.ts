@@ -104,7 +104,7 @@ test('an untouched draft reseeds from the assigned arm; an edited one is kept', 
 	app.provide(symbolKernelContext, context);
 	app.provide(consentConfigKey, config);
 	app.mount(document.createElement('div'));
-	let dispose = () => undefined as void;
+	let dispose: () => void = () => undefined;
 	try {
 		// Seeded before assignment, from the base presentation.
 		expect(draft.values.value.marketing).toBe(false);
@@ -149,7 +149,7 @@ test('an untouched draft picks up the assigned arm defaults', async () => {
 	app.provide(symbolKernelContext, context);
 	app.provide(consentConfigKey, config);
 	app.mount(document.createElement('div'));
-	let dispose = () => undefined as void;
+	let dispose: () => void = () => undefined;
 	try {
 		expect(draft.values.value.marketing).toBe(false);
 		dispose = startVueConsentRuntime(context, config, { runInit: false });

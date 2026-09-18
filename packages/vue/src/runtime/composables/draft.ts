@@ -16,10 +16,10 @@ export const useConsentDraft = function useConsentDraft(
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
 	const values = ref<Partial<ConsentState>>({});
 	/** What `reset()` last seeded, to tell an untouched draft from an edit. */
-	let seeded: Partial<ConsentState> = {};
+	const seeded = shallowRef<Partial<ConsentState>>({});
 	const untouched = () =>
 		displayedCategories.value.every(
-			(category) => values.value[category] === seeded[category]
+			(category) => values.value[category] === seeded.value[category]
 		);
 	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
 		const scope =
@@ -49,7 +49,7 @@ export const useConsentDraft = function useConsentDraft(
 							current.policyRule.preselectedCategories.includes(category))),
 			])
 		);
-		seeded = { ...values.value };
+		seeded.value = { ...values.value };
 	};
 	reset();
 	// Built-in assignment lands after mount, so an arm's `preferences.defaults`
