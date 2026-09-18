@@ -13,6 +13,8 @@
  * makes the config object not a dead end.
  */
 
+import { policyRulePresets } from '@c15t/schema/types';
+import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect, Layer, ManagedRuntime } from 'effect';
@@ -20,6 +22,7 @@ import { SqlClient } from 'effect/unstable/sql';
 
 import { toLayer } from './db/connect';
 import { up as baseline } from './db/migrations/1-baseline';
+import type { GvlConfig } from './http/gvl';
 import { c15tInstance } from './instance';
 import { composePacks, policyBuilder } from './policy/builder';
 
@@ -244,5 +247,66 @@ describe('policy authoring', () => {
 			['eu', 'us']
 		);
 		assert.deepStrictEqual(composed[0]?.match?.countries, ['DE']);
+	});
+});
+
+describe('startup warning for the vendor list', () => {
+	/** Everything `console.warn` saw while the instance was being built. */
+	const warningsDuring = function warningsDuring(
+		manifest: ConsentManifestConfig,
+		gvl?: GvlConfig
+	) {
+		const lines: string[] = [];
+		const { warn } = console;
+		console.warn = (...args: unknown[]) => {
+			lines.push(args.map(String).join(' '));
+		};
+
+		try {
+			// SQLite in memory: no request is issued, only the startup check
+			// this test is about runs.
+			c15tInstance({
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				gvl,
+				manifest,
+			});
+		} finally {
+			console.warn = warn;
+		}
+
+		return lines.filter((line) => line.includes('Global Vendor List'));
+	};
+
+	it('names the rule and the missing half when an IAB pack has no list', () => {
+		// The failure this exists for: an IAB pack that resolves perfectly and
+		// discloses nothing, visible in a response body only as an absent field.
+		const lines = warningsDuring({
+			policyRules: [policyRulePresets.europeIab()],
+		});
+
+		assert.strictEqual(lines.length, 1);
+		assert.include(lines[0] ?? '', 'europe_iab');
+		// Both halves have to be in the line, or the reader has to go looking
+		// for which knob is missing.
+		assert.include(lines[0] ?? '', 'gvl');
+	});
+
+	it('stays quiet once a `gvl` block exists', () => {
+		assert.deepStrictEqual(
+			warningsDuring(
+				{ policyRules: [policyRulePresets.europeIab()] },
+				{ vendorIds: [7, 41, 672] }
+			),
+			[]
+		);
+	});
+
+	it('stays quiet for a pack that never promised IAB disclosure', () => {
+		// An opt-in European pack legitimately has no vendor list. Warning there
+		// would teach operators to ignore the warning.
+		assert.deepStrictEqual(
+			warningsDuring({ policyRules: [policyRulePresets.europeOptIn()] }),
+			[]
+		);
 	});
 });

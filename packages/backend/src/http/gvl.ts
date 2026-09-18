@@ -29,6 +29,28 @@ export interface GvlOptions {
 	readonly fetch?: typeof globalThis.fetch;
 }
 
+/**
+ * Vendor list configuration as a deployment writes it.
+ *
+ * Writing the block at all is the opt-in: `endpoint`, `vendorIds`, `cache` and
+ * `ttlMs` are read by nothing else here, so a `gvl` entry that exists came from
+ * someone who wants the list loaded server-side. `/init` then serves it
+ * whenever a request resolves a matched IAB policy (see `http/init.ts`).
+ *
+ * Asking for a second flag inside the block is what produced deployments with
+ * an IAB policy and no vendor list, which is a disclosure surface holding no
+ * vendors. `enabled: false` stays as the refusal, for a deployment that keeps
+ * its scope and cache configured and loads the list somewhere else.
+ */
+export interface GvlConfig extends GvlOptions {
+	/**
+	 * Decline to serve the list even on a matched IAB policy.
+	 *
+	 * Absent or `true` follows the policy; only `false` refuses.
+	 */
+	readonly enabled?: boolean;
+}
+
 const DEFAULT_ENDPOINT = 'https://gvl.inth.app';
 const DEFAULT_TTL_MS = 86_400_000;
 
