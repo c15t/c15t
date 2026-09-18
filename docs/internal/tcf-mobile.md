@@ -7,7 +7,7 @@ Internal spec research. Not published on c15t.com. Written 2026-09-18 against br
 `KayleeWilliams/tcf-mobile-spec`, which is based off `v3-3`, not `canary`. Code changes
 are out of scope: this document establishes what the specs require and what that means
 for `native/core-swift`, `native/core-android`, and `packages/iab`. It is a companion to
-[tcf-readiness.md](/Users/kaylee/orca/workspaces/c15t/tcf-mobile-spec/docs/internal/tcf-readiness.md),
+[tcf-readiness.md](/docs/internal/tcf-readiness.md),
 which covers the web side and the CMP-ID registration question. Nothing here re-decides
 that question.
 
@@ -553,7 +553,7 @@ list, so I am not going to tell you what else is in it. [spec] for what is quote
 
 `packages/iab` does not hardcode a policy version: the encoder takes it from the served list,
 `TCModel` defaults to 5 (TCF 2.3), and a list declaring 4 encodes 4
-([tcf-readiness.md](/Users/kaylee/orca/workspaces/c15t/tcf-mobile-spec/docs/internal/tcf-readiness.md),
+([tcf-readiness.md](/docs/internal/tcf-readiness.md),
 verified there against the installed codec). The live GVL agrees with the default:
 
 ```console

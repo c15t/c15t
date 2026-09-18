@@ -29,7 +29,7 @@ import { ConsentBanner } from '../consent-banner';
 import { ConsentDialog } from '../consent-dialog';
 import { ConsentPreferences } from '../consent-preferences';
 import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
-import { lightTheme } from '../theme/create-consent-theme';
+import { darkTheme, lightTheme } from '../theme/create-consent-theme';
 import { BANNER_FOOTER_PADDING_HORIZONTAL } from '../theme/use-consent-styles';
 import {
 	hitSlop,
@@ -161,6 +161,181 @@ const bannerLayerStyle = function bannerLayerStyle(
 	return nodeStyle(layer as HTMLElement);
 };
 
+/**
+ * The three bands a card surface renders, in the order it renders them.
+ *
+ * @param container - Rendered tree to search.
+ * @param label - Surface label, for a tree that can hold more than one card.
+ * @returns The heading band, the scrolling band, and the action band.
+ */
+const cardBands = function cardBands(
+	container: HTMLElement,
+	label?: string
+): {
+	footer: Record<string, unknown>;
+	header: Record<string, unknown>;
+	scroll: Record<string, unknown>;
+} {
+	const bands = [...surfaceNode(container, label).children] as HTMLElement[];
+
+	if (bands.length !== 3) {
+		throw new Error(
+			`expected a heading band, a scrolling band, and an action band, saw ${bands.length}`
+		);
+	}
+
+	return {
+		footer: nodeStyle(bands[2] as HTMLElement),
+		header: nodeStyle(bands[0] as HTMLElement),
+		scroll: nodeStyle(bands[1] as HTMLElement),
+	};
+};
+
+/**
+ * The stack of category cards, which is the one child inside the scrolling band.
+ *
+ * The run under the last card belongs to the stack rather than to the scroller
+ * carrying it, the way the web leaves it on `.accordion` rather than on whatever
+ * scrolls above.
+ *
+ * @param container - Rendered tree to search.
+ * @param label - Surface label, for a tree that can hold more than one card.
+ * @returns The style of the element holding the stack's own rhythm.
+ */
+const stackStyle = function stackStyle(
+	container: HTMLElement,
+	label?: string
+): Record<string, unknown> {
+	const stack = (surfaceNode(container, label).children[1] as HTMLElement)
+		.firstElementChild as HTMLElement;
+
+	return nodeStyle(stack);
+};
+
+/**
+ * A length a band was drawn with, where an edge the part never sets is nothing.
+ *
+ * @param style - Flattened style of a band.
+ * @param edge - The padding or gap to read.
+ * @returns The length in points.
+ */
+const points = function points(
+	style: Record<string, unknown>,
+	edge: string
+): number {
+	const value = style[edge];
+
+	return typeof value === 'number' ? value : 0;
+};
+
+/**
+ * The distance a surface leaves between a heading's box and the copy under it.
+ *
+ * The two card surfaces put that step on the `gap` between the two, because both of
+ * their texts sit in the heading band. The banner's copy carries on in the band under
+ * the heading, so its step is that band's bottom edge plus whatever the band below it
+ * opens with -- the web's own arithmetic, split over two elements rather than doubled.
+ * Either way this reads the distance and not the edge that happened to spend it.
+ *
+ * @param bands - The heading and scrolling bands of one card.
+ * @returns Points between the bottom of the heading's box and the top of the copy's.
+ */
+const headingToCopy = function headingToCopy(bands: {
+	header: Record<string, unknown>;
+	scroll: Record<string, unknown>;
+}): number {
+	const gap = points(bands.header, 'gap');
+
+	return gap > 0
+		? gap
+		: points(bands.header, 'paddingBottom') +
+				points(bands.scroll, 'paddingTop');
+};
+
+/**
+ * The channels of an opaque `#RRGGBB`.
+ *
+ * @param color - Hex colour from a theme palette.
+ * @returns Its red, green, and blue channels.
+ */
+const channels = function channels(
+	color: string
+): readonly [number, number, number] {
+	const hex = color.replace('#', '');
+
+	return [
+		Number.parseInt(hex.slice(0, 2), 16),
+		Number.parseInt(hex.slice(2, 4), 16),
+		Number.parseInt(hex.slice(4, 6), 16),
+	] as const;
+};
+
+/**
+ * What a colour really paints once the modal scrim is laid over it.
+ *
+ * @param color - The opaque colour underneath.
+ * @param overlay - The scrim laid over it, as an `rgba()`.
+ * @returns The composited channels.
+ */
+const underScrim = function underScrim(
+	color: string,
+	overlay: string
+): readonly [number, number, number] {
+	const alpha = Number(
+		/,\s*(?<alpha>[\d.]+)\s*\)$/u.exec(overlay)?.groups?.alpha ?? 0
+	);
+	const [red, green, blue] = channels(color);
+
+	return [
+		Math.round(red * (1 - alpha)),
+		Math.round(green * (1 - alpha)),
+		Math.round(blue * (1 - alpha)),
+	] as const;
+};
+
+/**
+ * How close two colours come on the channel where they are hardest to tell apart.
+ *
+ * @param a - First colour's channels.
+ * @param b - Second colour's channels.
+ * @returns The smallest of the three channel distances.
+ */
+const distance = function distance(
+	a: readonly number[],
+	b: readonly number[]
+): number {
+	return Math.min(
+		...a.map((value, index) => Math.abs(value - (b[index] ?? 0)))
+	);
+};
+
+/**
+ * The bar above a bottom sheet, found by the box it draws.
+ *
+ * @param container - Rendered tree to search.
+ * @returns The style of the one handle in the tree.
+ * @throws {Error} When the sheet drew no bar, or more than one.
+ */
+const grabHandle = function grabHandle(
+	container: HTMLElement
+): Record<string, unknown> {
+	const bars = [
+		...container.querySelectorAll<HTMLElement>('[data-rn-style]'),
+	].filter((node) => {
+		const drawn = nodeStyle(node);
+
+		return drawn.width === 36 && drawn.height === 4;
+	});
+
+	if (bars.length !== 1) {
+		throw new Error(
+			`expected the sheet to draw one grab handle, saw ${bars.length}`
+		);
+	}
+
+	return nodeStyle(bars[0] as HTMLElement);
+};
+
 afterEach(() => {
 	resetConsentClient();
 	resetNativeStub();
@@ -193,6 +368,81 @@ describe('heading tracking', () => {
 			nodeStyle(roleNodes(dialog.container(), 'header')[0] as HTMLElement)
 				.letterSpacing
 		).toBe(-0.35);
+
+		dialog.unmount();
+	});
+});
+
+describe('heading rhythm', () => {
+	test('puts the copy 8 under the heading on every surface', () => {
+		// The web separates a heading from its supporting copy by 8 on every surface, and
+		// it gets there two different ways. `prompt.module.css` steps the banner's
+		// `.header > :not([hidden]) ~ :not([hidden])` by `margin-top: 0.5rem`, so the
+		// banner title ends 8 above its copy; `panel.module.css` opens the dialog header at
+		// `gap: var(--consent-dialog-header-gap)` and then puts `margin-top:
+		// var(--consent-dialog-card-gap)` on `.header > * + *`, so the dialog title is 8
+		// above its copy too. Both tokens are `--c15t-space-xs`, so it is one number
+		// reached twice, and this reads the distance rather than the edge that spent it.
+		const banner = mountSurface(<ConsentBanner />, englishSnapshot());
+
+		expect(headingToCopy(cardBands(banner.container()))).toBe(8);
+
+		banner.unmount();
+
+		const dialog = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+
+		expect(headingToCopy(cardBands(dialog.container()))).toBe(8);
+
+		dialog.unmount();
+
+		const centre = mountSurface(
+			<ConsentPreferences
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+
+		expect(
+			headingToCopy(cardBands(centre.container(), 'Manage preferences'))
+		).toBe(8);
+
+		centre.unmount();
+	});
+
+	test('keeps the heading band at its own surface inset', () => {
+		// The banner header is `padding: 1rem` and the dialog header is
+		// `--consent-dialog-card-padding`, 24. Only the banner's bottom edge leaves that
+		// inset, because its copy continues in the band under the heading rather than in
+		// this one -- and the band it continues into may not spend a step of its own on
+		// top of the 8, which is what the card's `.content` saying `padding-top: 0` is for.
+		const banner = mountSurface(<ConsentBanner />, englishSnapshot());
+		const bannerBands = cardBands(banner.container());
+
+		expect(bannerBands.header.paddingTop).toBe(16);
+		expect(bannerBands.header.paddingHorizontal).toBe(16);
+		expect(bannerBands.scroll.paddingTop ?? 0).toBe(0);
+
+		banner.unmount();
+
+		const dialog = mountSurface(
+			<ConsentDialog
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot()
+		);
+		const dialogBands = cardBands(dialog.container());
+
+		expect(dialogBands.header.paddingTop).toBe(24);
+		expect(dialogBands.header.paddingHorizontal).toBe(24);
+		expect(dialogBands.header.paddingBottom).toBe(24);
 
 		dialog.unmount();
 	});
@@ -462,6 +712,122 @@ describe('dialog card', () => {
 	});
 });
 
+describe('card height', () => {
+	test('adds up to the web card at four category rows', () => {
+		// The live dialog card is 499 tall with four collapsed categories, which is the
+		// same 499 that `cardMaxHeightFor` sizes the cap against, and every point of those
+		// 499 belongs to a part this package owns: the card's two hairlines; a heading band
+		// of 24, a 14pt title box, the 8 step, three 24-point lines of copy and 24 again;
+		// four 42-point cards 12 apart; the 24 the stack leaves under the last card; and a
+		// footer that opens on 24, holds two 35.5 rows 8 apart, and closes on 24. Nothing
+		// in the sum is a spacing literal, so any band that moves moves the total -- which
+		// is how the 4 this heading used to step by put the card 1 short, and a footer
+		// opening on 16 instead of the manager's 24 put it 8 short.
+		const tree = mountSurface(
+			<ConsentPreferences
+				onRequestClose={vi.fn()}
+				open
+			/>,
+			englishSnapshot({
+				consentCategories: [
+					'functionality',
+					'marketing',
+					'measurement',
+					'necessary',
+				],
+			})
+		);
+		const container = tree.container();
+		const bands = cardBands(container, 'Manage preferences');
+		const stack = stackStyle(container, 'Manage preferences');
+		// The rows are counted off of the rendered card rather than assumed, so the sum
+		// below is this card's height and not a sketch of one.
+		const rows = [...roleNodes(container, 'button')].filter((node) =>
+			node.hasAttribute('aria-expanded')
+		).length;
+
+		expect(rows).toBe(4);
+
+		// The web's copy is 16pt over `--c15t-line-height-normal`, and the live card
+		// carries the English notice across three of those lines at the card's own width.
+		const description = 3 * lightTheme.typography.body.lineHeight;
+		const heading =
+			points(bands.header, 'paddingTop') +
+			lightTheme.typography.title.lineHeight +
+			points(bands.header, 'gap') +
+			description +
+			points(bands.header, 'paddingBottom');
+		const actions =
+			points(bands.footer, 'paddingTop') +
+			35.5 +
+			points(bands.footer, 'gap') +
+			35.5 +
+			points(bands.footer, 'paddingBottom');
+		const heightAt = (count: number): number =>
+			2 +
+			heading +
+			(count * 42 + (count - 1) * points(stack, 'gap')) +
+			points(stack, 'paddingBottom') +
+			actions;
+
+		expect(heightAt(rows)).toBe(499);
+
+		// One category more costs one row pitch and nothing else, which is the number to
+		// normalise a five-row capture against the 499 above.
+		expect(heightAt(rows + 1) - heightAt(rows)).toBe(54);
+
+		tree.unmount();
+	});
+});
+
+describe('sheet grab handle', () => {
+	test('reads off both the card it crowns and the scrim behind it', () => {
+		// There is no web element to diff this against, because the web card has no bar,
+		// so the part answers to its own terms: 36x4 of fill sitting between the scrim and
+		// the top of the card, which has to be findable against both. The border token was
+		// not: 25 channels from a white card on the channel where the two are hardest to
+		// tell apart, and a 4pt bar stops reading as an affordance somewhere around 32.
+		// `switchTrack` is the palette's other piece of chrome that has to read off the
+		// surface, and the distances asserted below are computed here out of the two
+		// palettes rather than taken on trust -- 38 from a white card, 89 from the scrim
+		// over it, 46 and 59 in the dark.
+		for (const theme of [lightTheme, darkTheme]) {
+			const scheme = theme === darkTheme ? 'dark' : 'light';
+			const tree = mountSurface(
+				<ConsentDialog
+					onRequestClose={vi.fn()}
+					open
+					presentation="sheet"
+					theme={theme}
+				/>,
+				englishSnapshot()
+			);
+			const bar = grabHandle(tree.container()).backgroundColor as string;
+
+			// The token, and the card beneath it, so the bar and the surface it is meant
+			// to be found against cannot drift apart into the same colour.
+			expect(bar).toBe(theme.colors.switchTrack);
+			expect(nodeStyle(surfaceNode(tree.container())).backgroundColor).toBe(
+				theme.colors.surface
+			);
+
+			expect(
+				distance(channels(bar), channels(theme.colors.surface)),
+				`${scheme} handle against the card fill`
+			).toBeGreaterThanOrEqual(32);
+			expect(
+				distance(
+					channels(bar),
+					underScrim(theme.colors.surface, theme.colors.overlay)
+				),
+				`${scheme} handle against the scrim`
+			).toBeGreaterThanOrEqual(32);
+
+			tree.unmount();
+		}
+	});
+});
+
 describe('category accordion', () => {
 	test('a closed card draws the web height and reaches the tap floor past it', () => {
 		const tree = mountSurface(
@@ -709,6 +1075,21 @@ describe('branding tab', () => {
 		// by 0.11, `.03em` closes the brand by 0.3 at 10pt, which is what lets the
 		// wordmark sit against its mark.
 		expect(runs.map((style) => style.letterSpacing)).toEqual([0.11, -0.3]);
+
+		tree.unmount();
+	});
+
+	test('centres the wordmark against the mark it is welded to', () => {
+		// The mark is 15pt and the brand beside it is 10 under the phone query, and the
+		// live tab puts both on one middle line. `.brandingWordmark` carries
+		// `align-items: center` for exactly that: let the row stretch its shorter child and
+		// the brand hangs off the mark instead of sitting against it. The 5 between them is
+		// the same rule's `gap: 0.3125rem`.
+		const tree = mountSurface(<ConsentBanner />, englishSnapshot());
+		const tab = roleNodes(tree.container(), 'link')[0] as HTMLElement;
+		const row = tab.lastElementChild as HTMLElement;
+
+		expect(nodeStyle(row)).toMatchObject({ alignItems: 'center', gap: 5 });
 
 		tree.unmount();
 	});
