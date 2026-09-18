@@ -25,6 +25,19 @@ export interface PromptMotion {
 
 /** Timing and travel for one surface. */
 export interface PromptMotionOptions {
+	/**
+	 * The axis the surface travels along.
+	 *
+	 * `y` is the lift a banner, a dialog, and a bottom sheet all enter with. `x`
+	 * is what a full-page drawer uses, because a page arrives from the side it is
+	 * pushed in from rather than from the bottom of the screen. The distance is
+	 * signed either way, so the caller decides which end of the axis sits off
+	 * screen: that is the only place a left-to-right assumption can live.
+	 *
+	 * Defaults to `'y'`, which leaves every surface that predates the drawer on
+	 * the travel it was measured with.
+	 */
+	readonly axis?: 'x' | 'y';
 	/** `true` when the device asks for reduced motion. */
 	readonly reducedMotion: boolean;
 	/** Distance travelled on entry, in pixels. */
@@ -72,7 +85,13 @@ const resolveDuration = function resolveDuration(
  */
 export const usePromptMotion = function usePromptMotion(
 	open: boolean,
-	{ distance, enterDuration, exitDuration, reducedMotion }: PromptMotionOptions
+	{
+		axis = 'y',
+		distance,
+		enterDuration,
+		exitDuration,
+		reducedMotion,
+	}: PromptMotionOptions
 ): PromptMotion {
 	// Owned by the render rather than a ref: the animated style below reads it,
 	// and one instance has to survive every re-render underneath it.
@@ -125,16 +144,17 @@ export const usePromptMotion = function usePromptMotion(
 		};
 	}, [enterDuration, exitDuration, open, progress, reducedMotion]);
 
+	// One `Animated.Value` drives whichever axis was asked for, so a drawer that
+	// slides sideways and a sheet that lifts are the same reveal with the same
+	// reduced-motion collapse, rather than a second animation to keep in step.
+	const travel = progress.interpolate({
+		inputRange: [0, 1],
+		outputRange: [distance, 0],
+	});
+
 	const motionStyle: AnimatedViewStyle = {
 		opacity: progress,
-		transform: [
-			{
-				translateY: progress.interpolate({
-					inputRange: [0, 1],
-					outputRange: [distance, 0],
-				}),
-			},
-		],
+		transform: [axis === 'x' ? { translateX: travel } : { translateY: travel }],
 	};
 
 	return { motionStyle, rendered: mounted };

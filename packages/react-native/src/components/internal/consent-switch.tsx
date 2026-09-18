@@ -23,6 +23,7 @@ import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
 import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
 import type { ConsentTheme } from '../theme/create-consent-theme';
 import { CONSENT_SWITCH_GEOMETRY } from '../theme/use-consent-styles';
+import type { ConsentSwitchGeometry } from '../theme/use-consent-styles';
 import { useReducedMotion } from './use-reduced-motion';
 
 /**
@@ -75,6 +76,18 @@ const HIT_BOX: ViewStyle = { flexShrink: 0 };
 export interface ConsentSwitchProps {
 	/** Whether the subject may move it. */
 	readonly disabled: boolean;
+	/**
+	 * The box the control was built at, when it is not the small one.
+	 *
+	 * `packages/ui` ships two switches and the consent surfaces ask for different
+	 * ones: a category row takes `size="small"` and the IAB disclosure takes the
+	 * default. The track's own numbers already come from the `switch` part, which
+	 * `useConsentStyles` builds from whichever geometry the presentation uses; this
+	 * is the thumb, which no `ViewStyle` field can carry.
+	 *
+	 * Defaults to {@link CONSENT_SWITCH_GEOMETRY}.
+	 */
+	readonly geometry?: ConsentSwitchGeometry;
 	/** Announced as the control's name, which is the category it decides. */
 	readonly label: string;
 	/** Parts in force for this surface, including the track geometry. */
@@ -99,6 +112,7 @@ export interface ConsentSwitchProps {
  */
 export const ConsentSwitch = ({
 	disabled,
+	geometry = CONSENT_SWITCH_GEOMETRY,
 	label,
 	onValueChange,
 	parts,
@@ -107,7 +121,7 @@ export const ConsentSwitch = ({
 }: ConsentSwitchProps): ReactNode => {
 	const reducedMotion = useReducedMotion();
 	const track = parts.switch;
-	const { padding, thumb, width } = CONSENT_SWITCH_GEOMETRY;
+	const { padding, thumb, width } = geometry;
 	// `DimensionValue` also admits percentages, which have no fixed meaning here,
 	// so anything that is not a plain number falls back to the geometry the part
 	// was built with rather than turning the travel into NaN.
@@ -128,9 +142,7 @@ export const ConsentSwitch = ({
 	// for less slop, and one that already clears the floor asks for none.
 	const slopFor = (side: number): number =>
 		Math.max(0, Math.ceil((MIN_TAP_TARGET - side) / 2));
-	const verticalSlop = slopFor(
-		points(track.height, CONSENT_SWITCH_GEOMETRY.height)
-	);
+	const verticalSlop = slopFor(points(track.height, geometry.height));
 	const horizontalSlop = slopFor(points(track.width, width));
 	const hitSlop =
 		verticalSlop === 0 && horizontalSlop === 0

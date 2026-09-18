@@ -97,6 +97,19 @@ const ATTACHMENT: Record<
 		borderTopWidth: 0,
 		marginRight: 16,
 	}),
+	// A drawer's card runs to both screen edges, so the tab hanging under one
+	// has no gutter to sit inside and goes flush with the trailing edge. No
+	// built-in drawer renders branding: the IAB disclosure hands over none, so
+	// this is the shape it would take rather than a shape currently in use.
+	drawer: (radius) => ({
+		alignSelf: 'flex-end',
+		borderBottomLeftRadius: radius,
+		borderBottomRightRadius: radius,
+		borderTopLeftRadius: 0,
+		borderTopRightRadius: 0,
+		borderTopWidth: 0,
+		marginRight: 0,
+	}),
 	sheet: (radius) => ({
 		alignSelf: 'flex-end',
 		borderBottomLeftRadius: radius,

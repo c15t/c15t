@@ -10,6 +10,35 @@ export { ConsentBanner } from './consent-banner';
 export type { ConsentBannerProps } from './consent-banner';
 export { ConsentDialog } from './consent-dialog';
 export type { ConsentDialogProps } from './consent-dialog';
+export {
+	ConsentIabDrawer,
+	seedConsentIabSelection,
+} from './consent-iab-drawer';
+export type {
+	ConsentIabDrawerRootProps,
+	ConsentIabInitialSelection,
+} from './consent-iab-drawer';
+export type {
+	ConsentIabCopy,
+	ConsentIabCopyOverrides,
+} from './consent-iab-drawer';
+export type {
+	ConsentIabDialogData,
+	ConsentIabDisplayConsentRow,
+	ConsentIabDisplayModel,
+	ConsentIabDisplayRow,
+	ConsentIabDisplayRowKind,
+	ConsentIabDisplayStackRow,
+	ConsentIabDisplayToggle,
+	ConsentIabProcessedFeature,
+	ConsentIabProcessedPurpose,
+	ConsentIabProcessedSpecialFeature,
+	ConsentIabProcessedStack,
+	ConsentIabProcessedVendor,
+	ConsentIabSelection,
+	ConsentIabTab,
+	ConsentIabVendorId,
+} from './iab-display-model';
 export { ConsentPreferences } from './consent-preferences';
 export type { ConsentPreferencesProps } from './consent-preferences';
 export {

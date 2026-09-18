@@ -376,6 +376,11 @@ const ariaAttributes = function ariaAttributes(
 		// platform has to be able to name, and folding `role` into it would hide the
 		// difference between the two props from every test that reads this.
 		'data-rn-role': props.accessibilityRole,
+		// `testID` is what a UI test on a real device finds the node by — iOS reads
+		// it as `accessibilityIdentifier`, Android as the view's resource id — so the
+		// stand-in carries it under the DOM's own attribute name rather than dropping
+		// a locator the shipped component asked for.
+		'data-testid': props.testID,
 		'data-value':
 			props.accessibilityValue === undefined
 				? undefined

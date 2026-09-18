@@ -4,7 +4,8 @@
  *
  * Two mounts share it. A banner is an absolutely positioned layer, so mounting
  * one moves no app content: there is no reflow to animate and nothing to shift
- * when the prompt finally goes away. A dialog and a bottom sheet are both a
+ * when the prompt finally goes away. A dialog, a drawer, and a bottom sheet are
+ * each a
  * `Modal`, which gives the platform the job of keeping touch and the reader
  * inside the card, and they differ only in where that card sits.
  *
@@ -38,7 +39,10 @@ import type {
 	ConsentThemeColors,
 	ConsentThemeSpacing,
 } from '../theme/create-consent-theme';
-import { BANNER_FOOTER_PADDING_HORIZONTAL } from '../theme/use-consent-styles';
+import {
+	BANNER_FOOTER_PADDING_HORIZONTAL,
+	IAB_BANDS,
+} from '../theme/use-consent-styles';
 import type { ConsentStyles } from '../theme/use-consent-styles';
 import { useAnnounceOnOpen } from './use-announce-on-open';
 import { useModalA11y } from './use-modal-a11y';
@@ -49,14 +53,32 @@ import { useReducedMotion } from './use-reduced-motion';
 const FILL: ViewStyle = { flex: 1 };
 
 /**
- * Which of the three presentations is being rendered.
+ * What a full-page body asks for instead of a measured height.
  *
- * `banner` is the absolutely positioned layer over the app. `dialog` and `sheet`
- * both mount in a `Modal` and differ only in where the card sits inside it: a
- * dialog is centred, the way the web surface is, and a sheet is anchored to the
- * bottom edge with a grab handle above the card.
+ * A drawer owns the page, so its list takes whatever the header and the footer
+ * leave rather than the dialog's cap -- sizing that list from `maxBodyHeight`
+ * would give a full-screen surface 46 per cent of the screen and leave the rest
+ * of the card empty above the footer. `minHeight: 0` is what lets it shrink to
+ * that share instead of asking for the whole list back.
  */
-export type ConsentSurfacePresentation = 'banner' | 'dialog' | 'sheet';
+const BODY_GROW: ViewStyle = { flexGrow: 1, minHeight: 0 };
+
+/**
+ * Which of the four presentations is being rendered.
+ *
+ * `banner` is the absolutely positioned layer over the app. `dialog`, `drawer`,
+ * and `sheet` all mount in a `Modal` and differ only in how the card sits inside
+ * it: a dialog is centred, the way the web surface is; a sheet is anchored to the
+ * bottom edge with a grab handle above the card; and a drawer is the whole page.
+ * It fills the safe area and slides in from the trailing edge, and it keeps
+ * neither the corner radius, the hairline, nor the width cap, because a page has
+ * no screen edge to keep off and no dimmed app left to peer through.
+ */
+export type ConsentSurfacePresentation =
+	| 'banner'
+	| 'dialog'
+	| 'drawer'
+	| 'sheet';
 
 /** The layout a surface hands to its own content. */
 export interface ConsentSurfaceFrame {
@@ -121,7 +143,7 @@ export const ConsentSurfaceHeader = ({
 export const ConsentSurfaceBody = ({
 	children,
 }: ConsentSurfaceSlotProps): ReactNode => {
-	const { maxBodyHeight, parts } = useConsentSurfaceFrame();
+	const { maxBodyHeight, parts, presentation } = useConsentSurfaceFrame();
 	// What the list asks for, as the list itself reports it. Nothing above this
 	// point can know it: the card is content-sized, and a scroll view that is
 	// asked to size itself reports something other than what it draws.
@@ -132,12 +154,13 @@ export const ConsentSurfaceBody = ({
 	// a scroll view that never scrolls still takes part in measuring the card,
 	// which came back 135pt taller than its own bands on a 411x914 device and
 	// left that much empty card under the last action.
-	const scrolling = contentHeight > maxBodyHeight;
+	const fullPage = presentation === 'drawer';
+	const scrolling = fullPage || contentHeight > maxBodyHeight;
 	// Before the first layout pass there is nothing to size from, and the list is
 	// left to its own height for that frame.
 	let bodyHeight: number | undefined;
 
-	if (contentHeight > 0) {
+	if (contentHeight > 0 && !fullPage) {
 		bodyHeight = scrolling ? maxBodyHeight : contentHeight;
 	}
 
@@ -145,7 +168,7 @@ export const ConsentSurfaceBody = ({
 		<ScrollView
 			keyboardShouldPersistTaps="handled"
 			scrollEnabled={scrolling}
-			style={[parts.scroll, { height: bodyHeight }]}
+			style={[parts.scroll, fullPage ? BODY_GROW : { height: bodyHeight }]}
 		>
 			{/*
 			 * The wrapper doubles as the measure. It is a plain `View` rather than
@@ -203,6 +226,15 @@ export const ConsentSurfaceBody = ({
  * the ordinary dialog carry `[data-split]` because they hold two groups, and that
  * rule drops it to `0.5rem`. Measured row to row, the web footer is 8.0.
  *
+ * A drawer is the exception, because it is not that card: it is the IAB
+ * disclosure, and it pays that sheet's own footer. `.footer` in
+ * `iab-panel.module.css` is `padding: .75rem 1rem` over `--iab-cd-surface-hover`
+ * under a `border-top` in the border token, and at a 411 CSS px viewport the live
+ * panel measures 12 above and below, 16 in from the card edge, and one hairline
+ * along its top. So the band and the rule the two card surfaces deliberately leave
+ * unpainted, this one paints: the list scrolls under a footer that stays put, and
+ * without that rule the last row runs straight into the save button.
+ *
  * All of that is a fact about the presentation rather than about a theme, so it
  * goes on under the resolved `footer` part, where a host override still wins.
  */
@@ -213,28 +245,41 @@ const footerChrome = function footerChrome(
 ): ViewStyle {
 	const banner = presentation === 'banner';
 	const dialog = presentation === 'dialog';
+	const drawer = presentation === 'drawer';
+	// The rule and the band travel together: a footer with a fill needs the edge
+	// to stop the list above it, and one that sits on the card needs neither.
+	const banded = banner || drawer;
 
 	// The two edges that disagree per surface, taken as plain numbers because a
 	// `ViewStyle` cannot be built up field by field.
 	let paddingHorizontal = spacing.m;
+	let paddingVertical = spacing.m;
 
 	if (banner) {
 		paddingHorizontal = BANNER_FOOTER_PADDING_HORIZONTAL;
 	} else if (dialog) {
 		paddingHorizontal = spacing.l;
+		paddingVertical = spacing.l;
+	} else if (drawer) {
+		paddingHorizontal = IAB_BANDS.footerPaddingHorizontal;
+		paddingVertical = IAB_BANDS.footerPaddingVertical;
 	}
 
 	return {
-		backgroundColor: banner ? colors.surfaceRaised : colors.surface,
+		backgroundColor: banded ? colors.surfaceRaised : colors.surface,
 		// Only the banner has an edge to hide: its band sits under the copy, so the
-		// rule along its top is what separates the two. A card surface has nothing
-		// to separate from itself.
-		borderTopColor: banner ? colors.border : undefined,
-		borderTopWidth: banner ? 1 : 0,
-		gap: spacing.s,
-		paddingBottom: dialog ? spacing.l : spacing.m,
+		// rule along its top is what separates the two, and a drawer's list scrolls
+		// under its footer, so that one needs a rule of its own. A card surface that
+		// does neither has nothing to separate from itself.
+		borderTopColor: banded ? colors.border : undefined,
+		borderTopWidth: banded ? 1 : 0,
+		// The step between the two action rows is 8 on the banner and the dialog, and
+		// 16 on the disclosure, which keeps `.actionRoot`'s own `gap: 1rem` because it
+		// carries no `[data-split]` to drop that to `.5rem`. Measured row to row: 16.0.
+		gap: drawer ? IAB_BANDS.footerGap : spacing.s,
+		paddingBottom: paddingVertical,
 		paddingHorizontal,
-		paddingTop: dialog ? spacing.l : spacing.m,
+		paddingTop: paddingVertical,
 	};
 };
 
@@ -309,10 +354,16 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 		presentation,
 		styles,
 	} = props;
-	const { bannerLayer, maxBodyHeight, parts, sheetLayer, theme } = styles;
+	const { bannerLayer, drawerTravel, maxBodyHeight, parts, sheetLayer, theme } =
+		styles;
 	const reducedMotion = useReducedMotion();
+	const drawer = presentation === 'drawer';
 	const { motionStyle, rendered } = usePromptMotion(open, {
-		distance: theme.motion.enterDistance,
+		// A page arrives from the trailing edge and every other surface lifts from
+		// below. One reveal and one reduced-motion collapse either way, which is the
+		// reason a drawer is a presentation and not a second sheet component.
+		axis: drawer ? 'x' : 'y',
+		distance: drawer ? drawerTravel : theme.motion.enterDistance,
 		enterDuration: theme.motion.enterDuration,
 		exitDuration: theme.motion.exitDuration,
 		reducedMotion,
@@ -392,7 +443,14 @@ export const ConsentSurface = (props: ConsentSurfaceProps) => {
 					/>
 				)}
 				<View style={sheetLayer}>
-					<Animated.View style={motionStyle}>
+					{/*
+					 * A drawer's wrapper has to be stretched over the layer for the card
+					 * inside it to have anything to fill: the layer parks its children at
+					 * its top edge, and a wrapper sized by its own content would leave the
+					 * page as tall as its rows and its footer floating in the middle of the
+					 * screen.
+					 */}
+					<Animated.View style={drawer ? [motionStyle, FILL] : motionStyle}>
 						{/*
 						 * Only a sheet earns a handle. It is the affordance that says the
 						 * card can be dragged, and a centred dialog cannot be dragged, so

@@ -1269,6 +1269,7 @@
       },
       "devDependencies": {
         "@c15t/core": "workspace:*",
+        "@c15t/iab": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
         "@react-native/codegen": "0.87.1",
