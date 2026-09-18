@@ -1,3 +1,4 @@
+import type { VendorCategoryCondition } from '@c15t/schema/types';
 import { describe, expect, test } from 'vitest';
 
 import { createConsentKernel } from '..';
@@ -56,7 +57,9 @@ describe('snapshot default freezing', () => {
 	});
 
 	test('copies nested vendor conditions without freezing the caller objects', () => {
-		const category = { or: ['marketing', 'measurement'] as const };
+		const category: VendorCategoryCondition = {
+			or: ['marketing', 'measurement'],
+		};
 		const snapshot = buildInitialSnapshot({
 			initialVendors: {
 				declared: [

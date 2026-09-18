@@ -69,10 +69,9 @@ describe('vendor persistence', () => {
 		const persistence = createPersistence({ kernel, now: () => NOW });
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
 		await vi.runAllTimersAsync();
-		expect(readStoredVendorChoice(undefined, NOW)?.record).toMatchObject({
-			confirmedAt: NOW,
-			denied: ['meta-pixel'],
-			version: 1,
+		expect(readStoredVendorChoice(undefined, NOW)).toMatchObject({
+			ok: true,
+			record: { confirmedAt: NOW, denied: ['meta-pixel'], version: 1 },
 		});
 		persistence.dispose();
 		kernel.dispose();
@@ -93,10 +92,9 @@ describe('vendor persistence', () => {
 		await vi.runAllTimersAsync();
 		// The time is what lets a later merge know this clear is newer than an
 		// older server denial, so it is written rather than removed.
-		expect(readStoredVendorChoice(undefined, NOW)?.record).toMatchObject({
-			confirmedAt: NOW,
-			denied: [],
-			version: 1,
+		expect(readStoredVendorChoice(undefined, NOW)).toMatchObject({
+			ok: true,
+			record: { confirmedAt: NOW, denied: [], version: 1 },
 		});
 		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
 		persistence.dispose();
