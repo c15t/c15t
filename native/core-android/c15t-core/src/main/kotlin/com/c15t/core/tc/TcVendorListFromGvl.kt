@@ -21,12 +21,15 @@ fun GlobalVendorList.toTcVendorList(): TcVendorList = TcVendorList(
 	vendorListVersion = vendorListVersion.toEncoderNumber(),
 	tcfPolicyVersion = tcfPolicyVersion.toEncoderNumber(),
 	vendors = vendors.map { (id, entry) -> entry.toTcVendor(id) },
-	// The served document has no `language` field: it is chosen by URL, and
-	// `packages/backend/src/http/gvl.ts` fetches `<endpoint>/<primary-subtag>.json`. The reference is
-	// in the same position and resolves it the same way -- `generateTCString` constructs
-	// `new GVL(gvlData)` without a language, and `GVL` leaves `language` at
-	// `GVL.DEFAULT_LANGUAGE`, which is the value `SemanticPreEncoder` then writes into the string. So
-	// a string authored from a served DE list says DE in the document and EN in the bytes, on web too.
+	// A served list carries no language. `globalVendorListSchema` does not declare the field, and
+	// the upstream publishes one English document: `packages/backend/src/http/gvl.ts` requests the
+	// endpoint itself, because the per-language path it used to build answers 404 every time. The
+	// reference lands on the same byte from the other direction. Language is a construction option
+	// (`new GVL(data, { language })`, never read off the document), `generateTCString` passes none, so
+	// `GVL` keeps `GVL.DEFAULT_LANGUAGE` and `SemanticPreEncoder` writes that over the model. EN here
+	// is the web's own answer for a served string, not a claim about the visitor. The codec still
+	// honours a list that names a language -- `tc-string-parity-consent-language-from-vendor-list`
+	// puts DE in the bytes -- because that option exists; `/init` simply never supplies it.
 	language = TcVendorList.DEFAULT_LANGUAGE,
 )
 
