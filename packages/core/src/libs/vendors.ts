@@ -234,13 +234,19 @@ const mergeEntry = function mergeEntry(
 	if (SOURCE_RANK[incoming.source] > SOURCE_RANK[existing.source]) {
 		const shadowable =
 			existing.source === 'config' && incoming.source === 'manifest';
-		if (
-			shadowable &&
-			!(existing.shadowed && sameVendor(existing.shadowed, incoming))
-		) {
-			return { ...existing, shadowed: incoming };
+		if (!shadowable) {
+			return existing;
 		}
-		return existing;
+		// The refreshed shadow keeps the owners the entry already knows, so a
+		// later removal of the config source restores a copy that can still
+		// fall back to the scripts naming the slug.
+		const shadowed = existing.ownerCategory
+			? withOwners(incoming, existing.ownerCategory)
+			: incoming;
+		if (existing.shadowed && sameVendor(existing.shadowed, shadowed)) {
+			return existing;
+		}
+		return { ...existing, shadowed };
 	}
 	const next: ResolvedVendor = { ...incoming };
 	if (existing.source === incoming.source) {

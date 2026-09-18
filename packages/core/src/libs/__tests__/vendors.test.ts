@@ -200,6 +200,27 @@ describe('owner fallback across manifest replacement', () => {
 		).toEqual(['script']);
 	});
 
+	test('a refreshed shadow keeps the owners the config entry knows', () => {
+		const first = resolveVendors({
+			config: [{ ...meta, name: 'Meta (config)' }],
+			manifest: [{ ...meta, name: 'Meta (backend)' }],
+			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
+		});
+		// A later init refreshes the backend copy while config still wins.
+		const refreshed = resolveVendors({
+			existing: withoutManifestVendors(first),
+			manifest: [{ ...meta, name: 'Meta (backend v2)' }],
+		});
+		expect(refreshed[0]?.shadowed?.name).toBe('Meta (backend v2)');
+		expect(refreshed[0]?.shadowed?.ownerCategory).toBe('measurement');
+		// Config goes, then the backend: the script fallback is still there.
+		const backendOnly = withoutSourceVendors(refreshed, 'config');
+		expect(backendOnly[0]?.source).toBe('manifest');
+		expect(
+			withoutSourceVendors(backendOnly, 'manifest').map((v) => v.source)
+		).toEqual(['script']);
+	});
+
 	test('a backend list that drops a shadowed vendor drops the shadow too', () => {
 		const first = resolveVendors({
 			config: [{ ...meta, name: 'Meta (config)' }],
