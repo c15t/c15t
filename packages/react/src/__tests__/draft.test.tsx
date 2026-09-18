@@ -360,6 +360,58 @@ test('the vendor draft ignores a stale denial for a vendor declared disabled', a
 		.toHaveTextContent('{"meta-pixel":true}');
 });
 
+test('setVendor ignores a vendor declared disabled', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'disabled-vendor-set' }
+	);
+	const Probe = () => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, vendors: draft.vendors })}
+				</output>
+				<button
+					onClick={() => draft.setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+			</>
+		);
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: fixture,
+				vendors: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	// The kernel would drop the grant on save, so nothing is staged.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+});
+
 test('drafts use configured categories and require review when the displayed scope changes', async () => {
 	const Probe = ({ expand }: { expand: () => void }) => {
 		const draft = useConsentDraft();
