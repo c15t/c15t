@@ -18,8 +18,8 @@ import Foundation
 enum TcBitWidth {
     static let segmentType = 3
     static let version = 6
-    /// `Created` and `LastUpdated` share one width: 36 bits of hundredths of a
-    /// second. One constant, because a reader that reached for `Created` while
+    /// `Created` and `LastUpdated` share one width: 36 bits counting in units of
+    /// 100 ms, so a tenth of a second. One constant, because a reader that reached for `Created` while
     /// reading `LastUpdated` would be right by luck and wrong the moment the table
     /// was corrected.
     static let timestamp = 36

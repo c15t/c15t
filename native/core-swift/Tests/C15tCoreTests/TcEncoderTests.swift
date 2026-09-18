@@ -7,7 +7,9 @@ import XCTest
 ///
 /// No TC string appears in this file: every case starts from a hand-built model and
 /// breaks it in one way, so the encoder has to refuse rather than write bytes its own
-/// decoder would turn down. Nothing here goes through ``TcFixtureCorpus``.
+/// decoder would turn down. Nothing here reads `native/protocol`: the shared corpus
+/// only carries strings a reference CMP was willing to write, and these are models
+/// this encoder has to refuse instead.
 final class TcEncoderTests: XCTestCase {
     private let epoch = Date(timeIntervalSince1970: 1_767_225_600)
 

@@ -135,6 +135,9 @@ final class ProtocolFixtureTests: XCTestCase {
             case "reset-consent":
                 try await runResetConsent(entry)
                 ran.append(entry.id)
+            case "tc-string":
+                try runTcString(entry)
+                ran.append(entry.id)
             default:
                 XCTFail("\(entry.id): kind \"\(entry.kind)\" has no runner here. Add one instead of skipping it.")
             }
@@ -154,6 +157,24 @@ final class ProtocolFixtureTests: XCTestCase {
         for id in ran {
             print("  ran \(id)")
         }
+        // The tc-string lane has to account for each fixture of its kind, not merely
+        // avoid failing: `claimedKinds` already says the kind is claimed, so a runner
+        // that returned early would leave `unclaimed` empty and the suite green. The
+        // count has to be earned.
+        let tcStringIDs = Set(index.fixtures.filter { $0.kind == "tc-string" }.map(\.id))
+        let tcStringClaimed = ran.filter { tcStringIDs.contains($0) }.count
+        print(
+            "TC fixtures: claimed \(tcStringClaimed) of \(tcStringIDs.count) tc-string fixtures from "
+                + "index.json; \(tcStringIDs.count - tcStringClaimed) unclaimed "
+                + "(\(tcStringEncodeSkipped) decode-only by the fixture's own instruction, "
+                + "\(tcStringIDs.count - tcStringEncodeSkipped) claiming a byte-exact encode)"
+        )
+        XCTAssertEqual(
+            tcStringClaimed,
+            tcStringIDs.count,
+            "the tc-string runner claimed \(tcStringClaimed) of \(tcStringIDs.count). A tc-string fixture "
+                + "that is neither run nor named is a fixture that cannot fail."
+        )
         judge(index)
         XCTAssertEqual(
             ran.count + unclaimed.count,
@@ -474,6 +495,99 @@ final class ProtocolFixtureTests: XCTestCase {
         )
     }
 
+    /// Run a `tc-string` fixture against both halves of the codec.
+    ///
+    /// Two assertions per fixture, and the fixture itself decides how many of them
+    /// are owed. Decoding runs against `expected.encode.tcString`, which is the only
+    /// string a fixture carries, and the answer is compared field by field to
+    /// `expected.decode.fields`. Encoding runs against `input.model`,
+    /// `input.encodingOptions` and `input.vendorList`, and where `expects.encode` is
+    /// true the bytes have to be identical -- not equal once projected to a map, which
+    /// is the difference between a codec that agrees with web and one that roughly
+    /// agrees with it.
+    ///
+    /// Ten fixtures set `expects.encode` false because the reference encoder cannot
+    /// write that shape at all: publisher restrictions need a GVL attached to encode,
+    /// `purposeOneTreatment` with a global scope, custom purposes wide enough to make
+    /// the string one no CMP publishes. Encoding is skipped there by the fixture's
+    /// instruction, and the skip is counted rather than hidden, because ten silent
+    /// skips would look exactly like a passing suite.
+    private func runTcString(_ entry: Index.Entry) throws {
+        let vector = try TcSharedFixtures.vector(id: entry.id)
+        XCTAssertEqual(
+            vector.file,
+            entry.file,
+            "\(entry.id): the fixture index and the parsed file disagree about which file this is"
+        )
+        tcStringEncodeSkipped += vector.expectsEncode ? 0 : 1
+
+        if vector.expectsDecode {
+            switch TcStringWireReader.read(vector.expectedTCString) {
+            case let .decoded(decoded):
+                record(
+                    for: entry,
+                    path: "expected.decode.fields",
+                    expected: TcDecodedFieldReport.canonicalRestrictionOrder(vector.expectedFields),
+                    actual: TcDecodedFieldReport.canonicalRestrictionOrder(
+                        TcDecodedFieldReport.fields(of: decoded)
+                    )
+                )
+            case let .rejected(reason, message):
+                record(
+                    for: entry,
+                    path: "expected.decode",
+                    detail: "the decoder refused a string the reference produced (\(reason.rawValue)): \(message)"
+                )
+            }
+        } else {
+            record(for: entry, path: "expects.decode", detail: "the fixture does not expect a decode, so nothing asserted here")
+        }
+
+        guard vector.expectsEncode else {
+            return
+        }
+        switch TcStringEncoder.encode(vector.model, vendorList: vector.vendorList, options: vector.options) {
+        case let .encoded(produced):
+            record(
+                for: entry,
+                path: "expected.encode.tcString",
+                expected: .string(vector.expectedTCString),
+                actual: .string(produced)
+            )
+            let segments = produced.split(separator: ".").map { String($0) }
+            record(
+                for: entry,
+                path: "expected.encode.segments",
+                expected: .array(vector.expectedSegments.map { JSONValue.string($0) }),
+                actual: .array(segments.map { JSONValue.string($0) })
+            )
+            record(
+                for: entry,
+                path: "expected.encode.segmentTypes",
+                expected: .array(vector.expectedSegmentTypes.map { JSONValue.integer(Int64($0)) }),
+                actual: .array(Self.segmentTypes(of: produced).map { JSONValue.integer(Int64($0)) })
+            )
+        case let .rejected(reason, message):
+            record(
+                for: entry,
+                path: "expected.encode.tcString",
+                detail: "the encoder refused consent state the reference encoded (\(reason.rawValue)): \(message)"
+            )
+        }
+    }
+
+    /// Which segment type each segment of a produced string declares, for a failure
+    /// message that names the segment instead of pointing at a base64 difference.
+    private static func segmentTypes(of string: String) -> [Int] {
+        string.split(separator: ".").enumerated().map { offset, part in
+            guard offset > 0, let decoded = TcBase64URL.decode(part) else {
+                return 0
+            }
+            var reader = TcBitReader(bytes: decoded.bytes, bitCount: decoded.bitCount)
+            return Int(reader.readUnsigned(TcBitWidth.segmentType) ?? 0)
+        }
+    }
+
     // MARK: - Running one fixture
 
     private struct Run {
@@ -607,7 +721,7 @@ final class ProtocolFixtureTests: XCTestCase {
     /// write the runner, and the unclaimed count below can only be non-zero when a
     /// kind was added to one place and not the other.
     private static let claimedKinds: Set<String> = [
-        "evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body",
+        "evaluation", "native-envelope", "reset-consent", "revision-trace", "save-body", "tc-string",
     ]
 
     /// Run a `native-envelope` fixture.
@@ -1071,6 +1185,10 @@ final class ProtocolFixtureTests: XCTestCase {
     /// fixture, so judging each subtree as it arrives would call the second half of
     /// the ledger stale.
     private var recorded: [String: [Diff]] = [:]
+
+    /// How many tc-string fixtures told the runner not to encode, counted during the
+    /// run so the printed claim line can name what it is not claiming.
+    private var tcStringEncodeSkipped = 0
 
     private func record(
         for entry: Index.Entry,
