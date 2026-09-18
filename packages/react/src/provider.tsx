@@ -749,13 +749,22 @@ const useProviderOptionSync = function useProviderOptionSync(
 
 	// `vendors` is a live option like `scripts`: a list supplied or replaced
 	// after the first render is merged into the kernel and its categories
-	// registered, so the preference center shows the rows.
+	// registered, so the preference center shows the rows. Scripts and rules
+	// are part of the same picture, since their slugs declare vendors too: a
+	// change to either recomputes the code-declared set.
 	const previousVendorsRef = useRef<string | null>(null);
 	useEffect(() => {
 		if (!owns) {
 			return;
 		}
-		const serialized = JSON.stringify(options.vendors ?? []);
+		const owners = [
+			...(options.scripts ?? []),
+			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		];
+		const serialized = JSON.stringify([
+			options.vendors ?? [],
+			owners.map((owner) => [owner.vendor ?? null, owner.category]),
+		]);
 		if (previousVendorsRef.current === null) {
 			previousVendorsRef.current = serialized;
 			return;
@@ -764,22 +773,19 @@ const useProviderOptionSync = function useProviderOptionSync(
 			return;
 		}
 		previousVendorsRef.current = serialized;
-		// Scripts and rules come along as owners: a configured vendor that a
-		// script also names is resolved to its config entry alone, so removing
-		// it from the option must leave the script-sourced fallback the first
-		// resolution never created.
 		const declared = resolveVendors({
 			config: options.vendors,
 			onWarn: warnVendorDeclaration,
-			owners: [
-				...(options.scripts ?? []),
-				...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-			],
+			owners,
 		});
-		// The provider owns the config source: its previous entries are replaced
-		// so a vendor the parent removed disappears, while backend and script
-		// entries stay.
+		// The provider owns the code-declared sources: its previous config and
+		// script entries are replaced, so a vendor the parent removed
+		// disappears, while a backend entry a config copy shadowed comes back.
 		kernel.set.vendors({ declared }, { replaceSource: 'config' });
+		kernel.set.vendors(
+			{ declared: declared.filter((vendor) => vendor.source === 'script') },
+			{ replaceSource: 'script' }
+		);
 		if (declared.length > 0) {
 			kernel.set.registerConsentCategories(
 				declared.flatMap((vendor) =>
