@@ -57,7 +57,8 @@ manifest slug, so `googleTag()` and `metaPixel()` need no extra wiring.
 A backend can also declare vendors. Add `vendors` and an optional
 `vendorListVersion` to the manifest configuration; `/init` returns them and the
 client merges them with the vendors declared in code. When both declare the
-same id, the copy declared in code wins. A slug used by a script but declared
+same id, the copy declared in code wins, and the backend copy comes back if the
+code declaration is removed later. A slug used by a script but declared
 nowhere still gates loading. It is hidden from the preference surface, and the
 runtime warns about it outside production.
 
@@ -110,7 +111,9 @@ await runtime.kernel.commands.save(
 ```
 
 Only the vendors the visitor turned off are stored. Accept all and reject all
-both clear that list, so vendors follow their category on a bulk action. A
+both clear that list, so vendors follow their category on a bulk action. A bulk
+action narrowed to the displayed categories only lifts the denials of vendors
+those categories govern. A
 vendor that is not declared, or is declared with `disabled: true`, is ignored.
 Under an opt-out policy every vendor starts on and the stored list is the
 do-not-sell list.

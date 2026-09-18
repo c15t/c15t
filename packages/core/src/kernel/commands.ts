@@ -19,6 +19,7 @@ import type {
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
+import { extractConsentNamesFromCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import type {
@@ -241,6 +242,41 @@ const clearedVendorChoice = function clearedVendorChoice(
 };
 
 /**
+ * The state after a bulk action narrowed to some categories: denials of
+ * vendors whose condition names one of them are lifted, every other denial
+ * stays. Stamped like a full bulk action once a governed vendor exists.
+ */
+const scopedBulkVendorChoice = function scopedBulkVendorChoice(
+	snapshot: ConsentSnapshot,
+	categories: readonly AllConsentNames[],
+	actionAt: number
+): VendorChoice | null {
+	const current = snapshot.vendorChoice;
+	const governed = new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (
+			extractConsentNamesFromCondition(vendor.category).some((name) =>
+				categories.includes(name)
+			)
+		) {
+			governed.add(vendor.id);
+		}
+	}
+	if (governed.size === 0) {
+		return current;
+	}
+	const denied = (current?.denied ?? []).filter((id) => !governed.has(id));
+	if (current && denied.length === current.denied.length) {
+		// Nothing governed was denied. Stamp the clear the way a full bulk
+		// action does, unless the current record is already at least as new.
+		return current.confirmedAt >= actionAt
+			? current
+			: { confirmedAt: actionAt, denied: [...current.denied], version: 1 };
+	}
+	return { confirmedAt: actionAt, denied, version: 1 };
+};
+
+/**
  * The state after a bulk action. Unlike lifting the last denial, a bulk
  * action is always stamped once vendors are declared, even over `null` or an
  * already-empty list: a server denial recorded before the visitor pressed
@@ -287,7 +323,8 @@ const applyVendorGrants = function applyVendorGrants(
  * - Under `model === 'iab'` the vendor axis is inert: IAB vendor consent is
  *   authoritative and nothing here changes.
  * - `'all'` and `'none'` clear the list: vendors follow the category, and
- *   any explicit grants or staged draft are ignored.
+ *   any explicit grants or staged draft are ignored. Narrowed to displayed
+ *   `categories`, only the denials of vendors those categories govern lift.
  * - Otherwise explicit grants win over the staged vendor draft, applied on
  *   top of the current denials. Ids that are not declared, or are declared
  *   `disabled`, are ignored.
@@ -301,7 +338,8 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	draft: Readonly<Record<string, boolean>> | null,
 	input: SaveInput | undefined,
 	explicit: Record<string, boolean> | undefined,
-	actionAt: number
+	actionAt: number,
+	categories?: readonly AllConsentNames[]
 ): VendorChoice | null {
 	const current = snapshot.vendorChoice;
 	if (snapshot.model === 'iab') {
@@ -311,7 +349,12 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	if (bulk) {
 		// Vendors follow the category on a bulk action; explicit grants and the
 		// staged draft are both discarded so nothing survives as a denial.
-		return bulkClearedVendorChoice(snapshot, actionAt);
+		if (categories === undefined) {
+			return bulkClearedVendorChoice(snapshot, actionAt);
+		}
+		// A bulk action narrowed to the displayed categories only lifts the
+		// denials of vendors those categories govern.
+		return scopedBulkVendorChoice(snapshot, categories, actionAt);
 	}
 	const grants = explicit ?? draft ?? undefined;
 	if (grants === undefined) {
@@ -325,16 +368,25 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	return sameVendorChoice(current, next) ? current : next;
 };
 
-/** Granted flag for every declared vendor, for the transport payload. */
+/**
+ * Granted flag for every declared vendor, for the transport payload. Only
+ * present once a vendor decision exists locally: a save that never decided
+ * vendors must not tell the backend every vendor was granted now, or an
+ * older server denial still in flight would win the local merge while the
+ * backend holds the newer all-granted map.
+ */
 const vendorChoicePayload = function vendorChoicePayload(
-	snapshot: ConsentSnapshot,
-	actionAt: number
+	snapshot: ConsentSnapshot
 ): SavePayload['vendorChoice'] {
 	const declared = snapshot.vendors?.declared ?? [];
-	if (snapshot.model === 'iab' || declared.length === 0) {
+	if (
+		snapshot.model === 'iab' ||
+		declared.length === 0 ||
+		snapshot.vendorChoice === null
+	) {
 		return undefined;
 	}
-	const denied = new Set(snapshot.vendorChoice?.denied);
+	const denied = new Set(snapshot.vendorChoice.denied);
 	const grants: Record<string, boolean> = {};
 	for (const vendor of declared) {
 		Object.defineProperty(grants, vendor.id, {
@@ -345,7 +397,7 @@ const vendorChoicePayload = function vendorChoicePayload(
 		});
 	}
 	return {
-		confirmedAt: snapshot.vendorChoice?.confirmedAt ?? actionAt,
+		confirmedAt: snapshot.vendorChoice.confirmedAt,
 		grants,
 		version: 1,
 	};
@@ -1016,7 +1068,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				runtime.getVendorDraft(),
 				input,
 				context?.vendors,
-				actionAt
+				actionAt,
+				context?.categories
 			);
 			const vendorsChanged = nextVendorChoice !== before.vendorChoice;
 			const owedNothing = saveUnderNoneRegime(before);
@@ -1138,7 +1191,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				uiSource,
 				user: after.user,
 			};
-			const vendorChoice = vendorChoicePayload(after, actionAt);
+			const vendorChoice = vendorChoicePayload(after);
 			if (vendorChoice) {
 				payload.vendorChoice = vendorChoice;
 			}
