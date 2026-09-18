@@ -57,10 +57,14 @@ Gate with logs redirected and never `-q`:
 
 ```bash
 sh gradlew :c15t-core:test --rerun-tasks
-swift test --package-path native/core-swift --parallel
+swift test --package-path native/core-swift
 bun run --cwd packages/react-native test
 bun run --cwd packages/react-native check-types
 ```
 
-Swift prints `0 tests in 0 suites` under some conditions; if the count is zero
-the run proves nothing, so re-run in a clean tree before claiming green.
+Use `swift test` without `--parallel` when the evidence is a log. Under
+`--parallel` SwiftPM prints only
+`Test run with 0 tests in 0 suites passed` and no per-test tally, so a log of
+that run proves nothing either way even though the tests did run. The plain
+runner prints `Executed 164 tests, with 0 failures`, which is what a report has
+to quote.
