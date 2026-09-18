@@ -583,12 +583,18 @@ interface SurfacePartFacts {
 	readonly cardShadow: ViewStyle['boxShadow'];
 	/** Space the scrolling body keeps above its first row. */
 	readonly contentPaddingTop: number;
-	/** Step between the heading and the copy under it. */
+	/**
+	 * Step between the heading's box and the copy under it, where that copy sits in
+	 * the same band. The banner spends its step on the band's bottom edge instead,
+	 * so it keeps nothing here.
+	 */
 	readonly headerGap: number;
+	/** Bottom edge of the heading band, where the banner spends its step. */
+	readonly headerPaddingBottom: number;
 	/** Sideways inset of the heading band, which the disclosure pads itself. */
 	readonly headerPaddingHorizontal: number;
-	/** Vertical inset of the heading band, on the same two edges. */
-	readonly headerPaddingVertical: number;
+	/** Top edge of the heading band. */
+	readonly headerPaddingTop: number;
 	/** The rule under the heading band. `.header` in the disclosure is the only one that draws it. */
 	readonly headerRuleWidth: number;
 	/** Step between the rows of a list. */
@@ -745,9 +751,15 @@ export const useConsentStyles = function useConsentStyles(
 				cardRadius: radius.surface,
 				cardShadow: undefined,
 				contentPaddingTop: 0,
-				headerGap: spacing.s,
+				// The banner's band holds the heading on its own, because its copy
+				// carries on in the scrolling band under it. So the step that
+				// `prompt.module.css` puts between the two children of `.header` --
+				// `margin-top: 0.5rem` -- is spent on this band's bottom edge instead,
+				// and a gap has nothing left to space.
+				headerGap: 0,
+				headerPaddingBottom: spacing.s,
 				headerPaddingHorizontal: spacing.m,
-				headerPaddingVertical: spacing.m,
+				headerPaddingTop: spacing.m,
 				headerRuleWidth: 0,
 				listGap: CATEGORY_STACK_GAP,
 				titleTracking: TRACKING_EM.bannerTitle,
@@ -763,9 +775,16 @@ export const useConsentStyles = function useConsentStyles(
 				cardRadius: radius.surface,
 				cardShadow: SHADOW_SM,
 				contentPaddingTop: 0,
-				headerGap: spacing.xs,
+				// The web spends its 8 twice as halved: `.header` opens at
+				// `gap: --consent-dialog-header-gap` and then puts `margin-top:
+				// --consent-dialog-card-gap` on `.header > * + *`, and both of those
+				// tokens are `--c15t-space-xs`. Box to box that is the 8 the live card
+				// leaves under its title, which is also the 8 the banner reaches in one
+				// rule.
+				headerGap: spacing.xs * 2,
+				headerPaddingBottom: spacing.l,
 				headerPaddingHorizontal: spacing.l,
-				headerPaddingVertical: spacing.l,
+				headerPaddingTop: spacing.l,
 				headerRuleWidth: 0,
 				listGap: CATEGORY_STACK_GAP,
 				titleTracking: TRACKING_EM.dialogTitle,
@@ -781,9 +800,13 @@ export const useConsentStyles = function useConsentStyles(
 				cardRadius: 0,
 				cardShadow: undefined,
 				contentPaddingTop: IAB_BANDS.contentPadding,
+				// The disclosure keeps its own 4: `.header` in `iab-panel.module.css`
+				// declares no gap at all, and `.description` carries
+				// `margin: .25rem 0 0` under the heading.
 				headerGap: spacing.xs,
+				headerPaddingBottom: IAB_BANDS.headerPaddingVertical,
 				headerPaddingHorizontal: IAB_BANDS.headerPaddingHorizontal,
-				headerPaddingVertical: IAB_BANDS.headerPaddingVertical,
+				headerPaddingTop: IAB_BANDS.headerPaddingVertical,
 				headerRuleWidth: HAIRLINE,
 				// The disclosure separates its rows by `.5rem`, and the run under the
 				// last row is the scrolling body's own 12 rather than the 24 the cards
@@ -802,9 +825,13 @@ export const useConsentStyles = function useConsentStyles(
 				cardRadius: radius.surface,
 				cardShadow: undefined,
 				contentPaddingTop: 0,
-				headerGap: spacing.xs,
+				// One card anchored two ways, so the step is the dialog's 8 for the
+				// dialog's reason; only the inset differs, and that is the sheet's own
+				// `--consent-dialog-card-padding-mobile`.
+				headerGap: spacing.xs * 2,
+				headerPaddingBottom: spacing.m,
 				headerPaddingHorizontal: spacing.m,
-				headerPaddingVertical: spacing.m,
+				headerPaddingTop: spacing.m,
 				headerRuleWidth: 0,
 				listGap: CATEGORY_STACK_GAP,
 				titleTracking: TRACKING_EM.dialogTitle,
@@ -1052,33 +1079,56 @@ export const useConsentStyles = function useConsentStyles(
 				alignItems: 'stretch',
 				flexDirection: 'column',
 			},
+			// There is no web element to copy here: the web card has no bar, so the rule
+			// for this one is local, and the only rule it has to answer to is the fill it
+			// is laid on. A sheet puts the bar at the top of the card, so the pixels it
+			// has to be found against are the card colour on one side and the host app
+			// seen through `colors.overlay` on the other. `border` failed the first of
+			// those: 25 channels of separation from a white card, measured on the channel
+			// where the two are hardest to tell apart, and a 4pt bar stops reading as an
+			// affordance somewhere around 32. `switchTrack` is the palette's other piece
+			// of chrome that has to read off the surface, and it clears both neighbours on
+			// both schemes -- 38 and 89 in the light, 46 and 59 in the dark -- while
+			// staying inside the range the platform's own drag indicators occupy, which is
+			// the only reason a bar like this exists.
 			handle: {
 				alignSelf: 'center',
-				backgroundColor: colors.border,
+				backgroundColor: colors.switchTrack,
 				borderRadius: radius.control,
 				height: 4,
 				width: 36,
 			},
-			// The heading band. The web banner leads with `1rem` of padding and a
-			// `0.5rem` step between heading and copy; the dialog leads with the card
-			// padding and a `--consent-dialog-header-gap` of 4.
+			// The heading band, and the 8 that separates a heading from the copy under
+			// it. The banner gets that 8 from one rule -- `margin-top: 0.5rem` between
+			// the children of `.header` in `prompt.module.css` -- and the dialog gets
+			// the same 8 spent twice as halved, a `--consent-dialog-header-gap` of 4
+			// and then 4 of margin on the second child. Measured box to box both live
+			// surfaces sit 8 apart, so the step is one number here even though the web
+			// arrives at it two ways. The disclosure is the exception at 4, because that
+			// sheet's `.description` declares `margin: .25rem 0 0` under the heading and
+			// its `.header` declares no gap.
+			//
+			// Only the banner spends the step on its bottom edge, because only the
+			// banner keeps one text in this band: its copy scrolls, which is the
+			// mobile-only guard for a host whose notice runs past the card where the web
+			// keeps both texts together. The split costs the banner nothing, because the
+			// scroll content already leaves a card-padding run beneath its content, which
+			// is the 16 the web header keeps under its copy here. The band still reads 16
+			// above the heading, 8 down to the copy, and 16 under it.
 			header: {
-				// The banner puts 8 between its heading and its copy and the dialog 4;
-				// the disclosure puts 4 too, because `.description` carries
-				// `margin: .25rem 0 0` under the heading rather than the band
-				// declaring a gap. It is the only band with a rule under it:
-				// `.header` draws a `border-bottom` in the border token, which is what
-				// separates the heading from the segmented control below it.
+				// The disclosure is the only band with a rule under it: `.header` draws a
+				// `border-bottom` in the border token, which is what separates its
+				// heading from the segmented control below it.
 				borderBottomColor: colors.border,
 				borderBottomWidth: facts.headerRuleWidth,
 				gap: facts.headerGap,
-				// Two longhands rather than `padding` plus an override, because React
+				// Three longhands rather than `padding` plus an override, because React
 				// Native resolves a longhand over a shorthand whichever order they are
-				// written in: `padding` here with a `paddingVertical: 0` under it would
-				// have quietly flattened the dialog's own 24 of heading inset to pay for
-				// a number the drawer does not use.
+				// written in: `padding` here with a `paddingBottom` under it would have
+				// quietly moved whichever edge the presentation did not mean to spend.
+				paddingBottom: facts.headerPaddingBottom,
 				paddingHorizontal: facts.headerPaddingHorizontal,
-				paddingVertical: facts.headerPaddingVertical,
+				paddingTop: facts.headerPaddingTop,
 			},
 			label: {
 				...textStyle(typography.label, colors.primary),
