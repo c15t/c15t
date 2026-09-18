@@ -1,0 +1,101 @@
+/* Vendor rows nested inside a category's accordion content. Resolve
+   defaults at use sites so imports cannot override one another. */
+
+@layer components {
+	/* A fieldset, so the legend names the group. Browser defaults are reset
+	   before the list's own border and spacing apply. */
+	.root:not(:global(.headless)) {
+		display: grid;
+		gap: var(--vendor-list-gap, var(--c15t-space-xs));
+		min-inline-size: 0;
+		margin: var(--vendor-list-margin-top, var(--c15t-space-sm)) 0 0;
+		padding: var(--vendor-list-padding-top, var(--c15t-space-sm)) 0 0;
+		border: 0;
+		border-top: 1px solid var(--vendor-list-border-color, var(--c15t-border));
+	}
+
+	:global(.c15t-dark) .root:not(:global(.headless)) {
+		border-top-color: var(--vendor-list-border-color-dark, var(--c15t-border));
+	}
+
+	.title:not(:global(.headless)) {
+		margin: 0;
+		padding: 0;
+		font-size: var(--vendor-list-title-size, var(--c15t-font-size-xs));
+		font-weight: var(--c15t-font-weight-medium);
+		line-height: var(--c15t-line-height-tight);
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		color: var(--vendor-list-title-color, var(--c15t-text-muted));
+	}
+
+	.hint:not(:global(.headless)) {
+		margin: 0;
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+		color: var(--vendor-list-hint-color, var(--c15t-text-muted));
+	}
+
+	.item:not(:global(.headless)) {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: start;
+		gap: var(--vendor-list-item-gap, var(--c15t-space-xs));
+		padding: var(--vendor-list-item-padding, var(--c15t-space-xs)) 0;
+	}
+
+	.item:not(:global(.headless)) + .item:not(:global(.headless)) {
+		border-top: 1px solid var(--vendor-list-border-color, var(--c15t-border));
+	}
+
+	:global(.c15t-dark)
+		.item:not(:global(.headless))
+		+ .item:not(:global(.headless)) {
+		border-top-color: var(--vendor-list-border-color-dark, var(--c15t-border));
+	}
+
+	.header:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		min-width: 0;
+	}
+
+	.name:not(:global(.headless)) {
+		margin: 0;
+		font-size: var(--vendor-list-name-size, var(--c15t-font-size-sm));
+		font-weight: var(--c15t-font-weight-medium);
+		line-height: var(--c15t-line-height-tight);
+		color: var(--vendor-list-name-color, var(--c15t-text));
+	}
+
+	:global(.c15t-dark) .name:not(:global(.headless)) {
+		color: var(--vendor-list-name-color-dark, var(--c15t-text));
+	}
+
+	.description:not(:global(.headless)) {
+		margin: 0;
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+		color: var(--vendor-list-description-color, var(--c15t-text-muted));
+	}
+
+	.link:not(:global(.headless)) {
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+		color: var(--vendor-list-link-color, var(--c15t-primary));
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
+	}
+
+	.link:not(:global(.headless)):focus-visible {
+		outline: 2px solid var(--vendor-list-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline-offset: 2px;
+		border-radius: var(--c15t-radius-sm);
+	}
+
+	.control:not(:global(.headless)) {
+		align-self: center;
+		flex-shrink: 0;
+	}
+}

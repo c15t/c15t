@@ -11,7 +11,7 @@ import type {
 	PromptPresentation,
 	TranslationConfig,
 } from '@c15t/core';
-import { evaluateConsent } from '@c15t/core';
+import { evaluateConsent, extractConsentNamesFromCondition } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
 import { useConsentManagerDraft } from '../draft';
@@ -20,6 +20,7 @@ import {
 	useRegisterConsentCategories,
 	useBranding,
 	useConsents,
+	useDeclaredVendors,
 	useModel,
 	usePromptPresentation,
 	usePolicyCategories,
@@ -74,6 +75,20 @@ const DEFAULT_CONSENT_TYPES: ConsentType[] = [
 	},
 ];
 
+/** Whether a category condition contains a `not` anywhere in its tree. */
+const hasNegation = function hasNegation(
+	condition: HasCondition<AllConsentNames>
+): boolean {
+	if (typeof condition === 'string') {
+		return false;
+	}
+	if ('not' in condition) {
+		return true;
+	}
+	const branches = 'and' in condition ? condition.and : condition.or;
+	return (Array.isArray(branches) ? branches : [branches]).some(hasNegation);
+};
+
 const toTranslationConfig = function toTranslationConfig(
 	resolved: ReturnType<typeof useTranslations>
 ): TranslationConfig {
@@ -106,6 +121,7 @@ export const useConsentManager = function useConsentManager() {
 	const policyDialog = usePreferencesPresentation();
 	const policyScopeMode = usePolicyScopeMode();
 	const { draft, save: saveKernelConsents } = useConsentManagerDraft();
+	const declaredVendors = useDeclaredVendors();
 	const setKernelActiveUI = useSetActiveUI();
 	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
 	const translations = useTranslations();
@@ -167,6 +183,30 @@ export const useConsentManager = function useConsentManager() {
 		[draft, consentCategories]
 	);
 
+	const setSelectedVendor = useCallback(
+		(vendorId: string, granted: boolean) => {
+			draft.setVendor(vendorId, granted);
+		},
+		[draft]
+	);
+
+	/**
+	 * Presentable vendors whose category condition names this category.
+	 * A condition that negates a category has no row to sit under: turning
+	 * that category on would deactivate the vendor, so such vendors gate but
+	 * are not listed.
+	 */
+	const getDisplayedVendors = useCallback(
+		(category: AllConsentNames) =>
+			declaredVendors.filter(
+				(vendor) =>
+					vendor.presentable &&
+					!hasNegation(vendor.category) &&
+					extractConsentNamesFromCondition(vendor.category).includes(category)
+			),
+		[declaredVendors]
+	);
+
 	const updateConsentCategories = useRegisterConsentCategories();
 
 	const subscribeToConsentChanges = useCallback(
@@ -185,6 +225,7 @@ export const useConsentManager = function useConsentManager() {
 		effectivePermissions: snapshot.effectivePermissions,
 		explicitChoice: snapshot.explicitChoice,
 		getDisplayedConsents,
+		getDisplayedVendors,
 		has,
 		iab: snapshot.iab,
 		manager: null,
@@ -204,10 +245,14 @@ export const useConsentManager = function useConsentManager() {
 		saveConsents,
 		selectedConsentTypes: draft.values,
 		selectedConsents: draft.values,
+		selectedVendors: draft.vendors,
 		setActiveUI,
 		setSelectedConsent,
+		setSelectedVendor,
 		subscribeToConsentChanges,
 		translationConfig,
 		updateConsentCategories,
+		vendorChoice: snapshot.vendorChoice,
+		vendors: declaredVendors,
 	};
 };

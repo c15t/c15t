@@ -58,6 +58,25 @@ group: reference
   restricted by the current privacy settings." The switch still reflects the
   saved value; the effective permission is off.
 
+  ### Vendors
+
+  When the provider declares `vendors`, each category's expanded description
+  ends with a "Vendors" group: one row per vendor whose category condition
+  names that category, with the vendor's name, description, a privacy policy
+  link and a switch. Vendor switches edit the same draft as the category
+  switches and record on Save. Saving with one vendor off denies that vendor
+  only; the category stays granted and its other vendors keep loading. While
+  the category is off in the draft the vendor switches are disabled, with the
+  hint "Turn on this category to choose vendors." A vendor declared
+  `disabled`, or one that only falls under `necessary`, is listed without a
+  switch. Accept all and Reject all clear every vendor denial, including one
+  staged but not yet saved. Under an `iab` policy no vendor rows render.
+  Vendors that are only referenced by a script slug, without a name and
+  privacy policy URL, still gate loading but are not listed, and so does a
+  vendor whose condition negates a category, since no category row can
+  host it. See
+  [vendor-level consent](/docs/integrations/vendor-consent).
+
   ### Actions
 
   The preference center always renders Reject all, Accept all and Save, with
@@ -75,8 +94,10 @@ group: reference
   writing a consent record.
 
   For a fully custom preference center, `useConsentDraft()` returns the same
-  draft: `values`, `displayedCategories`, `isDirty`, `isStale`, `set`,
-  `update`, `acceptAll`, `rejectAll`, `save` and `reset`.
+  draft: `values`, `displayedCategories`, `vendors`, `isDirty`, `isStale`,
+  `set`, `update`, `setVendor`, `acceptAll`, `rejectAll`, `save` and `reset`.
+  `useDeclaredVendors()`, `useVendorChoice()` and `useVendorAllowed(id)` read
+  the declared list, the recorded denials and one vendor's effective result.
 </section>
 
 <section id="accessibility">
@@ -85,7 +106,8 @@ group: reference
   Each row is a disclosure: a button that expands the category description
   and a switch beside it, so a visitor can read the description without
   changing the choice. Each switch has the category title as its accessible
-  name. The policy-change alert uses `role="alert"`, and a restriction note is
+  name. Vendor rows form a `group` labelled "Vendors"; each vendor switch is
+  named "Allow" followed by the vendor name, and described by the vendor's name element. The policy-change alert uses `role="alert"`, and a restriction note is
   an `output` element linked to its switch through `aria-describedby`. The
   root's `dir` attribute follows the active language.
 </section>
@@ -97,7 +119,8 @@ group: reference
   draft and accepts `noStyle`, `disableAnimation` and `uiSource`. `Accordion`
   and `AccordionItems` render the stock rows; `AccordionItem`,
   `AccordionTrigger`, `AccordionTriggerInner`, `AccordionContent`,
-  `AccordionArrow` and `Switch` build your own. `PolicyActions` renders the
+  `AccordionArrow` and `Switch` build your own; `VendorList` renders one
+  category's vendor rows and takes a `category` prop. `PolicyActions` renders the
   resolved actions in `Footer` and `FooterSubGroup` and accepts `renderAction`
   to replace one button; `AcceptAllButton`, `RejectButton`, `SaveButton` and
   `CustomizeButton` are the individual buttons.
@@ -130,8 +153,10 @@ group: reference
   Provider component slots for the stock structure are `manager.root`,
   `manager.footer`, `manager.actionGroup`, `accordion.root`,
   `accordion.triggerRow`, `accordion.title`, `accordion.control`,
-  `accordion-item.root`, `accordion-item.trigger`, `accordion-item.content`
-  and `tag.manager`.
+  `accordion-item.root`, `accordion-item.trigger`, `accordion-item.content`,
+  `vendor-list.root`, `vendor-list.title`, `vendor-list.item`,
+  `vendor-list.header`, `vendor-list.name`, `vendor-list.description`,
+  `vendor-list.link`, `vendor-list.control` and `tag.manager`.
 </section>
 
 <section id="verify">

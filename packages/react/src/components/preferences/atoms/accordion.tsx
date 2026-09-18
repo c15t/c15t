@@ -18,6 +18,8 @@ import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useTheme } from '~/hooks/use-theme';
 
+import { ConsentWidgetVendorList } from './vendor-list';
+
 interface ConsentWidgetAccordionContextValue {
 	noStyle?: boolean;
 	onToggleItem: (value: string, open: boolean) => void;
@@ -264,6 +266,10 @@ const ConsentWidgetAccordionItems = () => {
 				viewportSlotKey="accordion.contentViewport"
 			>
 				{consentTypes[consent.name]?.description ?? consent.description}
+				<ConsentWidgetVendorList
+					category={consent.name}
+					noStyle={noStyle}
+				/>
 			</ConsentWidgetAccordionContent>
 		</PreferenceItem.Root>
 	));
@@ -290,8 +296,11 @@ const Accordion = ConsentWidgetAccordion;
 const Switch = ConsentWidgetSwitch;
 const AccordionItems = ConsentWidgetAccordionItems;
 const AccordionItem = ConsentWidgetAccordionItem;
+const VendorList = ConsentWidgetVendorList;
 
 export {
+	ConsentWidgetVendorList,
+	VendorList,
 	Accordion,
 	AccordionArrow,
 	AccordionContent,

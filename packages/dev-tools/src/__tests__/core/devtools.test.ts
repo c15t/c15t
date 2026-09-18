@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDevTools } from '../../index';
 import type { DevToolsInstance } from '../../index';
-import { choiceRecords } from '../helpers/kernel';
+import { choiceRecords, policyResolution } from '../helpers/kernel';
 
 const instances: DevToolsInstance[] = [];
 
@@ -304,5 +304,65 @@ describe('createDevTools', () => {
 		expect(second.getState().snapshot.effectivePermissions.functionality).toBe(
 			true
 		);
+	});
+});
+
+describe('vendors on the consents tab', () => {
+	const meta = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		presentable: true,
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+		source: 'config' as const,
+	};
+	const denied = {
+		confirmedAt: Date.now() - 1,
+		denied: ['meta-pixel'],
+		version: 1 as const,
+	};
+
+	it('labels each vendor with what the gate answers', () => {
+		const analytics = {
+			...meta,
+			category: 'measurement' as const,
+			id: 'google-analytics',
+			name: 'Google Analytics',
+		};
+		const kernel = createConsentKernel({
+			initialPolicyResolution: policyResolution(),
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: false }),
+				vendorChoice: denied,
+			},
+			initialVendors: { declared: [analytics, meta], listVersion: null },
+		});
+		const tools = createInstance(kernel);
+		tools.open();
+		const rows = [
+			...(tools.element?.querySelectorAll('.c15t-dev-tools__check') ?? []),
+		].map((row) => row.textContent);
+		expect(rows.find((row) => row?.includes('Meta Pixel'))).toContain('Denied');
+		// Not denied, but its category is off: the gate still blocks it.
+		expect(rows.find((row) => row?.includes('Google Analytics'))).toContain(
+			'Blocked by category'
+		);
+	});
+
+	it('hides the same vendors under an IAB policy', () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: policyResolution({ model: 'iab' }),
+			initialRecords: { vendorChoice: denied },
+			initialVendors: { declared: [meta], listVersion: null },
+		});
+		// The kernel derives `model: 'iab'` from an enabled IAB module, not from
+		// the policy rule alone.
+		kernel.set.iab({ enabled: true });
+		const tools = createInstance(kernel);
+		tools.open();
+		tools.setActiveTab('consents');
+		expect(tools.element?.textContent).toContain('Use the IAB tab');
+		expect(tools.element?.textContent).not.toContain('Meta Pixel');
+		expect(tools.element?.textContent).not.toContain('Denied');
 	});
 });

@@ -314,6 +314,166 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 	});
 });
 
+test('the vendor draft ignores a stale denial for a vendor declared disabled', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'disabled-vendor-draft' }
+	);
+	const Probe = () => {
+		const draft = useConsentDraft();
+		return <output>{JSON.stringify(draft.vendors)}</output>;
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: {
+					...fixture,
+					initialRecords: {
+						...fixture.initialRecords,
+						vendorChoice: {
+							confirmedAt: (fixture.now ?? 1) - 1,
+							denied: ['meta-pixel'],
+							version: 1,
+						},
+					},
+				},
+				vendors: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	// Every gate allows the vendor, so the draft must not report it as off.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"meta-pixel":true}');
+});
+
+test('setVendor ignores a vendor declared disabled', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'disabled-vendor-set' }
+	);
+	const Probe = () => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, vendors: draft.vendors })}
+				</output>
+				<button
+					onClick={() => draft.setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+			</>
+		);
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: fixture,
+				vendors: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	// The kernel would drop the grant on save, so nothing is staged.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+});
+
+test('a vendor turning toggleable while the draft is dirty marks it stale', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'toggleable-flip' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ enable }: { enable: () => void }) => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, stale: draft.isStale })}
+				</output>
+				<button
+					onClick={() => draft.set('marketing', false)}
+					type="button"
+				>
+					Edit
+				</button>
+				<button
+					onClick={enable}
+					type="button"
+				>
+					Enable vendor
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [disabled, setDisabled] = useState(true);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					vendors: [{ ...vendor, disabled }],
+				}}
+			>
+				<Probe enable={() => setDisabled(false)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Edit' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":true,"stale":false}');
+	// The same id becomes toggleable: the set of switches the draft may stage
+	// changed under an unsaved edit, so review is required.
+	await screen.getByRole('button', { name: 'Enable vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"stale":true');
+});
+
 test('drafts use configured categories and require review when the displayed scope changes', async () => {
 	const Probe = ({ expand }: { expand: () => void }) => {
 		const draft = useConsentDraft();

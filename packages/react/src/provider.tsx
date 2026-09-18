@@ -4,6 +4,7 @@ import {
 	extractConsentNamesFromCondition,
 	createConsentKernel,
 	kernelConfigToInitResponse,
+	resolveVendors,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
@@ -26,6 +27,7 @@ import type {
 	StorageConfig,
 	TranslationsResponse,
 	User,
+	Vendor,
 } from '@c15t/core';
 import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import type { Script } from '@c15t/core/modules/script-loader';
@@ -158,6 +160,14 @@ export interface ConsentProviderOptions extends Pick<
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
 	scripts?: Script[];
+	/**
+	 * Vendors offered for vendor-level consent outside IAB. Each sits inside a
+	 * category; a visitor can grant the category and still turn one vendor
+	 * off. Scripts, network rules and iframes name a vendor through `vendor`
+	 * or `data-vendor`. Merged with vendors the backend returns and with slugs
+	 * found on scripts and rules; presentation declared here wins.
+	 */
+	vendors?: Vendor[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
 	/** Discover and gate DOM iframes with data-category. Enabled by default. */
@@ -185,9 +195,14 @@ export interface ConsentProviderOptions extends Pick<
  */
 export type ExternalRuntimeProviderOptions = Omit<
 	ConsentProviderOptions,
-	'mode'
+	'mode' | 'vendors'
 > & {
 	mode?: ConsentProviderOptions['mode'];
+	/**
+	 * Not accepted here: the runtime owner declares vendors through
+	 * `createConsentRuntime({ vendors })`, and the kernel carries them.
+	 */
+	vendors?: never;
 };
 
 /** The provider builds and owns its own kernel. */
@@ -473,6 +488,38 @@ const resolveInitialPolicyPending = function resolveInitialPolicyPending(
 	);
 };
 
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
+/**
+ * Declared vendors for the kernel: code declarations and script slugs merged
+ * over whatever a server prefetch already resolved. A resolved prefetch
+ * skips the initial `init()`, so nothing would merge backend vendors later.
+ */
+const resolveProviderVendors = function resolveProviderVendors(
+	options: ConsentProviderOptions,
+	integrations: readonly { vendor?: string; category: Script['category'] }[],
+	prefetch: KernelConfig
+): KernelConfig['initialVendors'] {
+	const declared = resolveVendors({
+		config: options.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnVendorDeclaration,
+		owners: integrations,
+	});
+	const listVersion = prefetch.initialVendors?.listVersion ?? null;
+	return declared.length > 0 || listVersion !== null
+		? { declared, listVersion }
+		: undefined;
+};
+
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
@@ -498,16 +545,32 @@ const createProviderKernel = function createProviderKernel(
 		() => kernelRef.current
 	);
 
+	const integrations = [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+	];
+	const initialVendors = resolveProviderVendors(
+		options,
+		integrations,
+		prefetch
+	);
+
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
 		inferredConsentCategories: [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		].flatMap((integration) =>
-			extractConsentNamesFromCondition(integration.category)
-		),
+			...integrations.flatMap((integration) =>
+				extractConsentNamesFromCondition(integration.category)
+			),
+			// A vendor declared in code or already resolved by a server prefetch
+			// makes its category selectable; a resolved prefetch skips init, so
+			// nothing would register it later.
+			...(initialVendors?.declared ?? []).flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+		],
+		initialVendors,
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
@@ -564,6 +627,21 @@ const useProviderCallbacks = function useProviderCallbacks(
 
 	useEffect(() => {
 		const subscriptions = [
+			// Vendors the backend declares arrive with init. Their categories
+			// become selectable the same way a code-declared vendor's do. The
+			// kernel's inferred set only grows, so a category that lost its last
+			// vendor stays selectable until remount; that matches how a removed
+			// script's category behaves today.
+			kernel.events.on('init:applied', ({ snapshot }) => {
+				const declared = snapshot.vendors?.declared ?? [];
+				if (declared.length > 0) {
+					kernel.set.registerConsentCategories(
+						declared.flatMap((vendor) =>
+							extractConsentNamesFromCondition(vendor.category)
+						)
+					);
+				}
+			}),
 			kernel.events.on(
 				'choice:recorded',
 				({ snapshot, confirmed, actionAt }) => {
@@ -668,6 +746,95 @@ const useProviderOptionSync = function useProviderOptionSync(
 		}
 		kernel.set.activeUI('none');
 	}, [enabled, kernel, owns]);
+
+	// `vendors` is a live option like `scripts`: a list supplied or replaced
+	// after the first render is merged into the kernel and its categories
+	// registered, so the preference center shows the rows. Scripts and rules
+	// are part of the same picture, since their slugs declare vendors too: a
+	// change to either recomputes the code-declared set.
+	const previousVendorsRef = useRef<string | null>(null);
+	// Slugs the provider's own scripts and rules declared last time. Only
+	// these are replaced on an update: a `useScriptLoader` or
+	// `useNetworkBlocker` hook elsewhere in the tree declares its own slugs
+	// and does not redeclare them when this list changes.
+	const ownedSlugsRef = useRef<ReadonlySet<string>>(new Set());
+	useEffect(() => {
+		if (!owns) {
+			return;
+		}
+		const owners = [
+			...(options.scripts ?? []),
+			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		];
+		const serialized = JSON.stringify([
+			options.vendors ?? [],
+			owners.map((owner) => [owner.vendor ?? null, owner.category]),
+		]);
+		const ownedNow = new Set(
+			owners.flatMap((owner) => (owner.vendor ? [owner.vendor] : []))
+		);
+		if (previousVendorsRef.current === null) {
+			previousVendorsRef.current = serialized;
+			ownedSlugsRef.current = ownedNow;
+			return;
+		}
+		if (previousVendorsRef.current === serialized) {
+			return;
+		}
+		previousVendorsRef.current = serialized;
+		const ownedBefore = ownedSlugsRef.current;
+		ownedSlugsRef.current = ownedNow;
+		// Resolved against the backend entries the kernel already holds, so a
+		// script that starts naming a backend vendor's slug attaches to that
+		// entry as an owner and survives the backend dropping it later. The
+		// owners they remembered are dropped first: the current scripts and
+		// rules are the whole owner set, and a stale owner would otherwise keep
+		// a vendor declared after both its script and the backend let it go.
+		const current = kernel.getSnapshot().vendors?.declared ?? [];
+		const declared = resolveVendors({
+			config: options.vendors,
+			existing: current.flatMap((vendor) => {
+				// A backend copy a config entry shadows counts too: replacing the
+				// config source restores it, so it needs the same cleanup.
+				const manifest =
+					vendor.source === 'manifest' ? vendor : vendor.shadowed;
+				if (manifest?.source !== 'manifest') {
+					return [];
+				}
+				const { ownerCategory: _stale, ...rest } = manifest;
+				return [rest];
+			}),
+			onWarn: warnVendorDeclaration,
+			owners,
+		});
+		// The provider owns the config source outright: its previous entries
+		// are replaced, so a vendor the parent removed disappears, while a
+		// backend entry a config copy shadowed comes back. Script entries are
+		// shared with hook-owned integrations, so only the slugs this
+		// provider's own scripts and rules named before are replaced; a slug
+		// another module declared stays.
+		kernel.set.vendors({ declared }, { replaceSource: 'config' });
+		const scriptEntries = declared.filter(
+			(vendor) => vendor.source === 'script'
+		);
+		const foreign = current.filter(
+			(vendor) =>
+				vendor.source === 'script' &&
+				!ownedBefore.has(vendor.id) &&
+				!ownedNow.has(vendor.id)
+		);
+		kernel.set.vendors(
+			{ declared: [...scriptEntries, ...foreign] },
+			{ replaceSource: 'script' }
+		);
+		if (declared.length > 0) {
+			kernel.set.registerConsentCategories(
+				declared.flatMap((vendor) =>
+					extractConsentNamesFromCondition(vendor.category)
+				)
+			);
+		}
+	}, [kernel, options.networkBlocker, options.scripts, options.vendors, owns]);
 
 	useEffect(() => {
 		const nodeEnv = (
