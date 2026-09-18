@@ -224,8 +224,8 @@ const withoutShadow = function withoutShadow(
  * A higher- or equal-priority copy replaces the entry and takes over what it
  * remembered: a config entry arriving over a backend one shadows it, one
  * arriving over a script fallback keeps the owners, and a newer copy of the
- * same source inherits both. A backend copy arriving under a config entry
- * becomes that entry's shadow instead.
+ * same source inherits the shadow. A backend copy arriving under a config
+ * entry becomes that entry's shadow instead.
  */
 const mergeEntry = function mergeEntry(
 	existing: ResolvedVendor,
@@ -250,7 +250,9 @@ const mergeEntry = function mergeEntry(
 	}
 	const next: ResolvedVendor = { ...incoming };
 	if (existing.source === incoming.source) {
-		next.ownerCategory ??= existing.ownerCategory;
+		// The shadow travels; the owners do not. A same-source refresh comes
+		// from a caller that resolved against the current scripts and rules,
+		// so an incoming copy without owners means nothing names the slug now.
 		next.shadowed ??= existing.shadowed;
 	} else if (existing.source === 'script') {
 		next.ownerCategory ??= existing.category;

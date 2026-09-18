@@ -242,6 +242,19 @@ describe('owner fallback across manifest replacement', () => {
 		).toEqual(['script']);
 	});
 
+	test('a same-source refresh without owners forgets the old owners', () => {
+		const owned = resolveVendors({
+			manifest: [meta],
+			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
+		});
+		expect(owned[0]?.ownerCategory).toBe('measurement');
+		// The script went away: a host re-resolves against the current owners.
+		const refreshed = mergeDeclaredVendors(owned, [
+			{ ...meta, presentable: true, source: 'manifest' },
+		]);
+		expect(refreshed[0]?.ownerCategory).toBeUndefined();
+	});
+
 	test('a backend list that drops a shadowed vendor drops the shadow too', () => {
 		const first = resolveVendors({
 			config: [{ ...meta, name: 'Meta (config)' }],
