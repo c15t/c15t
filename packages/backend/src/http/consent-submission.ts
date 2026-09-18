@@ -31,8 +31,9 @@
  * carries only the categories this act confirmed, each with its own
  * confirmation time and policy basis, and is stored as sent. The two must
  * agree where they overlap. `vendorChoice`, when present, is the complete
- * per-vendor grant map with one confirmation time; a grant for a vendor the
- * manifest does not declare is refused, a denial is kept.
+ * per-vendor grant map with one confirmation time, stored as sent: the
+ * client merges backend and code-declared vendors, so the manifest is not
+ * an allowlist for it.
  */
 
 import {
@@ -470,42 +471,17 @@ const checkChoice = (
 };
 
 /**
- * Refuses a vendor map that is later than the server clock or grants a vendor
- * the manifest does not declare. A grant for an undeclared vendor is refused
- * because it cannot be presented back to the subject; a denial is kept, since
- * a persistent refusal must remain possible for a vendor that was later
- * removed from the list. When the manifest declares no vendors at all, the
- * map is stored as sent: the client declared them in code.
+ * Refuses a vendor map that is later than the server clock. Nothing else is
+ * checked against the manifest: a client merges the backend's vendors with
+ * vendors it declares in code and sends the complete map, so an id the
+ * manifest does not list is expected, not an error. The map is stored as
+ * sent and read back the same way.
  */
 const checkVendorChoice = (
 	vendorChoice: VendorChoiceWire,
-	manifest: ConsentManifest,
 	now: number
-): BadRequestError | undefined => {
-	const timestampIssue = checkTimestamp(
-		vendorChoice.confirmedAt,
-		'vendorChoice.confirmedAt',
-		now
-	);
-	if (timestampIssue) {
-		return timestampIssue;
-	}
-	const declared = manifest.vendors;
-	if (!declared || declared.length === 0) {
-		return undefined;
-	}
-	const known = new Set(declared.map((vendor) => vendor.id));
-	const unknownGrants = Object.entries(vendorChoice.grants)
-		.filter(([id, granted]) => granted && !known.has(id))
-		.map(([id]) => id);
-	if (unknownGrants.length > 0) {
-		return new BadRequestError({
-			code: 'VENDOR_OUT_OF_SCOPE',
-			message: `vendorChoice grants vendors the manifest does not declare: ${unknownGrants.join(', ')}`,
-		});
-	}
-	return undefined;
-};
+): BadRequestError | undefined =>
+	checkTimestamp(vendorChoice.confirmedAt, 'vendorChoice.confirmedAt', now);
 
 const deriveConsentAction = (
 	raw: string | undefined,
@@ -756,7 +732,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 
 		const vendorChoice = cookieBanner?.vendorChoice;
 		if (vendorChoice) {
-			const issue = checkVendorChoice(vendorChoice, manifest, context.now);
+			const issue = checkVendorChoice(vendorChoice, context.now);
 			if (issue) {
 				return yield* issue;
 			}

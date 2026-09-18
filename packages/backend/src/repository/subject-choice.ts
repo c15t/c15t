@@ -197,13 +197,19 @@ export const decodePreferences = function decodePreferences(
 /**
  * What a row's `vendorChoice` column holds. `absent` covers rows written
  * before vendor consent existed and rows whose save declared no vendors.
+ *
+ * @internal
  */
 export type StoredVendorChoice =
 	| { kind: 'absent' }
 	| { kind: 'unreadable' }
 	| { kind: 'grants'; vendorChoice: VendorChoiceWire };
 
-/** What a row's `vendorChoice` column holds. See {@link StoredVendorChoice}. */
+/**
+ * What a row's `vendorChoice` column holds. See {@link StoredVendorChoice}.
+ *
+ * @internal
+ */
 export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
 	value: unknown
 ): StoredVendorChoice {
@@ -226,6 +232,7 @@ export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
 		: { kind: 'unreadable' };
 };
 
+/** @internal */
 export interface VendorSourceRow {
 	readonly type: string;
 	readonly givenAt: Date;
@@ -233,27 +240,28 @@ export interface VendorSourceRow {
 }
 
 /**
- * The newest vendor grant map across a subject's cookie-banner rows.
+ * The vendor grant map of a subject's most recent cookie-banner act.
  *
  * Unlike category receipts, a vendor map is one complete decision, so the
- * newest map by its own `confirmedAt` replaces earlier ones outright. Ties
- * keep the later row. Unreadable rows contribute nothing.
+ * map on the latest act by `givenAt` replaces every earlier one outright.
+ * `givenAt` is the act's time; the map's own `confirmedAt` travels with it
+ * but does not pick the winner, since a client may send them independently.
+ * Ties keep the later row. Unreadable rows contribute nothing.
+ *
+ * @internal
  */
 export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	rows: readonly VendorSourceRow[]
 ): VendorChoiceWire | null {
-	let newest: VendorChoiceWire | null = null;
-	const ordered = [...rows].sort(
-		(left, right) => left.givenAt.getTime() - right.givenAt.getTime()
-	);
-	for (const row of ordered) {
+	let newest: { givenAt: number; vendorChoice: VendorChoiceWire } | null = null;
+	for (const row of rows) {
 		if (row.type !== COOKIE_BANNER_TYPE || row.vendorChoice.kind !== 'grants') {
 			continue;
 		}
-		const candidate = row.vendorChoice.vendorChoice;
-		if (newest === null || candidate.confirmedAt >= newest.confirmedAt) {
-			newest = candidate;
+		const givenAt = row.givenAt.getTime();
+		if (newest === null || givenAt >= newest.givenAt) {
+			newest = { givenAt, vendorChoice: row.vendorChoice.vendorChoice };
 		}
 	}
-	return newest;
+	return newest?.vendorChoice ?? null;
 };
