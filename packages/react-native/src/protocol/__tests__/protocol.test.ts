@@ -79,7 +79,8 @@ interface FixtureFile {
 		| 'native-envelope'
 		| 'reset-consent'
 		| 'revision-trace'
-		| 'save-body';
+		| 'save-body'
+		| 'tc-string';
 	protocolVersion: number;
 	description: string;
 	notes: string[];
@@ -107,7 +108,8 @@ interface IndexEntry {
 		| 'native-envelope'
 		| 'reset-consent'
 		| 'revision-trace'
-		| 'save-body';
+		| 'save-body'
+		| 'tc-string';
 	protocolVersion: number;
 	sha256: string;
 }
@@ -303,6 +305,7 @@ describe('protocol fixtures', () => {
 				'reset-consent',
 				'revision-trace',
 				'save-body',
+				'tc-string',
 			]).toContain(fixture.kind);
 			expect(fixture.id.startsWith(`${fixture.kind}-`)).toBe(true);
 			expect(fixture.description.length).toBeGreaterThan(30);
@@ -310,6 +313,50 @@ describe('protocol fixtures', () => {
 			expect(Object.keys(fixture.input).length).toBeGreaterThan(0);
 			expect(Object.keys(fixture.expected).length).toBeGreaterThan(0);
 		}
+	});
+
+	/**
+	 * The `tc-string` shape, asserted from the file rather than from the generator that
+	 * wrote it. A runner branches on `population` and `expects`, so those two have to
+	 * agree with each other and the encode half has to be a real string, or a core
+	 * would be able to skip the direction its fixture never actually asked for.
+	 */
+	describe('tc-string fixtures', () => {
+		const tcString = fixtures.filter((fixture) => fixture.kind === 'tc-string');
+
+		test('both populations are present', () => {
+			const populations = new Set(
+				tcString.map((fixture) => fixture.population)
+			);
+			expect([...populations].sort()).toEqual(['decode-coverage', 'parity']);
+		});
+
+		test('every vector states what to assert, and the two halves are present', () => {
+			expect(tcString.length).toBeGreaterThan(0);
+			for (const fixture of tcString) {
+				const encoded = fixture.expected.encode as {
+					segmentTypes: number[];
+					segments: string[];
+					tcString: string;
+				};
+				const decoded = fixture.expected.decode as {
+					fields: Record<string, unknown>;
+				};
+				expect(encoded.tcString).toMatch(
+					/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/u
+				);
+				expect(encoded.segments).toEqual(encoded.tcString.split('.'));
+				expect(encoded.segmentTypes).toHaveLength(encoded.segments.length);
+				expect(Object.keys(decoded.fields).length).toBeGreaterThan(0);
+				// The one thing that makes the two populations usable as data: an
+				// encoder only ever has to reproduce a parity vector.
+				expect(fixture.expects).toEqual({
+					decode: true,
+					encode: fixture.population === 'parity',
+				});
+				expect(fixture.oracle.package).toBe('@iabtechlabtcf/core');
+			}
+		});
 	});
 
 	test('every fixture speaks a supported protocol', () => {

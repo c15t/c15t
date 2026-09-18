@@ -1,0 +1,356 @@
+{
+	"description": "One publisher restriction whose vendors are scattered so the encoder emits three range entries under a single purpose, two singles and one pair, with ids past 40 throughout.",
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
+	"expected": {
+		"decode": {
+			"fields": {
+				"consentLanguage": "EN",
+				"consentScreen": 1,
+				"created": 1769990400000,
+				"cmpId": 28,
+				"cmpVersion": 1,
+				"isServiceSpecific": true,
+				"lastUpdated": 1769990400000,
+				"numCustomPurposes": 0,
+				"policyVersion": 5,
+				"publisherConsents": [],
+				"publisherCountryCode": "US",
+				"publisherCustomConsents": [],
+				"publisherCustomLegitimateInterests": [],
+				"publisherLegitimateInterests": [],
+				"publisherRestrictions": [
+					{
+						"purposeId": 9,
+						"restrictionType": 1,
+						"vendorIds": [
+							41, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
+							75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+							91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105,
+							106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118,
+							119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131,
+							132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
+							145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157,
+							158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170,
+							171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183,
+							184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196,
+							197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209,
+							210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+							223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235,
+							236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248,
+							249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261,
+							262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+							275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287,
+							288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300,
+							700
+						]
+					}
+				],
+				"purposeConsents": [1],
+				"purposeLegitimateInterests": [],
+				"purposeOneTreatment": false,
+				"specialFeatureOptins": [],
+				"supportOOB": false,
+				"useNonStandardTexts": false,
+				"vendorConsents": [41],
+				"vendorLegitimateInterests": [],
+				"vectorMaxIds": {
+					"publisherCustomConsents": 0,
+					"vendorConsents": 41,
+					"vendorLegitimateInterests": 0,
+					"vendorsAllowed": 0,
+					"vendorsDisclosed": 0
+				},
+				"version": 2,
+				"vendorListVersion": 142,
+				"vendorsAllowed": [],
+				"vendorsDisclosed": []
+			}
+		},
+		"encode": {
+			"segmentTypes": [0, 1, 3],
+			"segments": [
+				"CQe_xoAQe_xoAAcABBENCOFgAIAAAAAAACiQAUgAAAAAAgAAABJQAwAUwA8ASwBXgAAA",
+				"IAAA",
+				"YAAAAAAAAAAA"
+			],
+			"tcString": "CQe_xoAQe_xoAAcABBENCOFgAIAAAAAAACiQAUgAAAAAAgAAABJQAwAUwA8ASwBXgAAA.IAAA.YAAAAAAAAAAA"
+		}
+	},
+	"id": "tc-string-decode-restrictions-mixed-single-and-range",
+	"input": {
+		"encodingOptions": {
+			"isForVendors": false,
+			"version": 2
+		},
+		"model": {
+			"consentLanguage": "EN",
+			"consentScreen": 1,
+			"created": 1769990400000,
+			"cmpId": 28,
+			"cmpVersion": 1,
+			"isServiceSpecific": true,
+			"lastUpdated": 1769990400000,
+			"numCustomPurposes": 0,
+			"publisherConsents": [],
+			"publisherCountryCode": "US",
+			"publisherCustomConsents": [],
+			"publisherCustomLegitimateInterests": [],
+			"publisherLegitimateInterests": [],
+			"publisherRestrictions": [
+				{
+					"purposeId": 9,
+					"restrictionType": 1,
+					"vendorIds": [41, 60, 300, 700]
+				}
+			],
+			"purposeConsents": [1],
+			"purposeLegitimateInterests": [],
+			"purposeOneTreatment": false,
+			"specialFeatureOptins": [],
+			"supportOOB": false,
+			"useNonStandardTexts": false,
+			"vendorConsents": [41],
+			"vendorLegitimateInterests": [],
+			"version": 2,
+			"vendorsAllowed": [],
+			"vendorsDisclosed": []
+		},
+		"now": 1770000000000,
+		"vendorList": {
+			"language": "EN",
+			"tcfPolicyVersion": 5,
+			"vendorListVersion": 142,
+			"vendors": [
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 1,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 2,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 3,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 4,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 5,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 6,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 7,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 8,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 9,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 10,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 11,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 12,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 41,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 42,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 43,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 44,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 45,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 46,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 47,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 60,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 300,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 500,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				},
+				{
+					"features": [],
+					"flexiblePurposes": [7, 9],
+					"id": 700,
+					"legIntPurposes": [2, 7, 9, 10],
+					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+					"specialFeatures": [],
+					"specialPurposes": []
+				}
+			]
+		}
+	},
+	"kind": "tc-string",
+	"notes": [
+		"Population decode-coverage: this model reaches past what @c15t/iab writes, so expects.encode is false and only the decode half is graded. An encoder that cannot produce this input is not wrong.",
+		"This is the vector that pins numEntries above 1 with both single-word and pair-word entries in the same purpose: 41 alone, then a range, then 700 alone. It also pins what a range means on the way out, which is every id in the interval rather than the ids that went in.",
+		"The restriction survives at all only because every vendor in input.vendorList declares purpose 9 in flexiblePurposes. Remove that declaration and the reference silently encodes a zero restriction count.",
+		"publisherRestrictions for purpose 9 does not round-trip: the encoder merges the declared ids into one inclusive range whenever the vendor list names no vendor in the gap, and the decoder materialises every id in it, so 41, 60, 300, 700 reads back as 41, 60-300, 700. A native decoder must reproduce the extra ids exactly, and a native encoder that emitted the tighter ranges the input implies would produce a different string.",
+		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
+	],
+	"oracle": {
+		"package": "@iabtechlabtcf/core",
+		"repository": "InteractiveAdvertisingBureau/iabtcf-es",
+		"version": "1.5.21",
+		"encodeOptions": {
+			"isForVendors": false,
+			"version": 2
+		}
+	},
+	"population": "decode-coverage",
+	"protocolVersion": 1
+}
