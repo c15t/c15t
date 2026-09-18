@@ -40,7 +40,11 @@ export interface ConsentDraftHandle {
 	isStale: boolean;
 	set: (category: AllConsentNames, value: boolean) => void;
 	update: (patch: Partial<ConsentState>) => void;
-	/** Stage one vendor's grant. Recorded by the next save. */
+	/**
+	 * Stage one vendor's grant. Recorded by the next save. Ignored for a
+	 * vendor that is not declared or is declared `disabled`, since the kernel
+	 * would drop the grant on save.
+	 */
 	setVendor: (vendorId: string, granted: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
@@ -87,6 +91,21 @@ const seedVendors = function seedVendors(
 	}
 	return grants;
 };
+/** Ids a save may toggle: declared and not `disabled`, mirroring the kernel. */
+const toggleableVendorIds = function toggleableVendorIds(
+	snapshot: ConsentSnapshot
+): ReadonlySet<string> {
+	const ids = new Set<string>();
+	if (snapshot.model === 'iab') {
+		return ids;
+	}
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			ids.add(vendor.id);
+		}
+	}
+	return ids;
+};
 const sameGrants = function sameGrants(
 	left: Readonly<Record<string, boolean>>,
 	right: Readonly<Record<string, boolean>>
@@ -127,6 +146,7 @@ const createDraftStore = function createDraftStore(
 	let source = kernel.getSnapshot();
 	let base = seed(source, defaults);
 	let baseVendors = seedVendors(source);
+	let toggleable = toggleableVendorIds(source);
 	let { fingerprint } = source.evaluationPolicy.choice;
 	let current: DraftSnapshot = {
 		displayedCategories: [
@@ -157,6 +177,7 @@ const createDraftStore = function createDraftStore(
 		source = kernel.getSnapshot();
 		base = seed(source, defaults);
 		baseVendors = seedVendors(source);
+		toggleable = toggleableVendorIds(source);
 		({ fingerprint } = source.evaluationPolicy.choice);
 		publish({
 			displayedCategories: [
@@ -195,8 +216,10 @@ const createDraftStore = function createDraftStore(
 		const vendors = { ...current.vendors };
 		let changed = false;
 		for (const [id, granted] of Object.entries(patch)) {
+			// A `disabled` vendor is listed but not toggleable: the kernel drops
+			// a grant for it on save, so staging one would only dirty the draft.
 			if (
-				Object.keys(baseVendors).includes(id) &&
+				toggleable.has(id) &&
 				typeof granted === 'boolean' &&
 				vendors[id] !== granted
 			) {
