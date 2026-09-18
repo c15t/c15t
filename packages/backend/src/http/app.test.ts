@@ -769,7 +769,7 @@ for (const engine of ENGINES) {
 			assert.strictEqual(rows[0]?.ipAddress, '203.0.113.0');
 		});
 
-		it('stores free-form metadata such as an experiment arm and echoes it', async () => {
+		it('echoes free-form metadata such as an experiment arm', async () => {
 			await seed();
 			const metadata = {
 				experiment: {
