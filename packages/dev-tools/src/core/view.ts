@@ -6,6 +6,7 @@ import type {
 	KernelOverrides,
 } from '@c15t/core';
 import {
+	deniedVendorIds,
 	CONSENT_CATEGORIES,
 	resolveConsentPresentation,
 	subscribeIABControls,
@@ -90,7 +91,9 @@ const renderVendors = function renderVendors(
 			? `Vendor list ${snapshot.vendors.listVersion}. A denied vendor stays blocked inside a granted category.`
 			: 'A denied vendor stays blocked inside a granted category.'
 	);
-	const denied = new Set(snapshot.vendorChoice?.denied);
+	// The kernel's own gate view: a stale denial for a vendor now declared
+	// `disabled` does not count, so DevTools agrees with what loads.
+	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
 	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
 	for (const vendor of declared) {
 		const item = createElement(document, 'div', 'c15t-dev-tools__check');
