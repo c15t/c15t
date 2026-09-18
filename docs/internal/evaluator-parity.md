@@ -111,7 +111,7 @@ changeset, not just a green suite.
    Then add `model: "iab"` scenarios. Fixture expectations come from the real
    kernel, so the regenerated JSON is the corrected answer, not a hand-written
    one.
-2. Regenerate (`bun run --cwd packages/react-native generate:protocol-fixtures`)
+2. Regenerate (`bun run --cwd packages/react-native generate:fixtures`)
    and let the Swift and Kotlin claim tests fail. Fix the kernels until they
    pass. Do not edit an expectation to make a core pass.
 3. Record here what the fix cost in stored-envelope shape or wire reasons, and
