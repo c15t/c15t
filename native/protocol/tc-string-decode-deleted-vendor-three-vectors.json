@@ -1,5 +1,5 @@
 {
-	"description": "purposeOneTreatment set on a global-scope string, which the TCF policy forbids and the reference encodes anyway.",
+	"description": "Three withdrawn vendors spread across all three vendor vectors at once, on a global string that carries an allowed segment, which is where the pre-encoder proves it only prunes two of them.",
 	"expected": {
 		"decode": {
 			"fields": {
@@ -18,41 +18,46 @@
 				"publisherCustomLegitimateInterests": [],
 				"publisherLegitimateInterests": [],
 				"publisherRestrictions": [],
-				"purposeConsents": [2, 3, 4],
-				"purposeLegitimateInterests": [],
-				"purposeOneTreatment": true,
+				"purposeConsents": [1],
+				"purposeLegitimateInterests": [2],
+				"purposeOneTreatment": false,
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
-					"vendorConsents": 0,
-					"vendorLegitimateInterests": 0,
-					"vendorsAllowed": 0,
-					"vendorsDisclosed": 0
+					"vendorConsents": 1,
+					"vendorLegitimateInterests": 46,
+					"vendorsAllowed": 700,
+					"vendorsDisclosed": 700
 				},
-				"vendorConsents": [],
-				"vendorLegitimateInterests": [],
+				"vendorConsents": [1],
+				"vendorLegitimateInterests": [46],
 				"vendorListVersion": 142,
-				"vendorsAllowed": [],
-				"vendorsDisclosed": [],
+				"vendorsAllowed": [46, 300, 700],
+				"vendorsDisclosed": [1, 46, 300, 700],
 				"version": 2
 			}
 		},
 		"encode": {
-			"segmentTypes": [0, 1],
-			"segments": ["CQe_xoAQe_xoAAcABBENCOFAAHAAAAAAAKiQAAAAAAAA", "IAAA"],
-			"tcString": "CQe_xoAQe_xoAAcABBENCOFAAHAAAAAAAKiQAAAAAAAA.IAAA"
+			"segmentTypes": [0, 1, 2, 3],
+			"segments": [
+				"CQe_xoAQe_xoAAcABBENCOFAAIAAAEAAACiQAAoAXQAQAXAAAAAA",
+				"IFeQBAAAgAuAJYArwAAA",
+				"QFeQAwAXAEsAV4AA",
+				"YAAAAAAAAAAA"
+			],
+			"tcString": "CQe_xoAQe_xoAAcABBENCOFAAIAAAEAAACiQAAoAXQAQAXAAAAAA.IFeQBAAAgAuAJYArwAAA.QFeQAwAXAEsAV4AA.YAAAAAAAAAAA"
 		}
 	},
 	"expects": {
 		"decode": true,
 		"encode": false
 	},
-	"id": "tc-string-decode-purpose-one-treatment-global",
+	"id": "tc-string-decode-deleted-vendor-three-vectors",
 	"input": {
 		"encodingOptions": {
-			"isForVendors": false,
+			"isForVendors": true,
 			"version": 2
 		},
 		"model": {
@@ -70,16 +75,16 @@
 			"publisherCustomLegitimateInterests": [],
 			"publisherLegitimateInterests": [],
 			"publisherRestrictions": [],
-			"purposeConsents": [2, 3, 4],
-			"purposeLegitimateInterests": [],
-			"purposeOneTreatment": true,
+			"purposeConsents": [1],
+			"purposeLegitimateInterests": [2],
+			"purposeOneTreatment": false,
 			"specialFeatureOptins": [],
-			"supportOOB": false,
+			"supportOOB": true,
 			"useNonStandardTexts": false,
-			"vendorConsents": [],
-			"vendorLegitimateInterests": [],
-			"vendorsAllowed": [],
-			"vendorsDisclosed": [],
+			"vendorConsents": [1, 300, 700],
+			"vendorLegitimateInterests": [46, 300, 700],
+			"vendorsAllowed": [46, 300, 700],
+			"vendorsDisclosed": [1, 46, 300, 700],
 			"version": 2
 		},
 		"now": 1770000000000,
@@ -275,7 +280,8 @@
 					"legIntPurposes": [2, 7, 9, 10],
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
-					"specialPurposes": []
+					"specialPurposes": [],
+					"deletedDate": "2026-01-01T00:00:00Z"
 				},
 				{
 					"features": [],
@@ -293,7 +299,8 @@
 					"legIntPurposes": [2, 7, 9, 10],
 					"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 					"specialFeatures": [],
-					"specialPurposes": []
+					"specialPurposes": [],
+					"deletedDate": "2026-01-01T00:00:00Z"
 				}
 			]
 		}
@@ -301,8 +308,12 @@
 	"kind": "tc-string",
 	"notes": [
 		"Population decode-coverage: this model reaches past what @c15t/iab writes, so expects.encode is false and only the decode half is graded. An encoder that cannot produce this input is not wrong.",
-		"The policy says a global string must carry purposeOneTreatment false and a CMP that reads true has to treat the string as invalid and re-establish consent. The reference does neither: it encodes the combination and decodes it back without complaint. A native core that enforces the rule will reject a string this vector contains, so the enforcement is a policy decision on top of the codec and belongs in neither core quietly.",
-		"the string carries no publisherTC segment, so every publisherConsents, publisherLegitimateInterests, numCustomPurposes and publisherCustom* field reads back at its zero rather than being absent. A decoder must not treat that zero as a stored empty choice, and an encoder must know the segment is conditional.",
+		"Vendor 46 is not withdrawn and keeps its legitimate-interest bit everywhere, so the only difference between 46 and 300 as this string is written is the deleted date on the vendor entry.",
+		"vendorConsents loses 300, 700 to withdrawal, not to an undeclared purpose: those entries carry deletedDate, GVL.mapVendors leaves them out of gvl.vendors (the id is still in gvl.vendorIds and the entry still survives in gvl.fullVendorList), and SemanticPreEncoder unsets a positive signal for any vendor the GVL does not hand back. The ids stay declared in input.vendorList.vendors and stay valid as numbers, so a port that keeps withdrawn vendors in its vendor table and never reads deletedDate encodes bits the reference erases.",
+		"vendorLegitimateInterests loses 300, 700 to withdrawal, not to an undeclared purpose: those entries carry deletedDate, GVL.mapVendors leaves them out of gvl.vendors (the id is still in gvl.vendorIds and the entry still survives in gvl.fullVendorList), and SemanticPreEncoder unsets a positive signal for any vendor the GVL does not hand back. The ids stay declared in input.vendorList.vendors and stay valid as numbers, so a port that keeps withdrawn vendors in its vendor table and never reads deletedDate encodes bits the reference erases.",
+		"vendorsDisclosed keeps 300, 700 even though the pruned vectors dropped those same ids, because vendorsDisclosed is copied through the pre-encoder untouched. The vectors therefore carry different maxIds off the same model: an encoder that prunes the disclosed list, or one that leaves the consent list alone, fails here in opposite directions.",
+		"vendorsAllowed keeps every id the model set, withdrawn or not, for the same reason vendorsDisclosed does: SemanticPreEncoder puts only legIntPurposes and purposes into its pruning map, so vendorsAllowed is never visited. A port that prunes all four vendor vectors is as wrong as one that prunes only one.",
+		"supportOOB is never encoded: the model said true and the decoder answers false, because the v2 core segment has no slot for it. It changes which segments get written, so an encoder has to hold it out of band.",
 		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
 	],
 	"oracle": {
@@ -310,7 +321,7 @@
 		"repository": "InteractiveAdvertisingBureau/iabtcf-es",
 		"version": "1.5.21",
 		"encodeOptions": {
-			"isForVendors": false,
+			"isForVendors": true,
 			"version": 2
 		}
 	},

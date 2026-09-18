@@ -1,17 +1,13 @@
 {
 	"description": "A global string addressed to vendors that supports out-of-band disclosure and narrows it to three vendors, the four-segment shape.",
-	"expects": {
-		"decode": true,
-		"encode": false
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": false,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -28,8 +24,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
-				"vendorConsents": [1, 2],
-				"vendorLegitimateInterests": [],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 2,
@@ -37,10 +31,12 @@
 					"vendorsAllowed": 700,
 					"vendorsDisclosed": 3
 				},
-				"version": 2,
+				"vendorConsents": [1, 2],
+				"vendorLegitimateInterests": [],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [60, 300, 700],
-				"vendorsDisclosed": [1, 2, 3]
+				"vendorsDisclosed": [1, 2, 3],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -54,6 +50,10 @@
 			"tcString": "CQe_xoAQe_xoAAcABBENCOFAAMAAAAAAACiQABMAAAAA.IABu.QFeQAwAeAEsAV4AA.YAAAAAAAAAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
 	"id": "tc-string-decode-vendors-allowed-segment",
 	"input": {
 		"encodingOptions": {
@@ -61,11 +61,11 @@
 			"version": 2
 		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": false,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -83,9 +83,9 @@
 			"useNonStandardTexts": false,
 			"vendorConsents": [1, 2],
 			"vendorLegitimateInterests": [],
-			"version": 2,
 			"vendorsAllowed": [60, 300, 700],
-			"vendorsDisclosed": [1, 2, 3]
+			"vendorsDisclosed": [1, 2, 3],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {

@@ -1,17 +1,13 @@
 {
 	"description": "Consent and legitimate interest recorded for a vendor the list does not name, next to legitimate interest asked for under purposes that forbid it.",
-	"expects": {
-		"decode": true,
-		"encode": true
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": true,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -28,8 +24,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
-				"vendorConsents": [1],
-				"vendorLegitimateInterests": [2],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 1,
@@ -37,10 +31,12 @@
 					"vendorsAllowed": 0,
 					"vendorsDisclosed": 0
 				},
-				"version": 2,
+				"vendorConsents": [1],
+				"vendorLegitimateInterests": [2],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [],
-				"vendorsDisclosed": []
+				"vendorsDisclosed": [],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -53,6 +49,10 @@
 			"tcString": "CQe_xoAQe_xoAAcABBENCOFgAAAAAEPAACiQAAoABEAA.IAAA.YAAAAAAAAAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": true
+	},
 	"id": "tc-string-parity-pruned-signals",
 	"input": {
 		"encodingOptions": {
@@ -60,11 +60,11 @@
 			"version": 2
 		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": true,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -82,9 +82,9 @@
 			"useNonStandardTexts": false,
 			"vendorConsents": [1, 400],
 			"vendorLegitimateInterests": [2, 400],
-			"version": 2,
 			"vendorsAllowed": [],
-			"vendorsDisclosed": []
+			"vendorsDisclosed": [],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {
@@ -307,8 +307,8 @@
 		"Population parity: every non-default field here is one @c15t/iab writes, so expects.encode is true and a native encoder has to reproduce tcString byte for byte.",
 		"Every deletion this vector performs happens before encoding, in the reference, from the vendor list. A native encoder that writes what the app asked for produces a different string than one that writes what the reference kept, which makes this the vector that decides whether an encoder is allowed to be more faithful than its oracle.",
 		"purposeLegitimateInterests loses 1, 3-6: the reference's pre-encoder refuses legitimate interest for purposes 1, 3, 4, 5 and 6, so a decoder never sees them. A port that encodes them anyway writes a string the reference will read back differently.",
-		"vendorConsents loses 400: the reference drops a positive vendor signal the vendor list gives no consent purpose for, so the encoder's answer depends on input.vendorList and not on the model alone.",
-		"vendorLegitimateInterests loses 400 for the same reason: no declared legitimate-interest purpose, no encoded signal.",
+		"vendorConsents loses 400 because no such vendor is declared in input.vendorList at all: the pre-encoder's \"!vendor\" branch, which is also the arm a withdrawn vendor falls through, since GVL.mapVendors builds gvl.vendors from vendors whose deletedDate is unset.",
+		"vendorLegitimateInterests loses 400 because no such vendor is declared in input.vendorList at all: the pre-encoder's \"!vendor\" branch, which is also the arm a withdrawn vendor falls through, since GVL.mapVendors builds gvl.vendors from vendors whose deletedDate is unset.",
 		"vendorListVersion (142) and policyVersion (5) are read out of input.vendorList, not out of the model: with a vendor list attached the reference's getters ignore anything written onto those two fields, which is why input.model omits them."
 	],
 	"oracle": {

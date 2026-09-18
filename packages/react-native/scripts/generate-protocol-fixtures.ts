@@ -2568,7 +2568,10 @@ export const writeFixtures = async function writeFixtures(
  * test can generate into a temp directory and prove two runs agree byte for byte.
  */
 const invokedAsProgram = function invokedAsProgram(): boolean {
-	const [entry] = process.argv;
+	// argv[1] is the script; argv[0] is the interpreter. Destructuring to the
+	// first element silently disables this guard, and the CLI then exits 0
+	// having written nothing.
+	const [, entry] = process.argv;
 	if (entry === undefined) {
 		return false;
 	}

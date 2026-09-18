@@ -1,17 +1,13 @@
 {
 	"description": "One vendor consented, the smallest vector that is not empty, at an id low enough that the bitfield encoding wins outright.",
-	"expects": {
-		"decode": true,
-		"encode": true
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": true,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -28,8 +24,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": false,
-				"vendorConsents": [4],
-				"vendorLegitimateInterests": [],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 4,
@@ -37,10 +31,12 @@
 					"vendorsAllowed": 0,
 					"vendorsDisclosed": 0
 				},
-				"version": 2,
+				"vendorConsents": [4],
+				"vendorLegitimateInterests": [],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [],
-				"vendorsDisclosed": []
+				"vendorsDisclosed": [],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -53,6 +49,10 @@
 			"tcString": "CQe_xoAQe_xoAAcABBENCOFgAAAAAAAAACiQACBAAAAA.IAAA.YAAAAAAAAAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": true
+	},
 	"id": "tc-string-parity-vendor-consents-single",
 	"input": {
 		"encodingOptions": {
@@ -60,11 +60,11 @@
 			"version": 2
 		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": true,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -82,9 +82,9 @@
 			"useNonStandardTexts": false,
 			"vendorConsents": [4],
 			"vendorLegitimateInterests": [],
-			"version": 2,
 			"vendorsAllowed": [],
-			"vendorsDisclosed": []
+			"vendorsDisclosed": [],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {

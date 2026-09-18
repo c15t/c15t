@@ -1,17 +1,13 @@
 {
 	"description": "The two remaining core-segment bits c15t leaves alone: non-standard texts set, and supportOOB on with the string addressed to vendors.",
-	"expects": {
-		"decode": true,
-		"encode": false
-	},
 	"expected": {
 		"decode": {
 			"fields": {
+				"cmpId": 28,
+				"cmpVersion": 1,
 				"consentLanguage": "EN",
 				"consentScreen": 1,
 				"created": 1769990400000,
-				"cmpId": 28,
-				"cmpVersion": 1,
 				"isServiceSpecific": false,
 				"lastUpdated": 1769990400000,
 				"numCustomPurposes": 0,
@@ -28,8 +24,6 @@
 				"specialFeatureOptins": [],
 				"supportOOB": false,
 				"useNonStandardTexts": true,
-				"vendorConsents": [],
-				"vendorLegitimateInterests": [],
 				"vectorMaxIds": {
 					"publisherCustomConsents": 0,
 					"vendorConsents": 0,
@@ -37,10 +31,12 @@
 					"vendorsAllowed": 0,
 					"vendorsDisclosed": 0
 				},
-				"version": 2,
+				"vendorConsents": [],
+				"vendorLegitimateInterests": [],
 				"vendorListVersion": 142,
 				"vendorsAllowed": [],
-				"vendorsDisclosed": []
+				"vendorsDisclosed": [],
+				"version": 2
 			}
 		},
 		"encode": {
@@ -49,6 +45,10 @@
 			"tcString": "CQe_xoAQe_xoAAcABBENCOFQAMAAAAAAACiQAAAAAAAA.IAAA"
 		}
 	},
+	"expects": {
+		"decode": true,
+		"encode": false
+	},
 	"id": "tc-string-decode-non-standard-texts-and-oob",
 	"input": {
 		"encodingOptions": {
@@ -56,11 +56,11 @@
 			"version": 2
 		},
 		"model": {
+			"cmpId": 28,
+			"cmpVersion": 1,
 			"consentLanguage": "EN",
 			"consentScreen": 1,
 			"created": 1769990400000,
-			"cmpId": 28,
-			"cmpVersion": 1,
 			"isServiceSpecific": false,
 			"lastUpdated": 1769990400000,
 			"numCustomPurposes": 0,
@@ -78,9 +78,9 @@
 			"useNonStandardTexts": true,
 			"vendorConsents": [],
 			"vendorLegitimateInterests": [],
-			"version": 2,
 			"vendorsAllowed": [],
-			"vendorsDisclosed": []
+			"vendorsDisclosed": [],
+			"version": 2
 		},
 		"now": 1770000000000,
 		"vendorList": {
