@@ -476,12 +476,14 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	): Promise<InitResult> {
 		emit({ type: 'command:init:started' });
 		runtime.start();
-		runtime.markLive();
+		// One clock read: the impression stamped here and a local finalize
+		// evaluate at the same instant.
+		const startedAt = runtime.now();
+		runtime.markLive(startedAt);
 
 		if (!transport?.init) {
-			const now = runtime.now();
-			finalizeWithoutTransport(now);
-			finishLifecycle(now);
+			finalizeWithoutTransport(startedAt);
+			finishLifecycle(startedAt);
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
 			void replayPendingSaves();

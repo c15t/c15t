@@ -179,25 +179,62 @@ export const createRuntime = function createRuntime(
 		);
 	};
 
+	/**
+	 * Candidate with the visible surface's first impression stamped at its
+	 * evaluation time. `candidate` is an unfrozen copy owned by this commit.
+	 */
+	const stampImpression = function stampImpression(
+		candidate: ConsentSnapshot & { activeUI: PromptSurface }
+	): ConsentSnapshot {
+		return {
+			...candidate,
+			surfaceShownAt: {
+				...candidate.surfaceShownAt,
+				[candidate.activeUI]: candidate.evaluatedAt,
+			},
+		};
+	};
+
+	/**
+	 * `current` with only its first impression stamped, at `at`. An
+	 * unchanged patch keeps every evaluator input and stays inside the
+	 * current deadline, so the full derivation would hand back `current`
+	 * under a new clock and revision. Every nested value is shared with the
+	 * already-frozen `current`; only the two new objects need freezing.
+	 */
+	const stampCurrent = function stampCurrent(
+		current: ConsentSnapshot & { activeUI: PromptSurface },
+		at: number
+	): ConsentSnapshot {
+		return Object.freeze({
+			...current,
+			evaluatedAt: at,
+			revision: current.revision + 1,
+			surfaceShownAt: Object.freeze({
+				...current.surfaceShownAt,
+				[current.activeUI]: at,
+			}),
+		});
+	};
+
 	const commit = function commit(patch: SnapshotPatch): boolean {
 		const current = snapshot;
-		if (!impressionDue(current) && isUnchangedPatch(current, patch)) {
-			return false;
+		let adopted: ConsentSnapshot;
+		if (isUnchangedPatch(current, patch)) {
+			if (!impressionDue(current)) {
+				return false;
+			}
+			adopted = stampCurrent(current, patch.now ?? current.evaluatedAt);
+		} else {
+			let next = buildNextSnapshot(current, patch);
+			if (impressionDue(next)) {
+				next = stampImpression(next);
+			}
+			if (!snapshotChanged(current, next)) {
+				return false;
+			}
+			adopted = freezeSnapshot(next);
 		}
-		let next = buildNextSnapshot(current, patch);
-		if (impressionDue(next)) {
-			next = {
-				...next,
-				surfaceShownAt: {
-					...next.surfaceShownAt,
-					[next.activeUI]: next.evaluatedAt,
-				},
-			};
-		}
-		if (!snapshotChanged(current, next)) {
-			return false;
-		}
-		const adopted = freezeSnapshot(next);
 		snapshot = adopted;
 		const surface = adopted.activeUI;
 		// A save derives `activeUI` to `none` in the same commit that clears

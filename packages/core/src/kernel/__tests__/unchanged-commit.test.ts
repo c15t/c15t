@@ -212,3 +212,40 @@ test('an unchanged patch still normalizes incompatible initial IAB authority', (
 	const next = checkCommit(initial, { now: NOW + 1, policyPending: false });
 	expect(next.iab?.authority).toBeNull();
 });
+
+test('a live kernel stamps an unchanged patch like the full derivation', () => {
+	const initial = buildInitialSnapshot({ now: NOW });
+	expect(initial.activeUI).toBe('banner');
+	const emit = vi.fn();
+	const listener = vi.fn();
+	const runtime = createRuntime({
+		emit,
+		initialDraft: null,
+		initialSnapshot: initial,
+		transport: undefined,
+	});
+	runtime.subscribe(listener);
+	runtime.markLive(NOW + 5);
+
+	const actual = runtime.getSnapshot();
+	const expected = freezeSnapshot({
+		...buildNextSnapshot(initial, { now: NOW + 5 }),
+		surfaceShownAt: { banner: NOW + 5, dialog: null },
+	});
+	expect(actual).toEqual(expected);
+	expect(actual.evaluatedAt).toBe(NOW + 5);
+	expect(actual.revision).toBe(initial.revision + 1);
+	expect(Object.isFrozen(actual)).toBe(true);
+	expect(Object.isFrozen(actual.surfaceShownAt)).toBe(true);
+	expect(listener).toHaveBeenCalledExactlyOnceWith(actual);
+	expect(emit).toHaveBeenCalledExactlyOnceWith({
+		shownAt: NOW + 5,
+		snapshot: actual,
+		surface: 'banner',
+		type: 'surface:shown',
+	});
+
+	// The impression is recorded; the same patch is a no-op afterwards.
+	expect(runtime.commit({ now: NOW + 5 })).toBe(false);
+	expect(runtime.getSnapshot()).toBe(actual);
+});
