@@ -756,6 +756,33 @@ describe('script-loader: updateScripts swaps config', () => {
 	});
 });
 
+describe('script-loader: callback updates', () => {
+	test('does not repeat consent callbacks for an identical choice saved inside a callback', () => {
+		const kernel = createConsentKernel();
+		const onConsentChange = vi.fn(() => {
+			// Bound a broken implementation so this regression cannot loop forever.
+			if (onConsentChange.mock.calls.length < 3) {
+				void kernel.commands.save({ measurement: true });
+			}
+		});
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					callbackOnly: true,
+					category: 'necessary',
+					id: 'bridge',
+					onConsentChange,
+				},
+			],
+		});
+		void kernel.commands.save({ measurement: true });
+		expect(onConsentChange).toHaveBeenCalledOnce();
+		loader.dispose();
+		kernel.dispose();
+	});
+});
+
 describe('script-loader: dispose', () => {
 	test('initializes a same-ID replacement after disposing the old configuration', () => {
 		const kernel = createConsentKernel();

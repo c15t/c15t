@@ -91,10 +91,10 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 	let latest: ConsentState | undefined;
 	let listeningDocument: Document | undefined;
 	let initialized = false;
-	const apply = (): void => {
+	const apply = (): boolean => {
 		const api = getConsentApi();
 		if (!latest || !api) {
-			return;
+			return false;
 		}
 		const previous = api.getAll();
 		const permissions: Record<string, boolean> = {};
@@ -103,6 +103,7 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		for (const purpose of Object.keys(previous)) {
 			const category = mappings.get(purpose);
 			const allowed = category !== undefined && latest[category] === true;
+			// Purpose IDs are external keys, including names such as __proto__.
 			Object.defineProperty(permissions, purpose, {
 				enumerable: true,
 				value: allowed,
@@ -125,17 +126,17 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 			initialized = true;
 			options.onReady?.();
 		}
+		return true;
 	};
 	const update: NonNullable<Script['onConsentChange']> = ({ consents }) => {
 		latest = consents;
-		if (typeof document === 'undefined') {
+		if (typeof document === 'undefined' || apply()) {
 			return;
 		}
 		if (!listeningDocument) {
 			listeningDocument = document;
 			document.addEventListener(readyEvent, apply);
 		}
-		apply();
 	};
 	return {
 		alwaysLoad: true,

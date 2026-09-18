@@ -117,6 +117,10 @@ export const createScriptLoader = function createScriptLoader(
 	let reconcileRequested = false;
 	let forceReconcile = false;
 
+	// A callback can request changes while this pass is still mounting scripts.
+	const isCurrentPass = () =>
+		!disposed && pendingScripts === undefined && !reconcileRequested;
+
 	const mountDeps: MountDeps = {
 		elementIds,
 		emit,
@@ -141,21 +145,25 @@ export const createScriptLoader = function createScriptLoader(
 	let lastModel: unknown = null;
 	let lastEvaluationPolicy: unknown = null;
 
-	const reconcile = function reconcile(force = false): void {
-		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+	const isConsentStateUnchanged = (snapshot: ConsentSnapshot): boolean => {
 		const effective = getEffectiveGateState(snapshot);
-		const permissionsChanged = effective.effectivePermissions !== lastConsents;
-
-		if (
-			!force &&
-			!permissionsChanged &&
+		return (
+			effective.effectivePermissions === lastConsents &&
 			snapshot.policyRule.scope === lastPolicyCategories &&
 			snapshot.policyRule.scopeMode === lastScopeMode &&
 			snapshot.iab === lastIab &&
 			effective.restrictions === lastRestrictions &&
 			snapshot.model === lastModel &&
 			snapshot.evaluationPolicy === lastEvaluationPolicy
-		) {
+		);
+	};
+
+	const reconcile = function reconcile(force = false): void {
+		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+		const effective = getEffectiveGateState(snapshot);
+		const permissionsChanged = effective.effectivePermissions !== lastConsents;
+
+		if (!force && isConsentStateUnchanged(snapshot)) {
 			return;
 		}
 		lastConsents = effective.effectivePermissions;
@@ -195,12 +203,12 @@ export const createScriptLoader = function createScriptLoader(
 			} else {
 				unmountScript(mountDeps, script, snapshot, hasConsent);
 			}
-			if (disposed) {
-				return;
+			if (!isCurrentPass()) {
+				break;
 			}
 		}
 
-		flushPendingMounts(mountDeps, batch);
+		flushPendingMounts(mountDeps, batch, isCurrentPass);
 		diagnostics?.notify();
 	};
 
@@ -349,6 +357,12 @@ export const createScriptLoader = function createScriptLoader(
 		}
 	};
 	const unsubscribe = kernel.subscribe(() => {
+		if (processing && isConsentStateUnchanged(kernel.getSnapshot())) {
+			return;
+		}
+		// Revisit mounts skipped when a callback interrupts the active pass,
+		// even if their eligibility is unchanged in the next snapshot.
+		forceReconcile ||= processing;
 		reconcileRequested = true;
 		drain();
 	});

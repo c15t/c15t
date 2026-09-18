@@ -157,6 +157,11 @@ describe('Zaraz consent bridge through the kernel and script loader', () => {
 		api.APIReady = true;
 		document.dispatchEvent(new Event('zarazConsentAPIReady'));
 		expect(api.getAll().analytics).toBe(true);
+		await kernel.commands.save(deniedConsents);
+		expect(api.getAll().analytics).toBe(false);
+		expect(
+			add.mock.calls.filter(([name]) => name === 'zarazConsentAPIReady')
+		).toHaveLength(1);
 	});
 
 	it.each(['dispose', 'remove', 'replace'] as const)(

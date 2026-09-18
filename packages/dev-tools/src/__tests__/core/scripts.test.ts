@@ -340,6 +340,87 @@ describe('script inspection', () => {
 			bodyProbe.mockRestore();
 		}
 	});
+	it('retries an interrupted batch when a later script still has consent', () => {
+		const kernel = createConsentKernel();
+		const append = document.head.appendChild.bind(document.head);
+		const headProbe = vi
+			.spyOn(document.head, 'appendChild')
+			.mockImplementation((node) => {
+				const result = append(node);
+				kernel.commands.save({ marketing: false, measurement: true });
+				return result;
+			});
+		const bodyProbe = vi.spyOn(document.body, 'appendChild');
+		try {
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{ category: 'marketing', id: 'head-revokes', textContent: 'void 0;' },
+					{
+						category: 'measurement',
+						id: 'body-analytics',
+						target: 'body',
+						textContent: 'void 0;',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			kernel.commands.save({ marketing: true, measurement: true });
+			expect(headProbe).toHaveBeenCalledOnce();
+			expect(bodyProbe).toHaveBeenCalledOnce();
+			expect(loader.getLoadedScriptIds()).toEqual(['body-analytics']);
+			expect(document.body.querySelectorAll('script')).toHaveLength(1);
+		} finally {
+			headProbe.mockRestore();
+			bodyProbe.mockRestore();
+		}
+	});
+
+	it('does not insert an obsolete configuration after synchronous replacement', () => {
+		const kernel = createConsentKernel();
+		const loader = createScriptLoader({ kernel, scripts: [] });
+		disposers.push(loader.dispose);
+		const append = document.head.appendChild.bind(document.head);
+		const headProbe = vi
+			.spyOn(document.head, 'appendChild')
+			.mockImplementation((node) => {
+				const result = append(node);
+				loader.updateScripts([
+					{
+						category: 'necessary',
+						id: 'body-pixel',
+						target: 'body',
+						textContent: '"replacement";',
+					},
+				]);
+				return result;
+			});
+		const bodyProbe = vi.spyOn(document.body, 'appendChild');
+		try {
+			loader.updateScripts([
+				{
+					category: 'necessary',
+					id: 'head-replaces',
+					textContent: 'void 0;',
+				},
+				{
+					category: 'necessary',
+					id: 'body-pixel',
+					target: 'body',
+					textContent: '"obsolete";',
+				},
+			]);
+			expect(bodyProbe).toHaveBeenCalledOnce();
+			expect(document.body.querySelector('script')?.textContent).toBe(
+				'"replacement";'
+			);
+			expect(loader.getLoadedScriptIds()).toEqual(['body-pixel']);
+		} finally {
+			headProbe.mockRestore();
+			bodyProbe.mockRestore();
+		}
+	});
+
 	it.each([false, true])(
 		'distinguishes mounted and reused inline scripts without debug forwarding, reused=%s',
 		(reused) => {

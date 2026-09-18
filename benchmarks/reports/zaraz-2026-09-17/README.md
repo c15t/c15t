@@ -136,3 +136,32 @@ Results are in `live-ui-results.json`.
 
 The interactive page bundles the browser UI as well as the bridge. Its page
 bundle size is not the standalone bridge measurement reported above.
+
+## Cleanup verification, 18 September
+
+The cleanup centralizes mount completion, removes callback type assertions and
+stops re-registering the Zaraz readiness listener after successful synchronization.
+It also fixes two callback cases: consent changes interrupt later DOM batches,
+and saving an identical choice inside a callback does not repeat that callback.
+Tests cover interrupted mounts that remain eligible and same-ID replacements
+requested during insertion.
+
+Compared with PR commit `4682c5161fd84be690b5f3c4d1cb16d8155e21a5`:
+
+| Scenario | Before median | After median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Empty loader | 1.4 µs | 1.4 µs | 2.0 µs | 2.0 µs |
+| 50 callback-only scripts | 8.0 µs | 8.4 µs | 9.0 µs | 10.0 µs |
+| Two-purpose bridge | — | 1.6 µs | — | 2.2 µs |
+
+The loader's minified size fell by 27 bytes, but gzip size grew by 62 bytes to
+5,571 bytes. The bridge is 843 gzip bytes. These changes improve lifecycle
+correctness and code clarity; they do not establish a performance improvement.
+The 50-callback median increased by 0.4 µs, about 5%. Raw samples and tested
+source hashes are in `polish-results.json`.
+
+All 40 package build/test tasks passed. The final focused run passed 1,083 core,
+418 scripts and 65 DevTools tests, plus package type checks. Core test types,
+repository lint and formatting also passed. The broader root test command hit a
+Next.js static-export fixture that requires its dedicated compatibility runner's
+backend URL; the package test run avoids invoking that fixture outside its runner.

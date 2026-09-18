@@ -43,6 +43,43 @@ export interface MountDeps {
 	nonce?: string;
 }
 
+/** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
+const completeMount = (deps: MountDeps, pending: PendingMount): void => {
+	const { script, element, elementId, hasConsent, info } = pending;
+	if (deps.loadedElements.get(script.id) !== element) {
+		return;
+	}
+	if (!element.isConnected) {
+		deps.loadedElements.delete(script.id);
+		deps.ownedScriptIds.delete(script.id);
+		return;
+	}
+	if (deps.isDisposed()) {
+		return;
+	}
+	if (!script.src && info) {
+		// Defer inline completion until parsing, and ignore obsolete mounts.
+		setTimeout(() => {
+			if (
+				!deps.isDisposed() &&
+				deps.loadedElements.get(script.id) === element
+			) {
+				invokeCallback(script, 'onLoad', info, deps.emit);
+			}
+		}, 0);
+	}
+	deps.emit({
+		action: 'loaded',
+		elementId,
+		hasConsent,
+		message: 'Script mounted',
+		scope: 'lifecycle',
+		scriptId: script.id,
+		source: 'script-loader',
+		timestamp: Date.now(),
+	});
+};
+
 /**
  * Mount a script into the DOM, or queue it for batched append.
  *
@@ -277,33 +314,7 @@ export const mountScript = function mountScript(
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
 	target.appendChild(element);
-	if (deps.isDisposed() || deps.loadedElements.get(script.id) !== element) {
-		return;
-	}
-
-	if (!script.src && info) {
-		// Inline script: defer onLoad one tick so the browser parses
-		// before the callback observes side effects.
-		setTimeout(() => {
-			if (
-				!deps.isDisposed() &&
-				deps.loadedElements.get(script.id) === element
-			) {
-				invokeCallback(script, 'onLoad', info, deps.emit);
-			}
-		}, 0);
-	}
-
-	deps.emit({
-		action: 'loaded',
-		elementId,
-		hasConsent,
-		message: 'Script mounted',
-		scope: 'lifecycle',
-		scriptId: script.id,
-		source: 'script-loader',
-		timestamp: Date.now(),
-	});
+	completeMount(deps, { element, elementId, hasConsent, info, script, target });
 };
 
 /**
@@ -399,9 +410,10 @@ export const unmountScript = function unmountScript(
  */
 export const flushPendingMounts = function flushPendingMounts(
 	deps: MountDeps,
-	batch: PendingMount[]
+	batch: PendingMount[],
+	isCurrentPass: () => boolean = () => true
 ): void {
-	if (batch.length === 0) {
+	if (batch.length === 0 || !isCurrentPass()) {
 		return;
 	}
 	// Register before insertion: inline execution and DOM adapters can dispatch
@@ -429,8 +441,8 @@ export const flushPendingMounts = function flushPendingMounts(
 			}
 		}
 		for (const [target, entries] of byTarget) {
-			if (deps.isDisposed()) {
-				return;
+			if (deps.isDisposed() || !isCurrentPass()) {
+				break;
 			}
 			// A previous target can execute inline code that revokes consent or
 			// replaces this loader's scripts. Never insert invalidated entries.
@@ -460,34 +472,6 @@ export const flushPendingMounts = function flushPendingMounts(
 	}
 
 	for (const pending of batch) {
-		if (
-			deps.isDisposed() ||
-			deps.loadedElements.get(pending.script.id) !== pending.element
-		) {
-			continue;
-		}
-		if (!pending.script.src && pending.info) {
-			const { info } = pending;
-			const { script } = pending;
-			setTimeout(() => {
-				if (
-					!deps.isDisposed() &&
-					deps.loadedElements.get(script.id) === pending.element
-				) {
-					invokeCallback(script, 'onLoad', info, deps.emit);
-				}
-			}, 0);
-		}
-
-		deps.emit({
-			action: 'loaded',
-			elementId: pending.elementId,
-			hasConsent: pending.hasConsent,
-			message: 'Script mounted',
-			scope: 'lifecycle',
-			scriptId: pending.script.id,
-			source: 'script-loader',
-			timestamp: Date.now(),
-		});
+		completeMount(deps, pending);
 	}
 };
