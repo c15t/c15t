@@ -788,26 +788,28 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
 				version: 1 as const,
 			};
-			// Attributed like a save: the surface is whatever is open, and the
-			// timing is known only for a shown prompt surface and a forward clock.
-			const { uiSource: surface, timeToDecisionMs } = saveAttribution(
-				snapshot,
-				undefined,
-				actionAt
-			);
+			// Attributed like a save: the surface is whatever is open, the
+			// timing is known only for a shown prompt surface and a forward
+			// clock, and the arm is the one the visitor dismissed under. All
+			// three are read before `commit()` notifies subscribers, who may
+			// reassign the arm or move the surface.
+			const {
+				experiment,
+				uiSource: surface,
+				timeToDecisionMs,
+			} = saveAttribution(snapshot, undefined, actionAt);
 			commit({ noticeDismissal: dismissal, now: actionAt });
-			const after = getSnapshot();
 			const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
 				dismissal,
-				snapshot: after,
+				snapshot: getSnapshot(),
 				surface,
 				type: 'notice:dismissed',
 			};
 			if (timeToDecisionMs !== undefined) {
 				event.timeToDecisionMs = timeToDecisionMs;
 			}
-			if (after.experiment) {
-				event.experiment = after.experiment;
+			if (experiment) {
+				event.experiment = experiment;
 			}
 			emit(event);
 			runtime.armDeadlineTimer();

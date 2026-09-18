@@ -3,12 +3,15 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { createConsentKernel } from '../../kernel';
 import type { ConsentSnapshot, KernelEvent } from '../../types';
 import type { ExperimentAssignment } from '../experiment';
 import {
 	buildChoiceRecordedReport,
 	buildNoticeDismissedReport,
 	buildSurfaceShownReport,
+	createExperimentReporting,
+	createPosthogReporter,
 	dataLayerReporter,
 	posthogReporter,
 	resolveExperimentReporters,
@@ -228,6 +231,76 @@ describe('posthog reporter', () => {
 				buildSurfaceShownReport(shown(assignment)) as ExperimentReportEvent
 			);
 			expect(capture).toHaveBeenCalledTimes(3);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+describe('createPosthogReporter', () => {
+	it('dispose drops the held events and stops waiting for the SDK', () => {
+		vi.useFakeTimers();
+		try {
+			const handle = createPosthogReporter();
+			handle.reporter(
+				buildSurfaceShownReport(shown(assignment)) as ExperimentReportEvent
+			);
+			handle.dispose();
+			const capture = vi.fn();
+			(window as ReportingWindow).posthog = { capture };
+			vi.advanceTimersByTime(1000);
+			expect(capture).not.toHaveBeenCalled();
+			expect(vi.getTimerCount()).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+describe('createExperimentReporting', () => {
+	const kernelWith = (
+		reportTo: ExperimentReportTarget,
+		onError?: ExperimentReportingOptions['onError']
+	) => {
+		const kernel = createConsentKernel();
+		const stop = createExperimentReporting({ kernel, onError, reportTo });
+		const dispose = () => {
+			stop();
+			kernel.dispose();
+		};
+		return { dispose, kernel };
+	};
+
+	it('a throwing onError does not stop the remaining reporters', () => {
+		const received: ExperimentReportEvent[] = [];
+		const { dispose, kernel } = kernelWith(
+			[
+				() => {
+					throw new Error('sink down');
+				},
+				(event) => received.push(event),
+			],
+			() => {
+				throw new Error('logger down');
+			}
+		);
+		expect(() => kernel.events.emit(shown(assignment))).not.toThrow();
+		expect(received).toHaveLength(1);
+		dispose();
+	});
+
+	it('disposing clears the posthog buffer and timer of that subscription', () => {
+		vi.useFakeTimers();
+		try {
+			const { dispose, kernel } = kernelWith('posthog');
+			kernel.events.emit(shown(assignment));
+			expect(vi.getTimerCount()).toBe(1);
+			dispose();
+			expect(vi.getTimerCount()).toBe(0);
+			const capture = vi.fn();
+			(window as ReportingWindow).posthog = { capture };
+			vi.advanceTimersByTime(1000);
+			expect(capture).not.toHaveBeenCalled();
 		} finally {
 			vi.useRealTimers();
 		}

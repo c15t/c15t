@@ -316,6 +316,7 @@ export {
 	buildNoticeDismissedReport,
 	buildSurfaceShownReport,
 	createExperimentReporting,
+	createPosthogReporter,
 	dataLayerReporter,
 	posthogReporter,
 	resolveExperimentReporters,
@@ -331,6 +332,7 @@ export type {
 	ExperimentReportProperties,
 	ExperimentReportTarget,
 	ExperimentSurfaceShownReport,
+	PosthogReporterHandle,
 } from './libs/experiment-reporting';
 export type {
 	ConsentPresentation,

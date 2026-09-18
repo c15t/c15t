@@ -308,4 +308,30 @@ describe('notice:dismissed attribution', () => {
 		expect(dismissed[0]).toMatchObject({ surface: 'banner' });
 		expect(dismissed[0]).not.toHaveProperty('timeToDecisionMs');
 	});
+
+	test('the dismissal keeps the arm it happened under, not a reassignment made during commit', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
+		const { dismissed, kernel } = setupNotice();
+		await kernel.commands.init();
+		const original = {
+			acknowledgedDiagnostics: false,
+			assignedBy: 'host',
+			id: 'banner-shape',
+			variant: 'wall',
+		} as const;
+		kernel.set.experiment(original);
+		// A subscriber reacting to the dismissal commit swaps the arm before
+		// the event is built.
+		const unsubscribe = kernel.subscribe((snapshot) => {
+			if (snapshot.noticeDismissal) {
+				kernel.set.experiment({ ...original, variant: 'floating' });
+			}
+		});
+
+		await kernel.commands.dismissNotice();
+		unsubscribe();
+
+		expect(dismissed[0]?.experiment).toEqual(original);
+		expect(dismissed[0]?.snapshot.experiment?.variant).toBe('floating');
+	});
 });
