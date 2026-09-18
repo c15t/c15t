@@ -412,6 +412,68 @@ test('setVendor ignores a vendor declared disabled', async () => {
 		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
 });
 
+test('a vendor turning toggleable while the draft is dirty marks it stale', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'toggleable-flip' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ enable }: { enable: () => void }) => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, stale: draft.isStale })}
+				</output>
+				<button
+					onClick={() => draft.set('marketing', false)}
+					type="button"
+				>
+					Edit
+				</button>
+				<button
+					onClick={enable}
+					type="button"
+				>
+					Enable vendor
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [disabled, setDisabled] = useState(true);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					vendors: [{ ...vendor, disabled }],
+				}}
+			>
+				<Probe enable={() => setDisabled(false)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Edit' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":true,"stale":false}');
+	// The same id becomes toggleable: the set of switches the draft may stage
+	// changed under an unsaved edit, so review is required.
+	await screen.getByRole('button', { name: 'Enable vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"stale":true');
+});
+
 test('drafts use configured categories and require review when the displayed scope changes', async () => {
 	const Probe = ({ expand }: { expand: () => void }) => {
 		const draft = useConsentDraft();

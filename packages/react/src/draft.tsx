@@ -269,9 +269,15 @@ const createDraftStore = function createDraftStore(
 		// produces and reseeds through the clean-draft path below.
 		const nextIds = Object.keys(seedVendors(next)).sort();
 		const baseIds = Object.keys(baseVendors).sort();
+		// Toggleability is part of the shape too: a vendor that moves between
+		// `disabled` and toggleable changes which switches may be staged.
+		const nextToggleable = [...toggleableVendorIds(next)].sort();
+		const baseToggleable = [...toggleable].sort();
 		const vendorsChanged =
 			nextIds.length !== baseIds.length ||
-			nextIds.some((id, index) => id !== baseIds[index]);
+			nextIds.some((id, index) => id !== baseIds[index]) ||
+			nextToggleable.length !== baseToggleable.length ||
+			nextToggleable.some((id, index) => id !== baseToggleable[index]);
 		const material =
 			fingerprint !== next.evaluationPolicy.choice.fingerprint ||
 			scopeChanged ||
