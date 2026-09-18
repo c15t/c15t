@@ -255,15 +255,27 @@ export const useDeclaredVendors =
 		);
 	};
 
-/** Vendors the visitor turned off, or `null` when none is denied. */
+/**
+ * The visitor's recorded vendor decision.
+ *
+ * @returns The decision, whose `denied` list may be empty after a bulk
+ * action lifted every denial, or `null` when no vendor decision was ever
+ * recorded.
+ */
 export const useVendorChoice =
 	function useVendorChoice(): Readonly<VendorChoice> | null {
 		return useKernelSelector((snap) => snap.vendorChoice);
 	};
 
 /**
- * Whether one vendor is allowed: its category passes and the visitor has
- * not turned it off. Unknown vendors follow their category alone.
+ * Whether one vendor is allowed: its category condition passes and the
+ * visitor has not turned it off.
+ *
+ * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+ * @returns `false` while the vendor is denied outside `iab`, otherwise the
+ * result of its declared category condition. An undeclared id is `true`:
+ * nothing is known about its category, and a denial only exists for a vendor
+ * the visitor saw.
  */
 export const useVendorAllowed = function useVendorAllowed(
 	vendorId: string
