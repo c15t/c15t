@@ -57,101 +57,102 @@ export const ConsentWidgetVendorList = ({
 
 	return (
 		<Box
+			asChild
 			className={className}
 			data-testid={`consent-widget-vendor-list-${category}`}
 			noStyle={finalNoStyle}
 			baseClassName={styles?.root}
 			slotKey="vendor-list.root"
-			role="group"
-			aria-label={copy.title}
 			{...props}
 		>
-			<Box
-				asChild
-				noStyle={finalNoStyle}
-				baseClassName={styles?.title}
-				slotKey="vendor-list.title"
-			>
-				<p>{copy.title}</p>
-			</Box>
-			{categoryOn ? null : (
-				<p
-					className={styles?.hint}
-					data-testid={`consent-widget-vendor-hint-${category}`}
+			<fieldset>
+				<Box
+					asChild
+					noStyle={finalNoStyle}
+					baseClassName={styles?.title}
+					slotKey="vendor-list.title"
 				>
-					{copy.disabledByCategory}
-				</p>
-			)}
-			{vendors.map((vendor) => {
-				const name = vendor.name ?? vendor.id;
-				const checked = selectedVendors[vendor.id] ?? true;
-				const disabled = !categoryOn || vendor.disabled === true;
-				return (
-					<Box
-						key={vendor.id}
-						noStyle={finalNoStyle}
-						baseClassName={styles?.item}
-						data-testid={`consent-widget-vendor-item-${vendor.id}`}
-						slotKey="vendor-list.item"
+					<legend>{copy.title}</legend>
+				</Box>
+				{categoryOn ? null : (
+					<p
+						className={styles?.hint}
+						data-testid={`consent-widget-vendor-hint-${category}`}
 					>
+						{copy.disabledByCategory}
+					</p>
+				)}
+				{vendors.map((vendor) => {
+					const name = vendor.name ?? vendor.id;
+					const checked = selectedVendors[vendor.id] ?? true;
+					const disabled = !categoryOn || vendor.disabled === true;
+					return (
 						<Box
+							key={vendor.id}
 							noStyle={finalNoStyle}
-							baseClassName={styles?.header}
-							slotKey="vendor-list.header"
+							baseClassName={styles?.item}
+							data-testid={`consent-widget-vendor-item-${vendor.id}`}
+							slotKey="vendor-list.item"
 						>
 							<Box
-								asChild
 								noStyle={finalNoStyle}
-								baseClassName={styles?.name}
-								slotKey="vendor-list.name"
+								baseClassName={styles?.header}
+								slotKey="vendor-list.header"
 							>
-								<p id={`c15t-vendor-${vendor.id}`}>{name}</p>
-							</Box>
-							{vendor.description ? (
 								<Box
 									asChild
 									noStyle={finalNoStyle}
-									baseClassName={styles?.description}
-									slotKey="vendor-list.description"
+									baseClassName={styles?.name}
+									slotKey="vendor-list.name"
 								>
-									<p>{vendor.description}</p>
+									<p id={`c15t-vendor-${vendor.id}`}>{name}</p>
 								</Box>
-							) : null}
-							{vendor.privacyPolicyUrl ? (
-								<Box
-									asChild
-									noStyle={finalNoStyle}
-									baseClassName={styles?.link}
-									slotKey="vendor-list.link"
-								>
-									<a
-										href={vendor.privacyPolicyUrl}
-										rel="noopener noreferrer"
-										target="_blank"
+								{vendor.description ? (
+									<Box
+										asChild
+										noStyle={finalNoStyle}
+										baseClassName={styles?.description}
+										slotKey="vendor-list.description"
 									>
-										{copy.privacyPolicy}
-									</a>
-								</Box>
-							) : null}
+										<p>{vendor.description}</p>
+									</Box>
+								) : null}
+								{vendor.privacyPolicyUrl ? (
+									<Box
+										asChild
+										noStyle={finalNoStyle}
+										baseClassName={styles?.link}
+										slotKey="vendor-list.link"
+									>
+										<a
+											href={vendor.privacyPolicyUrl}
+											rel="noopener noreferrer"
+											target="_blank"
+										>
+											{copy.privacyPolicy}
+										</a>
+									</Box>
+								) : null}
+							</Box>
+							<Box
+								noStyle={finalNoStyle}
+								baseClassName={styles?.control}
+								slotKey="vendor-list.control"
+							>
+								<RadixSwitch.Root
+									aria-label={copy.switchLabel.replace('{vendor}', name)}
+									aria-describedby={`c15t-vendor-${vendor.id}`}
+									checked={checked}
+									data-testid={`consent-widget-vendor-switch-${vendor.id}`}
+									disabled={disabled}
+									onCheckedChange={(next) => setSelectedVendor(vendor.id, next)}
+									size="small"
+								/>
+							</Box>
 						</Box>
-						<Box
-							noStyle={finalNoStyle}
-							baseClassName={styles?.control}
-							slotKey="vendor-list.control"
-						>
-							<RadixSwitch.Root
-								aria-label={copy.switchLabel.replace('{vendor}', name)}
-								aria-describedby={`c15t-vendor-${vendor.id}`}
-								checked={checked}
-								data-testid={`consent-widget-vendor-switch-${vendor.id}`}
-								disabled={disabled}
-								onCheckedChange={(next) => setSelectedVendor(vendor.id, next)}
-								size="small"
-							/>
-						</Box>
-					</Box>
-				);
-			})}
+					);
+				})}
+			</fieldset>
 		</Box>
 	);
 };

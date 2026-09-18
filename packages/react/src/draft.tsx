@@ -58,7 +58,7 @@ const seedVendors = function seedVendors(
 	if (snapshot.model === 'iab') {
 		return grants;
 	}
-	const denied = new Set(snapshot.vendorChoice?.denied ?? []);
+	const denied = new Set(snapshot.vendorChoice?.denied);
 	for (const vendor of snapshot.vendors?.declared ?? []) {
 		grants[vendor.id] = !denied.has(vendor.id);
 	}
