@@ -170,3 +170,7 @@ The final browser lifecycle comparison against the original v3 base passed all
 12 budgets across six scenarios. The first run failed only the revocation timing
 budget by 5.8 ms; a repeat with unchanged code and budgets passed. Results are in
 `polish-lifecycle-comparison.md`.
+
+The refreshed Inth demo passed all 12 live checks on 18 September, including
+accepted and rejected consent persistence after refresh. Deployment and source
+identifiers are recorded in `polish-live-results.json`.
