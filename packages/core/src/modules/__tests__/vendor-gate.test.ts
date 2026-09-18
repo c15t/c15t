@@ -35,7 +35,9 @@ describe('isVendorDenied', () => {
 		const snap = snapshotWith(['meta-pixel']);
 		expect(isVendorDenied(snap, 'meta-pixel')).toBe(true);
 		expect(isVendorDenied(snap, 'google-analytics')).toBe(false);
-		expect(isVendorDenied({ vendorChoice: null }, 'meta-pixel')).toBe(false);
+		expect(
+			isVendorDenied({ vendorChoice: null, vendors: null }, 'meta-pixel')
+		).toBe(false);
 	});
 });
 

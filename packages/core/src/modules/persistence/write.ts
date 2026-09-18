@@ -108,5 +108,23 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 		clearStoredVendorChoice(storageConfig);
 		return;
 	}
-	writeStoredVendorChoice(snapshot.vendorChoice, storageConfig, now);
+	const result = writeStoredVendorChoice(
+		snapshot.vendorChoice,
+		storageConfig,
+		now
+	);
+	if (result.ok === false) {
+		console.warn('[c15t] Vendor choice was not written.', result.issues);
+		return;
+	}
+	// A server render reads the cookie only. When the browser dropped it, most
+	// likely because many long ids pushed it past the per-cookie limit, the
+	// next SSR page would seed an older or absent list; say so rather than
+	// let it pass silently.
+	if (result.written && !result.written.cookie) {
+		console.warn(
+			'[c15t] Vendor choice cookie was not stored; the localStorage copy is current but a server render will not see it. Shorten vendor ids or deny fewer vendors.',
+			result.written.cookieDetail
+		);
+	}
 };

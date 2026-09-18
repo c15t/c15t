@@ -240,6 +240,26 @@ const clearedVendorChoice = function clearedVendorChoice(
 	return { confirmedAt: actionAt, denied: [], version: 1 };
 };
 
+/**
+ * The state after a bulk action. Unlike lifting the last denial, a bulk
+ * action is always stamped once vendors are declared, even over `null` or an
+ * already-empty list: a server denial recorded before the visitor pressed
+ * accept all, but arriving afterwards, must lose to it in the merge.
+ */
+const bulkClearedVendorChoice = function bulkClearedVendorChoice(
+	snapshot: ConsentSnapshot,
+	actionAt: number
+): VendorChoice | null {
+	const current = snapshot.vendorChoice;
+	if ((snapshot.vendors?.declared.length ?? 0) === 0) {
+		return current;
+	}
+	if (current?.denied.length === 0 && current.confirmedAt >= actionAt) {
+		return current;
+	}
+	return { confirmedAt: actionAt, denied: [], version: 1 };
+};
+
 /** Sorted denial list after applying grants on top of the current one. */
 const applyVendorGrants = function applyVendorGrants(
 	snapshot: ConsentSnapshot,
@@ -290,7 +310,7 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	if (bulk) {
 		// Vendors follow the category on a bulk action; explicit grants and the
 		// staged draft are both discarded so nothing survives as a denial.
-		return clearedVendorChoice(current, actionAt);
+		return bulkClearedVendorChoice(snapshot, actionAt);
 	}
 	const grants = explicit ?? draft ?? undefined;
 	if (grants === undefined) {

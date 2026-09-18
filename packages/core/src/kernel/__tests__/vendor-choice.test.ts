@@ -269,12 +269,27 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
-	test('a bulk action ignores explicit vendor grants', async () => {
+	test('a bulk action ignores explicit vendor grants and stamps the clear', async () => {
 		const kernel = createKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 		});
 		await kernel.commands.save('all', { vendors: { 'meta-pixel': false } });
-		// Nothing was ever denied, so there is still no decision to record.
+		// Stamped even with nothing denied before, so an older server denial
+		// that lands afterwards loses the newest-wins merge.
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
+	test('a bulk action with no declared vendors records no vendor decision', async () => {
+		const kernel = createKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			initialVendors: undefined,
+		});
+		await kernel.commands.save('all');
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		kernel.dispose();
 	});
