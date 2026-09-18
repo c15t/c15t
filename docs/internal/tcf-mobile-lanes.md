@@ -27,20 +27,19 @@ on a branch `KayleeWilliams/<lane>`, based on `v3-3`, and merges back into
 | `tcf-storage-bus` | `IABTCF_*` projection of the stored envelope | Landed |
 | `tcf-drawer-ui` | `ConsentIabDrawer`, full-page | Landed |
 | `tcf-web-parity` | heading rhythm and card geometry on web numbers | Landed at `aa7d22f60` |
-| `tcf-enable-ab` | both cores read and evaluate an `iab` rule | in tree: `ebf6e0e8e` |
-| `tcf-vendor-scope-oracle` | narrowing reference, oracle test, wiring | in tree |
-| `tcf-bus-wire` | install path passes a real bus sink | open |
+| `tcf-enable-ab` | both cores read and evaluate an `iab` rule | Landed at `94590e0da` |
+| `tcf-vendor-scope-oracle` | narrowing reference, oracle test, wiring | Landed at `7be6ce1a7` |
+| `tcf-bus-wire` | install path passes a real bus sink | Landed at `7b322e45a`, recovered by the manager: the lane never committed, so its Android/iOS sink hunks were re-applied on the current base by hand and the vendored kernel copy regenerated with `scripts/sync-vendored-core.ts`. Do not merge that tree; it is stale and its doc half regresses the `iab` contract. |
 | `mobile-example-connect` | the example app on the native snapshot | open |
 | `slop-audit`, `anti-slop-baseline` | anti-slop index and baseline | open |
 
 ## Open work, in the order it needs to happen
 
-1. `tcf-enable-ab` lands the deny-until-explicit-choice rule for `iab`. While it
-   is open the strict policy reader refuses `iab`, so no demo can present the
-   disclosure; the TCF drawer is merged but never reachable under an IAB policy.
-2. `tcf-bus-wire` must make the installed core carry a bus sink, or `TcStorageBus`
-   stays a library with no production writer and the demo writes no standard key.
-3. `mobile-example-connect` switches the example from its own `/init` fetch to the
+1. Both of the previous blockers are closed: an `iab` rule is evaluated
+   (`94590e0da`) and both install paths carry a bus sink (`7b322e45a`). What is
+   left before the demo behaves like web is the example app itself plus the
+   measured evaluator parity work below.
+2. `mobile-example-connect` switches the example from its own `/init` fetch to the
    snapshot the bridge already carries.
 4. Evaluator parity. Close the three divergences measured in
    `evaluator-parity.md`, in both native cores, then let the regenerated
