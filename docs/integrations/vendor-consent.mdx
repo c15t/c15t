@@ -52,7 +52,7 @@ runtime.start();
 The `id` is a lowercase slug of up to 64 characters. Reuse it as the `vendor`
 field on scripts and network rules and as the `data-vendor` attribute on
 iframes. Integrations from `@c15t/scripts` already set `vendor` to their
-manifest slug, so `googleTag()` and `metaPixel()` need no extra wiring.
+manifest slug, so `gtag()` and `metaPixel()` need no extra wiring.
 
 A backend can also declare vendors. Add `vendors` and an optional
 `vendorListVersion` to the manifest configuration; `/init` returns them and the
