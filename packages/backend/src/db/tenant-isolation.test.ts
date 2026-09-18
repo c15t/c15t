@@ -30,6 +30,7 @@ import {
 } from '../repository/subject';
 import { up as baseline } from './migrations/1-baseline';
 import { up as receipts } from './migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from './migrations/4-vendor-choice';
 import { layer as tenantLayer } from './tenant';
 import { encodeRow, encoder, toBoolean } from './values';
 
@@ -41,6 +42,7 @@ const seedBothTenants = Effect.gen(function* seedBothTenants() {
 	yield* resetDatabase;
 	yield* baseline;
 	yield* receipts;
+	yield* vendorChoice;
 	const sql = yield* SqlClient.SqlClient;
 	// Seeds go through the same encoder as production writes: SQLite can bind
 	// neither a Date nor a boolean.
@@ -214,6 +216,7 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* receipts;
+					yield* vendorChoice;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// One domain both tenants reference, so the *only* thing that

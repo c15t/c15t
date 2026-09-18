@@ -30,7 +30,9 @@
  * still what fills `purposeIds` (2.x parity: granted codes only). `choice`
  * carries only the categories this act confirmed, each with its own
  * confirmation time and policy basis, and is stored as sent. The two must
- * agree where they overlap.
+ * agree where they overlap. `vendorChoice`, when present, is the complete
+ * per-vendor grant map with one confirmation time; a grant for a vendor the
+ * manifest does not declare is refused, a denial is kept.
  */
 
 import {
@@ -50,6 +52,7 @@ import type {
 	PostSubjectInput,
 	ResolvedPolicyRule,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import type { IpAddressConfig } from '@c15t/schema/geo';
@@ -116,6 +119,8 @@ export interface PreparedSubmission {
 	readonly input: PostSubjectInput;
 	readonly givenAt: Date;
 	readonly choice: SubjectChoiceWire | undefined;
+	/** Per-vendor grants this act carried, stored as sent. */
+	readonly vendorChoice: VendorChoiceWire | undefined;
 	/** Granted codes after scope filtering, for `purposeIds`. */
 	readonly grantedCodes: readonly string[];
 	/** The preference map after scope filtering, echoed to the client. */
@@ -464,6 +469,44 @@ const checkChoice = (
 	return undefined;
 };
 
+/**
+ * Refuses a vendor map that is later than the server clock or grants a vendor
+ * the manifest does not declare. A grant for an undeclared vendor is refused
+ * because it cannot be presented back to the subject; a denial is kept, since
+ * a persistent refusal must remain possible for a vendor that was later
+ * removed from the list. When the manifest declares no vendors at all, the
+ * map is stored as sent: the client declared them in code.
+ */
+const checkVendorChoice = (
+	vendorChoice: VendorChoiceWire,
+	manifest: ConsentManifest,
+	now: number
+): BadRequestError | undefined => {
+	const timestampIssue = checkTimestamp(
+		vendorChoice.confirmedAt,
+		'vendorChoice.confirmedAt',
+		now
+	);
+	if (timestampIssue) {
+		return timestampIssue;
+	}
+	const declared = manifest.vendors;
+	if (!declared || declared.length === 0) {
+		return undefined;
+	}
+	const known = new Set(declared.map((vendor) => vendor.id));
+	const unknownGrants = Object.entries(vendorChoice.grants)
+		.filter(([id, granted]) => granted && !known.has(id))
+		.map(([id]) => id);
+	if (unknownGrants.length > 0) {
+		return new BadRequestError({
+			code: 'VENDOR_OUT_OF_SCOPE',
+			message: `vendorChoice grants vendors the manifest does not declare: ${unknownGrants.join(', ')}`,
+		});
+	}
+	return undefined;
+};
+
 const deriveConsentAction = (
 	raw: string | undefined,
 	model: string | undefined
@@ -711,6 +754,14 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		}
 		const { appliedPreferences, grantedCodes, choice } = categories;
 
+		const vendorChoice = cookieBanner?.vendorChoice;
+		if (vendorChoice) {
+			const issue = checkVendorChoice(vendorChoice, manifest, context.now);
+			if (issue) {
+				return yield* issue;
+			}
+		}
+
 		const model = effectiveModel(decision, input.jurisdictionModel);
 		const validityMs = choiceValidityMs(decision);
 		const proof = proofFields(decision, context, input.metadata);
@@ -732,6 +783,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 				validityMs === undefined
 					? undefined
 					: new Date(givenAt.getTime() + validityMs),
+			vendorChoice,
 		};
 	}
 );

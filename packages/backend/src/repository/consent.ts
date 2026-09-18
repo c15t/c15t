@@ -30,6 +30,7 @@ import { buildConsentId } from '@c15t/schema';
 import type {
 	ConsentSubmissionIdentity,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
@@ -46,6 +47,8 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	 * nothing here is stamped or renewed on the way in.
 	 */
 	readonly choice?: SubjectChoiceWire | null;
+	/** Per-vendor grants this submission carried, in wire form, stored as sent. */
+	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly metadata?: unknown;
 	readonly ipAddress?: string | null;
 	readonly userAgent?: string | null;
@@ -233,14 +236,64 @@ export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
 	}
 );
 
-/** Both content checks against a stored row, for the two paths that find one. */
+/** Vendor grants in a key-stable form, so two equal maps serialise equally. */
+const canonicalVendorChoice = (
+	vendorChoice: VendorChoiceWire | null | undefined
+) => {
+	if (!vendorChoice) {
+		return null;
+	}
+	return JSON.stringify([
+		vendorChoice.confirmedAt,
+		Object.keys(vendorChoice.grants)
+			.sort()
+			.map((id) => [id, vendorChoice.grants[id]]),
+	]);
+};
+
+const storedVendorChoice = (value: unknown): VendorChoiceWire | null => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return parsed && typeof parsed === 'object'
+		? (parsed as VendorChoiceWire)
+		: null;
+};
+
+/**
+ * The vendor map stored on an existing row must match the one resubmitted.
+ * Same hazard as receipts: the id covers identity, not what was decided.
+ *
+ * @internal
+ */
+export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
+	function* assertSameVendors(
+		storedRaw: unknown,
+		submitted: VendorChoiceWire | null | undefined
+	) {
+		const stored = canonicalVendorChoice(storedVendorChoice(storedRaw));
+		const incoming = canonicalVendorChoice(submitted);
+		if (stored === incoming) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				'A consent with this identity was already recorded with different ' +
+				'vendor grants. Withdraw or supersede it rather than resubmitting ' +
+				'the same act with a different vendor decision.',
+		});
+	}
+);
+
+/** Every content check against a stored row, for the two paths that find one. */
 const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	function* assertSameSubmission(
-		stored: { purposeIds: unknown; choice: unknown } | undefined,
+		stored:
+			| { purposeIds: unknown; choice: unknown; vendorChoice: unknown }
+			| undefined,
 		submission: ConsentSubmission
 	) {
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
 		yield* assertSameChoice(stored?.choice, submission.choice);
+		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
 	}
 );
 
@@ -265,8 +318,9 @@ export const record = Effect.fn('consent.record')(function* record(
 		id: string;
 		purposeIds: unknown;
 		choice: unknown;
+		vendorChoice: unknown;
 	}>`
-		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}
+		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
@@ -326,6 +380,11 @@ export const record = Effect.fn('consent.record')(function* record(
 			uiSource: submission.uiSource ?? null,
 			userAgent: submission.userAgent ?? null,
 			validUntil: submission.validUntil ?? null,
+			vendorChoice:
+				submission.vendorChoice === undefined ||
+				submission.vendorChoice === null
+					? null
+					: JSON.stringify(submission.vendorChoice),
 		},
 	});
 
@@ -339,8 +398,13 @@ export const record = Effect.fn('consent.record')(function* record(
 	// accepted while the winner's are what is stored. Rare, and precisely the
 	// case a deterministic key makes possible, so it is checked rather than
 	// reasoned about.
-	const winner = yield* sql<{ purposeIds: unknown; choice: unknown }>`
-		select ${sql('purposeIds')}, ${sql('choice')} from ${sql('consent')}
+	const winner = yield* sql<{
+		purposeIds: unknown;
+		choice: unknown;
+		vendorChoice: unknown;
+	}>`
+		select ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
 	yield* assertSameSubmission(winner[0], submission);

@@ -27,6 +27,7 @@ import type { DrainContext } from 'evlog';
 
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
 import { resolveOptions } from './evlog';
@@ -52,6 +53,7 @@ const withApp = async <A>(
 		Effect.gen(function* withApp() {
 			yield* baseline;
 			yield* receipts;
+			yield* vendorChoice;
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`
 				insert into ${sql('domain')} ${sql.insert({
