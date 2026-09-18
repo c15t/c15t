@@ -89,8 +89,9 @@ When the client declares vendors, a save also carries `vendorChoice`: the comple
 per-vendor grant map with one confirmation time. The backend stores it as sent on
 the consent row, including vendors the client declared in code rather than in the
 manifest, and returns the map of the most recent act as `subjectVendorChoice`. A
-map that leaves out a vendor the manifest declares is refused with
-`VENDOR_CHOICE_INCOMPLETE`, since an omitted vendor reads back as allowed.
+map that omits a vendor the manifest declares is stored too: the client saw an
+older manifest, and the omitted vendor reads back as never decided and follows
+its category, the same as a vendor added after the act.
 Retrying the same act with a different map is a `CONFLICT`, like a retry with
 different receipts, and so is any retry against a stored map that cannot be
 read. Migration `4-vendor-choice` adds the column.

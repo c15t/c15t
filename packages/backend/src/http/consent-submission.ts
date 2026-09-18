@@ -33,8 +33,8 @@
  * agree where they overlap. `vendorChoice`, when present, is the complete
  * per-vendor grant map with one confirmation time, stored as sent: the
  * client merges backend and code-declared vendors, so the manifest is not
- * an allowlist for it. It is a floor: every vendor the manifest declares
- * must be decided, since an omitted id reads back as allowed.
+ * an allowlist for it, and not a floor either: a vendor the map omits is one
+ * the visitor's manifest did not carry yet.
  */
 
 import {
@@ -472,37 +472,26 @@ const checkChoice = (
 };
 
 /**
- * Refuses a vendor map that is later than the server clock or that leaves
- * out a vendor the manifest declares. The wire carries the complete map, and
- * a client reads an omitted id back as allowed, so a partial map could
- * enable a configured vendor the visitor never decided. Ids the manifest
- * does not list are expected: the client merges the backend's vendors with
- * vendors it declares in code. The map is stored as sent.
+ * Refuses a vendor map that is later than the server clock. Nothing is
+ * checked against the manifest, in either direction:
+ *
+ * - An id the manifest does not list is expected. The client merges the
+ *   backend's vendors with vendors it declares in code.
+ * - A manifest vendor the map omits is one the visitor never saw. The
+ *   client resolves a cached, bundled or prefetched manifest, so a vendor
+ *   added on the backend afterwards is missing from every save until the
+ *   client refreshes, and a queued save replays the same map unchanged.
+ *   Refusing would lose the whole act, category receipts included. An
+ *   omitted vendor reads back as never decided and follows its category,
+ *   which is what a vendor added after the act does everywhere else.
+ *
+ * The map is stored as sent and read back the same way.
  */
 const checkVendorChoice = (
 	vendorChoice: VendorChoiceWire,
-	manifest: ConsentManifest,
 	now: number
-): BadRequestError | undefined => {
-	const timestampIssue = checkTimestamp(
-		vendorChoice.confirmedAt,
-		'vendorChoice.confirmedAt',
-		now
-	);
-	if (timestampIssue) {
-		return timestampIssue;
-	}
-	const missing = (manifest.vendors ?? [])
-		.map((vendor) => vendor.id)
-		.filter((id) => !Object.hasOwn(vendorChoice.grants, id));
-	if (missing.length > 0) {
-		return new BadRequestError({
-			code: 'VENDOR_CHOICE_INCOMPLETE',
-			message: `vendorChoice.grants must decide every vendor the manifest declares; missing: ${missing.join(', ')}`,
-		});
-	}
-	return undefined;
-};
+): BadRequestError | undefined =>
+	checkTimestamp(vendorChoice.confirmedAt, 'vendorChoice.confirmedAt', now);
 
 const deriveConsentAction = (
 	raw: string | undefined,
@@ -753,7 +742,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 
 		const vendorChoice = cookieBanner?.vendorChoice;
 		if (vendorChoice) {
-			const issue = checkVendorChoice(vendorChoice, manifest, context.now);
+			const issue = checkVendorChoice(vendorChoice, context.now);
 			if (issue) {
 				return yield* issue;
 			}

@@ -3,9 +3,9 @@
  *
  * A save may carry `vendorChoice`, the complete per-vendor grant map with one
  * confirmation time. The backend stores it as sent, including vendors the
- * manifest does not declare, requires every manifest vendor to be decided,
- * and reads back the map of the most recent act as `subjectVendorChoice`.
- * Saves without vendors are unaffected.
+ * manifest does not declare and maps that predate a manifest vendor, and
+ * reads back the map of the most recent act as `subjectVendorChoice`. Saves
+ * without vendors are unaffected.
  */
 
 import type { PolicyRule, Vendor } from '@c15t/schema';
@@ -197,10 +197,11 @@ for (const engine of ENGINES) {
 			assert.strictEqual(future.status, 400, JSON.stringify(future.body));
 		});
 
-		it('refuses a map that leaves out a vendor the manifest declares', async () => {
-			// An omitted id reads back as allowed on the client, so a partial map
-			// could enable a configured vendor nobody decided.
-			const partial = await harness.json('POST', '/subjects', {
+		it('stores a map that predates a vendor the manifest declares', async () => {
+			// The client saw an older manifest, cached or bundled, and its queued
+			// save replays the same map. Refusing it would lose the whole act;
+			// the omitted vendor reads back as never decided.
+			const older = await harness.json('POST', '/subjects', {
 				...base,
 				givenAt: T0,
 				vendorChoice: {
@@ -209,8 +210,13 @@ for (const engine of ENGINES) {
 					version: 1,
 				},
 			});
-			assert.strictEqual(partial.status, 400, JSON.stringify(partial.body));
-			assert.match(String(partial.body.message), /google-analytics/u);
+			assert.strictEqual(older.status, 200, JSON.stringify(older.body));
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectVendorChoice, {
+				confirmedAt: T0,
+				grants: { 'meta-pixel': false },
+				version: 1,
+			});
 		});
 
 		it('reports null vendor state for a subject that never sent a map', async () => {
