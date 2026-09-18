@@ -92,9 +92,14 @@ export const createPersistence = function createPersistence(
 		kernel.events.on('choice:recorded', () => {
 			choiceWrites.schedule();
 		}),
-		kernel.events.on('subject:resolved', () => {
+		kernel.events.on('subject:resolved', ({ snapshot }) => {
 			choiceWrites.schedule();
-			vendorWrites.schedule();
+			// The vendor record carries the subject only once a vendor decision
+			// exists. Scheduling without one would run the writer's clear branch
+			// and delete a stored denial this kernel never hydrated.
+			if (snapshot.vendorChoice !== null) {
+				vendorWrites.schedule();
+			}
 		}),
 		kernel.events.on('notice:dismissed', () => {
 			noticeWrites.schedule();

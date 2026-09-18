@@ -16,7 +16,10 @@ import {
 import { createConsentKernel } from '../../../index';
 import type { KernelVendorsState } from '../../../types';
 import { createPersistence } from '../index';
-import { readStoredVendorChoice } from '../record-storage';
+import {
+	readStoredVendorChoice,
+	writeStoredVendorChoice,
+} from '../record-storage';
 
 const vendors: KernelVendorsState = {
 	declared: [
@@ -131,6 +134,44 @@ describe('vendor persistence', () => {
 		expect(fresh.getSnapshot().vendorChoice?.denied).toEqual(['meta-pixel']);
 		rehydrated.dispose();
 		fresh.dispose();
+	});
+
+	it('a category save that resolves the subject leaves a stored denial alone', async () => {
+		// A denial written by another tab or an earlier session that this kernel
+		// never hydrated.
+		writeStoredVendorChoice(
+			{ confirmedAt: NOW - 1, denied: ['meta-pixel'], version: 1 },
+			undefined,
+			NOW
+		);
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			initialVendors: vendors,
+			now: NOW,
+			transport: {
+				save: () => Promise.resolve({ ok: true, subjectId: 'sub_srv' }),
+			},
+		});
+		const persistence = createPersistence({
+			kernel,
+			now: () => NOW,
+			skipHydration: true,
+		});
+		// Fake timers are on: let the transport round trip and the write
+		// schedulers run before awaiting the save.
+		const saved = kernel.commands.save({ marketing: true });
+		await vi.runAllTimersAsync();
+		await saved;
+		await vi.runAllTimersAsync();
+		expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_srv');
+		expect(readStoredVendorChoice(undefined, NOW)).toMatchObject({
+			ok: true,
+			record: { denied: ['meta-pixel'] },
+		});
+		persistence.dispose();
+		kernel.dispose();
 	});
 
 	it('clear() removes the stored record and the in-memory denials', async () => {
