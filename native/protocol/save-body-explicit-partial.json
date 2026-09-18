@@ -106,7 +106,13 @@
 		},
 		"snapshotAfter": {
 			"activeUI": "none",
-			"consentCategories": null,
+			"consentCategories": [
+				"necessary",
+				"experience",
+				"functionality",
+				"marketing",
+				"measurement"
+			],
 			"effectivePermissions": {
 				"necessary": true,
 				"functionality": false,
@@ -194,7 +200,13 @@
 		},
 		"snapshotBefore": {
 			"activeUI": "banner",
-			"consentCategories": null,
+			"consentCategories": [
+				"necessary",
+				"experience",
+				"functionality",
+				"marketing",
+				"measurement"
+			],
 			"effectivePermissions": {
 				"necessary": true,
 				"functionality": false,

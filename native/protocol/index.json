@@ -3,148 +3,148 @@
 	"count": 25,
 	"fixtures": [
 		{
-			"bytes": 6249,
+			"bytes": 6342,
 			"file": "evaluation-eu-opt-in.json",
 			"id": "evaluation-eu-opt-in",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "17ab8d28d6e1c3b0b67284932895fadde6481f8121e1bfa40c52d7737d1a9b53"
+			"sha256": "bebe1f245f251450e2e6ea7b23513335e13c0d69d1e7c9bc957d52e5cca8e056"
 		},
 		{
-			"bytes": 6180,
+			"bytes": 6273,
 			"file": "evaluation-us-ccpa-opt-out.json",
 			"id": "evaluation-us-ccpa-opt-out",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "c760c80c9c92e38c94b671b66b184348ad9ea91dfdc025161f3f8e011efded91"
+			"sha256": "793c2c8d5c90d8b1850a77f0e548e9398cc4c059505dcaed1ec92cd083f20b23"
 		},
 		{
-			"bytes": 4924,
+			"bytes": 5017,
 			"file": "evaluation-no-rule-matched.json",
 			"id": "evaluation-no-rule-matched",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "7cc602218626a6d6ce3140184f6ed3011ce3d3d404a5cfe495779ca6533cf87c"
+			"sha256": "f10dba7553c7a448127344379665f5d2dfe557a686a11032f4a1cacfaeeaf110"
 		},
 		{
-			"bytes": 6431,
+			"bytes": 6524,
 			"file": "evaluation-gpc-signal-present.json",
 			"id": "evaluation-gpc-signal-present",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "07f64d0ba74562c09a0362a9f5cedc030a8f2c447ce5b664c55bfccaad648695"
+			"sha256": "55d6ac2975ae4492354f1a36b4ac540eae0d78928b28cb2e73310f84653b2274"
 		},
 		{
-			"bytes": 6116,
+			"bytes": 6153,
 			"file": "evaluation-notice-pending.json",
 			"id": "evaluation-notice-pending",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "cc5a34e275c1a1f21a1b04830a8dff4cd5f27a735c5d7bd6c705a2016df56db2"
+			"sha256": "4d54885d7c4cbd28617bab62e386bee78f05aef10344c5a53bb4cf2f90f34927"
 		},
 		{
-			"bytes": 8190,
+			"bytes": 8283,
 			"file": "evaluation-eu-explicit-grants.json",
 			"id": "evaluation-eu-explicit-grants",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "c64d5a272629a4be738a3e7e87b0b6133574432d386faa991091f7ab967e35fb"
+			"sha256": "2211d6ed76d832becf1882aa1fbf2fc76d020b4bb888b7ec4d95308aa5011cd0"
 		},
 		{
-			"bytes": 7364,
+			"bytes": 7457,
 			"file": "evaluation-eu-partial-denials.json",
 			"id": "evaluation-eu-partial-denials",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "041ec3ef9f3f0f68e67325911f4cfaab4f059030ac40896ba89e0303a3cb683f"
+			"sha256": "92443de6aa60ee82856969965c699f6008265ab20e187e84cb8cbe561e543dbb"
 		},
 		{
-			"bytes": 6297,
+			"bytes": 6334,
 			"file": "evaluation-notice-dismissed.json",
 			"id": "evaluation-notice-dismissed",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "d10e4d6f8b38a506b26c2d1d7ec4e768db25f98dc1b32829e63f9010b7dd4ec9"
+			"sha256": "47fde61730463089a1c1dd5b3103dd0095e6cb82277ebd5fa4424f2f9c0f41e3"
 		},
 		{
-			"bytes": 6421,
+			"bytes": 6514,
 			"file": "evaluation-eu-fresh-install.json",
 			"id": "evaluation-eu-fresh-install",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "554efe2c7e7cf6be393ffd12cc5ad165c8d6d1f41bf50c882c7f8b2057f24d00"
+			"sha256": "14ea47512f265cb9226374adfab18814b7fe91fd0c79e04b7eae826e163a245c"
 		},
 		{
-			"bytes": 6359,
+			"bytes": 6452,
 			"file": "evaluation-us-ccpa-fresh-install.json",
 			"id": "evaluation-us-ccpa-fresh-install",
 			"kind": "evaluation",
 			"protocolVersion": 1,
-			"sha256": "7d43dd9d950ad31cd0232ed8bfb2d57206af4f2444f6e0419657898e8a46c745"
+			"sha256": "abe24b0a04cea6b656fe78b2294293713b2420d792cb49dd8a915bb3b5ba4e36"
 		},
 		{
-			"bytes": 13183,
+			"bytes": 13369,
 			"file": "save-body-all.json",
 			"id": "save-body-all",
 			"kind": "save-body",
 			"protocolVersion": 1,
-			"sha256": "20cc8325758b62afe723de163a53567bf9073c3f1d580daf121abc32918d572c"
+			"sha256": "8a0f7d6c2d38b8dfda43eee53cd46355d4bda21fe23557d6093ce9353f062398"
 		},
 		{
-			"bytes": 13325,
+			"bytes": 13511,
 			"file": "save-body-necessary.json",
 			"id": "save-body-necessary",
 			"kind": "save-body",
 			"protocolVersion": 1,
-			"sha256": "2d68ef0ac21a93f471f40cccfa031d4d2337c783df329862b482902de115fbdd"
+			"sha256": "e869c91542c3a697dd08ec8b6001d820add01d31aded7111972cfb29f5cf0e82"
 		},
 		{
-			"bytes": 11816,
+			"bytes": 12002,
 			"file": "save-body-explicit-partial.json",
 			"id": "save-body-explicit-partial",
 			"kind": "save-body",
 			"protocolVersion": 1,
-			"sha256": "5bdaad5920f045960f3fb394957bc64e2f535d058eaff96563ea5760ce7ab5f9"
+			"sha256": "db52711ccde9ac8dbffae689ff44d134a8d60092bfb2ae966ce4b0bc57b2e74e"
 		},
 		{
-			"bytes": 13607,
+			"bytes": 13793,
 			"file": "save-body-ccpa-gpc.json",
 			"id": "save-body-ccpa-gpc",
 			"kind": "save-body",
 			"protocolVersion": 1,
-			"sha256": "0521b4705a3ea0b424ab60916a839037501d5a01b42704acc84d9629fb7348ef"
+			"sha256": "9780afaf6e50eb41cfc461a0e43d308c2f0ec510ec1ed53f5780d1a8193b1148"
 		},
 		{
-			"bytes": 11895,
+			"bytes": 11988,
 			"file": "native-envelope-opt-in-grants.json",
 			"id": "native-envelope-opt-in-grants",
 			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "8231b292f4aaa5cfcfd2cda72e3daa174f0da16ddefb24935c3058654b6e9ff4"
+			"sha256": "364965d495e3260598c3c1d1ac3c29b36bddb18af24b8c54de01ce928e6f4a16"
 		},
 		{
-			"bytes": 11567,
+			"bytes": 11660,
 			"file": "native-envelope-partial-denials.json",
 			"id": "native-envelope-partial-denials",
 			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "8049aecfb249d3d2c4ddd7297de54d8aa61ccb181d424c374f9bc1e7423f8774"
+			"sha256": "43d631ca6c828514da93013ec157bedb387011b70c087e59deae82f2302e8098"
 		},
 		{
-			"bytes": 10835,
+			"bytes": 10872,
 			"file": "native-envelope-notice-dismissed.json",
 			"id": "native-envelope-notice-dismissed",
 			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "b58d8358f50b3e02efce35524065de150829a51790ab43d5f7e5f64d12147f1f"
+			"sha256": "7727ffd7458fdf18ecbcd8fc0dbe79da2d618d095a10d6689a5a3bf1e39ee126"
 		},
 		{
-			"bytes": 11878,
+			"bytes": 11971,
 			"file": "native-envelope-opt-out-grants.json",
 			"id": "native-envelope-opt-out-grants",
 			"kind": "native-envelope",
 			"protocolVersion": 1,
-			"sha256": "0adca765606428c7ea2aee9f8a515ad00b4a0146fded97a190c1bb02fb1c8d0a"
+			"sha256": "c0f3842a6f90d79516084ec717b1942f003e4988c465167144c3b1e9ea139a1b"
 		},
 		{
 			"bytes": 9657,
@@ -179,20 +179,20 @@
 			"sha256": "cb44d7ef672117c2633faf16bfce36d5d28d300e4da32e374b53a84d843049b5"
 		},
 		{
-			"bytes": 11456,
+			"bytes": 11800,
 			"file": "reset-consent-opt-in-grants.json",
 			"id": "reset-consent-opt-in-grants",
 			"kind": "reset-consent",
 			"protocolVersion": 1,
-			"sha256": "7a018858d72b0b506f9ea957f4a5f8794c35e7f9445332750e153897920963e9"
+			"sha256": "4bde1d42a15a7319ac75f1069d76ff9a8fbd884d97ec6a490b916394c3a3553b"
 		},
 		{
-			"bytes": 11541,
+			"bytes": 11885,
 			"file": "reset-consent-recorded-denial.json",
 			"id": "reset-consent-recorded-denial",
 			"kind": "reset-consent",
 			"protocolVersion": 1,
-			"sha256": "d787855a30ac4eee8055e381db9691ea54610cfd94355824256c5ac6ac44345b"
+			"sha256": "9459af8badd3c5752229f23e2e2c2e01d902871e0ec8285ba01f63ae7efee9ac"
 		},
 		{
 			"bytes": 13239,

@@ -3,7 +3,13 @@
 	"expected": {
 		"snapshot": {
 			"activeUI": "banner",
-			"consentCategories": null,
+			"consentCategories": [
+				"necessary",
+				"experience",
+				"functionality",
+				"marketing",
+				"measurement"
+			],
 			"effectivePermissions": {
 				"necessary": true,
 				"functionality": false,
