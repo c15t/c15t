@@ -59,6 +59,12 @@ DERIVED="${IOS_JOURNEY_DERIVED:-/tmp/ios-journey-derived}"
 SCALE="${IOS_JOURNEY_SCALE:-3}"
 STATUS_BAND_PX="${IOS_JOURNEY_STATUS_BAND_PX:-177}"
 MIN_CHANGED_PCT="${IOS_JOURNEY_MIN_CHANGED_PCT:-0.35}"
+# Longest a step waits for the state it is about to assert. A commit is a queue write
+# followed by a backend round trip, and measured runs put the same acceptAll anywhere between
+# 8 and 30 seconds on this machine depending on load, so no fixed sleep is both fast on a
+# step that waits for nothing and patient on one that waits for a round trip.
+SETTLE_CEILING="${IOS_JOURNEY_SETTLE_CEILING:-75}"
+
 # Ceiling for a `same:` step, well clear of the 0.18% a cold-start status line costs and
 # far below the 5%+ any real consent change paints.
 SAME_MAX_CHANGED_PCT="${IOS_JOURNEY_SAME_MAX_CHANGED_PCT:-0.5}"
@@ -245,6 +251,20 @@ deliver() {
 	fi
 }
 
+# probe_surface <png> <banner|dialog> -> yes | no | unknown
+#
+# unknown is its own answer. A frame caught mid-animation can fail to frame the card, and
+# reading that as "absent" would let a settle loop decide a prompt had gone away.
+probe_surface() {
+	python "${SCRIPT_DIR}/ios-surface-metrics.py" "$1" --mode "$2" \
+		--scale "${SCALE}" --json 2>/dev/null |
+		python -c 'import json, sys
+try:
+    print("yes" if json.load(sys.stdin).get("surface_found") else "no")
+except Exception:
+    print("unknown")'
+}
+
 # expect_surface <banner|dialog|none> <png> <json>
 #
 # Whether a consent surface is on screen is read off the pixels: the branding tab is
@@ -270,6 +290,57 @@ print("yes" if d.get("surface_found") else "no")' "${json}")"
 	fi
 }
 
+# baseline_for <expect> -> the app-area md5 this step is compared against, if any
+baseline_for() {
+	local want=""
+	case "${1}" in
+		same:* | quiet:*) want="${1#*:}" ;;
+		diff) [[ -n "${PREV_APP_MD5:-}" ]] && { printf '%s\n' "${PREV_APP_MD5}"; return; } ;;
+	esac
+	[[ -n "${want}" && -f "${OUT_DIR}/${want}.app-md5" ]] && cat "${OUT_DIR}/${want}.app-md5"
+}
+
+# settle <expect> <surface> <baseline-md5> <floor-seconds> <ceiling-seconds>
+#
+# Wait until the frame shows what this step is about to assert: the consent surface it names,
+# and for a diff step an app area that has actually moved away from its baseline. The floor is
+# the wait this script used to sleep unconditionally, so no step can settle earlier than it
+# used to; the ceiling is what a network round trip is allowed to cost.
+settle() {
+	local expect="$1" surface="$2" baseline="$3" floor="$4" ceiling="$5"
+	local probe="${OUT_DIR}/.probe.png" want_mode="banner" waited=0
+	local found surface_ok change_ok frame_md5
+
+	[[ "${surface}" == "dialog" ]] && want_mode="dialog"
+
+	while (( waited < ceiling )); do
+		sim io "${SIM_UDID}" screenshot "${probe}" >/dev/null 2>&1
+
+		found="$(probe_surface "${probe}" "${want_mode}")"
+		if [[ "${surface}" == "none" ]]; then
+			[[ "${found}" == "no" ]] && surface_ok="yes" || surface_ok="no"
+		else
+			[[ "${found}" == "yes" ]] && surface_ok="yes" || surface_ok="no"
+		fi
+
+		change_ok="yes"
+		if [[ "${expect}" == "diff" && -n "${baseline}" ]]; then
+			frame_md5="$(python "${SCRIPT_DIR}/ios-frame-proof.py" digest "${probe}" \
+				--status-band "${STATUS_BAND_PX}" | cut -d" " -f2)"
+			[[ "${frame_md5}" == "${baseline}" ]] && change_ok="no"
+		fi
+
+		if [[ "${surface_ok}" == "yes" && "${change_ok}" == "yes" && "${waited}" -ge "${floor}" ]]; then
+			return 0
+		fi
+
+		sleep 2
+		waited=$((waited + 2))
+	done
+
+	return 1
+}
+
 # step <stem> <description> <expect> <surface> <link> [settle-seconds]
 #
 # expect is one of:
@@ -285,7 +356,10 @@ step() {
 	if ! in_run "${stem}"; then return 0; fi
 
 	deliver "${link}"
-	sleep "${settle}"
+	if ! settle "${expect}" "${surface}" "$(baseline_for "${expect}")" \
+		"${settle}" "${SETTLE_CEILING}"; then
+		warn "${stem}: no ${surface} surface and ${expect} within ${SETTLE_CEILING}s, capturing anyway"
+	fi
 	sim io "${SIM_UDID}" screenshot "${png}" >/dev/null
 
 	read -r full_md5 app_md5 < <(python "${SCRIPT_DIR}/ios-frame-proof.py" digest \
