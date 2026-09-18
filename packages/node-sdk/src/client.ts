@@ -333,7 +333,17 @@ export class C15TClient {
 	 */
 	experiments = {
 		/**
-		 * Summarise a banner experiment
+		 * Summarise a banner experiment (requires an API key)
+		 *
+		 * Counts choices per arm by consent action and surface, with the median
+		 * time to decision. Same as {@link C15TClient.summarizeExperiment}.
+		 *
+		 * @param id - Experiment id, as configured on the client
+		 * @param query - Optional `from`, `to` (ISO dates) and `domain` filters
+		 * @param options - Optional fetch options
+		 * @returns Per-arm summary: `experimentId`, the window as applied, and
+		 * one entry per arm with `choices`, `byAction`, `bySurface` and
+		 * `medianTimeToDecisionMs`
 		 */
 		summary: (
 			id: string,
