@@ -97,6 +97,10 @@
 			})
 		);
 	const { kernel } = runtime;
+	// The runtime validated and assigned from the experiment it was created
+	// with, so presentation, theme and draft defaults resolve against that
+	// same definition; a later `options.experiment` is ignored.
+	const experiment = untrack(() => options.experiment);
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
 	let draftScope = $state<string | null>(null);
@@ -185,7 +189,7 @@
 							snapshot.explicitChoice?.categories[name]?.value ??
 							applyExperimentAssignment(
 								options.presentation,
-								options.experiment,
+								experiment,
 								snapshot.experiment
 							)?.preferences?.defaults?.[name] ??
 							(snapshot.policyRule.model === 'opt-out' ||
@@ -244,7 +248,7 @@
 			...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
 		],
 		getDraft: () => draft,
-		getExperiment: () => options.experiment,
+		getExperiment: () => experiment,
 		getIAB: getIABState,
 		getLegalLinks: () => options.legalLinks,
 		getPresentation: () => options.presentation,
@@ -390,7 +394,7 @@
 	// The arm's theme overrides ride on the host theme, so the injected
 	// tokens and the theme context both follow the assignment.
 	const userTheme = $derived(
-		applyExperimentTheme(options.theme, options.experiment, snapshot.experiment)
+		applyExperimentTheme(options.theme, experiment, snapshot.experiment)
 	);
 
 	setThemeContext({
