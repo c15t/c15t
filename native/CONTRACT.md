@@ -882,9 +882,12 @@ Swift core, as built
 `native/core-swift/` is a standalone SwiftPM package, `C15tCore`, plus a
 `C15tCoreBench` executable. No UIKit, React Native, or Expo imports.
 
-- Verified with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`. The
-  machine's `xcode-select` still points at Command Line Tools, whose SwiftPM is
-  broken, so every Swift command needs that environment variable. Set it in CI too.
+- Verified with the toolchain `xcode-select` already resolves: `xcode-select -p`
+  reports `/Applications/Xcode.app/Contents/Developer`, so `swift test` and
+  `swift build` need no `DEVELOPER_DIR` override. An earlier revision of this
+  contract said Command Line Tools was selected and that every Swift command had
+  to set the variable; that was a property of one machine's shell, not of the
+  package, and CI does not need it.
 - Layout: `ConsentCore`, `ConsentSnapshot`, `ConsentRecord`, `ConsentCategory`,
   `ConsentStore` with in-memory, file, and Keychain conformances, `PolicyEvaluator`,
   `PolicyWire`, `SavePayload`, `StoredEnvelope`, `PendingSaveQueue`,
