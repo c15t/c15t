@@ -34,6 +34,7 @@ import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as attribution } from '../db/migrations/4-experiment-attribution';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import { syncCurrent } from './legal-document';
@@ -55,6 +56,7 @@ const setup = Effect.gen(function* setup() {
 	yield* resetDatabase;
 	yield* baseline;
 	yield* receipts;
+	yield* attribution;
 	// Included because the index migration is itself engine-divergent — MySQL
 	// has no `create index if not exists` and cannot index a bare TEXT column.
 	yield* indexes;

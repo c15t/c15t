@@ -304,3 +304,11 @@ non-Google tags. Use Google Tag Assistant alongside the browser Network panel.
 
 If the requirement is no Google request before permission, do not deploy this
 always-loaded helper unchanged. Choose and verify an explicitly gated setup.
+
+## Measure opt-in rate
+
+Running a banner experiment? Set `reportTo: 'dataLayer'` on the `experiment`
+option and c15t pushes `c15t_surface_shown` and `c15t_choice_recorded` events
+onto `window.dataLayer` with the arm, surface and decision, so a Custom Event
+trigger can forward them to GA4. See
+[banner experiments](../guides/banner-experiments.md#report-impressions-and-choices).

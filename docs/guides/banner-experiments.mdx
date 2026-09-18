@@ -425,6 +425,58 @@ Time to decision is the median `time_to_decision_ms` per `experiment_id` and
 `variant` over the choice events. Use the median, not the mean: a visitor who
 leaves the tab open skews the mean without saying anything about the arm.
 
+## Read the summary from your backend
+
+The self-hosted backend copies `experiment.id`, `experiment.variant` and
+`timeToDecisionMs` out of `metadata` onto their own columns (migration
+`4-experiment-attribution`), so `GET /experiments/:id/summary` can group
+choices per arm without a JSON query. It needs an API key.
+
+```bash
+curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-09-01&to=2026-09-30' \
+  -H "Authorization: Bearer $C15T_API_KEY"
+```
+
+```json
+{
+	"experimentId": "banner-shape",
+	"from": "2026-09-01T00:00:00.000Z",
+	"to": "2026-09-30T23:59:59.999Z",
+	"variants": [
+		{
+			"variant": "bar",
+			"choices": 120,
+			"byAction": { "all": 80, "necessary": 30, "custom": 10 },
+			"bySurface": { "banner": 100, "dialog": 20 },
+			"medianTimeToDecisionMs": 4200
+		},
+		{
+			"variant": "floating",
+			"choices": 95,
+			"byAction": { "all": 50, "necessary": 40, "custom": 5 },
+			"bySurface": { "banner": 90, "dialog": 5 },
+			"medianTimeToDecisionMs": 5100
+		}
+	]
+}
+```
+
+`from` and `to` accept an ISO 8601 date or timestamp and filter on the
+consent's `givenAt`, both ends inclusive. A date without a time is the whole
+of that day in UTC: `from=2026-09-01` starts at midnight and `to=2026-09-30`
+runs to the end of the 30th, so the example above covers all of September. A
+`from` later than `to` is a 400. `domain` narrows to one domain name. An
+experiment id no consent carries returns `variants: []`. The
+`@c15t/node-sdk` client exposes the same call as
+`client.experiments.summary(id, { from, to, domain })`.
+
+The summary counts choices only. Impressions and notice dismissals never
+reach the backend, so it cannot give you an opt-in rate on its own: the
+denominator comes from the `c15t_surface_shown` events `reportTo` sends to
+your analytics. Use the summary to check the split of actions and surfaces
+per arm, and the median time to decision, against what your analytics tool
+reports.
+
 ## Try it
 
 Every example app under `examples/` runs this experiment. Open

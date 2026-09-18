@@ -61,6 +61,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Styling](./docs/frameworks/next/styling/overview.md): Import the Next.js stylesheet and theme c15t components with tokens, slots, and class names through ConsentRoot options.
 - [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 - [Quickstart](./docs/frameworks/nuxt/quickstart.md): Configure the Nuxt module for server rendering, browser initialization or static hosting.
+- [Callbacks](./docs/frameworks/react/callbacks.md): React ConsentProvider callbacks for banner impressions, recorded choices, permission changes and transport errors, with time to decision for analytics.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
@@ -85,6 +86,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Guides
 
+- [Banner experiments](./docs/guides/banner-experiments.md): Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Data fetching and transports](./docs/guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.

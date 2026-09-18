@@ -49,6 +49,10 @@ export interface ConsentSubmissionRequest {
 	readonly choice?: SubjectChoiceWire | null;
 	readonly givenAt: Date;
 	readonly metadata?: unknown;
+	/** See `ConsentSubmission`: attribution columns projected from `metadata`. */
+	readonly experimentId?: string | null;
+	readonly experimentVariant?: string | null;
+	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
 	readonly jurisdiction?: string | null;
@@ -110,6 +114,8 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		choice: request.choice,
 		consentAction: request.consentAction,
 		domainId: request.domainId,
+		experimentId: request.experimentId,
+		experimentVariant: request.experimentVariant,
 		givenAt: request.givenAt,
 		ipAddress: request.ipAddress,
 		jurisdiction: request.jurisdiction,
@@ -121,6 +127,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		subjectId: subject.id,
 		tcString: request.tcString,
 		tenantId,
+		timeToDecisionMs: request.timeToDecisionMs,
 		uiSource: request.uiSource,
 		userAgent: request.userAgent,
 		validUntil: request.validUntil,
