@@ -56,6 +56,11 @@ interface IndexSpec {
 	readonly columns: readonly string[];
 }
 
+/**
+ * Composite index on `(experimentId, experimentVariant)`: the shape of the
+ * summary query's `where … group by`. `tenantId` is already indexed by
+ * `2-hot-path-indexes`, so it is not repeated here.
+ */
 export const EXPERIMENT_ATTRIBUTION_INDEX: IndexSpec = {
 	columns: ['experimentId', 'experimentVariant'],
 	name: 'c15t_consent_experimentId_experimentVariant_idx',
@@ -120,6 +125,14 @@ const indexExists = Effect.fn('migration.indexExists')(function* indexExists(
 	return rows.length > 0;
 });
 
+/**
+ * Adds the attribution columns and their index to `consent`.
+ *
+ * Idempotent: each column and the index is checked before it is created, so
+ * a re-run after a partial apply completes the half that is missing rather
+ * than failing on the half that already landed. Nothing is backfilled; rows
+ * written before this migration keep their attribution inside `metadata`.
+ */
 export const up = Effect.gen(function* up() {
 	const sql = yield* SqlClient.SqlClient;
 	const dialect = yield* Dialect.current;

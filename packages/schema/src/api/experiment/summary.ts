@@ -1,5 +1,6 @@
 /**
- * GET /experiments/:id/summary schemas - Per-arm choice counts (requires API key).
+ * GET /experiments/:id/summary schemas - Per-arm choice counts (requires an
+ * API key).
  *
  * @packageDocumentation
  */
@@ -88,12 +89,27 @@ export const experimentSummaryOutputSchema = v.object({
 });
 
 // Type exports
+/**
+ * Query parameters of `GET /experiments/:id/summary`: an optional `from`/`to`
+ * window and an optional `domain` filter. Inferred from
+ * {@link experimentSummaryQuerySchema}.
+ */
 export type ExperimentSummaryQuery = v.InferOutput<
 	typeof experimentSummaryQuerySchema
 >;
+/**
+ * Response body of `GET /experiments/:id/summary`: the experiment id, the
+ * window as applied, and one {@link ExperimentVariantSummary} per arm. Inferred
+ * from {@link experimentSummaryOutputSchema}.
+ */
 export type ExperimentSummaryOutput = v.InferOutput<
 	typeof experimentSummaryOutputSchema
 >;
+/**
+ * One arm of an experiment as the summary reports it: choices split by
+ * consent action and surface, plus the median time to decision. Inferred from
+ * {@link experimentVariantSummarySchema}.
+ */
 export type ExperimentVariantSummary = v.InferOutput<
 	typeof experimentVariantSummarySchema
 >;
