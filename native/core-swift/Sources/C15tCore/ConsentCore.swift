@@ -221,6 +221,17 @@ public final class ConsentCore: @unchecked Sendable {
         lock.withLock { currentSnapshot }
     }
 
+    /// The vendor list this device last was served, for a host app's own Swift code.
+    ///
+    /// The same value the React Native boundary reads at `snapshot.iab.gvl`, read off
+    /// the same snapshot, so a dialog rendered natively and a dialog rendered in
+    /// JavaScript cannot end up describing different vendors. Synchronous, and it never
+    /// fetches: `nil` means no `/init` has served a list this build could read, which is
+    /// the normal answer for every policy that is not `iab`.
+    public func globalVendorList() -> GlobalVendorList? {
+        lock.withLock { currentSnapshot.iab?.gvl }
+    }
+
     /// Whether processing in `category` is permitted right now.
     ///
     /// Synchronous, and never touches disk or the network. While hydration or the
@@ -878,6 +889,10 @@ public final class ConsentCore: @unchecked Sendable {
                 draft.policySnapshotToken = nil
                 draft.location = nil
                 draft.translations = nil
+                // The list came with a policy claim, so it goes with one; a wipe leaves no
+                // IAB state behind, and the next init serves it again if the matched
+                // model is still `iab`.
+                draft.iab = nil
                 draft.optOutDirectives = []
                 draft.nextDeadline = nil
                 draft.error = nil
@@ -1338,6 +1353,27 @@ public final class ConsentCore: @unchecked Sendable {
             if let location = response.location { draft.location = location }
             if let translations = response.translations { draft.translations = translations }
             if let token = response.policySnapshotToken { draft.policySnapshotToken = token }
+            // The vendor list is folded here, beside the other served-metadata fields,
+            // and before the policy branch, on purpose.
+            //
+            // Only when present: a later `/init` that serves no `gvl` leaves the list the
+            // core already has. That is the retention the dialog needs. Once a purpose
+            // name or vendor name has been on screen, replacing it with nothing does not
+            // take a permission away -- it renders an empty dialog against a consent the
+            // subject just gave -- and the backend omits the field routinely, because
+            // `buildInitResponse` only embeds it while the matched model is `iab`. The
+            // web keeps its module-level GVL cache for the same reason. A newer list
+            // replaces an older one whole, so the device can never hold two vendors'
+            // worth of `vendorListVersion`.
+            //
+            // Same retention rules as the matched policy, which means stored on the
+            // snapshot and written with it in the same envelope: one write, one read,
+            // wiped by ``reset()`` alongside `policyWire`. It rides the snapshot rather
+            // than taking an envelope key of its own, because the bridge reads the
+            // snapshot and a second copy of one fact is two answers.
+            if let gvl = response.gvl {
+                draft.iab = KernelIABState(gvl: gvl)
+            }
 
             // Server-mapped receipts merge in per category, newest wins. A local
             // receipt that has not reached the backend yet is newer than anything

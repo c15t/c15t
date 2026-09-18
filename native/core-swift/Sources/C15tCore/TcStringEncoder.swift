@@ -44,8 +44,9 @@ struct TcEncodeProblem: Error {
 ///   consent state, and it should not try: c15t does not populate either field
 ///   (`packages/iab/src/tcf/tc-string.ts` sets neither), and `@iabtechlabtcf/core`
 ///   cannot encode restrictions at all without a GVL attached. A layer that wanted
-///   to emit them needs the GVL's opinion, which this build deliberately does not
-///   carry.
+///   to emit them needs the publisher's own restriction choices, which c15t collects
+///   nowhere on any platform; the list `/init` serves says what a vendor declared, not
+///   what a publisher restricted it to.
 enum TcStringEncoder {
     static func encode(_ string: TcString) -> TcStringEncodeOutcome {
         do {
@@ -415,6 +416,31 @@ extension TcStringEncoder {
                 message: "TC string could not be encoded: \(error)"
             )
         }
+    }
+
+    /// Encode consent state against a vendor list `/init` served.
+    ///
+    /// The one-argument convenience is not a second encoder: it converts the served list
+    /// to a ``TcVendorList`` and calls the overload above, so the semantic pre-pass -- the
+    /// language, the purposes TCF refuses a legitimate interest for, and the vendor
+    /// pruning -- is literally the same code over either source.
+    static func encode(
+        _ model: TcConsentModel,
+        gvl: GlobalVendorList,
+        options: TcEncodingOptions = TcEncodingOptions()
+    ) -> TcStringEncodeOutcome {
+        encode(model, vendorList: TcVendorList(gvl: gvl), options: options)
+    }
+
+    /// Shape consent state against a vendor list `/init` served.
+    ///
+    /// See ``encode(_:gvl:options:)`` for why this is a conversion and not a second pass.
+    static func shape(
+        _ model: TcConsentModel,
+        gvl: GlobalVendorList,
+        options: TcEncodingOptions = TcEncodingOptions()
+    ) throws -> TcString {
+        try shape(model, vendorList: TcVendorList(gvl: gvl), options: options)
     }
 
     /// Turn consent state into a wire-shaped ``TcString``, choosing an encoding for

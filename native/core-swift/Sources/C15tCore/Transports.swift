@@ -235,10 +235,14 @@ public struct HydrationRecords: Sendable, Equatable {
 /// A decoded `/init` response.
 ///
 /// Field-for-field the subset of `@c15t/core`'s `InitResponse` that means
-/// something on mobile. `gvl`, `gvlReference`, `customVendors`, and `cmpId` are
-/// IAB-only and absent by design; `branding` drives a web theme there is no native
-/// surface for. Anything absent here leaves the current snapshot value alone,
-/// which is also what the web transport does with an omitted field.
+/// something on mobile. `gvl` is read: the backend embeds it whenever the matched
+/// policy model is `iab` (`buildInitResponse` in `packages/backend/src/http/init.ts`),
+/// and a mobile consent surface needs the purposes and vendor names to render the
+/// same dialog the web one does. `gvlReference`, `customVendors`, and `cmpId` stay
+/// unread, because this build has no IAB runtime to hand them to and no publisher-side
+/// non-IAB list to draw; `branding` drives a web theme there is no native surface for.
+/// Anything absent here leaves the current snapshot value alone, which is also what the
+/// web transport does with an omitted field.
 public struct InitResponse: Sendable, Equatable {
     /// The raw policy wire, unvalidated. It is deliberately `JSONValue` and not a
     /// parsed type: reading it into a struct would make an unreadable policy
@@ -251,6 +255,21 @@ public struct InitResponse: Sendable, Equatable {
     public let resolvedOverrides: KernelOverridesWire?
     public let resolvedPrivacySignals: ResolvedPrivacySignals?
     public let records: HydrationRecords?
+    /// The vendor list the backend served, already read through the `fetch-gvl.ts`
+    /// accept rule.
+    ///
+    /// `nil` covers three cases that have to stay indistinguishable on the snapshot: no
+    /// `gvl` key, because the matched policy is not `iab`; an explicit null, which the
+    /// web type documents as the server disabling IAB for the request; and a document
+    /// the accept rule threw away.
+    ///
+    /// That last one is a defect in a config response, not a consent answer, so it is
+    /// read as absent and nothing else about the response is treated differently.
+    /// Contract rule 5 is the one place this build fails closed on a wire it cannot read,
+    /// and it is written about a policy resolution: a vendor list carries no permissions,
+    /// so dropping one must never turn a readable policy into `policyPending` or take a
+    /// grant the subject gave back.
+    public let gvl: GlobalVendorList?
 
     public init(
         policyResolution: JSONValue? = nil,
@@ -260,7 +279,8 @@ public struct InitResponse: Sendable, Equatable {
         policySnapshotToken: String? = nil,
         resolvedOverrides: KernelOverridesWire? = nil,
         resolvedPrivacySignals: ResolvedPrivacySignals? = nil,
-        records: HydrationRecords? = nil
+        records: HydrationRecords? = nil,
+        gvl: GlobalVendorList? = nil
     ) {
         self.policyResolution = policyResolution
         self.subjectId = subjectId
@@ -270,6 +290,7 @@ public struct InitResponse: Sendable, Equatable {
         self.resolvedOverrides = resolvedOverrides
         self.resolvedPrivacySignals = resolvedPrivacySignals
         self.records = records
+        self.gvl = gvl
     }
 
     /// Read a response body. Anything that is not a JSON object is
@@ -292,7 +313,8 @@ public struct InitResponse: Sendable, Equatable {
             resolvedPrivacySignals: parsed["resolvedPrivacySignals"].map { signals in
                 ResolvedPrivacySignals(gpc: signals["gpc"]?.boolValue)
             },
-            records: decodeRecords(parsed["records"])
+            records: decodeRecords(parsed["records"]),
+            gvl: GlobalVendorList.read(from: parsed["gvl"])
         ))
     }
 

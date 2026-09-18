@@ -340,6 +340,121 @@ enum Fixture {
         )
     }
 
+    // MARK: - Vendor lists
+
+    /// One purpose, special purpose, feature or special feature entry. The GVL gives all
+    /// four the same shape, so one builder covers them.
+    static func gvlDefinition(id: Int, name: String = "Purpose") -> JSONValue {
+        .object([
+            "id": .integer(Int64(id)),
+            "name": .string(name),
+            "description": .string("\(name) \(id), in the language the list was served in"),
+            "illustrations": .array([]),
+        ])
+    }
+
+    /// One vendor entry the way the GVL wire serves it.
+    ///
+    /// `deletedDate` is written only when a test wants a withdrawn vendor, because the
+    /// field's presence is the whole fact: the reference reads it for truthiness.
+    static func gvlVendor(
+        _ id: Int,
+        name: String = "Vendor",
+        purposes: [Int] = [],
+        legIntPurposes: [Int] = [],
+        flexiblePurposes: [Int] = [],
+        specialPurposes: [Int] = [],
+        deletedDate: String? = nil
+    ) -> JSONValue {
+        var fields: [String: JSONValue] = [
+            "id": .integer(Int64(id)),
+            "name": .string("\(name) \(id)"),
+            "purposes": .array(purposes.map { .integer(Int64($0)) }),
+            "legIntPurposes": .array(legIntPurposes.map { .integer(Int64($0)) }),
+            "flexiblePurposes": .array(flexiblePurposes.map { .integer(Int64($0)) }),
+            "specialPurposes": .array(specialPurposes.map { .integer(Int64($0)) }),
+            "features": .array([]),
+            "specialFeatures": .array([]),
+            "cookieMaxAgeSeconds": .null,
+            "cookieRefresh": .bool(false),
+            "usesCookies": .bool(true),
+            "usesNonCookieAccess": .bool(false),
+            "urls": .array([
+                .object(["langId": .string("EN"), "privacy": .string("https://vendor.test/\(id)")]),
+            ]),
+        ]
+        if let deletedDate {
+            fields["deletedDate"] = .string(deletedDate)
+        }
+        return .object(fields)
+    }
+
+    /// A vendor list document, in the sparse-object shape
+    /// `globalVendorListSchema` declares unless `denseArrays` asks for the array shape
+    /// older GVL publications use. Both have to read, because `dialog-data.ts` runs
+    /// `Object.entries` over either.
+    static func gvlDocument(
+        vendorListVersion: Int = 177,
+        tcfPolicyVersion: Int = 5,
+        purposes: [Int] = [1, 2, 3],
+        vendors: [JSONValue] = [],
+        denseArrays: Bool = false
+    ) -> JSONValue {
+        let purposeValues = purposes.map { gvlDefinition(id: $0) }
+        let keyed: ([JSONValue]) -> JSONValue = { items in
+            guard !denseArrays else { return .array(items) }
+            var fields: [String: JSONValue] = [:]
+            for item in items {
+                guard let id = item["id"]?.intValue else { continue }
+                fields[String(id)] = item
+            }
+            return .object(fields)
+        }
+        return .object([
+            "gvlSpecificationVersion": .integer(3),
+            "vendorListVersion": .integer(Int64(vendorListVersion)),
+            "tcfPolicyVersion": .integer(Int64(tcfPolicyVersion)),
+            "lastUpdated": .string("2025-11-01T00:00:00Z"),
+            "purposes": keyed(purposeValues),
+            "specialPurposes": keyed([gvlDefinition(id: 1, name: "Special")]),
+            "features": keyed([gvlDefinition(id: 1, name: "Feature")]),
+            "specialFeatures": keyed([gvlDefinition(id: 1, name: "Special feature")]),
+            "stacks": keyed([
+                .object([
+                    "id": .integer(40),
+                    "name": .string("Stack 40"),
+                    "description": .string("Purposes 2 and 3 together"),
+                    "purposes": .array([.integer(2), .integer(3)]),
+                    "specialFeatures": .array([]),
+                ]),
+            ]),
+            "vendors": keyed(vendors),
+        ])
+    }
+
+    /// An `/init` response carrying a policy resolution and a vendor list.
+    static func initResponse(
+        policyResolution: JSONValue?,
+        gvl: JSONValue?,
+        status: Int = 200
+    ) -> HTTPResponse {
+        var fields: [String: JSONValue] = [
+            "location": .object([
+                "countryCode": .string("DE"),
+                "regionCode": .string("BE"),
+            ]),
+            "policySnapshotToken": .string("token-1"),
+        ]
+        fields["policyResolution"] = policyResolution ?? .null
+        if let gvl {
+            fields["gvl"] = gvl
+        }
+        return .json(
+            String(decoding: C15tJSON.encode(.object(fields)) ?? Data("{}".utf8), as: UTF8.self),
+            status: status
+        )
+    }
+
     static func transport(_ http: StubHTTP) -> HostedTransport {
         HostedTransport(
             baseURL: URL(string: "https://consent.example.com")!,
