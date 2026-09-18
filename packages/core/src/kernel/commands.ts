@@ -1103,6 +1103,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const vendorsChanged = nextVendorChoice !== before.vendorChoice;
 			const owedNothing = saveUnderNoneRegime(before);
 			if (owedNothing && !vendorsChanged) {
+				// Same as the no-op branch below: a staged value the selection
+				// ignored must not survive to a later save.
+				runtime.setVendorDraft(null);
 				emit({ result: owedNothing, type: 'command:save:completed' });
 				return owedNothing;
 			}
