@@ -4,9 +4,12 @@ c15t mobile contract
 Authoritative reference for `@c15t/react-native`, the Swift core, and the Kotlin
 core. Issue: https://github.com/c15t/c15t/issues/1010
 
-IAB TCF is out of scope for this phase. No TC string, no GVL state, no
-`IABTCF_*` keys. The types reserve the `iab` slot so adding it later is an
-additive protocol change, not a rewrite.
+IAB TCF is in this phase for the parts a device can be graded on: both cores
+decode and encode TC Strings byte-for-byte against the same `native/protocol`
+fixtures the web reference produced, both keep the vendor list `/init` served, and
+neither fetches a list on the device. The `IABTCF_*` storage bus is deliberately
+not written yet, so third-party vendor SDKs that read those keys see nothing; the
+decision and the sources are recorded in `docs/internal/tcf-mobile.md`.
 
 Layout
 ------
@@ -45,7 +48,7 @@ State model
 
 Native holds one immutable `ConsentSnapshot`, versioned by `revision`. It mirrors
 the fields of `ConsentSnapshot` in `packages/core/src/types.ts` that matter on
-mobile, minus IAB:
+mobile, plus the `iab` slot below:
 
     revision: number                  // monotonic, bumps on every mutation
     policyPending: boolean            // true until the first init resolves
@@ -65,8 +68,16 @@ mobile, minus IAB:
     evaluatedAt: number
     error: { code, message } | null
 
-`iab` is reserved. Serialize it as `null` and keep the key so an older JavaScript
-layer does not have to branch.
+`iab` carries the vendor list `/init` served, serialized as `{ gvl }`, or `null`
+when the device has never been served one. Swift declares that shape as
+`KernelIABState` and fills it when a resolved init carries a list; Kotlin's
+envelope keeps the list and its snapshot fill is still catching up, so read the
+slot as optional data rather than as a promise. A host that has drawn purpose or
+partner names does not lose them because one later `/init` happened to serve
+none: the retention rule sits on `C15tKernel.vendorList` in Kotlin and on the
+snapshot's IAB state in Swift, and only `reset()` clears it. Scope only ever
+narrows this list, and a value is only ever selected by its key, never by an `id`
+inside its own body.
 
 `consentCategories` is the subject-facing list a consent surface draws: `necessary`
 first, then the resolved policy scope narrowed by the host's declared scope, all
