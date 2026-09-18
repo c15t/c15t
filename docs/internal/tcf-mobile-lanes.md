@@ -30,31 +30,33 @@ on a branch `KayleeWilliams/<lane>`, based on `v3-3`, and merges back into
 | `tcf-enable-ab` | both cores read and evaluate an `iab` rule | Landed at `94590e0da` |
 | `tcf-vendor-scope-oracle` | narrowing reference, oracle test, wiring | Landed at `7be6ce1a7` |
 | `tcf-bus-wire` | install path passes a real bus sink | Landed at `7b322e45a`, recovered by the manager: the lane never committed, so its Android/iOS sink hunks were re-applied on the current base by hand and the vendored kernel copy regenerated with `scripts/sync-vendored-core.ts`. Do not merge that tree; it is stale and its doc half regresses the `iab` contract. |
-| `tcf-app-vendor-scope` | declared vendor allowlist in both cores and the bridge | in progress |
-| `init-vendor-scope-header` | `/init` honours the scope a client declares | in progress |
+| `tcf-app-vendor-scope` | declared vendor allowlist in both cores and the bridge | Landed at `31a6305c2`, merged into `v3-3` as `b59302638` |
+| `init-vendor-scope-header` | `/init` honours the scope a client declares | Landed at `aca02651e`, merged into `v3-3` as `edd5f3935` |
 | `tcf-evaluator-parity` | the three evaluator divergences and their fixtures | in progress |
-| `mobile-example-connect` | the example app on the native snapshot | open |
+| `mobile-example-connect` | the example app on the native snapshot, and the scope it declares | in progress |
 | `slop-audit`, `anti-slop-baseline` | anti-slop index and baseline | open |
 
 ## Open work, in the order it needs to happen
 
-1. Vendor scope parity, split across the two lanes above it. The web answer is
-   `options.iab.vendors`: it filters the GVL request, it narrows the list the
-   runtime holds through `narrowGVLToVendors` in `packages/iab/src/tcf/fetch-gvl.ts`,
-   and it clears a `gvlReference.summary` counted against the wider list. The
-   mobile twin of both narrowing functions exists and is graded -- `narrowToVendorIds`
-   in the Kotlin core and `narrowed(toVendorIds:)` in the Swift one -- and both are
-   called from nothing but their own tests, so a device discloses whatever scope
-   `resolveGvl` happened to embed. Both halves of the gap cost the same thing twice:
-   disclosure wider than the publisher named, and bytes. On the byte side the
-   deployment's `gvl.vendorIds` is the only scope the server knows, and an
-   application that renders 32 partners has no way to say so; `gvl.ts` already
-   refuses to put more than 500 ids on a request line, so a server-side scope can
-   cost the surface while a request-level one, applied after the cache, costs
-   nothing.
-2. `mobile-example-connect` switches the example from its own `/init` fetch to the
-   snapshot the bridge already carries, and declares the app's vendor scope once
-   lane one lands so the drawer and the wire agree.
+1. Vendor scope parity is closed on both sides of the wire. Web puts
+   `options.iab.vendors` to three uses; the native cores now carry the first two, and
+   the third has nothing to act on. `NativeConfig.vendors` and `CoreConfig.vendors`
+   prune the list where it enters kernel state, on both paths it arrives by -- the
+   `gvl` that `/init` embeds and the bytes read back out of storage -- through
+   `narrowToVendorIds` in the Kotlin core and `narrowed(toVendorIds:)` in the Swift
+   one, and the same declaration leaves the device as `x-c15t-vendors`, which `/init`
+   intersects with the deployment's `gvl.vendorIds` before it embeds a document. An
+   app's declaration can therefore only ever narrow: what it names is what it holds,
+   what it holds is what the drawer renders, and a served list wider than the
+   declaration costs it nothing it displays. The upstream fetch stays scoped by the
+   deployment's own `gvl.vendorIds`, which is what keeps a 32-partner publisher off the
+   full document without letting a request line pick a cache key. The one web use with
+   no native twin is the `gvlReference.summary` clear, because a device writes no TC
+   String while no CMP identity is registered -- see `tcf-mobile.md`.
+2. `mobile-example-connect` declares the example's scope through the Expo plugin's
+   `vendors` parameter and the device journey reports the partner rows the drawer
+   renders against the vendors the served list carries, so the drawer and the wire are
+   graded against one number rather than two someone typed.
 3. Evaluator parity, now the `tcf-evaluator-parity` lane. Close the three
    divergences measured in `evaluator-parity.md`, in both native cores, then let
    the regenerated fixtures pin them. Two fixture axes are missing: no evaluation
