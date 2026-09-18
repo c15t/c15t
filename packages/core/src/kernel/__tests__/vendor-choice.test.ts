@@ -287,7 +287,7 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
-	test('an unchanged vendor selection does not renew the confirmation time', async () => {
+	test('an explicit reconfirmation of the same denials renews the confirmation time', async () => {
 		const kernel = createKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true, measurement: true }),
@@ -300,6 +300,8 @@ describe('save with vendors', () => {
 		});
 		const recorded = vi.fn();
 		kernel.events.on('vendors:recorded', recorded);
+		// Same list, but the visitor confirmed it again: a server read taken
+		// between the two times must lose to this act.
 		const result = await kernel.commands.save(
 			{},
 			{
@@ -307,6 +309,30 @@ describe('save with vendors', () => {
 			}
 		);
 		expect(result.confirmed).toEqual([]);
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: ['meta-pixel'],
+			version: 1,
+		});
+		expect(recorded).toHaveBeenCalledOnce();
+		kernel.dispose();
+	});
+
+	test('an unchanged staged draft does not renew the confirmation time', async () => {
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+		});
+		const recorded = vi.fn();
+		kernel.events.on('vendors:recorded', recorded);
+		kernel.set.vendorDraft({ 'meta-pixel': false });
+		await kernel.commands.save();
 		expect(kernel.getSnapshot().vendorChoice?.confirmedAt).toBe(NOW - 500);
 		expect(recorded).not.toHaveBeenCalled();
 		kernel.dispose();

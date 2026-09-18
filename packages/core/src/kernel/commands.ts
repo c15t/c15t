@@ -349,8 +349,9 @@ const applyVendorGrants = function applyVendorGrants(
  *
  * Lifting every denial leaves a timestamped empty list, never `null`: `null`
  * means no vendor decision was ever made, and an explicit grant over `null`
- * is a decision too. Returns the current value when nothing usable was
- * supplied, so an unchanged save never renews the time.
+ * is a decision too. Explicit grants always take the action time, even for
+ * an unchanged list; a staged draft or nothing usable returns the current
+ * value, so a no-input save never renews the time.
  */
 export const resolveVendorSelection = function resolveVendorSelection(
 	snapshot: ConsentSnapshot,
@@ -394,6 +395,13 @@ export const resolveVendorSelection = function resolveVendorSelection(
 			: clearedVendorChoice(current, actionAt);
 	}
 	const next: VendorChoice = { confirmedAt: actionAt, denied, version: 1 };
+	// An explicit grant is a fresh confirmation even when the list is the same,
+	// like a category reconfirmation: a server read taken between the old time
+	// and now must not undo what the visitor just reaffirmed. A staged draft
+	// that changes nothing keeps the old time, so a no-input save is a no-op.
+	if (explicit !== undefined) {
+		return next;
+	}
 	return sameVendorChoice(current, next) ? current : next;
 };
 
