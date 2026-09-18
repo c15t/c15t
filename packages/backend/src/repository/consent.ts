@@ -252,18 +252,28 @@ const canonicalVendorChoice = (
 	]);
 };
 
+/** A stored `vendorChoice` column that holds something, but not a vendor map. */
+const UNREADABLE = Symbol('unreadable vendor map');
+
 /**
  * The stored vendor map, decoded through the wire schema. A value that is
- * JSON but not a vendor map, after a manual import or corruption, reads as
- * absent so the comparison yields a conflict rather than a crash.
+ * present but not a vendor map, after a manual import or corruption, is
+ * `UNREADABLE`: it is never equal to any submission, so a retry against that
+ * row is a conflict rather than a replay whose content cannot be checked.
  */
-const storedVendorChoice = (value: unknown): VendorChoiceWire | null => {
+const storedVendorChoice = (
+	value: unknown
+): VendorChoiceWire | null | typeof UNREADABLE => {
+	if (value === null || value === undefined) {
+		return null;
+	}
 	const parsed = typeof value === 'string' ? safeParse(value) : value;
-	if (parsed === null || parsed === undefined) {
+	if (parsed === null) {
+		// A JSON `null` in the column is the same as no column value.
 		return null;
 	}
 	const decoded = v.safeParse(vendorChoiceWireSchema, parsed);
-	return decoded.success ? decoded.output : null;
+	return decoded.success ? decoded.output : UNREADABLE;
 };
 
 /**
@@ -277,7 +287,9 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 		storedRaw: unknown,
 		submitted: VendorChoiceWire | null | undefined
 	) {
-		const stored = canonicalVendorChoice(storedVendorChoice(storedRaw));
+		const storedMap = storedVendorChoice(storedRaw);
+		const stored =
+			storedMap === UNREADABLE ? UNREADABLE : canonicalVendorChoice(storedMap);
 		const incoming = canonicalVendorChoice(submitted);
 		if (stored === incoming) {
 			return;

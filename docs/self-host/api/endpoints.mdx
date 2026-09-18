@@ -90,7 +90,8 @@ per-vendor grant map with one confirmation time. The backend stores it as sent o
 the consent row, including vendors the client declared in code rather than in the
 manifest, and returns the map of the most recent act as `subjectVendorChoice`.
 Retrying the same act with a different map is a `CONFLICT`, like a retry with
-different receipts. Migration `4-vendor-choice` adds the column.
+different receipts, and so is any retry against a stored map that cannot be
+read. Migration `4-vendor-choice` adds the column.
 
 Privacy directives are stored separately from consent records. Saving consent
 does not delete an existing directive. An API-authenticated identity link has

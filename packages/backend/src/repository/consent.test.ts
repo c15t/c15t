@@ -260,13 +260,19 @@ describe('assertSameVendors', () => {
 		);
 	});
 
-	it('reads a stored value that is not a vendor map as absent', async () => {
+	it('refuses every retry against a stored value that is not a vendor map', async () => {
+		// Corruption is not absence: an omitted map cannot be proven equal to
+		// content that cannot be read.
 		assert.strictEqual(
 			(await run(assertSameVendors('{}', undefined)))._tag,
-			'Success'
+			'Failure'
 		);
 		assert.strictEqual(
 			(await run(assertSameVendors('{}', grants)))._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors('not json', undefined)))._tag,
 			'Failure'
 		);
 	});

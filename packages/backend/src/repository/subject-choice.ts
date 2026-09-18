@@ -250,9 +250,9 @@ export interface VendorSourceRow {
  * Two acts at the same instant can both exist when they differ in policy or
  * domain, and SQL does not define which one a query returns last, so a tie is
  * broken by the row id: the greater id wins on every engine. A row without a
- * map is skipped: that act did not decide vendors. A row whose map is unreadable is the newest decision and
- * cannot be read, so the aggregate is `null` rather than an older map that
- * the unreadable act superseded.
+ * map is skipped: that act did not decide vendors. A row whose map is
+ * unreadable is the newest decision and cannot be read, so the aggregate is
+ * `null` rather than an older map that the unreadable act superseded.
  *
  * @internal
  */
