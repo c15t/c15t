@@ -293,8 +293,12 @@ export const mergeInitResponseIntoKernelConfig =
 				response.vendorListVersion ??
 				merged.initialVendors?.listVersion ??
 				null;
+			// An empty backend list with no version clears the slice; otherwise
+			// the old entries would survive the copy.
 			if (declared.length > 0 || listVersion !== null) {
 				merged.initialVendors = { declared, listVersion };
+			} else {
+				delete merged.initialVendors;
 			}
 		}
 

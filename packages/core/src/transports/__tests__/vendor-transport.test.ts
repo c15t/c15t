@@ -1,3 +1,4 @@
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 /**
  * Vendor consent across the transport boundary: the save body carries the
  * grant map, a subject read maps grants back to denials, and init output
@@ -218,6 +219,39 @@ describe('init output', () => {
 			presentable: true,
 			source: 'manifest',
 		});
+	});
+
+	test('an empty backend list with no version clears previous manifest vendors', () => {
+		const withVendors = mergeInitResponseIntoKernelConfig(
+			{},
+			mapInitOutputToInitResponse(output, {})
+		);
+		const cleared = mergeInitResponseIntoKernelConfig(withVendors, {
+			policyResolution: writePolicyResolutionWire({
+				policy: null,
+				reason: 'invalid-configuration',
+				status: 'failed',
+			}),
+			vendors: [],
+		});
+		// The old version is kept only with the list; both come from the
+		// same response, and this one sent neither.
+		expect(cleared.initialVendors).toEqual({
+			declared: [],
+			listVersion: '2026-09',
+		});
+		const { initialVendors: _dropped, ...noVersion } = withVendors;
+		const fresh = mergeInitResponseIntoKernelConfig(
+			{
+				...noVersion,
+				initialVendors: {
+					declared: withVendors.initialVendors?.declared ?? [],
+					listVersion: null,
+				},
+			},
+			{ policyResolution: undefined, vendors: [] }
+		);
+		expect(fresh.initialVendors).toBeUndefined();
 	});
 
 	test('lifts manifest vendors back into an init response', () => {
