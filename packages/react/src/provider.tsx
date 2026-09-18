@@ -782,9 +782,17 @@ const useProviderOptionSync = function useProviderOptionSync(
 		const current = kernel.getSnapshot().vendors?.declared ?? [];
 		const declared = resolveVendors({
 			config: options.vendors,
-			existing: current
-				.filter((vendor) => vendor.source === 'manifest')
-				.map(({ ownerCategory: _stale, ...vendor }) => vendor),
+			existing: current.flatMap((vendor) => {
+				// A backend copy a config entry shadows counts too: replacing the
+				// config source restores it, so it needs the same cleanup.
+				const manifest =
+					vendor.source === 'manifest' ? vendor : vendor.shadowed;
+				if (manifest?.source !== 'manifest') {
+					return [];
+				}
+				const { ownerCategory: _stale, ...rest } = manifest;
+				return [rest];
+			}),
 			onWarn: warnVendorDeclaration,
 			owners,
 		});
