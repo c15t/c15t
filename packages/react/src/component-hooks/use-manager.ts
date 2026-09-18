@@ -75,6 +75,20 @@ const DEFAULT_CONSENT_TYPES: ConsentType[] = [
 	},
 ];
 
+/** Whether a category condition contains a `not` anywhere in its tree. */
+const hasNegation = function hasNegation(
+	condition: HasCondition<AllConsentNames>
+): boolean {
+	if (typeof condition === 'string') {
+		return false;
+	}
+	if ('not' in condition) {
+		return true;
+	}
+	const branches = 'and' in condition ? condition.and : condition.or;
+	return (Array.isArray(branches) ? branches : [branches]).some(hasNegation);
+};
+
 const toTranslationConfig = function toTranslationConfig(
 	resolved: ReturnType<typeof useTranslations>
 ): TranslationConfig {
@@ -176,12 +190,18 @@ export const useConsentManager = function useConsentManager() {
 		[draft]
 	);
 
-	/** Presentable vendors whose category condition names this category. */
+	/**
+	 * Presentable vendors whose category condition names this category.
+	 * A condition that negates a category has no row to sit under: turning
+	 * that category on would deactivate the vendor, so such vendors gate but
+	 * are not listed.
+	 */
 	const getDisplayedVendors = useCallback(
 		(category: AllConsentNames) =>
 			declaredVendors.filter(
 				(vendor) =>
 					vendor.presentable &&
+					!hasNegation(vendor.category) &&
 					extractConsentNamesFromCondition(vendor.category).includes(category)
 			),
 		[declaredVendors]

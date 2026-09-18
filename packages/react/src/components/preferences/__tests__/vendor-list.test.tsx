@@ -40,6 +40,18 @@ const VENDORS: Vendor[] = [
 		name: 'Google Analytics',
 		privacyPolicyUrl: 'https://policies.google.com/privacy',
 	},
+	{
+		category: { or: ['marketing', 'measurement'] },
+		id: 'shared-vendor',
+		name: 'Shared Vendor',
+		privacyPolicyUrl: 'https://example.com/privacy',
+	},
+	{
+		category: { not: 'marketing' },
+		id: 'negated-vendor',
+		name: 'Negated Vendor',
+		privacyPolicyUrl: 'https://example.com/privacy',
+	},
 ];
 
 const Probe = () => {
@@ -149,6 +161,29 @@ describe('consent widget vendor rows', () => {
 		expect(
 			document.querySelector(
 				'[data-testid="consent-widget-vendor-hint-marketing"]'
+			)
+		).toBeNull();
+	});
+
+	test('a shared vendor gets a distinct label id per category and a negated one is not listed', async () => {
+		renderWidget({ marketing: true, measurement: true });
+		await page
+			.getByTestId('consent-widget-accordion-trigger-marketing')
+			.click();
+		const ids = [
+			...document.querySelectorAll(
+				'[id^="c15t-vendor-"][id$="-shared-vendor"]'
+			),
+		]
+			.map((element) => element.id)
+			.sort();
+		expect(ids).toEqual([
+			'c15t-vendor-marketing-shared-vendor',
+			'c15t-vendor-measurement-shared-vendor',
+		]);
+		expect(
+			document.querySelector(
+				'[data-testid="consent-widget-vendor-item-negated-vendor"]'
 			)
 		).toBeNull();
 	});
