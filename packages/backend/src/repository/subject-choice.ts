@@ -30,11 +30,13 @@
 import {
 	POLICY_OPTIONAL_CATEGORIES,
 	subjectChoiceWireSchema,
+	vendorChoiceWireSchema,
 } from '@c15t/schema';
 import type {
 	PolicyOptionalCategory,
 	SubjectCategoryReceiptWire,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema';
 import * as v from 'valibot';
 
@@ -190,4 +192,130 @@ export const decodePreferences = function decodePreferences(
 		}
 	}
 	return Object.keys(preferences).length > 0 ? preferences : undefined;
+};
+
+/**
+ * What a row's `vendorChoice` column holds. `absent` covers rows written
+ * before vendor consent existed and rows whose save declared no vendors.
+ *
+ * @internal
+ */
+export type StoredVendorChoice =
+	| { kind: 'absent' }
+	| { kind: 'unreadable' }
+	| { kind: 'grants'; vendorChoice: VendorChoiceWire };
+
+/**
+ * What a row's `vendorChoice` column holds. See {@link StoredVendorChoice}.
+ *
+ * @internal
+ */
+export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
+	value: unknown
+): StoredVendorChoice {
+	if (value === null || value === undefined) {
+		return { kind: 'absent' };
+	}
+	const parsed = (() => {
+		if (typeof value !== 'string') {
+			return value;
+		}
+		try {
+			return JSON.parse(value) as unknown;
+		} catch {
+			return undefined;
+		}
+	})();
+	// SQLite hands a JSON column back as text, so a stored JSON `null` arrives
+	// as the string 'null'. It means the same as no column value, and must
+	// not read as an unreadable newer act that hides an older valid map.
+	if (parsed === null) {
+		return { kind: 'absent' };
+	}
+	const validated = v.safeParse(vendorChoiceWireSchema, parsed);
+	return validated.success
+		? { kind: 'grants', vendorChoice: validated.output }
+		: { kind: 'unreadable' };
+};
+
+/** @internal */
+export interface VendorSourceRow {
+	readonly id: string;
+	readonly type: string;
+	readonly givenAt: Date;
+	readonly vendorChoice: StoredVendorChoice;
+}
+
+/**
+ * The vendor grant map a subject's cookie-banner acts add up to.
+ *
+ * The latest act by `givenAt` sets the map's time and decides every vendor
+ * it names. A vendor an earlier act decided but the latest one omits keeps
+ * the earlier grant: the client sends the complete map for the list it
+ * saw, and a client on a cached or bundled manifest has not seen a vendor
+ * added since, so its silence is not a decision. A later act that does name
+ * the vendor replaces that grant as usual.
+ *
+ * `givenAt` orders the acts; a map's own `confirmedAt` does not pick the
+ * winner, since a client may send them independently. The composite carries
+ * one `confirmedAt`, and the client compares whole records by it, so it takes
+ * the time of the oldest act whose decision still stands: a retained older
+ * grant must never be presented as newer than it is, or it would override a
+ * newer local decision about a vendor the later act never named. When the
+ * latest act names every vendor, that is simply its own time. Two acts at the same instant can both exist when they
+ * differ in policy or domain, and SQL does not define which one a query
+ * returns last, so a tie is broken by the row id: the greater id wins on
+ * every engine. A row without a map is skipped: that act did not decide
+ * vendors. A row whose map is unreadable is a decision that cannot be read,
+ * so everything at or before it is discarded and the aggregate is `null`
+ * unless a later readable act exists.
+ *
+ * @internal
+ */
+export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
+	rows: readonly VendorSourceRow[]
+): VendorChoiceWire | null {
+	const ordered = rows
+		.filter(
+			(row) =>
+				row.type === COOKIE_BANNER_TYPE && row.vendorChoice.kind !== 'absent'
+		)
+		.sort((left, right) => {
+			const byTime = left.givenAt.getTime() - right.givenAt.getTime();
+			return byTime === 0 ? left.id.localeCompare(right.id) : byTime;
+		});
+	let grants: Record<string, boolean> | null = null;
+	// When each surviving decision was confirmed, keyed like `grants`.
+	let decidedAt: Record<string, number> = {};
+	for (const row of ordered) {
+		const stored = row.vendorChoice;
+		if (stored.kind !== 'grants') {
+			// Unreadable: a decision that cannot be read discards what came
+			// before it. Absent rows were filtered out above.
+			grants = null;
+			decidedAt = {};
+			continue;
+		}
+		const map = stored.vendorChoice;
+		grants ??= {};
+		for (const [id, granted] of Object.entries(map.grants)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: granted,
+				writable: true,
+			});
+			Object.defineProperty(decidedAt, id, {
+				configurable: true,
+				enumerable: true,
+				value: map.confirmedAt,
+				writable: true,
+			});
+		}
+	}
+	if (grants === null) {
+		return null;
+	}
+	const confirmedAt = Math.min(...Object.values(decidedAt));
+	return { confirmedAt, grants, version: 1 };
 };

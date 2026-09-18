@@ -2,7 +2,7 @@
  * A migrated app on one engine, for HTTP-level tests.
  *
  * Every HTTP test in this package stands up the same thing: a runtime on an
- * engine, the three migrations, an app with some options, and a few helpers
+ * engine, every migration, an app with some options, and a few helpers
  * to issue requests and count rows. Doing it once here keeps the receipt and
  * privacy suites about behaviour rather than about setup.
  */
@@ -13,6 +13,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
@@ -55,6 +56,7 @@ export const createHttpHarness = async function createHttpHarness(
 			yield* baseline;
 			yield* indexes;
 			yield* receipts;
+			yield* vendorChoice;
 		})
 	);
 	const app = createApp(runtime, options);

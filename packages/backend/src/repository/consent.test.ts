@@ -14,8 +14,9 @@ import { SqlClient } from 'effect/unstable/sql';
 
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { singleTenant } from '../db/tenant';
-import { assertSamePurposes, record } from './consent';
+import { assertSamePurposes, assertSameVendors, record } from './consent';
 
 // Tests run single-tenant unless a case says otherwise; the scope is a
 // service, so a query cannot run without one.
@@ -26,6 +27,7 @@ const GIVEN_AT = new Date(1_800_000_000_000);
 const setup = Effect.gen(function* setup() {
 	yield* baseline;
 	yield* receipts;
+	yield* vendorChoice;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
 		values ('dom_1','example.com',now(),now())`);
@@ -212,4 +214,114 @@ describe('assertSamePurposes', () => {
 			'Success'
 		);
 	});
+});
+
+describe('assertSameVendors', () => {
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+	const grants = {
+		confirmedAt: 1,
+		grants: { a: true, b: false },
+		version: 1 as const,
+	};
+
+	it('accepts an identical map in any key order', async () => {
+		// Serialised with the keys reversed, so canonicalisation is what matches.
+		const stored =
+			'{"confirmedAt":1,"grants":{"b":false,"a":true},"version":1}';
+		assert.strictEqual(
+			(await run(assertSameVendors(stored, grants)))._tag,
+			'Success'
+		);
+	});
+
+	it('refuses a different grant or a different time', async () => {
+		assert.strictEqual(
+			(
+				await run(
+					assertSameVendors(JSON.stringify(grants), {
+						...grants,
+						grants: { a: true, b: true },
+					})
+				)
+			)._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(
+				await run(
+					assertSameVendors(JSON.stringify(grants), {
+						...grants,
+						confirmedAt: 2,
+					})
+				)
+			)._tag,
+			'Failure'
+		);
+	});
+
+	it('refuses every retry against a stored value that is not a vendor map', async () => {
+		// Corruption is not absence: an omitted map cannot be proven equal to
+		// content that cannot be read.
+		assert.strictEqual(
+			(await run(assertSameVendors('{}', undefined)))._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors('{}', grants)))._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors('not json', undefined)))._tag,
+			'Failure'
+		);
+	});
+
+	it('treats absent on both sides as the same submission', async () => {
+		assert.strictEqual(
+			(await run(assertSameVendors(null, undefined)))._tag,
+			'Success'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors(null, grants)))._tag,
+			'Failure'
+		);
+	});
+});
+
+describe('consent.record with vendor grants', () => {
+	it.effect(
+		'stores the grant map and refuses a retry that changed it',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const withVendors = {
+					...submission,
+					vendorChoice: {
+						confirmedAt: GIVEN_AT.getTime(),
+						grants: { 'meta-pixel': false },
+						version: 1 as const,
+					},
+				};
+				const first = yield* record(withVendors);
+				assert.isTrue(first.created);
+
+				const retry = yield* record(withVendors);
+				assert.isFalse(retry.created);
+				assert.strictEqual(retry.id, first.id);
+
+				const changed = yield* Effect.result(
+					record({
+						...withVendors,
+						vendorChoice: {
+							...withVendors.vendorChoice,
+							grants: { 'meta-pixel': true },
+						},
+					})
+				);
+				assert.strictEqual(changed._tag, 'Failure');
+				assert.strictEqual(yield* countConsents(), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
 });

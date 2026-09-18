@@ -140,6 +140,7 @@ for (const [name, makeConfig] of CONFIGS) {
 				assert.deepStrictEqual(planned.pending, [
 					'2-hot-path-indexes',
 					'3-consent-receipts-and-privacy-directives',
+					'4-vendor-choice',
 				]);
 
 				const applied = await migrator.apply();

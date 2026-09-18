@@ -30,7 +30,11 @@
  * still what fills `purposeIds` (2.x parity: granted codes only). `choice`
  * carries only the categories this act confirmed, each with its own
  * confirmation time and policy basis, and is stored as sent. The two must
- * agree where they overlap.
+ * agree where they overlap. `vendorChoice`, when present, is the complete
+ * per-vendor grant map with one confirmation time, stored as sent: the
+ * client merges backend and code-declared vendors, so the manifest is not
+ * an allowlist for it, and not a floor either: a vendor the map omits is one
+ * the visitor's manifest did not carry yet.
  */
 
 import {
@@ -50,6 +54,7 @@ import type {
 	PostSubjectInput,
 	ResolvedPolicyRule,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import type { IpAddressConfig } from '@c15t/schema/geo';
@@ -116,6 +121,8 @@ export interface PreparedSubmission {
 	readonly input: PostSubjectInput;
 	readonly givenAt: Date;
 	readonly choice: SubjectChoiceWire | undefined;
+	/** Per-vendor grants this act carried, stored as sent. */
+	readonly vendorChoice: VendorChoiceWire | undefined;
 	/** Granted codes after scope filtering, for `purposeIds`. */
 	readonly grantedCodes: readonly string[];
 	/** The preference map after scope filtering, echoed to the client. */
@@ -464,6 +471,28 @@ const checkChoice = (
 	return undefined;
 };
 
+/**
+ * Refuses a vendor map that is later than the server clock. Nothing is
+ * checked against the manifest, in either direction:
+ *
+ * - An id the manifest does not list is expected. The client merges the
+ *   backend's vendors with vendors it declares in code.
+ * - A manifest vendor the map omits is one the visitor never saw. The
+ *   client resolves a cached, bundled or prefetched manifest, so a vendor
+ *   added on the backend afterwards is missing from every save until the
+ *   client refreshes, and a queued save replays the same map unchanged.
+ *   Refusing would lose the whole act, category receipts included. An
+ *   omitted vendor reads back as never decided and follows its category,
+ *   which is what a vendor added after the act does everywhere else.
+ *
+ * The map is stored as sent and read back the same way.
+ */
+const checkVendorChoice = (
+	vendorChoice: VendorChoiceWire,
+	now: number
+): BadRequestError | undefined =>
+	checkTimestamp(vendorChoice.confirmedAt, 'vendorChoice.confirmedAt', now);
+
 const deriveConsentAction = (
 	raw: string | undefined,
 	model: string | undefined
@@ -711,6 +740,14 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		}
 		const { appliedPreferences, grantedCodes, choice } = categories;
 
+		const vendorChoice = cookieBanner?.vendorChoice;
+		if (vendorChoice) {
+			const issue = checkVendorChoice(vendorChoice, context.now);
+			if (issue) {
+				return yield* issue;
+			}
+		}
+
 		const model = effectiveModel(decision, input.jurisdictionModel);
 		const validityMs = choiceValidityMs(decision);
 		const proof = proofFields(decision, context, input.metadata);
@@ -732,6 +769,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 				validityMs === undefined
 					? undefined
 					: new Date(givenAt.getTime() + validityMs),
+			vendorChoice,
 		};
 	}
 );

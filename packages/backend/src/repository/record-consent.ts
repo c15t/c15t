@@ -21,7 +21,7 @@
  */
 
 import { generateEntityId } from '@c15t/schema';
-import type { SubjectChoiceWire } from '@c15t/schema';
+import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
@@ -47,6 +47,8 @@ export interface ConsentSubmissionRequest {
 	readonly purposeIds: readonly string[];
 	/** v3 receipts this act confirmed, only those categories. */
 	readonly choice?: SubjectChoiceWire | null;
+	/** Per-vendor grants this act carried, the complete map. */
+	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly givenAt: Date;
 	readonly metadata?: unknown;
 	readonly ipAddress: string | null;
@@ -124,6 +126,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		uiSource: request.uiSource,
 		userAgent: request.userAgent,
 		validUntil: request.validUntil,
+		vendorChoice: request.vendorChoice,
 	};
 
 	const consent = yield* record(submission);
@@ -139,6 +142,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 					changes: JSON.stringify({
 						choice: request.choice ?? null,
 						purposeIds: request.purposeIds,
+						vendorChoice: request.vendorChoice ?? null,
 					}),
 					createdAt: new Date(),
 					entityId: consent.id,
