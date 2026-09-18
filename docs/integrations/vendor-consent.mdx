@@ -58,8 +58,8 @@ A backend can also declare vendors. Add `vendors` and an optional
 `vendorListVersion` to the manifest configuration; `/init` returns them and the
 client merges them with the vendors declared in code. When both declare the
 same id, the copy declared in code wins, and the backend copy comes back if the
-code declaration is removed later. A slug used by a script but declared
-nowhere still gates loading. It is hidden from the preference surface, and the
+code declaration is removed later. A slug used by a script, rule or iframe
+but declared nowhere still gates loading. It is hidden from the preference surface, and the
 runtime warns about it outside production.
 
 ## How a vendor is gated

@@ -144,6 +144,30 @@ describe('iframe data-vendor', () => {
 		expect(iframe.getAttribute('src')).toBeNull();
 	});
 
+	test('the blocker declares the slug a frame names so a stored denial gates it before init', () => {
+		// The backend declares youtube, but its init has not arrived yet: only
+		// the stored denial and the frame exist.
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true }),
+				vendorChoice: { confirmedAt: NOW - 1, denied: ['youtube'], version: 1 },
+			},
+			now: NOW,
+		});
+		const iframe = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const blocker = createIframeBlocker({ kernel });
+		expect(
+			kernel.getSnapshot().vendors?.declared.map((v) => [v.id, v.source])
+		).toEqual([['youtube', 'script']]);
+		expect(iframe.getAttribute('src')).toBeNull();
+		blocker.dispose();
+		kernel.dispose();
+	});
+
 	test('the blocker re-scans when the vendor choice changes', () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true }),

@@ -26,9 +26,11 @@
  * subscription. Per-iframe state is derived from the DOM at check time,
  * so multiple instances produce the same result.
  */
+import { declareOwnedVendors } from '../../libs/vendors';
 import {
 	buildReconcilePass,
 	determineCategory,
+	determineVendor,
 	reconcileAllIframes,
 	reconcileIframe,
 } from './reconcile';
@@ -61,10 +63,23 @@ export const createIframeBlocker = function createIframeBlocker(
 	}
 
 	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
+		const list = Array.from(iframes);
 		kernel.set.registerConsentCategories(
-			Array.from(iframes).flatMap((iframe) => {
+			list.flatMap((iframe) => {
 				const category = determineCategory(iframe);
 				return category ? [category] : [];
+			})
+		);
+		// Declare the slugs the frames name, the way scripts and rules do, so
+		// a stored denial keeps gating them before a backend declaration of
+		// the same slug has arrived. A frame with only `data-vendor` has no
+		// category to declare under and waits for that declaration instead.
+		declareOwnedVendors(
+			kernel,
+			list.flatMap((iframe) => {
+				const vendor = determineVendor(iframe);
+				const category = determineCategory(iframe);
+				return vendor && category ? [{ category, vendor }] : [];
 			})
 		);
 	};
