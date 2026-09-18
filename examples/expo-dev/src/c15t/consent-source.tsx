@@ -92,7 +92,7 @@ const probeNative = (): { client: ConsentClient } | { error: Error } => {
 		if (!hasNativeC15tSurface(nativeModule)) {
 			return {
 				error: new Error(
-					'The C15t module is registered but incomplete, so the native build does not match this JavaScript package.'
+					'The c15t module is registered but incomplete, so the native build does not match this JavaScript package.'
 				),
 			};
 		}

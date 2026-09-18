@@ -85,7 +85,7 @@ const MissingNativeCore = () => {
 					selectable
 					style={{ fontSize: 13 }}
 				>
-					{nativeError?.message ?? 'The C15t TurboModule is not registered.'}
+					{nativeError?.message ?? 'The c15t TurboModule is not registered.'}
 				</NativeText>
 				<Hint>
 					Rebuild after installing @c15t/react-native. On iOS run pod install
