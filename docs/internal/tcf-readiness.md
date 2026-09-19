@@ -87,6 +87,53 @@ Europe maintains a "TCF v2.2 Compliance Form For Non-Web CMPs" listed at
 [https://iabeurope.eu/tcf-supporting-resources/](https://iabeurope.eu/tcf-supporting-resources/), which is the artefact a
 mobile branch would start from.
 
+### Decision, 2026-09-19
+
+Option B is the product. c15t registers nothing. `cmpId` arrives from the
+operator's manifest, which is already mapped at
+`packages/schema/src/shared/consent-manifest.ts:413`, or from the app, and the
+hosted deployment already holds a registered ID under Consent Management Inc for
+inth.com tenants. That is what makes TCF work out of the box on hosted without
+any new registration, and a self-host operator brings their own exactly as
+Option B describes. The fee is no longer on the critical path for anything.
+
+This changes what mobile has left. `native/CONTRACT.md` defers the TC String on
+the grounds that no CMP identity exists, and the codecs are already graded
+against the reference by 29 `tc-string` fixtures, so the remaining work is four
+plumbing steps and none of them costs money:
+
+1. `/init` serves `cmpId` when the matched rule is `iab` and the deployment
+   configured one, injected beside the `gvl` at
+   `packages/backend/src/http/init.ts:174`. Serve nothing the backend would not
+   accept: the range rules in `packages/iab/src/tcf/cmp-id.ts` decide, and a
+   configured value that fails them means the key is absent rather than
+   approximated.
+2. Both cores read it into IAB state, and a host can set it directly through
+   `NativeConfig`, with the precedence `NativeConfig.vendors` already uses.
+   `Snapshot.kt:252` and `ConsentSnapshot.swift:331` name `cmpId` as state the
+   `iab` slot does not carry, and those two comments are the work list.
+3. Derive the purpose and vendor vectors from the drawer's toggles and the
+   served list. The encoder asks for nothing else, and
+   `TcSemanticPreEncoder` already applies the reference's three output edits.
+4. Write `IABTCF_TCString` and the rows that hang off it, and put `tcString` on
+   the save body. `SaveBodyBuilder.kt:69` states that this build holds no
+   registered ID. That sentence is now false, and deleting it is the assertion.
+
+Planning assumption, because it decides step 3: the device encodes locally, so
+`IABTCF_TCString` is present before any save round-trips and third-party readers
+get a value offline. A response-carried server string can overwrite the cache
+later without changing that. The alternative, server-only minting, leaves the bus
+empty until a first successful save, which is the exact case an app's ad SDK
+notices.
+
+Two values still need a mobile decision, and web cannot supply them:
+`packages/iab/src/tcf/cmp-api.ts:159,170,175` hardcodes `isServiceSpecific`,
+`publisherCC` and `purposeOneTreatment` rather than reading configuration, so
+copying web would copy a known bug. A device is service-specific with no
+cross-domain surface, `purposeOneTreatment` has no honest `false` for a phone
+that cannot see whether the publisher treats signal as crossing devices, and a
+reasonable `publisherCC` is the locale region the core already carries.
+
 ## What `packages/iab` implements today
 
 17 hand-written source files before this branch, 18 after `cmp-id.ts`. There
