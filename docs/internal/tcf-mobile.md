@@ -711,7 +711,7 @@ What our code does today, verified on this branch:
 | iOS consent snapshot, records and pending queue in the Keychain; generic-password items under service `com.c15t.core`, accounts `com.c15t.subject` / `com.c15t.snapshot` / `com.c15t.pending` | `native/core-swift/Sources/C15tCore/ConsentStore.swift:7-11,184-250`; `native/CONTRACT.md:284-287` |
 | Android primary store is AES-GCM encrypted **files** in `noBackupFilesDir`; unencrypted `SharedPreferences` file `c15t.consent.fallback` is the keystore-failure fallback; subject id in `c15t.subject` | `native/core-android/c15t-android/src/main/kotlin/com/c15t/android/C15tStores.kt:31-53,93,99-125` |
 | No TCF at all: "IAB TCF is out of scope for this phase. No TC string, no GVL state, no `IABTCF_*` keys." | `native/CONTRACT.md:7-8` |
-| Consent expiry is server-driven: the evaluator derives `nextDeadline` from `policy.choiceMaxAgeMs` | `native/core-swift/Sources/C15tCore/PolicyEvaluator.swift:93,192`; `ConsentCore.swift:468` |
+| Consent expiry is server-driven: the evaluator derives `nextDeadline` from `policy.choiceMaxAgeMs` | `native/core-swift/Sources/C15tCore/PolicyEvaluator.swift:111,285`; `ConsentCore.swift:516` |
 | The only local timer-like constant is a 7-day cap on queued saves, not on consent | `native/core-swift/Sources/C15tCore/PendingSaveQueue.swift:96` (`maxAgeMs = 7 * 24 * 60 * 60 * 1000`) |
 | Web side: TC string cookie max-age 395 days, and a 395-day retention constant | `packages/iab/src/tcf/cmp-api.ts:397`; `packages/iab/src/authority.ts:7` |
 | iOS Keychain items survive uninstall, so a reinstall is not a fresh install; Android needs `pm clear` | `native/CONTRACT.md:566` |

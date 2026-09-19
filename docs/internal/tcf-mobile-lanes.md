@@ -32,7 +32,7 @@ on a branch `KayleeWilliams/<lane>`, based on `v3-3`, and merges back into
 | `tcf-bus-wire` | install path passes a real bus sink | Landed at `7b322e45a`, recovered by the manager: the lane never committed, so its Android/iOS sink hunks were re-applied on the current base by hand and the vendored kernel copy regenerated with `scripts/sync-vendored-core.ts`. Do not merge that tree; it is stale and its doc half regresses the `iab` contract. |
 | `tcf-app-vendor-scope` | declared vendor allowlist in both cores and the bridge | Landed at `31a6305c2`, merged into `v3-3` as `b59302638` |
 | `init-vendor-scope-header` | `/init` honours the scope a client declares | Landed at `aca02651e`, merged into `v3-3` as `edd5f3935` |
-| `tcf-evaluator-parity` | the three evaluator divergences and their fixtures | in progress |
+| `tcf-evaluator-parity` | the three evaluator divergences and their fixtures | Landed; see `evaluator-parity.md`, What it cost |
 | `mobile-example-connect` | the example app on the native snapshot, and the scope it declares | in progress |
 | `tcf-spec-truth` | `docs/internal/tcf-mobile.md`, gap lists only | in progress |
 | `slop-audit`, `anti-slop-baseline` | anti-slop index and baseline | open |
@@ -64,12 +64,6 @@ on a branch `KayleeWilliams/<lane>`, based on `v3-3`, and merges back into
    persists the served vendor list; and a reset that clears both stores must not be
    described as clearing nothing. Every claim it keeps and every claim it writes needs
    a file and a line that proves it.
-4. Evaluator parity, now the `tcf-evaluator-parity` lane. Close the three
-   divergences measured in `evaluator-parity.md`, in both native cores, then let
-   the regenerated fixtures pin them. Two fixture axes are missing: no evaluation
-   fixture uses narrower than a full four-category `scope`, and no fixture pairs a
-   refusal with an expired or policy-changed receipt, which is why all three gaps
-   are invisible to CI today.
 
 ## Registering what a lane reports
 
