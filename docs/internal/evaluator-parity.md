@@ -116,3 +116,52 @@ changeset, not just a green suite.
    pass. Do not edit an expectation to make a core pass.
 3. Record here what the fix cost in stored-envelope shape or wire reasons, and
    add the changeset.
+
+## What it cost
+
+Closed 2026-09-19 against `v3-3`, in both cores, graded by the fixtures rather
+than by this table.
+
+- Nothing moved in storage. The envelope, the save body and the snapshot gained
+  no key and lost none, so an install written before the fix reads correctly
+  after it. What changed is which values those keys hold.
+- The wire reason needed no new vocabulary either. `reason` is already optional
+  on the prompt object (`packages/react-native/src/protocol/wire-shape.ts:93`),
+  and Swift already wrote all three values. The Android core was the one
+  collapsing them: `SnapshotWire.reasonOf` derived the reason from `purpose`, so
+  `expired` was unreachable from that platform no matter what its evaluator
+  found. It now copies the evaluator's answer, and keeps the `purpose` fallback
+  for the two paths that build a prompt without reading a policy at all, a
+  pending resolution and a rule that never matched, where nothing was ever
+  recorded whatever the answer says.
+- `explicit-denial` appears in Kotlin's `restrictions` for the first time, for
+  every stored `false`, under any authority, and in the kernel's push order
+  rather than sorted. Any consumer that treated the reason list as a set has to
+  read it as a sequence now; `["explicit-denial", "strict-scope"]` is the value a
+  strict out-of-scope refusal produces.
+- Under a `choice` rule the snapshot carries the choice obligation only. The
+  notice beneath it stops being projected as a second thing owed, which is what
+  `derivePromptRequirement` returns for that arm.
+- The expiry instant did not move. Kotlin keeps `now - actionAt > choiceMs` and
+  Swift keeps `expiry(of:maxAgeMs:) <= now`; those are the same comparison, and
+  neither was touched while the three answers were, so a receipt that lapsed on
+  the same millisecond before the fix does so after it.
+- One packaging step is now part of the change. The pod compiles a copy of the
+  core at `packages/react-native/vendor/C15tCore`, not
+  `native/core-swift/Sources/C15tCore`, so a Swift evaluator fix that is not
+  followed by `bun run scripts/sync-vendored-core.ts` ships the old answer to
+  every iOS app. `--check` catches it and `scripts/check-publish-artifacts.ts`
+  runs it at release, which is the only reason this is a note and not an
+  incident.
+
+Coverage closed the blind spot rather than the kernels alone: `native/protocol`
+is at 74 fixtures with eleven new `evaluation-*` rows covering a four-category
+scope cut to one, permissive and strict, a refusal paired with an expired
+receipt and with a revision the record predates, and an `iab` rule held to
+`opt-in`'s table. The anti-rot ledger in both fixture suites shed four
+`explicit-denial` rows that stopped reproducing and gained the new ones, which is
+the expected direction: a divergence fixed is a row deleted.
+
+Gates at close: Kotlin 237 tests, Swift 187 tests, `@c15t/react-native` 578
+tests, `check-types` clean, and the five-step Android journey on an emulator
+with the banner and dialog geometry at web parity.

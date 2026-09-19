@@ -1434,6 +1434,28 @@ final class ProtocolFixtureTests: XCTestCase {
         // other evaluation row: hydrate() takes one even from an empty store.
         ("evaluation-eu-fresh-install", "expected.snapshot", [.revision]),
         ("evaluation-us-ccpa-fresh-install", "expected.snapshot", [.revision]),
+        // The narrow-scope and stale-receipt scenarios added to sweep the evaluator's
+        // three divergences. Each matches the kernel on every answer now that
+        // `defaultPermission` reads `scopeMode` out of scope, a recorded `false` is a
+        // denial under any authority, and the choice reason distinguishes a lapse from
+        // a moved fingerprint. What each still trips is this build's numbering, which
+        // counts hydration and bootstrap as mutations, for the same reason every other
+        // evaluation row is here.
+        ("evaluation-narrow-permissive-no-receipt", "expected.snapshot", [.revision]),
+        ("evaluation-narrow-permissive-denial-opt-in", "expected.snapshot", [.revision]),
+        ("evaluation-narrow-permissive-denial-opt-out", "expected.snapshot", [.revision]),
+        ("evaluation-narrow-permissive-denial-expired", "expected.snapshot", [.revision]),
+        ("evaluation-narrow-strict-denial", "expected.snapshot", [.revision]),
+        ("evaluation-narrow-iab-no-receipt", "expected.snapshot", [.revision]),
+        ("evaluation-narrow-iab-denial", "expected.snapshot", [.revision]),
+        ("evaluation-opt-in-grant-expired", "expected.snapshot", [.revision]),
+        ("evaluation-opt-out-denial-under-stale-policy", "expected.snapshot", [.revision]),
+        ("evaluation-opt-out-grant-under-stale-policy", "expected.snapshot", [.revision]),
+        // The same standing-directive gap as `evaluation-gpc-signal-present`, and it
+        // needs no numbering row: this build lands on the revision the fixture pins,
+        // because the kernel reaches it by recording a directive and this build reaches
+        // the same count by hydrating.
+        ("evaluation-gpc-under-opt-in-no-receipt", "expected.snapshot", [.directives, .restrictionMarketing]),
         ("save-body-all", "expected.snapshotBefore", [.revision]),
         ("save-body-all", "expected.snapshotAfter", [.revision]),
         ("save-body-necessary", "expected.snapshotBefore", [.revision]),

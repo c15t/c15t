@@ -66,71 +66,53 @@ package enum PolicyEvaluator {
         var permissions = ConsentState.necessaryOnly
         var restrictions: [OptionalConsentCategory: [RestrictionReason]] = [:]
         var deadlines: [Int64] = []
-        // Prompt state, gathered while walking the categories so the decision and
-        // its expiry are judged from the same receipt.
-        var sawValidChoice = false
-        var anyPolicyChanged = false
-        var anyExpired = false
 
         for category in OptionalConsentCategory.ordered {
-            var categoryPermitted: Bool
-            var categoryRestrictions: [RestrictionReason] = []
-
             let inScope = scope.contains(category)
             let decision = choice?.categories[category]
             let authority = authority(of: decision, against: resolved.choiceFingerprint)
 
-            switch authority {
-            case .valid:
-                // `authority == .valid` implies a receipt exists.
-                let decision = decision!
-                if decision.value {
-                    // A positive decision that is already stale stops being an
-                    // authority. A denial never ages, so it is not tracked as a
-                    // deadline: refusing cannot quietly become allowing.
-                    let expiresAt = expiry(
-                        of: decision.confirmedAt,
-                        maxAgeMs: policy.choiceMaxAgeMs
-                    )
-                    if expiresAt <= now {
-                        anyExpired = true
-                        categoryPermitted = defaultPermission(for: policy.model)
-                    } else {
-                        sawValidChoice = true
-                        deadlines.append(expiresAt)
-                        categoryPermitted = true
-                    }
-                } else {
-                    sawValidChoice = true
-                    categoryPermitted = decision.value
-                }
-                if !decision.value {
-                    categoryRestrictions.append(.explicitDenial)
-                }
-
-            case .policyChanged:
-                anyPolicyChanged = true
-                categoryPermitted = defaultPermission(for: policy.model)
-
-            case .absent:
-                categoryPermitted = defaultPermission(for: policy.model)
+            // Reasons are gathered before the permission is decided, in the order the
+            // kernel pushes them, because `["explicit-denial", "strict-scope"]` is a
+            // wire value and not a set. A recorded `false` comes first and is gathered
+            // whatever the authority says: a denial never ages, and it survives a lapsed
+            // receipt and a moved fingerprint alike.
+            var categoryRestrictions: [RestrictionReason] = []
+            if decision?.value == false {
+                categoryRestrictions.append(.explicitDenial)
             }
-
-            if !inScope {
-                if policy.scopeMode == .strict {
-                    categoryPermitted = false
-                    categoryRestrictions.append(.strictScope)
-                }
+            if !inScope, policy.scopeMode == .strict {
+                categoryRestrictions.append(.strictScope)
             }
-
             if gpcDenied.contains(category) {
-                categoryPermitted = false
                 categoryRestrictions.append(.gpc)
             }
-
             if directiveDenied.contains(category) {
-                categoryPermitted = false
                 categoryRestrictions.append(.optOutDirective)
+            }
+
+            var categoryPermitted = defaultPermission(
+                model: policy.model,
+                inScope: inScope,
+                scopeMode: policy.scopeMode
+            )
+            // A grant only ever speaks for a category the policy governs, which is the
+            // half the old shape got backwards: out of scope the answer belongs to
+            // `scopeMode` alone.
+            if inScope, let decision, decision.value, authority == .valid {
+                let expiresAt = expiry(
+                    of: decision.confirmedAt,
+                    maxAgeMs: policy.choiceMaxAgeMs
+                )
+                if expiresAt > now {
+                    categoryPermitted = true
+                    // A denial is not tracked as a deadline: refusing cannot quietly
+                    // become allowing.
+                    deadlines.append(expiresAt)
+                }
+            }
+            if !categoryRestrictions.isEmpty {
+                categoryPermitted = false
             }
 
             permissions = permissions.setting(category, to: categoryPermitted)
@@ -142,9 +124,9 @@ package enum PolicyEvaluator {
         let promptReason = promptRequirement(
             policy: policy,
             resolved: resolved,
-            sawValidChoice: sawValidChoice,
-            anyPolicyChanged: anyPolicyChanged,
-            anyExpired: anyExpired,
+            scope: scope,
+            choice: choice,
+            restrictions: restrictions,
             noticeDismissal: noticeDismissal,
             now: now,
             deadlines: &deadlines
@@ -203,12 +185,64 @@ package enum PolicyEvaluator {
     /// nothing by default here either, because a purpose no one consented to is not a
     /// purpose a TC String could vouch for. There is no unreachable case: an unreadable
     /// policy never reaches the evaluator.
-    private static func defaultPermission(for model: ConsentModel) -> Bool {
+    private static func defaultPermission(
+        model: ConsentModel,
+        inScope: Bool,
+        scopeMode: PolicyScopeMode
+    ) -> Bool {
+        // Out of scope the answer belongs to `scopeMode` alone and never reads the
+        // model, which is divergence 1 in `docs/internal/evaluator-parity.md`: a
+        // permissive policy allows an ungoverned category under `opt-in` and under
+        // `iab` alike, and a strict one refuses it under all four.
+        if !inScope { return scopeMode == .permissive }
         switch model {
         case .optIn, .iab: return false
         case .optOut: return true
         case .none: return true
         }
+    }
+
+    /// Why an Accept All is still owed, or `nil` when nothing is.
+    ///
+    /// `deriveChoiceRequirement` copied, order included. A refusal anywhere in the
+    /// scope the prompt aggregates answers first, because an automatic prompt must not
+    /// solicit the reversal of a denial and neither elapsed time nor a policy edit
+    /// cancels one. Then nothing recorded at all, then a basis the current policy no
+    /// longer covers -- which outranks a gap and a lapse alike -- and only after those
+    /// does an expired grant get a say.
+    private static func choiceReason(
+        scope: Set<OptionalConsentCategory>,
+        choice: ExplicitChoice?,
+        restrictions: [OptionalConsentCategory: [RestrictionReason]],
+        choiceFingerprint: String,
+        choiceMaxAgeMs: Int64,
+        now: Int64
+    ) -> PromptReason? {
+        let governed = OptionalConsentCategory.ordered.filter { scope.contains($0) }
+        guard !governed.isEmpty else { return nil }
+        if governed.contains(where: { restrictions[$0]?.isEmpty == false }) { return nil }
+        guard let decisions = choice?.categories, !decisions.isEmpty else { return .missing }
+
+        var missing = false
+        var expired = false
+        for category in governed {
+            let decision = decisions[category]
+            if authority(of: decision, against: choiceFingerprint) == .policyChanged {
+                return .policyChanged
+            }
+            guard let decision else {
+                missing = true
+                continue
+            }
+            if decision.value,
+               expiry(of: decision.confirmedAt, maxAgeMs: choiceMaxAgeMs) <= now
+            {
+                expired = true
+            }
+        }
+        if missing { return .missing }
+        if expired { return .expired }
+        return nil
     }
 
     // MARK: - Prompt
@@ -217,9 +251,9 @@ package enum PolicyEvaluator {
     private static func promptRequirement(
         policy: EvaluationPolicy,
         resolved: ResolvedPolicy,
-        sawValidChoice: Bool,
-        anyPolicyChanged: Bool,
-        anyExpired: Bool,
+        scope: Set<OptionalConsentCategory>,
+        choice: ExplicitChoice?,
+        restrictions: [OptionalConsentCategory: [RestrictionReason]],
         noticeDismissal: NoticeDismissal?,
         now: Int64,
         deadlines: inout [Int64]
@@ -229,10 +263,14 @@ package enum PolicyEvaluator {
             return nil
 
         case .choice:
-            guard sawValidChoice else { return .missing }
-            if anyPolicyChanged { return .policyChanged }
-            if anyExpired { return .expired }
-            return nil
+            return choiceReason(
+                scope: scope,
+                choice: choice,
+                restrictions: restrictions,
+                choiceFingerprint: resolved.choiceFingerprint,
+                choiceMaxAgeMs: policy.choiceMaxAgeMs,
+                now: now
+            )
 
         case .notice:
             guard let noticeDismissal else { return .missing }

@@ -1279,7 +1279,7 @@ class ProtocolFixtureTest {
 
 	const val DIRECTIVE_RESTRICTION = "the kernel also charges a category denied by a recorded directive with an opt-out-directive reason; because this build records no directive, its reason list is one short of the kernel's."
 
-	const val EXPLICIT_DENIAL = "the kernel records an explicit denial as an explicit-denial restriction; this build denies the category but reports no reason, so the permission agrees and the reason map is empty."
+	const val DIRECTED_REVISION = "recording a standing directive is a committed mutation for the kernel, so the snapshot it pins is one revision ahead of this build's; the gap closes with the directive recording this row belongs to."
 
 	const val DEADLINE_OVER = "the core reports a choice expiry the kernel does not: under this policy nothing changes when that deadline passes, so the kernel leaves nextDeadline unset."
 
@@ -1323,11 +1323,21 @@ class ProtocolFixtureTest {
 				"restrictions.measurement" to DIRECTIVE_RESTRICTION,
 				"revision" to REVISION,
 			),
+			// The standing-directive gap again, not an evaluator answer: the core never
+			// records a directive from a live GPC signal, and the kernel's recording of one
+			// is itself a committed mutation, which is why the revision the fixture pins is
+			// the one *ahead* of this build rather than behind it.
+			"evaluation-gpc-under-opt-in-no-receipt" to listOf(
+				"optOutDirectives" to DIRECTIVES,
+				"restrictions.marketing" to DIRECTIVE_RESTRICTION,
+				"revision" to DIRECTED_REVISION,
+			),
 			"evaluation-notice-pending" to emptyList<Pair<String, String>>(),
 			"evaluation-eu-explicit-grants" to emptyList<Pair<String, String>>(),
-			"evaluation-eu-partial-denials" to listOf(
-				"restrictions.marketing" to EXPLICIT_DENIAL,
-			),
+			// Both rows the evaluator used to need here are gone: the core now reports
+			// `explicit-denial` the way the kernel does, and the ledger failed this build
+			// for as long as the row outlived the defect.
+			"evaluation-eu-partial-denials" to emptyList<Pair<String, String>>(),
 			"evaluation-notice-dismissed" to emptyList<Pair<String, String>>(),
 			// A first launch with nothing stored. `ready` can only arrive with the init, and
 			// it does, on this build's own numbering. Listed with no rows because it matches
@@ -1342,9 +1352,7 @@ class ProtocolFixtureTest {
 		// nothing, and they are checked field for field against an empty store instead.
 		listOf(
 			"native-envelope-opt-in-grants" to emptyList<Pair<String, String>>(),
-			"native-envelope-partial-denials" to listOf(
-				"restrictions.marketing" to EXPLICIT_DENIAL,
-			),
+			"native-envelope-partial-denials" to emptyList<Pair<String, String>>(),
 			"native-envelope-notice-dismissed" to emptyList<Pair<String, String>>(),
 			"native-envelope-opt-out-grants" to listOf(
 				"nextDeadline" to DEADLINE_OVER,
@@ -1355,13 +1363,9 @@ class ProtocolFixtureTest {
 		val after = emptyList<Pair<String, String>>()
 		listOf(
 			"save-body-all" to emptyList<Pair<String, String>>(),
-			"save-body-explicit-partial" to listOf("restrictions.measurement" to EXPLICIT_DENIAL),
+			"save-body-explicit-partial" to emptyList<Pair<String, String>>(),
 			"save-body-necessary" to listOf(
 				"nextDeadline" to DEADLINE_OVER,
-				"restrictions.experience" to EXPLICIT_DENIAL,
-				"restrictions.functionality" to EXPLICIT_DENIAL,
-				"restrictions.marketing" to EXPLICIT_DENIAL,
-				"restrictions.measurement" to EXPLICIT_DENIAL,
 			),
 		).forEach { (fixture, extra) ->
 			add(fixture, "expected.snapshotBefore", *before.toTypedArray())

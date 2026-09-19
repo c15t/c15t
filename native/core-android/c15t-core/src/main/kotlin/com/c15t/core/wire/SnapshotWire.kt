@@ -177,23 +177,24 @@ object SnapshotWire {
 		}
 		put(KIND, JsonPrimitive(kind))
 		if (kind != KIND_NONE) {
-			put(REASON, JsonPrimitive(reasonOf(prompt.purpose)))
+			put(REASON, JsonPrimitive(reasonOf(prompt)))
 		}
 	}
 
 	/**
-	 * The kernel's reason for this core's `purpose`.
+	 * The kernel's reason for the owed prompt.
 	 *
-	 * `initial` means nothing was ever recorded, which is the kernel's `missing`.
-	 * `update` means a record exists and no longer covers the policy, and this core does
-	 * not keep apart the two reasons the kernel has for that: a receipt that lapsed, and
-	 * a fingerprint that moved. It reports `policy-changed`, the arm that stays true
-	 * whatever the evaluator found about age, and no fixture decides it.
+	 * The evaluator states it, so it is copied rather than re-derived. The `purpose`
+	 * fallback is left for the two paths that construct a prompt without consulting a
+	 * policy -- a pending resolution and a rule that never matched -- where the answer
+	 * is always that nothing was recorded. `initial` means nothing was ever recorded,
+	 * which is the kernel's `missing`.
 	 */
-	private fun reasonOf(purpose: PromptPurpose?): String = when (purpose) {
-		null, PromptPurpose.INITIAL -> REASON_MISSING
-		PromptPurpose.UPDATE -> REASON_POLICY_CHANGED
-	}
+	private fun reasonOf(prompt: PromptRequirement): String =
+		prompt.reason?.wireName ?: when (prompt.purpose) {
+			null, PromptPurpose.INITIAL -> REASON_MISSING
+			PromptPurpose.UPDATE -> REASON_POLICY_CHANGED
+		}
 
 	/**
 	 * One receipt per category, which is what the kernel's `ExplicitChoice` holds.

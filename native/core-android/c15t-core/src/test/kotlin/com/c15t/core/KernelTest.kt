@@ -9,6 +9,7 @@ import com.c15t.core.model.ConsentSubject
 import com.c15t.core.model.KernelOverrides
 import com.c15t.core.model.PolicyResolution
 import com.c15t.core.model.PrivacySignals
+import com.c15t.core.model.PromptReason
 import com.c15t.core.store.C15tJson
 import com.c15t.core.store.C15tStore
 import com.c15t.core.store.C15tStoreKeys
@@ -203,7 +204,19 @@ class KernelTest {
 	@Test
 	fun `opt-in grants only what an explicit accept covered`() {
 		val clock = FixedClock()
-		val transport = RecordingTransport().respondInit(initSuccess())
+		// The scope has to name the categories this test is about. `initBody` omits
+		// `scope`, which leaves every optional category ungoverned, and an ungoverned
+		// category under a permissive scope is permitted whatever the model says --
+		// `defaultPermission` in `packages/core/src/consent-record/evaluate.ts` reads
+		// `scopeMode` alone out of scope and never the model. With the scope empty this
+		// test passed by watching a policy that asked nothing of the subject, and its
+		// assertion was really divergence 1 in `docs/internal/evaluator-parity.md`.
+		// `CategoryScopeTest` owns the ungoverned case.
+		val transport = RecordingTransport().respondInit(
+			initSuccess(
+				body = initBody(scope = """["experience","functionality","marketing","measurement"]"""),
+			),
+		)
 		val kernel = testKernel(store = C15tStore(InMemoryKeyValueStore()), clock = clock, transport = transport)
 		kernel.bootstrap()
 		assertTrue(kernel.snapshot().promptRequirement.acknowledge, "an undecided subject owes the choice prompt")
@@ -214,16 +227,23 @@ class KernelTest {
 
 		assertTrue(kernel.isAllowed(ConsentCategory.MEASUREMENT))
 		assertFalse(kernel.isAllowed(ConsentCategory.MARKETING), "opt-in denies what the action did not confirm")
-		// A current receipt settles the prompt, so the first layer closes.
-		assertFalse(kernel.snapshot().promptRequirement.acknowledge)
-		assertFalse(kernel.snapshot().promptRequirement.notice)
-		assertEquals(ActiveUI.NONE, kernel.snapshot().activeUI)
-		assertEquals(ConsentModel.OPT_IN, kernel.snapshot().model)
+		// A receipt for one category does not settle a prompt that asked for four.
+		// `deriveChoiceRequirement` in `packages/core/src/consent-record/evaluate.ts`
+		// walks the scope and reports `missing` while any category in it is unanswered,
+		// so the first layer stays open: this is where the core stops treating one
+		// boolean for the whole receipt as if it were an answer per category.
+		assertTrue(kernel.snapshot().promptRequirement.acknowledge, "an unanswered category still owes the choice")
+		assertEquals(PromptReason.MISSING, kernel.snapshot().promptRequirement.reason)
+		assertEquals(ActiveUI.BANNER, kernel.snapshot().activeUI)
 
 		kernel.save(CommitIntent.All)
 		for (category in ConsentCategory.OPTIONAL) {
 			assertTrue(kernel.isAllowed(category))
 		}
+		assertFalse(kernel.snapshot().promptRequirement.acknowledge, "a receipt that covers the scope closes it")
+		assertFalse(kernel.snapshot().promptRequirement.notice)
+		assertEquals(ActiveUI.NONE, kernel.snapshot().activeUI)
+		assertEquals(ConsentModel.OPT_IN, kernel.snapshot().model)
 
 		kernel.save(CommitIntent.Necessary)
 		for (category in ConsentCategory.OPTIONAL) {

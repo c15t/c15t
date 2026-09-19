@@ -98,6 +98,7 @@ import {
 import type {
 	ConsentSnapshot as KernelSnapshot,
 	AllConsentNames,
+	CategoryDecision,
 	ConsentState,
 	ConsentSubject,
 	ExplicitChoice,
@@ -266,6 +267,205 @@ const NOTICE_RULE: PolicyRule = {
 	prompt: 'notice',
 	scopeMode: 'strict',
 	validity: { noticeDays: 180 },
+};
+
+/** One day on the fixture clock, for ageing a stored receipt. */
+const DAY_MS = 86_400_000;
+
+/**
+ * A rule that governs exactly one optional category.
+ *
+ * `marketing` is outside the scope of every rule built here, which is the cell
+ * divergence 1 in `docs/internal/evaluator-parity.md` is about: out of scope,
+ * `defaultPermission` in `packages/core/src/consent-record/evaluate.ts` answers
+ * from `scopeMode` alone and never reads the model, so permissive allows and
+ * strict refuses for all four models at once. Both scope modes and two models
+ * are swept because the native cores read a model in that branch today and they
+ * get it wrong in opposite directions: an `opt-in` device denies what permissive
+ * allows, and an `opt-out` device allows past a recorded refusal.
+ *
+ * One country each, so no pack ever holds two matching rules, and a 30-day
+ * validity so `ageChoice` can take a receipt past its life. A rule cannot say a
+ * zero-length validity (`validity.choiceDays` is finite and greater than zero in
+ * `packages/schema/src/shared/policy-rule.ts`), which is why the expiry axis
+ * ages the record rather than the policy.
+ */
+const narrowRule = function narrowRule(
+	id: string,
+	country: string,
+	model: 'iab' | 'opt-in' | 'opt-out',
+	scopeMode: 'permissive' | 'strict'
+): PolicyRule {
+	return {
+		categories: ['functionality'],
+		id,
+		match: { countries: [country] },
+		model,
+		prompt: 'choice',
+		scopeMode,
+		validity: { choiceDays: 30 },
+	};
+};
+
+/** Out of scope and permissive, under the model that denies by default. */
+const NARROW_PERMISSIVE_OPT_IN_RULE = narrowRule(
+	'fixture_narrow_permissive_opt_in',
+	'FR',
+	'opt-in',
+	'permissive'
+);
+
+/** Out of scope and permissive, under the model that allows by default. */
+const NARROW_PERMISSIVE_OPT_OUT_RULE = narrowRule(
+	'fixture_narrow_permissive_opt_out',
+	'ES',
+	'opt-out',
+	'permissive'
+);
+
+/** Out of scope and strict, where a recorded refusal is reported first. */
+const NARROW_STRICT_RULE = narrowRule(
+	'fixture_narrow_strict_opt_in',
+	'IT',
+	'opt-in',
+	'strict'
+);
+
+/** An IAB rule, narrow scope, so `iab` can be graded against `opt-in`'s cells. */
+const NARROW_IAB_RULE = narrowRule(
+	'fixture_narrow_iab_permissive',
+	'PT',
+	'iab',
+	'permissive'
+);
+
+/**
+ * A full-scope opt-in rule that names the categories an active GPC denies.
+ *
+ * No shipped preset configures `privacySignals`, so nothing on the table today
+ * can grade the reason a device reports for a category the model had already
+ * denied. `collectRestrictions` in
+ * `packages/core/src/consent-record/evaluate.ts` gathers reasons independently
+ * of the answer, so the web answer here is `marketing: ['gpc']` on a category
+ * that was denied before the signal was read. A core that only records a reason
+ * when it is the reason that flipped the answer publishes nothing, which is a
+ * different snapshot over the bridge rather than the same denial arrived at
+ * another way.
+ */
+const GPC_DENYING_OPT_IN_RULE: PolicyRule = {
+	categories: ['experience', 'functionality', 'marketing', 'measurement'],
+	id: 'fixture_gpc_denying_opt_in',
+	match: { countries: ['NL'] },
+	model: 'opt-in',
+	privacySignals: { gpc: { denyCategories: ['marketing'] } },
+	prompt: 'choice',
+	validity: { choiceDays: 30 },
+};
+
+/**
+ * The two halves of the stale-policy axis.
+ *
+ * They differ only in `copyRevision`, which is hashed into both prompt
+ * fingerprints, so a receipt minted under `v1` reads as `policy-changed` against
+ * `v2`. Each sits alone in its pack, so neither resolution is ambiguous, and
+ * both keep the full optional scope: divergence 3 is about a recorded refusal
+ * under a policy the subject no longer stands under, not about scope.
+ */
+const stalePolicyRule = function stalePolicyRule(
+	copyRevision: string,
+	id: string
+): PolicyRule {
+	return {
+		categories: ['experience', 'functionality', 'marketing', 'measurement'],
+		copyRevision,
+		id,
+		match: { countries: ['US'] },
+		model: 'opt-out',
+		prompt: 'choice',
+		validity: { choiceDays: 30 },
+	};
+};
+
+/**
+ * The fingerprint a minted receipt carries.
+ *
+ * Read off the receipt rather than recomputed, so an amendment cannot pin a basis
+ * the kernel never wrote.
+ */
+const mintedFingerprint = function mintedFingerprint(
+	choice: ExplicitChoice
+): string {
+	for (const decision of Object.values(choice.categories)) {
+		if (decision?.basis.kind === 'choice-v1') {
+			return decision.basis.fingerprint;
+		}
+	}
+	throw new Error(
+		'A minted receipt must carry a choice-v1 basis, or the axis is not testing a receipt a device could hold.'
+	);
+};
+
+/**
+ * Move every confirmation on a minted receipt back by `days`.
+ *
+ * Minting always happens at the pinned clock, so ageing is the only way a fixture
+ * gets a receipt that has outlived the rule's validity. Every category moves
+ * together, because that is what a device stores: the native `ExplicitChoice`
+ * keeps one `actionAt` and one fingerprint for the whole receipt, so an axis that
+ * aged one category and not its siblings would pin a record neither core can
+ * hold.
+ */
+const ageChoice = function ageChoice(
+	choice: ExplicitChoice,
+	days: number
+): ExplicitChoice {
+	const shift = days * DAY_MS;
+	const categories: Partial<Record<OptionalConsentCategory, CategoryDecision>> =
+		{};
+	for (const [name, decision] of Object.entries(choice.categories)) {
+		if (!decision) {
+			continue;
+		}
+		categories[name as OptionalConsentCategory] = {
+			...decision,
+			confirmedAt: decision.confirmedAt - shift,
+		};
+	}
+	return { categories, version: choice.version };
+};
+
+/**
+ * Record answers for categories the minted receipt does not name.
+ *
+ * A save only writes what the prompt could ask about, so an out-of-scope answer
+ * has to arrive the way it does on a real device: recorded while a wider policy
+ * was in force. The minted fingerprint is copied unchanged and the confirmation
+ * time is the caller's, so the only thing added is the category. The pinned
+ * expectation is still the kernel's answer to this record, which is the rule
+ * `docs/internal/evaluator-parity.md` sets: no hand-written permission, and here,
+ * no hand-written basis either.
+ */
+const decideExtra = function decideExtra(
+	choice: ExplicitChoice,
+	extras: Partial<Record<OptionalConsentCategory, boolean>>,
+	confirmedAt: number
+): ExplicitChoice {
+	const fingerprint = mintedFingerprint(choice);
+	const categories: Partial<Record<OptionalConsentCategory, CategoryDecision>> =
+		{
+			...choice.categories,
+		};
+	for (const [category, value] of Object.entries(extras) as [
+		OptionalConsentCategory,
+		boolean,
+	][]) {
+		categories[category] = {
+			basis: { fingerprint, kind: 'choice-v1' },
+			confirmedAt,
+			value,
+		};
+	}
+	return { categories, version: choice.version };
 };
 
 // -- Emitted shapes ----------------------------------------------------------
@@ -1227,6 +1427,72 @@ const NOTICE_SCENARIO: Scenario = {
 	user: null,
 };
 
+/** A device holding a receipt minted while `v1` copy was in force. */
+const STALE_POLICY_MINT_SCENARIO: Scenario = {
+	geo: { country: 'US', region: 'CA' },
+	gpc: false,
+	jurisdiction: 'CCPA',
+	language: DEFAULT_NATIVE_LANGUAGE,
+	policyRules: [stalePolicyRule('v1', 'fixture_california_opt_out')],
+	policySnapshotToken: 'tok-stale-mint',
+	storedRecords: storedFor(SUBJECT.california),
+	user: null,
+};
+
+/** The same device, on the launch after the publisher revised the copy. */
+const STALE_POLICY_REPLAY_SCENARIO: Scenario = {
+	...STALE_POLICY_MINT_SCENARIO,
+	policyRules: [stalePolicyRule('v2', 'fixture_california_opt_out')],
+	policySnapshotToken: 'tok-stale-replay',
+};
+
+/**
+ * The scope and basis scenarios.
+ *
+ * Each reuses a subject id from `SUBJECT` rather than minting its own. Reuse is
+ * deliberate: a fixture replays one state and never shares storage with another,
+ * and the id is only an identity the snapshot and the save body carry.
+ */
+const NARROW_PERMISSIVE_OPT_IN_SCENARIO: Scenario = {
+	geo: { country: 'FR', region: null },
+	gpc: false,
+	jurisdiction: 'GDPR',
+	language: DEFAULT_NATIVE_LANGUAGE,
+	policyRules: [NARROW_PERMISSIVE_OPT_IN_RULE],
+	policySnapshotToken: 'tok-narrow-permissive-opt-in',
+	storedRecords: storedFor(SUBJECT.europe),
+	user: null,
+};
+
+const NARROW_PERMISSIVE_OPT_OUT_SCENARIO: Scenario = {
+	...NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+	geo: { country: 'ES', region: null },
+	policyRules: [NARROW_PERMISSIVE_OPT_OUT_RULE],
+	policySnapshotToken: 'tok-narrow-permissive-opt-out',
+};
+
+const NARROW_STRICT_SCENARIO: Scenario = {
+	...NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+	geo: { country: 'IT', region: null },
+	policyRules: [NARROW_STRICT_RULE],
+	policySnapshotToken: 'tok-narrow-strict',
+};
+
+const NARROW_IAB_SCENARIO: Scenario = {
+	...NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+	geo: { country: 'PT', region: null },
+	policyRules: [NARROW_IAB_RULE],
+	policySnapshotToken: 'tok-narrow-iab',
+};
+
+const GPC_DENYING_SCENARIO: Scenario = {
+	...NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+	geo: { country: 'NL', region: null },
+	gpc: true,
+	policyRules: [GPC_DENYING_OPT_IN_RULE],
+	policySnapshotToken: 'tok-gpc-denying',
+};
+
 // -- Fixtures ---------------------------------------------------------------
 
 const evaluationFixture = function evaluationFixture(
@@ -1359,6 +1625,173 @@ const buildEvaluationFixtures =
 				dismissed.after
 			)
 		);
+
+		// -- Scope, expiry, basis and model axes ---------------------------------
+		// Every case above resolves a full four-category scope against a current
+		// receipt, which is exactly why the three divergences in
+		// `docs/internal/evaluator-parity.md` were invisible to CI. Each case below
+		// mints its receipt with the real save command and then changes only the
+		// record's age, or records an answer for a category outside the minting
+		// rule's scope. The expectation stays whatever the kernel answers, which is
+		// what makes a failing core the finding rather than the fixture.
+		const scopeCases: {
+			id: string;
+			description: string;
+			/** The scenario whose policy the replayed record is judged against. */
+			scenario: Scenario;
+			/** The subject the receipt is stored under. */
+			subjectId: string;
+			/** The save that mints the receipt, and the pack it is minted against. */
+			mint?: { intent: CommitIntent; scenario?: Scenario };
+			/** How the minted record is amended before it is replayed. */
+			amend?: (choice: ExplicitChoice) => ExplicitChoice;
+		}[] = [
+			{
+				description:
+					'A rule that governs only functionality, permissively, on a device with no receipt. The in-scope category is denied by the opt-in model, and marketing outside a permissive scope is allowed with no reason recorded: out of scope the model is not consulted at all.',
+				id: 'narrow-permissive-no-receipt',
+				scenario: NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				amend: (choice) => decideExtra(choice, { marketing: false }, NOW),
+				description:
+					'The same permissive scope holding a recorded refusal for the category it does not govern. A refusal is a refusal whether or not the rule asked for it, so marketing is denied and carries explicit-denial rather than sitting at the permissive default.',
+				id: 'narrow-permissive-denial-opt-in',
+				mint: {
+					intent: { action: 'explicit', consents: { functionality: true } },
+				},
+				scenario: NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				amend: (choice) => decideExtra(choice, { marketing: false }, NOW),
+				description:
+					'A permissive scope under the opt-out model with the same recorded refusal. The model default allows and the receipt denies, and the denial wins: this is the cell where reading the model instead of the record turns a subject no into a yes.',
+				id: 'narrow-permissive-denial-opt-out',
+				mint: {
+					intent: { action: 'explicit', consents: { functionality: true } },
+				},
+				scenario: NARROW_PERMISSIVE_OPT_OUT_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				amend: (choice) => decideExtra(choice, { marketing: false }, NOW),
+				description:
+					'A strict scope with a recorded refusal for the category outside it. Both reasons apply and the order is the web order: explicit-denial first, strict-scope second, because the subject said no before the rule said nothing.',
+				id: 'narrow-strict-denial',
+				mint: {
+					intent: { action: 'explicit', consents: { functionality: true } },
+				},
+				scenario: NARROW_STRICT_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				amend: (choice) =>
+					ageChoice(decideExtra(choice, { marketing: false }, NOW), 400),
+				description:
+					'A refusal aged 400 days against a 30-day validity, on the permissive narrow scope. The in-scope grant has lapsed and stops being an authority, while the refusal still denies and still reports explicit-denial: a denial never ages, expired basis or not.',
+				id: 'narrow-permissive-denial-expired',
+				mint: {
+					intent: { action: 'explicit', consents: { functionality: true } },
+				},
+				scenario: NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				amend: (choice) => ageChoice(choice, 400),
+				description:
+					'An expired accept-all under the Europe opt-in rule. The receipts are still on record and carry the rule fingerprint, every optional category is back to the opt-in default with no reason attached, and the choice prompt is owed again with reason expired.',
+				id: 'opt-in-grant-expired',
+				mint: { intent: { action: 'all' } },
+				scenario: EU_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				description:
+					'An IAB rule with a narrow scope on a device with no receipt. The in-scope category waits for a grant exactly as it would under opt-in, and the category outside a permissive scope is allowed; the snapshot reports the model as opt-in because the fixture kernel runs without the IAB module.',
+				id: 'narrow-iab-no-receipt',
+				scenario: NARROW_IAB_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				amend: (choice) => decideExtra(choice, { marketing: false }, NOW),
+				description:
+					'The same IAB rule holding a refusal for the category outside its scope. An IAB rule answers the evaluator exactly as opt-in does, including the reason, so a core that special-cases the model name diverges here first.',
+				id: 'narrow-iab-denial',
+				mint: {
+					intent: { action: 'explicit', consents: { functionality: true } },
+				},
+				scenario: NARROW_IAB_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				description:
+					'An active GPC signal under an opt-in rule that names marketing. The model had already denied every optional category, and marketing still carries the gpc reason beside the other three, because reasons are gathered independently of the answer they accompany.',
+				id: 'gpc-under-opt-in-no-receipt',
+				scenario: GPC_DENYING_SCENARIO,
+				subjectId: SUBJECT.europe,
+			},
+			{
+				description:
+					'A refusal minted under the first revision of the policy text, replayed after the publisher revised it. The basis no longer matches, so the grant half is not an authority, while the refusal still denies: a policy edit re-opens a permission, never a refusal.',
+				id: 'opt-out-denial-under-stale-policy',
+				mint: {
+					intent: {
+						action: 'explicit',
+						consents: { marketing: false, measurement: true },
+					},
+					scenario: STALE_POLICY_MINT_SCENARIO,
+				},
+				scenario: STALE_POLICY_REPLAY_SCENARIO,
+				subjectId: SUBJECT.california,
+			},
+			{
+				description:
+					'The same revised policy against a stored grant for marketing and a refusal of measurement. The grant is not an authority under a basis the subject no longer stands under, and under opt-out marketing is allowed by default anyway with no reason recorded, while measurement keeps its denial.',
+				id: 'opt-out-grant-under-stale-policy',
+				mint: {
+					intent: {
+						action: 'explicit',
+						consents: { marketing: true, measurement: false },
+					},
+					scenario: STALE_POLICY_MINT_SCENARIO,
+				},
+				scenario: STALE_POLICY_REPLAY_SCENARIO,
+				subjectId: SUBJECT.california,
+			},
+		];
+		// Sequential for the same reason as the cases above: the mint and the replay
+		// are two runs of one kernel each, against the pinned clock.
+		/* oxlint-disable no-await-in-loop -- sequential on purpose, see above */
+		for (const scopeCase of scopeCases) {
+			let records = storedFor(scopeCase.subjectId);
+			if (scopeCase.mint) {
+				const minted = await runFixture(
+					inputFor(scopeCase.mint.scenario ?? scopeCase.scenario),
+					{ intent: scopeCase.mint.intent }
+				);
+				const choice = minted.after.explicitChoice;
+				if (!choice) {
+					throw new Error(
+						`Fixture ${scopeCase.id}: the minting save stored no receipt, so the axis proves nothing.`
+					);
+				}
+				records = storedFor(scopeCase.subjectId, {
+					choice: scopeCase.amend ? scopeCase.amend(choice) : choice,
+				});
+			}
+			const scopeInput = inputFor(scopeCase.scenario, { records });
+			const scopeRun = await runFixture(scopeInput);
+			fixtures.push(
+				evaluationFixture(
+					scopeCase.id,
+					scopeCase.description,
+					scopeInput,
+					scopeRun.after
+				)
+			);
+		}
 
 		// The two launches every other fixture skips: nothing stored, so hydrate() has
 		// no envelope to find and `ready` can only arrive with the init response. A core

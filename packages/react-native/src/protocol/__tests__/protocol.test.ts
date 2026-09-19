@@ -416,25 +416,50 @@ describe('protocol fixtures', () => {
 	});
 
 	/**
-	 * Fail-closed before a choice, which is the guarantee the old "pending or
-	 * unhydrated" version of this test stood in for. Every fixture answers a served
-	 * /init, so no committed snapshot is pending, and an empty loop would have
-	 * passed forever. The gate that the fixtures do reach is an opt-in policy with
-	 * no receipt: nothing optional may be permitted there.
+	 * Fail-closed inside the policy's scope, which is the guarantee the old "pending
+	 * or unhydrated" version of this test stood in for. Every fixture answers a served
+	 * /init, so no committed snapshot is pending, and an empty loop would have passed
+	 * forever.
+	 *
+	 * The scope bounds the claim. `defaultPermission` in
+	 * `packages/core/src/consent-record/evaluate.ts` reads `scopeMode` alone for a
+	 * category the rule does not govern and never reads the model, so a permissive
+	 * policy permits an ungoverned category with nothing on record -- under `opt-in`
+	 * and `iab` alike. `evaluation-narrow-permissive-*-no-receipt` is that cell, which
+	 * is why this test used to assert four denials and now asserts the governed ones.
+	 * A category outside the scope is still checked: nothing may report a permission
+	 * for a category the served list does not carry.
 	 */
-	test('an opt-in snapshot with no receipt yet denies every optional category', () => {
+	test('an opt-in snapshot with no receipt yet denies every category the policy governs', () => {
 		const gated = allSnapshots().filter(
 			(snapshot) =>
 				snapshot.model === 'opt-in' && snapshot.explicitChoice === null
 		);
 		expect(gated.length).toBeGreaterThan(0);
-		for (const snapshot of gated) {
-			const optional = Object.entries(permissionsOf(snapshot))
-				.filter(([category]) => category !== 'necessary')
-				.map(([, value]) => value);
-			expect(optional.length).toBe(4);
-			expect(optional.every((value) => value === false)).toBe(true);
+
+		// Both lists are collected during the walk and asserted once at the end, so a
+		// wrong permission names how many it found rather than stopping at the first.
+		const governed: string[] = [];
+		const permitted: string[] = [];
+		for (const [gate, snapshot] of gated.entries()) {
+			const scope = snapshot.consentCategories;
+			const governedHere = new Set(
+				Array.isArray(scope) ? (scope as string[]) : []
+			);
+			for (const [category, value] of Object.entries(permissionsOf(snapshot))) {
+				if (category === 'necessary' || !governedHere.has(category)) {
+					continue;
+				}
+				governed.push(category);
+				if (value === true) {
+					permitted.push(`snapshot ${gate}: ${category}`);
+				}
+			}
 		}
+		// Guards the walk: a fixture set that stopped carrying a governed optional
+		// category would otherwise satisfy both assertions by checking nothing.
+		expect(governed.length).toBeGreaterThan(0);
+		expect(permitted).toEqual([]);
 	});
 
 	/**

@@ -578,6 +578,18 @@ final class ConsentCoreTests: XCTestCase {
         optIn.save(.custom([.marketing: true]))
         await optIn.waitUntilIdle()
         XCTAssertTrue(optIn.isAllowed(.marketing))
+        // The rule governs four categories and the subject answered one, so the
+        // choice is still owed. `deriveChoiceRequirement` in
+        // `packages/core/src/consent-record/evaluate.ts` walks the scope and reports
+        // `missing` while any category in it is unanswered; the core used to answer
+        // this from one boolean for the whole receipt, which settled a prompt the
+        // kernel keeps open.
+        XCTAssertEqual(
+            optIn.snapshot().promptRequirement,
+            PromptRequirement(kind: .choice, reason: .missing)
+        )
+        optIn.save(.all)
+        await optIn.waitUntilIdle()
         XCTAssertEqual(optIn.snapshot().promptRequirement, .none)
 
         let optOutStore = InMemoryStore()

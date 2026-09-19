@@ -89,6 +89,34 @@ enum class ConsentAction(val wireName: String) {
 	}
 }
 
+/**
+ * Why the kernel owes the subject a prompt, in the kernel's own vocabulary.
+ *
+ * `PromptPurpose` cannot carry this: it says only whether a record exists, so a
+ * receipt that lapsed and a fingerprint that moved collapse into one answer.
+ * `deriveChoiceRequirement` in `packages/core/src/consent-record/evaluate.ts`
+ * keeps all three apart, and `evaluation-opt-in-grant-expired` is the fixture
+ * that decides it, so the collapse is now a visible failure rather than a free
+ * choice the wire projection could make quietly.
+ */
+@Serializable
+enum class PromptReason(val wireName: String) {
+	@SerialName("missing")
+	MISSING("missing"),
+
+	@SerialName("policy-changed")
+	POLICY_CHANGED("policy-changed"),
+
+	@SerialName("expired")
+	EXPIRED("expired"),
+	;
+
+	companion object {
+		/** Parse a wire value, returning `null` for unknown values. */
+		fun fromWireName(value: String?): PromptReason? = entries.firstOrNull { it.wireName == value }
+	}
+}
+
 /** Why the current prompt is being shown. */
 @Serializable
 enum class PromptPurpose(val wireName: String) {

@@ -1,6 +1,6 @@
 {
 	"clock": 1770000000000,
-	"count": 63,
+	"count": 74,
 	"fixtures": [
 		{
 			"bytes": 6342,
@@ -65,6 +65,94 @@
 			"kind": "evaluation",
 			"protocolVersion": 1,
 			"sha256": "47fde61730463089a1c1dd5b3103dd0095e6cb82277ebd5fa4424f2f9c0f41e3"
+		},
+		{
+			"bytes": 6297,
+			"file": "evaluation-narrow-permissive-no-receipt.json",
+			"id": "evaluation-narrow-permissive-no-receipt",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "55188e47cd9f595d1576d6dd5c50cfe6dd0a76eda3ef3b5116c7a0c001c7ac99"
+		},
+		{
+			"bytes": 7317,
+			"file": "evaluation-narrow-permissive-denial-opt-in.json",
+			"id": "evaluation-narrow-permissive-denial-opt-in",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "fd8c26c13467753eb18a4f254275e55cddbd1464cf32aef8093ac6e09e3613a7"
+		},
+		{
+			"bytes": 7326,
+			"file": "evaluation-narrow-permissive-denial-opt-out.json",
+			"id": "evaluation-narrow-permissive-denial-opt-out",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "8c205a1cd7a6f5f46334d7ed8e82bda1061cd5d3c8b367dbe538316b45a43739"
+		},
+		{
+			"bytes": 7331,
+			"file": "evaluation-narrow-strict-denial.json",
+			"id": "evaluation-narrow-strict-denial",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "8192194d59bba9af8e0df7affb83616048b0562dbb80ff67565762f643d0e4c5"
+		},
+		{
+			"bytes": 7342,
+			"file": "evaluation-narrow-permissive-denial-expired.json",
+			"id": "evaluation-narrow-permissive-denial-expired",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "59d9eb17850e3fddca83d21926849f1c99811d462d78d8890e4d178a0c4087ab"
+		},
+		{
+			"bytes": 8360,
+			"file": "evaluation-opt-in-grant-expired.json",
+			"id": "evaluation-opt-in-grant-expired",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "acda5a6fafef109419f9e2eeef9edba1f308e9edc1fe2bde7a93ab3b559fd1df"
+		},
+		{
+			"bytes": 6277,
+			"file": "evaluation-narrow-iab-no-receipt.json",
+			"id": "evaluation-narrow-iab-no-receipt",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "49dd82457478cecde9a3afb487fcee410a9dcc4d968fb6410f1e0e4749917244"
+		},
+		{
+			"bytes": 7231,
+			"file": "evaluation-narrow-iab-denial.json",
+			"id": "evaluation-narrow-iab-denial",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "96bdea37fa6872ec0531191e6bddb8994920963428824940440c0893c118ee12"
+		},
+		{
+			"bytes": 6531,
+			"file": "evaluation-gpc-under-opt-in-no-receipt.json",
+			"id": "evaluation-gpc-under-opt-in-no-receipt",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "8d44c5b995fb89d9b5a394dfe77cf839eeea0195086045566a430f652dafdb27"
+		},
+		{
+			"bytes": 7430,
+			"file": "evaluation-opt-out-denial-under-stale-policy.json",
+			"id": "evaluation-opt-out-denial-under-stale-policy",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "3d1006a667e10208c04d5b15cc71380c48468c8921e53c997acf0bff0b538712"
+		},
+		{
+			"bytes": 7463,
+			"file": "evaluation-opt-out-grant-under-stale-policy.json",
+			"id": "evaluation-opt-out-grant-under-stale-policy",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "9e4958bb1f430e9aac5318cc801d71803e24b7b44b880e19f5197813beb8e2d6"
 		},
 		{
 			"bytes": 6514,

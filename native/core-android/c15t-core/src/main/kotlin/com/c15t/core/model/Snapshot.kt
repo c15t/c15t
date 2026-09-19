@@ -17,6 +17,15 @@ data class PromptRequirement(
 	val notice: Boolean = false,
 	val acknowledge: Boolean = false,
 	val purpose: PromptPurpose? = null,
+	/**
+	 * The kernel's reason for the owed prompt, carried verbatim onto the wire.
+	 *
+	 * `purpose` cannot answer this and stays what it always was: the in-app hint
+	 * that says whether anything was ever recorded. Only the obligation's *kind*
+	 * travels as `purpose`, so leaving the reason to be re-derived from it would
+	 * lose `expired`, which the kernel reports on its own terms.
+	 */
+	val reason: PromptReason? = null,
 ) {
 	companion object {
 		/** Nothing owed. */
