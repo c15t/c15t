@@ -84,6 +84,19 @@ log "device ${SERIAL}, frames in ${OUT_DIR}"
 mkdir -p "${OUT_DIR}"
 rm -f "${OUT_DIR}"/*.png "${OUT_DIR}"/*.xml
 
+# Quoting guard. Every parameterised verb below depends on the device's `sh`
+# receiving an ampersand rather than reading it as "run the rest in the
+# background", and a shell that eats it fails quietly: `save?experience=1&
+# marketing=0` arrives as `save?experience=1`, the denial is never recorded, and
+# the step reports green while grading a different save than the one it names.
+# Say so once, here, instead of leaving it to be discovered as a wrong assertion.
+amp="$(
+	"${ADB}" -s "${SERIAL}" shell "printf %s 'a&b'" 2>/dev/null |
+		tr -d '\r\n'
+)"
+[[ "${amp}" == "a&b" ]] ||
+	die "${SERIAL}: its shell returned ${amp:-<empty>} for a quoted 'a&b', so link() would truncate every verb that carries a second parameter"
+
 FAILED=0
 
 # texts <name>: dump the hierarchy and print the distinct strings on screen
@@ -195,11 +208,17 @@ forbid () {
 
 # link <verb> [seconds]: cold-start the app on one deep link, so each step survives process
 # death and no step inherits the previous step's JavaScript instance.
+#
+# The URI carries a second layer of shell. `adb shell` joins its arguments and hands the
+# result to the device's `sh`, which reads a bare `&` as "run the rest in the background"
+# and truncates the link at it: `save?experience=1&marketing=0` reached the app as
+# `save?experience=1`, so the denial was never recorded and the step silently graded a
+# different save than the one it names. The inner single quotes are for that shell.
 link () {
 	"${ADB}" -s "${SERIAL}" shell am force-stop "${PKG}" >/dev/null 2>&1
 	sleep 1
 	"${ADB}" -s "${SERIAL}" shell am start -a android.intent.action.VIEW \
-		-d "c15t-demo://${1}" >/dev/null 2>&1
+		-d "'c15t-demo://${1}'" >/dev/null 2>&1
 	sleep "${2:-8}"
 }
 
