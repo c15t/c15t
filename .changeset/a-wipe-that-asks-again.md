@@ -1,5 +1,0 @@
----
-"@c15t/react-native": patch
----
-
-Add `reset()`, which wipes consent and puts the device back in the state a first launch boots with. The capability was already half there and unreachable: the Android core had a `reset()` no bridge method exposed, and iOS had none. A wipe drops the choice receipts, the notice dismissal, the policy claim, the resolved location, and the queued offline writes, and keeps the c15t subject id, so a subject can withdraw and answer again without orphaning the record the backend holds under that id. The prompt is owed again afterwards rather than settled, so the banner or dialog returns once policy re-resolves: a recorded reject-everything would keep `promptRequirement` at `none` and leave the subject no way out. Overrides, the GPC override, and the configured category scope survive the wipe, being configuration rather than consent. Revision numbering does not restart, so a wipe that quietly disabled durable writes on iOS is caught by the shared fixtures rather than found on a device.

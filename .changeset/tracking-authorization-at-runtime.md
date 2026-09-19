@@ -1,9 +1,0 @@
----
-'@c15t/react-native': minor
----
-
-Read and request platform tracking authorization at runtime, and gate tracking behaviour on it together with consent.
-
-The Expo plugin could already write `NSUserTrackingUsageDescription`, `SKAdNetworkItems`, and `NSPrivacyTracking`, but nothing at runtime could read Apple's answer or ask for it. A host that enabled App Tracking Transparency in its build got the Info.plist keys and no way to place the system prompt after its own consent UI, which is the ordering that keeps Apple from rejecting an app for asking before anyone has been told what is tracked. `useTrackingAuthorization()` reports the platform arm, `actions.requestTrackingAuthorization()` asks, and nothing calls it for you. `useIsTrackingAllowed(category)` is the answer an analytics or ad SDK gates on: consent granted for that category, and a platform that clears tracking on the device.
-
-The two answers stay apart. Platform authorization is a gate and not consent, so no arm of it moves a category from `denied` or `pending` to `granted`: consent granted with ATT denied is denied, and consent pending with ATT authorized is pending. Both cores assert that against every arm. `unsupported` means the platform asks nothing of this build, which is Android's honest answer, since the advertising identifier there sits behind Google Play services' own consent surface rather than anything this package depends on, and iOS's answer when the binary carries no prompt string. It is deliberately not `not-determined`, and a request refuses instead of asking anyway: `C15T_TRACKING_NOT_CONFIGURED` on an iOS build with no prompt string, where Apple would suppress the dialog and report the answer back as denied without saying why, and `C15T_TRACKING_UNSUPPORTED` where there is no question to ask.

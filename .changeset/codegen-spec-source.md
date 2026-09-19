@@ -1,7 +1,0 @@
----
-'@c15t/react-native': patch
----
-
-Make `-Pc15t.spec.source=codegen` generate `NativeC15tSpec` instead of failing the build. The property was documented as `auto`/`stub`/`codegen` and read by no build script, so the Android binding always compiled a hand-written stand-in of the spec and nothing published by this package had ever been through React Native's generator. `codegen` now runs `@react-native/codegen` over `src/specs` using the `codegenConfig` in this package's `package.json`, writes the output into a build directory, and compiles that; `auto` and `stub` keep compiling the stand-in, and an unrecognised value still fails rather than quietly picking one. Generated output reaches the bridge as `compileOnly`, exactly as the stand-in does, so it stays out of the AAR and an app never meets a second copy of the class.
-
-The stand-in is now checked against generated output instead of trusted. `src/specs/__tests__/android-spec-surface.test.ts` and `ios-spec-surface.test.ts` run the same generator the Gradle property runs, and fail when the hand-written Android spec or the hand-written iOS selectors disagree with it on the module name, a method name, an argument type, or the JSON-string payload convention. CI runs both on Linux, with a step that assembles the binding in `codegen` mode and asserts the generated file exists and the class is absent from the AAR. Nothing an app writes changes.
