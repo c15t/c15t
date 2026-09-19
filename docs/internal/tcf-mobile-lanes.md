@@ -6,8 +6,8 @@ description: Internal ledger for the mobile SDK lanes - who owns what, what has 
 Internal ledger. Not published on c15t.com. Written 2026-09-18 against `v3-3`.
 The clock here is unsynced, so treat dates as relative to that branch state.
 
-Read [`tcf-mobile.md`](/docs/internal/tcf-mobile.md) for the spec and what the
-cores still fail, and [`evaluator-parity.md`](/docs/internal/evaluator-parity.md)
+Read [`tcf-mobile.md`](tcf-mobile.md) for the spec and what the
+cores still fail, and [`evaluator-parity.md`](evaluator-parity.md)
 for the measured web answer table. This file only tracks who is doing what.
 
 ## Lanes

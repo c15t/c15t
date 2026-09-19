@@ -1,3 +1,8 @@
+---
+title: Consent evaluator parity
+description: "The measured web answer for category permissions, restrictions and prompt obligations, the divergences found against it in the two native cores, and what closing them cost."
+---
+
 # Consent evaluator parity (mobile versus web)
 
 Status: written 2026-09-18 against local checkout `v3-3` at `32628df38`.
