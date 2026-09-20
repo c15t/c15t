@@ -1,0 +1,9 @@
+---
+"@c15t/react-native": minor
+---
+
+Add `useTrackingRequest`, which runs Apple's App Tracking Transparency request end to end: the system prompt, Apple's new European Union expanded sheet on runtimes that have it, and the c15t preference centre when the subject taps Additional Information. Spread the returned `preferences` onto `ConsentPreferences` and call `request()`. A host that already renders a preference centre from its own state passes that state as `options.preferences`, and the same spread then serves both. Apple is asked again after the centre closes only while a category the request stood for is still granted, so refusing all of them finishes the journey without a second prompt. Pressing Apple's Allow writes no consent, and `client.requestTracking()` exposes the same request with its `stage` and `presentation` fields for hosts that drive the journey themselves.
+
+A tracking request is no longer answered from a cached platform status, so an install in a region where Apple permits re-presentation a year after an answer can be asked again. The SDK still never prompts on its own. Tracking authorization is now re-read when the app returns to the foreground, so a change made in the Settings app is picked up without a relaunch.
+
+Add `trackingMarkdownUsageDescription` and `trackingMarkdownUsageDescriptionLocalizations` to the Expo plugin, which write `NSUserTrackingMarkdownUsageDescription` and per-locale `InfoPlist.strings` entries for Apple's expanded prompt. Each locale is also registered as a region the app speaks, in the Xcode project's `knownRegions` and in `CFBundleLocalizations`, because a string table iOS never selects is a localization that ships nothing. `trackingUsageDescription` is still written alongside the Markdown key as the fallback, and values already written by the host are kept. The iOS deployment target stays at 16.4, and Android behaviour is unchanged.

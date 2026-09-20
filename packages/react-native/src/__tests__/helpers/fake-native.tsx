@@ -14,7 +14,12 @@ import { vi } from 'vitest';
 
 import type { NativeC15tTurboModule } from '../../native/module';
 import { NATIVE_C15T_MODULE_NAME } from '../../protocol';
-import type { ConsentSnapshot, TrackingAuthorization } from '../../protocol';
+import type {
+	ConsentSnapshot,
+	TrackingAuthorization,
+	TrackingPresentation,
+	TrackingRequestStage,
+} from '../../protocol';
 import { emitNativeEvent, setNativeModule } from './react-native-stub';
 
 // React only permits `act` when the environment says a test drives it.
@@ -31,6 +36,20 @@ export const FAKE_BOOTSTRAP = {
 	protocolVersion: 1,
 	subjectId: 'sub-1',
 };
+
+/**
+ * What the fake hands back from one `requestTrackingAuthorization()` call.
+ *
+ * `code` makes the call reject instead, which is how an Android request and an iOS build with
+ * no prompt string both look to JavaScript.
+ */
+export interface TrackingRequestReply {
+	readonly code?: string;
+	readonly message?: string;
+	readonly presentation?: TrackingPresentation;
+	readonly stage?: TrackingRequestStage;
+	readonly status?: TrackingAuthorization;
+}
 
 /**
  * Build a snapshot with realistic defaults.
@@ -108,6 +127,24 @@ export interface FakeNativeModule extends NativeC15tTurboModule {
 	setTrackingAuthorization: (status: TrackingAuthorization) => void;
 	/** Make the next tracking request reject, the way a build without the plist key does. */
 	rejectTrackingRequestWith: (code: string, message: string) => void;
+	/**
+	 * Serve this payload from the next tracking request.
+	 *
+	 * `stage` and `presentation` are optional the way they are on the wire, so a test can
+	 * send the shape an older binary sends and prove the reader still understands it.
+	 */
+	setTrackingRequestReply: (reply: TrackingRequestReply) => void;
+	/**
+	 * Serve these payloads, in order, from the next tracking requests.
+	 *
+	 * A journey that pauses for additional information asks more than once, and the whole
+	 * point of those tests is that the second answer differs from the first.
+	 */
+	queueTrackingRequestReplies: (
+		replies: readonly TrackingRequestReply[]
+	) => void;
+	/** Payloads handed back by `requestTrackingAuthorization()`, in order. */
+	trackingRequestPayloads: string[];
 	/** Replace the bootstrap payload served by the next handshake. */
 	setBootstrap: (payload: unknown) => void;
 	/** Make `commit()` resolve with text that is not a `CommitResult`. */
@@ -129,11 +166,8 @@ export const createFakeNativeModule = function createFakeNativeModule(
 	let snapshot: ConsentSnapshot | string = options.snapshot ?? buildSnapshot();
 	let bootstrap: unknown = options.bootstrap ?? FAKE_BOOTSTRAP;
 	let trackingStatus: TrackingAuthorization = 'unsupported';
-	let trackingRequestReply: {
-		readonly code?: string;
-		readonly message?: string;
-		readonly status?: TrackingAuthorization;
-	} = { status: 'unsupported' };
+	let trackingRequestReply: TrackingRequestReply = { status: 'unsupported' };
+	const trackingRequestQueue: TrackingRequestReply[] = [];
 	let commitReply = JSON.stringify({
 		confirmed: [],
 		ok: true,
@@ -196,6 +230,9 @@ export const createFakeNativeModule = function createFakeNativeModule(
 
 			emitNativeEvent('snapshot', JSON.stringify({ revision: 99 }));
 		},
+		queueTrackingRequestReplies: (replies: readonly TrackingRequestReply[]) => {
+			trackingRequestQueue.push(...replies);
+		},
 		refresh: vi.fn(() => {
 			fake.refreshCalls += 1;
 
@@ -209,17 +246,27 @@ export const createFakeNativeModule = function createFakeNativeModule(
 		requestTrackingAuthorization: vi.fn(() => {
 			fake.trackingRequestCalls += 1;
 
-			if (trackingRequestReply.code !== undefined) {
+			const reply = trackingRequestQueue.shift() ?? trackingRequestReply;
+
+			if (reply.code !== undefined) {
 				return Promise.reject(
-					Object.assign(new Error(trackingRequestReply.message ?? ''), {
-						code: trackingRequestReply.code,
-					})
+					Object.assign(new Error(reply.message ?? ''), { code: reply.code })
 				);
 			}
 
-			trackingStatus = trackingRequestReply.status ?? trackingStatus;
+			trackingStatus = reply.status ?? trackingStatus;
 
-			return Promise.resolve(JSON.stringify({ status: trackingStatus }));
+			// `JSON.stringify` drops the undefined keys, which is exactly the shape a
+			// binary that predates a field sends, so a test can ask for either.
+			const payload = JSON.stringify({
+				presentation: reply.presentation,
+				stage: reply.stage,
+				status: trackingStatus,
+			});
+
+			fake.trackingRequestPayloads.push(payload);
+
+			return Promise.resolve(payload);
 		}),
 		reset: vi.fn(() => {
 			fake.resetCalls += 1;
@@ -263,9 +310,13 @@ export const createFakeNativeModule = function createFakeNativeModule(
 			trackingStatus = status;
 			trackingRequestReply = { status };
 		},
+		setTrackingRequestReply: (reply: TrackingRequestReply) => {
+			trackingRequestReply = reply;
+		},
 		snapshotCalls: 0,
 		trackingReadCalls: 0,
 		trackingRequestCalls: 0,
+		trackingRequestPayloads: [] as string[],
 	};
 
 	setNativeModule(NATIVE_C15T_MODULE_NAME, fake);

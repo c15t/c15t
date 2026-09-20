@@ -105,6 +105,18 @@ export { useConsentSafeArea } from './hooks';
 export type { ConsentSafeArea } from './hooks';
 export { useConsentDecision, useIsAllowed } from './hooks';
 export { useIsTrackingAllowed, useTrackingAuthorization } from './hooks';
+export { useTrackingRequest } from './hooks';
+export type {
+	TrackingRequest,
+	TrackingRequestPreferences,
+	UseTrackingRequestOptions,
+} from './hooks';
+export {
+	DEFAULT_TRACKING_CATEGORIES,
+	isAdditionalInformationPause,
+	MAX_TRACKING_REQUEST_TURNS,
+	mayAskPlatformAgain,
+} from './lib/tracking-journey';
 export {
 	denyAllSnapshot,
 	INVALID_NATIVE_SNAPSHOT_CODE,

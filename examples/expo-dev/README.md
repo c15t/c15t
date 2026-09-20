@@ -185,6 +185,8 @@ native projects. After a prebuild you should find:
 
 ```
 ios/c15tExpoDev/Info.plist              com.c15t.backend.url, com.c15t.backend.mode
+ios/c15tExpoDev/Info.plist              NSUserTrackingUsageDescription, NSUserTrackingMarkdownUsageDescription
+ios/.../Supporting/de.lproj/InfoPlist.strings   NSUserTrackingMarkdownUsageDescription
 android/.../AndroidManifest.xml         <meta-data android:name="com.c15t.PORTAL_URL" ...>
 android/.../AndroidManifest.xml         com.c15t.reactnative.C15tReactNativeInitializer
 ios/Podfile                             pod 'C15tCore', :path => '.../native/core-swift'
@@ -195,5 +197,28 @@ value stays absent rather than becoming an empty string, because the bridge trea
 missing key as "not configured".
 
 App Tracking Transparency is off by default and nothing about a consent configuration
-turns it on: consent to marketing cookies is not Apple tracking authorization. Enable it
-with `enableAppTrackingTransparency` plus a `trackingUsageDescription` you wrote.
+turns it on: consent to marketing cookies is not Apple tracking authorization. This
+fixture opts in, in `app.config.ts` and nowhere else, and opting in takes a
+`trackingUsageDescription` you wrote yourself rather than a placeholder the plugin could
+have invented.
+
+That plain string is the alert Apple shows, and the Markdown key does not replace it:
+Apple draws the plain one on every older system and to every device outside the countries
+where it enabled the expanded sheet. `trackingMarkdownUsageDescription` is the copy that
+expanded sheet renders, as Markdown, so bold, italics, bullets, and paragraph breaks.
+Apple picks who sees it, not c15t, and no surface here reads the copy back.
+
+`trackingMarkdownUsageDescriptionLocalizations` adds the same prompt per locale, keyed the
+way Xcode spells a tag. Each entry becomes an `InfoPlist.strings` in that
+`<locale>.lproj` bundle rather than another plist key, because the plist holds one value
+per key. A bundle that already carries the key keeps what the host wrote.
+
+iOS reads a string out of one of those bundles only once the binary says it speaks that
+locale, so the plugin also names each locale as a region: it lands in the project's
+`knownRegions` and in `CFBundleLocalizations` in the plist. Nothing here has to keep a
+second copy of the locale list to match the map.
+
+The tracking card on the Consent tab is the other half: `useTrackingRequest` runs the
+sheet, the preference centre that Apple's Additional Information button sends the subject
+to, and the second sheet. An Apple yes moves no category by itself, which is the whole
+reason the card prints `useIsTrackingAllowed` beside the arm.

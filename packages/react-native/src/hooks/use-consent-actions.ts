@@ -100,8 +100,10 @@ export interface ConsentActions {
 	 * subject has answered, and read the answer with
 	 * {@link useIsTrackingAllowed} rather than from this promise alone.
 	 *
-	 * Apple shows the dialog at most once per install; afterwards this resolves with
-	 * the answer already on the device. It rejects with
+	 * Whether this can produce a prompt is Apple's call. Outside the European Union the
+	 * dialog appears once and later calls resolve with the answer on the device. Inside
+	 * it, an answered request may come back a year later, whichever way it went, and the
+	 * only way to find out whether this install is eligible is to ask. It rejects with
 	 * `C15T_TRACKING_NOT_CONFIGURED` on an iOS build whose `Info.plist` carries no
 	 * `NSUserTrackingUsageDescription`, where the system dialog is suppressed and the
 	 * answer comes back denied without a word, and with `C15T_TRACKING_UNSUPPORTED` on

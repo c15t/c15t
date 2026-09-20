@@ -169,8 +169,8 @@ public final class C15tReactNativeModule: RCTEventEmitter {
     ) {
         handler.requestTrackingAuthorization { result in
             switch result {
-            case let .success(status):
-                resolve(C15tPayload.trackingAuthorization(status))
+            case let .success(requestResult):
+                resolve(C15tPayload.trackingRequestResult(requestResult))
             case let .failure(error):
                 reject(error.code, error.message, nil)
             }

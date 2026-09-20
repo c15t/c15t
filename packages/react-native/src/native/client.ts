@@ -28,6 +28,7 @@ import {
 	isProtocolVersionSupported,
 	NATIVE_EVENT_NAMES,
 	parseTrackingAuthorization,
+	parseTrackingRequest,
 } from '../protocol';
 import type {
 	BootstrapPayload,
@@ -37,6 +38,7 @@ import type {
 	NativeEventName,
 	NativeOverridesInput,
 	TrackingAuthorization,
+	TrackingRequestPayload,
 } from '../protocol';
 import type { AllConsentNames } from '../protocol/vocabulary';
 import { NativeBridgeError } from './bridge-error';
@@ -118,10 +120,11 @@ export interface ConsentClient {
 	 *
 	 * A read of state the operating system already holds, so it is synchronous and
 	 * answers on the same thread as {@link ConsentClient.isAllowed}. The answer is
-	 * read once and then cached: Apple resolves it at launch, so a subject who
-	 * changes the setting in the Settings app is not heard by a running process,
-	 * and reading the bridge again on every render would return what the first read
-	 * returned.
+	 * cached, because reading the bridge on every render would keep returning what
+	 * the first read returned: Apple resolves the arm at launch, and the only events
+	 * that genuinely move it are a request through {@link requestTracking} and a
+	 * subject coming back from the Settings app. The second is why this cache is not
+	 * permanent, and {@link refreshTrackingAuthorization} is the read that clears it.
 	 *
 	 * This is never a consent answer. `unsupported` means the platform asks nothing
 	 * of this build, which is Android's answer always and iOS's when the binary
@@ -139,16 +142,54 @@ export interface ConsentClient {
 	 * told anything is the rejection Apple writes back to the developer, and it is
 	 * the ordering the ATT prompt string exists to serve.
 	 *
-	 * The iOS prompt is shown at most once per install: afterwards this resolves
-	 * with the answer already on the device. It rejects with
-	 * `C15T_TRACKING_NOT_CONFIGURED` on an iOS build that carries no
+	 * How often this can produce a prompt is Apple's decision and not this
+	 * package's. Outside the European Union Apple shows its dialog once and answers
+	 * from the device afterwards. Inside it, an answered request may be presented
+	 * again a year after the answer, whichever way it went. So this always asks
+	 * Apple and never answers from a cached arm, which is the only way an eligible
+	 * install can ever be asked again, and it costs nothing when it is not eligible:
+	 * Apple shows nothing and calls back with the arm on file. Nothing here prompts
+	 * on its own, so a host that never calls this never re-prompts.
+	 *
+	 * It rejects with `C15T_TRACKING_NOT_CONFIGURED` on an iOS build that carries no
 	 * `NSUserTrackingUsageDescription`, because Apple then suppresses the dialog and
 	 * records the answer as denied without telling the host why, and with
 	 * `C15T_TRACKING_UNSUPPORTED` on Android, where there is nothing to ask.
 	 *
-	 * @returns The arm the platform reported after the request settled.
+	 * @returns The arm the platform reported after the request settled. Use
+	 *   {@link requestTracking} when the answer might be a pause rather than a
+	 *   decision.
 	 */
 	requestTrackingAuthorization: () => Promise<TrackingAuthorization>;
+	/**
+	 * Ask the platform, and say how the request ended.
+	 *
+	 * Same call as {@link requestTrackingAuthorization}, with the two fields that
+	 * make Apple's Additional Information tap legible. That tap closes Apple's sheet
+	 * without an answer and still reports `not-determined`, so a caller reading only
+	 * the arm cannot tell "the subject stopped to read more" from "nobody has been
+	 * asked yet", and reporting the first as the second tells the subject they
+	 * refused something they did not.
+	 *
+	 * {@link useTrackingRequest} is the surface most hosts want: it drives the
+	 * preference centre through the pause, so nothing has to be assembled by hand.
+	 *
+	 * @returns The arm, the stage, and which call ran.
+	 */
+	requestTracking: () => Promise<TrackingRequestPayload>;
+	/**
+	 * Read the platform answer again, after a cached one.
+	 *
+	 * {@link getTrackingAuthorization} reads the bridge once and keeps the answer,
+	 * which is right for a render path and wrong for the one moment the answer
+	 * genuinely moves: the subject went to the Settings app, changed tracking, and
+	 * came back. Apple tells a running process nothing when that happens, so this is
+	 * the read that has to be asked for, and it is what {@link C15tProvider} calls
+	 * when the app returns to the foreground.
+	 *
+	 * @returns The freshly read arm, with subscribers notified only when it moved.
+	 */
+	refreshTrackingAuthorization: () => TrackingAuthorization;
 	/**
 	 * Whether tracking behaviour may run for one category.
 	 *
@@ -485,9 +526,10 @@ export const createConsentClient = function createConsentClient(
 	let eventSubscriptions: NativeEventSubscription[] = [];
 
 	/**
-	 * Platform tracking arm, read once per process. See
-	 * {@link ConsentClient.getTrackingAuthorization} for why a second read is
-	 * wasted work rather than merely cheap.
+	 * Platform tracking arm, cached between the reads that can actually move it. See
+	 * {@link ConsentClient.getTrackingAuthorization} for why a read on every render
+	 * is wasted work, and {@link ConsentClient.refreshTrackingAuthorization} for the
+	 * one moment it is not.
 	 */
 	let tracking: TrackingAuthorization | null = null;
 	/** Consumers that watch the platform answer and no slice of the snapshot. */
@@ -675,8 +717,8 @@ export const createConsentClient = function createConsentClient(
 	 * difference between "this build cannot prompt" and "Android has no such
 	 * question" lives.
 	 */
-	const requestTrackingAuthorization =
-		async function requestTrackingAuthorization(): Promise<TrackingAuthorization> {
+	const requestTracking =
+		async function requestTracking(): Promise<TrackingRequestPayload> {
 			if (typeof nativeModule.requestTrackingAuthorization !== 'function') {
 				warnTrackingSurfaceMissing();
 
@@ -685,8 +727,10 @@ export const createConsentClient = function createConsentClient(
 				);
 			}
 
+			let outcome: TrackingRequestPayload;
+
 			try {
-				tracking = parseTrackingAuthorization(
+				outcome = parseTrackingRequest(
 					await nativeModule.requestTrackingAuthorization()
 				);
 			} catch (error: unknown) {
@@ -698,13 +742,41 @@ export const createConsentClient = function createConsentClient(
 				throw error;
 			}
 
+			tracking = outcome.status;
+
 			// Deliberately no `stale = true` and no snapshot notify. The platform
 			// answer is not consent: a prompt that changed nothing about any category
 			// must not reach a tree that subscribed to categories, and the consent
 			// decision a subscriber reads has to be identical before and after.
 			notifyTracking();
 
-			return tracking;
+			return outcome;
+		};
+
+	const requestTrackingAuthorization =
+		async function requestTrackingAuthorization(): Promise<TrackingAuthorization> {
+			return (await requestTracking()).status;
+		};
+
+	const refreshTrackingAuthorization =
+		function refreshTrackingAuthorization(): TrackingAuthorization {
+			const before = tracking;
+
+			// Dropped rather than overwritten, so the read goes through the same path a
+			// first read takes, including the feature detection for a binary that has no
+			// tracking surface at all.
+			tracking = null;
+
+			const after = currentTracking();
+
+			// `before === null` means nobody had read the arm yet, so there is nothing for a
+			// subscriber to be out of date about and a notification would be a rerender for
+			// a value nothing was holding.
+			if (before !== null && before !== after) {
+				notifyTracking();
+			}
+
+			return after;
 		};
 
 	// Attach for the life of the client, not the life of a subscription. The
@@ -770,6 +842,8 @@ export const createConsentClient = function createConsentClient(
 			),
 		logout: () => afterMutation(nativeModule.logout()),
 		refresh: () => afterMutation(nativeModule.refresh()),
+		refreshTrackingAuthorization,
+		requestTracking,
 		requestTrackingAuthorization,
 		reset: async (): Promise<void> => {
 			// A JavaScript update can ship a bundle that calls a wipe the binary in

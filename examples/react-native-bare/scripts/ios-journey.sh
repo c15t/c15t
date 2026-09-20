@@ -191,7 +191,7 @@ kernel_pod_fingerprint() {
 }
 
 NEEDED_POD_FINGERPRINT="$(kernel_pod_fingerprint)"
-CURRENT_POD_FINGERPRINT="$(cat "${POD_STAMP}" 2>/dev/null)"
+CURRENT_POD_FINGERPRINT="$(cat "${POD_STAMP}" 2>/dev/null || true)"
 
 if [[ ! -d "${APP_DIR}/ios/Pods" ]] || [[ "${NEEDED_POD_FINGERPRINT}" != "${CURRENT_POD_FINGERPRINT}" ]]; then
 	log "pod install"

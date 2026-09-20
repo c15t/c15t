@@ -34,10 +34,16 @@ export { defaultNativeOverrides } from './overrides';
 export type {
 	TrackingAuthorization,
 	TrackingAuthorizationPayload,
+	TrackingPresentation,
+	TrackingRequestPayload,
+	TrackingRequestStage,
 } from './tracking';
 export {
 	parseTrackingAuthorization,
+	parseTrackingRequest,
 	TRACKING_AUTHORIZATION_STATUSES,
+	TRACKING_PRESENTATIONS,
+	TRACKING_REQUEST_STAGES,
 } from './tracking';
 export type {
 	ConsentSnapshot,

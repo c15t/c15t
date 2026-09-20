@@ -105,6 +105,21 @@ export const findNodeHandle = function findNodeHandle(
 	return handle;
 };
 
+/** One of the three states `AppState` reports. */
+export type AppStateStatus = 'active' | 'background' | 'inactive';
+
+/**
+ * Recorded `AppState` listeners and the state the stub believes the app is in.
+ *
+ * The refresh the bridge does on the way back from the Settings app is only testable if a
+ * test can be the Settings app, so the stub keeps the listeners and lets one call move the
+ * state the way the home button and the app switcher do.
+ */
+export const appState: {
+	listeners: ((state: AppStateStatus) => void)[];
+	state: AppStateStatus;
+} = { listeners: [], state: 'active' };
+
 /** Recorded navigation state. */
 export const linking: { opened: string[] } = { opened: [] };
 
@@ -135,6 +150,8 @@ export const resetUiStub = function resetUiStub(): void {
 	animationState.starts = 0;
 	animationState.jsDriverStarts = 0;
 	animationState.lastInterrupted = false;
+	appState.listeners = [];
+	appState.state = 'active';
 	backState.listeners = [];
 	focusState.tags = [];
 	linking.opened = [];
@@ -949,6 +966,38 @@ export const BackHandler = {
 			},
 		};
 	},
+};
+export const AppState = {
+	addEventListener(
+		_eventName: 'change',
+		handler: (state: AppStateStatus) => void
+	): { remove: () => void } {
+		appState.listeners.push(handler);
+
+		return {
+			remove: () => {
+				appState.listeners = appState.listeners.filter(
+					(listener) => listener !== handler
+				);
+			},
+		};
+	},
+	get currentState(): AppStateStatus {
+		return appState.state;
+	},
+};
+
+/**
+ * Move the stubbed app to a state and tell every listener, as the OS does.
+ *
+ * @param state - The state to arrive at.
+ */
+export const setAppState = function setAppState(state: AppStateStatus): void {
+	appState.state = state;
+
+	for (const listener of [...appState.listeners]) {
+		listener(state);
+	}
 };
 
 export const Linking = {

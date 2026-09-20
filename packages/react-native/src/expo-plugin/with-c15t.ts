@@ -1,17 +1,23 @@
 import {
+	IOSConfig,
 	withAndroidManifest,
 	withAppBuildGradle,
 	withInfoPlist,
 	withMainApplication,
 	withPodfile,
 	withProjectBuildGradle,
+	withXcodeProject,
 } from '@expo/config-plugins';
 import type { ConfigPlugin, ExportedConfig } from '@expo/config-plugins';
 
 import { applyAndroidManifest } from './android';
 import { EXTRA_KEY } from './constants';
 import { applyAppBuildGradle, applyProjectBuildGradle } from './gradle';
-import { applyInfoPlist, buildPrivacyManifestDeclarations } from './ios';
+import {
+	applyInfoPlist,
+	applyLocalizedMarkdownDescriptions,
+	buildPrivacyManifestDeclarations,
+} from './ios';
 import { resolveParams } from './params';
 import type {
 	C15tPluginProps,
@@ -150,6 +156,38 @@ export const applyParamsOnConfig = function applyParamsOnConfig(
 		...configWithPlist,
 		modResults: applyInfoPlist(params, configWithPlist.modResults),
 	}));
+
+	// Localized prompt copy has no mod of its own in the config plugin version
+	// this package depends on, so it goes through the Xcode project, which is where
+	// it has to be registered anyway: a string table that never reaches the
+	// Resources phase is a localization that ships nothing. Registered only when a
+	// locale was actually named, so a plain install leaves the project alone.
+	if (
+		params.appTrackingTransparency.markdownUsageDescriptionLocalizations
+			.length > 0
+	) {
+		next = withXcodeProject(next, async (configWithProject) => {
+			// Introspection must not touch the disk; it only asks what the plugin
+			// would touch, and the answer is the mod being registered above.
+			if (configWithProject.modRequest.introspect) {
+				return configWithProject;
+			}
+			const { projectRoot } = configWithProject.modRequest;
+			return {
+				...configWithProject,
+				modResults: await applyLocalizedMarkdownDescriptions(params, {
+					project: configWithProject.modResults,
+					projectName:
+						configWithProject.modRequest.projectName ??
+						IOSConfig.XcodeUtils.getHackyProjectName(
+							projectRoot,
+							configWithProject
+						),
+					projectRoot,
+				}),
+			};
+		});
+	}
 
 	next = withAndroidManifest(next, (configWithManifest) => ({
 		...configWithManifest,

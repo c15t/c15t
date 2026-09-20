@@ -1,5 +1,6 @@
 import {
 	CONSENT_CATEGORY_IDS,
+	LOCALE_TAG_PATTERN,
 	SK_AD_NETWORK_IDENTIFIER_PATTERN,
 } from './constants';
 import type { C15tConsentCategoryId } from './constants';
@@ -25,6 +26,19 @@ export type C15tTransportMode = (typeof TRANSPORT_MODES)[number];
 
 /** Transport kind `@c15t/core`'s provider factories report. */
 export type C15tProviderTransportKind = 'custom' | 'hosted' | 'offline';
+
+/**
+ * One locale's Markdown prompt copy, ready to write into a string table.
+ *
+ * `locale` doubles as the `.lproj` bundle's name, which is why
+ * {@link LOCALE_TAG_PATTERN} gates it in `resolveParams`.
+ */
+export interface C15tTrackingMarkdownLocalization {
+	/** Locale tag as Xcode spells it, for example `fr-CA`. */
+	readonly locale: string;
+	/** Markdown prompt copy, trimmed. */
+	readonly value: string;
+}
 
 /**
  * `com.c15t.backend.mode` values, per mode.
@@ -133,6 +147,47 @@ export interface C15tPluginProps {
 	 */
 	trackingUsageDescription?: string;
 	/**
+	 * Value for `NSUserTrackingMarkdownUsageDescription`, the expanded European
+	 * Union prompt Apple shows in place of the plain one.
+	 *
+	 * Apple renders it as Markdown: bold, italics, bullet lists, and paragraph
+	 * breaks, but no underline. It is optional, and Apple's own region gate picks
+	 * who sees it: iOS and iPadOS 27.2 or later, with the device and the signed-in
+	 * Apple Account both inside one of the countries Apple enabled it for.
+	 * Everywhere else, and on every older system, Apple shows
+	 * {@link trackingUsageDescription} instead, which is why the plain key stays
+	 * written whenever the App Tracking Transparency opt-in is on. This parameter
+	 * never replaces it.
+	 *
+	 * The copy belongs to a sheet Apple draws: it is compiled into the app binary,
+	 * no c15t surface reads it back, and c15t cannot decide when it appears. What
+	 * c15t does control is the in-app preference centre, whose copy and styling are
+	 * plain text and stay the host's to write.
+	 *
+	 * A blank value is refused rather than written. Apple answers an empty
+	 * `NSUserTrackingMarkdownUsageDescription` with the plain description, so a
+	 * blank one builds a binary whose author meant to localize the prompt and did
+	 * not.
+	 */
+	trackingMarkdownUsageDescription?: string;
+	/**
+	 * Per-locale values for {@link trackingMarkdownUsageDescription}.
+	 *
+	 * iOS localizes a prompt string through `InfoPlist.strings` inside each
+	 * `<locale>.lproj` bundle, because `Info.plist` holds one value per key, so
+	 * these go into the bundle rather than into the plist per locale. Each key is a
+	 * locale tag as Xcode spells it (`de`, `fr-CA`, `zh-Hans`), and each value is
+	 * Markdown in the same grammar as the base string.
+	 *
+	 * A bundle that already declares the key keeps the host's entry, and every
+	 * other entry in the same file is left alone. The base value stays optional:
+	 * a locale not named here gets the app's own localization of the key, and with
+	 * no base value that is {@link trackingUsageDescription}.
+	 */
+	trackingMarkdownUsageDescriptionLocalizations?: Readonly<
+		Record<string, string>
+	>;
+	/**
 	 * SKAdNetwork identifiers to register, written only when ATT is enabled.
 	 *
 	 * Each must look like `cstr6suwn9.skadnetwork`.
@@ -207,6 +262,17 @@ export interface ResolvedC15tParams {
 	/** App Tracking Transparency opt-in, resolved. */
 	readonly appTrackingTransparency: {
 		readonly enabled: boolean;
+		/**
+		 * Base `NSUserTrackingMarkdownUsageDescription`, or `null` to let Apple fall
+		 * back to {@link usageDescription}.
+		 */
+		readonly markdownUsageDescription: string | null;
+		/**
+		 * Per-locale Markdown prompt copy, in the order the host wrote it.
+		 *
+		 * Written into each `<locale>.lproj/InfoPlist.strings`, never into the plist.
+		 */
+		readonly markdownUsageDescriptionLocalizations: readonly C15tTrackingMarkdownLocalization[];
 		readonly usageDescription: string | null;
 		readonly skAdNetworkIdentifiers: readonly string[];
 	};
@@ -404,13 +470,148 @@ const normalizeVendors = function normalizeVendors(
 	return [...new Set(vendors)];
 };
 
+/**
+ * Trim a Markdown prompt value, refusing one that carries no copy.
+ *
+ * Blank is not a default here. Apple answers an empty
+ * `NSUserTrackingMarkdownUsageDescription` with the plain description, so a value
+ * that trims to nothing builds a binary whose author meant to change the expanded
+ * prompt and changed nothing.
+ */
+const normalizeMarkdownUsageDescription =
+	function normalizeMarkdownUsageDescription(
+		value: string | undefined,
+		label: string
+	): string {
+		const trimmed = typeof value === 'string' ? value.trim() : '';
+		if (trimmed === '') {
+			throw new C15tPluginError(
+				`${label} is blank. Apple shows ` +
+					`NSUserTrackingUsageDescription whenever the Markdown key carries ` +
+					`no copy, so an empty one ships a binary that looks like it has an ` +
+					`expanded prompt and does not. Write the Markdown prompt, or omit ` +
+					`${label} to ship the plain one alone.`
+			);
+		}
+		return trimmed;
+	};
+
+/**
+ * Validate the per-locale Markdown prompt map.
+ *
+ * A locale tag is not only a label: it names the `<locale>.lproj` bundle the
+ * string is written into, so a tag with a path separator in it would put a file
+ * somewhere no build ever reads. That check is here for the same reason the
+ * SKAdNetwork shape check is, to catch a paste error at prebuild rather than ship
+ * a localization that silently does nothing.
+ *
+ * An empty value is refused for the reason the base string is, and de-duplication
+ * runs on the trimmed tag so two spellings of one locale cannot both reach a
+ * bundle.
+ */
+const normalizeMarkdownLocalizations = function normalizeMarkdownLocalizations(
+	localizations: Readonly<Record<string, string>> | undefined
+): C15tTrackingMarkdownLocalization[] {
+	if (localizations === undefined) {
+		return [];
+	}
+
+	const entries = Object.entries(localizations);
+	if (entries.length === 0) {
+		throw new C15tPluginError(
+			'trackingMarkdownUsageDescriptionLocalizations is empty. Omit it ' +
+				'entirely to ship the base prompt in the app default language.'
+		);
+	}
+
+	const invalidLocales = [
+		...new Set(
+			entries
+				.map(([locale]) => locale.trim())
+				.filter((locale) => !LOCALE_TAG_PATTERN.test(locale))
+		),
+	];
+	if (invalidLocales.length > 0) {
+		throw new C15tPluginError(
+			`trackingMarkdownUsageDescriptionLocalizations keys must be locale ` +
+				`tags Xcode writes a bundle for, such as "de", "fr-CA", or ` +
+				`"zh-Hans", because each one names the .lproj folder the string is ` +
+				`written into; invalid: ` +
+				`${invalidLocales.map((locale) => JSON.stringify(locale)).join(', ')}.`
+		);
+	}
+
+	const blankLocales = [
+		...new Set(
+			entries
+				.filter(([, value]) => typeof value !== 'string' || value.trim() === '')
+				.map(([locale]) => locale.trim())
+		),
+	];
+	if (blankLocales.length > 0) {
+		throw new C15tPluginError(
+			`trackingMarkdownUsageDescriptionLocalizations has no copy for ` +
+				`${blankLocales.join(', ')}. An empty value is not a localization, ` +
+				`and Apple answers one with the plain description, which is the ` +
+				`copy these locales were meant to replace. Fill them in, or drop ` +
+				`those keys.`
+		);
+	}
+
+	const byLocale = new Map<string, string>();
+	for (const [locale, value] of entries) {
+		const trimmed = typeof value === 'string' ? value.trim() : '';
+		if (trimmed !== '') {
+			byLocale.set(locale.trim(), trimmed);
+		}
+	}
+
+	return [...byLocale].map(([locale, value]) => ({ locale, value }));
+};
+
 const resolveAppTrackingTransparency = function resolveAppTrackingTransparency(
 	props: C15tPluginProps
 ): ResolvedC15tParams['appTrackingTransparency'] {
 	const enabled = props.enableAppTrackingTransparency ?? false;
+
+	// Asked before anything is validated, because "opt-in off, but here is
+	// Markdown copy" has no good write to fall back to: the string would be
+	// compiled into the binary and no sheet would ever draw it.
+	const markdownProps = [
+		props.trackingMarkdownUsageDescription === undefined
+			? null
+			: 'trackingMarkdownUsageDescription',
+		props.trackingMarkdownUsageDescriptionLocalizations === undefined
+			? null
+			: 'trackingMarkdownUsageDescriptionLocalizations',
+	].filter((name): name is string => name !== null);
+
+	if (!enabled && markdownProps.length > 0) {
+		throw new C15tPluginError(
+			`enableAppTrackingTransparency is off, which leaves ` +
+				`${markdownProps.join(' and ')} describing a prompt that cannot ` +
+				`appear: only the expanded European Union ATT prompt reads ` +
+				`NSUserTrackingMarkdownUsageDescription. Turn on App Tracking ` +
+				`Transparency, or remove the Markdown description.`
+		);
+	}
+
+	const markdownUsageDescription =
+		props.trackingMarkdownUsageDescription === undefined
+			? null
+			: normalizeMarkdownUsageDescription(
+					props.trackingMarkdownUsageDescription,
+					'trackingMarkdownUsageDescription'
+				);
+	const markdownUsageDescriptionLocalizations = normalizeMarkdownLocalizations(
+		props.trackingMarkdownUsageDescriptionLocalizations
+	);
+
 	if (!enabled) {
 		return {
 			enabled: false,
+			markdownUsageDescription: null,
+			markdownUsageDescriptionLocalizations: [],
 			skAdNetworkIdentifiers: [],
 			usageDescription: null,
 		};
@@ -438,6 +639,8 @@ const resolveAppTrackingTransparency = function resolveAppTrackingTransparency(
 
 	return {
 		enabled: true,
+		markdownUsageDescription,
+		markdownUsageDescriptionLocalizations,
 		skAdNetworkIdentifiers: [
 			...new Set(identifiers.map((identifier) => identifier.trim())),
 		],

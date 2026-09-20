@@ -134,7 +134,8 @@ returns what the native side reported, including `nativeSdkVersion` and
 
 `C15tPluginProps` accepts `backendURL`, `initURL`, `domain`, `mode`,
 `consentCategories`, `enableAppTrackingTransparency`,
-`trackingUsageDescription`, `skAdNetworkIdentifiers`,
+`trackingUsageDescription`, `trackingMarkdownUsageDescription`,
+`trackingMarkdownUsageDescriptionLocalizations`, `skAdNetworkIdentifiers`,
 `privacyTrackingDomains`, `forceGPC`, `autoBootstrap`, `skipNativeBuildCheck`
 and `vendors`.
 
@@ -173,6 +174,37 @@ survives. Consent to marketing categories is not Apple tracking authorization, s
 consent setting turns these on, and turning them on does not record consent.
 `privacyTrackingDomains` is accepted only with ATT enabled, and must list the backend
 host when ATT is on.
+
+Those are the declaration keys. Two more parameters cover the prompt copy itself.
+`trackingUsageDescription` writes `NSUserTrackingUsageDescription`, the plain prompt.
+`trackingMarkdownUsageDescription` writes
+`NSUserTrackingMarkdownUsageDescription`, the richer copy Apple renders on its expanded
+prompt:
+bold, italics, bullet lists, and paragraph breaks, but no underline. It needs the opt-in,
+because nothing else reads that key, and it never replaces the plain one. The plugin keeps
+writing `NSUserTrackingUsageDescription` whenever `enableAppTrackingTransparency` is on,
+because Apple falls back to it on every system that predates the expanded request and
+outside the regions Apple gates that request to. A blank Markdown value fails the prebuild
+rather than writing a key Apple would answer with the plain description.
+
+`trackingMarkdownUsageDescriptionLocalizations` adds per-locale copies. `Info.plist` holds
+one value per key, so these do not go there: each one lands in
+`<locale>.lproj/InfoPlist.strings`, one bundle per locale, keyed the way Xcode spells a
+locale tag, such as `de`, `fr-CA`, or `zh-Hans`. A base value stays optional. A locale with
+no entry here gets the app's own localization of the key, and with no base value that is
+`trackingUsageDescription`. The merge follows the rule the plist writer follows: a bundle
+that already declares `NSUserTrackingMarkdownUsageDescription` keeps the host's line, and
+every other entry in that file is left alone.
+
+A string table iOS never selects is a localization that ships nothing, so the plugin also
+names each locale as a region the app speaks: it goes into the Xcode project's
+`knownRegions` and into `CFBundleLocalizations` in `Info.plist`. Host-declared regions and
+host-declared localizations both survive, and a locale already listed is not written twice.
+You do not maintain a second copy of the locale list.
+
+All of that copy is compiled into the app binary, and no c15t surface reads any of it back.
+What c15t does control is the preference center, covered by
+[what c15t does not control](/docs/frameworks/react-native/native-behaviour#what-c15t-does-not-control).
 
 `skipNativeBuildCheck` waives the Expo Go check for a build harness that drives
 `expo start` in a container without ever opening Expo Go.

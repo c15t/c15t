@@ -65,11 +65,65 @@ const backendURL =
 const isOff = (value: string | undefined): boolean =>
 	['0', 'false', 'no', 'off'].includes((value ?? '').toLowerCase());
 
+/**
+ * The prompt Apple draws, compiled into the binary at prebuild.
+ *
+ * `trackingUsageDescription` is the plain alert and stays required. Apple shows it on
+ * every older system and to every device outside the countries where it enabled the
+ * expanded sheet, so the Markdown key sits beside it rather than replacing it. The
+ * Markdown copy is what iOS and iPadOS 27.2 draws in its place for a device signed in
+ * inside one of those countries, and Apple renders it as Markdown: bold, italics,
+ * bullet lists, and paragraph breaks. No underline.
+ *
+ * Per-locale Markdown goes into each `<locale>.lproj/InfoPlist.strings` at prebuild,
+ * keyed the way Xcode spells the tag, because `Info.plist` holds one value per key.
+ * Whether the device ever runs this app in one of those locales is the app's own
+ * localization list, not something this plugin decides.
+ */
+const trackingUsageDescription =
+	'We ask to link your activity across apps and websites for one reason: to stop showing you ads you have already dismissed.';
+
+const trackingMarkdownUsageDescription = `**We link your activity across apps and websites for one reason.**
+
+- Fewer repeats of the ads you have already dismissed
+- No name, no email, and nothing you type
+
+You can change this in Settings at any time.`;
+
+const trackingMarkdownUsageDescriptionLocalizations = {
+	de: `**Wir verknüpfen Ihre Aktivitäten über Apps und Websites aus einem Grund.**
+
+- Weniger Wiederholungen von Anzeigen, die Sie bereits verworfen haben
+- Kein Name, keine E-Mail und nichts, was Sie eingeben
+
+Sie können das jederzeit in den Einstellungen ändern.`,
+	'fr-CA': `**Nous relions votre activité dans plusieurs applications et sites pour une seule raison.**
+
+- Moins de répétitions des annonces que vous avez déjà ignorées
+- Ni nom, ni courriel, et rien de ce que vous tapez
+
+Vous pouvez changer cela dans Réglages à tout moment.`,
+	'zh-Hans': `**我们跨应用和网站关联您的活动，只为一个原因。**
+
+- 更少重复展示您已经忽略的广告
+- 不收集姓名、电子邮件或您输入的内容
+
+您可以随时在设置中更改。`,
+};
+
 const c15tPluginProps: C15tPluginProps = {
 	backendURL,
+	// The App Tracking Transparency opt-in. Consent to marketing cookies is not Apple
+	// tracking authorization, so this fixture asks for both: the banner decides what
+	// c15t may store, and the Apple sheet decides what the advertising identifier is
+	// worth. See the tracking card on the Consent tab for the request itself.
+	enableAppTrackingTransparency: true,
 	// Self-hosted and hosted speak the same wire; the mode only decides where the
 	// core starts looking.
 	mode: backendURL.includes('c15t.com') ? 'hosted' : 'selfHosted',
+	trackingMarkdownUsageDescription,
+	trackingMarkdownUsageDescriptionLocalizations,
+	trackingUsageDescription,
 };
 
 /**

@@ -5,13 +5,15 @@
  * It is a plain app screen on purpose. The prompt is the banner's job and the
  * per-category switches are the sheet's job, so this screen keeps the standing answer
  * and the entry point back to the sheet, which is what a person returns to an app
- * for. Every diagnostic read lives on the Diagnostics tab.
+ * for. The ads card is the one control here that asks the platform rather than the
+ * core. Every diagnostic read lives on the Diagnostics tab.
  */
 
-import type { AllConsentNames } from '@c15t/react-native';
+import type { AllConsentNames, TrackingRequest } from '@c15t/react-native';
 import { useConsent, useIsAllowed } from '@c15t/react-native';
 import { View } from 'react-native';
 
+import { TrackingCard } from '../components/tracking';
 import {
 	Badge,
 	Button,
@@ -84,9 +86,11 @@ const statusLabel = (snapshot: ReturnType<typeof useConsent>): string => {
 export const PrivacyScreen = ({
 	onOpenIabDrawer,
 	onOpenPreferences,
+	tracking,
 }: {
 	readonly onOpenIabDrawer: () => void;
 	readonly onOpenPreferences: () => void;
+	readonly tracking: TrackingRequest;
 }) => {
 	const snapshot = useConsent();
 	const { theme } = useHostStyles();
@@ -134,6 +138,8 @@ export const PrivacyScreen = ({
 					/>
 				))}
 			</Card>
+
+			<TrackingCard tracking={tracking} />
 
 			<Badge label={statusLabel(snapshot)} />
 		</Screen>

@@ -217,6 +217,22 @@ nothing has to opt in to being deny-by-default. See
 [usage](/docs/frameworks/react-native/usage) for the other hooks, the built-in
 surfaces, and the headless path.
 
+## If the app needs the advertising identifier
+
+Consent is one answer, and iOS asks a second one. App Tracking Transparency is off until
+you opt in: the Expo plugin writes nothing ATT-related without
+`enableAppTrackingTransparency: true` and a `trackingUsageDescription` you wrote yourself,
+and `requestTrackingAuthorization()` refuses on a binary that carries no prompt string.
+Neither answer moves the other.
+
+`useTrackingRequest` drives the whole Apple flow from one button, system prompt and
+preference center together. It needs no extra build step, and neither it nor Apple's newer
+expanded prompt changes the iOS floor that
+[platform support](/docs/frameworks/react-native/platform-support) lists. Read
+[usage](/docs/frameworks/react-native/usage#driving-the-whole-apple-request) for the
+example, and [native behaviour](/docs/frameworks/react-native/native-behaviour) for what
+Apple keeps to itself.
+
 ## Verify the setup
 
 1. Launch on a device or simulator, not Expo Go. A missing native module throws
