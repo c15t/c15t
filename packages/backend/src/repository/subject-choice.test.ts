@@ -103,6 +103,33 @@ describe('mergeSubjectVendorChoice', () => {
 		});
 	});
 
+	it('dates an aggregate of empty maps by the latest act', () => {
+		// A valid map may name no vendor at all. There is then no per-vendor
+		// time to take the oldest of, and the read must still produce a
+		// bounded timestamp or the subject route fails its output schema.
+		const empty = (confirmedAt: number) => ({
+			confirmedAt,
+			grants: {},
+			version: 1 as const,
+		});
+		const merged = mergeSubjectVendorChoice([
+			{
+				givenAt: new Date(1),
+				id: 'cns_1',
+				type: 'cookie_banner',
+				vendorChoice: { kind: 'grants', vendorChoice: empty(5) },
+			},
+			{
+				givenAt: new Date(2),
+				id: 'cns_2',
+				type: 'cookie_banner',
+				vendorChoice: { kind: 'grants', vendorChoice: empty(7) },
+			},
+		]);
+		assert.deepStrictEqual(merged, { confirmedAt: 7, grants: {}, version: 1 });
+		assert.isTrue(Number.isFinite(merged?.confirmedAt));
+	});
+
 	it('skips acts without a map but not an unreadable newer one', () => {
 		const older = {
 			givenAt: new Date(1),

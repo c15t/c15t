@@ -287,6 +287,9 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	let grants: Record<string, boolean> | null = null;
 	// When each surviving decision was confirmed, keyed like `grants`.
 	let decidedAt: Record<string, number> = {};
+	// The latest readable act's own time: what an aggregate without any
+	// per-vendor decision is dated by, since an empty map is still an act.
+	let latestAt = 0;
 	for (const row of ordered) {
 		const stored = row.vendorChoice;
 		if (stored.kind !== 'grants') {
@@ -298,6 +301,7 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 		}
 		const map = stored.vendorChoice;
 		grants ??= {};
+		latestAt = map.confirmedAt;
 		for (const [id, granted] of Object.entries(map.grants)) {
 			Object.defineProperty(grants, id, {
 				configurable: true,
@@ -316,6 +320,7 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	if (grants === null) {
 		return null;
 	}
-	const confirmedAt = Math.min(...Object.values(decidedAt));
+	const times = Object.values(decidedAt);
+	const confirmedAt = times.length === 0 ? latestAt : Math.min(...times);
 	return { confirmedAt, grants, version: 1 };
 };
