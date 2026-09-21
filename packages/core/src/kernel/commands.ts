@@ -20,6 +20,7 @@ import type {
 import type { AllConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
+import type { HasCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import type {
@@ -242,27 +243,43 @@ const clearedVendorChoice = function clearedVendorChoice(
 	return { confirmedAt: actionAt, denied: [], version: 1 };
 };
 
+/** A condition's outcome, `null` when it cannot be evaluated. */
+const conditionOutcome = function conditionOutcome(
+	condition: HasCondition<AllConsentNames>,
+	consents: ConsentState
+): boolean | null {
+	try {
+		return has(condition, consents);
+	} catch {
+		return null;
+	}
+};
+
 /**
  * The state after a bulk action narrowed to some categories. A denial is
  * lifted only for a vendor the action decides on its own: one of its
- * categories is selected, and the categories the action leaves alone cannot
- * satisfy its condition by themselves. A vendor under `{ or: [marketing,
- * measurement] }` keeps its denial when only measurement is rejected, since
- * the still-granted marketing branch would load it at once. Every other
- * denial stays. Stamped like a full bulk action once a governed vendor
- * exists.
+ * categories is selected, and the selected categories are what settles its
+ * condition. A vendor under `{ or: [marketing, measurement] }` keeps its
+ * denial when only measurement is rejected, since the still-granted
+ * marketing branch would load it at once; one under `{ not: marketing }` is
+ * decided by rejecting marketing, and its denial lifts. Decided means the
+ * outcome differs between the selected categories set to what the action
+ * makes them and set to the opposite, with everything else at its effective
+ * value. Every other denial stays. Stamped like a full bulk action once a
+ * governed vendor exists.
  */
 const scopedBulkVendorChoice = function scopedBulkVendorChoice(
 	snapshot: ConsentSnapshot,
 	categories: readonly AllConsentNames[],
+	granted: boolean,
 	actionAt: number
 ): VendorChoice | null {
 	const current = snapshot.vendorChoice;
-	// What the unselected categories alone can prove: the selected ones read
-	// as off, everything else keeps its effective value.
-	const outsideScope: ConsentState = { ...snapshot.effectivePermissions };
+	const afterAction: ConsentState = { ...snapshot.effectivePermissions };
+	const otherwise: ConsentState = { ...snapshot.effectivePermissions };
 	for (const category of categories) {
-		outsideScope[category] = false;
+		afterAction[category] = granted;
+		otherwise[category] = !granted;
 	}
 	const governed = new Set<string>();
 	for (const vendor of snapshot.vendors?.declared ?? []) {
@@ -270,13 +287,10 @@ const scopedBulkVendorChoice = function scopedBulkVendorChoice(
 		if (!names.some((name) => categories.includes(name))) {
 			continue;
 		}
-		let loadsAnyway = false;
-		try {
-			loadsAnyway = has(vendor.category, outsideScope);
-		} catch {
-			loadsAnyway = false;
-		}
-		if (!loadsAnyway) {
+		const decided =
+			conditionOutcome(vendor.category, afterAction) !==
+			conditionOutcome(vendor.category, otherwise);
+		if (decided) {
 			governed.add(vendor.id);
 		}
 	}
@@ -374,7 +388,12 @@ export const resolveVendorSelection = function resolveVendorSelection(
 		}
 		// A bulk action narrowed to the displayed categories only lifts the
 		// denials of vendors those categories govern.
-		return scopedBulkVendorChoice(snapshot, categories, actionAt);
+		return scopedBulkVendorChoice(
+			snapshot,
+			categories,
+			input === 'all',
+			actionAt
+		);
 	}
 	const grants = explicit ?? draft ?? undefined;
 	if (grants === undefined) {
@@ -388,9 +407,10 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	const denied = applyVendorGrants(snapshot, current?.denied, grants);
 	if (denied.length === 0) {
 		// An explicit grant is a decision even when it denies nothing: over
-		// `null` it leaves a timestamped empty record, so an older server
-		// denial arriving afterwards loses the merge to what the visitor chose.
-		return current === null
+		// `null` or an already-empty list it leaves a freshly timestamped
+		// empty record, so an older server denial arriving afterwards loses
+		// the merge to what the visitor chose. A staged draft only lifts.
+		return current === null || explicit !== undefined
 			? { confirmedAt: actionAt, denied: [], version: 1 }
 			: clearedVendorChoice(current, actionAt);
 	}

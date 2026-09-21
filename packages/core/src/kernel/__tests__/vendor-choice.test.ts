@@ -465,6 +465,64 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a narrowed bulk action decides a vendor whose condition negates a selected category', async () => {
+		const rule = matchedResolution(
+			optInRule({ categories: ['marketing', 'measurement'] })
+		);
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords(
+					{ marketing: true, measurement: true },
+					{ fingerprint: rule.fingerprints.choice }
+				),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['contextual'],
+					version: 1,
+				},
+			},
+			initialVendors: {
+				declared: [
+					...vendors.declared,
+					{
+						category: { not: 'marketing' },
+						id: 'contextual',
+						presentable: false,
+						source: 'script',
+					},
+				],
+				listVersion: null,
+			},
+		});
+		// Rejecting marketing is what makes this vendor eligible, so the bulk
+		// action decided it and its denial lifts.
+		await kernel.commands.save('none', { categories: ['marketing'] });
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
+	test('an explicit grant over an empty decision renews its time', async () => {
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: { confirmedAt: NOW - 500, denied: [], version: 1 },
+			},
+		});
+		// The list is unchanged, but the visitor just reaffirmed it: a server
+		// denial older than now must lose the merge to this act.
+		await kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
 	test('an explicit grant over no prior decision records a timestamped empty list', async () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })
