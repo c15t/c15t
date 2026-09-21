@@ -227,6 +227,36 @@ describe('createRuntimeKernel', () => {
 });
 
 describe('createConsentRuntime', () => {
+	test('stageVendorConsent stages a slug for the next save and resetVendorDraft drops it', async () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			persistence: false,
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+				},
+			],
+		});
+		runtime.start();
+		await runtime.kernel.commands.save({ marketing: true });
+		// Staging alone changes no gate.
+		runtime.stageVendorConsent('meta-pixel', false);
+		expect(runtime.kernel.getSnapshot().vendorChoice).toBeNull();
+		runtime.resetVendorDraft();
+		await runtime.kernel.commands.save();
+		expect(runtime.kernel.getSnapshot().vendorChoice).toBeNull();
+		// Staged and then saved, the denial records.
+		runtime.stageVendorConsent('meta-pixel', false);
+		await runtime.kernel.commands.save();
+		expect(runtime.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		runtime.dispose();
+	});
+
 	test('defers storage hydration until start and preserves valid legacy records', () => {
 		document.cookie = `c15t=c.necessary:1,c.marketing:1,i.t:${Date.now()}; path=/`;
 

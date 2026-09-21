@@ -577,7 +577,7 @@ export const createConsentRuntime = function createConsentRuntime(
 		setOverrides(overrides: KernelOverrides) {
 			kernel.set.overrides(overrides);
 		},
-		setVendorConsent(vendorId, granted) {
+		stageVendorConsent(vendorId, granted) {
 			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
 		start() {

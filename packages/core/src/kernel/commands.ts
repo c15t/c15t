@@ -186,6 +186,27 @@ const EMPTY_CHOICE: ExplicitChoice = Object.freeze({
 	version: 3,
 }) as ExplicitChoice;
 
+/**
+ * Separate the vendor grants an object input carries from its categories.
+ * Bulk and omitted inputs pass through; a `vendors` key that is not a map
+ * is kept so the grant validation reports it rather than silently dropped.
+ */
+const splitSaveInput = function splitSaveInput(
+	rawInput: SaveInput | undefined
+): {
+	input: 'all' | 'none' | Partial<ConsentState> | undefined;
+	vendors: Record<string, boolean> | undefined;
+} {
+	if (rawInput === undefined || typeof rawInput !== 'object') {
+		return { input: rawInput, vendors: undefined };
+	}
+	if (!Object.hasOwn(rawInput, 'vendors')) {
+		return { input: rawInput, vendors: undefined };
+	}
+	const { vendors, ...categories } = rawInput;
+	return { input: categories, vendors: vendors as Record<string, boolean> };
+};
+
 /** Own string keys mapped to booleans. Rejects anything else. */
 const isVendorGrantMap = function isVendorGrantMap(
 	value: unknown
@@ -1113,7 +1134,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 
 		// oxlint-disable-next-line complexity -- One action records categories and vendors together in a fixed order.
 		async save(
-			input?: SaveInput,
+			rawInput?: SaveInput,
 			context?: {
 				actionAt?: number;
 				iabAuthority?: KernelIABAuthority;
@@ -1121,6 +1142,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				vendors?: Record<string, boolean>;
 			}
 		): Promise<SaveResult> {
+			// An object input may carry the vendor grants next to the categories.
+			// They are split off here so the category validator only sees
+			// categories; the context form wins when both are given.
+			const { input, vendors: inlineVendors } = splitSaveInput(rawInput);
+			const explicitVendors = context?.vendors ?? inlineVendors;
 			const currentTime = runtime.now();
 			const actionAt =
 				context?.actionAt === undefined ? currentTime : context.actionAt;
@@ -1141,10 +1167,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			) {
 				return { ok: false };
 			}
-			if (
-				context?.vendors !== undefined &&
-				!isVendorGrantMap(context.vendors)
-			) {
+			if (explicitVendors !== undefined && !isVendorGrantMap(explicitVendors)) {
 				return {
 					issues: [{ code: 'invalid-boolean', path: 'vendors' }],
 					ok: false,
@@ -1159,7 +1182,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				before,
 				runtime.getVendorDraft(),
 				input,
-				context?.vendors,
+				explicitVendors,
 				actionAt,
 				context?.categories
 			);

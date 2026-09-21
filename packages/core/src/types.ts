@@ -669,12 +669,23 @@ export interface InitResult {
  * Input accepted by `commands.save()`.
  * - `'all'` confirms every category in the active scope with `true`.
  * - `'none'` confirms every category in the active scope with `false`.
- * - an object confirms exactly its own optional category keys.
+ * - an object confirms exactly its own optional category keys, and its
+ *   `vendors` map, when present, the per-vendor grants alongside them.
  * - omitted confirms the presented selection for the active scope: the
  *   staged draft value, else the explicit value, else the model's displayed
  *   default. Never the masked effective permissions.
  */
-export type SaveInput = 'all' | 'none' | Partial<ConsentState>;
+export type SaveInput =
+	| 'all'
+	| 'none'
+	| (Partial<ConsentState> & {
+			/**
+			 * Per-vendor grants confirmed by this action, keyed by vendor id.
+			 * Overrides the staged vendor draft. Ignored when the model is
+			 * `iab`. The same map can travel in the save context instead.
+			 */
+			vendors?: Record<string, boolean>;
+	  });
 
 /**
  * Result returned by `commands.save()`. `ok: false` with `issues` means the
@@ -799,7 +810,8 @@ export interface ConsentKernel {
 				iabAuthority?: KernelIABAuthority;
 				/**
 				 * Per-vendor grants confirmed by this action. Overrides the staged
-				 * vendor draft. Ignored when the model is `iab`.
+				 * vendor draft and the `vendors` key of an object input. Ignored
+				 * when the model is `iab`.
 				 */
 				vendors?: Record<string, boolean>;
 			}

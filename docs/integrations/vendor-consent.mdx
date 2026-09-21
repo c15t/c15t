@@ -6,11 +6,10 @@ group: integrations
 
 ## Declare vendors
 
-Add `vendors` to your runtime options. Each vendor sits inside a category
-condition and needs a name and a privacy policy URL so the preference surface
-can list it. The React provider accepts the same option once the preference
-center renders vendor rows; until then, declare vendors on the runtime or the
-backend manifest, and scripts, rules and iframes are gated either way:
+Add `vendors` to your runtime options, or to the React provider's options.
+Each vendor sits inside a category condition and needs a name and a privacy
+policy URL so the preference surface can list it. Scripts, rules and iframes
+are gated the same way whichever place declares it:
 
 ```ts
 import { hosted, type Vendor } from 'c15t';
@@ -107,19 +106,25 @@ what only it named, so a vendor no live module owns stops being toggleable.
 ## Record a vendor choice
 
 Vendor grants travel with the save. Stage them and confirm with the next save,
-or pass them explicitly:
+or pass them next to the categories:
 
 ```ts
 // Stage from a toggle handler; nothing changes until save() runs.
-runtime.setVendorConsent('meta-pixel', false);
+runtime.stageVendorConsent('meta-pixel', false);
 await runtime.kernel.commands.save();
 
 // Or confirm categories and vendors in one action.
-await runtime.kernel.commands.save(
-	{ marketing: true, measurement: true },
-	{ vendors: { 'meta-pixel': false } }
-);
+await runtime.kernel.commands.save({
+	marketing: true,
+	measurement: true,
+	vendors: { 'meta-pixel': false },
+});
 ```
+
+`stageVendorConsent` stages a vendor slug for the next save; it is not the
+IAB handle's `setVendorConsent`, which sets a TCF vendor by numeric id and
+takes effect at once. The grants can also travel in the save context as
+`{ vendors }`, which wins when both are given.
 
 Only the vendors the visitor turned off are stored. Accept all and reject all
 both clear that list, so vendors follow their category on a bulk action. A bulk

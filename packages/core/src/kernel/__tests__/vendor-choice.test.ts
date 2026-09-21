@@ -378,6 +378,39 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('an object input carries its vendor grants next to the categories', async () => {
+		const kernel = createKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+		});
+		const result = await kernel.commands.save({
+			marketing: true,
+			vendors: { 'meta-pixel': false },
+		});
+		expect(result.ok).toBe(true);
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: ['meta-pixel'],
+			version: 1,
+		});
+		// `vendors` is split off before the category validator sees it, so
+		// it is neither refused as an unknown key nor recorded as one.
+		const categories = kernel.getSnapshot().explicitChoice?.categories ?? {};
+		expect(categories.marketing?.value).toBe(true);
+		expect(Object.keys(categories)).not.toContain('vendors');
+		// The context form wins when both are given.
+		await kernel.commands.save(
+			{ vendors: { 'meta-pixel': false } },
+			{ vendors: { 'meta-pixel': true } }
+		);
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
+		// A malformed inline map is refused the same as a malformed context.
+		const bad = await kernel.commands.save({
+			vendors: { 'meta-pixel': 'no' as never },
+		});
+		expect(bad.ok).toBe(false);
+		kernel.dispose();
+	});
+
 	test('malformed vendor input rejects the save before anything changes', async () => {
 		const kernel = createKernel();
 		const started = vi.fn();
