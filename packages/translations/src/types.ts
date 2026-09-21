@@ -53,7 +53,10 @@ export interface ConsentManagerDialogTranslations {
 
 /** Copy for the vendor list inside the preference center. */
 export interface VendorListTranslations {
-	/** Heading above the vendor rows of one category. */
+	/**
+	 * Label of the collapsed vendor group inside one category. Use the
+	 * `{count}` placeholder for the number of vendors listed.
+	 */
 	title: string;
 	/** Link text to a vendor's privacy policy. */
 	privacyPolicy: string;

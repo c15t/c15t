@@ -78,6 +78,14 @@ const readProbe = () =>
 		document.querySelector('[data-testid="probe"]')?.textContent ?? '{}'
 	) as { ads: boolean; denied: string[]; marketing: boolean; meta: boolean };
 
+/** Expand a category, then the vendor group nested inside it. */
+const openVendors = async (category: string) => {
+	await page
+		.getByTestId(`consent-widget-accordion-trigger-${category}`)
+		.click();
+	await page.getByTestId(`consent-widget-vendor-trigger-${category}`).click();
+};
+
 const renderWidget = (
 	values: Partial<Record<'marketing' | 'measurement', boolean>> = {}
 ) =>
@@ -105,10 +113,20 @@ describe('consent widget vendor rows', () => {
 	test('lists a category’s vendors and denies exactly the one turned off', async () => {
 		renderWidget({ marketing: true, measurement: true });
 
-		// Vendors sit inside the category description, which the trigger expands.
+		// Vendors sit inside the category description behind a trigger of
+		// their own, collapsed until asked for, so a long list does not fill
+		// the panel. The label carries the count.
 		await page
 			.getByTestId('consent-widget-accordion-trigger-marketing')
 			.click();
+		const trigger = page.getByTestId('consent-widget-vendor-trigger-marketing');
+		await expect.element(trigger).toHaveTextContent('Vendors (4)');
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
+		await expect
+			.element(page.getByTestId('consent-widget-vendor-content-marketing'))
+			.toHaveAttribute('aria-hidden', 'true');
+		await trigger.click();
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'true');
 		const list = page.getByTestId('consent-widget-vendor-list-marketing');
 		await expect.element(list).toBeVisible();
 		await expect
@@ -160,9 +178,7 @@ describe('consent widget vendor rows', () => {
 
 	test('disables vendor switches while the category is off and re-enables them', async () => {
 		renderWidget({ marketing: false, measurement: true });
-		await page
-			.getByTestId('consent-widget-accordion-trigger-marketing')
-			.click();
+		await openVendors('marketing');
 		const meta = page.getByTestId(
 			'consent-widget-vendor-switch-marketing-meta-pixel'
 		);
@@ -182,9 +198,7 @@ describe('consent widget vendor rows', () => {
 
 	test('a shared vendor gets a distinct label id per category and a negated one is not listed', async () => {
 		renderWidget({ marketing: true, measurement: true });
-		await page
-			.getByTestId('consent-widget-accordion-trigger-marketing')
-			.click();
+		await openVendors('marketing');
 		const ids = [...document.querySelectorAll('[id$="-shared-vendor"]')].map(
 			(element) => element.id
 		);
@@ -211,9 +225,7 @@ describe('consent widget vendor rows', () => {
 
 	test('a disabled vendor is listed without a switch', async () => {
 		renderWidget({ marketing: true, measurement: true });
-		await page
-			.getByTestId('consent-widget-accordion-trigger-marketing')
-			.click();
+		await openVendors('marketing');
 		await expect
 			.element(
 				page.getByTestId('consent-widget-vendor-item-marketing-fixed-vendor')
@@ -228,9 +240,7 @@ describe('consent widget vendor rows', () => {
 
 	test('accept all discards a staged vendor denial instead of recording it', async () => {
 		renderWidget({ marketing: true, measurement: true });
-		await page
-			.getByTestId('consent-widget-accordion-trigger-marketing')
-			.click();
+		await openVendors('marketing');
 		await page
 			.getByTestId('consent-widget-vendor-switch-marketing-meta-pixel')
 			.click();
@@ -247,9 +257,7 @@ describe('consent widget vendor rows', () => {
 
 	test('accept all clears a recorded denial', async () => {
 		renderWidget({ marketing: true, measurement: true });
-		await page
-			.getByTestId('consent-widget-accordion-trigger-marketing')
-			.click();
+		await openVendors('marketing');
 		await page
 			.getByTestId('consent-widget-vendor-switch-marketing-meta-pixel')
 			.click();

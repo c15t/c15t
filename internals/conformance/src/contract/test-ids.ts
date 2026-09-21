@@ -132,6 +132,8 @@ export const TEST_ID_PATTERNS = [
 	// Vendor rows nested under a category (React only until Vue and Svelte
 	// render vendors). Vendor ids are lowercase slugs that may contain dots.
 	/^consent-widget-vendor-list-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-vendor-trigger-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-vendor-content-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-vendor-hint-[a-z][a-z0-9-]*$/u,
 	// Item and switch ids are `<category>-<vendor id>`, since one vendor can
 	// sit under several categories.

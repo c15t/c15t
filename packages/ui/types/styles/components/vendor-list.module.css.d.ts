@@ -1,4 +1,7 @@
 declare const styles: {
+  readonly "arrow": string;
+  readonly "content": string;
+  readonly "contentInner": string;
   readonly "control": string;
   readonly "description": string;
   readonly "header": string;
@@ -8,6 +11,7 @@ declare const styles: {
   readonly "name": string;
   readonly "root": string;
   readonly "title": string;
+  readonly "trigger": string;
 };
 export = styles;
 

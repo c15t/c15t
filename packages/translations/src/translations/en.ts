@@ -19,7 +19,7 @@ export const translations: CompleteTranslations = {
 			disabledByCategory: 'Turn on this category to choose vendors.',
 			privacyPolicy: 'Privacy policy',
 			switchLabel: 'Allow {vendor}',
-			title: 'Vendors',
+			title: 'Vendors ({count})',
 		},
 	},
 	consentTypes: {

@@ -1,16 +1,16 @@
-/* Vendor rows nested inside a category's accordion content. Resolve
-   defaults at use sites so imports cannot override one another. */
+/* Vendor rows nested inside a category's accordion content, behind a
+   collapsed trigger of their own. Resolve defaults at use sites so imports
+   cannot override one another. */
 
 @layer components {
-	/* A fieldset, so the legend names the group. Browser defaults are reset
-	   before the list's own border and spacing apply. */
+	/* The collapsible root: a grid the trigger and content stack in, set
+	   off from the category description by a rule above. */
 	.root:not(:global(.headless)) {
 		display: grid;
-		gap: var(--vendor-list-gap, var(--c15t-space-xs));
+		grid-template-columns: minmax(0, 1fr);
 		min-inline-size: 0;
 		margin: var(--vendor-list-margin-top, var(--c15t-space-sm)) 0 0;
-		padding: var(--vendor-list-padding-top, var(--c15t-space-sm)) 0 0;
-		border: 0;
+		padding: var(--vendor-list-padding-top, var(--c15t-space-xs)) 0 0;
 		border-top: 1px solid var(--vendor-list-border-color, var(--c15t-border));
 	}
 
@@ -18,15 +18,80 @@
 		border-top-color: var(--vendor-list-border-color-dark, var(--c15t-border));
 	}
 
+	.trigger:not(:global(.headless)) {
+		appearance: none;
+		display: flex;
+		align-items: center;
+		gap: var(--vendor-list-trigger-gap, var(--c15t-space-xs));
+		width: 100%;
+		min-width: 0;
+		margin: 0;
+		padding: var(--vendor-list-trigger-padding, var(--c15t-space-xs)) 0;
+		border: 0;
+		border-radius: var(--c15t-radius-sm);
+		background: none;
+		color: var(--vendor-list-title-color, var(--c15t-text));
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.trigger:not(:global(.headless)):focus-visible {
+		outline: 2px solid var(--vendor-list-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline-offset: 2px;
+	}
+
+	.arrow:not(:global(.headless)) {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		width: var(--vendor-list-icon-size, 1rem);
+		height: var(--vendor-list-icon-size, 1rem);
+		color: var(--vendor-list-arrow-color, var(--c15t-text-muted));
+	}
+
+	.arrow:not(:global(.headless)) svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
 	.title:not(:global(.headless)) {
 		margin: 0;
 		padding: 0;
-		font-size: var(--vendor-list-title-size, var(--c15t-font-size-xs));
+		font-size: var(--vendor-list-title-size, var(--c15t-font-size-sm));
 		font-weight: var(--c15t-font-weight-medium);
 		line-height: var(--c15t-line-height-tight);
-		letter-spacing: 0.02em;
-		text-transform: uppercase;
-		color: var(--vendor-list-title-color, var(--c15t-text-muted));
+		color: inherit;
+	}
+
+	/* Same collapse as the category content: a grid row that goes from
+	   zero to its content, clipped while it moves. */
+	.content:not(:global(.headless)) {
+		display: grid;
+		grid-template-rows: 0fr;
+		overflow: hidden;
+		transition: grid-template-rows
+			var(--vendor-list-duration, var(--c15t-duration-normal))
+			var(--vendor-list-ease, var(--c15t-easing));
+	}
+
+	.content:not(:global(.headless))[data-state='open'] {
+		grid-template-rows: 1fr;
+	}
+
+	.content:not(:global(.headless))[data-state='closed'] {
+		pointer-events: none;
+	}
+
+	.contentInner:not(:global(.headless)) {
+		display: grid;
+		gap: var(--vendor-list-gap, var(--c15t-space-xs));
+		padding-inline-start: calc(
+			var(--vendor-list-icon-size, 1rem) +
+				var(--vendor-list-trigger-gap, var(--c15t-space-xs))
+		);
 	}
 
 	.hint:not(:global(.headless)) {
@@ -97,5 +162,11 @@
 	.control:not(:global(.headless)) {
 		align-self: center;
 		flex-shrink: 0;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.content:not(:global(.headless)) {
+			transition: none;
+		}
 	}
 }

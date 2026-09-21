@@ -41,6 +41,13 @@
 	--consent-dialog-card-radius: var(--c15t-radius-lg);
 	--consent-dialog-max-width: 28rem;
 	--consent-dialog-height: 100%;
+	/* The card never outgrows the viewport: content past this scrolls
+	   inside the card while the header and footer stay put. A viewport unit
+	   rather than a percentage, since the card's flex parent is auto-height
+	   and a percentage max-height against it computes to none. */
+	--consent-dialog-max-height: calc(
+		100dvh - 2 * var(--consent-dialog-card-padding-mobile)
+	);
 	--consent-dialog-z-index: 999999;
 	--consent-dialog-overlay-z-index: 999998;
 
@@ -369,7 +376,7 @@
 		position: relative;
 		box-sizing: border-box;
 		width: min(100%, var(--consent-dialog-max-width));
-		max-height: 100%;
+		max-height: var(--consent-dialog-max-height);
 		margin: 0 auto;
 		border-radius: var(--consent-dialog-card-radius);
 		border: var(--consent-dialog-border-width)
@@ -439,7 +446,39 @@
 		gap: var(--consent-dialog-content-gap);
 		flex: 1 1 auto;
 		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* The widget fills the content area as a column: its category list is
+	   the part that scrolls, and the action row below it stays in view
+	   however long the list grows. Widget internals are addressed by the
+	   test ids they already carry, since the widget module cannot know it
+	   sits in a dialog. */
+	.content:not(:global(.headless))
+		> [data-testid='consent-widget-root']:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+
+	.content:not(:global(.headless))
+		> [data-testid='consent-widget-root']:not(:global(.headless))
+		> [data-testid='consent-widget-accordion'] {
+		flex: 1 1 auto;
+		min-height: 0;
 		overflow-y: auto;
+		/* Room for the focus ring on the first and last items, which the
+		   scroll box would otherwise clip. */
+		padding: 2px;
+		margin: -2px;
+	}
+
+	.content:not(:global(.headless))
+		> [data-testid='consent-widget-root']:not(:global(.headless))
+		> [data-testid='consent-widget-footer'] {
+		flex-shrink: 0;
 	}
 
 	.footer:not(:global(.headless)) {
