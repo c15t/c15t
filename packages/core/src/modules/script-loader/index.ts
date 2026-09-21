@@ -180,8 +180,30 @@ export const createScriptLoader = function createScriptLoader(
 		);
 	};
 
+	// Another source can sweep this loader's slugs out of the declared set: a
+	// provider replacing its own script entries, or a backend init dropping a
+	// vendor a script here still names. A mounted loader's scripts own their
+	// slugs for as long as they are configured, so put them back before the
+	// gate runs; a stored denial for one of them would otherwise be ignored
+	// for the pass. Idempotent: nothing missing means no commit.
+	const declareMissingVendors = (snapshot: ConsentSnapshot): void => {
+		const declared = new Set(
+			snapshot.vendors?.declared.map((vendor) => vendor.id)
+		);
+		const missing = normalized.flatMap(({ script, vendor }) =>
+			vendor !== null && !declared.has(vendor) ? [script] : []
+		);
+		if (missing.length > 0) {
+			declareOwnedVendors(kernel, missing);
+		}
+	};
+
 	const reconcile = function reconcile(force = false): void {
-		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+		let snapshot: ConsentSnapshot = kernel.getSnapshot();
+		if (snapshot.vendors !== lastVendors) {
+			declareMissingVendors(snapshot);
+			snapshot = kernel.getSnapshot();
+		}
 		const effective = getEffectiveGateState(snapshot);
 		const permissionsChanged = effective.effectivePermissions !== lastConsents;
 

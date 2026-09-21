@@ -73,7 +73,8 @@ export const createIframeBlocker = function createIframeBlocker(
 		// Declare the slugs the frames name, the way scripts and rules do, so
 		// a stored denial keeps gating them before a backend declaration of
 		// the same slug has arrived. A frame with only `data-vendor` has no
-		// category to declare under and waits for that declaration instead.
+		// category to declare under; `reconcileIframe` holds it against the
+		// stored denial directly instead.
 		declareOwnedVendors(
 			kernel,
 			list.flatMap((iframe) => {

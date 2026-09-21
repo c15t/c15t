@@ -144,6 +144,43 @@ describe('script-owned vendor declarations', () => {
 		kernel.dispose();
 	});
 
+	test('a loader puts its slug back when another source sweeps it away', () => {
+		// A provider replacing its own script entries, or a backend init
+		// dropping the vendor, removes every script-sourced entry. The loader
+		// still names the slug, so the stored denial must keep gating it.
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 1,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+			now: NOW,
+		});
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [script({ callbackOnly: true })],
+		});
+		expect(
+			kernel.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
+		).toEqual(['meta-pixel']);
+		kernel.set.vendors({ declared: [] }, { replaceSource: 'script' });
+		expect(
+			kernel
+				.getSnapshot()
+				.vendors?.declared.map((vendor) => [vendor.id, vendor.source])
+		).toEqual([['meta-pixel', 'script']]);
+		const [entry] = normalizeScripts([script()]);
+		expect(entry).toBeDefined();
+		expect(
+			entry && hasScriptConsent(entry, buildReconcilePass(kernel.getSnapshot()))
+		).toBe(false);
+		loader.dispose();
+		kernel.dispose();
+	});
+
 	test('a script with a nested condition does not get its config frozen', () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),

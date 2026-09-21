@@ -91,7 +91,14 @@ The same rule applies to the three gates:
 
 An iframe with `data-vendor` and no `data-category` is gated on the vendor
 alone. An unknown `data-vendor` value is granted rather than thrown: a vendor
-the visitor never saw cannot have been turned off.
+the visitor never saw cannot have been turned off. Such a frame has no
+category to follow, so a denial the visitor recorded earlier holds even while
+nothing declares the slug, for example before the backend's vendor list has
+arrived on a cold start.
+
+A script or rule keeps its slug declared for as long as it is configured. If a
+backend list or a provider update drops the entry, the loader or blocker puts
+it back, so a stored denial keeps gating it.
 
 ## Record a vendor choice
 

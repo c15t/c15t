@@ -25,8 +25,18 @@ import { deniedVendorIds, getEffectiveGateState, has } from '../has';
  */
 export interface ReconcilePass {
 	consents: ConsentState;
-	/** Vendors the subject turned off, or `null` when none is denied. */
+	/**
+	 * Vendors the subject turned off that the gate honors: declared and not
+	 * `disabled`. `null` when none is denied.
+	 */
 	vendorDenied: ReadonlySet<string> | null;
+	/**
+	 * Every stored denial, declared or not. A frame with only `data-vendor`
+	 * has no category to fall back to, so a denial recorded for its slug
+	 * holds before the backend declares the vendor and after that
+	 * declaration is gone. `null` when nothing is stored.
+	 */
+	storedDenied: ReadonlySet<string> | null;
 	/** Vendor denials are inert in IAB mode. */
 	isIabMode: boolean;
 }
@@ -37,9 +47,11 @@ export interface ReconcilePass {
 export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
+	const stored = snapshot.vendorChoice?.denied;
 	return {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		isIabMode: snapshot.model === 'iab',
+		storedDenied: stored && stored.length > 0 ? new Set(stored) : null,
 		vendorDenied: deniedVendorIds(snapshot),
 	};
 };
@@ -111,7 +123,10 @@ const restoreSource = function restoreSource(iframe: HTMLIFrameElement): void {
  * Apply the consent gate to a single iframe. Mutates the iframe's
  * `src` / `data-src` attributes. No-op for iframes without a
  * `data-category` or `data-vendor` attribute. An iframe with only
- * `data-vendor` is gated on the vendor alone.
+ * `data-vendor` is gated on the vendor alone, against every stored denial:
+ * with no category to follow, an undeclared slug the visitor turned off
+ * stays off rather than loading in the window before the backend declares
+ * it.
  */
 export const reconcileIframe = function reconcileIframe(
 	iframe: HTMLIFrameElement,
@@ -130,11 +145,12 @@ export const reconcileIframe = function reconcileIframe(
 	}
 
 	const categoryAllowed = category ? has(category, pass.consents) : true;
+	const denied = category ? pass.vendorDenied : pass.storedDenied;
 	const vendorAllowed =
 		vendor === undefined ||
 		pass.isIabMode ||
-		pass.vendorDenied === null ||
-		!pass.vendorDenied.has(vendor);
+		denied === null ||
+		!denied.has(vendor);
 	const allowed = categoryAllowed && vendorAllowed;
 	const dataSrc = iframe.getAttribute('data-src');
 

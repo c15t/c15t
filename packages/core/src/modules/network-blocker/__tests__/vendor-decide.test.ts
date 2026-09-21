@@ -73,4 +73,25 @@ describe('rule-owned vendor declarations', () => {
 		blocker.dispose();
 		kernel.dispose();
 	});
+
+	test('a blocker puts its slug back when another source sweeps it away', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+			now: NOW,
+		});
+		const blocker = createNetworkBlocker({
+			kernel,
+			rules: [
+				{ category: 'marketing', domain: 'facebook.com', vendor: 'meta-pixel' },
+			],
+		});
+		kernel.set.vendors({ declared: [] }, { replaceSource: 'script' });
+		expect(
+			kernel
+				.getSnapshot()
+				.vendors?.declared.map((vendor) => [vendor.id, vendor.source])
+		).toEqual([['meta-pixel', 'script']]);
+		blocker.dispose();
+		kernel.dispose();
+	});
 });

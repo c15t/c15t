@@ -68,8 +68,29 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	let enabled = options.enabled !== false;
 	let snapshot: ConsentSnapshot = kernel.getSnapshot();
 
+	// Another source can sweep these rules' slugs out of the declared set: a
+	// provider replacing its own rule entries, or a backend init dropping a
+	// vendor a rule here still names. Mounted rules own their slugs for as
+	// long as they are configured, so put them back as soon as the set
+	// changes; a stored denial for one of them would otherwise be ignored.
+	// Idempotent: nothing missing means no commit.
+	let lastVendors: unknown = snapshot.vendors;
+	const declareMissingVendors = (next: ConsentSnapshot): void => {
+		const declared = new Set(next.vendors?.declared.map((vendor) => vendor.id));
+		const missing = rules.filter(
+			(rule) => rule.vendor && !declared.has(rule.vendor)
+		);
+		if (missing.length > 0) {
+			declareOwnedVendors(kernel, missing);
+		}
+	};
+
 	const unsubscribe = kernel.subscribe((next) => {
 		snapshot = next;
+		if (next.vendors !== lastVendors) {
+			lastVendors = next.vendors;
+			declareMissingVendors(next);
+		}
 	});
 
 	// In non-browser (Node/RSC) environments there is nothing to patch;
