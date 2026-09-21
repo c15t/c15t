@@ -348,7 +348,7 @@ const affectedRows = (result: unknown): number =>
  * row back and comparing would not do: a loser that replays the same map
  * reads the winner's identical copy and would audit the decision twice.
  * mysql2 connects with `CLIENT_FOUND_ROWS`, so the count is matched rows,
- * and the `is null` guard leaves a loser matching none.
+ * and the absence guard leaves a loser matching none.
  *
  * @returns Whether this call wrote the map.
  */
@@ -356,13 +356,25 @@ const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
 	function* backfillVendorChoice(id: string, vendorChoice: VendorChoiceWire) {
 		const sql = yield* SqlClient.SqlClient;
 		const encoded = JSON.stringify(vendorChoice);
+		// The same absence `storedVendorChoice` reads: SQL NULL, or a stored
+		// JSON `null`, which a text column hands back as the string 'null'
+		// and a JSON column as the literal. Anything else already decided.
+		// `char` would truncate to one character on Postgres; every engine
+		// spells the whole value with `text`, MySQL through its char alias.
+		const absent = sql`(
+			${sql('vendorChoice')} is null
+			or cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
+				mysql: () => sql.literal('char'),
+				orElse: () => sql.literal('text'),
+			})}) = 'null'
+		)`;
 		return yield* sql.onDialectOrElse({
 			mysql: () =>
 				Effect.map(
 					sql`
 						update ${sql('consent')}
 						set ${sql('vendorChoice')} = ${encoded}
-						where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
+						where ${sql('id')} = ${id} and ${absent}
 					`.raw,
 					(result) => affectedRows(result) > 0
 				),
@@ -371,7 +383,7 @@ const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
 					sql<{ id: string }>`
 						update ${sql('consent')}
 						set ${sql('vendorChoice')} = ${encoded}
-						where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
+						where ${sql('id')} = ${id} and ${absent}
 						returning ${sql('id')}
 					`,
 					(updated) => updated.length > 0
