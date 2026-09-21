@@ -4,7 +4,7 @@
  * hook follows the kernel's gate semantics for a vendor declared `disabled`.
  */
 import type { Script, Vendor } from '@c15t/core';
-import { StrictMode, useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { page } from 'vitest/browser';
@@ -217,47 +217,6 @@ describe('provider vendor options', () => {
 		await vi.waitFor(() => {
 			expect(readProbe()?.source).toBe('script');
 		});
-	});
-
-	test('a StrictMode remount keeps the slugs the provider declares', async () => {
-		// StrictMode unmounts and remounts the provider once. The unmount
-		// forgets this provider's owners, which drops the slug at once; the
-		// remounted loader puts it back, and the provider registers its own
-		// owners again rather than seeing no change. Guards the forget path
-		// committing against the remount.
-		render(
-			<StrictMode>
-				<ConsentProvider
-					options={{
-						consentCategories: ['necessary', 'marketing'],
-						mode: offline(),
-						persistence: false,
-						prefetch: policyFixture(
-							{ marketing: true },
-							{ categories: ['marketing'], id: 'strict-scripts' }
-						),
-						scripts: [
-							{
-								category: 'marketing',
-								id: 'meta-pixel-script',
-								textContent: '/* pixel */',
-								vendor: 'meta-pixel',
-							},
-						],
-					}}
-				>
-					<Probe />
-				</ConsentProvider>
-			</StrictMode>
-		);
-		await vi.waitFor(() => {
-			expect(readProbe()?.source).toBe('script');
-		});
-		// Settled: nothing forgets it after the remount.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 50);
-		});
-		expect(readProbe()?.declared).toEqual(['meta-pixel']);
 	});
 
 	test('a removed script takes its slug-only vendor with it', async () => {

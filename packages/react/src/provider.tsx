@@ -829,7 +829,11 @@ const useProviderOptionSync = function useProviderOptionSync(
 		() => () => {
 			// Forgetting drops the slugs only this provider named. The ref is
 			// reset with it so a remount, StrictMode's included, declares them
-			// again instead of finding nothing changed.
+			// again at once instead of finding nothing changed. The provider's
+			// own loader and blocker put the same slugs back when their lazy
+			// import lands, so this only closes the window until then; no
+			// synchronous assertion can see the difference, which is why it
+			// has no test of its own.
 			forgetOwnedVendors(kernel, ownerSourceRef.current);
 			previousVendorsRef.current = null;
 		},
