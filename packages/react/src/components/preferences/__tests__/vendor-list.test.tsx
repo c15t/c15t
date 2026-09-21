@@ -78,12 +78,11 @@ const readProbe = () =>
 		document.querySelector('[data-testid="probe"]')?.textContent ?? '{}'
 	) as { ads: boolean; denied: string[]; marketing: boolean; meta: boolean };
 
-/** Expand a category, then the vendor group nested inside it. */
+/** Expand a category so its vendor cards render. */
 const openVendors = async (category: string) => {
 	await page
 		.getByTestId(`consent-widget-accordion-trigger-${category}`)
 		.click();
-	await page.getByTestId(`consent-widget-vendor-trigger-${category}`).click();
 };
 
 const renderWidget = (
@@ -113,32 +112,28 @@ describe('consent widget vendor rows', () => {
 	test('lists a category’s vendors and denies exactly the one turned off', async () => {
 		renderWidget({ marketing: true, measurement: true });
 
-		// Vendors sit inside the category description behind a trigger of
-		// their own, collapsed until asked for, so a long list does not fill
-		// the panel. The label carries the count.
-		await page
-			.getByTestId('consent-widget-accordion-trigger-marketing')
-			.click();
-		const trigger = page.getByTestId('consent-widget-vendor-trigger-marketing');
-		await expect.element(trigger).toHaveTextContent('Vendors (4)');
-		await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
-		await expect
-			.element(page.getByTestId('consent-widget-vendor-content-marketing'))
-			.toHaveAttribute('aria-hidden', 'true');
-		await trigger.click();
-		await expect.element(trigger).toHaveAttribute('aria-expanded', 'true');
+		// Vendors sit inside the category description, one collapsed card
+		// each, so a long list stays one line per vendor. The description and
+		// privacy link are behind the card's own trigger.
+		await openVendors('marketing');
 		const list = page.getByTestId('consent-widget-vendor-list-marketing');
 		await expect.element(list).toBeVisible();
+		await expect.element(list).toHaveAccessibleName('Vendors (4)');
+		const trigger = page.getByTestId(
+			'consent-widget-vendor-trigger-marketing-meta-pixel'
+		);
+		await expect.element(trigger).toHaveTextContent('Meta Pixel');
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
+		const content = page.getByTestId(
+			'consent-widget-vendor-content-marketing-meta-pixel'
+		);
+		await expect.element(content).toHaveAttribute('aria-hidden', 'true');
+		await trigger.click();
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'true');
 		await expect
-			.element(
-				page.getByTestId('consent-widget-vendor-item-marketing-meta-pixel')
-			)
-			.toHaveTextContent('Meta Pixel');
-		await expect
-			.element(
-				page.getByTestId('consent-widget-vendor-item-marketing-meta-pixel')
-			)
+			.element(content)
 			.toHaveTextContent('Ad conversion measurement.');
+		await expect.element(content).toHaveTextContent('Privacy policy');
 		// The measurement vendor lives under its own category, not this one.
 		const marketingList = document.querySelector(
 			'[data-testid="consent-widget-vendor-list-marketing"]'

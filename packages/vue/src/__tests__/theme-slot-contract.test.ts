@@ -29,7 +29,6 @@ const REACT_ONLY_SLOTS = [
 	'trigger.toolbarIcon',
 	'vendor-list.root',
 	'vendor-list.trigger',
-	'vendor-list.title',
 	'vendor-list.content',
 	'vendor-list.item',
 	'vendor-list.header',

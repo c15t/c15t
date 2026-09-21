@@ -61,9 +61,12 @@ group: reference
   ### Vendors
 
   When the provider declares `vendors`, each category's expanded description
-  ends with a "Vendors" group: one row per vendor whose category condition
-  names that category, with the vendor's name, description, a privacy policy
-  link and a switch. Vendor switches edit the same draft as the category
+  ends with one card per vendor whose category condition names that category,
+  styled like a category row: the vendor's name and a switch on the header,
+  and its description and privacy policy link behind the card's own expand
+  control. Cards start collapsed, so a long list stays one line per vendor,
+  and the category list scrolls inside the dialog rather than growing it.
+  Vendor switches edit the same draft as the category
   switches and record on Save. Saving with one vendor off denies that vendor
   only; the category stays granted and its other vendors keep loading. While
   the category is off in the draft the vendor switches are disabled, with the
@@ -106,8 +109,10 @@ group: reference
   Each row is a disclosure: a button that expands the category description
   and a switch beside it, so a visitor can read the description without
   changing the choice. Each switch has the category title as its accessible
-  name. Vendor rows form a `group` labelled "Vendors"; each vendor switch is
-  named "Allow" followed by the vendor name, and described by the vendor's name element. The policy-change alert uses `role="alert"`, and a restriction note is
+  name. A category's vendor cards sit in a `region` named "Vendors" with the
+  count; each card's expand button carries `aria-expanded`, each vendor
+  switch is named "Allow" followed by the vendor name, and is described by
+  the vendor's name element. The policy-change alert uses `role="alert"`, and a restriction note is
   an `output` element linked to its switch through `aria-describedby`. The
   root's `dir` attribute follows the active language.
 </section>
@@ -154,8 +159,8 @@ group: reference
   `manager.footer`, `manager.actionGroup`, `accordion.root`,
   `accordion.triggerRow`, `accordion.title`, `accordion.control`,
   `accordion-item.root`, `accordion-item.trigger`, `accordion-item.content`,
-  `vendor-list.root`, `vendor-list.trigger`, `vendor-list.title`,
-  `vendor-list.content`, `vendor-list.item`, `vendor-list.header`,
+  `vendor-list.root`, `vendor-list.trigger`, `vendor-list.content`,
+  `vendor-list.item`, `vendor-list.header`,
   `vendor-list.name`, `vendor-list.description`, `vendor-list.link`,
   `vendor-list.control` and `tag.manager`.
 </section>

@@ -10,7 +10,6 @@ declare const styles: {
   readonly "link": string;
   readonly "name": string;
   readonly "root": string;
-  readonly "title": string;
   readonly "trigger": string;
 };
 export = styles;

@@ -1,4 +1,4 @@
-import type { AllConsentNames } from '@c15t/core';
+import type { AllConsentNames, ResolvedVendor } from '@c15t/core';
 import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
 import { useId, useState } from 'react';
 
@@ -16,8 +16,6 @@ export interface ConsentWidgetVendorListProps extends Omit<
 > {
 	/** Category whose vendors to list. */
 	category: AllConsentNames;
-	/** Start with the vendor rows shown. Collapsed by default. */
-	defaultOpen?: boolean;
 }
 
 /** Plus or minus, the same glyphs the category rows use. */
@@ -44,26 +42,157 @@ const DEFAULT_COPY = {
 	title: 'Vendors ({count})',
 };
 
+type Copy = typeof DEFAULT_COPY;
+
+interface VendorRowProps {
+	category: AllConsentNames;
+	categoryOn: boolean;
+	checked: boolean;
+	copy: Copy;
+	labelId: string;
+	noStyle: boolean;
+	onCheckedChange: (next: boolean) => void;
+	styles: typeof vendorListStyles | undefined;
+	vendor: ResolvedVendor;
+}
+
 /**
- * Vendor rows nested inside one category's accordion content, behind a
- * collapsed trigger of their own so a long list does not fill the panel
- * until the visitor asks for it.
+ * One vendor as a card of its own, shaped like a category row: the name and
+ * switch on the header, the description and privacy policy link behind the
+ * expand control. Collapsed by default so a long list stays one line per
+ * vendor.
+ */
+const VendorRow = ({
+	category,
+	categoryOn,
+	checked,
+	copy,
+	labelId,
+	noStyle,
+	onCheckedChange,
+	styles,
+	vendor,
+}: VendorRowProps) => {
+	const [open, setOpen] = useState(false);
+	const name = vendor.name ?? vendor.id;
+	// A `disabled` vendor is presented without a toggle: the kernel ignores
+	// grants for it, so a switch would only mislead.
+	const toggleable = vendor.disabled !== true;
+	const hasDetails = Boolean(vendor.description || vendor.privacyPolicyUrl);
+
+	return (
+		<PreferenceItem.Root
+			className={styles?.item}
+			data-testid={`consent-widget-vendor-item-${category}-${vendor.id}`}
+			disabled={!hasDetails}
+			noStyle={noStyle}
+			onOpenChange={setOpen}
+			open={open}
+			slotKey="vendor-list.item"
+		>
+			<Box
+				noStyle={noStyle}
+				baseClassName={styles?.header}
+				slotKey="vendor-list.header"
+			>
+				<PreferenceItem.Trigger
+					className={styles?.trigger}
+					data-testid={`consent-widget-vendor-trigger-${category}-${vendor.id}`}
+					noStyle={noStyle}
+					slotKey="vendor-list.trigger"
+				>
+					<PreferenceItem.Leading
+						className={styles?.arrow}
+						noStyle={noStyle}
+					>
+						<ToggleIcon open={open} />
+					</PreferenceItem.Leading>
+					<Box
+						asChild
+						noStyle={noStyle}
+						baseClassName={styles?.name}
+						slotKey="vendor-list.name"
+					>
+						<span id={labelId}>{name}</span>
+					</Box>
+				</PreferenceItem.Trigger>
+				{toggleable ? (
+					<Box
+						noStyle={noStyle}
+						baseClassName={styles?.control}
+						slotKey="vendor-list.control"
+					>
+						<RadixSwitch.Root
+							aria-label={copy.switchLabel.replace('{vendor}', name)}
+							aria-describedby={labelId}
+							checked={checked}
+							data-testid={`consent-widget-vendor-switch-${category}-${vendor.id}`}
+							disabled={!categoryOn}
+							onCheckedChange={onCheckedChange}
+							size="small"
+						/>
+					</Box>
+				) : null}
+			</Box>
+			{hasDetails ? (
+				<PreferenceItem.Content
+					className={styles?.content}
+					data-testid={`consent-widget-vendor-content-${category}-${vendor.id}`}
+					innerClassName={styles?.contentInner}
+					noStyle={noStyle}
+					slotKey="vendor-list.content"
+				>
+					{vendor.description ? (
+						<Box
+							asChild
+							noStyle={noStyle}
+							baseClassName={styles?.description}
+							slotKey="vendor-list.description"
+						>
+							<p>{vendor.description}</p>
+						</Box>
+					) : null}
+					{vendor.privacyPolicyUrl ? (
+						<Box
+							asChild
+							noStyle={noStyle}
+							baseClassName={styles?.link}
+							slotKey="vendor-list.link"
+						>
+							<a
+								href={vendor.privacyPolicyUrl}
+								rel="noopener noreferrer"
+								target="_blank"
+							>
+								{copy.privacyPolicy}
+							</a>
+						</Box>
+					) : null}
+				</PreferenceItem.Content>
+			) : null}
+		</PreferenceItem.Root>
+	);
+};
+
+/**
+ * Vendor rows nested inside one category's accordion content, each a
+ * collapsed card of its own that opens for its description and privacy
+ * policy link. A long list stays one line per vendor.
  *
  * Renders nothing when the category has no presentable vendor or the model
- * is `iab`. Each row is a switch that stages a per-vendor grant on the same
- * draft the category switches use; nothing is recorded until Save. While the
+ * is `iab`. Each row's switch stages a per-vendor grant on the same draft
+ * the category switches use; nothing is recorded until Save. While the
  * parent category is off in the draft, the vendor switches are disabled: a
  * vendor toggle never grants a category on its own. A `disabled` vendor is
  * listed without a switch.
  *
  * @param props - The category whose vendors to list, plus `Box` attributes.
- * @returns The vendor group, or `null` when there is nothing to list.
+ * @returns The vendor list, or `null` when there is nothing to list.
  * @public
  */
 export const ConsentWidgetVendorList = ({
 	category,
 	className,
-	defaultOpen = false,
 	noStyle,
 	...props
 }: ConsentWidgetVendorListProps) => {
@@ -78,8 +207,7 @@ export const ConsentWidgetVendorList = ({
 	// Two surfaces can list the same vendor at once, an inline widget and an
 	// open dialog for instance, so the label ids are scoped to this instance.
 	const instanceId = useId();
-	const [open, setOpen] = useState(defaultOpen);
-	const finalNoStyle = noStyle ?? contextNoStyle;
+	const finalNoStyle = noStyle ?? contextNoStyle ?? false;
 	const vendors = getDisplayedVendors(category);
 	if (vendors.length === 0) {
 		return null;
@@ -90,43 +218,16 @@ export const ConsentWidgetVendorList = ({
 	const title = copy.title.replace('{count}', String(vendors.length));
 
 	return (
-		<PreferenceItem.Root
+		<Box
+			asChild
 			className={className}
 			data-testid={`consent-widget-vendor-list-${category}`}
 			noStyle={finalNoStyle}
-			onOpenChange={setOpen}
-			open={open}
+			baseClassName={styles?.root}
 			slotKey="vendor-list.root"
 			{...props}
 		>
-			<PreferenceItem.Trigger
-				className={styles?.trigger}
-				data-testid={`consent-widget-vendor-trigger-${category}`}
-				noStyle={finalNoStyle}
-				slotKey="vendor-list.trigger"
-			>
-				<PreferenceItem.Leading
-					className={styles?.arrow}
-					noStyle={finalNoStyle}
-				>
-					<ToggleIcon open={open} />
-				</PreferenceItem.Leading>
-				<Box
-					asChild
-					noStyle={finalNoStyle}
-					baseClassName={styles?.title}
-					slotKey="vendor-list.title"
-				>
-					<span>{title}</span>
-				</Box>
-			</PreferenceItem.Trigger>
-			<PreferenceItem.Content
-				className={styles?.content}
-				data-testid={`consent-widget-vendor-content-${category}`}
-				innerClassName={styles?.contentInner}
-				noStyle={finalNoStyle}
-				slotKey="vendor-list.content"
-			>
+			<section aria-label={title}>
 				{categoryOn ? null : (
 					<p
 						className={styles?.hint}
@@ -135,84 +236,21 @@ export const ConsentWidgetVendorList = ({
 						{copy.disabledByCategory}
 					</p>
 				)}
-				{vendors.map((vendor) => {
-					const name = vendor.name ?? vendor.id;
-					const labelId = `${instanceId}vendor-${category}-${vendor.id}`;
-					const checked = selectedVendors[vendor.id] ?? true;
-					// A `disabled` vendor is presented without a toggle: the kernel
-					// ignores grants for it, so a switch would only mislead.
-					const toggleable = vendor.disabled !== true;
-					return (
-						<Box
-							key={vendor.id}
-							noStyle={finalNoStyle}
-							baseClassName={styles?.item}
-							data-testid={`consent-widget-vendor-item-${category}-${vendor.id}`}
-							slotKey="vendor-list.item"
-						>
-							<Box
-								noStyle={finalNoStyle}
-								baseClassName={styles?.header}
-								slotKey="vendor-list.header"
-							>
-								<Box
-									asChild
-									noStyle={finalNoStyle}
-									baseClassName={styles?.name}
-									slotKey="vendor-list.name"
-								>
-									<p id={labelId}>{name}</p>
-								</Box>
-								{vendor.description ? (
-									<Box
-										asChild
-										noStyle={finalNoStyle}
-										baseClassName={styles?.description}
-										slotKey="vendor-list.description"
-									>
-										<p>{vendor.description}</p>
-									</Box>
-								) : null}
-								{vendor.privacyPolicyUrl ? (
-									<Box
-										asChild
-										noStyle={finalNoStyle}
-										baseClassName={styles?.link}
-										slotKey="vendor-list.link"
-									>
-										<a
-											href={vendor.privacyPolicyUrl}
-											rel="noopener noreferrer"
-											target="_blank"
-										>
-											{copy.privacyPolicy}
-										</a>
-									</Box>
-								) : null}
-							</Box>
-							{toggleable ? (
-								<Box
-									noStyle={finalNoStyle}
-									baseClassName={styles?.control}
-									slotKey="vendor-list.control"
-								>
-									<RadixSwitch.Root
-										aria-label={copy.switchLabel.replace('{vendor}', name)}
-										aria-describedby={labelId}
-										checked={checked}
-										data-testid={`consent-widget-vendor-switch-${category}-${vendor.id}`}
-										disabled={!categoryOn}
-										onCheckedChange={(next) =>
-											setSelectedVendor(vendor.id, next)
-										}
-										size="small"
-									/>
-								</Box>
-							) : null}
-						</Box>
-					);
-				})}
-			</PreferenceItem.Content>
-		</PreferenceItem.Root>
+				{vendors.map((vendor) => (
+					<VendorRow
+						key={vendor.id}
+						category={category}
+						categoryOn={categoryOn}
+						checked={selectedVendors[vendor.id] ?? true}
+						copy={copy}
+						labelId={`${instanceId}vendor-${category}-${vendor.id}`}
+						noStyle={finalNoStyle}
+						onCheckedChange={(next) => setSelectedVendor(vendor.id, next)}
+						styles={styles}
+						vendor={vendor}
+					/>
+				))}
+			</section>
+		</Box>
 	);
 };

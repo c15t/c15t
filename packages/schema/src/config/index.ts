@@ -129,7 +129,6 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 	'vendor-list'?: {
 		root?: T;
 		trigger?: T;
-		title?: T;
 		content?: T;
 		item?: T;
 		header?: T;
@@ -390,7 +389,6 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		link: true,
 		name: true,
 		root: true,
-		title: true,
 		trigger: true,
 	},
 } as const satisfies ConsentComponentSlotKeyMap;
