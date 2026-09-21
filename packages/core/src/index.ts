@@ -306,7 +306,11 @@ export {
 	isVendorDenied,
 } from './modules/has';
 export type { ResolveVendorsInput, VendorOwner } from './libs/vendors';
-export { resolveVendors } from './libs/vendors';
+export {
+	declareOwnedVendors,
+	forgetOwnedVendors,
+	resolveVendors,
+} from './libs/vendors';
 export {
 	deferInitGvl,
 	deferInitGvlToRoute,
