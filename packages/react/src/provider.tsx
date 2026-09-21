@@ -1226,6 +1226,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						noticeDismissal: null,
 						optOutDirectives: [],
 						subject: null,
+						vendorChoice: null,
 					});
 					kernel.events.emit({ type: 'records:cleared' });
 				}

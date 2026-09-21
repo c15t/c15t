@@ -4,13 +4,14 @@
  * hook follows the kernel's gate semantics for a vendor declared `disabled`.
  */
 import type { Script, Vendor } from '@c15t/core';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { page } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
+import { KernelContext, ProviderServicesContext } from '~/context';
 import { useDeclaredVendors, useVendorAllowed } from '~/hooks';
 import { useScriptLoader } from '~/module-hooks/script-loader';
 import { offline } from '~/transports/offline';
@@ -600,6 +601,74 @@ describe('provider vendor options', () => {
 		await vi.waitFor(() => {
 			expect(readProbe()?.declared).toEqual(['meta-pixel']);
 			expect(readProbe()?.source).toBe('script');
+		});
+	});
+
+	test('the provider clear fallback lifts a stored vendor denial', async () => {
+		// With persistence off there is no persistence handle, so DevTools'
+		// clear goes through the provider's own hydrate patch.
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'clear-vendors' }
+		);
+		const Clear = () => {
+			const services = useContext(ProviderServicesContext);
+			const kernel = useContext(KernelContext);
+			const [denied, setDenied] = useState<string>('unread');
+			useEffect(
+				() =>
+					kernel?.subscribe((snapshot) => {
+						setDenied(JSON.stringify(snapshot.vendorChoice?.denied ?? null));
+					}),
+				[kernel]
+			);
+			return (
+				<>
+					<output data-testid="denied">{denied}</output>
+					<button
+						data-testid="clear"
+						onClick={() => services?.clearRecords()}
+						type="button"
+					>
+						clear
+					</button>
+				</>
+			);
+		};
+		render(
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: {
+						...fixture,
+						initialRecords: {
+							...fixture.initialRecords,
+							vendorChoice: {
+								confirmedAt: fixture.now ?? Date.now(),
+								denied: ['meta-pixel'],
+								version: 1,
+							},
+						},
+					},
+					vendors: [META],
+				}}
+			>
+				<Clear />
+				<Probe />
+			</ConsentProvider>
+		);
+		const denied = () =>
+			document.querySelector('[data-testid="denied"]')?.textContent;
+		await vi.waitFor(() => {
+			expect(readProbe()?.meta).toBe(false);
+		});
+		await page.getByTestId('clear').click();
+		// Clearing records resets the categories too, so the vendor stays
+		// blocked by its category; the denial itself must be gone.
+		await vi.waitFor(() => {
+			expect(denied()).toBe('null');
 		});
 	});
 
