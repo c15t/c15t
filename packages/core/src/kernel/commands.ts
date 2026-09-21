@@ -243,6 +243,16 @@ const clearedVendorChoice = function clearedVendorChoice(
 	return { confirmedAt: actionAt, denied: [], version: 1 };
 };
 
+/** Whether a narrowed bulk action names every category the visitor decides. */
+const coversChoiceScope = function coversChoiceScope(
+	snapshot: ConsentSnapshot,
+	categories: readonly AllConsentNames[]
+): boolean {
+	const scope =
+		snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
+	return scope.every((category) => categories.includes(category));
+};
+
 /** A condition's outcome, `null` when it cannot be evaluated. */
 const conditionOutcome = function conditionOutcome(
 	condition: HasCondition<AllConsentNames>,
@@ -383,11 +393,14 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	if (bulk) {
 		// Vendors follow the category on a bulk action; explicit grants and the
 		// staged draft are both discarded so nothing survives as a denial.
-		if (categories === undefined) {
+		// A bulk action that covers every category the policy lets the
+		// visitor decide is the stock accept or reject all, whichever surface
+		// sent it: nothing outside it can hold a denial in place, so it
+		// clears the list outright. Only a narrower action lifts denials
+		// selectively.
+		if (categories === undefined || coversChoiceScope(snapshot, categories)) {
 			return bulkClearedVendorChoice(snapshot, actionAt);
 		}
-		// A bulk action narrowed to the displayed categories only lifts the
-		// denials of vendors those categories govern.
 		return scopedBulkVendorChoice(
 			snapshot,
 			categories,

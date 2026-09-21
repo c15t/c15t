@@ -6,6 +6,7 @@ import { createConsentKernel } from '../../kernel';
 import type { ResolvedVendor } from '../../types';
 import {
 	declareOwnedVendors,
+	forgetOwnedVendors,
 	mergeDeclaredVendors,
 	resolveVendors,
 	withoutManifestVendors,
@@ -446,6 +447,35 @@ describe('declareOwnedVendors', () => {
 		);
 		declareOwnedVendors(kernel, [], script);
 		expect(kernel.getSnapshot().vendors).toBeNull();
+		kernel.dispose();
+	});
+
+	test('a forgotten module drops out of the next rebuild of a shared slug', () => {
+		const kernel = kernelFor();
+		const script = Symbol('script');
+		const rule = Symbol('rule');
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'measurement', vendor: 'ga' }],
+			script
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'ga' }],
+			rule
+		);
+		// Forgetting commits nothing on its own: a disposed module's entry
+		// stays until another update rebuilds the slugs it named.
+		forgetOwnedVendors(kernel, script);
+		expect(declared(kernel)).toEqual([
+			['ga', { or: ['measurement', 'marketing'] }],
+		]);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'ga' }],
+			rule
+		);
+		expect(declared(kernel)).toEqual([['ga', 'marketing']]);
 		kernel.dispose();
 	});
 

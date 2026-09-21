@@ -174,6 +174,52 @@ describe('vendor persistence', () => {
 		kernel.dispose();
 	});
 
+	it('reads the newer of the two projections when the cookie write was dropped', () => {
+		// First act: both projections agree.
+		writeStoredVendorChoice(
+			{ confirmedAt: NOW - 1000, denied: ['meta-pixel'], version: 1 },
+			undefined,
+			NOW
+		);
+		// Second act: the browser keeps the cookie assignment but stores
+		// nothing, the way an over-limit cookie fails, so only localStorage
+		// carries the newer list.
+		const descriptor = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		);
+		const frozen = document.cookie;
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => frozen,
+			set: () => {
+				// Accepted and dropped.
+			},
+		});
+		try {
+			const written = writeStoredVendorChoice(
+				{
+					confirmedAt: NOW - 1,
+					denied: ['google-ads', 'meta-pixel'],
+					version: 1,
+				},
+				undefined,
+				NOW
+			);
+			expect(written.ok && written.written?.cookie).toBe(false);
+			expect(readStoredVendorChoice(undefined, NOW)).toMatchObject({
+				ok: true,
+				record: { confirmedAt: NOW - 1, denied: ['google-ads', 'meta-pixel'] },
+			});
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(document, 'cookie', descriptor);
+			} else {
+				delete (document as { cookie?: string }).cookie;
+			}
+		}
+	});
+
 	it('clear() removes the stored record and the in-memory denials', async () => {
 		const kernel = createKernel();
 		const persistence = createPersistence({ kernel, now: () => NOW });

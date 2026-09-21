@@ -505,6 +505,51 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a bulk action covering the whole choice scope clears every denial, negated conditions included', async () => {
+		const rule = matchedResolution(
+			optInRule({ categories: ['marketing', 'measurement'] })
+		);
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords(
+					{ marketing: true, measurement: true },
+					{ fingerprint: rule.fingerprints.choice }
+				),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['contextual'],
+					version: 1,
+				},
+			},
+			initialVendors: {
+				declared: [
+					...vendors.declared,
+					{
+						// False whether the selected categories are all on or all
+						// off, so a per-vendor decision test cannot settle it.
+						category: { and: ['marketing', { not: 'measurement' }] },
+						id: 'contextual',
+						presentable: false,
+						source: 'script',
+					},
+				],
+				listVersion: null,
+			},
+		});
+		// The preference center sends the displayed scope with every bulk
+		// action. Covering the whole scope is the stock accept all, which
+		// clears the list outright rather than deciding vendor by vendor.
+		await kernel.commands.save('all', {
+			categories: ['marketing', 'measurement'],
+		});
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
 	test('an explicit grant over an empty decision renews its time', async () => {
 		const kernel = createKernel({
 			initialRecords: {

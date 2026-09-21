@@ -968,8 +968,12 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
 };
 
 /**
- * Reads the vendor denial list: the cookie projection first, then
- * localStorage. `null` when nothing is stored.
+ * Reads the vendor denial list from both projections and returns the newer
+ * valid one by `confirmedAt`. The two can disagree: a compact cookie that
+ * grew past the browser's limit fails to write while localStorage already
+ * holds the new list, and the previous cookie would otherwise win on the
+ * next load and drop a denial the visitor just recorded. `null` when
+ * nothing is stored.
  */
 export const readStoredVendorChoice = function readStoredVendorChoice(
 	config: StorageConfig | undefined,
@@ -981,16 +985,20 @@ export const readStoredVendorChoice = function readStoredVendorChoice(
 		getRawCookieValue(keys.vendors, onUnavailable),
 		(text) => decodeVendorChoiceCompact(text, now)
 	);
+	const fromLocal = readLocalJson(
+		keys.vendors,
+		(value) => decodeVendorChoice(value, now),
+		onUnavailable
+	);
+	if (fromCookie?.ok && fromLocal?.ok) {
+		return fromLocal.record.confirmedAt > fromCookie.record.confirmedAt
+			? fromLocal
+			: fromCookie;
+	}
 	if (fromCookie?.ok) {
 		return fromCookie;
 	}
-	return (
-		readLocalJson(
-			keys.vendors,
-			(value) => decodeVendorChoice(value, now),
-			onUnavailable
-		) ?? fromCookie
-	);
+	return fromLocal ?? fromCookie;
 };
 
 /** Server read of the vendor cookie projection from a `Cookie` header. */
