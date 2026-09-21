@@ -37,6 +37,7 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
+import { assertSameSubmission } from './consent';
 import { syncCurrent } from './legal-document';
 import { submit } from './record-consent';
 import { recordDecision } from './runtime-policy-decision';
@@ -154,6 +155,46 @@ for (const engine of ENGINES) {
 					yield* submit(withVendors);
 					assert.strictEqual(yield* countOf('auditLog'), 2);
 					assert.strictEqual(yield* countOf('consent'), 1);
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 120_000 }
+		);
+
+		it.effect(
+			'a backfill another writer already made is a retry and audits nothing',
+			() =>
+				Effect.gen(function* gen() {
+					yield* setup;
+					const sql = yield* SqlClient.SqlClient;
+					const first = yield* submit(submission);
+					const decided = {
+						confirmedAt: GIVEN_AT.getTime(),
+						grants: { 'meta-pixel': false },
+						version: 1 as const,
+					};
+					// The other replay won the backfill with the same map between
+					// this one's read, which saw no map, and its update. The
+					// engine has to report that the update matched nothing; a
+					// read-back would find an identical map and audit twice.
+					yield* sql`
+						update ${sql('consent')}
+						set ${sql('vendorChoice')} = ${JSON.stringify(decided)}
+						where ${sql('id')} = ${first.consentId}
+					`;
+					let audited = 0;
+					const backfilled = yield* assertSameSubmission(
+						first.consentId,
+						{ choice: null, purposeIds: ['analytics'], vendorChoice: null },
+						{
+							...submission,
+							onVendorChoiceBackfilled: () =>
+								Effect.sync(() => {
+									audited += 1;
+								}),
+							vendorChoice: decided,
+						}
+					);
+					assert.isFalse(backfilled);
+					assert.strictEqual(audited, 0);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);

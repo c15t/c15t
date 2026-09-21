@@ -331,13 +331,24 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 	}
 );
 
+/** The matched-row count a MySQL result header carries; 0 when absent. */
+const affectedRows = (result: unknown): number =>
+	typeof result === 'object' &&
+	result !== null &&
+	'affectedRows' in result &&
+	typeof result.affectedRows === 'number'
+		? result.affectedRows
+		: 0;
+
 /**
  * Fill in the vendor map a stored row lacks. Only the row that still lacks
  * one is written, so two replays racing for the same backfill cannot both
  * win. Postgres and SQLite report the win through `returning`; MySQL has
- * no `returning`, so the row is read back and compared instead. The
- * conditional update is what makes the write race-safe on every engine;
- * the read only reports who won.
+ * no `returning`, so the update's own row count reports it. Reading the
+ * row back and comparing would not do: a loser that replays the same map
+ * reads the winner's identical copy and would audit the decision twice.
+ * mysql2 connects with `CLIENT_FOUND_ROWS`, so the count is matched rows,
+ * and the `is null` guard leaves a loser matching none.
  *
  * @returns Whether this call wrote the map.
  */
@@ -347,23 +358,14 @@ const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
 		const encoded = JSON.stringify(vendorChoice);
 		return yield* sql.onDialectOrElse({
 			mysql: () =>
-				Effect.gen(function* gen() {
-					yield* sql`
+				Effect.map(
+					sql`
 						update ${sql('consent')}
 						set ${sql('vendorChoice')} = ${encoded}
 						where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
-					`;
-					const rows = yield* sql<{ vendorChoice: unknown }>`
-						select ${sql('vendorChoice')} from ${sql('consent')}
-						where ${sql('id')} = ${id}
-					`;
-					const stored = storedVendorChoice(rows[0]?.vendorChoice);
-					return (
-						stored !== UNREADABLE &&
-						canonicalVendorChoice(stored) ===
-							canonicalVendorChoice(vendorChoice)
-					);
-				}),
+					`.raw,
+					(result) => affectedRows(result) > 0
+				),
 			orElse: () =>
 				Effect.map(
 					sql<{ id: string }>`
