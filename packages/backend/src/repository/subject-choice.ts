@@ -264,8 +264,8 @@ export interface VendorSourceRow {
  * newer local decision about a vendor the later act never named. When the
  * latest act names every vendor, that is simply its own time. Two acts at the same instant can both exist when they
  * differ in policy or domain, and SQL does not define which one a query
- * returns last, so a tie is broken by the row id: the greater id wins on
- * every engine. A row without a map is skipped: that act did not decide
+ * returns last, so a tie is broken by the row id compared by code unit:
+ * the greater id wins on every engine and in every locale. A row without a map is skipped: that act did not decide
  * vendors. A row whose map is unreadable is a decision that cannot be read,
  * so everything at or before it is discarded and the aggregate is `null`
  * unless a later readable act exists.
@@ -282,7 +282,16 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 		)
 		.sort((left, right) => {
 			const byTime = left.givenAt.getTime() - right.givenAt.getTime();
-			return byTime === 0 ? left.id.localeCompare(right.id) : byTime;
+			if (byTime !== 0) {
+				return byTime;
+			}
+			// Code-unit order, not the host locale's: ids are mixed-case Base58,
+			// and a locale-aware compare can order case differently from one
+			// process to the next, so the tie would flip across instances.
+			if (left.id === right.id) {
+				return 0;
+			}
+			return left.id < right.id ? -1 : 1;
 		});
 	let grants: Record<string, boolean> | null = null;
 	// When each surviving decision was confirmed, keyed like `grants`.

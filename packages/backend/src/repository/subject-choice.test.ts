@@ -204,4 +204,33 @@ describe('mergeSubjectVendorChoice', () => {
 			{ a: false }
 		);
 	});
+
+	it('breaks a tie by code unit, not by the host locale', () => {
+		// Base58 ids mix cases. Locale-aware ordering puts lowercase before
+		// uppercase in some locales and after in others; code-unit order does
+		// not: 'Z' sorts before 'a'.
+		const rows = [
+			{
+				givenAt: new Date(5),
+				id: 'cns_Z',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants' as const,
+					vendorChoice: grants('a', false, 5),
+				},
+			},
+			{
+				givenAt: new Date(5),
+				id: 'cns_a',
+				type: 'cookie_banner',
+				vendorChoice: {
+					kind: 'grants' as const,
+					vendorChoice: grants('a', true, 5),
+				},
+			},
+		];
+		assert.deepStrictEqual(mergeSubjectVendorChoice(rows)?.grants, {
+			a: true,
+		});
+	});
 });
