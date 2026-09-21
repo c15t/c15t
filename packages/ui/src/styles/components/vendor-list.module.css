@@ -24,6 +24,7 @@
 	.item:not(:global(.headless)) {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
+		box-sizing: border-box;
 		padding: 0;
 		border: 1px solid var(--vendor-list-border-color, var(--c15t-border));
 		border-radius: var(--vendor-list-radius, var(--c15t-radius-md));

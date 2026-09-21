@@ -171,6 +171,29 @@ describe('consent widget vendor rows', () => {
 		});
 	});
 
+	test('vendor cards sit inset the same on both sides of the category row', async () => {
+		renderWidget({ marketing: true, measurement: true });
+		await openVendors('marketing');
+		const item = document.querySelector(
+			'[data-testid="consent-widget-accordion-item-marketing"]'
+		);
+		const card = document.querySelector(
+			'[data-testid="consent-widget-vendor-item-marketing-meta-pixel"]'
+		);
+		expect(item).not.toBeNull();
+		expect(card).not.toBeNull();
+		if (!item || !card) {
+			return;
+		}
+		const outer = item.getBoundingClientRect();
+		const inner = card.getBoundingClientRect();
+		// A card indented on the left by the icon width but flush on the
+		// right reads as a layout mistake; both insets must match.
+		expect(Math.round(inner.left - outer.left)).toBe(
+			Math.round(outer.right - inner.right)
+		);
+	});
+
 	test('disables vendor switches while the category is off and re-enables them', async () => {
 		renderWidget({ marketing: false, measurement: true });
 		await openVendors('marketing');
