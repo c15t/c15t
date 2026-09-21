@@ -282,8 +282,16 @@ describe('assertSameVendors', () => {
 			(await run(assertSameVendors(null, undefined)))._tag,
 			'Success'
 		);
+	});
+
+	it('answers backfill for a stored row without a map against a replay with one', async () => {
+		// A row written by a process that predates the column, met by the
+		// queued save's replay. Not a conflict: the decision is recoverable.
+		const result = await Effect.runPromise(assertSameVendors(null, grants));
+		assert.strictEqual(result, 'backfill');
+		// The other direction stays a conflict.
 		assert.strictEqual(
-			(await run(assertSameVendors(null, grants)))._tag,
+			(await run(assertSameVendors(JSON.stringify(grants), undefined)))._tag,
 			'Failure'
 		);
 	});
@@ -320,6 +328,45 @@ describe('consent.record with vendor grants', () => {
 					})
 				);
 				assert.strictEqual(changed._tag, 'Failure');
+				assert.strictEqual(yield* countConsents(), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'a replay fills in a vendor map the stored row lacks, once',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const sql = yield* SqlClient.SqlClient;
+				// The row an older process wrote for this act: same id, no map.
+				const first = yield* record(submission);
+				assert.isTrue(first.created);
+				const withVendors = {
+					...submission,
+					vendorChoice: {
+						confirmedAt: GIVEN_AT.getTime(),
+						grants: { 'meta-pixel': false },
+						version: 1 as const,
+					},
+				};
+				const replay = yield* record(withVendors);
+				assert.isFalse(replay.created);
+				assert.strictEqual(replay.id, first.id);
+				assert.isTrue(replay.vendorChoiceBackfilled);
+				const rows = yield* sql<{ vendorChoice: unknown }>`
+					select ${sql('vendorChoice')} from ${sql('consent')}
+					where ${sql('id')} = ${first.id}
+				`;
+				const stored = rows[0]?.vendorChoice;
+				assert.deepStrictEqual(
+					typeof stored === 'string' ? JSON.parse(stored) : stored,
+					withVendors.vendorChoice
+				);
+				// A second replay is an ordinary retry now.
+				const again = yield* record(withVendors);
+				assert.isFalse(again.created);
+				assert.notOk(again.vendorChoiceBackfilled);
 				assert.strictEqual(yield* countConsents(), 1);
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }

@@ -131,6 +131,36 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 
 	const consent = yield* record(submission);
 
+	if (consent.vendorChoiceBackfilled) {
+		// A replay met a row written before the vendor column existed and
+		// filled it in. That is the first record of the vendor decision, so it
+		// gets its own entry rather than passing as a silent retry.
+		yield* sql`
+			insert into ${sql('auditLog')} ${sql.insert(
+				encodeRow(yield* encoder, {
+					actionType: 'consent_given',
+					changes: JSON.stringify({
+						vendorChoice: request.vendorChoice ?? null,
+						vendorChoiceBackfilled: true,
+					}),
+					createdAt: new Date(),
+					entityId: consent.id,
+					entityType: 'consent',
+					id: generateEntityId('auditLog'),
+					ipAddress: request.ipAddress,
+					metadata: JSON.stringify({
+						decisionId: decision?.id ?? null,
+						domainId: request.domainId,
+						policyId: request.policyId ?? null,
+					}),
+					subjectId: subject.id,
+					tenantId: tenantId ?? null,
+					userAgent: request.userAgent,
+				})
+			)}
+		`;
+	}
+
 	if (consent.created) {
 		// Only on a genuine first write. An audit entry per *request* rather
 		// than per *event* would make the trail assert the subject consented

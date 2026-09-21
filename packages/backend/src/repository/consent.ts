@@ -71,6 +71,12 @@ export interface RecordedConsent {
 	 * replay — the audit trail should record one, not both.
 	 */
 	readonly created: boolean;
+	/**
+	 * True when a replay filled in a vendor map the stored row lacked. The
+	 * row was written by a process that did not yet carry the column, so the
+	 * replay is the first record of that decision and the caller audits it.
+	 */
+	readonly vendorChoiceBackfilled?: boolean;
 }
 
 /**
@@ -280,6 +286,16 @@ const storedVendorChoice = (
  * The vendor map stored on an existing row must match the one resubmitted.
  * Same hazard as receipts: the id covers identity, not what was decided.
  *
+ * One asymmetry is allowed: a stored row with no map against a replay that
+ * carries one. A queued save replays with its original time, so the same
+ * id, and the row it meets can have been written by a process that did not
+ * yet carry the column, during a rolling upgrade or before migration 4.
+ * Treating that as a conflict would make the vendor decision unrecoverable,
+ * so it answers `backfill` and the caller fills the column in. The other
+ * direction, a stored map against a replay without one, stays a conflict:
+ * a client that recorded vendors does not later replay the act without them.
+ *
+ * @returns `'same'` or `'backfill'`.
  * @internal
  */
 export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
@@ -292,7 +308,10 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 			storedMap === UNREADABLE ? UNREADABLE : canonicalVendorChoice(storedMap);
 		const incoming = canonicalVendorChoice(submitted);
 		if (stored === incoming) {
-			return;
+			return 'same' as const;
+		}
+		if (storedMap === null && submitted) {
+			return 'backfill' as const;
 		}
 		return yield* new ConsentPurposeConflictError({
 			message:
@@ -303,9 +322,14 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 	}
 );
 
-/** Every content check against a stored row, for the two paths that find one. */
+/**
+ * Every content check against a stored row, for the two paths that find
+ * one. Fills in a vendor map the row lacks, so the outcome of that replay
+ * is the first record of the decision.
+ */
 const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	function* assertSameSubmission(
+		id: string,
 		stored:
 			| { purposeIds: unknown; choice: unknown; vendorChoice: unknown }
 			| undefined,
@@ -313,7 +337,23 @@ const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	) {
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
 		yield* assertSameChoice(stored?.choice, submission.choice);
-		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
+		const vendors = yield* assertSameVendors(
+			stored?.vendorChoice,
+			submission.vendorChoice
+		);
+		if (vendors !== 'backfill' || !submission.vendorChoice) {
+			return false;
+		}
+		const sql = yield* SqlClient.SqlClient;
+		// Only the row that still lacks a map is written, so two replays
+		// racing for the same backfill cannot both report it.
+		const updated = yield* sql<{ id: string }>`
+			update ${sql('consent')}
+			set ${sql('vendorChoice')} = ${JSON.stringify(submission.vendorChoice)}
+			where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
+			returning ${sql('id')}
+		`;
+		return updated.length > 0;
 	}
 );
 
@@ -357,8 +397,12 @@ export const record = Effect.fn('consent.record')(function* record(
 		// Reported rather than folded in. Overwriting would rewrite a legal record
 		// in place with no audit entry, and changing the id to cover purposes
 		// would break the parity the derivation exists to preserve.
-		yield* assertSameSubmission(found, submission);
-		return { created: false, id };
+		const vendorChoiceBackfilled = yield* assertSameSubmission(
+			id,
+			found,
+			submission
+		);
+		return { created: false, id, vendorChoiceBackfilled };
 	}
 
 	// Only now check for a row written by an older process. It has a random
@@ -427,7 +471,11 @@ export const record = Effect.fn('consent.record')(function* record(
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
-	yield* assertSameSubmission(winner[0], submission);
+	const vendorChoiceBackfilled = yield* assertSameSubmission(
+		id,
+		winner[0],
+		submission
+	);
 
-	return { created, id };
+	return { created, id, vendorChoiceBackfilled };
 });
