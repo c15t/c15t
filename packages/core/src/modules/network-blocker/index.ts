@@ -58,11 +58,11 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	const { kernel, onRequestBlocked } = options;
 	const logBlocked = options.logBlockedRequests ?? true;
 	let rules: NetworkBlockerRule[] = [...(options.rules ?? [])];
-	const registerCategories = () => {
+	const registerCategories = (previous: readonly NetworkBlockerRule[] = []) => {
 		kernel.set.registerConsentCategories(
 			rules.flatMap((rule) => extractConsentNamesFromCondition(rule.category))
 		);
-		declareOwnedVendors(kernel, rules);
+		declareOwnedVendors(kernel, rules, previous);
 	};
 	registerCategories();
 	let enabled = options.enabled !== false;
@@ -109,8 +109,9 @@ export const createNetworkBlocker = function createNetworkBlocker(
 				enabled = v;
 			},
 			updateRules(next) {
+				const previous = rules;
 				rules = [...next];
-				registerCategories();
+				registerCategories(previous);
 			},
 		};
 	}
@@ -153,8 +154,9 @@ export const createNetworkBlocker = function createNetworkBlocker(
 			enabled = v;
 		},
 		updateRules(next) {
+			const previous = rules;
 			rules = [...next];
-			registerCategories();
+			registerCategories(previous);
 		},
 	};
 };

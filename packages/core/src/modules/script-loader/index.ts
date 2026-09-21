@@ -101,16 +101,21 @@ export const createScriptLoader = function createScriptLoader(
 		diagnostics?.notify(event);
 	};
 
+	let normalized: NormalizedScript[] = [];
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) =>
 				extractConsentNamesFromCondition(script.category)
 			)
 		);
-		declareOwnedVendors(kernel, scripts);
+		declareOwnedVendors(
+			kernel,
+			scripts,
+			normalized.map(({ script }) => script)
+		);
 	};
 	registerCategories(options.scripts);
-	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
+	normalized = normalizeScripts(options.scripts);
 
 	const loadedElements = new Map<string, HTMLScriptElement | null>();
 	const retainedElements = new Map<string, HTMLScriptElement>();
@@ -393,9 +398,11 @@ export const createScriptLoader = function createScriptLoader(
 			lastEvents.delete(script.id);
 			statuses.delete(script.id);
 		}
-		normalized = normalizeScripts(next);
 		if (!disposed) {
 			registerCategories(next);
+		}
+		normalized = normalizeScripts(next);
+		if (!disposed) {
 			reconcileRequested = true;
 			forceReconcile = true;
 		}
@@ -474,7 +481,6 @@ export const createScriptLoader = function createScriptLoader(
 			if (disposed) {
 				return;
 			}
-			registerCategories(next);
 			pendingScripts = next;
 			drain();
 		},

@@ -1,8 +1,11 @@
 import type { VendorCategoryCondition } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
+import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
+import { createConsentKernel } from '../../kernel';
 import type { ResolvedVendor } from '../../types';
 import {
+	declareOwnedVendors,
 	mergeDeclaredVendors,
 	resolveVendors,
 	withoutManifestVendors,
@@ -326,5 +329,68 @@ describe('mergeDeclaredVendors', () => {
 			'aaa-vendor',
 			'meta-pixel',
 		]);
+	});
+});
+
+describe('declareOwnedVendors', () => {
+	const declared = (kernel: ReturnType<typeof createConsentKernel>) =>
+		kernel
+			.getSnapshot()
+			.vendors?.declared.map((vendor) => [
+				vendor.id,
+				vendor.source === 'script' ? vendor.category : vendor.ownerCategory,
+			]);
+
+	test('a slug two modules share keeps both conditions whichever declares last', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			now: NOW,
+		});
+		declareOwnedVendors(kernel, [{ category: 'measurement', vendor: 'ga' }]);
+		declareOwnedVendors(kernel, [{ category: 'marketing', vendor: 'ga' }]);
+		expect(declared(kernel)).toEqual([
+			['ga', { or: ['measurement', 'marketing'] }],
+		]);
+		kernel.dispose();
+	});
+
+	test('a module that moves its slug takes its old condition with it', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			now: NOW,
+		});
+		const rule = { category: 'marketing' as const, vendor: 'ga' };
+		declareOwnedVendors(kernel, [{ category: 'measurement', vendor: 'ga' }]);
+		declareOwnedVendors(kernel, [rule]);
+		declareOwnedVendors(
+			kernel,
+			[{ ...rule, category: 'functionality' }],
+			[rule]
+		);
+		expect(declared(kernel)).toEqual([
+			['ga', { or: ['measurement', 'functionality'] }],
+		]);
+		kernel.dispose();
+	});
+
+	test('a declared vendor remembers every module that names it', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			initialVendors: {
+				declared: [{ ...meta, presentable: true, source: 'config' }],
+				listVersion: null,
+			},
+			now: NOW,
+		});
+		declareOwnedVendors(kernel, [
+			{ category: 'measurement', vendor: 'meta-pixel' },
+		]);
+		declareOwnedVendors(kernel, [
+			{ category: 'marketing', vendor: 'meta-pixel' },
+		]);
+		expect(declared(kernel)).toEqual([
+			['meta-pixel', { or: ['measurement', 'marketing'] }],
+		]);
+		kernel.dispose();
 	});
 });
