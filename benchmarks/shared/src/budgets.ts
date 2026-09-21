@@ -157,6 +157,11 @@ export const coreRuntimeBudgets: MetricBudget[] = [
  * feature is on the base branch.
  */
 const VENDOR_CONSENT_GZIP_BYTES = 3072;
+/**
+ * The same allowance for the core package tarball, which also carries the
+ * bundled docs for the feature and its hooks and modules uncompressed.
+ */
+const VENDOR_CONSENT_TARBALL_BYTES = 8192;
 
 export const bundleBudgets: MetricBudget[] = [
 	{
@@ -196,10 +201,11 @@ export const bundleBudgets: MetricBudget[] = [
 export const artifactBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-and-percent-lte',
-		description: 'Core package tarball growth must stay below 15kB and 10%.',
+		description:
+			'Core package tarball growth must stay below 15kB and 10%, plus the vendor consent allowance.',
 		metric: 'c15t',
 		secondaryThreshold: 10,
-		threshold: 15360,
+		threshold: 15360 + VENDOR_CONSENT_TARBALL_BYTES,
 	},
 	{
 		comparator: 'absolute-and-percent-lte',
