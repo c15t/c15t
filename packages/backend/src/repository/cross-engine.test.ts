@@ -118,6 +118,47 @@ for (const engine of ENGINES) {
 		);
 
 		it.effect(
+			'a replay fills in the vendor map an older row lacks, once, and audits it',
+			() =>
+				Effect.gen(function* gen() {
+					yield* setup;
+					const sql = yield* SqlClient.SqlClient;
+					// The row an older process wrote for this act, without a map.
+					const first = yield* submit(submission);
+					const withVendors = {
+						...submission,
+						vendorChoice: {
+							confirmedAt: GIVEN_AT.getTime(),
+							grants: { 'meta-pixel': false },
+							version: 1 as const,
+						},
+					};
+					const replay = yield* submit(withVendors);
+					assert.isFalse(replay.created);
+					assert.strictEqual(replay.consentId, first.consentId);
+
+					// The conditional update reports its win differently per
+					// engine: `returning` where it exists, a read-back on MySQL.
+					const rows = yield* sql<{ vendorChoice: unknown }>`
+						select ${sql('vendorChoice')} from ${sql('consent')}
+						where ${sql('id')} = ${first.consentId}
+					`;
+					const stored = rows[0]?.vendorChoice;
+					assert.deepStrictEqual(
+						typeof stored === 'string' ? JSON.parse(stored) : stored,
+						withVendors.vendorChoice
+					);
+					// The first write and the backfill: one entry each.
+					assert.strictEqual(yield* countOf('auditLog'), 2);
+					// A second replay is an ordinary retry and audits nothing.
+					yield* submit(withVendors);
+					assert.strictEqual(yield* countOf('auditLog'), 2);
+					assert.strictEqual(yield* countOf('consent'), 1);
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 120_000 }
+		);
+
+		it.effect(
 			'races to a single consent',
 			() =>
 				Effect.gen(function* gen() {

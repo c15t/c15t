@@ -60,6 +60,15 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly consentAction?: string | null;
 	readonly validUntil?: Date | null;
 	readonly runtimePolicySource?: string | null;
+	/**
+	 * Runs inside the same transaction as a vendor-map backfill, after the
+	 * map is written. The caller writes the audit entry here, so a failed
+	 * entry rolls the map back and the next replay records both together:
+	 * the first record of the decision is never left unaudited.
+	 */
+	readonly onVendorChoiceBackfilled?: (
+		consentId: string
+	) => Effect.Effect<void, SqlError.SqlError, SqlClient.SqlClient>;
 }
 
 export interface RecordedConsent {
@@ -323,11 +332,67 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 );
 
 /**
+ * Fill in the vendor map a stored row lacks. Only the row that still lacks
+ * one is written, so two replays racing for the same backfill cannot both
+ * win. Postgres and SQLite report the win through `returning`; MySQL has
+ * no `returning`, so the row is read back and compared instead. The
+ * conditional update is what makes the write race-safe on every engine;
+ * the read only reports who won.
+ *
+ * @returns Whether this call wrote the map.
+ */
+const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
+	function* backfillVendorChoice(id: string, vendorChoice: VendorChoiceWire) {
+		const sql = yield* SqlClient.SqlClient;
+		const encoded = JSON.stringify(vendorChoice);
+		return yield* sql.onDialectOrElse({
+			mysql: () =>
+				Effect.gen(function* gen() {
+					yield* sql`
+						update ${sql('consent')}
+						set ${sql('vendorChoice')} = ${encoded}
+						where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
+					`;
+					const rows = yield* sql<{ vendorChoice: unknown }>`
+						select ${sql('vendorChoice')} from ${sql('consent')}
+						where ${sql('id')} = ${id}
+					`;
+					const stored = storedVendorChoice(rows[0]?.vendorChoice);
+					return (
+						stored !== UNREADABLE &&
+						canonicalVendorChoice(stored) ===
+							canonicalVendorChoice(vendorChoice)
+					);
+				}),
+			orElse: () =>
+				Effect.map(
+					sql<{ id: string }>`
+						update ${sql('consent')}
+						set ${sql('vendorChoice')} = ${encoded}
+						where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
+						returning ${sql('id')}
+					`,
+					(updated) => updated.length > 0
+				),
+		});
+	}
+);
+
+/**
  * Every content check against a stored row, for the two paths that find
  * one. Fills in a vendor map the row lacks, so the outcome of that replay
  * is the first record of the decision.
+ *
+ * A lost backfill is re-checked rather than reported as a retry: the other
+ * writer may have stored a different map, and that is the same conflict
+ * the surrounding content checks exist to catch.
  */
-const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
+/**
+ * Exported for the unit tests of the lost-backfill branch.
+ *
+ * @internal
+ */
+export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	function* assertSameSubmission(
 		id: string,
 		stored:
@@ -345,15 +410,25 @@ const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 			return false;
 		}
 		const sql = yield* SqlClient.SqlClient;
-		// Only the row that still lacks a map is written, so two replays
-		// racing for the same backfill cannot both report it.
-		const updated = yield* sql<{ id: string }>`
-			update ${sql('consent')}
-			set ${sql('vendorChoice')} = ${JSON.stringify(submission.vendorChoice)}
-			where ${sql('id')} = ${id} and ${sql('vendorChoice')} is null
-			returning ${sql('id')}
+		const { vendorChoice, onVendorChoiceBackfilled } = submission;
+		const backfilled = yield* sql.withTransaction(
+			Effect.gen(function* backfill() {
+				const won = yield* backfillVendorChoice(id, vendorChoice);
+				if (won && onVendorChoiceBackfilled) {
+					yield* onVendorChoiceBackfilled(id);
+				}
+				return won;
+			})
+		);
+		if (backfilled) {
+			return true;
+		}
+		const rows = yield* sql<{ vendorChoice: unknown }>`
+			select ${sql('vendorChoice')} from ${sql('consent')}
+			where ${sql('id')} = ${id}
 		`;
-		return updated.length > 0;
+		yield* assertSameVendors(rows[0]?.vendorChoice, vendorChoice);
+		return false;
 	}
 );
 
