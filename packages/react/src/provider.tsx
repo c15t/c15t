@@ -827,7 +827,11 @@ const useProviderOptionSync = function useProviderOptionSync(
 	}, [kernel, options.networkBlocker, options.scripts, options.vendors, owns]);
 	useEffect(
 		() => () => {
+			// Forgetting drops the slugs only this provider named. The ref is
+			// reset with it so a remount, StrictMode's included, declares them
+			// again instead of finding nothing changed.
 			forgetOwnedVendors(kernel, ownerSourceRef.current);
+			previousVendorsRef.current = null;
 		},
 		[kernel]
 	);
