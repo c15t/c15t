@@ -550,6 +550,59 @@ describe('provider vendor options', () => {
 		});
 	});
 
+	test('a hook-owned slug the provider also declared survives the provider dropping it', async () => {
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'shadowed-hook-vendor' }
+		);
+		const HookLoader = () => {
+			useScriptLoader([
+				{
+					callbackOnly: true,
+					category: 'marketing',
+					id: 'hook-meta',
+					vendor: 'meta-pixel',
+				},
+			]);
+			return null;
+		};
+		const Host = () => {
+			const [vendors, setVendors] = useState<Vendor[]>([META]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing'],
+						mode: offline(),
+						persistence: false,
+						prefetch: fixture,
+						vendors,
+					}}
+				>
+					<HookLoader />
+					<button
+						data-testid="remove"
+						onClick={() => setVendors([])}
+						type="button"
+					>
+						remove
+					</button>
+					<Probe />
+				</ConsentProvider>
+			);
+		};
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(readProbe()?.source).toBe('config');
+		});
+		await page.getByTestId('remove').click();
+		// The config entry is gone; the mounted hook still names the slug, so
+		// a script-sourced entry takes its place rather than nothing.
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual(['meta-pixel']);
+			expect(readProbe()?.source).toBe('script');
+		});
+	});
+
 	test('useVendorAllowed grants a vendor removed from the declarations despite a stored denial', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },
