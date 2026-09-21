@@ -440,6 +440,9 @@
 		color: var(--consent-dialog-muted-color-dark);
 	}
 
+	/* Whatever the content holds stays inside the capped card: custom
+	   children scroll here. The stock widget relaxes this below and scrolls
+	   its category list instead, so its action row stays in view. */
 	.content:not(:global(.headless)) {
 		padding: var(--consent-dialog-card-padding);
 		padding-top: 0;
@@ -448,6 +451,21 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
+		overflow-y: auto;
+	}
+
+	.content:not(:global(.headless)):has(
+			> [data-testid='consent-widget-root']
+				> [data-testid='consent-widget-accordion']
+		) {
+		overflow-y: visible;
+	}
+
+	/* Custom children keep their height and scroll the content area, rather
+	   than being shrunk to fit by the column. The stock widget below opts
+	   back in, since its own list is what shrinks and scrolls. */
+	.content:not(:global(.headless)) > * {
+		flex-shrink: 0;
 	}
 
 	/* The widget fills the content area as a column: its category list is
