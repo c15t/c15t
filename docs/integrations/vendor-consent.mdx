@@ -96,9 +96,11 @@ category to follow, so a denial the visitor recorded earlier holds even while
 nothing declares the slug, for example before the backend's vendor list has
 arrived on a cold start.
 
-A script or rule keeps its slug declared for as long as it is configured. If a
-backend list or a provider update drops the entry, the loader or blocker puts
-it back, so a stored denial keeps gating it.
+A script, rule or frame keeps its slug declared for as long as it is
+configured. If a backend list or a provider update drops the entry, the
+loader or blocker puts it back, so a stored denial keeps gating it. A slug
+several modules share stays under every category they name it with, whichever
+module updates last, and drops a category only once no module names it there.
 
 ## Record a vendor choice
 

@@ -31,7 +31,7 @@
  *   loaders (or already in the DOM) are left alone.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
-import { declareOwnedVendors } from '../../libs/vendors';
+import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
@@ -101,21 +101,17 @@ export const createScriptLoader = function createScriptLoader(
 		diagnostics?.notify(event);
 	};
 
-	let normalized: NormalizedScript[] = [];
+	const ownerSource = Symbol('script-loader');
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) =>
 				extractConsentNamesFromCondition(script.category)
 			)
 		);
-		declareOwnedVendors(
-			kernel,
-			scripts,
-			normalized.map(({ script }) => script)
-		);
+		declareOwnedVendors(kernel, scripts, ownerSource);
 	};
 	registerCategories(options.scripts);
-	normalized = normalizeScripts(options.scripts);
+	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
 
 	const loadedElements = new Map<string, HTMLScriptElement | null>();
 	const retainedElements = new Map<string, HTMLScriptElement>();
@@ -195,11 +191,15 @@ export const createScriptLoader = function createScriptLoader(
 		const declared = new Set(
 			snapshot.vendors?.declared.map((vendor) => vendor.id)
 		);
-		const missing = normalized.flatMap(({ script, vendor }) =>
-			vendor !== null && !declared.has(vendor) ? [script] : []
+		const missing = normalized.some(
+			({ vendor }) => vendor !== null && !declared.has(vendor)
 		);
-		if (missing.length > 0) {
-			declareOwnedVendors(kernel, missing);
+		if (missing) {
+			declareOwnedVendors(
+				kernel,
+				normalized.map(({ script }) => script),
+				ownerSource
+			);
 		}
 	};
 
@@ -342,6 +342,7 @@ export const createScriptLoader = function createScriptLoader(
 		const scripts = new Set(normalized.map(({ script }) => script));
 		normalized = [];
 		pendingScripts = undefined;
+		forgetOwnedVendors(kernel, ownerSource);
 		for (const script of scripts) {
 			disposeScript(script);
 		}
@@ -398,11 +399,9 @@ export const createScriptLoader = function createScriptLoader(
 			lastEvents.delete(script.id);
 			statuses.delete(script.id);
 		}
-		if (!disposed) {
-			registerCategories(next);
-		}
 		normalized = normalizeScripts(next);
 		if (!disposed) {
+			registerCategories(next);
 			reconcileRequested = true;
 			forceReconcile = true;
 		}

@@ -26,7 +26,8 @@
  * subscription. Per-iframe state is derived from the DOM at check time,
  * so multiple instances produce the same result.
  */
-import { declareOwnedVendors } from '../../libs/vendors';
+import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
+import type { VendorOwner } from '../../libs/vendors';
 import {
 	buildReconcilePass,
 	determineCategory,
@@ -62,6 +63,11 @@ export const createIframeBlocker = function createIframeBlocker(
 		};
 	}
 
+	// Every slug and category a frame on this page has named so far. A scan
+	// only sees the frames that changed, so the blocker's declaration is the
+	// running union rather than the last batch.
+	const ownerSource = Symbol('iframe-blocker');
+	const framed = new Map<string, VendorOwner>();
 	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
 		const list = Array.from(iframes);
 		kernel.set.registerConsentCategories(
@@ -75,14 +81,30 @@ export const createIframeBlocker = function createIframeBlocker(
 		// the same slug has arrived. A frame with only `data-vendor` has no
 		// category to declare under; `reconcileIframe` holds it against the
 		// stored denial directly instead.
-		declareOwnedVendors(
-			kernel,
-			list.flatMap((iframe) => {
-				const vendor = determineVendor(iframe);
-				const category = determineCategory(iframe);
-				return vendor && category ? [{ category, vendor }] : [];
-			})
+		let added = false;
+		for (const iframe of list) {
+			const vendor = determineVendor(iframe);
+			const category = determineCategory(iframe);
+			if (!vendor || !category) {
+				continue;
+			}
+			const key = `${vendor}\u0000${category}`;
+			if (!framed.has(key)) {
+				framed.set(key, { category, vendor });
+				added = true;
+			}
+		}
+		// Also when another source swept a framed slug out of the declared
+		// set: a frame on the page owns its slug for as long as it is there.
+		const declaredIds = new Set(
+			kernel.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
 		);
+		const missing = [...framed.values()].some(
+			(owner) => owner.vendor && !declaredIds.has(owner.vendor)
+		);
+		if (added || missing) {
+			declareOwnedVendors(kernel, [...framed.values()], ownerSource);
+		}
 	};
 
 	const observer = new MutationObserver((mutations) => {
@@ -169,6 +191,7 @@ export const createIframeBlocker = function createIframeBlocker(
 		dispose() {
 			observer.disconnect();
 			unsubscribe();
+			forgetOwnedVendors(kernel, ownerSource);
 		},
 		processAllIframes: processAll,
 	};

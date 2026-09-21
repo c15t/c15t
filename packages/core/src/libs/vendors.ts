@@ -406,90 +406,108 @@ export const resolveVendors = function resolveVendors(
 	);
 };
 
-/** The conditions an owner condition was built from, one level deep. */
-const ownerMembers = function ownerMembers(
-	condition: HasCondition<AllConsentNames> | undefined
-): HasCondition<AllConsentNames>[] {
-	if (condition === undefined) {
-		return [];
+/**
+ * What each live module has declared on a kernel, keyed by the module. A
+ * module only knows its own list, so the union across modules is what a
+ * slug's owners really are; the registry is what makes an update from one
+ * module leave the others' contributions in place, identical or not.
+ */
+const registries = new WeakMap<object, Map<symbol, readonly VendorOwner[]>>();
+
+/** An entry with every owner condition removed; `null` for a script entry. */
+const withoutOwnerConditions = function withoutOwnerConditions(
+	vendor: ResolvedVendor
+): ResolvedVendor | null {
+	if (vendor.source === 'script') {
+		return null;
 	}
-	if (typeof condition === 'object' && 'or' in condition) {
-		return Array.isArray(condition.or) ? [...condition.or] : [condition.or];
+	const { ownerCategory: _own, ...rest } = vendor;
+	const next: ResolvedVendor = rest;
+	if (next.shadowed) {
+		const { ownerCategory: _shadowOwn, ...shadow } = next.shadowed;
+		next.shadowed = shadow;
 	}
-	return [condition];
+	return next;
 };
 
 /**
- * Declare the vendors a set of scripts or rules owns on the kernel, merging
- * over the entries it already holds. Called by an integration when its list
- * is set or swapped, so a slug introduced later still becomes toggleable, a
- * slug whose script moved category follows it, and a declared vendor learns
- * its new owner. Nothing is removed: another integration may still name the
- * slug.
+ * Declare the vendors a module's scripts, rules or frames own on the kernel,
+ * merging over the entries it already holds. Called by an integration when
+ * its list is set or swapped, so a slug introduced later still becomes
+ * toggleable, a slug whose script moved category follows it, and a declared
+ * vendor learns its new owner.
  *
- * An integration only knows its own list, so the conditions other owners
- * contributed to a slug are kept: a slug a measurement script and a marketing
- * rule share stays under both categories whichever module declares last.
- * `previous` is the caller's list before this update, and the conditions it
- * contributed are dropped first, so a script that moves category takes the
- * vendor with it rather than leaving the old category behind.
+ * `source` identifies the calling module. Its previous contribution is
+ * replaced, and every slug either list names is rebuilt from what all
+ * registered modules currently declare: a slug a measurement script and a
+ * marketing rule share stays under both categories whichever module
+ * updates, two modules owning a slug under the same condition keep it when
+ * one of them moves away, and a slug nothing names any more loses its
+ * script-sourced entry. A vendor declared in config or by the backend keeps
+ * its own presentation and only its owners change. Without a `source` the
+ * owners are merged in once and not remembered.
  */
 export const declareOwnedVendors = function declareOwnedVendors(
 	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
 	owners: readonly VendorOwner[],
-	previous: readonly VendorOwner[] = []
+	source?: symbol
 ): void {
-	if (!owners.some((owner) => owner.vendor)) {
-		return;
+	let registry = registries.get(kernel);
+	if (!registry) {
+		registry = new Map();
+		registries.set(kernel, registry);
 	}
-	const existing = kernel.getSnapshot().vendors?.declared;
-	const named = new Set(
-		[...owners, ...previous].flatMap((owner) =>
-			owner.vendor ? [owner.vendor] : []
-		)
-	);
-	const dropped = new Set(
-		previous.flatMap((owner) =>
-			owner.vendor
-				? [`${owner.vendor}\u0000${JSON.stringify(owner.category)}`]
-				: []
-		)
-	);
-	// What the other owners of each named slug contributed, as owners of its
-	// own, so the merge below keeps them alongside the caller's conditions.
-	const retained: VendorOwner[] = [];
-	for (const vendor of existing ?? []) {
-		if (!named.has(vendor.id)) {
-			continue;
-		}
-		const condition =
-			vendor.source === 'script' ? vendor.category : vendor.ownerCategory;
-		// A sole owner's condition is stored as is, so an `or` it contributed
-		// is the whole stored condition rather than one member of it.
-		if (
-			condition === undefined ||
-			dropped.has(`${vendor.id}\u0000${JSON.stringify(condition)}`)
-		) {
-			continue;
-		}
-		for (const member of ownerMembers(condition)) {
-			if (!dropped.has(`${vendor.id}\u0000${JSON.stringify(member)}`)) {
-				retained.push({ category: member, vendor: vendor.id });
-			}
+	const own = owners.filter((owner) => owner.vendor);
+	const before = source === undefined ? [] : (registry.get(source) ?? []);
+	if (source !== undefined) {
+		if (own.length > 0) {
+			registry.set(source, own);
+		} else {
+			registry.delete(source);
 		}
 	}
 	const seen = new Set<string>();
-	const merged = [...retained, ...owners].filter((owner) => {
-		if (!owner.vendor) {
-			return false;
-		}
+	const union: VendorOwner[] = [];
+	for (const owner of [...[...registry.values()].flat(), ...own]) {
 		const key = `${owner.vendor}\u0000${JSON.stringify(owner.category)}`;
-		if (seen.has(key)) {
-			return false;
+		if (!seen.has(key)) {
+			seen.add(key);
+			union.push(owner);
 		}
-		seen.add(key);
-		return true;
+	}
+	const named = new Set(
+		[...union, ...before].flatMap((owner) =>
+			owner.vendor ? [owner.vendor] : []
+		)
+	);
+	if (named.size === 0) {
+		return;
+	}
+	const existing = kernel.getSnapshot().vendors?.declared ?? [];
+	// Owner conditions on a named slug are rebuilt from the union, so they
+	// are stripped first; a declared vendor keeps everything else.
+	const stripped = existing.flatMap((vendor) => {
+		if (!named.has(vendor.id)) {
+			return [vendor];
+		}
+		const bare = withoutOwnerConditions(vendor);
+		return bare ? [bare] : [];
 	});
-	const declared = resolveVendors({ existing, owners: merged });
-	kernel.set.vendors({ declared });
+	const declared = resolveVendors({ existing: stripped, owners: union });
+	// The script source is replaced rather than merged: a slug no module
+	// names any more must lose its script entry, and a merge cannot remove.
+	// Every other script entry is in `declared`, so it comes straight back.
+	kernel.set.vendors({ declared }, { replaceSource: 'script' });
+};
+
+/**
+ * Forget a module's contribution when it is disposed. Nothing is committed:
+ * the entries stay until another module's update rebuilds the slugs they
+ * share, since a disposed module's declarations are not evidence any more.
+ */
+export const forgetOwnedVendors = function forgetOwnedVendors(
+	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
+	source: symbol
+): void {
+	registries.get(kernel)?.delete(source);
 };

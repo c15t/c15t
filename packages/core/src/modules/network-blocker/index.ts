@@ -32,7 +32,7 @@
  *   subscribe tick.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
-import { declareOwnedVendors } from '../../libs/vendors';
+import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { installFetchPatch } from './patch-fetch';
 import { installXhrPatch } from './patch-xhr';
@@ -58,11 +58,12 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	const { kernel, onRequestBlocked } = options;
 	const logBlocked = options.logBlockedRequests ?? true;
 	let rules: NetworkBlockerRule[] = [...(options.rules ?? [])];
-	const registerCategories = (previous: readonly NetworkBlockerRule[] = []) => {
+	const ownerSource = Symbol('network-blocker');
+	const registerCategories = () => {
 		kernel.set.registerConsentCategories(
 			rules.flatMap((rule) => extractConsentNamesFromCondition(rule.category))
 		);
-		declareOwnedVendors(kernel, rules, previous);
+		declareOwnedVendors(kernel, rules, ownerSource);
 	};
 	registerCategories();
 	let enabled = options.enabled !== false;
@@ -77,11 +78,8 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	let lastVendors: unknown = snapshot.vendors;
 	const declareMissingVendors = (next: ConsentSnapshot): void => {
 		const declared = new Set(next.vendors?.declared.map((vendor) => vendor.id));
-		const missing = rules.filter(
-			(rule) => rule.vendor && !declared.has(rule.vendor)
-		);
-		if (missing.length > 0) {
-			declareOwnedVendors(kernel, missing);
+		if (rules.some((rule) => rule.vendor && !declared.has(rule.vendor))) {
+			declareOwnedVendors(kernel, rules, ownerSource);
 		}
 	};
 
@@ -104,14 +102,14 @@ export const createNetworkBlocker = function createNetworkBlocker(
 		return {
 			dispose() {
 				unsubscribe();
+				forgetOwnedVendors(kernel, ownerSource);
 			},
 			setEnabled(v) {
 				enabled = v;
 			},
 			updateRules(next) {
-				const previous = rules;
 				rules = [...next];
-				registerCategories(previous);
+				registerCategories();
 			},
 		};
 	}
@@ -149,14 +147,14 @@ export const createNetworkBlocker = function createNetworkBlocker(
 			unsubscribe();
 			uninstallFetch();
 			uninstallXhr();
+			forgetOwnedVendors(kernel, ownerSource);
 		},
 		setEnabled(v) {
 			enabled = v;
 		},
 		updateRules(next) {
-			const previous = rules;
 			rules = [...next];
-			registerCategories(previous);
+			registerCategories();
 		},
 	};
 };

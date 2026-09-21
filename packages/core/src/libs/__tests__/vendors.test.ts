@@ -4,7 +4,6 @@ import { describe, expect, test, vi } from 'vitest';
 import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../kernel';
 import type { ResolvedVendor } from '../../types';
-import type { VendorOwner } from '../vendors';
 import {
 	declareOwnedVendors,
 	mergeDeclaredVendors,
@@ -341,32 +340,48 @@ describe('declareOwnedVendors', () => {
 				vendor.id,
 				vendor.source === 'script' ? vendor.category : vendor.ownerCategory,
 			]);
-
-	test('a slug two modules share keeps both conditions whichever declares last', () => {
-		const kernel = createConsentKernel({
+	const kernelFor = () =>
+		createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 			now: NOW,
 		});
-		declareOwnedVendors(kernel, [{ category: 'measurement', vendor: 'ga' }]);
-		declareOwnedVendors(kernel, [{ category: 'marketing', vendor: 'ga' }]);
+
+	test('a slug two modules share keeps both conditions whichever declares last', () => {
+		const kernel = kernelFor();
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'measurement', vendor: 'ga' }],
+			Symbol('script')
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'ga' }],
+			Symbol('rule')
+		);
 		expect(declared(kernel)).toEqual([
 			['ga', { or: ['measurement', 'marketing'] }],
 		]);
 		kernel.dispose();
 	});
 
-	test('a module that moves its slug takes its old condition with it', () => {
-		const kernel = createConsentKernel({
-			initialRecords: choiceRecords({ marketing: true, measurement: true }),
-			now: NOW,
-		});
-		const rule = { category: 'marketing' as const, vendor: 'ga' };
-		declareOwnedVendors(kernel, [{ category: 'measurement', vendor: 'ga' }]);
-		declareOwnedVendors(kernel, [rule]);
+	test('a module that moves its slug takes only its own condition with it', () => {
+		const kernel = kernelFor();
+		const script = Symbol('script');
+		const rule = Symbol('rule');
 		declareOwnedVendors(
 			kernel,
-			[{ ...rule, category: 'functionality' }],
-			[rule]
+			[{ category: 'measurement', vendor: 'ga' }],
+			rule
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'ga' }],
+			script
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'functionality', vendor: 'ga' }],
+			script
 		);
 		expect(declared(kernel)).toEqual([
 			['ga', { or: ['measurement', 'functionality'] }],
@@ -375,24 +390,62 @@ describe('declareOwnedVendors', () => {
 	});
 
 	test('a sole owner that moves away from an or condition takes all of it along', () => {
-		const kernel = createConsentKernel({
-			initialRecords: choiceRecords({ marketing: true, measurement: true }),
-			now: NOW,
-		});
-		const rule: VendorOwner = {
-			category: { or: ['measurement', 'marketing'] },
-			vendor: 'ga',
-		};
-		declareOwnedVendors(kernel, [rule]);
+		const kernel = kernelFor();
+		const rule = Symbol('rule');
+		declareOwnedVendors(
+			kernel,
+			[{ category: { or: ['measurement', 'marketing'] }, vendor: 'ga' }],
+			rule
+		);
 		expect(declared(kernel)).toEqual([
 			['ga', { or: ['measurement', 'marketing'] }],
 		]);
 		declareOwnedVendors(
 			kernel,
-			[{ ...rule, category: 'functionality' }],
-			[rule]
+			[{ category: 'functionality', vendor: 'ga' }],
+			rule
 		);
 		expect(declared(kernel)).toEqual([['ga', 'functionality']]);
+		kernel.dispose();
+	});
+
+	test('two modules owning a slug under the same condition keep it when one moves', () => {
+		const kernel = kernelFor();
+		const script = Symbol('script');
+		const rule = Symbol('rule');
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'measurement', vendor: 'ga' }],
+			script
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'measurement', vendor: 'ga' }],
+			rule
+		);
+		expect(declared(kernel)).toEqual([['ga', 'measurement']]);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'ga' }],
+			script
+		);
+		// The rule still owns it under measurement.
+		expect(declared(kernel)).toEqual([
+			['ga', { or: ['marketing', 'measurement'] }],
+		]);
+		kernel.dispose();
+	});
+
+	test('a slug nothing names any more loses its script entry', () => {
+		const kernel = kernelFor();
+		const script = Symbol('script');
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'ga' }],
+			script
+		);
+		declareOwnedVendors(kernel, [], script);
+		expect(kernel.getSnapshot().vendors).toBeNull();
 		kernel.dispose();
 	});
 
@@ -405,12 +458,16 @@ describe('declareOwnedVendors', () => {
 			},
 			now: NOW,
 		});
-		declareOwnedVendors(kernel, [
-			{ category: 'measurement', vendor: 'meta-pixel' },
-		]);
-		declareOwnedVendors(kernel, [
-			{ category: 'marketing', vendor: 'meta-pixel' },
-		]);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'measurement', vendor: 'meta-pixel' }],
+			Symbol('script')
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: 'meta-pixel' }],
+			Symbol('rule')
+		);
 		expect(declared(kernel)).toEqual([
 			['meta-pixel', { or: ['measurement', 'marketing'] }],
 		]);
