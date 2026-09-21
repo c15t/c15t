@@ -97,8 +97,12 @@ export type {
 } from './components/preferences';
 export type { FrameProps } from './components/frame';
 export { Frame } from './components/frame';
-export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
-export { ConsentDraftProvider, useConsentDraft } from './draft';
+export type {
+	ConsentDraftHandle,
+	ConsentDraftProviderProps,
+	VendorDraftHandle,
+} from './draft';
+export { ConsentDraftProvider, useConsentDraft, useVendorDraft } from './draft';
 export { useConsentManager } from './component-hooks/use-manager';
 export { useTranslations } from './component-hooks/use-translations';
 export {

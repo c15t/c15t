@@ -501,3 +501,39 @@ export const useConsentManagerDraft = function useConsentManagerDraft() {
 export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
 	return useDraftHandle(useDraftStore());
 };
+
+/** The vendor slice of the consent draft, for a custom vendor control. */
+export interface VendorDraftHandle {
+	/** Granted flag per declared vendor. See {@link ConsentDraftHandle.vendors}. */
+	vendors: Readonly<Record<string, boolean>>;
+	/** Stage one vendor's grant for the next save. See {@link ConsentDraftHandle.setVendor}. */
+	setVendor: (vendorId: string, granted: boolean) => void;
+	/** Whether any draft value, category or vendor, differs from the record. */
+	isDirty: boolean;
+	/** Confirm the draft, categories and vendors together. */
+	save: () => Promise<SaveResult>;
+}
+
+/**
+ * Read and stage vendor grants on the same draft the category switches use.
+ * A custom vendor toggle needs only this; the categories stay where the
+ * stock widget or `useConsentDraft()` left them, and one save confirms both.
+ *
+ * @returns The draft's vendor map, the setter, the dirty flag and the save.
+ * @example
+ * ```tsx
+ * const { vendors, setVendor, save } = useVendorDraft();
+ * <Switch
+ *   checked={vendors['meta-pixel'] ?? true}
+ *   onCheckedChange={(on) => setVendor('meta-pixel', on)}
+ * />;
+ * ```
+ * @public
+ */
+export const useVendorDraft = function useVendorDraft(): VendorDraftHandle {
+	const { isDirty, save, setVendor, vendors } = useDraftHandle(useDraftStore());
+	return useMemo(
+		() => ({ isDirty, save, setVendor, vendors }),
+		[isDirty, save, setVendor, vendors]
+	);
+};

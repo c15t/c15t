@@ -17,8 +17,17 @@ import type { ReactNode } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentDraftProvider, useConsentDraft } from '../draft';
-import { useConsent, useSaveConsents, useSnapshot } from '../hooks';
+import {
+	ConsentDraftProvider,
+	useConsentDraft,
+	useVendorDraft,
+} from '../draft';
+import {
+	useConsent,
+	useSaveConsents,
+	useSnapshot,
+	useVendorChoice,
+} from '../hooks';
 import { ConsentProvider } from '../provider';
 import { offline } from '../transports/offline';
 import { policyFixture } from './policy-fixture';
@@ -358,6 +367,85 @@ test('the vendor draft ignores a stale denial for a vendor declared disabled', a
 	await expect
 		.element(screen.getByRole('status'))
 		.toHaveTextContent('{"meta-pixel":true}');
+});
+
+test('useVendorDraft stages a vendor on the shared draft and saves it', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'vendor-draft-hook' }
+	);
+	const Probe = () => {
+		const { isDirty, save, setVendor, vendors } = useVendorDraft();
+		// Under one `ConsentDraftProvider` the category draft sees the same
+		// staging, so one save confirms both.
+		const draft = useConsentDraft();
+		const denied = useVendorChoice()?.denied ?? [];
+		return (
+			<>
+				<output>
+					{JSON.stringify({
+						denied,
+						dirty: isDirty,
+						sharedDirty: draft.isDirty,
+						vendors,
+					})}
+				</output>
+				<button
+					onClick={() => setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+				<button
+					onClick={() => {
+						save();
+					}}
+					type="button"
+				>
+					Save
+				</button>
+			</>
+		);
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: fixture,
+				vendors: [
+					{
+						category: 'marketing',
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<ConsentDraftProvider>
+				<Probe />
+			</ConsentDraftProvider>
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"denied":[],"dirty":false,"sharedDirty":false,"vendors":{"meta-pixel":true}}'
+		);
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"denied":[],"dirty":true,"sharedDirty":true,"vendors":{"meta-pixel":false}}'
+		);
+	await screen.getByRole('button', { name: 'Save' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"denied":["meta-pixel"],"dirty":false,"sharedDirty":false,"vendors":{"meta-pixel":false}}'
+		);
 });
 
 test('setVendor ignores a vendor declared disabled', async () => {
