@@ -501,13 +501,17 @@ export const declareOwnedVendors = function declareOwnedVendors(
 };
 
 /**
- * Forget a module's contribution when it is disposed. Nothing is committed:
- * the entries stay until another module's update rebuilds the slugs they
- * share, since a disposed module's declarations are not evidence any more.
+ * Forget a module's contribution when it is disposed. The slugs it named
+ * are rebuilt from what the other modules still declare, the same as an
+ * update to an empty list: a slug only the disposed module named loses its
+ * script entry and stops being toggleable, a shared slug keeps the
+ * survivors' categories, and a declared vendor keeps its presentation.
  */
 export const forgetOwnedVendors = function forgetOwnedVendors(
 	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
 	source: symbol
 ): void {
-	registries.get(kernel)?.delete(source);
+	if (registries.get(kernel)?.has(source)) {
+		declareOwnedVendors(kernel, [], source);
+	}
 };

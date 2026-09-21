@@ -63,11 +63,22 @@ export const createIframeBlocker = function createIframeBlocker(
 		};
 	}
 
-	// Every slug and category a frame on this page has named so far. A scan
-	// only sees the frames that changed, so the blocker's declaration is the
-	// running union rather than the last batch.
+	// What each frame on the page names right now, so the blocker's
+	// declaration follows the live frames: a frame that changes its slug or
+	// category, or leaves the page, takes its old pair with it. A scan only
+	// sees the frames that changed, so the map is keyed by frame and the
+	// declaration is the union over every frame still known.
 	const ownerSource = Symbol('iframe-blocker');
-	const framed = new Map<string, VendorOwner>();
+	const framed = new Map<HTMLIFrameElement, VendorOwner>();
+	const ownerKey = (owner: VendorOwner) =>
+		`${owner.vendor}\u0000${JSON.stringify(owner.category)}`;
+	const currentOwners = () => {
+		const seen = new Map<string, VendorOwner>();
+		for (const owner of framed.values()) {
+			seen.set(ownerKey(owner), owner);
+		}
+		return [...seen.values()];
+	};
 	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
 		const list = Array.from(iframes);
 		kernel.set.registerConsentCategories(
@@ -81,29 +92,35 @@ export const createIframeBlocker = function createIframeBlocker(
 		// the same slug has arrived. A frame with only `data-vendor` has no
 		// category to declare under; `reconcileIframe` holds it against the
 		// stored denial directly instead.
-		let added = false;
+		const before = new Set(currentOwners().map(ownerKey));
 		for (const iframe of list) {
 			const vendor = determineVendor(iframe);
 			const category = determineCategory(iframe);
-			if (!vendor || !category) {
-				continue;
-			}
-			const key = `${vendor}\u0000${category}`;
-			if (!framed.has(key)) {
-				framed.set(key, { category, vendor });
-				added = true;
+			if (vendor && category && iframe.isConnected !== false) {
+				framed.set(iframe, { category, vendor });
+			} else {
+				framed.delete(iframe);
 			}
 		}
+		for (const iframe of [...framed.keys()]) {
+			if (iframe.isConnected === false) {
+				framed.delete(iframe);
+			}
+		}
+		const owners = currentOwners();
+		const changed =
+			owners.length !== before.size ||
+			owners.some((owner) => !before.has(ownerKey(owner)));
 		// Also when another source swept a framed slug out of the declared
 		// set: a frame on the page owns its slug for as long as it is there.
 		const declaredIds = new Set(
 			kernel.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
 		);
-		const missing = [...framed.values()].some(
+		const missing = owners.some(
 			(owner) => owner.vendor && !declaredIds.has(owner.vendor)
 		);
-		if (added || missing) {
-			declareOwnedVendors(kernel, [...framed.values()], ownerSource);
+		if (changed || missing) {
+			declareOwnedVendors(kernel, owners, ownerSource);
 		}
 	};
 
@@ -125,6 +142,23 @@ export const createIframeBlocker = function createIframeBlocker(
 					iframes.add(element as HTMLIFrameElement);
 				}
 				for (const iframe of Array.from(element.querySelectorAll('iframe'))) {
+					iframes.add(iframe);
+				}
+			}
+			// A frame that left the page takes its declaration with it. Only
+			// frames the blocker knows are re-registered, so a removed subtree
+			// costs nothing when it held no gated frame.
+			for (const node of Array.from(mutation.removedNodes ?? [])) {
+				if (node.nodeType !== 1) {
+					continue;
+				}
+				const element = node as Element;
+				if (element.tagName?.toUpperCase() === 'IFRAME') {
+					iframes.add(element as HTMLIFrameElement);
+				}
+				for (const iframe of Array.from(
+					element.querySelectorAll?.('iframe') ?? []
+				)) {
 					iframes.add(iframe);
 				}
 			}

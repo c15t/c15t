@@ -450,7 +450,7 @@ describe('declareOwnedVendors', () => {
 		kernel.dispose();
 	});
 
-	test('a forgotten module drops out of the next rebuild of a shared slug', () => {
+	test('a forgotten module drops out of a shared slug at once', () => {
 		const kernel = kernelFor();
 		const script = Symbol('script');
 		const rule = Symbol('rule');
@@ -464,18 +464,37 @@ describe('declareOwnedVendors', () => {
 			[{ category: 'marketing', vendor: 'ga' }],
 			rule
 		);
-		// Forgetting commits nothing on its own: a disposed module's entry
-		// stays until another update rebuilds the slugs it named.
+		// A disposed module's declarations are not evidence any more, so the
+		// slug it shared is rebuilt from the survivor without waiting for
+		// another update.
 		forgetOwnedVendors(kernel, script);
-		expect(declared(kernel)).toEqual([
-			['ga', { or: ['measurement', 'marketing'] }],
-		]);
+		expect(declared(kernel)).toEqual([['ga', 'marketing']]);
+		kernel.dispose();
+	});
+
+	test('a disposed module takes the slug only it named with it', () => {
+		// A standalone loader disposed while the kernel lives on: nothing
+		// else names its slug, so it must stop being toggleable rather than
+		// keep influencing vendor saves from a module that is gone.
+		const kernel = kernelFor();
+		const script = Symbol('script');
+		const rule = Symbol('rule');
 		declareOwnedVendors(
 			kernel,
-			[{ category: 'marketing', vendor: 'ga' }],
+			[{ category: 'marketing', vendor: 'hotjar' }],
+			script
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'measurement', vendor: 'ga' }],
 			rule
 		);
-		expect(declared(kernel)).toEqual([['ga', 'marketing']]);
+		forgetOwnedVendors(kernel, script);
+		expect(declared(kernel)).toEqual([['ga', 'measurement']]);
+		// Forgetting a module that never declared commits nothing.
+		const before = kernel.getSnapshot().vendors;
+		forgetOwnedVendors(kernel, Symbol('never'));
+		expect(kernel.getSnapshot().vendors).toBe(before);
 		kernel.dispose();
 	});
 

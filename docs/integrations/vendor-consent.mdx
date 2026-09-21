@@ -101,6 +101,8 @@ configured. If a backend list or a provider update drops the entry, the
 loader or blocker puts it back, so a stored denial keeps gating it. A slug
 several modules share stays under every category they name it with, whichever
 module updates last, and drops a category only once no module names it there.
+Disposing a loader or blocker, or removing a gated frame from the page, drops
+what only it named, so a vendor no live module owns stops being toggleable.
 
 ## Record a vendor choice
 

@@ -2,7 +2,12 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type { OptionalConsentCategory } from '../consent-record/types';
 import type { SavePayload } from '../types';
 
-/** Keep surviving confirmations without renewing their receipts or action time. */
+/**
+ * Keep surviving confirmations without renewing their receipts or action
+ * time. The vendor grant map rides along untouched: it is a whole decision
+ * of its own, and only a newer action that carried its own map supersedes
+ * it, which the callers check.
+ */
 export const selectSavePayload = function selectSavePayload(
 	payload: SavePayload,
 	keep: (category: OptionalConsentCategory) => boolean
@@ -34,15 +39,13 @@ export const selectSavePayload = function selectSavePayload(
 			consents[category] = payload.consents[category];
 		}
 	}
-	const { vendorChoice: _superseded, ...rest } = payload;
 	return {
-		...rest,
+		...payload,
 		choice: { categories: receipts, version: 3 },
 		confirmed: { ...payload.confirmed, categories },
 		consentAction: 'custom',
 		consents,
 		// A partial category action cannot replay the superseded full TC selection.
 		tcString: null,
-		// Nor the full vendor grant map: a newer action already carried it.
 	};
 };

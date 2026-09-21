@@ -972,8 +972,10 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
  * valid one by `confirmedAt`. The two can disagree: a compact cookie that
  * grew past the browser's limit fails to write while localStorage already
  * holds the new list, and the previous cookie would otherwise win on the
- * next load and drop a denial the visitor just recorded. `null` when
- * nothing is stored.
+ * next load and drop a denial the visitor just recorded. On a tie the
+ * localStorage copy wins: the subject rewrite after `subject:resolved`
+ * keeps the decision's time, so an equal time with different content means
+ * the cookie missed that rewrite. `null` when nothing is stored.
  */
 export const readStoredVendorChoice = function readStoredVendorChoice(
 	config: StorageConfig | undefined,
@@ -991,7 +993,7 @@ export const readStoredVendorChoice = function readStoredVendorChoice(
 		onUnavailable
 	);
 	if (fromCookie?.ok && fromLocal?.ok) {
-		return fromLocal.record.confirmedAt > fromCookie.record.confirmedAt
+		return fromLocal.record.confirmedAt >= fromCookie.record.confirmedAt
 			? fromLocal
 			: fromCookie;
 	}

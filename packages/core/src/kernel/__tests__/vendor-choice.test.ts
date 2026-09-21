@@ -13,6 +13,7 @@ import {
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../index';
+import { PENDING_SAVES_STORAGE_KEY } from '../../libs/storage-keys';
 import type {
 	KernelVendorsState,
 	ResolvedVendor,
@@ -637,6 +638,31 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a bulk action over an empty choice scope is not the full clear', async () => {
+		// The configured categories share nothing with the rule's scope, so
+		// the visitor decides nothing here and `choiceScope` is empty. A
+		// narrowed action then covers it vacuously, and must not clear the
+		// denials of vendors under categories it never named.
+		const kernel = createKernel({
+			consentCategories: ['functionality'],
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['google-analytics', 'meta-pixel'],
+					version: 1,
+				},
+			},
+		});
+		expect(kernel.getSnapshot().evaluationPolicy.choiceScope).toEqual([]);
+		await kernel.commands.save('none', { categories: ['functionality'] });
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'google-analytics',
+			'meta-pixel',
+		]);
+		kernel.dispose();
+	});
+
 	test('a bulk action with no declared vendors records no vendor decision', async () => {
 		const kernel = createKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
@@ -940,7 +966,7 @@ describe('server records and init', () => {
 });
 
 describe('replay narrowing', () => {
-	test('a narrowed replay drops the full vendor grant map', () => {
+	test('a narrowed replay keeps the vendor grant map for its caller to judge', () => {
 		const payload: SavePayload = {
 			choice: choiceRecords({ marketing: true, measurement: true })
 				.choice as SavePayload['choice'],
@@ -974,12 +1000,82 @@ describe('replay narrowing', () => {
 			(category) => category === 'marketing'
 		);
 		expect(narrowed).not.toBeNull();
-		expect(narrowed).not.toHaveProperty('vendorChoice');
+		// Narrowing the receipts says nothing about the map: it was the
+		// visitor's whole vendor decision and only a newer map supersedes it.
+		expect(narrowed?.vendorChoice).toEqual(payload.vendorChoice);
+		expect(Object.keys(narrowed?.confirmed.categories ?? {})).toEqual([
+			'marketing',
+		]);
 		expect(selectSavePayload(payload, () => true)).toBe(payload);
 	});
 });
 
 describe('in-flight saves', () => {
+	test('a failed save queues its vendor map when only a category was superseded', async () => {
+		// One combined action: categories plus a vendor denial. While it is
+		// in flight a subject read supersedes one category, and the request
+		// then fails. The queued replay must still carry the vendor map,
+		// since no newer action ever carried one; dropping it would lose
+		// the denial on the backend.
+		let fail: ((error: Error) => void) | undefined;
+		const save = vi
+			.fn<NonNullable<KernelTransport['save']>>()
+			.mockImplementationOnce(
+				() =>
+					new Promise((_resolve, reject) => {
+						fail = reject;
+					})
+			)
+			.mockResolvedValue({ ok: true });
+		// The queue lives in `window.localStorage`; the kernel suite runs in
+		// Node, so a minimal window stands in for it.
+		const values = new Map<string, string>();
+		const events = new EventTarget();
+		vi.stubGlobal('window', {
+			addEventListener: events.addEventListener.bind(events),
+			localStorage: {
+				getItem: (key: string) => values.get(key) ?? null,
+				key: (index: number) => [...values.keys()][index] ?? null,
+				get length() {
+					return values.size;
+				},
+				removeItem: (key: string) => values.delete(key),
+				setItem: (key: string, value: string) => values.set(key, value),
+			},
+			removeEventListener: events.removeEventListener.bind(events),
+		});
+		const enqueued: SavePayload[] = [];
+		const kernel = createKernel({ transport: { save } });
+		const pending = kernel.commands.save(
+			{ marketing: true, measurement: true },
+			{ vendors: { 'meta-pixel': false } }
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(save).toHaveBeenCalledTimes(1);
+		// A newer action for measurement only, with no vendor decision of its
+		// own, lands while the first request is out.
+		await kernel.commands.save({ measurement: false });
+		fail?.(new Error('offline'));
+		await pending;
+		for (const entry of JSON.parse(
+			values.get(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		) as { payload: SavePayload }[]) {
+			enqueued.push(entry.payload);
+		}
+		expect(enqueued).toHaveLength(1);
+		expect(Object.keys(enqueued[0]?.confirmed.categories ?? {})).toEqual([
+			'marketing',
+		]);
+		expect(enqueued[0]?.vendorChoice?.grants['meta-pixel']).toBe(false);
+		vi.unstubAllGlobals();
+		kernel.dispose();
+	});
+
 	test('a later vendor toggle strips the stale map but keeps category receipts', async () => {
 		let release: (() => void) | undefined;
 		const sent: SavePayload[] = [];

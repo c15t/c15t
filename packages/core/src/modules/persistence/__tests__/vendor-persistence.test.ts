@@ -220,6 +220,52 @@ describe('vendor persistence', () => {
 		}
 	});
 
+	it('prefers the localStorage copy when both projections carry the same time', () => {
+		// The subject rewrite after `subject:resolved` keeps the decision's
+		// time. When the enlarged cookie is dropped and only localStorage took
+		// the rewrite, the tie must go to the copy that saw it, or the next
+		// load restores the provisional subject.
+		writeStoredVendorChoice(
+			{ confirmedAt: NOW - 1, denied: ['meta-pixel'], version: 1 },
+			undefined,
+			NOW
+		);
+		const descriptor = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		);
+		const frozen = document.cookie;
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => frozen,
+			set: () => {
+				// Accepted and dropped.
+			},
+		});
+		try {
+			writeStoredVendorChoice(
+				{
+					confirmedAt: NOW - 1,
+					denied: ['meta-pixel'],
+					subject: { subjectId: 'sub_canonical' },
+					version: 1,
+				},
+				undefined,
+				NOW
+			);
+			expect(readStoredVendorChoice(undefined, NOW)).toMatchObject({
+				ok: true,
+				record: { subject: { subjectId: 'sub_canonical' } },
+			});
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(document, 'cookie', descriptor);
+			} else {
+				delete (document as { cookie?: string }).cookie;
+			}
+		}
+	});
+
 	it('clear() removes the stored record and the in-memory denials', async () => {
 		const kernel = createKernel();
 		const persistence = createPersistence({ kernel, now: () => NOW });

@@ -250,7 +250,11 @@ const coversChoiceScope = function coversChoiceScope(
 ): boolean {
 	const scope =
 		snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
-	return scope.every((category) => categories.includes(category));
+	// An empty scope is vacuously covered by `every`, and the visitor decides
+	// nothing in it, so a narrowed action there is not the full clear.
+	return (
+		scope.length > 0 && scope.every((category) => categories.includes(category))
+	);
 };
 
 /** A condition's outcome, `null` when it cannot be evaluated. */
@@ -970,19 +974,22 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					current.explicitChoice?.categories[category] ===
 					actionSnapshot.explicitChoice?.categories[category]
 			);
-			// A newer action already carries the current vendor map, so this
-			// one has nothing left to say about vendors. Its category receipts
-			// still stand on their own; a vendor-only action has nothing left.
-			if (
-				selected?.vendorChoice !== undefined &&
-				current.vendorChoice !== actionSnapshot.vendorChoice
-			) {
-				const { vendorChoice: _superseded, ...remaining } = selected;
-				return Object.keys(remaining.confirmed.categories).length > 0
-					? remaining
-					: null;
+			if (payload.vendorChoice === undefined || !selected) {
+				return selected;
 			}
-			return selected;
+			// The vendor map stands or falls on its own: narrowing the category
+			// receipts says nothing about it. It stays while it is still the
+			// current one and goes once a newer action carried a newer map, in
+			// which case a vendor-only action has nothing left to send.
+			if (current.vendorChoice === actionSnapshot.vendorChoice) {
+				return selected === payload
+					? payload
+					: { ...selected, vendorChoice: payload.vendorChoice };
+			}
+			const { vendorChoice: _superseded, ...remaining } = selected;
+			return Object.keys(remaining.confirmed.categories).length > 0
+				? remaining
+				: null;
 		};
 		const send = transport?.save;
 		if (!send) {

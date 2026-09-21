@@ -197,6 +197,68 @@ describe('iframe data-vendor', () => {
 		kernel.dispose();
 	});
 
+	test('a frame that changes its slug or leaves the page takes its declaration with it', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+			now: NOW,
+		});
+		const iframe = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const blocker = createIframeBlocker({ kernel });
+		const declared = () =>
+			kernel.getSnapshot().vendors?.declared.map((v) => [v.id, v.category]) ??
+			[];
+		expect(declared()).toEqual([['youtube', 'marketing']]);
+		// The SPA repoints the frame: the old pair must not linger as an
+		// owner that a narrowed bulk save would still reason about.
+		iframe.setAttribute('data-vendor', 'vimeo');
+		blocker.processAllIframes();
+		expect(declared()).toEqual([['vimeo', 'marketing']]);
+		iframe.setAttribute('data-category', 'measurement');
+		blocker.processAllIframes();
+		expect(declared()).toEqual([['vimeo', 'measurement']]);
+		// Gone from the page, gone from the declaration.
+		iframe.remove();
+		blocker.processAllIframes();
+		expect(kernel.getSnapshot().vendors).toBeNull();
+		blocker.dispose();
+		kernel.dispose();
+	});
+
+	test('the observer drops a removed frame and disposing the blocker drops the rest', async () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+			now: NOW,
+		});
+		const first = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const second = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'vimeo',
+			src: 'https://player.vimeo.com/video/x',
+		});
+		const blocker = createIframeBlocker({ kernel });
+		const ids = () =>
+			kernel.getSnapshot().vendors?.declared.map((v) => v.id) ?? [];
+		expect(ids()).toEqual(['vimeo', 'youtube']);
+		first.remove();
+		// jsdom delivers mutation records on a microtask.
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(ids()).toEqual(['vimeo']);
+		blocker.dispose();
+		expect(kernel.getSnapshot().vendors).toBeNull();
+		second.remove();
+		kernel.dispose();
+	});
+
 	test('the blocker re-scans when the vendor choice changes', () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true }),
