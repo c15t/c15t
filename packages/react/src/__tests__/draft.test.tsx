@@ -474,6 +474,82 @@ test('a vendor turning toggleable while the draft is dirty marks it stale', asyn
 		.toHaveTextContent('"stale":true');
 });
 
+test('a vendor losing its row while a script keeps its slug marks a dirty draft stale', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'row-disappears' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ hide }: { hide: () => void }) => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({
+						dirty: draft.isDirty,
+						stale: draft.isStale,
+						vendors: draft.vendors,
+					})}
+				</output>
+				<button
+					onClick={() => draft.setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny vendor
+				</button>
+				<button
+					onClick={hide}
+					type="button"
+				>
+					Hide vendor
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [declared, setDeclared] = useState(true);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					// The script keeps the slug declared as a hidden fallback once
+					// the presentable declaration goes, so the id set is unchanged.
+					scripts: [
+						{
+							callbackOnly: true,
+							category: 'marketing',
+							id: 'meta-script',
+							vendor: 'meta-pixel',
+						},
+					],
+					vendors: declared ? [vendor] : [],
+				}}
+			>
+				<Probe hide={() => setDeclared(false)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Deny vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"dirty":true,"stale":false');
+	// The row the edit was staged against is gone: review is required rather
+	// than saving a denial for a vendor the visitor can no longer see.
+	await screen.getByRole('button', { name: 'Hide vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"stale":true');
+});
+
 test('drafts use configured categories and require review when the displayed scope changes', async () => {
 	const Probe = ({ expand }: { expand: () => void }) => {
 		const draft = useConsentDraft();

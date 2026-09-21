@@ -91,6 +91,29 @@ const seedVendors = function seedVendors(
 	}
 	return grants;
 };
+/**
+ * What the preference surface shows for each vendor: whether it has a row
+ * at all, and which categories host it. A staged edit is made against a
+ * row, so a vendor losing its row, or moving to another category, is as
+ * material as one appearing or disappearing.
+ */
+const vendorSurface = function vendorSurface(
+	snapshot: ConsentSnapshot
+): string {
+	if (snapshot.model === 'iab') {
+		return '';
+	}
+	return JSON.stringify(
+		(snapshot.vendors?.declared ?? [])
+			.map((vendor) => [
+				vendor.id,
+				vendor.presentable,
+				vendor.disabled === true,
+				vendor.category,
+			])
+			.sort(([left], [right]) => String(left).localeCompare(String(right)))
+	);
+};
 /** Ids a save may toggle: declared and not `disabled`, mirroring the kernel. */
 const toggleableVendorIds = function toggleableVendorIds(
 	snapshot: ConsentSnapshot
@@ -147,6 +170,7 @@ const createDraftStore = function createDraftStore(
 	let base = seed(source, defaults);
 	let baseVendors = seedVendors(source);
 	let toggleable = toggleableVendorIds(source);
+	let surface = vendorSurface(source);
 	let { fingerprint } = source.evaluationPolicy.choice;
 	let current: DraftSnapshot = {
 		displayedCategories: [
@@ -178,6 +202,7 @@ const createDraftStore = function createDraftStore(
 		base = seed(source, defaults);
 		baseVendors = seedVendors(source);
 		toggleable = toggleableVendorIds(source);
+		surface = vendorSurface(source);
 		({ fingerprint } = source.evaluationPolicy.choice);
 		publish({
 			displayedCategories: [
@@ -263,21 +288,13 @@ const createDraftStore = function createDraftStore(
 			nextScope.some(
 				(category) => !current.displayedCategories.includes(category)
 			);
-		// A changed vendor list is material too: the draft's vendor grants are
-		// keyed by the declared ids, so a new or removed vendor needs a reset.
-		// Only the ids matter here; a recorded grant change is what a save
-		// produces and reseeds through the clean-draft path below.
-		const nextIds = Object.keys(seedVendors(next)).sort();
-		const baseIds = Object.keys(baseVendors).sort();
-		// Toggleability is part of the shape too: a vendor that moves between
-		// `disabled` and toggleable changes which switches may be staged.
-		const nextToggleable = [...toggleableVendorIds(next)].sort();
-		const baseToggleable = [...toggleable].sort();
-		const vendorsChanged =
-			nextIds.length !== baseIds.length ||
-			nextIds.some((id, index) => id !== baseIds[index]) ||
-			nextToggleable.length !== baseToggleable.length ||
-			nextToggleable.some((id, index) => id !== baseToggleable[index]);
+		// A changed vendor surface is material too: the draft's vendor grants
+		// are staged against rows, so a vendor appearing, disappearing, losing
+		// its row while a script keeps its slug, moving category, or flipping
+		// between `disabled` and toggleable needs a reset. A recorded grant
+		// change is what a save produces and reseeds through the clean-draft
+		// path below.
+		const vendorsChanged = vendorSurface(next) !== surface;
 		const material =
 			fingerprint !== next.evaluationPolicy.choice.fingerprint ||
 			scopeChanged ||
