@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../kernel';
 import type { ResolvedVendor } from '../../types';
+import type { VendorOwner } from '../vendors';
 import {
 	declareOwnedVendors,
 	mergeDeclaredVendors,
@@ -370,6 +371,28 @@ describe('declareOwnedVendors', () => {
 		expect(declared(kernel)).toEqual([
 			['ga', { or: ['measurement', 'functionality'] }],
 		]);
+		kernel.dispose();
+	});
+
+	test('a sole owner that moves away from an or condition takes all of it along', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
+			now: NOW,
+		});
+		const rule: VendorOwner = {
+			category: { or: ['measurement', 'marketing'] },
+			vendor: 'ga',
+		};
+		declareOwnedVendors(kernel, [rule]);
+		expect(declared(kernel)).toEqual([
+			['ga', { or: ['measurement', 'marketing'] }],
+		]);
+		declareOwnedVendors(
+			kernel,
+			[{ ...rule, category: 'functionality' }],
+			[rule]
+		);
+		expect(declared(kernel)).toEqual([['ga', 'functionality']]);
 		kernel.dispose();
 	});
 

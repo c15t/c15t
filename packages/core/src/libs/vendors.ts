@@ -464,6 +464,14 @@ export const declareOwnedVendors = function declareOwnedVendors(
 		}
 		const condition =
 			vendor.source === 'script' ? vendor.category : vendor.ownerCategory;
+		// A sole owner's condition is stored as is, so an `or` it contributed
+		// is the whole stored condition rather than one member of it.
+		if (
+			condition === undefined ||
+			dropped.has(`${vendor.id}\u0000${JSON.stringify(condition)}`)
+		) {
+			continue;
+		}
 		for (const member of ownerMembers(condition)) {
 			if (!dropped.has(`${vendor.id}\u0000${JSON.stringify(member)}`)) {
 				retained.push({ category: member, vendor: vendor.id });
