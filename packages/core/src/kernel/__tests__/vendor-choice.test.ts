@@ -593,6 +593,35 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a stored denial for a vendor nothing declares travels in the grant map', async () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['meta-pixel', 'retired-vendor'],
+					version: 1,
+				},
+			},
+			transport: { save },
+		});
+		// An unrelated category save: the backend reads the map as the whole
+		// decision, so the retired vendor's denial has to be in it or another
+		// device will read it as granted.
+		await kernel.commands.save({ marketing: true, measurement: false });
+		const payload = save.mock.calls[0]?.[0] as SavePayload;
+		expect(payload.vendorChoice?.grants).toEqual({
+			cdn: true,
+			'google-analytics': true,
+			'meta-pixel': false,
+			'retired-vendor': false,
+		});
+		kernel.dispose();
+	});
+
 	test('a category save with no vendor decision sends no vendor map', async () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })

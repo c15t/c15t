@@ -466,6 +466,21 @@ const vendorChoicePayload = function vendorChoicePayload(
 			writable: true,
 		});
 	}
+	// A denial the local record still holds for a vendor nothing declares
+	// right now travels too. The backend reads the map as the whole
+	// decision, so leaving it out would tell every other device the visitor
+	// granted a vendor they turned off, and a later redeclaration would
+	// split the devices. Locally the gate already ignores it.
+	for (const id of denied) {
+		if (!Object.hasOwn(grants, id)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: false,
+				writable: true,
+			});
+		}
+	}
 	return {
 		confirmedAt: snapshot.vendorChoice.confirmedAt,
 		grants,
