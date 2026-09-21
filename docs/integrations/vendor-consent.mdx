@@ -6,10 +6,11 @@ group: integrations
 
 ## Declare vendors
 
-Add `vendors` to your runtime options, or to the React provider's options.
-Each vendor sits inside a category condition and needs a name and a privacy
-policy URL so the preference surface can list it. Scripts, rules and iframes
-are gated the same way whichever place declares it:
+Add `vendors` to your runtime options. Each vendor sits inside a category
+condition and needs a name and a privacy policy URL so the preference surface
+can list it. The React provider takes the same option once its preference
+center renders vendor rows; scripts, rules and iframes are gated the same way
+whichever place declares it:
 
 ```ts
 import { hosted, type Vendor } from 'c15t';
@@ -109,9 +110,11 @@ Vendor grants travel with the save. Stage them and confirm with the next save,
 or pass them next to the categories:
 
 ```ts
-// Stage from a toggle handler; nothing changes until save() runs.
+// Stage from a toggle handler; nothing changes until save({}) runs. The
+// empty patch confirms no category, so only the staged vendor is recorded;
+// save() with no input would reconfirm every displayed category too.
 runtime.stageVendorConsent('meta-pixel', false);
-await runtime.kernel.commands.save();
+await runtime.kernel.commands.save({});
 
 // Or confirm categories and vendors in one action.
 await runtime.kernel.commands.save({

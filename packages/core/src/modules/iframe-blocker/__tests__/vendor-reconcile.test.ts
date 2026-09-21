@@ -228,6 +228,35 @@ describe('iframe data-vendor', () => {
 		kernel.dispose();
 	});
 
+	test('a manual pass drops a connected frame that lost its gate attributes', () => {
+		// No observer under `disableAutomaticBlocking`, so the manual pass is
+		// the only sweep. Its selector skips a frame with neither attribute,
+		// and the frame is still on the page; the declaration must go anyway.
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+			now: NOW,
+		});
+		const iframe = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const blocker = createIframeBlocker({
+			disableAutomaticBlocking: true,
+			kernel,
+		});
+		blocker.processAllIframes();
+		expect(kernel.getSnapshot().vendors?.declared.map((v) => v.id)).toEqual([
+			'youtube',
+		]);
+		iframe.removeAttribute('data-vendor');
+		iframe.removeAttribute('data-category');
+		blocker.processAllIframes();
+		expect(kernel.getSnapshot().vendors).toBeNull();
+		blocker.dispose();
+		kernel.dispose();
+	});
+
 	test('the observer drops a removed frame and disposing the blocker drops the rest', async () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true }),

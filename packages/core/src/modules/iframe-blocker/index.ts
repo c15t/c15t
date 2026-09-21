@@ -102,8 +102,16 @@ export const createIframeBlocker = function createIframeBlocker(
 				framed.delete(iframe);
 			}
 		}
+		// A pass only sees the frames that changed, so the rest are checked
+		// here: one that left the page, or stayed but dropped its gate
+		// attributes, takes its declaration with it. Without an observer,
+		// under `disableAutomaticBlocking`, this is the only place that can.
 		for (const iframe of [...framed.keys()]) {
-			if (iframe.isConnected === false) {
+			if (
+				iframe.isConnected === false ||
+				!determineVendor(iframe) ||
+				!determineCategory(iframe)
+			) {
 				framed.delete(iframe);
 			}
 		}
