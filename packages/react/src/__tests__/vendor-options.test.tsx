@@ -672,6 +672,86 @@ describe('provider vendor options', () => {
 		});
 	});
 
+	test('a provider update keeps the category a hook names a shared slug under', async () => {
+		const fixture = policyFixture(
+			{ marketing: false, measurement: true },
+			{ categories: ['marketing', 'measurement'], id: 'shared-slug-hook' }
+		);
+		// The hook owns the slug under measurement, which is granted.
+		const HookLoader = () => {
+			useScriptLoader([
+				{
+					callbackOnly: true,
+					category: 'measurement',
+					id: 'hook-ga',
+					vendor: 'ga',
+				},
+			]);
+			return null;
+		};
+		const CategoryProbe = () => {
+			const declared = useDeclaredVendors();
+			const allowed = useVendorAllowed('ga');
+			return (
+				<output data-testid="category">
+					{JSON.stringify({
+						allowed,
+						category: declared.find((vendor) => vendor.id === 'ga')?.category,
+					})}
+				</output>
+			);
+		};
+		const Host = () => {
+			const [vendors, setVendors] = useState<Vendor[]>([]);
+			return (
+				<ConsentProvider
+					options={{
+						consentCategories: ['necessary', 'marketing', 'measurement'],
+						mode: offline(),
+						persistence: false,
+						prefetch: fixture,
+						// The provider names the same slug under marketing, denied.
+						scripts: [
+							{
+								callbackOnly: true,
+								category: 'marketing',
+								id: 'provider-ga',
+								vendor: 'ga',
+							},
+						],
+						vendors,
+					}}
+				>
+					<HookLoader />
+					<button
+						data-testid="declare"
+						onClick={() => setVendors([{ ...META, id: 'other-vendor' }])}
+						type="button"
+					>
+						declare
+					</button>
+					<CategoryProbe />
+				</ConsentProvider>
+			);
+		};
+		const read = () =>
+			JSON.parse(
+				document.querySelector('[data-testid="category"]')?.textContent ??
+					'null'
+			) as { allowed: boolean; category?: unknown } | null;
+		render(<Host />);
+		await vi.waitFor(() => {
+			expect(read()?.allowed).toBe(true);
+		});
+		await page.getByTestId('declare').click();
+		// The provider's update must not rebuild the slug from its own owner
+		// alone: the hook's measurement branch still allows it.
+		await vi.waitFor(() => {
+			expect(read()?.category).toEqual({ or: ['marketing', 'measurement'] });
+		});
+		expect(read()?.allowed).toBe(true);
+	});
+
 	test('useVendorAllowed grants a vendor removed from the declarations despite a stored denial', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },

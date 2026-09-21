@@ -4,6 +4,8 @@ import {
 	extractConsentNamesFromCondition,
 	createConsentKernel,
 	kernelConfigToInitResponse,
+	declareOwnedVendors,
+	forgetOwnedVendors,
 	resolveVendors,
 } from '@c15t/core';
 import type {
@@ -753,11 +755,12 @@ const useProviderOptionSync = function useProviderOptionSync(
 	// are part of the same picture, since their slugs declare vendors too: a
 	// change to either recomputes the code-declared set.
 	const previousVendorsRef = useRef<string | null>(null);
-	// Slugs the provider's own scripts and rules declared last time. Only
-	// these are replaced on an update: a `useScriptLoader` or
-	// `useNetworkBlocker` hook elsewhere in the tree declares its own slugs
-	// and does not redeclare them when this list changes.
-	const ownedSlugsRef = useRef<ReadonlySet<string>>(new Set());
+	// The provider's own scripts and rules are one owner among several: a
+	// `useScriptLoader` or `useNetworkBlocker` hook elsewhere in the tree
+	// declares its own slugs under its own token, and the kernel keeps every
+	// module's contribution, so a slug both name stays under both categories
+	// whichever updates.
+	const ownerSourceRef = useRef<symbol>(Symbol('consent-provider'));
 	useEffect(() => {
 		if (!owns) {
 			return;
@@ -770,26 +773,23 @@ const useProviderOptionSync = function useProviderOptionSync(
 			options.vendors ?? [],
 			owners.map((owner) => [owner.vendor ?? null, owner.category]),
 		]);
-		const ownedNow = new Set(
-			owners.flatMap((owner) => (owner.vendor ? [owner.vendor] : []))
-		);
 		if (previousVendorsRef.current === null) {
 			previousVendorsRef.current = serialized;
-			ownedSlugsRef.current = ownedNow;
+			// The initial snapshot already carries these owners; register them
+			// so a later update from another module keeps them.
+			declareOwnedVendors(kernel, owners, ownerSourceRef.current);
 			return;
 		}
 		if (previousVendorsRef.current === serialized) {
 			return;
 		}
 		previousVendorsRef.current = serialized;
-		const ownedBefore = ownedSlugsRef.current;
-		ownedSlugsRef.current = ownedNow;
 		// Resolved against the backend entries the kernel already holds, so a
 		// script that starts naming a backend vendor's slug attaches to that
 		// entry as an owner and survives the backend dropping it later. The
-		// owners they remembered are dropped first: the current scripts and
-		// rules are the whole owner set, and a stale owner would otherwise keep
-		// a vendor declared after both its script and the backend let it go.
+		// owners they remembered are dropped first: the registry below is
+		// the whole owner set, and a stale owner would otherwise keep a
+		// vendor declared after both its script and the backend let it go.
 		const current = kernel.getSnapshot().vendors?.declared ?? [];
 		const declared = resolveVendors({
 			config: options.vendors,
@@ -805,36 +805,32 @@ const useProviderOptionSync = function useProviderOptionSync(
 				return [rest];
 			}),
 			onWarn: warnVendorDeclaration,
-			owners,
 		});
 		// The provider owns the config source outright: its previous entries
 		// are replaced, so a vendor the parent removed disappears, while a
-		// backend entry a config copy shadowed comes back. Script entries are
-		// shared with hook-owned integrations, so only the slugs this
-		// provider's own scripts and rules named before are replaced; a slug
-		// another module declared stays.
+		// backend entry a config copy shadowed comes back. The owners are then
+		// declared under this provider's token, which rebuilds every slug the
+		// old or new list names from what all modules declare.
 		kernel.set.vendors({ declared }, { replaceSource: 'config' });
-		const scriptEntries = declared.filter(
-			(vendor) => vendor.source === 'script'
-		);
-		const foreign = current.filter(
-			(vendor) =>
-				vendor.source === 'script' &&
-				!ownedBefore.has(vendor.id) &&
-				!ownedNow.has(vendor.id)
-		);
-		kernel.set.vendors(
-			{ declared: [...scriptEntries, ...foreign] },
-			{ replaceSource: 'script' }
-		);
-		if (declared.length > 0) {
-			kernel.set.registerConsentCategories(
-				declared.flatMap((vendor) =>
-					extractConsentNamesFromCondition(vendor.category)
-				)
-			);
+		declareOwnedVendors(kernel, owners, ownerSourceRef.current);
+		const names = [
+			...declared.flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+			...owners.flatMap((owner) =>
+				extractConsentNamesFromCondition(owner.category)
+			),
+		];
+		if (names.length > 0) {
+			kernel.set.registerConsentCategories(names);
 		}
 	}, [kernel, options.networkBlocker, options.scripts, options.vendors, owns]);
+	useEffect(
+		() => () => {
+			forgetOwnedVendors(kernel, ownerSourceRef.current);
+		},
+		[kernel]
+	);
 
 	useEffect(() => {
 		const nodeEnv = (
