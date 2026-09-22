@@ -1,8 +1,80 @@
 import type { ConsentState, ConsentSnapshot, SaveResult } from '@c15t/core';
+import { deniedVendorIds } from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
 import { useConsentKernelContext } from './kernel';
+
+/** Set an own property without going through the prototype for `__proto__`. */
+const setOwn = function setOwn(
+	target: Record<string, boolean>,
+	key: string,
+	value: boolean
+): void {
+	Object.defineProperty(target, key, {
+		configurable: true,
+		enumerable: true,
+		value,
+		writable: true,
+	});
+};
+
+/**
+ * Granted flag per declared vendor, from the denials the gate honors: a
+ * stale denial for a vendor now declared `disabled` does not count, so the
+ * draft never reports a vendor as off while every gate allows it. Empty
+ * under an `iab` policy, where the TC string decides.
+ */
+const seedVendors = function seedVendors(
+	snapshot: ConsentSnapshot
+): Record<string, boolean> {
+	const grants: Record<string, boolean> = {};
+	if (snapshot.model === 'iab') {
+		return grants;
+	}
+	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		setOwn(grants, vendor.id, !denied.has(vendor.id));
+	}
+	return grants;
+};
+
+/** Ids a vendor switch may change: declared and not `disabled`. */
+const toggleableVendorIds = function toggleableVendorIds(
+	snapshot: ConsentSnapshot
+): ReadonlySet<string> {
+	const ids = new Set<string>();
+	if (snapshot.model === 'iab') {
+		return ids;
+	}
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			ids.add(vendor.id);
+		}
+	}
+	return ids;
+};
+
+/**
+ * What the vendor rows are built from. A change here while the draft is
+ * dirty means the visitor was looking at a different list, so the draft
+ * goes stale the way a category change makes it stale.
+ */
+const vendorSurface = function vendorSurface(
+	snapshot: ConsentSnapshot
+): string {
+	if (snapshot.model === 'iab') {
+		return '';
+	}
+	return JSON.stringify(
+		(snapshot.vendors?.declared ?? []).map((vendor) => [
+			vendor.id,
+			vendor.presentable,
+			vendor.disabled === true,
+			vendor.category,
+		])
+	);
+};
 
 /** Editable, unmasked choices scoped to the categories the visitor reviewed. */
 export const useConsentDraft = function useConsentDraft(
@@ -11,8 +83,13 @@ export const useConsentDraft = function useConsentDraft(
 	const { kernel, snapshot } = useConsentKernelContext();
 	const config = useConsentConfig();
 	const fingerprint = ref('');
+	const surface = ref('');
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
 	const values = ref<Partial<ConsentState>>({});
+	/** Granted flag per declared vendor; seeded from the record, edited by the switches. */
+	const vendors = ref<Record<string, boolean>>({});
+	/** The vendor map as seeded, so save() knows which vendors moved. */
+	const baseVendors = shallowRef<Record<string, boolean>>({});
 	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
 		const scope =
 			current.evaluationPolicy.choiceScope ?? current.policyRule.scope;
@@ -30,6 +107,7 @@ export const useConsentDraft = function useConsentDraft(
 	const reset = () => {
 		const current = snapshot.value;
 		fingerprint.value = current.evaluationPolicy.choice.fingerprint;
+		surface.value = vendorSurface(current);
 		displayedCategories.value = categoriesFor(current);
 		values.value = Object.fromEntries(
 			displayedCategories.value.map((category) => [
@@ -41,6 +119,8 @@ export const useConsentDraft = function useConsentDraft(
 							current.policyRule.preselectedCategories.includes(category))),
 			])
 		);
+		baseVendors.value = seedVendors(current);
+		vendors.value = { ...baseVendors.value };
 	};
 	reset();
 	const isStale = computed(
@@ -48,17 +128,23 @@ export const useConsentDraft = function useConsentDraft(
 			fingerprint.value !==
 				snapshot.value.evaluationPolicy.choice.fingerprint ||
 			displayedCategories.value.join(',') !==
-				categoriesFor(snapshot.value).join(',')
+				categoriesFor(snapshot.value).join(',') ||
+			surface.value !== vendorSurface(snapshot.value)
 	);
 	watch(
 		[
 			() => snapshot.value.explicitChoice,
+			() => snapshot.value.vendorChoice,
 			() => snapshot.value.evaluationPolicy,
 		],
-		([choice, policy], [previousChoice]) => {
+		(
+			[choice, vendorChoice, policy],
+			[previousChoice, previousVendorChoice]
+		) => {
 			if (
 				shouldSyncChanges() &&
 				(choice !== previousChoice ||
+					vendorChoice !== previousVendorChoice ||
 					fingerprint.value === policy.choice.fingerprint)
 			) {
 				reset();
@@ -73,14 +159,41 @@ export const useConsentDraft = function useConsentDraft(
 			if (isStale.value) {
 				return { ok: false };
 			}
-			const patch: Partial<ConsentState> = {};
+			const patch: Partial<ConsentState> & {
+				vendors?: Record<string, boolean>;
+			} = {};
 			for (const category of displayedCategories.value) {
 				if (category !== 'necessary') {
 					patch[category] = values.value[category] ?? false;
 				}
 			}
+			// Only the vendors the draft moved travel with the save, so an
+			// untouched vendor never renews its recorded confirmation time.
+			const moved: Record<string, boolean> = {};
+			for (const [id, granted] of Object.entries(vendors.value)) {
+				if (baseVendors.value[id] !== granted) {
+					setOwn(moved, id, granted);
+				}
+			}
+			if (Object.keys(moved).length > 0) {
+				patch.vendors = moved;
+			}
 			return await kernel.commands.save(patch);
 		},
+		/**
+		 * Stage one vendor's grant for the next save. Ignored for a vendor that
+		 * is not declared or is declared `disabled`, since the kernel would
+		 * drop the grant on save.
+		 */
+		setVendor(vendorId: string, granted: boolean) {
+			if (!toggleableVendorIds(snapshot.value).has(vendorId)) {
+				return;
+			}
+			const next = { ...vendors.value };
+			setOwn(next, vendorId, granted);
+			vendors.value = next;
+		},
 		values,
+		vendors,
 	};
 };

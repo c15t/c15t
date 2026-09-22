@@ -18,8 +18,7 @@ const DYNAMIC_CONTEXT_SLOTS = {
 
 /**
  * Slots the schema declares for surfaces Vue does not ship. The trigger
- * toolbar and the vendor rows of the preference center are React-only today
- * (vendor rows: c15t/c15t#1161). Every entry must stay declared in the
+ * toolbar is React-only today. Every entry must stay declared in the
  * schema and must stay unreachable in Vue, so the list cannot go stale
  * silently.
  */
@@ -27,18 +26,11 @@ const REACT_ONLY_SLOTS = [
 	'trigger.toolbar',
 	'trigger.toolbarItem',
 	'trigger.toolbarIcon',
-	'vendor-list.root',
-	'vendor-list.trigger',
-	'vendor-list.content',
-	'vendor-list.item',
-	'vendor-list.header',
-	'vendor-list.name',
-	'vendor-list.description',
-	'vendor-list.link',
-	'vendor-list.control',
 ] as const;
 
 const MUST_BE_REACHABLE_SLOTS = [
+	'vendor-list.root',
+	'vendor-list.control',
 	'banner.cardShell',
 	'dialog.container',
 	'accordion.triggerRow',

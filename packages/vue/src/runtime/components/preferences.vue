@@ -11,6 +11,7 @@
  * runner sees identical DOM.
  */
 import type { PresentationAction } from '@c15t/core';
+import { vendorsListedUnder } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 import buttonStyles from '@c15t/ui/styles/components/button';
@@ -30,9 +31,11 @@ import {
 	useHasConsentUi,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
+import { useConsentSnapshot } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentTag from './tag.vue';
+import ConsentWidgetVendorList from './vendor-list.vue';
 
 const props = withDefaults(
 	defineProps<{
@@ -116,8 +119,19 @@ const {
 	isStale,
 	reset: resetDraft,
 	save: saveDraft,
+	setVendor,
+	vendors: draftVendors,
 } = manager?.draft ?? useConsentDraft();
 const categories = draftCategories;
+
+/** Vendors to list under each category; none under an `iab` policy. */
+const snapshot = useConsentSnapshot();
+const declaredVendors = computed(() =>
+	snapshot.value.model === 'iab' ? [] : (snapshot.value.vendors?.declared ?? [])
+);
+const displayedVendors = function displayedVendors(category: CONSENT_CATEGORY) {
+	return vendorsListedUnder(declaredVendors.value, category);
+};
 
 /** Single-open accordion state (opening one category closes the rest). */
 const openItems = ref<Record<string, boolean>>({});
@@ -366,6 +380,15 @@ const onAction = async function onAction(action: PresentationAction) {
 							data-slot="preference-item-content-inner"
 						>
 							{{ consentDescription(category) }}
+							<ConsentWidgetVendorList
+								v-if="displayedVendors(category).length > 0"
+								:category="category"
+								:category-on="draft[category] === true"
+								:granted="draftVendors"
+								:no-style="noStyle"
+								:vendors="displayedVendors(category)"
+								@toggle="setVendor"
+							/>
 						</div>
 					</div>
 				</div>
